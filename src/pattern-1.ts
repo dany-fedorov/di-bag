@@ -3,10 +3,14 @@ import type { SasBox, SasBoxSync } from 'sas-box';
 
 type FArgs<T extends Record<string, any>> = {
   token: string;
-  self: { [K in keyof T]: (args: FArgs<T>) => SasBox<ValBox<T[K], any>> };
+  self: {
+    [K in keyof T]: (args: FArgs<T>) => SasBox.Async<ValBox.Unknown<T[K], any>>;
+  };
   // cache: { [K in keyof T]: () => SasBox<ValBox<T[K], any>> };
   cache: {
-    callTokenMethod<K extends keyof T>(token: K): SasBox<ValBox<T[K], any>>;
+    callTokenMethod<K extends keyof T>(
+      token: K,
+    ): SasBox.Async<ValBox.Unknown<T[K], any>>;
     resolveSync<K extends keyof T>(token: K): T[K];
     resolve<K extends keyof T>(token: K): Promise<T[K]>;
   };
@@ -30,7 +34,7 @@ type FArgs<T extends Record<string, any>> = {
 class DiBagTmpl_WithFactories<
   FF extends Record<
     string,
-    (args: FArgs<Record<string, any>>) => SasBox<ValBox<any, any>>
+    (args: FArgs<Record<string, any>>) => SasBox.Async<ValBox.Unknown<any, any>>
   >,
 > {
   constructor(private readonly ff: FF) {}
@@ -55,8 +59,8 @@ type DiBagTmpl_Begin_Factories = {
     [K in keyof F]: (
       args: FArgs<Record<string, any>>,
     ) => ReturnType<F[K]> extends undefined
-      ? SasBoxSync<ValBoxEmpty<never, never>>
-      : SasBoxSync<ValBoxV<ReturnType<F[K]>, never>>;
+      ? SasBoxSync<ValBox.NoValue.NoMetadata>
+      : SasBoxSync<ValBox.WithValue.NoMetadata<ReturnType<F[K]>>>;
   }>;
   /**
    * TODO: CONTINUE HERE: Add rest
@@ -79,7 +83,7 @@ class DiBagTmpl_Begin {
 class DiBag<
   FF extends Record<
     string,
-    (args: FArgs<Record<string, any>>) => SasBox<ValBox<any, any>>
+    (args: FArgs<Record<string, any>>) => SasBox.Async<ValBox.Unknown<any, any>>
   >,
 > {
   constructor(private readonly ff: FF) {}
@@ -90,10 +94,11 @@ class DiBag<
 
   resolveSync<K extends keyof FF>(
     token: K,
-  ): Exclude<
-    ReturnType<Exclude<ReturnType<FF[K]>['sync'], null>>['value'],
-    undefined
-  > {
+  ): ReturnType<
+    ReturnType<Exclude<ReturnType<FF[K]>['sync'], null>>['getValue']
+  > //   undefined //   ReturnType<Exclude<ReturnType<FF[K]>['sync'], null>['getValue']>, //   Exclude<
+  // >
+  {
     const v = this.ff[token]?.({} as any)
       .assertHasSync()
       .sync()
@@ -107,10 +112,7 @@ class DiBag<
   async resolve<K extends keyof FF>(
     token: K,
   ): Promise<
-    Exclude<
-      ReturnType<Exclude<ReturnType<FF[K]>['sync'], null>>['value'],
-      undefined
-    >
+    ReturnType<ReturnType<Exclude<ReturnType<FF[K]>['sync'], null>>['getValue']>
   > {
     const rv = await this.ff[token]?.({} as any).resolveSyncFirst();
     if (rv === undefined) {
@@ -164,7 +166,7 @@ const dibag = DiBag.begin()
 
 const main = async () => {
   const b1 = dibag.getValueSync('b').sync().getValue();
-  const d1 = dibag.getValueSync('e').sync().hasValue;
+  const d1 = dibag.getValueSync('e').sync().hasValue();
   // const bb = dibag.getValueSync('b');
   // const b1 = bb.assertHasSync().sync().assertHasValue().getValue();
   // const b2 = dibag.resolveSync('b');
