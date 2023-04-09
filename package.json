@@ -42,6 +42,6 @@
   },
   "dependencies": {
     "sas-box": "^0.0.5",
-    "val-box": "^0.0.7"
+    "val-box": "^0.0.8"
   }
 }

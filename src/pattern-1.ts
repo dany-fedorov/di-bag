@@ -54,7 +54,9 @@ type DiBagTmpl_Begin_Factories = {
   ): DiBagTmpl_WithFactories<{
     [K in keyof F]: (
       args: FArgs<Record<string, any>>,
-    ) => SasBoxSync<ValBox<ReturnType<F[K]>, any>>;
+    ) => ReturnType<F[K]> extends undefined
+      ? SasBoxSync<ValBoxEmpty<never, never>>
+      : SasBoxSync<ValBoxV<ReturnType<F[K]>, never>>;
   }>;
   /**
    * TODO: CONTINUE HERE: Add rest
@@ -156,14 +158,17 @@ const dibag = DiBag.begin()
         .assertHasValue()
         .getValue() as 123,
     d: ({ cache }) => cache.resolveSync('c'),
+    e: () => undefined,
   })
   .end();
 
 const main = async () => {
-  const bb = dibag.getValueSync('b');
-  const b1 = bb.assertHasSync().sync().assertHasValue().getValue();
-  const b2 = dibag.resolveSync('b');
-  const c = await dibag.resolve('c');
+  const b1 = dibag.getValueSync('b').sync().getValue();
+  const d1 = dibag.getValueSync('e').sync().hasValue;
+  // const bb = dibag.getValueSync('b');
+  // const b1 = bb.assertHasSync().sync().assertHasValue().getValue();
+  // const b2 = dibag.resolveSync('b');
+  // const c = await dibag.resolve('c');
 };
 
 main();
