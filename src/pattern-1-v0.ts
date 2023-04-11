@@ -4,7 +4,7 @@ import type { SasBox } from 'sas-box';
 type FArgs<
   FF extends Record<
     string,
-    (args: FArgs<any>) => SasBox.Async<ValBox.Unknown<any, any>>
+    (args: FArgs<any>) => SasBox.Unknown<ValBox.Unknown<any, any>>
   >,
 > = {
   token: string;
@@ -16,17 +16,13 @@ type FArgs<
       token: K,
     ): ReturnType<FF[K]> extends SasBox.Sync<any>
       ? ReturnType<
-          ReturnType<Exclude<ReturnType<FF[K]>['sync'], null>>['getValue']
+          ReturnType<Exclude<ReturnType<FF[K]>['sync'], undefined>>['getValue']
         >
       : never;
     resolve<K extends keyof FF>(
       token: K,
     ): Promise<
-      ReturnType<
-        Awaited<
-          ReturnType<Exclude<ReturnType<FF[K]>['async'], null>>
-        >['getValue']
-      >
+      ReturnType<Awaited<ReturnType<ReturnType<FF[K]>['async']>>['getValue']>
     >;
   };
 };
@@ -49,7 +45,7 @@ type FArgs<
 class DiBagBase<
   FF extends Record<
     string,
-    (args: FArgs<any>) => SasBox.Async<ValBox.Unknown<any, any>>
+    (args: FArgs<any>) => SasBox.Unknown<ValBox.Unknown<any, any>>
   >,
 > {
   constructor(public readonly ff: FF) {}
@@ -61,7 +57,7 @@ class DiBagBase<
   resolveSync<K extends keyof FF>(
     token: K,
   ): ReturnType<
-    ReturnType<Exclude<ReturnType<FF[K]>['sync'], null>>['getValue']
+    ReturnType<Exclude<ReturnType<FF[K]>['sync'], undefined>>['getValue']
   > {
     // > //   undefined //   ReturnType<Exclude<ReturnType<FF[K]>['sync'], null>['getValue']>, //   Exclude<
     const v = this.ff[token]?.({} as any)
@@ -77,7 +73,7 @@ class DiBagBase<
   async resolve<K extends keyof FF>(
     token: K,
   ): Promise<
-    ReturnType<ReturnType<Exclude<ReturnType<FF[K]>['sync'], null>>['getValue']>
+    ReturnType<ReturnType<Exclude<ReturnType<FF[K]>['sync'], undefined>>['getValue']>
   > {
     const rv = await this.ff[token]?.({} as any).resolveSyncFirst();
     if (rv === undefined) {
@@ -94,11 +90,13 @@ class DiBagBase<
 class DiBagTmpl_WithFactories<
   PREV_FF extends Record<
     string,
-    (args: FArgs<Record<string, any>>) => SasBox.Async<ValBox.Unknown<any, any>>
+    (
+      args: FArgs<Record<string, any>>,
+    ) => SasBox.Unknown<ValBox.Unknown<any, any>>
   >,
   FF extends Record<
     string,
-    (args: FArgs<PREV_FF>) => SasBox.Async<ValBox.Unknown<any, any>>
+    (args: FArgs<PREV_FF>) => SasBox.Unknown<ValBox.Unknown<any, any>>
   >,
 > extends DiBagBase<FF> {
   constructor(ff: FF) {
@@ -132,8 +130,8 @@ type DiBagTmpl_Begin_Factories = {
         args: FArgs<Record<string, any>>,
       ) => ReturnType<F[K]> extends Promise<infer PromisedType>
         ? PromisedType extends undefined
-          ? SasBox.Async<ValBox.NoValue.NoMetadata>
-          : SasBox.Async<ValBox.WithValue.NoMetadata<PromisedType>>
+          ? SasBox.Unknown<ValBox.NoValue.NoMetadata>
+          : SasBox.Unknown<ValBox.WithValue.NoMetadata<PromisedType>>
         : ReturnType<F[K]> extends undefined
         ? SasBox.Sync<ValBox.NoValue.NoMetadata>
         : SasBox.Sync<ValBox.WithValue.NoMetadata<ReturnType<F[K]>>>;
@@ -170,11 +168,11 @@ type Prettify<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 export type DiBagTmpl_WithFactories_Factories<
   PREV_PREV_FF extends Record<
     string,
-    (args: FArgs<any>) => SasBox.Async<ValBox.Unknown<any, any>>
+    (args: FArgs<any>) => SasBox.Unknown<ValBox.Unknown<any, any>>
   >,
   PREV_FF extends Record<
     string,
-    (args: FArgs<PREV_PREV_FF>) => SasBox.Async<ValBox.Unknown<any, any>>
+    (args: FArgs<PREV_PREV_FF>) => SasBox.Unknown<ValBox.Unknown<any, any>>
   >,
 > = {
   <F extends Record<string, (args: FArgs<PREV_FF>) => any>>(
@@ -192,8 +190,8 @@ export type DiBagTmpl_WithFactories_Factories<
             args: FArgs<PREV_FF>,
           ) => ReturnType<F[K]> extends Promise<infer PromisedType>
             ? PromisedType extends undefined
-              ? SasBox.Async<ValBox.NoValue.NoMetadata>
-              : SasBox.Async<ValBox.WithValue.NoMetadata<PromisedType>>
+              ? SasBox.Unknown<ValBox.NoValue.NoMetadata>
+              : SasBox.Unknown<ValBox.WithValue.NoMetadata<PromisedType>>
             : ReturnType<F[K]> extends undefined
             ? SasBox.Sync<ValBox.NoValue.NoMetadata>
             : SasBox.Sync<ValBox.WithValue.NoMetadata<ReturnType<F[K]>>>;
@@ -213,11 +211,13 @@ export type DiBagTmpl_WithFactories_Factories<
 function createFactoriesMethodObject_forWithFactories<
   PREV_PREV_FF extends Record<
     string,
-    (args: FArgs<Record<string, any>>) => SasBox.Async<ValBox.Unknown<any, any>>
+    (
+      args: FArgs<Record<string, any>>,
+    ) => SasBox.Unknown<ValBox.Unknown<any, any>>
   >,
   PREV_FF extends Record<
     string,
-    (args: FArgs<PREV_PREV_FF>) => SasBox.Async<ValBox.Unknown<any, any>>
+    (args: FArgs<PREV_PREV_FF>) => SasBox.Unknown<ValBox.Unknown<any, any>>
   >,
 >(): DiBagTmpl_WithFactories_Factories<PREV_PREV_FF, PREV_FF> {
   // function DiBagTmpl_Begin_Factories_Fn() {}
@@ -232,7 +232,7 @@ class DiBagTmpl_Begin extends DiBagBase<{}> {
 class DiBag<
   FF extends Record<
     string,
-    (args: FArgs<any>) => SasBox.Async<ValBox.Unknown<any, any>>
+    (args: FArgs<any>) => SasBox.Unknown<ValBox.Unknown<any, any>>
   >,
 > extends DiBagBase<FF> {
   constructor(ff: FF) {

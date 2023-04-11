@@ -41,7 +41,7 @@
     "typescript": "^5.0.2"
   },
   "dependencies": {
-    "sas-box": "^0.0.6",
+    "sas-box": "^0.0.7",
     "val-box": "^0.0.10"
   }
 }
