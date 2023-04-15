@@ -29,6 +29,7 @@
   "author": "Dany Fedorov",
   "license": "MIT",
   "devDependencies": {
+    "@mistlog/typetype": "^0.0.30",
     "@tsconfig/strictest": "^1.0.2",
     "@typescript-eslint/eslint-plugin": "5.47.1",
     "@typescript-eslint/parser": "5.48.1",

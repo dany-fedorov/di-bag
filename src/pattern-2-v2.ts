@@ -49,23 +49,11 @@ type FArgs<
       : K extends keyof FF_ASYNC
       ? ReturnType<FF_ASYNC[K]>
       : never;
-    resolveSync<K extends keyof FF_SYNC | keyof FF_ASYNC>(
+    resolveSync<K extends keyof FF_SYNC>(
       token: K,
-    ): K extends keyof FF_SYNC
-      ? ReturnType<FF_SYNC[K]> extends SasBox.Sync<any>
-        ? ReturnType<
-            ReturnType<
-              Exclude<ReturnType<FF_SYNC[K]>['sync'], undefined>
-            >['getValue']
-          >
-        : never
-      : K extends keyof FF_ASYNC
-      ? ReturnType<FF_ASYNC[K]> extends SasBox.Sync<any>
-        ? ReturnType<
-            Awaited<ReturnType<ReturnType<FF_ASYNC[K]>['async']>>['getValue']
-          >
-        : never
-      : never;
+    ): ReturnType<
+      ReturnType<Exclude<ReturnType<FF_SYNC[K]>['sync'], undefined>>['getValue']
+    >;
 
     resolve<K extends keyof FF_SYNC | keyof FF_ASYNC>(
       token: K,
@@ -252,12 +240,86 @@ class DiBagTmpl_WithFactories<
   /**
    * TODO: CONTINUE HERE: Make sure you can add factories merging all types
    */
-  registerFactories = createFactoriesMethodObject_forWithFactories<
+  register: {
+    <
+      F extends Record<
+        string,
+        (
+          args: FArgs<
+            Prettify<Assign<PREV_FF_SYNC, FF_SYNC>>,
+            Prettify<Assign<PREV_FF_ASYNC, FF_ASYNC>>
+          >,
+        ) => any
+      >,
+    >(
+      // eslint-disable-next-line @typescript-eslint/ban-types
+      f:
+        | F
+        | ((args: {
+            bag: DiBagTmpl_WithFactories<
+              PREV_FF_SYNC,
+              PREV_FF_ASYNC,
+              FF_SYNC,
+              FF_ASYNC
+            >;
+          }) => F),
+    ): DiBagTmpl_WithFactories<
+      Prettify<Assign<PREV_FF_SYNC, FF_SYNC>>,
+      Prettify<Assign<PREV_FF_ASYNC, FF_ASYNC>>,
+      // vvv SYNC vvv
+      {
+        [K in keyof F as ReturnType<F[K]> extends Promise<any>
+          ? never
+          : K]: ReturnType<F[K]> extends undefined
+          ? (
+              args: FArgs<
+                Prettify<Assign<PREV_FF_SYNC, FF_SYNC>>,
+                Prettify<Assign<PREV_FF_ASYNC, FF_ASYNC>>
+              >,
+            ) => SasBox.Sync<ValBox.NoValue.NoMetadata>
+          : (
+              args: FArgs<
+                Prettify<Assign<PREV_FF_SYNC, FF_SYNC>>,
+                Prettify<Assign<PREV_FF_ASYNC, FF_ASYNC>>
+              >,
+            ) => SasBox.Sync<ValBox.WithValue.NoMetadata<ReturnType<F[K]>>>;
+      },
+      // ^^^ SYNC ^^^
+      // vvv ASYNC vvv
+      {
+        [K in keyof F as ReturnType<F[K]> extends Promise<any>
+          ? K
+          : never]: ReturnType<F[K]> extends Promise<infer PromisedType>
+          ? PromisedType extends undefined
+            ? (
+                args: FArgs<
+                  Prettify<Assign<PREV_FF_SYNC, FF_SYNC>>,
+                  Prettify<Assign<PREV_FF_ASYNC, FF_ASYNC>>
+                >,
+              ) => SasBox.Async<ValBox.NoValue.NoMetadata>
+            : (
+                args: FArgs<
+                  Prettify<Assign<PREV_FF_SYNC, FF_SYNC>>,
+                  Prettify<Assign<PREV_FF_ASYNC, FF_ASYNC>>
+                >,
+              ) => SasBox.Async<ValBox.WithValue.NoMetadata<PromisedType>>
+          : never;
+      }
+      // ^^^ ASYNC ^^^
+    >;
+    /**
+     * TODO: CONTINUE HERE: Add rest
+     */
+    boxed: any;
+    unboxed: any;
+    sync: any;
+    async: any;
+  } = createFactoriesMethodObject_forWithFactories<
     PREV_FF_SYNC,
     PREV_FF_ASYNC,
     FF_SYNC,
     FF_ASYNC
-  >();
+  >() as any;
 
   end(): DiBag<PREV_FF_SYNC, PREV_FF_ASYNC, FF_SYNC, FF_ASYNC> {
     return new DiBag<PREV_FF_SYNC, PREV_FF_ASYNC, FF_SYNC, FF_ASYNC>(
@@ -278,24 +340,34 @@ type DiBagTmpl_Begin_Factories = {
     {},
     // eslint-disable-next-line @typescript-eslint/ban-types
     {},
+    // vvv SYNC vvv
     {
-      [K in keyof F]: (
-        args: FArgs<Record<string, any>, Record<string, any>>,
-      ) => ReturnType<F[K]> extends Promise<any>
+      [K in keyof F as ReturnType<F[K]> extends Promise<any>
         ? never
-        : ReturnType<F[K]> extends undefined
-        ? SasBox.Sync<ValBox.NoValue.NoMetadata>
-        : SasBox.Sync<ValBox.WithValue.NoMetadata<ReturnType<F[K]>>>;
+        : K]: ReturnType<F[K]> extends undefined
+        ? (
+            args: FArgs<Record<string, any>, Record<string, any>>,
+          ) => SasBox.Sync<ValBox.NoValue.NoMetadata>
+        : (
+            args: FArgs<Record<string, any>, Record<string, any>>,
+          ) => SasBox.Sync<ValBox.WithValue.NoMetadata<ReturnType<F[K]>>>;
     },
+    // ^^^ SYNC ^^^
+    // vvv ASYNC vvv
     {
-      [K in keyof F]: (
-        args: FArgs<Record<string, any>, Record<string, any>>,
-      ) => ReturnType<F[K]> extends Promise<infer PromisedType>
+      [K in keyof F as ReturnType<F[K]> extends Promise<any>
+        ? K
+        : never]: ReturnType<F[K]> extends Promise<infer PromisedType>
         ? PromisedType extends undefined
-          ? SasBox.Unknown<ValBox.NoValue.NoMetadata>
-          : SasBox.Unknown<ValBox.WithValue.NoMetadata<PromisedType>>
+          ? (
+              args: FArgs<Record<string, any>, Record<string, any>>,
+            ) => SasBox.Async<ValBox.NoValue.NoMetadata>
+          : (
+              args: FArgs<Record<string, any>, Record<string, any>>,
+            ) => SasBox.Async<ValBox.WithValue.NoMetadata<PromisedType>>
         : never;
     }
+    // ^^^ ASYNC ^^^
   >;
   /**
    * TODO: CONTINUE HERE: Add rest
@@ -362,30 +434,46 @@ export type DiBagTmpl_WithFactories_Factories<
   ): DiBagTmpl_WithFactories<
     Prettify<Assign<PREV_PREV_FF_SYNC, PREV_FF_SYNC>>,
     Prettify<Assign<PREV_PREV_FF_ASYNC, PREV_FF_ASYNC>>,
+    // vvv SYNC vvv
     {
-      [K in keyof F]: (
-        args: FArgs<
-          Prettify<Assign<PREV_PREV_FF_SYNC, PREV_FF_SYNC>>,
-          Prettify<Assign<PREV_PREV_FF_ASYNC, PREV_FF_ASYNC>>
-        >,
-      ) => ReturnType<F[K]> extends Promise<any>
+      [K in keyof F as ReturnType<F[K]> extends Promise<any>
         ? never
-        : ReturnType<F[K]> extends undefined
-        ? SasBox.Sync<ValBox.NoValue.NoMetadata>
-        : SasBox.Sync<ValBox.WithValue.NoMetadata<ReturnType<F[K]>>>;
+        : K]: ReturnType<F[K]> extends undefined
+        ? (
+            args: FArgs<
+              Prettify<Assign<PREV_PREV_FF_SYNC, PREV_FF_SYNC>>,
+              Prettify<Assign<PREV_PREV_FF_ASYNC, PREV_FF_ASYNC>>
+            >,
+          ) => SasBox.Sync<ValBox.NoValue.NoMetadata>
+        : (
+            args: FArgs<
+              Prettify<Assign<PREV_PREV_FF_SYNC, PREV_FF_SYNC>>,
+              Prettify<Assign<PREV_PREV_FF_ASYNC, PREV_FF_ASYNC>>
+            >,
+          ) => SasBox.Sync<ValBox.WithValue.NoMetadata<ReturnType<F[K]>>>;
     },
+    // ^^^ SYNC ^^^
+    // vvv ASYNC vvv
     {
-      [K in keyof F]: (
-        args: FArgs<
-          Prettify<Assign<PREV_PREV_FF_SYNC, PREV_FF_SYNC>>,
-          Prettify<Assign<PREV_PREV_FF_ASYNC, PREV_FF_ASYNC>>
-        >,
-      ) => ReturnType<F[K]> extends Promise<infer PromisedType>
+      [K in keyof F as ReturnType<F[K]> extends Promise<any>
+        ? K
+        : never]: ReturnType<F[K]> extends Promise<infer PromisedType>
         ? PromisedType extends undefined
-          ? SasBox.Unknown<ValBox.NoValue.NoMetadata>
-          : SasBox.Unknown<ValBox.WithValue.NoMetadata<PromisedType>>
+          ? (
+              args: FArgs<
+                Prettify<Assign<PREV_PREV_FF_SYNC, PREV_FF_SYNC>>,
+                Prettify<Assign<PREV_PREV_FF_ASYNC, PREV_FF_ASYNC>>
+              >,
+            ) => SasBox.Async<ValBox.NoValue.NoMetadata>
+          : (
+              args: FArgs<
+                Prettify<Assign<PREV_PREV_FF_SYNC, PREV_FF_SYNC>>,
+                Prettify<Assign<PREV_PREV_FF_ASYNC, PREV_FF_ASYNC>>
+              >,
+            ) => SasBox.Async<ValBox.WithValue.NoMetadata<PromisedType>>
         : never;
     }
+    // ^^^ ASYNC ^^^
   >;
   /**
    * TODO: CONTINUE HERE: Add rest
@@ -433,8 +521,7 @@ function createFactoriesMethodObject_forWithFactories<
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 class DiBagTmpl_Begin extends DiBagBase<{}, {}, {}, {}> {
-  registerFactories: DiBagTmpl_Begin_Factories =
-    createFactoriesMethodObject_forBegin();
+  register: DiBagTmpl_Begin_Factories = createFactoriesMethodObject_forBegin();
 }
 
 class DiBag<
@@ -479,7 +566,7 @@ class DiBag<
 }
 
 const dibag = DiBag.begin()
-  .registerFactories(() => ({
+  .register(() => ({
     a: () => 1235 as const,
     b: (args) => {
       // const v = args.cache.getValueSync('a');
@@ -518,7 +605,7 @@ const dibag = DiBag.begin()
     d: ({ cache }) => cache.resolveSync('c') as 321,
     e: () => undefined,
   }))
-  .registerFactories(({ bag }) => ({
+  .register(({ bag }) => ({
     f: () => 123 as const,
     g: (args) => {
       return args.sync_factories['a']?.({ ...args, token: 'a' })
@@ -539,14 +626,36 @@ const dibag = DiBag.begin()
   }))
   .end();
 
+const dibag2 = DiBag.begin()
+  .register({
+    prom: async () => 112233 as const,
+  })
+  .register({
+    heh: async (args) =>
+      (
+        await args
+          .factory('prom')({ ...args, token: 'heh' })
+          .async()
+      ).getValue(),
+  })
+  .register({
+    hoh: async (args) => args.cache.resolve('prom'),
+  })
+  .end();
+
 const main = async () => {
+  const v1 = await dibag2.resolve('prom');
+  const v2 = await dibag2.resolve('hoh');
+
   const b1 = dibag.callFactory('b').sync().getValue();
   const b2 = dibag.callFactory('bb').sync().getValue();
   const d1 = dibag.callFactory('e').sync().hasValue();
   const d1 = dibag.resolveSync('d');
   const f1 = dibag.resolveSync('f');
   const g1 = dibag.resolveSync('g');
+  const g2 = dibag.resolve('g');
   const h1 = dibag.resolveSync('h');
+  const h2 = dibag.resolve('h');
   const g2 = dibag.resolveSync('gg');
   // const bb = dibag.getValueSync('b');
   // const b1 = bb.assertHasSync().sync().assertHasValue().getValue();
