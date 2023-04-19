@@ -127,13 +127,13 @@ function withDeps2<
     factory: (bag: { deps: Deps[K]['deps'] }) => ReturnType<Deps[K]['factory']>;
   };
 }): {
-  addFactories: <>(factories: ) => any;
+  addFacs: <>(factories: ) => any;
 } {
   return {
-    addFactories: () => null,
+    addFacs: () => null,
   };
 }
 
-withDeps2<typeof deps>(deps).addFactories({
+withDeps2<typeof deps>(deps).addFacs({
   a: () => null,
 });

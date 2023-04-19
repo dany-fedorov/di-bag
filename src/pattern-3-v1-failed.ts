@@ -18,7 +18,7 @@ class DiBagFinal<
   constructor(public readonly f: F) {}
 }
 
-class DiBag_Begin_WithTypes_WithFactories<
+class DiBag_Begin_WithTypes_WithFacs<
   TTypes extends Record<string, any>,
   F extends Record<string, (x: any) => any>,
 > {
@@ -28,9 +28,9 @@ class DiBag_Begin_WithTypes_WithFactories<
 }
 
 class DiBag_Begin_WithTypes<TTYpes extends Record<string, any>> {
-  addFactories<F extends Record<string, (args: any) => any>>(
+  addFacs<F extends Record<string, (args: any) => any>>(
     f: F,
-  ): DiBag_Begin_WithTypes_WithFactories<TTypes, F> {}
+  ): DiBag_Begin_WithTypes_WithFacs<TTypes, F> {}
 }
 
 class DiBag_Begin {

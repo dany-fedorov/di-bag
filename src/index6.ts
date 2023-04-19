@@ -2,7 +2,7 @@ export type DiBagBeginOpts = {
   alias?: string;
 };
 
-export class DiBagTemplate_WithFactories<
+export class DiBagTemplate_WithFacs<
   F extends Record<string, (input: any) => any>,
 > {
   _alias: string;
@@ -38,7 +38,7 @@ export class DiBagTemplate_Begin {
       cache: unknown;
     }) => ReturnType<F[K]>;
   }) {
-    return new DiBagTemplate_WithFactories<F>(this._alias, factories);
+    return new DiBagTemplate_WithFacs<F>(this._alias, factories);
   }
 }
 

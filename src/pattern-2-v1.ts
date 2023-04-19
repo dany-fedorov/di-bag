@@ -83,19 +83,19 @@ type FArgs<
   };
 };
 
-// type DiBagT_WithFactories<FF extends Record<string, SasBox<ValBox<any, any>>>> =
+// type DiBagT_WithFacs<FF extends Record<string, SasBox<ValBox<any, any>>>> =
 //   {
 //     end: () => DiBag<FF>;
 //   };
 
-// type DiBagT_Begin_Factories = {
+// type DiBagT_Begin_Facs = {
 //   <F extends Record<string, (args: FArgs<Record<string, any>>) => any>>(
 //     f: F,
-//   ): DiBagT_WithFactories<{ [K in keyof F]: SasBox<ValBox<F[K], any>> }>;
+//   ): DiBagT_WithFacs<{ [K in keyof F]: SasBox<ValBox<F[K], any>> }>;
 // };
 //
 // type DiBagT_Begin = {
-//   factories: DiBagT_Begin_Factories;
+//   factories: DiBagT_Begin_Facs;
 // };
 
 class DiBagBase<
@@ -219,7 +219,7 @@ class DiBagBase<
   }
 }
 
-class DiBagTmpl_WithFactories<
+class DiBagTmpl_WithFacs<
   PREV_FF_SYNC extends Record<
     string,
     (
@@ -252,7 +252,7 @@ class DiBagTmpl_WithFactories<
   /**
    * TODO: CONTINUE HERE: Make sure you can add factories merging all types
    */
-  register = createFactoriesMethodObject_forWithFactories<
+  register = createFacsMethodObject_forWithFacs<
     PREV_FF_SYNC,
     PREV_FF_ASYNC,
     FF_SYNC,
@@ -270,10 +270,10 @@ class DiBagTmpl_WithFactories<
 /**
  * TODO: CONTINUE HERE: Try to make so that not-undefined values in unboxed.sync (default) are wrapped in ValBoxV
  */
-type DiBagTmpl_Begin_Factories = {
+type DiBagTmpl_Begin_Facs = {
   <F extends Record<string, (args: FArgs_Begin) => any>>(
     f: F | ((args: { bag: DiBagTmpl_Begin }) => F),
-  ): DiBagTmpl_WithFactories<
+  ): DiBagTmpl_WithFacs<
     // eslint-disable-next-line @typescript-eslint/ban-types
     {},
     // eslint-disable-next-line @typescript-eslint/ban-types
@@ -316,8 +316,8 @@ type DiBagTmpl_Begin_Factories = {
   async: any;
 };
 
-function createFactoriesMethodObject_forBegin(): DiBagTmpl_Begin_Factories {
-  // function DiBagTmpl_Begin_Factories_Fn() {}
+function createFacsMethodObject_forBegin(): DiBagTmpl_Begin_Facs {
+  // function DiBagTmpl_Begin_Facs_Fn() {}
   return {} as any;
 }
 
@@ -335,7 +335,7 @@ type Assign<OldContext extends object, NewContext extends object> = {
 
 type Prettify<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
-export type DiBagTmpl_WithFactories_Factories<
+export type DiBagTmpl_WithFacs_Facs<
   PREV_PREV_FF_SYNC extends Record<
     string,
     (args: FArgs<any, any>) => SasBox.Sync<ValBox.Unknown<any, any>>
@@ -362,14 +362,14 @@ export type DiBagTmpl_WithFactories_Factories<
     f:
       | F
       | ((args: {
-          bag: DiBagTmpl_WithFactories<
+          bag: DiBagTmpl_WithFacs<
             PREV_PREV_FF_SYNC,
             PREV_PREV_FF_ASYNC,
             PREV_FF_SYNC,
             PREV_FF_ASYNC
           >;
         }) => F),
-  ): DiBagTmpl_WithFactories<
+  ): DiBagTmpl_WithFacs<
     Prettify<Assign<PREV_PREV_FF_SYNC, PREV_FF_SYNC>>,
     Prettify<Assign<PREV_PREV_FF_ASYNC, PREV_FF_ASYNC>>,
     // vvv SYNC vvv
@@ -422,7 +422,7 @@ export type DiBagTmpl_WithFactories_Factories<
   async: any;
 };
 
-function createFactoriesMethodObject_forWithFactories<
+function createFacsMethodObject_forWithFacs<
   PREV_PREV_FF_SYNC extends Record<
     string,
     (
@@ -447,20 +447,20 @@ function createFactoriesMethodObject_forWithFactories<
       args: FArgs<PREV_PREV_FF_SYNC, PREV_PREV_FF_ASYNC>,
     ) => SasBox.Unknown<ValBox.Unknown<any, any>>
   >,
->(): DiBagTmpl_WithFactories_Factories<
+>(): DiBagTmpl_WithFacs_Facs<
   PREV_PREV_FF_SYNC,
   PREV_PREV_FF_ASYNC,
   PREV_FF_SYNC,
   PREV_FF_ASYNC
 > {
-  // function DiBagTmpl_Begin_Factories_Fn() {}
+  // function DiBagTmpl_Begin_Facs_Fn() {}
   return {} as any;
 }
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 class DiBagTmpl_Begin extends DiBagBase<{}, {}, {}, {}> {
-  register: DiBagTmpl_Begin_Factories =
-    createFactoriesMethodObject_forBegin();
+  register: DiBagTmpl_Begin_Facs =
+    createFacsMethodObject_forBegin();
 }
 
 class DiBag<

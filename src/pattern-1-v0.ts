@@ -27,19 +27,19 @@ type FArgs<
   };
 };
 
-// type DiBagT_WithFactories<FF extends Record<string, SasBox<ValBox<any, any>>>> =
+// type DiBagT_WithFacs<FF extends Record<string, SasBox<ValBox<any, any>>>> =
 //   {
 //     end: () => DiBag<FF>;
 //   };
 
-// type DiBagT_Begin_Factories = {
+// type DiBagT_Begin_Facs = {
 //   <F extends Record<string, (args: FArgs<Record<string, any>>) => any>>(
 //     f: F,
-//   ): DiBagT_WithFactories<{ [K in keyof F]: SasBox<ValBox<F[K], any>> }>;
+//   ): DiBagT_WithFacs<{ [K in keyof F]: SasBox<ValBox<F[K], any>> }>;
 // };
 //
 // type DiBagT_Begin = {
-//   factories: DiBagT_Begin_Factories;
+//   factories: DiBagT_Begin_Facs;
 // };
 
 class DiBagBase<
@@ -87,7 +87,7 @@ class DiBagBase<
   }
 }
 
-class DiBagTmpl_WithFactories<
+class DiBagTmpl_WithFacs<
   PREV_FF extends Record<
     string,
     (
@@ -106,7 +106,7 @@ class DiBagTmpl_WithFactories<
   /**
    * TODO: CONTINUE HERE: Make sure you can add factories merging all types
    */
-  registerFactories = createFactoriesMethodObject_forWithFactories<
+  registerFacs = createFacsMethodObject_forWithFacs<
     PREV_FF,
     FF
   >();
@@ -119,10 +119,10 @@ class DiBagTmpl_WithFactories<
 /**
  * TODO: CONTINUE HERE: Try to make so that not-undefined values in unboxed.sync (default) are wrapped in ValBoxV
  */
-type DiBagTmpl_Begin_Factories = {
+type DiBagTmpl_Begin_Facs = {
   <F extends Record<string, (args: FArgs<Record<string, any>>) => any>>(
     f: F | ((args: { bag: DiBagTmpl_Begin }) => F),
-  ): DiBagTmpl_WithFactories<
+  ): DiBagTmpl_WithFacs<
     // eslint-disable-next-line @typescript-eslint/ban-types
     {},
     {
@@ -146,8 +146,8 @@ type DiBagTmpl_Begin_Factories = {
   async: any;
 };
 
-function createFactoriesMethodObject_forBegin(): DiBagTmpl_Begin_Factories {
-  // function DiBagTmpl_Begin_Factories_Fn() {}
+function createFacsMethodObject_forBegin(): DiBagTmpl_Begin_Facs {
+  // function DiBagTmpl_Begin_Facs_Fn() {}
   return {} as any;
 }
 
@@ -165,7 +165,7 @@ type Assign<OldContext extends object, NewContext extends object> = {
 
 type Prettify<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
-export type DiBagTmpl_WithFactories_Factories<
+export type DiBagTmpl_WithFacs_Facs<
   PREV_PREV_FF extends Record<
     string,
     (args: FArgs<any>) => SasBox.Unknown<ValBox.Unknown<any, any>>
@@ -179,8 +179,8 @@ export type DiBagTmpl_WithFactories_Factories<
     // eslint-disable-next-line @typescript-eslint/ban-types
     f:
       | F
-      | ((args: { bag: DiBagTmpl_WithFactories<PREV_PREV_FF, PREV_FF> }) => F),
-  ): DiBagTmpl_WithFactories<
+      | ((args: { bag: DiBagTmpl_WithFacs<PREV_PREV_FF, PREV_FF> }) => F),
+  ): DiBagTmpl_WithFacs<
     Prettify<Assign<PREV_PREV_FF, PREV_FF>>,
     Prettify<
       Assign<
@@ -208,7 +208,7 @@ export type DiBagTmpl_WithFactories_Factories<
   async: any;
 };
 
-function createFactoriesMethodObject_forWithFactories<
+function createFacsMethodObject_forWithFacs<
   PREV_PREV_FF extends Record<
     string,
     (
@@ -219,14 +219,14 @@ function createFactoriesMethodObject_forWithFactories<
     string,
     (args: FArgs<PREV_PREV_FF>) => SasBox.Unknown<ValBox.Unknown<any, any>>
   >,
->(): DiBagTmpl_WithFactories_Factories<PREV_PREV_FF, PREV_FF> {
-  // function DiBagTmpl_Begin_Factories_Fn() {}
+>(): DiBagTmpl_WithFacs_Facs<PREV_PREV_FF, PREV_FF> {
+  // function DiBagTmpl_Begin_Facs_Fn() {}
   return {} as any;
 }
 
 class DiBagTmpl_Begin extends DiBagBase<{}> {
-  registerFactories: DiBagTmpl_Begin_Factories =
-    createFactoriesMethodObject_forBegin();
+  registerFacs: DiBagTmpl_Begin_Facs =
+    createFacsMethodObject_forBegin();
 }
 
 class DiBag<
@@ -255,7 +255,7 @@ class DiBag<
 }
 
 const dibag = DiBag.begin()
-  .registerFactories(() => ({
+  .registerFacs(() => ({
     a: () => 1235 as const,
     b: (args) => {
       // const v = args.cache.getValueSync('a');
@@ -276,7 +276,7 @@ const dibag = DiBag.begin()
     d: ({ cache }) => cache.resolveSync('c') as 321,
     e: () => undefined,
   }))
-  .registerFactories(({ bag }) => ({
+  .registerFacs(({ bag }) => ({
     f: () => 123 as const,
     g: (args) =>
       args.factories['a']?.({ ...args, token: 'a' })

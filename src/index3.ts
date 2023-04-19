@@ -49,8 +49,8 @@ export namespace MiniDi {
       return new Injector(depsDef, {});
     }
 
-    addFactories<Factories extends Record<keyof Deps, () => any>>(
-      factories: Factories,
-    ): Injector<Deps, Prettify<Assign<Context, Factories>>>;
+    addFacs<Facs extends Record<keyof Deps, () => any>>(
+      factories: Facs,
+    ): Injector<Deps, Prettify<Assign<Context, Facs>>>;
   }
 }

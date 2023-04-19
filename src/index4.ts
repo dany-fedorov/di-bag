@@ -26,13 +26,13 @@ type Deps<
 class CT<
   DepsConstrainedType extends {}
   >,
-  FactoriesConstraint extends Record<
+  FacsConstraint extends Record<
     string | number | symbol,
     { factory: (bag: any) => any }
   >,
 > {
   depsDef: Deps<DepsConstrainedType> | null = null;
-  factoriesDef: FactoriesConstraint | null = null;
+  factoriesDef: FacsConstraint | null = null;
 
   // eslint-disable-next-line @typescript-eslint/ban-types
   static begin(): CT<{}, {}> {
@@ -42,24 +42,24 @@ class CT<
   deps<
     NextDeps extends Record<
       string,
-      { deps: readonly (keyof FactoriesConstraint)[] }
+      { deps: readonly (keyof FacsConstraint)[] }
     >,
   >(nextDepsDef: {
     [K in keyof NextDeps]: {
-      deps: readonly (keyof FactoriesConstraint)[];
+      deps: readonly (keyof FacsConstraint)[];
       // factory: (bag: {
-      //   deps: { [P in NextDeps[K]['deps'][number]]: Factories[P] };
+      //   deps: { [P in NextDeps[K]['deps'][number]]: Facs[P] };
       // }) => ReturnType<NextDeps[K]['factory']>;
     };
   }): CT<
     Assign<DepsConstrainedType, NextDeps>,
     Assign<
-      FactoriesConstraint,
+      FacsConstraint,
       {
         [K in keyof NextDeps]: {
           factory: (bag: {
             deps: {
-              [P in NextDeps[K]['deps'][number]]: FactoriesConstraint[P];
+              [P in NextDeps[K]['deps'][number]]: FacsConstraint[P];
             };
           }) => any; // still cannot constrain here
         };
@@ -74,7 +74,7 @@ class CT<
     return this;
   }
 
-  factories(f: FactoriesConstraint): CT<DepsConstrainedType, >
+  factories(f: FacsConstraint): CT<DepsConstrainedType, >
 }
 
 const con = CT.begin().factories().deps({

@@ -24,12 +24,12 @@ type Deps<
 
 export class CT<
   // eslint-disable-next-line @typescript-eslint/ban-types
-  FactoriesConstraint extends {},
+  FacsConstraint extends {},
   // eslint-disable-next-line @typescript-eslint/ban-types
   DepsConstrainedType extends {},
 > {
   depsDef: Deps<DepsConstrainedType> | null = null;
-  factoriesDef: FactoriesConstraint | null = null;
+  factoriesDef: FacsConstraint | null = null;
 
   // eslint-disable-next-line @typescript-eslint/ban-types
   static begin(): CT<{}, {}> {
@@ -39,24 +39,24 @@ export class CT<
   // deps<
   //   NextDeps extends Record<
   //     string,
-  //     { deps: readonly (keyof FactoriesConstraint)[] }
+  //     { deps: readonly (keyof FacsConstraint)[] }
   //   >,
   // >(nextDepsDef: {
   //   [K in keyof NextDeps]: {
-  //     deps: readonly (keyof FactoriesConstraint)[];
+  //     deps: readonly (keyof FacsConstraint)[];
   //     // factory: (bag: {
-  //     //   deps: { [P in NextDeps[K]['deps'][number]]: Factories[P] };
+  //     //   deps: { [P in NextDeps[K]['deps'][number]]: Facs[P] };
   //     // }) => ReturnType<NextDeps[K]['factory']>;
   //   };
   // }): CT<
   //   Assign<DepsConstrainedType, NextDeps>,
   //   Assign<
-  //     FactoriesConstraint,
+  //     FacsConstraint,
   //     {
   //       [K in keyof NextDeps]: {
   //         factory: (bag: {
   //           deps: {
-  //             [P in NextDeps[K]['deps'][number]]: FactoriesConstraint[P];
+  //             [P in NextDeps[K]['deps'][number]]: FacsConstraint[P];
   //           };
   //         }) => any; // still cannot constrain here
   //       };
@@ -71,10 +71,10 @@ export class CT<
   //   return this;
   // }
 
-  factories<NextFactoriesConstraint extends Record<string, (bag: any) => any>>(
-    f: NextFactoriesConstraint,
+  factories<NextFacsConstraint extends Record<string, (bag: any) => any>>(
+    f: NextFacsConstraint,
   ): CT<
-    Prettify<Assign<FactoriesConstraint, NextFactoriesConstraint>>,
+    Prettify<Assign<FacsConstraint, NextFacsConstraint>>,
     DepsConstrainedType
   > {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment

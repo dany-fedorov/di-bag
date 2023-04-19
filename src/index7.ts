@@ -1,7 +1,7 @@
 import type { SasBox } from 'sas-box';
 import type { ValBox } from 'val-box';
 
-export class DiBagTemplate_WithFactories {}
+export class DiBagTemplate_WithFacs {}
 
 export type FResultProviderType = {
   readonly input: unknown;

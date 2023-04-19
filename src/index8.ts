@@ -13,22 +13,22 @@
  * ```
  */
 
-type FactoriesBoxed = {
+type FacsBoxed = {
   (): 123; // <- sync, boxed
 };
 
-type FactoriesUnboxed = {
+type FacsUnboxed = {
   (): 123; // <- unboxed, sync
 };
 
-type Factories = {
+type Facs = {
   (): null; // <- sync, unboxed
-  boxed: FactoriesBoxed;
-  unboxed: FactoriesUnboxed;
+  boxed: FacsBoxed;
+  unboxed: FacsUnboxed;
 };
 
 type Begin = {
-  factories: Factories;
+  factories: Facs;
 };
 
 const begin = (): Begin => {};
