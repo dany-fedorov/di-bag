@@ -1,5 +1,5 @@
 import { ValBox } from 'val-box';
-import { SasBox } from 'sas-box';
+import type { SasBox } from 'sas-box';
 
 type Assign<OldContext extends object, NewContext extends object> = {
   [Token in keyof ({
@@ -48,8 +48,7 @@ export namespace DiBag {
 
   export type FactoryArgs<TFacs extends DiBag.FacsType> = {
     token: string;
-    unresolved: DiBag.Accessor.Unresolved<TFacs>;
-    resolved: DiBag.Accessor.Resolved<TFacs>;
+    access: DiBag.Accessor.PartiallyResolved<{}, TFacs>;
     // TODO: Remove factory functions
     factories: TFacs;
     getFactory: <TToken extends keyof TFacs>(token: TToken) => TFacs[TToken];
@@ -77,77 +76,68 @@ export namespace DiBag {
   >;
 
   export namespace Accessor {
-    type ResolveMethods<TFacs extends DiBag.FacsType> = {
-      resolveAll: SasBox.Async<Resolved<TFacs>>;
+    export type CallFactoryOptions = {
+      cache:
+        | boolean
+        | {
+            doNotCacheResult?: boolean;
+            useCacheBeforeUsingFactory?: boolean;
+          };
+    };
+
+    type ToMoreResolvedAccessorMethods<TFacs extends DiBag.FacsType> = {
+      toFullyResolvedAccessor: (
+        options?: CallFactoryOptions,
+      ) => SasBox.Async<FullyResolved<TFacs>>;
       /**
        * TODO: Try to make a PartiallyResolved type where resolved keys are specified, not sure it is worth it though.
        * Current PartiallyResolved does not give a way to know which keys are resolved and which are not.
        * But maybe this is ok.
        */
-      resolveSome: (
+      toPartiallyResolvedAccessor: (
         tokens: (keyof TFacs)[],
-      ) => SasBox.Async<PartiallyResolved<TFacs>>;
+      ) => SasBox.Async<PartiallyResolved<TFacs, {}>>;
+      toMoreResolvedAccessor: <TokenList extends (keyof TFacs)[]>(
+        tokens: TokenList,
+      ) => SasBox.Async<
+        PartiallyResolved<
+          Omit<TFacs, TokenList[number]>,
+          Pick<TFacs, TokenList[number]>
+        >
+      >;
     };
 
     export type Unresolved<TFacs extends DiBag.FacsType> =
-      ResolveMethods<TFacs> & {
-        unresolved: UnresolvedFacade<TFacs>;
+      ToMoreResolvedAccessorMethods<TFacs> & {
+        unresolved: UnresolvedOpsFacade<TFacs>;
       };
 
-    export type PartiallyResolved<TFacs extends DiBag.FacsType> =
-      ResolveMethods<TFacs> & {
-        unresolved: UnresolvedFacade<TFacs>;
-        resolved: PartiallyResolvedFacade<Partial<TFacs>>;
+    export type PartiallyResolved<
+      TFacsPartial extends DiBag.FacsType,
+      TFacsFull extends DiBag.FacsType,
+    > = ToMoreResolvedAccessorMethods<TFacsPartial & TFacsFull> & {
+      unresolved: UnresolvedOpsFacade<TFacsPartial & TFacsFull>;
+      resolved: ResolvedOpsFacade<TFacsFull>;
+    };
+
+    export type FullyResolved<TFacs extends DiBag.FacsType> =
+      ToMoreResolvedAccessorMethods<TFacs> & {
+        unresolved: UnresolvedOpsFacade<TFacs>;
+        resolved: ResolvedOpsFacade<TFacs>;
       };
 
-    export type Resolved<TFacs extends DiBag.FacsType> =
-      ResolveMethods<TFacs> & {
-        unresolved: UnresolvedFacade<TFacs>;
-        resolved: ResolvedFacade<TFacs>;
-      };
-
-    export type UnresolvedFacade<TFacs extends DiBag.FacsType> = {
-      resolve: <Token extends keyof TFacs | string>(
+    export type UnresolvedOpsFacade<TFacs extends DiBag.FacsType> = {
+      callFactory: <Token extends keyof TFacs | string>(
         token: Token,
-        options?: Unresolved.ResolveTokenOptions,
+        options?: CallFactoryOptions,
       ) => Token extends keyof TFacs
         ? ReturnType<TFacs[Token]>
-        : ValBox.Unknown<unknown, unknown>;
+        :
+            | ValBox.Unknown<unknown, unknown>
+            | Promise<ValBox.Unknown<unknown, unknown>>;
     };
 
-    export namespace Unresolved {
-      export type ResolveTokenOptions = {
-        cache:
-          | boolean
-          | {
-              doNotCacheResult?: boolean;
-              useCacheBeforeUsingFactory?: boolean;
-            };
-      };
-    }
-
-    /**
-     * TODO: I think this should work as intended - but I need to spend more time on this
-     */
-    export type PartiallyResolvedFacade<TFacs extends DiBag.FacsTypePartial> = {
-      values: {
-        [K in keyof TFacs]: TFacs[K] extends undefined
-          ? never
-          : ReturnType<ReturnType<Exclude<TFacs[K], undefined>>['getValue']>;
-      };
-      metadata: {
-        [K in keyof TFacs]: TFacs[K] extends undefined
-          ? never
-          : ReturnType<ReturnType<Exclude<TFacs[K], undefined>>['getMetadata']>;
-      };
-      boxes: {
-        [K in keyof TFacs]: TFacs[K] extends undefined
-          ? never
-          : ReturnType<Exclude<TFacs[K], undefined>>;
-      };
-    };
-
-    export type ResolvedFacade<TFacs extends DiBag.FacsType> = {
+    export type ResolvedOpsFacade<TFacs extends DiBag.FacsType> = {
       values: {
         [K in keyof TFacs]: ReturnType<ReturnType<TFacs[K]>['getValue']>;
       };
@@ -200,14 +190,21 @@ const main = () => {
     .add.factories({
       a: () => 123,
       aa: () => 123 as const,
-      aaa: ({ unresolved }) => {
-        return unresolved.resolve('123');
+      aaa: ({ access }) => {
+        return access.unresolved.callFactory('123');
       },
     })
     .add.factories({
       b: () => 'hey' as const,
-      bb: ({ resolved }) => {
-        return resolved.boxes.aaa;
+      bb: ({ access }) => {
+        const f = access.resolved.boxes.aa.getValue();
+        return f;
+      },
+      bbb: async ({ access }) => {
+        const r = await access.unresolved.callFactory('bb');
+        const rr1 = access.resolved.boxes.aa.getValue();
+        const rr2 = access.resolved.values.aa;
+        const rr3 = access.resolved.metadata.aa;
       },
     })
     .add.factories({
