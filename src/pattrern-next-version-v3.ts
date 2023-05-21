@@ -171,6 +171,7 @@ export namespace DiBag {
 
     export class Begin {
       add: DiBag.Tmpl.Begin.AddProvider = null as any;
+      deps: DiBag.Tmpl.Begin.DepsProvider = null as any;
     }
 
     export namespace Begin {
@@ -180,13 +181,33 @@ export namespace DiBag {
         ) => DiBag.Tmpl.WithFacs<
           DiBag.FacsFromFacsUnboxedInput<{}, TNewFacsUnboxedInput>
         >;
+        types: any;
+        injections: any;
+      };
+
+      export type DepsProvider = {
+        ofThisBag: any;
+        ofThisBagTokens: any;
       };
     }
   }
 }
 
 const main = () => {
+  const bag0 = DiBag.begin().add.factories({ a: () => 888 });
+  const bag00 = DiBag.begin().add.factories({ a: () => 888 });
+  const bag000 = DiBag.begin().add.factories({ a: () => 888 });
   const bag1 = DiBag.begin()
+    // .deps.ofThisBag([bag0, bag00])
+    // .deps.ofThisBagTokens({
+    //   a3: ['a4', bag000],
+    // })
+    // .add.types<{
+    //   a: 1235; // should throw when factory for "a" returns not 12345
+    // }>()
+    // .add.injections({
+    //   customThing: 'literally anything',
+    // })
     .add.factories({
       a: () => 123,
       aa: () => 123 as const,
@@ -236,5 +257,7 @@ const main = () => {
 // TODO next: 1. Work on deps plugin as in final-design-2.md.
 // TODO next: 2. Implement .injections as in final-design.md.
 // TODO next: 3. Implement withTypeProvider as in final-design-2.md.
+
+// TODO next: 999. Add event emitter
 
 main();
