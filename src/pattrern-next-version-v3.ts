@@ -152,13 +152,13 @@ export namespace DiBag {
 
   export namespace Tmpl {
     export class WithFacs<TFacs extends DiBag.FacsType> {
-      add: DiBag.Tmpl.WithFacs.AddProvider<TFacs> = null as any;
+      add: DiBag.Tmpl.WithFacs.DotAddProvider<TFacs> = null as any;
 
       constructor(public readonly icfg: { factories: TFacs }) {}
     }
 
     export namespace WithFacs {
-      export type AddProvider<TFacs extends DiBag.FacsType> = {
+      export type DotAddProvider<TFacs extends DiBag.FacsType> = {
         factories: <
           TNewFacsUnboxedInput extends DiBag.FacsUnboxedInputType<TFacs>,
         >(
@@ -170,12 +170,12 @@ export namespace DiBag {
     }
 
     export class Begin {
-      add: DiBag.Tmpl.Begin.AddProvider = null as any;
-      deps: DiBag.Tmpl.Begin.DepsProvider = null as any;
+      add: DiBag.Tmpl.Begin.DotAddProvider = null as any;
+      deps: DiBag.Tmpl.Begin.DotDepsProvider = null as any;
     }
 
     export namespace Begin {
-      export type AddProvider = {
+      export type DotAddProvider = {
         factories: <TNewFacsUnboxedInput extends DiBag.FacsUnboxedInputType>(
           unboxed: TNewFacsUnboxedInput,
         ) => DiBag.Tmpl.WithFacs<
@@ -185,7 +185,7 @@ export namespace DiBag {
         injections: any;
       };
 
-      export type DepsProvider = {
+      export type DotDepsProvider = {
         ofThisBag: any;
         ofThisBagTokens: any;
       };
