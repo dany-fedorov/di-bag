@@ -455,6 +455,9 @@ const main = () => {
       // d: () => 'opana',
       // a: () => 'hey',
     })
+    .add.types<{
+      newone: 'imnew';
+    }>()
     .add.factories({
       ff: () => 'heyhey',
       fef: () => 'all right',
@@ -462,6 +465,9 @@ const main = () => {
       dd: ({ access }) => {
         const x = access.resolved.boxes.d.getValue();
       },
+    })
+    .add.factories({
+      // newone: () => 'imnew',
     })
     .end();
   // .add.types<{
@@ -536,7 +542,7 @@ const main = () => {
 
 // TODO 2: 0. Add .end method ; // DONE???
 // TODO 2: 0.1. Finalize `access` design // Current design is fine, needs more attention when working on the runtime
-// TODO 2: 1. Finalize TypeScript for .add.type and .add.factories ;
+// TODO 2: 1. Finalize TypeScript for .add.type and .add.factories ; // IT WORKS???
 // TODO 2: 2. TypeScript for .deps ;
 // TODO 2: 3. Start adding runtime ;
 
