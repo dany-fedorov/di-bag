@@ -29,15 +29,36 @@ namespace TypeUtils {
   export type Prettify<T> = T extends infer U
     ? { [K in keyof U]: U[K] }
     : never;
+
+  declare const __brand: unique symbol;
+
+  // https://twitter.com/mattpocockuk/status/1625173884885401600?s=20
+  export type Brand<T, TBrand extends string> = T & {
+    [__brand]: TBrand;
+  };
 }
 
 export class DiBag {
-  static begin(): DiBag.Tmpl.Begin {
+  static begin(): DiBag.Tmpl.Begun {
     return null as any;
   }
 }
 
 export namespace DiBag {
+  // TODO: Try to think how to improve this one
+  export type TypeException<
+    ErrorMessage extends string,
+    ErrorProps extends Record<string, any> = {},
+  > = TypeUtils.Brand<
+    {
+      DI_BAG_ERROR_MESSAGE: ErrorMessage;
+    } & {
+      [PropKey in keyof ErrorProps &
+        string as `DI_BAG_ERROR_PROP__${Capitalize<PropKey>}`]: PropKey;
+    },
+    'DiBag.TypeException'
+  >;
+
   export type DepsInThisBagType = Record<string, string | string[]>;
   export type DepsOfThisBagType = any[]; // Final Bag Version
 
@@ -101,7 +122,14 @@ export namespace DiBag {
       args: DiBag.FactoryArgs<TFacs>,
     ) => any;
   } & {
-    [Token in keyof TFacs]?: never; // Already declared
+    [Token in keyof TFacs]?: DiBag.TypeException<
+      'Already declared',
+      {
+        type_of_already_declared_token: ReturnType<
+          ReturnType<TFacs[Token]>['getValue']
+        >;
+      }
+    >;
   };
 
   export type FacsUnboxedInputPartialType<
@@ -120,7 +148,15 @@ export namespace DiBag {
       args: DiBag.FactoryArgs<TFacs>,
     ) => any;
   } & {
-    [Token in keyof TFacs]?: never; // Already declared
+    // [Token in keyof TFacs]?: never; // Already declared
+    [Token in keyof TFacs]?: DiBag.TypeException<
+      'Already declared',
+      {
+        type_of_already_declared_token: ReturnType<
+          ReturnType<TFacs[Token]>['getValue']
+        >;
+      }
+    >; // Already declared
   };
 
   export type FactoryArgs<TFacs extends DiBag.FacsType> = {
@@ -269,10 +305,12 @@ export namespace DiBag {
         TFacs extends DiBag.FacsType = any,
       > = TypeUtils.Equal<keyof TTypes, keyof TFacs & keyof TTypes> extends true
         ? () => DiBag
-        : {
-            DI_BAG_ERROR__MESSAGE: 'Cannot finalize this DiBag because not all declared types are implemented in factories.';
-            DI_BAG_ERROR__MISSING_FACTORIES: Exclude<keyof TTypes, keyof TFacs>;
-          };
+        : DiBag.TypeException<
+            'Cannot finalize this DiBag because not all declared types are implemented in factories.',
+            {
+              missing_factories: Exclude<keyof TTypes, keyof TFacs>;
+            }
+          >;
 
       export type DotDepsProvider<
         TDepsOfThisBag extends DiBag.DepsOfThisBagType,
@@ -304,7 +342,14 @@ export namespace DiBag {
         TTypes extends DiBag.TypesType,
         TFacs extends DiBag.FacsType,
       > = {
-        types: unknown;
+        types: <
+          TNewTypesUnboxedInput extends DiBag.TypesUnboxedInputType,
+        >() => DiBag.Tmpl.Interim<
+          TDepsOfThisBag,
+          TDepsInThisBag,
+          DiBag.TypesFromTypesUnboxedInput<{}, TNewTypesUnboxedInput>,
+          TFacs
+        >;
         factories: <
           TNewFacsUnboxedInput extends DiBag.FacsUnboxedInputPartialType<
             TFacs,
@@ -355,21 +400,13 @@ export namespace DiBag {
     //   };
     // }
 
-    export class Begin {
-      add: DiBag.Tmpl.Begin.DotAddProvider = null as any;
-      deps: DiBag.Tmpl.Begin.DotDepsProvider = null as any;
+    export class Begun {
+      add: DiBag.Tmpl.Begun.DotAddProvider = null as any;
+      deps: DiBag.Tmpl.Begun.DotDepsProvider = null as any;
     }
 
-    export namespace Begin {
+    export namespace Begun {
       export type DotAddProvider = {
-        factories: <TNewFacsUnboxedInput extends DiBag.FacsUnboxedInputType>(
-          unboxed: TNewFacsUnboxedInput,
-        ) => DiBag.Tmpl.Interim<
-          [],
-          {},
-          {},
-          DiBag.FacsFromFacsUnboxedInput<{}, TNewFacsUnboxedInput>
-        >;
         types: <
           TNewTypesUnboxedInput extends DiBag.TypesUnboxedInputType,
         >() => DiBag.Tmpl.Interim<
@@ -377,6 +414,14 @@ export namespace DiBag {
           {},
           DiBag.TypesFromTypesUnboxedInput<{}, TNewTypesUnboxedInput>,
           {}
+        >;
+        factories: <TNewFacsUnboxedInput extends DiBag.FacsUnboxedInputType>(
+          unboxed: TNewFacsUnboxedInput,
+        ) => DiBag.Tmpl.Interim<
+          [],
+          {},
+          {},
+          DiBag.FacsFromFacsUnboxedInput<{}, TNewFacsUnboxedInput>
         >;
       };
 
@@ -489,8 +534,8 @@ const main = () => {
 // TODO next: 2. Implement .injections as in final-design.md. // Rename it to .add.values, but this is the same as having a factory
 // TODO next: 3. Implement withTypeProvider as in final-design-2.md. // Already did it
 
-// TODO 2: 0. Add .end method ;
-// TODO 2: 0.1. Finalize `access` design
+// TODO 2: 0. Add .end method ; // DONE???
+// TODO 2: 0.1. Finalize `access` design // Current design is fine, needs more attention when working on the runtime
 // TODO 2: 1. Finalize TypeScript for .add.type and .add.factories ;
 // TODO 2: 2. TypeScript for .deps ;
 // TODO 2: 3. Start adding runtime ;
