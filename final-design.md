@@ -28,8 +28,8 @@ const injector = dibag.Injector.begin()
   })
   .factories({
     a: () => 123,
-    b: ({deps}) => deps.sync.a,
-    c: ({input}) => input.hey
+    b: ({ deps }) => deps.sync.a,
+    c: ({ input }) => input.hey
   }).end()
 injector.resolveOne('c', {hey}).sync().value
 injector.resolveAll({hey}).sync().value;
