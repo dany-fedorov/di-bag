@@ -1,6 +1,14 @@
 import type { ValBox } from 'val-box';
 
 namespace TypeUtils {
+  // https://www.typescriptlang.org/play?ssl=3&ssc=1&pln=4&pc=1#code/C4TwDgpgBAqgdgSwPZwCpIJJ2BATgZwgGNhk4AeGAPigF4oAKGKCADxzgBN8oBDOEFAD8jXrgDmALlgBKOjX6DpcCADc8cth26MGYqVARwAZnigY5tGqqQJOckRijK1eAFChIUVHSgBtAG8oY14SJFwECHxpIN5pAEYoAF9kgBooIJCwiKiYqAAjaQAmZOSAXQ9waFQfengydCwcAmJSFHJUPzgAVwBbfLwyvwByLOBwyPxhsqo3NyIUfGAoJGka3wC3KG2+BNStncKoIrckoA
+  // https://github.com/type-challenges/type-challenges/blob/main/questions/00055-hard-union-to-intersection/README.md
+  export type UnionToIntersection<U> = (
+    U extends any ? (arg: U) => any : never
+  ) extends (arg: infer I) => void
+    ? I
+    : never;
+
   // https://github.com/type-challenges/type-challenges
   // export type TupleToUnion<T> = T extends Array<infer ITEMS> ? ITEMS : never;
   // export type TupleToUnion<T extends readonly string[]> = T extends Array<
@@ -52,13 +60,11 @@ namespace TypeUtils {
 }
 
 export class DiBag<
-  TDepsOfThisBag extends DiBag.DepsOfThisBagType,
   TDepsInThisBag extends Record<string, readonly string[]>,
   TTypes extends DiBag.TypesType,
   TFacs extends DiBag.FacsType,
 > {
   deps: {
-    ofThisBaf: TDepsOfThisBag;
     inThisBag: TDepsInThisBag;
   };
   factories: TFacs;
@@ -69,7 +75,6 @@ export class DiBag<
 
   constructor(
     deps: {
-      ofThisBaf: TDepsOfThisBag;
       inThisBag: TDepsInThisBag;
     },
     factories: TFacs,
@@ -98,8 +103,6 @@ export namespace DiBag {
     TToken extends string = string,
     TValue extends readonly string[] = readonly string[],
   > = Record<TToken, TValue>;
-
-  export type DepsOfThisBagType = DiBag[]; // Final Bag Version
 
   export type TypesUnboxedInputType<TValue = any> = Record<string, TValue>;
 
@@ -153,14 +156,15 @@ export namespace DiBag {
       string,
       ValBox.Unknown<any, any>
     >,
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
+    // prettier-ignore
     TDepsKeys extends string =
-      | {
-          [K in keyof TDepsInThisBag]: TDepsInThisBag[K] extends readonly (infer ITEM)[]
-            ? ITEM
-            : never;
-        }[keyof TDepsInThisBag]
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+        | {
+      [K in keyof TDepsInThisBag]: TDepsInThisBag[K] extends readonly (infer ITEM)[]
+        ? ITEM
+        : never;
+    }[keyof TDepsInThisBag]
       | keyof TDepsInThisBag,
     /*    TDepsKeys = {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -201,15 +205,16 @@ export namespace DiBag {
       string,
       ValBox.Unknown<any, any>
     >,
-    // DF: It actually works, but TypeScript does not know about it (?) or is this just the editor?
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
+    // prettier-ignore
     TDepsKeys extends string =
-      | {
-          [K in keyof TDepsInThisBag]: TDepsInThisBag[K] extends readonly (infer ITEM)[]
-            ? ITEM
-            : never;
-        }[keyof TDepsInThisBag]
+      // DF: It actually works, but TypeScript does not know about it (?) or is this just the editor?
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment 
+      // @ts-ignore 
+        | {
+      [K in keyof TDepsInThisBag]: TDepsInThisBag[K] extends readonly (infer ITEM)[]
+        ? ITEM
+        : never;
+    }[keyof TDepsInThisBag]
       | keyof TDepsInThisBag,
     /*    TDepsKeys = {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -308,23 +313,14 @@ export namespace DiBag {
 
   export namespace Tmpl {
     export class Interim<
-      TDepsOfThisBag extends DiBag.DepsOfThisBagType,
       TDepsInThisBag extends Record<string, readonly string[]>,
       TTypes extends DiBag.TypesType,
       TFacs extends DiBag.FacsType,
     > {
-      add: DiBag.Tmpl.Interim.DotAddProvider<
-        TDepsOfThisBag,
-        TDepsInThisBag,
-        TTypes,
-        TFacs
-      > = null as any;
-      deps: DiBag.Tmpl.Interim.DotDepsProvider<
-        TDepsOfThisBag,
-        TDepsInThisBag,
-        TTypes,
-        TFacs
-      > = null as any;
+      add: DiBag.Tmpl.Interim.DotAddProvider<TDepsInThisBag, TTypes, TFacs> =
+        null as any;
+      deps: DiBag.Tmpl.Interim.DotDepsProvider<TDepsInThisBag, TTypes, TFacs> =
+        null as any;
       end: DiBag.Tmpl.Interim.DotEndProvider<TDepsInThisBag, TTypes, TFacs> =
         null as any;
 
@@ -341,18 +337,19 @@ export namespace DiBag {
         TDepsInThisBag extends DiBag.DepsInThisBagType,
         TTypes extends DiBag.TypesType = any,
         TFacs extends DiBag.FacsType = any,
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
+        // prettier-ignore
         TDepsKeys extends string =
-          | {
-              [K in keyof TDepsInThisBag]: TDepsInThisBag[K] extends readonly (infer ITEM)[]
-                ? ITEM
-                : never;
-            }[keyof TDepsInThisBag]
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment 
+          // @ts-ignore 
+            | {
+          [K in keyof TDepsInThisBag]: TDepsInThisBag[K] extends readonly (infer ITEM)[]
+            ? ITEM
+            : never;
+        }[keyof TDepsInThisBag]
           | keyof TDepsInThisBag,
       > = TypeUtils.Equal<keyof TTypes, keyof TFacs & keyof TTypes> extends true
         ? TypeUtils.Equal<TDepsKeys, keyof TFacs & TDepsKeys> extends true
-          ? () => DiBag
+          ? () => DiBag<TDepsInThisBag, TTypes, TFacs>
           : DiBag.TypeException<
               'Cannot finalize this DiBag because not all declared dependencies are implemented in factories.',
               {
@@ -367,7 +364,6 @@ export namespace DiBag {
           >;
 
       export type DotDepsProvider<
-        TDepsOfThisBag extends DiBag.DepsOfThisBagType,
         TDepsInThisBag extends DiBag.DepsInThisBagType,
         TTypes extends DiBag.TypesType,
         TFacs extends DiBag.FacsType,
@@ -375,23 +371,13 @@ export namespace DiBag {
         inThisBag: <TNewDepsInThisBagInput extends DiBag.DepsInThisBagType>(
           internalDeps: TNewDepsInThisBagInput,
         ) => DiBag.Tmpl.Interim<
-          TDepsOfThisBag,
           TypeUtils.Assign<TDepsInThisBag, TNewDepsInThisBagInput>,
-          TTypes,
-          TFacs
-        >;
-        ofThisBag: <TNewDepsOfThisBagInput extends DiBag.DepsOfThisBagType>(
-          externalDeps: TNewDepsOfThisBagInput,
-        ) => DiBag.Tmpl.Interim<
-          TypeUtils.Assign<TDepsOfThisBag, TNewDepsOfThisBagInput>,
-          TDepsInThisBag,
           TTypes,
           TFacs
         >;
       };
 
       export type DotAddProvider<
-        TDepsOfThisBag extends DiBag.DepsOfThisBagType,
         // TDepsInThisBag extends DiBag.DepsInThisBagType,
         TDepsInThisBag extends Record<string, readonly string[]>,
         TTypes extends DiBag.TypesType,
@@ -400,10 +386,20 @@ export namespace DiBag {
         types: <
           TNewTypesUnboxedInput extends DiBag.TypesUnboxedInputType,
         >() => DiBag.Tmpl.Interim<
-          TDepsOfThisBag,
           TDepsInThisBag,
           DiBag.TypesFromTypesUnboxedInput<{}, TNewTypesUnboxedInput>,
           TFacs
+        >;
+        bag: <
+          FacsContainer extends {
+            factories: FacsType;
+          },
+        >(
+          c: FacsContainer,
+        ) => DiBag.Tmpl.Interim<
+          {},
+          {},
+          TypeUtils.Assign<TFacs, FacsContainer['factories']>
         >;
         factories: <
           TNewFacsUnboxedInput extends DiBag.FacsUnboxedInputPartialType<
@@ -429,7 +425,6 @@ export namespace DiBag {
         >(
           unboxed: TNewFacsUnboxedInput,
         ) => DiBag.Tmpl.Interim<
-          TDepsOfThisBag,
           TDepsInThisBag,
           TTypes,
           DiBag.FacsFromFacsUnboxedInput<TFacs, TNewFacsUnboxedInput>
@@ -479,17 +474,26 @@ export namespace DiBag {
         types: <
           TNewTypesUnboxedInput extends DiBag.TypesUnboxedInputType,
         >() => DiBag.Tmpl.Interim<
-          [],
           {},
           DiBag.TypesFromTypesUnboxedInput<{}, TNewTypesUnboxedInput>,
           {}
         >;
+        bag: <
+          FacsContainer extends {
+            factories: FacsType;
+          },
+        >(
+          c: FacsContainer,
+        ) => DiBag.Tmpl.Interim<{}, {}, FacsContainer['factories']>;
         factories: <
-          TNewFacsUnboxedInput extends DiBag.FacsUnboxedInputType<{}>,
+          TNewFacsUnboxedInput extends DiBag.FacsUnboxedInputPartialType<
+            {},
+            {},
+            {}
+          >,
         >(
           unboxed: TNewFacsUnboxedInput,
         ) => DiBag.Tmpl.Interim<
-          [],
           {},
           {},
           DiBag.FacsFromFacsUnboxedInput<{}, TNewFacsUnboxedInput>
@@ -504,12 +508,7 @@ export namespace DiBag {
           const TDepsInThisBag extends Record<string, readonly string[]>,
         >(
           internalDeps: TDepsInThisBag,
-        ) => DiBag.Tmpl.Interim<[], TDepsInThisBag, {}, {}>;
-        ofThisBag: <
-          const TNewDepsOfThisBagInput extends DiBag.DepsOfThisBagType,
-        >(
-          externalDeps: TNewDepsOfThisBagInput,
-        ) => DiBag.Tmpl.Interim<TNewDepsOfThisBagInput, {}, {}, {}>;
+        ) => DiBag.Tmpl.Interim<TDepsInThisBag, {}, {}>;
       };
     }
   }
@@ -572,19 +571,36 @@ const main = () => {
     })
     .add.factories({
       f: () => {
-        return undefined;
+        return 99999 as const;
       },
     })
     .end();
 
-  const bag2 = DiBag.begin()
-    // .deps.ofThisBag([bag])
+  const bag3 = DiBag.begin()
     .add.factories({
-      aa: (args) => 123,
+      b3a: () => 999,
+      b3b: () => 333 as const,
     })
     .end();
 
-  return bag;
+  // const bag2 = DiBag.begin().add.factories({
+  //   c: () => 123,
+  // }).end();
+  const bag2 = DiBag.begin()
+    .add.bag(bag)
+    .add.bag(bag3)
+    .add.factories({
+      ccc: () => 123,
+    })
+    .add.factories({
+      aa: (args) => args.values.ccc,
+      bb: (args) => args.values.f,
+      cc: (args) => args.values.b3b,
+      // f: () => 123
+    })
+    .end();
+
+  return bag2;
 
   // .add.types<{
   //   b: 'hoh';
