@@ -735,7 +735,7 @@ const main = () => {
 
 // --- vvvv ---
 
-// TODO 2: 2. TypeScript for .deps ; // implement ofThisBag
+// TODO 2: 2. TypeScript for .deps ; // implement ofThisBag // not possible to implement, implemented add.bag
 // TODO 2: 3. Start adding runtime ; // !!!
 
 // TODO next: 999. Add event emitter
