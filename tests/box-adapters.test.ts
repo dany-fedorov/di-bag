@@ -3,6 +3,37 @@ import { DiBag, type Presence } from '../src';
 import { fromSasBox } from '../src/sas-box';
 import { fromValBox, fromValBoxAsync } from '../src/val-box';
 
+test('mixed factory, owned and provider registrations map and unbox every valid branch', async () => {
+  const plain = ({ dep }: { dep: boolean }) => ({
+    sync: () => dep ? 42 : 0,
+    snapshot: () => ({ value: { present: true as const, value: dep ? 42 : 0 }, metadata: { present: false as const }, alias: null }),
+  });
+  let disposals = 0;
+  const owned = DiBag.withDisposal(plain, () => { disposals++; });
+  const provider = DiBag.withMetadata(plain, { owner: 'source' });
+  for (const source of [plain, owned, provider]) {
+    const bag = DiBag.begin().add({
+      dep: () => true,
+      mapped: DiBag.mapSync(source, value => value.sync().toFixed()),
+      mappedAsync: DiBag.mapAsync(source, value => value.sync() + 1),
+      sas: fromSasBox(source, { mode: 'sync' }),
+      val: fromValBox(source),
+      presence: fromValBox(source, { value: 'presence' }),
+      valAsync: fromValBoxAsync(source),
+      presenceAsync: fromValBoxAsync(source, { value: 'presence' }),
+    }).end();
+    expect(bag.resolve('mapped')).toBe('42');
+    expect(await bag.resolve('mappedAsync')).toBe(43);
+    expect(bag.resolve('sas')).toBe(42);
+    expect(bag.resolve('val')).toBe(42);
+    expect(bag.resolve('presence')).toEqual({ present: true, value: 42 });
+    expect(await bag.resolve('valAsync')).toBe(42);
+    expect(await bag.resolve('presenceAsync')).toEqual({ present: true, value: 42 });
+    await bag.close();
+  }
+  expect(disposals).toBe(7);
+});
+
 const snapshot = <V, M>(value: Presence<V>, metadata: Presence<M>, alias: string | null = null) => ({ value, metadata, alias });
 const box = <V, M>(value: Presence<V>, metadata: Presence<M>, alias: string | null = null) => ({ snapshot: () => snapshot(value, metadata, alias) });
 

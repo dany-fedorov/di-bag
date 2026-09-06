@@ -1,5 +1,6 @@
 import { DiBag, type Module, type Provider, type ProviderOutput, type ProviderNeeds, type ProviderMetadata, type ProviderAcquisitionMetadata, type Presence, type FramePresenceTuple, type AcquisitionSnapshot } from '../../src';
 import type { Assert, Equal } from './assert';
+import type { ProviderFactory } from '../../src/provider';
 type Registration = Parameters<typeof DiBag.withMetadata>[0];
 
 const create = ({ clock }: { clock: { now(): number } }) => ({ read: () => clock.now() });
@@ -90,3 +91,74 @@ const exactSameObject = DiBag.withDisposal(legacyOwned, value => { const n: numb
 type AdditiveOwnedOutput = Assert<Equal<ProviderOutput<typeof exactSameObject>, { read(): number }>>;
 const unionMapped = DiBag.mapSync(choiceProvider, value => String(value));
 type UnionMappedMetadata = Assert<Equal<ProviderMetadata<typeof unionMapped>, Readonly<{ first: number } | { second: string }>>>;
+
+// Mixed registration kinds must distribute even behind a no-back-inference boundary.
+const mixedPlain = ({ plain }: { plain: string }) => plain;
+const mixedOwnedFactory = ({ owned }: { owned: boolean }) => owned;
+const mixedOwned = DiBag.withDisposal(mixedOwnedFactory, () => {});
+declare const mixedFramed: Provider<({ framed }: { framed: number }) => number,
+  Readonly<{ owner: string }>, readonly [{ kind: 'first' }, { kind: 'second' }]>;
+type Mixed = typeof mixedPlain | typeof mixedOwned | typeof mixedFramed;
+type MixedFactories = typeof mixedPlain | typeof mixedOwnedFactory | (({ framed }: { framed: number }) => number);
+type MixedNeeds = { plain: string } | { owned: boolean } | { framed: number };
+type MixedMetadata = Readonly<{}> | Readonly<{ owner: string }>;
+type MixedFrames = readonly [] | readonly [{ kind: 'first' }, { kind: 'second' }];
+type PlainUnion = (() => 'empty') | ((deps: { dep: boolean }) => 42);
+type PlainUnionContracts = [
+  Assert<Equal<ProviderFactory<PlainUnion>, PlainUnion>>,
+  Assert<Equal<ProviderFactory<NoInfer<PlainUnion>>, PlainUnion>>,
+  Assert<Equal<ProviderOutput<PlainUnion>, 'empty' | 42>>,
+  Assert<Equal<ProviderOutput<NoInfer<PlainUnion>>, 'empty' | 42>>,
+  Assert<Equal<ProviderNeeds<PlainUnion>, { dep: boolean }>>,
+  Assert<Equal<ProviderNeeds<NoInfer<PlainUnion>>, { dep: boolean }>>,
+];
+type MixedContracts = [
+  Assert<Equal<ProviderFactory<Mixed>, MixedFactories>>,
+  Assert<Equal<ProviderFactory<NoInfer<Mixed>>, MixedFactories>>,
+  Assert<Equal<ProviderOutput<Mixed>, string | boolean | number>>,
+  Assert<Equal<ProviderOutput<NoInfer<Mixed>>, string | boolean | number>>,
+  Assert<Equal<ProviderNeeds<Mixed>, MixedNeeds>>,
+  Assert<Equal<ProviderNeeds<NoInfer<Mixed>>, MixedNeeds>>,
+  Assert<Equal<ProviderMetadata<Mixed>, MixedMetadata>>,
+  Assert<Equal<ProviderMetadata<NoInfer<Mixed>>, MixedMetadata>>,
+  Assert<Equal<ProviderAcquisitionMetadata<Mixed>, MixedFrames>>,
+  Assert<Equal<ProviderAcquisitionMetadata<NoInfer<Mixed>>, MixedFrames>>,
+  Assert<Equal<ProviderFactory<NoInfer<typeof mixedFramed | typeof mixedOwned | typeof mixedPlain>>, MixedFactories>>,
+  Assert<Equal<ProviderFactory<NoInfer<typeof mixedOwned | typeof mixedPlain | typeof mixedFramed>>, MixedFactories>>,
+  Assert<Equal<ProviderFactory<NoInfer<typeof mixedPlain | typeof mixedOwned>>, typeof mixedPlain | typeof mixedOwnedFactory>>,
+  Assert<Equal<ProviderFactory<NoInfer<typeof mixedPlain | typeof mixedFramed>>, typeof mixedPlain | (({ framed }: { framed: number }) => number)>>,
+  Assert<Equal<ProviderFactory<NoInfer<typeof mixedOwned | typeof mixedFramed>>, typeof mixedOwnedFactory | (({ framed }: { framed: number }) => number)>>,
+  Assert<Equal<ProviderFactory<NoInfer<() => never>>, () => never>>,
+  Assert<Equal<ProviderOutput<NoInfer<() => never>>, never>>,
+  Assert<Equal<ProviderNeeds<NoInfer<() => never>>, Record<never, never>>>,
+  Assert<Equal<ProviderOutput<NoInfer<Mixed | Opaque>>, unknown>>,
+  Assert<Equal<ProviderNeeds<NoInfer<Mixed | Opaque>>, unknown>>,
+  Assert<Equal<ProviderMetadata<NoInfer<Mixed | Opaque>>, unknown>>,
+  Assert<Equal<ProviderAcquisitionMetadata<NoInfer<Mixed | Opaque>>, readonly unknown[]>>,
+];
+declare const mixed: Mixed;
+const mixedMapped = DiBag.mapSync(mixed, value => {
+  type Input = Assert<Equal<typeof value, string | boolean | number>>;
+  return { text: String(value) };
+});
+const mixedAsync = DiBag.mapAsync(mixed, value => {
+  type Input = Assert<Equal<typeof value, string | boolean | number>>;
+  return Promise.resolve(String(value));
+});
+const mixedDisposed = DiBag.withDisposal(mixed, value => {
+  type Input = Assert<Equal<typeof value, string | boolean | number>>;
+});
+const mixedAnnotated = DiBag.withMetadata(mixed, { extra: true });
+type MixedTransforms = [
+  Assert<Equal<ProviderOutput<typeof mixedMapped>, { text: string }>>,
+  Assert<Equal<ProviderOutput<typeof mixedAsync>, Promise<string>>>,
+  Assert<Equal<ProviderOutput<typeof mixedDisposed>, string | boolean | number>>,
+  Assert<Equal<ProviderNeeds<typeof mixedMapped>, MixedNeeds>>,
+  Assert<Equal<ProviderNeeds<typeof mixedAsync>, MixedNeeds>>,
+  Assert<Equal<ProviderNeeds<typeof mixedDisposed>, MixedNeeds>>,
+  Assert<Equal<ProviderMetadata<typeof mixedMapped>, MixedMetadata>>,
+  Assert<Equal<ProviderMetadata<typeof mixedAnnotated>, Readonly<MixedMetadata & { extra: boolean }>>>,
+  Assert<Equal<ProviderAcquisitionMetadata<typeof mixedMapped>, MixedFrames>>,
+  Assert<Equal<ProviderAcquisitionMetadata<typeof mixedDisposed>, MixedFrames>>,
+  Assert<Equal<ProviderAcquisitionMetadata<typeof mixedAnnotated>, MixedFrames>>,
+];

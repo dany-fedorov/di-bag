@@ -1,7 +1,7 @@
 import { normalize, snapshotAdd } from './registration';
 import type { DisposableFactory, Factory, Registration, Registrations } from './registration';
 import type { BindingDescription, BindingId, BindingRef, GraphDescription } from './runtime';
-import type { Checked, Entries, Entry, From, Introduces, Merge, Provided, ReplacementKey, Selection } from './types';
+import type { Checked, Entries, Entry, From, Introduces, Merge, Provided, ReplacementKey, ReplacementOutput, Selection } from './types';
 import type { ExternalRequirements, ModuleConstraints, NeedConstraint, PublicProviders, PublicRegistrations, Renamed, RenamedConstraints, RenameKeys } from './module-types';
 
 interface ModuleDescription {
@@ -52,8 +52,9 @@ class ModuleBuilder<E extends Entry> {
     return new ModuleBuilder(new Map([...this.#registrations, ...Object.entries(snapshot)]));
   }
 
-  // Separate first-pass callable context from admission of opaque provider bases.
-  replace<const K extends string, V extends Factory | DisposableFactory<Factory>>(
+  // The preliminary zero-arg context satisfies surviving local consumers;
+  // complete checks below still validate the actual inferred registration.
+  replace<const K extends string, V extends ((this: void) => ReplacementOutput<From<E>, K>) | DisposableFactory<(this: void) => ReplacementOutput<From<E>, K>>>(
     key: K & ReplacementKey<From<E>, K>,
     registration: V & (Factory | DisposableFactory<Factory>) & Checked<Merge<From<E>, Record<K, NoInfer<V>>>>,
   ): ModuleBuilder<Exclude<E, { key: K }> | { key: K; registration: V }>;

@@ -46,3 +46,46 @@ const bag = DiBag.begin().install(feature).end();
 const frames = bag.inspect('final').acquisitions[0]!.metadata;
 type Inspected = Assert<Equal<typeof frames, readonly [Presence<ValBoxFrame<never>>, Presence<ValBoxFrame<{ owner: string }>>]>>;
 void bag.close();
+
+// All registration kinds retain their exact capabilities and adapter frames.
+const mixedFactory = ({ dep }: { dep: boolean }) => ({
+  sync: () => dep ? 42 : 0,
+  async: async () => dep ? 'yes' : 'no',
+  snapshot: () => ({ value: { present: true as const, value: Promise.resolve(42) }, metadata: { present: true as const, value: { branch: 'plain' } }, alias: null }),
+});
+const mixedOwned = DiBag.withDisposal(mixedFactory, () => {});
+const mixedProvider = DiBag.withMetadata(mixedFactory, { owner: 'source' });
+declare const mixed: typeof mixedFactory | typeof mixedOwned | typeof mixedProvider;
+const mixedSync = fromSasBox(mixed, { mode: 'sync' });
+const mixedFirst = fromSasBox(mixed, { mode: 'sync-first' });
+const mixedAsync = fromSasBox(mixed, { mode: 'async' });
+const mixedVal = fromValBox(mixed);
+const mixedPresence = fromValBox(mixed, { value: 'presence' });
+const mixedValAsync = fromValBoxAsync(mixed);
+const mixedPresenceAsync = fromValBoxAsync(mixed, { value: 'presence' });
+type MixedContracts = [
+  Assert<Equal<ProviderOutput<typeof mixedSync>, 0 | 42>>,
+  Assert<Equal<ProviderOutput<typeof mixedFirst>, Promise<0 | 42>>>,
+  Assert<Equal<ProviderOutput<typeof mixedAsync>, Promise<'yes' | 'no'>>>,
+  Assert<Equal<ProviderOutput<typeof mixedVal>, Promise<number>>>,
+  Assert<Equal<ProviderOutput<typeof mixedPresence>, Presence<Promise<number>>>>,
+  Assert<Equal<ProviderOutput<typeof mixedValAsync>, Promise<number>>>,
+  Assert<Equal<ProviderOutput<typeof mixedPresenceAsync>, Promise<Presence<Promise<number>>>>>,
+  Assert<Equal<ProviderNeeds<typeof mixedSync>, { dep: boolean }>>,
+  Assert<Equal<ProviderNeeds<typeof mixedFirst>, { dep: boolean }>>,
+  Assert<Equal<ProviderNeeds<typeof mixedAsync>, { dep: boolean }>>,
+  Assert<Equal<ProviderNeeds<typeof mixedVal>, { dep: boolean }>>,
+  Assert<Equal<ProviderNeeds<typeof mixedPresence>, { dep: boolean }>>,
+  Assert<Equal<ProviderNeeds<typeof mixedValAsync>, { dep: boolean }>>,
+  Assert<Equal<ProviderNeeds<typeof mixedPresenceAsync>, { dep: boolean }>>,
+  Assert<Equal<ProviderAcquisitionMetadata<typeof mixedVal>, readonly [ValBoxFrame<{ branch: string }>]>>,
+];
+const mixedNestedFactory = ({ dep }: { dep: boolean }) => ({
+  snapshot: () => ({ value: { present: true as const, value: mixedFactory({ dep }) }, metadata: { present: true as const, value: { outer: true } }, alias: 'outer' }),
+});
+const mixedFramed = fromValBox(mixedNestedFactory);
+declare const mixedFrames: typeof mixedFactory | typeof mixedOwned | typeof mixedFramed;
+const mixedUnboxed = fromValBox(mixedFrames);
+const mixedRemapped = DiBag.withDisposal(DiBag.mapSync(mixedUnboxed, value => value), () => {});
+type OrderedMixedFrames = Assert<Equal<ProviderAcquisitionMetadata<typeof mixedRemapped>,
+  readonly [ValBoxFrame<{ branch: string }>] | readonly [ValBoxFrame<{ outer: boolean }>, ValBoxFrame<{ branch: string }>]>>;

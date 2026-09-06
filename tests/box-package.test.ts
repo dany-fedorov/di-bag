@@ -81,7 +81,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       frames: [{ present: true, value: { kind: 'val-box', metadata: { present: true, value: { owner: 'real' } }, alias: 'db' } }], events: ['payload'] });
   });
 
-  for (const fixture of ['box-adapters.ts', 'negative/box-adapters.ts', 'real']) {
+  for (const fixture of ['box-adapters.ts', 'negative/box-adapters.ts', 'negative/provider-unions.ts', 'real']) {
     test(`installed ${mode} declaration contracts: ${fixture}`, () => {
       const path = join(consumer, `consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const assertions = `type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;`;

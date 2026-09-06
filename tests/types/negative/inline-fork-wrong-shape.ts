@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-// diagnostic: Type '() => { now(): string; }' is not assignable to type '(DisposableFactory<
+// diagnostic: Type '() => { now(): string; }' is not assignable to type '(ProviderBase &
 DiBag.begin()
   .add({
     clock: () => ({

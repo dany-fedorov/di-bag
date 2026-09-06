@@ -174,8 +174,9 @@ awaiting or conversion of synchronous factories takes place.
 
 Concurrent resolutions share a promise. A thrown factory error or rejected
 factory promise is evicted so later resolution can retry. Every attempt has its
-own identity: when a consumer catches a failed dependency, its recorded edge
-continues to name that failed attempt and never redirects to a later retry.
+own identity: when a dependency fails, its incoming consumer edges are abandoned.
+The failed attempt retains its outgoing dependencies and any pending work or
+accepted ownership needed for cleanup; none of those redirect to a later retry.
 Dependency cycles throw or reject with a path such as `cycle: a -> b -> a`, including dependency
 reads after `await`.
 
@@ -251,7 +252,9 @@ cleanup itself may return `void` or `Promise<void>`.
 Only registrations wrapped in `withDisposal` are owned by the bag. Ordinary
 factories can return borrowed objects, even objects exposing `.close()` or
 `.dispose()` methods, without transferring ownership. Never-resolved factories
-and failed acquisitions have no cleanup callback to run.
+and sources that fail before ownership transfers have no cleanup callback to run.
+If a later projection fails after ownership transfers, the failed attempt retains
+and disposes its accepted ownership stages; `close()` waits for that cleanup.
 
 Ownership transfers after a synchronous result is successfully classified, or
 after a native Promise fulfills. Automatic async tracking observes native Promise

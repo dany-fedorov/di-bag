@@ -21,18 +21,25 @@ export type ProviderContext<F extends Factory> = ProviderBase & {
   readonly [providerInvariant]: (...args: never[]) => [F, object, readonly unknown[]];
 };
 
-export type ProviderFactory<R extends Registration> = R extends Factory ? R
+// Infer through an intersection before distributing. A bare infer preserves
+// NoInfer's substitution wrapper, which tests heterogeneous unions as a whole
+// and can miss every branch. Every registration is non-nullish.
+export type ProviderFactory<R extends Registration> = R extends infer T & {} ? FactoryOf<T> : never;
+type FactoryOf<R> = R extends Factory ? R
   : R extends { create: infer F extends Factory } ? F
     : R extends ProviderContext<infer F> ? F
       : R extends ProviderBase ? (this: void, deps: unknown) => unknown : never;
-// Guard the erased base directly: conditional extraction through NoInfer can
-// otherwise collapse a union to a misleading empty-parameter factory contract.
+// An erased provider cannot prove an output or dependency shape, including
+// when mixed with concrete registrations behind a NoInfer boundary.
 export type ProviderOutput<R extends Registration> = ProviderBase extends R ? unknown : ReturnType<ProviderFactory<R>>;
 export type ProviderNeeds<R extends Registration> = ProviderBase extends R ? unknown : Parameters<ProviderFactory<R>> extends [] ? Record<never, never>
   : Exclude<Parameters<ProviderFactory<R>>[0], undefined>;
-export type ProviderMetadata<R> = R extends Provider<infer _F, infer M, infer _A> ? M
+export type ProviderMetadata<R> = R extends infer T & {} ? MetadataOf<T> : unknown;
+type MetadataOf<R> = R extends Provider<infer _F, infer M, infer _A> ? M
   : R extends Factory | DisposableFactory<Factory> ? Readonly<{}> : unknown;
-export type ProviderAcquisitionMetadata<R> = R extends Provider<infer _F, infer _M, infer A> ? A
+export type ProviderAcquisitionMetadata<R> = ProviderBase extends R ? readonly unknown[]
+  : R extends infer T & {} ? AcquisitionMetadataOf<T> : readonly unknown[];
+type AcquisitionMetadataOf<R> = R extends Provider<infer _F, infer _M, infer A> ? A
   : R extends Factory | DisposableFactory<Factory> ? readonly [] : readonly unknown[];
 
 type MappedFactory<R extends Registration, O> = (this: void, deps: ProviderNeeds<R>) => O;

@@ -143,6 +143,26 @@ export type ReplacementKey<R extends Registrations, K extends string> =
       : InvalidReplacement<K>
     : InvalidReplacement<K>;
 
+// Context needs one compatible output per surviving consumer. Intersect their
+// callback parameters, not their value unions: string | number in one consumer
+// must remain a union. The replaced factory's own old requirements disappear.
+type ReplacementRequirement<N, K extends PropertyKey> = K extends keyof N
+  ? (value: N[K]) => void : never;
+type LocalReplacementRequirements<R extends Registrations, K extends PropertyKey> = {
+  // Available slots are present: remove implicit optionality as Checked does,
+  // while retaining explicitly declared undefined under exactOptionalPropertyTypes.
+  [P in Exclude<keyof R, K>]: ReplacementRequirement<Required<Needs<R[P]>>, K>;
+}[Exclude<keyof R, K>];
+type RetainedReplacementRequirements<C, K extends PropertyKey> = C extends { readonly needs: infer N }
+  // Retained module checks compare indexed values directly. Consumer labels
+  // are not binding identities and cannot justify dropping a constraint.
+  ? ReplacementRequirement<N, K> : never;
+type ReplacementRequirements<R extends Registrations, K extends PropertyKey, C> =
+  LocalReplacementRequirements<R, K> | RetainedReplacementRequirements<C, K>;
+export type ReplacementOutput<R extends Registrations, K extends PropertyKey, C = never> =
+  [ReplacementRequirements<R, K, C>] extends [never] ? unknown
+    : ReplacementRequirements<R, K, C> extends (value: infer O) => void ? O : unknown;
+
 type InvalidReplacement<K> = Unsatisfied<
   'replace requires one existing singleton string-literal key',
   { key: K }

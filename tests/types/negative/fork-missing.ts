@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src/di-bag';
-// diagnostic: Type '({ clock }: { clock: number; }) => number' is not assignable to type '(DisposableFactory<
+// diagnostic: Type '({ clock }: { clock: number; }) => number' is not assignable to type '(ProviderBase &
 DiBag.begin()
   .add({ value: () => 1 })
   .end()

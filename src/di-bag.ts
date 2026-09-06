@@ -19,6 +19,7 @@ import type {
   Overrides,
   Provided,
   ReplacementKey,
+  ReplacementOutput,
   Selected,
   Selection,
 } from './types';
@@ -127,9 +128,10 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
     return new Builder(this.#graph.withPublicRegistrations(snapshot));
   }
 
-  // Keep callable context available before validating the inferred registration;
-  // the second overload also admits predeclared factory/provider unions.
-  replace<const K extends string, V extends Factory | DisposableFactory<Factory>>(
+  // Give the preliminary callable context real empty needs and a consumer-safe
+  // output. Final checks still inspect V; the general overload retains required
+  // factory parameters and mixed registrations, including explicit K,V calls.
+  replace<const K extends string, V extends ((this: void) => ReplacementOutput<From<E>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<From<E>, K, C>>>(
     key: K & ReplacementKey<From<E>, K>,
     registration: V & (Factory | DisposableFactory<Factory>) & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> &
       CheckedConstraints<C, Provided<Merge<From<E>, Record<K, NoInfer<V>>>>>,
