@@ -32,8 +32,8 @@ for (const mode of ['commonjs', 'module'] as const) {
   test(`Node ${mode} consumers can resolve and dispose through the public package`, async () => {
     const load =
       mode === 'commonjs'
-        ? "const packageExports = require('di-bag'); const { DiBag } = packageExports;"
-        : "import * as packageExports from 'di-bag'; const { DiBag } = packageExports;";
+        ? "const packageExports = require('di-bag'); const { DiBag, DiBagCleanupError } = packageExports;"
+        : "import * as packageExports from 'di-bag'; const { DiBag, DiBagCleanupError } = packageExports;";
     const stdout = await run([
       'node',
       `--input-type=${mode}`,
@@ -48,11 +48,26 @@ for (const mode of ['commonjs', 'module'] as const) {
         const bag = DiBag.begin().install(feature.rename('answer', 'result')).end();
         const answer = bag.resolve('result');
         await bag.close();
-        console.log(JSON.stringify({ answer, disposed, publiclyConstructible: Object.hasOwn(packageExports, 'Bag') || Object.hasOwn(packageExports, 'Module') }));
+        const cause = new Error('cleanup');
+        const failing = DiBag.begin().add({
+          resource: DiBag.withDisposal(() => 1, () => { throw cause; }),
+        }).end();
+        failing.resolve('resource');
+        const error = await failing.close().catch(error => error);
+        const cjs = (await import('node:module')).createRequire(process.cwd() + '/consumer.cjs')('di-bag');
+        const esm = await import('di-bag');
+        console.log(JSON.stringify({ answer, disposed,
+          publiclyConstructible: Object.hasOwn(packageExports, 'Bag') || Object.hasOwn(packageExports, 'Module'),
+          cleanup: error instanceof DiBagCleanupError && error instanceof cjs.DiBagCleanupError && error instanceof esm.DiBagCleanupError,
+          sameClass: cjs.DiBagCleanupError === esm.DiBagCleanupError,
+          originalCause: error.errors[0] === cause && error.failures[0].error === cause,
+          label: error.failures[0].label,
+        }));
       })().catch(error => { console.error(error); process.exitCode = 1; });
     `,
     ]);
-    expect(JSON.parse(stdout)).toEqual({ answer: 42, disposed: 42, publiclyConstructible: false });
+    expect(JSON.parse(stdout)).toEqual({ answer: 42, disposed: 42, publiclyConstructible: false,
+      cleanup: true, sameClass: true, originalCause: true, label: 'resource' });
   });
 
   test(`TypeScript ${mode} consumers can use the emitted declarations`, () => {
@@ -60,7 +75,25 @@ for (const mode of ['commonjs', 'module'] as const) {
       __dirname,
       mode === 'commonjs' ? 'consumer.cts' : 'consumer.mts',
     );
-    const source = `import { DiBag, type Bag, type Module, type ModuleProvides, type ModuleRequires } from 'di-bag';
+    const source = `import { DiBag, DiBagCleanupError, type CleanupFailure, type Bag, type Module, type ModuleProvides, type ModuleRequires } from 'di-bag';
+      function inspectCleanup(error: unknown): void {
+        if (!(error instanceof DiBagCleanupError)) return;
+        const aggregate: AggregateError = error;
+        const failures: readonly CleanupFailure[] = error.failures;
+        const acquisitionId: symbol = failures[0].acquisitionId;
+        const bindingId: symbol = failures[0].bindingId;
+        const label: string = failures[0].label;
+        const cause: unknown = failures[0].error;
+        // @ts-expect-error The failure collection is readonly.
+        failures.push(failures[0]);
+        // @ts-expect-error Failure identities are readonly.
+        failures[0].acquisitionId = Symbol();
+        // @ts-expect-error The aggregate's failure snapshot cannot be reassigned.
+        error.failures = [];
+        // @ts-expect-error Original causes remain unknown until narrowed.
+        const message: string = failures[0].error.message;
+        void [aggregate, acquisitionId, bindingId, label, cause];
+      }
       const bag = DiBag.begin().add({
         value: DiBag.withDisposal(async () => 42, value => { const n: number = value; void n; }),
         clock: () => ({ now() { return 42; } }),

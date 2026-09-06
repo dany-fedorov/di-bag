@@ -123,8 +123,10 @@ declared as a promise and explicitly awaited by its consumer. Declaring
 awaiting or conversion of synchronous factories takes place.
 
 Concurrent resolutions share a promise. A thrown factory error or rejected
-factory promise is evicted so later resolution can retry. Dependency cycles
-throw or reject with a path such as `cycle: a -> b -> a`, including dependency
+factory promise is evicted so later resolution can retry. Every attempt has its
+own identity: when a consumer catches a failed dependency, its recorded edge
+continues to name that failed attempt and never redirects to a later retry.
+Dependency cycles throw or reject with a path such as `cycle: a -> b -> a`, including dependency
 reads after `await`.
 
 ## Attach cleanup with `withDisposal`
@@ -176,14 +178,20 @@ successful acquisition order. This dependency ordering also holds when async
 factories complete out of order.
 
 If cleanup throws or rejects, the remaining callbacks still run, then `close()`
-rejects with the first cleanup error. Repeated calls return the same promise;
+rejects with `DiBagCleanupError`, exported from `di-bag`. Its frozen `failures`
+array contains frozen records with `acquisitionId`, `bindingId`, `label`, and
+the original `error`. The IDs are symbols; a retry has a new acquisition ID.
+Its inherited `AggregateError.errors` contains all original causes in cleanup
+attempt order, including thrown `undefined`. Repeated calls return the same promise;
 cleanup runs once and the bag remains closed even when cleanup fails. Acquisition
 failures stay on their resolution promises rather than becoming close errors.
 
 Stop application work before closing. Already-returned services cannot be
 revoked, and disposal callbacks must not resolve services or await the same
-bag's `close()` promise. There is no cancellation or shutdown timeout: a factory
-or disposer that never settles keeps `close()` pending.
+bag's `close()` promise. A disposer may call `close()` to observe the identical
+barrier, but awaiting it would wait on its own completion. Arbitrary user-created
+Promise cycles cannot be forcibly completed. There is no cancellation or shutdown
+timeout: a factory or disposer that never settles keeps `close()` pending.
 
 ## Fork for scopes and tests
 
@@ -253,8 +261,10 @@ const batch = root.fork(['source', 'clock', 'replayBuffer', 'stores', 'broadcast
 Startup initiates shutdown: close borrowing batch bags first, then the root bag,
 then the source it opened. The example's `stopApplication` attempts every close
 and aggregates failures so one failing disposer cannot skip another owner's
-cleanup. A factory that fails halfway through acquisition must release what it
-acquired before rethrowing; the bag only owns successfully returned values.
+cleanup. Its application aggregate retains each bag's `DiBagCleanupError`,
+including that scope's acquisition diagnostics. A factory that fails halfway
+through acquisition must release what it acquired before rethrowing; the bag
+only owns successfully returned values.
 
 The example uses small in-memory adapters. Store writes are immediate; collector
 isolation is demonstrated, but transaction rollback and WBS integration are not.

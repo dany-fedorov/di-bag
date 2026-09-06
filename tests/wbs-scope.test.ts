@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src';
+import { DiBag, DiBagCleanupError } from '../src';
 import {
   Collector,
   Source,
@@ -155,7 +155,20 @@ test('startup still closes later bags and its source when multiple disposers fai
     (error) => error as unknown,
   );
   expect(error).toBeInstanceOf(AggregateError);
-  expect((error as AggregateError).errors).toEqual([first, second]);
+  if (!(error instanceof AggregateError)) throw new Error('missing application aggregate');
+  expect(error.errors).toHaveLength(2);
+  const acquisitionIds: symbol[] = [];
+  for (const [index, cause] of [first, second].entries()) {
+    const scopeFailure: unknown = error.errors[index];
+    expect(scopeFailure).toBeInstanceOf(DiBagCleanupError);
+    if (!(scopeFailure instanceof DiBagCleanupError)) throw new Error('missing scope aggregate');
+    expect(scopeFailure.errors).toEqual([cause]);
+    expect(scopeFailure.failures[0]!.error).toBe(cause);
+    acquisitionIds.push(scopeFailure.failures[0]!.acquisitionId);
+  }
+  expect(error.errors[0]).toBe(await a.close().catch(error => error));
+  expect(error.errors[1]).toBe(await b.close().catch(error => error));
+  expect(acquisitionIds[0]).not.toBe(acquisitionIds[1]);
   expect(lifecycle).toEqual([
     'source:open',
     'replay:open',

@@ -1,6 +1,19 @@
 import { expect, test } from 'bun:test';
 import { DiBag } from '../src/di-bag';
+import { DiBagCleanupError } from '../src';
 import { deferred } from './helpers';
+
+test('disposal callbacks receive the owned value without a receiver', async () => {
+  const disposed: number[] = [];
+  function dispose(this: unknown, value: number) {
+    expect(this).toBeUndefined();
+    disposed.push(value);
+  }
+  const bag = DiBag.begin().add({ resource: DiBag.withDisposal(() => 42, dispose) }).end();
+  bag.resolve('resource');
+  await bag.close();
+  expect(disposed).toEqual([42]);
+});
 
 test('withDisposal exposes the value and closes each resolved instance once', async () => {
   const closed: number[] = [];
@@ -393,16 +406,17 @@ test('pending acquisition failure does not stop cleanup of other resources', asy
   expect(disposed).toEqual(['good']);
 });
 
-test('every disposer runs and close rethrows the first cleanup failure', async () => {
+test('every disposer runs and close aggregates the original cleanup failures', async () => {
   const disposed: string[] = [];
   const firstError = new Error('first cleanup failure');
+  const laterError = new Error('later');
   const bag = DiBag.begin()
     .add({
       a: DiBag.withDisposal(
         () => 'a',
         (value) => {
           disposed.push(value);
-          throw new Error('later');
+          throw laterError;
         },
       ),
       b: DiBag.withDisposal(
@@ -424,7 +438,12 @@ test('every disposer runs and close rethrows the first cleanup failure', async (
   bag.resolve('b');
   bag.resolve('c');
   const closing = bag.close();
-  await expect(closing).rejects.toBe(firstError);
+  const failure: unknown = await closing.catch(error => error);
+  expect(failure).toBeInstanceOf(DiBagCleanupError);
+  if (!(failure instanceof DiBagCleanupError)) throw new Error('missing aggregate');
+  expect(failure.errors).toEqual([firstError, laterError]);
+  expect(failure.errors[0]).toBe(firstError);
+  expect(failure.errors[1]).toBe(laterError);
   expect(bag.close()).toBe(closing);
   expect(disposed).toEqual(['c', 'b', 'a']);
   expect(() => bag.resolve('a')).toThrow(/clos/);
@@ -455,10 +474,35 @@ test('throwing undefined still rejects close and does not skip other disposers',
     await bag.close();
   } catch (error) {
     rejected = true;
-    expect(error).toBeUndefined();
+    expect(error).toBeInstanceOf(DiBagCleanupError);
+    if (!(error instanceof DiBagCleanupError)) throw new Error('missing aggregate');
+    expect(error.errors).toEqual([undefined]);
   }
   expect(rejected).toBe(true);
   expect(cleaned).toBe(true);
+});
+
+test('reentrant close observes the same barrier even when its disposer rejects', async () => {
+  const failure = new Error('cleanup');
+  const events: string[] = [];
+  let reentrant: Promise<void> | undefined;
+  const bag = DiBag.begin().add({
+    resource: DiBag.withDisposal(() => 42, () => {
+      events.push('resource');
+      reentrant = bag.close();
+      throw failure;
+    }),
+  }).end();
+  bag.resolve('resource');
+  const closing = bag.close();
+  const error: unknown = await closing.catch(error => error);
+  expect(reentrant).toBe(closing);
+  expect(bag.close()).toBe(closing);
+  expect(error).toBeInstanceOf(DiBagCleanupError);
+  if (!(error instanceof DiBagCleanupError)) throw new Error('missing aggregate');
+  expect(error.errors).toEqual([failure]);
+  await expect(bag.close()).rejects.toBe(error);
+  expect(events).toEqual(['resource']);
 });
 
 test('parent and forks own independent instances and borrowed overrides stay borrowed', async () => {

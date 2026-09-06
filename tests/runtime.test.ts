@@ -40,6 +40,21 @@ test('undefined is memoized', () => {
   expect(creations).toBe(1);
 });
 
+test('a creating undefined-valued factory cannot be returned through reentrant resolution', async () => {
+  let resolveEmpty: () => undefined;
+  let creations = 0;
+  const bag = DiBag.begin().add({
+    empty: (): undefined => {
+      if (++creations > 1) throw new Error('factory was invoked again');
+      return resolveEmpty();
+    },
+  }).end();
+  resolveEmpty = () => bag.resolve('empty');
+  expect(resolveEmpty).toThrow('cycle: empty -> empty');
+  expect(creations).toBe(1);
+  await bag.close();
+});
+
 test('forward registration and forks use independent memoization', () => {
   const bag = DiBag.begin()
     .add({ doubled: ({ value }: { value: number }) => ({ value: value * 2 }) })

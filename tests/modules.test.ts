@@ -1,6 +1,33 @@
 import { expect, test } from 'bun:test';
 import { DiBag } from '../src';
 
+test('a module private retry keeps the caught failed attempt separate', async () => {
+  let first = true;
+  const valueA = { id: 'a' };
+  const valueB = { id: 'b' };
+  const events: string[] = [];
+  const feature = DiBag.module().add({
+    a: DiBag.withDisposal((deps: { b: typeof valueB }) => {
+      try { void deps.b; } catch {}
+      return valueA;
+    }, value => { events.push(value.id); }),
+    b: DiBag.withDisposal((deps: { a: typeof valueA }) => {
+      if (first) { first = false; throw new Error('first attempt'); }
+      expect(deps.a).toBe(valueA);
+      return valueB;
+    }, value => { events.push(value.id); }),
+    retry: (deps: { b: typeof valueB }) => () => deps.b,
+  }).exports(['a', 'retry']);
+  const bag = DiBag.begin().install(feature).end();
+  expect(bag.resolve('a')).toBe(valueA);
+  const retry = bag.resolve('retry');
+  expect(retry()).toBe(valueB);
+  expect(retry()).toBe(valueB);
+  expect(bag.resolve('a')).toBe(valueA);
+  await bag.close();
+  expect(events).toEqual(['b', 'a']);
+});
+
 test('module private dependencies follow exported replacements and fresh forks', async () => {
   const events: string[] = [];
   const feature = DiBag.module().add({
