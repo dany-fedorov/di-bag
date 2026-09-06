@@ -2,22 +2,7 @@ import { expect, test } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import ts from 'typescript';
-
-const options: ts.CompilerOptions = {
-  strict: true,
-  noEmit: true,
-  skipLibCheck: true,
-  noUncheckedIndexedAccess: true,
-  exactOptionalPropertyTypes: true,
-  target: ts.ScriptTarget.ES2022,
-  module: ts.ModuleKind.CommonJS,
-  types: [],
-};
-
-function diagnostics(path: string) {
-  const program = ts.createProgram([path], options);
-  return ts.getPreEmitDiagnostics(program);
-}
+import { diagnostics } from './compiler';
 
 test('valid composition preserves inferred values and explicit promise edges', () => {
   const errors = diagnostics(resolve(__dirname, 'types/positive.ts'));

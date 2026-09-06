@@ -221,6 +221,7 @@ and shutdown on success, failed work, failed cleanup, and failed acquisition.
 ```sh
 npm install
 npm run check          # strict types, runtime/type/package tests, build
+npm run benchmark:types # isolated Node compiler measurements (Node 24+)
 npm pack --dry-run    # builds and previews the publication contents
 ```
 
@@ -228,6 +229,15 @@ Tests compile positive usage and each negative fixture independently. Package
 smoke tests build the distribution and exercise Node's CommonJS and ESM loaders
 and TypeScript's emitted-declaration resolution. Distribution files and type
 declarations are emitted to `dist/`.
+
+Builders accumulate a flat union of registration entries internally; the public
+`Bag<R>` type still takes a registration map. Compile-time acceptance tests cover
+100 chained additions, 100 replacements, and 1,000 providers assembled from
+reusable registration groups, including missing and wrong-shaped dependencies.
+These groups are ordinary registration objects; they are not a nominal module
+API. The [compiler benchmark report](docs/benchmarks/typescript.md) records
+100/500/1,000-provider results and remaining limits. Passing the grouped gate
+does not establish that equally long individual call chains are supported.
 
 Current code lives in `src/`. Previous experiments are preserved under
 [`docs/history/`](docs/history/README.md). The [v0.1 design](docs/superpowers/specs/2026-09-06-v0.1-design.md)

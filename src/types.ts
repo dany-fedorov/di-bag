@@ -20,6 +20,17 @@ export type Provided<R extends Registrations> = {
   [K in keyof R]: ReturnType<FactoryOf<R[K]>>;
 };
 
+// Keep builder history flat; reconstruct a map only at graph-check boundaries.
+export type Entry = { key: string; registration: Registration };
+
+export type Entries<R extends Registrations> = {
+  [K in keyof R & string]: { key: K; registration: R[K] };
+}[keyof R & string];
+
+export type From<E extends Entry> = {
+  [P in E as P['key']]: P['registration'];
+};
+
 export type Merge<F extends Registrations, N extends Registrations> = Omit<
   F,
   keyof N

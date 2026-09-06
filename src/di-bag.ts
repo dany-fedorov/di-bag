@@ -3,7 +3,10 @@ import type { Registration, Registrations } from './registration';
 import type {
   Checked,
   Complete,
+  Entries,
+  Entry,
   ForkContext,
+  From,
   Introduces,
   Merge,
   Overrides,
@@ -229,13 +232,13 @@ class Bag<R extends Registrations> {
   }
 }
 
-class Builder<R extends Registrations> {
-  constructor(private readonly registrations: R) {}
+class Builder<E extends Entry> {
+  constructor(private readonly registrations: From<E>) {}
 
   // Infer actual keys before checking context-sensitive method-returning factories.
   add<N extends { [K in keyof N]: Registration }>(
-    more: N & Registrations & Introduces<R, N> & Checked<Merge<R, N>>,
-  ): Builder<Merge<R, N>> {
+    more: N & Registrations & Introduces<From<E>, N> & Checked<Merge<From<E>, N>>,
+  ): Builder<E | Entries<N>> {
     if (typeof more !== 'object' || more === null || Array.isArray(more)) {
       throw new Error('registrations must be a string-keyed object');
     }
@@ -254,24 +257,26 @@ class Builder<R extends Registrations> {
     }
     // The snapshot retains every checked own registration, including hidden keys.
     return new Builder(
-      { ...this.registrations, ...snapshot } as unknown as Merge<R, N>,
+      { ...this.registrations, ...snapshot } as From<E | Entries<N>>,
     );
   }
 
   replace<const K extends string, V extends Registration>(
-    key: K & ReplacementKey<R, K>,
-    registration: V & Registration & Checked<Merge<R, Record<K, NoInfer<V>>>>,
-  ): Builder<Merge<R, Record<K, V>>> {
+    key: K & ReplacementKey<From<E>, K>,
+    registration: V & Registration & Checked<Merge<From<E>, Record<K, NoInfer<V>>>>,
+  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }> {
     if (typeof key !== 'string' || !Object.hasOwn(this.registrations, key)) {
       throw new Error(`replace accepts existing tokens only: ${String(key)}`);
     }
     normalize(registration);
     return new Builder(
-      { ...this.registrations, [key]: registration } as Merge<R, Record<K, V>>,
+      { ...this.registrations, [key]: registration } as From<
+        Exclude<E, { key: K }> | { key: K; registration: V }
+      >,
     );
   }
 
-  end(this: Builder<R> & Complete<R>): Bag<R> {
+  end(this: Builder<E> & Complete<From<E>>): Bag<From<E>> {
     return new Bag(this.registrations);
   }
 }
@@ -279,6 +284,6 @@ class Builder<R extends Registrations> {
 export type { Bag };
 
 export const DiBag = {
-  begin: (): Builder<Record<never, never>> => new Builder({}),
+  begin: (): Builder<never> => new Builder({}),
   withDisposal,
 };
