@@ -1,5 +1,5 @@
 import { normalize, withDisposal } from './registration';
-import type { Registrations } from './registration';
+import type { Registration, Registrations } from './registration';
 import type { Checked, Complete, Merge, Overrides, Provided } from './types';
 
 type Cleanup = () => void | Promise<void>;
@@ -34,8 +34,13 @@ export class Bag<R extends Registrations> {
   }
 
   /** Replace existing tokens; the fork creates and owns its own instances. */
-  fork<O extends Registrations>(
+  // Infer the actual keys before Checked runs; a string-indexed constraint can
+  // prematurely widen context-sensitive factories returning object methods.
+  // Still require Registrations on the argument: the mapped bound alone would
+  // admit widened `object` values and primitives with compatible prototype methods.
+  fork<O extends { [K in keyof O]: Registration }>(
     overrides: O &
+      Registrations &
       Overrides<R, O> &
       Checked<Merge<R, O>> &
       Complete<Merge<R, O>>,
@@ -183,8 +188,9 @@ export class Bag<R extends Registrations> {
 class Builder<R extends Registrations> {
   constructor(private readonly registrations: R) {}
 
-  add<N extends Registrations>(
-    more: N & Checked<Merge<R, N>>,
+  // Match fork's key-preserving constraint so inline methods infer before checks.
+  add<N extends { [K in keyof N]: Registration }>(
+    more: N & Registrations & Checked<Merge<R, N>>,
   ): Builder<Merge<R, N>> {
     return new Builder({ ...this.registrations, ...more } as Merge<R, N>);
   }

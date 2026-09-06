@@ -30,6 +30,10 @@ Factories are ordinary functions; the bag calls them without a `this` binding.
 Builders are immutable: adding registrations produces a new builder, and adding
 the same token again replaces its registration after checking the merged graph.
 
+Factories may be declared inline or separately, and returned services may use
+ordinary object methods. Both `.add()` and `.fork()` preserve their inferred
+return types without needing a separate declaration or return-type annotation.
+
 ## Async edges are explicit
 
 ```ts
@@ -130,6 +134,43 @@ A fork can replace a disposable registration with an ordinary factory to borrow
 an externally owned instance, or add disposal to an ordinary registration.
 Registering the same shared instance as owned in multiple bags would dispose it
 multiple times; use ordinary factories for borrowed instances.
+
+Explicit sharing reuses the whole instance, including its original dependencies.
+If a shared service was built with root stores, overriding stores in a batch
+does not rebind that service. Let its factory run again when it needs batch stores.
+
+## WBS-shaped ownership example
+
+Run `npm run example:wbs` to see the full
+[`examples/wbs-scope.ts`](examples/wbs-scope.ts) demonstration. It models the
+composition boundaries proposed for `wbs-tool-v1`: a startup-owned source,
+shared clock and replay buffer, scoped store adapters, separate announcement
+collectors, and freshly created work-item services.
+
+Sharing is configured at the fork call:
+
+```ts
+const batch = root.fork({
+  source: () => root.resolve('source'),
+  clock: () => root.resolve('clock'),
+  replayBuffer: () => root.resolve('replayBuffer'),
+  stores: () => scope.stores,
+  broadcast: DiBag.withDisposal(openCollector, (collector) =>
+    collector.close(),
+  ),
+});
+```
+
+Startup initiates shutdown: close borrowing batch bags first, then the root bag,
+then the source it opened. The example's `stopApplication` attempts every close
+and aggregates failures so one failing disposer cannot skip another owner's
+cleanup. A factory that fails halfway through acquisition must release what it
+acquired before rethrowing; the bag only owns successfully returned values.
+
+The example uses small in-memory adapters. Store writes are immediate; collector
+isolation is demonstrated, but transaction rollback and WBS integration are not.
+Its tests check actual instance identity, dependency binding, announcement routing,
+and shutdown on success, failed work, failed cleanup, and failed acquisition.
 
 ## Boundaries
 

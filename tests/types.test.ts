@@ -28,6 +28,19 @@ test('valid composition preserves inferred values and explicit promise edges', (
   ).toEqual([]);
 });
 
+for (const operation of ['add', 'fork', 'disposal']) {
+  test(`inline method-returning factories preserve exact types: ${operation}`, () => {
+    const errors = diagnostics(
+      resolve(__dirname, `types/inline-${operation}.ts`),
+    );
+    expect(
+      errors.map((error) =>
+        ts.flattenDiagnosticMessageText(error.messageText, '\n'),
+      ),
+    ).toEqual([]);
+  });
+}
+
 for (const name of readdirSync(resolve(__dirname, 'types/negative')).filter(
   (name) => name.endsWith('.ts'),
 )) {

@@ -61,9 +61,21 @@ for (const mode of ['commonjs', 'module'] as const) {
     const source = `import { DiBag } from 'di-bag';
       const bag = DiBag.begin().add({
         value: DiBag.withDisposal(async () => 42, value => { const n: number = value; void n; }),
+        clock: () => ({ now() { return 42; } }),
+        service: ({ clock }: { clock: { now(): number } }) => ({
+          stamp() { return clock.now(); },
+        }),
       }).end();
       const value: Promise<number> = bag.resolve('value');
-      void [value, bag.close()];`;
+      const scoped = bag.fork({
+        clock: () => ({ now() { return 7; } }),
+      });
+      const stamp = scoped.resolve('service').stamp();
+      type Assert<T extends true> = T;
+      type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends
+        (<T>() => T extends B ? 1 : 2) ? true : false;
+      type Stamp = Assert<Equal<typeof stamp, number>>;
+      void [value, stamp, scoped.close(), bag.close()];`;
     const options: ts.CompilerOptions = {
       strict: true,
       noEmit: true,
