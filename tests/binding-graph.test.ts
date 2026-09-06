@@ -4,7 +4,7 @@ import { BindingGraph, Runtime } from '../src/runtime';
 import type { BindingDescription } from '../src/runtime';
 import { deferred } from './helpers';
 
-function graph(bindings: BindingDescription[], slots: [string, symbol][]): BindingGraph {
+function graph(bindings: BindingDescription[], slots: [string | symbol, symbol][]): BindingGraph {
   return new BindingGraph({
     bindings: new Map(bindings.map(binding => [binding.id, binding])),
     publicSlots: new Map(slots),
@@ -112,6 +112,35 @@ test('graph snapshots preserve lexical private refs while forks use replaced pub
   await parent.close();
   expect(fork.resolve('service')).toEqual({ private: { scope: 'private' }, public: { scope: 'fork' } });
   await fork.close();
+});
+
+test('batch public bindings preserve ordered duplicates and retained private identities', async () => {
+  const publicKey = Symbol('public');
+  const privateId = Symbol('private');
+  const publicId = Symbol('parent');
+  const consumerId = Symbol('consumer');
+  const original = graph([
+    { id: privateId, label: 'private', registration: () => 'private', localNames: new Map() },
+    { id: publicId, label: 'public', registration: () => 'parent', localNames: new Map() },
+    { id: consumerId, label: 'consumer', registration: (deps: { privateValue: string; publicValue: string }) =>
+      ({ privateValue: deps.privateValue, publicValue: deps.publicValue }),
+      localNames: new Map([
+        ['privateValue', { kind: 'private', id: privateId }],
+        ['publicValue', { kind: 'public', key: publicKey }],
+      ]) },
+  ], [[publicKey, publicId], ['consumer', consumerId]]);
+  const batch = original.withPublicBindings([
+    [publicKey, () => 'first'],
+    ['named', () => 'named'],
+    [publicKey, () => 'final'],
+  ]);
+  const parent = new Runtime(original);
+  const child = new Runtime(batch);
+  expect(parent.resolve(publicKey)).toBe('parent');
+  expect(child.resolve(publicKey)).toBe('final');
+  expect(child.resolve('named')).toBe('named');
+  expect(child.resolve('consumer')).toEqual({ privateValue: 'private', publicValue: 'final' });
+  await Promise.all([parent.close(), child.close()]);
 });
 
 test('mutating graph input maps cannot change public lookup or binding descriptions', async () => {

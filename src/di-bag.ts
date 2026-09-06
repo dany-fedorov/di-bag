@@ -1,6 +1,7 @@
 import { normalize, snapshotAdd, withDisposal } from './registration';
 import type { DisposableFactory, Factory, Registration, Registrations } from './registration';
 import { BindingGraph, Runtime } from './runtime';
+import type { BindingKey } from './runtime';
 import { beginModule, moduleGraph } from './module';
 import type { Module } from './module';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
@@ -101,13 +102,13 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
         throw new Error(`missing override: ${String(token)}`);
       }
     }
-    let graph = this.#graph;
+    const selectedBindings: Array<readonly [BindingKey, Registration]> = [];
     for (const token of publicKeys) {
       const registration: unknown = Reflect.get(overrides, token);
       normalize(registration);
-      graph = graph.withPublicBinding(token, registration as Registration);
+      selectedBindings.push([token, registration as Registration]);
     }
-    return new Bag(graph);
+    return new Bag(this.#graph.withPublicBindings(selectedBindings));
   }
 
   /** Drain acquisitions, then dispose dependents before dependencies, once. */

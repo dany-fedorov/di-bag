@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { DiBag } from '../src';
 import * as source from '../src/di-bag';
+import { BindingGraph } from '../src/runtime';
 import { runInNewContext } from 'node:vm';
 import { normalize } from '../src/registration';
 
@@ -98,6 +99,32 @@ test('fork selects indexed tuple entries even when its iterator omits a key', ()
   const child = root.fork(keys, { a: () => 3, b: () => 4 as const });
   const b: 4 = child.resolve('b');
   expect(b).toBe(4);
+});
+
+test('fork batches selected replacements without using the single-binding graph path', () => {
+  const root = DiBag.begin().add({ a: () => 1, b: () => 2 }).end();
+  const original = BindingGraph.prototype.withPublicBinding;
+  const originalBatch = BindingGraph.prototype.withPublicBindings;
+  let singleReplacements = 0;
+  let batchReplacements = 0;
+  BindingGraph.prototype.withPublicBinding = function (key, registration) {
+    singleReplacements++;
+    return original.call(this, key, registration);
+  };
+  BindingGraph.prototype.withPublicBindings = function (entries) {
+    batchReplacements++;
+    return originalBatch.call(this, entries);
+  };
+  try {
+    const child = root.fork(['a', 'b'], { a: () => 3, b: () => 4 as const });
+    expect(child.resolve('a')).toBe(3);
+    expect(child.resolve('b')).toBe(4);
+    expect(singleReplacements).toBe(0);
+    expect(batchReplacements).toBe(1);
+  } finally {
+    BindingGraph.prototype.withPublicBinding = original;
+    BindingGraph.prototype.withPublicBindings = originalBatch;
+  }
 });
 
 test('selected overrides can depend on richer capabilities of other selected services', () => {

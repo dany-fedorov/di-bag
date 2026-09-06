@@ -166,12 +166,12 @@ For portable inferred library declarations, the supporting `Binding`,
 `TokenGraph`, `From`, `Provided`, and `PublicProviders` types are available as
 type-only root exports.
 
-`Module<P, R, C, D>` still has four contracts. `C` retains named and token
-consumer constraints across private/public/external boundaries; `D` retains the
-public registrations, including provider metadata, frames, and bound-token
-contracts. Export projection removes already-satisfied private needs from `D`
-without discarding them from `C`. Preserve inferred module types with `typeof`
-or `ReturnType`; shorter annotations cannot erase nonempty retained contracts.
+`Module<P, R, C, D>` still has four contracts. `D` has the zero-needs public
+projection, including provider metadata, frames, and bound-token contracts.
+`C` retains exported or external requirements of every local consumer,
+including private consumers; already-satisfied private requirements do not
+become host constraints. Preserve inferred module types with `typeof` or
+`ReturnType`; shorter annotations cannot erase nonempty retained contracts.
 
 Runtime authentication and missing-binding checks still protect JavaScript and
 dynamic boundaries, but they are not compile-time proofs. Casts, erased provider

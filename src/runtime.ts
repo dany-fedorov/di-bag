@@ -69,14 +69,19 @@ export class BindingGraph {
 
   /** Replacing a public slot preserves existing bindings and their lexical refs. */
   withPublicRegistrations(registrations: Registrations): BindingGraph {
+    return this.withPublicBindings(Object.keys(registrations).map(key => [key, registrations[key]!]));
+  }
+
+  /** Replace ordered string or symbol slots in one immutable graph reconstruction. */
+  withPublicBindings(entries: readonly (readonly [BindingKey, Registration])[]): BindingGraph {
     const bindings = new Map(this.#bindings);
     const publicSlots = new Map(this.#publicSlots);
-    for (const key of Object.keys(registrations)) {
-      const id = Symbol(key);
+    for (const [key, registration] of entries) {
+      const id = Symbol(String(key));
       bindings.set(id, {
         id,
-        label: key,
-        registration: registrations[key]!,
+        label: String(key),
+        registration,
         localNames: new Map(),
       });
       publicSlots.set(key, id);
@@ -86,12 +91,7 @@ export class BindingGraph {
 
   /** Replace one public slot, preserving lexical references and symbol identity. */
   withPublicBinding(key: BindingKey, registration: Registration): BindingGraph {
-    const bindings = new Map(this.#bindings);
-    const publicSlots = new Map(this.#publicSlots);
-    const id = Symbol(String(key));
-    bindings.set(id, { id, label: String(key), registration, localNames: new Map() });
-    publicSlots.set(key, id);
-    return new BindingGraph({ bindings, publicSlots });
+    return this.withPublicBindings([[key, registration]]);
   }
 
   /** Install disjoint public slots atomically, retaining lexical private refs. */

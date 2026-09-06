@@ -58,6 +58,47 @@ test('fork snapshots mixed selection indices and reads only selected own overrid
   await Promise.all([bag.close(), child.close()]);
 });
 
+test('duplicate mixed overrides keep getter order and route final values through private consumers', async () => {
+  const key = Symbol('resource'); const resource = DiBag.token(key).of<{ read(): number }>();
+  const closed: string[] = [];
+  const feature = DiBag.module()
+    .bind(resource, () => ({ read: () => 1 }))
+    .add({
+      named: () => 2,
+      privateConsumer: DiBag.fromTokens([resource], value => value.read),
+      handler: DiBag.withDisposal(
+        ({ privateConsumer, named }: { privateConsumer(): number; named: number }) =>
+          ({ token: privateConsumer(), named }),
+        value => { closed.push(`handler:${value.token}:${value.named}`); },
+      ),
+    })
+    .exports([resource, 'named', 'handler']);
+  const root = DiBag.begin().install(feature).end();
+  const reads: string[] = [];
+  let tokenValue = 2; let namedValue = 3;
+  const overrides = {
+    get [key]() {
+      reads.push('token'); const value = tokenValue; tokenValue += 2;
+      return DiBag.withDisposal(() => ({ read: () => value }), () => { closed.push(`token:${value}`); });
+    },
+    get named() {
+      reads.push('named'); const value = namedValue; namedValue += 2;
+      return DiBag.withDisposal(() => value, () => { closed.push(`named:${value}`); });
+    },
+  };
+  const child = root.fork([resource, 'named', resource, 'named'], overrides);
+  expect(reads).toEqual(['token', 'named', 'token', 'named']);
+  expect(child.resolve('handler')).toEqual({ token: 4, named: 5 });
+  expect(root.resolve('handler')).toEqual({ token: 1, named: 2 });
+  await child.close();
+  expect(closed[0]).toBe('handler:4:5');
+  expect(closed).toContain('token:4');
+  expect(closed).toContain('named:5');
+  expect(closed).not.toContain('token:2');
+  expect(closed).not.toContain('named:3');
+  await root.close();
+});
+
 test('invalid token selections preflight before any selected override getter', async () => {
   const key = Symbol('value'); const token = DiBag.token(key).of<number>();
   const bag = DiBag.begin().bind(token, () => 1).end(); let reads = 0;
