@@ -211,7 +211,7 @@ ProviderTokenNeeds, internal fromTokens/withTokenBinding, symbol-capable runtime
 Bag token resolve/inspect; mixed name/token exports and fork selections. Preserve
 Module<P,R,C,D> with tagged C and public D, no fifth Module generic.
 
-- [ ] **Step 1: Write failing cross-file and runtime composition tests.**
+- [x] **Step 1: Write failing cross-file and runtime composition tests.**
 
 ```ts
 const databaseKey = Symbol('database');
@@ -244,13 +244,13 @@ wrong bound outputs, duplicates, conflicting same-symbol declared services,
 opaque G/C/D, selection unions/broad/optional tuples, hidden overrides, explicit
 erasure, wrong selected-to-selected edges and missing replacement dependencies.
 
-- [ ] **Step 2: Record RED for public APIs and retained constraints.**
+- [x] **Step 2: Record RED for public APIs and retained constraints.**
 
 Run focused token runtime/source/emitted tests. Keep a no-cast missing-token
 module example and its exact call location in the report; no arbitrary diagnostic
 elsewhere may stand in for the intended rejection.
 
-- [ ] **Step 3: Implement graph checks and lexical module composition.**
+- [x] **Step 3: Implement graph checks and lexical module composition.**
 
 Generalize internal Entry keys, but keep named add's separate finite string-key
 gate. Validate every consumer's named needs and every required token's identity
@@ -287,11 +287,19 @@ Public token bind/replace output checks must inspect actual R with NoInfer, not
 just a separately widened selected output. Runtime source/binding descriptions
 remain immutable, and private token IDs are fresh per installation.
 
-- [ ] **Step 4: Verify and commit public composition.**
+- [x] **Step 4: Verify and commit public composition.**
 
 Run all new source/emitted/runtime cases, full `npm run check`, all3 existing
 examples and diff checks. Commit task-owned files as
 `feat: compose typed tokens across bags and modules`.
+
+Completed at `d58937c`; initial task review is spec-compliant and Approved, with
+one deferred bulk-fork efficiency finding for the broad final review. Full check:
+287tests/1812assertions, strict builds/all3examples. Two later fixture assertions
+have covering source/emitted/installed checks; controller committed-state checks
+passed45focused tests/472assertions plus all18token runtime tests/67assertions.
+The producer declaration gate exposed TS4118 and now passes without caller casts
+or annotations. Full evidence is in `docs/reports/2026-09-07-typed-tokens.md`.
 
 ### Task 3: Real-package token integration, compiler gates and documentation
 
@@ -332,6 +340,13 @@ const graph = DiBag.begin().bind(token0, () => 1)
   .bind(token1, DiBag.fromTokens([token0], value => value + 1)).end();
 const result: number = graph.resolve(token1);
 ```
+
+The wrong-contract case must distinguish invariant declaration checking from
+ordinary output assignability: for example, bind a number token and require the
+same key rewrapped as number|string. The actual number output fits both service
+types, but the incompatible declared token contracts must still reject. Keep the
+callback body valid for its declared argument so its own error cannot stand in for
+the graph-boundary rejection. Apply this control to both binding and module forms.
 
 The new token worker imports source generation and diagnostic helpers from
 `tests/compiler.ts`, accepts one validated form/scenario, and emits the actual

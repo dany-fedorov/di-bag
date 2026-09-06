@@ -1,7 +1,7 @@
 # Typed-token implementation evidence
 
-Status: Task1 internal foundation complete; public checked composition, module
-integration and token-specific package/compiler gates remain in progress. This
+Status: Tasks1/2 internal foundation and public/module composition complete;
+token-specific package/compiler integration and final review remain in progress. This
 does not complete the enterprise program or claim universal type safety.
 
 Spec: `../superpowers/specs/2026-09-07-typed-tokens-design.md`.
@@ -19,7 +19,7 @@ retain their existing behavior.
 The public addition at this checkpoint is `DiBag.token(key).of<Service>()` and
 type views. Nonempty or opaque token graphs are temporarily rejected by public
 named composition until Task2 supplies complete token graph checks. Public
-fromTokens/bind/resolve/fork/module token APIs are not claimed implemented yet.
+fromTokens/bind/resolve/fork/module token APIs were deferred to Task2, now below.
 
 RED began with missing APIs, separately from runtime behavior. Once handles and
 the graph slot API existed, runtime tests produced3pass/7fail: selected arguments
@@ -49,6 +49,47 @@ Verification on the committed implementation:
 Both independent box checkouts remain clean at sas-box `b895f9d` and val-box
 `07506fc`; token integration needed no additional box implementation change.
 No package was published and no branch was merged or deleted.
+
+## Task2: checked public and module composition
+
+Commit `d58937cd95cea87d438fc8fec00c698f9dd66325` adds public fromTokens,
+root/module bind and token replace, exact token resolve/inspect, mixed exports and
+selected fork overrides. Tagged module C retains named/token exported/external
+requirements, while public D projects zero needs and preserves exact output,
+metadata, frames and bound token contracts. Private token IDs are fresh per
+installation. No fifth Module generic or separate token runtime was added.
+
+The actual feature-library declaration test exposed TS4118 at the inferred
+feature export. Distributing `Record<TokenKey<T>, TokenService<T>>` over external
+requirements preserved a serializable named representation, with no user cast or
+annotation. Its unchanged consumer then passes against the emitted feature,
+with an explicit assertion that the source feature is absent. Missing external
+token rejection and exact provides/requires remain checked. Self-review also
+added regressions for an opaque bound contract and ambiguous union token reads.
+
+Verification:
+
+- Full `npm run check`:287pass/0fail/1812assertions across16files in357.95seconds;
+  strict typecheck/build, all unchanged scale gates, all3examples and diffcheck.
+- Two later fixture-only exact assertions cover ModuleBuilder token replacement
+  and token-bound frame inspection. Strict typecheck and source/emitted/installed
+  CJS/ESM covering checks pass5tests/5assertions after those additions. No production
+  changes followed the full run. A duplicate inline import in the fixture was
+  consolidated into its top-level public import before accepting that covering run.
+- Controller committed-state strict builds and45focused source/runtime/emitted/
+  real-package tests passed472assertions in17.45seconds, including actual feature
+  emission and unchanged consumption. All3examples passed. A separate unfiltered
+  token runtime run passed18tests/67assertions, including duplicate-symbol atomic
+  rejection and builder reuse. These runs overlap; their counts are not additive.
+- Independent task review:spec compliant, task quality Approved, no Critical or
+  Important findings. Existing runtime/index interfaces were checked as concrete
+  integration points and needed no redundant edits.
+
+One Minor performance finding remains for the broad final review: bulk fork
+currently reconstructs the immutable graph per selected override, approximately
+O(KN+K²) rather than the previous batched O(N+K). A symbol-capable batch graph
+operation is the proposed correction. This is recorded, not silently discarded;
+the token increment's final review/fix pass has not run yet.
 
 ## Decisions and costs retained for the final review
 
@@ -94,9 +135,8 @@ or relax any identity/inference requirement.
 
 ## Remaining work
 
-Task2 implements checked public binding/replacement/resolution, module C/D token
-contracts, private installations and selected mixed overrides. Task3 verifies
-actual package integration, feature-author declaration emission and100-token
-compiler controls, adds the example and migration text. The broad final token
-review follows those tasks. Larger T2, lifetimes, startup/cancellation, extensions,
+Task3 verifies broader actual package integration and100-token compiler controls,
+adds the example and migration text, and preserves the feature-author declaration
+gate. The broad final token review follows it and must triage the recorded bulk-
+fork performance regression. Larger T2, lifetimes, startup/cancellation, extensions,
 observers/plugins, platform/comparison evidence and release handoff remain required.

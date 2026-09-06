@@ -50,7 +50,9 @@ now has the binding design `2026-09-07-typed-tokens-design.md` and executable
 plan `2026-09-07-typed-tokens.md`: internal identity/routing, checked public/module
 composition, then actual package/compiler integration. Implementation remains open.
 The internal token foundation is complete at `1048e29`, with clean task review;
-public token/module composition and its final package/scale review remain open.
+public token/module composition is complete at `d58937c`, with task review
+Approved and one bulk-fork efficiency follow-up. Final package/scale integration
+and the broad token review remain open.
 The incremental-check candidate is documented
 in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
 
@@ -130,3 +132,18 @@ in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
   actual package consumers and all3examples. Initial task review is clean, no
   findings. Evidence: `docs/reports/2026-09-07-typed-tokens.md`. This is an internal
   foundation checkpoint, not completion of public tokens or milestone M1.
+- Bounded scope-inheritance comparison is recorded in
+  `docs/research/2026-09-07-scope-inheritance.md`, using pinned Awilix source,
+  official Inversify hierarchy documentation and pinned Effect4RC source.
+  It separates first-child construction, child shadowing and borrowing ownership.
+  Recommendations remain unadopted until the lifecycle refinement; no upstream
+  runtime test or benchmark was executed by that research.
+- Token Task2 is implemented at `d58937c`: checked root/module binding, token
+  replacement/resolution/inspection and mixed selected overrides. Real feature
+  declaration emission exposed TS4118; a named Record view preserves emission and
+  exact contracts without user casts/annotations. Full check:287tests/1812assertions,
+  strict builds/all3examples; later fixture-only additions have covering checks.
+  Controller committed-state verification:45focused tests/472assertions plus
+  18token runtime tests/67assertions, strict builds and all3examples. Task review
+  Approved; one bulk-fork repeated-graph-build performance finding remains for
+  the broad final review. Token Task3 and larger enterprise rows remain required.
