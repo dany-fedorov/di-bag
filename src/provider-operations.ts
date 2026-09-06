@@ -9,9 +9,18 @@ interface MetadataOperation {
   readonly kind: 'metadata';
   readonly metadata: Readonly<object>;
 }
+export interface OwnedOperation {
+  readonly kind: 'owned';
+  readonly dispose: (value: never) => void | Promise<void>;
+}
+interface MapOperation {
+  readonly kind: 'map-sync' | 'map-async';
+  readonly project: (this: void, value: never) => unknown;
+}
+export type ProviderOperation = MetadataOperation | OwnedOperation | MapOperation;
 export interface ProviderDescription {
   readonly source: SourceOperation;
-  readonly operations: readonly MetadataOperation[];
+  readonly operations: readonly ProviderOperation[];
   readonly metadata: Readonly<object>;
 }
 
@@ -45,8 +54,10 @@ export function normalize(registration: unknown): {
   create: Factory;
   dispose?: (value: never) => void | Promise<void>;
   metadata: Readonly<object>;
+  operations: readonly ProviderOperation[];
 } {
   const description = describe(registration);
   const { create, dispose } = description.source;
-  return dispose ? { create, dispose, metadata: description.metadata } : { create, metadata: description.metadata };
+  const { metadata, operations } = description;
+  return dispose ? { create, dispose, metadata, operations } : { create, metadata, operations };
 }

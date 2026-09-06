@@ -1,0 +1,156 @@
+import type { normalize } from './provider-operations';
+
+type RegistrationDescription = ReturnType<typeof normalize>;
+type Disposer = (value: never) => void | Promise<void>;
+interface AcceptedStage {
+  readonly index: number;
+  readonly value: unknown;
+  readonly dispose: Disposer;
+  state: 'accepted' | 'disposing' | 'disposed';
+}
+interface ValueStage {
+  readonly exposed: unknown;
+  state: 'pending' | 'ready' | 'failed';
+  value: unknown;
+  error: unknown;
+  readonly owners: { index: number; dispose: Disposer }[];
+}
+interface ExecutionEvents {
+  accepted(): void;
+  settled(): void;
+  invoking(): number;
+  cleanupFailed(sequence: number, error: unknown): void;
+}
+
+const observePromise = Promise.prototype.then<void, void>;
+
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return value !== null && (typeof value === 'object' || typeof value === 'function') &&
+    'then' in value && typeof value.then === 'function';
+}
+
+/** One source invocation and its ordered projections/ownership, local to an attempt. */
+export class ProviderExecution {
+  private readonly stages: AcceptedStage[] = [];
+  private readonly pending = new Set<Promise<void>>();
+  private result: ValueStage | undefined;
+  private cleaning: Promise<void> | undefined;
+  // Source permission is independent of the exposed projection's cache state.
+  sourceInFlight = true;
+
+  constructor(private readonly events: ExecutionEvents) {}
+
+  get state(): 'pending' | 'ready' | 'failed' { return this.result?.state ?? 'failed'; }
+  get hasOwnership(): boolean { return this.stages.length > 0; }
+  get work(): readonly Promise<void>[] { return [...this.pending]; }
+
+  evaluate(description: RegistrationDescription, deps: unknown): unknown {
+    const { create, dispose } = description;
+    let current = this.capture(() => create(deps as never), true);
+    if (dispose) this.own(current, 0, dispose);
+    description.operations.forEach((operation, offset) => {
+      const index = offset + 1;
+      if (operation.kind === 'owned') {
+        this.own(current, index, operation.dispose);
+      } else if (operation.kind === 'map-sync') {
+        if (current.state !== 'failed') {
+          const input = current.exposed;
+          const { project } = operation;
+          current = this.capture(() => project(input as never), false);
+        }
+      } else if (operation.kind === 'map-async') {
+        const input = current;
+        const { project } = operation;
+        current = this.capture(async () => {
+          if (input.state === 'failed') throw input.error;
+          return project(await input.exposed as never);
+        }, false);
+      }
+    });
+    this.result = current;
+    if (current.state === 'failed') throw current.error;
+    return current.exposed;
+  }
+
+  private capture(create: () => unknown, source: boolean): ValueStage {
+    try {
+      const exposed = create();
+      const stage: ValueStage = { exposed, state: 'ready', value: exposed, error: undefined, owners: [] };
+      if (isThenable(exposed)) {
+        let settled!: () => void;
+        const barrier = new Promise<void>(resolve => { settled = resolve; });
+        // The species result is untrusted; only our independently made barrier
+        // participates in draining. No structural assimilation or error fallback.
+        observePromise.call(exposed, value => {
+          stage.state = 'ready';
+          stage.value = value;
+          for (const owner of stage.owners) this.accept(owner.index, value, owner.dispose);
+          finish();
+        }, error => {
+          stage.state = 'failed';
+          stage.error = error;
+          finish();
+        });
+        stage.state = 'pending';
+        stage.value = undefined;
+        this.pending.add(barrier);
+        const finish = () => {
+          if (source) this.sourceInFlight = false;
+          this.pending.delete(barrier);
+          settled();
+          if (this.result === stage) this.events.settled();
+        };
+      } else if (source) {
+        this.sourceInFlight = false;
+      }
+      return stage;
+    } catch (error) {
+      if (source) this.sourceInFlight = false;
+      return { exposed: undefined, state: 'failed', value: undefined, error, owners: [] };
+    }
+  }
+
+  private own(stage: ValueStage, index: number, dispose: Disposer): void {
+    if (stage.state === 'ready') this.accept(index, stage.value, dispose);
+    else if (stage.state === 'pending') stage.owners.push({ index, dispose });
+  }
+
+  private accept(index: number, value: unknown, dispose: Disposer): void {
+    this.stages.push({ index, value, dispose, state: 'accepted' });
+    this.events.accepted();
+  }
+
+  dispose(): Promise<void> {
+    if (this.cleaning) return this.cleaning;
+    let complete!: () => void;
+    this.cleaning = new Promise<void>(resolve => { complete = resolve; });
+    // Publish before invoking user code, including synchronous finalizers.
+    void this.disposeStages().then(complete);
+    return this.cleaning;
+  }
+
+  private async disposeStages(): Promise<void> {
+    // All later acceptances must be known before reversing stable stage indices.
+    while (this.pending.size) await Promise.all(this.pending);
+    for (const stage of this.stages.sort((a, b) => b.index - a.index)) {
+      stage.state = 'disposing';
+      const sequence = this.events.invoking();
+      const { dispose, value } = stage;
+      try {
+        await dispose(value as never);
+      } catch (error) {
+        this.events.cleanupFailed(sequence, error);
+      } finally {
+        stage.state = 'disposed';
+      }
+    }
+    this.stages.length = 0;
+    this.result = undefined;
+  }
+
+  release(): void {
+    this.stages.length = 0;
+    this.pending.clear();
+    this.result = undefined;
+  }
+}

@@ -42,6 +42,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       `${load}
       (async () => {
         let disposed;
+        const mappedDisposal = [];
         const feature = DiBag.module().add({
           answer: DiBag.withMetadata(DiBag.withDisposal(() => 42, value => { disposed = value; }), { owner: 'package' }),
           privateValue: () => 7,
@@ -56,6 +57,15 @@ for (const mode of ['commonjs', 'module'] as const) {
         }).end();
         failing.resolve('resource');
         const error = await failing.close().catch(error => error);
+        const raw = Promise.resolve(7);
+        const mapped = DiBag.withDisposal(DiBag.mapSync(
+          DiBag.withDisposal(() => raw, value => { mappedDisposal.push(value); }),
+          value => { if (value !== raw) throw new Error('lost source identity'); return { promise: value }; },
+        ), value => { mappedDisposal.push(value.promise === raw ? 'outer' : 'wrong'); });
+        const mappedBag = DiBag.begin().add({ mapped, asyncMapped: DiBag.mapAsync(() => Promise.resolve(4), value => value + 1) }).end();
+        const mappedIdentity = mappedBag.resolve('mapped').promise === raw;
+        const asyncMapped = await mappedBag.resolve('asyncMapped');
+        await mappedBag.close();
         const cjs = (await import('node:module')).createRequire(process.cwd() + '/consumer.cjs')('di-bag');
         const esm = await import('di-bag');
         console.log(JSON.stringify({ answer, disposed,
@@ -67,13 +77,15 @@ for (const mode of ['commonjs', 'module'] as const) {
           sameClass: cjs.DiBagCleanupError === esm.DiBagCleanupError,
           originalCause: error.errors[0] === cause && error.failures[0].error === cause,
           label: error.failures[0].label,
+          mappedIdentity, asyncMapped, mappedDisposal,
         }));
       })().catch(error => { console.error(error); process.exitCode = 1; });
     `,
     ]);
     expect(JSON.parse(stdout)).toEqual({ answer: 42, disposed: 42, publiclyConstructible: false,
       cleanup: true, sameClass: true, originalCause: true, label: 'resource',
-      metadata: 'package', inspectionIsStatic: true, frozenInspection: true });
+      metadata: 'package', inspectionIsStatic: true, frozenInspection: true,
+      mappedIdentity: true, asyncMapped: 5, mappedDisposal: ['outer', 7] });
   });
 
   test(`Node ${mode} observes local and foreign native subclass state directly`, async () => {
@@ -253,7 +265,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     ).toEqual([]);
   });
 
-  for (const fixture of ['providers.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts']) {
+  for (const fixture of ['providers.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
     test(`TypeScript ${mode} emitted provider contracts: ${fixture}`, () => {
       const path = resolve(__dirname, `provider-consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const source = readFileSync(resolve(__dirname, 'types', fixture), 'utf8')

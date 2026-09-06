@@ -179,6 +179,47 @@ continues to name that failed attempt and never redirects to a later retry.
 Dependency cycles throw or reject with a path such as `cycle: a -> b -> a`, including dependency
 reads after `await`.
 
+## Project services explicitly
+
+`DiBag.mapSync(registration, project)` passes the exact source value to a
+receiver-free projector and exposes its exact return value. A Promise stays a
+Promise with its original identity. `DiBag.mapAsync(registration, project)`
+explicitly awaits the source and the projector result, always exposing
+`Promise<Awaited<ReturnType<typeof project>>>`. Source and projector throws become
+rejections at this asynchronous boundary. Both helpers preserve dependencies and
+static metadata; they invoke the source once per acquisition attempt.
+
+```ts
+const connection = DiBag.withDisposal(openConnection, value => value.close());
+const client = DiBag.withDisposal(
+  DiBag.mapAsync(connection, value => makeClient(value)),
+  value => value.close(),
+);
+const bag = DiBag.begin().add({ client }).end();
+const readyClient = await bag.resolve('client');
+await bag.close(); // closes the client, then its original connection
+```
+
+Ownership is additive: wrapping a provider with `withDisposal(provider, dispose)`
+owns that stage's fulfilled output and retains every earlier disposer with its
+original value. Explicitly owning the same object twice runs both finalizers.
+Mapping alone never transfers ownership based on a value's cleanup methods.
+Disposers, like factories and projectors, run receiver-free; bind a method or use
+a closure if it needs an object receiver.
+
+A synchronous projection can expose a usable status object containing a pending
+source Promise. That object stays cached even if the raw Promise later rejects.
+The source remains tracked, including dependency reads while it is pending.
+If a projection fails, its original error reaches the caller and that attempt's
+accepted stages are released; separately cached dependencies remain owned by the
+bag. A synchronous failure starts cleanup without waiting for asynchronous
+disposers. Late ownership is released once, and `close()` drains pending sources,
+projections, and retired cleanup before it finishes. Cleanup failures appear in
+`DiBagCleanupError` in finalizer invocation order, with original attempt IDs.
+Before releasing a failed attempt's stages, cleanup waits for that attempt's
+pending source and projectors so they can finish using accepted values.
+Nonsettling work therefore retains those values and keeps `close()` pending.
+
 ## Attach cleanup with `withDisposal`
 
 ```ts

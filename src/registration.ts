@@ -1,4 +1,5 @@
-import type { ProviderBase } from './provider';
+import { transform } from './provider';
+import type { ProviderBase, Provider, ProviderFactory, ProviderOutput, RetainedMetadata, ProviderAcquisitionMetadata } from './provider';
 import { normalize, retainDescription, sourceDescription } from './provider-operations';
 export { normalize } from './provider-operations';
 
@@ -20,10 +21,19 @@ export type Registrations = Record<string, Registration>;
 /** Declare that each bag owns, and must dispose, this factory's fulfilled value. */
 export function withDisposal<F extends Factory>(
   create: F,
-  dispose: (value: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>,
-): DisposableFactory<F> {
-  const handle = new Owned(create);
-  retainDescription(handle, sourceDescription(create, dispose));
+  dispose: (this: void, value: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>,
+): DisposableFactory<F>;
+export function withDisposal<R extends Registration>(
+  provider: R & Registration,
+  dispose: (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => void | Promise<void>,
+): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>>;
+export function withDisposal(
+  registration: Registration,
+  dispose: (value: never) => void | Promise<void>,
+): DisposableFactory<Factory> | ProviderBase {
+  if (typeof registration !== 'function') return transform(registration, { kind: 'owned', dispose });
+  const handle = new Owned(registration);
+  retainDescription(handle, sourceDescription(registration, dispose));
   return handle;
 }
 

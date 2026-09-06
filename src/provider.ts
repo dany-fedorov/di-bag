@@ -1,6 +1,7 @@
 import type { DisposableFactory, Factory, Registration } from './registration';
 import type { Unsatisfied } from './types';
 import { describe, retainDescription } from './provider-operations';
+import type { ProviderOperation } from './provider-operations';
 
 declare const providerInvariant: unique symbol;
 
@@ -33,6 +34,33 @@ export type ProviderMetadata<R> = R extends Provider<infer _F, infer M, infer _A
   : R extends Factory | DisposableFactory<Factory> ? Readonly<{}> : unknown;
 export type ProviderAcquisitionMetadata<R> = R extends Provider<infer _F, infer _M, infer A> ? A
   : R extends Factory | DisposableFactory<Factory> ? readonly [] : readonly unknown[];
+
+type MappedFactory<R extends Registration, O> = (this: void, deps: ProviderNeeds<R>) => O;
+export type RetainedMetadata<R> = ProviderMetadata<R> extends object ? ProviderMetadata<R> : object;
+
+/** Extend an authenticated description without exposing its operations. */
+export function transform<R extends Registration, F extends Factory>(registration: R, operation: ProviderOperation): Provider<F, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>> {
+  const description = describe(registration);
+  const handle = new Provider<F, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>>();
+  retainDescription(handle, Object.freeze({ ...description, operations: Object.freeze([...description.operations, Object.freeze(operation)]) }));
+  return handle;
+}
+
+/** Project the exact source value without awaiting it or the projector result. */
+export function mapSync<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => unknown>(
+  registration: R & Registration,
+  project: P,
+): Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>> {
+  return transform<R, MappedFactory<R, ReturnType<P>>>(registration, { kind: 'map-sync', project });
+}
+
+/** Explicitly await the source and projector result; always expose a Promise. */
+export function mapAsync<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(
+  registration: R & Registration,
+  project: P,
+): Provider<MappedFactory<R, Promise<Awaited<ReturnType<P>>>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>> {
+  return transform<R, MappedFactory<R, Promise<Awaited<ReturnType<P>>>>>(registration, { kind: 'map-async', project });
+}
 
 export type MetadataKeyUnion<M> = M extends unknown ? keyof M : never;
 type NonFiniteKeys<M> = M extends unknown ? {

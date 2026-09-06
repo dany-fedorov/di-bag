@@ -4,7 +4,7 @@ import { BindingGraph, Runtime } from './runtime';
 import { beginModule, moduleGraph } from './module';
 import type { Module } from './module';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
-import { withMetadata } from './provider';
+import { withMetadata, mapSync, mapAsync } from './provider';
 import type { ProviderMetadata, ProviderAcquisitionMetadata } from './provider';
 import type { InspectionSnapshot } from './inspection';
 import type {
@@ -170,9 +170,13 @@ export const DiBag: {
   module: typeof beginModule;
   withDisposal: typeof withDisposal;
   withMetadata: typeof withMetadata;
+  mapSync: typeof mapSync;
+  mapAsync: typeof mapAsync;
 } = {
   begin: (): Builder<never> => new Builder(new BindingGraph()),
   module: beginModule,
   withDisposal,
   withMetadata,
+  mapSync,
+  mapAsync,
 };

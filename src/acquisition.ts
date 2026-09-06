@@ -2,13 +2,10 @@ import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import type { BindingGraph, BindingId } from './runtime';
 import type { AcquisitionSnapshot } from './inspection';
+import { ProviderExecution } from './provider-execution';
 
 type AcquisitionId = symbol;
 type State = 'creating' | 'pending' | 'ready' | 'failed' | 'disposing' | 'disposed';
-interface Ownership {
-  readonly value: unknown;
-  readonly dispose: (value: never) => void | Promise<void>;
-}
 interface Acquisition {
   readonly id: AcquisitionId;
   readonly bindingId: BindingId;
@@ -17,19 +14,7 @@ interface Acquisition {
   readonly dependencies: Set<AcquisitionId>;
   state: State;
   exposed: unknown;
-  ownership: Ownership | undefined;
-  pending: Promise<void> | undefined;
-}
-
-const observePromise = Promise.prototype.then<void, void>;
-
-function isThenable(value: unknown): value is PromiseLike<unknown> {
-  return (
-    value !== null &&
-    (typeof value === 'object' || typeof value === 'function') &&
-    'then' in value &&
-    typeof value.then === 'function'
-  );
+  execution: ProviderExecution;
 }
 
 /** Mutable, runtime-local attempts. Binding descriptions never carry ownership. */
@@ -37,7 +22,9 @@ export class Acquisitions {
   private readonly ownerId = Symbol('owner');
   private readonly cache = new Map<BindingId, Acquisition>();
   private readonly attempts = new Map<AcquisitionId, Acquisition>();
-  private readonly pending = new Map<AcquisitionId, Promise<void>>();
+  private readonly retired = new Map<AcquisitionId, Promise<void>>();
+  private readonly failures: (CleanupFailure & { sequence: number })[] = [];
+  private invocationSequence = 0;
   // Insertion order is successful ownership acceptance order, including promises.
   private readonly owned = new Map<AcquisitionId, Acquisition>();
   private state: 'open' | 'closing' | 'closed' = 'open';
@@ -83,7 +70,7 @@ export class Acquisitions {
       if (cached.state === 'creating') throw new Error(`cycle: ${cached.label} -> ${cached.label}`);
       return cached.exposed;
     }
-    const { create, dispose } = this.graph.registration(bindingId);
+    const description = this.graph.registration(bindingId);
     const attempt: Acquisition = {
       id: Symbol(this.graph.label(bindingId)),
       bindingId,
@@ -92,8 +79,17 @@ export class Acquisitions {
       dependencies: new Set(),
       state: 'creating',
       exposed: undefined,
-      ownership: undefined,
-      pending: undefined,
+      execution: new ProviderExecution({
+        accepted: () => { this.owned.set(attempt.id, attempt); },
+        settled: () => {
+          if (attempt.execution.state === 'failed') this.retire(attempt);
+          else attempt.state = 'ready';
+        },
+        invoking: () => this.invocationSequence++,
+        cleanupFailed: (sequence, error) => {
+          this.failures.push({ sequence, acquisitionId: attempt.id, bindingId: attempt.bindingId, label: attempt.label, error });
+        },
+      }),
     };
     this.cache.set(bindingId, attempt);
     this.attempts.set(attempt.id, attempt);
@@ -104,70 +100,40 @@ export class Acquisitions {
         // Only this attempt's in-flight factory can discover dependencies in close.
         if (
           this.state === 'closed' ||
-          (this.state === 'closing' && attempt.state !== 'creating' && attempt.state !== 'pending')
+          (this.state === 'closing' && !attempt.execution.sourceInFlight)
         ) {
           throw new Error(`bag is ${this.state}`);
         }
         return this.resolveBinding(this.graph.dependency(bindingId, key), attempt);
       },
     });
-    const acquired = (value: unknown) => {
-      attempt.state = 'ready';
-      if (dispose) {
-        attempt.ownership = { value, dispose };
-        this.owned.set(attempt.id, attempt);
-      }
-    };
     try {
-      // The checked facade validates factory parameter shapes before graph creation.
-      const value = create(deps as never);
+      const value = attempt.execution.evaluate(description, deps);
       attempt.exposed = value;
-      if (isThenable(value)) {
-        // Only intrinsic observation establishes native Promise state. Do not
-        // assimilate structural inputs or retry constructor/species setup errors.
-        // The observer's species result is user-controlled, so drain our own barrier.
-        let settled!: () => void;
-        const observed = new Promise<void>(resolve => { settled = resolve; });
-        observePromise.call(
-          value,
-          fulfilled => {
-            acquired(fulfilled);
-            this.finishPending(attempt);
-            settled();
-          },
-          () => {
-            this.finishPending(attempt);
-            this.evictIfCurrent(attempt);
-            settled();
-          },
-        );
-        attempt.state = 'pending';
-        attempt.pending = observed;
-        this.pending.set(attempt.id, observed);
-      } else {
-        acquired(value);
-      }
+      attempt.state = attempt.execution.state;
       return value;
     } catch (error) {
-      // Failed creation, inspection or observer setup has not transferred ownership.
-      this.finishPending(attempt);
-      this.evictIfCurrent(attempt);
+      this.retire(attempt);
       throw error;
     }
   }
 
-  private finishPending(attempt: Acquisition): void {
-    this.pending.delete(attempt.id);
-    attempt.pending = undefined;
-  }
-
-  private evictIfCurrent(attempt: Acquisition): void {
+  private retire(attempt: Acquisition): void {
     if (this.cache.get(attempt.bindingId) === attempt) this.cache.delete(attempt.bindingId);
-    attempt.dependencies.clear();
     attempt.state = 'failed';
     attempt.exposed = undefined;
-    // Incoming IDs can safely dangle: traversal never substitutes a cached retry.
-    if (!attempt.ownership && !attempt.pending) this.attempts.delete(attempt.id);
+    if (this.retired.has(attempt.id)) return;
+    const release = () => {
+      attempt.dependencies.clear();
+      attempt.execution.release();
+      this.attempts.delete(attempt.id);
+      this.owned.delete(attempt.id);
+      this.retired.delete(attempt.id);
+    };
+    // Incoming IDs may dangle; never substitute a cached retry's identity.
+    if (!attempt.execution.hasOwnership && !attempt.execution.work.length) { release(); return; }
+    const cleanup = attempt.execution.dispose().then(release);
+    this.retired.set(attempt.id, cleanup);
   }
 
   private recordEdge(from: Acquisition, to: Acquisition): void {
@@ -193,10 +159,14 @@ export class Acquisitions {
   }
 
   private async disposeAll(): Promise<void> {
-    const failures: CleanupFailure[] = [];
+    let failures: CleanupFailure[] = [];
     try {
-      // Pending factories may start more dependencies; drain to a fixed point.
-      while (this.pending.size > 0) await Promise.all(this.pending.values());
+      // Sources and projections can still acquire dependencies or retire work.
+      while (true) {
+        const work = [...this.retired.values(), ...[...this.attempts.values()].flatMap(attempt => attempt.execution.work)];
+        if (!work.length) break;
+        await Promise.all(work);
+      }
       const ordered: Acquisition[] = [];
       const visited = new Set<AcquisitionId>();
       const visit = (id: AcquisitionId) => {
@@ -205,32 +175,27 @@ export class Acquisitions {
         const attempt = this.attempts.get(id);
         if (!attempt) return;
         for (const dependency of attempt.dependencies) visit(dependency);
-        if (attempt.ownership) ordered.push(attempt);
+        if (attempt.execution.hasOwnership) ordered.push(attempt);
       };
       for (const id of this.owned.keys()) visit(id);
       for (const attempt of ordered.reverse()) {
-        const { dispose, value } = attempt.ownership!;
         attempt.state = 'disposing';
-        try {
-          await dispose(value as never);
-        } catch (error) {
-          failures.push({ acquisitionId: attempt.id, bindingId: attempt.bindingId, label: attempt.label, error });
-        } finally {
-          attempt.state = 'disposed';
-          attempt.ownership = undefined;
-        }
+        await attempt.execution.dispose();
+        attempt.state = 'disposed';
       }
+      failures = [...this.failures].sort((a, b) => a.sequence - b.sequence)
+        .map(({ acquisitionId, bindingId, label, error }) => ({ acquisitionId, bindingId, label, error }));
     } finally {
       this.state = 'closed';
       for (const attempt of this.attempts.values()) {
         attempt.dependencies.clear();
         attempt.exposed = undefined;
-        attempt.ownership = undefined;
-        attempt.pending = undefined;
+        attempt.execution.release();
       }
       this.cache.clear();
       this.attempts.clear();
-      this.pending.clear();
+      this.retired.clear();
+      this.failures.length = 0;
       this.owned.clear();
     }
     if (failures.length > 0) throw new DiBagCleanupError(failures);
