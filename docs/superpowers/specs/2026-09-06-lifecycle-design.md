@@ -86,10 +86,14 @@ it does not recreate a separate wrapper bag or copy finalizers into the child.
 
 ## Acquisition and shutdown
 
-Keep the original ordinary factory value or Promise as the exposed value.
-Observe thenables separately for pending-work bookkeeping and fulfilled-value
-ownership. A cached rejection removes the failed cache entry and abandoned
-outgoing dependency edges; subsequent resolution can retry.
+Keep the original ordinary factory value or native Promise as the exposed value.
+Observe native Promise state separately for pending bookkeeping and fulfilled-
+value ownership, bypassing overridden then methods and preserving original
+setup errors. Structural thenables remain supported through explicit standard
+conversion inside the factory, not a guessed fallback after native observation
+fails. Use an independent native pending barrier rather than assimilating an
+arbitrary derived species result. A cached rejection removes the failed cache
+entry and abandoned outgoing dependency edges; subsequent resolution can retry.
 
 Detect cycles before recursive construction, including repeated transient
 bindings along an active resolution path. Acquisition IDs alone cannot detect

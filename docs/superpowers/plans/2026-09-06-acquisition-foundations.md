@@ -48,6 +48,30 @@ The current cleanup contract attempts every disposer but exposes only the first
 error. Changing the rejected value to an aggregate is intentional and requires
 public migration coverage. Do not merely change the error message.
 
+### Final-review refinement: native observation boundary
+
+The final broad review found that Promise.resolve before intrinsic observation
+assimilates native subclasses through their overridable then method. The one
+final fix wave must observe genuine native Promise state directly and use an
+independent native pending barrier, not the derived species result. Preserve
+same/foreign native Promise identity and original inspection/setup errors.
+
+A portable TypeError fallback cannot distinguish a structural brand failure
+from a genuine Promise's constructor/species setup throwing that very same
+error. Automatic raw structural-thenable assimilation is therefore intentionally
+replaced with explicit conversion inside the factory: Promise.resolve or an
+async factory. Preserve their first-fulfillment/then-throw and rejection/retry
+tests through that explicit supported path, and add direct-structural rejection
+with no callback/ownership. No host-specific brand hook or new helper is added.
+Document this migration; the enterprise/lifecycle specs carry the same policy.
+
+Required fix regressions: native subclass/foreign-native overridden then cannot
+substitute disposal values; constructor/species TypeError preserves original
+error and retry; arbitrary species results cannot settle/starve pending close;
+converted structural thenables preserve fulfillment, rejection and exact exposed
+native Promise identity. This review-driven API refinement is recorded as a
+ruling, not a claim that the earlier implementation already met it.
+
 ## File responsibilities
 
 - `src/acquisition.ts`: internal attempt records and ownership/failure record
@@ -101,7 +125,7 @@ public migration coverage. Do not merely change the error message.
   state in the final shutdown path. The closing Promise/error may retain its
   diagnostic evidence, but not an entire reachable runtime graph.
 
-- [ ] **Step 1: Write the caught-failure and aggregate regressions.**
+- [x] **Step 1: Write the caught-failure and aggregate regressions.**
 
 ```ts
 test('a retry does not inherit the identity of a caught failed attempt', async () => {
@@ -161,7 +185,7 @@ retries through cached A. Keep original Promise identity assertions and use
 actual cleanup event arrays. Existing genuine-cycle tests must continue failing
 with their original useful paths, not becoming successful resolutions.
 
-- [ ] **Step 2: Record the expected RED evidence.**
+- [x] **Step 2: Record the expected RED evidence.**
 
 Run `bun test tests/acquisition.test.ts`. The current binding-keyed graph must
 fail the caught-retry case with its false cycle; the aggregate test must fail
@@ -170,7 +194,7 @@ behavioral evidence for the retry case even if a new missing error export would
 otherwise prevent loading the entire file. Separate the tests temporarily or
 run the retry regression before importing the new error.
 
-- [ ] **Step 3: Replace binding-keyed acquisition state with attempt records.**
+- [x] **Step 3: Replace binding-keyed acquisition state with attempt records.**
 
 Use the following identity relationship; no edge lookup may substitute the
 cache's latest attempt for an existing target ID:
@@ -220,7 +244,7 @@ Setup failures retain the existing no-raw-disposal contract and original error.
 Drain pending attempts to a fixed point before traversing ownership, because
 in-flight factories can discover new dependencies after `await`.
 
-- [ ] **Step 4: Implement structured shutdown failures and migrate assertions.**
+- [x] **Step 4: Implement structured shutdown failures and migrate assertions.**
 
 ```ts
 export interface CleanupFailure {
@@ -261,7 +285,7 @@ Document that a disposer must not await the scope-close Promise whose completion
 requires that very disposer; arbitrary user-created Promise cycles cannot be
 forcibly completed.
 
-- [ ] **Step 5: Verify, document and commit.**
+- [x] **Step 5: Verify, document and commit.**
 
 Run focused acquisition/disposal/runtime/module tests, then `npm run check`,
 `npm run example:wbs`, and `bun run examples/modules.ts`. Exercise real Node

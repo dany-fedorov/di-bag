@@ -15,6 +15,13 @@ A function is still a valid registration. Dependencies are still ordinary
 values with their exact declared Promise types. There is no required wrapper,
 decorator, runtime parameter parsing, or dependency on either box package.
 
+Automatic asynchronous bookkeeping follows the enterprise native-Promise
+boundary. Structural thenables need explicit native conversion inside the
+source factory. Explicit asynchronous mapping/unboxing may perform standard
+awaiting as its named contract; it must not use an observation-error heuristic
+to guess whether a raw input was native. Synchronous mappings preserve their
+exact input/output and do not silently convert a structural thenable.
+
 Retain `DiBag.withDisposal(factory, dispose)` and its existing inferred
 `DisposableFactory<F>` contract, including the readonly original `create`
 callback. Additional provider helpers produce nominal, immutable handles whose
@@ -145,6 +152,40 @@ of every retired attempt.
 
 Aliases from val-box are diagnostic labels only. They do not automatically
 rename public slots, change token identity, or transfer ownership.
+
+### Inspection and composition refinements
+
+Use `bag.inspect(key)` for a checked, non-resolving snapshot. It contains the
+binding identity and label, static `metadata`, and an `acquisitions` array of
+currently retained attempt snapshots. Each attempt contains its identity,
+state, and acquisition metadata; it does not expose the acquired service or
+live dependency sets. Before resolution and after completed closure, that
+array is empty. This representation also accommodates multiple retained
+transients without inventing an unbounded historical archive.
+
+Acquisition metadata uses an ordered tuple of stage-owned frames, not one
+flattened namespace map. Each adapter appends its own typed frame contract;
+mapping and ownership wrappers preserve existing frames. Each inspection frame
+is a `Presence<Frame>` snapshot because an inner asynchronous stage may not
+have produced metadata when an outer synchronous projection is already usable.
+Repeated val-box adapters therefore retain separate frames instead of silently
+overwriting metadata or intersecting incompatible payload types. A val-box frame
+has `kind: 'val-box'`, its copied `metadata: Presence<M>`, and `alias: string | null`.
+Presence records and frame arrays are frozen; application payloads are not.
+
+Named-module export types must retain static and acquisition metadata contracts
+through installation and rename, alongside the existing service/requirement
+contracts. Keep `ModuleProvides` and `ModuleRequires` as their existing value
+views. An additional declaration-preserved module contract carrier is preferable
+to discarding metadata during the synthetic public-registration conversion.
+Existing plain-module annotations stay usable when their complete contracts
+match; annotations cannot erase nonempty retained metadata contracts.
+
+The default val-box required-value mode uses the no-options overload. Whenever
+an options object is supplied, require an explicit `value: 'required' | 'presence'`
+discriminator, and preserve the corresponding union output for a union-valued
+mode. An optional discriminator would allow a structurally narrowed `{}` to
+hide a runtime presence-mode selection while promising a required service value.
 
 ## sas-box adapter subpath
 

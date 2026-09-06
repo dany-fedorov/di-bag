@@ -81,6 +81,17 @@ Cleanup attempts every applicable finalizer and exposes all cleanup failures
 through structured diagnostics; migration explains changes from first-error
 behavior. Standard disposal protocols are opt-in adapters.
 
+Automatic asynchronous acquisition observation uses genuine native Promise
+state, including subclasses and foreign-realm Promises, without consulting an
+overridden `then` method for fulfillment. Native observation setup failures
+preserve their original thrown value and roll back. A structural thenable is
+supported through an explicit standard conversion inside its factory, such as
+`() => Promise.resolve(thenable)` or an async factory, not a brand-guessing
+fallback after native observation fails. This is an intentional migration from
+automatic raw-thenable assimilation. Ordinary synchronous values remain supported,
+and exposed native Promise identity remains exact. The library's own pending
+barrier must not assimilate a Promise subclass's arbitrary derived species value.
+
 ### Extension capabilities
 
 Provide checked direct-class/positional-function adapters, aliases, genuinely

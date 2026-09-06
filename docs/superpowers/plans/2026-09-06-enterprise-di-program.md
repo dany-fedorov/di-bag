@@ -16,12 +16,13 @@ execution; do not stop for another planning approval between increments.
 - [x] Type foundation: `2026-09-06-type-foundations.md` tasks complete; carried observer correction resolved by reviewed named-module Task1. Evidence: `docs/reports/2026-09-06-type-foundations.md`. Initial scale gates pass; larger limits remain required work below.
 - [ ] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformations and typed symbol tokens remain required.
 - [ ] Box integration: optional adapter subpaths using the real packaged libraries; typed static/acquisition metadata and plain service values.
-- [ ] Lifetime runtime: first execute `2026-09-06-acquisition-foundations.md` for per-attempt identity and complete shutdown diagnostics; then root/scoped/transient policies, explicit sharing and lifetime-leak checks.
+- [x] Acquisition foundation: `2026-09-06-acquisition-foundations.md` completed through `fd83085`; task review and final scoped review are clean. Evidence: `docs/reports/2026-09-06-acquisition-foundations.md`, including the explicit structural-thenable conversion migration.
+- [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
 - [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests.
-- [ ] Compiler/inference follow-up: resolve the measured 500/1000 individual-chain limits, large-graph latency, and the inline async richer-selected override combination; preserve all existing contracts and the cast-free predeclared-object workaround. Actual nominal-module 1000-provider gates now pass, separately from registration groups.
+- [ ] Compiler/inference follow-up: resolve the measured 500/1000 individual-chain limits, large-graph latency, and the inline async richer-selected override combination; preserve all existing contracts and the cast-free predeclared-object workaround. Actual nominal-module 1000-provider gates now pass, separately from registration groups. A bounded inference candidate and its unproved boundaries are recorded in `docs/reports/2026-09-06-inline-fork-inference.md`; it has not been adopted.
 - [ ] Release handoff: complete examples, migrations, changelogs, verified tarballs, and safe publication instructions for all three libraries.
 
 ## Execution rules
@@ -36,6 +37,8 @@ provider transformations and box adapters, so projection failures and late
 ownership have a correct place to be tracked. The provider/adapter refinement
 is `docs/superpowers/specs/2026-09-06-provider-transformations-design.md`.
 This prerequisite does not remove or complete later lifetime/startup work.
+The next executable plan is `2026-09-06-provider-transformations.md`: typed
+metadata/inspection, staged mappings/ownership, then real optional box adapters.
 
 ## Current evidence
 
@@ -59,5 +62,12 @@ This prerequisite does not remove or complete later lifetime/startup work.
 - Public named modules are implemented at `9b9fb98`; task and final broad reviews
   are clean. Independent exact-HEAD verification passes 144 tests / 527
   assertions, typecheck/build, CJS/ESM consumers, all nominal-module scale cases
-  and both examples. The lifecycle retry defect and compiler/inference
-  limitations remain explicitly required follow-up work.
+  and both examples. The lifecycle retry defect is addressed by the acquisition
+  foundation below; compiler/inference limitations remain required follow-up.
+- Acquisition identity and aggregate shutdown are implemented at `179fa2e`:
+  full check 155 tests / 602 assertions, task review clean. Final review found
+  native Promise-subclass assimilation; `fd83085` fixes it with direct native
+  observation and an independent native pending barrier. Independent covering
+  check passes 74 tests / 300 assertions, strict builds and both examples;
+  final scoped review is clean. Structural thenables use explicit conversion
+  inside factories; no host-specific core dependency or guessed fallback.
