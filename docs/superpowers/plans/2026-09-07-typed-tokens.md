@@ -117,7 +117,7 @@ type GraphContract = TokenGraph<readonly TokenBase[], TokenBase> | OpaqueGraph;
   reject registrations with nonempty or opaque token contracts. Internal helpers
   must not create an unchecked path through the existing named add/end API.
 
-- [ ] **Step 1: Add failing runtime and exact contract tests.**
+- [x] **Step 1: Add failing runtime and exact contract tests.**
 
 ```ts
 test('token symbols participate in the same acquisition graph', async () => {
@@ -148,12 +148,12 @@ factory side effects, token-to-named and named-to-token cycles, same cache reuse
 retry after rejection, post-await reads and undeclared well-known symbol reads
 remaining undefined. Keep current source/owned cleanup and native boundaries.
 
-- [ ] **Step 2: Record RED before implementation.**
+- [x] **Step 2: Record RED before implementation.**
 
 Run `bun test tests/tokens.test.ts` and focused source/emitted contract tests.
 Separate missing API diagnostics from the runtime/type behavior being established.
 
-- [ ] **Step 3: Implement the immutable internal boundary.**
+- [x] **Step 3: Implement the immutable internal boundary.**
 
 Use nominal TokenBase plus a declaration-retained invariant [K,S] property, a
 readonly key, private WeakMap authentication and Object.freeze. Capture key in a
@@ -181,12 +181,17 @@ Extend provider/context/metadata/frame extraction to G with opaque and NoInfer
 guards. Preserve all existing exact callbacks, replacement overloads and plain
 module defaults. Add the temporary nonempty-token graph rejection described above.
 
-- [ ] **Step 4: Verify and commit the internal foundation.**
+- [x] **Step 4: Verify and commit the internal foundation.**
 
 Run covering runtime/source/emitted tests, full `npm run check`, all3 existing
 examples and `git diff --check`. Record exact commands/counts and any changes
 after the full run. Commit task-owned files as
 `feat: add invariant token contracts and internal symbol routing`.
+
+Completed at `1048e29`; initial task review is spec-compliant and Approved with no
+findings. Full check:264tests/1560assertions, typecheck/build and all3examples.
+Controller committed-state covering check:30tests/250assertions, strict builds and
+all3examples. Evidence: `docs/reports/2026-09-07-typed-tokens.md`.
 
 ### Task 2: Checked root and module token composition
 
@@ -227,6 +232,11 @@ exports: distinct resources, no public private-token resolve, dependency-aware
 cleanup. A private provider consuming an exported token must follow the public
 slot; an external token requirement survives a token-free public output and
 later ordinary add. Include the twice-installed inferred resolve regression.
+Emit declarations for the cross-file feature fixture itself, then compile its
+unchanged consumer against those generated declarations, not just against
+di-bag's own emitted package types. This proves a feature-library author's
+inferred token/module export can survive declaration emission, including symbols
+and private requirements; an application-only noEmit run cannot prove that.
 Assert exact richer outputs, Promise types, metadata/frames, default annotations,
 same-symbol rewrap and named factory requirements on token-bound registrations.
 Negative source/emitted calls must reject missing/distinct/incompatible tokens,
@@ -286,9 +296,11 @@ examples and diff checks. Commit task-owned files as
 ### Task 3: Real-package token integration, compiler gates and documentation
 
 **Files:** Create `tests/token-package.test.ts`, `tests/token-scale.test.ts`,
-`examples/tokens.ts`; extend `tests/compiler.ts` and reuse
-`tests/type-scale.test.ts`'s isolated-compiler pattern only where token fixtures
-need it. Update `README.md`, `docs/migrations/0.1-to-enterprise.md`, and
+`scripts/check-token-scale.ts`, `examples/tokens.ts`; extend `tests/compiler.ts`.
+Reuse `scripts/benchmark-types.ts`'s isolated Node compiler-worker pattern:
+the existing `tests/type-scale.test.ts` gates run in-process, not in child workers.
+Keep those existing tests unchanged. Update `README.md`,
+`docs/migrations/0.1-to-enterprise.md`, and
 `docs/reports/2026-09-07-typed-tokens.md`. Extend `tests/box-package.test.ts` using existing real
 versioned fixtures; do not copy box implementations or add runtime dependencies.
 
@@ -321,7 +333,13 @@ const graph = DiBag.begin().bind(token0, () => 1)
 const result: number = graph.resolve(token1);
 ```
 
-Use existing isolated compiler execution and its 60-second bound per case. Require
+The new token worker imports source generation and diagnostic helpers from
+`tests/compiler.ts`, accepts one validated form/scenario, and emits the actual
+diagnostics, time and maximum RSS as JSON. `tests/token-scale.test.ts` invokes a
+fresh Node child for each case using the benchmark's 60-second bound; it checks
+successful process completion before judging the intended diagnostic positions.
+Do not reinterpret the existing in-process gate's120-second test timeout as
+process isolation or change that gate while adding token coverage. Require
 intended negative locations, not OOM/timeout as rejection. Record time/memory and
 keep existing named/grouped/module gates unchanged. These100-token gates do not
 complete the program's larger T2/compiler-latency obligations.
@@ -342,6 +360,9 @@ bound provider reuse, private/public/external requirements, selected computed-ke
 overrides, Symbol.for runtime collisions and erased/dynamic boundaries. Explain
 Provider's fourth contract/default compatibility and Module C/D retention. Do not
 claim lifetime/startup/extensions or universal superiority are complete.
+Correct the migration's old failed-attempt description: retirement abandons
+incoming failed-caller edges while accepted outgoing ownership dependencies remain
+available for ordered cleanup. Do not claim outgoing dependencies are all cleared.
 
 - [ ] **Step 4: Verify, report and commit.**
 

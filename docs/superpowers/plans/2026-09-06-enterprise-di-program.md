@@ -49,6 +49,8 @@ replacement inference, with clean final scoped review. Typed-token integration
 now has the binding design `2026-09-07-typed-tokens-design.md` and executable
 plan `2026-09-07-typed-tokens.md`: internal identity/routing, checked public/module
 composition, then actual package/compiler integration. Implementation remains open.
+The internal token foundation is complete at `1048e29`, with clean task review;
+public token/module composition and its final package/scale review remain open.
 The incremental-check candidate is documented
 in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
 
@@ -121,3 +123,10 @@ in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
 - Fresh pre-token baseline at `e26bb16`: `npm run check` passed 240 tests / 1,334
   assertions in 312.67 seconds, strict typecheck and declaration build. No token
   production implementation was present in that run.
+- Token Task1 is implemented at `1048e29`: genuine invariant token identities,
+  retained provider graph contracts and shared internal symbol acquisition routes.
+  Full check:264tests/1560assertions, typecheck/build and all3examples; controller
+  independent committed-state covering run:30tests/250assertions, strict builds,
+  actual package consumers and all3examples. Initial task review is clean, no
+  findings. Evidence: `docs/reports/2026-09-07-typed-tokens.md`. This is an internal
+  foundation checkpoint, not completion of public tokens or milestone M1.
