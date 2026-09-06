@@ -201,6 +201,21 @@ tests/disposal.test.ts tests/boundaries.test.ts`, then `npm run check` and
   additions and modules may fulfill forward requirements; `.end()` closes all.
 - Host replacement and forks of exported services affect the module's own
   consumers of those services. They must still satisfy those consumers' needs.
+- Retain installed constraints in both the host builder and the returned bag,
+  not only in the module value. Use an invariant constraint parameter with an
+  empty default, such as `Bag<R, C extends NeedConstraint = never>`, and an
+  invariant type-only witness on builders/bags carrying `C`. Ordinary `Bag<R>`
+  annotations remain available for plain graphs; they must not erase a
+  nonempty installed contract. Every add/replace/fork result retains the exact
+  constraint union. Fork validates that union against its resulting public
+  service view as well as checking ordinary factory declarations.
+- Installed constraints include public-slot dependencies of private consumers,
+  not only still-missing external dependencies. Module-local private targets
+  were checked at sealing; public targets remain replaceable and therefore
+  their consumer contracts must survive installation, export renaming, and
+  bag finalization. Rename their lookup keys using the module's explicit
+  exported-reference mapping, without renaming private targets or unrelated
+  external names.
 
 - [ ] **Step 1: Add failing runtime and cross-file compiler fixtures.**
 
@@ -238,6 +253,13 @@ invalid exports and rename keys, incompatible public overrides used by private
 consumers, and incompatible external requirements from two installed modules.
 Positive fixtures cross a file boundary and retain exact method/Promise types.
 
+Include a private provider that requires an extra method on an exported
+service, with a public handler consuming the private provider. Verify the bag
+still rejects an override missing that method. Add a no-cast negative fixture
+that attempts to assign this installed bag or builder to a type lacking its
+installed constraints before overriding. Invariance must reject that erasure;
+the compiler must not rely on the user retaining the original inferred type.
+
 - [ ] **Step 2: Implement module values and type reconciliation.**
 
 Use private nominal identity plus invariant contract witnesses for modules, and
@@ -258,6 +280,9 @@ type WrongConstraint<C extends NeedConstraint, Available extends object> =
     : never;
 type MissingConstraint<C extends NeedConstraint, Available extends object> =
   C extends NeedConstraint ? Exclude<keyof C['needs'], keyof Available> : never;
+// Type-only member on each carrier; never invoke it or expose a mutable value.
+// This prevents a structural view from dropping an installed constraint.
+// declare private readonly constraintInvariant: (value: C) => C;
 ```
 
 Apply these distributive checks to the retained constraint union. Format wrong
@@ -285,6 +310,9 @@ scale must fail with their intended contract diagnostic, never TS2589.
 
 Document private versus public names, forward requirements, override visibility,
 repeated installation via explicit renaming, and fresh-root fork semantics.
+Explain that explicit bag annotations for installed modules must preserve their
+inferred contract (for example with `typeof` or `ReturnType`); a plain `Bag<R>`
+annotation is not a mechanism for discarding private-consumer requirements.
 Add a runnable two-module example and packaged declarations/import consumers.
 Run focused module/type/scale tests, `npm run check`, `npm run example:wbs`,
 and `bun run examples/modules.ts`. Commit as
