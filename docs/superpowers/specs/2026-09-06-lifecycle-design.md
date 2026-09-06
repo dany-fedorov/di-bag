@@ -93,7 +93,9 @@ setup errors. Structural thenables remain supported through explicit standard
 conversion inside the factory, not a guessed fallback after native observation
 fails. Use an independent native pending barrier rather than assimilating an
 arbitrary derived species result. A cached rejection removes the failed cache
-entry and abandoned outgoing dependency edges; subsequent resolution can retry.
+entry and abandons unsuccessful incoming consumer edges; subsequent resolution
+can retry. The retired attempt retains its outgoing dependencies, pending work
+and accepted ownership until cleanup can safely finish, then releases them.
 
 Detect cycles before recursive construction, including repeated transient
 bindings along an active resolution path. Acquisition IDs alone cannot detect
@@ -190,8 +192,9 @@ isolating or terminating such work in another worker/process is outside scope.
 - A provider may catch a dependency's acquisition failure and still return a
   usable service. Retrying that dependency must use a new acquisition identity:
   if it now consumes the cached parent, the old failed edge must not create a
-  false cycle. This is an observed limitation of the current binding/token-keyed
-  edge map, not an achieved behavior; per-acquisition graph tests must cover it.
+  false cycle. The completed acquisition/provider foundations cover this case;
+  lifetime work must preserve it when introducing transient attempts and
+  cross-scope ownership. See the provider-transformations evidence report.
 - Shutdown covers owned and unowned intermediates, async completion order,
   transient multiplicity, reentrant close, and multiple failures.
 - Successful eager startup leaves unrelated providers lazy; normal failure
