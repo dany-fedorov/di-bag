@@ -1,9 +1,9 @@
 # Typed-token implementation evidence
 
-Status: Tasks1/2 internal foundation and public/module composition complete;
-Task3 package/compiler/documentation implementation and implementer verification
-complete, with independent Task3 and broad final review still pending. This does
-not complete the enterprise program or claim universal type safety.
+Status: All three implementation tasks and their independent task reviews are
+complete, including the Task3 diagnostic-assertion correction. Broad whole-branch
+review remains required. This does not complete the enterprise program or claim
+universal type safety.
 
 Spec: `../superpowers/specs/2026-09-07-typed-tokens-design.md`.
 Plan: `../superpowers/plans/2026-09-07-typed-tokens.md`.
@@ -155,9 +155,23 @@ Implementer verification after the final source/test change:
   Focused token scale:6pass/0fail/40assertions in31.22seconds.
 - All4 runnable examples passed: WBS scope ownership, named modules, real box
   adapters and the new canonical-token/private-owner/public-fork example.
-- No runtime dependency or box implementation changed, and no package was
-  published or branch pushed. Independent Task3 review and broad token review
-  have not yet run.
+- No runtime dependency or box implementation changed. The implementer did not
+  publish or push; the controller coordinates authorized checkpoint pushes.
+
+Task3 is committed at `8088852`, with the test-only review correction at `887d417`.
+Controller independent committed-state verification passed strict builds,
+32actual package/box/isolated compiler tests with338assertions in45.16seconds,
+18source/emitted token/feature tests with253assertions in10.22seconds, all4examples
+and diffcheck. These covering checks complement, not replace, the full run above.
+
+The initial task review found one Important assertion weakness: the scale test
+separately required a diagnostic at the marked line and the intended message
+somewhere in the file. `887d417` now requires one diagnostic to satisfy both. The
+implementer's covering rerun passed6tests/36assertions in30.98seconds; the
+controller independently reran the committed correction with6tests/36assertions
+in31.08seconds. No production or other test source changed after the full run.
+Scoped re-review: finding addressed, no new breakage or other observations. Task3
+is complete after one fix round. The broad final review has not yet run.
 
 ## Decisions and costs retained for the final review
 
@@ -211,7 +225,7 @@ subpaths or a new carrier.
 
 ## Remaining work
 
-Independent Task3 review and the broad final token review remain. The broad review
-must triage the recorded bulk-fork performance regression. Larger T2, lifetimes,
+The broad final token review remains and must triage the recorded bulk-fork
+performance regression. Larger T2, lifetimes,
 startup/cancellation, extensions, observers/plugins, platform/comparison evidence
 and release handoff remain required.

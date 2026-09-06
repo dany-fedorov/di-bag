@@ -14,7 +14,7 @@ execution; do not stop for another planning approval between increments.
 
 - [x] Box libraries: `2026-09-06-box-foundations.md` completed; final review clean after the sas-box generic-constructor correction. Evidence: `docs/reports/2026-09-06-box-foundations.md`.
 - [x] Type foundation: `2026-09-06-type-foundations.md` tasks complete; carried observer correction resolved by reviewed named-module Task1. Evidence: `docs/reports/2026-09-06-type-foundations.md`. Initial scale gates pass; larger limits remain required work below.
-- [ ] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformations are complete through final correction `6874760`, with clean scoped review; typed symbol tokens remain required.
+- [ ] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformations are complete through final correction `6874760`, with clean scoped review. All typed-token tasks and task reviews are complete through `887d417`; broad final token review and recorded bulk-fork performance triage remain required.
 - [x] Box integration: adapters use real packaged libraries, typed acquisition frames and plain service values; final shared union-type correction `6874760` and scoped review are complete. Evidence: `docs/reports/2026-09-06-provider-transformations.md`.
 - [x] Acquisition foundation: `2026-09-06-acquisition-foundations.md` completed through `fd83085`; task review and final scoped review are clean. Evidence: `docs/reports/2026-09-06-acquisition-foundations.md`, including the explicit structural-thenable conversion migration.
 - [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation.
@@ -147,3 +147,18 @@ in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
   18token runtime tests/67assertions, strict builds and all3examples. Task review
   Approved; one bulk-fork repeated-graph-build performance finding remains for
   the broad final review. Token Task3 and larger enterprise rows remain required.
+- A bounded lifetime-carrier model now has independent source/declaration evidence
+  in `docs/reports/2026-09-07-lifetime-carrier-investigation.md`: all positive
+  phases pass and the unsuppressed consumer has exactly26intended diagnostics.
+  Extending existing G is only a candidate; declaration expansion, production
+  compatibility, child/shared construction contexts and scale remain unproven.
+  No lifecycle representation or policy is adopted by this investigation.
+- Token Task3 is implemented at `8088852` and its review correction at `887d417`.
+  Actual packed CJS/ESM inferred feature emission exposed TS2742; five type-only
+  root exports fix portability without runtime changes. Full check passed297tests/
+  1866assertions, strict builds/all4examples. Controller independently verified
+  packages/boxes/source/emitted cases and all6token scale cases. Initial review's
+  diagnostic-location assertion finding is fixed and scoped re-review is clean;
+  its covering reruns pass6tests/36assertions. All token tasks are complete, but
+  broad review and the recorded fork performance finding remain open. At100tokens,
+  measured maximumRSS775–877MiB underscores the still-required larger T2 work.

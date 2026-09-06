@@ -312,11 +312,19 @@ Keep those existing tests unchanged. Update `README.md`,
 `docs/reports/2026-09-07-typed-tokens.md`. Extend `tests/box-package.test.ts` using existing real
 versioned fixtures; do not copy box implementations or add runtime dependencies.
 
-**Consumes:** All Task2 public APIs, unchanged package exports and pinned real
+**Consumes:** All Task2 public APIs, existing package entrypoints and pinned real
 box archives. **Produces:** actual cross-loader integration evidence, token
 compiler controls and a runnable module/ownership example.
 
-- [ ] **Step 1: Add real-package and bounded compiler controls.**
+Installed-package authoring exposed TS2742 during Task3: inferred feature
+declarations named non-portable internal type paths in both Node module modes.
+Retain this stronger regression gate. The controller permits minimal type-only
+public naming/export corrections (including src/index.ts) with focused RED/GREEN;
+the unchanged-export assumption does not override portable module-author inference.
+Runtime entrypoints, authentication and consumer contracts stay intact. The ruling
+and its public-type-surface cost are recorded in the token evidence report/ledger.
+
+- [x] **Step 1: Add real-package and bounded compiler controls.**
 
 Build/install an actual local di-bag artifact using existing package-test setup.
 In separate Node CJS and ESM consumers, create a token/provider through one loader
@@ -359,13 +367,13 @@ intended negative locations, not OOM/timeout as rejection. Record time/memory an
 keep existing named/grouped/module gates unchanged. These100-token gates do not
 complete the program's larger T2/compiler-latency obligations.
 
-- [ ] **Step 2: Run tests and distinguish RED from missing coverage.**
+- [x] **Step 2: Run tests and distinguish RED from missing coverage.**
 
 Record actual runtime/declaration failures separately from missing test wiring.
 If a newly added integration already works, record that honest result instead of
 inventing a failing runtime claim. Fix only demonstrated integration gaps.
 
-- [ ] **Step 3: Add the runnable example and migration documentation.**
+- [x] **Step 3: Add the runnable example and migration documentation.**
 
 The example defines and exports canonical tokens, composes a module with a private
 owned dependency, forks one exported token, resolves plain service values, and
@@ -379,11 +387,19 @@ Correct the migration's old failed-attempt description: retirement abandons
 incoming failed-caller edges while accepted outgoing ownership dependencies remain
 available for ordered cleanup. Do not claim outgoing dependencies are all cleared.
 
-- [ ] **Step 4: Verify, report and commit.**
+- [x] **Step 4: Verify, report and commit.**
 
 Run full `npm run check`, all4 examples, real package consumers, token compiler
 controls and diff checks. Record exact actual results and production limitations.
 Commit `test: verify packaged token composition and document contracts`.
+
+Completed at `8088852` with test-only correction `887d417`. Full check passed
+297tests/1866assertions, strict builds and all4examples before that assertion
+strengthening; the six affected compiler cases subsequently passed36assertions
+in both implementer and independent controller runs. Task review's one Important
+finding is addressed with clean scoped re-review. Actual installed .cts/.mts
+producer emission is portable via five type-only exports. All three tasks are
+complete; broad final review and bulk-fork finding triage remain required.
 
 ## Coverage self-review and handoff
 
