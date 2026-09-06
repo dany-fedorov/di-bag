@@ -65,6 +65,30 @@ test('synchronous factory failure can be retried', () => {
   expect(bag.resolve('value')).toBe(42);
 });
 
+test('ending one builder twice and forking create fresh owned roots', async () => {
+  const disposed: number[] = [];
+  let created = 0;
+  const builder = DiBag.begin().add({
+    resource: DiBag.withDisposal(
+      () => ({ id: ++created }),
+      value => { disposed.push(value.id); },
+    ),
+  });
+  const first = builder.end();
+  const second = builder.end();
+  const fork = first.fork();
+  expect(first.resolve('resource')).toEqual({ id: 1 });
+  expect(second.resolve('resource')).toEqual({ id: 2 });
+  expect(fork.resolve('resource')).toEqual({ id: 3 });
+  await first.close();
+  expect(disposed).toEqual([1]);
+  expect(second.resolve('resource')).toEqual({ id: 2 });
+  expect(fork.resolve('resource')).toEqual({ id: 3 });
+  await second.close();
+  await fork.close();
+  expect(disposed).toEqual([1, 2, 3]);
+});
+
 test('async dependencies remain explicit and concurrent resolutions share a promise', async () => {
   let creations = 0;
   const bag = DiBag.begin()

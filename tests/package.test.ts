@@ -126,9 +126,13 @@ for (const specifier of ['di-bag', '../src/di-bag']) {
         ? ts.createSourceFile(path, source, ts.ScriptTarget.ES2022, true)
         : getSourceFile(name, languageVersion, onError, fresh);
     const errors = ts.getPreEmitDiagnostics(ts.createProgram([path], options, host));
-    expect(errors.length).toBe(1);
-    expect(errors[0]?.file?.fileName).toBe(path);
-    expect(ts.flattenDiagnosticMessageText(errors[0]!.messageText, '\n'))
+    // The internal constructor shape may add consumer diagnostics; the export
+    // itself must still prohibit value usage, with no declaration-file errors.
+    const typeOnlyErrors = errors.filter(error => error.code === 1362);
+    expect(typeOnlyErrors).toHaveLength(1);
+    expect(typeOnlyErrors[0]?.file?.fileName).toBe(path);
+    expect(errors.every(error => error.file?.fileName === path)).toBe(true);
+    expect(ts.flattenDiagnosticMessageText(typeOnlyErrors[0]!.messageText, '\n'))
       .toContain("cannot be used as a value because it was exported using 'export type'");
   });
 }

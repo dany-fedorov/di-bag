@@ -182,6 +182,44 @@ test('native Promise observer setup failures allow retry and preserve accepted P
   expect(disposed[0]).toBe(resource);
 });
 
+test('native Promise ownership observation ignores an own then override', async () => {
+  const resource = { id: 'real' };
+  const original = Promise.resolve(resource);
+  const disposed: typeof resource[] = [];
+  let customThenCalled = false;
+  original.then = (fulfilled) => {
+    customThenCalled = true;
+    fulfilled?.({ id: 'not-the-fulfilled-resource' });
+    throw new Error('custom then');
+  };
+  const bag = DiBag.begin().add({
+    resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
+  }).end();
+  expect(bag.resolve('resource')).toBe(original);
+  await bag.close();
+  expect(customThenCalled).toBe(false);
+  expect(disposed).toHaveLength(1);
+  expect(disposed[0]).toBe(resource);
+});
+
+test('structural thenable ownership accepts fulfillment before a subsequent throw', async () => {
+  const resource = { id: 'real' };
+  const original: PromiseLike<typeof resource> = {
+    then(fulfilled) {
+      fulfilled?.(resource);
+      throw new Error('after fulfillment');
+    },
+  };
+  const disposed: typeof resource[] = [];
+  const bag = DiBag.begin().add({
+    resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
+  }).end();
+  expect(bag.resolve('resource')).toBe(original);
+  await bag.close();
+  expect(disposed).toHaveLength(1);
+  expect(disposed[0]).toBe(resource);
+});
+
 test('rejected structural thenables retry and dispose only the fulfilled retry', async () => {
   const failure = new Error('rejected thenable');
   const first = Promise.reject<number>(failure);
