@@ -183,6 +183,11 @@ isolating or terminating such work in another worker/process is outside scope.
   explicit root-context capture never reaches child-owned resources.
 - Cached pending work is deduplicated, failure retries without stale edges, and
   synchronous and post-await cycles produce deterministic useful paths.
+- A provider may catch a dependency's acquisition failure and still return a
+  usable service. Retrying that dependency must use a new acquisition identity:
+  if it now consumes the cached parent, the old failed edge must not create a
+  false cycle. This is an observed limitation of the current binding/token-keyed
+  edge map, not an achieved behavior; per-acquisition graph tests must cover it.
 - Shutdown covers owned and unowned intermediates, async completion order,
   transient multiplicity, reentrant close, and multiple failures.
 - Successful eager startup leaves unrelated providers lazy; normal failure

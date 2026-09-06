@@ -37,6 +37,12 @@ contracts. This plan implements the named-module portion of M1; typed symbol
 tokens, explicit dependency adapters, and lifetime policies have separate
 subsystem tasks in the enterprise program. Do not claim M1 complete here.
 
+The two prerequisite tasks and their specified scale gates are complete. Its
+final scoped review retained one explicit observer-setup obligation for this
+runtime task: an own `then` override on a native Promise can synchronously run
+an ownership callback and then throw. Task 1 must close that reviewed residual
+before adding module behavior; it is not an accepted permanent limitation.
+
 The runtime is still one cached acquisition per binding per independent bag.
 Do not introduce child-scope sharing or transient policy during this plan.
 Keep `fork()` a fresh independent root with no inherited acquisitions.
@@ -65,6 +71,12 @@ cycle among bag, builder, and module files.
 
 **Interfaces:**
 - The checked public API and inferred result types do not change in this task.
+- Preserve exception-safe failed acquisition rollback, and complete the
+  prerequisite's observer-setup correction. Observe normalized promises through
+  the trusted native Promise `then` intrinsic, not an own override on the
+  returned Promise. Preserve the original exposed object/Promise identity.
+  A native Promise's custom observer method must not commit ownership early,
+  throw after callbacks, or mutate bookkeeping belonging to a later retry.
 - Runtime accepts an immutable graph description separating public keys from
   binding IDs. Binding descriptions retain the normalized registration and a
   local-name lookup table; each bag owns its own mutable acquisition state.
@@ -95,6 +107,50 @@ interface GraphDescription {
 The implementation may encapsulate these maps in an internal class to avoid
 claiming that `Object.freeze(new Map())` prevents mutation. Never expose mutable
 description maps or acquisition records through the public facade.
+
+- [ ] **Step 0: Close the carried observer-setup residual with a regression.**
+
+The existing runtime invokes an overridden native-Promise `then` directly.
+This strict no-cast case currently throws after registering cleanup, violating
+the failed-setup ownership contract. Protect the real fulfilled resource and
+assert that observing it does not invoke the custom method:
+
+```ts
+const resource = { id: 'real' };
+const original = Promise.resolve(resource);
+const disposed: typeof resource[] = [];
+let customThenCalled = false;
+original.then = (fulfilled) => {
+  customThenCalled = true;
+  fulfilled?.({ id: 'not-the-fulfilled-resource' });
+  throw new Error('custom then');
+};
+const bag = DiBag.begin().add({
+  resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
+}).end();
+expect(bag.resolve('resource')).toBe(original);
+await bag.close();
+expect(customThenCalled).toBe(false);
+expect(disposed).toHaveLength(1);
+expect(disposed[0]).toBe(resource);
+```
+
+Run the focused test to record RED. Normalize with `Promise.resolve(value)`
+inside the existing exception boundary and attach bookkeeping using the native
+intrinsic, capturing it in the runtime module. One typed formulation is:
+
+```ts
+const observePromise = Promise.prototype.then<void, void>;
+// Native reactions run asynchronously; an own then override is not the observer.
+const observed = observePromise.call(Promise.resolve(value), onFulfilled, onRejected);
+```
+
+Retain constructor/then-getter setup-failure rollback and error identity. Add a
+structural PromiseLike that calls its fulfillment handler and then throws:
+native promise assimilation must accept its first settlement and dispose the
+actual fulfilled value once. Keep rejected-thenable retry and pending-close
+regressions. This is an internal observation correction, not a new public
+raw-ownership API. Run runtime/disposal tests GREEN before extracting the graph.
 
 - [ ] **Step 1: Write failing internal graph tests and run them.**
 
