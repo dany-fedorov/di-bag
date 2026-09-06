@@ -163,7 +163,25 @@ factories can return borrowed objects, even objects exposing `.close()` or
 and failed acquisitions have no cleanup callback to run.
 
 Ownership transfers after a synchronous result is successfully classified, or
-after a Promise/thenable fulfills. If reading `then` or setting up its observer
+after a native Promise fulfills. Automatic async tracking observes native Promise
+state directly, including subclasses and Promises from another realm, without
+invoking an overridden `then` method. A structural thenable returned directly by
+a factory is rejected at runtime without invoking its `then` or accepting ownership.
+Convert structural thenables explicitly inside the factory:
+
+```ts
+const owned = DiBag.withDisposal(
+  () => Promise.resolve(legacyThenable),
+  resource => resource.close(),
+);
+```
+
+An async factory also performs standard thenable conversion. Consumers receive
+the exact native Promise returned by that factory, and disposal receives its
+fulfilled value. TypeScript's structural `PromiseLike` types do not prove native
+Promise state. Ordinary synchronous results keep their exact value and type.
+
+If reading `then` or setting up the native observer (including constructor/species)
 throws, resolution rethrows that same error and discards the failed cache entry
 and dependency edges so a later resolution can retry. Malformed or unobservable
 results are not accepted as owned acquisitions: their factories remain
@@ -175,7 +193,8 @@ ownership of opaque synchronous values is a separate future capability.
 factories and their dependencies, then disposes resources sequentially.
 Dependents close before their dependencies; unrelated resources close in reverse
 successful acquisition order. This dependency ordering also holds when async
-factories complete out of order.
+factories complete out of order. The bag waits on its own pending barrier; it
+does not consume the native observer's potentially customized species result.
 
 If cleanup throws or rejects, the remaining callbacks still run, then `close()`
 rejects with `DiBagCleanupError`, exported from `di-bag`. Its frozen `failures`

@@ -109,16 +109,22 @@ export class Acquisitions {
       const value = create(deps as never);
       attempt.exposed = value;
       if (isThenable(value)) {
-        // Preserve the original result. Native reactions bypass an own then override.
-        const observed = observePromise.call(
-          Promise.resolve(value),
+        // Only intrinsic observation establishes native Promise state. Do not
+        // assimilate structural inputs or retry constructor/species setup errors.
+        // The observer's species result is user-controlled, so drain our own barrier.
+        let settled!: () => void;
+        const observed = new Promise<void>(resolve => { settled = resolve; });
+        observePromise.call(
+          value,
           fulfilled => {
             acquired(fulfilled);
             this.finishPending(attempt);
+            settled();
           },
           () => {
             this.finishPending(attempt);
             this.evictIfCurrent(attempt);
+            settled();
           },
         );
         attempt.state = 'pending';

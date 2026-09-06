@@ -70,6 +70,48 @@ for (const mode of ['commonjs', 'module'] as const) {
       cleanup: true, sameClass: true, originalCause: true, label: 'resource' });
   });
 
+  test(`Node ${mode} observes local and foreign native subclass state directly`, async () => {
+    const load = mode === 'commonjs'
+      ? "const { DiBag } = require('di-bag');"
+      : "import { DiBag } from 'di-bag';";
+    const stdout = await run([
+      'node', `--input-type=${mode}`, '--eval',
+      `${load}
+      (async () => {
+        const { runInNewContext } = await import('node:vm');
+        class ServicePromise extends Promise {}
+        const cases = [];
+        for (const foreign of [false, true]) {
+          const resource = { id: 'real' };
+          const substituted = { id: 'substituted' };
+          const original = foreign
+            ? runInNewContext('(class ServicePromise extends Promise {}).resolve(resource)', { resource })
+            : ServicePromise.resolve(resource);
+          let thenCalls = 0;
+          original.then = fulfilled => {
+            thenCalls++;
+            fulfilled?.(substituted);
+            throw new Error('custom then');
+          };
+          const disposed = [];
+          const bag = DiBag.begin().add({
+            resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
+          }).end();
+          const exposed = bag.resolve('resource');
+          await bag.close();
+          cases.push({ foreign, localInstance: original instanceof Promise,
+            exposedIsOriginal: exposed === original, thenCalls, disposedCount: disposed.length,
+            disposedIsReal: disposed[0] === resource });
+        }
+        console.log(JSON.stringify(cases));
+      })().catch(error => { console.error(error); process.exitCode = 1; });`,
+    ]);
+    expect(JSON.parse(stdout)).toEqual([
+      { foreign: false, localInstance: true, exposedIsOriginal: true, thenCalls: 0, disposedCount: 1, disposedIsReal: true },
+      { foreign: true, localInstance: false, exposedIsOriginal: true, thenCalls: 0, disposedCount: 1, disposedIsReal: true },
+    ]);
+  });
+
   test(`TypeScript ${mode} consumers can use the emitted declarations`, () => {
     const path = resolve(
       __dirname,
@@ -109,6 +151,16 @@ for (const mode of ['commonjs', 'module'] as const) {
       type Assert<T extends true> = T;
       type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends
         (<T>() => T extends B ? 1 : 2) ? true : false;
+      const legacy: PromiseLike<number> = {
+        then(fulfilled) { fulfilled?.(42); throw new Error('after fulfillment'); },
+      };
+      const converted = DiBag.begin().add({
+        resource: DiBag.withDisposal(() => Promise.resolve(legacy), value => {
+          const number: number = value;
+          void number;
+        }),
+      }).end().resolve('resource');
+      type Converted = Assert<Equal<typeof converted, Promise<number>>>;
       type Stamp = Assert<Equal<typeof stamp, number>>;
       const replaced = DiBag.begin().add({ clock: () => 1 })
         .replace('clock', () => ({ now() { return 7; } })).end();

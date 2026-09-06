@@ -215,7 +215,119 @@ test('native Promise ownership observation ignores an own then override', async 
   expect(disposed[0]).toBe(resource);
 });
 
-test('structural thenable ownership accepts fulfillment before a subsequent throw', async () => {
+test('native Promise subclass ownership ignores an own then override', async () => {
+  class ServicePromise<T> extends Promise<T> {}
+  const resource = { id: 'real' };
+  const substituted = { id: 'substituted' };
+  const original = ServicePromise.resolve(resource);
+  const disposed: typeof resource[] = [];
+  let customThenCalls = 0;
+  original.then = fulfilled => {
+    customThenCalls++;
+    fulfilled?.(substituted);
+    throw new Error('custom then');
+  };
+  const bag = DiBag.begin().add({
+    resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
+  }).end();
+  expect(bag.resolve('resource')).toBe(original);
+  await bag.close();
+  expect(customThenCalls).toBe(0);
+  expect(disposed).toHaveLength(1);
+  expect(disposed[0]).toBe(resource);
+});
+
+for (const stage of ['constructor', 'species'] as const) {
+  test(`native ${stage} TypeError preserves the original failure and permits retry`, async () => {
+    const failure = new TypeError(`${stage} setup`);
+    const unobservable = Promise.resolve({ id: 1 });
+    let customThenCalls = 0;
+    unobservable.then = () => { customThenCalls++; throw new Error('must not assimilate'); };
+    Object.defineProperty(unobservable, 'constructor', stage === 'constructor'
+      ? { get() { throw failure; } }
+      : { value: { get [Symbol.species]() { throw failure; } } });
+    const resource = { id: 2 };
+    const accepted = Promise.resolve(resource);
+    let created = 0;
+    const disposed: typeof resource[] = [];
+    const bag = DiBag.begin().add({
+      resource: DiBag.withDisposal(() => ++created < 3 ? unobservable : accepted,
+        value => { disposed.push(value); }),
+    }).end();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let caught: unknown;
+      try { bag.resolve('resource'); } catch (error) { caught = error; }
+      expect(caught).toBe(failure);
+    }
+    expect(bag.resolve('resource')).toBe(accepted);
+    expect(customThenCalls).toBe(0);
+    expect(disposed).toEqual([]);
+    await bag.close();
+    expect(created).toBe(3);
+    expect(disposed).toHaveLength(1);
+    expect(disposed[0]).toBe(resource);
+  });
+}
+
+test('pending close observes native settlement without assimilating its species result', async () => {
+  const resource = { id: 'real' };
+  const gate = deferred<typeof resource>();
+  const original = gate.promise;
+  let originalThenCalls = 0;
+  let speciesThenCalls = 0;
+  class ObserverPromise<T> extends Promise<T> {
+    constructor(executor: (resolve: (value: T | PromiseLike<T>) => void,
+      reject: (reason?: unknown) => void) => void) {
+      super(executor);
+      this.then = () => { speciesThenCalls++; throw new Error('species then'); };
+    }
+  }
+  original.then = () => { originalThenCalls++; throw new Error('original then'); };
+  Object.defineProperty(original, 'constructor', { value: { [Symbol.species]: ObserverPromise } });
+  const disposed: typeof resource[] = [];
+  const bag = DiBag.begin().add({
+    resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
+  }).end();
+  expect(bag.resolve('resource')).toBe(original);
+  const closing = bag.close();
+  let closed = false;
+  void closing.then(() => { closed = true; }, () => { closed = true; });
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(closed).toBe(false);
+  expect(disposed).toEqual([]);
+  expect(originalThenCalls).toBe(0);
+  expect(speciesThenCalls).toBe(0);
+  gate.resolve(resource);
+  await closing;
+  expect(disposed).toHaveLength(1);
+  expect(disposed[0]).toBe(resource);
+  expect(originalThenCalls).toBe(0);
+  expect(speciesThenCalls).toBe(0);
+});
+
+test('direct structural thenables reject without invoking then or accepting ownership', async () => {
+  const resource = { id: 'unaccepted' };
+  let thenCalls = 0;
+  const raw: PromiseLike<typeof resource> & { [Symbol.toStringTag]: string } = {
+    [Symbol.toStringTag]: 'Promise',
+    then(fulfilled) { thenCalls++; fulfilled?.(resource); throw new Error('after fulfillment'); },
+  };
+  let created = 0;
+  const disposed: typeof resource[] = [];
+  const bag = DiBag.begin().add({
+    resource: DiBag.withDisposal(() => { created++; return raw; },
+      value => { disposed.push(value); }),
+  }).end();
+  expect(() => bag.resolve('resource')).toThrow(TypeError);
+  expect(() => bag.resolve('resource')).toThrow(TypeError);
+  await bag.close();
+  expect(created).toBe(2);
+  expect(thenCalls).toBe(0);
+  expect(disposed).toEqual([]);
+});
+
+test('explicit structural conversion accepts fulfillment before a subsequent throw', async () => {
   const resource = { id: 'real' };
   const original: PromiseLike<typeof resource> = {
     then(fulfilled) {
@@ -224,34 +336,45 @@ test('structural thenable ownership accepts fulfillment before a subsequent thro
     },
   };
   const disposed: typeof resource[] = [];
+  let converted: Promise<typeof resource> | undefined;
   const bag = DiBag.begin().add({
-    resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
+    resource: DiBag.withDisposal(() => {
+      converted = Promise.resolve(original);
+      return converted;
+    }, value => { disposed.push(value); }),
   }).end();
-  expect(bag.resolve('resource')).toBe(original);
+  const exposed = bag.resolve('resource');
+  expect(converted).toBe(exposed);
+  expect(bag.resolve('resource')).toBe(exposed);
   await bag.close();
   expect(disposed).toHaveLength(1);
   expect(disposed[0]).toBe(resource);
 });
 
-test('rejected structural thenables retry and dispose only the fulfilled retry', async () => {
+test('explicit structural conversion retries rejection and disposes only the fulfilled retry', async () => {
   const failure = new Error('rejected thenable');
   const first = Promise.reject<number>(failure);
   const rejected: PromiseLike<number> = { then: first.then.bind(first) };
   const accepted = Promise.resolve(42);
   let created = 0;
+  let converted: Promise<number> | undefined;
   const disposed: number[] = [];
   const bag = DiBag.begin()
     .add({
       resource: DiBag.withDisposal(
-        () => (++created === 1 ? rejected : accepted),
+        () => {
+          converted = Promise.resolve(++created === 1 ? rejected : accepted);
+          return converted;
+        },
         (value) => {
           disposed.push(value);
         },
       ),
     })
     .end();
-  expect(bag.resolve('resource')).toBe(rejected);
-  await expect(Promise.resolve(rejected)).rejects.toBe(failure);
+  const exposed = bag.resolve('resource');
+  expect(converted).toBe(exposed);
+  await expect(exposed).rejects.toBe(failure);
   expect(bag.resolve('resource')).toBe(accepted);
   await bag.close();
   expect(created).toBe(2);
