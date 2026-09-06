@@ -152,6 +152,38 @@ test('async failure discards abandoned edges before retrying another token', asy
   expect(await bag.resolve('b')).toBe(1);
 });
 
+test('then inspection failure discards outgoing edges before another token retries', async () => {
+  const failure = new Error('then getter');
+  let fail = true;
+  const bag = DiBag.begin()
+    .add({
+      a: (deps: { b: { value: number } }): { value: number } => {
+        if (!fail) return { value: 42 };
+        try {
+          deps.b;
+        } catch {
+          // The failed dependency leaves a recorded outgoing edge on a.
+        }
+        const unobservable = {
+          value: 0,
+          get then(): undefined {
+            throw failure;
+          },
+        };
+        return unobservable;
+      },
+      b: (deps: { a: { value: number } }): { value: number } => {
+        if (fail) throw new Error('dependency unavailable');
+        return deps.a;
+      },
+    })
+    .end();
+  expect(() => bag.resolve('a')).toThrow(failure);
+  fail = false;
+  expect(bag.resolve('b')).toEqual({ value: 42 });
+  await bag.close();
+});
+
 test('cycles discovered after await reject instead of hanging', async () => {
   const bag = DiBag.begin()
     .add({

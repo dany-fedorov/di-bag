@@ -155,22 +155,31 @@ class Bag<R extends Registrations> {
     const acquired = (fulfilled: unknown) => {
       if (dispose) this.cleanups.set(token, () => dispose(fulfilled as never));
     };
-    if (isThenable(value)) {
-      // Preserve the original return value/promise. This observer never rejects.
-      const observed = Promise.resolve(value).then(
-        (fulfilled) => {
-          acquired(fulfilled);
-          this.pending.delete(token);
-        },
-        () => {
-          this.memo.delete(token);
-          this.edges.delete(token);
-          this.pending.delete(token);
-        },
-      );
-      this.pending.set(token, observed);
-    } else {
-      acquired(value);
+    try {
+      if (isThenable(value)) {
+        // Preserve the original return value/promise. This observer never rejects.
+        const observed = Promise.resolve(value).then(
+          (fulfilled) => {
+            acquired(fulfilled);
+            this.pending.delete(token);
+          },
+          () => {
+            this.memo.delete(token);
+            this.edges.delete(token);
+            this.pending.delete(token);
+          },
+        );
+        this.pending.set(token, observed);
+      } else {
+        acquired(value);
+      }
+    } catch (error) {
+      // Inspection and observer setup can execute user getters or methods.
+      // An unclassified result has not transferred fulfilled-value ownership.
+      this.memo.delete(token);
+      this.edges.delete(token);
+      this.pending.delete(token);
+      throw error;
     }
     return value;
   }

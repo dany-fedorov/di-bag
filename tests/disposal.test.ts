@@ -64,6 +64,149 @@ test('unresolved and failed factories have no disposal', async () => {
   expect(disposed).toEqual([]);
 });
 
+test('throwing then inspection rejects each acquisition until a synchronous retry succeeds', async () => {
+  const failure = new Error('then getter');
+  let created = 0;
+  const disposed: number[] = [];
+  const bag = DiBag.begin()
+    .add({
+      resource: DiBag.withDisposal(
+        () => {
+          const id = ++created;
+          return {
+            id,
+            get then(): undefined {
+              if (id < 3) throw failure;
+              return undefined;
+            },
+          };
+        },
+        (resource) => {
+          disposed.push(resource.id);
+        },
+      ),
+    })
+    .end();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let caught: unknown;
+    try {
+      bag.resolve('resource');
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBe(failure);
+  }
+  expect(disposed).toEqual([]);
+  const resource = bag.resolve('resource');
+  expect(resource.id).toBe(3);
+  expect(bag.resolve('resource')).toBe(resource);
+  expect(created).toBe(3);
+  await bag.close();
+  await bag.close();
+  expect(disposed).toEqual([3]);
+});
+
+test('a PromiseLike with a throwing then getter never reaches the fulfilled-value disposer', async () => {
+  const failure = new Error('then getter');
+  class Unobservable implements PromiseLike<{ id: number }> {
+    get then(): PromiseLike<{ id: number }>['then'] {
+      throw failure;
+    }
+  }
+  let created = 0;
+  const disposed: number[] = [];
+  const bag = DiBag.begin()
+    .add({
+      resource: DiBag.withDisposal(
+        () => {
+          created++;
+          return new Unobservable();
+        },
+        (resource) => {
+          disposed.push(resource.id);
+        },
+      ),
+    })
+    .end();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let caught: unknown;
+    try {
+      bag.resolve('resource');
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBe(failure);
+  }
+  expect(created).toBe(2);
+  await bag.close();
+  expect(disposed).toEqual([]);
+});
+
+test('native Promise observer setup failures allow retry and preserve accepted Promise identity', async () => {
+  const failure = new Error('constructor getter');
+  const unobservable = Promise.resolve({ id: 1 });
+  Object.defineProperty(unobservable, 'constructor', {
+    get() {
+      throw failure;
+    },
+  });
+  const resource = { id: 2 };
+  const accepted = Promise.resolve(resource);
+  let created = 0;
+  const disposed: { id: number }[] = [];
+  const bag = DiBag.begin()
+    .add({
+      resource: DiBag.withDisposal(
+        () => (++created < 3 ? unobservable : accepted),
+        (value) => {
+          disposed.push(value);
+        },
+      ),
+    })
+    .end();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let caught: unknown;
+    try {
+      bag.resolve('resource');
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBe(failure);
+  }
+  expect(disposed).toEqual([]);
+  expect(bag.resolve('resource')).toBe(accepted);
+  expect(bag.resolve('resource')).toBe(accepted);
+  expect(created).toBe(3);
+  await bag.close();
+  expect(disposed).toHaveLength(1);
+  expect(disposed[0]).toBe(resource);
+});
+
+test('rejected structural thenables retry and dispose only the fulfilled retry', async () => {
+  const failure = new Error('rejected thenable');
+  const first = Promise.reject<number>(failure);
+  const rejected: PromiseLike<number> = { then: first.then.bind(first) };
+  const accepted = Promise.resolve(42);
+  let created = 0;
+  const disposed: number[] = [];
+  const bag = DiBag.begin()
+    .add({
+      resource: DiBag.withDisposal(
+        () => (++created === 1 ? rejected : accepted),
+        (value) => {
+          disposed.push(value);
+        },
+      ),
+    })
+    .end();
+  expect(bag.resolve('resource')).toBe(rejected);
+  await expect(Promise.resolve(rejected)).rejects.toBe(failure);
+  expect(bag.resolve('resource')).toBe(accepted);
+  await bag.close();
+  expect(created).toBe(2);
+  expect(disposed).toEqual([42]);
+});
+
 test('cleanup runs in reverse acquisition order through unmanaged intermediates', async () => {
   const disposed: string[] = [];
   const bag = DiBag.begin()

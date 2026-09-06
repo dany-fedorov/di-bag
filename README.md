@@ -104,6 +104,15 @@ factories can return borrowed objects, even objects exposing `.close()` or
 `.dispose()` methods, without transferring ownership. Never-resolved factories
 and failed acquisitions have no cleanup callback to run.
 
+Ownership transfers after a synchronous result is successfully classified, or
+after a Promise/thenable fulfills. If reading `then` or setting up its observer
+throws, resolution rethrows that same error and discards the failed cache entry
+and dependency edges so a later resolution can retry. Malformed or unobservable
+results are not accepted as owned acquisitions: their factories remain
+responsible for resources that were not successfully transferred. The bag never
+passes an unfulfilled raw PromiseLike to a fulfilled-value disposer. Explicit
+ownership of opaque synchronous values is a separate future capability.
+
 `close()` immediately stops public resolution and forking, waits for in-flight
 factories and their dependencies, then disposes resources sequentially.
 Dependents close before their dependencies; unrelated resources close in reverse
