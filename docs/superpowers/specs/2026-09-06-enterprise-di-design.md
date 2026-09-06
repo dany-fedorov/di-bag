@@ -90,6 +90,15 @@ descriptions; an untyped hook cannot secretly change a promised service type,
 acquisition mode, or ownership policy. Static and acquisition metadata have
 separate views and namespaced keys where extensions need independent ownership.
 
+When a value-transforming adapter wraps an owned provider, the original
+acquisition and its consumer-visible projection are distinct. Retain the
+original disposer with the original acquired value; do not apply it to the
+projected value or transfer ownership merely by unboxing. If projection fails
+after acquisition returned ownership, release that acquisition. Async adapter
+operations explicitly select awaiting behavior; ordinary factory dependencies
+still preserve their exact original values and promises. Adapter tests must
+cover projection failures and pending projected work during shutdown.
+
 Runtime-selected plugins cross an explicit validated boundary. Statically
 imported or statically typed dynamic imports retain module contracts; arbitrary
 configuration-selected code cannot receive a global compile-time guarantee.
