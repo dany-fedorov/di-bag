@@ -584,3 +584,21 @@ exact original error/value identity. Task3 covers both optional adapter subpaths
 presence frames, capabilities and real package integration. All tests retain the
 existing type-negative and package gates. This plan completes transformation and
 box-adapter portions of E2, not observer hooks or the whole enterprise program.
+
+## Final review closure
+
+All three tasks and the single final correction are complete. Broad review found
+a shared `NoInfer` heterogeneous-union extraction defect plus two stale README
+passages. Commit `6874760` corrects both, with graph-derived replacement context
+preserving supported inline inference and actual-registration checks.
+
+Full check: 240 tests / 1,322 assertions, strict typecheck/build, actual packages
+and current scale gates. Six subsequent negative calls have a separate complete
+source/CJS/ESM covering run. Controller independent committed-state check passes
+27 covering tests / 381 assertions, strict typecheck/build and all three examples.
+The one scoped final re-review addresses both findings with no new breakage or
+residual observations. Detailed evidence and all design-decision costs are in
+`docs/reports/2026-09-06-provider-transformations.md`.
+
+Continue the enterprise program on the retained feature branch; this closure
+does not complete typed tokens, lifetimes, startup, observers or T2 follow-ups.

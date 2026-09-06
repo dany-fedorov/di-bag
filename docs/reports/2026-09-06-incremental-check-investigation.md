@@ -68,3 +68,24 @@ Local detailed evidence: `/tmp/di-bag-incremental-check-advisory.md` and
 ```sh
 node /tmp/di-bag-incremental-check-probe.mjs run incremental 500 chained
 ```
+
+## Independent expression-depth control
+
+A later controller probe isolates the 1000-call binder failure from library type
+complexity. `/tmp/di-bag-chain-syntax-control.cjs` declares only an ambient,
+nongeneric `Builder` with `add(value: object): Builder` and `end(): number`.
+There are no di-bag imports, conditional types, generic constraints or inference
+optimizations in this control.
+
+- Node 24.20.0 / TypeScript 5.9.3, 1000 individual additions in one fluent
+  expression: exit1, `RangeError: Maximum call stack size exceeded` in
+  `bindWorker` / `bindAccessExpressionFlow`.
+- The identical 1000 additions split into ordinary successive `const` statements:
+  exit0, zero diagnostics.
+
+Commands: `node /tmp/di-bag-chain-syntax-control.cjs 1000 fluent` and the same
+command with `statements`. These observations distinguish compiler expression
+depth from library checker cost. They do not establish di-bag's 1000-call
+support: actual strict public-API fixtures and their negative controls still
+need verification after the planned throughput work. Keep the original fluent
+failure visible in comparative measurements rather than silently replacing it.

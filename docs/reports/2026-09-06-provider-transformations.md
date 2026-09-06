@@ -1,7 +1,8 @@
 # Provider transformations: implementation evidence
 
-The provider/adapter increment is in progress. This report does not mark E2 or
-the enterprise program complete. Governing plan:
+The provider/adapter increment is complete through final correction `6874760`
+and clean scoped review. Observer hooks and the remaining enterprise program
+are not complete. Governing plan:
 `docs/superpowers/plans/2026-09-06-provider-transformations.md`.
 
 ## Task 1: immutable metadata and checked inspection
@@ -116,7 +117,7 @@ Independent exact-commit verification:
 Independent task review: spec compliant, quality approved, no findings. Binary
 provenance and unchanged-core verification items were resolved with matching
 archives and the full covering checks above. All three provider-plan tasks are
-complete; broad whole-branch review remains pending.
+complete. The broad review and its subsequent correction are recorded below.
 
 ### Inference carry-forward
 
@@ -147,6 +148,72 @@ identical factory body and pass its name to `fromValBox`; no annotation or cast
 is needed, and exact payload/ordered-frame equality assertions pass. Failed
 experimental overloads are not retained. The original inline case joins the
 existing richer async fork case in required T2 work.
+
+### Post-checkpoint union defect: final-review correction
+
+After the intermediate push, an independent advisor found a separate correctness
+defect in the committed adapter, not just the documented inline limitation:
+
+```ts
+const good = (_deps: { dep: boolean }) => ({ snapshot: () => ({
+  value: { present: true as const, value: 42 },
+  metadata: { present: false as const }, alias: null,
+}) });
+const provider = DiBag.withMetadata(good, { owner: 'source' });
+const owned = DiBag.withDisposal(good, () => {});
+const bad = () => ({ snapshot: (): unknown => 42 });
+function adapt(source: typeof provider | typeof owned | typeof bad) {
+  return fromValBox(source);
+}
+const bag = DiBag.begin().add({ dep: () => true, value: adapt(provider) }).end();
+// Inferred never on the checkpoint; actual runtime value is 42.
+const result = bag.resolve('value');
+```
+
+The controller and broad reviewer independently reproduced zero source/emitted
+diagnostics, exact `ProviderOutput` of `never`, and runtime `42` against pinned
+`ae36def`. There are no user casts or `any` in the reproduction. The final reviewer
+classified this Important; it entered the single final-review fix wave.
+Current test/review success above does not establish universal type soundness.
+No candidate inference change from the separate investigation has been adopted.
+
+The final fix traced this to shared factory/output/needs extraction through a
+`NoInfer`-wrapped heterogeneous registration union. Intersection-pattern inference
+restores distribution, and focused source/emitted regressions now reject the
+invalid callbacks and capabilities while retaining exact valid unions. This
+correction initially stopped at the full check's typecheck stage because existing
+inline replacements relied on the same accidental collapse.
+
+The replacement correction committed in `6874760` derives a contextual output
+from surviving consumer requirements, including private module constraints,
+while keeping checks on the inferred actual registration. It must preserve
+removal of unused properties, richer outputs, unions within consumer requirements,
+optional dependencies and supported explicit generic calls. Independent baseline
+controls confirm these are existing supported forms, not a new feature request.
+
+Final verification and review:
+
+- Implementer full `npm run check`: strict typecheck/build, 240 tests and 1,322
+  assertions, zero failures across 14 files (305.90 seconds). This includes the
+  actual package consumers and all current compiler-scale gates.
+- Six actual-dependency negative calls were added during the scale phase, after
+  the full run's package phase. Their separate source/CJS/ESM covering run passed:
+  3 tests, 67 assertions. No production code changed after the full run began.
+- Controller independently verified the committed state: strict typecheck/build
+  and 27 covering source/emitted/installed-package tests, 381 assertions, zero
+  failures (14.28 seconds). This covering run is not a second full scale run.
+- The independent seven-case replacement graph probe has zero diagnostics
+  against both the prior checkpoint and corrected source. All three examples
+  and diff checks passed independently after final production changes.
+- The one scoped final re-review marks both original findings addressed, verifies
+  the replacement refinement and source/emitted coverage, and reports no new
+  breakage or out-of-scope observations. No residual finding remains.
+
+Both stale README passages were also corrected: failed incoming dependency
+edges are abandoned, while accepted ownership stages survive projection failure
+and are disposed after pending work permits cleanup. Runtime behavior is unchanged
+by this final type/doc correction. The inference carry-forwards above remain
+required program work; this is not a universal type-soundness claim.
 
 ## Design decisions and costs
 
@@ -186,6 +253,14 @@ existing richer async fork case in required T2 work.
   named factory needs no annotation/cast and preserves payload/frame contracts.
   Cost: an extra declaration for affected inline forms until dedicated inference
   correction; this is not completion of the enterprise inference requirement.
+- Extend the shared extraction correction to both builders' replacement
+  signatures: supported inline inference had relied on the same erroneous
+  empty-needs/never-output collapse. Cost: additional signature and review
+  complexity; broad erased requirements cannot become empty to restore inference.
+- Derive the first zero-argument replacement overload's contextual output from
+  surviving consumers, retaining actual-registration checks. Cost: additional
+  type-instantiation and overload complexity, requiring source/emitted boundary
+  proofs and the current scale gates before committing the correction.
 
 The bounded capability probe is `/tmp/di-bag-sas-capability-probe.cjs`:
 `node /tmp/di-bag-sas-capability-probe.cjs` produced only the two intended TS2345
@@ -203,5 +278,6 @@ test evidence rather than treating this probe as a completed fix.
 These decisions guide the verified task implementations and remaining program
 work. The user separately authorized intermediate commits and pushes. The two
 verified box feature branches have been pushed (see their foundation report);
-di-bag's reviewed adapter checkpoint is ready for its coordinated push. No
+di-bag's adapter checkpoint `a8ee46a` was also pushed and its remote SHA verified.
+The reviewed correction `6874760` is ready for the next authorized checkpoint. No
 publication, main integration or branch cleanup has occurred.

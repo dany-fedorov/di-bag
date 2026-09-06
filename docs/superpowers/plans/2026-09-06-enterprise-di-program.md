@@ -14,8 +14,8 @@ execution; do not stop for another planning approval between increments.
 
 - [x] Box libraries: `2026-09-06-box-foundations.md` completed; final review clean after the sas-box generic-constructor correction. Evidence: `docs/reports/2026-09-06-box-foundations.md`.
 - [x] Type foundation: `2026-09-06-type-foundations.md` tasks complete; carried observer correction resolved by reviewed named-module Task1. Evidence: `docs/reports/2026-09-06-type-foundations.md`. Initial scale gates pass; larger limits remain required work below.
-- [ ] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformation tasks are complete; their broad final review and typed symbol tokens remain required.
-- [ ] Box integration: adapter task complete at `ae36def`, using real packaged libraries, typed acquisition frames and plain service values; provider-plan broad final review remains pending.
+- [ ] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformations are complete through final correction `6874760`, with clean scoped review; typed symbol tokens remain required.
+- [x] Box integration: adapters use real packaged libraries, typed acquisition frames and plain service values; final shared union-type correction `6874760` and scoped review are complete. Evidence: `docs/reports/2026-09-06-provider-transformations.md`.
 - [x] Acquisition foundation: `2026-09-06-acquisition-foundations.md` completed through `fd83085`; task review and final scoped review are clean. Evidence: `docs/reports/2026-09-06-acquisition-foundations.md`, including the explicit structural-thenable conversion migration.
 - [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
@@ -40,10 +40,13 @@ provider transformations and box adapters, so projection failures and late
 ownership have a correct place to be tracked. The provider/adapter refinement
 is `docs/superpowers/specs/2026-09-06-provider-transformations-design.md`.
 This prerequisite does not remove or complete later lifetime/startup work.
-The next executable plan is `2026-09-06-provider-transformations.md`: typed
+The completed provider plan is `2026-09-06-provider-transformations.md`: typed
 metadata/inspection, staged mappings/ownership, then real optional box adapters.
 Its metadata/inspection task is complete at `06918c8`, staged mappings/
-ownership at `6a71ab4`, and box adapters at `ae36def`; broad final review remains.
+ownership at `6a71ab4`, and box adapters at `ae36def`. Broad final review found a
+shared `NoInfer` union extraction defect; `6874760` corrects it and preserves
+replacement inference, with clean final scoped review. Typed-token integration
+design is next; no token API or implementation plan is claimed complete yet.
 The incremental-check candidate is documented
 in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
 
@@ -84,18 +87,24 @@ in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
   `06918c8`, retaining metadata through module export/rename/install and exact
   original factory contracts. Task review is clean; independent full check:
   181 tests / 813 assertions, strict typecheck/build, real CJS/ESM consumers,
-  all current scale gates, and both examples. The provider plan is not complete.
+  all current scale gates, and both examples. Later provider tasks are below.
 - Staged sync/async mappings and additive ownership are implemented at `6a71ab4`.
   Task review is clean; independent exact-commit full check: 204 tests / 956
   assertions, strict typecheck/build, all scale and package gates, both examples.
   Retired cleanup waits for its own pending work; explicit required disposer
-  receivers are rejected. Real optional adapters and plan-final review remain.
+  receivers are rejected. Adapter and final-review evidence follows.
 - Optional adapter subpaths and ordered acquisition frames are implemented at
   `ae36def`, including failed-retirement incoming-edge correction. Task review
   is clean; independent exact-commit full check: 230 tests / 1,174 assertions,
   strict typecheck/build, real box/core consumers, all current scales and three
   examples. The nested inline snapshot factory needs a predeclared-factory
-  workaround until the required inference follow-up; broad final review remains.
+  workaround until the required inference follow-up.
+- Final shared union extraction and compatible replacement inference are corrected
+  at `6874760`. Full check: 240 tests / 1,322 assertions, strict typecheck/build,
+  current scales and actual packages; six later negative calls have a separate
+  source/CJS/ESM covering run. Controller independent committed-state check:
+  27 tests / 381 assertions plus strict typecheck/build and all three examples.
+  Final scoped review is clean, both findings addressed, no residual issues.
 - Bounded future token and lifetime carrier investigations are recorded in
   `docs/reports/2026-09-06-typed-token-investigation.md` and
   `docs/reports/2026-09-06-lifetime-contract-investigation.md`. Only the token
