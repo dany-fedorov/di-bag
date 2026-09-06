@@ -142,7 +142,8 @@ Report RED/GREEN commands/results, package filename, SHA, and concerns.
   an unknown static presence. Preserve intentional aliases and payload identity.
 - Literal conversion flags produce precise classes; widened boolean flags must
   yield a sound union/unknown result, never a false known presence.
-- Export the immutable types and `ValBox.snapshot(box)` below; snapshots are
+- Export the immutable types, instance `box.snapshot()`, and
+  `ValBox.snapshot(box)` below; snapshots are
   shallow immutable views, not deep-frozen payloads or ownership transfers.
 
 ```ts
@@ -202,9 +203,11 @@ expect(snapshot.metadata).toEqual({ present: true, value: 'db' });
 Add absent-channel, intentional-alias, frozen outer/channel records, and shared
 unfrozen payload identity cases. Compile narrowing on `snapshot.value.present`
 must expose the correct V while direct absent `.value` access is rejected.
-Implement the snapshot records in `src/snapshot.ts`, expose through index, and
-avoid importing runtime ValBox classes into snapshot code when a read-only
-structural source interface suffices.
+Implement snapshot construction once in `src/snapshot.ts`; both the base-class
+instance method and namespace helper delegate to it and retain TValue/TMetadata.
+Expose through index and avoid importing runtime ValBox classes into snapshot
+code when a read-only structural source interface suffices. Test both entry
+points, including a snapshot returned from a WithValue/WithMetadata subtype.
 
 - [ ] **Step 4: Package, document, verify, and commit.**
 

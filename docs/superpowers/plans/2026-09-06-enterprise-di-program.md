@@ -13,7 +13,7 @@ execution; do not stop for another planning approval between increments.
 ## Milestones
 
 - [ ] Box libraries: execute `2026-09-06-box-foundations.md`; review both repos and record commits/artifact names.
-- [ ] Type foundation: reproduce and close registration/override/descriptor/receiver loopholes, preserve inference, and establish compiler-scale gates.
+- [ ] Type foundation: execute `2026-09-06-type-foundations.md`; close registration/override/descriptor/receiver loopholes, preserve inference, and establish compiler-scale gates.
 - [ ] Providers and modules: immutable descriptions, named/typed tokens, open requirements, private providers, checked exports and overrides.
 - [ ] Box integration: optional adapter subpaths using the real packaged libraries; typed static/acquisition metadata and plain service values.
 - [ ] Lifetime runtime: root/scoped/transient identities, explicit sharing, lifetime-leak checks, per-instance ownership.
@@ -35,4 +35,12 @@ documentation-only claim or treat a generated CI file as a successful run.
 - Initial di-bag `npm run check`: 73 tests passed; strict typecheck/build passed.
 - Both upstream box repositories were resolved and cloned without changing
   their remote state. No package has been published or pushed.
-- Type-boundary investigation is running independently of box implementation.
+- Type-boundary investigation ran independently of box implementation.
+- Read-only type investigation completed: nominal disposal handles, explicit
+  selected overrides, duplicate-rejecting additions, and singleton replacement
+  address the concrete counterexamples; flat entry unions compiled 250 chained
+  additions in the feasibility probe. These findings are not implementation.
+- Module design investigation completed: installations need independent private
+  identities and shared public lookup slots; private consumers of an exported
+  service must observe a fork's public override. Per-export wrapper bags would
+  hide ownership edges and are not the selected runtime architecture.

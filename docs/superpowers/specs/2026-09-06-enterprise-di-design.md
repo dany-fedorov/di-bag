@@ -122,11 +122,13 @@ Add an immutable snapshot boundary for DI metadata adapters, not a mutable box
 inside every service. Export `Presence<T>` as a discriminated union of
 `{ readonly present: false }` and `{ readonly present: true; readonly value: T }`.
 Export `ValBoxSnapshot<V, M>` containing readonly `value: Presence<V>` and
-`metadata: Presence<M>` plus the intentional alias. `ValBox.snapshot(box)`
-copies the box's current presence/value/metadata into frozen outer records;
+`metadata: Presence<M>` plus the intentional alias. `box.snapshot()` and
+`ValBox.snapshot(box)` copy current presence/value/metadata into frozen records;
 it does not deep-freeze the service or metadata payload and later box mutation
-does not change the snapshot. This boundary supports diagnostic snapshots and
-provider metadata adapters without transferring ownership.
+does not change the snapshot. The instance method also gives di-bag a typed
+structural adapter protocol without importing val-box into the core. This
+boundary supports diagnostic snapshots and provider metadata adapters without
+transferring ownership.
 
 ### Integration and packaging
 
