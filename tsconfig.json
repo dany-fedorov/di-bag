@@ -1,17 +1,16 @@
 {
-  "extends": "@tsconfig/strictest/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./src",
-    "outDir": "./dist",
-    "declaration": true,
+    "strict": true,
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     "module": "commonjs",
     "target": "es2022",
-    "paths": {},
-    "ignoreDeprecations": "5.0"
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["bun"]
   },
-  "include": [
-    "src",
-    "examples",
-    "tests"
-  ]
+  "include": ["src", "tests"],
+  "exclude": ["tests/types/negative"]
 }

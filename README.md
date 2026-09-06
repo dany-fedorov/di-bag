@@ -1,8 +1,169 @@
 # DI Bag
 
-A dependency bag for service factories: requirements inferred from each
-factory's parameter type, totality checked at `.end()`, shapes checked at every
-`.add`, cycles detected at resolve, `fork` for scoped or test graphs.
+A small dependency bag for service factories, with inferred requirements,
+lazy resolution, scoped forks, and optional disposal. Zero runtime dependencies.
 
-Current work: `src/v14/`. Design and evidence: `final-design-4+plan.md`.
-Earlier iterations (`src/pattern-*`, `src/index*`) are history.
+## Compose services
+
+```ts
+import { DiBag } from 'di-bag';
+
+const bag = DiBag.begin()
+  .add({
+    stamp: ({ clock }: { clock: { now(): number } }) => clock.now(),
+  })
+  .add({
+    clock: () => ({ now: () => 42 }),
+  })
+  .end();
+
+const stamp: number = bag.resolve('stamp'); // 42, synchronous
+```
+
+A factory's parameter type declares its dependencies. There is no separate
+dependency-key list. Registration order does not matter: `.add()` checks all
+known dependency shapes, including consumers registered earlier, and `.end()`
+rejects missing factories at compile time. Values are created lazily and cached
+once per bag, including `undefined` values and in-flight promises.
+
+Factories are ordinary functions; the bag calls them without a `this` binding.
+Builders are immutable: adding registrations produces a new builder, and adding
+the same token again replaces its registration after checking the merged graph.
+
+## Async edges are explicit
+
+```ts
+const bag = DiBag.begin()
+  .add({
+    number: async () => 21,
+    answer: async ({ number }: { number: Promise<number> }) =>
+      (await number) * 2,
+    synchronous: () => 'ready',
+  })
+  .end();
+
+const answer: Promise<number> = bag.resolve('answer');
+console.log(await answer); // 42
+console.log(bag.resolve('synchronous')); // 'ready', not a promise
+```
+
+The bag preserves each factory's return type. An async dependency must be
+declared as a promise and explicitly awaited by its consumer. Declaring
+`number: number` in the example is a compile-time error. No transparent
+awaiting or conversion of synchronous factories takes place.
+
+Concurrent resolutions share a promise. A thrown factory error or rejected
+factory promise is evicted so later resolution can retry. Dependency cycles
+throw or reject with a path such as `cycle: a -> b -> a`, including dependency
+reads after `await`.
+
+## Attach cleanup with `withDisposal`
+
+```ts
+const bag = DiBag.begin()
+  .add({
+    cache: DiBag.withDisposal(
+      () => new Map<string, string>(),
+      (cache) => cache.clear(),
+    ),
+  })
+  .end();
+
+try {
+  const cache = bag.resolve('cache'); // Map<string, string>
+  cache.set('answer', '42');
+} finally {
+  await bag.close();
+}
+```
+
+`DiBag.withDisposal(create, dispose)` stores two callbacks in a registration.
+It runs neither callback immediately. Consumers receive the created value
+directly. For an async factory, `dispose` receives the fulfilled value;
+cleanup itself may return `void` or `Promise<void>`.
+
+Only registrations wrapped in `withDisposal` are owned by the bag. Ordinary
+factories can return borrowed objects, even objects exposing `.close()` or
+`.dispose()` methods, without transferring ownership. Never-resolved factories
+and failed acquisitions have no cleanup callback to run.
+
+`close()` immediately stops public resolution and forking, waits for in-flight
+factories and their dependencies, then disposes resources sequentially.
+Dependents close before their dependencies; unrelated resources close in reverse
+successful acquisition order. This dependency ordering also holds when async
+factories complete out of order.
+
+If cleanup throws or rejects, the remaining callbacks still run, then `close()`
+rejects with the first cleanup error. Repeated calls return the same promise;
+cleanup runs once and the bag remains closed even when cleanup fails. Acquisition
+failures stay on their resolution promises rather than becoming close errors.
+
+Stop application work before closing. Already-returned services cannot be
+revoked, and disposal callbacks must not resolve services or await the same
+bag's `close()` promise. There is no cancellation or shutdown timeout: a factory
+or disposer that never settles keeps `close()` pending.
+
+## Fork for scopes and tests
+
+```ts
+const bag = DiBag.begin()
+  .add({
+    clock: () => ({ now: () => 42 }),
+    stamp: ({ clock }: { clock: { now(): number } }) => clock.now(),
+  })
+  .end();
+
+const scoped = bag.fork({ clock: () => ({ now: () => 7 }) });
+scoped.resolve('stamp'); // 7
+bag.resolve('stamp'); // 42
+
+await scoped.close();
+await bag.close();
+```
+
+Forks accept existing tokens only. Overrides must preserve the original value
+type, and their dependency requirements are checked against the merged graph.
+Each fork starts with a fresh memo and owns its own created resources. Closing
+a parent does not close its forks, or vice versa.
+
+A fork can replace a disposable registration with an ordinary factory to borrow
+an externally owned instance, or add disposal to an ordinary registration.
+Registering the same shared instance as owned in multiple bags would dispose it
+multiple times; use ordinary factories for borrowed instances.
+
+## Boundaries
+
+- Token maps and dependency parameters must have finite string keys. Index
+  signatures, including open template keys, cannot prove that tokens exist.
+- Parameters may be omitted or be a single object type. Optional dependency
+  properties still require providers. Union, callable, and symbol-keyed
+  dependency parameter types are rejected.
+- Dependency proxies support named property reads. Do not enumerate, spread,
+  or use rest destructuring on them: parameter types are erased at runtime,
+  so the bag cannot enumerate a particular factory's declared requirements.
+- Use a single, explicit factory signature. TypeScript utility types see the
+  last signature of overloaded functions; arbitrary overload behavior cannot
+  be inferred. As with other TypeScript APIs, casts and unchecked JavaScript can
+  bypass compile-time checks; runtime resolution still checks missing tokens.
+- JavaScript output targets ES2022. The CommonJS package supports Node `require`
+  and ESM named imports, and browsers through a bundler. Bun is only needed to
+  run the development tests. Type checks are verified with TypeScript 5.9.3.
+
+## Development
+
+```sh
+npm install
+npm run check          # strict types, runtime/type/package tests, build
+npm pack --dry-run    # builds and previews the publication contents
+```
+
+Tests compile positive usage and each negative fixture independently. Package
+smoke tests build the distribution and exercise Node's CommonJS and ESM loaders
+and TypeScript's emitted-declaration resolution. Distribution files and type
+declarations are emitted to `dist/`.
+
+Current code lives in `src/`. Previous experiments are preserved under
+[`docs/history/`](docs/history/README.md). The [v0.1 design](docs/superpowers/specs/2026-09-06-v0.1-design.md)
+and [implementation plan](docs/superpowers/plans/2026-09-06-v0.1.md) record the
+decisions, including the deferred investigation into Effect-style requirement
+inference.
