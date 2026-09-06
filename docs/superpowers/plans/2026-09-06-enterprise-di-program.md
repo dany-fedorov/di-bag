@@ -46,7 +46,9 @@ Its metadata/inspection task is complete at `06918c8`, staged mappings/
 ownership at `6a71ab4`, and box adapters at `ae36def`. Broad final review found a
 shared `NoInfer` union extraction defect; `6874760` corrects it and preserves
 replacement inference, with clean final scoped review. Typed-token integration
-design is next; no token API or implementation plan is claimed complete yet.
+now has the binding design `2026-09-07-typed-tokens-design.md` and executable
+plan `2026-09-07-typed-tokens.md`: internal identity/routing, checked public/module
+composition, then actual package/compiler integration. Implementation remains open.
 The incremental-check candidate is documented
 in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
 
@@ -105,7 +107,17 @@ in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
   source/CJS/ESM covering run. Controller independent committed-state check:
   27 tests / 381 assertions plus strict typecheck/build and all three examples.
   Final scoped review is clean, both findings addressed, no residual issues.
-- Bounded future token and lifetime carrier investigations are recorded in
+- Bounded token and lifetime carrier investigations are recorded in
   `docs/reports/2026-09-06-typed-token-investigation.md` and
   `docs/reports/2026-09-06-lifetime-contract-investigation.md`. Only the token
-  feasibility sketch has source/emitted compiler evidence; neither is adopted.
+  identity sketch has source/emitted compiler evidence; the lifetime proposal
+  remains unadopted. The additional token carrier investigation is recorded in
+  `docs/reports/2026-09-06-typed-token-carrier-investigation.md`: isolating a nested
+  inferred resolve return and using a bounded indexed output retained all 32
+  expected diagnostics at 29 positions in both source and emitted consumers,
+  under a 384 MiB / 10-second child bound. This supports the selected fourth
+  provider contract, not a production scalability claim. The production plan
+  preserves export-time module projection, unlike the bounded prototype.
+- Fresh pre-token baseline at `e26bb16`: `npm run check` passed 240 tests / 1,334
+  assertions in 312.67 seconds, strict typecheck and declaration build. No token
+  production implementation was present in that run.
