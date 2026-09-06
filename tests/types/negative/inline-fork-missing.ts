@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-// diagnostic: missing factories
+// diagnostic: Type '({ clock }: { clock: { now(): number; }; }) => { stamp(): number; }' is not assignable to type '(DisposableFactory<
 DiBag.begin()
   .add({
     service: () => ({

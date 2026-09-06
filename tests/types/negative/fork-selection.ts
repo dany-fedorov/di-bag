@@ -20,7 +20,7 @@ root.fork([template], { a: () => 3, b: () => 4 });
 root.fork(tupleUnion, { a: () => 3, b: () => 4 });
 // diagnostic: Property 'b' is missing
 root.fork(['a', 'b'], { a: () => 3 });
-// diagnostic: Type 'number' is not assignable to type 'number & Registration'
+// diagnostic: Type 'number' is not assignable to type '(DisposableFactory<
 root.fork(['a'], { a: 3 });
 // diagnostic: No overload expects 1 arguments
 root.fork({ a: () => 3 });

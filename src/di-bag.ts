@@ -3,6 +3,7 @@ import type { Registration, Registrations } from './registration';
 import type {
   Checked,
   Complete,
+  ForkContext,
   Introduces,
   Merge,
   Overrides,
@@ -45,12 +46,12 @@ class Bag<R extends Registrations> {
 
   /** Replace existing tokens; the fork creates and owns its own instances. */
   fork(): Bag<R>;
-  // The argument's Record intersection supplies callable context to selected
-  // factories. A generic bound alone loses inline method-return inference.
-  // Infer extra keys too, but never include them in validation or result types.
+  // The graph-aware bound keeps the first inference pass applicable and requires
+  // selected registrations even with explicit generics. The argument's Record
+  // supplies callable context; unselected keys stay outside checks and results.
   fork<
     const K extends readonly unknown[],
-    O extends { [P in keyof O]: unknown },
+    O extends ForkContext<R, K, O>,
   >(
     keys: K & Selection<R, K>,
     overrides: O &
@@ -72,8 +73,13 @@ class Bag<R extends Registrations> {
     ) {
       throw new Error('fork requires selected keys and an override object');
     }
-    // Getters may mutate the caller's tuple while the entries are read.
-    const selectedKeys = [...keys];
+    // Snapshot indexed entries before override getters can mutate the tuple.
+    // A tuple's custom iterator need not enumerate its declared indexed keys.
+    const selectedKeys: unknown[] = [];
+    const length = keys.length;
+    for (let index = 0; index < length; index++) {
+      selectedKeys[index] = keys[index];
+    }
     for (const token of selectedKeys) {
       if (typeof token !== 'string') throw new Error('fork keys must be strings');
       if (!Object.hasOwn(this.registrations, token)) {

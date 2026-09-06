@@ -35,3 +35,31 @@ const ownedBag = DiBag.begin().add({ a: () => 1, owned }).end();
 type OwnedValue = Assert<Equal<ReturnType<typeof ownedBag.resolve<'owned'>>, ReturnType<typeof create>>>;
 const acceptsBag = <R extends { a: () => number }>(bag: Bag<R>) => bag;
 void [empty, noSelection, annotated, acceptsBag(root)];
+
+const clockRoot = DiBag.begin().add({
+  clock: () => ({ now: () => 42 }),
+  service: ({ clock }: { clock: { now(): number } }) => ({
+    stamp: () => clock.now(),
+  }),
+}).end();
+const richChild = clockRoot.fork(['clock', 'service'], {
+  clock: () => ({ now() { return 7; }, zone() { return 'utc' as const; } }),
+  service: ({ clock }: { clock: { now(): number; zone(): 'utc' } }) => ({
+    stamp() { return clock.now(); },
+    zone() { return clock.zone(); },
+  }),
+});
+type RichService = Assert<Equal<
+  ReturnType<typeof richChild.resolve<'service'>>,
+  { stamp(): number; zone(): 'utc' }
+>>;
+const ownedChild = clockRoot.fork(['clock'], {
+  clock: DiBag.withDisposal(
+    () => ({ now: () => 7 as const, scope() { return 'owned' as const; } }),
+    value => { const scope: 'owned' = value.scope(); void scope; },
+  ),
+});
+type OwnedClock = Assert<Equal<
+  ReturnType<typeof ownedChild.resolve<'clock'>>,
+  { now(): 7; scope(): 'owned' }
+>>;

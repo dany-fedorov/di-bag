@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-// diagnostic: override value is not assignable
+// diagnostic: Type '() => { now(): string; }' is not assignable to type '(DisposableFactory<
 DiBag.begin()
   .add({
     clock: () => ({

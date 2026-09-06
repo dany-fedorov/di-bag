@@ -1,4 +1,9 @@
-import type { Factory, Registration, Registrations } from './registration';
+import type {
+  DisposableFactory,
+  Factory,
+  Registration,
+  Registrations,
+} from './registration';
 
 type FactoryOf<R extends Registration> = R extends Factory
   ? R
@@ -170,4 +175,24 @@ type InvalidSelection = Unsatisfied<
 
 export type Selected<K extends readonly unknown[], O> = {
   [P in Extract<K[number], keyof O>]: Extract<O[P], Registration>;
+};
+
+// A graph-compatible bound gives context-sensitive factories a usable first
+// inference pass, while requiring every selected key in explicit type arguments.
+export type ForkContext<
+  R extends Registrations,
+  K extends readonly unknown[],
+  O,
+> = {
+  [P in Extract<K[number], keyof R>]:
+    | ((
+        this: void,
+        deps: Provided<Merge<R, Selected<K, O>>>,
+      ) => Provided<R>[P])
+    | DisposableFactory<
+        (
+          this: void,
+          deps: Provided<Merge<R, Selected<K, O>>>,
+        ) => Provided<R>[P]
+      >;
 };

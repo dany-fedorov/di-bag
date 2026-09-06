@@ -88,6 +88,35 @@ test('fork snapshots selection before an override getter mutates the caller tupl
   expect(b).toBe(4);
 });
 
+test('fork selects indexed tuple entries even when its iterator omits a key', () => {
+  const root = DiBag.begin().add({ a: () => 1, b: () => 2 }).end();
+  const keys: ['a', 'b'] = ['a', 'b'];
+  keys[Symbol.iterator] = function* () {
+    yield keys[0];
+    return undefined;
+  };
+  const child = root.fork(keys, { a: () => 3, b: () => 4 as const });
+  const b: 4 = child.resolve('b');
+  expect(b).toBe(4);
+});
+
+test('selected overrides can depend on richer capabilities of other selected services', () => {
+  const root = DiBag.begin().add({
+    clock: () => ({ now: () => 42 }),
+    service: ({ clock }: { clock: { now(): number } }) => ({ stamp: () => clock.now() }),
+  }).end();
+  const child = root.fork(['clock', 'service'], {
+    clock: () => ({ now() { return 7; }, zone() { return 'utc' as const; } }),
+    service: ({ clock }: { clock: { now(): number; zone(): 'utc' } }) => ({
+      stamp() { return clock.now(); },
+      zone() { return clock.zone(); },
+    }),
+  });
+  expect(child.resolve('service').stamp()).toBe(7);
+  expect(child.resolve('service').zone()).toBe('utc');
+  expect(root.resolve('service').stamp()).toBe(42);
+});
+
 test('runtime registration validation rejects cloned and forged owned handles', () => {
   const owned = DiBag.withDisposal(() => 1, value => { value.toFixed(); });
   expect(Object.isFrozen(owned)).toBe(true);
