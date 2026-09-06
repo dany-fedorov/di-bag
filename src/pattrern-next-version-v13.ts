@@ -1,4 +1,4 @@
-import type { ValBox } from 'val-box';
+import { ValBox } from 'val-box';
 
 namespace TypeUtils {
   // https://www.typescriptlang.org/play?ssl=3&ssc=1&pln=4&pc=1#code/C4TwDgpgBAqgdgSwPZwCpIJJ2BATgZwgGNhk4AeGAPigF4oAKGKCADxzgBN8oBDOEFAD8jXrgDmALlgBKOjX6DpcCADc8cth26MGYqVARwAZnigY5tGqqQJOckRijK1eAFChIUVHSgBtAG8oY14SJFwECHxpIN5pAEYoAF9kgBooIJCwiKiYqAAjaQAmZOSAXQ9waFQfengydCwcAmJSFHJUPzgAVwBbfLwyvwByLOBwyPxhsqo3NyIUfGAoJGka3wC3KG2+BNStncKoIrckoA
@@ -573,6 +573,9 @@ const main = () => {
       f: () => {
         return 99999 as const;
       },
+      _x: (args) => {
+        const x = args.values.d;
+      },
     })
     .end();
 
@@ -596,7 +599,23 @@ const main = () => {
       aa: (args) => args.values.ccc,
       bb: (args) => args.values.f,
       cc: (args) => args.values.b3b,
-      // f: () => 123
+      dd: () => 999 as const,
+      dd1: () =>
+        new ValBox.WithValue.WithMetadata(
+          123 as const,
+          { hey: 1 } as const,
+          'sdf',
+        ),
+    })
+    .add.factories({
+      ee: async (args) => {
+        const x = args.callFactory('dd1').getIntentionalAlias();
+      },
+    })
+    .add.factories({
+      ff: (args) => {
+        const x = args.values.f;
+      },
     })
     .end();
 
@@ -724,7 +743,6 @@ const main = () => {
   // const re3m = bag1.icfg.factories.c(null as any).getMetadata();
   // const re4 = bag1.icfg.factories.d(null as any).getValue();
 };
-
 // TODO next: 1. Work on deps plugin as in final-design-2.md. // Don't do this just yet
 // TODO next: 2. Implement .injections as in final-design.md. // Rename it to .add.values, but this is the same as having a factory
 // TODO next: 3. Implement withTypeProvider as in final-design-2.md. // Already did it
