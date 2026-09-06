@@ -14,10 +14,10 @@ execution; do not stop for another planning approval between increments.
 
 - [x] Box libraries: `2026-09-06-box-foundations.md` completed; final review clean after the sas-box generic-constructor correction. Evidence: `docs/reports/2026-09-06-box-foundations.md`.
 - [x] Type foundation: `2026-09-06-type-foundations.md` tasks complete; carried observer correction resolved by reviewed named-module Task1. Evidence: `docs/reports/2026-09-06-type-foundations.md`. Initial scale gates pass; larger limits remain required work below.
-- [ ] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformations are complete through final correction `6874760`, with clean scoped review. All typed-token tasks and task reviews are complete through `887d417`; broad final token review and recorded bulk-fork performance triage remain required.
+- [x] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformations are complete through final correction `6874760`. Typed tokens are complete through `75bc1f9`: all tasks, broad review, one consolidated fix and scoped re-review finished. One empty-selection efficiency Minor is explicitly carried into the next runtime increment below.
 - [x] Box integration: adapters use real packaged libraries, typed acquisition frames and plain service values; final shared union-type correction `6874760` and scoped review are complete. Evidence: `docs/reports/2026-09-06-provider-transformations.md`.
 - [x] Acquisition foundation: `2026-09-06-acquisition-foundations.md` completed through `fd83085`; task review and final scoped review are clean. Evidence: `docs/reports/2026-09-06-acquisition-foundations.md`, including the explicit structural-thenable conversion migration.
-- [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation.
+- [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation. Also restore graph reuse for explicit `fork([], overrides)`, the tracked Minor from the token final review; ordinary `fork()` still reuses its graph.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
@@ -48,11 +48,12 @@ shared `NoInfer` union extraction defect; `6874760` corrects it and preserves
 replacement inference, with clean final scoped review. Typed-token integration
 now has the binding design `2026-09-07-typed-tokens-design.md` and executable
 plan `2026-09-07-typed-tokens.md`: internal identity/routing, checked public/module
-composition, then actual package/compiler integration. Implementation remains open.
+composition, then actual package/compiler integration. The increment is complete
+through `75bc1f9`, with one explicitly carried empty-selection efficiency Minor.
 The internal token foundation is complete at `1048e29`, with clean task review;
 public token/module composition is complete at `d58937c`, with task review
 Approved and one bulk-fork efficiency follow-up. Final package/scale integration
-and the broad token review remain open.
+at `8088852`/`887d417` and broad review correction at `75bc1f9` are complete.
 The incremental-check candidate is documented
 in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
 
@@ -160,5 +161,24 @@ in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
   packages/boxes/source/emitted cases and all6token scale cases. Initial review's
   diagnostic-location assertion finding is fixed and scoped re-review is clean;
   its covering reruns pass6tests/36assertions. All token tasks are complete, but
-  broad review and the recorded fork performance finding remain open. At100tokens,
+  broad review and the recorded fork performance finding were still open at that
+  checkpoint; they are addressed below. At100tokens,
   measured maximumRSS775–877MiB underscores the still-required larger T2 work.
+- Token broad final review and its single consolidated correction are complete
+  at `75bc1f9`. Selected forks build one graph per batch; module C/D and failed-edge
+  migration prose are corrected. Full check: 300 tests / 1,877 assertions, strict
+  builds and all four examples; a later exact-one-batch assertion has covering
+  verification. Controller independently passed builds, 91 covering runtime/real
+  package tests and all examples. Scoped review closes all three original findings,
+  with no Critical/Important residual. One Minor remains required: graph reuse for
+  explicit empty selection, carried into the next runtime/lifecycle increment.
+- Current pinned T2 investigations are recorded in
+  `docs/reports/2026-09-07-current-incremental-check.md` and
+  `docs/reports/2026-09-07-current-inline-inference.md`. A refined incremental checker
+  preserves all 17 focused negative boundaries and completes one 500-add fluent
+  source in 11,953 ms / 1,752 MiB RSS. It is not adopted; 500 negatives, 1,000 real
+  calls, large C/G, emitted/installed integration and full checks remain. Both
+  inline inference limitations reproduce; a preliminary-context fork candidate
+  retains focused source/emitted contracts, while the nested snapshot case remains
+  unresolved. Next execution increment is the dedicated T2 plan and implementation;
+  lifetimes/startup and all other acceptance rows remain required afterward.

@@ -171,7 +171,63 @@ implementer's covering rerun passed6tests/36assertions in30.98seconds; the
 controller independently reran the committed correction with6tests/36assertions
 in31.08seconds. No production or other test source changed after the full run.
 Scoped re-review: finding addressed, no new breakage or other observations. Task3
-is complete after one fix round. The broad final review has not yet run.
+is complete after one fix round. Broad final review and its fix wave follow.
+
+## Whole-branch review and consolidated correction
+
+The broad review covered the actual main merge-base `94d9e52` through `b505d66`
+(40 commits). It found no Critical defect, one Important bulk-fork performance
+regression, and two Minor documentation inaccuracies. Every selected override
+rebuilt the whole binding graph; a 1,000-override synchronous fork took about
+1,088 ms in a single reviewer probe. The README also overstated what module C
+retains, and one migration paragraph still described a failed incoming edge as
+retained. No binding design change was needed.
+
+The single consolidated fix is `75bc1f9`:
+
+- `Bag.fork` retains indexed selection snapshots and complete preflight, then
+  reads/normalizes selected values in order and applies one mixed string/symbol
+  batch. Existing named and single-binding graph helpers share that operation.
+- Regression tests preserve duplicate getter order, final replacement routing,
+  private module identity, independent parent/child ownership and exact-one-batch
+  construction. The test guards reconstruction count, not a timing threshold.
+- README clarifies that D is the zero-needs public projection and C retains
+  exported/external requirements of all local consumers, including private ones.
+  Satisfied private requirements do not become host constraints. This is the
+  precise interpretation of the projection ruling below.
+- Migration now describes abandoned failed incoming reads and retained outgoing
+  dependencies/pending/owned cleanup on the failed acquisition itself.
+
+RED demonstrated two failures: two single-binding calls where zero were expected,
+and the absent batch operation. GREEN passed 29 tests / 94 assertions after a
+test fixture stopped returning the live dependency proxy to a deep-equality
+assertion. Six covering runtime files passed 65 tests / 211 assertions.
+
+Full `npm run check` passed 300 tests / 1,877 assertions across 18 files in
+379.30 seconds, strict typecheck and declaration build. All four examples passed.
+The only later change strengthened the deterministic test to require exactly one
+batch call; its boundary-file rerun passed 15 tests / 42 assertions. No production
+code changed after the full run.
+
+Controller independent committed-state checks passed strict builds, 77 runtime
+and real token/box package tests / 477 assertions in 14.73 seconds, all four
+examples, and a separate 14-test / 35-assertion general runtime run. That separate
+run corrected the controller command's mistaken absent `tests/di-bag.test.ts`
+path to the actual `tests/runtime.test.ts`; no absent file is counted as tested.
+All commands and diff checks exited successfully.
+
+Supporting measurements for 100 / 1,000 overrides were 0.626 / 3.156 ms in the
+implementer's run and 0.775 / 3.091 ms in the controller's independent run,
+resolving the final slot to 99 / 999. These are individual Bun 1.4.0 observations
+without statistical controls, not portable performance guarantees. The structural
+correction is one graph reconstruction per fork, preserving its public contracts.
+
+The single scoped final re-review marks all three original findings addressed,
+with no new Critical or Important breakage. One Minor remains: explicit
+`fork([], overrides)` now reconstructs the graph in O(N) instead of reusing it.
+Ordinary `fork()` still reuses the graph, and service/ownership correctness is
+unchanged. It is explicitly deferred to the next runtime/lifecycle increment,
+not waived from enterprise completion. No second fix wave was dispatched.
 
 ## Decisions and costs retained for the final review
 
@@ -223,9 +279,21 @@ if wrong is a larger public type surface or annotation compatibility work. The
 correction does not expose unchecked runtime constructors, blanket internal
 subpaths or a new carrier.
 
+Ruling: Defer the empty-selected-fork graph-reuse optimization to the next runtime/
+lifecycle increment — it is a real but non-load-bearing Minor, ordinary fork()
+retains graph reuse, and the single final fix wave is complete — cost if wrong
+is avoidable O(N) synchronous work for explicit fork([], overrides) until that
+follow-up; retain it as required runtime work before enterprise completion.
+
 ## Remaining work
 
-The broad final token review remains and must triage the recorded bulk-fork
-performance regression. Larger T2, lifetimes,
+The typed-token increment is complete through `75bc1f9`, with all three broad
+review findings addressed and one explicitly deferred empty-selection efficiency
+Minor. Larger T2, lifetimes,
 startup/cancellation, extensions, observers/plugins, platform/comparison evidence
 and release handoff remain required.
+
+Current-source T2 evidence is recorded separately in
+[incremental checker measurements](2026-09-07-current-incremental-check.md) and
+[inline inference reproduction](2026-09-07-current-inline-inference.md). Both are
+unadopted investigations, not extra production changes in this token fix wave.

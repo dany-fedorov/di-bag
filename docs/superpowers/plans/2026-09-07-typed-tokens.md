@@ -399,7 +399,7 @@ strengthening; the six affected compiler cases subsequently passed36assertions
 in both implementer and independent controller runs. Task review's one Important
 finding is addressed with clean scoped re-review. Actual installed .cts/.mts
 producer emission is portable via five type-only exports. All three tasks are
-complete; broad final review and bulk-fork finding triage remain required.
+complete. Broad final review and its consolidated correction are recorded below.
 
 ## Coverage self-review and handoff
 
@@ -409,3 +409,23 @@ public composition/module/selection contract. Task3 proves real package/box
 interoperation and records bounded compiler evidence and runnable documentation.
 All tasks retain existing named inference, cleanup/native boundaries and scale
 gates. The full enterprise program remains active after this token increment.
+
+## Final review and checkpoint
+
+- [x] Broad whole-branch review: actual main merge-base `94d9e52` through
+  `b505d66`; no Critical finding, Important batched-fork regression and two Minor
+  documentation corrections.
+- [x] One consolidated fix wave: `75bc1f9`, mixed-key graph batching with ordered
+  preflight/reads, deterministic reconstruction guard, private/ownership regression
+  coverage and corrected module/failed-edge prose.
+- [x] One scoped re-review: all three original findings addressed, no new
+  Critical/Important issue. The new empty-selected-fork efficiency Minor is
+  explicitly parked with its cost and next-runtime-increment destination.
+- [x] Verification: full check 300 tests / 1,877 assertions and strict builds;
+  final test-assertion delta separately covered; controller committed-state builds,
+  91 covering runtime/package tests and all four examples pass. Exact evidence
+  and all nine rulings are in `docs/reports/2026-09-07-typed-tokens.md`.
+
+This plan is complete with one parked Minor, not universal enterprise completion.
+`fork([], overrides)` must regain graph reuse during the next runtime/lifecycle
+increment. Current-source compiler/inference candidates remain unadopted T2 work.
