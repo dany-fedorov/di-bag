@@ -14,7 +14,7 @@ execution; do not stop for another planning approval between increments.
 
 - [ ] Box libraries: execute `2026-09-06-box-foundations.md`; review both repos and record commits/artifact names.
 - [ ] Type foundation: execute `2026-09-06-type-foundations.md`; close registration/override/descriptor/receiver loopholes, preserve inference, and establish compiler-scale gates.
-- [ ] Providers and modules: immutable descriptions, named/typed tokens, open requirements, private providers, checked exports and overrides.
+- [ ] Providers and modules: execute `2026-09-06-named-modules.md` for named open modules, private bindings, checked exports and overrides; additionally implement immutable descriptions and typed symbol tokens.
 - [ ] Box integration: optional adapter subpaths using the real packaged libraries; typed static/acquisition metadata and plain service values.
 - [ ] Lifetime runtime: root/scoped/transient identities, explicit sharing, lifetime-leak checks, per-instance ownership.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
