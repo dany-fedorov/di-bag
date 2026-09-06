@@ -39,6 +39,10 @@ export type ScaleForm = 'bulk' | 'chained' | 'grouped' | 'replacement';
 export type ScaleCase = 'valid' | 'missing' | 'wrong-shape';
 export const scalePath = resolve('tests/generated-type-scale.ts');
 
+export type TokenScaleForm = 'bindings' | 'modules';
+export type TokenScaleCase = 'valid' | 'missing-final-token' | 'mismatched-invariant-service';
+export const tokenScalePath = resolve('tests/generated-token-scale.ts');
+
 /** Real public calls and checked consumer assignments, with no widening casts. */
 export function scaleSource(
   count: number,
@@ -87,4 +91,63 @@ const first: number = bag.resolve('svc0');
 const middle: number = bag.resolve('svc${Math.floor(count / 2)}');
 const last: number = bag.resolve('svc${count - 1}');
 `;
+}
+
+/** One hundred real token bindings or distinct modules, with a marked rejection boundary. */
+export function tokenScaleSource(
+  count: number,
+  form: TokenScaleForm,
+  scenario: TokenScaleCase = 'valid',
+) {
+  if (!Number.isInteger(count) || count < 2) throw new Error('token scale count must be at least two');
+  const declarations = Array.from({ length: count }, (_, index) =>
+    `const key${index} = Symbol('service${index}');\nconst token${index} = DiBag.token(key${index}).of<number>();`,
+  );
+  if (scenario === 'missing-final-token') {
+    declarations.push("const missingFinalKey = Symbol('missingFinal');\nconst missingFinalToken = DiBag.token(missingFinalKey).of<number>();");
+  }
+  if (scenario === 'mismatched-invariant-service') {
+    declarations.push(`const incompatibleFinalInput = DiBag.token(key${count - 2}).of<number | string>();`);
+  }
+  const provider = (index: number) => {
+    if (index === 0) return '() => 1';
+    if (index === count - 1 && scenario === 'missing-final-token') {
+      return 'DiBag.fromTokens([missingFinalToken], value => value + 1)';
+    }
+    if (index === count - 1 && scenario === 'mismatched-invariant-service') {
+      return "DiBag.fromTokens([incompatibleFinalInput], value => typeof value === 'number' ? value + 1 : value.length)";
+    }
+    return `DiBag.fromTokens([token${index - 1}], value => value + 1)`;
+  };
+  const boundary = '/* token-scale-boundary */';
+  let graph: string;
+  if (form === 'bindings') {
+    const calls = Array.from({ length: count }, (_, index) => {
+      const marker = scenario === 'mismatched-invariant-service' && index === count - 1 ? ` ${boundary}` : '';
+      return `  .bind(token${index}, ${provider(index)})${marker}`;
+    });
+    const graphMarker = scenario === 'missing-final-token' ? ` ${boundary}` : '';
+    graph = `const graph = DiBag.begin()${graphMarker}\n${calls.join('\n')}\n  .end();`;
+  } else {
+    const modules = Array.from({ length: count }, (_, index) =>
+      `const module${index} = DiBag.module().bind(token${index}, ${provider(index)}).exports([token${index}]);`,
+    );
+    const installs = Array.from({ length: count }, (_, index) => {
+      const marker = scenario === 'mismatched-invariant-service' && index === count - 1 ? ` ${boundary}` : '';
+      return `  .install(module${index})${marker}`;
+    });
+    const graphMarker = scenario === 'missing-final-token' ? ` ${boundary}` : '';
+    graph = `${modules.join('\n')}\nconst graph = DiBag.begin()${graphMarker}\n${installs.join('\n')}\n  .end();`;
+  }
+  return `import { DiBag } from '../src';
+${declarations.join('\n')}
+${graph}
+const result: number = graph.resolve(token${count - 1});
+`;
+}
+
+export function tokenScaleBoundaryLine(source: string) {
+  const lines = source.split('\n');
+  const index = lines.findIndex(line => line.includes('token-scale-boundary'));
+  return index === -1 ? undefined : index + 1;
 }

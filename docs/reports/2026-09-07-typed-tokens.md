@@ -1,8 +1,9 @@
 # Typed-token implementation evidence
 
 Status: Tasks1/2 internal foundation and public/module composition complete;
-token-specific package/compiler integration and final review remain in progress. This
-does not complete the enterprise program or claim universal type safety.
+Task3 package/compiler/documentation implementation and implementer verification
+complete, with independent Task3 and broad final review still pending. This does
+not complete the enterprise program or claim universal type safety.
 
 Spec: `../superpowers/specs/2026-09-07-typed-tokens-design.md`.
 Plan: `../superpowers/plans/2026-09-07-typed-tokens.md`.
@@ -91,6 +92,73 @@ O(KN+K²) rather than the previous batched O(N+K). A symbol-capable batch graph
 operation is the proposed correction. This is recorded, not silently discarded;
 the token increment's final review/fix pass has not run yet.
 
+## Task3: installed packages, bounded compiler controls and documentation
+
+The actual packed `di-bag` artifact now has reciprocal Node loader evidence:
+the CommonJS consumer creates tokens/providers through `require` and composes
+them through ESM, while the ESM consumer performs the inverse. Both paths retain
+private module installation isolation, public computed-symbol fork overrides,
+plain service payloads and raw Promise identity on synchronous token injection.
+The pinned real sas-box/val-box archives also compose through `fromTokens`, both
+adapters, static metadata and typed frames. The bag explicitly cleans the original
+boxes; the unchanged core-only consumer installs and loads neither box package.
+
+Most new integration coverage was first-green against Task2. The installed
+library-author declaration case was a real RED that the earlier local-source gate
+could not expose: inferred `.cts` and `.mts` feature emission both reported
+TS2742 because the retained module type needed non-portable
+`node_modules/di-bag/dist/{module-types,token-types,types}` names. Type-only root
+exports for exactly `PublicProviders`, `Binding`, `TokenGraph`, `From` and
+`Provided` made those inferred declarations portable without a user cast,
+annotation erasure, runtime entrypoint change, internal subpath export or carrier
+redesign. The unchanged Task2 consumer is compiled in both modes with the feature
+source hidden and its import explicitly resolved to the emitted sibling
+`.d.cts`/`.d.mts` output.
+
+The first restricted token-worker test produced status0 with empty captured
+stdout/stderr and then failed JSON parsing. A minimal Bun-to-Volta-Node probe
+reproduced that only under restricted execution; approved execution captured the
+expected output. The temporary result-file fallback was removed. The committed
+gate reads stdout only after checking status, signal, spawn error and stderr, and
+every intended negative must point into the generated source with no TS2589,
+timeout or OOM acceptance. Initial diagnostic-line/message expectation failures
+were test-wiring corrections; direct worker output already showed the intended
+public graph rejections, so they were not recorded as production RED.
+
+Fresh single-worker evidence on Node24.20.0/TypeScript5.9.3:
+
+- 100 bindings valid:4605ms,877MiB maximum RSS,0 diagnostics.
+- 100 bindings missing-final-token:4476ms,873MiB, TS2684 at the marked final
+  graph boundary with `missing factories`.
+- 100 bindings mismatched invariant service:4518ms,874MiB, TS2684/TS2345;
+  the marked bind rejects the same key declared as `number|string` while the
+  actual `number` output and the callback body remain valid.
+- 100 distinct modules valid:5078ms,775MiB maximum RSS,0 diagnostics.
+- 100 distinct modules missing-final-token:5073ms,780MiB, TS2684 at the marked
+  final graph boundary with `missing factories`.
+- 100 distinct modules mismatched invariant service:5132ms,782MiB, TS2345 at
+  the marked final install with `a dependency has the wrong shape`.
+
+These are one-machine process maximums, not portable budgets. They cover exactly
+100 individual bindings and 100 distinct modules in fresh 60-second-bounded Node
+workers. They preserve all existing named/grouped/module gates, but do not satisfy
+the larger T2/compiler-latency obligations of the enterprise program.
+
+Implementer verification after the final source/test change:
+
+- `npm run check`: strict typecheck,297pass/0fail/1866assertions across18files
+  in372.21seconds, followed by a successful declaration build. This includes all
+  installed package/box tests, six isolated token workers and every unchanged
+  100/1,000-provider scale gate.
+- Focused installed token package:4pass/0fail/14assertions after a real pack and
+  offline install. Focused pinned real-box package:22pass/0fail/284assertions.
+  Focused token scale:6pass/0fail/40assertions in31.22seconds.
+- All4 runnable examples passed: WBS scope ownership, named modules, real box
+  adapters and the new canonical-token/private-owner/public-fork example.
+- No runtime dependency or box implementation changed, and no package was
+  published or branch pushed. Independent Task3 review and broad token review
+  have not yet run.
+
 ## Decisions and costs retained for the final review
 
 Ruling: Capture caller-declared unique symbols in invariant token handles — equal
@@ -133,10 +201,17 @@ unique-symbol export failures such as the carrier prototype's TS4118 — cost if
 wrong is an additional compiler fixture phase; it does not add a new public API
 or relax any identity/inference requirement.
 
+Ruling: Permit the smallest necessary type-only public naming/export corrections
+in Task3 to make inferred installed-package feature declarations portable — the
+spec's reusable module/source-emitted contract and enterprise TypeScript goal take
+precedence over the plan's assumption that package exports need no changes — cost
+if wrong is a larger public type surface or annotation compatibility work. The
+correction does not expose unchecked runtime constructors, blanket internal
+subpaths or a new carrier.
+
 ## Remaining work
 
-Task3 verifies broader actual package integration and100-token compiler controls,
-adds the example and migration text, and preserves the feature-author declaration
-gate. The broad final token review follows it and must triage the recorded bulk-
-fork performance regression. Larger T2, lifetimes, startup/cancellation, extensions,
-observers/plugins, platform/comparison evidence and release handoff remain required.
+Independent Task3 review and the broad final token review remain. The broad review
+must triage the recorded bulk-fork performance regression. Larger T2, lifetimes,
+startup/cancellation, extensions, observers/plugins, platform/comparison evidence
+and release handoff remain required.

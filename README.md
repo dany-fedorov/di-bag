@@ -100,6 +100,86 @@ the Promise-valued result remains exact and no cast is needed.
 Run `bun run examples/modules.ts` for a runnable two-module composition with
 cleanup and an exported service override.
 
+## Use typed tokens for explicit positional injection
+
+Named factories declare dependencies with one finite object parameter. Typed
+tokens instead pair a caller-declared `const` symbol with an invariant service
+contract and list dependencies explicitly:
+
+```ts
+export const clockKey = Symbol('clock');
+export const clock = DiBag.token(clockKey).of<{ now(): number }>();
+
+const stamp = DiBag.fromTokens([clock], selectedClock => selectedClock.now());
+const bag = DiBag.begin().bind(clock, () => ({ now: () => 42 }))
+  .add({ stamp }).end();
+const result: number = bag.resolve('stamp');
+```
+
+The tuple passed to `fromTokens` is the dependency declaration and positional
+argument order. It must be a finite tuple of individually known genuine tokens;
+the bag does not parse parameter names or infer a token list from callback text.
+Arguments are acquired without awaiting them. A `Promise<T>` token supplies the
+same raw Promise object to the callback, and a synchronous callback remains
+synchronous. Await only at an explicit async factory, `mapAsync`, or async box
+adapter boundary.
+
+Token identity includes both the unique symbol key and its exact service
+declaration. Rewrapping the same key with the same service is compatible. The
+same key rewrapped as a wider or narrower service is not: token contracts are
+invariant even when one provider output happens to fit both service types.
+Export canonical keys and tokens from the module that owns the contract. Two
+independent `Symbol('name')` calls remain separate, while `Symbol.for('name')`
+returns one runtime key and therefore collides with an existing binding even if
+different handles were created.
+
+`.bind(token, registration)` preserves a provider's output, static metadata,
+acquisition frames, ownership stages, named requirements, and token requirements.
+Provider handles remain reusable inputs; every binding is still a normal lazy,
+per-bag cache slot, so reuse does not implicitly share an acquired instance.
+Within a named module, an unexported bound token is private and receives a fresh
+binding per installation. An exported bound token becomes a public slot. A token
+selected by `fromTokens` but not bound locally is an external requirement that
+the host must satisfy before `.end()`.
+
+Public tokens participate in module consumers just like public names. Override
+one in a fork with both an explicit token selection and the symbol-keyed own
+property:
+
+```ts
+const child = bag.fork([clock], {
+  [clockKey]: () => ({ now: () => 7 }),
+});
+```
+
+Only selected own keys are read. An exported-token override is visible to the
+module's private consumers, and the fork owns an independent graph; close it
+separately. Run `bun run examples/tokens.ts` for canonical exports, a private
+owned token, a public override, plain service values, and both close barriers.
+
+`Provider<F, M, A, G>` uses its fourth invariant contract to retain required and
+bound token identities. Its default `G` is an empty token graph, so existing
+short `Provider<F>`, `Provider<F, M>`, and `Provider<F, M, A>` annotations remain
+valid for token-free providers. Such a default is not an erasure mechanism:
+providers with nonempty or opaque token graphs reject those shorter annotations.
+For portable inferred library declarations, the supporting `Binding`,
+`TokenGraph`, `From`, `Provided`, and `PublicProviders` types are available as
+type-only root exports.
+
+`Module<P, R, C, D>` still has four contracts. `C` retains named and token
+consumer constraints across private/public/external boundaries; `D` retains the
+public registrations, including provider metadata, frames, and bound-token
+contracts. Export projection removes already-satisfied private needs from `D`
+without discarding them from `C`. Preserve inferred module types with `typeof`
+or `ReturnType`; shorter annotations cannot erase nonempty retained contracts.
+
+Runtime authentication and missing-binding checks still protect JavaScript and
+dynamic boundaries, but they are not compile-time proofs. Casts, erased provider
+or module types, widened selections, and dynamically unknown plugins can bypass
+or lack static evidence. Typed tokens complement named composition; they do not
+make every dynamic graph universally type safe, and they do not complete planned
+lifetime, startup/cancellation, or extension work.
+
 ## Attach metadata and inspect without resolving
 
 ```ts
@@ -137,7 +217,7 @@ unchanged as attempts settle or retry. Failed attempts are evicted; inspection
 does not retain an attempt history. Inspection remains available after close,
 when the runtime has released all acquisitions.
 
-`Provider<F, M, A>` and its `ProviderOutput`, `ProviderNeeds`, `ProviderMetadata`,
+`Provider<F, M, A, G>` and its `ProviderOutput`, `ProviderNeeds`, `ProviderMetadata`,
 and `ProviderAcquisitionMetadata` utilities are type-only exports. Provider handles
 are immutable and nominal; spreads and forged objects cannot be registered.
 `Presence<T>`, `FramePresenceTuple<A>`, `AcquisitionSnapshot<A>`, and
@@ -477,6 +557,7 @@ a dependency-free structural example with separate box and payload owners.
 npm install
 npm run check          # strict types, runtime/type/package tests, build
 npm run benchmark:types # isolated Node compiler measurements (Node 24+)
+node scripts/check-token-scale.ts bindings valid # one isolated 100-token case
 npm pack --dry-run    # builds and previews the publication contents
 ```
 

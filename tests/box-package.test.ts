@@ -61,14 +61,25 @@ for (const mode of ['commonjs', 'module'] as const) {
       : `import { DiBag } from 'di-bag'; import { fromSasBox } from 'di-bag/sas-box'; import { fromValBox } from 'di-bag/val-box'; import { SasBox } from 'sas-box'; import { ValBox } from 'val-box';`;
     const output = await run(['node', `--input-type=${mode}`, '--eval', `${load}
       (async () => {
-        const payload = { answer: 42 }; const events = [];
+        const payload = { answer: 42 }; const rawPromise = Promise.resolve(43); const events = [];
         const raw = new ValBox.WithValue.WithMetadata(payload, { owner: 'real' }, 'db');
+        const promiseBox = new ValBox.WithValue.WithMetadata(rawPromise, { owner: 'promise' }, 'promise-db');
         const esm = await import('di-bag/sas-box');
         const cjs = (await import('node:module')).createRequire(process.cwd() + '/consumer.cjs');
         const tokenKey = Symbol('real-box'); const selected = cjs('di-bag').DiBag.token(tokenKey).of();
-        const tokenProvider = fromValBox(esm.fromSasBox(DiBag.fromTokens([selected], value => SasBox.fromValue(value)), { mode: 'sync' }));
-        const tokenRuntime = cjs('di-bag').DiBag.begin().install(DiBag.module().bind(selected, () => raw).add({ tokenProvider }).exports(['tokenProvider'])).end();
+        const promiseKey = Symbol('promise-box'); const selectedPromise = cjs('di-bag').DiBag.token(promiseKey).of();
+        const tokenProvider = DiBag.withMetadata(fromValBox(esm.fromSasBox(
+          DiBag.fromTokens([selected], value => SasBox.fromValue(value)), { mode: 'sync' })), { boundary: 'real-box-token' });
+        const tokenPromise = fromValBox(esm.fromSasBox(
+          DiBag.fromTokens([selectedPromise], value => SasBox.fromValue(value)), { mode: 'sync' }));
+        const tokenFeature = DiBag.module()
+          .bind(selected, DiBag.withDisposal(() => raw, value => { events.push(value === raw ? 'raw-box' : 'wrong-box'); }))
+          .bind(selectedPromise, DiBag.withDisposal(() => promiseBox, value => { events.push(value === promiseBox ? 'promise-box' : 'wrong-promise-box'); }))
+          .add({ tokenProvider, tokenPromise }).exports(['tokenProvider', 'tokenPromise']);
+        const tokenRuntime = cjs('di-bag').DiBag.begin().install(tokenFeature).end();
         const tokenIdentity = tokenRuntime.resolve('tokenProvider') === payload;
+        const tokenPromiseIdentity = tokenRuntime.resolve('tokenPromise') === rawPromise;
+        const tokenInspection = tokenRuntime.inspect('tokenProvider');
         await tokenRuntime.close();
         const provider = fromValBox(fromSasBox(() => SasBox.fromValue(raw), { mode: 'sync' }));
         const bag = cjs('di-bag').DiBag.begin().add({
@@ -80,10 +91,14 @@ for (const mode of ['commonjs', 'module'] as const) {
         const frames = bag.inspect('service').acquisitions[0].metadata;
         raw.setMetadata({ owner: 'changed' });
         await bag.close();
-        console.log(JSON.stringify({ identity: value === payload, cross, asyncValue, frames, events, tokenIdentity }));
+        console.log(JSON.stringify({ identity: value === payload, cross, asyncValue, frames, events, tokenIdentity,
+          tokenPromiseIdentity, tokenMetadata: tokenInspection.metadata, tokenFrames: tokenInspection.acquisitions[0].metadata }));
       })().catch(error => { console.error(error); process.exitCode = 1; });`], consumer);
     expect(JSON.parse(output)).toEqual({ identity: true, cross: 7, asyncValue: 9,
-      frames: [{ present: true, value: { kind: 'val-box', metadata: { present: true, value: { owner: 'real' } }, alias: 'db' } }], events: ['payload'], tokenIdentity: true });
+      frames: [{ present: true, value: { kind: 'val-box', metadata: { present: true, value: { owner: 'real' } }, alias: 'db' } }],
+      events: ['promise-box', 'raw-box', 'payload'], tokenIdentity: true, tokenPromiseIdentity: true,
+      tokenMetadata: { boundary: 'real-box-token' },
+      tokenFrames: [{ present: true, value: { kind: 'val-box', metadata: { present: true, value: { owner: 'real' } }, alias: 'db' } }] });
   });
 
   for (const fixture of ['tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'box-adapters.ts', 'negative/box-adapters.ts', 'negative/provider-unions.ts', 'real']) {
