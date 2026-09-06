@@ -39,6 +39,9 @@ is `docs/superpowers/specs/2026-09-06-provider-transformations-design.md`.
 This prerequisite does not remove or complete later lifetime/startup work.
 The next executable plan is `2026-09-06-provider-transformations.md`: typed
 metadata/inspection, staged mappings/ownership, then real optional box adapters.
+Its metadata/inspection task is complete at `06918c8`; mappings and box adapters
+remain in progress. The independent incremental-check candidate is documented
+in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
 
 ## Current evidence
 
@@ -71,3 +74,8 @@ metadata/inspection, staged mappings/ownership, then real optional box adapters.
   check passes 74 tests / 300 assertions, strict builds and both examples;
   final scoped review is clean. Structural thenables use explicit conversion
   inside factories; no host-specific core dependency or guessed fallback.
+- Typed immutable provider metadata and checked inspection are implemented at
+  `06918c8`, retaining metadata through module export/rename/install and exact
+  original factory contracts. Task review is clean; independent full check:
+  181 tests / 813 assertions, strict typecheck/build, real CJS/ESM consumers,
+  all current scale gates, and both examples. The provider plan is not complete.

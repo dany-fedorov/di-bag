@@ -119,7 +119,7 @@ native versus structural values or erase original setup errors.
   only needs source and metadata operations, preserving the existing single
   ownership declaration; additive ownership/mapping is Task2.
 
-- [ ] **Step 1: Add runtime and no-cast inference regressions.**
+- [x] **Step 1: Add runtime and no-cast inference regressions.**
 
 ```ts
 test('metadata is a snapshot and inspection never starts a factory', async () => {
@@ -166,12 +166,12 @@ metadata erasure annotations, duplicate metadata, required callback receivers,
 spread handles, incorrect inspection fields and explicit registration erasure.
 Existing negative files remain intact; add emitted-declaration equivalents.
 
-- [ ] **Step 2: Run the new tests and record RED.**
+- [x] **Step 2: Run the new tests and record RED.**
 
 Run `bun test tests/providers.test.ts` and focused compiler tests added to
 `tests/types.test.ts`. Record missing APIs separately from behavioral failures.
 
-- [ ] **Step 3: Implement descriptors and carry their complete contracts.**
+- [x] **Step 3: Implement descriptors and carry their complete contracts.**
 
 Use immutable source/metadata descriptions, a private WeakMap, and type-only
 provider exports. Introduce public utilities at the existing FactoryOf/Needs/
@@ -197,13 +197,16 @@ Module carrier changes must preserve private lexical binding resolution and
 all existing independent consumer constraints. Static metadata is still
 available after close; acquisition snapshots release retained graphs/values.
 
-- [ ] **Step 4: Verify, document and commit.**
+- [x] **Step 4: Verify, document and commit.**
 
 Run `bun test tests/providers.test.ts tests/types.test.ts tests/modules.test.ts
 tests/package.test.ts`, then `npm run check`, both examples and `git diff --check`.
 This changes graph types, so the full nominal-module/registration scale gates
 are required. Document snapshot/annotation semantics. Commit
 `feat: add typed provider metadata and checked inspection`.
+
+Task1 complete at `06918c8`: independent full verification and task review are
+clean. Evidence: `docs/reports/2026-09-06-provider-transformations.md`.
 
 ### Task 2: Explicit mappings and separately owned acquisition stages
 
@@ -238,6 +241,11 @@ are required. Document snapshot/annotation semantics. Commit
   DiBagCleanupError with original causes and attempt identities. A failed sync
   resolve does not await asynchronous cleanup. Close drains all pending source,
   projection and retired-cleanup work to a fixed point before completion.
+- Retired cleanup may overlap across attempts. Preserve the existing aggregate
+  contract by ordering cleanup failures by finalizer invocation, not rejection
+  completion time: assign an internal sequence at invocation and sort copied
+  diagnostic records when closing. This sequence does not retain a stage,
+  disposer, exposed value or dependency graph in the final error.
 - Pending stages retain in-flight dependency-read permission until their source
   work finishes, even when the exposed projection is already ready. Completed
   and failed escaped proxies cannot borrow another attempt's permission.
@@ -285,6 +293,9 @@ undefined cleanup causes aggregate, and projection failure does not dispose a
 separately cached dependency. Gate asynchronous cleanup and assert close remains
 pending until the gate resolves; retry before late old completion must not evict
 the successful new attempt. Preserve genuine cycles through mapped dependencies.
+Add two failed projections whose cleanup starts in A/B order but rejects in B/A
+order using separate deferred gates. Assert the aggregate still contains A/B
+causes in invocation order and retains each original attempt identity.
 
 - [ ] **Step 2: Record RED for missing helpers and stage ownership.**
 
@@ -308,6 +319,7 @@ interface AcceptedStage {
 // Reverse index orders nested ownership independently of asynchronous arrival.
 // Mark a stage disposing before invoking its receiver-free finalizer.
 // Publish and reuse its completion barrier to prevent concurrent double cleanup.
+// Record an invocation sequence before each call, not when its Promise rejects.
 ```
 
 Use explicit map operation tags for awaiting behavior. Never infer sync-vs-async
