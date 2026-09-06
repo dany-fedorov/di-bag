@@ -14,14 +14,14 @@ execution; do not stop for another planning approval between increments.
 
 - [x] Box libraries: `2026-09-06-box-foundations.md` completed; final review clean after the sas-box generic-constructor correction. Evidence: `docs/reports/2026-09-06-box-foundations.md`.
 - [x] Type foundation: `2026-09-06-type-foundations.md` tasks complete; carried observer correction resolved by reviewed named-module Task1. Evidence: `docs/reports/2026-09-06-type-foundations.md`. Initial scale gates pass; larger limits remain required work below.
-- [ ] Providers and modules: execute `2026-09-06-named-modules.md` for named open modules, private bindings, checked exports and overrides; additionally implement immutable descriptions and typed symbol tokens.
+- [ ] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformations and typed symbol tokens remain required.
 - [ ] Box integration: optional adapter subpaths using the real packaged libraries; typed static/acquisition metadata and plain service values.
-- [ ] Lifetime runtime: root/scoped/transient identities, explicit sharing, lifetime-leak checks, per-instance ownership.
+- [ ] Lifetime runtime: first execute `2026-09-06-acquisition-foundations.md` for per-attempt identity and complete shutdown diagnostics; then root/scoped/transient policies, explicit sharing and lifetime-leak checks.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
 - [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests.
-- [ ] Compiler-scale follow-up: resolve the measured 500/1000 individual-chain limits and validate editor-scale latency while preserving all inference and rejection contracts; measure actual nominal-module composition separately from registration groups.
+- [ ] Compiler/inference follow-up: resolve the measured 500/1000 individual-chain limits, large-graph latency, and the inline async richer-selected override combination; preserve all existing contracts and the cast-free predeclared-object workaround. Actual nominal-module 1000-provider gates now pass, separately from registration groups.
 - [ ] Release handoff: complete examples, migrations, changelogs, verified tarballs, and safe publication instructions for all three libraries.
 
 ## Execution rules
@@ -30,6 +30,12 @@ The design's Global Constraints apply to every milestone. Add the detailed
 subsystem plan before implementation of that milestone. Record discoveries and
 decisions in a plan-scoped ledger. Never replace a missing capability with a
 documentation-only claim or treat a generated CI file as a successful run.
+
+Execution refinement: per-acquisition shutdown bookkeeping precedes owned
+provider transformations and box adapters, so projection failures and late
+ownership have a correct place to be tracked. The provider/adapter refinement
+is `docs/superpowers/specs/2026-09-06-provider-transformations-design.md`.
+This prerequisite does not remove or complete later lifetime/startup work.
 
 ## Current evidence
 
@@ -49,5 +55,9 @@ documentation-only claim or treat a generated CI file as a successful run.
   isolated symbol identities, lexical references, immutable descriptions, and
   native Promise bookkeeping with original exposed identity. Task review is
   clean; independent full check passes 122 tests / 419 assertions, typecheck,
-  declaration build, package consumers and WBS. The public module API is next,
-  not yet implemented.
+  declaration build, package consumers and WBS.
+- Public named modules are implemented at `9b9fb98`; task and final broad reviews
+  are clean. Independent exact-HEAD verification passes 144 tests / 527
+  assertions, typecheck/build, CJS/ESM consumers, all nominal-module scale cases
+  and both examples. The lifecycle retry defect and compiler/inference
+  limitations remain explicitly required follow-up work.
