@@ -129,6 +129,13 @@ cleanup. This wait is attempt-local, not a wait for unrelated retries. Pending
 work that never settles can therefore retain accepted resources and keep the
 eventual close barrier pending; failure is not forced interruption of JavaScript.
 
+Retaining failed attempts for cleanup must not retain them as successful
+dependencies of callers that caught their exposed failure. Abandon those
+incoming failure edges when the exposed attempt fails, while retaining its
+pending source, original identity, actual outgoing dependencies and finalizers.
+Otherwise a late source reading its now-completed caller is falsely diagnosed
+as a cycle. Genuine live acquisition cycles remain errors.
+
 Automatic ownership retains the existing fulfilled-value boundary. Failed
 then inspection/setup rolls back without passing an unfulfilled raw object to
 an `Awaited` disposer. A universal opaque/raw acquisition mode is not introduced

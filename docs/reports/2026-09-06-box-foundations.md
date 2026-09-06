@@ -1,8 +1,9 @@
 # Box foundations: verified milestone
 
 Date: 2026-09-06. This completes B1 and B2 of the enterprise design, not the
-remaining enterprise DI program. No remote push, publication, or credential
-storage was performed. Both independent checkouts retain local feature branches.
+remaining enterprise DI program. Both independent checkouts retain feature
+branches. Following the user's separate push request, both verified checkpoints
+were pushed; no npm publication or credential storage was performed.
 
 ## Revisions and artifacts
 
@@ -53,6 +54,13 @@ is no automatic publication script.
 
 The process sandbox required approved escalation for Bun-launched Node consumers.
 Those checks were actually executed; they are not CI-only or inferred claims.
+
+Fresh checks were rerun before the authorized intermediate pushes: sas-box
+17 tests / 41 assertions, val-box 23 tests / 100 assertions, both strict
+typecheck/build and package consumers passed. Non-force pushes to each origin's
+`feat/enterprise-foundations` branch succeeded. Independent `git ls-remote`
+verification matched the exact verified HEADs in the table above. No main
+branch was merged or updated.
 
 ## Architectural outcome
 

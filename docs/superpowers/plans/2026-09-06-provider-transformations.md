@@ -363,8 +363,9 @@ review are clean. Evidence: `docs/reports/2026-09-06-provider-transformations.md
   `tests/fixtures/box-packages/val-box-0.1.0.tgz`; create
   `tests/fixtures/box-packages/README.md` with revision/checksum provenance.
 - Modify: `src/provider.ts`, `src/provider-operations.ts`, `src/provider-execution.ts`,
-  `src/acquisition.ts`, `src/runtime.ts`, `src/inspection.ts`, `src/index.ts`, `tests/types.test.ts`,
-  `package.json`, `README.md`, `docs/migrations/0.1-to-enterprise.md`.
+  `src/acquisition.ts`, `src/runtime.ts`, `src/index.ts`, `tests/types.test.ts`,
+  `tests/projections.test.ts`, `tests/providers.test.ts`, `package.json`,
+  `tsconfig.build.json`, `README.md`, `docs/migrations/0.1-to-enterprise.md`.
 
 **Interfaces:**
 - `di-bag/sas-box` exports fromSasBox with mandatory mode sync/async/sync-first.
@@ -409,12 +410,57 @@ review are clean. Evidence: `docs/reports/2026-09-06-provider-transformations.md
   no mandatory runtime/peer import of either box. Core-only consumers have
   neither package installed. Tests install real verified tarballs in temporary
   consumers, never copied box source.
+- The existing generic frame types in `src/inspection.ts` already express the
+  required tuple; retain them unchanged. Include the new subpath entry points
+  in the declaration build, and use a focused provider-engine regression to
+  distinguish frame behavior from missing public package exports.
 - Keep the verified real tarballs as versioned test-only fixtures, not external
   temporary paths or unresolved unpublished dev dependencies. Document exact
   provenance/checksums and verify di-bag's own packed file list excludes both
   archives and extracted box implementations. No copied box source enters src.
 
-- [ ] **Step 1: Add structural runtime and packed-consumer regressions.**
+- [x] **Step 0: Correct retained failed-exposure edges before adding adapters.**
+
+A post-Task2 controller probe found that retaining a failed attempt for pending
+cleanup also retains its caller's failed dependency edge. A late source can
+then falsely cycle when it reads that caller after the caller caught the exposed
+failure and completed. Add the following regression to projections.test.ts;
+run it to record RED, then correct incoming failure-edge abandonment without
+deleting the pending attempt, its own real dependencies, or genuine cycle checks.
+
+```ts
+test('a retired source can finish through a caller that caught its projection failure', async () => {
+  const gate = deferred<void>();
+  const cause = new Error('projection');
+  const events: string[] = [];
+  let pending!: Promise<{ name: string }>;
+  const source = DiBag.withDisposal((deps: { parent: { name: string } }) => {
+    pending = (async () => { await gate.promise; return { name: deps.parent.name }; })();
+    return pending;
+  }, value => { events.push(value.name); });
+  const bag = DiBag.begin().add({
+    parent: (deps: { failed: unknown }) => {
+      try { void deps.failed; } catch (error) { expect(error).toBe(cause); }
+      return { name: 'parent' };
+    },
+    failed: DiBag.mapSync(source, () => { throw cause; }),
+  }).end();
+  expect(bag.resolve('parent')).toEqual({ name: 'parent' });
+  const closing = bag.close();
+  gate.resolve();
+  await expect(pending).resolves.toEqual({ name: 'parent' });
+  await closing;
+  expect(events).toEqual(['parent']);
+});
+```
+
+Run the projections/acquisition/runtime/disposal/module suites after the fix.
+Retain source in-flight permission and retry identity tests. Adapter regressions
+must also cover a caught unboxing failure with legitimate pending source work.
+This is a prerequisite correction to failed-attempt semantics, not a new
+lifetime or caching policy.
+
+- [x] **Step 1: Add structural runtime and packed-consumer regressions.**
 
 ```ts
 test('val-box metadata captures presence and alias without owning the payload', async () => {
@@ -485,13 +531,13 @@ Include a core-only consumer without boxes and a cross-loader descriptor test.
 Assert the packed di-bag archive contains neither fixture tarballs nor installed
 box implementations; a fixture is testing input, not a bundled runtime library.
 
-- [ ] **Step 2: Record runtime and declaration RED.**
+- [x] **Step 2: Record runtime and declaration RED.**
 
 Run `bun test tests/box-adapters.test.ts tests/box-package.test.ts`; compiler
 fixtures initially report missing subpaths/capabilities. Capture a separate
 behavioral failure when packaging errors would otherwise mask lifecycle cases.
 
-- [ ] **Step 3: Implement explicit adapters and typed acquisition frames.**
+- [x] **Step 3: Implement explicit adapters and typed acquisition frames.**
 
 Reuse mapping/source/ownership operations rather than special box cleanup.
 Only trusted adapter evaluation can populate its own assigned frame index;
@@ -515,12 +561,19 @@ Add explicit package subpath exports to compiled files and declaration files.
 Use no decorator configuration, dynamic generated functions, or copied library
 implementation. The runnable example explains borrowed payload versus owned box.
 
-- [ ] **Step 4: Verify, document and commit.**
+- [x] **Step 4: Verify, document and commit.**
 
 Run full `npm run check`, both existing examples, the new box example and real
 packed-consumer tests. Record exact package revisions/artifacts and no-box core
 proof. Update optional-adapter usage, absence modes, snapshot frames and disposal
 examples. Commit `feat: add optional typed sas-box and val-box adapters`.
+
+Record the bounded context-sensitive inline nested-method factory limitation
+and its exact predeclared-factory workaround (same body, no annotation/cast).
+Preserve exact inferred payload/frame contracts in positive fixtures. Carry
+the original inline expression and failed signature hypotheses into the required
+T2 compiler/inference follow-up; Task3 must not weaken source validation or claim
+that this remaining inference requirement is complete.
 
 ## Coverage self-review
 

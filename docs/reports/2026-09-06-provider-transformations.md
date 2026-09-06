@@ -77,6 +77,77 @@ unchanged-inspection verification item was resolved through the existing frozen
 snapshot implementation and covering inspection tests. Task2 is complete; the
 provider plan still requires real box adapters and final broad review.
 
+After that gate, an additional controller probe exposed a missing retained-
+failure case: a parent catches an outer projection failure, but the still-
+pending raw source later reads the completed parent and gets a false cycle
+through the parent's failed dependency edge. The strict no-cast probe compiles;
+runtime exits1 with `cycle: parent -> failed -> parent` and no raw cleanup.
+Task3 Step0 corrected this case, with its independent verification below. The
+discovery does not erase the earlier test/review evidence or its limits.
+
+## Task 3: optional box adapters and retained-failure correction
+
+Commit `ae36def` implements structural `di-bag/sas-box` and `di-bag/val-box`
+subpaths, without runtime/peer box dependencies or root adapter imports. Exact
+mode/capability contracts, zero-argument/receiver checks, copied presence snapshots
+and ordered acquisition frames retain source needs, metadata and ownership.
+Frame slots are present as absent records before the source factory starts.
+Raw box finalizers receive boxes; owning an exposed payload remains explicit.
+
+The retirement correction abandons incoming failed dependency edges but retains
+pending work, outgoing dependencies and finalizers. The original no-cast probe
+now independently exits0: parent and late source both resolve to `{name:'parent'}`,
+and the raw source is disposed. Projection and actual unboxing regressions cover
+the case, alongside retained genuine-cycle and retry-identity tests.
+
+Independent exact-commit verification:
+
+- `npm run check`: strict typecheck, final build, 230 tests / 1,174 assertions,
+  zero failures across 14 files (290.61 seconds).
+- All actual CJS/ESM core and adapter consumers, source/emitted positive and
+  negative contracts, runtime/lifecycle and current scale gates passed. Nominal
+  1000-module valid/missing/wrong-shape observations: 45.018/44.538/44.809 seconds.
+- All three examples and `git diff --check` passed.
+- Committed test-only fixture hashes exactly match the independently verified
+  sas-box and val-box archives; their source checkouts remain clean. Installed
+  consumers test real constructors, shared cross-loader descriptors and core-only
+  operation. Packed di-bag excludes fixture archives and box implementations.
+
+Independent task review: spec compliant, quality approved, no findings. Binary
+provenance and unchanged-core verification items were resolved with matching
+archives and the full covering checks above. All three provider-plan tasks are
+complete; broad whole-branch review remains pending.
+
+### Inference carry-forward
+
+The following context-sensitive form is a required compiler follow-up, not a
+supported inline-inference claim at this checkpoint:
+
+```ts
+const raw = {
+  snapshot(this: { snapshot: unknown }) {
+    return {
+      value: { present: true as const, value: Promise.resolve(42) },
+      metadata: { present: true as const, value: { owner: 'db' } },
+      alias: null,
+    };
+  },
+};
+const nested = fromValBox(() => ({ snapshot() {
+  return { value: { present: true as const, value: raw },
+    metadata: { present: false as const }, alias: '' };
+} }));
+```
+
+The validation intersection infers broad `Registration`/unknown and rejects the
+inline source with `invalid val-box snapshot capability`. A factory-specific
+bound, explicit contextual factory intersection, and separate options/rest
+validation did not correct this. The tested workaround is to predeclare that
+identical factory body and pass its name to `fromValBox`; no annotation or cast
+is needed, and exact payload/ordered-frame equality assertions pass. Failed
+experimental overloads are not retained. The original inline case joins the
+existing richer async fork case in required T2 work.
+
 ## Design decisions and costs
 
 - Ordered acquisition frames use presence records: repeated adapters do not
@@ -106,6 +177,15 @@ provider plan still requires real box adapters and final broad review.
   checksum provenance, excluded from the di-bag package. Cost: maintaining small
   pinned test archives when box compatibility changes; fresh-checkout integration
   does not depend on local temporary paths or unpublished registry versions.
+- Carry the retained-failure edge correction into adapter Task3: unboxing uses
+  the same retirement path. Cost: additional prerequisite edge bookkeeping and
+  review in that task; pending ownership cannot be removed merely to hide a cycle.
+- Complete adapter Task3 with a predeclared nested snapshot factory while
+  retaining its inline form as required T2 inference work. Three bounded
+  signature hypotheses did not fix context-sensitive inference; the identical
+  named factory needs no annotation/cast and preserves payload/frame contracts.
+  Cost: an extra declaration for affected inline forms until dedicated inference
+  correction; this is not completion of the enterprise inference requirement.
 
 The bounded capability probe is `/tmp/di-bag-sas-capability-probe.cjs`:
 `node /tmp/di-bag-sas-capability-probe.cjs` produced only the two intended TS2345
@@ -120,5 +200,8 @@ diagnostics before hardening. Task2 now requires negative source/emitted cases
 and explicit receiver-free disposer signatures; its final report records the
 test evidence rather than treating this probe as a completed fix.
 
-These decisions guide remaining implementation; they are not claims that the
-adapters already exist. Publication, pushing and branch cleanup have not occurred.
+These decisions guide the verified task implementations and remaining program
+work. The user separately authorized intermediate commits and pushes. The two
+verified box feature branches have been pushed (see their foundation report);
+di-bag's reviewed adapter checkpoint is ready for its coordinated push. No
+publication, main integration or branch cleanup has occurred.

@@ -14,8 +14,8 @@ execution; do not stop for another planning approval between increments.
 
 - [x] Box libraries: `2026-09-06-box-foundations.md` completed; final review clean after the sas-box generic-constructor correction. Evidence: `docs/reports/2026-09-06-box-foundations.md`.
 - [x] Type foundation: `2026-09-06-type-foundations.md` tasks complete; carried observer correction resolved by reviewed named-module Task1. Evidence: `docs/reports/2026-09-06-type-foundations.md`. Initial scale gates pass; larger limits remain required work below.
-- [ ] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformations and typed symbol tokens remain required.
-- [ ] Box integration: optional adapter subpaths using the real packaged libraries; typed static/acquisition metadata and plain service values.
+- [ ] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformation tasks are complete; their broad final review and typed symbol tokens remain required.
+- [ ] Box integration: adapter task complete at `ae36def`, using real packaged libraries, typed acquisition frames and plain service values; provider-plan broad final review remains pending.
 - [x] Acquisition foundation: `2026-09-06-acquisition-foundations.md` completed through `fd83085`; task review and final scoped review are clean. Evidence: `docs/reports/2026-09-06-acquisition-foundations.md`, including the explicit structural-thenable conversion migration.
 - [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
@@ -23,6 +23,9 @@ execution; do not stop for another planning approval between increments.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
 - [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests.
 - [ ] Compiler/inference follow-up: resolve the measured 500/1000 individual-chain limits, large-graph latency, and the inline async richer-selected override combination; preserve all existing contracts and the cast-free predeclared-object workaround. Actual nominal-module 1000-provider gates now pass, separately from registration groups. A bounded inference candidate and its unproved boundaries are recorded in `docs/reports/2026-09-06-inline-fork-inference.md`; it has not been adopted.
+  Also resolve the context-sensitive inline nested `snapshot()` factory case
+  found during adapter Task3; predeclaring the identical factory preserves exact
+  types without annotations/casts. See the provider-transformations report.
 - [ ] Release handoff: complete examples, migrations, changelogs, verified tarballs, and safe publication instructions for all three libraries.
 
 ## Execution rules
@@ -39,15 +42,18 @@ is `docs/superpowers/specs/2026-09-06-provider-transformations-design.md`.
 This prerequisite does not remove or complete later lifetime/startup work.
 The next executable plan is `2026-09-06-provider-transformations.md`: typed
 metadata/inspection, staged mappings/ownership, then real optional box adapters.
-Its metadata/inspection task is complete at `06918c8`, and staged mappings/
-ownership at `6a71ab4`; box adapters remain next. The incremental-check candidate is documented
+Its metadata/inspection task is complete at `06918c8`, staged mappings/
+ownership at `6a71ab4`, and box adapters at `ae36def`; broad final review remains.
+The incremental-check candidate is documented
 in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
 
 ## Current evidence
 
 - Initial di-bag `npm run check`: 73 tests passed; strict typecheck/build passed.
-- Both upstream box repositories were resolved and cloned without changing
-  their remote state. No package has been published or pushed.
+- Both upstream box repositories were resolved and cloned. After separate
+  user authorization, verified intermediate checkpoints were non-force pushed
+  to their `feat/enterprise-foundations` branches, with exact remote SHA checks.
+  No package has been published. Evidence is in the box-foundations report.
 - Type-boundary investigation ran independently of box implementation.
 - Read-only type investigation completed: nominal disposal handles, explicit
   selected overrides, duplicate-rejecting additions, and singleton replacement
@@ -84,6 +90,12 @@ in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
   assertions, strict typecheck/build, all scale and package gates, both examples.
   Retired cleanup waits for its own pending work; explicit required disposer
   receivers are rejected. Real optional adapters and plan-final review remain.
+- Optional adapter subpaths and ordered acquisition frames are implemented at
+  `ae36def`, including failed-retirement incoming-edge correction. Task review
+  is clean; independent exact-commit full check: 230 tests / 1,174 assertions,
+  strict typecheck/build, real box/core consumers, all current scales and three
+  examples. The nested inline snapshot factory needs a predeclared-factory
+  workaround until the required inference follow-up; broad final review remains.
 - Bounded future token and lifetime carrier investigations are recorded in
   `docs/reports/2026-09-06-typed-token-investigation.md` and
   `docs/reports/2026-09-06-lifetime-contract-investigation.md`. Only the token
