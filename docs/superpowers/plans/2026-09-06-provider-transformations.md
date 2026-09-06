@@ -214,7 +214,7 @@ clean. Evidence: `docs/reports/2026-09-06-provider-transformations.md`.
 - Create: `src/provider-execution.ts`, `tests/projections.test.ts`,
   `tests/types/negative/provider-projections.ts`.
 - Modify: `src/provider.ts`, `src/provider-operations.ts`, `src/registration.ts`,
-  `src/acquisition.ts`, `src/di-bag.ts`, `src/index.ts`,
+  `src/acquisition.ts`, `src/di-bag.ts`,
   `tests/types/providers.ts`, `tests/package.test.ts`,
   `README.md`, `docs/migrations/0.1-to-enterprise.md`.
 
@@ -226,7 +226,10 @@ clean. Evidence: `docs/reports/2026-09-06-provider-transformations.md`.
   source contract from projector parameters; use NoInfer at that boundary.
 - Add `withDisposal(provider, dispose)` as an ownership operation for that
   provider's fulfilled output, retaining every earlier stage. Preserve the
-  original factory overload and its readonly original create callback exactly.
+  original factory overload's inferred factory/DisposableFactory contract and
+  readonly original create callback exactly. Both disposer parameters require
+  `this: void`, rejecting explicit required receivers that bare invocation
+  cannot satisfy.
 - Internal operations source/owned/map-sync/map-async/metadata evaluate source
   once per attempt. Record finalizers at stable stage indices, not fulfillment
   arrival order. Outer accepted stages close before inner stages; the cross-
@@ -241,6 +244,11 @@ clean. Evidence: `docs/reports/2026-09-06-provider-transformations.md`.
   DiBagCleanupError with original causes and attempt identities. A failed sync
   resolve does not await asynchronous cleanup. Close drains all pending source,
   projection and retired-cleanup work to a fixed point before completion.
+- A retired attempt waits for its own pending source/projection work before
+  invoking accepted finalizers, because an in-flight projector may still use
+  those values. Then dispose accepted stages in reverse nesting order. This
+  does not delay the original resolution error or wait for unrelated retries;
+  nonsettling work can retain resources and keep eventual close pending.
 - Retired cleanup may overlap across attempts. Preserve the existing aggregate
   contract by ordering cleanup failures by finalizer invocation, not rejection
   completion time: assign an internal sequence at invocation and sort copied
@@ -250,7 +258,7 @@ clean. Evidence: `docs/reports/2026-09-06-provider-transformations.md`.
   work finishes, even when the exposed projection is already ready. Completed
   and failed escaped proxies cannot borrow another attempt's permission.
 
-- [ ] **Step 1: Add exact-value and owned-projection regressions.**
+- [x] **Step 1: Add exact-value and owned-projection regressions.**
 
 ```ts
 test('a projected service does not replace its source disposer argument', async () => {
@@ -296,13 +304,20 @@ the successful new attempt. Preserve genuine cycles through mapped dependencies.
 Add two failed projections whose cleanup starts in A/B order but rejects in B/A
 order using separate deferred gates. Assert the aggregate still contains A/B
 causes in invocation order and retains each original attempt identity.
+Add a gated async projector using an already accepted owned source after a
+later mapSync fails. Assert the original sync error is immediate, cleanup has
+not run before the gate releases that projector, the projector can use the live
+source, close stays pending meanwhile, and finalization happens exactly once.
+Source and emitted negative fixtures reject an explicitly receiver-dependent
+disposer for both the original factory overload and the added provider overload;
+retain exact factory inference and positive receiver-free finalizer cases.
 
-- [ ] **Step 2: Record RED for missing helpers and stage ownership.**
+- [x] **Step 2: Record RED for missing helpers and stage ownership.**
 
 Run `bun test tests/projections.test.ts` and projection compiler fixtures. Keep
 behavioral failure evidence separate from helper-export loading failures.
 
-- [ ] **Step 3: Implement operation evaluation and retired cleanup.**
+- [x] **Step 3: Implement operation evaluation and retired cleanup.**
 
 Keep evaluation in provider-execution.ts; Acquisitions owns cache identity,
 cross-attempt edges and close state. Native observer callbacks only update their
@@ -326,12 +341,17 @@ Use explicit map operation tags for awaiting behavior. Never infer sync-vs-async
 helper semantics from erased structural output types. Preserve inspection's
 copied views and free successful/retired attempt state in shutdown's finally.
 
-- [ ] **Step 4: Verify, document and commit.**
+- [x] **Step 4: Verify, document and commit.**
 
 Run providers/projections/acquisition/disposal/runtime/modules/package tests and
 the provider compiler fixtures, then `npm run check`, both examples and diff
 checks. Document additive ownership and sync-failure/asynchronous-cleanup timing.
 Commit `feat: preserve staged ownership through provider mappings`.
+The existing `src/index.ts` DiBag re-export exposes the new static methods;
+no additional barrel symbol or textual barrel edit is required by this task.
+
+Task2 complete at `6a71ab4`: independent exact-commit full verification and task
+review are clean. Evidence: `docs/reports/2026-09-06-provider-transformations.md`.
 
 ### Task 3: Optional real sas-box and val-box adapters
 
@@ -339,8 +359,11 @@ Commit `feat: preserve staged ownership through provider mappings`.
 - Create: `src/sas-box.ts`, `src/val-box.ts`, `tests/box-adapters.test.ts`,
   `tests/box-package.test.ts`, `tests/types/box-adapters.ts`,
   `tests/types/negative/box-adapters.ts`, `examples/box-adapters.ts`.
-- Modify: `src/provider-operations.ts`, `src/provider-execution.ts`,
-  `src/inspection.ts`, `src/index.ts`, `tests/types.test.ts`,
+- Generate test-only artifacts: `tests/fixtures/box-packages/sas-box-0.1.0.tgz`,
+  `tests/fixtures/box-packages/val-box-0.1.0.tgz`; create
+  `tests/fixtures/box-packages/README.md` with revision/checksum provenance.
+- Modify: `src/provider.ts`, `src/provider-operations.ts`, `src/provider-execution.ts`,
+  `src/acquisition.ts`, `src/runtime.ts`, `src/inspection.ts`, `src/index.ts`, `tests/types.test.ts`,
   `package.json`, `README.md`, `docs/migrations/0.1-to-enterprise.md`.
 
 **Interfaces:**
@@ -349,6 +372,18 @@ Commit `feat: preserve staged ownership through provider mappings`.
   value. Async awaits source then calls async; sync-first awaits source then
   chooses callable sync else async. Both async modes return native Promise of
   Awaited value. Preserve receiver and exact capability requirements.
+- Sync-first requires an explicitly present `sync` field. An always-callable
+  sync method is sufficient; if undefined is possible, async must be callable
+  too. Missing/optional sync fields reject this mode even when async is present:
+  structural narrowing can hide an incompatible sync method. Real SasBox
+  Sync/Async/Unknown classes have the required field. Compute the union of all
+  possible awaited callback outputs; only an always-callable sync excludes the
+  async fallback result. A union mode validates every possible route.
+- Selected capability methods must accept zero ordinary arguments, and their
+  explicit receiver type (if any) must accept the acquired box. Preserve the
+  receiver at runtime; accepting an incompatible declared receiver is not a
+  substitute for forwarding it. Apply the same zero-argument/receiver check
+  to val-box snapshot methods.
 - `di-bag/val-box` exports fromValBox (immediate source) and fromValBoxAsync
   (awaited source, always Promise). No options means required value; supplied
   options requires `value: 'required' | 'presence'`. Union modes yield union
@@ -361,10 +396,23 @@ Commit `feat: preserve staged ownership through provider mappings`.
   alias:string|null}`. Earlier frames are retained in order. Failure while
   snapshotting/unboxing uses Task2's ordinary retired cleanup. Raw box disposal
   never receives the unboxed result; outer ownership remains explicit.
+  Export its `ValBoxFrame<M>` type from the adapter and root type-only barrel;
+  the root export introduces no runtime adapter import or box dependency.
+- Extend the internal provider transformation helper to carry the adapter's
+  appended frame tuple while retaining exact source needs/static metadata.
+  Expose only copied execution-frame snapshots through Acquisitions.inspect;
+  its current empty tuple is replaced by the actual attempt frames. Runtime's
+  internal inspection return uses a readonly unknown-frame tuple, while the
+  checked Bag facade retains exact provider A. These narrow bridges do not
+  change ordinary resolution, ownership, cache, or graph identity contracts.
 - Adapter subpaths use the same compiled CJS core registry for CJS/ESM users;
   no mandatory runtime/peer import of either box. Core-only consumers have
   neither package installed. Tests install real verified tarballs in temporary
   consumers, never copied box source.
+- Keep the verified real tarballs as versioned test-only fixtures, not external
+  temporary paths or unresolved unpublished dev dependencies. Document exact
+  provenance/checksums and verify di-bag's own packed file list excludes both
+  archives and extracted box implementations. No copied box source enters src.
 
 - [ ] **Step 1: Add structural runtime and packed-consumer regressions.**
 
@@ -403,14 +451,39 @@ capabilities, Promise-returning sync access, receiver use, callback throws,
 sync-first preference and one call per bag acquisition. Compiler negatives
 reject sync Promise boxes, async-only sync use, wrong method shapes, hidden
 options modes, wrong disposer arguments and erased metadata contracts.
+Include the no-cast hidden-capability counterexample and rejection below in
+source and emitted fixtures, while explicit async mode remains valid:
+
+```ts
+const dual = { sync: () => 42, async: async () => 'async' };
+const asyncView: { async(): Promise<string> } = dual;
+// diagnostic: sync-first requires the complete sync capability field
+fromSasBox(() => asyncView, { mode: 'sync-first' });
+```
+
+Also reject a `sync?: never` narrowed view; optional absence does not rule out
+the same hidden method. Accept `{sync: undefined, async: async () => 'async'}`,
+a sync-only callable source, and the real SasBox Unknown capability union with
+its exact awaited output. Reject an async-only source under a union mode that
+can select sync, and assert the correct output union for fully supported modes.
+Reject selected methods requiring an ordinary argument or an incompatible
+explicit `this`; retain a positive method whose receiver is its actual box.
 
 Packed-consumer tests use the verified local repositories' artifacts documented
-in `docs/reports/2026-09-06-box-foundations.md`. Rebuild/pack only if needed and
-record new paths/checksums. Install into mktemp consumers with `npm install
+in `docs/reports/2026-09-06-box-foundations.md`. Generate the committed test-only
+archives using each unchanged box checkout's `npm pack --ignore-scripts
+--pack-destination /absolute/repo/tests/fixtures/box-packages` and verify their
+SHA-512 matches the recorded verified archive. Existing emitted box output is
+already verified; rebuild only if needed and verify any changed artifact before
+adoption. Record fixture paths/checksums and checkout revisions. The tests resolve
+fixtures relative to the repo, without .related-repos or /tmp assumptions.
+Install into mktemp consumers with `npm install
 --offline --ignore-scripts` using explicit absolute tarball paths, then run real
 Node CJS/ESM and strict declaration fixtures importing di-bag and both boxes.
 Use the real box constructors/snapshot methods from their emitted declarations.
 Include a core-only consumer without boxes and a cross-loader descriptor test.
+Assert the packed di-bag archive contains neither fixture tarballs nor installed
+box implementations; a fixture is testing input, not a bundled runtime library.
 
 - [ ] **Step 2: Record runtime and declaration RED.**
 
@@ -424,6 +497,9 @@ Reuse mapping/source/ownership operations rather than special box cleanup.
 Only trusted adapter evaluation can populate its own assigned frame index;
 no public untyped callback may change provider output/mode/ownership promises.
 Copy records at acquisition, not inspection time from a mutable raw box.
+Allocate every declared frame position as absent when the attempt starts,
+before any asynchronous adapter can finish; a pending frame is a frozen
+`{present:false}` record, never a missing array element typed as present.
 
 ```ts
 type ValBoxFrame<M> = {

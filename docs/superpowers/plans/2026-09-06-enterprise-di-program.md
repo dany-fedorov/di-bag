@@ -39,8 +39,8 @@ is `docs/superpowers/specs/2026-09-06-provider-transformations-design.md`.
 This prerequisite does not remove or complete later lifetime/startup work.
 The next executable plan is `2026-09-06-provider-transformations.md`: typed
 metadata/inspection, staged mappings/ownership, then real optional box adapters.
-Its metadata/inspection task is complete at `06918c8`; mappings and box adapters
-remain in progress. The independent incremental-check candidate is documented
+Its metadata/inspection task is complete at `06918c8`, and staged mappings/
+ownership at `6a71ab4`; box adapters remain next. The incremental-check candidate is documented
 in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
 
 ## Current evidence
@@ -79,3 +79,12 @@ in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
   original factory contracts. Task review is clean; independent full check:
   181 tests / 813 assertions, strict typecheck/build, real CJS/ESM consumers,
   all current scale gates, and both examples. The provider plan is not complete.
+- Staged sync/async mappings and additive ownership are implemented at `6a71ab4`.
+  Task review is clean; independent exact-commit full check: 204 tests / 956
+  assertions, strict typecheck/build, all scale and package gates, both examples.
+  Retired cleanup waits for its own pending work; explicit required disposer
+  receivers are rejected. Real optional adapters and plan-final review remain.
+- Bounded future token and lifetime carrier investigations are recorded in
+  `docs/reports/2026-09-06-typed-token-investigation.md` and
+  `docs/reports/2026-09-06-lifetime-contract-investigation.md`. Only the token
+  feasibility sketch has source/emitted compiler evidence; neither is adopted.

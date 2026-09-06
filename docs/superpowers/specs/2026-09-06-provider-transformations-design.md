@@ -27,6 +27,10 @@ Retain `DiBag.withDisposal(factory, dispose)` and its existing inferred
 callback. Additional provider helpers produce nominal, immutable handles whose
 full type contract cannot be forged by spreading a description. Public
 description views are informational, not unchecked registration constructors.
+Both disposal overloads require a receiver-free disposer (`this: void`), matching
+their actual bare-callback invocation. A disposer with an explicit required
+receiver is rejected; use an arrow or an explicitly bound callback instead.
+The original factory's inferred type and readonly create callback remain intact.
 
 Internally, normalize plain factories and handles into immutable provider
 operations. Keep the source operation and its own ownership policy available
@@ -116,6 +120,14 @@ cleanup failures associated with the retired attempt and report them through
 the bag's structured shutdown error. `close()` is the barrier for complete
 release and all recorded cleanup failures; a failed `resolve` alone is not a
 claim that arbitrary asynchronous finalizers already finished.
+
+Retired-attempt cleanup waits for that attempt's pending source and projection
+work before invoking its accepted finalizers, then follows reverse stage order.
+A still-running projector can use an already accepted resource even after a
+later synchronous projection fails; releasing it first would risk use after
+cleanup. This wait is attempt-local, not a wait for unrelated retries. Pending
+work that never settles can therefore retain accepted resources and keep the
+eventual close barrier pending; failure is not forced interruption of JavaScript.
 
 Automatic ownership retains the existing fulfilled-value boundary. Failed
 then inspection/setup rolls back without passing an unfulfilled raw object to
@@ -212,6 +224,17 @@ fromSasBox(registration, { mode: 'sync-first' });
   sync-first operation, the adapter always returns a Promise of the awaited
   service value. Its type does not vary with a runtime capability check.
 
+The `sync-first` source contract must expose a required `sync` field: either
+a callable, or callable/undefined with a callable `async` fallback whenever
+undefined is possible. A merely async-only view with a missing or optional
+`sync` property cannot prove that it has not hidden an incompatible sync method.
+Such a view uses explicit `async` mode or supplies an explicit `sync: undefined`
+capability record. Actual SasBox Sync/Async/Unknown classes already expose the
+required field. For a possibly absent sync capability, the output includes both
+possible awaited callback result types; an always-callable sync capability uses
+only its result. A union-valued mode must satisfy every possible route, not
+collapse validation to whichever one happens to accept the source.
+
 Calls preserve the box receiver. The box's methods still run per provider
 acquisition; memoization belongs to the bag, not a global adapter cache. A
 source disposer receives the original acquired box, never its unboxed value.
@@ -257,6 +280,11 @@ The adapters share the core's descriptor registry across CJS and ESM consumers.
 
 Test against the verified local tarballs, not copied source or reimplemented
 lookalikes. Install them in temporary package consumers without publication.
+Retain those exact archives as versioned test-only fixtures, with original
+checkout revisions and SHA-512 checksums documented beside them. This makes
+fresh-checkout integration tests independent of temporary paths and unpublished
+registry versions. They are not runtime dependencies or vendored source; verify
+the di-bag package excludes the fixture archives and their extracted contents.
 Cover source/declaration inference, required receivers, invalid capabilities,
 all presence states including present-undefined, mutation isolation, original
 raw disposer arguments, nested ownership, projection failures, pending/late
