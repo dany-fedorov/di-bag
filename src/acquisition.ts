@@ -1,6 +1,7 @@
 import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import type { BindingGraph, BindingId } from './runtime';
+import type { AcquisitionSnapshot } from './inspection';
 
 type AcquisitionId = symbol;
 type State = 'creating' | 'pending' | 'ready' | 'failed' | 'disposing' | 'disposed';
@@ -47,6 +48,19 @@ export class Acquisitions {
   resolve(key: string): unknown {
     this.assertOpen();
     return this.resolveBinding(this.graph.publicBinding(key));
+  }
+
+  inspect(bindingId: BindingId): readonly AcquisitionSnapshot[] {
+    const snapshots: AcquisitionSnapshot[] = [];
+    for (const attempt of this.attempts.values()) {
+      if (attempt.bindingId !== bindingId) continue;
+      snapshots.push(Object.freeze({
+        acquisitionId: attempt.id,
+        state: attempt.state,
+        metadata: Object.freeze([] as const),
+      }));
+    }
+    return Object.freeze(snapshots);
   }
 
   assertOpen(): void {

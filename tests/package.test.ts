@@ -1,5 +1,6 @@
 import { beforeAll, expect, test } from 'bun:test';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
 const root = resolve(__dirname, '..');
@@ -42,10 +43,11 @@ for (const mode of ['commonjs', 'module'] as const) {
       (async () => {
         let disposed;
         const feature = DiBag.module().add({
-          answer: DiBag.withDisposal(() => 42, value => { disposed = value; }),
+          answer: DiBag.withMetadata(DiBag.withDisposal(() => 42, value => { disposed = value; }), { owner: 'package' }),
           privateValue: () => 7,
         }).exports(['answer']);
         const bag = DiBag.begin().install(feature.rename('answer', 'result')).end();
+        const before = bag.inspect('result');
         const answer = bag.resolve('result');
         await bag.close();
         const cause = new Error('cleanup');
@@ -57,7 +59,10 @@ for (const mode of ['commonjs', 'module'] as const) {
         const cjs = (await import('node:module')).createRequire(process.cwd() + '/consumer.cjs')('di-bag');
         const esm = await import('di-bag');
         console.log(JSON.stringify({ answer, disposed,
-          publiclyConstructible: Object.hasOwn(packageExports, 'Bag') || Object.hasOwn(packageExports, 'Module'),
+          publiclyConstructible: ['Bag', 'Module', 'Provider', 'ProviderBase'].some(key => Object.hasOwn(packageExports, key)),
+          metadata: before.metadata.owner,
+          inspectionIsStatic: before.acquisitions.length === 0 && bag.inspect('result').acquisitions.length === 0,
+          frozenInspection: Object.isFrozen(before) && Object.isFrozen(before.metadata),
           cleanup: error instanceof DiBagCleanupError && error instanceof cjs.DiBagCleanupError && error instanceof esm.DiBagCleanupError,
           sameClass: cjs.DiBagCleanupError === esm.DiBagCleanupError,
           originalCause: error.errors[0] === cause && error.failures[0].error === cause,
@@ -67,7 +72,8 @@ for (const mode of ['commonjs', 'module'] as const) {
     `,
     ]);
     expect(JSON.parse(stdout)).toEqual({ answer: 42, disposed: 42, publiclyConstructible: false,
-      cleanup: true, sameClass: true, originalCause: true, label: 'resource' });
+      cleanup: true, sameClass: true, originalCause: true, label: 'resource',
+      metadata: 'package', inspectionIsStatic: true, frozenInspection: true });
   });
 
   test(`Node ${mode} observes local and foreign native subclass state directly`, async () => {
@@ -246,9 +252,43 @@ for (const mode of ['commonjs', 'module'] as const) {
         ),
     ).toEqual([]);
   });
+
+  for (const fixture of ['providers.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts']) {
+    test(`TypeScript ${mode} emitted provider contracts: ${fixture}`, () => {
+      const path = resolve(__dirname, `provider-consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
+      const source = readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
+        .replace(/from '(?:\.\.\/)+src'/g, "from 'di-bag'")
+        .replace("import type { Assert, Equal } from './assert';", `type Assert<T extends true> = T;
+          type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;`);
+      const options: ts.CompilerOptions = {
+        strict: true, noEmit: true, noUncheckedIndexedAccess: true,
+        exactOptionalPropertyTypes: true, types: [], target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext,
+      };
+      const host = ts.createCompilerHost(options);
+      const original = host.getSourceFile.bind(host);
+      host.getSourceFile = (name, version, onError, fresh) => name === path
+        ? ts.createSourceFile(path, source, ts.ScriptTarget.ES2022, true)
+        : original(name, version, onError, fresh);
+      const errors = ts.getPreEmitDiagnostics(ts.createProgram([path], options, host));
+      if (!fixture.startsWith('negative/')) {
+        expect(errors.map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+      } else {
+        expect(errors.every(error => error.file?.fileName === path)).toBe(true);
+        const markers = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
+        expect(markers.length).toBeGreaterThan(0);
+        for (const [index, marker] of markers.entries()) {
+          const end = markers[index + 1]?.index ?? source.length;
+          const messages = errors.filter(error => error.start !== undefined && error.start >= marker.index && error.start < end)
+            .map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n')).join('\n');
+          expect(messages).toContain(marker[1]!);
+        }
+      }
+    });
+  }
 }
 
-for (const [name, specifier] of [['Bag', 'di-bag'], ['Bag', '../src/di-bag'], ['Module', 'di-bag'], ['Module', '../src/module']]) {
+for (const [name, specifier] of [['Bag', 'di-bag'], ['Bag', '../src/di-bag'], ['Module', 'di-bag'], ['Module', '../src/module'], ['Provider', 'di-bag'], ['Provider', '../src/provider']]) {
   test(`unchecked ${name} construction is rejected through ${specifier}`, () => {
     const path = resolve(__dirname, 'unchecked-consumer.cts');
     const source = `import { ${name} } from '${specifier}'; new ${name}({ value: () => 42 });`;

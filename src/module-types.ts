@@ -1,6 +1,7 @@
 import type { Module } from './module';
 import type { Registrations } from './registration';
 import type { Needs, Singleton, Unsatisfied } from './types';
+import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata } from './provider';
 
 export type NeedConstraint = { readonly consumer: string; readonly needs: object };
 
@@ -41,6 +42,16 @@ export type ExternalRequirements<C> = [External<C>] extends [never] ? Readonly<{
   : Readonly<Intersect<External<C>>>;
 
 export type PublicRegistrations<P extends object> = { [K in keyof P]: () => P[K] };
+// Retain opaque registrations as opaque, and consider keys of every metadata
+// union member before deciding whether the legacy synthetic default is enough.
+export type PublicProvider<R> = R extends Registrations[string]
+  ? unknown extends ProviderNeeds<R> ? R
+    : [MetadataKeyUnion<ProviderMetadata<R>>] extends [never]
+      ? ProviderAcquisitionMetadata<R> extends readonly [] ? () => ProviderOutput<R>
+        : Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>>
+      : Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>>
+  : never;
+export type PublicProviders<R extends object> = { [K in keyof R]: PublicProvider<R[K]> };
 export type Renamed<P extends object, Old extends string, New extends string> = {
   [K in keyof P as K extends Old ? New : K]: P[K];
 };
@@ -54,5 +65,5 @@ export type RenameKeys<P, Old extends string, New extends string> =
       : InvalidRename : InvalidRename : InvalidRename;
 type InvalidRename = Unsatisfied<'rename requires an existing export and a noncolliding singleton string-literal name', {}>;
 
-export type ModuleProvides<M> = M extends Module<infer P, infer _R, infer _C> ? Readonly<P> : never;
-export type ModuleRequires<M> = M extends Module<infer _P, infer R, infer _C> ? Readonly<R> : never;
+export type ModuleProvides<M> = M extends Module<infer P, infer _R, infer _C, infer _D> ? Readonly<P> : never;
+export type ModuleRequires<M> = M extends Module<infer _P, infer R, infer _C, infer _D> ? Readonly<R> : never;

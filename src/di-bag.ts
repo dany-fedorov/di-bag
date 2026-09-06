@@ -1,9 +1,12 @@
 import { normalize, snapshotAdd, withDisposal } from './registration';
-import type { Registration, Registrations } from './registration';
+import type { DisposableFactory, Factory, Registration, Registrations } from './registration';
 import { BindingGraph, Runtime } from './runtime';
 import { beginModule, moduleGraph } from './module';
 import type { Module } from './module';
-import type { CheckedConstraints, CompleteConstraints, NeedConstraint, PublicRegistrations } from './module-types';
+import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
+import { withMetadata } from './provider';
+import type { ProviderMetadata, ProviderAcquisitionMetadata } from './provider';
+import type { InspectionSnapshot } from './inspection';
 import type {
   Checked,
   Complete,
@@ -39,6 +42,11 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
     return this.#runtime.resolve(token) as Provided<R>[K];
   }
 
+  /** Inspect descriptions and copied attempt state without resolving a service. */
+  inspect<K extends keyof R & string>(token: K): InspectionSnapshot<ProviderMetadata<R[K]>, ProviderAcquisitionMetadata<R[K]>> {
+    return this.#runtime.inspect(token) as InspectionSnapshot<ProviderMetadata<R[K]>, ProviderAcquisitionMetadata<R[K]>>;
+  }
+
   /** Replace existing tokens; the fork creates and owns its own instances. */
   fork(): Bag<R, C>;
   // The graph-aware bound keeps the first inference pass applicable and requires
@@ -58,7 +66,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
       CheckedConstraints<C, Provided<Merge<R, Selected<K, O>>>> &
       CompleteConstraints<C, Provided<Merge<R, Selected<K, O>>>>,
   ): Bag<Merge<R, Selected<K, O>>, C>;
-  fork(keys?: readonly unknown[], overrides?: object): Bag<Registrations, C> {
+  fork(keys?: readonly unknown[], overrides?: object): unknown {
     this.#runtime.assertOpen();
     if (keys === undefined && overrides === undefined) {
       return new Bag(this.#graph);
@@ -119,10 +127,21 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
     return new Builder(this.#graph.withPublicRegistrations(snapshot));
   }
 
+  // Keep callable context available before validating the inferred registration;
+  // the second overload also admits predeclared factory/provider unions.
+  replace<const K extends string, V extends Factory | DisposableFactory<Factory>>(
+    key: K & ReplacementKey<From<E>, K>,
+    registration: V & (Factory | DisposableFactory<Factory>) & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> &
+      CheckedConstraints<C, Provided<Merge<From<E>, Record<K, NoInfer<V>>>>>,
+  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
   replace<const K extends string, V extends Registration>(
     key: K & ReplacementKey<From<E>, K>,
     registration: V & Registration & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> &
       CheckedConstraints<C, Provided<Merge<From<E>, Record<K, NoInfer<V>>>>>,
+  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
+  replace<const K extends string, V extends Registration>(
+    key: K,
+    registration: V,
   ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C> {
     if (typeof key !== 'string' || !this.#graph.hasPublic(key)) {
       throw new Error(`replace accepts existing tokens only: ${String(key)}`);
@@ -131,11 +150,11 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
     return new Builder(this.#graph.withPublicRegistrations({ [key]: registration }));
   }
 
-  install<P extends object, R extends object, MC extends NeedConstraint>(
-    module: Module<P, R, MC> & Introduces<From<E>, PublicRegistrations<P>> &
-      Checked<Merge<From<E>, PublicRegistrations<P>>> &
-      CheckedConstraints<C | MC, Provided<Merge<From<E>, PublicRegistrations<P>>>>,
-  ): Builder<E | Entries<PublicRegistrations<P>>, C | MC> {
+  install<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(
+    module: Module<P, R, MC, D> & Introduces<From<E>, D> &
+      Checked<Merge<From<E>, D>> &
+      CheckedConstraints<C | MC, Provided<Merge<From<E>, D>>>,
+  ): Builder<E | Entries<D>, C | MC> {
     return new Builder(this.#graph.withInstallation(moduleGraph(module)));
   }
 
@@ -150,8 +169,10 @@ export const DiBag: {
   begin: () => Builder<never>;
   module: typeof beginModule;
   withDisposal: typeof withDisposal;
+  withMetadata: typeof withMetadata;
 } = {
   begin: (): Builder<never> => new Builder(new BindingGraph()),
   module: beginModule,
   withDisposal,
+  withMetadata,
 };

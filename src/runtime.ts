@@ -1,6 +1,7 @@
 import { Acquisitions } from './acquisition';
 import { normalize } from './registration';
 import type { Registration, Registrations } from './registration';
+import type { InspectionSnapshot } from './inspection';
 
 export type BindingId = symbol;
 export type BindingRef =
@@ -98,12 +99,22 @@ export class BindingGraph {
 export class Runtime {
   private readonly acquisitions: Acquisitions;
 
-  constructor(graph: BindingGraph) {
+  constructor(private readonly graph: BindingGraph) {
     this.acquisitions = new Acquisitions(graph);
   }
 
   resolve(key: string): unknown {
     return this.acquisitions.resolve(key);
+  }
+
+  inspect(key: string): InspectionSnapshot<object> {
+    const bindingId = this.graph.publicBinding(key);
+    return Object.freeze({
+      bindingId,
+      label: this.graph.label(bindingId),
+      metadata: this.graph.registration(bindingId).metadata,
+      acquisitions: this.acquisitions.inspect(bindingId),
+    });
   }
 
   assertOpen(): void {

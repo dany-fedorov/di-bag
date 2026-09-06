@@ -5,3 +5,5 @@ export type { Bag } from './di-bag';
 export type { Module } from './module';
 export type { ModuleProvides, ModuleRequires } from './module-types';
 export type { DisposableFactory } from './registration';
+export type { Provider, ProviderOutput, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata } from './provider';
+export type { Presence, FramePresenceTuple, AcquisitionSnapshot, InspectionSnapshot } from './inspection';

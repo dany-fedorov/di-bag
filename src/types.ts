@@ -1,23 +1,14 @@
 import type {
   DisposableFactory,
-  Factory,
   Registration,
   Registrations,
 } from './registration';
+import type { ProviderContext, ProviderNeeds, ProviderOutput } from './provider';
 
-type FactoryOf<R extends Registration> = R extends Factory
-  ? R
-  : R extends { create: infer F extends Factory }
-    ? F
-    : never;
-
-export type Needs<R extends Registration> =
-  Parameters<FactoryOf<R>> extends []
-    ? Record<never, never>
-    : Exclude<Parameters<FactoryOf<R>>[0], undefined>;
+export type Needs<R extends Registration> = ProviderNeeds<R>;
 
 export type Provided<R extends Registrations> = {
-  [K in keyof R]: ReturnType<FactoryOf<R[K]>>;
+  [K in keyof R]: ProviderOutput<R[K]>;
 };
 
 // Keep builder history flat; reconstruct a map only at graph-check boundaries.
@@ -205,5 +196,8 @@ export type ForkContext<
           this: void,
           deps: Provided<Merge<R, Selected<K, O>>>,
         ) => Provided<R>[P]
+      >
+    | ProviderContext<
+        (this: void, deps: Provided<Merge<R, Selected<K, O>>>) => Provided<R>[P]
       >;
 };

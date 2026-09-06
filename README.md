@@ -87,7 +87,7 @@ exports and external requirements. Module values are invariant and cannot be
 constructed from descriptors or spreads. Inferred modules also retain the
 private consumers' requirements of replaceable public slots. Use `typeof feature`
 or a function's `ReturnType` when annotating one of these modules or its installed
-builder/bag. The optional third `Module<P, R, C>` parameter and second `Bag<R, C>`
+builder/bag. The optional third `Module<P, R, C, D>` parameter and second `Bag<R, C>`
 parameter retain these contracts; their empty defaults cannot erase them.
 Consequently `Module<P, R>` and plain `Bag<R>` annotations reject values carrying
 nonempty retained constraints. Plain bags can still use `Bag<R>`.
@@ -99,6 +99,56 @@ the Promise-valued result remains exact and no cast is needed.
 
 Run `bun run examples/modules.ts` for a runnable two-module composition with
 cleanup and an exported service override.
+
+## Attach metadata and inspect without resolving
+
+```ts
+const service = DiBag.withMetadata(
+  ({ clock }: { clock: { now(): number } }) => ({ read: () => clock.now() }),
+  { 'app:owner': { team: 'platform' } },
+);
+const feature = DiBag.module().add({ service }).exports(['service']);
+const bag = DiBag.begin().install(feature.rename('service', 'client'))
+  .add({ clock: () => ({ now: () => 42 }) }).end();
+
+const before = bag.inspect('client'); // Does not call either factory.
+const team: string = before.metadata['app:owner'].team;
+before.acquisitions; // []
+bag.resolve('client').read(); // 42
+bag.inspect('client').acquisitions[0]?.state; // 'ready'
+await bag.close();
+bag.inspect('client').acquisitions; // []; static metadata is still available.
+```
+
+`withMetadata` accepts ordinary factories, disposal handles, and existing typed
+providers. It preserves exact synchronous/Promise outputs, dependencies, and
+the source's explicit ownership declaration. It snapshots all own metadata keys,
+including non-enumerable keys, and freezes the record. Payload objects keep their
+identity and remain unfrozen. Repeated calls add new keys: visible duplicates fail
+type checking, and every own collision is checked before any metadata getter runs.
+Choose application-specific string or unique-symbol keys; no punctuation format
+is required. Numeric keys and widened string/symbol indices are rejected statically.
+
+Inspection is a frozen snapshot with `bindingId`, `label`, `metadata`, and
+`acquisitions`. Each acquisition has `acquisitionId`, `state`, and an ordered
+`metadata` tuple of presence records. Plain providers currently have empty tuples.
+Snapshots contain no service values or mutable runtime collections, and remain
+unchanged as attempts settle or retry. Failed attempts are evicted; inspection
+does not retain an attempt history. Inspection remains available after close,
+when the runtime has released all acquisitions.
+
+`Provider<F, M, A>` and its `ProviderOutput`, `ProviderNeeds`, `ProviderMetadata`,
+and `ProviderAcquisitionMetadata` utilities are type-only exports. Provider handles
+are immutable and nominal; spreads and forged objects cannot be registered.
+`Presence<T>`, `FramePresenceTuple<A>`, `AcquisitionSnapshot<A>`, and
+`InspectionSnapshot<M, A>` expose readonly snapshot contracts without a box dependency.
+
+Module export, rename, and install retain metadata through the fourth `D` carrier
+of `Module<P, R, C, D>`. Its synthetic public registrations expose no private
+dependencies; `C` separately retains all consumer requirements. Use `typeof`
+or `ReturnType` to preserve complete inferred module annotations. An annotation
+cannot erase nonempty metadata or acquisition-frame contracts. Modules with empty
+metadata and frames keep the existing synthetic defaults and annotation support.
 
 ## Async edges are explicit
 

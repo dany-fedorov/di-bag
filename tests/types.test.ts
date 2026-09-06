@@ -4,6 +4,11 @@ import { resolve } from 'node:path';
 import ts from 'typescript';
 import { diagnostics } from './compiler';
 
+test('typed provider metadata survives checked composition and inspection', () => {
+  expect(diagnostics(resolve(__dirname, 'types/providers.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('named modules preserve contracts across a file boundary', () => {
   expect(diagnostics(resolve(__dirname, 'types/modules/consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
