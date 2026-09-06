@@ -36,11 +36,12 @@ for (const form of ['bindings', 'modules'] satisfies TokenScaleForm[]) {
       expect(result.diagnostics.length).toBeGreaterThan(0);
       expect(result.diagnostics.every(error => error.file === generated && error.line !== undefined && error.column !== undefined)).toBe(true);
       expect(result.diagnostics.some(error => error.code === 2589)).toBe(false);
-      expect(result.diagnostics.some(error => error.line === result.boundaryLine)).toBe(true);
       const intended = scenario === 'missing-final-token' ? 'missing factories'
         : form === 'bindings' ? 'token dependency has an incompatible or opaque contract'
           : 'a dependency has the wrong shape';
-      expect(result.diagnostics.some(error => error.message.includes(intended))).toBe(true);
+      expect(result.diagnostics.some(error =>
+        error.line === result.boundaryLine && error.message.includes(intended),
+      )).toBe(true);
     }, 65_000);
   }
 }
