@@ -265,6 +265,14 @@ tests/disposal.test.ts tests/boundaries.test.ts`, then `npm run check` and
   nonempty installed contract. Every add/replace/fork result retains the exact
   constraint union. Fork validates that union against its resulting public
   service view as well as checking ordinary factory declarations.
+- Preserve these constraints across explicit annotations of the module itself,
+  too. If its implementation needs a third internal constraint parameter beyond
+  public `Provides` and external `Requires`, that parameter must not be erasable
+  through the public `Module<Provides, Requires>` default. Keep
+  `ModuleRequires<M>` a view of external requirements, not a misleading list of
+  already-provided exports. Use an invariant retained constraint parameter or
+  a conservative annotation contract that still checks every private consumer;
+  inferred modules must retain their exact requirements.
 - Installed constraints include public-slot dependencies of private consumers,
   not only still-missing external dependencies. Module-local private targets
   were checked at sealing; public targets remain replaceable and therefore
@@ -315,6 +323,10 @@ still rejects an override missing that method. Add a no-cast negative fixture
 that attempts to assign this installed bag or builder to a type lacking its
 installed constraints before overriding. Invariance must reject that erasure;
 the compiler must not rely on the user retaining the original inferred type.
+Include the preceding module-value annotation in this adversarial path:
+annotate the module with the same visible provides/external-requires view,
+install it, then attempt a replacement that drops a private consumer's required
+method. Either the annotation or the incompatible replacement must reject.
 
 - [ ] **Step 2: Implement module values and type reconciliation.**
 

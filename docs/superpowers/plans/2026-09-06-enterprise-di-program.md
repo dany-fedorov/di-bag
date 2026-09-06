@@ -13,7 +13,7 @@ execution; do not stop for another planning approval between increments.
 ## Milestones
 
 - [x] Box libraries: `2026-09-06-box-foundations.md` completed; final review clean after the sas-box generic-constructor correction. Evidence: `docs/reports/2026-09-06-box-foundations.md`.
-- [ ] Type foundation: execute `2026-09-06-type-foundations.md`; close registration/override/descriptor/receiver loopholes, preserve inference, and establish compiler-scale gates.
+- [x] Type foundation: `2026-09-06-type-foundations.md` tasks complete; carried observer correction resolved by reviewed named-module Task1. Evidence: `docs/reports/2026-09-06-type-foundations.md`. Initial scale gates pass; larger limits remain required work below.
 - [ ] Providers and modules: execute `2026-09-06-named-modules.md` for named open modules, private bindings, checked exports and overrides; additionally implement immutable descriptions and typed symbol tokens.
 - [ ] Box integration: optional adapter subpaths using the real packaged libraries; typed static/acquisition metadata and plain service values.
 - [ ] Lifetime runtime: root/scoped/transient identities, explicit sharing, lifetime-leak checks, per-instance ownership.
@@ -21,6 +21,7 @@ execution; do not stop for another planning approval between increments.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
 - [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests.
+- [ ] Compiler-scale follow-up: resolve the measured 500/1000 individual-chain limits and validate editor-scale latency while preserving all inference and rejection contracts; measure actual nominal-module composition separately from registration groups.
 - [ ] Release handoff: complete examples, migrations, changelogs, verified tarballs, and safe publication instructions for all three libraries.
 
 ## Execution rules
@@ -44,3 +45,9 @@ documentation-only claim or treat a generated CI file as a successful run.
   identities and shared public lookup slots; private consumers of an exported
   service must observe a fork's public override. Per-export wrapper bags would
   hide ownership edges and are not the selected runtime architecture.
+- Named-module Task1 implements the internal binding graph at `4f6aab4`:
+  isolated symbol identities, lexical references, immutable descriptions, and
+  native Promise bookkeeping with original exposed identity. Task review is
+  clean; independent full check passes 122 tests / 419 assertions, typecheck,
+  declaration build, package consumers and WBS. The public module API is next,
+  not yet implemented.
