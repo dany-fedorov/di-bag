@@ -3,4 +3,4 @@ import { DiBag } from '../../../src/di-bag';
 DiBag.begin()
   .add({ clock: () => 1 })
   .end()
-  .fork({ clock: () => 'wrong' });
+  .fork(['clock'], { clock: () => 'wrong' });

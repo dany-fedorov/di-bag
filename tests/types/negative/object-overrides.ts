@@ -4,4 +4,4 @@ const overrides: object = { clock: 42, extra: () => 1 };
 DiBag.begin()
   .add({ clock: () => 1 })
   .end()
-  .fork(overrides);
+  .fork(['clock'], overrides);

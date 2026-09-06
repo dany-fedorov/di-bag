@@ -9,7 +9,7 @@ const bag = DiBag.begin()
 const asyncValue: Promise<number> = bag.resolve('result');
 const syncValue: number = bag.resolve('sync');
 const forkValue: Promise<number> = bag
-  .fork({ value: async () => 10 })
+  .fork(['value'], { value: async () => 10 })
   .resolve('result');
 void [asyncValue, syncValue, forkValue];
 
@@ -27,7 +27,7 @@ const owned = DiBag.begin()
   .end();
 const resource: Promise<{ answer: number }> = owned.resolve('resource');
 const borrowed: Promise<{ answer: number }> = owned
-  .fork({
+  .fork(['resource'], {
     resource: async () => ({ answer: 7 }),
   })
   .resolve('resource');

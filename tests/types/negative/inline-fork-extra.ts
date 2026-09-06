@@ -9,7 +9,7 @@ DiBag.begin()
     }),
   })
   .end()
-  .fork({
+  .fork(['newClock'], {
     newClock: () => ({
       now() {
         return 7;

@@ -45,7 +45,7 @@ test('forward registration and forks use independent memoization', () => {
     .add({ doubled: ({ value }: { value: number }) => ({ value: value * 2 }) })
     .add({ value: () => 3 })
     .end();
-  const fork = bag.fork({ value: () => 7 });
+  const fork = bag.fork(['value'], { value: () => 7 });
   expect(bag.resolve('doubled').value).toBe(6);
   expect(fork.resolve('doubled').value).toBe(14);
   expect(bag.resolve('doubled')).not.toBe(fork.resolve('doubled'));

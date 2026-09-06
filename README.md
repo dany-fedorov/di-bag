@@ -27,11 +27,21 @@ rejects missing factories at compile time. Values are created lazily and cached
 once per bag, including `undefined` values and in-flight promises.
 
 Factories are ordinary functions; the bag calls them without a `this` binding.
-Builders are immutable: adding registrations produces a new builder, and adding
-the same token again replaces its registration after checking the merged graph.
+A factory requiring a receiver is rejected. Builders are immutable: `.add(map)`
+introduces new tokens and rejects duplicates. Use `.replace(key, registration)`
+to replace one existing literal key after checking all known consumers:
+
+```ts
+const builder = DiBag.begin().add({ clock: () => 42 });
+const changed = builder.replace('clock', () => 'ready').end();
+changed.resolve('clock'); // string; no existing consumer requires a number
+```
+
+Replacement can change a service's type when its consumers remain compatible.
+Forward dependencies remain allowed until `.end()`.
 
 Factories may be declared inline or separately, and returned services may use
-ordinary object methods. Both `.add()` and `.fork()` preserve their inferred
+ordinary object methods. `.add()`, `.replace()`, and `.fork()` preserve their inferred
 return types without needing a separate declaration or return-type annotation.
 
 ## Async edges are explicit
@@ -81,7 +91,10 @@ try {
 }
 ```
 
-`DiBag.withDisposal(create, dispose)` stores two callbacks in a registration.
+`DiBag.withDisposal(create, dispose)` returns a frozen, nominal registration
+handle. Its readonly `create` property retains the exact factory type; disposal
+metadata is private. Spreading or cloning a handle does not produce a valid
+registration. Call `withDisposal` again to pair a new factory and disposer.
 It runs neither callback immediately. Consumers receive the created value
 directly. For an async factory, `dispose` receives the fulfilled value;
 cleanup itself may return `void` or `Promise<void>`.
@@ -117,7 +130,7 @@ const bag = DiBag.begin()
   })
   .end();
 
-const scoped = bag.fork({ clock: () => ({ now: () => 7 }) });
+const scoped = bag.fork(['clock'], { clock: () => ({ now: () => 7 }) });
 scoped.resolve('stamp'); // 7
 bag.resolve('stamp'); // 42
 
@@ -127,6 +140,17 @@ await bag.close();
 
 Forks accept existing tokens only. Overrides must preserve the original value
 type, and their dependency requirements are checked against the merged graph.
+Pass an inline selection tuple, or a separately declared `as const` tuple.
+Widened arrays, optional/variadic tuples, and union-valued elements cannot prove
+the exact runtime selection and are rejected. Each selected key must be an own
+property of the override object. Unselected properties are ignored, including
+getters. Use `bag.fork()` for a fresh bag with equivalent registrations.
+
+The explicit selection is needed because TypeScript uses structural typing:
+a variable typed as `{ clock: () => number }` can also contain hidden runtime
+keys. A one-map fork could silently overwrite those hidden keys without checking
+their types. Explicit selection gives the type checker and runtime the same keys.
+
 Each fork starts with a fresh memo and owns its own created resources. Closing
 a parent does not close its forks, or vice versa.
 
@@ -150,7 +174,7 @@ collectors, and freshly created work-item services.
 Sharing is configured at the fork call:
 
 ```ts
-const batch = root.fork({
+const batch = root.fork(['source', 'clock', 'replayBuffer', 'stores', 'broadcast'], {
   source: () => root.resolve('source'),
   clock: () => root.resolve('clock'),
   replayBuffer: () => root.resolve('replayBuffer'),
@@ -176,6 +200,8 @@ and shutdown on success, failed work, failed cleanup, and failed acquisition.
 
 - Token maps and dependency parameters must have finite string keys. Index
   signatures, including open template keys, cannot prove that tokens exist.
+- Bags are created through checked builders and forks. `Bag` is exported as a
+  type only; there is no public unchecked constructor.
 - Parameters may be omitted or be a single object type. Optional dependency
   properties still require providers. Union, callable, and symbol-keyed
   dependency parameter types are rejected.

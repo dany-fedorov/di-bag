@@ -32,8 +32,8 @@ for (const mode of ['commonjs', 'module'] as const) {
   test(`Node ${mode} consumers can resolve and dispose through the public package`, async () => {
     const load =
       mode === 'commonjs'
-        ? "const { DiBag } = require('di-bag');"
-        : "import { DiBag } from 'di-bag';";
+        ? "const packageExports = require('di-bag'); const { DiBag } = packageExports;"
+        : "import * as packageExports from 'di-bag'; const { DiBag } = packageExports;";
     const stdout = await run([
       'node',
       `--input-type=${mode}`,
@@ -46,11 +46,11 @@ for (const mode of ['commonjs', 'module'] as const) {
         }).end();
         const answer = bag.resolve('answer');
         await bag.close();
-        console.log(JSON.stringify({ answer, disposed }));
+        console.log(JSON.stringify({ answer, disposed, publiclyConstructible: Object.hasOwn(packageExports, 'Bag') }));
       })().catch(error => { console.error(error); process.exitCode = 1; });
     `,
     ]);
-    expect(JSON.parse(stdout)).toEqual({ answer: 42, disposed: 42 });
+    expect(JSON.parse(stdout)).toEqual({ answer: 42, disposed: 42, publiclyConstructible: false });
   });
 
   test(`TypeScript ${mode} consumers can use the emitted declarations`, () => {
@@ -58,7 +58,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       __dirname,
       mode === 'commonjs' ? 'consumer.cts' : 'consumer.mts',
     );
-    const source = `import { DiBag } from 'di-bag';
+    const source = `import { DiBag, type Bag } from 'di-bag';
       const bag = DiBag.begin().add({
         value: DiBag.withDisposal(async () => 42, value => { const n: number = value; void n; }),
         clock: () => ({ now() { return 42; } }),
@@ -67,7 +67,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         }),
       }).end();
       const value: Promise<number> = bag.resolve('value');
-      const scoped = bag.fork({
+      const scoped = bag.fork(['clock'], {
         clock: () => ({ now() { return 7; } }),
       });
       const stamp = scoped.resolve('service').stamp();
@@ -75,7 +75,13 @@ for (const mode of ['commonjs', 'module'] as const) {
       type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends
         (<T>() => T extends B ? 1 : 2) ? true : false;
       type Stamp = Assert<Equal<typeof stamp, number>>;
-      void [value, stamp, scoped.close(), bag.close()];`;
+      const replaced = DiBag.begin().add({ clock: () => 1 })
+        .replace('clock', () => ({ now() { return 7; } })).end();
+      const clock = replaced.resolve('clock');
+      type Clock = Assert<Equal<typeof clock, { now(): number }>>;
+      const fresh: typeof bag = bag.fork();
+      const typed: Bag<{ clock: () => { now(): number } }> = replaced;
+      void [value, stamp, fresh, typed, scoped.close(), bag.close()];`;
     const options: ts.CompilerOptions = {
       strict: true,
       noEmit: true,
@@ -98,5 +104,31 @@ for (const mode of ['commonjs', 'module'] as const) {
           ts.flattenDiagnosticMessageText(error.messageText, '\n'),
         ),
     ).toEqual([]);
+  });
+}
+
+for (const specifier of ['di-bag', '../src/di-bag']) {
+  test(`unchecked construction is rejected through ${specifier}`, () => {
+    const path = resolve(__dirname, 'unchecked-consumer.cts');
+    const source = `import { Bag } from '${specifier}'; new Bag({ value: () => 42 });`;
+    const options: ts.CompilerOptions = {
+      strict: true,
+      noEmit: true,
+      types: [],
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.NodeNext,
+      moduleResolution: ts.ModuleResolutionKind.NodeNext,
+    };
+    const host = ts.createCompilerHost(options);
+    const getSourceFile = host.getSourceFile.bind(host);
+    host.getSourceFile = (name, languageVersion, onError, fresh) =>
+      name === path
+        ? ts.createSourceFile(path, source, ts.ScriptTarget.ES2022, true)
+        : getSourceFile(name, languageVersion, onError, fresh);
+    const errors = ts.getPreEmitDiagnostics(ts.createProgram([path], options, host));
+    expect(errors.length).toBe(1);
+    expect(errors[0]?.file?.fileName).toBe(path);
+    expect(ts.flattenDiagnosticMessageText(errors[0]!.messageText, '\n'))
+      .toContain("cannot be used as a value because it was exported using 'export type'");
   });
 }

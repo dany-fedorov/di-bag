@@ -43,7 +43,7 @@ type Resource = Assert<
 >;
 
 const borrowed = bag
-  .fork({
+  .fork(['resource'], {
     resource: async () => ({
       stamp() {
         return 7;

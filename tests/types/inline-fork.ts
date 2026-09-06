@@ -10,7 +10,7 @@ const root = DiBag.begin()
   })
   .end();
 
-const scoped = root.fork({
+const scoped = root.fork(['clock', 'service'], {
   clock: () => ({
     now() {
       return 7;
@@ -40,7 +40,7 @@ type Service = Assert<
 type Clock = Assert<Equal<typeof clock, { now(): number }>>;
 
 const nested = scoped
-  .fork({
+  .fork(['clock'], {
     clock() {
       return {
         now() {

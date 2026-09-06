@@ -73,7 +73,7 @@ test('an explicitly shared WBS service keeps its original stores and broadcaster
     source.stores('batch'),
     () => new Collector('batch', lifecycle),
   );
-  const shared = batch.fork({ workItems: () => root.resolve('workItems') });
+  const shared = batch.fork(['workItems'], { workItems: () => root.resolve('workItems') });
   try {
     expect(shared.resolve('workItems')).toBe(root.resolve('workItems'));
     expect(shared.resolve('stores').scope).toBe('batch');
@@ -138,7 +138,7 @@ test('startup still closes later bags and its source when multiple disposers fai
   const first = new Error('first cleanup failed');
   const second = new Error('second cleanup failed');
   const failing = (scope: string, error: Error) =>
-    root.fork({
+    root.fork(['broadcast'], {
       broadcast: DiBag.withDisposal(
         () => new Collector(scope, lifecycle),
         (collector) => {

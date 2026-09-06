@@ -14,7 +14,7 @@ DiBag.begin()
     }),
   })
   .end()
-  .fork({
+  .fork(['service'], {
     service: ({ clock }: { clock: { now(): number } }) => ({
       stamp() {
         return clock.now();

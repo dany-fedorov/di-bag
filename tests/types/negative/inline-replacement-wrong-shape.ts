@@ -13,10 +13,8 @@ DiBag.begin()
       },
     }),
   })
-  .add({
-    clock: () => ({
-      now() {
-        return 'wrong';
-      },
-    }),
-  });
+  .replace('clock', () => ({
+    now() {
+      return 'wrong';
+    },
+  }));

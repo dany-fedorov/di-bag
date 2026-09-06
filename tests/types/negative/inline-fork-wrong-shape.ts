@@ -9,7 +9,7 @@ DiBag.begin()
     }),
   })
   .end()
-  .fork({
+  .fork(['clock'], {
     clock: () => ({
       now() {
         return 'wrong';

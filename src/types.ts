@@ -109,3 +109,65 @@ export type Overrides<F extends Registrations, O extends Registrations> = [
       'fork accepts existing tokens only',
       { extra: Exclude<keyof O, keyof F> }
     >;
+
+export type Introduces<F extends Registrations, N extends Registrations> = [
+  keyof F & keyof N,
+] extends [never]
+  ? unknown
+  : Unsatisfied<
+      'add introduces new tokens only',
+      { duplicates: keyof F & keyof N }
+    >;
+
+type Singleton<K> = [K] extends [never]
+  ? false
+  : [K] extends [string]
+    ? true extends IsUnion<K>
+      ? false
+      : [NonFiniteKeys<Record<K & string, never>>] extends [never]
+        ? true
+        : false
+    : false;
+
+export type ReplacementKey<R extends Registrations, K extends string> =
+  Singleton<K> extends true
+    ? K extends keyof R
+      ? unknown
+      : InvalidReplacement<K>
+    : InvalidReplacement<K>;
+
+type InvalidReplacement<K> = Unsatisfied<
+  'replace requires one existing singleton string-literal key',
+  { key: K }
+>;
+
+// Validate each tuple element, not K[number]: a multi-key tuple is valid even
+// though the union of all of its elements is not itself a singleton.
+type InvalidElements<K extends readonly unknown[]> = {
+  [I in keyof K]-?: Singleton<K[I]> extends true ? never : I;
+}[number];
+
+export type Selection<R extends Registrations, K extends readonly unknown[]> =
+  true extends IsUnion<K>
+    ? InvalidSelection
+    : number extends K['length']
+      ? InvalidSelection
+      : K extends Required<K>
+        ? [InvalidElements<K>] extends [never]
+          ? [Exclude<K[number], keyof R>] extends [never]
+            ? unknown
+            : Unsatisfied<
+                'fork accepts existing tokens only',
+                { extra: Exclude<K[number], keyof R> }
+              >
+          : InvalidSelection
+        : InvalidSelection;
+
+type InvalidSelection = Unsatisfied<
+  'fork requires a finite tuple of singleton string-literal keys',
+  { selection: 'use a const tuple with individually known keys' }
+>;
+
+export type Selected<K extends readonly unknown[], O> = {
+  [P in Extract<K[number], keyof O>]: Extract<O[P], Registration>;
+};

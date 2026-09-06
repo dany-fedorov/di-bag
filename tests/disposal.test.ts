@@ -177,7 +177,7 @@ test('close drains pending factories and dependencies discovered after await', a
   const value = bag.resolve('service');
   const closing = bag.close();
   expect(() => bag.resolve('db')).toThrow(/clos/);
-  expect(() => bag.fork({})).toThrow(/clos/);
+  expect(() => bag.fork()).toThrow(/clos/);
   gate.resolve();
   expect(await value).toBe(42);
   await closing;
@@ -293,8 +293,8 @@ test('parent and forks own independent instances and borrowed overrides stay bor
       ),
     })
     .end();
-  const fork = bag.fork({});
-  const borrowed = bag.fork({ value: () => ({ id: 99 }) });
+  const fork = bag.fork();
+  const borrowed = bag.fork(['value'], { value: () => ({ id: 99 }) });
   expect(bag.resolve('value').id).toBe(1);
   expect(fork.resolve('value').id).toBe(2);
   expect(borrowed.resolve('value').id).toBe(99);
@@ -310,7 +310,7 @@ test('an owned override can replace an ordinary factory', async () => {
   const bag = DiBag.begin()
     .add({ value: () => 1 })
     .end();
-  const fork = bag.fork({
+  const fork = bag.fork(['value'], {
     value: DiBag.withDisposal(
       () => 7,
       (value) => {

@@ -1,6 +1,16 @@
 import { normalize, withDisposal } from './registration';
 import type { Registration, Registrations } from './registration';
-import type { Checked, Complete, Merge, Overrides, Provided } from './types';
+import type {
+  Checked,
+  Complete,
+  Introduces,
+  Merge,
+  Overrides,
+  Provided,
+  ReplacementKey,
+  Selected,
+  Selection,
+} from './types';
 
 type Cleanup = () => void | Promise<void>;
 
@@ -14,7 +24,7 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
 }
 
 /** A lazy graph with independent memoization and resource ownership. */
-export class Bag<R extends Registrations> {
+class Bag<R extends Registrations> {
   private readonly registrations: R;
   private readonly memo = new Map<string, unknown>();
   private readonly edges = new Map<string, Set<string>>();
@@ -34,24 +44,52 @@ export class Bag<R extends Registrations> {
   }
 
   /** Replace existing tokens; the fork creates and owns its own instances. */
-  // Infer the actual keys before Checked runs; a string-indexed constraint can
-  // prematurely widen context-sensitive factories returning object methods.
-  // Still require Registrations on the argument: the mapped bound alone would
-  // admit widened `object` values and primitives with compatible prototype methods.
-  fork<O extends { [K in keyof O]: Registration }>(
+  fork(): Bag<R>;
+  // The argument's Record intersection supplies callable context to selected
+  // factories. A generic bound alone loses inline method-return inference.
+  // Infer extra keys too, but never include them in validation or result types.
+  fork<
+    const K extends readonly unknown[],
+    O extends { [P in keyof O]: unknown },
+  >(
+    keys: K & Selection<R, K>,
     overrides: O &
-      Registrations &
-      Overrides<R, O> &
-      Checked<Merge<R, O>> &
-      Complete<Merge<R, O>>,
-  ): Bag<Merge<R, O>> {
+      object &
+      Record<Extract<K[number], string>, Registration> &
+      Overrides<R, Selected<K, O>> &
+      Checked<Merge<R, Selected<K, O>>> &
+      Complete<Merge<R, Selected<K, O>>>,
+  ): Bag<Merge<R, Selected<K, O>>>;
+  fork(keys?: readonly unknown[], overrides?: object): Bag<Registrations> {
     this.assertOpen();
-    for (const token of Object.keys(overrides)) {
+    if (keys === undefined && overrides === undefined) {
+      return new Bag(this.registrations);
+    }
+    if (
+      !Array.isArray(keys) ||
+      typeof overrides !== 'object' ||
+      overrides === null
+    ) {
+      throw new Error('fork requires selected keys and an override object');
+    }
+    // Getters may mutate the caller's tuple while the entries are read.
+    const selectedKeys = [...keys];
+    for (const token of selectedKeys) {
+      if (typeof token !== 'string') throw new Error('fork keys must be strings');
       if (!Object.hasOwn(this.registrations, token)) {
         throw new Error(`fork accepts existing tokens only: ${token}`);
       }
+      if (!Object.hasOwn(overrides, token)) {
+        throw new Error(`missing override: ${token}`);
+      }
     }
-    return new Bag({ ...this.registrations, ...overrides } as Merge<R, O>);
+    const selected: Registrations = Object.create(null);
+    for (const token of selectedKeys as string[]) {
+      const registration: unknown = Reflect.get(overrides, token);
+      normalize(registration);
+      selected[token] = registration as Registration;
+    }
+    return new Bag({ ...this.registrations, ...selected });
   }
 
   /** Drain acquisitions, then dispose dependents before dependencies, once. */
@@ -188,17 +226,51 @@ export class Bag<R extends Registrations> {
 class Builder<R extends Registrations> {
   constructor(private readonly registrations: R) {}
 
-  // Match fork's key-preserving constraint so inline methods infer before checks.
+  // Infer actual keys before checking context-sensitive method-returning factories.
   add<N extends { [K in keyof N]: Registration }>(
-    more: N & Registrations & Checked<Merge<R, N>>,
+    more: N & Registrations & Introduces<R, N> & Checked<Merge<R, N>>,
   ): Builder<Merge<R, N>> {
-    return new Builder({ ...this.registrations, ...more } as Merge<R, N>);
+    if (typeof more !== 'object' || more === null || Array.isArray(more)) {
+      throw new Error('registrations must be a string-keyed object');
+    }
+    const keys = Reflect.ownKeys(more);
+    for (const key of keys) {
+      if (typeof key !== 'string') throw new Error('registration keys must be strings');
+      if (Object.hasOwn(this.registrations, key)) {
+        throw new Error(`duplicate registration: ${key}`);
+      }
+    }
+    const snapshot: Registrations = Object.create(null);
+    for (const key of keys as string[]) {
+      const registration = more[key];
+      normalize(registration);
+      snapshot[key] = registration as Registration;
+    }
+    // The snapshot retains every checked own registration, including hidden keys.
+    return new Builder(
+      { ...this.registrations, ...snapshot } as unknown as Merge<R, N>,
+    );
+  }
+
+  replace<const K extends string, V extends Registration>(
+    key: K & ReplacementKey<R, K>,
+    registration: V & Registration & Checked<Merge<R, Record<K, NoInfer<V>>>>,
+  ): Builder<Merge<R, Record<K, V>>> {
+    if (typeof key !== 'string' || !Object.hasOwn(this.registrations, key)) {
+      throw new Error(`replace accepts existing tokens only: ${String(key)}`);
+    }
+    normalize(registration);
+    return new Builder(
+      { ...this.registrations, [key]: registration } as Merge<R, Record<K, V>>,
+    );
   }
 
   end(this: Builder<R> & Complete<R>): Bag<R> {
     return new Bag(this.registrations);
   }
 }
+
+export type { Bag };
 
 export const DiBag = {
   begin: (): Builder<Record<never, never>> => new Builder({}),

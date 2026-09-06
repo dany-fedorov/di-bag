@@ -167,7 +167,7 @@ export function createBatch(
   stores: Stores,
   openCollector: () => Collector,
 ) {
-  return root.fork({
+  return root.fork(['source', 'clock', 'replayBuffer', 'stores', 'broadcast'], {
     source: () => root.resolve('source'),
     clock: () => root.resolve('clock'),
     replayBuffer: () => root.resolve('replayBuffer'),
