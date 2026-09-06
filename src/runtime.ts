@@ -4,20 +4,21 @@ import type { Registration, Registrations } from './registration';
 import type { InspectionSnapshot } from './inspection';
 
 export type BindingId = symbol;
+export type BindingKey = string | symbol;
 export type BindingRef =
   | { readonly kind: 'private'; readonly id: BindingId }
-  | { readonly kind: 'public'; readonly key: string };
+  | { readonly kind: 'public'; readonly key: BindingKey };
 
 export interface BindingDescription {
   readonly id: BindingId;
   readonly label: string;
   readonly registration: Registration;
-  readonly localNames: ReadonlyMap<string, BindingRef>;
+  readonly localNames: ReadonlyMap<BindingKey, BindingRef>;
 }
 
 export interface GraphDescription {
   readonly bindings: ReadonlyMap<BindingId, BindingDescription>;
-  readonly publicSlots: ReadonlyMap<string, BindingId>;
+  readonly publicSlots: ReadonlyMap<BindingKey, BindingId>;
 }
 
 type Normalized = Readonly<ReturnType<typeof normalize>>;
@@ -26,7 +27,7 @@ type Normalized = Readonly<ReturnType<typeof normalize>>;
 export class BindingGraph {
   readonly #bindings = new Map<BindingId, BindingDescription>();
   readonly #registrations = new Map<BindingId, Normalized>();
-  readonly #publicSlots: Map<string, BindingId>;
+  readonly #publicSlots: Map<BindingKey, BindingId>;
 
   constructor(description: GraphDescription = { bindings: new Map(), publicSlots: new Map() }) {
     for (const [id, binding] of description.bindings) {
@@ -41,17 +42,17 @@ export class BindingGraph {
     this.#publicSlots = new Map(description.publicSlots);
   }
 
-  hasPublic(key: string): boolean {
+  hasPublic(key: BindingKey): boolean {
     return this.#publicSlots.has(key);
   }
 
-  publicBinding(key: string): BindingId {
+  publicBinding(key: BindingKey): BindingId {
     const id = this.#publicSlots.get(key);
-    if (id === undefined) throw new Error(`no factory for ${key}`);
+    if (id === undefined) throw new Error(`no factory for ${String(key)}`);
     return id;
   }
 
-  dependency(from: BindingId, localName: string): BindingId {
+  dependency(from: BindingId, localName: BindingKey): BindingId {
     const ref = this.#bindings.get(from)?.localNames.get(localName);
     return ref?.kind === 'private' ? ref.id : this.publicBinding(ref?.key ?? localName);
   }
@@ -83,10 +84,20 @@ export class BindingGraph {
     return new BindingGraph({ bindings, publicSlots });
   }
 
+  /** Replace one public slot, preserving lexical references and symbol identity. */
+  withPublicBinding(key: BindingKey, registration: Registration): BindingGraph {
+    const bindings = new Map(this.#bindings);
+    const publicSlots = new Map(this.#publicSlots);
+    const id = Symbol(String(key));
+    bindings.set(id, { id, label: String(key), registration, localNames: new Map() });
+    publicSlots.set(key, id);
+    return new BindingGraph({ bindings, publicSlots });
+  }
+
   /** Install disjoint public slots atomically, retaining lexical private refs. */
   withInstallation(description: GraphDescription): BindingGraph {
     for (const key of description.publicSlots.keys()) {
-      if (this.#publicSlots.has(key)) throw new Error(`duplicate registration: ${key}`);
+      if (this.#publicSlots.has(key)) throw new Error(`duplicate registration: ${String(key)}`);
     }
     return new BindingGraph({
       bindings: new Map([...this.#bindings, ...description.bindings]),
@@ -103,11 +114,11 @@ export class Runtime {
     this.acquisitions = new Acquisitions(graph);
   }
 
-  resolve(key: string): unknown {
+  resolve(key: BindingKey): unknown {
     return this.acquisitions.resolve(key);
   }
 
-  inspect(key: string): InspectionSnapshot<object, readonly unknown[]> {
+  inspect(key: BindingKey): InspectionSnapshot<object, readonly unknown[]> {
     const bindingId = this.graph.publicBinding(key);
     return Object.freeze({
       bindingId,

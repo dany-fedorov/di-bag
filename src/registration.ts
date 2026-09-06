@@ -1,5 +1,5 @@
 import { transform } from './provider';
-import type { ProviderBase, Provider, ProviderFactory, ProviderOutput, RetainedMetadata, ProviderAcquisitionMetadata } from './provider';
+import type { ProviderBase, Provider, ProviderFactory, ProviderOutput, RetainedMetadata, ProviderAcquisitionMetadata, ProviderGraph } from './provider';
 import { normalize, retainDescription, sourceDescription } from './provider-operations';
 export { normalize } from './provider-operations';
 
@@ -26,7 +26,7 @@ export function withDisposal<F extends Factory>(
 export function withDisposal<R extends Registration>(
   provider: R & Registration,
   dispose: (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => void | Promise<void>,
-): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>>;
+): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>>;
 export function withDisposal(
   registration: Registration,
   dispose: (value: never) => void | Promise<void>,

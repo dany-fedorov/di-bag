@@ -4,6 +4,11 @@ import { resolve } from 'node:path';
 import ts from 'typescript';
 import { diagnostics } from './compiler';
 
+test('token contracts preserve exact identities and provider graphs', () => {
+  expect(diagnostics(resolve(__dirname, 'types/token-contracts.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('replacement context preserves exact contracts from surviving consumers', () => {
   expect(diagnostics(resolve(__dirname, 'types/replacement-context.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

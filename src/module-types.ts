@@ -1,7 +1,8 @@
 import type { Module } from './module';
 import type { Registrations } from './registration';
 import type { Needs, Singleton, Unsatisfied } from './types';
-import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata } from './provider';
+import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderGraph } from './provider';
+import type { TokenGraph } from './token-types';
 
 export type NeedConstraint = { readonly consumer: string; readonly needs: object };
 
@@ -46,10 +47,11 @@ export type PublicRegistrations<P extends object> = { [K in keyof P]: () => P[K]
 // union member before deciding whether the legacy synthetic default is enough.
 export type PublicProvider<R> = R extends Registrations[string]
   ? unknown extends ProviderNeeds<R> ? R
-    : [MetadataKeyUnion<ProviderMetadata<R>>] extends [never]
+    : [ProviderGraph<R>] extends [TokenGraph] ? [MetadataKeyUnion<ProviderMetadata<R>>] extends [never]
       ? ProviderAcquisitionMetadata<R> extends readonly [] ? () => ProviderOutput<R>
         : Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>>
       : Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>>
+    : R
   : never;
 export type PublicProviders<R extends object> = { [K in keyof R]: PublicProvider<R[K]> };
 export type Renamed<P extends object, Old extends string, New extends string> = {

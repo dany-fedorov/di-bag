@@ -1,6 +1,6 @@
 import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
-import type { BindingGraph, BindingId } from './runtime';
+import type { BindingGraph, BindingId, BindingKey } from './runtime';
 import type { AcquisitionSnapshot } from './inspection';
 import { ProviderExecution } from './provider-execution';
 
@@ -32,7 +32,7 @@ export class Acquisitions {
 
   constructor(private readonly graph: BindingGraph) {}
 
-  resolve(key: string): unknown {
+  resolve(key: BindingKey): unknown {
     this.assertOpen();
     return this.resolveBinding(this.graph.publicBinding(key));
   }
@@ -96,7 +96,7 @@ export class Acquisitions {
     if (from) this.recordEdge(from, attempt);
     const deps = new Proxy(Object.create(null) as Record<string, unknown>, {
       get: (_, key) => {
-        if (typeof key !== 'string') return undefined;
+        if (typeof key === 'symbol' && !description.tokenKeys.includes(key)) return undefined;
         // Only this attempt's in-flight factory can discover dependencies in close.
         if (
           this.state === 'closed' ||

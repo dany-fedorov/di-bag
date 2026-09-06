@@ -3,6 +3,7 @@ import type { Factory } from './registration';
 interface SourceOperation {
   readonly kind: 'source';
   readonly create: Factory;
+  readonly tokenKeys: readonly symbol[];
   readonly dispose?: (value: never) => void | Promise<void>;
 }
 interface MetadataOperation {
@@ -34,8 +35,10 @@ const descriptions = new WeakMap<object, ProviderDescription>();
 export function sourceDescription(
   create: Factory,
   dispose?: (value: never) => void | Promise<void>,
+  tokenKeys: readonly symbol[] = [],
 ): ProviderDescription {
-  const source: SourceOperation = Object.freeze(dispose ? { kind: 'source', create, dispose } : { kind: 'source', create });
+  const selected = Object.freeze([...tokenKeys]);
+  const source: SourceOperation = Object.freeze(dispose ? { kind: 'source', create, dispose, tokenKeys: selected } : { kind: 'source', create, tokenKeys: selected });
   return Object.freeze({ source, operations: Object.freeze([]), metadata: emptyMetadata });
 }
 
@@ -56,12 +59,13 @@ export function describe(registration: unknown): ProviderDescription {
 
 export function normalize(registration: unknown): {
   create: Factory;
+  tokenKeys: readonly symbol[];
   dispose?: (value: never) => void | Promise<void>;
   metadata: Readonly<object>;
   operations: readonly ProviderOperation[];
 } {
   const description = describe(registration);
-  const { create, dispose } = description.source;
+  const { create, dispose, tokenKeys } = description.source;
   const { metadata, operations } = description;
-  return dispose ? { create, dispose, metadata, operations } : { create, metadata, operations };
+  return dispose ? { create, dispose, tokenKeys, metadata, operations } : { create, tokenKeys, metadata, operations };
 }

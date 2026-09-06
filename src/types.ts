@@ -3,7 +3,8 @@ import type {
   Registration,
   Registrations,
 } from './registration';
-import type { ProviderContext, ProviderNeeds, ProviderOutput } from './provider';
+import type { ProviderContext, ProviderNeeds, ProviderOutput, ProviderGraph } from './provider';
+import type { TokenGraph } from './token-types';
 
 export type Needs<R extends Registration> = ProviderNeeds<R>;
 
@@ -73,18 +74,25 @@ type WrongShapes<R extends Registrations> = {
 export type Checked<R extends Registrations> = [
   InvalidNeeds<R> | NonFiniteKeys<R> | Exclude<keyof R, string>,
 ] extends [never]
-  ? [WrongShapes<R>] extends [never]
+  ? [UnsupportedTokenGraphs<R>] extends [never] ? [WrongShapes<R>] extends [never]
     ? unknown
     : Unsatisfied<
         'a dependency has the wrong shape',
         { tokens: WrongShapes<R> }
       >
+    : Unsatisfied<'token contracts require token graph composition', { tokens: UnsupportedTokenGraphs<R> }>
   : Unsatisfied<
       'factory dependencies must be finite string-keyed objects',
       {
         tokens: InvalidNeeds<R> | NonFiniteKeys<R> | Exclude<keyof R, string>;
       }
     >;
+
+// Task 2 adds checked token composition. Until then named graph admission must
+// not turn a retained token requirement or erased contract into an empty graph.
+type UnsupportedTokenGraphs<R extends Registrations> = {
+  [K in keyof R]: [ProviderGraph<R[K]>] extends [TokenGraph] ? never : K;
+}[keyof R];
 
 type RequiredOf<R extends Registrations> = {
   [K in keyof R]: keyof Needs<R[K]>;
@@ -93,7 +101,8 @@ type RequiredOf<R extends Registrations> = {
 export type Complete<R extends Registrations> = [
   Exclude<RequiredOf<R>, keyof R>,
 ] extends [never]
-  ? unknown
+  ? [UnsupportedTokenGraphs<R>] extends [never] ? unknown
+    : Unsatisfied<'token contracts require token graph composition', { tokens: UnsupportedTokenGraphs<R> }>
   : Unsatisfied<
       'missing factories',
       { missing: Exclude<RequiredOf<R>, keyof R> }
@@ -218,6 +227,6 @@ export type ForkContext<
         ) => Provided<R>[P]
       >
     | ProviderContext<
-        (this: void, deps: Provided<Merge<R, Selected<K, O>>>) => Provided<R>[P]
+        (this: void, deps: Provided<Merge<R, Selected<K, O>>>) => Provided<R>[P], TokenGraph
       >;
 };

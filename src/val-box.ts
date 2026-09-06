@@ -1,5 +1,5 @@
 import { transform } from './provider';
-import type { Provider, ProviderAcquisitionMetadata, ProviderNeeds, ProviderOutput, RetainedMetadata } from './provider';
+import type { Provider, ProviderAcquisitionMetadata, ProviderNeeds, ProviderOutput, RetainedMetadata, ProviderGraph } from './provider';
 import type { Presence } from './inspection';
 import type { Registration } from './registration';
 import type { Unsatisfied } from './types';
@@ -22,7 +22,7 @@ type Frames<R extends Registration, B> = readonly [...ProviderAcquisitionMetadat
 type InvalidSnapshot<B> = B extends { snapshot: infer C }
   ? C extends (...args: never[]) => Snapshot ? [] extends Parameters<C> ? B extends ThisParameterType<C> ? never : true : true : true : true;
 type Valid<B> = [InvalidSnapshot<B>] extends [never] ? unknown : Unsatisfied<'invalid val-box snapshot capability', {}>;
-type Adapted<R extends Registration, B, M extends Mode, O = Output<B, M>> = Provider<(this: void, deps: ProviderNeeds<R>) => O, RetainedMetadata<R>, Frames<R, B>>;
+type Adapted<R extends Registration, B, M extends Mode, O = Output<B, M>> = Provider<(this: void, deps: ProviderNeeds<R>) => O, RetainedMetadata<R>, Frames<R, B>, ProviderGraph<R>>;
 
 /** Snapshot an immediate box once; an absent required value throws. */
 export function fromValBox<R extends Registration>(registration: R & Registration & Valid<ProviderOutput<NoInfer<R>>>): Adapted<R, ProviderOutput<R>, 'required'>;

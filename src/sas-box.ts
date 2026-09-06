@@ -1,5 +1,5 @@
 import { transform } from './provider';
-import type { Provider, ProviderAcquisitionMetadata, ProviderNeeds, ProviderOutput, RetainedMetadata } from './provider';
+import type { Provider, ProviderAcquisitionMetadata, ProviderNeeds, ProviderOutput, RetainedMetadata, ProviderGraph } from './provider';
 import type { Registration } from './registration';
 import type { Unsatisfied } from './types';
 
@@ -25,7 +25,7 @@ type Output<B, M extends Mode> = M extends 'sync' ? Result<B, 'sync'>
 export function fromSasBox<R extends Registration, M extends Mode>(
   registration: R & Registration,
   options: { readonly mode: M } & Valid<NoInfer<R>, NoInfer<M>>,
-): Provider<(this: void, deps: ProviderNeeds<R>) => Output<ProviderOutput<R>, M>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>> {
+): Provider<(this: void, deps: ProviderNeeds<R>) => Output<ProviderOutput<R>, M>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>> {
   const { mode } = options;
   if (mode !== 'sync' && mode !== 'async' && mode !== 'sync-first') throw new Error('invalid sas-box mode');
   return transform(registration, {

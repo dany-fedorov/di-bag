@@ -68,6 +68,16 @@ for (const mode of ['commonjs', 'module'] as const) {
         await mappedBag.close();
         const cjs = (await import('node:module')).createRequire(process.cwd() + '/consumer.cjs')('di-bag');
         const esm = await import('di-bag');
+        const require = (await import('node:module')).createRequire(process.cwd() + '/consumer.cjs');
+        const internal = require('node:path').dirname(require.resolve('di-bag'));
+        const { fromTokens } = require(internal + '/provider.js');
+        const { Runtime, BindingGraph } = require(internal + '/runtime.js');
+        const tokenKey = Symbol('package');
+        const selected = cjs.DiBag.token(tokenKey).of();
+        const tokenRuntime = new Runtime(new BindingGraph().withPublicBinding(tokenKey, () => raw)
+          .withPublicRegistrations({ value: esm.DiBag.mapSync(fromTokens([selected], value => value), value => value) }));
+        const tokenIdentity = tokenRuntime.resolve('value') === raw;
+        await tokenRuntime.close();
         console.log(JSON.stringify({ answer, disposed,
           publiclyConstructible: ['Bag', 'Module', 'Provider', 'ProviderBase'].some(key => Object.hasOwn(packageExports, key)),
           metadata: before.metadata.owner,
@@ -77,7 +87,7 @@ for (const mode of ['commonjs', 'module'] as const) {
           sameClass: cjs.DiBagCleanupError === esm.DiBagCleanupError,
           originalCause: error.errors[0] === cause && error.failures[0].error === cause,
           label: error.failures[0].label,
-          mappedIdentity, asyncMapped, mappedDisposal,
+          mappedIdentity, asyncMapped, mappedDisposal, tokenIdentity,
         }));
       })().catch(error => { console.error(error); process.exitCode = 1; });
     `,
@@ -85,7 +95,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     expect(JSON.parse(stdout)).toEqual({ answer: 42, disposed: 42, publiclyConstructible: false,
       cleanup: true, sameClass: true, originalCause: true, label: 'resource',
       metadata: 'package', inspectionIsStatic: true, frozenInspection: true,
-      mappedIdentity: true, asyncMapped: 5, mappedDisposal: ['outer', 7] });
+      mappedIdentity: true, asyncMapped: 5, mappedDisposal: ['outer', 7], tokenIdentity: true });
   });
 
   test(`Node ${mode} observes local and foreign native subclass state directly`, async () => {
@@ -265,11 +275,13 @@ for (const mode of ['commonjs', 'module'] as const) {
     ).toEqual([]);
   });
 
-  for (const fixture of ['providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
+  for (const fixture of ['token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
     test(`TypeScript ${mode} emitted provider contracts: ${fixture}`, () => {
       const path = resolve(__dirname, `provider-consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const source = readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
-        .replace("from '../../src/provider'", "from '../dist/provider'")
+        .replace(/from '(?:\.\.\/)+src\/([^']+)'/g, "from '../dist/$1'")
+        .replace(/import\('(?:\.\.\/)+src\/token-types'\)/g, "import('../dist/token-types')")
+        .replace("import('../../src')", "import('di-bag')")
         .replace(/from '(?:\.\.\/)+src'/g, "from 'di-bag'")
         .replace("import type { Assert, Equal } from './assert';", `type Assert<T extends true> = T;
           type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;`);
@@ -301,7 +313,7 @@ for (const mode of ['commonjs', 'module'] as const) {
   }
 }
 
-for (const [name, specifier] of [['Bag', 'di-bag'], ['Bag', '../src/di-bag'], ['Module', 'di-bag'], ['Module', '../src/module'], ['Provider', 'di-bag'], ['Provider', '../src/provider']]) {
+for (const [name, specifier] of [['Bag', 'di-bag'], ['Bag', '../src/di-bag'], ['Module', 'di-bag'], ['Module', '../src/module'], ['Provider', 'di-bag'], ['Provider', '../src/provider'], ['Token', 'di-bag'], ['Token', '../src/tokens']]) {
   test(`unchecked ${name} construction is rejected through ${specifier}`, () => {
     const path = resolve(__dirname, 'unchecked-consumer.cts');
     const source = `import { ${name} } from '${specifier}'; new ${name}({ value: () => 42 });`;

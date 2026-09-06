@@ -7,6 +7,7 @@ import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './
 import { withMetadata, mapSync, mapAsync } from './provider';
 import type { ProviderMetadata, ProviderAcquisitionMetadata } from './provider';
 import type { InspectionSnapshot } from './inspection';
+import { token } from './tokens';
 import type {
   Checked,
   Complete,
@@ -168,6 +169,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
 export type { Bag };
 
 export const DiBag: {
+  token: typeof token;
   begin: () => Builder<never>;
   module: typeof beginModule;
   withDisposal: typeof withDisposal;
@@ -175,6 +177,7 @@ export const DiBag: {
   mapSync: typeof mapSync;
   mapAsync: typeof mapAsync;
 } = {
+  token,
   begin: (): Builder<never> => new Builder(new BindingGraph()),
   module: beginModule,
   withDisposal,
