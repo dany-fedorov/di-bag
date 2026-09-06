@@ -12,7 +12,7 @@ execution; do not stop for another planning approval between increments.
 
 ## Milestones
 
-- [ ] Box libraries: execute `2026-09-06-box-foundations.md`; review both repos and record commits/artifact names.
+- [x] Box libraries: `2026-09-06-box-foundations.md` completed; final review clean after the sas-box generic-constructor correction. Evidence: `docs/reports/2026-09-06-box-foundations.md`.
 - [ ] Type foundation: execute `2026-09-06-type-foundations.md`; close registration/override/descriptor/receiver loopholes, preserve inference, and establish compiler-scale gates.
 - [ ] Providers and modules: execute `2026-09-06-named-modules.md` for named open modules, private bindings, checked exports and overrides; additionally implement immutable descriptions and typed symbol tokens.
 - [ ] Box integration: optional adapter subpaths using the real packaged libraries; typed static/acquisition metadata and plain service values.
