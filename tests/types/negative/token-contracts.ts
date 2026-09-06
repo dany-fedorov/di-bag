@@ -50,29 +50,29 @@ fromTokens([token], (one, two: number) => two);
 const provider = fromTokens([token], value => value.value);
 // diagnostic: not assignable
 const erased: Provider<() => number> = provider;
-// diagnostic: token contracts require token graph composition
+// diagnostic: missing factories
 DiBag.begin().add({ provider }).end();
-// diagnostic: token contracts require token graph composition
-DiBag.module().add({ provider }).exports(['provider']);
-// diagnostic: token contracts require token graph composition
-DiBag.begin().add({ value: () => 1 }).replace('value', provider);
+// diagnostic: missing factories
+DiBag.begin().install(DiBag.module().add({ provider }).exports(['provider'])).end();
+// diagnostic: missing factories
+DiBag.begin().add({ value: () => 1 }).replace('value', provider).end();
 // diagnostic: not assignable
 withTokenBinding(token, () => 'wrong');
 declare const erasedProvider: ProviderBase;
 // diagnostic: factory dependencies must be finite
 DiBag.begin().add({ erasedProvider });
-// diagnostic: does not exist
-DiBag.fromTokens([token], () => 1);
+// diagnostic: finite tuple
+DiBag.fromTokens([token] as typeof token[], () => 1);
 // diagnostic: finite tuple
 fromTokens<readonly TokenBase[], () => number>([token], () => 1);
 declare const graphErased: Provider<() => number, {}, readonly [], import('../../../src/token-types').OpaqueGraph>;
-// diagnostic: token contracts require token graph composition
+// diagnostic: incompatible or opaque
 DiBag.begin().add({ graphErased });
 // diagnostic: not assignable
 DiBag.begin().add({ value: () => 1 }).end().fork(['value'], { value: provider });
 const bound = withTokenBinding(token, () => ({ value: 1 }));
-// diagnostic: token contracts require token graph composition
-DiBag.begin().add({ bound });
+// diagnostic: duplicates
+DiBag.begin().bind(token, bound).bind(token, bound);
 // diagnostic: not assignable
 fromTokens([token], (value: string) => value);
 // diagnostic: not assignable

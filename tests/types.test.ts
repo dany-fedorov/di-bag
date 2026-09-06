@@ -4,6 +4,16 @@ import { resolve } from 'node:path';
 import ts from 'typescript';
 import { diagnostics } from './compiler';
 
+test('token modules preserve exact cross-file contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/token-modules/consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('public token composition preserves exact outputs and frames', () => {
+  expect(diagnostics(resolve(__dirname, 'types/tokens.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('token contracts preserve exact identities and provider graphs', () => {
   expect(diagnostics(resolve(__dirname, 'types/token-contracts.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

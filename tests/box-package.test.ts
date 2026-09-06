@@ -65,12 +65,9 @@ for (const mode of ['commonjs', 'module'] as const) {
         const raw = new ValBox.WithValue.WithMetadata(payload, { owner: 'real' }, 'db');
         const esm = await import('di-bag/sas-box');
         const cjs = (await import('node:module')).createRequire(process.cwd() + '/consumer.cjs');
-        const internal = cjs('node:path').dirname(cjs.resolve('di-bag'));
-        const { fromTokens } = cjs(internal + '/provider.js');
-        const { Runtime, BindingGraph } = cjs(internal + '/runtime.js');
         const tokenKey = Symbol('real-box'); const selected = cjs('di-bag').DiBag.token(tokenKey).of();
-        const tokenProvider = fromValBox(esm.fromSasBox(fromTokens([selected], value => SasBox.fromValue(value)), { mode: 'sync' }));
-        const tokenRuntime = new Runtime(new BindingGraph().withPublicBinding(tokenKey, () => raw).withPublicRegistrations({ tokenProvider }));
+        const tokenProvider = fromValBox(esm.fromSasBox(DiBag.fromTokens([selected], value => SasBox.fromValue(value)), { mode: 'sync' }));
+        const tokenRuntime = cjs('di-bag').DiBag.begin().install(DiBag.module().bind(selected, () => raw).add({ tokenProvider }).exports(['tokenProvider'])).end();
         const tokenIdentity = tokenRuntime.resolve('tokenProvider') === payload;
         await tokenRuntime.close();
         const provider = fromValBox(fromSasBox(() => SasBox.fromValue(raw), { mode: 'sync' }));
@@ -89,7 +86,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       frames: [{ present: true, value: { kind: 'val-box', metadata: { present: true, value: { owner: 'real' } }, alias: 'db' } }], events: ['payload'], tokenIdentity: true });
   });
 
-  for (const fixture of ['token-contracts.ts', 'negative/token-contracts.ts', 'box-adapters.ts', 'negative/box-adapters.ts', 'negative/provider-unions.ts', 'real']) {
+  for (const fixture of ['tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'box-adapters.ts', 'negative/box-adapters.ts', 'negative/provider-unions.ts', 'real']) {
     test(`installed ${mode} declaration contracts: ${fixture}`, () => {
       const path = join(consumer, `consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const assertions = `type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;`;
@@ -110,7 +107,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         // @ts-expect-error Async boxes have no sync route.
         fromSasBox(() => SasBox.fromAsync(async () => 7), { mode: 'sync' });
       ` : readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
-        .replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types)'/g, "from './node_modules/di-bag/dist/$1.js'")
+        .replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types|module-types)'/g, "from './node_modules/di-bag/dist/$1.js'")
         .replace(/import\('(?:\.\.\/)+src\/token-types'\)/g, "import('./node_modules/di-bag/dist/token-types.js')")
         .replace("import('../../src')", "import('di-bag')")
         .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)

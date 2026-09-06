@@ -55,7 +55,7 @@ type Bound<G> = G extends TokenGraph<readonly TokenBase[], infer B> ? B : TokenB
 export type ProviderTokenNeeds<R> = RequiredTokens<ProviderGraph<R>>;
 export type BoundToken<R> = Bound<ProviderGraph<R>>;
 
-/** Internal checked positional adapter; the public entry is added with graph composition. */
+/** Select declared token services as positional arguments without awaiting them. */
 export function fromTokens<const T extends readonly TokenBase[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => unknown>(
   tokens: T & TokenTupleAdmission<T>, callback: F,
 ): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], TokenGraph<T>> {

@@ -29,6 +29,46 @@ beforeAll(async () => {
   ]);
 });
 
+test('feature library inferred token exports survive declaration emission', () => {
+  const featurePath = resolve(__dirname, 'types/token-modules/feature.ts');
+  const consumerPath = resolve(__dirname, 'types/token-modules/consumer.ts');
+  const output = resolve(__dirname, 'generated-token-feature');
+  const options: ts.CompilerOptions = {
+    strict: true, declaration: true, emitDeclarationOnly: true,
+    noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true,
+    types: [], target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext,
+    rootDir: resolve(__dirname, 'types/token-modules'), outDir: output,
+  };
+  const declarations = new Map<string, string>();
+  const producerHost = ts.createCompilerHost(options);
+  // Keep producer and consumer text unchanged; redirect only the package edge.
+  producerHost.resolveModuleNames = (names, containingFile) => names.map(name =>
+    name === '../../../src' ? { resolvedFileName: resolve(root, 'dist/index.d.ts'), extension: ts.Extension.Dts }
+      : ts.resolveModuleName(name, containingFile, options, producerHost).resolvedModule);
+  producerHost.writeFile = (name, text) => { declarations.set(name, text); };
+  const producer = ts.createProgram([featurePath], options, producerHost);
+  const emitted = producer.emit();
+  expect([...ts.getPreEmitDiagnostics(producer), ...emitted.diagnostics].map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+  const declaration = declarations.get(resolve(output, 'feature.d.ts'));
+  expect(declaration).toBeDefined();
+  const consumerOptions = { ...options, noEmit: true, emitDeclarationOnly: false, rootDir: root };
+  const consumerHost = ts.createCompilerHost(consumerOptions);
+  consumerHost.resolveModuleNames = (names, containingFile) => names.map(name =>
+    name === '../../../src' ? { resolvedFileName: resolve(root, 'dist/index.d.ts'), extension: ts.Extension.Dts }
+      : ts.resolveModuleName(name, containingFile, consumerOptions, consumerHost).resolvedModule);
+  const readConsumer = consumerHost.getSourceFile.bind(consumerHost);
+  const declarationPath = featurePath.replace(/\.ts$/, '.d.ts');
+  const exists = consumerHost.fileExists.bind(consumerHost);
+  consumerHost.fileExists = name => name === featurePath ? false : name === declarationPath ? true : exists(name);
+  consumerHost.getSourceFile = (name, version, onError, fresh) => name === featurePath ? undefined
+    : name === declarationPath ? ts.createSourceFile(name, declaration!, version, true)
+    : readConsumer(name, version, onError, fresh);
+  const consumer = ts.createProgram([consumerPath], consumerOptions, consumerHost);
+  expect(consumer.getSourceFile(featurePath)).toBeUndefined();
+  expect(consumer.getSourceFile(declarationPath)).toBeDefined();
+  expect(ts.getPreEmitDiagnostics(consumer).map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 for (const mode of ['commonjs', 'module'] as const) {
   test(`Node ${mode} consumers can resolve and dispose through the public package`, async () => {
     const load =
@@ -68,14 +108,11 @@ for (const mode of ['commonjs', 'module'] as const) {
         await mappedBag.close();
         const cjs = (await import('node:module')).createRequire(process.cwd() + '/consumer.cjs')('di-bag');
         const esm = await import('di-bag');
-        const require = (await import('node:module')).createRequire(process.cwd() + '/consumer.cjs');
-        const internal = require('node:path').dirname(require.resolve('di-bag'));
-        const { fromTokens } = require(internal + '/provider.js');
-        const { Runtime, BindingGraph } = require(internal + '/runtime.js');
         const tokenKey = Symbol('package');
         const selected = cjs.DiBag.token(tokenKey).of();
-        const tokenRuntime = new Runtime(new BindingGraph().withPublicBinding(tokenKey, () => raw)
-          .withPublicRegistrations({ value: esm.DiBag.mapSync(fromTokens([selected], value => value), value => value) }));
+        const tokenFeature = esm.DiBag.module().bind(selected, () => raw)
+          .add({ value: esm.DiBag.mapSync(esm.DiBag.fromTokens([selected], value => value), value => value) }).exports([selected, 'value']);
+        const tokenRuntime = cjs.DiBag.begin().install(tokenFeature).end();
         const tokenIdentity = tokenRuntime.resolve('value') === raw;
         await tokenRuntime.close();
         console.log(JSON.stringify({ answer, disposed,
@@ -275,7 +312,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     ).toEqual([]);
   });
 
-  for (const fixture of ['token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
+  for (const fixture of ['tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
     test(`TypeScript ${mode} emitted provider contracts: ${fixture}`, () => {
       const path = resolve(__dirname, `provider-consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const source = readFileSync(resolve(__dirname, 'types', fixture), 'utf8')

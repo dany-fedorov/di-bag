@@ -4,7 +4,7 @@ import type {
   Registrations,
 } from './registration';
 import type { ProviderContext, ProviderNeeds, ProviderOutput, ProviderGraph } from './provider';
-import type { TokenGraph } from './token-types';
+import type { InvalidGraphs, MissingTokens, SelectionKey, TokenMember, ValidToken, TokenGraph } from './token-types';
 
 export type Needs<R extends Registration> = ProviderNeeds<R>;
 
@@ -13,11 +13,11 @@ export type Provided<R extends Registrations> = {
 };
 
 // Keep builder history flat; reconstruct a map only at graph-check boundaries.
-export type Entry = { key: string; registration: Registration };
+export type Entry = { key: string | symbol; registration: Registration };
 
 export type Entries<R extends Registrations> = {
-  [K in keyof R & string]: { key: K; registration: R[K] };
-}[keyof R & string];
+  [K in keyof R & (string | symbol)]: { key: K; registration: R[K] };
+}[keyof R & (string | symbol)];
 
 export type From<E extends Entry> = {
   [P in E as P['key']]: P['registration'];
@@ -72,15 +72,15 @@ type WrongShapes<R extends Registrations> = {
 }[keyof R];
 
 export type Checked<R extends Registrations> = [
-  InvalidNeeds<R> | NonFiniteKeys<R> | Exclude<keyof R, string>,
+  InvalidNeeds<R> | NonFiniteKeys<R> | Extract<keyof R, number>,
 ] extends [never]
-  ? [UnsupportedTokenGraphs<R>] extends [never] ? [WrongShapes<R>] extends [never]
+  ? [InvalidGraphs<R>] extends [never] ? [WrongShapes<R>] extends [never]
     ? unknown
     : Unsatisfied<
         'a dependency has the wrong shape',
         { tokens: WrongShapes<R> }
       >
-    : Unsatisfied<'token contracts require token graph composition', { tokens: UnsupportedTokenGraphs<R> }>
+    : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<R> }>
   : Unsatisfied<
       'factory dependencies must be finite string-keyed objects',
       {
@@ -88,24 +88,21 @@ export type Checked<R extends Registrations> = [
       }
     >;
 
-// Task 2 adds checked token composition. Until then named graph admission must
-// not turn a retained token requirement or erased contract into an empty graph.
-type UnsupportedTokenGraphs<R extends Registrations> = {
-  [K in keyof R]: [ProviderGraph<R[K]>] extends [TokenGraph] ? never : K;
-}[keyof R];
+export type NamedAdmission<R> = [NonFiniteKeys<R> | Exclude<keyof R, string>] extends [never] ? unknown
+  : Unsatisfied<'factory dependencies must be finite string-keyed objects', {}>;
 
 type RequiredOf<R extends Registrations> = {
   [K in keyof R]: keyof Needs<R[K]>;
 }[keyof R];
 
 export type Complete<R extends Registrations> = [
-  Exclude<RequiredOf<R>, keyof R>,
+  Exclude<RequiredOf<R>, keyof R> | MissingTokens<R>,
 ] extends [never]
-  ? [UnsupportedTokenGraphs<R>] extends [never] ? unknown
-    : Unsatisfied<'token contracts require token graph composition', { tokens: UnsupportedTokenGraphs<R> }>
+  ? [InvalidGraphs<R>] extends [never] ? unknown
+    : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<R> }>
   : Unsatisfied<
       'missing factories',
-      { missing: Exclude<RequiredOf<R>, keyof R> }
+      { missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<R> }
     >;
 
 type BadOverrides<F extends Registrations, O extends Registrations> = {
@@ -180,8 +177,9 @@ type InvalidReplacement<K> = Unsatisfied<
 // Validate each tuple element, not K[number]: a multi-key tuple is valid even
 // though the union of all of its elements is not itself a singleton.
 type InvalidElements<K extends readonly unknown[]> = {
-  [I in keyof K]-?: Singleton<K[I]> extends true ? never : I;
+  [I in keyof K]-?: Singleton<K[I]> extends true ? never : ValidToken<K[I]> extends true ? never : I;
 }[number];
+type InvalidMembers<R extends Registrations, T> = T extends string ? never : unknown extends TokenMember<R, T> ? never : T;
 
 export type Selection<R extends Registrations, K extends readonly unknown[], Operation extends string = 'fork'> =
   true extends IsUnion<K>
@@ -190,11 +188,11 @@ export type Selection<R extends Registrations, K extends readonly unknown[], Ope
       ? InvalidSelection<Operation>
       : K extends Required<K>
         ? [InvalidElements<K>] extends [never]
-          ? [Exclude<K[number], keyof R>] extends [never]
+          ? [Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>] extends [never]
             ? unknown
             : Unsatisfied<
                 `${Operation} accepts existing tokens only`,
-                { extra: Exclude<K[number], keyof R> }
+                { extra: Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]> }
               >
           : InvalidSelection<Operation>
         : InvalidSelection<Operation>;
@@ -205,7 +203,7 @@ type InvalidSelection<Operation extends string> = Unsatisfied<
 >;
 
 export type Selected<K extends readonly unknown[], O> = {
-  [P in Extract<K[number], keyof O>]: Extract<O[P], Registration>;
+  [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], Registration>;
 };
 
 // A graph-compatible bound gives context-sensitive factories a usable first
@@ -215,7 +213,7 @@ export type ForkContext<
   K extends readonly unknown[],
   O,
 > = {
-  [P in Extract<K[number], keyof R>]:
+  [P in Extract<SelectionKey<K[number]>, keyof R>]:
     | ((
         this: void,
         deps: Provided<Merge<R, Selected<K, O>>>,
@@ -227,6 +225,7 @@ export type ForkContext<
         ) => Provided<R>[P]
       >
     | ProviderContext<
-        (this: void, deps: Provided<Merge<R, Selected<K, O>>>) => Provided<R>[P], TokenGraph
+        (this: void, deps: Provided<Merge<R, Selected<K, O>>>) => Provided<R>[P],
+        P extends keyof O ? ProviderGraph<Extract<O[P], Registration>> : TokenGraph
       >;
 };

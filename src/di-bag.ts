@@ -4,10 +4,12 @@ import { BindingGraph, Runtime } from './runtime';
 import { beginModule, moduleGraph } from './module';
 import type { Module } from './module';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
-import { withMetadata, mapSync, mapAsync } from './provider';
+import { withMetadata, mapSync, mapAsync, fromTokens, withTokenBinding } from './provider';
 import type { ProviderMetadata, ProviderAcquisitionMetadata } from './provider';
 import type { InspectionSnapshot } from './inspection';
-import { token } from './tokens';
+import { token, readTokenKey } from './tokens';
+import type { TokenBase, TokenKey } from './tokens';
+import type { Binding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey, ReboundSelection } from './token-types';
 import type {
   Checked,
   Complete,
@@ -23,6 +25,7 @@ import type {
   ReplacementOutput,
   Selected,
   Selection,
+  NamedAdmission,
 } from './types';
 
 // A public member under an unexported symbol retains its type in .d.ts output;
@@ -40,13 +43,15 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
     this.#runtime = new Runtime(graph);
   }
 
-  resolve<K extends keyof R & string>(token: K): Provided<R>[K] {
-    return this.#runtime.resolve(token) as Provided<R>[K];
+  resolve<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): Provided<R>[SelectionKey<K> & keyof R];
+  resolve(token: unknown): unknown {
+    return this.#runtime.resolve(typeof token === 'string' ? token : readTokenKey(token));
   }
 
   /** Inspect descriptions and copied attempt state without resolving a service. */
-  inspect<K extends keyof R & string>(token: K): InspectionSnapshot<ProviderMetadata<R[K]>, ProviderAcquisitionMetadata<R[K]>> {
-    return this.#runtime.inspect(token) as InspectionSnapshot<ProviderMetadata<R[K]>, ProviderAcquisitionMetadata<R[K]>>;
+  inspect<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): InspectionSnapshot<ProviderMetadata<R[SelectionKey<K> & keyof R]>, ProviderAcquisitionMetadata<R[SelectionKey<K> & keyof R]>>;
+  inspect(token: unknown): unknown {
+    return this.#runtime.inspect(typeof token === 'string' ? token : readTokenKey(token));
   }
 
   /** Replace existing tokens; the fork creates and owns its own instances. */
@@ -61,13 +66,13 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
     keys: K & Selection<R, K>,
     overrides: O &
       object &
-      Record<Extract<K[number], string>, Registration> &
+      Record<SelectionKey<K[number]>, Registration> &
       Overrides<R, Selected<K, O>> &
-      Checked<Merge<R, Selected<K, O>>> &
-      Complete<Merge<R, Selected<K, O>>> &
-      CheckedConstraints<C, Provided<Merge<R, Selected<K, O>>>> &
-      CompleteConstraints<C, Provided<Merge<R, Selected<K, O>>>>,
-  ): Bag<Merge<R, Selected<K, O>>, C>;
+      Checked<Merge<R, ReboundSelection<R, Selected<K, O>>>> &
+      Complete<Merge<R, ReboundSelection<R, Selected<K, O>>>> &
+      CheckedConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>> &
+      CompleteConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>>,
+  ): Bag<Merge<R, ReboundSelection<R, Selected<K, O>>>, C>;
   fork(keys?: readonly unknown[], overrides?: object): unknown {
     this.#runtime.assertOpen();
     if (keys === undefined && overrides === undefined) {
@@ -87,22 +92,22 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
     for (let index = 0; index < length; index++) {
       selectedKeys[index] = keys[index];
     }
-    for (const token of selectedKeys) {
-      if (typeof token !== 'string') throw new Error('fork keys must be strings');
+    const publicKeys = selectedKeys.map(value => typeof value === 'string' ? value : readTokenKey(value));
+    for (const token of publicKeys) {
       if (!this.#graph.hasPublic(token)) {
-        throw new Error(`fork accepts existing tokens only: ${token}`);
+        throw new Error(`fork accepts existing tokens only: ${String(token)}`);
       }
       if (!Object.hasOwn(overrides, token)) {
-        throw new Error(`missing override: ${token}`);
+        throw new Error(`missing override: ${String(token)}`);
       }
     }
-    const selected: Registrations = Object.create(null);
-    for (const token of selectedKeys as string[]) {
+    let graph = this.#graph;
+    for (const token of publicKeys) {
       const registration: unknown = Reflect.get(overrides, token);
       normalize(registration);
-      selected[token] = registration as Registration;
+      graph = graph.withPublicBinding(token, registration as Registration);
     }
-    return new Bag(this.#graph.withPublicRegistrations(selected));
+    return new Bag(graph);
   }
 
   /** Drain acquisitions, then dispose dependents before dependencies, once. */
@@ -121,12 +126,23 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
 
   // Infer actual keys before checking context-sensitive method-returning factories.
   add<N extends { [K in keyof N]: Registration }>(
-    more: N & Registrations & Introduces<From<E>, N> & Checked<Merge<From<E>, N>> &
-      CheckedConstraints<C, Provided<Merge<From<E>, N>>>,
+    more: N & Registrations & NamedAdmission<N> & Introduces<From<E>, N> & Checked<Merge<From<E>, N>> &
+      CheckedConstraints<C, Merge<From<E>, N>>,
   ): Builder<E | Entries<N>, C> {
     const snapshot = snapshotAdd(more, key => this.#graph.hasPublic(key));
     // The snapshot retains every checked own registration, including hidden keys.
     return new Builder(this.#graph.withPublicRegistrations(snapshot));
+  }
+
+  bind<T extends TokenBase, V extends Registration>(
+    token: T & TokenTupleAdmission<readonly [T]> & Introduces<From<E>, Record<TokenKey<T>, V>>,
+    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
+      Checked<Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>> &
+      CheckedConstraints<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
+  ): Builder<E | { key: TokenKey<T>; registration: Binding<T, V> }, C> {
+    const key = readTokenKey(token);
+    if (this.#graph.hasPublic(key)) throw new Error(`duplicate registration: ${String(key)}`);
+    return new Builder(this.#graph.withPublicBinding(key, withTokenBinding<T, V>(token, registration)));
   }
 
   // Give the preliminary callable context real empty needs and a consumer-safe
@@ -135,33 +151,37 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   replace<const K extends string, V extends ((this: void) => ReplacementOutput<From<E>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<From<E>, K, C>>>(
     key: K & ReplacementKey<From<E>, K>,
     registration: V & (Factory | DisposableFactory<Factory>) & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> &
-      CheckedConstraints<C, Provided<Merge<From<E>, Record<K, NoInfer<V>>>>>,
+      CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
   ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
   replace<const K extends string, V extends Registration>(
     key: K & ReplacementKey<From<E>, K>,
     registration: V & Registration & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> &
-      CheckedConstraints<C, Provided<Merge<From<E>, Record<K, NoInfer<V>>>>>,
+      CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
   ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
-  replace<const K extends string, V extends Registration>(
-    key: K,
-    registration: V,
-  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C> {
-    if (typeof key !== 'string' || !this.#graph.hasPublic(key)) {
+  replace<T extends TokenBase, V extends Registration>(
+    token: T & TokenMember<From<E>, T>,
+    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
+      Checked<Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>> &
+      CheckedConstraints<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
+  ): Builder<Exclude<E, { key: TokenKey<T> }> | { key: TokenKey<T>; registration: Binding<T, V> }, C>;
+  replace(selection: string | TokenBase, registration: Registration): unknown {
+    const key = typeof selection === 'string' ? selection : readTokenKey(selection);
+    if (!this.#graph.hasPublic(key)) {
       throw new Error(`replace accepts existing tokens only: ${String(key)}`);
     }
     normalize(registration);
-    return new Builder(this.#graph.withPublicRegistrations({ [key]: registration }));
+    return new Builder(this.#graph.withPublicBinding(key, registration));
   }
 
   install<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(
     module: Module<P, R, MC, D> & Introduces<From<E>, D> &
       Checked<Merge<From<E>, D>> &
-      CheckedConstraints<C | MC, Provided<Merge<From<E>, D>>>,
+      CheckedConstraints<C | MC, Merge<From<E>, D>>,
   ): Builder<E | Entries<D>, C | MC> {
     return new Builder(this.#graph.withInstallation(moduleGraph(module)));
   }
 
-  end(this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, Provided<From<E>>>): Bag<From<E>, C> {
+  end(this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, From<E>>): Bag<From<E>, C> {
     return new Bag(this.#graph);
   }
 }
@@ -170,6 +190,7 @@ export type { Bag };
 
 export const DiBag: {
   token: typeof token;
+  fromTokens: typeof fromTokens;
   begin: () => Builder<never>;
   module: typeof beginModule;
   withDisposal: typeof withDisposal;
@@ -178,6 +199,7 @@ export const DiBag: {
   mapAsync: typeof mapAsync;
 } = {
   token,
+  fromTokens,
   begin: (): Builder<never> => new Builder(new BindingGraph()),
   module: beginModule,
   withDisposal,
