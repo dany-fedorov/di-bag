@@ -44,6 +44,62 @@ Factories may be declared inline or separately, and returned services may use
 ordinary object methods. `.add()`, `.replace()`, and `.fork()` preserve their inferred
 return types without needing a separate declaration or return-type annotation.
 
+## Reuse named modules
+
+```ts
+const feature = DiBag.module().add({
+  connection: () => ({ open: true }),
+  service: ({ connection, logger }: {
+    connection: { open: boolean }; logger: { log(message: string): void };
+  }) => ({ read() { logger.log('read'); return connection.open; } }),
+  handler: ({ service }: { service: { read(): boolean } }) => () => service.read(),
+}).exports(['service', 'handler']);
+
+const root = DiBag.begin().install(feature).add({
+  logger: () => ({ log(message: string) { console.log(message); } }),
+}).end();
+```
+
+`DiBag.module()` is an immutable, non-resolving builder with checked `add` and
+singleton `replace`. `.exports(keys)` seals a nominal module. Only the selected
+names become public slots; `connection` stays private to the installation.
+Use an inline tuple or `as const` tuple with individually known names. Empty
+exports are allowed. All local providers retain their external requirements,
+including unexported providers that no exported factory currently reaches.
+Later host additions or other modules can satisfy forward requirements before
+`.end()`. Duplicate exports reject before changing either input.
+
+`feature.rename('service', 'otherService')` creates a new export view without
+changing factory parameter names. Rename every exported name to install the
+same module twice in one host. Each installation allocates independent private
+bindings and owns its own acquired resources. A new public name may equal a
+private name; the original private and exported identities stay distinct.
+Unrelated external requirement names do not change during renaming.
+
+Host `replace` and bag `fork` overrides are visible to the module's own consumers
+of exported services, including private consumers. Their dependency contracts
+remain checked through installation, renaming, replacement, and finalization.
+Forks start with fresh instances and ownership for the entire graph, including
+private module providers; close each fork separately.
+
+`ModuleProvides<M>` and `ModuleRequires<M>` expose readonly views of a module's
+exports and external requirements. Module values are invariant and cannot be
+constructed from descriptors or spreads. Inferred modules also retain the
+private consumers' requirements of replaceable public slots. Use `typeof feature`
+or a function's `ReturnType` when annotating one of these modules or its installed
+builder/bag. The optional third `Module<P, R, C>` parameter and second `Bag<R, C>`
+parameter retain these contracts; their empty defaults cannot erase them.
+Consequently `Module<P, R>` and plain `Bag<R>` annotations reject values carrying
+nonempty retained constraints. Plain bags can still use `Bag<R>`.
+
+When an async fork override needs a new method provided by another selected
+override, declare the override object before passing it to `fork`. This lets
+TypeScript infer both factories before checking their shared dependency view;
+the Promise-valued result remains exact and no cast is needed.
+
+Run `bun run examples/modules.ts` for a runnable two-module composition with
+cleanup and an exported service override.
+
 ## Async edges are explicit
 
 ```ts

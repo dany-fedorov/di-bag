@@ -41,12 +41,14 @@ for (const mode of ['commonjs', 'module'] as const) {
       `${load}
       (async () => {
         let disposed;
-        const bag = DiBag.begin().add({
+        const feature = DiBag.module().add({
           answer: DiBag.withDisposal(() => 42, value => { disposed = value; }),
-        }).end();
-        const answer = bag.resolve('answer');
+          privateValue: () => 7,
+        }).exports(['answer']);
+        const bag = DiBag.begin().install(feature.rename('answer', 'result')).end();
+        const answer = bag.resolve('result');
         await bag.close();
-        console.log(JSON.stringify({ answer, disposed, publiclyConstructible: Object.hasOwn(packageExports, 'Bag') }));
+        console.log(JSON.stringify({ answer, disposed, publiclyConstructible: Object.hasOwn(packageExports, 'Bag') || Object.hasOwn(packageExports, 'Module') }));
       })().catch(error => { console.error(error); process.exitCode = 1; });
     `,
     ]);
@@ -58,7 +60,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       __dirname,
       mode === 'commonjs' ? 'consumer.cts' : 'consumer.mts',
     );
-    const source = `import { DiBag, type Bag } from 'di-bag';
+    const source = `import { DiBag, type Bag, type Module, type ModuleProvides, type ModuleRequires } from 'di-bag';
       const bag = DiBag.begin().add({
         value: DiBag.withDisposal(async () => 42, value => { const n: number = value; void n; }),
         clock: () => ({ now() { return 42; } }),
@@ -81,6 +83,60 @@ for (const mode of ['commonjs', 'module'] as const) {
       type Clock = Assert<Equal<typeof clock, { now(): number }>>;
       const fresh: typeof bag = bag.fork();
       const typed: Bag<{ clock: () => { now(): number } }> = replaced;
+      const feature = DiBag.module().add({
+        clock: () => ({ now() { return Number(42); }, extra() { return true; } }),
+        privateReader: ({ clock, logger }: { clock: { extra(): boolean }; logger: { log(message: string): void } }) => clock.extra(),
+        read: ({ privateReader }: { privateReader: boolean }) => ({ read() { return privateReader; } }),
+        promised: async () => 7,
+      }).exports(['clock', 'read', 'promised']);
+      type Public = ModuleProvides<typeof feature>;
+      type Required = ModuleRequires<typeof feature>;
+      type RequiredKeys = Assert<Equal<keyof Required, 'logger'>>;
+      type PublicPromise = Assert<Equal<Public['promised'], Promise<number>>>;
+      const annotated: typeof feature = feature;
+      const installed = DiBag.begin().install(annotated).add({ logger: () => ({ log(_message: string) {} }) });
+      const composed = installed.end();
+      const child = composed.fork(['clock'], { clock: () => ({ now() { return 7; }, extra() { return false; } }) });
+      const result = child.resolve('read').read();
+      type Result = Assert<Equal<typeof result, boolean>>;
+      const modulePromise: Promise<number> = child.resolve('promised');
+      const asyncOverrides = {
+        clock: () => ({ now() { return Number(7); }, extra() { return true; }, richer() { return 9; } }),
+        promised: async ({ clock }: { clock: { richer(): number } }) => clock.richer(),
+      };
+      const asyncFork = composed.fork(['clock', 'promised'], asyncOverrides);
+      const asyncPromise = asyncFork.resolve('promised');
+      type AsyncPromise = Assert<Equal<typeof asyncPromise, Promise<number>>>;
+      // @ts-expect-error Private providers are not public slots.
+      child.resolve('privateReader');
+      // @ts-expect-error All local provider requirements survive sealing.
+      DiBag.begin().install(feature).end();
+      // @ts-expect-error Private consumers survive host replacement.
+      installed.replace('clock', () => ({ now() { return 7; } }));
+      // @ts-expect-error A visible contract annotation cannot erase latent constraints.
+      const erasedModule: Module<Public, Required> = feature;
+      // @ts-expect-error Plain Bag annotations cannot erase installed constraints.
+      const erasedBag: Bag<{ clock: () => Public['clock']; read: () => Public['read']; promised: () => Public['promised']; logger: () => Required['logger'] }> = composed;
+      const plainBuilder = DiBag.begin().add({
+        clock: (): Public['clock'] => ({ now() { return 1; }, extra() { return true; } }),
+        read: (): Public['read'] => ({ read() { return true; } }),
+        promised: async () => 7,
+        logger: (): Required['logger'] => ({ log(_message: string) {} }),
+      });
+      // @ts-expect-error Builder annotation cannot erase installed constraints.
+      const erasedBuilder: typeof plainBuilder = installed;
+      const selfContained = DiBag.module().add({ a: () => 1, b: () => 2 }).exports(['a', 'b']);
+      // @ts-expect-error The provided contract is invariant even without retained requirements.
+      const fewerProvides: Module<{ a: number }, {}> = selfContained;
+      // @ts-expect-error Structural copies lose module identity.
+      DiBag.begin().install({ ...feature });
+      // @ts-expect-error Export selections require a finite tuple.
+      DiBag.module().add({ value: () => 1 }).exports(['value'] as string[]);
+      // @ts-expect-error Renames cannot hide another exported slot.
+      feature.rename('clock', 'read');
+      const renamed = DiBag.begin().install(feature.rename('clock', 'other')).add({ logger: () => ({ log(_message: string) {} }) });
+      // @ts-expect-error Renamed public references retain their consumer constraints.
+      renamed.replace('other', () => ({ now() { return 7; } }));
       void [value, stamp, fresh, typed, scoped.close(), bag.close()];`;
     const options: ts.CompilerOptions = {
       strict: true,
@@ -107,10 +163,10 @@ for (const mode of ['commonjs', 'module'] as const) {
   });
 }
 
-for (const specifier of ['di-bag', '../src/di-bag']) {
-  test(`unchecked construction is rejected through ${specifier}`, () => {
+for (const [name, specifier] of [['Bag', 'di-bag'], ['Bag', '../src/di-bag'], ['Module', 'di-bag'], ['Module', '../src/module']]) {
+  test(`unchecked ${name} construction is rejected through ${specifier}`, () => {
     const path = resolve(__dirname, 'unchecked-consumer.cts');
-    const source = `import { Bag } from '${specifier}'; new Bag({ value: () => 42 });`;
+    const source = `import { ${name} } from '${specifier}'; new ${name}({ value: () => 42 });`;
     const options: ts.CompilerOptions = {
       strict: true,
       noEmit: true,

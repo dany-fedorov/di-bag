@@ -1,6 +1,9 @@
-import { normalize, withDisposal } from './registration';
+import { normalize, snapshotAdd, withDisposal } from './registration';
 import type { Registration, Registrations } from './registration';
 import { BindingGraph, Runtime } from './runtime';
+import { beginModule, moduleGraph } from './module';
+import type { Module } from './module';
+import type { CheckedConstraints, CompleteConstraints, NeedConstraint, PublicRegistrations } from './module-types';
 import type {
   Checked,
   Complete,
@@ -17,8 +20,13 @@ import type {
   Selection,
 } from './types';
 
+// A public member under an unexported symbol retains its type in .d.ts output;
+// TypeScript strips the types of ordinary private fields during declaration emit.
+declare const constraintInvariant: unique symbol;
+
 /** A lazy graph with independent memoization and resource ownership. */
-class Bag<R extends Registrations> {
+class Bag<R extends Registrations, C extends NeedConstraint = never> {
+  declare readonly [constraintInvariant]: (value: C) => C;
   readonly #graph: BindingGraph;
   readonly #runtime: Runtime;
 
@@ -32,7 +40,7 @@ class Bag<R extends Registrations> {
   }
 
   /** Replace existing tokens; the fork creates and owns its own instances. */
-  fork(): Bag<R>;
+  fork(): Bag<R, C>;
   // The graph-aware bound keeps the first inference pass applicable and requires
   // selected registrations even with explicit generics. The argument's Record
   // supplies callable context; unselected keys stay outside checks and results.
@@ -46,9 +54,11 @@ class Bag<R extends Registrations> {
       Record<Extract<K[number], string>, Registration> &
       Overrides<R, Selected<K, O>> &
       Checked<Merge<R, Selected<K, O>>> &
-      Complete<Merge<R, Selected<K, O>>>,
-  ): Bag<Merge<R, Selected<K, O>>>;
-  fork(keys?: readonly unknown[], overrides?: object): Bag<Registrations> {
+      Complete<Merge<R, Selected<K, O>>> &
+      CheckedConstraints<C, Provided<Merge<R, Selected<K, O>>>> &
+      CompleteConstraints<C, Provided<Merge<R, Selected<K, O>>>>,
+  ): Bag<Merge<R, Selected<K, O>>, C>;
+  fork(keys?: readonly unknown[], overrides?: object): Bag<Registrations, C> {
     this.#runtime.assertOpen();
     if (keys === undefined && overrides === undefined) {
       return new Bag(this.#graph);
@@ -91,7 +101,8 @@ class Bag<R extends Registrations> {
   }
 }
 
-class Builder<E extends Entry> {
+class Builder<E extends Entry, C extends NeedConstraint = never> {
+  declare readonly [constraintInvariant]: (value: C) => C;
   readonly #graph: BindingGraph;
 
   constructor(graph: BindingGraph) {
@@ -100,32 +111,19 @@ class Builder<E extends Entry> {
 
   // Infer actual keys before checking context-sensitive method-returning factories.
   add<N extends { [K in keyof N]: Registration }>(
-    more: N & Registrations & Introduces<From<E>, N> & Checked<Merge<From<E>, N>>,
-  ): Builder<E | Entries<N>> {
-    if (typeof more !== 'object' || more === null || Array.isArray(more)) {
-      throw new Error('registrations must be a string-keyed object');
-    }
-    const keys = Reflect.ownKeys(more);
-    for (const key of keys) {
-      if (typeof key !== 'string') throw new Error('registration keys must be strings');
-      if (this.#graph.hasPublic(key)) {
-        throw new Error(`duplicate registration: ${key}`);
-      }
-    }
-    const snapshot: Registrations = Object.create(null);
-    for (const key of keys as string[]) {
-      const registration = more[key];
-      normalize(registration);
-      snapshot[key] = registration as Registration;
-    }
+    more: N & Registrations & Introduces<From<E>, N> & Checked<Merge<From<E>, N>> &
+      CheckedConstraints<C, Provided<Merge<From<E>, N>>>,
+  ): Builder<E | Entries<N>, C> {
+    const snapshot = snapshotAdd(more, key => this.#graph.hasPublic(key));
     // The snapshot retains every checked own registration, including hidden keys.
     return new Builder(this.#graph.withPublicRegistrations(snapshot));
   }
 
   replace<const K extends string, V extends Registration>(
     key: K & ReplacementKey<From<E>, K>,
-    registration: V & Registration & Checked<Merge<From<E>, Record<K, NoInfer<V>>>>,
-  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }> {
+    registration: V & Registration & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> &
+      CheckedConstraints<C, Provided<Merge<From<E>, Record<K, NoInfer<V>>>>>,
+  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C> {
     if (typeof key !== 'string' || !this.#graph.hasPublic(key)) {
       throw new Error(`replace accepts existing tokens only: ${String(key)}`);
     }
@@ -133,14 +131,27 @@ class Builder<E extends Entry> {
     return new Builder(this.#graph.withPublicRegistrations({ [key]: registration }));
   }
 
-  end(this: Builder<E> & Complete<From<E>>): Bag<From<E>> {
+  install<P extends object, R extends object, MC extends NeedConstraint>(
+    module: Module<P, R, MC> & Introduces<From<E>, PublicRegistrations<P>> &
+      Checked<Merge<From<E>, PublicRegistrations<P>>> &
+      CheckedConstraints<C | MC, Provided<Merge<From<E>, PublicRegistrations<P>>>>,
+  ): Builder<E | Entries<PublicRegistrations<P>>, C | MC> {
+    return new Builder(this.#graph.withInstallation(moduleGraph(module)));
+  }
+
+  end(this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, Provided<From<E>>>): Bag<From<E>, C> {
     return new Bag(this.#graph);
   }
 }
 
 export type { Bag };
 
-export const DiBag = {
+export const DiBag: {
+  begin: () => Builder<never>;
+  module: typeof beginModule;
+  withDisposal: typeof withDisposal;
+} = {
   begin: (): Builder<never> => new Builder(new BindingGraph()),
+  module: beginModule,
   withDisposal,
 };

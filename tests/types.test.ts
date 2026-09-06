@@ -4,6 +4,11 @@ import { resolve } from 'node:path';
 import ts from 'typescript';
 import { diagnostics } from './compiler';
 
+test('named modules preserve contracts across a file boundary', () => {
+  expect(diagnostics(resolve(__dirname, 'types/modules/consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('valid composition preserves inferred values and explicit promise edges', () => {
   const errors = diagnostics(resolve(__dirname, 'types/positive.ts'));
   expect(

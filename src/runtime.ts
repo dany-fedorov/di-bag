@@ -80,6 +80,17 @@ export class BindingGraph {
     }
     return new BindingGraph({ bindings, publicSlots });
   }
+
+  /** Install disjoint public slots atomically, retaining lexical private refs. */
+  withInstallation(description: GraphDescription): BindingGraph {
+    for (const key of description.publicSlots.keys()) {
+      if (this.#publicSlots.has(key)) throw new Error(`duplicate registration: ${key}`);
+    }
+    return new BindingGraph({
+      bindings: new Map([...this.#bindings, ...description.bindings]),
+      publicSlots: new Map([...this.#publicSlots, ...description.publicSlots]),
+    });
+  }
 }
 
 type Cleanup = () => void | Promise<void>;

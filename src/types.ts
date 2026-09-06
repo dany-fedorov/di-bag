@@ -11,7 +11,7 @@ type FactoryOf<R extends Registration> = R extends Factory
     ? F
     : never;
 
-type Needs<R extends Registration> =
+export type Needs<R extends Registration> =
   Parameters<FactoryOf<R>> extends []
     ? Record<never, never>
     : Exclude<Parameters<FactoryOf<R>>[0], undefined>;
@@ -38,7 +38,7 @@ export type Merge<F extends Registrations, N extends Registrations> = Omit<
   N;
 
 declare const errorBrand: unique symbol;
-type Unsatisfied<Message extends string, Details> = {
+export type Unsatisfied<Message extends string, Details> = {
   readonly [errorBrand]: Message;
 } & Details;
 
@@ -135,7 +135,7 @@ export type Introduces<F extends Registrations, N extends Registrations> = [
       { duplicates: keyof F & keyof N }
     >;
 
-type Singleton<K> = [K] extends [never]
+export type Singleton<K> = [K] extends [never]
   ? false
   : [K] extends [string]
     ? true extends IsUnion<K>
@@ -163,24 +163,24 @@ type InvalidElements<K extends readonly unknown[]> = {
   [I in keyof K]-?: Singleton<K[I]> extends true ? never : I;
 }[number];
 
-export type Selection<R extends Registrations, K extends readonly unknown[]> =
+export type Selection<R extends Registrations, K extends readonly unknown[], Operation extends string = 'fork'> =
   true extends IsUnion<K>
-    ? InvalidSelection
+    ? InvalidSelection<Operation>
     : number extends K['length']
-      ? InvalidSelection
+      ? InvalidSelection<Operation>
       : K extends Required<K>
         ? [InvalidElements<K>] extends [never]
           ? [Exclude<K[number], keyof R>] extends [never]
             ? unknown
             : Unsatisfied<
-                'fork accepts existing tokens only',
+                `${Operation} accepts existing tokens only`,
                 { extra: Exclude<K[number], keyof R> }
               >
-          : InvalidSelection
-        : InvalidSelection;
+          : InvalidSelection<Operation>
+        : InvalidSelection<Operation>;
 
-type InvalidSelection = Unsatisfied<
-  'fork requires a finite tuple of singleton string-literal keys',
+type InvalidSelection<Operation extends string> = Unsatisfied<
+  `${Operation} requires a finite tuple of singleton string-literal keys`,
   { selection: 'use a const tuple with individually known keys' }
 >;
 
