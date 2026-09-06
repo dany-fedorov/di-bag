@@ -8,6 +8,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./sas-box": {
+      "types": "./dist/sas-box.d.ts",
+      "default": "./dist/sas-box.js"
+    },
+    "./val-box": {
+      "types": "./dist/val-box.d.ts",
+      "default": "./dist/val-box.js"
     }
   },
   "files": [

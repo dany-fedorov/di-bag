@@ -7,5 +7,5 @@
     "rootDir": "src",
     "types": []
   },
-  "include": ["src/index.ts"]
+  "include": ["src/index.ts", "src/sas-box.ts", "src/val-box.ts"]
 }

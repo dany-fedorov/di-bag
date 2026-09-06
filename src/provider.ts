@@ -39,9 +39,9 @@ type MappedFactory<R extends Registration, O> = (this: void, deps: ProviderNeeds
 export type RetainedMetadata<R> = ProviderMetadata<R> extends object ? ProviderMetadata<R> : object;
 
 /** Extend an authenticated description without exposing its operations. */
-export function transform<R extends Registration, F extends Factory>(registration: R, operation: ProviderOperation): Provider<F, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>> {
+export function transform<R extends Registration, F extends Factory, A extends readonly unknown[] = ProviderAcquisitionMetadata<R>>(registration: R, operation: ProviderOperation): Provider<F, RetainedMetadata<R>, A> {
   const description = describe(registration);
-  const handle = new Provider<F, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>>();
+  const handle = new Provider<F, RetainedMetadata<R>, A>();
   retainDescription(handle, Object.freeze({ ...description, operations: Object.freeze([...description.operations, Object.freeze(operation)]) }));
   return handle;
 }

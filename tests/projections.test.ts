@@ -330,3 +330,27 @@ test('failed outer projections retain owned values until a pending projector fin
   await bag.close();
   expect(events).toEqual(['use', 'close']);
 });
+
+test('failed exposed acquisition abandons incoming edges while its owned source can acquire the recovered parent', async () => {
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  let pending: Promise<{ name: string }> | undefined;
+  const events: string[] = [];
+  const error = new Error('projection');
+  const source = DiBag.withDisposal((deps: { parent: { name: string } }) => {
+    pending = (async () => { await gate; return { name: deps.parent.name }; })();
+    return pending;
+  }, value => { events.push(value.name); });
+  const bag = DiBag.begin().add({
+    parent: DiBag.withDisposal((deps: { failed: unknown }) => {
+      try { void deps.failed; } catch (cause) { if (cause !== error) throw cause; }
+      return { name: 'parent' };
+    }, () => { events.push('parent disposal'); }),
+    failed: DiBag.mapSync(source, () => { throw error; }),
+  }).end();
+  expect(bag.resolve('parent')).toEqual({ name: 'parent' });
+  const closing = bag.close(); release();
+  expect(await pending?.catch(cause => cause)).toEqual({ name: 'parent' });
+  await closing;
+  expect(events).toEqual(['parent', 'parent disposal']);
+});

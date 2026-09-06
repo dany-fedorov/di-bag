@@ -1,4 +1,5 @@
 import type { normalize } from './provider-operations';
+import type { FramePresenceTuple, Presence } from './inspection';
 
 type RegistrationDescription = ReturnType<typeof normalize>;
 type Disposer = (value: never) => void | Promise<void>;
@@ -31,6 +32,7 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
 
 /** One source invocation and its ordered projections/ownership, local to an attempt. */
 export class ProviderExecution {
+  private readonly frames: Presence<unknown>[];
   private readonly stages: AcceptedStage[] = [];
   private readonly pending = new Set<Promise<void>>();
   private result: ValueStage | undefined;
@@ -38,7 +40,13 @@ export class ProviderExecution {
   // Source permission is independent of the exposed projection's cache state.
   sourceInFlight = true;
 
-  constructor(private readonly events: ExecutionEvents) {}
+  constructor(private readonly events: ExecutionEvents, description: RegistrationDescription) {
+    // Reserve every adapter slot before the source can reenter inspection.
+    this.frames = description.operations.filter(operation => operation.kind === 'frame-sync' || operation.kind === 'frame-async')
+      .map(() => Object.freeze({ present: false as const }));
+  }
+
+  inspectFrames(): FramePresenceTuple<readonly unknown[]> { return Object.freeze([...this.frames]); }
 
   get state(): 'pending' | 'ready' | 'failed' { return this.result?.state ?? 'failed'; }
   get hasOwnership(): boolean { return this.stages.length > 0; }
@@ -47,6 +55,7 @@ export class ProviderExecution {
   evaluate(description: RegistrationDescription, deps: unknown): unknown {
     const { create, dispose } = description;
     let current = this.capture(() => create(deps as never), true);
+    let nextFrame = 0;
     if (dispose) this.own(current, 0, dispose);
     description.operations.forEach((operation, offset) => {
       const index = offset + 1;
@@ -65,6 +74,23 @@ export class ProviderExecution {
           if (input.state === 'failed') throw input.error;
           return project(await input.exposed as never);
         }, false);
+      } else if (operation.kind === 'frame-sync' || operation.kind === 'frame-async') {
+        const frameIndex = nextFrame++;
+        const input = current;
+        const { project } = operation;
+        const apply = (value: unknown) => {
+          const projected = project(value as never);
+          this.frames[frameIndex] = Object.freeze({ present: true, value: projected.frame });
+          return projected.value;
+        };
+        if (operation.kind === 'frame-async') {
+          current = this.capture(async () => {
+            if (input.state === 'failed') throw input.error;
+            return apply(await input.exposed);
+          }, false);
+        } else if (input.state !== 'failed') {
+          current = this.capture(() => apply(input.exposed), false);
+        }
       }
     });
     this.result = current;
@@ -149,6 +175,7 @@ export class ProviderExecution {
   }
 
   release(): void {
+    this.frames.length = 0;
     this.stages.length = 0;
     this.pending.clear();
     this.result = undefined;

@@ -37,14 +37,14 @@ export class Acquisitions {
     return this.resolveBinding(this.graph.publicBinding(key));
   }
 
-  inspect(bindingId: BindingId): readonly AcquisitionSnapshot[] {
-    const snapshots: AcquisitionSnapshot[] = [];
+  inspect(bindingId: BindingId): readonly AcquisitionSnapshot<readonly unknown[]>[] {
+    const snapshots: AcquisitionSnapshot<readonly unknown[]>[] = [];
     for (const attempt of this.attempts.values()) {
       if (attempt.bindingId !== bindingId) continue;
       snapshots.push(Object.freeze({
         acquisitionId: attempt.id,
         state: attempt.state,
-        metadata: Object.freeze([] as const),
+        metadata: attempt.execution.inspectFrames(),
       }));
     }
     return Object.freeze(snapshots);
@@ -89,7 +89,7 @@ export class Acquisitions {
         cleanupFailed: (sequence, error) => {
           this.failures.push({ sequence, acquisitionId: attempt.id, bindingId: attempt.bindingId, label: attempt.label, error });
         },
-      }),
+      }, description),
     };
     this.cache.set(bindingId, attempt);
     this.attempts.set(attempt.id, attempt);
@@ -122,6 +122,9 @@ export class Acquisitions {
     if (this.cache.get(attempt.bindingId) === attempt) this.cache.delete(attempt.bindingId);
     attempt.state = 'failed';
     attempt.exposed = undefined;
+    // No consumer acquired this failed exposed value. Keep this attempt's
+    // outgoing edges and pending work, but abandon unsuccessful incoming reads.
+    for (const consumer of this.attempts.values()) consumer.dependencies.delete(attempt.id);
     if (this.retired.has(attempt.id)) return;
     const release = () => {
       attempt.dependencies.clear();

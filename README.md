@@ -381,6 +381,73 @@ isolation is demonstrated, but transaction rollback and WBS integration are not.
 Its tests check actual instance identity, dependency binding, announcement routing,
 and shutdown on success, failed work, failed cleanup, and failed acquisition.
 
+## Optional box adapters
+
+Import `fromSasBox` from `di-bag/sas-box` and `fromValBox` / `fromValBoxAsync`
+from `di-bag/val-box`. These structural adapters do not install, import, or own
+either box library. Core consumers need neither package. Real `SasBox` instances
+and `ValBox` instances with `snapshot()` work directly:
+
+```ts
+import { DiBag } from 'di-bag';
+import { fromSasBox } from 'di-bag/sas-box';
+import { fromValBoxAsync } from 'di-bag/val-box';
+import { SasBox } from 'sas-box';
+import { ValBox } from 'val-box';
+
+const service = fromValBoxAsync(fromSasBox(
+  () => SasBox.fromAsync(async () => new ValBox.WithValue.WithMetadata(
+    { read: () => 42 }, { team: 'platform' }, 'db',
+  )),
+  { mode: 'sync-first' },
+));
+const bag = DiBag.begin().add({ service }).end();
+const value = await bag.resolve('service');
+console.log(value.read());
+await bag.close();
+```
+
+Sas mode is mandatory. `sync` requires an immediate box with a callable `sync`
+and preserves its raw return type and Promise identity. `async` awaits the box
+and invokes `async`; `sync-first` awaits the box and prefers callable `sync`,
+using `async` when `sync` is undefined. Both asynchronous modes expose a native
+`Promise<Awaited<...>>`. Selected methods must take zero required arguments and
+accept the acquired box as their receiver. Union modes check every possible
+route and retain all possible output types.
+
+`sync-first` requires the complete, required `sync` field in the source type.
+A callable field needs no fallback; a field that may be undefined also requires
+callable `async`. A view with missing or optional `sync` cannot prove which
+capability exists at runtime. Use explicit `async` mode for such a narrowed view.
+
+`fromValBox` snapshots an immediate source once and returns its raw present
+value. `fromValBoxAsync` awaits the source and result. An absent value throws by
+default; `{ value: 'presence' }` exposes `Presence<T>` instead. Supplied options
+must include `value: 'required' | 'presence'`; `{}` is rejected. Present
+`undefined` differs from absence, and an empty alias differs from `null`.
+
+Some context-sensitive factories returning nested object methods currently need
+predeclaration: `const openBox = () => ({ snapshot() { return snapshot; } });`
+then `fromValBox(openBox)`. This retains exact types without an annotation or
+cast; the equivalent nested inline call can fail inference. Broader inline
+factory inference remains separate work.
+
+Every val adapter appends a typed `ValBoxFrame<M>` to
+`bag.inspect(key).acquisitions[i].metadata`. Each slot starts as
+`{ present: false }`, including during source creation. A completed frame has
+`{ kind: 'val-box', metadata: Presence<M>, alias: string | null }`. Presence
+records, frames, and copied inspection tuples are frozen; payload objects retain
+their identity and mutability. Nested adapters keep frames in acquisition order.
+Static metadata, mapping, ownership, module exports, and forks retain these types.
+
+Adapters do not transfer ownership. `fromValBox(DiBag.withDisposal(openBox,
+box => box.close()))` owns the raw box and borrows its payload. Wrapping the
+adapted provider in another `DiBag.withDisposal` explicitly adds ownership of
+the unboxed result, disposed before the raw box. Snapshot or unboxing failures
+use ordinary failed-acquisition cleanup. Factories still clean resources they
+acquire before returning ownership. Run `bun run examples/box-adapters.ts` for
+a dependency-free structural example with separate box and payload owners.
+
 ## Boundaries
 
 - Token maps and dependency parameters must have finite string keys. Index

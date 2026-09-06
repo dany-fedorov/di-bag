@@ -4,6 +4,11 @@ import { resolve } from 'node:path';
 import ts from 'typescript';
 import { diagnostics } from './compiler';
 
+test('box adapters preserve exact modes, requirements and frames', () => {
+  expect(diagnostics(resolve(__dirname, 'types/box-adapters.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('typed provider metadata survives checked composition and inspection', () => {
   expect(diagnostics(resolve(__dirname, 'types/providers.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

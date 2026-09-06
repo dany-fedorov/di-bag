@@ -107,7 +107,7 @@ export class Runtime {
     return this.acquisitions.resolve(key);
   }
 
-  inspect(key: string): InspectionSnapshot<object> {
+  inspect(key: string): InspectionSnapshot<object, readonly unknown[]> {
     const bindingId = this.graph.publicBinding(key);
     return Object.freeze({
       bindingId,

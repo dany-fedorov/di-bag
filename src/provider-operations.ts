@@ -17,7 +17,11 @@ interface MapOperation {
   readonly kind: 'map-sync' | 'map-async';
   readonly project: (this: void, value: never) => unknown;
 }
-export type ProviderOperation = MetadataOperation | OwnedOperation | MapOperation;
+interface FrameOperation {
+  readonly kind: 'frame-sync' | 'frame-async';
+  readonly project: (this: void, value: never) => { readonly value: unknown; readonly frame: unknown };
+}
+export type ProviderOperation = MetadataOperation | OwnedOperation | MapOperation | FrameOperation;
 export interface ProviderDescription {
   readonly source: SourceOperation;
   readonly operations: readonly ProviderOperation[];
