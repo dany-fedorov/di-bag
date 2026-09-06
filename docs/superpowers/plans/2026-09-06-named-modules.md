@@ -106,9 +106,10 @@ acquisition as direct public resolution, without acquiring twice.
 
 ```ts
 // Use the internal graph constructor, not a public unchecked Bag constructor.
-expect(runtime.resolve('left').connection).not.toBe(
-  runtime.resolve('right').connection,
-);
+// Factories close over distinct, typed leftConnection/rightConnection fixtures.
+expect(runtime.resolve('left')).toEqual({ connection: leftConnection });
+expect(runtime.resolve('right')).toEqual({ connection: rightConnection });
+expect(leftConnection).not.toBe(rightConnection);
 expect(runtime.resolve('left')).toBe(runtime.resolve('left'));
 expect(() => runtime.resolve('connection')).toThrow('no factory');
 ```
