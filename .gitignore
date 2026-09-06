@@ -6,3 +6,6 @@
 
 # local secret, never committed
 .ssh
+
+# Independent checkouts used for cross-package development.
+/.related-repos/
