@@ -3,7 +3,7 @@ export { DiBagCleanupError, DiBagStartupError, DiBagStartupCancelledError } from
 export type { CleanupFailure } from './errors';
 export type { Bag, Builder } from './di-bag';
 export type { Module } from './module';
-export type { ModuleProvides, ModuleRequires, PublicProviders, ModulePublicProviders, Renamed } from './module-types';
+export type { ModuleProvides, ModuleRequires, ModuleConstraints, PublicProviders, ModulePublicProviders, Renamed } from './module-types';
 export type { DisposableFactory, Registration } from './registration';
 export type { Provider, ProviderOutput, ProviderAcquired, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderTokenNeeds } from './provider';
 export type { AcquisitionMode, RuntimeOptions } from './acquisition-mode';

@@ -128,7 +128,7 @@ for (const emitter of ['classic6', 'native7']) {
           const downstream = join(consumer, `${feature}-consumer.${extension}`);
           const consumerFixture = feature === 'token-modules' ? 'token-modules/consumer.ts' : `${feature}-consumer.ts`;
           const text = route(readFileSync(join(root, 'tests/types', consumerFixture), 'utf8'))
-            .replace(/from '\.\/(modern-inline|feature|acquisition-mode|scopes|lifetimes|startup|selected-scopes|composition-adapters)'/, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`);
+            .replace(/from '\.\/(modern-inline|feature|acquisition-mode|scopes|lifetimes|startup|selected-scopes|composition-adapters)'/g, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`);
           writeFileSync(downstream, text);
           const consumed = await compileNative(compiler, consumer, [downstream]);
           expect({ checked: consumed.checked, diagnostics: consumed.diagnostics }).toEqual({ checked: true, diagnostics: [] });
