@@ -76,7 +76,10 @@ that never construct a scope or attempt.
 Events are captured when the state transition occurs and delivered through a
 microtask queue after runtime state has been published. This keeps observer
 callbacks outside the synchronous factory ancestry stack. Delivery follows
-emission order, and each event visits configured observers in registration order.
+emission order across observed facade configurations, and each event visits its
+captured configured observers in registration order. Interleaving operations on
+an original facade and an appended facade must not reorder events received by a
+callback present in both configurations.
 A callback may use an application-held bag reference; any resulting resolution or
 close uses the ordinary admission, dependency and ownership rules.
 

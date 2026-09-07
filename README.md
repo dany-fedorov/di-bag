@@ -438,6 +438,50 @@ or `ReturnType` to preserve complete inferred module annotations. An annotation
 cannot erase nonempty metadata or acquisition-frame contracts. Modules with empty
 metadata and frames keep the existing synthetic defaults and annotation support.
 
+## Observe lifecycle transitions
+
+```ts
+const observed = DiBag.observe({
+  onEvent(event) { console.log(event.kind, event.scopeId); },
+  onError({ event, error }) { console.error('Telemetry failed', event.kind, error); },
+});
+const bag = observed.begin().add({ answer: () => 42 }).end();
+bag.resolve('answer'); // 42
+await bag.close();
+```
+
+Both callbacks are required. `observe` returns a new facade; repeated calls append
+observers, and `configure` preserves them. Existing facades, builders and bags keep
+their earlier configuration. Observation on `di-bag/node` retains native Promise
+classification. The portable core still requires explicit acquisition modes or a
+configured classifier.
+
+`LifecycleEvent` is a frozen union narrowed by `kind`. Scope events are
+`scope-opened`, `scope-closing`, `scope-closed` and `scope-close-failed`. They carry
+`scopeId` and, for tracked children, `parentScopeId`. Acquisition events are
+`acquisition-started`, `acquisition-ready` and `acquisition-failed`. Cleanup emits
+`cleanup-started`, per-disposer `cleanup-failed`, and `cleanup-completed` with an
+`outcome` of `'success'` or `'failure'`. Acquisition and cleanup events carry the
+owner's `scopeId`, canonical `bindingId` and `acquisitionId`, `label`, `lifetime`,
+copied static `metadata`, and copied frame-presence records in `frames`. Failures
+retain the original `error`; cleanup failures also identify `disposalIndex`.
+
+Aliases retain their target's attempt, shared acquisitions report their actual
+owner, and each contribution or transient acquisition has its own identity.
+Readiness describes the exposed final stage: raw Promise values are immediately
+ready as values, while native stages report their final settlement. Observation
+preserves service and Promise identity and adds no cleanup ownership. Frozen
+snapshots leave application-owned metadata and error payloads untouched.
+
+Callbacks run in emission and registration order on a microtask queue, outside
+synchronous factory execution. Throws and rejected callback results reach that
+observer's `onError` as a frozen `ObserverFailure`; failures in `onError` are
+consumed without recursive reporting. Callback work never gates resolution,
+startup or shutdown. Applications own completion of asynchronous logging; a
+resolved `close()` does not promise that telemetry has finished. See
+[`examples/observers.ts`](examples/observers.ts) for an application-owned completion
+barrier and cleanup assertions.
+
 ## Async edges are explicit
 
 ```ts

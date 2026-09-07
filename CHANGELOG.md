@@ -4,6 +4,11 @@
 
 ### Added
 
+- `DiBag.observe({ onEvent, onError })` appends immutable lifecycle observers.
+  Frozen events report canonical scope, acquisition and accepted-cleanup identity,
+  final-stage readiness, metadata and original failures. Queued callbacks preserve
+  graph values and ownership; callback failures use the required error sink and
+  asynchronous observer work never gates shutdown.
 - `.contribute(token, provider)`, `.resolveAll(token)` and `DiBag.all(token)`
   compose ordered collections with independently checked dependencies, lifetimes
   and cleanup. Module contributions retain private helpers and installation order
