@@ -119,7 +119,9 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
 }
 
 class Builder<E extends Entry, C extends NeedConstraint = never> {
-  declare readonly [constraintInvariant]: (value: C) => C;
+  // Preserve accepted registration history and module constraints through views.
+  declare readonly [constraintInvariant]:
+    (value: readonly [E, C]) => readonly [E, C];
   readonly #graph: BindingGraph;
 
   constructor(graph: BindingGraph) {

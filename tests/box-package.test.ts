@@ -101,7 +101,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       tokenFrames: [{ present: true, value: { kind: 'val-box', metadata: { present: true, value: { owner: 'real' } }, alias: 'db' } }] });
   });
 
-  for (const fixture of ['tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'box-adapters.ts', 'negative/box-adapters.ts', 'negative/provider-unions.ts', 'incremental.ts', 'negative/incremental.ts', 'real']) {
+  for (const fixture of ['tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'box-adapters.ts', 'negative/box-adapters.ts', 'negative/provider-unions.ts', 'incremental.ts', 'negative/incremental.ts', 'builder-views.ts', 'negative/builder-views.ts', 'real']) {
     test(`installed ${mode} declaration contracts: ${fixture}`, () => {
       const path = join(consumer, `consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const assertions = `type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;`;
