@@ -11,7 +11,8 @@ export function validateLimits(limits: ProcessLimits, platform: string = process
   }
 }
 
-export async function supervise(executable: string, args: readonly string[], cwd: string, limits: ProcessLimits): Promise<NativeProcessResult> {
+export async function supervise(executable: string, args: readonly string[], cwd: string, limits: ProcessLimits,
+  readStatus: (pid: number) => Promise<string> = pid => readFile(`/proc/${pid}/status`, 'utf8')): Promise<NativeProcessResult> {
   validateLimits(limits);
   const start = performance.now();
   return new Promise(resolve => {
@@ -44,7 +45,7 @@ export async function supervise(executable: string, args: readonly string[], cwd
       if (monitoring || exited || !child.pid || result.terminationReason) return;
       monitoring = true;
       try {
-        const status = await readFile(`/proc/${child.pid}/status`, 'utf8');
+        const status = await readStatus(child.pid);
         const rss = /^VmRSS:\s+(\d+)\s+kB$/m.exec(status);
         if (!rss) {
           // During exit /proc may retain the process header after releasing its memory map.
