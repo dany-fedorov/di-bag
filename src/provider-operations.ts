@@ -1,5 +1,6 @@
 import type { Factory } from './registration';
 import type { AcquisitionMode } from './acquisition-mode';
+import type { LifetimePolicy } from './lifetime';
 
 interface SourceOperation {
   readonly kind: 'source';
@@ -28,12 +29,14 @@ interface FrameOperation {
 }
 export type ProviderOperation = MetadataOperation | OwnedOperation | MapOperation | FrameOperation;
 export interface ProviderDescription {
+  readonly lifetime: LifetimePolicy;
   readonly source: SourceOperation;
   readonly operations: readonly ProviderOperation[];
   readonly metadata: Readonly<object>;
 }
 
 const emptyMetadata = Object.freeze({});
+const scopedLifetime: LifetimePolicy = Object.freeze({ kind: 'scoped', captureScoped: false });
 const descriptions = new WeakMap<object, ProviderDescription>();
 
 export function sourceDescription(
@@ -44,7 +47,7 @@ export function sourceDescription(
 ): ProviderDescription {
   const selected = Object.freeze([...tokenKeys]);
   const source: SourceOperation = Object.freeze(dispose ? { kind: 'source', create, dispose, tokenKeys: selected, acquisition } : { kind: 'source', create, tokenKeys: selected, acquisition });
-  return Object.freeze({ source, operations: Object.freeze([]), metadata: emptyMetadata });
+  return Object.freeze({ source, operations: Object.freeze([]), metadata: emptyMetadata, lifetime: scopedLifetime });
 }
 
 /** One registry authenticates both ownership handles and transformed providers. */
@@ -63,6 +66,7 @@ export function describe(registration: unknown): ProviderDescription {
 }
 
 export function normalize(registration: unknown): {
+  lifetime: LifetimePolicy;
   create: Factory;
   acquisition: AcquisitionMode;
   tokenKeys: readonly symbol[];
@@ -72,6 +76,6 @@ export function normalize(registration: unknown): {
 } {
   const description = describe(registration);
   const { create, dispose, tokenKeys, acquisition } = description.source;
-  const { metadata, operations } = description;
-  return dispose ? { create, dispose, tokenKeys, acquisition, metadata, operations } : { create, tokenKeys, acquisition, metadata, operations };
+  const { metadata, operations, lifetime } = description;
+  return dispose ? { create, dispose, tokenKeys, acquisition, metadata, operations, lifetime } : { create, tokenKeys, acquisition, metadata, operations, lifetime };
 }

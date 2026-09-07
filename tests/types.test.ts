@@ -5,6 +5,44 @@ import ts from 'typescript';
 import { diagnostics, describeDiagnostic } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 
+test('lifetime declarations retain exact inferred cross-file contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/lifetimes-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('lifetime inferred builders and symbol forks survive declaration consumption', () => {
+  const producerPath = resolve(__dirname, 'types/lifetimes.ts');
+  const consumerPath = resolve(__dirname, 'types/lifetimes-consumer.ts');
+  const declarationPath = producerPath.replace(/\.ts$/, '.d.ts');
+  const output = resolve(__dirname, 'generated-lifetime-declarations');
+  const options: ts.CompilerOptions = {
+    strict: true, noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true,
+    skipLibCheck: true, types: [], target: ts.ScriptTarget.ES2022,
+    module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext,
+    declaration: true, emitDeclarationOnly: true, rootDir: resolve(__dirname, '..'), outDir: output,
+  };
+  const declarations = new Map<string, string>();
+  const host = ts.createCompilerHost(options);
+  host.writeFile = (name, text) => { declarations.set(name, text); };
+  const producer = ts.createProgram([producerPath], options, host);
+  const emitted = producer.emit();
+  expect([...ts.getPreEmitDiagnostics(producer), ...emitted.diagnostics].map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+  const declaration = declarations.get(resolve(output, 'tests/types/lifetimes.d.ts'));
+  expect(declaration).toBeDefined();
+  const consumerOptions = { ...options, noEmit: true, emitDeclarationOnly: false };
+  const consumerHost = ts.createCompilerHost(consumerOptions);
+  const exists = consumerHost.fileExists.bind(consumerHost);
+  const read = consumerHost.getSourceFile.bind(consumerHost);
+  consumerHost.fileExists = name => name === producerPath ? false : name === declarationPath ? true : exists(name);
+  consumerHost.getSourceFile = (name, version, onError, fresh) => name === producerPath ? undefined
+    : name === declarationPath ? ts.createSourceFile(name, declaration!, version, true) : read(name, version, onError, fresh);
+  const consumer = ts.createProgram([consumerPath], consumerOptions, consumerHost);
+  expect(consumer.getSourceFile(producerPath)).toBeUndefined();
+  expect(consumer.getSourceFile(declarationPath)).toBeDefined();
+  expect(ts.getPreEmitDiagnostics(consumer).map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('acquisition modes retain exact acquired values across inferred exports', () => {
   expect(diagnostics(resolve(__dirname, 'types/acquisition-mode-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

@@ -2,7 +2,8 @@ import { normalize, snapshotAdd } from './registration';
 import type { DisposableFactory, Factory, Registration, Registrations } from './registration';
 import type { BindingDescription, BindingId, BindingRef, GraphDescription } from './runtime';
 import type { Checked, Entries, Entry, From, Introduces, Merge, Provided, ReplacementKey, ReplacementOutput, Selection } from './types';
-import type { ExternalRequirements, ModuleConstraints, NeedConstraint, PublicProviders, PublicRegistrations, Renamed, RenamedConstraints, RenameKeys } from './module-types';
+import type { ExternalRequirements, ModuleConstraints, NeedConstraint, ModulePublicProviders, PublicRegistrations, Renamed, RenamedConstraints, RenameKeys } from './module-types';
+import type { RenamedLifetimeProviders } from './lifetime-types';
 import { readTokenKey } from './tokens';
 import { withTokenBinding } from './provider';
 import type { TokenBase, TokenKey } from './tokens';
@@ -31,11 +32,11 @@ class Module<P extends object, R extends object, C extends NeedConstraint = neve
 
   rename<const Old extends string, const New extends string>(
     oldKey: Old & RenameKeys<P, Old, New>, newKey: New & RenameKeys<P, Old, New>,
-  ): Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, Renamed<D, Old, New>> {
+  ): Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedLifetimeProviders<D, Old, New>> {
     const description = descriptions.get(this)!;
     if (typeof oldKey !== 'string' || !description.exports.has(oldKey)) throw new Error('rename requires an existing export');
     if (typeof newKey !== 'string') throw new Error('rename requires a string name');
-    if (oldKey as string === newKey) return this as unknown as Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, Renamed<D, Old, New>>;
+    if (oldKey as string === newKey) return this as unknown as Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedLifetimeProviders<D, Old, New>>;
     if (description.exports.has(newKey)) throw new Error(`duplicate export: ${newKey}`);
     const exports = new Map(description.exports);
     const localName = exports.get(oldKey)!;
@@ -96,7 +97,7 @@ class ModuleBuilder<E extends Entry> {
     Pick<Provided<From<E>>, Extract<SelectionKey<K[number]>, keyof From<E>>>,
     ExternalRequirements<ModuleConstraints<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>>,
     ModuleConstraints<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>,
-    PublicProviders<Pick<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>>
+    ModulePublicProviders<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>
   > {
     if (!Array.isArray(keys)) throw new Error('exports requires a key tuple');
     const selected: unknown[] = [];

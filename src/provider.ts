@@ -20,6 +20,11 @@ class Provider<F extends Factory, M extends object = Readonly<{}>, A extends rea
   declare readonly [providerInvariant]: (value: [F, M, A, G, V]) => [F, M, A, G, V];
 }
 
+/** Internal construction bridge; authentication remains in retainDescription. */
+export function createProvider<F extends Factory, M extends object, A extends readonly unknown[], G extends GraphContract, V>(): Provider<F, M, A, G, V> {
+  return new Provider<F, M, A, G, V>();
+}
+
 // A covariant view of the retained witness supplies graph-compatible callable
 // context without widening the actual provider's invariant F/M/A/G contracts.
 export type ProviderContext<F extends Factory, G extends GraphContract = GraphContract> = ProviderBase & {
@@ -149,7 +154,7 @@ export function withMetadata<R extends Registration, M extends object>(
   const combined = Object.freeze(Object.assign(Object.create(null), description.metadata, added));
   const handle = new Provider<ProviderFactory<R>, Readonly<ProviderMetadata<R> & M>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>, ProviderAcquired<R>>();
   retainDescription(handle, Object.freeze({
-    source: description.source,
+    ...description,
     operations: Object.freeze([...description.operations, Object.freeze({ kind: 'metadata' as const, metadata: added })]),
     metadata: combined,
   }));

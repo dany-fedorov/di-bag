@@ -4,8 +4,10 @@ import type { Needs, Provided, Singleton, Unsatisfied } from './types';
 import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired, ProviderGraph, ProviderTokenNeeds, BoundToken } from './provider';
 import type { TokenGraph, WrongToken, MissingToken } from './token-types';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
+import type { LifetimeObligation, PrivateLifetimes, LexicalProvider, RenamedLifetimeObligation } from './lifetime-types';
 
 export type NeedConstraint =
+  | LifetimeObligation
   | { readonly kind: 'export' | 'external'; readonly consumer: string | symbol; readonly needs: object }
   | { readonly kind: 'token-export' | 'token-external'; readonly consumer: string | symbol; readonly token: TokenBase }
   | { readonly kind: 'opaque' };
@@ -45,7 +47,7 @@ export type ModuleConstraints<R extends Registrations, Public extends keyof R> =
     | Constraint<K, Needs<R[K]>, Exclude<keyof Needs<R[K]>, keyof R>, 'external'>
     | TokenConstraint<K, ProviderTokenNeeds<R[K]>, R, Public>
     | ([ProviderGraph<R[K]>] extends [TokenGraph<readonly TokenBase[], TokenBase>] ? never : { readonly kind: 'opaque' });
-}[keyof R & (string | symbol)];
+}[keyof R & (string | symbol)] | PrivateLifetimes<R, Public>;
 type TokenConstraint<K extends string | symbol, T, R, Public> = T extends TokenBase
   ? TokenKey<T> extends Public ? { readonly consumer: K; readonly token: T; readonly kind: 'token-export' }
     : TokenKey<T> extends keyof R ? never : { readonly consumer: K; readonly token: T; readonly kind: 'token-external' }
@@ -63,22 +65,25 @@ export type PublicRegistrations<P extends object> = { [K in keyof P]: () => P[K]
 // union member before deciding whether the legacy synthetic default is enough.
 export type PublicProvider<R> = R extends Registrations[string]
   ? unknown extends ProviderNeeds<R> ? R
-    : [ProviderGraph<R>] extends [TokenGraph<readonly TokenBase[], TokenBase>] ? [MetadataKeyUnion<ProviderMetadata<R>> | BoundToken<R>] extends [never]
+    : [ProviderGraph<R>] extends [TokenGraph<readonly TokenBase[], TokenBase>] ? [Extract<ProviderGraph<R>, { readonly lifetime: unknown }>] extends [never] ? [MetadataKeyUnion<ProviderMetadata<R>> | BoundToken<R>] extends [never]
       ? ProviderAcquisitionMetadata<R> extends readonly []
         ? [ProviderAcquired<R>] extends [Awaited<ProviderOutput<R>>]
           ? [Awaited<ProviderOutput<R>>] extends [ProviderAcquired<R>] ? () => ProviderOutput<R> : RetainedPublicProvider<R>
           : RetainedPublicProvider<R>
         : RetainedPublicProvider<R>
       : RetainedPublicProvider<R>
+    : RetainedPublicProvider<R>
     : R
   : never;
-type RetainedPublicProvider<R extends Registrations[string]> = Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, TokenGraph<readonly [], BoundToken<R>>, ProviderAcquired<R>>;
+type PublicGraph<G> = G extends TokenGraph<readonly TokenBase[], TokenBase> ? { [K in keyof G]: K extends 'required' ? readonly [] : G[K] } : never;
+type RetainedPublicProvider<R extends Registrations[string]> = Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, PublicGraph<ProviderGraph<R>>, ProviderAcquired<R>>;
 export type PublicProviders<R extends object> = { [K in keyof R]: PublicProvider<R[K]> };
+export type ModulePublicProviders<R extends Registrations, P extends keyof R> = { [K in P]: LexicalProvider<PublicProvider<R[K]>, R, P, K> };
 export type Renamed<P extends object, Old extends string, New extends string> = {
   [K in keyof P as K extends Old ? New : K]: P[K];
 };
 export type RenamedConstraints<C extends NeedConstraint, Old extends string, New extends string> =
-  C extends { readonly kind: 'export'; readonly consumer: string | symbol; readonly needs: object }
+  C extends LifetimeObligation ? RenamedLifetimeObligation<C, Old, New> : C extends { readonly kind: 'export'; readonly consumer: string | symbol; readonly needs: object }
     ? { readonly consumer: C['consumer']; readonly needs: Renamed<C['needs'], Old, New>; readonly kind: 'export' }
     : C;
 export type RenameKeys<P, Old extends string, New extends string> =

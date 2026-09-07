@@ -5,6 +5,7 @@ import type { BindingKey } from './runtime';
 import { beginModule, moduleGraph } from './module';
 import type { Module } from './module';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
+import type { CheckedLifetimes } from './lifetime-types';
 import { withMetadata, mapSync, mapAsync, fromTokens, withTokenBinding, factory } from './provider';
 import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
@@ -82,7 +83,8 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
       Checked<Merge<R, ReboundSelection<R, Selected<K, O>>>> &
       Complete<Merge<R, ReboundSelection<R, Selected<K, O>>>> &
       CheckedConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>> &
-      CompleteConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>>,
+      CompleteConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>> &
+      CheckedLifetimes<Merge<R, ReboundSelection<R, Selected<K, O>>>, C>,
   ): Bag<Merge<R, ReboundSelection<R, Selected<K, O>>>, C>;
   fork(keys?: readonly unknown[], overrides?: object): unknown {
     this.#runtime.assertOpen();
@@ -195,12 +197,12 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
     return new Builder(this.#graph.withInstallation(moduleGraph(module)), this.context);
   }
 
-  end(this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, From<E>>): Bag<From<E>, C> {
+  end(this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, From<E>> & CheckedLifetimes<From<E>, C>): Bag<From<E>, C> {
     return new Bag(this.#graph, this.context);
   }
 }
 
-export type { Bag };
+export type { Bag, Builder };
 
 interface Facade {
   configure: (options: RuntimeOptions) => Facade;

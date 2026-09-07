@@ -22,8 +22,9 @@ export type TokenTupleAdmission<T extends readonly unknown[]> = true extends IsU
     ? [InvalidElements<T>] extends [never] ? unknown : InvalidTuple : InvalidTuple;
 type InvalidTuple = Unsatisfied<'tokens require a finite tuple of individually known token handles', {}>;
 export type TokenArguments<T extends readonly TokenBase[]> = { -readonly [I in keyof T]: TokenService<T[I]> };
-export type ReboundGraph<G extends GraphContract, T extends TokenBase> = G extends TokenGraph<infer R, TokenBase>
-  ? TokenGraph<R, T> : OpaqueGraph;
+export type ReboundGraph<G extends GraphContract, T extends TokenBase> = G extends infer U & {}
+  ? U extends TokenGraph<readonly TokenBase[], TokenBase> ? { [K in keyof U]: K extends 'bound' ? T : U[K] } : U extends GraphContract ? U : never
+  : never;
 
 export type Binding<T extends TokenBase, R extends Registration> = Provider<ProviderFactory<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraph<R>, T>, ProviderAcquired<R>>;
 export type BindingOutput<T extends TokenBase, R extends Registration> = [ProviderOutput<R>] extends [TokenService<T>] ? unknown
@@ -48,7 +49,9 @@ type InvalidBound<B> = B extends unknown ? ValidToken<B> extends true ? never : 
 export type MissingTokens<R extends Registrations> = {
   [K in keyof R]: MissingToken<ProviderTokenNeeds<R[K]>, R>;
 }[keyof R];
-export type ReboundSelection<R extends Registrations, O extends Registrations> = [Extract<keyof O, symbol>] extends [never] ? O : {
+// Keep the symbol-keyed mapped result nameable in inferred declarations.
+export type ReboundProviders<R extends Registrations, O extends Registrations> = {
   [K in keyof O]: K extends keyof R ? K extends symbol
     ? Binding<BoundToken<R[K]>, O[K]> : O[K] : O[K];
 };
+export type ReboundSelection<R extends Registrations, O extends Registrations> = [Extract<keyof O, symbol>] extends [never] ? O : ReboundProviders<R, O>;

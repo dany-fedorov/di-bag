@@ -1,9 +1,9 @@
 export { DiBag } from './di-bag';
 export { DiBagCleanupError } from './errors';
 export type { CleanupFailure } from './errors';
-export type { Bag } from './di-bag';
+export type { Bag, Builder } from './di-bag';
 export type { Module } from './module';
-export type { ModuleProvides, ModuleRequires, PublicProviders } from './module-types';
+export type { ModuleProvides, ModuleRequires, PublicProviders, ModulePublicProviders } from './module-types';
 export type { DisposableFactory } from './registration';
 export type { Provider, ProviderOutput, ProviderAcquired, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderTokenNeeds } from './provider';
 export type { AcquisitionMode, RuntimeOptions } from './acquisition-mode';
