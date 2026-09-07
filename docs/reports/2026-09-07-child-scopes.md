@@ -69,6 +69,41 @@ classic API 6.0.3 through the 6.0.2 wrapper and native 7.0.2.
 - All four examples exited zero under Bun 1.4.0: WBS ownership, named modules,
   box adapters and typed tokens. Final `git diff --check` also exited zero.
 
+## Review and independent verification
+
+Both task reviews approved their respective changes. Broad integration review
+of the branch through `2ae140e` found no Critical or Important issue; it retained
+two optional polish findings for shutdown wording and success-path test logging.
+The final polish commit `9ff1911` changes neither runtime ownership nor compiler
+assertions. Its covering package run passed two tests and 296 assertions with no
+default diagnostic JSON. Scoped re-review confirmed both findings addressed and
+found no new breakage.
+
+Independent committed-code checks passed 36 runtime/boundary/graph tests with
+147 assertions and two scope type tests with six assertions at `6a5ea61`.
+The real archive/declaration harness independently passed again at `2ae140e`:
+two tests, 296 assertions, 43.97 seconds, both emitters, both downstream compiler
+lanes, and eight Node/Bun CJS/ESM executions. These checks supplement the full
+457-test implementation run; they do not claim a new historical scale matrix.
+
+## Decisions and trade-offs
+
+1. Deliver tracked default child scopes before lifetime policies. This preserves
+   existing contracts while ownership is verified; the cost is a separate later
+   policy integration increment.
+2. Detach independently settled children and leave their close result with their
+   caller. This releases tracking references; a later parent close does not
+   replay that earlier independently handled failure.
+3. Preserve the existing feature checkout and evidence workspaces, with one
+   implementation writer. The cost is working without another isolated worktree.
+4. Reject all supplied `scope` arguments, including unchecked JavaScript options.
+   This prevents silently ignored sharing intent; `scope(undefined)` also rejects.
+5. Prove module-constraint retention with exact Bag equality and a direct erasure
+   negative. An initially widened external provider was already invalid; the
+   replacement proof costs one explicit fixture and avoids misleading evidence.
+6. Export `Entries` as a type-only public helper after both emitters required it.
+   This preserves unannotated inference; the public helper name must be maintained.
+
 ## Remaining program work
 
 This closes the carried M1 empty-selection graph-reuse finding, not the enterprise

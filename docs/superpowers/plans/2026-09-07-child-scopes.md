@@ -56,7 +56,7 @@ Create `tests/scopes.test.ts`, `tests/types/scopes.ts`,
   obtains it from settlement of all child close promises, not their fulfillment.
 - `BindingGraph.withPublicBindings([])` returns the identical immutable graph.
 
-- [ ] **Step 1: Add behavioral RED tests before runtime changes.**
+- [x] **Step 1: Add behavioral RED tests before runtime changes.**
 
 Use the actual public Node facade and the existing deferred-promise helper.
 The following is the minimum identity/ownership test; expand into separate
@@ -114,7 +114,7 @@ Run `bun test tests/scopes.test.ts tests/binding-graph.test.ts tests/boundaries.
 and `bun test tests/types.test.ts -t 'scope|type rejection: scopes'`.
 Record actual expected runtime and type RED output before changing production files.
 
-- [ ] **Step 2: Implement the narrow runtime coordination.**
+- [x] **Step 2: Implement the narrow runtime coordination.**
 
 The coordination order must follow this sketch, adapted to the existing class:
 
@@ -150,7 +150,7 @@ unchecked `{ share: [...] }` or explicit undefined argument; test this boundary.
 For an empty validated selection bypass graph rebuilding and do not consume any
 unselected property. Add the internal graph empty-batch fast path as well.
 
-- [ ] **Step 3: Verify exact type and negative source fixtures.**
+- [x] **Step 3: Verify exact type and negative source fixtures.**
 
 Export inferred root/child/grandchild values from `tests/types/scopes.ts`, using
 named async dependencies, a nominal token, a renamed module with private external
@@ -182,7 +182,7 @@ may use explicit unchecked boundaries only when testing JavaScript validation.
 Run `bun test tests/types.test.ts -t 'scope|type rejection: scopes'`; compare
 GREEN against the genuine pre-implementation RED captured in Step 1.
 
-- [ ] **Step 4: Verify the final task and commit.**
+- [x] **Step 4: Verify the final task and commit.**
 
 Run focused scope/ownership/acquisition/graph/module tests while iterating.
 Before committing run `npm run check` once and `npm run typecheck:native`.
@@ -200,7 +200,7 @@ Create `CHANGELOG.md`, `docs/reports/2026-09-07-child-scopes.md`.
 existing local archive/physical declaration consumers. Produces actual runtime
 and source-erased declaration evidence for both compilers and module formats.
 
-- [ ] **Step 1: Wire the source fixtures into existing package routes.**
+- [x] **Step 1: Wire the source fixtures into existing package routes.**
 
 Add `scopes.ts` and `negative/scopes.ts` to `boxContractFixtures` (this is the
 existing shared emitted/installed contract list, despite its historical name).
@@ -229,7 +229,7 @@ Run the targeted new package route first. Record wiring/runtime failures as RED
 only if genuinely observed; this task also adds integration coverage of a feature
 already green at source, so do not fabricate a feature RED by claiming otherwise.
 
-- [ ] **Step 2: Exercise real installed scopes in Node/Bun and CJS/ESM.**
+- [x] **Step 2: Exercise real installed scopes in Node/Bun and CJS/ESM.**
 
 Extend existing real installed consumer scripts (reuse their fixture/runner;
 avoid another copy of archive setup) to resolve a parent and child service, create
@@ -257,7 +257,7 @@ The selected emitter's installed runtime may be included in the native archive
 harness to ensure both compiler outputs execute. Assert subprocess exit status,
 stderr and expected JSON, not only successful archive installation.
 
-- [ ] **Step 3: Document the actual boundary and evidence.**
+- [x] **Step 3: Document the actual boundary and evidence.**
 
 Add a concise README child-scope example and the shutdown/detachment/fork
 distinction. Add a changelog entry. Write the evidence report with commands,
@@ -265,7 +265,7 @@ counts and actual environments; explicitly retain root/transient/share/captive/
 startup follow-ups. In the enterprise tracker record this completed slice only;
 do not tick complete L1/L2/A1. Record M1 empty-fork graph reuse as addressed.
 
-- [ ] **Step 4: Verify and commit the integrated task.**
+- [x] **Step 4: Verify and commit the integrated task.**
 
 Run the covering installed/declaration package tests while iterating. Run
 `npm run check`, `npm run typecheck:native`, `npm run build:native` and
