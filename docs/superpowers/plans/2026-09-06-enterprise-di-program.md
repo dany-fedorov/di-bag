@@ -50,7 +50,15 @@ execution; do not stop for another planning approval between increments.
   Node/Bun CommonJS/ESM runtime lanes pass. Evidence:
   `docs/reports/2026-09-07-startup-context.md`. Cancellation exposes eventual
   cleanup separately and does not forcibly terminate uncooperative factories.
-- [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
+- [ ] Composition extensions:
+  - [x] Direct classes and positional functions through `68930c0`: exact tuple,
+    return and acquired contracts, concrete constructor semantics and bound-method
+    support. Full check passes 586 tests / 3,043 assertions. Physical classic/native
+    declarations and Node/Bun CommonJS/ESM routes pass; both packaging review
+    findings are corrected and scoped re-review approves. Evidence:
+    `docs/reports/2026-09-07-composition-adapters.md`.
+  - [ ] Aliases, optional/lazy dependencies and typed contributions. Optional/lazy
+    integration proceeds under `2026-09-07-dependency-references.md`.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
 - [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests. The prior parent benchmark evaluator Minor is closed by direct malformed JSON/identity/diagnostic, process-failure, boundary and TS2589 tests in the reviewed native compiler checkpoint `ad73249`.
 - [ ] Compiler/inference follow-up: resolve the remaining measured 500/1000 individual-chain limits, large-graph latency and modern native compiler compatibility. Actual nominal-module 1000-provider gates pass, separately from registration groups; this does not prove equally long individual call chains.

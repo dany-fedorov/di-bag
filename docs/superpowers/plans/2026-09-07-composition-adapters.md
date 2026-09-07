@@ -33,26 +33,26 @@ new `tests/types/negative/composition-adapters.ts`, `tests/types.test.ts`.
 between the two routes. Export helper type aliases through the root if inferred
 feature declarations need to name them.
 
-- [ ] Write failing runtime/type fixtures. Core example:
+- [x] Write failing runtime/type fixtures. Core example:
   `class Client { constructor(readonly port: number) {} }`;
   `const key = Symbol('port'); const port = DiBag.token(key).of<number>();`
   `const source = DiBag.fromClass([port], Client);`
   `const bag = DiBag.begin().bind(port, () => 8080).add({source}).end();`
   require `bag.resolve('source') instanceof Client` and exact `.port: number`.
-- [ ] Record RED from the focused tests/type fixtures before implementation.
-- [ ] Implement the two adapters using existing token snapshot/provider helpers.
+- [x] Record RED from the focused tests/type fixtures before implementation.
+- [x] Implement the two adapters using existing token snapshot/provider helpers.
   Function arguments retain exact values; use Reflect.apply with undefined this.
   Constructability probe must not invoke the constructor or prototype getter;
   actual acquisition uses Reflect.construct with the original constructor.
-- [ ] Validate finite genuine tuples and supplied arguments against actual function
+- [x] Validate finite genuine tuples and supplied arguments against actual function
   or constructor parameters, including optional/rest parameters. Reject required
   this, missing/incompatible arguments, surplus finite arguments, nonconstructors,
   abstract/private/protected constructors, forged tokens and invalid native mode.
-- [ ] Cover class prototype/private fields/new.target, thrown setup/retry,
+- [x] Cover class prototype/private fields/new.target, thrown setup/retry,
   Promise identity, raw/native ownership, thenable class values, explicit bound
   methods, empty tuples, custom iterators and tuple mutation after declaration.
   Include root/selected-sharing/module graph behavior without changing ownership.
-- [ ] Run focused runtime and classic/native source checks, self-review, commit
+- [x] Run focused runtime and classic/native source checks, self-review, commit
   only implementation/test files and report exact commands/results for review.
 
 ### Task 2: Physical package evidence and documented usage
@@ -62,14 +62,19 @@ feature declarations need to name them.
 `examples/composition.ts`, `README.md`, `CHANGELOG.md`, migration, program tracker,
 new `docs/reports/2026-09-07-composition-adapters.md`.
 
-- [ ] Add both new source fixtures to classic/native archive consumers, and add
+- [x] Add both new source fixtures to classic/native archive consumers, and add
   inferred producer/consumer emission to physical declaration-only routes.
-- [ ] Run actual Node/Bun CJS/ESM consumers from both emitter archives; assert
+- [x] Run actual Node/Bun CJS/ESM consumers from both emitter archives; assert
   class identity/private-field behavior, positional token values, raw Promise
   identity, root sharing and exactly-once owned cleanup.
-- [ ] Document direct class/function usage and arity, receiver and acquisition
+- [x] Document direct class/function usage and arity, receiver and acquisition
   policies. Provide and execute an example using existing classes/functions.
-- [ ] Run full `npm run check`, native strict typecheck/build, native source audit,
+- [x] Run full `npm run check`, native strict typecheck/build, native source audit,
   every example and diff checks. Keep all remaining enterprise rows open.
-- [ ] Independent task/full-increment review, corrections, verified commit and
-  non-force branch push; verify the remote SHA. No package publication.
+- [x] Independent task/full-increment review, corrections and verified local commit.
+- [ ] Non-force branch push when export approval permits; verify the remote SHA.
+  No package publication.
+
+Evidence: `docs/reports/2026-09-07-composition-adapters.md`. Full check passes
+586 tests / 3,043 assertions; both compiler archives, native checks and all six
+examples pass. Scoped re-review approves both package corrections at `68930c0`.
