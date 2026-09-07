@@ -132,13 +132,16 @@ string and a runnable unknown-plugin validation/cleanup example.
   unknown-code limits, descriptor snapshots, native validation Promise and original
   ownership before validation. Show typed module composition around the provider
   and an application-selected unknown descriptor in the runnable example.
-- [ ] Run the actual `bun test tests/native-package.test.ts tests/package.test.ts`
-  matrix serially after Task1 stabilizes. Obtain independent Task1/Task2 spec and
-  quality verdicts plus whole-increment review, one consolidated correction and
-  scoped re-review if needed.
-- [ ] On stable reviewed source/harness run `npm run check`, native strict/build/
-  source audit and all examples serially. Record complete exit statuses, precise
-  counts, logs and limitations; mark P1 locally complete only after those gates.
+- [x] Run the actual `bun test tests/native-package.test.ts tests/package.test.ts`
+  matrix serially after Task1 stabilizes. Independent Task1/Task2 spec and quality
+  review plus whole-increment review found no Critical, Important, or production
+  issue; the accepted example-identity Minor required no change, and the one
+  evidence-traceability Minor is corrected with retained final logs.
+- [x] On stable reviewed source/harness run `npm run check`, native strict/build/
+  source audit and all examples serially. Final source revision `57021fc` exits 0
+  for every gate; precise counts, limitations and retained `/tmp/di-bag-plugins-final-*`
+  logs are recorded in `docs/reports/2026-09-08-dynamic-plugins.md`. P1 is locally
+  complete.
 - [x] Locally commit verified evidence.
 - [ ] Non-force push when export approval permits and verify the remote SHA; do not
   publish. Compiler and release confidence work remain.

@@ -37,7 +37,7 @@ dynamic type queries to the emitted declaration, and records the compiler's
 specific missing-acquisition marker. No plugin runtime implementation change was
 needed.
 
-## Verified commands
+## Pre-review verification
 
 | Command | Result |
 | --- | --- |
@@ -53,6 +53,29 @@ needed.
 Archive/package and compiler process commands ran outside the managed sandbox,
 because its Bun child-process interception returns synthetic empty results. The
 normal direct example runs remained in the sandbox.
+
+## Final reviewed-source evidence
+
+The final reviewed source was verified at
+`57021fc1d96abbe75e025e7b29d52a5a086711d5` before this evidence-only update.
+This is distinct from the pre-review runs above. Complete retained command logs
+are local `/tmp` artifacts and record the final exits and emitted results:
+
+| Command | Result | Retained log |
+| --- | --- | --- |
+| `bun test tests/package.test.ts --verbose` | exit 0; 77 pass, 495 assertions, 57.48s | `/tmp/di-bag-plugins-final-package.log` |
+| `bun test tests/native-package.test.ts --timeout 120000 --verbose` | exit 0; 2 pass, 656 assertions, 118.51s | `/tmp/di-bag-plugins-final-native-package.log` |
+| `npm run check` | exit 0; 720 pass, 3,830 assertions, 38 files, 563.57s | `/tmp/di-bag-plugins-final-check.log` |
+| `npm run typecheck:native` | exit 0 | `/tmp/di-bag-plugins-final-typecheck-native.log` |
+| `npm run build:native` | exit 0 | `/tmp/di-bag-plugins-final-build-native.log` |
+| `npm run check:native` | exit 0; 113 files, 647 expected regions, 620 matched, 27 declared gaps, zero unexpected diagnostics/failures | `/tmp/di-bag-plugins-final-check-native.log` |
+| nine examples, serially | exit 0 for each | `/tmp/di-bag-plugins-final-example-{box-adapters,composition,contributions,modules,observers,plugins,scopes,tokens,wbs-scope}.log` |
+| `git diff --check` | exit 0 | `/tmp/di-bag-plugins-final-diff-check.log` |
+
+The package/archive and compiler commands were run outside the managed sandbox
+because their child-process behavior requires it. The final review found no
+Critical, Important, or production issue; it accepted the example-identity
+Minor. This retained-log update closes the evidence-traceability Minor.
 
 ## Files changed
 
@@ -73,9 +96,11 @@ normal direct example runs remained in the sandbox.
 
 The runtime fixture uses `DiBagPluginError.phase`, checks each disposer receives
 the exact original value, and exercises canonical rather than synthetic lifecycle
-attempts. The only Task 1 source adjustment is the root type export of
-`fromPlugin`; the physical declaration RED proves why that public type identity is
-needed. The native source audit accepts 27 existing, explicitly declared
-diagnostic-message gaps; plugin regions have no gaps. Independent Task 1/Task 2
-spec/quality and whole-increment review remain controller-owned work and are not
-claimed by this implementation report.
+attempts. The fix-round gates independently hold native source settlement,
+failed-validation disposal, and external observer work, proving `close()` waits
+for required cleanup but not application-owned observer work. The only Task 1
+source adjustment is the root type export of `fromPlugin`; the physical declaration
+RED proves why that public type identity is needed. The native source audit accepts
+27 existing, explicitly declared diagnostic-message gaps; plugin regions have no
+gaps. Review and final source verification are complete locally; push and remote
+SHA verification remain conditional and were not attempted.
