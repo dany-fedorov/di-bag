@@ -40,29 +40,29 @@ ProviderExecution's final-stage readiness/cleanup transitions. Produce
 `LifecycleEvent`, `ObserverFailure`, observer callback/configuration types.
 Existing Bag/Builder/Module/provider types retain their exact contracts.
 
-- [ ] Add and run a public runtime RED using the portable core and explicit raw
+- [x] Add and run a public runtime RED using the portable core and explicit raw
   mode; retain one service identity and one owner while collecting lifecycle events.
-- [ ] Implement checked callback configuration and immutable facade append/preserve
+- [x] Implement checked callback configuration and immutable facade append/preserve
   behavior. Validate both callbacks before constructing the returned facade; retain
   prior observers through configure and the node classifier through observe.
-- [ ] Add the typed event union and frozen event/failure snapshots. Match actual
+- [x] Add the typed event union and frozen event/failure snapshots. Match actual
   owner/attempt IDs and copy frame presence records without deep-freezing payloads.
-- [ ] Publish scope open/closing/closed/failure transitions only after state is
+- [x] Publish scope open/closing/closed/failure transitions only after state is
   consistent; keep tracked parent IDs and independent fork ownership distinct.
-- [ ] Publish canonical attempt start and final-stage ready/failure once each.
+- [x] Publish canonical attempt start and final-stage ready/failure once each.
   Follow aliases/root/sharing before attribution; each contribution/transient
   attempt remains independently identifiable.
-- [ ] Publish accepted ownership cleanup start/completion and per-disposer failure,
+- [x] Publish accepted ownership cleanup start/completion and per-disposer failure,
   including early retirement/rollback. Preserve the original disposal order and
   aggregate errors; unowned attempts do not invent cleanup ownership.
-- [ ] Queue ordered event delivery outside the synchronous factory ancestry stack.
+- [x] Queue ordered event delivery outside the synchronous factory ancestry stack.
   Monitor callback results only for failure, route to the corresponding onError,
   and consume secondary errors without recursion or unhandled rejection. Do not
   await callbacks during resolve/start/close.
-- [ ] Cover failures, pending final stages, metadata frames, modules/contributions,
+- [x] Cover failures, pending final stages, metadata frames, modules/contributions,
   scope sharing/roots/forks, startup cancellation/rollback and callback reentrancy.
   Add strict negative callback/event-narrowing and inferred facade declarations.
-- [ ] Run focused runtime, relevant classic/native source and physical declarations
+- [x] Run focused runtime, relevant classic/native source and physical declarations
   serially; self-review, record RED/GREEN and locally commit only owned source/tests.
 
 Start the runtime fixture with this observable contract, expanding events and
@@ -127,19 +127,19 @@ modify classic/native package fixture lists and harnesses, README, CHANGELOG,
 fixtures. Produce one shared actual-archive assertion string and a concise logging
 example with an explicit observer error sink.
 
-- [ ] Exercise canonical alias/contribution identity, parent owner attribution,
+- [x] Exercise canonical alias/contribution identity, parent owner attribution,
   pending native readiness, raw mode, cleanup failure, callback failure/rejection,
   reentrant delivery and nonsettling observers from both actual archives under
   Node/Bun CommonJS/ESM. Include portable core explicit-mode observation.
-- [ ] Route inferred `.cts`/`.mts` producers through both emitters, delete source
+- [x] Route inferred `.cts`/`.mts` producers through both emitters, delete source
   and consume with both compilers. Retain strict negative markers and no-observer
   declaration controls without relaxing root import or skipLibCheck checks.
-- [ ] Document required onError, immutable facade composition, queued delivery,
+- [x] Document required onError, immutable facade composition, queued delivery,
   exact values/owners and application responsibility for asynchronous telemetry
   completion. Execute a lifecycle logging example with cleanup assertions.
-- [ ] Run full check, native strict/build/source audit, all examples and diff checks
+- [x] Run full check, native strict/build/source audit, all examples and diff checks
   serially on stable source/harness; record completed logs and precise counts.
-- [ ] Independent task/final review, one consolidated correction, scoped review and
+- [x] Independent task/final review, one consolidated correction, scoped review and
   verified local commit. Mark the observer portion of E2 only after its gates pass.
 - [ ] Non-force push when export approval permits, verifying remote SHA; no publish.
 

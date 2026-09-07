@@ -78,7 +78,14 @@ execution; do not stop for another planning approval between increments.
     the same 27 existing message gaps. Evidence:
     `docs/reports/2026-09-07-contributions.md`. Branch push remains pending the
     specific export approval requested after automatic review rejected it.
-- [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
+- [ ] Diagnostics and plugins:
+  - [x] Typed lifecycle observers and immutable lifecycle snapshots through
+    `b5d6575`: canonical scope/acquisition/cleanup identity, queued failure-isolated
+    callbacks, physical declarations and Node/Bun CommonJS/ESM archive routes.
+    Full check passes 691 tests / 3,657 assertions; native strict/build/source
+    audit and all eight examples pass. Independent review is clean. Evidence:
+    `docs/reports/2026-09-07-lifecycle-observers.md`.
+  - [ ] Validated dynamic plugin boundary under `2026-09-08-dynamic-plugins.md`.
 - [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests. The prior parent benchmark evaluator Minor is closed by direct malformed JSON/identity/diagnostic, process-failure, boundary and TS2589 tests in the reviewed native compiler checkpoint `ad73249`.
 - [ ] Compiler/inference follow-up: resolve the remaining measured 500/1000 individual-chain limits, large-graph latency and modern native compiler compatibility. Actual nominal-module 1000-provider gates pass, separately from registration groups; this does not prove equally long individual call chains.
   - [x] Both inline inference cases now pass on the supported TypeScript 6.0.3
