@@ -4,6 +4,12 @@
 
 ### Added
 
+- `.contribute(token, provider)`, `.resolveAll(token)` and `DiBag.all(token)`
+  compose ordered collections with independently checked dependencies, lifetimes
+  and cleanup. Module contributions retain private helpers and installation order
+  even with no ordinary exports; frozen arrays preserve exact exposed values.
+  `ModuleContributions` and `.inspectAll(token)` expose conservative collection views.
+
 - `Builder.alias` and `ModuleBuilder.alias` add checked name/token lookup aliases
   that preserve the canonical target's identity, Promise mode, transient behavior,
   ownership, module privacy and selected parent sharing. Inspection shows the direct

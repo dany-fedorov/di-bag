@@ -204,8 +204,8 @@ Runtime authentication and missing-binding checks still protect JavaScript and
 dynamic boundaries, but they are not compile-time proofs. Casts, erased provider
 or module types, widened selections, and dynamically unknown plugins can bypass
 or lack static evidence. Typed tokens complement named composition; they do not
-make every dynamic graph universally type safe. Contributions and plugin
-validation remain planned work.
+make every dynamic graph universally type safe. A validated dynamic-plugin
+boundary remains planned work.
 
 ## Adapt classes and positional functions
 
@@ -323,6 +323,70 @@ the effective owner graph. Its acquisition snapshots follow the canonical target
 Alias metadata types are conservative because replacing a target can change its
 metadata. To project a value or add a disposer, declare an ordinary provider that
 reads the dependency.
+
+## Compose an ordered collection
+
+Use `.contribute(token, registration)` to append providers under a token's service
+contract, and `.resolveAll(token)` to read the collection:
+
+```ts
+type Step = (text: string) => string;
+const stepKey = Symbol('pipeline step');
+const step = DiBag.token(stepKey).of<Step>();
+const feature = DiBag.module()
+  .add({ prefix: () => 'Hello, ' })
+  .contribute(step, ({ prefix }: { prefix: string }): Step => text => prefix + text)
+  .exports([]);
+
+const bag = DiBag.begin()
+  .contribute(step, (): Step => text => text.trim())
+  .install(feature)
+  .contribute(step, (): Step => text => text + '!')
+  .add({
+    pipeline: DiBag.fromFunction([DiBag.all(step)], operations =>
+      (text: string) => operations.reduce((value, operation) => operation(value), text)),
+  })
+  .end();
+
+bag.resolve('pipeline')('  DI  '); // 'Hello, DI!'
+bag.resolveAll(step); // readonly Step[] in declaration/installation order
+await bag.close();
+```
+
+Contributions and singular bindings have separate lookup channels. `.bind`
+does not add an item, and a contribution does not satisfy `.resolve(step)`. An
+empty collection returns an empty array. Every read returns a fresh frozen array;
+the service objects themselves retain their identity and mutability.
+
+`DiBag.all(token)` supplies that readonly array to `fromTokens`, `fromFunction` or
+`fromClass`. It wraps one genuine token, cannot be nested with another dependency
+reference, and permits an absent collection. Each present contribution must match
+the token's service contract and retain its own checked dependencies.
+
+A module's explicit contributions are installed even when `.exports([])` selects
+no ordinary services. Contributors can use module-private helpers, and ordinary
+export renames retain their lexical dependencies. `ModuleContributions<typeof
+feature>` exposes readonly collection service contracts separately from
+`ModuleProvides`. Host operations and module installation/declaration order define
+item order. Repeating a provider or module creates distinct contribution bindings;
+there is no deduplication.
+
+Each contribution keeps ordinary root/scoped/transient caching, exact Promise
+mode, acquisition context and cleanup ownership. Collection reads preserve the
+exposed values without awaiting them or adding an aggregate owner. A partial
+failure propagates the original error; accepted items remain owned until normal
+shutdown, and a retry can reuse them. Startup failure keeps its existing rollback
+policy. A contributor reading its own collection participates in cycle detection.
+
+To share a collection with a child, select an ordinary aggregate provider such as
+`pipeline` above in the existing scope `share` option. It keeps the parent's whole
+acquisition and graph. Direct child collection reads follow normal child overrides
+and lifetime routing. Strict roots check every present contribution and dependency.
+`bag.inspectAll(token)` returns frozen ordered snapshots without acquiring items;
+collection metadata types remain conservative.
+
+Run [`examples/contributions.ts`](examples/contributions.ts) for the complete
+private-module extension pipeline.
 
 ## Attach metadata and inspect without resolving
 
