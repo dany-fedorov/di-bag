@@ -31,12 +31,29 @@ export class Acquisitions {
   private cancellationStarted = false;
   private cancellationCause: unknown;
 
-  private readonly root: Acquisitions;
+  private readonly shared: ReadonlySet<BindingId>;
   private readonly family: AcquisitionFamily;
 
-  constructor(private readonly graph: BindingGraph, private readonly context: RuntimeContext, parent?: Acquisitions) {
-    this.root = parent?.root ?? this;
+  constructor(
+    private readonly graph: BindingGraph,
+    private readonly context: RuntimeContext,
+    private readonly parent?: Acquisitions,
+    shared: readonly BindingId[] = [],
+  ) {
+    this.shared = new Set(shared);
     this.family = parent?.family ?? new AcquisitionFamily();
+  }
+
+  private owner(bindingId: BindingId): Acquisitions {
+    if (this.parent && this.shared.has(bindingId)) return this.parent;
+    if (this.graph.registration(bindingId).lifetime.kind !== 'root') return this;
+    // A child override introduces a new identity absent from older graphs.
+    // Inherited identities retain the earliest graph and its dependency context.
+    let owner: Acquisitions = this;
+    for (let ancestor = this.parent; ancestor; ancestor = ancestor.parent) {
+      if (ancestor.graph.hasBinding(bindingId)) owner = ancestor;
+    }
+    return owner;
   }
 
   resolve(key: BindingKey): unknown {
@@ -50,7 +67,8 @@ export class Acquisitions {
   }
 
   inspect(bindingId: BindingId): readonly AcquisitionSnapshot<readonly unknown[]>[] {
-    if (this.graph.registration(bindingId).lifetime.kind === 'root' && this !== this.root) return this.root.inspect(bindingId);
+    const owner = this.owner(bindingId);
+    if (owner !== this) return owner.inspect(bindingId);
     const snapshots: AcquisitionSnapshot<readonly unknown[]>[] = [];
     for (const attempt of this.attempts.values()) {
       if (attempt.bindingId !== bindingId) continue;
@@ -97,7 +115,8 @@ export class Acquisitions {
     if (lifetime.kind === 'scoped' && from?.strictRoot !== undefined) {
       throw new Error(`root lifetime cannot capture scoped dependency: ${from.strictRoot} -> ${this.graph.label(bindingId)}`);
     }
-    if (lifetime.kind === 'root' && this !== this.root) return this.root.resolveBinding(bindingId, from);
+    const owner = this.owner(bindingId);
+    if (owner !== this) return owner.resolveBinding(bindingId, from);
     const cached = this.cache.get(bindingId);
     if (cached) {
       if (from) this.family.recordEdge(from, cached);

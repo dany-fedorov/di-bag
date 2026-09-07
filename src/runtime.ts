@@ -51,6 +51,10 @@ export class BindingGraph {
     return this.#publicSlots.has(key);
   }
 
+  hasBinding(id: BindingId): boolean {
+    return this.#bindings.has(id);
+  }
+
   /** Immutable graphs need explicit-mode validation only once; configured forks are O(1). */
   preflight(context: RuntimeContext): void {
     if (context.isNativePromise || this.#explicitlyClassified) return;
@@ -133,9 +137,10 @@ export class Runtime {
     private readonly context: RuntimeContext,
     private detach: (() => void) | undefined = undefined,
     parentAcquisitions?: Acquisitions,
+    shared: readonly BindingId[] = [],
   ) {
     graph.preflight(context);
-    this.acquisitions = new Acquisitions(graph, context, parentAcquisitions);
+    this.acquisitions = new Acquisitions(graph, context, parentAcquisitions, shared);
   }
 
   resolve(key: BindingKey): unknown {
@@ -161,10 +166,10 @@ export class Runtime {
     this.acquisitions.assertOpen();
   }
 
-  scope(): Runtime {
+  scope(graph: BindingGraph = this.graph, shared: readonly BindingId[] = []): Runtime {
     this.assertOpen();
     let child!: Runtime;
-    child = new Runtime(this.graph, this.context, () => { this.children.delete(child); }, this.acquisitions);
+    child = new Runtime(graph, this.context, () => { this.children.delete(child); }, this.acquisitions, shared);
     this.children.add(child);
     return child;
   }
