@@ -5,6 +5,7 @@ import ts from 'typescript';
 import { describeDiagnostic } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 import { startupRuntimeAssertions } from './startup-runtime-fixture';
+import { selectedScopeRuntimeAssertions } from './selected-scope-runtime-fixture';
 
 const root = resolve(__dirname, '..');
 
@@ -85,6 +86,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       `${load}
       (async () => {
         ${startupRuntimeAssertions}
+        ${selectedScopeRuntimeAssertions}
         let disposed;
         const mappedDisposal = [];
         const feature = DiBag.module().add({
@@ -350,7 +352,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     ).toEqual([]);
   });
 
-  for (const fixture of ['acquisition-mode.ts', 'negative/acquisition-mode.ts', 'scopes.ts', 'negative/scopes.ts', 'lifetimes.ts', 'negative/lifetimes.ts', 'tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
+  for (const fixture of ['selected-scopes.ts', 'negative/selected-scopes.ts', 'acquisition-mode.ts', 'negative/acquisition-mode.ts', 'scopes.ts', 'negative/scopes.ts', 'lifetimes.ts', 'negative/lifetimes.ts', 'tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
     test(`TypeScript ${mode} emitted provider contracts: ${fixture}`, () => {
       const path = resolve(__dirname, `provider-consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const source = readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
@@ -373,7 +375,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       const errors = ts.getPreEmitDiagnostics(ts.createProgram([path], options, host));
       if (!fixture.startsWith('negative/')) {
         expect(errors.map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
-      } else if (fixture === 'negative/scopes.ts' || fixture === 'negative/lifetimes.ts') {
+      } else if (fixture === 'negative/selected-scopes.ts' || fixture === 'negative/scopes.ts' || fixture === 'negative/lifetimes.ts') {
         const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
         expect(matched.missing).toEqual([]);
         expect(matched.unexpected).toEqual([]);

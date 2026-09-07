@@ -84,6 +84,14 @@ type PrivateCaptives<H extends Registrations, C> = C extends LifetimeObligation
   ? C['source'] extends keyof C['context']['registrations']
     ? CheckRoot<H, C['context']['registrations'][C['source']], C['context'], PrivateSite<C['context'], C['source']>> : never : never;
 type Captives<R extends Registrations, C> = PublicCaptives<R> | PrivateCaptives<R, C>;
+// Inherited roots construct in their already-validated ancestor graph. Only
+// roots newly introduced by this scope can capture its overridden dependencies.
+type OverrideCaptives<R extends Registrations, O extends Registrations> = {
+  [K in keyof O & keyof R]: CheckRoot<R, R[K], undefined, PublicSite<K>>;
+}[keyof O & keyof R];
+export type CheckedScopeLifetimes<R extends Registrations, O extends Registrations> =
+  [OverrideCaptives<R, O>] extends [never] ? unknown
+    : Unsatisfied<'root lifetime cannot capture scoped dependency', { readonly captives: OverrideCaptives<R, O> }>;
 export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> =
   [Captives<R, C>] extends [never] ? unknown
     : unknown extends Checked<R> & Complete<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R>

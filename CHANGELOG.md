@@ -4,6 +4,13 @@
 
 ### Added
 
+- `Bag.scope({ share })` borrows selected parent acquisitions, and
+  `Bag.scope(keys, overrides, { share }?)` supplies checked child overrides.
+  Sharing retains parent dependencies, Promise identity, context and ownership;
+  conflicts and transient sharing reject before override getters run. New root
+  overrides are owned by their defining child and inherited by its descendants.
+- Selected scope contracts are verified through physical classic/native
+  declarations and packed Node/Bun CommonJS/ESM consumers.
 - `Builder.start(keys, options?)` eagerly acquires selected names/tokens in a fresh
   bag, with parallel/sequential startup, rollback on failure, external cancellation
   and finite positive timeouts. `DiBagStartupError` retains setup and cleanup

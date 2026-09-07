@@ -293,8 +293,8 @@ test('unchecked scope arguments reject before creating or acquiring a child', as
   let runtimeScopes = 0;
   Runtime.prototype.scope = function () { runtimeScopes++; return originalScope.call(this); };
   try {
-    for (const args of [[undefined], [{ share: ['value'] }], [{ value: () => 2 }]]) {
-      expect(() => Reflect.apply(root.scope, root, args)).toThrow('scope does not accept arguments');
+    for (const args of [[undefined], [{ share: ['missing'] }], [{ value: () => 2 }]]) {
+      expect(() => Reflect.apply(root.scope, root, args)).toThrow('scope');
     }
     expect(runtimeScopes).toBe(0);
     expect(created).toBe(0);

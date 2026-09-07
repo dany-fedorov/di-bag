@@ -12,9 +12,9 @@ const root = DiBag.begin().install(feature).bind(token, () => ({ value: 1 })).ad
   external: () => ({ exact: true as const, visible: 'wider' as const }),
 }).end();
 const child = root.scope();
-// diagnostic: Expected 0 arguments
-root.scope({ share: ['external'] });
-// diagnostic: Expected 0 arguments
+// diagnostic: scope share accepts existing tokens only
+root.scope({ share: ['missing'] });
+// diagnostic: not assignable
 root.scope(undefined);
 // diagnostic: not assignable
 child.resolve('missing');

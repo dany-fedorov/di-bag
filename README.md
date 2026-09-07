@@ -204,8 +204,8 @@ Runtime authentication and missing-binding checks still protect JavaScript and
 dynamic boundaries, but they are not compile-time proofs. Casts, erased provider
 or module types, widened selections, and dynamically unknown plugins can bypass
 or lack static evidence. Typed tokens complement named composition; they do not
-make every dynamic graph universally type safe. Selected sharing, child overrides
-and composition/plugin extensions remain planned work.
+make every dynamic graph universally type safe. Composition/plugin extensions
+remain planned work.
 
 ## Attach metadata and inspect without resolving
 
@@ -538,7 +538,8 @@ child.resolve('nonce') === child.resolve('nonce'); // false: per resolution
 Lifetime controls caching and which bag owns an acquisition attempt. It does not
 infer disposal from a returned method name; only an explicit ownership stage such
 as `withDisposal` transfers cleanup responsibility. Root acquisitions belong to
-the family root even when a child resolves them first. Scoped and transient
+the earliest scope defining that binding, even when a descendant resolves them
+first. A root override introduced by a child belongs to that child. Scoped and transient
 attempts belong to the scope resolving them, or to the owner of the acquisition
 that asks for the dependency. Closing a child therefore leaves family-root
 acquisitions live, while closing the root closes descendants first and then
@@ -564,12 +565,9 @@ const bag = DiBag.begin().add({
 Explicit capture always constructs through the root context; it never borrows
 state already owned by a child. An individually known lifetime literal is
 required, and capture options are accepted only for `root`. An outer lifetime
-wrapper replaces an earlier caching policy. `scope()` remains a no-argument
-operation over the same immutable graph. `fork()` creates an independent family,
-so its root cache and ownership are independent too.
-
-Scope arguments, child overrides and selected sharing between a root and tracked
-children remain planned work.
+wrapper replaces an earlier caching policy. `fork()` creates an independent
+family, so its root cache and ownership are independent too. Forks validate all
+root dependencies against the new graph, including after child overrides.
 
 ## Create tracked child scopes
 
@@ -597,6 +595,37 @@ A child-created `fork()` is still an independent root. It is not tracked by the
 child or closed with the parent tree, so close it separately. Use `scope()` for a
 tracked child with the same graph, `fork()` for independent ownership, and selected
 `fork(keys, overrides)` for an independent graph with explicit replacements.
+
+Select sharing and child overrides explicitly:
+
+```ts
+const parent = DiBag.begin().add({
+  config: () => ({ region: 'eu' }),
+  client: ({ config }: { config: { region: string } }) => ({ region: config.region }),
+}).end();
+const child = parent.scope(['config'], {
+  config: () => ({ region: 'us' }),
+}, { share: ['client'] });
+
+child.resolve('config').region; // 'us'
+child.resolve('client') === parent.resolve('client'); // true; client retains 'eu'
+const grandchild = child.scope({ share: ['client'] });
+await parent.close(); // closes descendants, then releases parent-owned work
+```
+
+Both tuples accept existing names and genuine typed tokens. Only selected override
+properties are read; additional properties cannot change the graph. Override
+outputs must remain assignable to the original service contract. Selecting a key
+for both sharing and overriding rejects before override getters run.
+
+Sharing is lazy and borrows the parent's whole acquisition: value, pending Promise,
+metadata, dependencies, cancellation context and ownership. A shared module export
+retains its private dependencies. Child shutdown cannot abort or dispose those
+borrowed resources. Scoped sharing must be selected again by each descendant;
+root providers are inherited automatically. Transient sharing rejects because
+there is no cached parent instance to borrow. A child-defined root override uses
+that child's graph and is shared with descendants; inherited roots always keep
+their original graph, even when child consumers use overridden dependencies.
 
 ## Fork for scopes and tests
 

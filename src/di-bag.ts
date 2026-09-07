@@ -9,6 +9,9 @@ import type { CheckedLifetimes } from './lifetime-types';
 import { withLifetime } from './lifetime';
 import { withContext } from './acquisition-context';
 import { startRuntime } from './startup';
+import { selectScope } from './scope-selection';
+import type { ScopeOptions, DisjointScopeSelection } from './scope-types';
+import type { CheckedScopeLifetimes } from './lifetime-types';
 import type { StartupOptions } from './startup';
 import { withMetadata, mapSync, mapAsync, fromTokens, withTokenBinding, factory } from './provider';
 import { runtimeContext, unconfigured } from './acquisition-mode';
@@ -63,15 +66,32 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
     return this.#runtime.inspect(typeof token === 'string' ? token : readTokenKey(token));
   }
 
-  /** Create a tracked child with fresh acquisitions over the same immutable graph. */
+  /** Create a tracked child, optionally borrowing parent services and overriding selected slots. */
+  scope<const S extends readonly unknown[]>(options: ScopeOptions<R, S>): Bag<R, C>;
+  scope<
+    const K extends readonly unknown[],
+    O extends ForkContext<R, K, O>,
+    const S extends readonly unknown[] = readonly [],
+  >(
+    keys: K & Selection<R, K, 'scope'>,
+    overrides: O & object & Record<SelectionKey<K[number]>, Registration> &
+      Overrides<R, Selected<K, O>> &
+      Checked<Merge<R, ReboundSelection<R, Selected<K, O>>>> &
+      Complete<Merge<R, ReboundSelection<R, Selected<K, O>>>> &
+      CheckedConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>> &
+      CompleteConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>> &
+      CheckedScopeLifetimes<NoInfer<Merge<R, ReboundSelection<R, Selected<K, O>>>>, NoInfer<Selected<K, O>>>,
+    options?: ScopeOptions<R, S> & DisjointScopeSelection<K, S>,
+  ): Bag<Merge<R, ReboundSelection<R, Selected<K, O>>>, C>;
   scope(): Bag<R, C>;
-  scope(...args: unknown[]): Bag<R, C> {
-    if (args.length !== 0) throw new Error('scope does not accept arguments');
-    return new Bag(this.#graph, this.context, this.#runtime.scope());
+  scope(...args: unknown[]): unknown {
+    this.#runtime.assertOpen();
+    const { graph, shared } = selectScope(this.#graph, args);
+    return new Bag(graph, this.context, this.#runtime.scope(graph, shared));
   }
 
   /** Replace existing tokens; the fork creates and owns its own instances. */
-  fork(): Bag<R, C>;
+  fork(this: Bag<R, C> & CheckedLifetimes<R, C>): Bag<R, C>;
   // The graph-aware bound keeps the first inference pass applicable and requires
   // selected registrations even with explicit generics. The argument's Record
   // supplies callable context; unselected keys stay outside checks and results.
