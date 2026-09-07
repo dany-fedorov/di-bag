@@ -136,11 +136,12 @@ string and a runnable unknown-plugin validation/cleanup example.
   matrix serially after Task1 stabilizes. Obtain independent Task1/Task2 spec and
   quality verdicts plus whole-increment review, one consolidated correction and
   scoped re-review if needed.
-- [x] On stable reviewed source/harness run `npm run check`, native strict/build/
+- [ ] On stable reviewed source/harness run `npm run check`, native strict/build/
   source audit and all examples serially. Record complete exit statuses, precise
   counts, logs and limitations; mark P1 locally complete only after those gates.
-- [x] Locally commit verified evidence. Non-force push when export approval permits,
-  verify remote SHA and do not publish. Compiler and release confidence work remain.
+- [x] Locally commit verified evidence.
+- [ ] Non-force push when export approval permits and verify the remote SHA; do not
+  publish. Compiler and release confidence work remain.
 
 Use `DiBagPluginError.phase` in shared runtime assertions, require exact acquired
 identity in disposers, and retain separately controlled gates for native source,

@@ -34,18 +34,27 @@ export const pluginRuntimeAssertions = `
 
     const invalid = { id: 'invalid' };
     let invalidReleased = 0;
+    let releaseInvalidDisposal;
+    const invalidDisposal = new Promise(resolve => { releaseInvalidDisposal = resolve; });
     const invalidProvider = DiBag.fromPlugin([], {
       apiVersion: 1,
       create: () => invalid,
       dispose(acquired) {
         if (acquired !== invalid) throw new Error('invalid plugin ownership changed');
         invalidReleased++;
+        return invalidDisposal;
       },
     }, { acquisition: 'raw', validate: () => false });
     const invalidBag = DiBag.begin().add({ invalidPlugin: invalidProvider }).end();
     let outputError;
     try { invalidBag.resolve('invalidPlugin'); } catch (error) { outputError = error; }
-    await invalidBag.close();
+    let invalidClosed = false;
+    const invalidClose = invalidBag.close().then(() => { invalidClosed = true; });
+    await turn();
+    assertPlugin(!invalidClosed && invalidReleased === 1,
+      'failed plugin validation close skipped pending original-value disposal');
+    releaseInvalidDisposal();
+    await invalidClose;
     assertPlugin(outputError instanceof DiBagPluginError && outputError.phase === 'output' && invalidReleased === 1,
       'invalid plugin output did not retain original ownership');
 
@@ -53,12 +62,15 @@ export const pluginRuntimeAssertions = `
     const nativeValue = { id: 'native' };
     const nativeGate = new Promise(resolve => { releaseNative = resolve; });
     let nativeReleased = 0;
+    let releaseNativeDisposal;
+    const nativeDisposal = new Promise(resolve => { releaseNativeDisposal = resolve; });
     const nativeProvider = DiBag.fromPlugin([], {
       apiVersion: 1,
       create: () => nativeGate,
       dispose(acquired) {
         if (acquired !== nativeValue) throw new Error('native plugin ownership changed');
         nativeReleased++;
+        return nativeDisposal;
       },
     }, { acquisition: 'native', validate: item => item === nativeValue });
     const nativeBag = DiBag.begin().add({ nativePlugin: nativeProvider }).end();
@@ -70,6 +82,10 @@ export const pluginRuntimeAssertions = `
     assertPlugin(!nativeClosed, 'native plugin close skipped pending validation');
     releaseNative(nativeValue);
     assertPlugin(await nativeResult === nativeValue, 'native plugin validator changed fulfilled identity');
+    await turn();
+    assertPlugin(!nativeClosed && nativeReleased === 1,
+      'native plugin close skipped pending fulfilled-value disposal');
+    releaseNativeDisposal();
     await nativeClose;
     assertPlugin(nativeReleased === 1, 'native plugin cleanup was not once-only');
 
@@ -115,7 +131,21 @@ export const pluginRuntimeAssertions = `
     await privateBag.close();
 
     const observedEvents = [];
-    const observed = DiBag.observe({ onEvent: event => { observedEvents.push(event); }, onError: failure => { throw failure.error; } });
+    let releaseObserverWork;
+    let observerWorkFinished = false;
+    const observerWork = new Promise(resolve => { releaseObserverWork = resolve; })
+      .then(() => { observerWorkFinished = true; });
+    let observerWorkStarted = false;
+    const observed = DiBag.observe({
+      onEvent: event => {
+        observedEvents.push(event);
+        if (event.kind === 'acquisition-started') {
+          observerWorkStarted = true;
+          return observerWork;
+        }
+      },
+      onError: failure => { throw failure.error; },
+    });
     const observedValue = { id: 'observed' };
     let observedReleased = 0;
     const observedBag = observed.begin().add({ observedPlugin: observed.fromPlugin([], {
@@ -129,7 +159,13 @@ export const pluginRuntimeAssertions = `
     assertPlugin(observedBag.resolve('observedPlugin') === observedValue, 'observer changed plugin value');
     const observedAttempt = observedBag.inspect('observedPlugin').acquisitions[0].acquisitionId;
     const observedBinding = observedBag.inspect('observedPlugin').bindingId;
-    await observedBag.close();
+    await turn();
+    let observedClosed = false;
+    await observedBag.close().then(() => { observedClosed = true; });
+    assertPlugin(observedClosed && observerWorkStarted && !observerWorkFinished,
+      'plugin close waited for application-owned observer work');
+    releaseObserverWork();
+    await observerWork;
     await turn();
     assertPlugin(observedReleased === 1
       && observedEvents.filter(event => event.kind === 'acquisition-started' && event.acquisitionId === observedAttempt && event.bindingId === observedBinding).length === 1
