@@ -14,25 +14,45 @@ const node = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8'
 const bun = process.execPath;
 const npmCli = realpathSync(join(dirname(node), 'npm'));
 const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
-  ? "const { DiBag } = require('di-bag/node');"
-  : "import { DiBag } from 'di-bag/node';"}
+  ? "const { DiBag } = require('di-bag/node'); const assert = require('node:assert/strict');"
+  : "import { DiBag } from 'di-bag/node'; import assert from 'node:assert/strict';"}
 (async () => {
   const log = [];
   let id = 0;
+  let rootDisposed = 0;
+  let scopedDisposed = 0;
+  let transientsDisposed = 0;
   const parent = DiBag.begin().add({
     service: DiBag.withDisposal(() => ++id, value => { log.push(value); }),
+    root: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'root' }), () => { rootDisposed++; }), 'root'),
+    scoped: DiBag.withDisposal(() => ({ owner: 'scope' }), () => { scopedDisposed++; }),
+    transient: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'call' }), () => { transientsDisposed++; }), 'transient'),
   }).end();
   const child = parent.scope();
   const independent = child.fork();
-  if (parent.resolve('service') !== 1 || child.resolve('service') !== 2)
-    throw new Error('scope identity');
+  const childRoot = child.resolve('root');
+  child.resolve('scoped');
+  const firstTransient = child.resolve('transient');
+  const secondTransient = child.resolve('transient');
+  assert.equal(parent.resolve('service'), 1);
+  assert.equal(child.resolve('service'), 2);
+  assert.equal(child.resolve('root'), childRoot);
+  assert.equal(parent.resolve('root'), childRoot);
+  assert.notEqual(firstTransient, secondTransient);
   independent.resolve('service');
+  await child.close();
+  assert.deepEqual(log, [2]);
+  assert.equal(rootDisposed, 0);
+  assert.equal(scopedDisposed, 1);
+  assert.equal(transientsDisposed, 2);
+  assert.equal(parent.resolve('root'), childRoot);
   await parent.close();
-  if (JSON.stringify(log) !== '[2,1]' || independent.resolve('service') !== 3)
-    throw new Error('scope ownership');
+  assert.deepEqual(log, [2, 1]);
+  assert.equal(rootDisposed, 1);
+  assert.equal(independent.resolve('service'), 3);
   await independent.close();
-  if (JSON.stringify(log) !== '[2,1,3]') throw new Error('fork ownership');
-  console.log(JSON.stringify({ log }));
+  assert.deepEqual(log, [2, 1, 3]);
+  console.log(JSON.stringify({ log, rootDisposed, scopedDisposed, transientsDisposed }));
 })().catch(error => { console.error(error); process.exitCode = 1; });`;
 for (const emitter of ['classic6', 'native7']) {
   test(`native installed contracts and physical downstream declarations from ${emitter}`, async () => {
@@ -59,7 +79,8 @@ for (const emitter of ['classic6', 'native7']) {
           const executed = await supervise(executable, [runtime], consumer, nativeLimits);
           expect({ emitter, extension, executable, status: executed.status, signal: executed.signal,
             stderr: executed.stderr, stdout: executed.stdout.trim() }).toEqual({
-            emitter, extension, executable, status: 0, signal: null, stderr: '', stdout: '{"log":[2,1,3]}',
+            emitter, extension, executable, status: 0, signal: null, stderr: '',
+            stdout: '{"log":[2,1,3],"rootDisposed":1,"scopedDisposed":1,"transientsDisposed":2}',
           });
           expect(executed.terminationReason).toBeUndefined();
         }
@@ -76,7 +97,7 @@ for (const emitter of ['classic6', 'native7']) {
             supplementalExpected: markers.supplementalExpected, supplementalMatched: markers.supplementalMatched,
             knownNativeRejections: markers.knownNativeRejections, gaps: markers.gaps }));
         }
-        for (const feature of ['modern-inline', 'token-modules', 'acquisition-mode', 'scopes']) {
+        for (const feature of ['modern-inline', 'token-modules', 'acquisition-mode', 'scopes', 'lifetimes']) {
           const sourceDir = join(consumer, `${feature}-source`), outputDir = join(consumer, `${feature}-output`);
           mkdirSync(sourceDir); mkdirSync(outputDir);
           const assertions = "type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;";
@@ -87,7 +108,7 @@ for (const emitter of ['classic6', 'native7']) {
           const fixture = feature === 'token-modules' ? 'token-modules/feature.ts' : `${feature}.ts`;
           const producer = join(sourceDir, `feature.${extension}`);
           writeFileSync(producer, route(readFileSync(join(root, 'tests/types', fixture), 'utf8'), true));
-          if (emitter === 'classic6' && (feature === 'acquisition-mode' || feature === 'scopes')) {
+          if (emitter === 'classic6' && (feature === 'acquisition-mode' || feature === 'scopes' || feature === 'lifetimes')) {
             const program = ts.createProgram([producer], { strict: true, declaration: true, emitDeclarationOnly: true, rootDir: sourceDir, outDir: outputDir,
               noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, types: [], target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext });
             const emitted = program.emit();
@@ -101,7 +122,7 @@ for (const emitter of ['classic6', 'native7']) {
           const downstream = join(consumer, `${feature}-consumer.${extension}`);
           const consumerFixture = feature === 'token-modules' ? 'token-modules/consumer.ts' : `${feature}-consumer.ts`;
           const text = route(readFileSync(join(root, 'tests/types', consumerFixture), 'utf8'))
-            .replace(/from '\.\/(modern-inline|feature|acquisition-mode|scopes)'/, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`);
+            .replace(/from '\.\/(modern-inline|feature|acquisition-mode|scopes|lifetimes)'/, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`);
           writeFileSync(downstream, text);
           const consumed = await compileNative(compiler, consumer, [downstream]);
           expect({ checked: consumed.checked, diagnostics: consumed.diagnostics }).toEqual({ checked: true, diagnostics: [] });

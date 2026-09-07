@@ -32,7 +32,10 @@ execution; do not stop for another planning approval between increments.
   physical declaration-only consumers preserve the exact inferred contracts.
   M1's explicit empty-fork graph-reuse finding is addressed. Evidence:
   `docs/reports/2026-09-07-child-scopes.md`.
-- [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation.
+- [ ] Lifetime runtime:
+  - [x] Root/scoped/transient cache and ownership policies, root-context capture,
+    and static/runtime captive-dependency checks on the per-attempt foundation.
+  - [ ] Selected sharing and child overrides across tracked scope boundaries.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
@@ -293,3 +296,11 @@ rows measure source revision `cc9dbdc`, not the classification API changes. Evid
   empty-selection graph-reuse finding is closed. Root/transient lifetime policies,
   explicit sharing, captive-dependency checks, eager startup and cancellation remain
   open; this slice does not complete L1, L2 or A1.
+- Root/scoped/transient policies and captive checks are implemented through
+  `2026-09-07-lifetime-policies.md`. The public facade, runtime ownership, useful
+  completion-time diagnostics and exact inferred declarations are exercised from
+  physical classic/native archives. All eight Node/Bun CommonJS/ESM executions
+  preserve child-first root ownership, per-call transients and independent forks.
+  Selected sharing and child overrides across tracked scopes remain open, as do
+  startup, context propagation and cancellation; the enterprise program is not
+  complete.

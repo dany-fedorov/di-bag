@@ -3,7 +3,7 @@
 Date: 2026-09-07. The internal declaration checkpoint is now integrated with
 runtime ownership and the public `DiBag.withLifetime` facade member. `Lifetime`
 is a type-only package export. Physical installed-package lifetime acceptance
-remains a separate checkpoint.
+now covers both emitters and every existing Node/Bun CommonJS/ESM route.
 
 The authenticated provider description now carries a frozen lifetime record.
 Descriptions default to scoped; a replacement wrapper snapshots root capture
@@ -34,7 +34,7 @@ that consumer against emitted declarations with producer sources absent. This
 is early declaration integration evidence, not the later installed-package
 lifetime acceptance claim.
 
-| Final bounded check | Classic API 6.0.3¹ | Native 7.0.2 |
+| Task 1 bounded check | Classic API 6.0.3¹ | Native 7.0.2 |
 | --- | ---: | ---: |
 | Producer declaration bytes | 42,000 | 42,000 |
 | All emitted declaration bytes | 106,505 | 106,505 |
@@ -75,9 +75,8 @@ diagnostic allowance was added to address these failures.
   the full run, including 1,000-provider named modules; no compiler timeout or
   excessive-instantiation diagnostic was accepted as a useful rejection.
 
-The results above describe the internal declaration checkpoint. Runtime and
-public-facade integration evidence follows below; physical installed lifetime
-package evidence remains a later checkpoint.
+The results above describe the internal declaration checkpoint. Runtime,
+public-facade and physical installed-package evidence follows below.
 
 ## Runtime ownership and public facade
 
@@ -158,6 +157,55 @@ account for the total-size change from the internal-only checkpoint above.
 Equal byte counts do not mean byte-identical compiler output. This verification
 still does not substitute for Task 3's installed lifetime acceptance routes.
 
+## Physical installed package checkpoint
+
+The first classic installed-producer emission reached the real lifetime source
+and failed with portable-name diagnostics before downstream consumption. The
+unique required aliases were `LexicalContext`, `RenamedLifetimeProviders`,
+`RenamedLifetimeObligation`, `CheckedLifetimes`, `Renamed`, `Merge`, `Selected`,
+`Checked`, `Complete`, `ForkContext`, `Overrides`, `Selection`, `ReboundProviders`,
+`ReboundSelection`, `SelectionKey` and `Registration`. Those exact names are now
+type-only root exports. No producer annotation, runtime helper, public subpath or
+diagnostic allowance was added. The native emitter required no additional name.
+
+After that correction, the classic and native archive lanes each passed one
+test with 168 assertions. Each emitter built and packed a physical package,
+installed it twice, removed the unannotated lifetime producer source after
+emission, and checked the same downstream consumer against `.d.cts` and `.d.mts`
+output with both compilers. Positive lifetime contracts passed and all 47
+negative lifetime regions retained useful diagnostics with zero lifetime gaps.
+The shared direct installed fixture lane separately passed four CJS/ESM positive
+and negative lifetime checks with eight assertions.
+
+The two emitters, two module formats and two runtimes produced eight successful
+archive executions. Each had exit status 0, null signal, no termination reason,
+empty stderr and exact output
+`{"log":[2,1,3],"rootDisposed":1,"scopedDisposed":1,"transientsDisposed":2}`.
+The script constructs the root from the child first, observes one shared root,
+two distinct child transients, child-scoped cleanup on child close, no root
+cleanup until parent close, and independent fork cleanup last.
+
+The final bounded source declaration check after the installed-emitter aliases
+produced 41,477-byte lifetime declarations and 107,690 total declaration bytes
+with each compiler. Classic API 6.0.3 emitted in 1,076 ms and checked the
+source-absent consumer in 367 ms; native 7.0.2 emitted in 121 ms and checked it
+in 223 ms. Both producer and consumer phases reported zero diagnostics. Equal
+sizes do not claim byte-identical emitted declarations. Relative to the Task 2
+measurement, public aliases shorten the emitter's inferred spelling while adding
+16 maintained public type names; that compatibility surface is the principal
+representation cost.
+
+The final integrated checkpoint ran after the implementation and harness
+self-review. `npm run check` passed the classic typecheck, all 500 tests (2,567
+assertions across 29 files in 384.00 seconds), and the classic build. Native
+typecheck and native build both exited 0. The native source audit accepted all
+89 fixtures: 407 expected diagnostics, 380 directly matched, 27 previously
+recorded unrelated gaps, zero unexpected diagnostics and zero failures. The
+modules, tokens, box-adapters and WBS examples all exited 0 with their expected
+output. A later README-only correction clarified that lifetime selects cache and
+attempt ownership while `withDisposal` transfers cleanup responsibility; it did
+not change the verified implementation or package harness.
+
 ## Decisions and costs
 
 1. Implement policies before scope options. This avoids ambiguous root context;
@@ -182,3 +230,6 @@ still does not substitute for Task 3's installed lifetime acceptance routes.
     a public type compatibility commitment, without exposing its constructor.
 11. Export `ModulePublicProviders` type-only after installed producer TS2883.
     This preserves inference at the cost of another maintained public type name.
+12. Export only the 16 aliases named by actual installed-producer diagnostics.
+    This preserves the exact unannotated producer through physical package
+    emission, at the cost of those public type-name compatibility commitments.

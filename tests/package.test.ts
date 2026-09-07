@@ -119,16 +119,33 @@ for (const mode of ['commonjs', 'module'] as const) {
         await tokenRuntime.close();
         const scopeLog = [];
         let scopeId = 0;
+        let rootDisposed = 0;
+        let scopedDisposed = 0;
+        let transientsDisposed = 0;
         const parent = DiBag.begin().add({
           service: DiBag.withDisposal(() => ++scopeId, value => { scopeLog.push(value); }),
+          root: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'root' }), () => { rootDisposed++; }), 'root'),
+          scoped: DiBag.withDisposal(() => ({ owner: 'scope' }), () => { scopedDisposed++; }),
+          transient: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'call' }), () => { transientsDisposed++; }), 'transient'),
         }).end();
         const scope = parent.scope();
         const independent = scope.fork();
+        const childRoot = scope.resolve('root');
+        scope.resolve('scoped');
+        const firstTransient = scope.resolve('transient');
+        const secondTransient = scope.resolve('transient');
         if (parent.resolve('service') !== 1 || scope.resolve('service') !== 2)
           throw new Error('scope identity');
+        if (scope.resolve('root') !== childRoot || parent.resolve('root') !== childRoot)
+          throw new Error('root family identity');
+        if (firstTransient === secondTransient) throw new Error('transient identity');
         independent.resolve('service');
+        await scope.close();
+        if (JSON.stringify(scopeLog) !== '[2]' || rootDisposed !== 0 || scopedDisposed !== 1 || transientsDisposed !== 2)
+          throw new Error('lifetime child ownership');
+        if (parent.resolve('root') !== childRoot) throw new Error('root closed with child');
         await parent.close();
-        if (JSON.stringify(scopeLog) !== '[2,1]' || independent.resolve('service') !== 3)
+        if (JSON.stringify(scopeLog) !== '[2,1]' || rootDisposed !== 1 || independent.resolve('service') !== 3)
           throw new Error('scope ownership');
         await independent.close();
         if (JSON.stringify(scopeLog) !== '[2,1,3]') throw new Error('fork ownership');
@@ -142,6 +159,7 @@ for (const mode of ['commonjs', 'module'] as const) {
           originalCause: error.errors[0] === cause && error.failures[0].error === cause,
           label: error.failures[0].label,
           mappedIdentity, asyncMapped, mappedDisposal, tokenIdentity, scopeLog,
+          rootDisposed, scopedDisposed, transientsDisposed,
         }));
       })().catch(error => { console.error(error); process.exitCode = 1; });
     `,
@@ -150,7 +168,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       cleanup: true, sameClass: true, originalCause: true, label: 'resource',
       metadata: 'package', inspectionIsStatic: true, frozenInspection: true,
       mappedIdentity: true, asyncMapped: 5, mappedDisposal: ['outer', 7], tokenIdentity: true,
-      scopeLog: [2, 1, 3] });
+      scopeLog: [2, 1, 3], rootDisposed: 1, scopedDisposed: 1, transientsDisposed: 2 });
   });
 
   test(`Node ${mode} observes local and foreign native subclass state directly`, async () => {
@@ -330,7 +348,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     ).toEqual([]);
   });
 
-  for (const fixture of ['acquisition-mode.ts', 'negative/acquisition-mode.ts', 'scopes.ts', 'negative/scopes.ts', 'tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
+  for (const fixture of ['acquisition-mode.ts', 'negative/acquisition-mode.ts', 'scopes.ts', 'negative/scopes.ts', 'lifetimes.ts', 'negative/lifetimes.ts', 'tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
     test(`TypeScript ${mode} emitted provider contracts: ${fixture}`, () => {
       const path = resolve(__dirname, `provider-consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const source = readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
@@ -353,7 +371,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       const errors = ts.getPreEmitDiagnostics(ts.createProgram([path], options, host));
       if (!fixture.startsWith('negative/')) {
         expect(errors.map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
-      } else if (fixture === 'negative/scopes.ts') {
+      } else if (fixture === 'negative/scopes.ts' || fixture === 'negative/lifetimes.ts') {
         const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
         expect(matched.missing).toEqual([]);
         expect(matched.unexpected).toEqual([]);

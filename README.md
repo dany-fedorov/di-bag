@@ -438,6 +438,69 @@ barrier, but awaiting it would wait on its own completion. Arbitrary user-create
 Promise cycles cannot be forcibly completed. There is no cancellation or shutdown
 timeout: a factory or disposer that never settles keeps `close()` pending.
 
+## Choose root, scoped or transient caching
+
+Registrations are scoped by default: one acquisition is cached by each bag that
+resolves it. `DiBag.withLifetime` can instead select a root-family cache or a
+fresh acquisition for every resolution without changing the factory's input,
+output, metadata, acquisition mode, token contracts or disposer value:
+
+```ts
+const root = DiBag.begin().add({
+  config: DiBag.withLifetime(
+    DiBag.withDisposal(() => ({ region: 'eu' }), () => {}),
+    'root',
+  ),
+  request: DiBag.withDisposal(() => ({ id: crypto.randomUUID() }), () => {}),
+  nonce: DiBag.withLifetime(
+    DiBag.withDisposal(() => ({ value: Math.random() }), () => {}),
+    'transient',
+  ),
+}).end();
+
+const child = root.scope();
+child.resolve('config') === root.resolve('config'); // true: family root cache
+child.resolve('request') === child.resolve('request'); // true: child cache
+child.resolve('nonce') === child.resolve('nonce'); // false: per resolution
+```
+
+Lifetime controls caching and which bag owns an acquisition attempt. It does not
+infer disposal from a returned method name; only an explicit ownership stage such
+as `withDisposal` transfers cleanup responsibility. Root acquisitions belong to
+the family root even when a child resolves them first. Scoped and transient
+attempts belong to the scope resolving them, or to the owner of the acquisition
+that asks for the dependency. Closing a child therefore leaves family-root
+acquisitions live, while closing the root closes descendants first and then
+root-owned work.
+
+A root registration cannot depend on a scoped registration by default. The
+type checker reports that captive dependency when the graph is completed with
+`.end()`, or when selected `fork` replacements complete a new graph. For the
+deliberate case, `{ captureScoped: true }` permits only that root boundary:
+
+```ts
+const bag = DiBag.begin().add({
+  rootContext: () => ({ region: 'eu' }),
+  client: DiBag.withLifetime(
+    ({ rootContext }: { rootContext: { region: string } }) =>
+      ({ region: rootContext.region }),
+    'root',
+    { captureScoped: true },
+  ),
+}).end();
+```
+
+Explicit capture always constructs through the root context; it never borrows
+state already owned by a child. An individually known lifetime literal is
+required, and capture options are accepted only for `root`. An outer lifetime
+wrapper replaces an earlier caching policy. `scope()` remains a no-argument
+operation over the same immutable graph. `fork()` creates an independent family,
+so its root cache and ownership are independent too.
+
+This release does not add scope arguments, child overrides or selected sharing
+between a root and tracked children. Startup, context propagation and cancellation
+also remain separate work.
+
 ## Create tracked child scopes
 
 ```ts
@@ -453,8 +516,9 @@ await root.close(); // closes the child before root-owned resources
 ```
 
 `scope()` preserves the parent's exact registrations, tokens, module constraints,
-metadata and resolved-value types while creating fresh lazy acquisitions and
-resource ownership. A parent close synchronously begins closing its live descendant tree;
+metadata and resolved-value types while creating fresh lazy scoped acquisitions
+and resource ownership. Root and transient policies follow the rules above. A
+parent close synchronously begins closing its live descendant tree;
 each child finishes before the parent's own finalizers run. Closing a child
 independently leaves its parent and siblings open, and detaches it after that close
 settles, so the caller owns any cleanup failure from the independent close.
