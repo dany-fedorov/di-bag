@@ -3,8 +3,8 @@ import type {
   Registration,
   Registrations,
 } from './registration';
-import type { ProviderContext, ProviderNeeds, ProviderOutput, ProviderGraph } from './provider';
-import type { InvalidGraphs, MissingTokens, SelectionKey, TokenMember, ValidToken, TokenGraph } from './token-types';
+import type { ProviderContext, ProviderNeeds, ProviderOutput, ProviderGraph, ProviderTokenNeeds } from './provider';
+import type { InvalidGraphs, MissingTokens, SelectionKey, TokenMember, ValidToken, TokenGraph, WrongToken } from './token-types';
 
 export type Needs<R extends Registration> = ProviderNeeds<R>;
 
@@ -87,6 +87,32 @@ export type Checked<R extends Registrations> = [
         tokens: InvalidNeeds<R> | NonFiniteKeys<R> | Exclude<keyof R, string>;
       }
     >;
+
+// Builder history has already passed Checked, so only relationships crossing
+// the accepted-history/incoming-registration boundary need validating again.
+type NewWrong<E extends Entry, N extends Registrations> = {
+  [K in keyof N]: Pick<Provided<From<E>>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> extends
+    Pick<Needs<N[K]>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> ? never : K
+}[keyof N];
+type OldWrong<E extends Entry, N extends Registrations> = E extends Entry
+  ? E['key'] extends keyof N ? never
+    : Pick<Provided<N>, keyof Needs<E['registration']> & keyof N> extends
+      Pick<Needs<E['registration']>, keyof Needs<E['registration']> & keyof N> ? never : E['key']
+  : never;
+type NewTokenWrong<E extends Entry, N extends Registrations> = {
+  [K in keyof N]: WrongToken<ProviderTokenNeeds<N[K]>, From<Exclude<E, { key: keyof N }>>>
+}[keyof N];
+type OldTokenWrong<E extends Entry, N extends Registrations> = E extends Entry
+  ? E['key'] extends keyof N ? never : WrongToken<ProviderTokenNeeds<E['registration']>, N>
+  : never;
+// Preserve Checked's incoming-first precedence before inspecting cross-boundary
+// relationships, then prefer token-contract errors over named shape errors.
+export type IncrementalChecked<E extends Entry, N extends Registrations> = unknown extends Checked<N>
+  ? [NewTokenWrong<E, N> | OldTokenWrong<E, N>] extends [never]
+    ? [NewWrong<E, N> | OldWrong<E, N>] extends [never] ? unknown
+      : Unsatisfied<'a dependency has the wrong shape', { tokens: NewWrong<E, N> | OldWrong<E, N> }>
+    : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: NewTokenWrong<E, N> | OldTokenWrong<E, N> }>
+  : Checked<N>;
 
 export type NamedAdmission<R> = [NonFiniteKeys<R> | Exclude<keyof R, string>] extends [never] ? unknown
   : Unsatisfied<'factory dependencies must be finite string-keyed objects', {}>;

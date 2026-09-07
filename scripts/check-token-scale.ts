@@ -2,7 +2,7 @@ import { performance } from 'node:perf_hooks';
 import ts from 'typescript';
 import {
   describeDiagnostic,
-  diagnostics,
+  compilerProgram,
   tokenScaleBoundaryLine,
   tokenScalePath,
   tokenScaleSource,
@@ -17,7 +17,9 @@ if (!form || !scenario || process.argv.length !== 4) throw new Error('invalid to
 
 const source = tokenScaleSource(100, form, scenario);
 const start = performance.now();
-const errors = diagnostics(tokenScalePath, source).map(describeDiagnostic);
+const program = compilerProgram(tokenScalePath, source);
+const errors = ts.getPreEmitDiagnostics(program).map(describeDiagnostic);
+const instantiations = program.getInstantiationCount();
 console.log(JSON.stringify({
   count: 100,
   form,
@@ -28,4 +30,5 @@ console.log(JSON.stringify({
   maxRssMiB: Math.round(process.resourceUsage().maxRSS / 1024),
   boundaryLine: tokenScaleBoundaryLine(source),
   diagnostics: errors,
+  instantiations,
 }));

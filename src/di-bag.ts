@@ -18,6 +18,7 @@ import type {
   Entry,
   ForkContext,
   From,
+  IncrementalChecked,
   Introduces,
   Merge,
   Overrides,
@@ -127,7 +128,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
 
   // Infer actual keys before checking context-sensitive method-returning factories.
   add<N extends { [K in keyof N]: Registration }>(
-    more: N & Registrations & NamedAdmission<N> & Introduces<From<E>, N> & Checked<Merge<From<E>, N>> &
+    more: N & Registrations & NamedAdmission<N> & Introduces<From<E>, N> & IncrementalChecked<E, N> &
       CheckedConstraints<C, Merge<From<E>, N>>,
   ): Builder<E | Entries<N>, C> {
     const snapshot = snapshotAdd(more, key => this.#graph.hasPublic(key));
@@ -138,7 +139,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   bind<T extends TokenBase, V extends Registration>(
     token: T & TokenTupleAdmission<readonly [T]> & Introduces<From<E>, Record<TokenKey<T>, V>>,
     registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
-      Checked<Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>> &
+      IncrementalChecked<E, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>> &
       CheckedConstraints<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
   ): Builder<E | { key: TokenKey<T>; registration: Binding<T, V> }, C> {
     const key = readTokenKey(token);
@@ -151,18 +152,18 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   // factory parameters and mixed registrations, including explicit K,V calls.
   replace<const K extends string, V extends ((this: void) => ReplacementOutput<From<E>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<From<E>, K, C>>>(
     key: K & ReplacementKey<From<E>, K>,
-    registration: V & (Factory | DisposableFactory<Factory>) & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> &
+    registration: V & (Factory | DisposableFactory<Factory>) & IncrementalChecked<E, Record<K, NoInfer<V>>> &
       CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
   ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
   replace<const K extends string, V extends Registration>(
     key: K & ReplacementKey<From<E>, K>,
-    registration: V & Registration & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> &
+    registration: V & Registration & IncrementalChecked<E, Record<K, NoInfer<V>>> &
       CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
   ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
   replace<T extends TokenBase, V extends Registration>(
     token: T & TokenMember<From<E>, T>,
     registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
-      Checked<Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>> &
+      IncrementalChecked<E, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>> &
       CheckedConstraints<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
   ): Builder<Exclude<E, { key: TokenKey<T> }> | { key: TokenKey<T>; registration: Binding<T, V> }, C>;
   replace(selection: string | TokenBase, registration: Registration): unknown {

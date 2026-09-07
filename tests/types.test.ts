@@ -24,6 +24,11 @@ test('replacement context preserves exact contracts from surviving consumers', (
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('incremental checks preserve forward, replacement and frame contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/incremental.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('box adapters preserve exact modes, requirements and frames', () => {
   expect(diagnostics(resolve(__dirname, 'types/box-adapters.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

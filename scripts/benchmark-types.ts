@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import ts from 'typescript';
-import { describeDiagnostic, diagnostics, scalePath, scaleSource } from '../tests/compiler.ts';
+import { compilerProgram, describeDiagnostic, scalePath, scaleSource } from '../tests/compiler.ts';
 import type { ScaleCase, ScaleForm } from '../tests/compiler.ts';
 
 const forms: ScaleForm[] = ['bulk', 'chained', 'grouped', 'replacement'];
@@ -13,7 +13,9 @@ if (process.argv[2] === '--worker') {
   const scenario = scenarios.find(value => value === process.argv[5]);
   if (!form || !scenario || ![100, 500, 1000].includes(count)) throw new Error('invalid benchmark case');
   const start = performance.now();
-  const errors = diagnostics(scalePath, scaleSource(count, form, scenario)).map(describeDiagnostic);
+  const program = compilerProgram(scalePath, scaleSource(count, form, scenario));
+  const errors = ts.getPreEmitDiagnostics(program).map(describeDiagnostic);
+  const instantiations = program.getInstantiationCount();
   const codes = [...new Set(errors.map(error => error.code))];
   const intended = scenario === 'missing' ? 'missing factories' : 'a dependency has the wrong shape';
   const accepted = scenario === 'valid'
@@ -23,7 +25,7 @@ if (process.argv[2] === '--worker') {
     count, form, scenario, accepted, typescript: ts.version, node: process.version,
     milliseconds: Math.round(performance.now() - start),
     maxRssMiB: Math.round(process.resourceUsage().maxRSS / 1024),
-    diagnosticCount: errors.length, codes, firstDiagnostic: errors[0],
+    diagnosticCount: errors.length, codes, firstDiagnostic: errors[0], instantiations,
   }));
 } else {
   const timeoutMilliseconds = 60_000;

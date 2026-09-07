@@ -12,14 +12,18 @@ const options: ts.CompilerOptions = {
   types: [],
 };
 
-export function diagnostics(path: string, source?: string) {
+export function compilerProgram(path: string, source?: string): ts.Program {
   const host = ts.createCompilerHost(options);
   const originalGetSourceFile = host.getSourceFile.bind(host);
   host.getSourceFile = (fileName, languageVersion, onError, shouldCreateNewSourceFile) =>
     fileName === path && source !== undefined
       ? ts.createSourceFile(fileName, source, languageVersion, true)
       : originalGetSourceFile(fileName, languageVersion, onError, shouldCreateNewSourceFile);
-  return ts.getPreEmitDiagnostics(ts.createProgram([path], options, host));
+  return ts.createProgram([path], options, host);
+}
+
+export function diagnostics(path: string, source?: string) {
+  return ts.getPreEmitDiagnostics(compilerProgram(path, source));
 }
 
 export function describeDiagnostic(error: ts.Diagnostic) {
