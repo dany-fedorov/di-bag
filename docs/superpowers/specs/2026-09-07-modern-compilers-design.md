@@ -136,13 +136,52 @@ associated with the preceding primary marker's region. A shared matcher requires
 the exact supplemental code, message, source file and region in addition to the
 primary requirement. No arbitrary same-region error is accepted. Both source
 compiler lanes must check321 primary plus11 supplementary expectations.
-This changes comments/verification only, not program bodies or input contracts;
-the remaining native replacement-overload diagnostic gap is not waived.
+This changes comments/verification only, not program bodies or input contracts.
+
+### Native diagnostic-quality limitation (controller Ruling7)
+
+Keep the existing production signatures. An isolated combined replacement
+overload preserved direct-call inference and all original invalid inputs, but
+made ReturnType<typeof builder.replace> become any. That enabled cast-free
+erasure of a dependency-bearing builder and an unsafe replacement. The attempted
+neutral validation correction did not close it. No experimental signature or
+union-alias comment is adopted. Standard utility-type non-any and history-view
+rejection regressions must preserve the existing safe behavior.
+
+Distinguish native rejection evidence from native diagnostic-quality parity.
+The unchanged source has27 replacement calls where native7.0.2 emits TS2769 at
+the intended call but prints only the last token overload. Classic6.0.3 still
+must match every original useful message. Declare those27 native gaps explicitly
+beside their existing primary markers, without changing any invalid program or
+primary requirement. A native-only matcher may recognize only their exact
+observed TS2769 fingerprints, in the same file and primary region. There are
+three fingerprints: the ordinary string argument, the string-union form with
+its additional intersection elaboration, and the open-template argument.
+No generic TS2769, never, unrelated error, missing rejection, configuration
+failure, TS2589 or extra diagnostic may stand in for a declared gap.
+
+Require separate counts for original useful matches, explicit native overload
+rejections and supplemental matches. The baseline is321primary requirements:
+294useful native matches and27declared overload rejections, plus11supplemental
+matches. Do not report332useful native messages or full diagnostic parity.
+Installed consumers use the same declarations/fingerprints; four such gaps occur
+in negative/incremental.ts per emitter/module-mode variant. Unknown, duplicate,
+misplaced and stale gap declarations fail, and classic matching never uses them.
+Direct mutation tests must prove these boundaries. Added regression fixtures
+increase totals explicitly; they do not replace any original expectation.
+
+The native source/package rejection gates may pass with these explicitly counted
+diagnostic limitations before the large reports run. Native diagnostic-quality
+parity remains an open enterprise T2 item. Scale acceptance is UNCHANGED: a
+matrix row still requires its intended useful message at its original boundary;
+do not apply fixture exceptions to generated graphs or classify failures as
+success. Retain and explain any resulting native matrix failures.
 
 Native source verification includes the supported positive fixtures and every
 existing negative diagnostic-marker region, not only the two new positives.
-Retain useful messages at intended boundaries and reject unrelated-file/config
-diagnostics and TS2589. Use actual installed di-bag and box tarballs for CJS/ESM
+Retain useful messages at intended boundaries except the explicitly counted
+Ruling7 native-only gaps; reject unrelated-file/config diagnostics and TS2589.
+Use actual installed di-bag and box tarballs for CJS/ESM
 checks, including modern inline inference and real-box frames. Verify inferred
 feature emission and downstream consumption with producer source unavailable.
 Exercise both classic-emitted and native-emitted library declarations; runtime

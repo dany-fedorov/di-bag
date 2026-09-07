@@ -4,7 +4,7 @@
 
 **Goal:** Deliver supported exact inline inference on the classic modern compiler and independently verify native compiler package/source/scale contracts.
 
-**Architecture:** Official side-by-side development aliases retain the classic compiler API while adding the native CLI. No library signature or runtime changes. Physical native projects and supervised processes produce independent evidence; report acceptance remains strict and shared diagnostic semantics are tested directly.
+**Architecture:** Official side-by-side development aliases retain the classic compiler API while adding the native CLI. No library signature or runtime changes. Physical native projects and supervised processes produce independent evidence. Ruling7 explicitly separates native rejection checks from its27 known overload-message limitations; classic diagnostics and matrix acceptance remain strict.
 
 **Tech Stack:** Node 24.20.0, Bun 1.4.0, classic TypeScript 6.0.3 through compatibility wrapper 6.0.2, native TypeScript 7.0.2, npm lockfile and real local box archives.
 
@@ -272,6 +272,12 @@ Commit `build: adopt modern compiler inference with package regression gates`.
 `tests/box-contract-fixtures.ts`, `tests/diagnostic-markers.ts`,
 `tests/diagnostic-markers.test.ts`.
 
+Ruling7 additionally permits comment-only native-gap declarations in the ten
+affected negative files, a native-specific diagnostic matcher/fingerprint helper
+and its tests, supported replacement utility fixtures and cast-free history-view
+rejection fixtures, and their source/installed routing. It does not permit any
+production signature change or the isolated union-alias marker change.
+
 **Interfaces:** Consume unchanged scaleSource/tokenScaleSource and boundary mappers,
 Task1's modern-inline producer/consumer fixtures, current packed box archives,
 and classic API6.0.3. New pure process/parser/evaluator helpers are development
@@ -381,20 +387,49 @@ expressions, not hard-coded line numbers after comments shift them.
 Move the pure matchDiagnosticMarkers helper into tests/diagnostic-markers.ts,
 consumed by classic source/box tests and the native helper. Preserve primary
 file/region/message semantics; require exact code as well for supplements.
-Require321 primary and11 supplemental expectations, all matched and no unexpected
-diagnostics, from the actual corpus. Tests prove a supplement cannot substitute
+Require321 primary and11 supplemental expectations from the original corpus.
+Classic must match all useful requirements; native accounting follows Ruling7
+below. Tests prove a supplement cannot substitute
 for a missing primary, and reject wrong code/file/region, TS2589 and any unrelated
 extra diagnostic. Positive/negative program bodies remain unchanged. Record the
-existing RED and cross-lane GREEN; native overload-message failures are still
-real failures until a separately verified correction is adopted.
+existing RED and cross-lane rejection results. Native overload-message parity
+remains explicitly open under Ruling7 rather than prompting a type-unsafe API
+redesign.
+
+Apply the spec's Ruling7 before proceeding: retain production src unchanged and
+declare exactly27 observed native overload gaps beside the existing primary
+comments in incremental, inline-replacement-wrong-shape, module-hidden-private-needs,
+module-narrowing, module-rename, provider-boundaries, replacement-context,
+replacement-wrong-shape, required-this and union-replace negative fixtures.
+Use three exact observed multiline TS2769 fingerprints (ordinary string,
+string-union intersection elaboration, open-template argument), not a generic
+code or substring exemption. Each declaration belongs to one primary region,
+does not open a new region, and is native-only. Keep the shared classic matcher
+strict. Native output separately reports useful matches, known overload
+rejections, supplemental matches, unresolved requirements and unexpected errors.
+For the original corpus require294useful+27known native rejections+11supplements,
+not a misleading332useful-match count. Installed fixtures consume the same
+declarations and require four known gaps in negative/incremental.ts per variant.
+Reject absent/duplicate/stale/misplaced declarations, wrong fingerprint/code/file/
+region, TS2589, missing actual rejection and unrelated extra diagnostics in
+direct tests. A classic marker must never use the native exception.
+
+Add positive concrete named/token replacement and wrapper non-any proofs, and
+standard ReturnType non-any plus negative builder/module history-view assignment
+regressions. Baseline source stays unchanged; the unsafe isolated signature is
+retained only as RED evidence. Add these fixtures to both installed lanes.
+Report any pre-existing unsupported forwarding form as a limitation, not as a
+positive or a silently suppressed error. All original fixtures/assertions remain.
 
 check-native-contracts.ts enumerates the actual `tests/types` TypeScript fixtures,
 using source paths without changing their bodies. Compile supported positives
 and all negative fixtures through physical projects and the supervised native
-CLI. Match each existing diagnostic marker's file/region/message, reject every
+CLI. Match each existing diagnostic marker's file/region/message or its explicitly
+declared Ruling7 native overload rejection, reject every
 unexpected diagnostic or TS2589, and print explicit expected/matched/unexpected
 counts. Include Task1's unchanged modern producer and consumer. No lowered count,
-suppression or annotation may replace a failing native case.
+suppression or annotation may replace a failing native case. Count diagnostic
+gaps separately and retain the unmet useful-message requirements in reports.
 
 native-package.test.ts builds and packs actual di-bag archives using each emitter
 (`tsc6` and native `tsc`) separately, installs each archive and the two real box
@@ -425,8 +460,10 @@ under validated owned temp directories. Reuse existing fixture text; do not copy
 library implementation or claim in-memory resolution alone is installation.
 
 Run `npm run typecheck:native`, `npm run build:native`, `npm run check:native` and
-the focused native process/parser/package tests. These must pass before the
-large matrices run. Keep the plain-core-without-box dependency and all four
+the focused native process/parser/package tests. The rejection gates, including
+explicit Ruling7 gap accounting, must pass before the large matrices run.
+Matrix diagnostic acceptance remains unchanged and does not consume fixture-gap
+exceptions. Keep the plain-core-without-box dependency and all four
 runtime examples as existing requirements.
 
 - [ ] **Step 4: Run original native matrices and retain every outcome.**

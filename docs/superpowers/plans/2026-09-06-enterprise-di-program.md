@@ -31,6 +31,13 @@ execution; do not stop for another planning approval between increments.
     remain labeled history, not claimed fixes on that compiler.
   - [ ] Native TypeScript 7 source/package verification and original scale
     matrices are in progress under `2026-09-07-modern-compilers.md` Task2.
+  - [ ] Native replacement diagnostic quality:27existing invalid calls are
+    rejected but7.0.2prints only the last token-overload error. Task2 records
+    exact native-only rejection fingerprints separately from useful messages;
+    this does not complete diagnostic parity. A proposed overload redesign was
+    rejected because standard ReturnType views introduced cast-free history
+    erasure. Production signatures remain unchanged; new regression tests must
+    preserve utility-type soundness alongside direct-call inference.
 - [ ] Release handoff: complete examples, migrations, changelogs, verified tarballs, and safe publication instructions for all three libraries.
 
 ## Execution rules
