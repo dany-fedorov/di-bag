@@ -362,7 +362,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       const source = readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
         .replace(/from '(?:\.\.\/)+src\/([^']+)'/g, "from '../dist/$1'")
         .replace(/import\('(?:\.\.\/)+src\/token-types'\)/g, "import('../dist/token-types')")
-        .replace("import('../../src')", "import('di-bag')")
+        .replace(/import\('(?:\.\.\/)+src'\)/g, "import('di-bag')")
         .replace(/from '(?:\.\.\/)+src'/g, "from 'di-bag'")
         .replace("import type { Assert, Equal } from './assert';", `type Assert<T extends true> = T;
           type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;`);

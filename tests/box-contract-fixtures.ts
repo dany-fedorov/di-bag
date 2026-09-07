@@ -31,7 +31,7 @@ export function boxContractSource(fixture: string): string {
       ` : readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
         .replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types|module-types)'/g, "from './node_modules/di-bag/dist/$1.js'")
         .replace(/import\('(?:\.\.\/)+src\/token-types'\)/g, "import('./node_modules/di-bag/dist/token-types.js')")
-        .replace("import('../../src')", "import('di-bag')")
+        .replace(/import\('(?:\.\.\/)+src'\)/g, "import('di-bag')")
         .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)
         .replace("import type { Assert, Equal } from './assert';", assertions);
 }
