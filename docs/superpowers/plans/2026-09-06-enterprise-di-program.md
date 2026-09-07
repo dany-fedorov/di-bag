@@ -32,10 +32,16 @@ execution; do not stop for another planning approval between increments.
   physical declaration-only consumers preserve the exact inferred contracts.
   M1's explicit empty-fork graph-reuse finding is addressed. Evidence:
   `docs/reports/2026-09-07-child-scopes.md`.
-- [ ] Lifetime runtime:
+- [x] Lifetime runtime:
   - [x] Root/scoped/transient cache and ownership policies, root-context capture,
     and static/runtime captive-dependency checks on the per-attempt foundation.
-  - [ ] Selected sharing and child overrides across tracked scope boundaries.
+  - [x] Selected sharing and child overrides across tracked scope boundaries.
+    Implemented through `8836b8f` under `2026-09-07-selected-scopes.md`; complete
+    check: 557 tests / 2,878 assertions, strict classic typecheck/build. Native
+    audit matches all 23 new negative regions without new gap allowances; actual
+    classic/native archives preserve physical inferred declarations and execute
+    on Node/Bun CJS/ESM. Independent runtime and final reviews pass without findings.
+    Evidence: `docs/reports/2026-09-07-selected-scopes.md`.
 - [x] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation,
   timeout and late-completion handling, structured aggregate cleanup failures.
   `Builder.start` and `DiBag.withContext` are implemented under

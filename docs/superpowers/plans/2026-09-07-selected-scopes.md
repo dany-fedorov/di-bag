@@ -26,19 +26,19 @@ acquisition owners route immutable binding identities through tracked parents.
 The default graph is the parent's graph. The public layer supplies validated
 sharing ids from that graph and a graph containing the selected replacements.
 
-- [ ] Add failing internal-runtime tests. Construct graph with owned `config`,
+- [x] Add failing internal-runtime tests. Construct graph with owned `config`,
   scoped `service` depending on config, then `child = parent.scope(overridden,
   [graph.publicBinding('service')])`; require shared service identity, parent
   configuration, overridden child config, and exactly-once parent finalization.
-- [ ] Run `bun test tests/selected-scope-runtime.test.ts` and record RED.
-- [ ] Route explicitly shared ids to the immediate parent; route root ids to
+- [x] Run `bun test tests/selected-scope-runtime.test.ts` and record RED.
+- [x] Route explicitly shared ids to the immediate parent; route root ids to
   the earliest ancestor whose graph contains the identity. Apply that same
   route to inspection. Preserve strict-root validation before routing, family
   edges, in-flight dependency admission and parent-owned context.
-- [ ] Test nested selection, child-defined roots, inherited root construction,
+- [x] Test nested selection, child-defined roots, inherited root construction,
   pending deduplication/retry, cycles, late dependency reads during tree close,
   context abort isolation, and private module bindings using real internal graphs.
-- [ ] Run the new suite plus scopes/lifetimes/startup tests, self-review and commit.
+- [x] Run the new suite plus scopes/lifetimes/startup tests, self-review and commit.
 
 ### Task 2: Expose checked selected scopes
 
@@ -49,19 +49,19 @@ sharing ids from that graph and a graph containing the selected replacements.
 **Interface:** `scope()`, `scope({share: tuple})`,
 `scope(keys, overrides, {share: tuple}?)` with fork-compatible override inference.
 
-- [ ] Add RED public runtime and type fixtures for sharing with child overrides.
+- [x] Add RED public runtime and type fixtures for sharing with child overrides.
   Use `root.scope(['config'], {config: () => ({id: 'child'})}, {share: ['service']})`;
   require unchanged service output and exact inferred override additions.
-- [ ] Validate inputs before override getters and build at most one graph.
+- [x] Validate inputs before override getters and build at most one graph.
   Share and override selections accept only public strings/genuine token handles;
   snapshot indices, ignore unselected properties, and reject conflicts/transients.
-- [ ] Reuse selected override contracts and check newly introduced root providers
+- [x] Reuse selected override contracts and check newly introduced root providers
   against the child graph. Preserve Bag invariants and fork lifetime revalidation.
-- [ ] Cover hidden keys, mutated tuples, overridden iterators, prototypes, duplicate
+- [x] Cover hidden keys, mutated tuples, overridden iterators, prototypes, duplicate
   selections, no options, empty selections, selected symbol tokens, raw/native
   values, inferred methods, missing/wrong dependencies, finite tuples, forged
   tokens, private module names, module obligations and lifetime violations.
-- [ ] Run focused runtime and compiler tests; task review and corrections.
+- [x] Run focused runtime and compiler tests; task review and corrections.
 
 ### Task 3: Installed contracts, documentation and checkpoint
 
@@ -69,14 +69,14 @@ sharing ids from that graph and a graph containing the selected replacements.
 `tests/box-contract-fixtures.ts`, new `tests/selected-scope-runtime-fixture.ts`,
 `README.md`, `CHANGELOG.md`, migration, program tracker and evidence report.
 
-- [ ] Include new positive/negative contracts in actual packed classic/native CJS
+- [x] Include new positive/negative contracts in actual packed classic/native CJS
   and ESM consumers; emit inferred producer declarations, remove producer source,
   then compile downstream consumers through the physical declaration files.
-- [ ] Execute shared/override identity, root anchoring, pending identity and
+- [x] Execute shared/override identity, root anchoring, pending identity and
   disposal assertions on Node and Bun for both archive emitters/module formats.
-- [ ] Document the public calls, context anchoring, sharing restrictions and
+- [x] Document the public calls, context anchoring, sharing restrictions and
   ownership. Update the lifecycle checklist only after the evidence passes.
-- [ ] Run `npm run check`, strict native typecheck/build, `npm run check:native`,
+- [x] Run `npm run check`, strict native typecheck/build, `npm run check:native`,
   all examples and `git diff --check`. Record exact outcomes in the report.
 - [ ] Independent review of the full increment, resolve findings, commit, push
   non-force to `origin feat/v0.1` and compare the remote SHA with local HEAD.
