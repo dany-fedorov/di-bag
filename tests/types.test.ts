@@ -34,6 +34,11 @@ test('builder views preserve exact accepted registration histories', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('modern inline inference retains exact contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/modern-inline-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('box adapters preserve exact modes, requirements and frames', () => {
   expect(diagnostics(resolve(__dirname, 'types/box-adapters.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

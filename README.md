@@ -92,10 +92,10 @@ parameter retain these contracts; their empty defaults cannot erase them.
 Consequently `Module<P, R>` and plain `Bag<R>` annotations reject values carrying
 nonempty retained constraints. Plain bags can still use `Bag<R>`.
 
-When an async fork override needs a new method provided by another selected
-override, declare the override object before passing it to `fork`. This lets
-TypeScript infer both factories before checking their shared dependency view;
-the Promise-valued result remains exact and no cast is needed.
+An inline async fork override may depend on a richer service returned by another
+selected inline override. TypeScript 6.0.3 infers both exact service shapes while
+checking their shared dependency view, and preserves the Promise-valued result;
+no separate override declaration, return annotation, or cast is needed.
 
 Run `bun run examples/modules.ts` for a runnable two-module composition with
 cleanup and an exported service override.
@@ -509,11 +509,10 @@ default; `{ value: 'presence' }` exposes `Presence<T>` instead. Supplied options
 must include `value: 'required' | 'presence'`; `{}` is rejected. Present
 `undefined` differs from absence, and an empty alias differs from `null`.
 
-Some context-sensitive factories returning nested object methods currently need
-predeclaration: `const openBox = () => ({ snapshot() { return snapshot; } });`
-then `fromValBox(openBox)`. This retains exact types without an annotation or
-cast; the equivalent nested inline call can fail inference. Broader inline
-factory inference remains separate work.
+Context-sensitive factories returning nested object methods may be passed inline.
+TypeScript 6.0.3 preserves the exact payload, empty dependency view, factory and
+metadata contracts, including across a second `fromValBox` adaptation and its
+ordered acquisition frames. Predeclared forms remain supported.
 
 Every val adapter appends a typed `ValBoxFrame<M>` to
 `bag.inspect(key).acquisitions[i].metadata`. Each slot starts as
@@ -549,7 +548,8 @@ a dependency-free structural example with separate box and payload owners.
   bypass compile-time checks; runtime resolution still checks missing tokens.
 - JavaScript output targets ES2022. The CommonJS package supports Node `require`
   and ESM named imports, and browsers through a bundler. Bun is only needed to
-  run the development tests. Type checks are verified with TypeScript 5.9.3.
+  run the development tests. The supported compiler floor and development type
+  checks use TypeScript 6.0.3.
 
 ## Development
 

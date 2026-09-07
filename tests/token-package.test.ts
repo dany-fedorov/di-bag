@@ -25,7 +25,7 @@ async function run(command: string[], cwd = root) {
 }
 
 beforeAll(async () => {
-  await run(['node', 'node_modules/typescript/bin/tsc', '-p', 'tsconfig.build.json']);
+  await run(['node', 'node_modules/typescript/bin/tsc6', '-p', 'tsconfig.build.json']);
   const result = JSON.parse(await run(['npm', 'pack', '--ignore-scripts', '--json', '--pack-destination', packed]));
   archive = join(packed, result[0].filename);
   await run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive], consumer);

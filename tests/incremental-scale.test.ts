@@ -19,7 +19,7 @@ for (const item of cases) {
     expect(result.count).toBe(100);
     expect(result.scenario).toBe('valid');
     expect(result.form).toBe(item.args[0].includes('benchmark') ? 'chained' : 'bindings');
-    expect(result.typescript).toBe('5.9.3');
+    expect(result.typescript).toBe('6.0.3');
     if ('diagnostics' in result) expect(result.diagnostics).toEqual([]);
     else { expect(result.accepted).toBe(true); expect(result.diagnosticCount).toBe(0); }
     expect(Number.isInteger(result.instantiations)).toBe(true);

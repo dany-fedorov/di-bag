@@ -24,7 +24,7 @@ async function run(command: string[], cwd = root) {
 }
 
 beforeAll(async () => {
-  await run(['node', 'node_modules/typescript/bin/tsc', '-p', 'tsconfig.build.json']);
+  await run(['node', 'node_modules/typescript/bin/tsc6', '-p', 'tsconfig.build.json']);
   const result = JSON.parse(await run(['npm', 'pack', '--ignore-scripts', '--json', '--pack-destination', packed]));
   archive = join(packed, result[0].filename);
   const files: string[] = result[0].files.map((entry: { path: string }) => entry.path);
@@ -101,7 +101,80 @@ for (const mode of ['commonjs', 'module'] as const) {
       tokenFrames: [{ present: true, value: { kind: 'val-box', metadata: { present: true, value: { owner: 'real' } }, alias: 'db' } }] });
   });
 
-  for (const fixture of ['tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'box-adapters.ts', 'negative/box-adapters.ts', 'negative/provider-unions.ts', 'incremental.ts', 'negative/incremental.ts', 'builder-views.ts', 'negative/builder-views.ts', 'real']) {
+  test(`installed ${mode} modern inline declarations survive emission and unchanged consumption`, () => {
+    const extension = mode === 'commonjs' ? 'cts' : 'mts';
+    const runtimeExtension = mode === 'commonjs' ? 'cjs' : 'mjs';
+    const featurePath = join(consumer, `modern-feature.${extension}`);
+    const consumerPath = join(consumer, `modern-consumer.${extension}`);
+    const assertions = `type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;`;
+    const source = readFileSync(resolve(__dirname, 'types/modern-inline.ts'), 'utf8')
+      .replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types|module-types)'/g, "from './node_modules/di-bag/dist/$1.js'")
+      .replace("import('../../src')", "import('di-bag')")
+      .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)
+      .replace("import type { Assert, Equal } from './assert';", assertions);
+    const options: ts.CompilerOptions = {
+      strict: true,
+      declaration: true,
+      emitDeclarationOnly: true,
+      noUncheckedIndexedAccess: true,
+      exactOptionalPropertyTypes: true,
+      types: [],
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.NodeNext,
+      moduleResolution: ts.ModuleResolutionKind.NodeNext,
+      rootDir: consumer,
+      outDir: consumer,
+    };
+    const declarations = new Map<string, string>();
+    const producerHost = ts.createCompilerHost(options);
+    const readProducer = producerHost.getSourceFile.bind(producerHost);
+    producerHost.getSourceFile = (name, version, onError, fresh) => name === featurePath
+      ? ts.createSourceFile(name, source, version, true)
+      : readProducer(name, version, onError, fresh);
+    producerHost.writeFile = (name, text) => { declarations.set(name, text); };
+    const producer = ts.createProgram([featurePath], options, producerHost);
+    const emitted = producer.emit();
+    expect([...ts.getPreEmitDiagnostics(producer), ...emitted.diagnostics]
+      .map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+    const declarationEntry = [...declarations].find(([name]) => name.endsWith(`modern-feature.d.${extension}`));
+    expect(declarationEntry).toBeDefined();
+    const [declarationPath, declaration] = declarationEntry!;
+    const consumerSource = readFileSync(resolve(__dirname, 'types/modern-inline-consumer.ts'), 'utf8')
+      .replace(/from '(?:\.\.\/)+src'/g, "from 'di-bag'")
+      .replace("from './modern-inline'", `from './modern-feature.${runtimeExtension}'`)
+      .replace("import type { Assert, Equal } from './assert';", assertions);
+    const { rootDir: _rootDir, outDir: _outDir, ...sharedConsumerOptions } = options;
+    const consumerOptions: ts.CompilerOptions = {
+      ...sharedConsumerOptions,
+      declaration: false,
+      emitDeclarationOnly: false,
+      noEmit: true,
+    };
+    const consumerHost = ts.createCompilerHost(consumerOptions);
+    consumerHost.resolveModuleNames = (names, containingFile) => names.map(name => {
+      if (name === `./modern-feature.${runtimeExtension}`) {
+        return {
+          resolvedFileName: declarationPath,
+          extension: mode === 'commonjs' ? ts.Extension.Dcts : ts.Extension.Dmts,
+        };
+      }
+      return ts.resolveModuleName(name, containingFile, consumerOptions, consumerHost).resolvedModule;
+    });
+    const readConsumer = consumerHost.getSourceFile.bind(consumerHost);
+    const exists = consumerHost.fileExists.bind(consumerHost);
+    consumerHost.fileExists = name => name === featurePath ? false : name === declarationPath ? true : exists(name);
+    consumerHost.getSourceFile = (name, version, onError, fresh) => name === featurePath ? undefined
+      : name === declarationPath ? ts.createSourceFile(name, declaration, version, true)
+        : name === consumerPath ? ts.createSourceFile(name, consumerSource, version, true)
+          : readConsumer(name, version, onError, fresh);
+    const consuming = ts.createProgram([consumerPath], consumerOptions, consumerHost);
+    expect(consuming.getSourceFile(featurePath)).toBeUndefined();
+    expect(consuming.getSourceFile(declarationPath)).toBeDefined();
+    expect(ts.getPreEmitDiagnostics(consuming).map(error =>
+      ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+  });
+
+  for (const fixture of ['tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'box-adapters.ts', 'negative/box-adapters.ts', 'negative/provider-unions.ts', 'incremental.ts', 'negative/incremental.ts', 'builder-views.ts', 'negative/builder-views.ts', 'modern-inline.ts', 'negative/modern-inline.ts', 'real']) {
     test(`installed ${mode} declaration contracts: ${fixture}`, () => {
       const path = join(consumer, `consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const assertions = `type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;`;
@@ -114,7 +187,15 @@ for (const mode of ['commonjs', 'module'] as const) {
         declare const unknown: SasBox.Unknown<Promise<number>>;
         const first = fromSasBox(() => unknown, { mode: 'sync-first' });
         const boxed = new ValBox.WithValue.WithMetadata(Promise.resolve(1), { owner: 'db' });
+        const nested = fromValBox(() => ({ snapshot() { return {
+          value: { present: true as const, value: boxed },
+          metadata: { present: false as const }, alias: null,
+        }; } }));
+        const nestedValue = fromValBox(nested);
         const val = fromValBox(() => boxed); const awaited = fromValBoxAsync(async () => boxed);
+        type Nested = [Assert<Equal<ProviderOutput<typeof nested>, typeof boxed>>,
+          Assert<Equal<ProviderOutput<typeof nestedValue>, Promise<number>>>,
+          Assert<Equal<ProviderAcquisitionMetadata<typeof nestedValue>, readonly [ValBoxFrame<never>, ValBoxFrame<{owner:string}>]>>];
         type Contracts = [Assert<Equal<ProviderOutput<typeof sync>, Promise<number>>>, Assert<Equal<ProviderOutput<typeof async>, Promise<number>>>,
           Assert<Equal<ProviderOutput<typeof first>, Promise<number>>>, Assert<Equal<ProviderOutput<typeof val>, Promise<number>>>,
           Assert<Equal<ProviderOutput<typeof awaited>, Promise<number>>>, Assert<Equal<ProviderAcquisitionMetadata<typeof val>, readonly [ValBoxFrame<{ owner: string }>]>>];

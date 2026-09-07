@@ -8,7 +8,8 @@ const options: ts.CompilerOptions = {
   noUncheckedIndexedAccess: true,
   exactOptionalPropertyTypes: true,
   target: ts.ScriptTarget.ES2022,
-  module: ts.ModuleKind.CommonJS,
+  module: ts.ModuleKind.NodeNext,
+  moduleResolution: ts.ModuleResolutionKind.NodeNext,
   types: [],
 };
 

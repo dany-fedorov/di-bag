@@ -23,7 +23,7 @@ async function run(command: string[]) {
 beforeAll(async () => {
   await run([
     'node',
-    'node_modules/typescript/bin/tsc',
+    'node_modules/typescript/bin/tsc6',
     '-p',
     'tsconfig.build.json',
   ]);
