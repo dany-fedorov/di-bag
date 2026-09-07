@@ -144,6 +144,11 @@ test('batch public bindings preserve ordered duplicates and retained private ide
   await Promise.all([parent.close(), child.close()]);
 });
 
+test('an empty public binding batch preserves immutable graph identity', () => {
+  const original = graph([], []);
+  expect(original.withPublicBindings([])).toBe(original);
+});
+
 test('mutating graph input maps cannot change public lookup or binding descriptions', async () => {
   const id = Symbol('value');
   const description = { id, label: 'value', registration: () => 42, localNames: new Map() };

@@ -81,6 +81,11 @@ test('registration boundaries preserve selected keys and exact factory types', (
   ).toEqual([]);
 });
 
+test('scope preserves exact inferred contracts across a source boundary', () => {
+  expect(diagnostics(resolve(__dirname, 'types/scopes-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 for (const operation of ['add', 'fork', 'disposal']) {
   test(`inline method-returning factories preserve exact types: ${operation}`, () => {
     const errors = diagnostics(

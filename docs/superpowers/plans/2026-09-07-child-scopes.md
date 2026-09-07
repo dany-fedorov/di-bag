@@ -145,6 +145,8 @@ Acquisitions admission closes immediately too, preserving factory dependency
 proxy rules during closing. Keep per-acquisition maps local and unchanged.
 The Bag child constructor receives its parent's graph/context and the new
 child Runtime; a plain Bag/fork constructor still creates an independent runtime.
+Reject any supplied public scope arguments before child creation, including an
+unchecked `{ share: [...] }` or explicit undefined argument; test this boundary.
 For an empty validated selection bypass graph rebuilding and do not consume any
 unselected property. Add the internal graph empty-batch fast path as well.
 
@@ -167,9 +169,12 @@ type ChildIsNotAny = Assert<NotAny<typeof child>>;
 Keep the negative fixture self-contained so existing single-file installed
 consumers do not depend on missing sibling fixture sources.
 In the producer create a module-private consumer requiring an external `{ exact:
-true }` service. On the child, reject an override returning `{ exact: false }`
-even if the visible external provider's old return type is wider; this proves C
-survives. Reject missing/private keys, wrong-token handles and any supplied scope
+true }` service. On the child, reject an override returning `{ exact: false }`.
+Separately prove C retention with an exportless module requiring that external
+service: assigning its child to `Bag<{ external: () => { exact: true } }>` (default
+C=never) must reject. Exact child/root type equality plus this erasure control
+prove retained C without constructing an invalid initially widened provider.
+Reject missing/private keys, wrong-token handles and any supplied scope
 arguments. Add diagnostic markers with useful text and verify expected lines via
 the existing source harness, not casts or `any` escape tests. The runtime tests
 may use explicit unchecked boundaries only when testing JavaScript validation.

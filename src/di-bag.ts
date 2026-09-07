@@ -42,9 +42,9 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
   readonly #graph: BindingGraph;
   readonly #runtime: Runtime;
 
-  constructor(graph: BindingGraph, private readonly context: RuntimeContext) {
+  constructor(graph: BindingGraph, private readonly context: RuntimeContext, runtime?: Runtime) {
     this.#graph = graph;
-    this.#runtime = new Runtime(graph, context);
+    this.#runtime = runtime ?? new Runtime(graph, context);
   }
 
   resolve<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): Provided<R>[SelectionKey<K> & keyof R];
@@ -56,6 +56,13 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
   inspect<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): InspectionSnapshot<ProviderMetadata<R[SelectionKey<K> & keyof R]>, ProviderAcquisitionMetadata<R[SelectionKey<K> & keyof R]>>;
   inspect(token: unknown): unknown {
     return this.#runtime.inspect(typeof token === 'string' ? token : readTokenKey(token));
+  }
+
+  /** Create a tracked child with fresh acquisitions over the same immutable graph. */
+  scope(): Bag<R, C>;
+  scope(...args: unknown[]): Bag<R, C> {
+    if (args.length !== 0) throw new Error('scope does not accept arguments');
+    return new Bag(this.#graph, this.context, this.#runtime.scope());
   }
 
   /** Replace existing tokens; the fork creates and owns its own instances. */
@@ -96,6 +103,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
     for (let index = 0; index < length; index++) {
       selectedKeys[index] = keys[index];
     }
+    if (selectedKeys.length === 0) return new Bag(this.#graph, this.context);
     const publicKeys = selectedKeys.map(value => typeof value === 'string' ? value : readTokenKey(value));
     for (const token of publicKeys) {
       if (!this.#graph.hasPublic(token)) {

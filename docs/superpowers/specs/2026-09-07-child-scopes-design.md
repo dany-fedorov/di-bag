@@ -13,6 +13,8 @@ fresh acquisitions, memoization, inspection state and resource ownership.
 No scope options, overrides, sharing, root/transient policy, cancellation or
 startup API are exposed by this increment. Those remain required follow-up;
 this increment alone does not satisfy L1/L2/A1.
+Supplied arguments to `scope` reject before child registration, including in
+unchecked JavaScript, so an apparent sharing option is never silently ignored.
 
 This is the first production lifecycle slice because it needs no speculative
 type-carrier redesign. The advisory lifetime carrier's declaration-size and

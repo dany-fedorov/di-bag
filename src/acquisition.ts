@@ -55,11 +55,11 @@ export class Acquisitions {
     if (this.state !== 'open') throw new Error(`bag is ${this.state}`);
   }
 
-  close(): Promise<void> {
+  close(beforeDispose?: Promise<void>): Promise<void> {
     if (this.closing) return this.closing;
     this.state = 'closing';
     // Publish the barrier before invoking any finalizer, including reentrant ones.
-    this.closing = Promise.resolve().then(() => this.disposeAll());
+    this.closing = Promise.resolve().then(() => this.disposeAll(beforeDispose));
     return this.closing;
   }
 
@@ -162,9 +162,10 @@ export class Acquisitions {
     return undefined;
   }
 
-  private async disposeAll(): Promise<void> {
+  private async disposeAll(beforeDispose?: Promise<void>): Promise<void> {
     let failures: CleanupFailure[] = [];
     try {
+      if (beforeDispose) await beforeDispose;
       // Sources and projections can still acquire dependencies or retire work.
       while (true) {
         const work = [...this.retired.values(), ...[...this.attempts.values()].flatMap(attempt => attempt.execution.work)];

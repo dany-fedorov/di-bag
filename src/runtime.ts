@@ -1,4 +1,6 @@
 import { Acquisitions } from './acquisition';
+import { DiBagCleanupError } from './errors';
+import type { CleanupFailure } from './errors';
 import { normalize } from './registration';
 import type { Registration, Registrations } from './registration';
 import type { InspectionSnapshot } from './inspection';
@@ -87,6 +89,7 @@ export class BindingGraph {
 
   /** Replace ordered string or symbol slots in one immutable graph reconstruction. */
   withPublicBindings(entries: readonly (readonly [BindingKey, Registration])[]): BindingGraph {
+    if (entries.length === 0) return this;
     const bindings = new Map(this.#bindings);
     const publicSlots = new Map(this.#publicSlots);
     for (const [key, registration] of entries) {
@@ -122,8 +125,14 @@ export class BindingGraph {
 /** Each runtime owns its acquisitions; immutable descriptions remain reusable. */
 export class Runtime {
   private readonly acquisitions: Acquisitions;
+  private readonly children = new Set<Runtime>();
+  private closing: Promise<void> | undefined;
 
-  constructor(private readonly graph: BindingGraph, context: RuntimeContext) {
+  constructor(
+    private readonly graph: BindingGraph,
+    private readonly context: RuntimeContext,
+    private detach: (() => void) | undefined = undefined,
+  ) {
     graph.preflight(context);
     this.acquisitions = new Acquisitions(graph, context);
   }
@@ -143,10 +152,73 @@ export class Runtime {
   }
 
   assertOpen(): void {
+    if (this.closing) throw new Error('bag is closing');
     this.acquisitions.assertOpen();
   }
 
+  scope(): Runtime {
+    this.assertOpen();
+    let child!: Runtime;
+    child = new Runtime(this.graph, this.context, () => { this.children.delete(child); });
+    this.children.add(child);
+    return child;
+  }
+
   close(): Promise<void> {
-    return this.acquisitions.close();
+    if (this.closing) return this.closing;
+    let fulfill!: () => void;
+    let reject!: (error: unknown) => void;
+    const closing = new Promise<void>((resolve, fail) => { fulfill = resolve; reject = fail; });
+    // Publish before recursively closing children or starting local cleanup.
+    this.closing = closing;
+
+    const childClosing = [...this.children].map(child => {
+      try { return child.close(); }
+      catch (error) { return Promise.reject(error); }
+    });
+    const childResults = Promise.allSettled(childClosing);
+    let localClosing: Promise<void>;
+    try {
+      localClosing = this.acquisitions.close(
+        childClosing.length > 0 ? childResults.then(() => undefined) : undefined,
+      );
+    }
+    catch (error) { localClosing = Promise.reject(error); }
+    void this.finishClose(childResults, localClosing).then(fulfill, reject);
+
+    const detach = this.detach;
+    this.detach = undefined;
+    if (detach) void closing.then(
+      () => { detach(); },
+      () => { detach(); },
+    );
+    return closing;
+  }
+
+  private async finishClose(
+    childResults: Promise<PromiseSettledResult<void>[]>,
+    localClosing: Promise<void>,
+  ): Promise<void> {
+    const [children, local] = await Promise.all([
+      childResults,
+      localClosing.then(
+        () => ({ status: 'fulfilled' as const, value: undefined }),
+        reason => ({ status: 'rejected' as const, reason }),
+      ),
+    ]);
+    const failures: CleanupFailure[] = [];
+    const unexpected: unknown[] = [];
+    for (const result of [...children, local]) {
+      if (result.status === 'fulfilled') continue;
+      if (result.reason instanceof DiBagCleanupError) failures.push(...result.reason.failures);
+      else unexpected.push(result.reason);
+    }
+    if (unexpected.length > 0) {
+      const errors = failures.length > 0
+        ? [new DiBagCleanupError(failures), ...unexpected]
+        : unexpected;
+      throw new AggregateError(errors, `Failed to close ${errors.length} runtime operation(s)`);
+    }
+    if (failures.length > 0) throw new DiBagCleanupError(failures);
   }
 }

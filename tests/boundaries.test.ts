@@ -127,6 +127,35 @@ test('fork batches selected replacements without using the single-binding graph 
   }
 });
 
+test('empty forks reuse the graph without reading unselected values and retain fresh ownership', async () => {
+  let next = 0;
+  const disposed: number[] = [];
+  const root = DiBag.begin().add({
+    value: DiBag.withDisposal(() => ++next, value => { disposed.push(value); }),
+  }).end();
+  const keys: [] = [];
+  keys[Symbol.iterator] = function* () { throw new Error('iterator invoked'); };
+  const overrides = new Proxy({}, { get() { throw new Error('override read'); } });
+  const originalBatch = BindingGraph.prototype.withPublicBindings;
+  let batchReplacements = 0;
+  BindingGraph.prototype.withPublicBindings = function (entries) {
+    batchReplacements++;
+    return originalBatch.call(this, entries);
+  };
+  try {
+    const child = root.fork(keys, overrides);
+    expect(batchReplacements).toBe(0);
+    expect(root.resolve('value')).toBe(1);
+    expect(child.resolve('value')).toBe(2);
+    expect(() => Reflect.apply(root.fork, root, [[], null])).toThrow('override object');
+    expect(() => Reflect.apply(root.fork, root, [[], undefined])).toThrow('override object');
+    await Promise.all([root.close(), child.close()]);
+    expect(disposed.sort()).toEqual([1, 2]);
+  } finally {
+    BindingGraph.prototype.withPublicBindings = originalBatch;
+  }
+});
+
 test('selected overrides can depend on richer capabilities of other selected services', () => {
   const root = DiBag.begin().add({
     clock: () => ({ now: () => 42 }),
