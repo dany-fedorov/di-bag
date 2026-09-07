@@ -454,7 +454,7 @@ await root.close(); // closes the child before root-owned resources
 
 `scope()` preserves the parent's exact registrations, tokens, module constraints,
 metadata and resolved-value types while creating fresh lazy acquisitions and
-resource ownership. A parent close synchronously closes its live descendant tree;
+resource ownership. A parent close synchronously begins closing its live descendant tree;
 each child finishes before the parent's own finalizers run. Closing a child
 independently leaves its parent and siblings open, and detaches it after that close
 settles, so the caller owns any cleanup failure from the independent close.

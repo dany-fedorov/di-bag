@@ -71,7 +71,7 @@ for (const emitter of ['classic6', 'native7']) {
           const markers = matchNativeDiagnosticMarkers(source, file, result.diagnostics);
           if (!markers.accepted) failures.push({ emitter, extension, fixture, ...markers });
           expect({ fixture, knownNativeRejections: markers.knownNativeRejections }).toEqual({ fixture, knownNativeRejections: fixture === 'negative/incremental.ts' ? 4 : 0 });
-          if (markers.knownNativeRejections) console.log(JSON.stringify({ emitter, extension, fixture, status: markers.status,
+          if (markers.knownNativeRejections && process.env.DI_BAG_VERBOSE_NATIVE === '1') console.log(JSON.stringify({ emitter, extension, fixture, status: markers.status,
             primaryExpected: markers.primaryExpected, primaryMatched: markers.primaryMatched,
             supplementalExpected: markers.supplementalExpected, supplementalMatched: markers.supplementalMatched,
             knownNativeRejections: markers.knownNativeRejections, gaps: markers.gaps }));
