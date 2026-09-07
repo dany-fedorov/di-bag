@@ -22,22 +22,28 @@ async function main() {
   const clientKey = Symbol('client');
   const pathKey = Symbol('path');
   const labelKey = Symbol('label');
+  const clientAliasKey = Symbol('client alias');
   const port = DiBag.token(portKey).of<number>();
   const client = DiBag.token(clientKey).of<Client>();
   const path = DiBag.token(pathKey).of<string>();
   const label = DiBag.token(labelKey).of<string>();
+  const clientAlias = DiBag.token(clientAliasKey).of<Client>();
   const bag = DiBag.begin()
     .bind(port, () => 8080)
     .bind(client, DiBag.fromClass([port], Client))
+    .alias(clientAlias, client)
     .bind(path, () => 'health')
     .add({
       endpoint: DiBag.fromFunction([client, path], endpoint),
-      reporter: DiBag.fromClass([DiBag.lazy(client), DiBag.optional(label)], Reporter),
+      reporter: DiBag.fromClass([DiBag.lazy(clientAlias), DiBag.optional(label)], Reporter),
     })
+    .alias('report', 'reporter')
     .end();
   const url = bag.resolve('endpoint');
   assert.equal(url, 'http://localhost:8080/health');
   assert.equal(bag.resolve('reporter').describe(), 'service at localhost:8080');
+  assert.equal(bag.resolve('report'), bag.resolve('reporter'));
+  assert.equal(bag.resolve(clientAlias), bag.resolve(client));
   console.log(url);
   await bag.close();
 }

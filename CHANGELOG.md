@@ -4,6 +4,10 @@
 
 ### Added
 
+- `Builder.alias` and `ModuleBuilder.alias` add checked name/token lookup aliases
+  that preserve the canonical target's identity, Promise mode, transient behavior,
+  ownership, module privacy and selected parent sharing. Inspection shows the direct
+  target relationship and canonical acquisition snapshots.
 - `DiBag.optional(token)` and `DiBag.lazy(token)` provide explicit dependency
   references in all positional adapters. Optional absence preserves present-value
   validation and acquisition failures; lazy calls preserve lexical graph, lifetime,

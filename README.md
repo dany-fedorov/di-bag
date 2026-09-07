@@ -204,7 +204,7 @@ Runtime authentication and missing-binding checks still protect JavaScript and
 dynamic boundaries, but they are not compile-time proofs. Casts, erased provider
 or module types, widened selections, and dynamically unknown plugins can bypass
 or lack static evidence. Typed tokens complement named composition; they do not
-make every dynamic graph universally type safe. Aliases, contributions and plugin
+make every dynamic graph universally type safe. Contributions and plugin
 validation remain planned work.
 
 ## Adapt classes and positional functions
@@ -285,6 +285,44 @@ References preserve exact Promise values and add no ownership or implicit
 awaiting. They wrap one genuine token, cannot be nested, and cannot be used as
 binding identities. The adapter snapshots their tuple just as it does ordinary
 tokens.
+
+## Give a dependency another lookup name
+
+Use `.alias(destination, target)` on a builder or module builder:
+
+```ts
+const bag = DiBag.begin()
+  .add({ service: () => new Client(8080) })
+  .alias('primary', 'service')
+  .alias(client, 'primary')
+  .end();
+
+bag.resolve(client) === bag.resolve('service'); // true
+await bag.close();
+```
+
+Both arguments can be a singleton name or genuine token. The destination must be
+new. A named target must already exist so its output can be inferred; a token
+target may be supplied later or by a module host, and completion still checks its
+binding. An alias to a token promises that token's declared service type. A token
+destination must accept that output.
+
+Aliases resolve the canonical target acquisition without creating another cache,
+attempt or owner. They preserve scoped/root identity, exact Promises, startup
+readiness and per-call transient behavior. Cleanup runs for the target's declared
+owners. Explicit raw/native targets retain those modes through aliases.
+
+Private module targets and export renames retain their lexical graph. Replacing
+a target affects aliases in that graph; overriding an alias destination replaces
+that destination independently. A selected shared alias uses the parent's target
+and context even when the child overrides that target. Transient targets cannot
+be shared through an alias, and root-captive checks follow alias chains.
+
+`bag.inspect(alias).alias` identifies the direct target by binding ID and label in
+the effective owner graph. Its acquisition snapshots follow the canonical target.
+Alias metadata types are conservative because replacing a target can change its
+metadata. To project a value or add a disposer, declare an ordinary provider that
+reads the dependency.
 
 ## Attach metadata and inspect without resolving
 
