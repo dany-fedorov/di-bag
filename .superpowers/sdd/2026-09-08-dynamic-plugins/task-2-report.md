@@ -69,3 +69,32 @@ the primary implementation commit.
 - Independent Task 1/Task 2 spec/quality and whole-increment review are
   controller-owned and have not been claimed here.
 - Push/publish are out of scope and were not attempted.
+
+## Fix round 1 — shutdown boundaries and tracker evidence
+
+Commit: `3250bb7 test: cover plugin shutdown boundaries`
+
+The shared archive assertion now holds three independent promises: native source
+settlement, failed-validation disposal, and observer callback work. It proves a
+failed raw validation starts disposal with the exact rejected source but keeps
+`close()` pending until that disposer settles. Native shutdown first remains
+pending for source validation, then remains pending again for the exact fulfilled
+source's asynchronous disposer. Lifecycle observation now returns an
+application-owned pending callback promise; `close()` completes while that work is
+still pending, then the fixture releases it to leave no dangling work.
+
+The tracker no longer calls the broad verification gate reviewed while review is
+open. It records local commitment as completed and preserves a distinct pending
+conditional push/remote-SHA gate.
+
+| Command | Exit/result |
+| --- | --- |
+| `bun test tests/plugins.test.ts` | 0; 18 pass, 86 assertions, 38ms |
+| `bun test tests/types.test.ts -t plugins` | 0; 3 pass, 11 assertions, 3.17s |
+| `bun test tests/package.test.ts --verbose` | 0; 77 pass, 495 assertions, 56.31s |
+| `bun test tests/native-package.test.ts --timeout 120000 --verbose` | 0; 2 pass, 656 assertions, 118.63s |
+| `npm run check:native` | 0; 113 files, 647 expected regions, 620 matched, 27 existing declared gaps, zero failures |
+
+Self-review: the gates are independent and use the real archive provider,
+disposer and observer paths. The pending observer assertion explicitly checks
+callback work has not settled after `close()`. No Minor reviewer item was changed.
