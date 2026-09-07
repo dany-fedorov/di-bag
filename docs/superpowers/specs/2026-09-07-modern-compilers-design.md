@@ -123,6 +123,22 @@ types may stand in for an originally failing graph.
 
 ## Package and scale coverage
 
+Diagnostic fixture refinement after actual cross-lane comparison: retain all
+invalid programs and321 primary marked requirements. Seven fork marker messages
+must retain their exact offending factory/value text and `is not assignable to
+type`, without depending on which internal union member prints first. The missing
+token generic marker uses the shared `Property '[key]' is missing` message;
+classic reports TS2344 with that detail and native reports TS2741 directly.
+Eleven existing cascade errors also occur on classic6.0.3. Declare them explicitly
+with `// diagnostic-also: TS2684 missing factories` (ten cases) or
+`// diagnostic-also: TS2345 add introduces new tokens only` (indexed registration),
+associated with the preceding primary marker's region. A shared matcher requires
+the exact supplemental code, message, source file and region in addition to the
+primary requirement. No arbitrary same-region error is accepted. Both source
+compiler lanes must check321 primary plus11 supplementary expectations.
+This changes comments/verification only, not program bodies or input contracts;
+the remaining native replacement-overload diagnostic gap is not waived.
+
 Native source verification includes the supported positive fixtures and every
 existing negative diagnostic-marker region, not only the two new positives.
 Retain useful messages at intended boundaries and reject unrelated-file/config

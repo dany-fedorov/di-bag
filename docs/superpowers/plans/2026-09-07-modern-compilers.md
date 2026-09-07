@@ -254,12 +254,23 @@ Commit `build: adopt modern compiler inference with package regression gates`.
 **Files:** Modify `package.json`, `package-lock.json`, `tsconfig.json`,
 `tsconfig.build.json`, `scripts/benchmark-types.ts`, `tests/benchmark-types.test.ts`,
 `tests/box-package.test.ts`,
+`tests/types.test.ts`, `tests/types/negative/fork-dependency-shape.ts`,
+`tests/types/negative/fork-missing.ts`, `tests/types/negative/fork-selection.ts`,
+`tests/types/negative/inline-fork-dependency-shape.ts`,
+`tests/types/negative/inline-fork-missing.ts`,
+`tests/types/negative/inline-fork-wrong-shape.ts`,
+`tests/types/negative/required-this.ts`, `tests/types/negative/tokens.ts`,
+`tests/types/negative/indexed-registrations.ts`,
+`tests/types/negative/provider-boundaries.ts`,
+`tests/types/negative/provider-module-metadata.ts`,
+`tests/types/negative/provider-projections.ts`, `tests/types/negative/provider-unions.ts`,
 `docs/benchmarks/typescript.md`, `docs/reports/2026-09-07-modern-compilers.md`,
 `README.md`; create `scripts/native-process.ts`, `scripts/native-compiler.ts`,
 `scripts/native-scale.ts`, `scripts/check-native-contracts.ts`,
 `scripts/benchmark-result.ts`, `tests/native-process.test.ts`,
 `tests/native-compiler.test.ts`, `tests/native-package.test.ts`,
-`tests/box-contract-fixtures.ts`.
+`tests/box-contract-fixtures.ts`, `tests/diagnostic-markers.ts`,
+`tests/diagnostic-markers.test.ts`.
 
 **Interfaces:** Consume unchanged scaleSource/tokenScaleSource and boundary mappers,
 Task1's modern-inline producer/consumer fixtures, current packed box archives,
@@ -353,6 +364,29 @@ Use actual emitted artifacts or recognized extended-diagnostic output to prove
 the compiler processed a nonempty files list; empty process output is not proof.
 
 - [ ] **Step 3: Add full native source and installed declaration verification.**
+
+Apply the evidence-based diagnostic fixture refinement from the spec before
+requiring cross-lane GREEN. Change comments only: seven fork markers retain the
+exact offending type plus `is not assignable to type`, omitting their internal
+ProviderBase/union-order suffix. The tokens.ts missing generic key marker becomes
+`Property '[key]' is missing`. Declare11 supplemental diagnostics already present
+on both compilers using `// diagnostic-also: TS<code> <message>` immediately after
+the primary marker; these do not begin a new region. The exact existing cases:
+indexed-registrations line6 TS2345 `add introduces new tokens only`;
+provider-boundaries line37, provider-module-metadata line25,
+provider-projections lines31/33/35/37/40/42/44, provider-unions line63:
+TS2684 `missing factories`. These are pre-edit source lines; attach to the same
+expressions, not hard-coded line numbers after comments shift them.
+
+Move the pure matchDiagnosticMarkers helper into tests/diagnostic-markers.ts,
+consumed by classic source/box tests and the native helper. Preserve primary
+file/region/message semantics; require exact code as well for supplements.
+Require321 primary and11 supplemental expectations, all matched and no unexpected
+diagnostics, from the actual corpus. Tests prove a supplement cannot substitute
+for a missing primary, and reject wrong code/file/region, TS2589 and any unrelated
+extra diagnostic. Positive/negative program bodies remain unchanged. Record the
+existing RED and cross-lane GREEN; native overload-message failures are still
+real failures until a separately verified correction is adopted.
 
 check-native-contracts.ts enumerates the actual `tests/types` TypeScript fixtures,
 using source paths without changing their bodies. Compile supported positives
