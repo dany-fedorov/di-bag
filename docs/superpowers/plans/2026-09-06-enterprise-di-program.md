@@ -22,10 +22,15 @@ execution; do not stop for another planning approval between increments.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
 - [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests. In the next benchmark-harness change, add direct parent evaluator failure-path tests for malformed JSON/identity/diagnostics, process failures, wrong diagnostic boundaries and TS2589; this is the nonblocking Minor retained by the incremental-check final review.
-- [ ] Compiler/inference follow-up: resolve the measured 500/1000 individual-chain limits, large-graph latency, and the inline async richer-selected override combination; preserve all existing contracts and the cast-free predeclared-object workaround. Actual nominal-module 1000-provider gates now pass, separately from registration groups. A bounded inference candidate and its unproved boundaries are recorded in `docs/reports/2026-09-06-inline-fork-inference.md`; it has not been adopted.
-  Also resolve the context-sensitive inline nested `snapshot()` factory case
-  found during adapter Task3; predeclaring the identical factory preserves exact
-  types without annotations/casts. See the provider-transformations report.
+- [ ] Compiler/inference follow-up: resolve the remaining measured 500/1000 individual-chain limits, large-graph latency and modern native compiler compatibility. Actual nominal-module 1000-provider gates pass, separately from registration groups; this does not prove equally long individual call chains.
+  - [x] Both inline inference cases now pass on the supported TypeScript 6.0.3
+    compiler: the richer selected async override and nested `snapshot()` factory.
+    Checkpoint `9126993` adds source, installed CJS/ESM, declaration emission and
+    unchanged downstream regression gates without production API changes.
+    The identical predeclared factories remain controls; TypeScript 5.9 failures
+    remain labeled history, not claimed fixes on that compiler.
+  - [ ] Native TypeScript 7 source/package verification and original scale
+    matrices are in progress under `2026-09-07-modern-compilers.md` Task2.
 - [ ] Release handoff: complete examples, migrations, changelogs, verified tarballs, and safe publication instructions for all three libraries.
 
 ## Execution rules
@@ -60,6 +65,10 @@ Task 1 review and independent verification. Its larger-matrix Task 2 and broad
 final review are complete through `659acdd` / reviewed checkpoint `9d09eef`;
 the complete enterprise T2 requirement is still open. Both final-review Minors
 are assigned above to the next runtime/lifecycle and benchmark-harness changes.
+Modern compiler Task1 is complete and reviewed at `9126993`: exact classic
+TypeScript 6.0.3 inference is adopted with no production source changes. Native
+Task2 is running; the complete compiler requirement and enterprise program remain
+open. Evidence: `docs/reports/2026-09-07-modern-compilers.md`.
 
 ## Current evidence
 
@@ -220,4 +229,17 @@ are assigned above to the next runtime/lifecycle and benchmark-harness changes.
   in source and emitted declarations; evidence is in
   `docs/reports/2026-09-07-typescript6-inference.md`. Real installed consumers,
   full compatibility and scale remain unexecuted parts of that experiment.
-  The TypeScript 7 experiment has not run and the 5.9.3 production pin is unchanged.
+  At that experimental checkpoint, the TypeScript 7 experiment had not run and
+  the 5.9.3 pin was unchanged. Subsequent adoption follows below.
+- Modern compiler Task1 is implemented at `9126993` and its task review is
+  approved with no findings. Genuine TypeScript 5.9 source and installed RED
+  precedes the exact wrapper6.0.2 / classic API6.0.3 adoption. Both unchanged
+  inline forms now pass source, actual installed CJS/ESM, inferred feature
+  emission and downstream-only consumption; real archived ValBox frames remain
+  exact. The task's full check passes342tests/2071assertions, strict typecheck/
+  build and all4examples. Controller independently verifies12focused tests/
+  29assertions, strict typecheck, clean diff and unchanged production source.
+  Compiler-work counters839103named/1361600token remain below the unchanged
+  1.5M/2M ceilings. The checkpoint is non-force pushed to feat/v0.1, with exact
+  remote SHA verified. Native verification and original large matrices are
+  subsequent Task2 work; the two box repositories are unchanged by this task.
