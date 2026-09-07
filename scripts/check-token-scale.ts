@@ -13,15 +13,18 @@ const forms: TokenScaleForm[] = ['bindings', 'modules'];
 const scenarios: TokenScaleCase[] = ['valid', 'missing-final-token', 'mismatched-invariant-service'];
 const form = forms.find(value => value === process.argv[2]);
 const scenario = scenarios.find(value => value === process.argv[3]);
-if (!form || !scenario || process.argv.length !== 4) throw new Error('invalid token scale case');
+const count = process.argv[4] === undefined ? 100 : Number(process.argv[4]);
+if (!form || !scenario || process.argv.length > 5 || ![100, 500, 1000].includes(count)) {
+  throw new Error('invalid token scale case');
+}
 
-const source = tokenScaleSource(100, form, scenario);
+const source = tokenScaleSource(count, form, scenario);
 const start = performance.now();
 const program = compilerProgram(tokenScalePath, source);
 const errors = ts.getPreEmitDiagnostics(program).map(describeDiagnostic);
 const instantiations = program.getInstantiationCount();
 console.log(JSON.stringify({
-  count: 100,
+  count,
   form,
   scenario,
   typescript: ts.version,

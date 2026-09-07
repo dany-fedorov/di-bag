@@ -97,6 +97,26 @@ const last: number = bag.resolve('svc${count - 1}');
 `;
 }
 
+export function scaleBoundaryLine(
+  source: string,
+  count: number,
+  form: ScaleForm,
+  scenario: ScaleCase,
+) {
+  if (scenario === 'valid') return undefined;
+  const graphLine = source.split('\n').findIndex(line => line.startsWith('const bag =')) + 1;
+  if (graphLine === 0) throw new Error('missing generated graph boundary');
+  if (scenario === 'missing' || form === 'bulk') return graphLine;
+  const changed = Math.floor(count / 2);
+  return graphLine + (
+    form === 'chained'
+      ? changed
+      : form === 'grouped'
+        ? Math.floor(changed / 50)
+        : count - 1 + changed
+  );
+}
+
 /** One hundred real token bindings or distinct modules, with a marked rejection boundary. */
 export function tokenScaleSource(
   count: number,
