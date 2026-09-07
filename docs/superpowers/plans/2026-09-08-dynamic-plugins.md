@@ -40,28 +40,28 @@ root `DiBagPluginError` with `phase: 'descriptor' | 'output'`, and nameable publ
 option/predicate/result types. The raw output/acquired type is predicate result
 `V`; native output/acquired types are `Promise<Awaited<V>>`/`Awaited<V>`.
 
-- [ ] Write and run the public runtime RED below before adding the API.
-- [ ] Validate required explicit mode and synchronous predicate callback shape;
+- [x] Write and run the public runtime RED below before adding the API.
+- [x] Validate required explicit mode and synchronous predicate callback shape;
   snapshot the checked dependency tuple before descriptor callback reads.
-- [ ] Validate own apiVersion/create fields, exact version1 and optional own
+- [x] Validate own apiVersion/create fields, exact version1 and optional own
   callable dispose; preserve getter exceptions, ignore extra values and snapshot
   callbacks once without invoking them. Invalid descriptor errors have phase
   descriptor; invalid output errors have phase output and retain no rejected value.
-- [ ] Adapt create to positional dependency values using existing reference slots
+- [x] Adapt create to positional dependency values using existing reference slots
   with undefined receiver. Create an explicit raw/native source stage; declare
   optional source ownership before appending a synchronous predicate projection.
-- [ ] Require predicate result exactlytrue; never assimilate a raw result or an
+- [x] Require predicate result exactlytrue; never assimilate a raw result or an
   unchecked validator result. Native uses an explicit validated final Promise;
   cache identity, readiness, pending acceptance and disposal stay in existing code.
-- [ ] Preserve original factory/validator/native errors and once-only retirement
+- [x] Preserve original factory/validator/native errors and once-only retirement
   cleanup on failed validation, including cleanup failures and startup rollback.
-- [ ] Cover protocol/version/accessor preflight and snapshot mutation, all four
+- [x] Cover protocol/version/accessor preflight and snapshot mutation, all four
   dependency reference kinds, raw/native values, private module helpers, aliases,
   contribution collections, selected sharing and lifecycle observer attribution.
-- [ ] Add exact inferred producer/consumer and strict negative fixtures preserving
+- [x] Add exact inferred producer/consumer and strict negative fixtures preserving
   all graph/lifetime/ownership contracts and rejecting invalid mode/predicate/
   receiver/tuple/erased-provider claims. Keep unannotated extracted facade methods.
-- [ ] Run focused runtime/type/native/source-removed declaration checks serially,
+- [x] Run focused runtime/type/native/source-removed declaration checks serially,
   self-review the actual diff, report RED/GREEN and commit only owned source/tests.
 
 ```ts
