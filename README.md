@@ -204,8 +204,8 @@ Runtime authentication and missing-binding checks still protect JavaScript and
 dynamic boundaries, but they are not compile-time proofs. Casts, erased provider
 or module types, widened selections, and dynamically unknown plugins can bypass
 or lack static evidence. Typed tokens complement named composition; they do not
-make every dynamic graph universally type safe, and they do not complete planned
-lifetime, startup/cancellation, or extension work.
+make every dynamic graph universally type safe. Selected sharing, child overrides
+and composition/plugin extensions remain planned work.
 
 ## Attach metadata and inspect without resolving
 
@@ -435,8 +435,79 @@ Stop application work before closing. Already-returned services cannot be
 revoked, and disposal callbacks must not resolve services or await the same
 bag's `close()` promise. A disposer may call `close()` to observe the identical
 barrier, but awaiting it would wait on its own completion. Arbitrary user-created
-Promise cycles cannot be forcibly completed. There is no cancellation or shutdown
-timeout: a factory or disposer that never settles keeps `close()` pending.
+Promise cycles cannot be forcibly completed. Closing aborts acquisition-context
+signals before draining work. A factory or disposer that ignores cancellation
+and never settles keeps `close()` pending; startup deadlines provide a separate
+prompt rejection boundary.
+
+## Start selected services and cancel cooperatively
+
+`builder.start(keys, options?)` is the eager alternative to `.end()`. It creates
+a fresh bag and returns `Promise<Bag<...>>` once the selected services are ready.
+The same named, token, module and lifetime checks apply, including when the
+selection is empty. Unselected services remain lazy unless selected services
+request them as dependencies.
+
+```ts
+import { DiBag, DiBagStartupCancelledError } from 'di-bag/node';
+
+const builder = DiBag.begin().add({
+  url: () => 'https://example.com/settings.json',
+  settings: DiBag.withContext(async ({ url }: { url: string }, { signal }) => {
+    const response = await fetch(url, { signal });
+    return response.text();
+  }),
+});
+
+try {
+  const bag = await builder.start(['settings'], {
+    timeoutMs: 5_000,
+    concurrency: 'parallel', // default; 'sequential' follows tuple order
+  });
+  const settings: Promise<string> = bag.resolve('settings');
+  console.log(await settings);
+  await bag.close();
+} catch (error) {
+  if (error instanceof DiBagStartupCancelledError) {
+    await error.cleanup; // eventual shutdown, including late owned acquisitions
+  }
+  throw error;
+}
+```
+
+`DiBag.withContext(callback, options?)` supplies a frozen `AcquisitionContext`
+as the callback's second argument. Its first argument declares named dependencies.
+The context contains the acquisition owner's `AbortSignal`; no controller is
+exposed. Root providers use the root signal even on a child's first request.
+Closing a child aborts its signal independently; closing the parent aborts the
+live tree after immediately blocking new public resolutions. In-flight factories
+can still finish their dependency graph. Ordinary factory signatures are unchanged.
+
+The adapter accepts `{ acquisition: 'raw' | 'native' | 'auto' }`, with automatic
+classification as the default. Startup follows the final service stage's declared
+acquisition mode. A raw Promise or thenable is already ready, while a native
+Promise waits on its observed state without changing its original identity.
+A fulfilled projection may be ready while earlier source work is still pending;
+shutdown continues to drain that work.
+
+Startup options accept a genuine external `signal`, a finite positive `timeoutMs`,
+and `concurrency: 'parallel' | 'sequential'`. A finite tuple selects existing
+names/tokens. Parallel mode starts the selections without waiting between them;
+sequential mode waits for each one and stops starting later selections on failure.
+Duplicate selections follow lifetime policy, including separate transient attempts.
+Invalid inputs and already-aborted signals start no factories. Timers and external
+signal listeners are removed when startup settles; later external aborts do not
+close a successfully started bag.
+
+An acquisition failure closes the new bag before rejecting with
+`DiBagStartupError`. Its `cause` is the original acquisition error, its frozen
+`cleanupFailures` preserve structured disposal failures, and `cleanupError`
+retains the complete shutdown error if one occurred. Abort or deadline expiry
+instead rejects promptly with `DiBagStartupCancelledError`: `reason` is `aborted`
+or `timeout`, `cause` retains the abort reason or timeout error, and `cleanup`
+observes eventual shutdown. Cancellation can interrupt the wait for failure
+cleanup too. It cannot forcibly stop uncooperative JavaScript; cleanup may remain
+pending if a factory or disposer never settles.
 
 ## Choose root, scoped or transient caching
 
@@ -497,9 +568,8 @@ wrapper replaces an earlier caching policy. `scope()` remains a no-argument
 operation over the same immutable graph. `fork()` creates an independent family,
 so its root cache and ownership are independent too.
 
-This release does not add scope arguments, child overrides or selected sharing
-between a root and tracked children. Startup, context propagation and cancellation
-also remain separate work.
+Scope arguments, child overrides and selected sharing between a root and tracked
+children remain planned work.
 
 ## Create tracked child scopes
 

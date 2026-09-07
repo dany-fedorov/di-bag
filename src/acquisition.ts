@@ -6,6 +6,7 @@ import { ProviderExecution } from './provider-execution';
 import type { RuntimeContext } from './acquisition-mode';
 import { AcquisitionFamily } from './acquisition-family';
 import type { AcquisitionId, AttemptIdentity } from './acquisition-family';
+import type { AcquisitionContext } from './acquisition-context';
 
 interface Acquisition extends AttemptIdentity {
   readonly strictRoot: string | undefined;
@@ -25,6 +26,10 @@ export class Acquisitions {
   private readonly owned = new Map<AcquisitionId, Acquisition>();
   private state: 'open' | 'closing' | 'closed' = 'open';
   private closing: Promise<void> | undefined;
+  private controller: AbortController | undefined;
+  private acquisitionContext: AcquisitionContext | undefined;
+  private cancellationStarted = false;
+  private cancellationCause: unknown;
 
   private readonly root: Acquisitions;
   private readonly family: AcquisitionFamily;
@@ -36,7 +41,12 @@ export class Acquisitions {
 
   resolve(key: BindingKey): unknown {
     this.assertOpen();
-    return this.resolveBinding(this.graph.publicBinding(key));
+    return this.resolveBinding(this.graph.publicBinding(key)).exposed;
+  }
+
+  async acquire(key: BindingKey): Promise<void> {
+    this.assertOpen();
+    await this.resolveBinding(this.graph.publicBinding(key)).execution.ready();
   }
 
   inspect(bindingId: BindingId): readonly AcquisitionSnapshot<readonly unknown[]>[] {
@@ -57,15 +67,30 @@ export class Acquisitions {
     if (this.state !== 'open') throw new Error(`bag is ${this.state}`);
   }
 
-  close(beforeDispose?: Promise<void>): Promise<void> {
+  close(beforeDispose?: Promise<void>, cause?: unknown): Promise<void> {
     if (this.closing) return this.closing;
     this.state = 'closing';
     // Publish the barrier before invoking any finalizer, including reentrant ones.
-    this.closing = Promise.resolve().then(() => this.disposeAll(beforeDispose));
+    this.closing = Promise.resolve().then(() => {
+      // Every descendant admission gate is closed before abort listeners run.
+      this.cancellationStarted = true;
+      this.cancellationCause = cause;
+      this.controller?.abort(cause);
+      return this.disposeAll(beforeDispose);
+    });
     return this.closing;
   }
 
-  private resolveBinding(bindingId: BindingId, from?: Acquisition): unknown {
+  private getContext(): AcquisitionContext {
+    if (!this.acquisitionContext) {
+      this.controller = new AbortController();
+      if (this.cancellationStarted) this.controller.abort(this.cancellationCause);
+      this.acquisitionContext = Object.freeze({ signal: this.controller.signal });
+    }
+    return this.acquisitionContext;
+  }
+
+  private resolveBinding(bindingId: BindingId, from?: Acquisition): Acquisition {
     const description = this.graph.registration(bindingId);
     const { lifetime } = description;
     // Validate before routing/cache lookup; retained proxies keep their boundary.
@@ -78,7 +103,7 @@ export class Acquisitions {
       if (from) this.family.recordEdge(from, cached);
       // A factory or then getter can reenter through public resolve as well.
       if (cached.state === 'creating') throw new Error(`cycle: ${cached.label} -> ${cached.label}`);
-      return cached.exposed;
+      return cached;
     }
     const ancestry = this.family.ancestry(bindingId, this.ownerId, this.graph.label(bindingId), from);
     const attempt: Acquisition = {
@@ -119,15 +144,15 @@ export class Acquisitions {
         ) {
           throw new Error(`bag is ${this.state}`);
         }
-        return this.resolveBinding(this.graph.dependency(bindingId, key), attempt);
+        return this.resolveBinding(this.graph.dependency(bindingId, key), attempt).exposed;
       },
     });
     this.family.enter(attempt);
     try {
-      const value = attempt.execution.evaluate(description, deps);
+      const value = attempt.execution.evaluate(description, deps, () => this.getContext());
       attempt.exposed = value;
       attempt.state = attempt.execution.state;
-      return value;
+      return attempt;
     } catch (error) {
       this.retire(attempt);
       throw error;

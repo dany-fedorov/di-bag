@@ -4,6 +4,16 @@
 
 ### Added
 
+- `Builder.start(keys, options?)` eagerly acquires selected names/tokens in a fresh
+  bag, with parallel/sequential startup, rollback on failure, external cancellation
+  and finite positive timeouts. `DiBagStartupError` retains setup and cleanup
+  causes; `DiBagStartupCancelledError` rejects promptly and exposes eventual cleanup.
+- `DiBag.withContext` supplies a frozen acquisition-owner context and AbortSignal,
+  preserving named dependencies, exact output/acquired types and explicit modes.
+  Closing a scope cooperatively aborts its context before draining owned work.
+- Startup readiness observes the final acquisition stage independently of pending
+  source/projection work; shutdown still drains every stage. Raw Promise values
+  remain raw and native Promise identity is unchanged.
 - `DiBag.withLifetime` selects `root`, `scoped`, or `transient` caching while
   preserving provider contracts and explicit ownership stages. Root values are
   shared within a tracked scope family, scoped remains the default, and transient

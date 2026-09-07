@@ -5,6 +5,11 @@ import ts from 'typescript';
 import { diagnostics, describeDiagnostic } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 
+test('startup and contextual providers retain exact inferred cross-file contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/startup-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('lifetime declarations retain exact inferred cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/lifetimes-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

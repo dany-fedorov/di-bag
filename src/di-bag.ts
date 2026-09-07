@@ -7,6 +7,9 @@ import type { Module } from './module';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes } from './lifetime-types';
 import { withLifetime } from './lifetime';
+import { withContext } from './acquisition-context';
+import { startRuntime } from './startup';
+import type { StartupOptions } from './startup';
 import { withMetadata, mapSync, mapAsync, fromTokens, withTokenBinding, factory } from './provider';
 import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
@@ -201,6 +204,16 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   end(this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, From<E>> & CheckedLifetimes<From<E>, C>): Bag<From<E>, C> {
     return new Bag(this.#graph, this.context);
   }
+
+  /** Acquire selected services in a fresh bag, rolling back failed startup. */
+  async start<const K extends readonly unknown[]>(
+    this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, From<E>> & CheckedLifetimes<From<E>, C>,
+    keys: K & Selection<From<E>, K, 'start'>,
+    options?: StartupOptions,
+  ): Promise<Bag<From<E>, C>> {
+    const runtime = await startRuntime(this.#graph, this.context, keys, options);
+    return new Bag(this.#graph, this.context, runtime);
+  }
 }
 
 export type { Bag, Builder };
@@ -214,6 +227,7 @@ interface Facade {
   module: typeof beginModule;
   withDisposal: typeof withDisposal;
   withLifetime: typeof withLifetime;
+  withContext: typeof withContext;
   withMetadata: typeof withMetadata;
   mapSync: typeof mapSync;
   mapAsync: typeof mapAsync;
@@ -227,6 +241,7 @@ function facade(context: RuntimeContext): Facade { return Object.freeze({
   module: beginModule,
   withDisposal,
   withLifetime,
+  withContext,
   withMetadata,
   mapSync,
   mapAsync,

@@ -142,6 +142,10 @@ export class Runtime {
     return this.acquisitions.resolve(key);
   }
 
+  acquire(key: BindingKey): Promise<void> {
+    return this.acquisitions.acquire(key);
+  }
+
   inspect(key: BindingKey): InspectionSnapshot<object, readonly unknown[]> {
     const bindingId = this.graph.publicBinding(key);
     return Object.freeze({
@@ -165,7 +169,7 @@ export class Runtime {
     return child;
   }
 
-  close(): Promise<void> {
+  close(cause?: unknown): Promise<void> {
     if (this.closing) return this.closing;
     let fulfill!: () => void;
     let reject!: (error: unknown) => void;
@@ -174,7 +178,7 @@ export class Runtime {
     this.closing = closing;
 
     const childClosing = [...this.children].map(child => {
-      try { return child.close(); }
+      try { return child.close(cause); }
       catch (error) { return Promise.reject(error); }
     });
     const childResults = Promise.allSettled(childClosing);
@@ -182,6 +186,7 @@ export class Runtime {
     try {
       localClosing = this.acquisitions.close(
         childClosing.length > 0 ? childResults.then(() => undefined) : undefined,
+        cause,
       );
     }
     catch (error) { localClosing = Promise.reject(error); }

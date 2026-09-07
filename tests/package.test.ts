@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { describeDiagnostic } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
+import { startupRuntimeAssertions } from './startup-runtime-fixture';
 
 const root = resolve(__dirname, '..');
 
@@ -83,6 +84,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       '--eval',
       `${load}
       (async () => {
+        ${startupRuntimeAssertions}
         let disposed;
         const mappedDisposal = [];
         const feature = DiBag.module().add({

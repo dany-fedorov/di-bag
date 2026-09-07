@@ -36,7 +36,14 @@ execution; do not stop for another planning approval between increments.
   - [x] Root/scoped/transient cache and ownership policies, root-context capture,
     and static/runtime captive-dependency checks on the per-attempt foundation.
   - [ ] Selected sharing and child overrides across tracked scope boundaries.
-- [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
+- [x] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation,
+  timeout and late-completion handling, structured aggregate cleanup failures.
+  `Builder.start` and `DiBag.withContext` are implemented under
+  `2026-09-07-startup-context.md`; final check passes 528 tests / 2,714 assertions.
+  Native source diagnostics, inferred physical declarations and both archives'
+  Node/Bun CommonJS/ESM runtime lanes pass. Evidence:
+  `docs/reports/2026-09-07-startup-context.md`. Cancellation exposes eventual
+  cleanup separately and does not forcibly terminate uncooperative factories.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
 - [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests. The prior parent benchmark evaluator Minor is closed by direct malformed JSON/identity/diagnostic, process-failure, boundary and TS2589 tests in the reviewed native compiler checkpoint `ad73249`.
@@ -304,3 +311,13 @@ rows measure source revision `cc9dbdc`, not the classification API changes. Evid
   Selected sharing and child overrides across tracked scopes remain open, as do
   startup, context propagation and cancellation; the enterprise program is not
   complete.
+- Eager startup and acquisition context are implemented under
+  `2026-09-07-startup-context.md`. The complete local check exits 0:
+  528 tests / 2,714 assertions, strict classic typecheck/build; native strict
+  typecheck/build and the 92-file source audit also pass. All 17 new invalid calls
+  receive matching diagnostics, with the same 27 pre-existing native gaps.
+  Physical classic/native declarations preserve inferred startup/context contracts
+  with producer source removed, and both archives execute on Node/Bun CJS/ESM.
+  Independent review's final-stage-readiness correction and pending-native test
+  strengthening are complete. Selected sharing, child overrides and the remaining
+  composition, plugin, compiler and release milestones stay open.

@@ -1,6 +1,7 @@
 import type { normalize } from './provider-operations';
 import type { FramePresenceTuple, Presence } from './inspection';
 import type { AcquisitionMode, RuntimeContext } from './acquisition-mode';
+import type { AcquisitionContext } from './acquisition-context';
 
 type RegistrationDescription = ReturnType<typeof normalize>;
 type Disposer = (value: never) => void | Promise<void>;
@@ -15,6 +16,7 @@ interface ValueStage {
   state: 'pending' | 'ready' | 'failed';
   value: unknown;
   error: unknown;
+  settled?: Promise<void>;
   readonly owners: { index: number; dispose: Disposer }[];
 }
 interface ExecutionEvents {
@@ -48,9 +50,19 @@ export class ProviderExecution {
   get hasOwnership(): boolean { return this.stages.length > 0; }
   get work(): readonly Promise<void>[] { return [...this.pending]; }
 
-  evaluate(description: RegistrationDescription, deps: unknown): unknown {
+  /** Observe the selected stage, retaining its failure even after retirement. */
+  async ready(): Promise<void> {
+    const result = this.result;
+    if (!result) throw new Error('acquisition has no result');
+    if (result.state === 'pending') await result.settled;
+    if (result.state === 'failed') throw result.error;
+  }
+
+  evaluate(description: RegistrationDescription, deps: unknown, acquisitionContext: () => AcquisitionContext): unknown {
     const { create, dispose } = description;
-    let current = this.capture(() => create(deps as never), true, description.acquisition);
+    let current = this.capture(() => description.contextual
+      ? Reflect.apply(create, undefined, [deps, acquisitionContext()])
+      : create(deps as never), true, description.acquisition);
     let nextFrame = 0;
     if (dispose) this.own(current, 0, dispose);
     description.operations.forEach((operation, offset) => {
@@ -128,6 +140,7 @@ export class ProviderExecution {
         });
         stage.state = 'pending';
         stage.value = undefined;
+        stage.settled = barrier;
         this.pending.add(barrier);
         const finish = () => {
           if (source) this.sourceInFlight = false;

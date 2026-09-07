@@ -1,5 +1,5 @@
 export { DiBag } from './di-bag';
-export { DiBagCleanupError } from './errors';
+export { DiBagCleanupError, DiBagStartupError, DiBagStartupCancelledError } from './errors';
 export type { CleanupFailure } from './errors';
 export type { Bag, Builder } from './di-bag';
 export type { Module } from './module';
@@ -8,6 +8,8 @@ export type { DisposableFactory, Registration } from './registration';
 export type { Provider, ProviderOutput, ProviderAcquired, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderTokenNeeds } from './provider';
 export type { AcquisitionMode, RuntimeOptions } from './acquisition-mode';
 export type { Lifetime } from './lifetime';
+export type { AcquisitionContext, ContextualFactory } from './acquisition-context';
+export type { StartupOptions } from './startup';
 export type { Token, TokenKey, TokenService } from './tokens';
 export type { Binding, TokenGraph, ReboundProviders, ReboundSelection, SelectionKey } from './token-types';
 export type { CheckedLifetimes, LexicalContext, RenamedLifetimeObligation, RenamedLifetimeProviders } from './lifetime-types';

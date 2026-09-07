@@ -7,6 +7,7 @@ interface SourceOperation {
   readonly create: Factory;
   readonly acquisition: AcquisitionMode;
   readonly tokenKeys: readonly symbol[];
+  readonly contextual: boolean;
   readonly dispose?: (value: never) => void | Promise<void>;
 }
 interface MetadataOperation {
@@ -44,9 +45,10 @@ export function sourceDescription(
   dispose?: (value: never) => void | Promise<void>,
   tokenKeys: readonly symbol[] = [],
   acquisition: AcquisitionMode = 'auto',
+  contextual = false,
 ): ProviderDescription {
   const selected = Object.freeze([...tokenKeys]);
-  const source: SourceOperation = Object.freeze(dispose ? { kind: 'source', create, dispose, tokenKeys: selected, acquisition } : { kind: 'source', create, tokenKeys: selected, acquisition });
+  const source: SourceOperation = Object.freeze(dispose ? { kind: 'source', create, dispose, tokenKeys: selected, acquisition, contextual } : { kind: 'source', create, tokenKeys: selected, acquisition, contextual });
   return Object.freeze({ source, operations: Object.freeze([]), metadata: emptyMetadata, lifetime: scopedLifetime });
 }
 
@@ -70,12 +72,13 @@ export function normalize(registration: unknown): {
   create: Factory;
   acquisition: AcquisitionMode;
   tokenKeys: readonly symbol[];
+  contextual: boolean;
   dispose?: (value: never) => void | Promise<void>;
   metadata: Readonly<object>;
   operations: readonly ProviderOperation[];
 } {
   const description = describe(registration);
-  const { create, dispose, tokenKeys, acquisition } = description.source;
+  const { create, dispose, tokenKeys, acquisition, contextual } = description.source;
   const { metadata, operations, lifetime } = description;
-  return dispose ? { create, dispose, tokenKeys, acquisition, metadata, operations, lifetime } : { create, tokenKeys, acquisition, metadata, operations, lifetime };
+  return dispose ? { create, dispose, tokenKeys, acquisition, metadata, operations, lifetime, contextual } : { create, tokenKeys, acquisition, metadata, operations, lifetime, contextual };
 }
