@@ -98,3 +98,45 @@ conditional push/remote-SHA gate.
 Self-review: the gates are independent and use the real archive provider,
 disposer and observer paths. The pending observer assertion explicitly checks
 callback work has not settled after `close()`. No Minor reviewer item was changed.
+
+## Final reviewed-source evidence
+
+Status: DONE
+
+Verified source revision: `57021fc1d96abbe75e025e7b29d52a5a086711d5`
+
+Evidence/tracker commit: `a1b9cdf docs: record final plugin verification`
+
+These final gates were run serially after final review, before the evidence-only
+update. This separates the final reviewed-source evidence from the pre-review
+commands above. Complete retained local logs are deliberately named
+`/tmp/di-bag-plugins-final-*`:
+
+| Command | Exit/result | Retained log |
+| --- | --- | --- |
+| `bun test tests/package.test.ts --verbose` | 0; 77 pass, 495 assertions, 57.48s | `/tmp/di-bag-plugins-final-package.log` |
+| `bun test tests/native-package.test.ts --timeout 120000 --verbose` | 0; 2 pass, 656 assertions, 118.51s | `/tmp/di-bag-plugins-final-native-package.log` |
+| `npm run check` | 0; 720 pass, 3,830 assertions, 38 files, 563.57s | `/tmp/di-bag-plugins-final-check.log` |
+| `npm run typecheck:native` | 0 | `/tmp/di-bag-plugins-final-typecheck-native.log` |
+| `npm run build:native` | 0 | `/tmp/di-bag-plugins-final-build-native.log` |
+| `npm run check:native` | 0; 113 files, 647 expected regions, 620 matched, 27 declared gaps, zero unexpected diagnostics/failures | `/tmp/di-bag-plugins-final-check-native.log` |
+| `bun run examples/box-adapters.ts` | 0 | `/tmp/di-bag-plugins-final-example-box-adapters.log` |
+| `bun run examples/composition.ts` | 0 | `/tmp/di-bag-plugins-final-example-composition.log` |
+| `bun run examples/contributions.ts` | 0 | `/tmp/di-bag-plugins-final-example-contributions.log` |
+| `bun run examples/modules.ts` | 0 | `/tmp/di-bag-plugins-final-example-modules.log` |
+| `bun run examples/observers.ts` | 0 | `/tmp/di-bag-plugins-final-example-observers.log` |
+| `bun run examples/plugins.ts` | 0; output includes `HELLO` | `/tmp/di-bag-plugins-final-example-plugins.log` |
+| `bun run examples/scopes.ts` | 0 | `/tmp/di-bag-plugins-final-example-scopes.log` |
+| `bun run examples/tokens.ts` | 0 | `/tmp/di-bag-plugins-final-example-tokens.log` |
+| `bun run examples/wbs-scope.ts` | 0 | `/tmp/di-bag-plugins-final-example-wbs-scope.log` |
+| `git diff --check` | 0 | `/tmp/di-bag-plugins-final-diff-check.log` |
+
+Package/archive and compiler gates used unrestricted execution because managed
+sandbox Bun child processes return synthetic empty output. Direct examples ran
+serially in the sandbox. No compiler command overlapped another compiler gate.
+
+Final review found no Critical, Important, or production issue. It accepted the
+example-identity Minor; the retained logs and verified revision above correct the
+evidence-traceability Minor. Self-review confirms that this fix changes only
+reports and trackers, retains the conditional push/remote-SHA checkbox, and leaves
+the 27 declared native diagnostic-message gaps as the sole recorded limitation.

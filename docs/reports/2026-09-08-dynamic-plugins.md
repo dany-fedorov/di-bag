@@ -69,7 +69,7 @@ are local `/tmp` artifacts and record the final exits and emitted results:
 | `npm run typecheck:native` | exit 0 | `/tmp/di-bag-plugins-final-typecheck-native.log` |
 | `npm run build:native` | exit 0 | `/tmp/di-bag-plugins-final-build-native.log` |
 | `npm run check:native` | exit 0; 113 files, 647 expected regions, 620 matched, 27 declared gaps, zero unexpected diagnostics/failures | `/tmp/di-bag-plugins-final-check-native.log` |
-| nine examples, serially | exit 0 for each | `/tmp/di-bag-plugins-final-example-{box-adapters,composition,contributions,modules,observers,plugins,scopes,tokens,wbs-scope}.log` |
+| nine examples, serially | exit 0 for each | `/tmp/di-bag-plugins-final-example-box-adapters.log`, `/tmp/di-bag-plugins-final-example-composition.log`, `/tmp/di-bag-plugins-final-example-contributions.log`, `/tmp/di-bag-plugins-final-example-modules.log`, `/tmp/di-bag-plugins-final-example-observers.log`, `/tmp/di-bag-plugins-final-example-plugins.log`, `/tmp/di-bag-plugins-final-example-scopes.log`, `/tmp/di-bag-plugins-final-example-tokens.log`, `/tmp/di-bag-plugins-final-example-wbs-scope.log` |
 | `git diff --check` | exit 0 | `/tmp/di-bag-plugins-final-diff-check.log` |
 
 The package/archive and compiler commands were run outside the managed sandbox
