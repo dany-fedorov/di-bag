@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src';
+import { DiBag } from '../src/node';
 
 test('a module private retry keeps the caught failed attempt separate', async () => {
   let first = true;

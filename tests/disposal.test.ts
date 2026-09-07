@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/di-bag';
+import { DiBag } from '../src/node';
 import { DiBagCleanupError } from '../src';
 import { deferred } from './helpers';
 

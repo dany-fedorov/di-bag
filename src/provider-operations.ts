@@ -1,8 +1,10 @@
 import type { Factory } from './registration';
+import type { AcquisitionMode } from './acquisition-mode';
 
 interface SourceOperation {
   readonly kind: 'source';
   readonly create: Factory;
+  readonly acquisition: AcquisitionMode;
   readonly tokenKeys: readonly symbol[];
   readonly dispose?: (value: never) => void | Promise<void>;
 }
@@ -16,10 +18,12 @@ export interface OwnedOperation {
 }
 interface MapOperation {
   readonly kind: 'map-sync' | 'map-async';
+  readonly acquisition: AcquisitionMode;
   readonly project: (this: void, value: never) => unknown;
 }
 interface FrameOperation {
   readonly kind: 'frame-sync' | 'frame-async';
+  readonly acquisition: AcquisitionMode;
   readonly project: (this: void, value: never) => { readonly value: unknown; readonly frame: unknown };
 }
 export type ProviderOperation = MetadataOperation | OwnedOperation | MapOperation | FrameOperation;
@@ -36,9 +40,10 @@ export function sourceDescription(
   create: Factory,
   dispose?: (value: never) => void | Promise<void>,
   tokenKeys: readonly symbol[] = [],
+  acquisition: AcquisitionMode = 'auto',
 ): ProviderDescription {
   const selected = Object.freeze([...tokenKeys]);
-  const source: SourceOperation = Object.freeze(dispose ? { kind: 'source', create, dispose, tokenKeys: selected } : { kind: 'source', create, tokenKeys: selected });
+  const source: SourceOperation = Object.freeze(dispose ? { kind: 'source', create, dispose, tokenKeys: selected, acquisition } : { kind: 'source', create, tokenKeys: selected, acquisition });
   return Object.freeze({ source, operations: Object.freeze([]), metadata: emptyMetadata });
 }
 
@@ -59,13 +64,14 @@ export function describe(registration: unknown): ProviderDescription {
 
 export function normalize(registration: unknown): {
   create: Factory;
+  acquisition: AcquisitionMode;
   tokenKeys: readonly symbol[];
   dispose?: (value: never) => void | Promise<void>;
   metadata: Readonly<object>;
   operations: readonly ProviderOperation[];
 } {
   const description = describe(registration);
-  const { create, dispose, tokenKeys } = description.source;
+  const { create, dispose, tokenKeys, acquisition } = description.source;
   const { metadata, operations } = description;
-  return dispose ? { create, dispose, tokenKeys, metadata, operations } : { create, tokenKeys, metadata, operations };
+  return dispose ? { create, dispose, tokenKeys, acquisition, metadata, operations } : { create, tokenKeys, acquisition, metadata, operations };
 }

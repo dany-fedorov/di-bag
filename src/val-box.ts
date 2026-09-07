@@ -3,6 +3,8 @@ import type { Provider, ProviderAcquisitionMetadata, ProviderNeeds, ProviderOutp
 import type { Presence } from './inspection';
 import type { Registration } from './registration';
 import type { Unsatisfied } from './types';
+import { acquisitionMode } from './acquisition-mode';
+import type { Acquired, AcquisitionMode, NativeOutput, ModeOptions } from './acquisition-mode';
 
 export type ValBoxFrame<M> = {
   readonly kind: 'val-box';
@@ -11,6 +13,9 @@ export type ValBoxFrame<M> = {
 };
 
 type Mode = 'required' | 'presence';
+type ValueOptions<M extends Mode, A extends AcquisitionMode> =
+  | ({ readonly value: M } & ModeOptions<A, M extends 'presence' ? 'raw' : 'auto'>)
+  | ('required' extends M ? { readonly value?: M; readonly acquisition: A } : never);
 type Snapshot = { readonly value: Presence<unknown>; readonly metadata: Presence<unknown>; readonly alias: string | null };
 type SnapshotBox = { snapshot: (...args: never[]) => Snapshot };
 type SnapshotOf<B> = B extends { snapshot: (...args: never[]) => infer S } ? S : never;
@@ -22,12 +27,12 @@ type Frames<R extends Registration, B> = readonly [...ProviderAcquisitionMetadat
 type InvalidSnapshot<B> = B extends { snapshot: infer C }
   ? C extends (...args: never[]) => Snapshot ? [] extends Parameters<C> ? B extends ThisParameterType<C> ? never : true : true : true : true;
 type Valid<B> = [InvalidSnapshot<B>] extends [never] ? unknown : Unsatisfied<'invalid val-box snapshot capability', {}>;
-type Adapted<R extends Registration, B, M extends Mode, O = Output<B, M>> = Provider<(this: void, deps: ProviderNeeds<R>) => O, RetainedMetadata<R>, Frames<R, B>, ProviderGraph<R>>;
+type Adapted<R extends Registration, B, M extends Mode, O = Output<B, M>, A extends AcquisitionMode = 'auto'> = Provider<(this: void, deps: ProviderNeeds<R>) => O, RetainedMetadata<R>, Frames<R, B>, ProviderGraph<R>, Acquired<O, A>>;
 
 /** Snapshot an immediate box once; an absent required value throws. */
 export function fromValBox<R extends Registration>(registration: R & Registration & Valid<ProviderOutput<NoInfer<R>>>): Adapted<R, ProviderOutput<R>, 'required'>;
-export function fromValBox<R extends Registration, M extends Mode>(registration: R & Registration & Valid<ProviderOutput<NoInfer<R>>>, options: { readonly value: M }): Adapted<R, ProviderOutput<R>, M>;
-export function fromValBox(registration: Registration, options?: { readonly value: Mode }): unknown {
+export function fromValBox<R extends Registration, M extends Mode = 'required', A extends AcquisitionMode = M extends 'presence' ? 'raw' : 'auto'>(registration: R & Registration & Valid<ProviderOutput<NoInfer<R>>>, options: { readonly value?: M } & ValueOptions<M, A> & NativeOutput<Output<ProviderOutput<NoInfer<R>>, NoInfer<M>>, NoInfer<A>>): Adapted<R, ProviderOutput<R>, M, Output<ProviderOutput<R>, M>, A>;
+export function fromValBox(registration: Registration, options?: { readonly value?: Mode; readonly acquisition?: AcquisitionMode }): unknown {
   return adapt(registration, options, false);
 }
 
@@ -38,11 +43,17 @@ export function fromValBoxAsync(registration: Registration, options?: { readonly
   return adapt(registration, options, true);
 }
 
-function adapt<R extends Registration>(registration: R, options: { readonly value: Mode } | undefined, async: boolean): Adapted<R, SnapshotBox, Mode> {
-  const mode = options === undefined ? 'required' : options.value;
+function adapt<R extends Registration>(registration: R, options: { readonly value?: Mode; readonly acquisition?: AcquisitionMode } | undefined, async: boolean): Adapted<R, SnapshotBox, Mode> {
+  if (options !== undefined && (options === null || typeof options !== 'object')) throw new Error('invalid val-box value options');
+  const selected = options?.value;
+  if (options !== undefined && selected === undefined && (async || !('acquisition' in options))) throw new Error('val-box options require a value selection');
+  const mode = selected === undefined ? 'required' : selected;
   if (mode !== 'required' && mode !== 'presence') throw new Error('invalid val-box value mode');
+  const acquisition = async ? 'native' : acquisitionMode(options, mode === 'presence' ? 'raw' : 'auto');
+  if (!async && mode === 'presence' && acquisition === 'native') throw new Error('native acquisition is invalid for val-box presence');
   return transform<R, (this: void, deps: ProviderNeeds<R>) => unknown, Frames<R, SnapshotBox>>(registration, {
     kind: async ? 'frame-async' : 'frame-sync',
+    acquisition: async ? 'native' : acquisition,
     project(box: unknown) {
       if (box === null || (typeof box !== 'object' && typeof box !== 'function')) throw new Error('invalid val-box snapshot capability');
       const method: unknown = Reflect.get(box, 'snapshot');

@@ -1,6 +1,6 @@
 # Modern compiler adoption and inline inference
 
-The development toolchain now uses the classic TypeScript 6.0.3 API through the
+The compiler-adoption checkpoint uses the classic TypeScript 6.0.3 API through the
 `@typescript/typescript6` 6.0.2 wrapper. This compiler change, with no production
 library signature or runtime change, makes both previously bounded inline forms
 supported: a nested method-returning val-box factory and a selected async fork
@@ -66,8 +66,27 @@ adoption does not claim to improve them on 5.9.
 ## Scope still open
 
 The native verification below is a separate lane, not a claim of full compiler
-or enterprise parity. Neither increment changes ownership, disposal, borrowing,
-sharing, factory awaiting, or public library APIs.
+or enterprise parity. Those original compiler increments did not change ownership,
+disposal, borrowing, sharing, factory awaiting, or public library APIs. The later
+classification correction described below changes the public acquisition boundary.
+
+## Final-review classification correction, 2026-09-07
+
+Native Promises with a shadowed non-callable `then` are now observed by native state
+through an application-local classification context. `di-bag/node` supplies Node's
+host predicate through a facade sharing the existing core modules and registries.
+The root stays host-independent; applications configure it or select explicit
+raw/native stages. Whole-graph preflight rejects missing automatic capability at
+finalization before factory effects. Provider types retain an acquired-value
+dimension so raw Promise ownership cannot be confused with native fulfillment.
+See the [classification design](../superpowers/specs/2026-09-07-acquisition-classification-design.md)
+and [migration guide](../migrations/0.1-to-enterprise.md#select-the-runtime-classification-boundary).
+
+The original compiler measurements and 54 native matrix rows below remain historical
+evidence for source `cc9dbdcdc70edb9872177b77cddf9767aa0b67ab`; they were not rerun or
+relabelled as measurements of this changed API. Fresh correction work gates and
+final suite results are recorded separately. Native diagnostic gaps and outstanding
+scale/lifecycle work remain open.
 
 ## Native 7.0.2 contracts and declarations
 
@@ -148,8 +167,38 @@ efficiency issue is also outside this task. No full native or enterprise
 completion, new classic large-matrix result, publication or public API migration
 is claimed.
 
-Final integration verification passed `npm run check` (397 tests, zero failures,
+Original integration verification passed `npm run check` (397 tests, zero failures,
 1,980 assertions and classic build), then native typecheck/build/source checks
 and all four runtime examples. The native source result remains explicitly
 `accepted-with-diagnostic-gaps`; passing the integration suite does not convert
 the 16 matrix failures into supported scale cases.
+
+## Final-review correction verification
+
+After the acquisition-classification correction, fresh `npm run check` passed
+classic no-emit, **433 tests with zero failures and 2,170 assertions** (338.68
+seconds), and classic build. The suite includes real installed package CJS/ESM
+consumers, both package emitters, declaration-only downstream consumers on both
+compiler lanes, real box adapters, Node/Bun root/node registry interoperation,
+the portable core boundary, bounded work gates and small native scale controls.
+
+Fresh native typecheck, build and source-contract checks also passed. The source
+inventory is now 83 files: 342 primary expectations, 315 useful primary matches,
+the same 27 known native rejections, 11/11 supplemental matches, zero unexpected
+diagnostics and zero failed files. All three new acquisition-mode fixtures are
+strictly accepted with no new diagnostic exceptions. All four migrated runtime
+examples passed. Emitted declarations contain no Node type references.
+
+Fresh classic API 6.0.3 measurements on Node v24.20.0 after the acquired-value
+type change remain below the unchanged work ceilings:
+
+| Gate | Diagnostics | Instantiations | Ceiling |
+| --- | ---: | ---: | ---: |
+| 100 chained named additions | 0 | 840,742 | 1,500,000 |
+| 100 token bindings | 0 | 1,371,986 | 2,000,000 |
+
+These are correction measurements, separate from the historical measurements
+above. The original 54 native matrix rows were not rerun or relabelled. The 16
+matrix failures, 27 useful-message gaps, future lifecycle work and M1's explicit
+empty-selected-fork optimization remain open; this correction does not claim
+native diagnostic parity or enterprise completion.

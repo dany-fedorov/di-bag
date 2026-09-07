@@ -1,4 +1,4 @@
-import { DiBag } from '../src';
+import { DiBag } from '../src/node';
 
 const logging = DiBag.module().add({
   prefix: () => '[modules]',

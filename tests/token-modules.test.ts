@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src';
+import { DiBag } from '../src/node';
 
 test('exported tokens retarget private module consumers in forks', async () => {
   const key = Symbol('database');

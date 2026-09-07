@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, type Presence } from '../src';
+import { DiBag, type Presence } from '../src/node';
 import { fromSasBox } from '../src/sas-box';
 import { fromValBox, fromValBoxAsync } from '../src/val-box';
 

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src';
+import { DiBag } from '../src/node';
 import { transform } from '../src/provider';
 import type { ProviderOperation } from '../src/provider-operations';
 
@@ -142,7 +142,7 @@ test('metadata preserves synchronous ownership and borrowed cleanup methods', as
 });
 test('adapter execution captures projected values and acquisition frames', async () => {
   // Exercise the engine independently so missing public subpaths cannot mask RED.
-  const operation: ProviderOperation = { kind: 'frame-sync', project: () => ({ value: 42, frame: Object.freeze({ kind: 'val-box', metadata: Object.freeze({ present: false }), alias: 'engine' }) }) };
+  const operation: ProviderOperation = { kind: 'frame-sync', acquisition: 'raw', project: () => ({ value: 42, frame: Object.freeze({ kind: 'val-box', metadata: Object.freeze({ present: false }), alias: 'engine' }) }) };
   const registration = transform<() => object, () => number, readonly [unknown]>(() => ({}), operation);
   const bag = DiBag.begin().add({ value: registration }).end();
   expect(bag.resolve('value')).toBe(42);

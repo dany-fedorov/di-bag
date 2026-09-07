@@ -44,7 +44,7 @@ for (const emitter of ['classic6', 'native7']) {
             supplementalExpected: markers.supplementalExpected, supplementalMatched: markers.supplementalMatched,
             knownNativeRejections: markers.knownNativeRejections, gaps: markers.gaps }));
         }
-        for (const feature of ['modern-inline', 'token-modules']) {
+        for (const feature of ['modern-inline', 'token-modules', 'acquisition-mode']) {
           const sourceDir = join(consumer, `${feature}-source`), outputDir = join(consumer, `${feature}-output`);
           mkdirSync(sourceDir); mkdirSync(outputDir);
           const assertions = "type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;";
@@ -52,17 +52,24 @@ for (const emitter of ['classic6', 'native7']) {
             .replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types|module-types)'/g, `from '${nested ? '..' : '.'}/node_modules/di-bag/dist/$1.js'`)
             .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)
             .replace(/import type \{ Assert, Equal \} from '\.\.?\/assert';/, assertions);
-          const fixture = feature === 'modern-inline' ? 'modern-inline.ts' : 'token-modules/feature.ts';
+          const fixture = feature === 'token-modules' ? 'token-modules/feature.ts' : `${feature}.ts`;
           const producer = join(sourceDir, `feature.${extension}`);
           writeFileSync(producer, route(readFileSync(join(root, 'tests/types', fixture), 'utf8'), true));
-          const emitted = await compileNative(compiler, consumer, [producer], { noEmit: false, declaration: true, emitDeclarationOnly: true, rootDir: sourceDir, outDir: outputDir });
-          expect({ checked: emitted.checked, diagnostics: emitted.diagnostics }).toEqual({ checked: true, diagnostics: [] });
+          if (emitter === 'classic6' && feature === 'acquisition-mode') {
+            const program = ts.createProgram([producer], { strict: true, declaration: true, emitDeclarationOnly: true, rootDir: sourceDir, outDir: outputDir,
+              noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, types: [], target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext });
+            const emitted = program.emit();
+            expect([...ts.getPreEmitDiagnostics(program), ...emitted.diagnostics].map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+          } else {
+            const emitted = await compileNative(compiler, consumer, [producer], { noEmit: false, declaration: true, emitDeclarationOnly: true, rootDir: sourceDir, outDir: outputDir });
+            expect({ checked: emitted.checked, diagnostics: emitted.diagnostics }).toEqual({ checked: true, diagnostics: [] });
+          }
           const declaration = join(outputDir, `feature.d.${extension}`); expect(existsSync(declaration)).toBe(true);
           rmSync(sourceDir, { recursive: true, force: true });
           const downstream = join(consumer, `${feature}-consumer.${extension}`);
-          const consumerFixture = feature === 'modern-inline' ? 'modern-inline-consumer.ts' : 'token-modules/consumer.ts';
+          const consumerFixture = feature === 'token-modules' ? 'token-modules/consumer.ts' : `${feature}-consumer.ts`;
           const text = route(readFileSync(join(root, 'tests/types', consumerFixture), 'utf8'))
-            .replace(/from '\.\/(modern-inline|feature)'/, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`);
+            .replace(/from '\.\/(modern-inline|feature|acquisition-mode)'/, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`);
           writeFileSync(downstream, text);
           const consumed = await compileNative(compiler, consumer, [downstream]);
           expect({ checked: consumed.checked, diagnostics: consumed.diagnostics }).toEqual({ checked: true, diagnostics: [] });

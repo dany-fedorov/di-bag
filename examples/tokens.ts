@@ -1,4 +1,4 @@
-import { DiBag } from '../src';
+import { DiBag } from '../src/node';
 
 export const clockKey = Symbol('clock');
 export const clock = DiBag.token(clockKey).of<{ now(): number }>();

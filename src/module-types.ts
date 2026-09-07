@@ -1,7 +1,7 @@
 import type { Module } from './module';
 import type { Registrations } from './registration';
 import type { Needs, Provided, Singleton, Unsatisfied } from './types';
-import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderGraph, ProviderTokenNeeds, BoundToken } from './provider';
+import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired, ProviderGraph, ProviderTokenNeeds, BoundToken } from './provider';
 import type { TokenGraph, WrongToken, MissingToken } from './token-types';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
 
@@ -64,11 +64,15 @@ export type PublicRegistrations<P extends object> = { [K in keyof P]: () => P[K]
 export type PublicProvider<R> = R extends Registrations[string]
   ? unknown extends ProviderNeeds<R> ? R
     : [ProviderGraph<R>] extends [TokenGraph<readonly TokenBase[], TokenBase>] ? [MetadataKeyUnion<ProviderMetadata<R>> | BoundToken<R>] extends [never]
-      ? ProviderAcquisitionMetadata<R> extends readonly [] ? () => ProviderOutput<R>
-        : Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, TokenGraph<readonly [], BoundToken<R>>>
-      : Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, TokenGraph<readonly [], BoundToken<R>>>
+      ? ProviderAcquisitionMetadata<R> extends readonly []
+        ? [ProviderAcquired<R>] extends [Awaited<ProviderOutput<R>>]
+          ? [Awaited<ProviderOutput<R>>] extends [ProviderAcquired<R>] ? () => ProviderOutput<R> : RetainedPublicProvider<R>
+          : RetainedPublicProvider<R>
+        : RetainedPublicProvider<R>
+      : RetainedPublicProvider<R>
     : R
   : never;
+type RetainedPublicProvider<R extends Registrations[string]> = Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, TokenGraph<readonly [], BoundToken<R>>, ProviderAcquired<R>>;
 export type PublicProviders<R extends object> = { [K in keyof R]: PublicProvider<R[K]> };
 export type Renamed<P extends object, Old extends string, New extends string> = {
   [K in keyof P as K extends Old ? New : K]: P[K];

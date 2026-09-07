@@ -1,5 +1,6 @@
 import type { normalize } from './provider-operations';
 import type { FramePresenceTuple, Presence } from './inspection';
+import type { AcquisitionMode, RuntimeContext } from './acquisition-mode';
 
 type RegistrationDescription = ReturnType<typeof normalize>;
 type Disposer = (value: never) => void | Promise<void>;
@@ -25,11 +26,6 @@ interface ExecutionEvents {
 
 const observePromise = Promise.prototype.then<void, void>;
 
-function isThenable(value: unknown): value is PromiseLike<unknown> {
-  return value !== null && (typeof value === 'object' || typeof value === 'function') &&
-    'then' in value && typeof value.then === 'function';
-}
-
 /** One source invocation and its ordered projections/ownership, local to an attempt. */
 export class ProviderExecution {
   private readonly frames: Presence<unknown>[];
@@ -40,7 +36,7 @@ export class ProviderExecution {
   // Source permission is independent of the exposed projection's cache state.
   sourceInFlight = true;
 
-  constructor(private readonly events: ExecutionEvents, description: RegistrationDescription) {
+  constructor(private readonly events: ExecutionEvents, description: RegistrationDescription, private readonly context: RuntimeContext) {
     // Reserve every adapter slot before the source can reenter inspection.
     this.frames = description.operations.filter(operation => operation.kind === 'frame-sync' || operation.kind === 'frame-async')
       .map(() => Object.freeze({ present: false as const }));
@@ -54,7 +50,7 @@ export class ProviderExecution {
 
   evaluate(description: RegistrationDescription, deps: unknown): unknown {
     const { create, dispose } = description;
-    let current = this.capture(() => create(deps as never), true);
+    let current = this.capture(() => create(deps as never), true, description.acquisition);
     let nextFrame = 0;
     if (dispose) this.own(current, 0, dispose);
     description.operations.forEach((operation, offset) => {
@@ -65,7 +61,7 @@ export class ProviderExecution {
         if (current.state !== 'failed') {
           const input = current.exposed;
           const { project } = operation;
-          current = this.capture(() => project(input as never), false);
+          current = this.capture(() => project(input as never), false, operation.acquisition);
         }
       } else if (operation.kind === 'map-async') {
         const input = current;
@@ -73,7 +69,7 @@ export class ProviderExecution {
         current = this.capture(async () => {
           if (input.state === 'failed') throw input.error;
           return project(await input.exposed as never);
-        }, false);
+        }, false, 'native');
       } else if (operation.kind === 'frame-sync' || operation.kind === 'frame-async') {
         const frameIndex = nextFrame++;
         const input = current;
@@ -87,9 +83,9 @@ export class ProviderExecution {
           current = this.capture(async () => {
             if (input.state === 'failed') throw input.error;
             return apply(await input.exposed);
-          }, false);
+          }, false, 'native');
         } else if (input.state !== 'failed') {
-          current = this.capture(() => apply(input.exposed), false);
+          current = this.capture(() => apply(input.exposed), false, operation.acquisition);
         }
       }
     });
@@ -98,11 +94,24 @@ export class ProviderExecution {
     return current.exposed;
   }
 
-  private capture(create: () => unknown, source: boolean): ValueStage {
+  private capture(create: () => unknown, source: boolean, mode: AcquisitionMode): ValueStage {
     try {
       const exposed = create();
       const stage: ValueStage = { exposed, state: 'ready', value: exposed, error: undefined, owners: [] };
-      if (isThenable(exposed)) {
+      let native = mode === 'native';
+      if (mode === 'auto') {
+        const { isNativePromise } = this.context;
+        // Whole-graph preflight establishes capability before invoking this factory.
+        const classified = isNativePromise!(exposed);
+        if (typeof classified !== 'boolean') throw new Error('isNativePromise must return a boolean');
+        native = classified;
+      }
+      if (mode !== 'raw' && exposed !== null && (typeof exposed === 'object' || typeof exposed === 'function') && 'then' in exposed) {
+        // Preserve original getter failures, but never use callability as native branding.
+        const then = Reflect.get(exposed, 'then');
+        if (!native && typeof then === 'function') throw new TypeError('Structural thenables require explicit native conversion or raw acquisition');
+      }
+      if (native) {
         let settled!: () => void;
         const barrier = new Promise<void>(resolve => { settled = resolve; });
         // The species result is untrusted; only our independently made barrier

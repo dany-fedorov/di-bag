@@ -7,6 +7,12 @@ Binding parent spec: `2026-09-06-enterprise-di-design.md`. This document narrows
 the L1/L2/A1 behavior before its executable implementation plan. It preserves
 ordinary factory return values and explicit acquisition ownership.
 
+Acquisition-classification refinement: apply
+`2026-09-07-acquisition-classification-design.md` when implementing this design.
+Configured automatic and explicit raw/native stage modes are independent from
+the caching lifetimes described here. Preserve the provider's acquired-value
+contract through every lifetime wrapper, shared view and context adapter.
+
 ## Identity, caching, and ownership
 
 Use acquisition records, not one finalizer per service name:
@@ -41,7 +47,9 @@ refers to the same acquisition and does not introduce another owner.
 
 Ownership is independent. Ordinary registrations remain borrowed, including
 objects exposing methods named `close` or `dispose`. `DiBag.withDisposal`
-explicitly transfers ownership of each fulfilled acquisition. A transient's
+explicitly transfers ownership of each stage's acquired value: native fulfillment
+for native acquisition, or the exact raw value for explicit raw acquisition.
+Automatic stages follow their configured classification. A transient's
 owner is the requesting acquisition's owner scope, or the resolving scope for
 a top-level call. Transient means no cache, not an automatically shorter lexical
 resource scope: a root provider may intentionally own a private transient.
@@ -87,11 +95,15 @@ it does not recreate a separate wrapper bag or copy finalizers into the child.
 ## Acquisition and shutdown
 
 Keep the original ordinary factory value or native Promise as the exposed value.
-Observe native Promise state separately for pending bookkeeping and fulfilled-
-value ownership, bypassing overridden then methods and preserving original
-setup errors. Structural thenables remain supported through explicit standard
-conversion inside the factory, not a guessed fallback after native observation
-fails. Use an independent native pending barrier rather than assimilating an
+For native acquisition, observe Promise state separately for pending bookkeeping
+and fulfilled-value ownership, bypassing overridden then methods and preserving
+original setup errors. Explicit raw acquisition owns its exact result without
+observing or waiting on it. Automatic classification requires a trusted runtime
+capability; missing capability fails graph preflight before any factory effects.
+Structural thenables can use explicit standard conversion inside the factory
+for native acquisition, or deliberate raw ownership, never a guessed fallback
+after native observation fails. Use an independent native pending barrier rather
+than assimilating an
 arbitrary derived species result. A cached rejection removes the failed cache
 entry and abandons unsuccessful incoming consumer edges; subsequent resolution
 can retry. The retired attempt retains its outgoing dependencies, pending work
@@ -146,6 +158,11 @@ requires the same graph closure, creates a fresh bag, acquires the selected
 public services, and returns `Promise<Bag<...>>` only after those acquisitions
 fulfill. Other registrations remain lazy. A previously running bag is not
 silently repurposed as a startup transaction.
+
+Readiness follows the selected acquisition mode, not blanket assimilation of
+the exposed service: an explicitly raw Promise is already an acquired raw
+value. Native acquisition waits on observed native state, including shadowed
+then methods, without substituting `await bag.resolve(key)` as its observer.
 
 Options accept an external `AbortSignal` and a finite positive `timeoutMs`.
 Reject invalid options before acquisition. A signal already aborted starts no

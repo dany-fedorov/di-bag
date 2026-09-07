@@ -73,8 +73,8 @@ for (const mode of ['commonjs', 'module'] as const) {
   test(`Node ${mode} consumers can resolve and dispose through the public package`, async () => {
     const load =
       mode === 'commonjs'
-        ? "const packageExports = require('di-bag'); const { DiBag, DiBagCleanupError } = packageExports;"
-        : "import * as packageExports from 'di-bag'; const { DiBag, DiBagCleanupError } = packageExports;";
+        ? "const packageExports = require('di-bag/node'); const { DiBag, DiBagCleanupError } = packageExports;"
+        : "import * as packageExports from 'di-bag/node'; const { DiBag, DiBagCleanupError } = packageExports;";
     const stdout = await run([
       'node',
       `--input-type=${mode}`,
@@ -112,7 +112,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         const selected = cjs.DiBag.token(tokenKey).of();
         const tokenFeature = esm.DiBag.module().bind(selected, () => raw)
           .add({ value: esm.DiBag.mapSync(esm.DiBag.fromTokens([selected], value => value), value => value) }).exports([selected, 'value']);
-        const tokenRuntime = cjs.DiBag.begin().install(tokenFeature).end();
+        const tokenRuntime = DiBag.begin().install(tokenFeature).end();
         const tokenIdentity = tokenRuntime.resolve('value') === raw;
         await tokenRuntime.close();
         console.log(JSON.stringify({ answer, disposed,
@@ -137,8 +137,8 @@ for (const mode of ['commonjs', 'module'] as const) {
 
   test(`Node ${mode} observes local and foreign native subclass state directly`, async () => {
     const load = mode === 'commonjs'
-      ? "const { DiBag } = require('di-bag');"
-      : "import { DiBag } from 'di-bag';";
+      ? "const { DiBag } = require('di-bag/node');"
+      : "import { DiBag } from 'di-bag/node';";
     const stdout = await run([
       'node', `--input-type=${mode}`, '--eval',
       `${load}
@@ -312,7 +312,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     ).toEqual([]);
   });
 
-  for (const fixture of ['tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
+  for (const fixture of ['acquisition-mode.ts', 'negative/acquisition-mode.ts', 'tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
     test(`TypeScript ${mode} emitted provider contracts: ${fixture}`, () => {
       const path = resolve(__dirname, `provider-consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const source = readFileSync(resolve(__dirname, 'types', fixture), 'utf8')

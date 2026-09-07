@@ -5,7 +5,9 @@ import type { BindingKey } from './runtime';
 import { beginModule, moduleGraph } from './module';
 import type { Module } from './module';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
-import { withMetadata, mapSync, mapAsync, fromTokens, withTokenBinding } from './provider';
+import { withMetadata, mapSync, mapAsync, fromTokens, withTokenBinding, factory } from './provider';
+import { runtimeContext, unconfigured } from './acquisition-mode';
+import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
 import type { ProviderMetadata, ProviderAcquisitionMetadata } from './provider';
 import type { InspectionSnapshot } from './inspection';
 import { token, readTokenKey } from './tokens';
@@ -40,9 +42,9 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
   readonly #graph: BindingGraph;
   readonly #runtime: Runtime;
 
-  constructor(graph: BindingGraph) {
+  constructor(graph: BindingGraph, private readonly context: RuntimeContext) {
     this.#graph = graph;
-    this.#runtime = new Runtime(graph);
+    this.#runtime = new Runtime(graph, context);
   }
 
   resolve<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): Provided<R>[SelectionKey<K> & keyof R];
@@ -78,7 +80,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
   fork(keys?: readonly unknown[], overrides?: object): unknown {
     this.#runtime.assertOpen();
     if (keys === undefined && overrides === undefined) {
-      return new Bag(this.#graph);
+      return new Bag(this.#graph, this.context);
     }
     if (
       !Array.isArray(keys) ||
@@ -109,7 +111,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
       normalize(registration);
       selectedBindings.push([token, registration as Registration]);
     }
-    return new Bag(this.#graph.withPublicBindings(selectedBindings));
+    return new Bag(this.#graph.withPublicBindings(selectedBindings), this.context);
   }
 
   /** Drain acquisitions, then dispose dependents before dependencies, once. */
@@ -124,7 +126,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
     (value: readonly [E, C]) => readonly [E, C];
   readonly #graph: BindingGraph;
 
-  constructor(graph: BindingGraph) {
+  constructor(graph: BindingGraph, private readonly context: RuntimeContext) {
     this.#graph = graph;
   }
 
@@ -135,7 +137,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   ): Builder<E | Entries<N>, C> {
     const snapshot = snapshotAdd(more, key => this.#graph.hasPublic(key));
     // The snapshot retains every checked own registration, including hidden keys.
-    return new Builder(this.#graph.withPublicRegistrations(snapshot));
+    return new Builder(this.#graph.withPublicRegistrations(snapshot), this.context);
   }
 
   bind<T extends TokenBase, V extends Registration>(
@@ -146,7 +148,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   ): Builder<E | { key: TokenKey<T>; registration: Binding<T, V> }, C> {
     const key = readTokenKey(token);
     if (this.#graph.hasPublic(key)) throw new Error(`duplicate registration: ${String(key)}`);
-    return new Builder(this.#graph.withPublicBinding(key, withTokenBinding<T, V>(token, registration)));
+    return new Builder(this.#graph.withPublicBinding(key, withTokenBinding<T, V>(token, registration)), this.context);
   }
 
   // Give the preliminary callable context real empty needs and a consumer-safe
@@ -174,7 +176,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
       throw new Error(`replace accepts existing tokens only: ${String(key)}`);
     }
     normalize(registration);
-    return new Builder(this.#graph.withPublicBinding(key, registration));
+    return new Builder(this.#graph.withPublicBinding(key, registration), this.context);
   }
 
   install<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(
@@ -182,17 +184,19 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
       Checked<Merge<From<E>, D>> &
       CheckedConstraints<C | MC, Merge<From<E>, D>>,
   ): Builder<E | Entries<D>, C | MC> {
-    return new Builder(this.#graph.withInstallation(moduleGraph(module)));
+    return new Builder(this.#graph.withInstallation(moduleGraph(module)), this.context);
   }
 
   end(this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, From<E>>): Bag<From<E>, C> {
-    return new Bag(this.#graph);
+    return new Bag(this.#graph, this.context);
   }
 }
 
 export type { Bag };
 
-export const DiBag: {
+interface Facade {
+  configure: (options: RuntimeOptions) => Facade;
+  factory: typeof factory;
   token: typeof token;
   fromTokens: typeof fromTokens;
   begin: () => Builder<never>;
@@ -201,13 +205,17 @@ export const DiBag: {
   withMetadata: typeof withMetadata;
   mapSync: typeof mapSync;
   mapAsync: typeof mapAsync;
-} = {
+}
+function facade(context: RuntimeContext): Facade { return Object.freeze({
+  configure: (options: RuntimeOptions): Facade => facade(runtimeContext(options)),
+  factory,
   token,
   fromTokens,
-  begin: (): Builder<never> => new Builder(new BindingGraph()),
+  begin: (): Builder<never> => new Builder(new BindingGraph(), context),
   module: beginModule,
   withDisposal,
   withMetadata,
   mapSync,
   mapAsync,
-};
+}); }
+export const DiBag: Facade = facade(unconfigured);

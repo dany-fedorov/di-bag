@@ -5,6 +5,8 @@ import type { ProviderOperation } from './provider-operations';
 import { readTokenKey, snapshotTokens } from './tokens';
 import type { TokenBase, TokenService } from './tokens';
 import type { GraphContract, TokenGraph, OpaqueGraph, TokenTupleAdmission, TokenArguments, ReboundGraph } from './token-types';
+import { acquisitionMode } from './acquisition-mode';
+import type { Acquired, AcquisitionMode, NativeOutput, StageOptions } from './acquisition-mode';
 
 declare const providerInvariant: unique symbol;
 
@@ -13,15 +15,15 @@ class ProviderBase {
   declare private readonly nominal: void;
 }
 
-class Provider<F extends Factory, M extends object = Readonly<{}>, A extends readonly unknown[] = readonly [], G extends GraphContract = TokenGraph> extends ProviderBase {
+class Provider<F extends Factory, M extends object = Readonly<{}>, A extends readonly unknown[] = readonly [], G extends GraphContract = TokenGraph, V = Awaited<ReturnType<F>>> extends ProviderBase {
   // Unlike an ordinary private field, this witness survives declaration emit.
-  declare readonly [providerInvariant]: (value: [F, M, A, G]) => [F, M, A, G];
+  declare readonly [providerInvariant]: (value: [F, M, A, G, V]) => [F, M, A, G, V];
 }
 
 // A covariant view of the retained witness supplies graph-compatible callable
 // context without widening the actual provider's invariant F/M/A/G contracts.
 export type ProviderContext<F extends Factory, G extends GraphContract = GraphContract> = ProviderBase & {
-  readonly [providerInvariant]: (...args: never[]) => [F, object, readonly unknown[], G];
+  readonly [providerInvariant]: (...args: never[]) => [F, object, readonly unknown[], G, unknown];
 };
 
 // Infer through an intersection before distributing. A bare infer preserves
@@ -35,19 +37,24 @@ type FactoryOf<R> = R extends Factory ? R
 // An erased provider cannot prove an output or dependency shape, including
 // when mixed with concrete registrations behind a NoInfer boundary.
 export type ProviderOutput<R extends Registration> = ProviderBase extends R ? unknown : ReturnType<ProviderFactory<R>>;
+export type ProviderAcquired<R extends Registration> = ProviderBase extends R ? unknown
+  : R extends infer T & {} ? AcquiredOf<T> : unknown;
+type AcquiredOf<R> = R extends { readonly [providerInvariant]: (...args: never[]) => [Factory, object, readonly unknown[], GraphContract, infer V] } ? V
+  : R extends Factory ? Awaited<ReturnType<R>>
+    : R extends DisposableFactory<infer F> ? Awaited<ReturnType<F>> : unknown;
 export type ProviderNeeds<R extends Registration> = ProviderBase extends R ? unknown : Parameters<ProviderFactory<R>> extends [] ? Record<never, never>
   : Exclude<Parameters<ProviderFactory<R>>[0], undefined>;
 export type ProviderMetadata<R> = R extends infer T & {} ? MetadataOf<T> : unknown;
-type MetadataOf<R> = R extends Provider<infer _F, infer M, infer _A, infer _G> ? M
+type MetadataOf<R> = R extends Provider<infer _F, infer M, infer _A, infer _G, infer _V> ? M
   : R extends Factory | DisposableFactory<Factory> ? Readonly<{}> : unknown;
 export type ProviderAcquisitionMetadata<R> = ProviderBase extends R ? readonly unknown[]
   : R extends infer T & {} ? AcquisitionMetadataOf<T> : readonly unknown[];
-type AcquisitionMetadataOf<R> = R extends Provider<infer _F, infer _M, infer A, infer _G> ? A
+type AcquisitionMetadataOf<R> = R extends Provider<infer _F, infer _M, infer A, infer _G, infer _V> ? A
   : R extends Factory | DisposableFactory<Factory> ? readonly [] : readonly unknown[];
 
 export type ProviderGraph<R> = ProviderBase extends R ? OpaqueGraph
   : R extends infer T & {} ? GraphOf<T> : OpaqueGraph;
-type GraphOf<R> = R extends Provider<infer _F, infer _M, infer _A, infer G> ? G
+type GraphOf<R> = R extends Provider<infer _F, infer _M, infer _A, infer G, infer _V> ? G
   : R extends Factory | DisposableFactory<Factory> ? TokenGraph
     : R extends ProviderContext<Factory, infer G> ? G : OpaqueGraph;
 type RequiredTokens<G> = G extends TokenGraph<infer T, TokenBase> ? T[number] : TokenBase;
@@ -56,9 +63,11 @@ export type ProviderTokenNeeds<R> = RequiredTokens<ProviderGraph<R>>;
 export type BoundToken<R> = Bound<ProviderGraph<R>>;
 
 /** Select declared token services as positional arguments without awaiting them. */
-export function fromTokens<const T extends readonly TokenBase[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => unknown>(
+export function fromTokens<const T extends readonly TokenBase[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
   tokens: T & TokenTupleAdmission<T>, callback: F,
-): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], TokenGraph<T>> {
+  ...modeOptions: StageOptions<M>
+): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], TokenGraph<T>, Acquired<ReturnType<F>, M>> {
+  const acquisition = acquisitionMode(modeOptions[0]);
   const selected = snapshotTokens(tokens);
   const tokenKeys = Object.freeze(selected.map(readTokenKey));
   if (typeof callback !== 'function') throw new Error('token callback must be a function');
@@ -66,8 +75,8 @@ export function fromTokens<const T extends readonly TokenBase[], F extends (this
     const args = tokenKeys.map(key => Reflect.get(deps, key));
     return Reflect.apply(callback, undefined, args);
   };
-  const handle = new Provider<() => ReturnType<F>, Readonly<{}>, readonly [], TokenGraph<T>>();
-  retainDescription(handle, sourceDescription(create, undefined, tokenKeys));
+  const handle = new Provider<() => ReturnType<F>, Readonly<{}>, readonly [], TokenGraph<T>, Acquired<ReturnType<F>, M>>();
+  retainDescription(handle, sourceDescription(create, undefined, tokenKeys, acquisition));
   return handle;
 }
 
@@ -76,9 +85,9 @@ export function withTokenBinding<T extends TokenBase, R extends Registration>(
   token: T & TokenTupleAdmission<readonly [T]>,
   registration: R & Registration & ([ProviderOutput<NoInfer<R>>] extends [TokenService<NoInfer<T>>] ? unknown
     : Unsatisfied<'token binding output is not assignable to its service', {}>),
-): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraph<R>, T>> {
+): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraph<R>, T>, ProviderAcquired<R>> {
   readTokenKey(token);
-  const handle = new Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraph<R>, T>>();
+  const handle = new Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraph<R>, T>, ProviderAcquired<R>>();
   retainDescription(handle, describe(registration));
   return handle;
 }
@@ -87,19 +96,20 @@ type MappedFactory<R extends Registration, O> = (this: void, deps: ProviderNeeds
 export type RetainedMetadata<R> = ProviderMetadata<R> extends object ? ProviderMetadata<R> : object;
 
 /** Extend an authenticated description without exposing its operations. */
-export function transform<R extends Registration, F extends Factory, A extends readonly unknown[] = ProviderAcquisitionMetadata<R>>(registration: R, operation: ProviderOperation): Provider<F, RetainedMetadata<R>, A, ProviderGraph<R>> {
+export function transform<R extends Registration, F extends Factory, A extends readonly unknown[] = ProviderAcquisitionMetadata<R>, V = Awaited<ReturnType<F>>>(registration: R, operation: ProviderOperation): Provider<F, RetainedMetadata<R>, A, ProviderGraph<R>, V> {
   const description = describe(registration);
-  const handle = new Provider<F, RetainedMetadata<R>, A, ProviderGraph<R>>();
+  const handle = new Provider<F, RetainedMetadata<R>, A, ProviderGraph<R>, V>();
   retainDescription(handle, Object.freeze({ ...description, operations: Object.freeze([...description.operations, Object.freeze(operation)]) }));
   return handle;
 }
 
 /** Project the exact source value without awaiting it or the projector result. */
-export function mapSync<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => unknown>(
+export function mapSync<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
   registration: R & Registration,
   project: P,
-): Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>> {
-  return transform<R, MappedFactory<R, ReturnType<P>>>(registration, { kind: 'map-sync', project });
+  ...modeOptions: StageOptions<M>
+): Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>, Acquired<ReturnType<P>, M>> {
+  return transform<R, MappedFactory<R, ReturnType<P>>, ProviderAcquisitionMetadata<R>, Acquired<ReturnType<P>, M>>(registration, { kind: 'map-sync', project, acquisition: acquisitionMode(modeOptions[0]) });
 }
 
 /** Explicitly await the source and projector result; always expose a Promise. */
@@ -107,7 +117,7 @@ export function mapAsync<R extends Registration, P extends (this: void, value: A
   registration: R & Registration,
   project: P,
 ): Provider<MappedFactory<R, Promise<Awaited<ReturnType<P>>>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>> {
-  return transform<R, MappedFactory<R, Promise<Awaited<ReturnType<P>>>>>(registration, { kind: 'map-async', project });
+  return transform<R, MappedFactory<R, Promise<Awaited<ReturnType<P>>>>>(registration, { kind: 'map-async', project, acquisition: 'native' });
 }
 
 export type MetadataKeyUnion<M> = M extends unknown ? keyof M : never;
@@ -123,7 +133,7 @@ type MetadataKeys<R, M> = [NonFiniteKeys<M> | Extract<MetadataKeyUnion<M>, numbe
 export function withMetadata<R extends Registration, M extends object>(
   registration: R & Registration,
   metadata: M & MetadataKeys<NoInfer<R>, M>,
-): Provider<ProviderFactory<R>, Readonly<ProviderMetadata<R> & M>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>> {
+): Provider<ProviderFactory<R>, Readonly<ProviderMetadata<R> & M>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>, ProviderAcquired<R>> {
   const description = describe(registration);
   if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) {
     throw new Error('metadata must be a string or symbol-keyed object');
@@ -137,7 +147,7 @@ export function withMetadata<R extends Registration, M extends object>(
   for (const key of keys) added[key] = Reflect.get(metadata, key);
   Object.freeze(added);
   const combined = Object.freeze(Object.assign(Object.create(null), description.metadata, added));
-  const handle = new Provider<ProviderFactory<R>, Readonly<ProviderMetadata<R> & M>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>>();
+  const handle = new Provider<ProviderFactory<R>, Readonly<ProviderMetadata<R> & M>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>, ProviderAcquired<R>>();
   retainDescription(handle, Object.freeze({
     source: description.source,
     operations: Object.freeze([...description.operations, Object.freeze({ kind: 'metadata' as const, metadata: added })]),
@@ -147,3 +157,17 @@ export function withMetadata<R extends Registration, M extends object>(
 }
 
 export type { Provider, ProviderBase };
+
+/** Select source acquisition semantics without transferring ownership. */
+export function factory<F extends Factory, M extends AcquisitionMode>(create: F,
+  options: { readonly acquisition: M } & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
+): Provider<F, Readonly<{}>, readonly [], TokenGraph, Acquired<ReturnType<F>, M>> {
+  if (typeof create !== 'function') throw new Error('factory requires a function');
+  if (options === undefined || options === null) throw new Error('factory requires an acquisition mode');
+  const { acquisition } = options;
+  if (acquisition === undefined) throw new Error('factory requires an acquisition mode');
+  const mode = acquisitionMode({ acquisition });
+  const handle = new Provider<F, Readonly<{}>, readonly [], TokenGraph, Acquired<ReturnType<F>, M>>();
+  retainDescription(handle, sourceDescription(create, undefined, [], mode));
+  return handle;
+}

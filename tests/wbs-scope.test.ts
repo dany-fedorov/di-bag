@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError } from '../src';
+import { DiBag, DiBagCleanupError } from '../src/node';
 import {
   Collector,
   Source,

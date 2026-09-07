@@ -1,4 +1,4 @@
-import { DiBag, type Presence } from '../src';
+import { DiBag, type Presence } from '../src/node';
 import { fromSasBox } from '../src/sas-box';
 import { fromValBoxAsync } from '../src/val-box';
 

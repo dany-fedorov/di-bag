@@ -52,8 +52,10 @@ test('real fixtures retain the verified archive hashes', () => {
 test('packed core runs with neither box installed and no runtime adapter import', async () => {
   expect(existsSync(join(coreConsumer, 'node_modules/sas-box'))).toBe(false);
   expect(existsSync(join(coreConsumer, 'node_modules/val-box'))).toBe(false);
-  const output = await run(['node', '--eval', `const { DiBag } = require('di-bag');
-    const bag = DiBag.begin().add({ answer: () => 42 }).end();
+  const output = await run(['node', '--eval', `const Module = require('node:module'); const load = Module._load;
+    Module._load = function(name, ...args) { if (name.startsWith('node:')) throw new Error('core imported Node'); return load.call(this, name, ...args); };
+    const { DiBag } = require('di-bag');
+    const bag = DiBag.begin().add({ answer: DiBag.factory(() => 42, { acquisition: 'raw' }) }).end();
     if (Object.keys(require.cache).some(path => /dist[/\\\\](sas-box|val-box)\\.js$/.test(path))) throw new Error('adapter loaded');
     console.log(bag.resolve('answer')); bag.close();`], coreConsumer);
   expect(output.trim()).toBe('42');
@@ -62,8 +64,8 @@ test('packed core runs with neither box installed and no runtime adapter import'
 for (const mode of ['commonjs', 'module'] as const) {
   test(`installed real boxes compose in Node ${mode} and share cross-loader descriptors`, async () => {
     const load = mode === 'commonjs'
-      ? `const { DiBag } = require('di-bag'); const { fromSasBox } = require('di-bag/sas-box'); const { fromValBox } = require('di-bag/val-box'); const { SasBox } = require('sas-box'); const { ValBox } = require('val-box');`
-      : `import { DiBag } from 'di-bag'; import { fromSasBox } from 'di-bag/sas-box'; import { fromValBox } from 'di-bag/val-box'; import { SasBox } from 'sas-box'; import { ValBox } from 'val-box';`;
+      ? `const { DiBag } = require('di-bag/node'); const { fromSasBox } = require('di-bag/sas-box'); const { fromValBox } = require('di-bag/val-box'); const { SasBox } = require('sas-box'); const { ValBox } = require('val-box');`
+      : `import { DiBag } from 'di-bag/node'; import { fromSasBox } from 'di-bag/sas-box'; import { fromValBox } from 'di-bag/val-box'; import { SasBox } from 'sas-box'; import { ValBox } from 'val-box';`;
     const output = await run(['node', `--input-type=${mode}`, '--eval', `${load}
       (async () => {
         const payload = { answer: 42 }; const rawPromise = Promise.resolve(43); const events = [];
@@ -81,13 +83,13 @@ for (const mode of ['commonjs', 'module'] as const) {
           .bind(selected, DiBag.withDisposal(() => raw, value => { events.push(value === raw ? 'raw-box' : 'wrong-box'); }))
           .bind(selectedPromise, DiBag.withDisposal(() => promiseBox, value => { events.push(value === promiseBox ? 'promise-box' : 'wrong-promise-box'); }))
           .add({ tokenProvider, tokenPromise }).exports(['tokenProvider', 'tokenPromise']);
-        const tokenRuntime = cjs('di-bag').DiBag.begin().install(tokenFeature).end();
+        const tokenRuntime = cjs('di-bag/node').DiBag.begin().install(tokenFeature).end();
         const tokenIdentity = tokenRuntime.resolve('tokenProvider') === payload;
         const tokenPromiseIdentity = tokenRuntime.resolve('tokenPromise') === rawPromise;
         const tokenInspection = tokenRuntime.inspect('tokenProvider');
         await tokenRuntime.close();
         const provider = fromValBox(fromSasBox(() => SasBox.fromValue(raw), { mode: 'sync' }));
-        const bag = cjs('di-bag').DiBag.begin().add({
+        const bag = cjs('di-bag/node').DiBag.begin().add({
           service: DiBag.withDisposal(provider, value => { events.push(value === payload ? 'payload' : 'wrong'); }),
           cross: esm.fromSasBox(DiBag.withMetadata(() => SasBox.fromValue(7), { source: 'cross' }), { mode: 'sync-first' }),
           async: fromSasBox(() => SasBox.fromAsync(async () => 9), { mode: 'sync-first' }),

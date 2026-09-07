@@ -188,6 +188,13 @@ export * from './index';
 export const DiBag = CoreDiBag.configure({ isNativePromise: isPromise });
 ```
 
+Controller Ruling10: the standalone package build intentionally lacks Node type
+packages. Within `src/node.ts` only, a local narrowly typed CommonJS `require`
+may obtain `node:util/types` instead of the illustrative typed import above.
+This matches the existing CommonJS package output without adding Node declaration
+requirements to the library or its consumers. Its local declaration must not
+leak into emitted public declarations; core remains host-independent.
+
 Add `./node` types/default exports pointing to dist/node.d.ts and dist/node.js.
 Actual installed CJS and ESM consumers must mix root-created tokens/providers,
 node-created bags and existing adapter subpaths successfully. Execute runtime

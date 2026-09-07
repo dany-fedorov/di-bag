@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/di-bag';
-import { BindingGraph, Runtime } from '../src/runtime';
+import { DiBag } from '../src/node';
+import { BindingGraph } from '../src/runtime';
+import { Runtime } from './runtime-context';
 import type { BindingDescription } from '../src/runtime';
 import { deferred } from './helpers';
 

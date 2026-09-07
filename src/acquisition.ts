@@ -3,6 +3,7 @@ import type { CleanupFailure } from './errors';
 import type { BindingGraph, BindingId, BindingKey } from './runtime';
 import type { AcquisitionSnapshot } from './inspection';
 import { ProviderExecution } from './provider-execution';
+import type { RuntimeContext } from './acquisition-mode';
 
 type AcquisitionId = symbol;
 type State = 'creating' | 'pending' | 'ready' | 'failed' | 'disposing' | 'disposed';
@@ -30,7 +31,7 @@ export class Acquisitions {
   private state: 'open' | 'closing' | 'closed' = 'open';
   private closing: Promise<void> | undefined;
 
-  constructor(private readonly graph: BindingGraph) {}
+  constructor(private readonly graph: BindingGraph, private readonly context: RuntimeContext) {}
 
   resolve(key: BindingKey): unknown {
     this.assertOpen();
@@ -89,7 +90,7 @@ export class Acquisitions {
         cleanupFailed: (sequence, error) => {
           this.failures.push({ sequence, acquisitionId: attempt.id, bindingId: attempt.bindingId, label: attempt.label, error });
         },
-      }, description),
+      }, description, this.context),
     };
     this.cache.set(bindingId, attempt);
     this.attempts.set(attempt.id, attempt);

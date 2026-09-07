@@ -47,7 +47,7 @@ are unchanged in this increment.
   out-of-scope observations. Unchanged compiler scale was not rerun for this
   runtime-only fix. No residual, parked or deferred review findings remain.
 
-## Final-review portability decision
+## Original final-review portability decision
 
 The earlier Promise.resolve-before-observation path could call a subclass's
 overridden then and record a substituted resource for disposal. A strict
@@ -69,6 +69,30 @@ cannot establish a safe fallback. The ordering is defined in the ECMAScript
 [PromiseResolve](https://tc39.es/ecma262/multipage/control-abstraction-objects.html#sec-promiseresolve)
 and [Promise.prototype.then](https://tc39.es/ecma262/multipage/control-abstraction-objects.html#sec-promise.prototype.then)
 algorithms. No host-specific brand hook is added to the core.
+
+## 2026-09-07 classification correction
+
+Whole-branch review found that callable-then classification missed native
+Promises whose own `then` is undefined, disposing the Promise before fulfillment.
+The original portability decision above is historical: reliable automatic
+classification now requires an immutable configured facade. Node/Bun applications
+use `di-bag/node`, which supplies the host predicate and shares core registries.
+The root entry has no host import; it supports explicit raw/native stage modes
+or a supplied trustworthy predicate. Missing automatic capability rejects the
+whole graph at finalization before any factory runs, including private modules.
+
+`ProviderAcquired<R>` preserves exact raw versus fulfilled disposer input types
+through ownership, metadata, token bindings and public modules. Raw mode deliberately
+owns the exact value without then inspection or pending waits. Native/automatic
+observation preserves exposed identity, original getter/constructor/species errors,
+and independent barriers without assimilating arbitrary species results. The
+[migration guide](../migrations/0.1-to-enterprise.md#select-the-runtime-classification-boundary)
+documents the import/configuration and explicit-stage compatibility costs.
+
+Focused source, mapSync and required val-box tests first failed with premature
+raw-Promise disposal; their corrected forms pass alongside the existing lifecycle
+and box regressions. Final verification evidence is recorded with the current
+[compiler report](2026-09-07-modern-compilers.md).
 
 ## Decisions and costs
 

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError } from '../src';
+import { DiBag, DiBagCleanupError } from '../src/node';
 import { deferred } from './helpers';
 
 test('a projected service does not replace its source disposer argument', async () => {

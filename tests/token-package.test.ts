@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import ts from 'typescript';
@@ -31,11 +31,40 @@ beforeAll(async () => {
   await run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive], consumer);
 });
 
+for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
+  test(`installed ${runtime} ${extension} facade shares core tokens, modes and adapters`, async () => {
+    const file = join(consumer, `${runtime}-facade.${extension}`);
+    const load = extension === 'cjs'
+      ? "const { DiBag: Core } = require('di-bag'); const { DiBag } = require('di-bag/node'); const { fromValBox } = require('di-bag/val-box');"
+      : "import { DiBag as Core } from 'di-bag'; import { DiBag } from 'di-bag/node'; import { fromValBox } from 'di-bag/val-box';";
+    writeFileSync(file, `${load}
+      (async () => {
+        let release; const resource = { id: 7 };
+        const pending = new Promise(resolve => { release = resolve; });
+        Object.defineProperty(pending, 'then', { value: undefined });
+        const key = Symbol('shared'); const token = Core.token(key).of();
+        const disposed = [];
+        const source = Core.factory(() => ({ snapshot: () => ({ value: { present: true, value: pending }, metadata: { present: false }, alias: null }) }), { acquisition: 'raw' });
+        const owned = Core.withDisposal(fromValBox(source), value => { disposed.push(value === resource ? 'resource' : 'wrong'); });
+        const bag = DiBag.begin().bind(token, owned).end();
+        const identity = bag.resolve(token) === pending;
+        const closing = bag.close(); await Promise.resolve(); await Promise.resolve();
+        const before = [...disposed]; release(resource); await closing;
+        let preflight = false; try { Core.begin().add({ value: () => 1 }).end(); } catch { preflight = true; }
+        const rawDisposed = [];
+        const raw = Core.begin().add({ value: Core.withDisposal(Core.factory(() => pending, { acquisition: 'raw' }), value => { rawDisposed.push(value === pending); }) }).end();
+        raw.resolve('value'); await raw.close();
+        console.log(JSON.stringify({ identity, before, disposed, preflight, rawDisposed }));
+      })().catch(error => { console.error(error); process.exitCode = 1; });`);
+    expect(JSON.parse(await run([runtime, file], consumer))).toEqual({ identity: true, before: [], disposed: ['resource'], preflight: true, rawDisposed: [true] });
+  });
+}
+
 for (const mode of ['commonjs', 'module'] as const) {
   test(`installed token composition crosses Node ${mode} and the other loader`, async () => {
     const load = mode === 'commonjs'
-      ? "const first = require('di-bag'); const second = await import('di-bag');"
-      : "const first = await import('di-bag'); const { createRequire } = await import('node:module'); const second = createRequire(process.cwd() + '/consumer.cjs')('di-bag');";
+      ? "const first = require('di-bag'); const second = await import('di-bag/node');"
+      : "const first = await import('di-bag'); const { createRequire } = await import('node:module'); const second = createRequire(process.cwd() + '/consumer.cjs')('di-bag/node');";
     const output = await run(['node', `--input-type=${mode}`, '--eval', `
       (async () => {
         ${load}

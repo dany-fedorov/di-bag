@@ -5,6 +5,11 @@ import ts from 'typescript';
 import { diagnostics, describeDiagnostic } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 
+test('acquisition modes retain exact acquired values across inferred exports', () => {
+  expect(diagnostics(resolve(__dirname, 'types/acquisition-mode-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('token modules preserve exact cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/token-modules/consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

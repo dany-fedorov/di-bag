@@ -1,7 +1,7 @@
 import type { TokenBase, TokenKey, TokenService } from './tokens';
 import type { Unsatisfied } from './types';
 import type { Registration, Registrations } from './registration';
-import type { BoundToken, Provider, ProviderFactory, ProviderGraph, ProviderMetadata, ProviderAcquisitionMetadata, ProviderOutput, ProviderTokenNeeds } from './provider';
+import type { BoundToken, Provider, ProviderFactory, ProviderGraph, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired, ProviderOutput, ProviderTokenNeeds } from './provider';
 
 export type TokenGraph<T extends readonly TokenBase[] = readonly [], B extends TokenBase = never> = {
   readonly kind: 'tokens'; readonly required: T; readonly bound: B;
@@ -25,7 +25,7 @@ export type TokenArguments<T extends readonly TokenBase[]> = { -readonly [I in k
 export type ReboundGraph<G extends GraphContract, T extends TokenBase> = G extends TokenGraph<infer R, TokenBase>
   ? TokenGraph<R, T> : OpaqueGraph;
 
-export type Binding<T extends TokenBase, R extends Registration> = Provider<ProviderFactory<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraph<R>, T>>;
+export type Binding<T extends TokenBase, R extends Registration> = Provider<ProviderFactory<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraph<R>, T>, ProviderAcquired<R>>;
 export type BindingOutput<T extends TokenBase, R extends Registration> = [ProviderOutput<R>] extends [TokenService<T>] ? unknown
   : Unsatisfied<'token binding output is not assignable to its service', {}>;
 export type SelectionKey<T> = T extends string ? T : TokenKey<T>;

@@ -2,6 +2,8 @@ import { Acquisitions } from './acquisition';
 import { normalize } from './registration';
 import type { Registration, Registrations } from './registration';
 import type { InspectionSnapshot } from './inspection';
+import { requireClassificationCapability } from './acquisition-mode';
+import type { RuntimeContext } from './acquisition-mode';
 
 export type BindingId = symbol;
 export type BindingKey = string | symbol;
@@ -28,6 +30,7 @@ export class BindingGraph {
   readonly #bindings = new Map<BindingId, BindingDescription>();
   readonly #registrations = new Map<BindingId, Normalized>();
   readonly #publicSlots: Map<BindingKey, BindingId>;
+  #explicitlyClassified = false;
 
   constructor(description: GraphDescription = { bindings: new Map(), publicSlots: new Map() }) {
     for (const [id, binding] of description.bindings) {
@@ -44,6 +47,16 @@ export class BindingGraph {
 
   hasPublic(key: BindingKey): boolean {
     return this.#publicSlots.has(key);
+  }
+
+  /** Immutable graphs need explicit-mode validation only once; configured forks are O(1). */
+  preflight(context: RuntimeContext): void {
+    if (context.isNativePromise || this.#explicitlyClassified) return;
+    for (const description of this.#registrations.values()) {
+      requireClassificationCapability([description.acquisition, ...description.operations.flatMap(operation =>
+        'acquisition' in operation ? [operation.acquisition] : [])], context);
+    }
+    this.#explicitlyClassified = true;
   }
 
   publicBinding(key: BindingKey): BindingId {
@@ -110,8 +123,9 @@ export class BindingGraph {
 export class Runtime {
   private readonly acquisitions: Acquisitions;
 
-  constructor(private readonly graph: BindingGraph) {
-    this.acquisitions = new Acquisitions(graph);
+  constructor(private readonly graph: BindingGraph, context: RuntimeContext) {
+    graph.preflight(context);
+    this.acquisitions = new Acquisitions(graph, context);
   }
 
   resolve(key: BindingKey): unknown {

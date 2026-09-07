@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/di-bag';
+import { DiBag } from '../src/node';
 
 test('sync diamond dependencies are created once and stay synchronous', () => {
   let creations = 0;

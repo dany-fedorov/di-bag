@@ -1,8 +1,9 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src';
+import { DiBag } from '../src/node';
 import { fromTokens, withTokenBinding } from '../src/provider';
 import { normalize } from '../src/provider-operations';
-import { BindingGraph, Runtime } from '../src/runtime';
+import { BindingGraph } from '../src/runtime';
+import { Runtime } from './runtime-context';
 import { readTokenKey, snapshotTokens } from '../src/tokens';
 
 test('token symbols participate in the same acquisition graph', async () => {

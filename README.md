@@ -6,7 +6,7 @@ lazy resolution, scoped forks, and optional disposal. Zero runtime dependencies.
 ## Compose services
 
 ```ts
-import { DiBag } from 'di-bag';
+import { DiBag } from 'di-bag/node';
 
 const bag = DiBag.begin()
   .add({
@@ -39,6 +39,33 @@ changed.resolve('clock'); // string; no existing consumer requires a number
 
 Replacement can change a service's type when its consumers remain compatible.
 Forward dependencies remain allowed until `.end()`.
+
+The `di-bag/node` facade supplies native-Promise classification for Node and Bun.
+It shares tokens, modules and provider descriptions with the host-independent
+root entry. Other runtimes can configure an application-local facade once:
+
+```ts
+import { DiBag as CoreDiBag } from 'di-bag';
+const DiBag = CoreDiBag.configure({ isNativePromise: trustedHostPredicate });
+```
+
+The callback must be a trustworthy host native-Promise predicate, not a structural
+thenable test or an `instanceof` check. TypeScript cannot prove native branding.
+No standard predicate is assumed available and no global configuration changes.
+The context follows builders, bags and forks. Without a predicate, `.end()` checks
+the entire graph, including private modules, and rejects automatic stages before
+any factory runs. Portable applications can instead declare each stage explicitly:
+
+```ts
+const resource = CoreDiBag.factory(() => ({ id: 7 }), { acquisition: 'raw' });
+const portable = CoreDiBag.begin().add({ resource }).end();
+```
+
+`factory` selects acquisition behavior without transferring ownership. `raw`
+accepts the exact return value without inspecting `then`; `native` observes native
+fulfillment while exposing the exact returned Promise; `auto` uses the configured
+predicate. `fromTokens` and `mapSync` accept the same acquisition option for their
+new output stage. Earlier stages and their disposers retain their own modes.
 
 Factories may be declared inline or separately, and returned services may use
 ordinary object methods. `.add()`, `.replace()`, and `.fork()` preserve their inferred
@@ -361,7 +388,32 @@ and dependency edges so a later resolution can retry. Malformed or unobservable
 results are not accepted as owned acquisitions: their factories remain
 responsible for resources that were not successfully transferred. The bag never
 passes an unfulfilled raw PromiseLike to a fulfilled-value disposer. Explicit
-ownership of opaque synchronous values is a separate future capability.
+ownership of an opaque value uses a raw stage:
+
+```ts
+const rawOwned = DiBag.withDisposal(
+  DiBag.factory(() => pendingPromise, { acquisition: 'raw' }),
+  promise => { /* receives the Promise object itself */ },
+);
+const fulfilledOwned = DiBag.withDisposal(
+  DiBag.factory(() => pendingPromise, { acquisition: 'native' }),
+  resource => { /* receives native fulfillment */ },
+);
+```
+
+Raw ownership deliberately does not wait for a returned Promise. The exported
+`ProviderAcquired<R>` type describes the disposer input; `ProviderOutput<R>`
+describes the exact exposed service. Metadata, token bindings and modules retain
+both contracts. Native modes require Promise-shaped TypeScript outputs and check
+native observation at runtime. Mixed ordinary/Promise outputs can use configured
+auto, deliberate raw ownership of the union, or producer normalization.
+
+Synchronous sas-box adapters accept `acquisition` separately from capability
+`mode`; synchronous required val-box projections accept it separately from
+`value`. Presence projections default to raw because their output is an ordinary
+presence object, and cannot select native acquisition. Async adapter outputs are
+always native and do not accept acquisition selection. Source modes remain
+independent of adapter output modes.
 
 `close()` immediately stops public resolution and forking, waits for in-flight
 factories and their dependencies, then disposes resources sequentially.
@@ -472,7 +524,7 @@ either box library. Core consumers need neither package. Real `SasBox` instances
 and `ValBox` instances with `snapshot()` work directly:
 
 ```ts
-import { DiBag } from 'di-bag';
+import { DiBag } from 'di-bag/node';
 import { fromSasBox } from 'di-bag/sas-box';
 import { fromValBoxAsync } from 'di-bag/val-box';
 import { SasBox } from 'sas-box';

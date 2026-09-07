@@ -22,9 +22,13 @@ execution; do not stop for another planning approval between increments.
   non-callable own `then`. The shared source/projection classifier treats it as
   a synchronous value. Correction must preserve ordinary `{then: undefined}`
   services, cross-realm observation, exact exposed identity and original
-  constructor/species errors. Runtime-capability versus explicit acquisition-mode
-  boundaries are under investigation; no heuristic or public API change is
-  adopted. This is an open ownership defect, not a compiler diagnostic gap.
+  constructor/species errors. Ruling9 selects immutable configured automatic
+  classification, a shared-core `di-bag/node` facade and explicit raw/native
+  stage modes, with whole-graph missing-capability preflight before effects.
+  The binding acquisition-classification spec and modern-compilers correction
+  plan are committed at `3361341`; implementation is in progress in the existing
+  final-fix wave. This remains an open ownership defect until verified/reviewed,
+  not a compiler diagnostic gap or a completed correction.
 - [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation. Also restore graph reuse for explicit `fork([], overrides)`, the tracked Minor from the token final review; ordinary `fork()` still reuses its graph.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
@@ -93,8 +97,13 @@ the harness, inference and80native source rows; all54matrix identities, hashes,
 raw diagnostics and strict outcomes are validated. The full compiler requirement
 and enterprise program remain open. Whole-branch review of `48752ec` requires
 the native-Promise classification correction above; it also requests a direct
-monitor-failure termination test in the native harness. The single consolidated
-fix wave is in progress, and whole-branch acceptance/push is pending. Evidence:
+monitor-failure termination test in the native harness. That M2 coverage is
+committed at `e5ac466` with genuine RED/GREEN and independent verification of
+21 focused tests/104 assertions; the complete wave's scoped re-review is still
+pending. I1 implementation follows the classification spec committed `3361341`.
+The single consolidated fix wave is in progress, and whole-branch acceptance/push
+is pending. The original54matrix rows measure source revision `cc9dbdc`, not the
+classification API changes. Evidence:
 `docs/reports/2026-09-07-modern-compilers.md`.
 
 ## Current evidence
