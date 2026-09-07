@@ -136,8 +136,16 @@ direct unit coverage of the parent report evaluator's failure branches. The
 reviewer's initial scope finding was withdrawn after distinguishing measurement
 Task 2 from enterprise requirement T2. The controller independently reconciled
 all 54 artifact rows, including the 39 accepted diagnostic/work records and all
-15 process failures. Broad final review remains separate. The bounded reports
-do not close the enterprise program while the larger cases still fail to complete.
+15 process failures.
+
+The whole-branch review of `94d9e52..9d09eef` is approved, with no Critical or
+Important findings. It reviewed all 205 files across the 51-commit package and
+triaged two nonblocking follow-ups: retain the empty-selected-fork graph-reuse
+optimization for the next runtime/lifecycle increment, and add direct parent
+evaluator failure-path tests in the next benchmark-harness change. Neither is
+waived; no final fix wave was needed. The documentation-only `55bf307` successor
+does not change the reviewed implementation. The bounded reports do not close
+the enterprise program while the larger cases still fail to complete.
 
 ## Decisions and their costs
 
@@ -157,3 +165,7 @@ do not close the enterprise program while the larger cases still fail to complet
    stricter builder annotations and possible compatibility/measurement rework.
 6. The fixture's generic identity arrow uses `<B,>` for installed `.cts`/`.mts`
    parsing. This changes only syntax, with fixture maintenance as its possible cost.
+7. The two nonblocking final-review follow-ups remain in their assigned next
+   increments. This preserves the reviewed checkpoint boundary; the cost is
+   unnecessary empty-fork graph work and less direct regression protection for
+   report classification until those improvements land.

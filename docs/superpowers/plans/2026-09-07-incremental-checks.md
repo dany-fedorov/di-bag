@@ -1,5 +1,10 @@
 # Incremental Dependency Checks Implementation Plan
 
+Status: this implementation/measurement increment is complete and reviewed at
+`9d09eef`; enterprise requirement T2 remains open. Evidence and the two explicitly
+carried nonblocking review follow-ups are recorded in
+`docs/reports/2026-09-07-incremental-checks.md` and the enterprise program tracker.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Reduce repeated dependency checking without losing a supported contract, protect the improvement with compiler-work gates, and measure the original larger graph forms.
@@ -62,7 +67,7 @@ Existing `diagnostics(path, source)` becomes `ts.getPreEmitDiagnostics(compilerP
 Both existing workers add `instantiations: program.getInstantiationCount()` after
 collecting diagnostics; keep their existing JSON fields and CLI arguments intact.
 
-- [ ] **Step 1: Add measurable regression tests before the production change.**
+- [x] **Step 1: Add measurable regression tests before the production change.**
 
 Extract the existing diagnostics host construction into `compilerProgram` without
 changing its behavior. In each worker use the resulting Program:
@@ -107,7 +112,7 @@ Import `spawnSync` from node:child_process, `resolve` from node:path and expect/
 from bun:test. Do not loosen the ceilings to accommodate the baseline. The compiler
 is exactly pinned; a future upgrade must explicitly review these work counters.
 
-- [ ] **Step 2: Run RED and capture actual counts.**
+- [x] **Step 2: Run RED and capture actual counts.**
 
 Run `bun test tests/incremental-scale.test.ts` under approved execution.
 Both real programs must have zero diagnostics but exceed the work ceilings on
@@ -116,7 +121,7 @@ Record the actual failures. Empty child stdout, missing metrics or crashes are
 harness failures, not the required RED. Do not modify production until this
 baseline evidence exists. The current focused source baseline already passes.
 
-- [ ] **Step 3: Add explicit contract fixtures.**
+- [x] **Step 3: Add explicit contract fixtures.**
 
 The positive fixture imports DiBag and exact Assert/Equal helpers from existing
 test paths. Include these public calls and exact assertions:
@@ -228,7 +233,7 @@ automatically. Add both to the real installed commonjs/module fixture list in
 `tests/box-package.test.ts`, using that runner's existing import redirection.
 Record contracts that already pass before the optimization honestly as coverage.
 
-- [ ] **Step 4: Implement exactly the directional checks and five replacements.**
+- [x] **Step 4: Implement exactly the directional checks and five replacements.**
 
 Add imports for ProviderTokenNeeds and WrongToken and the following types:
 
@@ -269,7 +274,7 @@ validation, runtime body, module/install/fork or closure changes. Explain the
 accepted-history invariant and incoming-first error precedence in short comments.
 Escalate a demonstrated contract conflict rather than silently broadening this code.
 
-- [ ] **Step 5: Verify, report and commit.**
+- [x] **Step 5: Verify, report and commit.**
 
 Run `bun test tests/incremental-scale.test.ts`; require both work gates GREEN.
 Run `bun test tests/types.test.ts tests/box-package.test.ts tests/token-package.test.ts`
@@ -301,7 +306,7 @@ arguments `form scenario`; permit an optional third count argument defaulting to
 Root Builder's phantom contract becomes invariant in readonly [E, C]; no other
 class marker changes. Use existing source/installed fixture routing.
 
-- [ ] **Prerequisite A: Add view-contract fixtures and record genuine RED.**
+- [x] **Prerequisite A: Add view-contract fixtures and record genuine RED.**
 
 The negative fixture imports DiBag and Bag from '../../../src'. The first two
 assignments currently compile; RED must show their missing expected diagnostics,
@@ -356,7 +361,7 @@ already support these imports. Run
 `bun test tests/types.test.ts --test-name-pattern builder` before production
 changes and retain the missing-diagnostic failure.
 
-- [ ] **Prerequisite B: Integrate the one-member guard and verify compatibility.**
+- [x] **Prerequisite B: Integrate the one-member guard and verify compatibility.**
 
 In root Builder only, replace
 `declare readonly [constraintInvariant]: (value: C) => C;` with:
@@ -378,7 +383,7 @@ annotations in docs/migrations/0.1-to-enterprise.md and the incremental report.
 Recommend inferred/exact builder types, not casts. Record actual new compiler-work
 counts; older counts remain historical. No runtime implementation change is needed.
 
-- [ ] **Step 1: Add report-boundary and CLI tests.**
+- [x] **Step 1: Add report-boundary and CLI tests.**
 
 Add `scaleBoundaryLine(source: string, count: number, form: ScaleForm, scenario: ScaleCase)`
 to the existing compiler helper. Use the graph's actual starting line and original
@@ -405,7 +410,7 @@ CLI tests launch the token worker with valid default100 and reject extra args,
 count0/count101 and invalid forms/scenarios with nonzero exit before compilation.
 Do not run large matrices inside unit tests.
 
-- [ ] **Step 2: Extend existing report runners and retain strict child evidence.**
+- [x] **Step 2: Extend existing report runners and retain strict child evidence.**
 
 The token worker validates optional count and passes it to tokenScaleSource;
 its existing boundary mapper and all JSON fields remain. The named worker emits
@@ -432,7 +437,7 @@ first diagnostic and codes with full artifact output retained. Never count OOM,
 timeout or missing JSON as a type rejection. Print an explicit cases/accepted/
 failures summary for each matrix; report completion is not all-gates-passed.
 
-- [ ] **Step 3: Verify the harness and execute the actual larger matrices.**
+- [x] **Step 3: Verify the harness and execute the actual larger matrices.**
 
 Run `bun test tests/benchmark-types.test.ts tests/incremental-scale.test.ts tests/token-scale.test.ts`
 and strict typecheck/build. Then run `npm run benchmark:types` and
@@ -441,7 +446,7 @@ JSON-line artifacts in the plan workspace. Each worker is bounded; do not run
 the two high-memory matrices in parallel. Communicate progress between bounded
 waits. Exact time/RSS are single observations, not stable editor guarantees.
 
-- [ ] **Step 4: Document actual results and commit.**
+- [x] **Step 4: Document actual results and commit.**
 
 Append current tables and command/version/commit evidence to the benchmark and
 incremental report; retain historical pre-change tables explicitly as history.

@@ -21,7 +21,7 @@ execution; do not stop for another planning approval between increments.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
-- [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests.
+- [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests. In the next benchmark-harness change, add direct parent evaluator failure-path tests for malformed JSON/identity/diagnostics, process failures, wrong diagnostic boundaries and TS2589; this is the nonblocking Minor retained by the incremental-check final review.
 - [ ] Compiler/inference follow-up: resolve the measured 500/1000 individual-chain limits, large-graph latency, and the inline async richer-selected override combination; preserve all existing contracts and the cast-free predeclared-object workaround. Actual nominal-module 1000-provider gates now pass, separately from registration groups. A bounded inference candidate and its unproved boundaries are recorded in `docs/reports/2026-09-06-inline-fork-inference.md`; it has not been adopted.
   Also resolve the context-sensitive inline nested `snapshot()` factory case
   found during adapter Task3; predeclaring the identical factory preserves exact
@@ -57,7 +57,9 @@ at `8088852`/`887d417` and broad review correction at `75bc1f9` are complete.
 The initial incremental-check investigation is historical. The refined checker
 is now implemented at `d6c2710` under `2026-09-07-incremental-checks.md`, with clean
 Task 1 review and independent verification. Its larger-matrix Task 2 and broad
-final review remain in progress; the complete T2 requirement is still open.
+final review are complete through `659acdd` / reviewed checkpoint `9d09eef`;
+the complete enterprise T2 requirement is still open. Both final-review Minors
+are assigned above to the next runtime/lifecycle and benchmark-harness changes.
 
 ## Current evidence
 
@@ -193,8 +195,10 @@ final review remain in progress; the complete T2 requirement is still open.
   and all examples. Task review is clean, with no findings. Checkpoint `aff1579`
   was non-force pushed and its exact remote SHA verified. Evidence:
   `docs/reports/2026-09-07-incremental-checks.md`. Task 2 has collected the original
-  larger matrices; its independent task/final review is still pending, and no
-  large-case failure is waived.
+  larger matrices; its task/final reviews are approved, and no large-case failure
+  is waived. Final full check: 334 tests / 2,044 assertions; independent
+  committed-code verification: 58 focused tests / 441 assertions, strict builds
+  and all four examples.
 - A virtual conditional-arity val-box overload was rejected after reproducing
   the inline failure in both source and emitted declarations. It does not infer
   the exact nested snapshot return. Existing negatives still reject; no overload
