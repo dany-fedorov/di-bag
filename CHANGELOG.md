@@ -4,6 +4,11 @@
 
 ### Added
 
+- `DiBag.optional(token)` and `DiBag.lazy(token)` provide explicit dependency
+  references in all positional adapters. Optional absence preserves present-value
+  validation and acquisition failures; lazy calls preserve lexical graph, lifetime,
+  context and shutdown rules. Module and declaration contracts retain both kinds
+  of dependency, with no implicit awaiting or ownership transfer.
 - `DiBag.fromClass` adapts concrete constructors and `DiBag.fromFunction` adapts
   positional callbacks with checked typed-token arguments. Both preserve exact
   outputs, acquisition modes and explicit ownership; classes retain prototypes,

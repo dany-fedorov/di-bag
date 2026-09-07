@@ -204,8 +204,8 @@ Runtime authentication and missing-binding checks still protect JavaScript and
 dynamic boundaries, but they are not compile-time proofs. Casts, erased provider
 or module types, widened selections, and dynamically unknown plugins can bypass
 or lack static evidence. Typed tokens complement named composition; they do not
-make every dynamic graph universally type safe. Composition/plugin extensions
-remain planned work.
+make every dynamic graph universally type safe. Aliases, contributions and plugin
+validation remain planned work.
 
 ## Adapt classes and positional functions
 
@@ -247,6 +247,44 @@ structural thenable values. Metadata, lifetime, projection and disposal wrappers
 apply normally. A class with a method named `close` is still borrowed until an
 explicit `withDisposal` wrapper transfers ownership. `fromTokens` remains available
 for existing callback adapters. See [`examples/composition.ts`](examples/composition.ts).
+
+## Declare optional and lazy dependencies
+
+All three positional adapters accept `DiBag.optional(token)` and
+`DiBag.lazy(token)` alongside ordinary tokens:
+
+```ts
+class Reporter {
+  constructor(
+    private readonly getPort: () => number,
+    private readonly host: string | undefined,
+  ) {}
+  address() { return `${this.host ?? 'localhost'}:${this.getPort()}`; }
+}
+
+const reporter = DiBag.fromClass([DiBag.lazy(port), DiBag.optional(host)], Reporter);
+const bag = DiBag.begin().bind(port, () => 8080).add({ reporter }).end();
+bag.resolve('reporter').address(); // 'localhost:8080'; host was not bound
+await bag.close();
+```
+
+An optional reference supplies `Service | undefined`. Only an absent binding
+produces absence: a present `undefined` service is still acquired and owned,
+and acquisition failures retain their normal behavior. A present binding must
+match the token's contract. Optional function parameters alone do not make a
+declared graph dependency optional.
+
+A lazy reference supplies `() => Service` and acquires its target on each call.
+The target must still exist in the completed graph. Scoped/root targets retain
+their cache, transients create a new acquisition per call, and dependency edges
+are recorded when called. The function retains its provider's graph, context and
+shutdown admission rules, including parent ownership after selected sharing.
+Calling it after that owner closes throws. Root-captive checks still apply.
+
+References preserve exact Promise values and add no ownership or implicit
+awaiting. They wrap one genuine token, cannot be nested, and cannot be used as
+binding identities. The adapter snapshots their tuple just as it does ordinary
+tokens.
 
 ## Attach metadata and inspect without resolving
 
