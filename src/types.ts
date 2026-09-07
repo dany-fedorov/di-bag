@@ -3,7 +3,7 @@ import type {
   Registration,
   Registrations,
 } from './registration';
-import type { ProviderContext, ProviderNeeds, ProviderOutput, ProviderGraph, ProviderTokenNeeds } from './provider';
+import type { ProviderContext, ProviderNeeds, ProviderOutput, ProviderGraph, ProviderTokenNeeds, ProviderOptionalTokenNeeds } from './provider';
 import type { InvalidGraphs, MissingTokens, SelectionKey, TokenMember, ValidToken, TokenGraph, WrongToken } from './token-types';
 
 export type Needs<R extends Registration> = ProviderNeeds<R>;
@@ -100,10 +100,10 @@ type OldWrong<E extends Entry, N extends Registrations> = E extends Entry
       Pick<Needs<E['registration']>, keyof Needs<E['registration']> & keyof N> ? never : E['key']
   : never;
 type NewTokenWrong<E extends Entry, N extends Registrations> = {
-  [K in keyof N]: WrongToken<ProviderTokenNeeds<N[K]>, From<Exclude<E, { key: keyof N }>>>
+  [K in keyof N]: WrongToken<ProviderTokenNeeds<N[K]> | ProviderOptionalTokenNeeds<N[K]>, From<Exclude<E, { key: keyof N }>>>
 }[keyof N];
 type OldTokenWrong<E extends Entry, N extends Registrations> = E extends Entry
-  ? E['key'] extends keyof N ? never : WrongToken<ProviderTokenNeeds<E['registration']>, N>
+  ? E['key'] extends keyof N ? never : WrongToken<ProviderTokenNeeds<E['registration']> | ProviderOptionalTokenNeeds<E['registration']>, N>
   : never;
 // Preserve Checked's incoming-first precedence before inspecting cross-boundary
 // relationships, then prefer token-contract errors over named shape errors.

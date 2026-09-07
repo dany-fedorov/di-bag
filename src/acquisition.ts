@@ -153,17 +153,22 @@ export class Acquisitions {
     this.attempts.set(attempt.id, attempt);
     this.family.add(attempt);
     if (from) this.family.recordEdge(from, attempt);
+    const read = (key: BindingKey, optional = false): unknown => {
+      // Only this attempt's in-flight factory can discover dependencies in close.
+      if (this.state === 'closed' || (this.state === 'closing' && !attempt.execution.sourceInFlight)) {
+        throw new Error(`bag is ${this.state}`);
+      }
+      const target = optional ? this.graph.findDependency(bindingId, key) : this.graph.dependency(bindingId, key);
+      return target === undefined ? undefined : this.resolveBinding(target, attempt).exposed;
+    };
+    const references = new Map(description.references.map(reference => [reference.slot, reference]));
     const deps = new Proxy(Object.create(null) as Record<string, unknown>, {
       get: (_, key) => {
+        const reference = typeof key === 'symbol' ? references.get(key) : undefined;
+        if (reference) return reference.kind === 'lazy' ? () => read(reference.key)
+          : read(reference.key, reference.kind === 'optional');
         if (typeof key === 'symbol' && !description.tokenKeys.includes(key)) return undefined;
-        // Only this attempt's in-flight factory can discover dependencies in close.
-        if (
-          this.state === 'closed' ||
-          (this.state === 'closing' && !attempt.execution.sourceInFlight)
-        ) {
-          throw new Error(`bag is ${this.state}`);
-        }
-        return this.resolveBinding(this.graph.dependency(bindingId, key), attempt).exposed;
+        return read(key);
       },
     });
     this.family.enter(attempt);

@@ -71,6 +71,11 @@ export class BindingGraph {
     return id;
   }
 
+  findDependency(from: BindingId, localName: BindingKey): BindingId | undefined {
+    const ref = this.#bindings.get(from)?.localNames.get(localName);
+    return ref?.kind === 'private' ? ref.id : this.#publicSlots.get(ref?.key ?? localName);
+  }
+
   dependency(from: BindingId, localName: BindingKey): BindingId {
     const ref = this.#bindings.get(from)?.localNames.get(localName);
     return ref?.kind === 'private' ? ref.id : this.publicBinding(ref?.key ?? localName);

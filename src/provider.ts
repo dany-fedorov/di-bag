@@ -2,9 +2,11 @@ import type { DisposableFactory, Factory, Registration } from './registration';
 import type { Unsatisfied } from './types';
 import { describe, retainDescription, sourceDescription } from './provider-operations';
 import type { ProviderOperation } from './provider-operations';
-import { readTokenKey, snapshotTokens } from './tokens';
+import { readTokenKey } from './tokens';
+import { snapshotReferences } from './dependency-references';
+import type { Dependency } from './dependency-references';
 import type { TokenBase, TokenService } from './tokens';
-import type { GraphContract, TokenGraph, OpaqueGraph, TokenTupleAdmission, TokenArguments, ReboundGraph } from './token-types';
+import type { GraphContract, TokenGraph, OpaqueGraph, TokenTupleAdmission, TokenArguments, ReboundGraph, ReferenceGraph, DependencyTupleAdmission } from './token-types';
 import { acquisitionMode } from './acquisition-mode';
 import type { Acquired, AcquisitionMode, NativeOutput, StageOptions } from './acquisition-mode';
 
@@ -62,26 +64,36 @@ export type ProviderGraph<R> = ProviderBase extends R ? OpaqueGraph
 type GraphOf<R> = R extends Provider<infer _F, infer _M, infer _A, infer G, infer _V> ? G
   : R extends Factory | DisposableFactory<Factory> ? TokenGraph
     : R extends ProviderContext<Factory, infer G> ? G : OpaqueGraph;
-type RequiredTokens<G> = G extends TokenGraph<infer T, TokenBase> ? T[number] : TokenBase;
-type Bound<G> = G extends TokenGraph<readonly TokenBase[], infer B> ? B : TokenBase;
+type RequiredTokens<G> = G extends TokenGraph<infer T, TokenBase, readonly TokenBase[]> ? T[number] : TokenBase;
+type Bound<G> = G extends TokenGraph<readonly TokenBase[], infer B, readonly TokenBase[]> ? B : TokenBase;
+type OptionalTokens<G> = G extends TokenGraph<readonly TokenBase[], TokenBase, infer O> ? O[number] : TokenBase;
+export type ProviderOptionalTokenNeeds<R> = OptionalTokens<ProviderGraph<R>>;
 export type ProviderTokenNeeds<R> = RequiredTokens<ProviderGraph<R>>;
 export type BoundToken<R> = Bound<ProviderGraph<R>>;
 
 /** Select declared token services as positional arguments without awaiting them. */
+export function fromTokens<const T extends readonly Dependency[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
+  tokens: T & DependencyTupleAdmission<T>, callback: F,
+  ...modeOptions: StageOptions<M>
+): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
+// Keep the legacy token-only diagnostic and reflected signature last.
 export function fromTokens<const T extends readonly TokenBase[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
   tokens: T & TokenTupleAdmission<T>, callback: F,
   ...modeOptions: StageOptions<M>
-): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], TokenGraph<T>, Acquired<ReturnType<F>, M>> {
+): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], TokenGraph<T>, Acquired<ReturnType<F>, M>>;
+export function fromTokens<const T extends readonly Dependency[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
+  tokens: T & DependencyTupleAdmission<T>, callback: F,
+  ...modeOptions: StageOptions<M>
+): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>> {
   const acquisition = acquisitionMode(modeOptions[0]);
-  const selected = snapshotTokens(tokens);
-  const tokenKeys = Object.freeze(selected.map(readTokenKey));
+  const references = snapshotReferences(tokens);
   if (typeof callback !== 'function') throw new Error('token callback must be a function');
   const create = (deps: Record<symbol, unknown>) => {
-    const args = tokenKeys.map(key => Reflect.get(deps, key));
+    const args = references.map(reference => Reflect.get(deps, reference.slot));
     return Reflect.apply(callback, undefined, args);
   };
-  const handle = new Provider<() => ReturnType<F>, Readonly<{}>, readonly [], TokenGraph<T>, Acquired<ReturnType<F>, M>>();
-  retainDescription(handle, sourceDescription(create, undefined, tokenKeys, acquisition));
+  const handle = new Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>();
+  retainDescription(handle, sourceDescription(create, undefined, references.map(reference => reference.key), acquisition, false, references));
   return handle;
 }
 

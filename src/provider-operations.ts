@@ -1,3 +1,4 @@
+import type { ArgumentReference } from './dependency-references';
 import type { Factory } from './registration';
 import type { AcquisitionMode } from './acquisition-mode';
 import type { LifetimePolicy } from './lifetime';
@@ -7,6 +8,7 @@ interface SourceOperation {
   readonly create: Factory;
   readonly acquisition: AcquisitionMode;
   readonly tokenKeys: readonly symbol[];
+  readonly references: readonly ArgumentReference[];
   readonly contextual: boolean;
   readonly dispose?: (value: never) => void | Promise<void>;
 }
@@ -46,9 +48,11 @@ export function sourceDescription(
   tokenKeys: readonly symbol[] = [],
   acquisition: AcquisitionMode = 'auto',
   contextual = false,
+  references: readonly ArgumentReference[] = [],
 ): ProviderDescription {
   const selected = Object.freeze([...tokenKeys]);
-  const source: SourceOperation = Object.freeze(dispose ? { kind: 'source', create, dispose, tokenKeys: selected, acquisition, contextual } : { kind: 'source', create, tokenKeys: selected, acquisition, contextual });
+  const argumentsSnapshot = Object.freeze(references.map(reference => Object.freeze({ ...reference })));
+  const source: SourceOperation = Object.freeze(dispose ? { kind: 'source', create, dispose, tokenKeys: selected, references: argumentsSnapshot, acquisition, contextual } : { kind: 'source', create, tokenKeys: selected, references: argumentsSnapshot, acquisition, contextual });
   return Object.freeze({ source, operations: Object.freeze([]), metadata: emptyMetadata, lifetime: scopedLifetime });
 }
 
@@ -72,13 +76,14 @@ export function normalize(registration: unknown): {
   create: Factory;
   acquisition: AcquisitionMode;
   tokenKeys: readonly symbol[];
+  references: readonly ArgumentReference[];
   contextual: boolean;
   dispose?: (value: never) => void | Promise<void>;
   metadata: Readonly<object>;
   operations: readonly ProviderOperation[];
 } {
   const description = describe(registration);
-  const { create, dispose, tokenKeys, acquisition, contextual } = description.source;
+  const { create, dispose, tokenKeys, references, acquisition, contextual } = description.source;
   const { metadata, operations, lifetime } = description;
-  return dispose ? { create, dispose, tokenKeys, acquisition, metadata, operations, lifetime, contextual } : { create, tokenKeys, acquisition, metadata, operations, lifetime, contextual };
+  return dispose ? { create, dispose, tokenKeys, references, acquisition, metadata, operations, lifetime, contextual } : { create, tokenKeys, references, acquisition, metadata, operations, lifetime, contextual };
 }

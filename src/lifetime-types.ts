@@ -1,5 +1,5 @@
 import type { Registration, Registrations } from './registration';
-import type { Provider, ProviderFactory, ProviderGraph, ProviderNeeds, ProviderTokenNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired } from './provider';
+import type { Provider, ProviderFactory, ProviderGraph, ProviderNeeds, ProviderTokenNeeds, ProviderOptionalTokenNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired } from './provider';
 import type { GraphContract } from './token-types';
 import type { TokenKey } from './tokens';
 import type { Checked, Complete, Unsatisfied } from './types';
@@ -49,7 +49,7 @@ type Captive<Root, Site> = { readonly root: Root; readonly dependency: Site };
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
 type Seen<S, V> = true extends (V extends unknown ? Equal<S, V> : never) ? true : false;
 type PublicKey<E, K> = { [P in keyof E]: Equal<E[P], K> extends true ? P : never }[keyof E];
-type Dependencies<V extends Registration> = keyof ProviderNeeds<V> | TokenKey<ProviderTokenNeeds<V>>;
+type Dependencies<V extends Registration> = keyof ProviderNeeds<V> | TokenKey<ProviderTokenNeeds<V> | ProviderOptionalTokenNeeds<V>>;
 
 // A single lexical walk serves public roots, private obligations, and tokens.
 type WalkDependency<H extends Registrations, C, K, Root, Visited> = K extends PropertyKey

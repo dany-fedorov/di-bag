@@ -5,6 +5,11 @@ import ts from 'typescript';
 import { diagnostics, describeDiagnostic } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 
+test('dependency references retain exact inferred cross-file contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/dependency-references-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('composition adapters retain exact inferred cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/composition-adapters-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
@@ -25,7 +30,7 @@ test('lifetime declarations retain exact inferred cross-file contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
-for (const fixture of ['lifetimes', 'composition-adapters']) test(`${fixture} inferred exports survive declaration consumption`, () => {
+for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-references']) test(`${fixture} inferred exports survive declaration consumption`, () => {
   const producerPath = resolve(__dirname, `types/${fixture}.ts`);
   const consumerPath = resolve(__dirname, `types/${fixture}-consumer.ts`);
   const declarationPath = producerPath.replace(/\.ts$/, '.d.ts');

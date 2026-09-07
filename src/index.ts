@@ -5,7 +5,7 @@ export type { Bag, Builder } from './di-bag';
 export type { Module } from './module';
 export type { ModuleProvides, ModuleRequires, ModuleConstraints, PublicProviders, ModulePublicProviders, Renamed } from './module-types';
 export type { DisposableFactory, Registration } from './registration';
-export type { Provider, ProviderOutput, ProviderAcquired, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderTokenNeeds } from './provider';
+export type { Provider, ProviderOutput, ProviderAcquired, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderTokenNeeds, ProviderOptionalTokenNeeds } from './provider';
 export type { AcquisitionMode, RuntimeOptions } from './acquisition-mode';
 export type { Lifetime } from './lifetime';
 export type { AcquisitionContext, ContextualFactory } from './acquisition-context';
@@ -18,3 +18,4 @@ export type { Checked, Complete, Entries, ForkContext, From, Merge, Overrides, P
 export type { Presence, FramePresenceTuple, AcquisitionSnapshot, InspectionSnapshot } from './inspection';
 export type { ValBoxFrame } from './val-box';
 export type { CompositionArguments, CompositionFunction } from './composition';
+export type { OptionalReference, LazyReference, Dependency } from './dependency-references';

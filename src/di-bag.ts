@@ -1,3 +1,4 @@
+import { optional, lazy } from './dependency-references';
 import { normalize, snapshotAdd, withDisposal } from './registration';
 import type { DisposableFactory, Factory, Registration, Registrations } from './registration';
 import { BindingGraph, Runtime } from './runtime';
@@ -243,6 +244,8 @@ interface Facade {
   configure: (options: RuntimeOptions) => Facade;
   factory: typeof factory;
   token: typeof token;
+  optional: typeof optional;
+  lazy: typeof lazy;
   fromTokens: typeof fromTokens;
   fromFunction: typeof fromFunction;
   fromClass: typeof fromClass;
@@ -259,6 +262,8 @@ function facade(context: RuntimeContext): Facade { return Object.freeze({
   configure: (options: RuntimeOptions): Facade => facade(runtimeContext(options)),
   factory,
   token,
+  optional,
+  lazy,
   fromTokens,
   fromFunction,
   fromClass,

@@ -1,7 +1,7 @@
 import type { Module } from './module';
 import type { Registrations } from './registration';
 import type { Needs, Provided, Singleton, Unsatisfied } from './types';
-import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired, ProviderGraph, ProviderTokenNeeds, BoundToken } from './provider';
+import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired, ProviderGraph, ProviderTokenNeeds, ProviderOptionalTokenNeeds, BoundToken } from './provider';
 import type { TokenGraph, WrongToken, MissingToken } from './token-types';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
 import type { LifetimeObligation, PrivateLifetimes, LexicalProvider, RenamedLifetimeObligation } from './lifetime-types';
@@ -9,7 +9,7 @@ import type { LifetimeObligation, PrivateLifetimes, LexicalProvider, RenamedLife
 export type NeedConstraint =
   | LifetimeObligation
   | { readonly kind: 'export' | 'external'; readonly consumer: string | symbol; readonly needs: object }
-  | { readonly kind: 'token-export' | 'token-external'; readonly consumer: string | symbol; readonly token: TokenBase }
+  | { readonly kind: 'token-export' | 'token-external' | 'optional-token-export' | 'optional-token-external'; readonly consumer: string | symbol; readonly token: TokenBase }
   | { readonly kind: 'opaque' };
 
 type WrongConstraint<C extends NeedConstraint, Available extends object> =
@@ -26,7 +26,7 @@ type MissingConstraint<C extends NeedConstraint, Available extends object> =
 
 type WrongTokenConstraint<C, A extends Registrations> = C extends { token: infer T } ? WrongToken<T, A>
   : C extends { kind: 'opaque' } ? 'opaque' : never;
-type MissingTokenConstraint<C, A extends Registrations> = C extends { token: infer T } ? MissingToken<T, A>
+type MissingTokenConstraint<C, A extends Registrations> = C extends { kind: 'optional-token-export' | 'optional-token-external' } ? never : C extends { token: infer T } ? MissingToken<T, A>
   : C extends { kind: 'opaque' } ? 'opaque' : never;
 
 export type CheckedConstraints<C extends NeedConstraint, A extends Registrations> =
@@ -46,17 +46,19 @@ export type ModuleConstraints<R extends Registrations, Public extends keyof R> =
     | Constraint<K, Needs<R[K]>, Extract<keyof Needs<R[K]>, Public>, 'export'>
     | Constraint<K, Needs<R[K]>, Exclude<keyof Needs<R[K]>, keyof R>, 'external'>
     | TokenConstraint<K, ProviderTokenNeeds<R[K]>, R, Public>
-    | ([ProviderGraph<R[K]>] extends [TokenGraph<readonly TokenBase[], TokenBase>] ? never : { readonly kind: 'opaque' });
+    | TokenConstraint<K, ProviderOptionalTokenNeeds<R[K]>, R, Public, true>
+    | ([ProviderGraph<R[K]>] extends [TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? never : { readonly kind: 'opaque' });
 }[keyof R & (string | symbol)] | PrivateLifetimes<R, Public>;
-type TokenConstraint<K extends string | symbol, T, R, Public> = T extends TokenBase
-  ? TokenKey<T> extends Public ? { readonly consumer: K; readonly token: T; readonly kind: 'token-export' }
-    : TokenKey<T> extends keyof R ? never : { readonly consumer: K; readonly token: T; readonly kind: 'token-external' }
+type TokenConstraint<K extends string | symbol, T, R, Public, Optional extends boolean = false> = T extends TokenBase
+  ? TokenKey<T> extends Public ? { readonly consumer: K; readonly token: T; readonly kind: Optional extends true ? 'optional-token-export' : 'token-export' }
+    : TokenKey<T> extends keyof R ? never : { readonly consumer: K; readonly token: T; readonly kind: Optional extends true ? 'optional-token-external' : 'token-external' }
   : never;
 
 type Intersect<U> = (U extends unknown ? (value: U) => void : never) extends
   (value: infer I) => void ? I : never;
 type External<C> = C extends { kind: 'external'; needs: infer N } ? N
-  : C extends { kind: 'token-external'; token: infer T } ? Record<TokenKey<T>, TokenService<T>> : never;
+  : C extends { kind: 'token-external'; token: infer T } ? Record<TokenKey<T>, TokenService<T>>
+    : C extends { kind: 'optional-token-external'; token: infer T } ? Partial<Record<TokenKey<T>, TokenService<T>>> : never;
 export type ExternalRequirements<C> = [External<C>] extends [never] ? Readonly<{}>
   : Readonly<Intersect<External<C>>>;
 
@@ -65,7 +67,7 @@ export type PublicRegistrations<P extends object> = { [K in keyof P]: () => P[K]
 // union member before deciding whether the legacy synthetic default is enough.
 export type PublicProvider<R> = R extends Registrations[string]
   ? unknown extends ProviderNeeds<R> ? R
-    : [ProviderGraph<R>] extends [TokenGraph<readonly TokenBase[], TokenBase>] ? [Extract<ProviderGraph<R>, { readonly lifetime: unknown }>] extends [never] ? [MetadataKeyUnion<ProviderMetadata<R>> | BoundToken<R>] extends [never]
+    : [ProviderGraph<R>] extends [TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? [Extract<ProviderGraph<R>, { readonly lifetime: unknown }>] extends [never] ? [MetadataKeyUnion<ProviderMetadata<R>> | BoundToken<R>] extends [never]
       ? ProviderAcquisitionMetadata<R> extends readonly []
         ? [ProviderAcquired<R>] extends [Awaited<ProviderOutput<R>>]
           ? [Awaited<ProviderOutput<R>>] extends [ProviderAcquired<R>] ? () => ProviderOutput<R> : RetainedPublicProvider<R>
@@ -75,7 +77,7 @@ export type PublicProvider<R> = R extends Registrations[string]
     : RetainedPublicProvider<R>
     : R
   : never;
-type PublicGraph<G> = G extends TokenGraph<readonly TokenBase[], TokenBase> ? { [K in keyof G]: K extends 'required' ? readonly [] : G[K] } : never;
+type PublicGraph<G> = G extends TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]> ? { [K in keyof G]: K extends 'required' | 'optional' ? readonly [] : G[K] } : never;
 type RetainedPublicProvider<R extends Registrations[string]> = Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, PublicGraph<ProviderGraph<R>>, ProviderAcquired<R>>;
 export type PublicProviders<R extends object> = { [K in keyof R]: PublicProvider<R[K]> };
 export type ModulePublicProviders<R extends Registrations, P extends keyof R> = { [K in P]: LexicalProvider<PublicProvider<R[K]>, R, P, K> };

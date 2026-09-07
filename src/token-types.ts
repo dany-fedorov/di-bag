@@ -1,13 +1,14 @@
 import type { TokenBase, TokenKey, TokenService } from './tokens';
+import type { Dependency, DependencyValue, DependencyToken, DependencyKind, ValidDependency } from './dependency-references';
 import type { Unsatisfied } from './types';
 import type { Registration, Registrations } from './registration';
-import type { BoundToken, Provider, ProviderFactory, ProviderGraph, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired, ProviderOutput, ProviderTokenNeeds } from './provider';
+import type { BoundToken, Provider, ProviderFactory, ProviderGraph, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired, ProviderOutput, ProviderTokenNeeds, ProviderOptionalTokenNeeds } from './provider';
 
-export type TokenGraph<T extends readonly TokenBase[] = readonly [], B extends TokenBase = never> = {
-  readonly kind: 'tokens'; readonly required: T; readonly bound: B;
+export type TokenGraph<T extends readonly TokenBase[] = readonly [], B extends TokenBase = never, O extends readonly TokenBase[] = readonly []> = {
+  readonly kind: 'tokens'; readonly required: T; readonly bound: B; readonly optional: O;
 };
 export type OpaqueGraph = { readonly kind: 'opaque' };
-export type GraphContract = TokenGraph<readonly TokenBase[], TokenBase> | OpaqueGraph;
+export type GraphContract = TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]> | OpaqueGraph;
 
 type IsUnion<T, Whole = T> = T extends Whole ? [Whole] extends [T] ? false : true : never;
 type SingletonSymbol<K> = [K] extends [never] ? false : [K] extends [symbol]
@@ -21,9 +22,19 @@ export type TokenTupleAdmission<T extends readonly unknown[]> = true extends IsU
   : number extends T['length'] ? InvalidTuple : T extends Required<T>
     ? [InvalidElements<T>] extends [never] ? unknown : InvalidTuple : InvalidTuple;
 type InvalidTuple = Unsatisfied<'tokens require a finite tuple of individually known token handles', {}>;
-export type TokenArguments<T extends readonly TokenBase[]> = { -readonly [I in keyof T]: TokenService<T[I]> };
+type InvalidDependencies<T extends readonly unknown[]> = { [I in keyof T]-?: true extends IsUnion<T[I]> ? I : ValidDependency<T[I]> extends true ? never : I }[number];
+export type DependencyTupleAdmission<T extends readonly unknown[]> = true extends IsUnion<T> ? InvalidTuple
+  : number extends T['length'] ? InvalidTuple : T extends Required<T>
+    ? [InvalidDependencies<T>] extends [never] ? unknown : InvalidTuple : InvalidTuple;
+export type TokenArguments<T extends readonly Dependency[]> = { -readonly [I in keyof T]: DependencyValue<T[I]> };
+type ReferenceTokens<T extends readonly Dependency[], Optional extends boolean, Selected extends readonly TokenBase[] = readonly []> = T extends readonly [infer H extends Dependency, ...infer Rest extends readonly Dependency[]]
+  ? (DependencyKind<H> extends 'optional' ? true : false) extends Optional
+    ? ReferenceTokens<Rest, Optional, readonly [...Selected, DependencyToken<H>]> : ReferenceTokens<Rest, Optional, Selected>
+  : Selected;
+export type ReferenceGraph<T extends readonly Dependency[]> = T extends readonly TokenBase[] ? TokenGraph<T>
+  : TokenGraph<ReferenceTokens<T, false>, never, ReferenceTokens<T, true>>;
 export type ReboundGraph<G extends GraphContract, T extends TokenBase> = G extends infer U & {}
-  ? U extends TokenGraph<readonly TokenBase[], TokenBase> ? { [K in keyof U]: K extends 'bound' ? T : U[K] } : U extends GraphContract ? U : never
+  ? U extends TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]> ? { [K in keyof U]: K extends 'bound' ? T : U[K] } : U extends GraphContract ? U : never
   : never;
 
 export type Binding<T extends TokenBase, R extends Registration> = Provider<ProviderFactory<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraph<R>, T>, ProviderAcquired<R>>;
@@ -42,8 +53,8 @@ export type TokenMember<R extends Registrations, T> = ValidToken<T> extends true
     : Unsatisfied<'token must match an existing binding contract', {}>
   : Unsatisfied<'token must be an individually known genuine handle', {}>;
 export type InvalidGraphs<R extends Registrations> = {
-  [K in keyof R]: [ProviderGraph<R[K]>] extends [TokenGraph<readonly TokenBase[], TokenBase>]
-    ? WrongToken<ProviderTokenNeeds<R[K]>, R> | InvalidBound<BoundToken<R[K]>> : K;
+  [K in keyof R]: [ProviderGraph<R[K]>] extends [TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]>]
+    ? WrongToken<ProviderTokenNeeds<R[K]> | ProviderOptionalTokenNeeds<R[K]>, R> | InvalidBound<BoundToken<R[K]>> : K;
 }[keyof R];
 type InvalidBound<B> = B extends unknown ? ValidToken<B> extends true ? never : 'opaque binding contract' : never;
 export type MissingTokens<R extends Registrations> = {
