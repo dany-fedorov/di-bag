@@ -64,7 +64,8 @@ export const contributionRuntimeAssertions = `
     const promiseItem = DiBag.token(promiseKey).of();
     let fulfill;
     const native = new Promise(resolve => { fulfill = resolve; });
-    const raw = Promise.resolve({ kind: 'raw' });
+    // Raw acquisition must not turn even an unresolved Promise into readiness work.
+    const raw = new Promise(() => {});
     const fulfilled = { kind: 'native' };
     const promiseCleanup = [];
     const promises = DiBag.begin()
