@@ -339,7 +339,7 @@ const original = DiBag.begin().add(registrations);
 const same: typeof original = DiBag.begin().add(registrations);
 const individual: typeof original = DiBag.begin()
   .add({ value: registrations.value }).add({ read: registrations.read });
-const identity = <B>(builder: B): B => builder;
+const identity = <B,>(builder: B): B => builder;
 const retained: typeof original = identity(original);
 const result = retained.add({ extra: async () => true }).end();
 const text = result.resolve('read');

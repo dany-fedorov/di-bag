@@ -192,10 +192,24 @@ final review remain in progress; the complete T2 requirement is still open.
   361 assertions covering work gates and actual installed declarations, builds
   and all examples. Task review is clean, with no findings. Checkpoint `aff1579`
   was non-force pushed and its exact remote SHA verified. Evidence:
-  `docs/reports/2026-09-07-incremental-checks.md`. Task 2 is measuring original
-  larger graphs; it has not yet completed, and no large-case failure is waived.
+  `docs/reports/2026-09-07-incremental-checks.md`. Task 2 has collected the original
+  larger matrices; its independent task/final review is still pending, and no
+  large-case failure is waived.
 - A virtual conditional-arity val-box overload was rejected after reproducing
   the inline failure in both source and emitted declarations. It does not infer
   the exact nested snapshot return. Existing negatives still reject; no overload
   was adopted. The current-inline-inference report records the probe and the
   need for a deliberate inference/validation architecture review.
+- The pre-existing cast-free root-builder view erasure is corrected at `8daad9a`
+  by retaining entry history and module constraints in the existing invariant
+  phantom member. Exact/equivalent builder histories remain supported; widened
+  annotations are intentionally stricter. The corrected source's complete named
+  matrix accepts 30/36 cases, and its token matrix accepts 9/18. All 1,000 named
+  chained/replacement cases still crash the 5.9.3 binder; 500 token-module and
+  all 1,000 token cases reach the 60-second bound. These are measured failures,
+  not successful type rejections or completed enterprise T2 requirements.
+- Bounded primary-source compiler research is recorded in
+  `docs/research/2026-09-07-typescript-compiler-limits.md`. It identifies isolated
+  TypeScript 6 inference and TypeScript 7 native-CLI compatibility experiments
+  worth running next. Neither experiment has run, no upstream fix for the exact
+  local reproductions is established, and the 5.9.3 production pin is unchanged.
