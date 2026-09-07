@@ -17,18 +17,15 @@ execution; do not stop for another planning approval between increments.
 - [x] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformations are complete through final correction `6874760`. Typed tokens are complete through `75bc1f9`: all tasks, broad review, one consolidated fix and scoped re-review finished. One empty-selection efficiency Minor is explicitly carried into the next runtime increment below.
 - [x] Box integration: adapters use real packaged libraries, typed acquisition frames and plain service values; final shared union-type correction `6874760` and scoped review are complete. Evidence: `docs/reports/2026-09-06-provider-transformations.md`.
 - [x] Acquisition foundation: `2026-09-06-acquisition-foundations.md` completed through `fd83085`; task review and final scoped review are clean. Evidence: `docs/reports/2026-09-06-acquisition-foundations.md`, including the explicit structural-thenable conversion migration.
-- [ ] Native-Promise classification correction: whole-branch review of `48752ec`
-  reproduced premature disposal when a genuine pending Promise has a
-  non-callable own `then`. The shared source/projection classifier treats it as
-  a synchronous value. Correction must preserve ordinary `{then: undefined}`
-  services, cross-realm observation, exact exposed identity and original
-  constructor/species errors. Ruling9 selects immutable configured automatic
-  classification, a shared-core `di-bag/node` facade and explicit raw/native
-  stage modes, with whole-graph missing-capability preflight before effects.
-  The binding acquisition-classification spec and modern-compilers correction
-  plan are committed at `3361341`; implementation is in progress in the existing
-  final-fix wave. This remains an open ownership defect until verified/reviewed,
-  not a compiler diagnostic gap or a completed correction.
+- [x] Native-Promise classification correction: implemented at `664f6e3`, with
+  clean scoped review of the complete `48752ec..664f6e3` correction. Configured
+  automatic classification and explicit raw/native modes preserve native state,
+  exposed identity and the correct disposer value; `di-bag/node` supplies the
+  host predicate. Whole-graph preflight catches missing capability before effects.
+  Final full check passes 433 tests/2,170 assertions; independent committed-code
+  checks pass 96 runtime/supervisor tests and 3 focused type tests/464 assertions.
+  M2 monitor-failure coverage is also reviewed and closed. Evidence and migration:
+  `docs/reports/2026-09-07-modern-compilers.md`.
 - [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation. Also restore graph reuse for explicit `fork([], overrides)`, the tracked Minor from the token final review; ordinary `fork()` still reuses its graph.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
@@ -46,7 +43,8 @@ execution; do not stop for another planning approval between increments.
     `2026-09-07-modern-compilers.md` Task2. Source checks explicitly retain
     27diagnostic-quality gaps; named28/36 and token10/18 matrix cases meet the
     unchanged acceptance rules. All16failures remain required scale work, not
-    successful type rejections. Whole-branch review follows this task checkpoint.
+    successful type rejections. Whole-branch review and its consolidated
+    classification/monitor correction are complete through `664f6e3`.
   - [ ] Native replacement diagnostic quality:27existing invalid calls are
     rejected but7.0.2prints only the last token-overload error. Task2 records
     exact native-only rejection fingerprints separately from useful messages;
@@ -99,11 +97,13 @@ and enterprise program remain open. Whole-branch review of `48752ec` requires
 the native-Promise classification correction above; it also requests a direct
 monitor-failure termination test in the native harness. That M2 coverage is
 committed at `e5ac466` with genuine RED/GREEN and independent verification of
-21 focused tests/104 assertions; the complete wave's scoped re-review is still
-pending. I1 implementation follows the classification spec committed `3361341`.
-The single consolidated fix wave is in progress, and whole-branch acceptance/push
-is pending. The original54matrix rows measure source revision `cc9dbdc`, not the
-classification API changes. Evidence:
+21 focused tests/104 assertions. The single scoped re-review of
+`48752ec..664f6e3` closes both I1 and M2
+with no new Critical/Important findings. Independent committed-code verification
+passes 99 covering tests/464 assertions, and revalidates original 54 matrix rows' provenance
+without rerunning or relabelling those rows. I1 follows the classification spec
+committed `3361341`; implementation is committed `664f6e3`. The original54matrix
+rows measure source revision `cc9dbdc`, not the classification API changes. Evidence:
 `docs/reports/2026-09-07-modern-compilers.md`.
 
 ## Current evidence

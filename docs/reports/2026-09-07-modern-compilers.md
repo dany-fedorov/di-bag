@@ -88,6 +88,18 @@ relabelled as measurements of this changed API. Fresh correction work gates and
 final suite results are recorded separately. Native diagnostic gaps and outstanding
 scale/lifecycle work remain open.
 
+The completed correction is committed at `664f6e3c1c7318847409d006560a6ede2e42fc30`.
+Scoped review of the full `48752ec..664f6e3` correction closes I1 native-Promise
+classification and M2 monitor-failure coverage, with no new Critical/Important
+findings. The existing empty-selected-fork optimization remains assigned to
+the lifetime increment.
+
+Independent verification of that commit passed 96 runtime/supervisor tests with
+457 assertions and 3 focused ownership/replacement type tests with 7 assertions.
+The original 54 matrix rows were revalidated against Git source at `cc9dbdc`,
+their exact hashes, raw diagnostics and strict outcomes; this adds no new scale
+measurement. The final 433-test run and compiler/package evidence appear below.
+
 ## Native 7.0.2 contracts and declarations
 
 The additional development alias `@typescript/native: npm:typescript@7.0.2`
