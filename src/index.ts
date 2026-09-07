@@ -17,3 +17,4 @@ export type { CheckedLifetimes, CheckedScopeLifetimes, LexicalContext, RenamedLi
 export type { Checked, Complete, Entries, ForkContext, From, Merge, Overrides, Provided, Selected, Selection } from './types';
 export type { Presence, FramePresenceTuple, AcquisitionSnapshot, InspectionSnapshot } from './inspection';
 export type { ValBoxFrame } from './val-box';
+export type { CompositionArguments, CompositionFunction } from './composition';

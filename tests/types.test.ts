@@ -5,6 +5,11 @@ import ts from 'typescript';
 import { diagnostics, describeDiagnostic } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 
+test('composition adapters retain exact inferred cross-file contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/composition-adapters-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('selected scopes retain exact inferred cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/selected-scopes-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
@@ -20,11 +25,11 @@ test('lifetime declarations retain exact inferred cross-file contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
-test('lifetime inferred builders and symbol forks survive declaration consumption', () => {
-  const producerPath = resolve(__dirname, 'types/lifetimes.ts');
-  const consumerPath = resolve(__dirname, 'types/lifetimes-consumer.ts');
+for (const fixture of ['lifetimes', 'composition-adapters']) test(`${fixture} inferred exports survive declaration consumption`, () => {
+  const producerPath = resolve(__dirname, `types/${fixture}.ts`);
+  const consumerPath = resolve(__dirname, `types/${fixture}-consumer.ts`);
   const declarationPath = producerPath.replace(/\.ts$/, '.d.ts');
-  const output = resolve(__dirname, 'generated-lifetime-declarations');
+  const output = resolve(__dirname, `generated-${fixture}-declarations`);
   const options: ts.CompilerOptions = {
     strict: true, noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true,
     skipLibCheck: true, types: [], target: ts.ScriptTarget.ES2022,
@@ -38,7 +43,7 @@ test('lifetime inferred builders and symbol forks survive declaration consumptio
   const emitted = producer.emit();
   expect([...ts.getPreEmitDiagnostics(producer), ...emitted.diagnostics].map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
-  const declaration = declarations.get(resolve(output, 'tests/types/lifetimes.d.ts'));
+  const declaration = declarations.get(resolve(output, `tests/types/${fixture}.d.ts`));
   expect(declaration).toBeDefined();
   const consumerOptions = { ...options, noEmit: true, emitDeclarationOnly: false };
   const consumerHost = ts.createCompilerHost(consumerOptions);

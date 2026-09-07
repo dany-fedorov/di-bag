@@ -14,6 +14,7 @@ import type { ScopeOptions, DisjointScopeSelection } from './scope-types';
 import type { CheckedScopeLifetimes } from './lifetime-types';
 import type { StartupOptions } from './startup';
 import { withMetadata, mapSync, mapAsync, fromTokens, withTokenBinding, factory } from './provider';
+import { fromFunction, fromClass } from './composition';
 import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
 import type { ProviderMetadata, ProviderAcquisitionMetadata } from './provider';
@@ -243,6 +244,8 @@ interface Facade {
   factory: typeof factory;
   token: typeof token;
   fromTokens: typeof fromTokens;
+  fromFunction: typeof fromFunction;
+  fromClass: typeof fromClass;
   begin: () => Builder<never>;
   module: typeof beginModule;
   withDisposal: typeof withDisposal;
@@ -257,6 +260,8 @@ function facade(context: RuntimeContext): Facade { return Object.freeze({
   factory,
   token,
   fromTokens,
+  fromFunction,
+  fromClass,
   begin: (): Builder<never> => new Builder(new BindingGraph(), context),
   module: beginModule,
   withDisposal,
