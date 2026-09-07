@@ -4,6 +4,11 @@
 
 ### Added
 
+- `DiBag.fromClass` adapts concrete constructors and `DiBag.fromFunction` adapts
+  positional callbacks with checked typed-token arguments. Both preserve exact
+  outputs, acquisition modes and explicit ownership; classes retain prototypes,
+  private fields and `new.target`. Optional/rest parameters and bound receivers
+  are supported without decorators or parameter-name reflection.
 - `Bag.scope({ share })` borrows selected parent acquisitions, and
   `Bag.scope(keys, overrides, { share }?)` supplies checked child overrides.
   Sharing retains parent dependencies, Promise identity, context and ownership;

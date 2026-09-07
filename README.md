@@ -207,6 +207,47 @@ or lack static evidence. Typed tokens complement named composition; they do not
 make every dynamic graph universally type safe. Composition/plugin extensions
 remain planned work.
 
+## Adapt classes and positional functions
+
+Use typed token tuples to pass services to existing constructors and functions:
+
+```ts
+class Client {
+  constructor(readonly port: number) {}
+}
+function address(client: Client, host: string) {
+  return `${host}:${client.port}`;
+}
+const portKey = Symbol('port');
+const clientKey = Symbol('client');
+const hostKey = Symbol('host');
+const port = DiBag.token(portKey).of<number>();
+const client = DiBag.token(clientKey).of<Client>();
+const host = DiBag.token(hostKey).of<string>();
+
+const bag = DiBag.begin()
+  .bind(port, () => 8080)
+  .bind(client, DiBag.fromClass([port], Client))
+  .bind(host, () => 'localhost')
+  .add({ address: DiBag.fromFunction([client, host], address) })
+  .end();
+bag.resolve('address'); // 'localhost:8080'
+await bag.close();
+```
+
+The selected service tuple must match the declared parameter types and arity,
+including optional and rest parameters. Constructors retain prototypes, private
+fields and `new.target`. Adapters snapshot tokens and create nothing until
+acquisition. Bind a method explicitly if it needs a receiver, for example
+`DiBag.fromFunction([port], settings.format.bind(settings))`.
+
+Arguments and returned Promises keep their identity. Options follow the existing
+`{ acquisition: 'auto' | 'raw' | 'native' }` modes; use `raw` for deliberate
+structural thenable values. Metadata, lifetime, projection and disposal wrappers
+apply normally. A class with a method named `close` is still borrowed until an
+explicit `withDisposal` wrapper transfers ownership. `fromTokens` remains available
+for existing callback adapters. See [`examples/composition.ts`](examples/composition.ts).
+
 ## Attach metadata and inspect without resolving
 
 ```ts
