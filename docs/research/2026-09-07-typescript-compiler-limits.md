@@ -60,3 +60,13 @@ completion claims. The 5.9 baseline, large C/G costs, both inference cases and
 all remaining enterprise requirements remain visible. The attempted background
 research agent failed before producing evidence; these findings were checked
 directly against the official sources by the controller.
+
+## Subsequent bounded result
+
+A first isolated TypeScript 6.0.3 comparison now passes both unchanged inline
+reproductions and retains 129 selected negative boundaries against source and
+in-memory emitted declarations. The same 5.9.3 input still reproduces both
+failures. [Comparison evidence](../reports/2026-09-07-typescript6-inference.md)
+records exact inputs, limits and observations. Real installed consumers, full
+compatibility and scale remain unexecuted parts of the recommended experiment;
+there is still no compiler-pin change. The TypeScript 7 experiment has not run.

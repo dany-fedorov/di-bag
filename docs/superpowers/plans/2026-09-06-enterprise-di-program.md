@@ -211,5 +211,9 @@ final review remain in progress; the complete T2 requirement is still open.
 - Bounded primary-source compiler research is recorded in
   `docs/research/2026-09-07-typescript-compiler-limits.md`. It identifies isolated
   TypeScript 6 inference and TypeScript 7 native-CLI compatibility experiments
-  worth running next. Neither experiment has run, no upstream fix for the exact
-  local reproductions is established, and the 5.9.3 production pin is unchanged.
+  worth running next. A subsequent first TypeScript 6.0.3 probe passes both
+  unchanged inline reproductions and retains 129 selected negative boundaries
+  in source and emitted declarations; evidence is in
+  `docs/reports/2026-09-07-typescript6-inference.md`. Real installed consumers,
+  full compatibility and scale remain unexecuted parts of that experiment.
+  The TypeScript 7 experiment has not run and the 5.9.3 production pin is unchanged.
