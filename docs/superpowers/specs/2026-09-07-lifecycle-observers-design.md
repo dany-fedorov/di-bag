@@ -39,6 +39,13 @@ routing occurs before event creation: shared/root acquisitions are attributed to
 their actual owner, aliases add no synthetic attempt, and each contribution or
 transient attempt keeps its own identity.
 
+Scope variants have `scopeId` and an optional `parentScopeId`, omitted for roots.
+Acquisition/cleanup variants have `scopeId`, `bindingId`, `acquisitionId`, `label`,
+`lifetime`, copied static `metadata` and a copied frame-presence array named
+`frames`. Failure variants carry `error`. `cleanup-failed` also has the nonnegative
+`disposalIndex` from the existing disposer invocation ordering;
+`cleanup-completed.outcome` is exactly `'success' | 'failure'`.
+
 The event union includes:
 
 - `scope-opened` after construction and graph preflight succeed.

@@ -50,7 +50,7 @@ execution; do not stop for another planning approval between increments.
   Node/Bun CommonJS/ESM runtime lanes pass. Evidence:
   `docs/reports/2026-09-07-startup-context.md`. Cancellation exposes eventual
   cleanup separately and does not forcibly terminate uncooperative factories.
-- [ ] Composition extensions:
+- [x] Composition extensions (implemented and verified locally):
   - [x] Direct classes and positional functions through `68930c0`: exact tuple,
     return and acquired contracts, concrete constructor semantics and bound-method
     support. Full check passes 586 tests / 3,043 assertions. Physical classic/native
@@ -69,7 +69,15 @@ execution; do not stop for another planning approval between increments.
     and Node/Bun CommonJS/ESM routes pass. The declaration portability and native
     archive coverage findings are corrected; scoped review is clean. Evidence:
     `docs/reports/2026-09-07-aliases.md`.
-  - [ ] Typed contributions proceed under `2026-09-07-contributions.md`.
+  - [x] Typed contributions through `123cd0d`: ordered, individually checked
+    providers with private module dependencies, exact values and canonical
+    per-item lifetime/ownership. Full check passes 667 tests / 3,497 assertions;
+    both actual archive emitters and all Node/Bun CommonJS/ESM routes pass.
+    Source/type review passes, and scoped review closes pending-raw archive
+    coverage. All seven examples and final native checks pass; the audit retains
+    the same 27 existing message gaps. Evidence:
+    `docs/reports/2026-09-07-contributions.md`. Branch push remains pending the
+    specific export approval requested after automatic review rejected it.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
 - [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests. The prior parent benchmark evaluator Minor is closed by direct malformed JSON/identity/diagnostic, process-failure, boundary and TS2589 tests in the reviewed native compiler checkpoint `ad73249`.
 - [ ] Compiler/inference follow-up: resolve the remaining measured 500/1000 individual-chain limits, large-graph latency and modern native compiler compatibility. Actual nominal-module 1000-provider gates pass, separately from registration groups; this does not prove equally long individual call chains.
