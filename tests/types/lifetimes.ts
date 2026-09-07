@@ -1,5 +1,5 @@
 import { DiBag } from '../../src';
-import { withLifetime } from '../../src/lifetime';
+const { withLifetime } = DiBag;
 import type { Provider, Module, Bag } from '../../src';
 import { fromValBox, fromValBoxAsync } from '../../src/val-box';
 import { fromSasBox } from '../../src/sas-box';

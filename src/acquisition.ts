@@ -4,16 +4,11 @@ import type { BindingGraph, BindingId, BindingKey } from './runtime';
 import type { AcquisitionSnapshot } from './inspection';
 import { ProviderExecution } from './provider-execution';
 import type { RuntimeContext } from './acquisition-mode';
+import { AcquisitionFamily } from './acquisition-family';
+import type { AcquisitionId, AttemptIdentity } from './acquisition-family';
 
-type AcquisitionId = symbol;
-type State = 'creating' | 'pending' | 'ready' | 'failed' | 'disposing' | 'disposed';
-interface Acquisition {
-  readonly id: AcquisitionId;
-  readonly bindingId: BindingId;
-  readonly ownerId: symbol;
-  readonly label: string;
-  readonly dependencies: Set<AcquisitionId>;
-  state: State;
+interface Acquisition extends AttemptIdentity {
+  readonly strictRoot: string | undefined;
   exposed: unknown;
   execution: ProviderExecution;
 }
@@ -31,7 +26,13 @@ export class Acquisitions {
   private state: 'open' | 'closing' | 'closed' = 'open';
   private closing: Promise<void> | undefined;
 
-  constructor(private readonly graph: BindingGraph, private readonly context: RuntimeContext) {}
+  private readonly root: Acquisitions;
+  private readonly family: AcquisitionFamily;
+
+  constructor(private readonly graph: BindingGraph, private readonly context: RuntimeContext, parent?: Acquisitions) {
+    this.root = parent?.root ?? this;
+    this.family = parent?.family ?? new AcquisitionFamily();
+  }
 
   resolve(key: BindingKey): unknown {
     this.assertOpen();
@@ -39,6 +40,7 @@ export class Acquisitions {
   }
 
   inspect(bindingId: BindingId): readonly AcquisitionSnapshot<readonly unknown[]>[] {
+    if (this.graph.registration(bindingId).lifetime.kind === 'root' && this !== this.root) return this.root.inspect(bindingId);
     const snapshots: AcquisitionSnapshot<readonly unknown[]>[] = [];
     for (const attempt of this.attempts.values()) {
       if (attempt.bindingId !== bindingId) continue;
@@ -64,20 +66,31 @@ export class Acquisitions {
   }
 
   private resolveBinding(bindingId: BindingId, from?: Acquisition): unknown {
+    const description = this.graph.registration(bindingId);
+    const { lifetime } = description;
+    // Validate before routing/cache lookup; retained proxies keep their boundary.
+    if (lifetime.kind === 'scoped' && from?.strictRoot !== undefined) {
+      throw new Error(`root lifetime cannot capture scoped dependency: ${from.strictRoot} -> ${this.graph.label(bindingId)}`);
+    }
+    if (lifetime.kind === 'root' && this !== this.root) return this.root.resolveBinding(bindingId, from);
     const cached = this.cache.get(bindingId);
     if (cached) {
-      if (from) this.recordEdge(from, cached);
+      if (from) this.family.recordEdge(from, cached);
       // A factory or then getter can reenter through public resolve as well.
       if (cached.state === 'creating') throw new Error(`cycle: ${cached.label} -> ${cached.label}`);
       return cached.exposed;
     }
-    const description = this.graph.registration(bindingId);
+    const ancestry = this.family.ancestry(bindingId, this.ownerId, this.graph.label(bindingId), from);
     const attempt: Acquisition = {
       id: Symbol(this.graph.label(bindingId)),
       bindingId,
       ownerId: this.ownerId,
       label: this.graph.label(bindingId),
       dependencies: new Set(),
+      ancestry,
+      strictRoot: lifetime.kind === 'root'
+        ? lifetime.captureScoped ? undefined : this.graph.label(bindingId)
+        : from?.strictRoot,
       state: 'creating',
       exposed: undefined,
       execution: new ProviderExecution({
@@ -92,9 +105,10 @@ export class Acquisitions {
         },
       }, description, this.context),
     };
-    this.cache.set(bindingId, attempt);
+    if (lifetime.kind !== 'transient') this.cache.set(bindingId, attempt);
     this.attempts.set(attempt.id, attempt);
-    if (from) this.recordEdge(from, attempt);
+    this.family.add(attempt);
+    if (from) this.family.recordEdge(from, attempt);
     const deps = new Proxy(Object.create(null) as Record<string, unknown>, {
       get: (_, key) => {
         if (typeof key === 'symbol' && !description.tokenKeys.includes(key)) return undefined;
@@ -108,6 +122,7 @@ export class Acquisitions {
         return this.resolveBinding(this.graph.dependency(bindingId, key), attempt);
       },
     });
+    this.family.enter(attempt);
     try {
       const value = attempt.execution.evaluate(description, deps);
       attempt.exposed = value;
@@ -116,6 +131,8 @@ export class Acquisitions {
     } catch (error) {
       this.retire(attempt);
       throw error;
+    } finally {
+      this.family.leave();
     }
   }
 
@@ -125,12 +142,13 @@ export class Acquisitions {
     attempt.exposed = undefined;
     // No consumer acquired this failed exposed value. Keep this attempt's
     // outgoing edges and pending work, but abandon unsuccessful incoming reads.
-    for (const consumer of this.attempts.values()) consumer.dependencies.delete(attempt.id);
+    this.family.retireIncoming(attempt);
     if (this.retired.has(attempt.id)) return;
     const release = () => {
       attempt.dependencies.clear();
       attempt.execution.release();
       this.attempts.delete(attempt.id);
+      this.family.release(attempt);
       this.owned.delete(attempt.id);
       this.retired.delete(attempt.id);
     };
@@ -138,28 +156,6 @@ export class Acquisitions {
     if (!attempt.execution.hasOwnership && !attempt.execution.work.length) { release(); return; }
     const cleanup = attempt.execution.dispose().then(release);
     this.retired.set(attempt.id, cleanup);
-  }
-
-  private recordEdge(from: Acquisition, to: Acquisition): void {
-    const path = this.path(to.id, from.id, new Set());
-    if (path) {
-      const labels = [...path, to.id].map(id => this.attempts.get(id)!.label);
-      throw new Error(`cycle: ${labels.join(' -> ')}`);
-    }
-    from.dependencies.add(to.id);
-  }
-
-  private path(from: AcquisitionId, to: AcquisitionId, seen: Set<AcquisitionId>): AcquisitionId[] | undefined {
-    const attempt = this.attempts.get(from);
-    if (!attempt) return undefined;
-    if (from === to) return [from];
-    if (seen.has(from)) return undefined;
-    seen.add(from);
-    for (const dependency of attempt.dependencies) {
-      const rest = this.path(dependency, to, seen);
-      if (rest) return [from, ...rest];
-    }
-    return undefined;
   }
 
   private async disposeAll(beforeDispose?: Promise<void>): Promise<void> {
@@ -193,6 +189,8 @@ export class Acquisitions {
     } finally {
       this.state = 'closed';
       for (const attempt of this.attempts.values()) {
+        this.family.retireIncoming(attempt);
+        this.family.release(attempt);
         attempt.dependencies.clear();
         attempt.exposed = undefined;
         attempt.execution.release();

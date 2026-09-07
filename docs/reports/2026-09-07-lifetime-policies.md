@@ -1,9 +1,9 @@
-# Lifetime policies: partial internal integration
+# Lifetime policies: runtime and static integration
 
-Date: 2026-09-07. This checkpoint implements internal declarations and static
-captive validation only. `withLifetime` is internal (`src/lifetime.ts`), is not
-on the public facade, and is not a root runtime export. Root/scoped/transient
-acquisition routing and the public lifetime API are not yet shipped.
+Date: 2026-09-07. The internal declaration checkpoint is now integrated with
+runtime ownership and the public `DiBag.withLifetime` facade member. `Lifetime`
+is a type-only package export. Physical installed-package lifetime acceptance
+remains a separate checkpoint.
 
 The authenticated provider description now carries a frozen lifetime record.
 Descriptions default to scoped; a replacement wrapper snapshots root capture
@@ -75,9 +75,67 @@ diagnostic allowance was added to address these failures.
   the full run, including 1,000-provider named modules; no compiler timeout or
   excessive-instantiation diagnostic was accepted as a useful rejection.
 
-Runtime lifetime acquisition, cross-owner disposal/cycle rules, public helper
-publication, and physical installed lifetime-package evidence remain later
-checkpoints.
+The results above describe the internal declaration checkpoint. Runtime and
+public-facade integration evidence follows below; physical installed lifetime
+package evidence remains a later checkpoint.
+
+## Runtime ownership and public facade
+
+Each scope retains its local attempts, scoped cache and finalizers. Root reads
+route to the original family root's acquisitions and graph; transient reads
+create an independently owned attempt each time. Root inspection reads the root
+attempts without acquiring, while scoped/transient inspection stays local.
+Independent forks begin new families, and `scope()` still accepts no arguments.
+
+A focused family index shares acquisition identities and dependency traversal,
+but never finalizers. Active binding/owner ancestry catches transient recursion,
+including synchronous public reentry, while acquisition-ID edges retain cached
+and post-await cycle detection. Ancestry contains symbol IDs, not references to
+ancestor acquisitions or child owners. Failed/closed attempts leave the family
+index. Failed incoming edges are abandoned across owners while outgoing rollback
+dependencies survive until cleanup finishes. Ready and retired ancestry does not
+block a later legitimate transient acquisition.
+
+Strict root boundaries travel on dependency proxies through transients and
+survive `await` and retained methods. Scoped reads reject before the factory or
+cached value is reached. A root dependency establishes its own boundary, so an
+explicitly capturing root can supply a strict root using root-context state.
+Unchecked captive fixtures use one named JS graph-completion boundary; normal
+fixtures exercise the public typed facade.
+
+Provider execution, stage acceptance, native/raw classification and original
+Promise identity are unchanged. In-flight sources retain their own closing
+permission even when a projection is ready or failed. Public resolution closes
+immediately. Child draining permits late root acquisition, and the existing
+shutdown tree gates root cleanup behind child settlement.
+
+Concrete ownership evidence includes two transient attempts returning the exact
+same object and yielding two separate cleanup failure records/IDs. Child-first
+root capture disposes child scoped state first, then root, root-owned transient,
+and root-owned scoped dependency. Renamed module transient exports dispose child
+attempts `[3, 2]`, then parent attempt `4`, then their shared private root `1`.
+Late root acquisition records `root:open`, `child:close`, `root:close`.
+
+The first public-operation RED ran 11 tests: 0 passed, 11 failed because
+`DiBag.withLifetime` did not exist. After routing and facade implementation the
+initial focused regression run passed 30 tests with 182 assertions. Expanded
+self-review coverage passes 47 lifetime/scope/acquisition tests (252 assertions),
+including 28 new lifetime tests, and 68 provider/module/token/disposal/mode tests
+(290 assertions). Focused lifetime type/declaration selection passes 5 tests
+(39 assertions), including all lifetime negative diagnostic markers and the
+virtual source-erased declaration consumer. No new concrete type export beyond
+the requested `Lifetime` was necessary for the public facade.
+
+Final runtime/public integration gates ran after self-review with no overlapping
+source changes. `npm run check` passed the classic typecheck, all 492 tests
+(2,514 assertions across 29 files, 386.56 s), and the final classic build.
+`npm run typecheck:native` passed. `npm run check:native` accepted 89 files:
+407 expected diagnostics, 380 directly matched, 27 previously recorded unrelated
+native diagnostic gaps, zero unexpected diagnostics and zero failures. All 47
+lifetime negative markers matched directly with no gaps or allowances. The full
+run also passed both existing native installed-archive suites and all scale
+fixtures, including the three 1,000-provider reusable named-module cases. There
+were no later production or test changes after these final gates.
 
 ## Review and independent checks
 
@@ -103,8 +161,8 @@ coverage; the existing package routes continue to pass.
    matters for caching, while disposer/value pairings remain unchanged.
 6. Require known lifetime literals and snapshot supported own options. Dynamic
    choices require branching; inherited option declarations reject.
-7. Keep the helper internal until routing works. This costs an intermediate
-   internal-only checkpoint without a public lifetime API.
+7. Keep the helper internal until routing works. The earlier internal-only
+   checkpoint is now followed by runtime routing and public facade integration.
 8. Preserve the approved checkout and evidence workspaces. There is no extra
    worktree isolation; one writer and explicit staging protect user state.
 9. Guard active transient construction, not ready historical ancestry. Later

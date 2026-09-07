@@ -7,6 +7,7 @@ export type { ModuleProvides, ModuleRequires, PublicProviders, ModulePublicProvi
 export type { DisposableFactory } from './registration';
 export type { Provider, ProviderOutput, ProviderAcquired, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderTokenNeeds } from './provider';
 export type { AcquisitionMode, RuntimeOptions } from './acquisition-mode';
+export type { Lifetime } from './lifetime';
 export type { Token, TokenKey, TokenService } from './tokens';
 export type { Binding, TokenGraph } from './token-types';
 export type { Entries, From, Provided } from './types';

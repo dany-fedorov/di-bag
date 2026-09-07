@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-import { withLifetime } from '../../../src/lifetime';
+const { withLifetime } = DiBag;
 import type { Provider } from '../../../src';
 import type { ProviderBase } from '../../../src/provider';
 // diagnostic: root lifetime cannot capture scoped dependency

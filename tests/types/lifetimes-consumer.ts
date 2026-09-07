@@ -3,6 +3,8 @@ import type { ProviderAcquired, ProviderMetadata, ProviderOutput, ProviderAcquis
 import type { ProviderGraph } from '../../src/provider';
 import type { TokenGraph } from '../../src/token-types';
 import type { Assert, Equal } from './assert';
+import type { Lifetime } from '../../src';
+export type LifetimeCheck = Assert<Equal<Lifetime, 'root' | 'scoped' | 'transient'>>;
 type IsAny<T> = 0 extends (1 & T) ? true : false;
 export const repo = graph.resolve('repo');
 export const db = scoped.resolve('db');

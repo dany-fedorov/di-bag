@@ -6,6 +6,7 @@ import { beginModule, moduleGraph } from './module';
 import type { Module } from './module';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes } from './lifetime-types';
+import { withLifetime } from './lifetime';
 import { withMetadata, mapSync, mapAsync, fromTokens, withTokenBinding, factory } from './provider';
 import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
@@ -212,6 +213,7 @@ interface Facade {
   begin: () => Builder<never>;
   module: typeof beginModule;
   withDisposal: typeof withDisposal;
+  withLifetime: typeof withLifetime;
   withMetadata: typeof withMetadata;
   mapSync: typeof mapSync;
   mapAsync: typeof mapAsync;
@@ -224,6 +226,7 @@ function facade(context: RuntimeContext): Facade { return Object.freeze({
   begin: (): Builder<never> => new Builder(new BindingGraph(), context),
   module: beginModule,
   withDisposal,
+  withLifetime,
   withMetadata,
   mapSync,
   mapAsync,

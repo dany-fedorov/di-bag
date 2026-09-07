@@ -22,7 +22,10 @@ export type LifetimeGraph<G extends GraphContract, L extends Lifetime, O> = G ex
     : Omit<T, 'lifetime'> & { readonly lifetime: { readonly kind: L; readonly captureScoped: [O] extends [{ readonly captureScoped: true }] ? true : false } }
   : never : never;
 
-/** Internal declaration only; public acquisition routing is introduced separately. */
+/** Select family-root caching, per-scope caching, or a fresh owned attempt per read.
+ * Strict roots cannot capture scoped dependencies; captureScoped opts into root-context capture.
+ * Wrapping preserves the factory, acquired value, metadata and owned stages.
+ */
 export function withLifetime<R extends Registration, const L extends Lifetime>(
   registration: R & Registration,
   lifetime: L & Admission<L>,

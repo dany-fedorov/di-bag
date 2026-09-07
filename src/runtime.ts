@@ -132,9 +132,10 @@ export class Runtime {
     private readonly graph: BindingGraph,
     private readonly context: RuntimeContext,
     private detach: (() => void) | undefined = undefined,
+    parentAcquisitions?: Acquisitions,
   ) {
     graph.preflight(context);
-    this.acquisitions = new Acquisitions(graph, context);
+    this.acquisitions = new Acquisitions(graph, context, parentAcquisitions);
   }
 
   resolve(key: BindingKey): unknown {
@@ -159,7 +160,7 @@ export class Runtime {
   scope(): Runtime {
     this.assertOpen();
     let child!: Runtime;
-    child = new Runtime(this.graph, this.context, () => { this.children.delete(child); });
+    child = new Runtime(this.graph, this.context, () => { this.children.delete(child); }, this.acquisitions);
     this.children.add(child);
     return child;
   }
