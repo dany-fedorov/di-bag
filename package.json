@@ -24,6 +24,9 @@
   "scripts": {
     "test": "bun test tests",
     "typecheck": "tsc6 -p tsconfig.json",
+    "typecheck:native": "tsc -p tsconfig.json",
+    "build:native": "tsc -p tsconfig.build.json",
+    "check:native": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-native-contracts.ts",
     "example:wbs": "bun run examples/wbs-scope.ts",
     "build": "tsc6 -p ./tsconfig.build.json",
     "benchmark:types": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/benchmark-types.ts",
@@ -45,6 +48,7 @@
   "author": "Dany Fedorov",
   "license": "MIT",
   "devDependencies": {
+    "@typescript/native": "npm:typescript@7.0.2",
     "@types/bun": "^1.3.0",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },

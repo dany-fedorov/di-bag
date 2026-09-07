@@ -65,8 +65,91 @@ adoption does not claim to improve them on 5.9.
 
 ## Scope still open
 
-This increment does not install or validate the native TypeScript 7 compiler,
-complete the large-scale 500/1,000 individual-chain work, or close the broader
-enterprise compiler obligations. Those remain separate work. It also makes no
-change to ownership, disposal, borrowing, sharing, factory awaiting, or public
-library APIs.
+The native verification below is a separate lane, not a claim of full compiler
+or enterprise parity. Neither increment changes ownership, disposal, borrowing,
+sharing, factory awaiting, or public library APIs.
+
+## Native 7.0.2 contracts and declarations
+
+The additional development alias `@typescript/native: npm:typescript@7.0.2`
+resolves the matching native platform package. The harness verifies both package
+versions and the actual `lib/tsc --version` before invoking that executable
+directly. Classic API 6.0.3 and its 6.0.2 wrapper remain separate identities.
+`typecheck:native`, `build:native`, and `check:native` keep this lane explicit.
+
+The original 78-file corpus has 321 primary and 11 supplemental expectations.
+Classic matches all 332 strictly. Native matches 294 useful primary messages
+and all 11 supplements, and rejects the remaining 27 marked expressions with
+three exact, explicitly declared TS2769 fingerprints. Its status is
+`accepted-with-diagnostic-gaps`, not useful-message parity. Those gap records
+retain the unmet primary requirement. Unknown, stale, misplaced, duplicate or
+malformed declarations, wrong fingerprints/code/file/region, absent diagnostics,
+TS2589 and unrelated extra errors fail the native gate. Classic receives no
+fallback acceptance.
+
+Two added regression files bring the source inventory to 80 files and 323
+primary expectations: 296 useful native primary matches, 27 known overload
+rejections, 11 matched supplements, zero unexpected diagnostics. They preserve
+exact explicit named/token replacement calls and concrete forwarding wrappers,
+non-any reflected method returns, builder-view assignment rejection, and safe
+module reflection with exact numeric exported consumers and wrong-output
+rejection.
+
+An isolated combined replacement overload candidate improved native message
+coverage but made standard `ReturnType` fall through to `any`, permitting
+cast-free builder-history erasure. It was rejected; **no production signature
+change was adopted**. Concrete wrappers using a known builder, key and factory
+contract remain the checked forwarding pattern. The unchanged module reflected
+view is non-any and retains its named consumer types; unlike the builder view,
+its assignment need not be rejected to remain safe.
+
+Both classic and native package emitters build separate actual archives. Native
+checks all 17 shared installed fixtures in both `.cts` and `.mts` modes. Each of
+the four emitter/mode variants reports exactly four known diagnostic gaps in
+the original incremental negative fixture; all other installed fixtures have
+zero. The two added fixtures are also in the classic installed lane.
+Modern-inline and token-module producers emit actual native `.d.cts`/`.d.mts`
+files; after removing producer source, native and classic consumers both check
+the unchanged downstream assertions against those physical declarations.
+
+## Supervision and limits
+
+Native compiler invocations use Linux `/proc/<owned-pid>/status`, sampling VmRSS
+every 20 ms, with a 60-second timeout, 3,072 MiB threshold and 4 MiB combined
+stdout/stderr bound. Timeout, memory, output, monitor and spawn failures retain
+explicit process evidence. The direct child is killed and reaped, streams close,
+and pending samples finish before completion. Sampled RSS is neither a true
+unsampled peak nor a whole-process-tree measurement. Unsupported monitoring
+platforms fail explicitly. Native metrics are not substituted for classic
+`Program.getInstantiationCount` regression gates.
+
+Package setup resolves the actual Node executable and adjacent real npm CLI;
+it does not supervise a launcher shim as though it owned the real npm process.
+The harness requires that npm layout and fails visibly if it is unavailable.
+The parent evaluator also has direct mutation tests covering malformed worker
+JSON, case identity, diagnostic boundaries and raw process failures.
+
+## Original native scale outcomes
+
+All 54 original cases ran sequentially with unchanged source and limits: 28/36
+named and 10/18 token cases met the strict matrix contract. No source fixture
+gap exception applies to matrices. The named failures were the 100/500
+replacement wrong-shape messages, three 1,000-call chained timeouts, and three
+1,000-call replacement memory-limit stops. The token failures were all six
+500/1,000-module timeouts and TS2589 in the 1,000-binding valid/invariant cases.
+The 1,000-binding missing-final-token case passed its intended rejection check;
+that alone does not establish general 1,000-binding support.
+
+The [benchmark report](../benchmarks/typescript.md) preserves every case, measured
+wall time, sampled RSS and outcome, alongside the unchanged historical 5.9.3
+tables. These 16 native matrix failures and the 27 source useful-message gaps
+remain open enterprise compiler work. The unrelated empty-selected-fork runtime
+efficiency issue is also outside this task. No full native or enterprise
+completion, new classic large-matrix result, publication or public API migration
+is claimed.
+
+Final integration verification passed `npm run check` (397 tests, zero failures,
+1,980 assertions and classic build), then native typecheck/build/source checks
+and all four runtime examples. The native source result remains explicitly
+`accepted-with-diagnostic-gaps`; passing the integration suite does not convert
+the 16 matrix failures into supported scale cases.

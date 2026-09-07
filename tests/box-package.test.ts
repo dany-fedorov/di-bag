@@ -1,19 +1,23 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import ts from 'typescript';
+import { boxContractFixtures, boxContractSource } from './box-contract-fixtures';
+import { matchDiagnosticMarkers } from './diagnostic-markers';
+import { describeDiagnostic } from './compiler';
 
 const root = resolve(__dirname, '..');
 const fixtures = resolve(__dirname, 'fixtures/box-packages');
 const packed = mkdtempSync(join(tmpdir(), 'di-bag-box-pack-'));
+const packageTree = mkdtempSync(join(tmpdir(), 'di-bag-box-package-'));
 const consumer = mkdtempSync(join(tmpdir(), 'di-bag-box-consumer-'));
 const coreConsumer = mkdtempSync(join(tmpdir(), 'di-bag-core-consumer-'));
 let archive: string;
 
 afterAll(() => {
-  for (const directory of [packed, consumer, coreConsumer]) rmSync(directory, { recursive: true, force: true });
+  for (const directory of [packed, consumer, coreConsumer, packageTree]) rmSync(directory, { recursive: true, force: true });
 });
 
 async function run(command: string[], cwd = root) {
@@ -24,8 +28,9 @@ async function run(command: string[], cwd = root) {
 }
 
 beforeAll(async () => {
-  await run(['node', 'node_modules/typescript/bin/tsc6', '-p', 'tsconfig.build.json']);
-  const result = JSON.parse(await run(['npm', 'pack', '--ignore-scripts', '--json', '--pack-destination', packed]));
+  for (const file of ['src', 'package.json', 'tsconfig.json', 'tsconfig.build.json']) cpSync(join(root, file), join(packageTree, file), { recursive: true });
+  await run(['node', join(root, 'node_modules/typescript/bin/tsc6'), '-p', 'tsconfig.build.json'], packageTree);
+  const result = JSON.parse(await run(['npm', 'pack', '--ignore-scripts', '--json', '--pack-destination', packed], packageTree));
   archive = join(packed, result[0].filename);
   const files: string[] = result[0].files.map((entry: { path: string }) => entry.path);
   expect(files.some(path => path.includes('fixtures') || path.endsWith('.tgz') || path.includes('node_modules'))).toBe(false);
@@ -174,40 +179,10 @@ for (const mode of ['commonjs', 'module'] as const) {
       ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
   });
 
-  for (const fixture of ['tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'box-adapters.ts', 'negative/box-adapters.ts', 'negative/provider-unions.ts', 'incremental.ts', 'negative/incremental.ts', 'builder-views.ts', 'negative/builder-views.ts', 'modern-inline.ts', 'negative/modern-inline.ts', 'real']) {
+  for (const fixture of boxContractFixtures) {
     test(`installed ${mode} declaration contracts: ${fixture}`, () => {
       const path = join(consumer, `consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
-      const assertions = `type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;`;
-      const source = fixture === 'real' ? `
-        import { DiBag, type ProviderOutput, type ProviderAcquisitionMetadata, type ValBoxFrame } from 'di-bag';
-        import { fromSasBox } from 'di-bag/sas-box'; import { fromValBox, fromValBoxAsync } from 'di-bag/val-box';
-        import { SasBox } from 'sas-box'; import { ValBox } from 'val-box'; ${assertions}
-        const sync = fromSasBox(() => SasBox.fromValue(Promise.resolve(42)), { mode: 'sync' });
-        const async = fromSasBox(() => SasBox.fromAsync(async () => 7), { mode: 'sync-first' });
-        declare const unknown: SasBox.Unknown<Promise<number>>;
-        const first = fromSasBox(() => unknown, { mode: 'sync-first' });
-        const boxed = new ValBox.WithValue.WithMetadata(Promise.resolve(1), { owner: 'db' });
-        const nested = fromValBox(() => ({ snapshot() { return {
-          value: { present: true as const, value: boxed },
-          metadata: { present: false as const }, alias: null,
-        }; } }));
-        const nestedValue = fromValBox(nested);
-        const val = fromValBox(() => boxed); const awaited = fromValBoxAsync(async () => boxed);
-        type Nested = [Assert<Equal<ProviderOutput<typeof nested>, typeof boxed>>,
-          Assert<Equal<ProviderOutput<typeof nestedValue>, Promise<number>>>,
-          Assert<Equal<ProviderAcquisitionMetadata<typeof nestedValue>, readonly [ValBoxFrame<never>, ValBoxFrame<{owner:string}>]>>];
-        type Contracts = [Assert<Equal<ProviderOutput<typeof sync>, Promise<number>>>, Assert<Equal<ProviderOutput<typeof async>, Promise<number>>>,
-          Assert<Equal<ProviderOutput<typeof first>, Promise<number>>>, Assert<Equal<ProviderOutput<typeof val>, Promise<number>>>,
-          Assert<Equal<ProviderOutput<typeof awaited>, Promise<number>>>, Assert<Equal<ProviderAcquisitionMetadata<typeof val>, readonly [ValBoxFrame<{ owner: string }>]>>];
-        const bag = DiBag.begin().add({ sync, async, first, val, awaited }).end(); void bag.close();
-        // @ts-expect-error Async boxes have no sync route.
-        fromSasBox(() => SasBox.fromAsync(async () => 7), { mode: 'sync' });
-      ` : readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
-        .replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types|module-types)'/g, "from './node_modules/di-bag/dist/$1.js'")
-        .replace(/import\('(?:\.\.\/)+src\/token-types'\)/g, "import('./node_modules/di-bag/dist/token-types.js')")
-        .replace("import('../../src')", "import('di-bag')")
-        .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)
-        .replace("import type { Assert, Equal } from './assert';", assertions);
+      const source = boxContractSource(fixture);
       const options: ts.CompilerOptions = { strict: true, noEmit: true, noUncheckedIndexedAccess: true,
         exactOptionalPropertyTypes: true, types: [], target: ts.ScriptTarget.ES2022,
         module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext };
@@ -218,12 +193,8 @@ for (const mode of ['commonjs', 'module'] as const) {
       if (!fixture.startsWith('negative/')) expect(errors.map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
       else {
         expect(errors.every(error => error.file?.fileName === path)).toBe(true);
-        const markers = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
-        for (const [index, marker] of markers.entries()) {
-          const end = markers[index + 1]?.index ?? source.length;
-          expect(errors.filter(error => error.start !== undefined && error.start >= marker.index && error.start < end)
-            .map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n')).join('\n')).toContain(marker[1]!);
-        }
+        const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
+        expect(matched.missing).toEqual([]); expect(matched.unexpected).toEqual([]);
       }
     });
   }

@@ -9,8 +9,10 @@ DiBag.begin().add({ value: () => 'wrong' }).add({ read: ({ value }: { value: num
 // diagnostic: a dependency has the wrong shape
 DiBag.begin().add({ value: () => 1, read: ({ value }: { value: string }) => value });
 // diagnostic: a dependency has the wrong shape
+// diagnostic-native-gap: last-token-string
 DiBag.begin().add({ value: () => 1, read: ({ value }: { value: number }) => value }).replace('value', () => 'wrong');
 // diagnostic: a dependency has the wrong shape
+// diagnostic-native-gap: last-token-string
 DiBag.begin().add({ value: () => 1, read: ({ value }: { value: number }) => value }).replace('read', ({ value }: { value: string }) => value);
 
 const key = Symbol('value');
@@ -21,6 +23,7 @@ DiBag.begin().add({ read: DiBag.fromTokens([wider], value => value) }).bind(toke
 // diagnostic: incompatible or opaque
 DiBag.begin().bind(token, () => 1).add({ read: DiBag.fromTokens([wider], value => value) });
 // diagnostic: incompatible or opaque
+// diagnostic-native-gap: last-token-string
 DiBag.begin().bind(token, () => 1).add({ read: () => 1 }).replace('read', DiBag.fromTokens([wider], value => value));
 // diagnostic: output is not assignable
 DiBag.begin().bind(token, () => 1).replace(token, () => 'wrong');
@@ -40,6 +43,7 @@ const privateModule = DiBag.module().add({ hidden: ({ external }: { external: nu
 // diagnostic: a dependency has the wrong shape
 DiBag.begin().install(privateModule).add({ external: () => 'wrong' });
 // diagnostic: a dependency has the wrong shape
+// diagnostic-native-gap: last-token-string
 DiBag.begin().install(privateModule).add({ external: () => 1 }).replace('external', () => 'wrong');
 // diagnostic: missing factories
 DiBag.begin().install(privateModule).end();

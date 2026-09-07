@@ -60,4 +60,5 @@ fromSasBox(opaqueMixed, { mode: 'sync' });
 // diagnostic: invalid val-box snapshot capability
 fromValBoxAsync(opaqueMixed);
 // diagnostic: factory dependencies must be finite
+// diagnostic-also: TS2684 missing factories
 DiBag.begin().add({ mapped: DiBag.mapSync(opaqueMixed, () => 42) }).end();

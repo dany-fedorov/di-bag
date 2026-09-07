@@ -2,6 +2,9 @@ import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import ts from 'typescript';
+import { evaluateWorker, type MatrixCase } from './benchmark-result.ts';
+import { nativeScale } from './native-scale.ts';
+import { nativeLimits, resolveNative } from './native-compiler.ts';
 import {
   compilerProgram,
   describeDiagnostic,
@@ -13,8 +16,6 @@ import {
 import type {
   ScaleCase,
   ScaleForm,
-  TokenScaleCase,
-  TokenScaleForm,
 } from '../tests/compiler.ts';
 
 const forms: ScaleForm[] = ['bulk', 'chained', 'grouped', 'replacement'];
@@ -24,7 +25,7 @@ if (process.argv[2] === '--worker') {
   const count = Number(process.argv[3]);
   const form = forms.find(value => value === process.argv[4]);
   const scenario = scenarios.find(value => value === process.argv[5]);
-  if (!form || !scenario || ![100, 500, 1000].includes(count)) throw new Error('invalid benchmark case');
+  if (process.argv.length !== 6 || !form || !scenario || ![100, 500, 1000].includes(count)) throw new Error('invalid benchmark case');
   const source = scaleSource(count, form, scenario);
   const boundaryLine = scaleBoundaryLine(source, count, form, scenario);
   const start = performance.now();
@@ -46,129 +47,44 @@ if (process.argv[2] === '--worker') {
     diagnosticCount: errors.length, codes, firstDiagnostic: errors[0], instantiations,
   }));
 } else {
-  type MatrixCase = {
-    count: number;
-    form: ScaleForm | TokenScaleForm;
-    scenario: ScaleCase | TokenScaleCase;
-  };
-  type DescribedDiagnostic = ReturnType<typeof describeDiagnostic>;
+  main().catch(error => { console.error(error); process.exitCode = 1; });
+}
 
-  const timeoutMilliseconds = 60_000;
-  const tokenMode = process.argv[2] === '--tokens';
-  if (process.argv.length !== (tokenMode ? 3 : 2)) throw new Error('invalid benchmark arguments');
-  const tokenForms: TokenScaleForm[] = ['bindings', 'modules'];
-  const tokenScenarios: TokenScaleCase[] = ['valid', 'missing-final-token', 'mismatched-invariant-service'];
-  const selectedForms = tokenMode ? tokenForms : forms;
-  const selectedScenarios = tokenMode ? tokenScenarios : scenarios;
-  const failures: Array<MatrixCase & { reason: string }> = [];
+async function main() {
+  const flags = process.argv.slice(2);
+  if (new Set(flags).size !== flags.length || flags.some(flag => flag !== '--native' && flag !== '--tokens')) throw new Error('invalid benchmark arguments');
+  const tokenMode = flags.includes('--tokens'), nativeMode = flags.includes('--native');
+  const selectedForms = tokenMode ? ['bindings', 'modules'] as const : forms;
+  const selectedScenarios = tokenMode ? ['valid', 'missing-final-token', 'mismatched-invariant-service'] as const : scenarios;
+  const failures: Array<MatrixCase & { reason: unknown }> = [];
   const totalCases = 3 * selectedForms.length * selectedScenarios.length;
-  const tokenWorker = resolve(import.meta.dirname, 'check-token-scale.ts');
-
+  const root = process.cwd();
+  const native = nativeMode ? await resolveNative(root) : undefined;
   console.log(JSON.stringify({
-    typescript: ts.version,
-    runner: process.version,
-    bun: spawnSync('bun', ['--version'], { encoding: 'utf8' }).stdout?.trim(),
-    matrix: tokenMode ? 'tokens' : 'named',
-    cases: totalCases,
-    timeoutMilliseconds,
-    note: tokenMode
-      ? 'Each case runs in a fresh Node process; modules means distinct reusable token modules.'
-      : 'Each case runs in a fresh Node process; grouped means reusable registration maps of 50 providers.',
+    typescript: native?.version ?? ts.version, compiler: native, runner: process.version,
+    matrix: tokenMode ? 'tokens' : 'named', cases: totalCases, timeoutMilliseconds: 60000,
+    ...(nativeMode ? { limits: nativeLimits, note: 'Native metrics and sampled Linux child RSS; one supervised executable per case.' }
+      : { bun: spawnSync('bun', ['--version'], { encoding: 'utf8' }).stdout?.trim(),
+        note: tokenMode ? 'Each case runs in a fresh Node process; modules means distinct reusable token modules.'
+          : 'Each case runs in a fresh Node process; grouped means reusable registration maps of 50 providers.' }),
   }));
-
-  for (const count of [100, 500, 1000]) {
-    for (const form of selectedForms) {
-      for (const scenario of selectedScenarios) {
-        const item = { count, form, scenario } as MatrixCase;
-        const workerArgs = tokenMode
-          ? [tokenWorker, form, scenario, String(count)]
-          : [import.meta.filename, '--worker', String(count), form, scenario];
-        const start = performance.now();
-        const child = spawnSync('node', [
-          '--max-old-space-size=3072', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', ...workerArgs,
-        ], { encoding: 'utf8', timeout: timeoutMilliseconds, maxBuffer: 4 * 1024 * 1024 });
-        const processMilliseconds = Math.round(performance.now() - start);
-        const completed = child.status === 0 && child.signal === null && child.error === undefined
-          && child.stderr === '' && child.stdout.trim().length > 0;
-
-        let result: Record<string, unknown> | undefined;
-        let parseError: string | undefined;
-        if (completed) {
-          try {
-            const parsed: unknown = JSON.parse(child.stdout);
-            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-              result = parsed as Record<string, unknown>;
-            } else {
-              parseError = 'worker JSON is not an object';
-            }
-          } catch (error) {
-            parseError = error instanceof Error ? error.message : String(error);
-          }
-        }
-
-        const identityMatches = result !== undefined
-          && result.count === count && result.form === form && result.scenario === scenario;
-        const diagnostics = result?.diagnostics;
-        const hasDiagnostics = Array.isArray(diagnostics) && diagnostics.every(error =>
-          typeof error === 'object' && error !== null
-            && typeof (error as { code?: unknown }).code === 'number'
-            && typeof (error as { message?: unknown }).message === 'string'
-        );
-        const described = hasDiagnostics ? diagnostics as DescribedDiagnostic[] : [];
-        const boundaryLine = result?.boundaryLine;
-        const intended = scenario === 'missing' || scenario === 'missing-final-token'
-          ? 'missing factories'
-          : tokenMode && form === 'bindings'
-            ? 'token dependency has an incompatible or opaque contract'
-            : 'a dependency has the wrong shape';
-        const expectedPath = tokenMode ? tokenScalePath : scalePath;
-        const validCase = scenario === 'valid';
-        const gateAccepted = completed && parseError === undefined && identityMatches && hasDiagnostics
-          && described.every(error => error.file === expectedPath)
-          && (validCase
-            ? described.length === 0
-            : !described.some(error => error.code === 2589)
-              && typeof boundaryLine === 'number'
-              && described.filter(error =>
-                error.line === boundaryLine && error.message.includes(intended)
-              ).length === 1);
-
-        if (result !== undefined) {
-          const reason = gateAccepted ? undefined
-            : !identityMatches ? 'worker case identity mismatch'
-              : !hasDiagnostics ? 'worker diagnostics are missing or malformed'
-                : validCase ? `valid case returned ${described.length} diagnostics`
-                  : described.some(error => error.code === 2589) ? 'compiler returned TS2589'
-                    : described.some(error => error.file !== expectedPath) ? 'diagnostic came from another file'
-                      : 'intended diagnostic did not occur exactly once at the generated boundary';
-          if (reason !== undefined) failures.push({ ...item, reason });
-          console.log(JSON.stringify({
-            ...result,
-            accepted: gateAccepted,
-            processMilliseconds,
-            ...(reason === undefined ? {} : { failureReason: reason }),
-          }));
-          continue;
-        }
-
-        const reason = !completed ? 'worker did not complete cleanly'
-          : `worker returned malformed JSON: ${parseError ?? 'unknown parse failure'}`;
-        failures.push({ ...item, reason });
-        console.log(JSON.stringify({
-          ...item,
-          accepted: false,
-          processMilliseconds,
-          status: child.status,
-          signal: child.signal,
-          error: child.error?.message,
-          stderr: child.stderr,
-          stdout: child.stdout,
-          parseError,
-          failureReason: reason,
-        }));
-      }
+  for (const count of [100, 500, 1000]) for (const form of selectedForms) for (const scenario of selectedScenarios) {
+    const item = { count, form, scenario } as MatrixCase;
+    let row: Record<string, unknown>;
+    if (native) {
+      row = await nativeScale(root, native, item);
+    } else {
+      const workerArgs = tokenMode ? [resolve(root, 'scripts/check-token-scale.ts'), form, scenario, String(count)]
+        : [resolve(root, 'scripts/benchmark-types.ts'), '--worker', String(count), form, scenario];
+      const start = performance.now();
+      const child = spawnSync('node', ['--max-old-space-size=3072', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', ...workerArgs],
+        { encoding: 'utf8', timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
+      row = { ...evaluateWorker(item, { status: child.status, signal: child.signal,
+        ...(child.error ? { error: child.error.message } : {}), stdout: child.stdout, stderr: child.stderr }, tokenMode ? tokenScalePath : scalePath),
+        processMilliseconds: Math.round(performance.now() - start) };
     }
+    if (!row.accepted) failures.push({ ...item, reason: row.failureReason });
+    console.log(JSON.stringify(row));
   }
-  // These are report commands: failed forms are data, while focused tests enforce the gates.
   console.log(JSON.stringify({ cases: totalCases, accepted: totalCases - failures.length, failures }));
 }

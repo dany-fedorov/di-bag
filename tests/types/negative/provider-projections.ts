@@ -28,19 +28,26 @@ DiBag.mapSync(opaque, (value: number) => value);
 // diagnostic: not assignable
 DiBag.mapAsync(opaque, (value: number) => value);
 // diagnostic: factory dependencies must be finite
+// diagnostic-also: TS2684 missing factories
 DiBag.begin().add({ mapped: DiBag.mapSync(opaque, () => 1) }).end();
 // diagnostic: factory dependencies must be finite
+// diagnostic-also: TS2684 missing factories
 DiBag.begin().add({ mapped: DiBag.mapAsync(opaque, () => 1) }).end();
 // diagnostic: factory dependencies must be finite
+// diagnostic-also: TS2684 missing factories
 DiBag.begin().add({ mapped: DiBag.withDisposal(DiBag.mapSync(opaque, () => 1), () => {}) }).end();
 // diagnostic: factory dependencies must be finite
+// diagnostic-also: TS2684 missing factories
 DiBag.begin().add({ mapped: DiBag.mapAsync(DiBag.withDisposal(opaque, () => {}), () => 1) }).end();
 declare const wrapped: NoInfer<Registration>;
 // diagnostic: factory dependencies must be finite
+// diagnostic-also: TS2684 missing factories
 DiBag.begin().add({ mapped: DiBag.mapSync(wrapped, () => 1) }).end();
 // diagnostic: factory dependencies must be finite
+// diagnostic-also: TS2684 missing factories
 DiBag.begin().add({ mapped: DiBag.mapAsync(wrapped, () => 1) }).end();
 // diagnostic: factory dependencies must be finite
+// diagnostic-also: TS2684 missing factories
 DiBag.begin().add({ mapped: DiBag.withDisposal(wrapped, () => {}) }).end();
 // diagnostic: factory dependencies must be finite
 DiBag.module().add({ mapped: DiBag.withDisposal(DiBag.mapAsync(wrapped, () => 1), () => {}) }).exports(['mapped']);

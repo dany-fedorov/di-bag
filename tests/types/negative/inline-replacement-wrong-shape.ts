@@ -1,5 +1,6 @@
 import { DiBag } from '../../../src';
 // diagnostic: wrong shape
+// diagnostic-native-gap: last-token-string
 DiBag.begin()
   .add({
     clock: () => ({

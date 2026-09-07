@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-// diagnostic: Type '({ clock }: { clock: { now(): number; }; }) => { stamp(): number; }' is not assignable to type '(ProviderBase &
+// diagnostic: Type '({ clock }: { clock: { now(): number; }; }) => { stamp(): number; }' is not assignable to type
 DiBag.begin()
   .add({
     clock: () => ({

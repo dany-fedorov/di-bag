@@ -2,7 +2,8 @@ import { expect, test } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import ts from 'typescript';
-import { diagnostics } from './compiler';
+import { diagnostics, describeDiagnostic } from './compiler';
+import { matchDiagnosticMarkers } from './diagnostic-markers';
 
 test('token modules preserve exact cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/token-modules/consumer.ts')).map(error =>
@@ -31,6 +32,11 @@ test('incremental checks preserve forward, replacement and frame contracts', () 
 
 test('builder views preserve exact accepted registration histories', () => {
   expect(diagnostics(resolve(__dirname, 'types/builder-views.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('supported replacement wrappers and reflected methods stay exact and non-any', () => {
+  expect(diagnostics(resolve(__dirname, 'types/replacement-supported.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
@@ -94,15 +100,7 @@ for (const name of readdirSync(resolve(__dirname, 'types/negative')).filter(
     const errors = diagnostics(path);
     expect(errors.length).toBeGreaterThan(0);
     expect(errors.every((error) => error.file?.fileName === path)).toBe(true);
-    for (const [index, marker] of expected.entries()) {
-      const end = expected[index + 1]?.index ?? source.length;
-      const messages = errors
-        .filter(error =>
-          error.start !== undefined && error.start >= marker.index && error.start < end,
-        )
-        .map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))
-        .join('\n');
-      expect(messages).toContain(marker[1]!);
-    }
+    const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
+    expect(matched.missing).toEqual([]); expect(matched.unexpected).toEqual([]);
   });
 }

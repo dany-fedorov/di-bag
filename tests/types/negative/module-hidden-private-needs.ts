@@ -13,4 +13,5 @@ const open = DiBag.module().add({
   hidden: ({ service }: { service: { extra(): boolean } }) => service.extra(),
 });
 // diagnostic: a dependency has the wrong shape
+// diagnostic-native-gap: last-token-string
 open.replace('service', () => ({ read() { return 2; } }));

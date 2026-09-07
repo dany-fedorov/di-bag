@@ -22,4 +22,5 @@ const erasedChoice: Module<{ choice: number }, {}> = choice;
 type Registration = Parameters<typeof DiBag.withMetadata>[0];
 declare const opaqueModule: Module<{ value: unknown }, {}, never, { value: Registration }>;
 // diagnostic: factory dependencies must be finite
+// diagnostic-also: TS2684 missing factories
 DiBag.begin().install(opaqueModule).end();

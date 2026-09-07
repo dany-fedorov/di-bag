@@ -5,9 +5,11 @@ Run from the repository root with Node 24 or later:
 ```sh
 npm run benchmark:types
 npm run benchmark:types -- --tokens
+npm run benchmark:types -- --native
+npm run benchmark:types -- --native --tokens
 ```
 
-The command runs 36 cases, each in a fresh Node process: 100, 500, and 1,000
+The default command runs 36 cases, each in a fresh Node process: 100, 500, and 1,000
 providers in bulk, individually chained, grouped, and replacement-heavy forms,
 each with a valid graph, a missing final dependency, and an incompatible
 intermediate dependency. Groups are reusable registration objects containing
@@ -39,6 +41,9 @@ reported as failed measurements, never as passing type checks. The command
 finishes with an explicit acceptance/failure summary; its exit status indicates
 report completion, not that every measured form passed. Unit tests have no
 performance threshold.
+
+The `--native` variants retain these same cases but supervise the native
+executable directly; their separate measurements and Linux limits appear below.
 
 ## Environment and baseline
 
@@ -127,7 +132,7 @@ also exceeded 180 seconds. All 1,000-call individual-chain workers exited with
 Node stack or changing the generated expression would be a different measured
 configuration; neither is silently substituted here.
 
-## Current incremental-check results
+## Historical incremental-check results (TypeScript 5.9.3)
 
 Recorded on 2026-09-07 against the production declaration boundary at
 `8daad9a`, with TypeScript 5.9.3, Node v24.20.0, and Bun 1.4.0. Workers used
@@ -212,7 +217,7 @@ only the latter boundary determines acceptance.
 | 1000 | modules | missing-final-token | — | 60,235 | — | Timeout (SIGTERM / ETIMEDOUT) |
 | 1000 | modules | mismatched-invariant-service | — | 60,222 | — | Timeout (SIGTERM / ETIMEDOUT) |
 
-## Remaining work
+## Historical 5.9.3 remaining work
 
 The 100-operation depth failure is fixed, and the current 500-call named cases
 complete, but this is not a claim of 1,000-call-chain support. The six original
@@ -232,3 +237,107 @@ union. Because additions reject duplicate keys, that view could accumulate with
 `R & N`, avoiding `Omit` on additions. The two representations would have to stay
 correlated through replacement, with no public generic escape hatch. This has
 not been implemented or measured here.
+
+## Native 7.0.2 original named matrix (2026-09-07)
+
+The original generators and boundaries were retained: no fluent-expression
+rewrite, lower count, widened consumer, or fixture diagnostic-gap exception.
+This run uses native TypeScript 7.0.2 on Linux, Node v24.20.0 as the report
+runner, and the unchanged production source at controller checkpoint `cc9dbdcdc70edb9872177b77cddf9767aa0b67ab`.
+Source SHA-256: `7a9c58960cd7349341e9eaeb348f40a072230df03f5aa0ed67fb328c78b38448`.
+Each raw row also records its generated-source hash and exact compiler identity.
+
+The actual native executable is supervised directly, sequentially, with a
+60,000 ms timeout, 3,072 MiB sampled child-RSS threshold, 4 MiB combined output
+cap, and 20 ms RSS sampling. Wall time includes process supervision; RSS is the
+observed native child peak, not the Node launcher, a whole process tree, or the
+native compiler's separately reported memory metric. No other compiler checks
+were run concurrently. These are single observations, not statistical speed or
+editor-latency guarantees. Native extended metrics remain labeled separately
+and do not replace classic instantiation regression counters.
+
+The named report accepted 28 of 36 cases. The 100/500 replacement wrong-shape
+cases were rejected by the compiler, but failed the intended useful-message
+requirement. All three 1,000-call chained cases timed out; all three 1,000-call
+replacement cases exceeded the RSS threshold. These are failed measurements,
+not evidence of intended type rejection. Raw stdout, stderr, diagnostics,
+exit/signal/termination evidence and summary are retained in
+`.superpowers/sdd/2026-09-07-modern-compilers/task-2-native-named-matrix.jsonl`.
+
+| Providers | Form | Case | Wall ms | Sampled peak MiB | Diagnostics / outcome |
+| ---: | --- | --- | ---: | ---: | --- |
+| 100 | bulk | valid | 108 | 66.6 | 0 |
+| 100 | bulk | missing | 118 | 68.5 | 1: TS2684 |
+| 100 | bulk | wrong-shape | 120 | 68.5 | 1: TS2345 |
+| 100 | chained | valid | 407 | 104.8 | 0 |
+| 100 | chained | missing | 394 | 109.1 | 1: TS2684 |
+| 100 | chained | wrong-shape | 398 | 106.3 | 1: TS2345 |
+| 100 | grouped | valid | 114 | 68.5 | 0 |
+| 100 | grouped | missing | 126 | 69.4 | 1: TS2684 |
+| 100 | grouped | wrong-shape | 135 | 67.1 | 1: TS2345 |
+| 100 | replacement | valid | 897 | 155.4 | 0 |
+| 100 | replacement | missing | 933 | 146.8 | 1: TS2684 |
+| 100 | replacement | wrong-shape | 973 | 146.2 | FAIL: intended message missing (TS2769) |
+| 500 | bulk | valid | 377 | 112.4 | 0 |
+| 500 | bulk | missing | 370 | 109.0 | 1: TS2684 |
+| 500 | bulk | wrong-shape | 370 | 115.0 | 1: TS2345 |
+| 500 | chained | valid | 29776 | 693.5 | 0 |
+| 500 | chained | missing | 29813 | 676.7 | 1: TS2684 |
+| 500 | chained | wrong-shape | 29771 | 641.7 | 1: TS2345 |
+| 500 | grouped | valid | 413 | 115.5 | 0 |
+| 500 | grouped | missing | 439 | 113.7 | 1: TS2684 |
+| 500 | grouped | wrong-shape | 414 | 114.1 | 1: TS2345 |
+| 500 | replacement | valid | 21129 | 1582.3 | 0 |
+| 500 | replacement | missing | 20978 | 1475.4 | 1: TS2684 |
+| 500 | replacement | wrong-shape | 22089 | 1691.2 | FAIL: intended message missing (TS2769) |
+| 1000 | bulk | valid | 1003 | 165.9 | 0 |
+| 1000 | bulk | missing | 1002 | 164.2 | 1: TS2684 |
+| 1000 | bulk | wrong-shape | 1023 | 172.0 | 1: TS2345 |
+| 1000 | chained | valid | 60036 | 559.7 | FAIL: timeout |
+| 1000 | chained | missing | 60038 | 525.1 | FAIL: timeout |
+| 1000 | chained | wrong-shape | 60037 | 549.4 | FAIL: timeout |
+| 1000 | grouped | valid | 1300 | 218.9 | 0 |
+| 1000 | grouped | missing | 1389 | 211.7 | 1: TS2684 |
+| 1000 | grouped | wrong-shape | 1278 | 204.3 | 1: TS2345 |
+| 1000 | replacement | valid | 50407 | 3073.1 | FAIL: memory |
+| 1000 | replacement | missing | 43728 | 3074.0 | FAIL: memory |
+| 1000 | replacement | wrong-shape | 49571 | 3073.0 | FAIL: memory |
+
+## Native 7.0.2 original token matrix (2026-09-07)
+
+This sequential run uses the same source identity, compiler and limits as the
+named run, with all 18 original cases. It accepted 10: all six 100-token cases,
+all three 500-binding cases, and the 1,000-binding missing-final-token case.
+All six 500/1,000-module cases timed out. The 1,000-binding valid and invariant
+mismatch cases returned TS2589, so neither establishes the required graph
+contract. The missing-final-token case passing does not establish general
+1,000-binding support. Raw evidence is retained in
+`.superpowers/sdd/2026-09-07-modern-compilers/task-2-native-token-matrix.jsonl`.
+
+| Tokens | Form | Case | Wall ms | Sampled peak MiB | Diagnostics / outcome |
+| ---: | --- | --- | ---: | ---: | --- |
+| 100 | bindings | valid | 548 | 136.0 | 0 |
+| 100 | bindings | missing-final-token | 520 | 136.8 | 1: TS2684 |
+| 100 | bindings | mismatched-invariant-service | 547 | 137.1 | 2: TS2684, TS2345 |
+| 100 | modules | valid | 2278 | 204.3 | 0 |
+| 100 | modules | missing-final-token | 2290 | 201.5 | 1: TS2684 |
+| 100 | modules | mismatched-invariant-service | 2243 | 204.2 | 1: TS2345 |
+| 500 | bindings | valid | 8421 | 920.3 | 0 |
+| 500 | bindings | missing-final-token | 8079 | 791.4 | 1: TS2684 |
+| 500 | bindings | mismatched-invariant-service | 8399 | 838.0 | 2: TS2684, TS2345 |
+| 500 | modules | valid | 60053 | 893.0 | FAIL: timeout |
+| 500 | modules | missing-final-token | 60056 | 898.3 | FAIL: timeout |
+| 500 | modules | mismatched-invariant-service | 60058 | 894.7 | FAIL: timeout |
+| 1000 | bindings | valid | 33844 | 2803.0 | FAIL: TS2589 |
+| 1000 | bindings | missing-final-token | 33433 | 2553.2 | 1: TS2684 |
+| 1000 | bindings | mismatched-invariant-service | 33911 | 2808.8 | FAIL: TS2589, TS2345 |
+| 1000 | modules | valid | 60074 | 1166.1 | FAIL: timeout |
+| 1000 | modules | missing-final-token | 60072 | 1169.7 | FAIL: timeout |
+| 1000 | modules | mismatched-invariant-service | 60073 | 1172.5 | FAIL: timeout |
+
+Across both native matrices, 38 of 54 cases meet the original acceptance rule.
+The 16 failures remain open compiler-scale/diagnostic-quality work. Separately,
+the source and installed rejection gate records 27 explicitly known source
+message gaps; those declarations never grant matrix acceptance. Classic 6.0.3
+remains primary, and no full new classic large matrix was run to replace the
+labeled 5.9.3 historical tables above.

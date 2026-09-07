@@ -41,7 +41,7 @@ DiBag.begin().add({ name: () => 1 }).bind(token, ({ name }: { name: string }) =>
 bag.fork([token], { [key]: () => ({ value: 2 }) });
 // diagnostic: does not exist
 bag.fork([token], { [otherKey]: () => ({ value: 2, extra: true }) });
-// diagnostic: does not satisfy
+// diagnostic: Property '[key]' is missing
 bag.fork<readonly [typeof token], {}>([token], {});
 declare const selection: readonly [typeof token] | readonly [];
 // diagnostic: finite tuple

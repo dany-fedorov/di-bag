@@ -18,6 +18,7 @@ const constrained = DiBag.module().add({
   hidden: ({ value }: { value: { extra(): boolean } }) => value.extra(),
 }).exports(['value']).rename('value', 'renamed');
 // diagnostic: a dependency has the wrong shape
+// diagnostic-native-gap: last-token-string
 DiBag.begin().install(constrained).replace('renamed', () => ({ read() { return 2; } }));
 const collision = DiBag.module().add({
   value: () => 1,

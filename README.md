@@ -556,7 +556,12 @@ a dependency-free structural example with separate box and payload owners.
 ```sh
 npm install
 npm run check          # strict types, runtime/type/package tests, build
+npm run check:native   # native 7.0.2 source rejection gate; reports known message gaps
+npm run typecheck:native
+npm run build:native
 npm run benchmark:types # isolated Node compiler measurements (Node 24+)
+npm run benchmark:types -- --native # supervised native named matrix (Linux)
+npm run benchmark:types -- --native --tokens # supervised native token matrix (Linux)
 node scripts/check-token-scale.ts bindings valid # one isolated 100-token case
 npm pack --dry-run    # builds and previews the publication contents
 ```
@@ -565,6 +570,17 @@ Tests compile positive usage and each negative fixture independently. Package
 smoke tests build the distribution and exercise Node's CommonJS and ESM loaders
 and TypeScript's emitted-declaration resolution. Distribution files and type
 declarations are emitted to `dist/`.
+
+Classic TypeScript 6.0.3 remains the primary compiler. Native 7.0.2 checks the
+source and installed declaration contracts, but has 27 explicitly recorded
+replacement diagnostic-quality gaps: it rejects those inputs without exposing
+the intended useful message. Native acceptance reports those gaps separately;
+the scale matrices allow no such exceptions. The native development tests and
+supervised reports currently require Linux. Native reports supervise the actual
+Linux executable with a 60-second limit, 3,072 MiB sampled child-RSS threshold,
+and 4 MiB combined output cap. These are bounded observations, not universal
+scale or editor-latency guarantees; failed matrix cases remain unsupported by
+that evidence. See the [modern compiler report](docs/reports/2026-09-07-modern-compilers.md).
 
 Builders accumulate a flat union of registration entries internally; the public
 `Bag<R>` type still takes a registration map. Compile-time acceptance tests cover
