@@ -17,6 +17,14 @@ execution; do not stop for another planning approval between increments.
 - [x] Providers and modules: named open modules, private bindings, checked exports and overrides are complete (`2026-09-06-named-modules.md`; evidence in `docs/reports/2026-09-06-named-modules.md`). Immutable provider transformations are complete through final correction `6874760`. Typed tokens are complete through `75bc1f9`: all tasks, broad review, one consolidated fix and scoped re-review finished. One empty-selection efficiency Minor is explicitly carried into the next runtime increment below.
 - [x] Box integration: adapters use real packaged libraries, typed acquisition frames and plain service values; final shared union-type correction `6874760` and scoped review are complete. Evidence: `docs/reports/2026-09-06-provider-transformations.md`.
 - [x] Acquisition foundation: `2026-09-06-acquisition-foundations.md` completed through `fd83085`; task review and final scoped review are clean. Evidence: `docs/reports/2026-09-06-acquisition-foundations.md`, including the explicit structural-thenable conversion migration.
+- [ ] Native-Promise classification correction: whole-branch review of `48752ec`
+  reproduced premature disposal when a genuine pending Promise has a
+  non-callable own `then`. The shared source/projection classifier treats it as
+  a synchronous value. Correction must preserve ordinary `{then: undefined}`
+  services, cross-realm observation, exact exposed identity and original
+  constructor/species errors. Runtime-capability versus explicit acquisition-mode
+  boundaries are under investigation; no heuristic or public API change is
+  adopted. This is an open ownership defect, not a compiler diagnostic gap.
 - [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation. Also restore graph reuse for explicit `fork([], overrides)`, the tracked Minor from the token final review; ordinary `fork()` still reuses its graph.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
@@ -83,7 +91,10 @@ strict classic/native builds, both installed emitter/module-mode routes, physica
 declaration consumers and all4examples. Independent committed-state checks cover
 the harness, inference and80native source rows; all54matrix identities, hashes,
 raw diagnostics and strict outcomes are validated. The full compiler requirement
-and enterprise program remain open; whole-branch review is next. Evidence:
+and enterprise program remain open. Whole-branch review of `48752ec` requires
+the native-Promise classification correction above; it also requests a direct
+monitor-failure termination test in the native harness. The single consolidated
+fix wave is in progress, and whole-branch acceptance/push is pending. Evidence:
 `docs/reports/2026-09-07-modern-compilers.md`.
 
 ## Current evidence
