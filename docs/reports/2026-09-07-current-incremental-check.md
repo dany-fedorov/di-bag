@@ -1,5 +1,10 @@
 # Current incremental checker evidence
 
+Historical investigation at the pin below. The refined checker was subsequently
+implemented and reviewed in `d6c2710`; see
+[production integration evidence](2026-09-07-incremental-checks.md). The observations
+and unproved boundaries below describe this earlier probe, not current completion.
+
 A signature-only candidate reduces repeated relationship checking on the current
 typed-token implementation. It is preliminary T2 evidence, not adopted production
 code or completion of the enterprise compiler-performance requirements.

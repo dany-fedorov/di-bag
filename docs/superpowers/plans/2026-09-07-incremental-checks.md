@@ -281,9 +281,16 @@ execution. Commit `perf: validate changed dependency relationships incrementally
 
 ### Task 2: Publish bounded current large-graph evidence without hiding failures
 
+**Amendment:** Close the demonstrated root-builder view erasure before complete
+matrices. This replaces the original no-production-change restriction only for
+the existing phantom member; checker algorithms and method signatures stay fixed.
+
 **Files:** Modify `scripts/benchmark-types.ts`, `scripts/check-token-scale.ts`,
 `tests/compiler.ts`, `docs/benchmarks/typescript.md`,
-`docs/reports/2026-09-07-incremental-checks.md`; create `tests/benchmark-types.test.ts`.
+`docs/reports/2026-09-07-incremental-checks.md`, `src/di-bag.ts`,
+`tests/types.test.ts`, `tests/box-package.test.ts`,
+`docs/migrations/0.1-to-enterprise.md`; create `tests/benchmark-types.test.ts`,
+`tests/types/builder-views.ts`, `tests/types/negative/builder-views.ts`.
 
 **Interfaces:** Consume Task1's compilerProgram and worker instantiation field.
 Keep `npm run benchmark:types` as the original 36 named cases. Add the explicit
@@ -291,6 +298,85 @@ Keep `npm run benchmark:types` as the original 36 named cases. Add the explicit
 valid/missing-final-token/mismatched-invariant-service. Keep old token worker
 arguments `form scenario`; permit an optional third count argument defaulting to
 100, validated against exactly 100,500,1000. No production algorithm changes.
+Root Builder's phantom contract becomes invariant in readonly [E, C]; no other
+class marker changes. Use existing source/installed fixture routing.
+
+- [ ] **Prerequisite A: Add view-contract fixtures and record genuine RED.**
+
+The negative fixture imports DiBag and Bag from '../../../src'. The first two
+assignments currently compile; RED must show their missing expected diagnostics,
+not an unrelated syntax error:
+
+```ts
+const empty = DiBag.begin();
+const actual = empty.add({ value: () => 1,
+  read: ({ value }: { value: number }) => value.toFixed() });
+const erasedAdd = empty.add<{ value: () => number; read: () => string }>;
+const widenedAdd = empty.add<{ value: () => number | string;
+  read: (deps: { value: number }) => string }>;
+// diagnostic: not assignable
+const erased: ReturnType<typeof erasedAdd> = actual;
+// diagnostic: not assignable
+const widened: ReturnType<typeof widenedAdd> = actual;
+// Already-rejecting neighborhood controls, not new bug claims.
+// diagnostic: not assignable
+const erasedBag: Bag<{ value: () => number | string; read: () => string }> = actual.end();
+const emptyModule = DiBag.module();
+const actualModule = emptyModule.add({ value: () => 1,
+  read: ({ value }: { value: number }) => value.toFixed() });
+const erasedModuleAdd = emptyModule.add<{ value: () => number; read: () => string }>;
+// diagnostic: not assignable
+const erasedModule: ReturnType<typeof erasedModuleAdd> = actualModule;
+```
+
+The positive fixture imports DiBag from '../../src' and Assert/Equal from './assert'. Preserve
+exact contracts, identity and equivalent histories:
+
+```ts
+const registrations = { value: () => 1,
+  read: ({ value }: { value: number }) => value.toFixed() };
+const original = DiBag.begin().add(registrations);
+const same: typeof original = DiBag.begin().add(registrations);
+const individual: typeof original = DiBag.begin()
+  .add({ value: registrations.value }).add({ read: registrations.read });
+const identity = <B>(builder: B): B => builder;
+const retained: typeof original = identity(original);
+const result = retained.add({ extra: async () => true }).end();
+const text = result.resolve('read');
+const promised = result.resolve('extra');
+type Exact = [Assert<Equal<typeof text, string>>,
+  Assert<Equal<typeof promised, Promise<boolean>>>];
+void [same, individual];
+```
+
+Register the positive fixture in tests/types.test.ts with the same zero-diagnostic
+expectation as neighboring positives. Negative discovery is automatic. Add both
+to the actual installed CJS/ESM list in tests/box-package.test.ts; its redirects
+already support these imports. Run
+`bun test tests/types.test.ts --test-name-pattern builder` before production
+changes and retain the missing-diagnostic failure.
+
+- [ ] **Prerequisite B: Integrate the one-member guard and verify compatibility.**
+
+In root Builder only, replace
+`declare readonly [constraintInvariant]: (value: C) => C;` with:
+
+```ts
+// Preserve accepted registration history and module constraints through views.
+declare readonly [constraintInvariant]:
+  (value: readonly [E, C]) => readonly [E, C];
+```
+
+Do not change Bag's same-named member, ModuleBuilder, the existing symbol,
+runtime code, overloads or checker helpers. No new exports without actual
+portability RED and a controller ruling. Run the focused builder fixture GREEN,
+then `bun test tests/types.test.ts tests/box-package.test.ts tests/token-package.test.ts tests/incremental-scale.test.ts`.
+Retain existing contracts and ceilings. If an equivalent-contract assignment or
+supported fixture fails, report the exact failure before broadening the correction.
+Document the cast-free counterexample, its pre-existing nature and stricter
+annotations in docs/migrations/0.1-to-enterprise.md and the incremental report.
+Recommend inferred/exact builder types, not casts. Record actual new compiler-work
+counts; older counts remain historical. No runtime implementation change is needed.
 
 - [ ] **Step 1: Add report-boundary and CLI tests.**
 
@@ -365,7 +451,13 @@ reduced counts or erased types may silently replace a requested case. A remainin
 failure drives the next required T2 change, not a completion claim. Record source,
 emitted/installed and full Task1 evidence plus this task's covering runs. Run full
 `npm run check` once after the final harness changes, all examples and diffcheck.
-Commit `test: measure current named and token compiler scaling`.
+Commit the guard/tests/migration as
+`fix(types): retain builder history through structural views`, and the harness/
+matrix report as `test: measure current named and token compiler scaling`.
+Both belong to this task's recorded BASE..HEAD review; do not drop either.
+Retain existing partial harness work while integrating the prerequisite, but
+run the complete matrices on the corrected source. Do not stage controller-owned
+files. One full check after final code changes covers this task, not one per commit.
 
 ## Coverage self-review and handoff
 

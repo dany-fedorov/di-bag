@@ -145,3 +145,33 @@ Its two deliverables are independently reviewable: production checker integratio
 with regression gates, then the larger reproducible measurement/report extension.
 There is no new user API, callback-context erasure, implicit await, runtime policy,
 unproved capability completion, placeholder or waived enterprise requirement.
+
+## Accepted-history guard amendment
+
+Controller investigation during Task 2 found a cast-free root-builder view that
+erases consumer requirements and permits an incompatible replacement. It compiles
+without diagnostics and fails at runtime on both the pre-incremental and current
+production pins. Evidence: `docs/reports/2026-09-07-builder-view-investigation.md`.
+This violates the registration-view requirement although the runtime counterexample
+is not introduced by incremental checking.
+
+Before final scale matrices, extend root Builder's existing emitted phantom
+member from C alone to invariant readonly [E, C]. The focused virtual candidate
+rejects erased-needs and inconsistent widened-output assignments. Neighboring
+Bag and ModuleBuilder controls already reject and need no change. This is the
+only additional production declaration allowed by this amendment. Preserve
+runtime bodies, method inputs/returns, five checker operands and work ceilings.
+No new symbol, export, carrier representation or full-check fallback is needed.
+
+Alternatives are retaining the unsound view (rejected), or a selective new
+dependency-only invariant (more state and proof burden without evidence it is
+needed). Reusing the existing phantom member is selected. The cost is stricter
+builder annotations, including some formerly assignable widened views. Document
+migration to exact inferred types; prove equivalent-contract builders still
+assign regardless of grouped versus individual construction.
+
+Task 2 gains this bounded prerequisite with genuine negative RED, positive
+identity/equivalent-builder controls, neighboring bag/module negatives, source
+and actual installed CJS/ESM contracts, existing inference/metadata/ownership
+checks and unchanged compiler-work gates. Run complete named/token matrices after
+integration. Interrupted partial matrix output is not completion evidence.

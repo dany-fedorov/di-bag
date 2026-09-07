@@ -54,8 +54,10 @@ The internal token foundation is complete at `1048e29`, with clean task review;
 public token/module composition is complete at `d58937c`, with task review
 Approved and one bulk-fork efficiency follow-up. Final package/scale integration
 at `8088852`/`887d417` and broad review correction at `75bc1f9` are complete.
-The incremental-check candidate is documented
-in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
+The initial incremental-check investigation is historical. The refined checker
+is now implemented at `d6c2710` under `2026-09-07-incremental-checks.md`, with clean
+Task 1 review and independent verification. Its larger-matrix Task 2 and broad
+final review remain in progress; the complete T2 requirement is still open.
 
 ## Current evidence
 
@@ -176,9 +178,24 @@ in `docs/reports/2026-09-06-incremental-check-investigation.md`, not adopted.
   `docs/reports/2026-09-07-current-incremental-check.md` and
   `docs/reports/2026-09-07-current-inline-inference.md`. A refined incremental checker
   preserves all 17 focused negative boundaries and completes one 500-add fluent
-  source in 11,953 ms / 1,752 MiB RSS. It is not adopted; 500 negatives, 1,000 real
-  calls, large C/G, emitted/installed integration and full checks remain. Both
+  source in 11,953 ms / 1,752 MiB RSS. This was unadopted investigation evidence;
+  production integration follows below. Both
   inline inference limitations reproduce; a preliminary-context fork candidate
   retains focused source/emitted contracts, while the nested snapshot case remains
-  unresolved. Next execution increment is the dedicated T2 plan and implementation;
-  lifetimes/startup and all other acceptance rows remain required afterward.
+  unresolved. Lifetimes/startup and all other acceptance rows remain required.
+- Incremental checker Task 1 is implemented at `d6c2710`: five builder operations
+  validate incoming and cross-boundary relationships while preserving runtime,
+  inference inputs, module constraints and final closure. Real 100-case compiler
+  work falls from 3,749,643 to 838,875 named instantiations and from 10,296,781 to
+  1,361,372 token instantiations. Full check: 308 tests / 1,964 assertions, strict
+  builds and all four examples. Controller committed-state verification: 32 tests /
+  361 assertions covering work gates and actual installed declarations, builds
+  and all examples. Task review is clean, with no findings. Checkpoint `aff1579`
+  was non-force pushed and its exact remote SHA verified. Evidence:
+  `docs/reports/2026-09-07-incremental-checks.md`. Task 2 is measuring original
+  larger graphs; it has not yet completed, and no large-case failure is waived.
+- A virtual conditional-arity val-box overload was rejected after reproducing
+  the inline failure in both source and emitted declarations. It does not infer
+  the exact nested snapshot return. Existing negatives still reject; no overload
+  was adopted. The current-inline-inference report records the probe and the
+  need for a deliberate inference/validation architecture review.
