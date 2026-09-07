@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagPluginError, DiBagStartupError } from '../src';
+import { DiBag, DiBagCleanupError, DiBagPluginError, DiBagStartupError } from '../src';
+import type { LifecycleEvent } from '../src';
 import { deferred } from './helpers';
 
 test('plugin validation retains raw source ownership on success and failure', async () => {
@@ -287,4 +288,86 @@ test('plugin observers retain the canonical acquisition and cleanup events', asy
   expect(events.filter(kind => kind === 'acquisition-ready')).toHaveLength(1);
   expect(events.filter(kind => kind === 'cleanup-started')).toHaveLength(1);
   expect(events.filter(kind => kind === 'cleanup-completed')).toHaveLength(1);
+});
+
+test('native plugin readiness waits for source validation', async () => {
+  const gate = deferred<{ id: number }>();
+  let validated = 0;
+  const plugin = DiBag.fromPlugin([], {
+    apiVersion: 1, create: () => gate.promise,
+  }, {
+    acquisition: 'native',
+    validate: (value): value is { id: number } => {
+      validated++;
+      return typeof value === 'object' && value !== null && 'id' in value;
+    },
+  });
+  const starting = DiBag.begin().add({ plugin }).start(['plugin']);
+  let ready = false;
+  void starting.then(() => { ready = true; });
+  await Promise.resolve();
+  expect(validated).toBe(0);
+  expect(ready).toBe(false);
+  gate.resolve({ id: 1 });
+  const bag = await starting;
+  expect(validated).toBe(1);
+  expect(ready).toBe(true);
+  await bag.close();
+});
+
+test('plugin close waits for accepted disposer cleanup exactly once', async () => {
+  const gate = deferred<void>();
+  let disposed = 0;
+  const plugin = DiBag.fromPlugin([], {
+    apiVersion: 1,
+    create: () => 1,
+    dispose: async () => { disposed++; await gate.promise; },
+  }, { acquisition: 'raw', validate: (value): value is number => typeof value === 'number' });
+  const bag = DiBag.begin().add({ plugin }).end();
+  expect(bag.resolve('plugin')).toBe(1);
+  const closing = bag.close();
+  let closed = false;
+  void closing.then(() => { closed = true; });
+  await Promise.resolve(); await Promise.resolve();
+  expect(disposed).toBe(1);
+  expect(closed).toBe(false);
+  gate.resolve();
+  await closing;
+  expect(disposed).toBe(1);
+});
+
+test('plugin validation errors survive one failed retirement cleanup', async () => {
+  const validationFailure = new Error('validation failure');
+  const cleanupFailure = new Error('cleanup failure');
+  let disposed = 0;
+  const plugin = DiBag.fromPlugin([], {
+    apiVersion: 1,
+    create: () => 1,
+    dispose: () => { disposed++; throw cleanupFailure; },
+  }, { acquisition: 'raw', validate: (_value: unknown): _value is number => { throw validationFailure; } });
+  const bag = DiBag.begin().add({ plugin }).end();
+  expect(() => bag.resolve('plugin')).toThrow(validationFailure);
+  let closeFailure: unknown;
+  try { await bag.close(); } catch (error) { closeFailure = error; }
+  expect(closeFailure).toBeInstanceOf(DiBagCleanupError);
+  expect((closeFailure as DiBagCleanupError).failures.map(failure => failure.error)).toEqual([cleanupFailure]);
+  expect(disposed).toBe(1);
+});
+
+test('plugin observer lifecycle events identify its canonical acquisition', async () => {
+  const events: LifecycleEvent[] = [];
+  const observed = DiBag.observe({ onEvent(event) { events.push(event); }, onError() {} });
+  const plugin = observed.fromPlugin([], {
+    apiVersion: 1, create: () => ({ id: 1 }), dispose: () => {},
+  }, { acquisition: 'raw', validate: (value): value is { id: number } => typeof value === 'object' && value !== null });
+  const bag = observed.begin().add({ plugin }).end();
+  bag.resolve('plugin');
+  const inspection = bag.inspect('plugin');
+  const id = inspection.acquisitions[0]!.acquisitionId;
+  await bag.close();
+  await Promise.resolve(); await Promise.resolve();
+  const lifecycle = events.filter(event => 'acquisitionId' in event);
+  expect(lifecycle.map(event => event.acquisitionId)).toEqual([id, id, id, id]);
+  expect(lifecycle.map(event => event.bindingId)).toEqual([inspection.bindingId, inspection.bindingId, inspection.bindingId, inspection.bindingId]);
+  expect(lifecycle.map(event => event.kind)).toEqual(['acquisition-started', 'acquisition-ready', 'cleanup-started', 'cleanup-completed']);
 });
