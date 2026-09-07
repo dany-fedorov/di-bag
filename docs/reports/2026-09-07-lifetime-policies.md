@@ -78,3 +78,38 @@ diagnostic allowance was added to address these failures.
 Runtime lifetime acquisition, cross-owner disposal/cycle rules, public helper
 publication, and physical installed lifetime-package evidence remain later
 checkpoints.
+
+## Review and independent checks
+
+Task 1 committed as `9b869a3`. Its task review approved both specification
+compliance and quality with no findings. Independent committed-code verification
+passed seven focused declaration/type tests (54 assertions), including the
+virtual-source-erased consumer. A separate repeat of both actual emitters and
+copied source-absent consumers produced zero diagnostics and the declaration
+sizes above. These are early declaration checks, not installed lifetime runtime
+coverage; the existing package routes continue to pass.
+
+## Decisions and costs
+
+1. Implement policies before scope options. This avoids ambiguous root context;
+   sharing and child overrides require a later integration pass.
+2. Validate captivity at end/fork. This limits repeated graph traversal but
+   reports lifetime errors at graph completion.
+3. Each root establishes its own capture boundary. Strict A can consume an
+   explicitly capturing root B; separate strict roots still validate independently.
+4. Retain lifetime topology only where current captive checks need it. Default
+   modules stay lightweight; partial sharing must revisit this elision rule.
+5. Outer lifetime wrappers replace policy, not ownership stages. Wrapper order
+   matters for caching, while disposer/value pairings remain unchanged.
+6. Require known lifetime literals and snapshot supported own options. Dynamic
+   choices require branching; inherited option declarations reject.
+7. Keep the helper internal until routing works. This costs an intermediate
+   internal-only checkpoint without a public lifetime API.
+8. Preserve the approved checkout and evidence workspaces. There is no extra
+   worktree isolation; one writer and explicit staging protect user state.
+9. Guard active transient construction, not ready historical ancestry. Later
+   lazy unrolling is supported; actual ID cycles and capture rules still apply.
+10. Export `Builder` type-only after concrete emitter failures. Its name becomes
+    a public type compatibility commitment, without exposing its constructor.
+11. Export `ModulePublicProviders` type-only after installed producer TS2883.
+    This preserves inference at the cost of another maintained public type name.

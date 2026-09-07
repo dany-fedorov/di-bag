@@ -113,6 +113,10 @@ only acquisition IDs. Synchronous public reentrancy also needs a construction
 stack; two independent pending transient calls are not a cycle. Preserve the
 existing acquisition-ID graph checks for cached/mixed and post-await cycles.
 Failed/retired ancestors must not create false cycles on legitimate retries.
+A ready transient's retained dependency proxy may start a fresh transient later:
+that is a new acquisition, not recursive construction merely because the binding
+name repeats. Only creating/pending ancestors participate in the binding-path
+guard; the acquisition-ID cycle check and retained capture boundary still apply.
 
 Retirement abandons unsuccessful incoming edges across all family owners but
 retains outgoing edges and accepted stages until rollback finishes. Never

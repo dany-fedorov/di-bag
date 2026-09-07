@@ -25,8 +25,8 @@
 
 ## File boundaries
 
-Create `src/lifetime-types.ts` for policy vocabulary and static lexical traversal;
-`src/lifetime.ts` for the authenticated non-evaluating wrapper. Keep provider
+Create `src/lifetime-types.ts` for static lexical traversal;
+`src/lifetime.ts` for policy vocabulary and the authenticated non-evaluating wrapper. Keep provider
 operations/normalization in `src/provider-operations.ts`; do not create another
 registry. Keep acquisition routing in `src/acquisition.ts` and family plumbing
 in `src/runtime.ts`. If acquisition bookkeeping needs a focused helper, use
@@ -47,7 +47,7 @@ in `src/runtime.ts`. If acquisition bookkeeping needs a focused helper, use
 - Consumes existing `ProviderGraph`, `ReboundGraph`, `ModuleConstraints`, `PublicProviders`, retained constraints and flat builder entries.
 - Do not add `withLifetime` to Facade or root runtime exports in this task. Source contract fixtures import the helper from `../../src/lifetime`; Task 2 changes that import to the public facade. No real lifetime acquisition assertion belongs in this task.
 
-- [ ] **Step 1: Write declaration and type RED cases, then run them.**
+- [x] **Step 1: Write declaration and type RED cases, then run them.**
 
 Start the runtime declaration test with real descriptions, not mocked providers:
 
@@ -113,7 +113,7 @@ helper RED separately from the later missing-validation RED before adding checks
 Run `bun test tests/lifetime-declarations.test.ts` and
 `bun test tests/types.test.ts -t 'lifetime|type rejection: lifetimes'`.
 
-- [ ] **Step 2: Implement immutable policy and lossless transformations.**
+- [x] **Step 2: Implement immutable policy and lossless transformations.**
 
 Use the existing authentication registry and this runtime shape:
 
@@ -135,7 +135,7 @@ opaque contracts and distribution through NoInfer. Literal lifetime validation
 rejects unknown/union policy; capture options on non-root reject regardless of
 value. A root capture option inferred as boolean does not prove permissiveness.
 
-- [ ] **Step 3: Implement lexical captive traversal and graph admission.**
+- [x] **Step 3: Implement lexical captive traversal and graph admission.**
 
 Create one traversal in `lifetime-types.ts`, not copies for modules/tokens:
 
@@ -171,7 +171,7 @@ opaque and default annotation erasure; exact raw/native acquired values and
 frame/metadata tuples. Include valid scoped/transient-only cyclic graphs: runtime
 resolution detects cycles, static lifetime validation must terminate.
 
-- [ ] **Step 4: Verify, record representation cost and commit.**
+- [x] **Step 4: Verify, record representation cost and commit.**
 
 Run focused tests until green, then `npm run check` once and
 `npm run typecheck:native`, `npm run check:native`. No new allowance is acceptable
@@ -189,7 +189,7 @@ runtime/public lifetimes are not yet shipped. Self-review and commit with
 ### Task 2: Lifetime acquisition routing and public facade
 
 **Files:**
-- Modify: `src/acquisition.ts`, `src/runtime.ts`, `src/di-bag.ts`, `src/index.ts`, `tests/types/lifetimes.ts`, `tests/types/lifetimes-consumer.ts`, `tests/types/negative/lifetimes.ts`, `docs/reports/2026-09-07-lifetime-policies.md`.
+- Modify: `src/acquisition.ts`, `src/runtime.ts`, `src/di-bag.ts`, `src/index.ts`, `src/lifetime.ts` (public documentation), `tests/types/lifetimes.ts`, `tests/types/lifetimes-consumer.ts`, `tests/types/negative/lifetimes.ts`, `docs/reports/2026-09-07-lifetime-policies.md`.
 - Create: `tests/lifetimes.test.ts`; optionally `src/acquisition-family.ts` for the focused index/ancestry responsibility described above.
 
 **Interfaces:**
@@ -230,6 +230,11 @@ classification and identity, cached root retry, cross-owner failed incoming
 edges, sync public transient reentrancy, pure/mixed post-await cycles, independent
 pending transient calls, late dependencies during closing and cleanup failures.
 Use existing deferred helpers and explicit releases, not sleeps/time races.
+Include a ready transient returning a method that uses its dependency proxy to
+create another instance of that same transient on a later call. The later call
+must succeed once per invocation; creating/pending ancestry is guarded, while
+ready or retired ancestors alone are not recursive construction. Keep lifetime
+capture boundaries on that proxy even after the source becomes ready.
 
 Unchecked runtime captive fixtures bypass compile checks only at a named JS
 boundary. Exercise direct/transient paths, cached scoped state and post-await
@@ -262,6 +267,9 @@ reads retain their existing close permission in the correct owner.
 
 Publish the facade after implementing routing and switch the type fixtures to
 use that public member. Add only concrete type exports required by emission.
+Update the wrapper's internal-only documentation to its now-implemented public
+semantics. `Lifetime` and `LifetimePolicy` are declared in `src/lifetime.ts`;
+normalization already exposes `lifetime.kind` and `lifetime.captureScoped`.
 
 - [ ] **Step 3: Verify and commit runtime/public integration.**
 
@@ -290,6 +298,14 @@ compile the byte-identical consumer with classic and native compilers against
 CTS/MTS output. Match every negative region/useful diagnostic; do not broaden gap
 allowances. If emission requires a name, export that exact helper type instead
 of annotating the producer to hide an inference failure.
+In `tests/native-package.test.ts`, add `lifetimes` to the feature list, the
+classic-emitter conditional (currently acquisition-mode/scopes), and the
+downstream import rewrite. Merely adding it to the list would otherwise run the
+native emitter in both labeled lifetime routes. If contract fixtures use new
+internal type imports, route only those names to installed `dist/*.js` beside
+the existing provider/token/module-type routing; do not invent a public subpath.
+`scripts/check-native-contracts.ts` already discovers source fixtures recursively;
+leave it unchanged unless an actual new routing requirement is demonstrated.
 
 - [ ] **Step 2: Execute ownership through actual installed archives.**
 
