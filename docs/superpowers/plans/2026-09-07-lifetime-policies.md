@@ -290,7 +290,7 @@ and commit `feat: add root and transient lifetime ownership`.
 - Consumes actual public lifetime facade and inferred `lifetimes.ts` producer / unchanged `lifetimes-consumer.ts` consumer.
 - Reuses the existing classic/native physical producer lanes and Node/Bun CJS/ESM archived execution routes; keep successful native diagnostic logging opt-in.
 
-- [ ] **Step 1: Add the new contracts to existing physical package routes.**
+- [x] **Step 1: Add the new contracts to existing physical package routes.**
 
 Add positive and self-contained negative lifetime fixtures to the existing shared
 contract list. Use both actual emitters, physically remove producer source, then
@@ -307,7 +307,7 @@ the existing provider/token/module-type routing; do not invent a public subpath.
 `scripts/check-native-contracts.ts` already discovers source fixtures recursively;
 leave it unchanged unless an actual new routing requirement is demonstrated.
 
-- [ ] **Step 2: Execute ownership through actual installed archives.**
+- [x] **Step 2: Execute ownership through actual installed archives.**
 
 Extend the existing installed script with root/scoped/transient services and
 child-first root construction. Resolve two child transients, close the child,
@@ -327,7 +327,7 @@ Run through all eight existing Node/Bun x CJS/ESM x emitter routes. Assert exit,
 signal, termination, stderr and exact output; archive installation alone is not
 runtime evidence. Preserve all earlier scope, raw/native and box contracts.
 
-- [ ] **Step 3: Document only shipped semantics and verify the final checkpoint.**
+- [x] **Step 3: Document only shipped semantics and verify the final checkpoint.**
 
 README explains default scoped, root-family cache, per-resolution transient,
 explicit ownership, root-context capture, completion-time type errors, independent
@@ -343,3 +343,14 @@ fabricated feature RED when adding coverage for an already working route.
 Commit `test: prove installed lifetime contracts and ownership`. Review the
 integrated branch, resolve findings in one final wave if needed, push only the
 reviewed exact commit to `feat/v0.1`, and verify the remote SHA. Preserve workspaces.
+
+## Completion evidence
+
+All three tasks and the integrated branch review are complete. Runtime commit
+`9aa95df` and package commit `f55f5a1` have clean task reviews; final integrated
+review of `94d9e52..f55f5a1` has no findings. Independent committed-state full
+verification passes 500 tests / 2,567 assertions, classic/native checks and
+builds, all four examples and the actual installed native archive lane. The
+lifetime report records exact evidence and twelve implementation decisions.
+Selected sharing, child overrides, startup and the larger enterprise program
+remain open. No merge, publication or workspace cleanup is implied.

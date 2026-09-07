@@ -195,7 +195,7 @@ measurement, public aliases shorten the emitter's inferred spelling while adding
 16 maintained public type names; that compatibility surface is the principal
 representation cost.
 
-The final integrated checkpoint ran after the implementation and harness
+The Task 3 implementation checkpoint ran after the implementation and harness
 self-review. `npm run check` passed the classic typecheck, all 500 tests (2,567
 assertions across 29 files in 384.00 seconds), and the classic build. Native
 typecheck and native build both exited 0. The native source audit accepted all
@@ -205,6 +205,36 @@ modules, tokens, box-adapters and WBS examples all exited 0 with their expected
 output. A later README-only correction clarified that lifetime selects cache and
 attempt ownership while `withDisposal` transfers cleanup responsibility; it did
 not change the verified implementation or package harness.
+
+## Final review and independent acceptance
+
+Task 3 is committed as `f55f5a1`; its specification and quality review is
+approved with no findings. The final integrated review of `94d9e52..f55f5a1`
+also found no Critical, Important or Minor issue. It covered the active runtime,
+type integration, lifetime regressions, package boundaries and binding specs;
+it does not claim exhaustive reinspection of every older historical snapshot.
+No correction wave or deferred review finding remains for this increment.
+
+Independent verification on the committed implementation passed:
+
+- `npm run check`: classic typecheck/build, 500 tests, zero failures and 2,567
+  assertions across 29 files (447.76 seconds).
+- The native-emitted installed archive lane: 168 assertions, including all four
+  Node/Bun CJS/ESM executions and both source-erased declaration consumers.
+- Native typecheck and build, then the 89-file source audit: 407 expected
+  diagnostics, 380 direct matches, 27 unchanged unrelated diagnostic-quality
+  gaps, zero unexpected diagnostics and zero failures. Lifetime markers match
+  47/47 directly, with zero lifetime gaps.
+- All four examples (`modules`, `tokens`, `box-adapters`, `wbs-scope`) and
+  `git diff --check`: exit 0.
+
+No implementation or test change followed these gates. Final edits record
+evidence and completed plan steps only. Both related repositories were checked
+clean and remote-matching: sas-box `b895f9d` and val-box `07506fc` on their
+`feat/enterprise-foundations` branches; lifetimes required no further box change.
+This finishes the policy/captive-check increment, not selected sharing, child
+overrides, startup, context/cancellation or the enterprise program. The feature
+checkout and its evidence workspace are retained; no package was published.
 
 ## Decisions and costs
 
