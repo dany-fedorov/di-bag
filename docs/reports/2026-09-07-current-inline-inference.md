@@ -53,6 +53,48 @@ erasure remains fixed. This probe uses the structural capability fixture, not a
 freshly installed real box; completed real-package integration is separate.
 No new val candidate was tried, and the earlier unsafe sketches remain rejected.
 
+### Follow-up: conditional-arity validation (rejected)
+
+A separate probe pinned to `33f8a8e0500218e34c5c1996c870ae1966932126` reproduced
+the same baseline before testing one new hypothesis: move validation off the
+contextual first argument into a conditional rest tuple on a plain-factory
+overload. It checked the actual inferred factory through `ProviderOutput<F>`,
+without an independently selectable output type or a contextual `any`:
+
+```ts
+export function fromValBox<F extends (this: void, deps: never) => unknown>(
+  registration: F & ((this: void, deps: never) => unknown),
+  ...validation: unknown extends Valid<ProviderOutput<NoInfer<F>>>
+    ? [] : [error: never]
+): Adapted<F, ProviderOutput<F>, 'required'>;
+```
+
+This does **not** solve the inference ordering problem. Inline adaptation still
+fails with TS2345, the second adaptation now also fails, and five exact assertions
+fail in both source and emitted consumers. Error recovery selects the generic
+factory constraint, not the actual nested return. Both programs retain the 35
+existing negative controls and rejection at all 11 additional adversarial call
+boundaries. The emitted receiver-control diagnostic also loses the requested
+capability phrase, although the call remains rejected.
+
+Both baseline and candidate children exited normally with visible JSON using
+TypeScript 5.9.3, a 10-second timeout and a 512 MiB old-space cap. Script:
+`/tmp/di-bag-val-arity-probe.cjs`; raw candidate result:
+`/tmp/di-bag-val-arity-output.json`. Reproduce with `set -o pipefail` and:
+
+```sh
+git archive 33f8a8e0500218e34c5c1996c870ae1966932126 \
+  src tests/types/box-adapters.ts tests/types/negative/box-adapters.ts \
+  tests/types/assert.ts | timeout 10s node --max-old-space-size=512 \
+  /tmp/di-bag-val-arity-probe.cjs arity_gate
+```
+
+Run `baseline` instead of `arity_gate` for the unchanged control.
+This was a virtual source edit only; no overload is adopted. Conditional arity
+is not a reliable substitute for an inference boundary here. Further work needs
+a deliberate inference/validation architecture review, not another variation of
+the rejected capture, contextual-any or arity sketches.
+
 ## Reproduction and scope
 
 Full local evidence and exact commands:

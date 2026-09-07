@@ -60,3 +60,10 @@ inference remains covered by its unchanged fixture.
   1,964 assertions, and the declaration build completed successfully.
 - All four runnable examples completed successfully: WBS ownership, named
   modules, box adapters and token modules. `git diff --check` was clean.
+- Controller verification of committed `d6c2710a6f953fdb66e1d829fb2ea08c683fb338`:
+  strict typecheck, 32 passing compiler-work / installed box and token package
+  tests with 361 assertions in 20.24 seconds, strict build, all four examples
+  and diff check. Every command exited 0 with visible test/example output.
+
+The larger matrices and task/final review are separate steps; these results do
+not close T2 or the enterprise program.
