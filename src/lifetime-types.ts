@@ -24,7 +24,7 @@ export type PrivateLifetimes<R extends Registrations, P extends keyof R> = {
 }[Exclude<keyof R, P>];
 
 export type LexicalProvider<V extends Registration, R extends Registrations, P extends keyof R, K extends keyof R> =
-  V extends infer T & {} ? T extends Registration ? [Extract<ProviderGraph<T>, { readonly lifetime: { readonly kind: 'root' | 'transient' } }>] extends [never] ? T
+  V extends infer T & {} ? T extends Registration ? [Extract<ProviderGraph<T>, { readonly lifetime: { readonly kind: 'root' | 'transient' } } | { readonly alias: PropertyKey }>] extends [never] ? T
     : Provider<ProviderFactory<T>, ProviderMetadata<T> & object, ProviderAcquisitionMetadata<T>, ProviderGraph<T> & {
       readonly lexical: { readonly source: K; readonly context: LexicalContext<R, ExportMap<P>> };
     }, ProviderAcquired<T>> : never : never;
@@ -62,7 +62,11 @@ type WalkPublic<H extends Registrations, K, Root, Visited> = K extends keyof H
   ? WalkTarget<H, H[K], undefined, Root, PublicSite<K>, Visited> : never;
 type WalkTarget<H extends Registrations, V extends Registration, C, Root, Site, Visited> =
   V extends infer T & {} ? T extends Registration ? ProviderGraph<T> extends infer G
-    ? G extends { readonly kind: 'opaque' } ? never
+    ? G extends { readonly sharedAlias: { readonly registrations: infer P extends Registrations; readonly source: infer K } }
+      ? WalkPublic<P, K, Root, never>
+      : G extends { readonly kind: 'opaque' } ? never
+      : G extends { readonly alias: PropertyKey }
+        ? Seen<Site, Visited> extends true ? never : WalkSource<H, T, C, Root, Visited | Site>
       : G extends { readonly lifetime: { readonly kind: 'root' } } ? never
         : G extends { readonly lifetime: { readonly kind: 'transient' } }
           ? Seen<Site, Visited> extends true ? never : WalkSource<H, T, C, Root, Visited | Site>
@@ -97,3 +101,26 @@ export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> 
     : unknown extends Checked<R> & Complete<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R>
       ? Unsatisfied<'root lifetime cannot capture scoped dependency', { readonly captives: Captives<R, C> }>
       : unknown;
+
+// Sharing needs the current canonical policy, including private module targets
+// and public replacements. Alias cycles terminate without inventing a policy.
+type PolicyDependency<H extends Registrations, C, K, Visited> = K extends PropertyKey
+  ? C extends LexicalContext<infer R, infer E> ? K extends keyof R
+    ? [PublicKey<E, K>] extends [never] ? PolicyTarget<H, R[K], C, PrivateSite<C, K>, Visited>
+      : PolicyPublic<H, PublicKey<E, K>, Visited>
+    : PolicyPublic<H, K, Visited>
+  : PolicyPublic<H, K, Visited> : never;
+type PolicyPublic<H extends Registrations, K, Visited> = K extends keyof H
+  ? PolicyTarget<H, H[K], undefined, PublicSite<K>, Visited> : never;
+type PolicyTarget<H extends Registrations, V extends Registration, C, Site, Visited> =
+  Seen<Site, Visited> extends true ? never : ProviderGraph<V> extends infer G
+    ? G extends { readonly sharedAlias: { readonly registrations: infer P extends Registrations; readonly source: infer K } }
+      ? PolicyPublic<P, K, never>
+      : G extends { readonly alias: infer K }
+      ? G extends { readonly lexical: { readonly source: infer S; readonly context: infer L extends LexicalContext } }
+        ? S extends keyof L['registrations'] ? ProviderGraph<L['registrations'][S]> extends { readonly alias: infer A }
+          ? PolicyDependency<H, L, A, Visited | Site> : never : never
+        : PolicyDependency<H, C, K, Visited | Site>
+      : G extends { readonly lifetime: { readonly kind: infer K } } ? K : 'scoped'
+    : never;
+export type CanonicalLifetime<R extends Registrations, K extends keyof R> = PolicyPublic<R, K, never>;

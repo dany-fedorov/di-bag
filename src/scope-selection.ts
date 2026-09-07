@@ -12,7 +12,7 @@ function snapshot(selection: unknown): BindingKey[] {
 }
 
 /** Validate both selections before reading any override value or building a graph. */
-export function selectScope(graph: BindingGraph, args: readonly unknown[]): {
+export function selectScope(graph: BindingGraph, args: readonly unknown[], isTransient: (key: BindingKey) => boolean): {
   readonly graph: BindingGraph;
   readonly shared: readonly BindingId[];
 } {
@@ -41,7 +41,7 @@ export function selectScope(graph: BindingGraph, args: readonly unknown[]): {
   const shared = [...new Set(shareKeys)].map(key => {
     if (selectedSet.has(key)) throw new Error(`scope cannot share and override the same token: ${String(key)}`);
     const id = graph.publicBinding(key);
-    if (graph.registration(id).lifetime.kind === 'transient') throw new Error(`scope cannot share transient providers: ${String(key)}`);
+    if (isTransient(key)) throw new Error(`scope cannot share transient providers: ${String(key)}`);
     return id;
   });
   for (const key of selectedSet) {

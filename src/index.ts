@@ -2,7 +2,7 @@ export { DiBag } from './di-bag';
 export { DiBagCleanupError, DiBagStartupError, DiBagStartupCancelledError } from './errors';
 export type { CleanupFailure } from './errors';
 export type { Bag, Builder } from './di-bag';
-export type { Module } from './module';
+export type { Module, ModuleBuilder } from './module';
 export type { ModuleProvides, ModuleRequires, ModuleConstraints, PublicProviders, ModulePublicProviders, Renamed } from './module-types';
 export type { DisposableFactory, Registration } from './registration';
 export type { Provider, ProviderOutput, ProviderAcquired, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderTokenNeeds, ProviderOptionalTokenNeeds } from './provider';
@@ -19,3 +19,5 @@ export type { Presence, FramePresenceTuple, AcquisitionSnapshot, InspectionSnaps
 export type { ValBoxFrame } from './val-box';
 export type { CompositionArguments, CompositionFunction } from './composition';
 export type { OptionalReference, LazyReference, Dependency } from './dependency-references';
+
+export type { AliasRegistration, AliasEntries, AliasOutput } from './alias-types';

@@ -1,3 +1,5 @@
+import { aliasEntry } from './aliases';
+import type { AliasSelection, AliasAdmission, AliasTarget, AliasDestination, AliasEntry, AliasEntries } from './alias-types';
 import { optional, lazy } from './dependency-references';
 import { normalize, snapshotAdd, withDisposal } from './registration';
 import type { DisposableFactory, Factory, Registration, Registrations } from './registration';
@@ -11,7 +13,7 @@ import { withLifetime } from './lifetime';
 import { withContext } from './acquisition-context';
 import { startRuntime } from './startup';
 import { selectScope } from './scope-selection';
-import type { ScopeOptions, DisjointScopeSelection } from './scope-types';
+import type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases } from './scope-types';
 import type { CheckedScopeLifetimes } from './lifetime-types';
 import type { StartupOptions } from './startup';
 import { withMetadata, mapSync, mapAsync, fromTokens, withTokenBinding, factory } from './provider';
@@ -69,7 +71,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
   }
 
   /** Create a tracked child, optionally borrowing parent services and overriding selected slots. */
-  scope<const S extends readonly unknown[]>(options: ScopeOptions<R, S>): Bag<R, C>;
+  scope<const S extends readonly unknown[]>(options: ScopeOptions<R, S>): Bag<ScopedAliases<R, R, S>, C>;
   scope<
     const K extends readonly unknown[],
     O extends ForkContext<R, K, O>,
@@ -82,18 +84,18 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
       Complete<Merge<R, ReboundSelection<R, Selected<K, O>>>> &
       CheckedConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>> &
       CompleteConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>> &
-      CheckedScopeLifetimes<NoInfer<Merge<R, ReboundSelection<R, Selected<K, O>>>>, NoInfer<Selected<K, O>>>,
+      CheckedScopeLifetimes<NoInfer<ScopedAliases<Merge<R, ReboundSelection<R, Selected<K, O>>>, R, S>>, NoInfer<Selected<K, O>>>,
     options?: ScopeOptions<R, S> & DisjointScopeSelection<K, S>,
-  ): Bag<Merge<R, ReboundSelection<R, Selected<K, O>>>, C>;
-  scope(): Bag<R, C>;
+  ): Bag<ScopedAliases<Merge<R, ReboundSelection<R, Selected<K, O>>>, R, S>, C>;
+  scope(): Bag<UnsharedAliases<R>, C>;
   scope(...args: unknown[]): unknown {
     this.#runtime.assertOpen();
-    const { graph, shared } = selectScope(this.#graph, args);
+    const { graph, shared } = selectScope(this.#graph, args, key => this.#runtime.isTransient(key));
     return new Bag(graph, this.context, this.#runtime.scope(graph, shared));
   }
 
   /** Replace existing tokens; the fork creates and owns its own instances. */
-  fork(this: Bag<R, C> & CheckedLifetimes<R, C>): Bag<R, C>;
+  fork(this: Bag<R, C> & CheckedLifetimes<UnsharedAliases<R>, C>): Bag<UnsharedAliases<R>, C>;
   // The graph-aware bound keeps the first inference pass applicable and requires
   // selected registrations even with explicit generics. The argument's Record
   // supplies callable context; unselected keys stay outside checks and results.
@@ -110,8 +112,8 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
       Complete<Merge<R, ReboundSelection<R, Selected<K, O>>>> &
       CheckedConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>> &
       CompleteConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>> &
-      CheckedLifetimes<Merge<R, ReboundSelection<R, Selected<K, O>>>, C>,
-  ): Bag<Merge<R, ReboundSelection<R, Selected<K, O>>>, C>;
+      CheckedLifetimes<UnsharedAliases<Merge<R, ReboundSelection<R, Selected<K, O>>>>, C>,
+  ): Bag<UnsharedAliases<Merge<R, ReboundSelection<R, Selected<K, O>>>>, C>;
   fork(keys?: readonly unknown[], overrides?: object): unknown {
     this.#runtime.assertOpen();
     if (keys === undefined && overrides === undefined) {
@@ -174,6 +176,18 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
     const snapshot = snapshotAdd(more, key => this.#graph.hasPublic(key));
     // The snapshot retains every checked own registration, including hidden keys.
     return new Builder(this.#graph.withPublicRegistrations(snapshot), this.context);
+  }
+
+  alias<const D extends AliasSelection, const T extends AliasSelection>(
+    destination: D & (unknown extends AliasAdmission<D> ? Introduces<From<E>, AliasEntries<From<E>, D, T>> : AliasAdmission<D>),
+    target: T & AliasAdmission<T> & (unknown extends AliasAdmission<T>
+      ? AliasTarget<From<E>, T> & AliasDestination<From<E>, NoInfer<D>, T> : unknown) &
+      (unknown extends AliasAdmission<D> & AliasAdmission<T>
+        ? IncrementalChecked<E, AliasEntries<From<E>, NoInfer<D>, NoInfer<T>>> & CheckedConstraints<C, Merge<From<E>, AliasEntries<From<E>, NoInfer<D>, NoInfer<T>>>> : unknown),
+    ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []
+  ): Builder<E | AliasEntry<From<E>, D, T>, C> {
+    const [key, registration] = aliasEntry(destination, target, key => this.#graph.hasPublic(key));
+    return new Builder(this.#graph.withPublicBinding(key, registration), this.context);
   }
 
   bind<T extends TokenBase, V extends Registration>(

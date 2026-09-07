@@ -33,6 +33,7 @@ interface FrameOperation {
 export type ProviderOperation = MetadataOperation | OwnedOperation | MapOperation | FrameOperation;
 export interface ProviderDescription {
   readonly lifetime: LifetimePolicy;
+  readonly alias?: string | symbol;
   readonly source: SourceOperation;
   readonly operations: readonly ProviderOperation[];
   readonly metadata: Readonly<object>;
@@ -73,6 +74,7 @@ export function describe(registration: unknown): ProviderDescription {
 
 export function normalize(registration: unknown): {
   lifetime: LifetimePolicy;
+  alias?: string | symbol;
   create: Factory;
   acquisition: AcquisitionMode;
   tokenKeys: readonly symbol[];
@@ -85,5 +87,6 @@ export function normalize(registration: unknown): {
   const description = describe(registration);
   const { create, dispose, tokenKeys, references, acquisition, contextual } = description.source;
   const { metadata, operations, lifetime } = description;
-  return dispose ? { create, dispose, tokenKeys, references, acquisition, metadata, operations, lifetime, contextual } : { create, tokenKeys, references, acquisition, metadata, operations, lifetime, contextual };
+  const alias = description.alias === undefined ? {} : { alias: description.alias };
+  return dispose ? { ...alias, create, dispose, tokenKeys, references, acquisition, metadata, operations, lifetime, contextual } : { ...alias, create, tokenKeys, references, acquisition, metadata, operations, lifetime, contextual };
 }

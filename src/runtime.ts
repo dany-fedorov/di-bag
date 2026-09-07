@@ -156,12 +156,16 @@ export class Runtime {
     return this.acquisitions.acquire(key);
   }
 
+  isTransient(key: BindingKey): boolean {
+    return this.acquisitions.isTransient(this.graph.publicBinding(key));
+  }
+
   inspect(key: BindingKey): InspectionSnapshot<object, readonly unknown[]> {
     const bindingId = this.graph.publicBinding(key);
     return Object.freeze({
       bindingId,
       label: this.graph.label(bindingId),
-      metadata: this.graph.registration(bindingId).metadata,
+      ...this.acquisitions.inspectDescription(bindingId),
       acquisitions: this.acquisitions.inspect(bindingId),
     });
   }

@@ -1,3 +1,5 @@
+import { aliasEntry } from './aliases';
+import type { AliasSelection, AliasAdmission, AliasTarget, AliasDestination, AliasEntry, AliasEntries } from './alias-types';
 import { normalize, snapshotAdd } from './registration';
 import type { DisposableFactory, Factory, Registration, Registrations } from './registration';
 import type { BindingDescription, BindingId, BindingRef, GraphDescription } from './runtime';
@@ -47,6 +49,7 @@ class Module<P extends object, R extends object, C extends NeedConstraint = neve
 }
 
 class ModuleBuilder<E extends Entry> {
+  declare readonly [moduleInvariant]: (value: From<E>) => From<E>;
   readonly #registrations: ReadonlyMap<BindingKey, Registration>;
   constructor(registrations: ReadonlyMap<BindingKey, Registration> = new Map()) {
     this.#registrations = new Map(registrations);
@@ -57,6 +60,18 @@ class ModuleBuilder<E extends Entry> {
   ): ModuleBuilder<E | Entries<N>> {
     const snapshot = snapshotAdd(more, key => this.#registrations.has(key));
     return new ModuleBuilder(new Map([...this.#registrations, ...Object.entries(snapshot)]));
+  }
+
+  alias<const D extends AliasSelection, const T extends AliasSelection>(
+    destination: D & (unknown extends AliasAdmission<D> ? Introduces<From<E>, AliasEntries<From<E>, D, T>> : AliasAdmission<D>),
+    target: T & AliasAdmission<T> & (unknown extends AliasAdmission<T>
+      ? AliasTarget<From<E>, T> & AliasDestination<From<E>, NoInfer<D>, T> : unknown) &
+      (unknown extends AliasAdmission<D> & AliasAdmission<T>
+        ? Checked<Merge<From<E>, AliasEntries<From<E>, NoInfer<D>, NoInfer<T>>>> : unknown),
+    ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []
+  ): ModuleBuilder<E | AliasEntry<From<E>, D, T>> {
+    const [key, registration] = aliasEntry(destination, target, key => this.#registrations.has(key));
+    return new ModuleBuilder(new Map([...this.#registrations, [key, registration]]));
   }
 
   bind<T extends TokenBase, V extends Registration>(
@@ -135,4 +150,4 @@ export function moduleGraph(value: object): GraphDescription {
 }
 
 export const beginModule = (): ModuleBuilder<never> => new ModuleBuilder();
-export type { Module };
+export type { Module, ModuleBuilder };

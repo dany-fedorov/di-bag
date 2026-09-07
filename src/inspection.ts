@@ -14,6 +14,8 @@ export interface AcquisitionSnapshot<A extends readonly unknown[] = readonly []>
 export interface InspectionSnapshot<M = Readonly<{}>, A extends readonly unknown[] = readonly []> {
   readonly bindingId: symbol;
   readonly label: string;
+  /** Direct lexical target; acquisition snapshots follow the canonical target. */
+  readonly alias?: { readonly bindingId: symbol; readonly label: string };
   readonly metadata: Readonly<M>;
   readonly acquisitions: readonly AcquisitionSnapshot<A>[];
 }

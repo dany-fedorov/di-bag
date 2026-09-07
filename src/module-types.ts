@@ -67,7 +67,7 @@ export type PublicRegistrations<P extends object> = { [K in keyof P]: () => P[K]
 // union member before deciding whether the legacy synthetic default is enough.
 export type PublicProvider<R> = R extends Registrations[string]
   ? unknown extends ProviderNeeds<R> ? R
-    : [ProviderGraph<R>] extends [TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? [Extract<ProviderGraph<R>, { readonly lifetime: unknown }>] extends [never] ? [MetadataKeyUnion<ProviderMetadata<R>> | BoundToken<R>] extends [never]
+    : [ProviderGraph<R>] extends [TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? [Extract<ProviderGraph<R>, { readonly lifetime: unknown } | { readonly alias: PropertyKey }>] extends [never] ? [MetadataKeyUnion<ProviderMetadata<R>> | BoundToken<R>] extends [never]
       ? ProviderAcquisitionMetadata<R> extends readonly []
         ? [ProviderAcquired<R>] extends [Awaited<ProviderOutput<R>>]
           ? [Awaited<ProviderOutput<R>>] extends [ProviderAcquired<R>] ? () => ProviderOutput<R> : RetainedPublicProvider<R>

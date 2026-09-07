@@ -1,7 +1,7 @@
 import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import type { BindingGraph, BindingId, BindingKey } from './runtime';
-import type { AcquisitionSnapshot } from './inspection';
+import type { InspectionSnapshot, AcquisitionSnapshot } from './inspection';
 import { ProviderExecution } from './provider-execution';
 import type { RuntimeContext } from './acquisition-mode';
 import { AcquisitionFamily } from './acquisition-family';
@@ -66,7 +66,13 @@ export class Acquisitions {
     await this.resolveBinding(this.graph.publicBinding(key)).execution.ready();
   }
 
-  inspect(bindingId: BindingId): readonly AcquisitionSnapshot<readonly unknown[]>[] {
+  inspect(bindingId: BindingId, path: readonly BindingId[] = []): readonly AcquisitionSnapshot<readonly unknown[]>[] {
+    if (this.parent && this.shared.has(bindingId)) return this.parent.inspect(bindingId, path);
+    const alias = this.graph.registration(bindingId).alias;
+    if (alias !== undefined) {
+      this.assertAliasPath(bindingId, path);
+      return this.inspect(this.graph.dependency(bindingId, alias), [...path, bindingId]);
+    }
     const owner = this.owner(bindingId);
     if (owner !== this) return owner.inspect(bindingId);
     const snapshots: AcquisitionSnapshot<readonly unknown[]>[] = [];
@@ -79,6 +85,30 @@ export class Acquisitions {
       }));
     }
     return Object.freeze(snapshots);
+  }
+
+  isTransient(bindingId: BindingId, path: readonly BindingId[] = []): boolean {
+    if (this.parent && this.shared.has(bindingId)) return this.parent.isTransient(bindingId, path);
+    const description = this.graph.registration(bindingId);
+    if (description.alias === undefined) return description.lifetime.kind === 'transient';
+    this.assertAliasPath(bindingId, path);
+    return this.isTransient(this.graph.dependency(bindingId, description.alias), [...path, bindingId]);
+  }
+
+  /** Relationship uses the effective owner graph; frames use canonical attempts. */
+  inspectDescription(bindingId: BindingId): Pick<InspectionSnapshot<object, readonly unknown[]>, 'metadata' | 'alias'> {
+    if (this.parent && this.shared.has(bindingId)) return this.parent.inspectDescription(bindingId);
+    const description = this.graph.registration(bindingId);
+    if (description.alias !== undefined) {
+      const target = this.graph.dependency(bindingId, description.alias);
+      return { metadata: description.metadata, alias: Object.freeze({ bindingId: target, label: this.graph.label(target) }) };
+    }
+    const owner = this.owner(bindingId);
+    return owner === this ? { metadata: description.metadata } : owner.inspectDescription(bindingId);
+  }
+
+  private assertAliasPath(bindingId: BindingId, path: readonly BindingId[]): void {
+    if (path.includes(bindingId)) throw new Error(`alias cycle: ${[...path, bindingId].map(id => this.graph.label(id)).join(' -> ')}`);
   }
 
   assertOpen(): void {
@@ -108,8 +138,14 @@ export class Acquisitions {
     return this.acquisitionContext;
   }
 
-  private resolveBinding(bindingId: BindingId, from?: Acquisition): Acquisition {
+  private resolveBinding(bindingId: BindingId, from?: Acquisition, path: readonly BindingId[] = []): Acquisition {
+    // Sharing an alias borrows its lexical parent graph before following targets.
+    if (this.parent && this.shared.has(bindingId)) return this.parent.resolveBinding(bindingId, from, path);
     const description = this.graph.registration(bindingId);
+    if (description.alias !== undefined) {
+      this.assertAliasPath(bindingId, path);
+      return this.resolveBinding(this.graph.dependency(bindingId, description.alias), from, [...path, bindingId]);
+    }
     const { lifetime } = description;
     // Validate before routing/cache lookup; retained proxies keep their boundary.
     if (lifetime.kind === 'scoped' && from?.strictRoot !== undefined) {
