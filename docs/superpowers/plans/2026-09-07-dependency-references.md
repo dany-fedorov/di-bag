@@ -37,40 +37,40 @@ adapters accept these handles alongside ordinary tokens in a finite const tuple.
 Required and optional graph obligations remain separately extractable by internal
 type helpers; module public views must preserve or transfer both obligations.
 
-- [ ] Write RED fixtures with `const key = Symbol('number');`
+- [x] Write RED fixtures with `const key = Symbol('number');`
   `const number = DiBag.token(key).of<number>();`
   `const optional = DiBag.fromFunction([DiBag.optional(number)], value => value);`
   require `DiBag.begin().add({optional}).end().resolve('optional') === undefined`
   and exact output `number | undefined`. An existing incompatible token rejects.
-- [ ] Add RED lazy fixture using `DiBag.fromFunction([DiBag.lazy(number)], get =>
+- [x] Add RED lazy fixture using `DiBag.fromFunction([DiBag.lazy(number)], get =>
   ({get}))`; assert no target calls on resolving the consumer, then correct calls,
   identity, transient multiplicity and disposal edges on each get invocation.
-- [ ] Implement nominal invariant wrappers authenticated by private registry;
+- [x] Implement nominal invariant wrappers authenticated by private registry;
   input must be one individually known genuine token. Copy/freeze descriptions;
   neither handle is a binding identity or a structural registration.
-- [ ] Generalize tuple argument extraction/admission in fromTokens/fromFunction/
+- [x] Generalize tuple argument extraction/admission in fromTokens/fromFunction/
   fromClass. Preserve empty/optional/rest parameter behavior, exact output/acquired
   modes and required receiver rejection. Existing fromTokens callers still work.
-- [ ] Add immutable reference records to source descriptions and normalization.
+- [x] Add immutable reference records to source descriptions and normalization.
   Map internal argument slots to real lexical keys in acquisition dependency reads.
   Add a binding-existence lookup that can return absent before calling acquisition;
   never implement optional reads as catch-and-undefined. Lazy closures defer the
   same dependency read and its existing source-specific closing check.
-- [ ] Separate required/optional token contracts. Update full and incremental
+- [x] Separate required/optional token contracts. Update full and incremental
   wrong-shape/nominal checks, missing checks, private module constraints, module
   external requirements and public views/renames. Optional absence permits closure;
   optional presence must retain its type contract even in exportless modules.
   Keep provider unions and NoInfer extraction sound.
-- [ ] Include present optional and lazy edges in root-captive static walks and
+- [x] Include present optional and lazy edges in root-captive static walks and
   preserve observed-edge runtime capture checks. Do not weaken checks after
   selected scope overrides or independent forks.
-- [ ] Cover absent/present/undefined/failing/rejected optional services; lazy
+- [x] Cover absent/present/undefined/failing/rejected optional services; lazy
   construction timing, cache/transient identity, synchronous/post-await cycles;
   late/ready/retired proxies and closure invocation during/after owner close;
   root/child sharing and overrides; private tokens/export renames and host
   collisions; raw/native Promise ownership; forged/spread/proxied handles,
   tuple mutation/custom iterators, explicit generic and reflected-method views.
-- [ ] Run focused runtime and classic/native source/declaration checks, record
+- [x] Run focused runtime and classic/native source/declaration checks, record
   RED/GREEN and self-review. Commit implementation/tests for independent review.
 
 ### Task 2: Physical archives, documentation and regression verification
@@ -80,15 +80,20 @@ type helpers; module public views must preserve or transfer both obligations.
 `examples/composition.ts`, `README.md`, `CHANGELOG.md`, migration, enterprise tracker,
 new `docs/reports/2026-09-07-dependency-references.md`.
 
-- [ ] Add positive/negative files to classic/native packed contract routes and
+- [x] Add positive/negative files to classic/native packed contract routes and
   inferred feature emission with source physically removed before downstream use.
-- [ ] Execute actual Node/Bun CJS/ESM packages from both emitter archives; assert
+- [x] Execute actual Node/Bun CJS/ESM packages from both emitter archives; assert
   absent versus failing optional values, deferred acquisition/transient cleanup,
   parent graph/context ownership after selected sharing, and closed-owner rejection.
-- [ ] Document graph optionality separately from an optional function parameter;
+- [x] Document graph optionality separately from an optional function parameter;
   lazy means delayed resolution, not a missing dependency or extended lifetime.
   Provide runnable class/function examples using both reference handles.
-- [ ] Run full check, native strict typecheck/build and source diagnostic audit,
+- [x] Run full check, native strict typecheck/build and source diagnostic audit,
   all examples and diff checks, keeping all unresolved program rows explicit.
-- [ ] Independent task/final review, findings correction, verified commit and
-  non-force branch push when its required approval permits; verify remote SHA.
+- [x] Independent task/final review, findings correction and verified local commit.
+- [ ] Non-force branch push when its required export approval permits; verify remote SHA.
+
+Evidence: `docs/reports/2026-09-07-dependency-references.md`. Full check passes
+613 tests / 3,209 assertions, native strict/build/source audit and all six examples
+pass. Actual physical matrix passes 63 tests / 945 assertions. Final scoped review
+closes the sole package routing finding at `55bfcb7`.

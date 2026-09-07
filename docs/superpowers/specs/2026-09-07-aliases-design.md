@@ -58,6 +58,12 @@ canonical attempts; its type view must remain conservative where composition has
 not retained an exact target metadata contract. Do not infer a disposer or expose
 mutable resolver state through inspection.
 
+The optional immutable alias relationship reports the direct target binding ID
+and label. Resolve it in the alias's effective owner graph, including parent
+routing for selected sharing, so a child override cannot make inspection identify
+a target that resolution bypasses. Canonical acquisition snapshots remain
+separate from this direct chain relationship.
+
 ## Static contracts
 
 Alias dependencies participate in shape checking, nominal token checking,

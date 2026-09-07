@@ -57,8 +57,14 @@ execution; do not stop for another planning approval between increments.
     declarations and Node/Bun CommonJS/ESM routes pass; both packaging review
     findings are corrected and scoped re-review approves. Evidence:
     `docs/reports/2026-09-07-composition-adapters.md`.
-  - [ ] Aliases, optional/lazy dependencies and typed contributions. Optional/lazy
-    integration proceeds under `2026-09-07-dependency-references.md`.
+  - [x] Optional/lazy dependency references through `55bfcb7`: exact immutable
+    token contracts, optional absence and lazy owner/graph/admission semantics.
+    Full check passes 613 tests / 3,209 assertions; physical classic/native
+    declarations and Node/Bun runtime lanes pass. Independent review approves
+    source/types, and scoped review closes the package fixture-routing correction.
+    Evidence: `docs/reports/2026-09-07-dependency-references.md`.
+  - [ ] Aliases and typed contributions. Alias integration proceeds under
+    `2026-09-07-aliases.md`.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
 - [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests. The prior parent benchmark evaluator Minor is closed by direct malformed JSON/identity/diagnostic, process-failure, boundary and TS2589 tests in the reviewed native compiler checkpoint `ad73249`.
 - [ ] Compiler/inference follow-up: resolve the remaining measured 500/1000 individual-chain limits, large-graph latency and modern native compiler compatibility. Actual nominal-module 1000-provider gates pass, separately from registration groups; this does not prove equally long individual call chains.
