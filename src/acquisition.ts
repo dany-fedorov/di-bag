@@ -1,3 +1,4 @@
+import type { AcquisitionEventFields, LifecycleEvent } from './observers';
 import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import type { BindingGraph, BindingId, BindingKey } from './runtime';
@@ -16,7 +17,7 @@ interface Acquisition extends AttemptIdentity {
 
 /** Mutable, runtime-local attempts. Binding descriptions never carry ownership. */
 export class Acquisitions {
-  private readonly ownerId = Symbol('owner');
+  readonly ownerId = Symbol('owner');
   private readonly cache = new Map<BindingId, Acquisition>();
   private readonly attempts = new Map<AcquisitionId, Acquisition>();
   private readonly retired = new Map<AcquisitionId, Promise<void>>();
@@ -185,11 +186,23 @@ export class Acquisitions {
       execution: new ProviderExecution({
         accepted: () => { this.owned.set(attempt.id, attempt); },
         settled: () => {
-          if (attempt.execution.state === 'failed') this.retire(attempt);
-          else attempt.state = 'ready';
+          if (attempt.execution.state === 'failed') {
+            this.observeAttempt(attempt, 'acquisition-failed', attempt.execution.error);
+            this.retire(attempt);
+          } else {
+            attempt.state = 'ready';
+            this.observeAttempt(attempt, 'acquisition-ready');
+          }
         },
+        ...(this.context.observers ? {
+          cleanupStarted: () => this.observeAttempt(attempt, 'cleanup-started'),
+          cleanupCompleted: (outcome: 'success' | 'failure') => {
+            this.context.observers!.emit({ ...this.eventFields(attempt), kind: 'cleanup-completed', outcome });
+          },
+        } : {}),
         invoking: () => this.invocationSequence++,
         cleanupFailed: (sequence, error) => {
+          if (this.context.observers) this.context.observers.emit({ ...this.eventFields(attempt), kind: 'cleanup-failed', disposalIndex: sequence, error });
           this.failures.push({ sequence, acquisitionId: attempt.id, bindingId: attempt.bindingId, label: attempt.label, error });
         },
       }, description, this.context),
@@ -217,18 +230,37 @@ export class Acquisitions {
         return read(key);
       },
     });
+    this.observeAttempt(attempt, 'acquisition-started');
     this.family.enter(attempt);
     try {
       const value = attempt.execution.evaluate(description, deps, () => this.getContext());
       attempt.exposed = value;
       attempt.state = attempt.execution.state;
+      if (attempt.state === 'ready') this.observeAttempt(attempt, 'acquisition-ready');
       return attempt;
     } catch (error) {
+      this.observeAttempt(attempt, 'acquisition-failed', error);
       this.retire(attempt);
       throw error;
     } finally {
       this.family.leave();
     }
+  }
+
+  private eventFields(attempt: Acquisition): AcquisitionEventFields {
+    const description = this.graph.registration(attempt.bindingId);
+    return {
+      scopeId: this.ownerId, bindingId: attempt.bindingId, acquisitionId: attempt.id,
+      label: attempt.label, lifetime: description.lifetime.kind,
+      metadata: Object.freeze({ ...description.metadata }), frames: attempt.execution.inspectFrames(),
+    };
+  }
+
+  private observeAttempt(attempt: Acquisition, kind: 'acquisition-started' | 'acquisition-ready' | 'acquisition-failed' | 'cleanup-started', error?: unknown): void {
+    if (!this.context.observers) return;
+    const fields = this.eventFields(attempt);
+    const event: LifecycleEvent = kind === 'acquisition-failed' ? { ...fields, kind, error } : { ...fields, kind };
+    this.context.observers.emit(event);
   }
 
   private retire(attempt: Acquisition): void {

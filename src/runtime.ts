@@ -160,11 +160,12 @@ export class Runtime {
     private readonly graph: BindingGraph,
     private readonly context: RuntimeContext,
     private detach: (() => void) | undefined = undefined,
-    parentAcquisitions?: Acquisitions,
+    private readonly parentAcquisitions?: Acquisitions,
     shared: readonly BindingId[] = [],
   ) {
     graph.preflight(context);
     this.acquisitions = new Acquisitions(graph, context, parentAcquisitions, shared);
+    this.observeScope('scope-opened');
   }
 
   resolve(key: BindingKey): unknown {
@@ -218,6 +219,7 @@ export class Runtime {
     const closing = new Promise<void>((resolve, fail) => { fulfill = resolve; reject = fail; });
     // Publish before recursively closing children or starting local cleanup.
     this.closing = closing;
+    this.observeScope('scope-closing');
 
     const childClosing = [...this.children].map(child => {
       try { return child.close(cause); }
@@ -232,7 +234,10 @@ export class Runtime {
       );
     }
     catch (error) { localClosing = Promise.reject(error); }
-    void this.finishClose(childResults, localClosing).then(fulfill, reject);
+    void this.finishClose(childResults, localClosing).then(
+      () => { fulfill(); this.observeScope('scope-closed'); },
+      error => { reject(error); this.observeScope('scope-close-failed', error); },
+    );
 
     const detach = this.detach;
     this.detach = undefined;
@@ -241,6 +246,15 @@ export class Runtime {
       () => { detach(); },
     );
     return closing;
+  }
+
+  private observeScope(kind: 'scope-opened' | 'scope-closing' | 'scope-closed' | 'scope-close-failed', error?: unknown): void {
+    if (!this.context.observers) return;
+    const fields = {
+      scopeId: this.acquisitions.ownerId,
+      ...(this.parentAcquisitions ? { parentScopeId: this.parentAcquisitions.ownerId } : {}),
+    };
+    this.context.observers.emit(kind === 'scope-close-failed' ? { ...fields, kind, error } : { ...fields, kind });
   }
 
   private async finishClose(

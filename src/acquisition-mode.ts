@@ -1,16 +1,17 @@
+import type { Observers } from './observers';
 import type { Unsatisfied } from './types';
 
 export type AcquisitionMode = 'auto' | 'raw' | 'native';
 export interface RuntimeOptions {
   readonly isNativePromise: (this: void, value: unknown) => boolean;
 }
-export interface RuntimeContext { readonly isNativePromise?: RuntimeOptions['isNativePromise'] }
+export interface RuntimeContext { readonly isNativePromise?: RuntimeOptions['isNativePromise']; readonly observers?: Observers }
 export const unconfigured: RuntimeContext = Object.freeze({});
-export function runtimeContext(options: RuntimeOptions): RuntimeContext {
+export function runtimeContext(options: RuntimeOptions, previous: RuntimeContext = unconfigured): RuntimeContext {
   if (typeof options !== 'object' || options === null) throw new Error('configuration requires isNativePromise');
   const { isNativePromise } = options;
   if (typeof isNativePromise !== 'function') throw new Error('configuration requires isNativePromise');
-  return Object.freeze({ isNativePromise });
+  return Object.freeze({ ...previous, isNativePromise });
 }
 export type Acquired<O, M extends AcquisitionMode> = M extends 'raw' ? O : Awaited<O>;
 export type ModeOptions<M extends AcquisitionMode, Default extends AcquisitionMode = 'auto'> = Default extends M

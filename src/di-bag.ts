@@ -1,3 +1,5 @@
+import { Observers } from './observers';
+import type { ObserverOptions } from './observers';
 import { contributionEntry } from './contributions';
 import type { BuilderContribute, CollectionMember } from './contribution-types';
 import { aliasEntry } from './aliases';
@@ -270,7 +272,8 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
 
 export type { Bag, Builder };
 
-interface Facade {
+export interface Facade {
+  observe: (options: ObserverOptions) => Facade;
   configure: (options: RuntimeOptions) => Facade;
   factory: typeof factory;
   token: typeof token;
@@ -290,7 +293,8 @@ interface Facade {
   mapAsync: typeof mapAsync;
 }
 function facade(context: RuntimeContext): Facade { return Object.freeze({
-  configure: (options: RuntimeOptions): Facade => facade(runtimeContext(options)),
+  configure: (options: RuntimeOptions): Facade => facade(runtimeContext(options, context)),
+  observe: (options: ObserverOptions): Facade => facade(Object.freeze({ ...context, observers: Observers.append(context.observers, options) })),
   factory,
   token,
   optional,

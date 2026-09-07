@@ -23,6 +23,8 @@ interface ExecutionEvents {
   accepted(): void;
   settled(): void;
   invoking(): number;
+  cleanupStarted?(): void;
+  cleanupCompleted?(outcome: 'success' | 'failure'): void;
   cleanupFailed(sequence: number, error: unknown): void;
 }
 
@@ -47,6 +49,7 @@ export class ProviderExecution {
   inspectFrames(): FramePresenceTuple<readonly unknown[]> { return Object.freeze([...this.frames]); }
 
   get state(): 'pending' | 'ready' | 'failed' { return this.result?.state ?? 'failed'; }
+  get error(): unknown { return this.result?.error; }
   get hasOwnership(): boolean { return this.stages.length > 0; }
   get work(): readonly Promise<void>[] { return [...this.pending]; }
 
@@ -180,6 +183,9 @@ export class ProviderExecution {
   private async disposeStages(): Promise<void> {
     // All later acceptances must be known before reversing stable stage indices.
     while (this.pending.size) await Promise.all(this.pending);
+    const owned = this.stages.length > 0;
+    let failed = false;
+    if (owned) this.events.cleanupStarted?.();
     for (const stage of this.stages.sort((a, b) => b.index - a.index)) {
       stage.state = 'disposing';
       const sequence = this.events.invoking();
@@ -187,11 +193,13 @@ export class ProviderExecution {
       try {
         await dispose(value as never);
       } catch (error) {
+        failed = true;
         this.events.cleanupFailed(sequence, error);
       } finally {
         stage.state = 'disposed';
       }
     }
+    if (owned) this.events.cleanupCompleted?.(failed ? 'failure' : 'success');
     this.stages.length = 0;
     this.result = undefined;
   }
