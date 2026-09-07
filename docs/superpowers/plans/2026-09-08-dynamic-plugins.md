@@ -119,16 +119,16 @@ modify `tests/box-contract-fixtures.ts`, `tests/package.test.ts`,
 producer/consumer/negative files. Produce one shared actual-archive assertion
 string and a runnable unknown-plugin validation/cleanup example.
 
-- [ ] Begin shared source assertions from the standalone case below and prove
+- [x] Begin shared source assertions from the standalone case below and prove
   malformed descriptors reject before create effects, valid raw identity and
   original owned invalid-value cleanup. Add pending native validation/cleanup,
   optional/lazy/all host dependencies, private module/alias/sharing and observer
   identity. Exercise portable core without a classifier and each archive runtime.
-- [ ] Wire shared plugin assertions beside observer assertions in both harnesses.
+- [x] Wire shared plugin assertions beside observer assertions in both harnesses.
   Route plugins.ts, negative/plugins.ts and unannotated cts/mts producer/consumer
   declarations through both emitters, delete source and consume with both compilers.
   Preserve strict negative markers, root import routing and existing allowances.
-- [ ] Document protocol/result validation, required predicate/explicit mode,
+- [x] Document protocol/result validation, required predicate/explicit mode,
   unknown-code limits, descriptor snapshots, native validation Promise and original
   ownership before validation. Show typed module composition around the provider
   and an application-selected unknown descriptor in the runnable example.
@@ -136,7 +136,7 @@ string and a runnable unknown-plugin validation/cleanup example.
   matrix serially after Task1 stabilizes. Obtain independent Task1/Task2 spec and
   quality verdicts plus whole-increment review, one consolidated correction and
   scoped re-review if needed.
-- [ ] On stable reviewed source/harness run `npm run check`, native strict/build/
+- [x] On stable reviewed source/harness run `npm run check`, native strict/build/
   source audit and all examples serially. Record complete exit statuses, precise
   counts, logs and limitations; mark P1 locally complete only after those gates.
 - [ ] Locally commit verified evidence. Non-force push when export approval permits,

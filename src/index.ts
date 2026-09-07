@@ -19,7 +19,7 @@ export type { Presence, FramePresenceTuple, AcquisitionSnapshot, InspectionSnaps
 export type { ValBoxFrame } from './val-box';
 export type { CompositionArguments, CompositionFunction } from './composition';
 export type { OptionalReference, LazyReference, AllReference, Dependency } from './dependency-references';
-export type { PluginAcquisition, PluginOptions, PluginPredicate, PluginResult } from './plugins';
+export type { fromPlugin, PluginAcquisition, PluginOptions, PluginPredicate, PluginResult } from './plugins';
 
 export type { AliasRegistration, AliasEntries, AliasOutput } from './alias-types';
 

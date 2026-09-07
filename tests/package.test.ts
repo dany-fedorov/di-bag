@@ -11,6 +11,7 @@ import { dependencyReferenceRuntimeAssertions } from './dependency-references-ru
 import { aliasRuntimeAssertions } from './aliases-runtime-fixture';
 import { contributionRuntimeAssertions } from './contributions-runtime-fixture';
 import { observerRuntimeAssertions } from './observers-runtime-fixture';
+import { pluginRuntimeAssertions } from './plugins-runtime-fixture';
 
 const root = resolve(__dirname, '..');
 
@@ -82,8 +83,8 @@ for (const mode of ['commonjs', 'module'] as const) {
   test(`Node ${mode} consumers can resolve and dispose through the public package`, async () => {
     const load =
       mode === 'commonjs'
-        ? "const packageExports = require('di-bag/node'); const { DiBag, DiBagCleanupError } = packageExports;"
-        : "import * as packageExports from 'di-bag/node'; const { DiBag, DiBagCleanupError } = packageExports;";
+        ? "const packageExports = require('di-bag/node'); const { DiBag, DiBagCleanupError, DiBagPluginError } = packageExports;"
+        : "import * as packageExports from 'di-bag/node'; const { DiBag, DiBagCleanupError, DiBagPluginError } = packageExports;";
     const stdout = await run([
       'node',
       `--input-type=${mode}`,
@@ -97,6 +98,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         ${aliasRuntimeAssertions}
         ${contributionRuntimeAssertions}
         ${observerRuntimeAssertions}
+        ${pluginRuntimeAssertions}
         let disposed;
         const mappedDisposal = [];
         const feature = DiBag.module().add({
@@ -362,7 +364,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     ).toEqual([]);
   });
 
-  for (const fixture of ['observers.ts', 'negative/observers.ts', 'contributions.ts', 'negative/contributions.ts', 'aliases.ts', 'negative/aliases.ts', 'dependency-references.ts', 'negative/dependency-references.ts', 'composition-adapters.ts', 'negative/composition-adapters.ts', 'selected-scopes.ts', 'negative/selected-scopes.ts', 'acquisition-mode.ts', 'negative/acquisition-mode.ts', 'scopes.ts', 'negative/scopes.ts', 'lifetimes.ts', 'negative/lifetimes.ts', 'tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
+  for (const fixture of ['plugins.ts', 'negative/plugins.ts', 'observers.ts', 'negative/observers.ts', 'contributions.ts', 'negative/contributions.ts', 'aliases.ts', 'negative/aliases.ts', 'dependency-references.ts', 'negative/dependency-references.ts', 'composition-adapters.ts', 'negative/composition-adapters.ts', 'selected-scopes.ts', 'negative/selected-scopes.ts', 'acquisition-mode.ts', 'negative/acquisition-mode.ts', 'scopes.ts', 'negative/scopes.ts', 'lifetimes.ts', 'negative/lifetimes.ts', 'tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
     test(`TypeScript ${mode} emitted provider contracts: ${fixture}`, () => {
       const path = resolve(__dirname, `provider-consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const source = readFileSync(resolve(__dirname, 'types', fixture), 'utf8')

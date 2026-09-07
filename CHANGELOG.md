@@ -4,6 +4,12 @@
 
 ### Added
 
+- `DiBag.fromPlugin(dependencies, descriptor, { acquisition, validate })`
+  authenticates an application-selected unknown descriptor and admits its checked
+  result as one typed provider. Descriptors use own `apiVersion: 1` and `create`
+  fields with optional original-value disposal; explicit raw/native acquisition,
+  synchronous predicate validation, canonical cleanup and module composition
+  retain existing dependency, ownership and observer contracts.
 - `DiBag.observe({ onEvent, onError })` appends immutable lifecycle observers.
   Frozen events report canonical scope, acquisition and accepted-cleanup identity,
   final-stage readiness, metadata and original failures. Queued callbacks preserve

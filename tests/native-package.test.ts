@@ -15,14 +15,15 @@ import { dependencyReferenceRuntimeAssertions } from './dependency-references-ru
 import { aliasRuntimeAssertions } from './aliases-runtime-fixture';
 import { contributionRuntimeAssertions } from './contributions-runtime-fixture';
 import { observerRuntimeAssertions } from './observers-runtime-fixture';
+import { pluginRuntimeAssertions } from './plugins-runtime-fixture';
 
 const root = resolve(__dirname, '..');
 const node = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8', timeout: 10000 }).trim();
 const bun = process.execPath;
 const npmCli = realpathSync(join(dirname(node), 'npm'));
 const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
-  ? "const { DiBag } = require('di-bag/node'); const assert = require('node:assert/strict');"
-  : "import { DiBag } from 'di-bag/node'; import assert from 'node:assert/strict';"}
+  ? "const { DiBag, DiBagPluginError } = require('di-bag/node'); const assert = require('node:assert/strict');"
+  : "import { DiBag, DiBagPluginError } from 'di-bag/node'; import assert from 'node:assert/strict';"}
 (async () => {
   const log = [];
   let id = 0;
@@ -66,6 +67,7 @@ const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
   ${aliasRuntimeAssertions}
   ${contributionRuntimeAssertions}
   ${observerRuntimeAssertions}
+  ${pluginRuntimeAssertions}
   console.log(JSON.stringify({ log, rootDisposed, scopedDisposed, transientsDisposed }));
 })().catch(error => { console.error(error); process.exitCode = 1; });`;
 for (const emitter of ['classic6', 'native7']) {
@@ -111,7 +113,7 @@ for (const emitter of ['classic6', 'native7']) {
             supplementalExpected: markers.supplementalExpected, supplementalMatched: markers.supplementalMatched,
             knownNativeRejections: markers.knownNativeRejections, gaps: markers.gaps }));
         }
-        for (const feature of ['modern-inline', 'token-modules', 'acquisition-mode', 'scopes', 'lifetimes', 'startup', 'selected-scopes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers']) {
+        for (const feature of ['modern-inline', 'token-modules', 'acquisition-mode', 'scopes', 'lifetimes', 'startup', 'selected-scopes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins']) {
           const sourceDir = join(consumer, `${feature}-source`), outputDir = join(consumer, `${feature}-output`);
           mkdirSync(sourceDir); mkdirSync(outputDir);
           const assertions = "type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;";
@@ -122,7 +124,7 @@ for (const emitter of ['classic6', 'native7']) {
           const fixture = feature === 'token-modules' ? 'token-modules/feature.ts' : `${feature}.ts`;
           const producer = join(sourceDir, `feature.${extension}`);
           writeFileSync(producer, route(readFileSync(join(root, 'tests/types', fixture), 'utf8'), true));
-          if (emitter === 'classic6' && (feature === 'acquisition-mode' || feature === 'scopes' || feature === 'lifetimes' || feature === 'startup' || feature === 'selected-scopes' || feature === 'composition-adapters' || feature === 'dependency-references' || feature === 'aliases' || feature === 'contributions' || feature === 'observers')) {
+          if (emitter === 'classic6' && (feature === 'acquisition-mode' || feature === 'scopes' || feature === 'lifetimes' || feature === 'startup' || feature === 'selected-scopes' || feature === 'composition-adapters' || feature === 'dependency-references' || feature === 'aliases' || feature === 'contributions' || feature === 'observers' || feature === 'plugins')) {
             const program = ts.createProgram([producer], { strict: true, declaration: true, emitDeclarationOnly: true, rootDir: sourceDir, outDir: outputDir,
               noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, types: [], target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext });
             const emitted = program.emit();
@@ -136,7 +138,8 @@ for (const emitter of ['classic6', 'native7']) {
           const downstream = join(consumer, `${feature}-consumer.${extension}`);
           const consumerFixture = feature === 'token-modules' ? 'token-modules/consumer.ts' : `${feature}-consumer.ts`;
           const text = route(readFileSync(join(root, 'tests/types', consumerFixture), 'utf8'))
-            .replace(/from '\.\/(modern-inline|feature|acquisition-mode|scopes|lifetimes|startup|selected-scopes|composition-adapters|dependency-references|aliases|contributions|observers)'/g, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`);
+            .replace(/from '\.\/(modern-inline|feature|acquisition-mode|scopes|lifetimes|startup|selected-scopes|composition-adapters|dependency-references|aliases|contributions|observers|plugins)'/g, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`)
+            .replace(/import\('\.\/plugins'\)/g, `import('./${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}')`);
           writeFileSync(downstream, text);
           const consumed = await compileNative(compiler, consumer, [downstream]);
           expect({ checked: consumed.checked, diagnostics: consumed.diagnostics }).toEqual({ checked: true, diagnostics: [] });

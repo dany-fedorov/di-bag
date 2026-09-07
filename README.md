@@ -482,6 +482,51 @@ resolved `close()` does not promise that telemetry has finished. See
 [`examples/observers.ts`](examples/observers.ts) for an application-owned completion
 barrier and cleanup assertions.
 
+## Admit an application-selected plugin
+
+Use `DiBag.fromPlugin(dependencies, descriptor, { acquisition, validate })` when
+the application selects unknown code and needs one checked provider boundary. The
+application chooses the module/export and passes its descriptor; DI Bag does not
+load paths or infer a default export. A descriptor must have own `apiVersion: 1`
+and `create` fields, with an optional own callable `dispose`. Required inherited
+fields, arrays, `null`, present `undefined` disposal, and malformed versions fail
+with `DiBagPluginError` whose `phase` is `'descriptor'`.
+
+```ts
+interface Handler { handle(text: string): string }
+const handler = DiBag.token(Symbol('handler')).of<Handler>();
+const selected: unknown = {
+  apiVersion: 1,
+  create: () => ({ handle: (text: string) => text.toUpperCase() }),
+};
+const provider = DiBag.fromPlugin([], selected, {
+  acquisition: 'raw',
+  validate: (value: unknown): value is Handler =>
+    typeof value === 'object' && value !== null && 'handle' in value
+    && typeof value.handle === 'function',
+});
+const feature = DiBag.module().bind(handler, provider).exports([handler]);
+const bag = DiBag.begin().install(feature).end();
+```
+
+Both options are required. `raw` validates and exposes the exact factory return
+value synchronously, including a Promise or thenable. `native` requires a genuine
+native source Promise and exposes one stable final Promise after its fulfilled
+value passes validation. The predicate must synchronously return exactly `true`;
+a false result, Promise, thenable, or thrown error does not become a service.
+False/non-boolean validation produces `DiBagPluginError` with `phase: 'output'`.
+
+Dependencies use the existing required, optional, lazy, and all reference
+handles, so the adapter receives only its declared host values in positional
+order. Descriptor callbacks, the predicate, and dependency tuple are captured at
+adapter construction. Later mutation cannot change the provider. An optional
+plugin disposer owns the original acquired value before result validation: a
+failed validator still releases that original value exactly once during rollback
+or close. Validation admits a service at this boundary; it does not sandbox
+unknown code or continuously prove mutable behavior. Run
+[`examples/plugins.ts`](examples/plugins.ts) for typed module composition,
+unknown descriptor selection, validation, and cleanup.
+
 ## Async edges are explicit
 
 ```ts

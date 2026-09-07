@@ -6,7 +6,7 @@ declare const unknownPlugin: unknown;
 const valid = (value: unknown): value is { run(): number } => typeof value === 'object' && value !== null;
 // diagnostic: not assignable
 DiBag.fromPlugin([], unknownPlugin, { acquisition: 'auto', validate: valid });
-// diagnostic: not assignable
+// diagnostic: Property 'acquisition' is missing
 DiBag.fromPlugin([], unknownPlugin, { validate: valid });
 // diagnostic: not assignable
 DiBag.fromPlugin([], unknownPlugin, { acquisition: 'raw', validate: (value: unknown): boolean => typeof value === 'object' });
