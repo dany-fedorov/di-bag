@@ -198,7 +198,7 @@ runtime/public lifetimes are not yet shipped. Self-review and commit with
 - Root family plumbing passes the original root acquisitions/graph and a shared attempt index to children. `scope()` stays zero-argument; `fork()` does not inherit this plumbing.
 - `inspect` uses the selected binding's policy to inspect root or local attempts without acquisition.
 
-- [ ] **Step 1: Write runtime RED using the final public operation.**
+- [x] **Step 1: Write runtime RED using the final public operation.**
 
 ```ts
 test('root, scoped and transient identity have distinct ownership', async () => {
@@ -242,7 +242,7 @@ reads, plus strict-root-to-capturing-root positive. Verify errors occur before
 the forbidden dependency factory or cached return. Module private exports and
 renamed bindings must exercise actual runtime ownership, not only inspection.
 
-- [ ] **Step 2: Implement routing, ancestry and family retirement.**
+- [x] **Step 2: Implement routing, ancestry and family retirement.**
 
 ```text
 resolve binding(requesting owner, from attempt):
@@ -271,7 +271,7 @@ Update the wrapper's internal-only documentation to its now-implemented public
 semantics. `Lifetime` and `LifetimePolicy` are declared in `src/lifetime.ts`;
 normalization already exposes `lifetime.kind` and `lifetime.captureScoped`.
 
-- [ ] **Step 3: Verify and commit runtime/public integration.**
+- [x] **Step 3: Verify and commit runtime/public integration.**
 
 Run `bun test tests/lifetimes.test.ts tests/scopes.test.ts tests/acquisition.test.ts`
 and `bun test tests/providers.test.ts tests/modules.test.ts tests/token-modules.test.ts tests/disposal.test.ts tests/acquisition-mode.test.ts`

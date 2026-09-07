@@ -147,6 +147,17 @@ copied source-absent consumers produced zero diagnostics and the declaration
 sizes above. These are early declaration checks, not installed lifetime runtime
 coverage; the existing package routes continue to pass.
 
+Task 2 committed as `9aa95df`. Its specification and quality review is approved
+with no findings. Independent committed-code coverage passes 119 runtime and
+declaration tests (585 assertions), including lifetime, scope, acquisition,
+provider, module, token-module, disposal and classification regressions.
+Both actual emitters and copied source-absent consumers again produce zero
+diagnostics with the public facade: 42,000 producer declaration bytes and
+107,942 total declaration bytes per compiler. The added runtime declarations
+account for the total-size change from the internal-only checkpoint above.
+Equal byte counts do not mean byte-identical compiler output. This verification
+still does not substitute for Task 3's installed lifetime acceptance routes.
+
 ## Decisions and costs
 
 1. Implement policies before scope options. This avoids ambiguous root context;
