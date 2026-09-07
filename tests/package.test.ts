@@ -2,6 +2,8 @@ import { beforeAll, expect, test } from 'bun:test';
 import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import { describeDiagnostic } from './compiler';
+import { matchDiagnosticMarkers } from './diagnostic-markers';
 
 const root = resolve(__dirname, '..');
 
@@ -115,6 +117,21 @@ for (const mode of ['commonjs', 'module'] as const) {
         const tokenRuntime = DiBag.begin().install(tokenFeature).end();
         const tokenIdentity = tokenRuntime.resolve('value') === raw;
         await tokenRuntime.close();
+        const scopeLog = [];
+        let scopeId = 0;
+        const parent = DiBag.begin().add({
+          service: DiBag.withDisposal(() => ++scopeId, value => { scopeLog.push(value); }),
+        }).end();
+        const scope = parent.scope();
+        const independent = scope.fork();
+        if (parent.resolve('service') !== 1 || scope.resolve('service') !== 2)
+          throw new Error('scope identity');
+        independent.resolve('service');
+        await parent.close();
+        if (JSON.stringify(scopeLog) !== '[2,1]' || independent.resolve('service') !== 3)
+          throw new Error('scope ownership');
+        await independent.close();
+        if (JSON.stringify(scopeLog) !== '[2,1,3]') throw new Error('fork ownership');
         console.log(JSON.stringify({ answer, disposed,
           publiclyConstructible: ['Bag', 'Module', 'Provider', 'ProviderBase'].some(key => Object.hasOwn(packageExports, key)),
           metadata: before.metadata.owner,
@@ -124,7 +141,7 @@ for (const mode of ['commonjs', 'module'] as const) {
           sameClass: cjs.DiBagCleanupError === esm.DiBagCleanupError,
           originalCause: error.errors[0] === cause && error.failures[0].error === cause,
           label: error.failures[0].label,
-          mappedIdentity, asyncMapped, mappedDisposal, tokenIdentity,
+          mappedIdentity, asyncMapped, mappedDisposal, tokenIdentity, scopeLog,
         }));
       })().catch(error => { console.error(error); process.exitCode = 1; });
     `,
@@ -132,7 +149,8 @@ for (const mode of ['commonjs', 'module'] as const) {
     expect(JSON.parse(stdout)).toEqual({ answer: 42, disposed: 42, publiclyConstructible: false,
       cleanup: true, sameClass: true, originalCause: true, label: 'resource',
       metadata: 'package', inspectionIsStatic: true, frozenInspection: true,
-      mappedIdentity: true, asyncMapped: 5, mappedDisposal: ['outer', 7], tokenIdentity: true });
+      mappedIdentity: true, asyncMapped: 5, mappedDisposal: ['outer', 7], tokenIdentity: true,
+      scopeLog: [2, 1, 3] });
   });
 
   test(`Node ${mode} observes local and foreign native subclass state directly`, async () => {
@@ -312,7 +330,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     ).toEqual([]);
   });
 
-  for (const fixture of ['acquisition-mode.ts', 'negative/acquisition-mode.ts', 'tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
+  for (const fixture of ['acquisition-mode.ts', 'negative/acquisition-mode.ts', 'scopes.ts', 'negative/scopes.ts', 'tokens.ts', 'negative/tokens.ts', 'negative/token-modules.ts', 'token-contracts.ts', 'negative/token-contracts.ts', 'providers.ts', 'replacement-context.ts', 'negative/replacement-context.ts', 'negative/provider-boundaries.ts', 'negative/provider-module-metadata.ts', 'negative/provider-projections.ts']) {
     test(`TypeScript ${mode} emitted provider contracts: ${fixture}`, () => {
       const path = resolve(__dirname, `provider-consumer.${mode === 'commonjs' ? 'cts' : 'mts'}`);
       const source = readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
@@ -335,6 +353,10 @@ for (const mode of ['commonjs', 'module'] as const) {
       const errors = ts.getPreEmitDiagnostics(ts.createProgram([path], options, host));
       if (!fixture.startsWith('negative/')) {
         expect(errors.map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+      } else if (fixture === 'negative/scopes.ts') {
+        const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
+        expect(matched.missing).toEqual([]);
+        expect(matched.unexpected).toEqual([]);
       } else {
         expect(errors.every(error => error.file?.fileName === path)).toBe(true);
         const markers = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];

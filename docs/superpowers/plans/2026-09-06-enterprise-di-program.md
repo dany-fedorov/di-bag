@@ -26,7 +26,13 @@ execution; do not stop for another planning approval between increments.
   checks pass 96 runtime/supervisor tests and 3 focused type tests/464 assertions.
   M2 monitor-failure coverage is also reviewed and closed. Evidence and migration:
   `docs/reports/2026-09-07-modern-compilers.md`.
-- [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation. Also restore graph reuse for explicit `fork([], overrides)`, the tracked Minor from the token final review; ordinary `fork()` still reuses its graph.
+- [x] Tracked default child-scope foundation: `Bag.scope()` owns fresh acquisitions
+  over the shared immutable graph, deterministic tree shutdown and independent
+  child detachment. Actual classic/native archives run in Node/Bun CJS/ESM, and
+  physical declaration-only consumers preserve the exact inferred contracts.
+  M1's explicit empty-fork graph-reuse finding is addressed. Evidence:
+  `docs/reports/2026-09-07-child-scopes.md`.
+- [ ] Lifetime runtime: root/scoped/transient policies, explicit sharing and lifetime-leak checks on the per-attempt acquisition foundation.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
@@ -279,3 +285,11 @@ rows measure source revision `cc9dbdc`, not the classification API changes. Evid
   1.5M/2M ceilings. The checkpoint is non-force pushed to feat/v0.1, with exact
   remote SHA verified. Native verification and original large matrices are
   subsequent Task2 work; the two box repositories are unchanged by this task.
+- The tracked child-scope foundation is implemented and package-integrated under
+  `2026-09-07-child-scopes.md`. Parent/child ownership, deterministic descendant
+  shutdown, independent detachment and unchanged inferred Bag contracts are covered
+  in source and in actual installed classic/native archives. Physical `.d.cts` and
+  `.d.mts` consumers load with producer source removed. The previously carried M1
+  empty-selection graph-reuse finding is closed. Root/transient lifetime policies,
+  explicit sharing, captive-dependency checks, eager startup and cancellation remain
+  open; this slice does not complete L1, L2 or A1.

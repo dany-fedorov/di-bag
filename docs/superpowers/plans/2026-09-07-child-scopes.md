@@ -191,7 +191,7 @@ in the task report. Commit only task files with `feat: add tracked child scopes`
 
 ### Task 2: Actual package and declaration-only scope consumers
 
-**Files:** Modify `tests/package.test.ts`, `tests/native-package.test.ts`,
+**Files:** Modify `src/index.ts`, `tests/package.test.ts`, `tests/native-package.test.ts`,
 `tests/box-contract-fixtures.ts`, `README.md`,
 `docs/superpowers/plans/2026-09-06-enterprise-di-program.md`.
 Create `CHANGELOG.md`, `docs/reports/2026-09-07-child-scopes.md`.
@@ -210,6 +210,11 @@ emit this producer with the selected emitter, as acquisition-mode already does.
 Both classic and native consumers must load its actual `.d.cts`/`.d.mts` after
 physical removal of producer source. Require zero diagnostics for positives,
 strict expected-line/message matches for negatives and no new native gap.
+Actual package RED in both emitters exposed an unnameable `Entries` helper in
+the inferred exports. Add a narrow type-only root re-export of `Entries` from
+`./types`, alongside existing `From`/`Provided`. Preserve unannotated producer
+inference; this creates no runtime export or dependency. Record the public
+type-helper addition in the changelog and report.
 
 ```ts
 // Existing producer routes retain the source text except package/import edges.

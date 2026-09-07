@@ -11,7 +11,29 @@ import { supervise } from '../scripts/native-process.ts';
 
 const root = resolve(__dirname, '..');
 const node = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8', timeout: 10000 }).trim();
+const bun = process.execPath;
 const npmCli = realpathSync(join(dirname(node), 'npm'));
+const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
+  ? "const { DiBag } = require('di-bag/node');"
+  : "import { DiBag } from 'di-bag/node';"}
+(async () => {
+  const log = [];
+  let id = 0;
+  const parent = DiBag.begin().add({
+    service: DiBag.withDisposal(() => ++id, value => { log.push(value); }),
+  }).end();
+  const child = parent.scope();
+  const independent = child.fork();
+  if (parent.resolve('service') !== 1 || child.resolve('service') !== 2)
+    throw new Error('scope identity');
+  independent.resolve('service');
+  await parent.close();
+  if (JSON.stringify(log) !== '[2,1]' || independent.resolve('service') !== 3)
+    throw new Error('scope ownership');
+  await independent.close();
+  if (JSON.stringify(log) !== '[2,1,3]') throw new Error('fork ownership');
+  console.log(JSON.stringify({ log }));
+})().catch(error => { console.error(error); process.exitCode = 1; });`;
 for (const emitter of ['classic6', 'native7']) {
   test(`native installed contracts and physical downstream declarations from ${emitter}`, async () => {
     const directory = mkdtempSync(join(tmpdir(), `di-bag-native-package-${emitter}-`));
@@ -26,11 +48,21 @@ for (const emitter of ['classic6', 'native7']) {
       const pack = await supervise(node, [npmCli, 'pack', '--ignore-scripts', '--json'], packageTree, nativeLimits);
       expect(pack.status).toBe(0);
       const archive = join(packageTree, JSON.parse(pack.stdout)[0].filename);
-      for (const extension of ['cts', 'mts']) {
+      for (const extension of ['cts', 'mts'] as const) {
         const consumer = join(directory, extension); mkdirSync(consumer);
         const installed = await supervise(node, [npmCli, 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive,
           join(root, 'tests/fixtures/box-packages/sas-box-0.1.0.tgz'), join(root, 'tests/fixtures/box-packages/val-box-0.1.0.tgz')], consumer, nativeLimits);
         expect(installed.status).toBe(0); expect(installed.terminationReason).toBeUndefined();
+        const runtime = join(consumer, `scope-runtime.${extension === 'cts' ? 'cjs' : 'mjs'}`);
+        writeFileSync(runtime, scopeRuntimeSource(extension));
+        for (const executable of [node, bun]) {
+          const executed = await supervise(executable, [runtime], consumer, nativeLimits);
+          expect({ emitter, extension, executable, status: executed.status, signal: executed.signal,
+            stderr: executed.stderr, stdout: executed.stdout.trim() }).toEqual({
+            emitter, extension, executable, status: 0, signal: null, stderr: '', stdout: '{"log":[2,1,3]}',
+          });
+          expect(executed.terminationReason).toBeUndefined();
+        }
         for (const fixture of boxContractFixtures) {
           const file = join(consumer, `consumer.${extension}`), source = boxContractSource(fixture);
           writeFileSync(file, source);
@@ -44,7 +76,7 @@ for (const emitter of ['classic6', 'native7']) {
             supplementalExpected: markers.supplementalExpected, supplementalMatched: markers.supplementalMatched,
             knownNativeRejections: markers.knownNativeRejections, gaps: markers.gaps }));
         }
-        for (const feature of ['modern-inline', 'token-modules', 'acquisition-mode']) {
+        for (const feature of ['modern-inline', 'token-modules', 'acquisition-mode', 'scopes']) {
           const sourceDir = join(consumer, `${feature}-source`), outputDir = join(consumer, `${feature}-output`);
           mkdirSync(sourceDir); mkdirSync(outputDir);
           const assertions = "type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;";
@@ -55,7 +87,7 @@ for (const emitter of ['classic6', 'native7']) {
           const fixture = feature === 'token-modules' ? 'token-modules/feature.ts' : `${feature}.ts`;
           const producer = join(sourceDir, `feature.${extension}`);
           writeFileSync(producer, route(readFileSync(join(root, 'tests/types', fixture), 'utf8'), true));
-          if (emitter === 'classic6' && feature === 'acquisition-mode') {
+          if (emitter === 'classic6' && (feature === 'acquisition-mode' || feature === 'scopes')) {
             const program = ts.createProgram([producer], { strict: true, declaration: true, emitDeclarationOnly: true, rootDir: sourceDir, outDir: outputDir,
               noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, types: [], target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext });
             const emitted = program.emit();
@@ -69,7 +101,7 @@ for (const emitter of ['classic6', 'native7']) {
           const downstream = join(consumer, `${feature}-consumer.${extension}`);
           const consumerFixture = feature === 'token-modules' ? 'token-modules/consumer.ts' : `${feature}-consumer.ts`;
           const text = route(readFileSync(join(root, 'tests/types', consumerFixture), 'utf8'))
-            .replace(/from '\.\/(modern-inline|feature|acquisition-mode)'/, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`);
+            .replace(/from '\.\/(modern-inline|feature|acquisition-mode|scopes)'/, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`);
           writeFileSync(downstream, text);
           const consumed = await compileNative(compiler, consumer, [downstream]);
           expect({ checked: consumed.checked, diagnostics: consumed.diagnostics }).toEqual({ checked: true, diagnostics: [] });

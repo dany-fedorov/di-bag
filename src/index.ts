@@ -9,6 +9,6 @@ export type { Provider, ProviderOutput, ProviderAcquired, ProviderNeeds, Provide
 export type { AcquisitionMode, RuntimeOptions } from './acquisition-mode';
 export type { Token, TokenKey, TokenService } from './tokens';
 export type { Binding, TokenGraph } from './token-types';
-export type { From, Provided } from './types';
+export type { Entries, From, Provided } from './types';
 export type { Presence, FramePresenceTuple, AcquisitionSnapshot, InspectionSnapshot } from './inspection';
 export type { ValBoxFrame } from './val-box';

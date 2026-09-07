@@ -438,6 +438,32 @@ barrier, but awaiting it would wait on its own completion. Arbitrary user-create
 Promise cycles cannot be forcibly completed. There is no cancellation or shutdown
 timeout: a factory or disposer that never settles keeps `close()` pending.
 
+## Create tracked child scopes
+
+```ts
+const root = DiBag.begin().add({
+  requestId: () => crypto.randomUUID(),
+}).end();
+
+const child = root.scope();
+root.resolve('requestId');  // cached by the root
+child.resolve('requestId'); // a fresh value cached by the child
+
+await root.close(); // closes the child before root-owned resources
+```
+
+`scope()` preserves the parent's exact registrations, tokens, module constraints,
+metadata and resolved-value types while creating fresh lazy acquisitions and
+resource ownership. A parent close synchronously closes its live descendant tree;
+each child finishes before the parent's own finalizers run. Closing a child
+independently leaves its parent and siblings open, and detaches it after that close
+settles, so the caller owns any cleanup failure from the independent close.
+
+A child-created `fork()` is still an independent root. It is not tracked by the
+child or closed with the parent tree, so close it separately. Use `scope()` for a
+tracked child with the same graph, `fork()` for independent ownership, and selected
+`fork(keys, overrides)` for an independent graph with explicit replacements.
+
 ## Fork for scopes and tests
 
 ```ts
