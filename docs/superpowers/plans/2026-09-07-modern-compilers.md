@@ -415,8 +415,11 @@ region, TS2589, missing actual rejection and unrelated extra diagnostics in
 direct tests. A classic marker must never use the native exception.
 
 Add positive concrete named/token replacement and wrapper non-any proofs, and
-standard ReturnType non-any plus negative builder/module history-view assignment
-regressions. Baseline source stays unchanged; the unsafe isolated signature is
+standard ReturnType non-any plus negative reflected-builder assignment and
+reflected-module wrong-consumer-output assignment regressions. Module reflection
+assignment itself is accepted on baseline but retains exact exports/install/
+resolve consumer types; prove that positive path and its non-any result.
+Baseline source stays unchanged; the unsafe isolated signature is
 retained only as RED evidence. Add these fixtures to both installed lanes.
 Report any pre-existing unsupported forwarding form as a limitation, not as a
 positive or a silently suppressed error. All original fixtures/assertions remain.

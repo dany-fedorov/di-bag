@@ -146,7 +146,11 @@ made ReturnType<typeof builder.replace> become any. That enabled cast-free
 erasure of a dependency-bearing builder and an unsafe replacement. The attempted
 neutral validation correction did not close it. No experimental signature or
 union-alias comment is adopted. Standard utility-type non-any and history-view
-rejection regressions must preserve the existing safe behavior.
+regressions must preserve the existing safe behavior. A dependency-bearing
+builder assignment through its reflected replacement return type rejects.
+The analogous module view is assignable but retains its consumer contracts:
+exports/install/resolve still infer number, and assigning that result to string
+rejects. Test those actual invariants, not a blanket ban on safe module views.
 
 Distinguish native rejection evidence from native diagnostic-quality parity.
 The unchanged source has27 replacement calls where native7.0.2 emits TS2769 at
