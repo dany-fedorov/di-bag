@@ -1,13 +1,16 @@
+import type { ContributionConstraint, CheckedContributions, CompleteContributions, RenamedContribution } from './contribution-types';
 import type { Module } from './module';
 import type { Registrations } from './registration';
 import type { Needs, Provided, Singleton, Unsatisfied } from './types';
-import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired, ProviderGraph, ProviderTokenNeeds, ProviderOptionalTokenNeeds, BoundToken } from './provider';
+import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired, ProviderGraph, ProviderTokenNeeds, ProviderOptionalTokenNeeds, ProviderAllTokenNeeds, BoundToken } from './provider';
 import type { TokenGraph, WrongToken, MissingToken } from './token-types';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
 import type { LifetimeObligation, PrivateLifetimes, LexicalProvider, RenamedLifetimeObligation } from './lifetime-types';
 
 export type NeedConstraint =
   | LifetimeObligation
+  | ContributionConstraint
+  | { readonly kind: 'all'; readonly token: TokenBase }
   | { readonly kind: 'export' | 'external'; readonly consumer: string | symbol; readonly needs: object }
   | { readonly kind: 'token-export' | 'token-external' | 'optional-token-export' | 'optional-token-external'; readonly consumer: string | symbol; readonly token: TokenBase }
   | { readonly kind: 'opaque' };
@@ -24,16 +27,16 @@ type WrongConstraint<C extends NeedConstraint, Available extends object> =
 type MissingConstraint<C extends NeedConstraint, Available extends object> =
   C extends { readonly needs: object } ? Exclude<keyof C['needs'], keyof Available> : never;
 
-type WrongTokenConstraint<C, A extends Registrations> = C extends { token: infer T } ? WrongToken<T, A>
+type WrongTokenConstraint<C, A extends Registrations> = C extends { kind: 'contribution' | 'all' } ? never : C extends { token: infer T } ? WrongToken<T, A>
   : C extends { kind: 'opaque' } ? 'opaque' : never;
-type MissingTokenConstraint<C, A extends Registrations> = C extends { kind: 'optional-token-export' | 'optional-token-external' } ? never : C extends { token: infer T } ? MissingToken<T, A>
+type MissingTokenConstraint<C, A extends Registrations> = C extends { kind: 'contribution' | 'all' | 'optional-token-export' | 'optional-token-external' } ? never : C extends { token: infer T } ? MissingToken<T, A>
   : C extends { kind: 'opaque' } ? 'opaque' : never;
 
 export type CheckedConstraints<C extends NeedConstraint, A extends Registrations> =
-  [WrongConstraint<C, Provided<A>> | WrongTokenConstraint<C, A>] extends [never] ? unknown
+  [WrongConstraint<C, Provided<A>> | WrongTokenConstraint<C, A>] extends [never] ? CheckedContributions<C, A>
     : Unsatisfied<'a dependency has the wrong shape', { tokens: WrongConstraint<C, Provided<A>> | WrongTokenConstraint<C, A> }>;
 export type CompleteConstraints<C extends NeedConstraint, A extends Registrations> =
-  [MissingConstraint<C, Provided<A>> | MissingTokenConstraint<C, A>] extends [never] ? unknown
+  [MissingConstraint<C, Provided<A>> | MissingTokenConstraint<C, A>] extends [never] ? CompleteContributions<C, A>
     : Unsatisfied<'missing factories', { missing: MissingConstraint<C, Provided<A>> | MissingTokenConstraint<C, A> }>;
 
 // Separate exported and external references even when a later rename makes
@@ -41,13 +44,15 @@ export type CompleteConstraints<C extends NeedConstraint, A extends Registration
 // before validating them: incompatible requirements must not become `never`.
 type Constraint<K extends string | symbol, N, Keys extends keyof N, Kind extends string> =
   [Keys] extends [never] ? never : { readonly consumer: K; readonly needs: Pick<N, Keys>; readonly kind: Kind };
+export type RegistrationConstraints<V extends Registrations[string], R extends Registrations, Public extends keyof R, K extends string | symbol = string | symbol> =
+    | Constraint<K, Needs<V>, Extract<keyof Needs<V>, Public>, 'export'>
+    | Constraint<K, Needs<V>, Exclude<keyof Needs<V>, keyof R>, 'external'>
+    | (ProviderAllTokenNeeds<V> extends infer T ? T extends TokenBase ? { readonly kind: 'all'; readonly token: T } : never : never)
+    | TokenConstraint<K, ProviderTokenNeeds<V>, R, Public>
+    | TokenConstraint<K, ProviderOptionalTokenNeeds<V>, R, Public, true>
+    | ([ProviderGraph<V>] extends [TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? never : { readonly kind: 'opaque' });
 export type ModuleConstraints<R extends Registrations, Public extends keyof R> = {
-  [K in keyof R & (string | symbol)]:
-    | Constraint<K, Needs<R[K]>, Extract<keyof Needs<R[K]>, Public>, 'export'>
-    | Constraint<K, Needs<R[K]>, Exclude<keyof Needs<R[K]>, keyof R>, 'external'>
-    | TokenConstraint<K, ProviderTokenNeeds<R[K]>, R, Public>
-    | TokenConstraint<K, ProviderOptionalTokenNeeds<R[K]>, R, Public, true>
-    | ([ProviderGraph<R[K]>] extends [TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? never : { readonly kind: 'opaque' });
+  [K in keyof R & (string | symbol)]: RegistrationConstraints<R[K], R, Public, K>;
 }[keyof R & (string | symbol)] | PrivateLifetimes<R, Public>;
 type TokenConstraint<K extends string | symbol, T, R, Public, Optional extends boolean = false> = T extends TokenBase
   ? TokenKey<T> extends Public ? { readonly consumer: K; readonly token: T; readonly kind: Optional extends true ? 'optional-token-export' : 'token-export' }
@@ -77,7 +82,7 @@ export type PublicProvider<R> = R extends Registrations[string]
     : RetainedPublicProvider<R>
     : R
   : never;
-type PublicGraph<G> = G extends TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]> ? { [K in keyof G]: K extends 'required' | 'optional' ? readonly [] : G[K] } : never;
+type PublicGraph<G> = G extends TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]> ? { [K in keyof G]: K extends 'required' | 'optional' | 'all' ? readonly [] : G[K] } : never;
 type RetainedPublicProvider<R extends Registrations[string]> = Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, PublicGraph<ProviderGraph<R>>, ProviderAcquired<R>>;
 export type PublicProviders<R extends object> = { [K in keyof R]: PublicProvider<R[K]> };
 export type ModulePublicProviders<R extends Registrations, P extends keyof R> = { [K in P]: LexicalProvider<PublicProvider<R[K]>, R, P, K> };
@@ -85,7 +90,7 @@ export type Renamed<P extends object, Old extends string, New extends string> = 
   [K in keyof P as K extends Old ? New : K]: P[K];
 };
 export type RenamedConstraints<C extends NeedConstraint, Old extends string, New extends string> =
-  C extends LifetimeObligation ? RenamedLifetimeObligation<C, Old, New> : C extends { readonly kind: 'export'; readonly consumer: string | symbol; readonly needs: object }
+  C extends ContributionConstraint ? RenamedContribution<C, Old, New> : C extends LifetimeObligation ? RenamedLifetimeObligation<C, Old, New> : C extends { readonly kind: 'export'; readonly consumer: string | symbol; readonly needs: object }
     ? { readonly consumer: C['consumer']; readonly needs: Renamed<C['needs'], Old, New>; readonly kind: 'export' }
     : C;
 export type RenameKeys<P, Old extends string, New extends string> =

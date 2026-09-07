@@ -27,12 +27,13 @@ export type DependencyTupleAdmission<T extends readonly unknown[]> = true extend
   : number extends T['length'] ? InvalidTuple : T extends Required<T>
     ? [InvalidDependencies<T>] extends [never] ? unknown : InvalidTuple : InvalidTuple;
 export type TokenArguments<T extends readonly Dependency[]> = { -readonly [I in keyof T]: DependencyValue<T[I]> };
-type ReferenceTokens<T extends readonly Dependency[], Optional extends boolean, Selected extends readonly TokenBase[] = readonly []> = T extends readonly [infer H extends Dependency, ...infer Rest extends readonly Dependency[]]
-  ? (DependencyKind<H> extends 'optional' ? true : false) extends Optional
-    ? ReferenceTokens<Rest, Optional, readonly [...Selected, DependencyToken<H>]> : ReferenceTokens<Rest, Optional, Selected>
+type ReferenceTokens<T extends readonly Dependency[], Kind extends 'required' | 'optional' | 'all', Selected extends readonly TokenBase[] = readonly []> = T extends readonly [infer H extends Dependency, ...infer Rest extends readonly Dependency[]]
+  ? (DependencyKind<H> extends 'lazy' ? 'required' : DependencyKind<H>) extends Kind
+    ? ReferenceTokens<Rest, Kind, readonly [...Selected, DependencyToken<H>]> : ReferenceTokens<Rest, Kind, Selected>
   : Selected;
 export type ReferenceGraph<T extends readonly Dependency[]> = T extends readonly TokenBase[] ? TokenGraph<T>
-  : TokenGraph<ReferenceTokens<T, false>, never, ReferenceTokens<T, true>>;
+  : TokenGraph<ReferenceTokens<T, 'required'>, never, ReferenceTokens<T, 'optional'>> &
+    (ReferenceTokens<T, 'all'> extends readonly [] ? unknown : { readonly all: ReferenceTokens<T, 'all'> });
 export type ReboundGraph<G extends GraphContract, T extends TokenBase> = G extends infer U & {}
   ? U extends TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]> ? { [K in keyof U]: K extends 'bound' ? T : U[K] } : U extends GraphContract ? U : never
   : never;

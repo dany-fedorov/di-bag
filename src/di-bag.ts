@@ -1,6 +1,8 @@
+import { contributionEntry } from './contributions';
+import type { BuilderContribute, CollectionMember } from './contribution-types';
 import { aliasEntry } from './aliases';
 import type { AliasSelection, AliasAdmission, AliasTarget, AliasDestination, AliasEntry, AliasEntries } from './alias-types';
-import { optional, lazy } from './dependency-references';
+import { optional, lazy, all } from './dependency-references';
 import { normalize, snapshotAdd, withDisposal } from './registration';
 import type { DisposableFactory, Factory, Registration, Registrations } from './registration';
 import { BindingGraph, Runtime } from './runtime';
@@ -23,7 +25,7 @@ import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
 import type { ProviderMetadata, ProviderAcquisitionMetadata } from './provider';
 import type { InspectionSnapshot } from './inspection';
 import { token, readTokenKey } from './tokens';
-import type { TokenBase, TokenKey } from './tokens';
+import type { TokenBase, TokenKey, TokenService } from './tokens';
 import type { Binding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey, ReboundSelection } from './token-types';
 import type {
   Checked,
@@ -64,6 +66,14 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
     return this.#runtime.resolve(typeof token === 'string' ? token : readTokenKey(token));
   }
 
+  resolveAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, C>,
+    ...invalid: [T] extends [never] ? [never] : []): ReadonlyArray<TokenService<T>>;
+  resolveAll(token: unknown): readonly unknown[] { return this.#runtime.resolveAll(readTokenKey(token)); }
+
+  inspectAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, C>,
+    ...invalid: [T] extends [never] ? [never] : []): readonly InspectionSnapshot<object, readonly unknown[]>[];
+  inspectAll(token: unknown): readonly InspectionSnapshot<object, readonly unknown[]>[] { return this.#runtime.inspectAll(readTokenKey(token)); }
+
   /** Inspect descriptions and copied attempt state without resolving a service. */
   inspect<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): InspectionSnapshot<ProviderMetadata<R[SelectionKey<K> & keyof R]>, ProviderAcquisitionMetadata<R[SelectionKey<K> & keyof R]>>;
   inspect(token: unknown): unknown {
@@ -84,7 +94,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
       Complete<Merge<R, ReboundSelection<R, Selected<K, O>>>> &
       CheckedConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>> &
       CompleteConstraints<C, Merge<R, ReboundSelection<R, Selected<K, O>>>> &
-      CheckedScopeLifetimes<NoInfer<ScopedAliases<Merge<R, ReboundSelection<R, Selected<K, O>>>, R, S>>, NoInfer<Selected<K, O>>>,
+      CheckedScopeLifetimes<NoInfer<ScopedAliases<Merge<R, ReboundSelection<R, Selected<K, O>>>, R, S>>, NoInfer<Selected<K, O>>, C>,
     options?: ScopeOptions<R, S> & DisjointScopeSelection<K, S>,
   ): Bag<ScopedAliases<Merge<R, ReboundSelection<R, Selected<K, O>>>, R, S>, C>;
   scope(): Bag<UnsharedAliases<R>, C>;
@@ -190,6 +200,12 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
     return new Builder(this.#graph.withPublicBinding(key, registration), this.context);
   }
 
+  // A named callable keeps extracted generic methods nameable in consumer declarations.
+  readonly contribute: BuilderContribute<E, C> = ((token: unknown, registration: Registration) => {
+    const [key, value] = contributionEntry(token, registration);
+    return new Builder(this.#graph.withContribution(key, value), this.context);
+  }) as BuilderContribute<E, C>;
+
   bind<T extends TokenBase, V extends Registration>(
     token: T & TokenTupleAdmission<readonly [T]> & Introduces<From<E>, Record<TokenKey<T>, V>>,
     registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
@@ -260,6 +276,7 @@ interface Facade {
   token: typeof token;
   optional: typeof optional;
   lazy: typeof lazy;
+  all: typeof all;
   fromTokens: typeof fromTokens;
   fromFunction: typeof fromFunction;
   fromClass: typeof fromClass;
@@ -278,6 +295,7 @@ function facade(context: RuntimeContext): Facade { return Object.freeze({
   token,
   optional,
   lazy,
+  all,
   fromTokens,
   fromFunction,
   fromClass,

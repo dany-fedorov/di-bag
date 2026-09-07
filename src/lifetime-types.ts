@@ -1,5 +1,6 @@
+import type { ContributionConstraint } from './contribution-types';
 import type { Registration, Registrations } from './registration';
-import type { Provider, ProviderFactory, ProviderGraph, ProviderNeeds, ProviderTokenNeeds, ProviderOptionalTokenNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired } from './provider';
+import type { Provider, ProviderFactory, ProviderGraph, ProviderNeeds, ProviderTokenNeeds, ProviderOptionalTokenNeeds, ProviderAllTokenNeeds, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired } from './provider';
 import type { GraphContract } from './token-types';
 import type { TokenKey } from './tokens';
 import type { Checked, Complete, Unsatisfied } from './types';
@@ -52,50 +53,56 @@ type PublicKey<E, K> = { [P in keyof E]: Equal<E[P], K> extends true ? P : never
 type Dependencies<V extends Registration> = keyof ProviderNeeds<V> | TokenKey<ProviderTokenNeeds<V> | ProviderOptionalTokenNeeds<V>>;
 
 // A single lexical walk serves public roots, private obligations, and tokens.
-type WalkDependency<H extends Registrations, C, K, Root, Visited> = K extends PropertyKey
+type WalkDependency<H extends Registrations, C, K, Root, Visited, G> = K extends PropertyKey
   ? C extends LexicalContext<infer R, infer E> ? K extends keyof R
-    ? [PublicKey<E, K>] extends [never] ? WalkTarget<H, R[K], C, Root, PrivateSite<C, K>, Visited>
-      : WalkPublic<H, PublicKey<E, K>, Root, Visited>
-    : WalkPublic<H, K, Root, Visited>
-  : WalkPublic<H, K, Root, Visited> : never;
-type WalkPublic<H extends Registrations, K, Root, Visited> = K extends keyof H
-  ? WalkTarget<H, H[K], undefined, Root, PublicSite<K>, Visited> : never;
-type WalkTarget<H extends Registrations, V extends Registration, C, Root, Site, Visited> =
-  V extends infer T & {} ? T extends Registration ? ProviderGraph<T> extends infer G
-    ? G extends { readonly sharedAlias: { readonly registrations: infer P extends Registrations; readonly source: infer K } }
-      ? WalkPublic<P, K, Root, never>
-      : G extends { readonly kind: 'opaque' } ? never
-      : G extends { readonly alias: PropertyKey }
-        ? Seen<Site, Visited> extends true ? never : WalkSource<H, T, C, Root, Visited | Site>
-      : G extends { readonly lifetime: { readonly kind: 'root' } } ? never
-        : G extends { readonly lifetime: { readonly kind: 'transient' } }
-          ? Seen<Site, Visited> extends true ? never : WalkSource<H, T, C, Root, Visited | Site>
+    ? [PublicKey<E, K>] extends [never] ? WalkTarget<H, R[K], C, Root, PrivateSite<C, K>, Visited, G>
+      : WalkPublic<H, PublicKey<E, K>, Root, Visited, G>
+    : WalkPublic<H, K, Root, Visited, G>
+  : WalkPublic<H, K, Root, Visited, G> : never;
+type WalkPublic<H extends Registrations, K, Root, Visited, G> = K extends keyof H
+  ? WalkTarget<H, H[K], undefined, Root, PublicSite<K>, Visited, G> : never;
+type WalkTarget<H extends Registrations, V extends Registration, C, Root, Site, Visited, G> =
+  V extends infer T & {} ? T extends Registration ? ProviderGraph<T> extends infer PG
+    ? PG extends { readonly sharedAlias: { readonly registrations: infer P extends Registrations; readonly source: infer K } }
+      ? WalkPublic<P, K, Root, never, G>
+      : PG extends { readonly kind: 'opaque' } ? never
+      : PG extends { readonly alias: PropertyKey }
+        ? Seen<Site, Visited> extends true ? never : WalkSource<H, T, C, Root, Visited | Site, G>
+      : PG extends { readonly lifetime: { readonly kind: 'root' } } ? never
+        : PG extends { readonly lifetime: { readonly kind: 'transient' } }
+          ? Seen<Site, Visited> extends true ? never : WalkSource<H, T, C, Root, Visited | Site, G>
           : Captive<Root, Site>
     : never : never : never;
-type WalkSource<H extends Registrations, V extends Registration, C, Root, Visited> = ProviderGraph<V> extends {
+type WalkSource<H extends Registrations, V extends Registration, C, Root, Visited, G> = ProviderGraph<V> extends {
   readonly lexical: { readonly source: infer K; readonly context: infer L extends LexicalContext };
-} ? K extends keyof L['registrations'] ? WalkDeclared<H, L['registrations'][K], L, Root, Visited> : never
-  : WalkDeclared<H, V, C, Root, Visited>;
+} ? K extends keyof L['registrations'] ? WalkDeclared<H, L['registrations'][K], L, Root, Visited, G> : never
+  : C extends LexicalContext & { readonly registration: infer Original extends Registration } ? WalkDeclared<H, Original, LexicalContext<C['registrations'], C['exports']>, Root, Visited, G> : WalkDeclared<H, V, C, Root, Visited, G>;
 // Local shape errors have already been reported by ModuleBuilder.add. External
 // dependencies are intentionally absent here, so local completeness is not required.
-type WalkDeclared<H extends Registrations, V extends Registration, C, Root, Visited> =
+type WalkDeclared<H extends Registrations, V extends Registration, C, Root, Visited, G> =
   unknown extends (C extends LexicalContext ? Checked<C['registrations']> : unknown)
-    ? WalkDependency<H, C, Dependencies<V>, Root, Visited> : never;
-type CheckRoot<H extends Registrations, V extends Registration, C, Site> = V extends infer T & {}
-  ? T extends Registration ? true extends Strict<T> ? WalkSource<H, T, C, Site, Site> : never : never : never;
-type PublicCaptives<H extends Registrations> = { [K in keyof H]: CheckRoot<H, H[K], undefined, PublicSite<K>> }[keyof H];
-type PrivateCaptives<H extends Registrations, C> = C extends LifetimeObligation
+    ? WalkDependency<H, C, Dependencies<V>, Root, Visited, G> | WalkCollection<H, ProviderAllTokenNeeds<V>, Root, Visited, G> : never;
+type CheckRoot<H extends Registrations, V extends Registration, C, Site, G> = V extends infer T & {}
+  ? T extends Registration ? true extends Strict<T> ? WalkSource<H, T, C, Site, Site, G> : never : never : never;
+type PublicCaptives<H extends Registrations, G> = { [K in keyof H]: CheckRoot<H, H[K], undefined, PublicSite<K>, G> }[keyof H];
+type PrivateCaptives<H extends Registrations, C, G> = C extends LifetimeObligation
   ? C['source'] extends keyof C['context']['registrations']
-    ? CheckRoot<H, C['context']['registrations'][C['source']], C['context'], PrivateSite<C['context'], C['source']>> : never : never;
-type Captives<R extends Registrations, C> = PublicCaptives<R> | PrivateCaptives<R, C>;
+    ? CheckRoot<H, C['context']['registrations'][C['source']], C['context'], PrivateSite<C['context'], C['source']>, G> : never : never;
+type ContributionSite<C> = { readonly kind: 'contribution'; readonly contribution: C };
+type WalkCollection<H extends Registrations, T, Root, Visited, G, Items = Extract<G, ContributionConstraint>> =
+  Items extends ContributionConstraint ? TokenKey<Items['token']> extends TokenKey<T>
+    ? WalkTarget<H, Items['registration'], Items['context'], Root, ContributionSite<Items>, Visited, G> : never : never;
+type ContributionCaptives<H extends Registrations, G, Items = Extract<G, ContributionConstraint>> = Items extends ContributionConstraint
+  ? CheckRoot<H, Items['registration'], Items['context'], ContributionSite<Items>, G> : never;
+type Captives<R extends Registrations, C> = PublicCaptives<R, C> | PrivateCaptives<R, C, C> | ContributionCaptives<R, C>;
 // Inherited roots construct in their already-validated ancestor graph. Only
 // roots newly introduced by this scope can capture its overridden dependencies.
-type OverrideCaptives<R extends Registrations, O extends Registrations> = {
-  [K in keyof O & keyof R]: CheckRoot<R, R[K], undefined, PublicSite<K>>;
+type OverrideCaptives<R extends Registrations, O extends Registrations, G> = {
+  [K in keyof O & keyof R]: CheckRoot<R, R[K], undefined, PublicSite<K>, G>;
 }[keyof O & keyof R];
-export type CheckedScopeLifetimes<R extends Registrations, O extends Registrations> =
-  [OverrideCaptives<R, O>] extends [never] ? unknown
-    : Unsatisfied<'root lifetime cannot capture scoped dependency', { readonly captives: OverrideCaptives<R, O> }>;
+export type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, G = never> =
+  [OverrideCaptives<R, O, G>] extends [never] ? unknown
+    : Unsatisfied<'root lifetime cannot capture scoped dependency', { readonly captives: OverrideCaptives<R, O, G> }>;
 export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> =
   [Captives<R, C>] extends [never] ? unknown
     : unknown extends Checked<R> & Complete<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R>

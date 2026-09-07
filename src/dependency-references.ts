@@ -6,10 +6,11 @@ declare const referenceInvariant: unique symbol;
 class ReferenceBase {
   declare private readonly nominal: void;
 }
-class DependencyReference<T extends TokenBase, K extends 'optional' | 'lazy'> extends ReferenceBase {
+class DependencyReference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'> extends ReferenceBase {
   declare readonly [referenceInvariant]: (value: [T, K]) => [T, K];
 }
 export type OptionalReference<T extends TokenBase> = DependencyReference<T, 'optional'>;
+export type AllReference<T extends TokenBase> = DependencyReference<T, 'all'>;
 export type LazyReference<T extends TokenBase> = DependencyReference<T, 'lazy'>;
 export type Dependency = TokenBase | ReferenceBase;
 // Extract invariant carriers through a covariant view of their return tuple.
@@ -18,18 +19,18 @@ export type DependencyToken<R> = R extends TokenBase ? R : ReferenceParts<R>[0];
 export type DependencyKind<R> = R extends TokenBase ? 'required' : ReferenceParts<R>[1];
 export type DependencyValue<R> = R extends TokenBase ? TokenService<R>
   : ReferenceParts<R> extends [infer T, infer K] ? K extends 'optional' ? TokenService<T> | undefined
-    : K extends 'lazy' ? () => TokenService<T> : never : never;
+    : K extends 'lazy' ? () => TokenService<T> : K extends 'all' ? ReadonlyArray<TokenService<T>> : never : never;
 export type ValidDependency<R> = [R] extends [never] ? false : ValidToken<R> extends true ? true
   : R extends ReferenceBase ? ValidToken<DependencyToken<R>> : false;
 
 export interface ArgumentReference {
   readonly slot: symbol;
   readonly key: symbol;
-  readonly kind: 'required' | 'optional' | 'lazy';
+  readonly kind: 'required' | 'optional' | 'lazy' | 'all';
 }
-const references = new WeakMap<object, Readonly<{ key: symbol; kind: 'optional' | 'lazy' }>>();
+const references = new WeakMap<object, Readonly<{ key: symbol; kind: 'optional' | 'lazy' | 'all' }>>();
 
-function reference<T extends TokenBase, K extends 'optional' | 'lazy'>(token: T, kind: K): DependencyReference<T, K> {
+function reference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'>(token: T, kind: K): DependencyReference<T, K> {
   const key = readTokenKey(token);
   const handle = new DependencyReference<T, K>();
   references.set(handle, Object.freeze({ key, kind }));
@@ -46,6 +47,11 @@ export function optional<T extends TokenBase>(token: T & TokenTupleAdmission<rea
 export function lazy<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>,
   ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []
 ): LazyReference<T> { return reference<T, 'lazy'>(token, 'lazy'); }
+
+/** Supply every present contributor, including an empty frozen array. */
+export function all<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>,
+  ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []
+): AllReference<T> { return reference<T, 'all'>(token, 'all'); }
 
 /** Indexed snapshots ignore tuple iterators and retain only authenticated records. */
 export function snapshotReferences(value: unknown): readonly ArgumentReference[] {

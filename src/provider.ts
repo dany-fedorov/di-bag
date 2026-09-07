@@ -67,6 +67,7 @@ type GraphOf<R> = R extends Provider<infer _F, infer _M, infer _A, infer G, infe
 type RequiredTokens<G> = G extends TokenGraph<infer T, TokenBase, readonly TokenBase[]> ? T[number] : TokenBase;
 type Bound<G> = G extends TokenGraph<readonly TokenBase[], infer B, readonly TokenBase[]> ? B : TokenBase;
 type OptionalTokens<G> = G extends TokenGraph<readonly TokenBase[], TokenBase, infer O> ? O[number] : TokenBase;
+export type ProviderAllTokenNeeds<R> = ProviderGraph<R> extends infer G ? G extends { readonly all: infer T extends readonly TokenBase[] } ? T[number] : never : never;
 export type ProviderOptionalTokenNeeds<R> = OptionalTokens<ProviderGraph<R>>;
 export type ProviderTokenNeeds<R> = RequiredTokens<ProviderGraph<R>>;
 export type BoundToken<R> = Bound<ProviderGraph<R>>;

@@ -61,6 +61,15 @@ export class Acquisitions {
     return this.resolveBinding(this.graph.publicBinding(key)).exposed;
   }
 
+  resolveAll(key: symbol): readonly unknown[] {
+    this.assertOpen();
+    return this.resolveCollection(key);
+  }
+
+  private resolveCollection(key: symbol, from?: Acquisition): readonly unknown[] {
+    return Object.freeze(this.graph.contributionBindings(key).map(id => this.resolveBinding(id, from).exposed));
+  }
+
   async acquire(key: BindingKey): Promise<void> {
     this.assertOpen();
     await this.resolveBinding(this.graph.publicBinding(key)).execution.ready();
@@ -189,11 +198,12 @@ export class Acquisitions {
     this.attempts.set(attempt.id, attempt);
     this.family.add(attempt);
     if (from) this.family.recordEdge(from, attempt);
-    const read = (key: BindingKey, optional = false): unknown => {
+    const read = (key: BindingKey, optional = false, all = false): unknown => {
       // Only this attempt's in-flight factory can discover dependencies in close.
       if (this.state === 'closed' || (this.state === 'closing' && !attempt.execution.sourceInFlight)) {
         throw new Error(`bag is ${this.state}`);
       }
+      if (all) return this.resolveCollection(key as symbol, attempt);
       const target = optional ? this.graph.findDependency(bindingId, key) : this.graph.dependency(bindingId, key);
       return target === undefined ? undefined : this.resolveBinding(target, attempt).exposed;
     };
@@ -202,7 +212,7 @@ export class Acquisitions {
       get: (_, key) => {
         const reference = typeof key === 'symbol' ? references.get(key) : undefined;
         if (reference) return reference.kind === 'lazy' ? () => read(reference.key)
-          : read(reference.key, reference.kind === 'optional');
+          : read(reference.key, reference.kind === 'optional', reference.kind === 'all');
         if (typeof key === 'symbol' && !description.tokenKeys.includes(key)) return undefined;
         return read(key);
       },

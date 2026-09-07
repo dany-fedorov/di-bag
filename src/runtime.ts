@@ -23,6 +23,7 @@ export interface BindingDescription {
 export interface GraphDescription {
   readonly bindings: ReadonlyMap<BindingId, BindingDescription>;
   readonly publicSlots: ReadonlyMap<BindingKey, BindingId>;
+  readonly contributions?: ReadonlyMap<symbol, readonly BindingId[]>;
 }
 
 type Normalized = Readonly<ReturnType<typeof normalize>>;
@@ -32,6 +33,7 @@ export class BindingGraph {
   readonly #bindings = new Map<BindingId, BindingDescription>();
   readonly #registrations = new Map<BindingId, Normalized>();
   readonly #publicSlots: Map<BindingKey, BindingId>;
+  readonly #contributions = new Map<symbol, readonly BindingId[]>();
   #explicitlyClassified = false;
 
   constructor(description: GraphDescription = { bindings: new Map(), publicSlots: new Map() }) {
@@ -45,6 +47,20 @@ export class BindingGraph {
       this.#registrations.set(id, Object.freeze(normalize(binding.registration)));
     }
     this.#publicSlots = new Map(description.publicSlots);
+    for (const [key, ids] of description.contributions ?? []) this.#contributions.set(key, Object.freeze([...ids]));
+  }
+
+  contributionBindings(key: symbol): readonly BindingId[] {
+    return this.#contributions.get(key) ?? Object.freeze([]);
+  }
+
+  withContribution(key: symbol, registration: Registration): BindingGraph {
+    const id = Symbol(`contribution:${String(key)}`);
+    const bindings = new Map(this.#bindings);
+    bindings.set(id, { id, label: `contribution:${String(key)}`, registration, localNames: new Map() });
+    const contributions = new Map(this.#contributions);
+    contributions.set(key, [...this.contributionBindings(key), id]);
+    return new BindingGraph({ bindings, publicSlots: this.#publicSlots, contributions });
   }
 
   hasPublic(key: BindingKey): boolean {
@@ -111,7 +127,7 @@ export class BindingGraph {
       });
       publicSlots.set(key, id);
     }
-    return new BindingGraph({ bindings, publicSlots });
+    return new BindingGraph({ bindings, publicSlots, contributions: this.#contributions });
   }
 
   /** Replace one public slot, preserving lexical references and symbol identity. */
@@ -124,7 +140,10 @@ export class BindingGraph {
     for (const key of description.publicSlots.keys()) {
       if (this.#publicSlots.has(key)) throw new Error(`duplicate registration: ${String(key)}`);
     }
+    const contributions = new Map(this.#contributions);
+    for (const [key, ids] of description.contributions ?? []) contributions.set(key, [...this.contributionBindings(key), ...ids]);
     return new BindingGraph({
+      contributions,
       bindings: new Map([...this.#bindings, ...description.bindings]),
       publicSlots: new Map([...this.#publicSlots, ...description.publicSlots]),
     });
@@ -152,6 +171,12 @@ export class Runtime {
     return this.acquisitions.resolve(key);
   }
 
+  resolveAll(key: symbol): readonly unknown[] { return this.acquisitions.resolveAll(key); }
+
+  inspectAll(key: symbol): readonly InspectionSnapshot<object, readonly unknown[]>[] {
+    return Object.freeze(this.graph.contributionBindings(key).map(bindingId => this.inspectBinding(bindingId)));
+  }
+
   acquire(key: BindingKey): Promise<void> {
     return this.acquisitions.acquire(key);
   }
@@ -161,7 +186,10 @@ export class Runtime {
   }
 
   inspect(key: BindingKey): InspectionSnapshot<object, readonly unknown[]> {
-    const bindingId = this.graph.publicBinding(key);
+    return this.inspectBinding(this.graph.publicBinding(key));
+  }
+
+  private inspectBinding(bindingId: BindingId): InspectionSnapshot<object, readonly unknown[]> {
     return Object.freeze({
       bindingId,
       label: this.graph.label(bindingId),

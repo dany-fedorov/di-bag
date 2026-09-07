@@ -1,3 +1,5 @@
+import { contributionEntry } from './contributions';
+import type { ModuleContribute, ContributionConstraint, CheckedContributions, ModuleContributionConstraints } from './contribution-types';
 import { aliasEntry } from './aliases';
 import type { AliasSelection, AliasAdmission, AliasTarget, AliasDestination, AliasEntry, AliasEntries } from './alias-types';
 import { normalize, snapshotAdd } from './registration';
@@ -14,6 +16,7 @@ import type { NamedAdmission } from './types';
 import type { BindingKey } from './runtime';
 
 interface ModuleDescription {
+  readonly contributions: readonly (readonly [symbol, Registration])[];
   readonly registrations: ReadonlyMap<BindingKey, Registration>;
   /** Public slot -> original local name. Factory parameter names never change. */
   readonly exports: ReadonlyMap<BindingKey, BindingKey>;
@@ -28,7 +31,7 @@ class Module<P extends object, R extends object, C extends NeedConstraint = neve
   declare readonly [moduleInvariant]: (value: [P, R, C, D]) => [P, R, C, D];
 
   constructor(description: ModuleDescription) {
-    descriptions.set(this, { registrations: new Map(description.registrations), exports: new Map(description.exports) });
+    descriptions.set(this, { contributions: Object.freeze([...description.contributions]), registrations: new Map(description.registrations), exports: new Map(description.exports) });
     Object.freeze(this);
   }
 
@@ -44,22 +47,24 @@ class Module<P extends object, R extends object, C extends NeedConstraint = neve
     const localName = exports.get(oldKey)!;
     exports.delete(oldKey);
     exports.set(newKey, localName);
-    return new Module({ registrations: description.registrations, exports });
+    return new Module({ registrations: description.registrations, exports, contributions: description.contributions });
   }
 }
 
-class ModuleBuilder<E extends Entry> {
-  declare readonly [moduleInvariant]: (value: From<E>) => From<E>;
+class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
+  declare readonly [moduleInvariant]: (value: readonly [From<E>, C]) => readonly [From<E>, C];
   readonly #registrations: ReadonlyMap<BindingKey, Registration>;
-  constructor(registrations: ReadonlyMap<BindingKey, Registration> = new Map()) {
+  readonly #contributions: readonly (readonly [symbol, Registration])[];
+  constructor(registrations: ReadonlyMap<BindingKey, Registration> = new Map(), contributions: readonly (readonly [symbol, Registration])[] = []) {
+    this.#contributions = Object.freeze([...contributions]);
     this.#registrations = new Map(registrations);
   }
 
   add<N extends { [K in keyof N]: Registration }>(
-    more: N & Registrations & NamedAdmission<N> & Introduces<From<E>, N> & Checked<Merge<From<E>, N>>,
-  ): ModuleBuilder<E | Entries<N>> {
+    more: N & Registrations & NamedAdmission<N> & Introduces<From<E>, N> & Checked<Merge<From<E>, N>> & CheckedContributions<C, Merge<From<E>, N>>,
+  ): ModuleBuilder<E | Entries<N>, C> {
     const snapshot = snapshotAdd(more, key => this.#registrations.has(key));
-    return new ModuleBuilder(new Map([...this.#registrations, ...Object.entries(snapshot)]));
+    return new ModuleBuilder(new Map([...this.#registrations, ...Object.entries(snapshot)]), this.#contributions);
   }
 
   alias<const D extends AliasSelection, const T extends AliasSelection>(
@@ -67,51 +72,56 @@ class ModuleBuilder<E extends Entry> {
     target: T & AliasAdmission<T> & (unknown extends AliasAdmission<T>
       ? AliasTarget<From<E>, T> & AliasDestination<From<E>, NoInfer<D>, T> : unknown) &
       (unknown extends AliasAdmission<D> & AliasAdmission<T>
-        ? Checked<Merge<From<E>, AliasEntries<From<E>, NoInfer<D>, NoInfer<T>>>> : unknown),
+        ? Checked<Merge<From<E>, AliasEntries<From<E>, NoInfer<D>, NoInfer<T>>>> & CheckedContributions<C, Merge<From<E>, AliasEntries<From<E>, NoInfer<D>, NoInfer<T>>>> : unknown),
     ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []
-  ): ModuleBuilder<E | AliasEntry<From<E>, D, T>> {
+  ): ModuleBuilder<E | AliasEntry<From<E>, D, T>, C> {
     const [key, registration] = aliasEntry(destination, target, key => this.#registrations.has(key));
-    return new ModuleBuilder(new Map([...this.#registrations, [key, registration]]));
+    return new ModuleBuilder(new Map([...this.#registrations, [key, registration]]), this.#contributions);
   }
+
+  readonly contribute: ModuleContribute<E, C> = ((token: unknown, registration: Registration) => {
+    const entry = contributionEntry(token, registration);
+    return new ModuleBuilder(this.#registrations, [...this.#contributions, entry]);
+  }) as ModuleContribute<E, C>;
 
   bind<T extends TokenBase, V extends Registration>(
     token: T & TokenTupleAdmission<readonly [T]> & Introduces<From<E>, Record<TokenKey<T>, V>>,
     registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
-      Checked<Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
-  ): ModuleBuilder<E | { key: TokenKey<T>; registration: Binding<T, V> }> {
+      Checked<Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>> & CheckedContributions<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
+  ): ModuleBuilder<E | { key: TokenKey<T>; registration: Binding<T, V> }, C> {
     const key = readTokenKey(token);
     if (this.#registrations.has(key)) throw new Error(`duplicate registration: ${String(key)}`);
-    return new ModuleBuilder(new Map([...this.#registrations, [key, withTokenBinding<T, V>(token, registration)]]));
+    return new ModuleBuilder(new Map([...this.#registrations, [key, withTokenBinding<T, V>(token, registration)]]), this.#contributions);
   }
 
   // The preliminary zero-arg context satisfies surviving local consumers;
   // complete checks below still validate the actual inferred registration.
   replace<const K extends string, V extends ((this: void) => ReplacementOutput<From<E>, K>) | DisposableFactory<(this: void) => ReplacementOutput<From<E>, K>>>(
     key: K & ReplacementKey<From<E>, K>,
-    registration: V & (Factory | DisposableFactory<Factory>) & Checked<Merge<From<E>, Record<K, NoInfer<V>>>>,
-  ): ModuleBuilder<Exclude<E, { key: K }> | { key: K; registration: V }>;
+    registration: V & (Factory | DisposableFactory<Factory>) & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> & CheckedContributions<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
+  ): ModuleBuilder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
   replace<const K extends string, V extends Registration>(
     key: K & ReplacementKey<From<E>, K>,
-    registration: V & Registration & Checked<Merge<From<E>, Record<K, NoInfer<V>>>>,
-  ): ModuleBuilder<Exclude<E, { key: K }> | { key: K; registration: V }>;
+    registration: V & Registration & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> & CheckedContributions<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
+  ): ModuleBuilder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
   replace<T extends TokenBase, V extends Registration>(
     token: T & TokenMember<From<E>, T>,
     registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
-      Checked<Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
-  ): ModuleBuilder<Exclude<E, { key: TokenKey<T> }> | { key: TokenKey<T>; registration: Binding<T, V> }>;
+      Checked<Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>> & CheckedContributions<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
+  ): ModuleBuilder<Exclude<E, { key: TokenKey<T> }> | { key: TokenKey<T>; registration: Binding<T, V> }, C>;
   replace(selection: string | TokenBase, registration: Registration): unknown {
     const key = typeof selection === 'string' ? selection : readTokenKey(selection);
     if (!this.#registrations.has(key)) throw new Error(`replace accepts existing tokens only: ${String(key)}`);
     normalize(registration);
     const registrations = new Map(this.#registrations);
     registrations.set(key, registration);
-    return new ModuleBuilder(registrations);
+    return new ModuleBuilder(registrations, this.#contributions);
   }
 
   exports<const K extends readonly unknown[]>(keys: K & Selection<From<E>, K, 'exports'>): Module<
     Pick<Provided<From<E>>, Extract<SelectionKey<K[number]>, keyof From<E>>>,
-    ExternalRequirements<ModuleConstraints<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>>,
-    ModuleConstraints<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>,
+    ExternalRequirements<ModuleConstraints<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>> | ModuleContributionConstraints<C, From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>>,
+    ModuleConstraints<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>> | ModuleContributionConstraints<C, From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>,
     ModulePublicProviders<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>
   > {
     if (!Array.isArray(keys)) throw new Error('exports requires a key tuple');
@@ -124,7 +134,7 @@ class ModuleBuilder<E extends Entry> {
       if (!this.#registrations.has(key)) throw new Error('exports accepts existing tokens only');
       exports.set(key, key);
     }
-    return new Module({ registrations: this.#registrations, exports });
+    return new Module({ registrations: this.#registrations, exports, contributions: this.#contributions });
   }
 }
 
@@ -146,7 +156,15 @@ export function moduleGraph(value: object): GraphDescription {
     const id = ids.get(key)!;
     bindings.set(id, { id, label: String(key), registration, localNames });
   }
-  return { bindings, publicSlots };
+  const contributions = new Map<symbol, BindingId[]>();
+  for (const [key, registration] of description.contributions) {
+    const id = Symbol(`contribution:${String(key)}`);
+    bindings.set(id, { id, label: `contribution:${String(key)}`, registration, localNames });
+    const group = contributions.get(key) ?? [];
+    group.push(id);
+    contributions.set(key, group);
+  }
+  return { bindings, publicSlots, contributions };
 }
 
 export const beginModule = (): ModuleBuilder<never> => new ModuleBuilder();
