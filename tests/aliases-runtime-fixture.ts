@@ -55,6 +55,31 @@ export const aliasRuntimeAssertions = `
     await moduleBag.close();
     assertAlias(privateDisposed === 1, 'private alias target ownership changed');
 
+    let settleNative;
+    const nativeValue = { ready: true };
+    const nativePromise = new Promise(resolve => { settleNative = resolve; });
+    let nativeCalls = 0;
+    let nativeDisposals = 0;
+    const nativeBag = DiBag.begin().add({
+      native: DiBag.withDisposal(DiBag.factory(() => { nativeCalls++; return nativePromise; }, { acquisition: 'native' }),
+        value => { assertAlias(value === nativeValue, 'native alias disposer did not receive fulfilled target'); nativeDisposals++; }),
+    }).alias('nativeAlias', 'native').end();
+    assertAlias(nativeBag.resolve('nativeAlias') === nativePromise && nativeBag.resolve('native') === nativePromise
+      && nativeCalls === 1, 'native alias changed pending Promise identity or added an acquisition');
+    const nativeAliasView = nativeBag.inspect('nativeAlias');
+    const nativeTargetView = nativeBag.inspect('native');
+    assertAlias(nativeAliasView.acquisitions.length === 1 && nativeAliasView.acquisitions[0].state === 'pending'
+      && nativeAliasView.acquisitions[0].acquisitionId === nativeTargetView.acquisitions[0].acquisitionId,
+      'native alias did not inspect the canonical pending acquisition');
+    let nativeClosed = false;
+    const nativeClosing = nativeBag.close().then(() => { nativeClosed = true; });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assertAlias(!nativeClosed && nativeDisposals === 0, 'native alias close bypassed canonical readiness');
+    settleNative(nativeValue);
+    await nativeClosing;
+    assertAlias(nativeClosed && nativeDisposals === 1 && nativeCalls === 1,
+      'native alias did not retain once-only canonical ownership');
+
     const { DiBag: PortableDiBag } = await import('di-bag');
     const portable = PortableDiBag.begin().add({
       raw: PortableDiBag.factory(() => promise, { acquisition: 'raw' }),

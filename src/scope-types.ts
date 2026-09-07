@@ -37,7 +37,8 @@ type SharedAlias<R extends Registrations, Parent extends Registrations, K extend
   ProviderGraph<R[K]> & { readonly sharedAlias: { readonly registrations: Parent; readonly source: K; readonly original: R[K] } },
   ProviderAcquired<R[K]>
 >;
-type RetainShared<R extends Registrations, Parent extends Registrations, S extends readonly unknown[]> =
+/** Named mapping keeps reflected package declarations inside this checked generic boundary. */
+export type SharedAliasProviders<R extends Registrations, Parent extends Registrations, S extends readonly unknown[]> =
   [AliasKeys<R, S>] extends [never] ? R
     : Omit<R, AliasKeys<R, S>> & { [K in AliasKeys<R, S>]: SharedAlias<R, Parent, K> };
-export type ScopedAliases<R extends Registrations, Parent extends Registrations, S extends readonly unknown[]> = RetainShared<UnsharedAliases<R>, Parent, S>;
+export type ScopedAliases<R extends Registrations, Parent extends Registrations, S extends readonly unknown[]> = SharedAliasProviders<UnsharedAliases<R>, Parent, S>;
