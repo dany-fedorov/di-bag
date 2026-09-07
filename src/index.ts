@@ -1,5 +1,5 @@
 export { DiBag } from './di-bag';
-export { DiBagCleanupError, DiBagStartupError, DiBagStartupCancelledError } from './errors';
+export { DiBagCleanupError, DiBagPluginError, DiBagStartupError, DiBagStartupCancelledError } from './errors';
 export type { CleanupFailure } from './errors';
 export type { Bag, Builder, Facade } from './di-bag';
 export type { Module, ModuleBuilder } from './module';
@@ -19,6 +19,7 @@ export type { Presence, FramePresenceTuple, AcquisitionSnapshot, InspectionSnaps
 export type { ValBoxFrame } from './val-box';
 export type { CompositionArguments, CompositionFunction } from './composition';
 export type { OptionalReference, LazyReference, AllReference, Dependency } from './dependency-references';
+export type { PluginAcquisition, PluginOptions, PluginPredicate, PluginResult } from './plugins';
 
 export type { AliasRegistration, AliasEntries, AliasOutput } from './alias-types';
 

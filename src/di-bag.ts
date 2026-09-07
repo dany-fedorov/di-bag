@@ -27,6 +27,7 @@ import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
 import type { ProviderMetadata, ProviderAcquisitionMetadata } from './provider';
 import type { InspectionSnapshot } from './inspection';
 import { token, readTokenKey } from './tokens';
+import { fromPlugin } from './plugins';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
 import type { Binding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey, ReboundSelection } from './token-types';
 import type {
@@ -281,6 +282,7 @@ export interface Facade {
   lazy: typeof lazy;
   all: typeof all;
   fromTokens: typeof fromTokens;
+  fromPlugin: typeof fromPlugin;
   fromFunction: typeof fromFunction;
   fromClass: typeof fromClass;
   begin: () => Builder<never>;
@@ -301,6 +303,7 @@ function facade(context: RuntimeContext): Facade { return Object.freeze({
   lazy,
   all,
   fromTokens,
+  fromPlugin,
   fromFunction,
   fromClass,
   begin: (): Builder<never> => new Builder(new BindingGraph(), context),

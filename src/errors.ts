@@ -5,6 +5,14 @@ export interface CleanupFailure {
   readonly error: unknown;
 }
 
+/** A plugin descriptor or produced value crossed the checked plugin boundary. */
+export class DiBagPluginError extends Error {
+  constructor(readonly phase: 'descriptor' | 'output', readonly reason: string) {
+    super(`Invalid plugin ${phase}: ${reason}`);
+    this.name = 'DiBagPluginError';
+  }
+}
+
 /** Original cleanup causes and detached acquisition diagnostics, in attempt order. */
 export class DiBagCleanupError extends AggregateError {
   readonly failures: readonly CleanupFailure[];
