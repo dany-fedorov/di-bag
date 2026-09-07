@@ -169,7 +169,9 @@ Change only development tooling/configuration:
 ```json
 {
   "devDependencies": {
-    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
+  },
+  "overrides": {
     "@typescript/old": "npm:typescript@6.0.3"
   },
   "scripts": {
@@ -183,6 +185,10 @@ Retain all other manifest fields/dependencies/scripts. Generate the lock through
 npm with lifecycle scripts disabled, no audit/funding and explicit registry.
 Inspect lock versions and assert imported ts.version is exactly6.0.3. No global
 install, box dependency, compiler peer or runtime dependency is added.
+Keep @typescript/old transitive: making it direct would introduce a second tsc
+bin alongside Task2's native compiler. The exact override was verified with
+npm11 in an isolated install, including both aliases: tsc6 resolves6.0.3 and
+tsc resolves7.0.2. Recheck those command targets after Task2 installs native.
 In tsconfig.json set module/moduleResolution to `NodeNext` and rootDir to `.`;
 retain all strictness, ES2022, include/exclude and other flags. In compiler.ts
 set `module: ts.ModuleKind.NodeNext` and `moduleResolution: ts.ModuleResolutionKind.NodeNext`.

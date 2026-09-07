@@ -24,7 +24,9 @@ The official `@typescript/typescript6` compatibility wrapper is version 6.0.2,
 not 6.0.3. It delegates to `@typescript/old` (`npm:typescript@^6`). A temporary
 installation resolves that implementation to 6.0.3; its compiler JS SHA-256 is
 identical to the previously tested plain 6.0.3 package. Pin the implementation
-alias directly as well as the wrapper, rather than relying on that range.
+alias through an exact npm override as well as pinning the wrapper, rather than
+relying on that range. Do not make `@typescript/old` a direct development
+dependency: its `tsc` bin would compete with the native compiler's command.
 
 ## Alternatives and selection
 
@@ -63,8 +65,8 @@ unless a demonstrated package defect requires its own scoped correction.
 
 ## Classic API lane and inference adoption
 
-Pin development aliases `typescript: npm:@typescript/typescript6@6.0.2` and
-`@typescript/old: npm:typescript@6.0.3`, with a checked lockfile. Classic scripts
+Pin development alias `typescript: npm:@typescript/typescript6@6.0.2` and npm
+override `@typescript/old: npm:typescript@6.0.3`, with a checked lockfile. Classic scripts
 use `tsc6`; package tests use `node node_modules/typescript/bin/tsc6` explicitly.
 Move source/build configuration and the compiler helper to explicit NodeNext
 module/resolution, retaining ES2022 and all current strictness flags. Existing
