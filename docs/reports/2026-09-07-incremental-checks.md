@@ -125,6 +125,35 @@ enterprise compiler-scale work, not a completion claim.
   with 2,044 assertions, and the declaration build. The WBS ownership, named
   modules, box adapters and token modules examples all completed successfully;
   final diff and artifact consistency checks were clean.
+- Controller verification of committed production/harness `659acdd` passed
+  strict typecheck, 56 benchmark/work/installed-package tests with 433 assertions
+  in 40.95 seconds, two source builder-view tests with eight assertions,
+  declaration build, all four examples, and diff check. Every command exited 0.
+  Only controller documentation changed during this run.
 
-Task/final review remains separate. The bounded reports do not close the
-enterprise program while the recorded larger cases still fail to complete.
+Both task reviews are approved. Task 2 has one Minor for final-review triage:
+direct unit coverage of the parent report evaluator's failure branches. The
+reviewer's initial scope finding was withdrawn after distinguishing measurement
+Task 2 from enterprise requirement T2. The controller independently reconciled
+all 54 artifact rows, including the 39 accepted diagnostic/work records and all
+15 process failures. Broad final review remains separate. The bounded reports
+do not close the enterprise program while the larger cases still fail to complete.
+
+## Decisions and their costs
+
+1. Incremental checks reuse flat entry history. The measured reduction supports
+   this smaller integration; if insufficient, old-entry scans and module checks
+   will require further checker redesign.
+2. Incoming errors precede cross-token and cross-named errors, avoiding
+   conflicting diagnostic records collapsing to `never`. The compatibility cost
+   is a different first diagnostic for simultaneously invalid graphs.
+3. Pinned compiler-work ceilings use 1.5 million named and 2 million token
+   instantiations, with 60-second / 3,072 MiB workers. They separate baseline from
+   improvement without asserting portable latency; upgrades may need recalibration.
+4. Existing report workers retain the named default and gain explicit `--tokens`
+   mode. This preserves old invocations but adds CLI/JSON compatibility logic.
+5. The demonstrated view-erasure hole required the root Builder's existing
+   invariant member to retain `[E, C]` before the final measurements. The cost is
+   stricter builder annotations and possible compatibility/measurement rework.
+6. The fixture's generic identity arrow uses `<B,>` for installed `.cts`/`.mts`
+   parsing. This changes only syntax, with fixture maintenance as its possible cost.
