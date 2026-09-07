@@ -253,11 +253,13 @@ Commit `build: adopt modern compiler inference with package regression gates`.
 
 **Files:** Modify `package.json`, `package-lock.json`, `tsconfig.json`,
 `tsconfig.build.json`, `scripts/benchmark-types.ts`, `tests/benchmark-types.test.ts`,
+`tests/box-package.test.ts`,
 `docs/benchmarks/typescript.md`, `docs/reports/2026-09-07-modern-compilers.md`,
 `README.md`; create `scripts/native-process.ts`, `scripts/native-compiler.ts`,
 `scripts/native-scale.ts`, `scripts/check-native-contracts.ts`,
 `scripts/benchmark-result.ts`, `tests/native-process.test.ts`,
-`tests/native-compiler.test.ts`, `tests/native-package.test.ts`.
+`tests/native-compiler.test.ts`, `tests/native-package.test.ts`,
+`tests/box-contract-fixtures.ts`.
 
 **Interfaces:** Consume unchanged scaleSource/tokenScaleSource and boundary mappers,
 Task1's modern-inline producer/consumer fixtures, current packed box archives,
@@ -367,6 +369,18 @@ both `.cts` and `.mts` consumers through native7.0.2. Use the unchanged modern
 fixtures with only package/import/assertion routing, plus actual ValBox nested
 inline snapshot assertions from Task1. Verify token-module feature/consumer and
 all installed negative fixtures currently selected by box-package.test.ts.
+
+Extract the existing installed box fixture list, real-box source literal and
+import/assertion routing into tests/box-contract-fixtures.ts, consumed by both
+classic box-package.test.ts and native-package.test.ts. Keep every existing
+fixture and assertion unchanged. The helper exports boxContractFixtures and
+boxContractSource(fixture: string): string; native cases supply physical paths
+matching its existing installed-package import edges. This is one shared
+contract fixture, not duplicate lists or independently edited real-box literals.
+No test registration, process spawning or compiler state belongs in that helper.
+Build each emitter's package in its own owned temporary source/package tree,
+copying unmodified production source and package metadata, so native and classic
+package checks do not overwrite a shared dist directory.
 
 For modern-inline and token-module features, emit actual native `.d.cts`/`.d.mts`
 files into a separate output directory and compile unchanged downstream consumer
