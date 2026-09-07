@@ -21,7 +21,7 @@ execution; do not stop for another planning approval between increments.
 - [ ] Startup and shutdown: eager acquisition, partial-failure cleanup, cancellation, timeout and late-completion handling, structured aggregate cleanup failures.
 - [ ] Composition extensions: direct classes/positional functions, aliases, optional/lazy dependencies, typed contributions.
 - [ ] Diagnostics and plugins: typed lifecycle observers, immutable inspection views, validated dynamic plugin boundary.
-- [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests. In the next benchmark-harness change, add direct parent evaluator failure-path tests for malformed JSON/identity/diagnostics, process failures, wrong diagnostic boundaries and TS2589; this is the nonblocking Minor retained by the incremental-check final review.
+- [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests. The prior parent benchmark evaluator Minor is closed by direct malformed JSON/identity/diagnostic, process-failure, boundary and TS2589 tests in the reviewed native compiler checkpoint `ad73249`.
 - [ ] Compiler/inference follow-up: resolve the remaining measured 500/1000 individual-chain limits, large-graph latency and modern native compiler compatibility. Actual nominal-module 1000-provider gates pass, separately from registration groups; this does not prove equally long individual call chains.
   - [x] Both inline inference cases now pass on the supported TypeScript 6.0.3
     compiler: the richer selected async override and nested `snapshot()` factory.
@@ -29,8 +29,12 @@ execution; do not stop for another planning approval between increments.
     unchanged downstream regression gates without production API changes.
     The identical predeclared factories remain controls; TypeScript 5.9 failures
     remain labeled history, not claimed fixes on that compiler.
-  - [ ] Native TypeScript 7 source/package verification and original scale
-    matrices are in progress under `2026-09-07-modern-compilers.md` Task2.
+  - [x] Native TypeScript 7 source/package rejection verification and all original
+    scale outcomes are implemented and task-reviewed at `ad73249` under
+    `2026-09-07-modern-compilers.md` Task2. Source checks explicitly retain
+    27diagnostic-quality gaps; named28/36 and token10/18 matrix cases meet the
+    unchanged acceptance rules. All16failures remain required scale work, not
+    successful type rejections. Whole-branch review follows this task checkpoint.
   - [ ] Native replacement diagnostic quality:27existing invalid calls are
     rejected but7.0.2prints only the last token-overload error. Task2 records
     exact native-only rejection fingerprints separately from useful messages;
@@ -74,8 +78,13 @@ the complete enterprise T2 requirement is still open. Both final-review Minors
 are assigned above to the next runtime/lifecycle and benchmark-harness changes.
 Modern compiler Task1 is complete and reviewed at `9126993`: exact classic
 TypeScript 6.0.3 inference is adopted with no production source changes. Native
-Task2 is running; the complete compiler requirement and enterprise program remain
-open. Evidence: `docs/reports/2026-09-07-modern-compilers.md`.
+Task2 is complete and task-reviewed at `ad73249`:397tests/0failures/1980assertions,
+strict classic/native builds, both installed emitter/module-mode routes, physical
+declaration consumers and all4examples. Independent committed-state checks cover
+the harness, inference and80native source rows; all54matrix identities, hashes,
+raw diagnostics and strict outcomes are validated. The full compiler requirement
+and enterprise program remain open; whole-branch review is next. Evidence:
+`docs/reports/2026-09-07-modern-compilers.md`.
 
 ## Current evidence
 
