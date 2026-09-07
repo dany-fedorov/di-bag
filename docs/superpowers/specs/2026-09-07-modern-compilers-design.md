@@ -5,6 +5,12 @@ Selected under the user's continuous plan-and-implement authorization. This is
 the next enterprise T2/Q1 increment, not completion of the enterprise program.
 Binding program: `2026-09-06-enterprise-di-design.md`.
 
+Final-review correction Ruling9: Tasks1/2 retain their no-production-change
+boundary and completed evidence. The single final correction wave additionally
+implements `2026-09-07-acquisition-classification-design.md` to repair Important
+I1. Its scoped runtime/API changes supersede this document's no-change wording
+only for that correction; the original compiler matrices remain historical.
+
 ## Objective and evidence
 
 Make the two previously failing inline inference cases supported, regression-

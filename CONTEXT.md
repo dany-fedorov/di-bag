@@ -40,6 +40,16 @@ One attempt to obtain a service instance from its provider. Distinct
 acquisitions may use the same provider and have distinct cleanup obligations.
 _Avoid_: Registration when referring to a created instance
 
+**Acquisition stage**:
+A source or transformation result within one acquisition, with its own rule for
+when a resource is ready and which value an attached owner receives.
+_Avoid_: Factory when referring to a later transformation result
+
+**Acquired value**:
+The resource accepted for ownership at one acquisition stage. It may differ
+from the exposed service when that service represents pending acquisition.
+_Avoid_: Resolved service when the distinction from the exposed value matters
+
 **Owned resource**:
 A successfully acquired value whose cleanup responsibility was explicitly
 accepted by a bag or another application owner.

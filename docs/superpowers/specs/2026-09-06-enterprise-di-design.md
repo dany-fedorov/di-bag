@@ -92,6 +92,14 @@ automatic raw-thenable assimilation. Ordinary synchronous values remain supporte
 and exposed native Promise identity remains exact. The library's own pending
 barrier must not assimilate a Promise subclass's arbitrary derived species value.
 
+Final-review refinement: automatic classification requires an immutable runtime
+capability, with `di-bag/node` supplying the host predicate and explicit raw/native
+stage modes supporting portable core use. Unconfigured automatic stages fail
+before factory effects. Raw ownership is intentionally of the exact exposed
+value, not its fulfillment. The binding boundary and migration are specified in
+`2026-09-07-acquisition-classification-design.md` (controller Ruling9); earlier
+unconditional no-configuration wording is superseded by this correction.
+
 ### Extension capabilities
 
 Provide checked direct-class/positional-function adapters, aliases, genuinely

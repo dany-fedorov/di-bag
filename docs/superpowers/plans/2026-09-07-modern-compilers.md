@@ -4,11 +4,11 @@
 
 **Goal:** Deliver supported exact inline inference on the classic modern compiler and independently verify native compiler package/source/scale contracts.
 
-**Architecture:** Official side-by-side development aliases retain the classic compiler API while adding the native CLI. No library signature or runtime changes. Physical native projects and supervised processes produce independent evidence. Ruling7 explicitly separates native rejection checks from its27 known overload-message limitations; classic diagnostics and matrix acceptance remain strict.
+**Architecture:** Official side-by-side development aliases retain the classic compiler API while adding the native CLI. Tasks1/2 have no library signature or runtime changes. Physical native projects and supervised processes produce independent evidence. Ruling7 explicitly separates native rejection checks from its27 known overload-message limitations; classic diagnostics and matrix acceptance remain strict. The final-review correction Ruling9 is the scoped exception: reliable acquisition classification, specified below, changes runtime/API boundaries without rewriting completed compiler evidence.
 
 **Tech Stack:** Node 24.20.0, Bun 1.4.0, classic TypeScript 6.0.3 through compatibility wrapper 6.0.2, native TypeScript 7.0.2, npm lockfile and real local box archives.
 
-**Spec:** `docs/superpowers/specs/2026-09-07-modern-compilers-design.md`.
+**Spec:** `docs/superpowers/specs/2026-09-07-modern-compilers-design.md`; final-review I1 additionally binds `docs/superpowers/specs/2026-09-07-acquisition-classification-design.md`.
 
 ## Global Constraints
 
@@ -37,9 +37,188 @@ Restricted empty-output status0 is not evidence. Use apply_patch for file edits.
   existing benchmark parent plus extracted evaluator and direct tests; native
   manifest/scripts and current scale evidence. It consumes Task1's exact fixture
   text and official classic aliases, not a separate copy of the library.
-- No production `src` changes are planned. Report real declaration portability
+- No production `src` changes belong to Tasks1/2. Report real declaration portability
   failures before adding any type export or annotation. Empty-fork performance
   remains assigned to the later runtime/lifecycle increment.
+
+## Final-review correction: reliable acquisition classification (Ruling9)
+
+Execute within the existing consolidated final-fix wave and workspace, resuming
+the same implementer. FIX_BASE remains
+`48752ecc83831b4ca29c04ba3640203164a26ea5`. M2 is already committed at
+`e5ac4663a41d994608579bda059a9c25f0e68586`; do not repeat its implementation.
+There is one scoped re-review after the complete correction, not another broad
+branch review. The following steps refine that existing wave, not Tasks1/2.
+
+**Files and responsibilities:**
+
+- Create `src/acquisition-mode.ts`: public mode/config types and internal immutable
+  runtime context, validated mode options and capability preflight helpers.
+- Create `src/node.ts`: configured facade only, reusing root core registries.
+- Modify `src/di-bag.ts`, `src/runtime.ts`, `src/acquisition.ts`: propagate context
+  through every builder/bag/fork and preflight the graph before source effects.
+- Modify `src/provider-operations.ts`, `src/provider-execution.ts`: retain per-stage
+  mode and observe native state independently of overridden then callability.
+- Modify `src/provider.ts`, `src/registration.ts`, `src/token-types.ts`,
+  `src/module-types.ts`: acquired-value inference and exact preservation through
+  wrappers, token bindings and public modules; unchanged replacement overloads.
+- Modify `src/sas-box.ts`, `src/val-box.ts`: mode options for synchronous output
+  stages, known-native async output and raw presence projection.
+- Modify `src/index.ts`, `package.json`: public type exports and explicit node
+  subpath, retaining existing root export format and zero runtime dependencies.
+- Create `tests/acquisition-mode.test.ts`, `tests/types/acquisition-mode.ts`,
+  `tests/types/acquisition-mode-consumer.ts`,
+  `tests/types/negative/acquisition-mode.ts`; integrate these contracts into
+  `tests/types.test.ts`, `tests/package.test.ts`, `tests/native-package.test.ts`,
+  `tests/token-package.test.ts`, `tests/box-contract-fixtures.ts` as needed.
+- Migrate existing runtime test imports and four examples to configured facade
+  or deliberate explicit-mode fixtures; preserve compile-only program bodies.
+- Update `README.md`, `docs/migrations/0.1-to-enterprise.md`,
+  `docs/reports/2026-09-06-acquisition-foundations.md`,
+  `docs/reports/2026-09-07-modern-compilers.md` with migration and dated evidence;
+  preserve original measurements and negative outcomes.
+
+**Interfaces:** `DiBag.configure(RuntimeOptions)` returns the same facade API;
+`DiBag.factory(create, {acquisition})` creates a mode-bearing provider;
+`fromTokens` and `mapSync` gain optional mode options; synchronous box adapter
+options gain acquisition selection without changing their existing selectors.
+`ProviderAcquired<R>` selects the retained owned value type. Add a fifth Provider
+type parameter defaulting to `Awaited<ReturnType<F>>`; preserve four-parameter
+consumer compatibility and all current graph/metadata/frame inference. The
+implementation may keep helpers local to the named modules where that avoids
+circular dependencies, but cannot change these public semantics.
+
+- [ ] **Step 1: Write and run the exact behavioral regression before source edits.**
+
+Add this source control using the current root import first (adapt only the
+import to configured Node facade after that facade exists):
+
+```ts
+test('close waits for a native acquisition with shadowed then', async () => {
+  let release!: (value: { id: number }) => void;
+  const value = { id: 7 };
+  const pending = new Promise<{ id: number }>(resolve => { release = resolve; });
+  Object.defineProperty(pending, 'then', { value: undefined });
+  const disposed: unknown[] = [];
+  const bag = DiBag.begin().add({
+    value: DiBag.withDisposal(() => pending, resource => { disposed.push(resource); }),
+  }).end();
+  expect(bag.resolve('value')).toBe(pending);
+  let closed = false;
+  const closing = bag.close().then(() => { closed = true; });
+  await Promise.resolve();
+  await Promise.resolve();
+  const before = { closed, disposed: [...disposed] };
+  release(value);
+  await closing;
+  expect(before).toEqual({ closed: false, disposed: [] });
+  expect(disposed).toEqual([value]);
+});
+```
+
+Run `bun test tests/acquisition-mode.test.ts`; retain the concrete premature
+disposal failure. Cover the same output through mapSync and required val-box
+frameSync, plus the nine controls in the existing final-fix report. Use real
+Promises and foreign realms, never mock classification as the primary fix proof.
+
+- [ ] **Step 2: Introduce mode/type contracts with focused RED/GREEN.**
+
+Use exported inferred producers, not annotated weaker substitutes:
+
+```ts
+const pending = Promise.resolve({ id: 7 });
+export const raw = DiBag.factory(() => pending, { acquisition: 'raw' });
+export const native = DiBag.factory(() => pending, { acquisition: 'native' });
+export const rawOwned = DiBag.withDisposal(raw, value => {
+  const exact: Promise<{ id: number }> = value;
+  void exact;
+});
+export const nativeOwned = DiBag.withDisposal(native, value => {
+  const exact: { id: number } = value;
+  void exact;
+});
+type Checks = [
+  Assert<Equal<ProviderOutput<typeof raw>, Promise<{ id: number }>>>,
+  Assert<Equal<ProviderAcquired<typeof rawOwned>, Promise<{ id: number }>>>,
+  Assert<Equal<ProviderAcquired<typeof nativeOwned>, { id: number }>>,
+];
+```
+
+Add marked negatives for native non-Promise output, wrong raw/fulfilled disposer
+parameter, invalid mode, required-this callback and typed configuration mismatch.
+Include metadata, token binding, modules, replacement, unions and erased views
+in exact positive/negative contracts. Capture actual diagnostics before setting
+their required code/message markers; never loosen existing fixtures. Implement
+source mode retention, fifth acquired type propagation and new-stage options.
+Prove declaration emission plus unchanged downstream consumption with producer
+source unavailable on classic and native, in CTS and MTS consumers.
+
+- [ ] **Step 3: Implement immutable runtime classification and whole-graph preflight.**
+
+The sequencing contract is:
+
+```ts
+// Bag finalization, before constructing any acquisition:
+for (const description of graphDescriptions) {
+  requireClassificationCapability(description, context);
+}
+// Stage execution, after successful whole-graph preflight:
+// raw => accept exact result without reading then
+// native => intrinsic observation, original setup error, independent barrier
+// auto => trustworthy predicate selects native observation vs ordinary value
+```
+
+Tests must demonstrate zero factory effects when any stage (including private
+module/projection) needs missing capability; a raw source cannot allocate before
+an unsupported automatic projection is detected. Verify configure reference
+snapshot, invalid configuration/result, exact predicate throws, separate facade
+isolation and fork propagation. Verify raw Promise identity/raw disposal without
+waiting, native pending wait/fulfilled disposal, no retargeting of earlier owners,
+async projection output without predicate, then-getter error identity, arbitrary
+species non-assimilation, failures/retry/close races. Run the focused acquisition,
+disposal and box tests until green; preserve the prior attempt engine.
+
+- [ ] **Step 4: Wire the host subpath and actual migration consumers.**
+
+```ts
+// src/node.ts: one core, not a second registry or global mutation.
+import { isPromise } from 'node:util/types';
+import { DiBag as CoreDiBag } from './di-bag';
+export * from './index';
+export const DiBag = CoreDiBag.configure({ isNativePromise: isPromise });
+```
+
+Add `./node` types/default exports pointing to dist/node.d.ts and dist/node.js.
+Actual installed CJS and ESM consumers must mix root-created tokens/providers,
+node-created bags and existing adapter subpaths successfully. Execute runtime
+cases in Node and Bun, and a portable-core explicit-mode case with Node import
+rejection at module loading. Inspect emitted core declarations/import closure
+for Node leakage and verify core installation without box dependencies. Migrate
+examples and runtime fixtures explicitly; do not mask root failure with global
+test setup. Document configuration trust and raw versus native ownership.
+
+- [ ] **Step 5: Verify, commit and report the complete correction.**
+
+Run both source compiler lanes and new installed/emitted fixtures, the normal
+100-case named/token compiler-work gates and small native scale controls. Keep
+the original54matrix files unchanged and labeled with their original source
+revision. Run one final `npm run check`, native no-emit/build/source gates, all
+four examples and `git diff --check` on adopted code; collect exact results.
+Commit scoped verified checkpoints, with full report in this plan workspace's
+`final-fix-report.md`. Return DONE/DONE_WITH_CONCERNS only with covering commands,
+outputs, commit IDs and self-review. Do not push or rerun the original long matrix
+as part of this correction; controller owns committed-state verification, one
+scoped final re-review and the authorized feature-branch push.
+
+### Correction self-review
+
+| Boundary | Produces / consumes | Resolution |
+| --- | --- | --- |
+| Modes / execution | immutable per-stage selection / ownership acceptance | Preflight all descriptions, then classify independently of then callability |
+| Acquired type / wrappers | fifth type argument / disposer and module views | Preserve graph/metadata/frames and previous owner stage; exact emitted tests |
+| Host / core | supplied predicate / same facade and registry | Explicit node subpath, no conditional exports or global mutation |
+| Final correction / Tasks1–2 | changed src / historical source hashes | Preserve original evidence; run new work and regression gates separately |
+| Correction steps / tests | API and runtime migration / existing fixtures | Runtime imports migrate; compile-only invalid program bodies remain intact |
 
 ### Task 1: Adopt the classic modern compiler and prove exact inline inference
 
