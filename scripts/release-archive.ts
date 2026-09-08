@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { gunzipSync } from 'node:zlib';
+import { crc32, inflateRawSync } from 'node:zlib';
 
 export const MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
 export const MAX_UNPACKED_BYTES = 512 * 1024 * 1024;
@@ -7,6 +7,24 @@ export const MAX_ENTRY_BYTES = 128 * 1024 * 1024;
 
 export type NpmArchiveEntry = Readonly<{ path: string; bytes: number; mode: number; sha256: string; content: Uint8Array }>;
 export type NpmArchiveInspection = Readonly<{ entries: readonly NpmArchiveEntry[]; packageJson: Uint8Array; unpackedBytes: number }>;
+
+function gunzipSingle(bytes: Uint8Array): Uint8Array {
+  if (bytes.length < 18 || bytes[0] !== 0x1f || bytes[1] !== 0x8b || bytes[2] !== 8) throw new Error('invalid gzip header');
+  const flags = bytes[3]!; if (flags & 0xe0) throw new Error('invalid gzip flags'); let offset = 10;
+  const need = (count: number) => { if (offset + count > bytes.length) throw new Error('truncated gzip header'); };
+  if (flags & 4) { need(2); const size = bytes[offset]! | bytes[offset + 1]! << 8; offset += 2; need(size); offset += size; }
+  const skipString = () => { while (offset < bytes.length && bytes[offset] !== 0) offset++; need(1); offset++; };
+  if (flags & 8) skipString(); if (flags & 16) skipString(); if (flags & 2) { need(2); offset += 2; }
+  let inflated: ReturnType<typeof inflateRawSync> & { engine?: { bytesWritten?: number } };
+  try { inflated = inflateRawSync(bytes.subarray(offset), { info: true, maxOutputLength: MAX_UNPACKED_BYTES + 1024 }) as typeof inflated; }
+  catch (error) { throw new Error(`invalid gzip deflate stream: ${String(error)}`); }
+  const output = new Uint8Array((inflated as any).buffer), consumed = Number((inflated as any).engine?.bytesWritten);
+  if (!Number.isSafeInteger(consumed) || consumed <= 0) throw new Error('gzip consumed-byte evidence unavailable');
+  const trailer = offset + consumed; if (trailer + 8 !== bytes.length) throw new Error('gzip must contain exactly one member with no trailing bytes');
+  const view = new DataView(bytes.buffer, bytes.byteOffset + trailer, 8);
+  if (view.getUint32(0, true) !== crc32(output) >>> 0 || view.getUint32(4, true) !== output.byteLength >>> 0) throw new Error('gzip trailer checksum or size mismatch');
+  return output;
+}
 
 function sha256(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
@@ -40,7 +58,7 @@ function validatePath(path: string): void {
 export function inspectNpmArchive(bytes: Uint8Array): NpmArchiveInspection {
   if (bytes.byteLength === 0 || bytes.byteLength > MAX_ARCHIVE_BYTES) throw new Error('archive size exceeds limit or is empty');
   let tar: Uint8Array;
-  try { tar = new Uint8Array(gunzipSync(bytes, { maxOutputLength: MAX_UNPACKED_BYTES + 1024 })); }
+  try { tar = gunzipSingle(bytes); }
   catch (error) { throw new Error(`invalid gzip archive: ${String(error)}`); }
   if (tar.byteLength > MAX_UNPACKED_BYTES) throw new Error('unpacked archive size exceeds limit');
   const entries: NpmArchiveEntry[] = [];
@@ -66,6 +84,7 @@ export function inspectNpmArchive(bytes: Uint8Array): NpmArchiveInspection {
     const path = prefix ? `${prefix}/${name}` : name;
     validatePath(path);
     if (allPaths.has(path)) throw new Error(`duplicate archive entry: ${path}`);
+    for (const regularPath of regularPaths) if (path.startsWith(`${regularPath}/`)) throw new Error(`archive directory/file prefix collision: ${path}`);
     allPaths.add(path);
     const size = octal(header, 124, 12, 'size');
     const mode = octal(header, 100, 8, 'mode');

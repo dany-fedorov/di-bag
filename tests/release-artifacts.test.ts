@@ -11,6 +11,7 @@ import { assertSafeReleaseArgv, parseReleaseCommandArgs, runReleaseCommand, type
 import { collectFreshNativeGaps, collectReviewedNativeGaps, createNativeInventory, parseNativeInventoryArgs } from '../scripts/release-native-inventory.ts';
 import { APPROVED_HANDOFF_PATHS, createReleaseAudit, parseReleaseAuditArgs } from '../scripts/create-release-audit.ts';
 import { hashReleaseTree, parseReleaseTreeArgs } from '../scripts/hash-release-tree.ts';
+import { parseVerifyReleaseArgs, verifyReleaseArtifacts } from '../scripts/verify-release-artifacts.ts';
 import { nativeDiagnosticGapMessages } from './native-diagnostic-markers.ts';
 
 const root = resolve(__dirname, '..');
@@ -163,6 +164,13 @@ describe('release artifact scripts', () => {
     expect(typeof parseNativeInventoryArgs).toBe('function');
     expect(typeof parseReleaseAuditArgs).toBe('function');
     expect(typeof parseReleaseTreeArgs).toBe('function');
+  });
+});
+
+describe('archive verifier TDD boundary', () => {
+  test('exports a read-only verifier and strict CLI parser', () => {
+    expect(typeof verifyReleaseArtifacts).toBe('function');
+    expect(typeof parseVerifyReleaseArgs).toBe('function');
   });
 });
 
