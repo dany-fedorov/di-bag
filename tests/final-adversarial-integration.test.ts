@@ -7,6 +7,6 @@ for (const id of ['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7', 'I8', 'I9', 'I10', '
   });
 }
 
-test('I12 preserves immediate ownership before accepted late cleanup', async () => {
+test('I12 disposes accepted late ownership before independent immediate ownership', async () => {
   expect((await runFinalAdversarialSourceMatrix('I12')).I12).toEqual(finalAdversarialExpectedResult.I12);
 });

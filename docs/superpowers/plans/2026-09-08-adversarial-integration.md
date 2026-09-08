@@ -90,7 +90,7 @@ export const finalAdversarialExpectedResult: FinalAdversarialRuntimeResult = {
   I9: { automaticEffects: 0, rawIdentity: true, thenReads: 0, rawDisposals: 1 },
   I10: { syncIdentity: true, rawIdentity: true, syncRawThenReads: 0, asyncThenReads: 1, failureIdentity: true, disposerCalls: 0 },
   I11: { boundaryErrorIdentity: true, retryFresh: true, dispose: ['source', 'source'] },
-  I12: { ordinaryWrapper: 'DiBagStartupError', ordinaryCauseIdentity: true, ordinaryCleanupFailures: 0, abortWrapper: 'DiBagStartupCancelledError', abortCauseIdentity: true, timeoutWrapper: 'DiBagStartupCancelledError', timeoutCauseName: 'TimeoutError', dispose: ['immediate', 'late'] },
+  I12: { ordinaryWrapper: 'DiBagStartupError', ordinaryCauseIdentity: true, ordinaryCleanupFailures: 0, abortWrapper: 'DiBagStartupCancelledError', abortCauseIdentity: true, timeoutWrapper: 'DiBagStartupCancelledError', timeoutCauseName: 'TimeoutError', dispose: ['late', 'immediate'] },
   I13: { closingEffects: 0, parentDispose: ['child', 'parent'], finalDispose: ['child', 'parent', 'fork'], unsharedDistinct: true },
   I14: { classicPositiveDiagnostics: 0, cjsPositiveDiagnostics: 0, mjsPositiveDiagnostics: 0, classicNegativeMarkers: 2, newNativeGapIds: [] },
   I15: { cjsMatchesSource: true, esmMatchesSource: true, coreHasBoxes: false, rootLoadsNode: false, forbiddenFiles: 0 },
@@ -125,14 +125,13 @@ Run: `bun test tests/final-adversarial-integration.test.ts tests/box-adapters.te
 
 Expected: PASS with I1-I13 and all pre-existing focused suites.
 
-Task 1 stopped at the global failure policy on 2026-09-08. The unmodified runtime produces
-I12 cancellation disposal order `['late', 'immediate']`; the reviewed oracle requires
-`['immediate', 'late']`. Source row selection suppresses assertions from unrelated rows so I1-I11
-and I13 run independently; those rows passed, and the four neighboring suites passed 66 tests with
-384 assertions.
-The retained precise RED is `I12: late cleanup changed: ["late","immediate"]`; the relevant
-ordering path is `src/acquisition.ts` `disposeAll()`, reached by cancellation through
-`src/startup.ts`. No production file was changed.
+Task 1 stopped at the global failure policy on 2026-09-08. The unmodified runtime produced
+I12 cancellation disposal order `['late', 'immediate']` while the initial oracle required
+`['immediate', 'late']`. Task 4 classified the oracle as incorrect: the pre-existing public
+contract disposes unrelated resources in reverse successful-acquisition order after draining late
+work. Source row selection suppressed assertions from unrelated rows so I1-I11 and I13 ran
+independently; those rows passed, and the four neighboring suites passed 66 tests with 384
+assertions. No production file was changed.
 
 - [ ] **Step 6: Commit the source-matrix task.**
 

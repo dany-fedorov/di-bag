@@ -133,9 +133,10 @@ test('installed import graph tracing includes ESM side effects, exports, dynamic
     void import('./dynamic.js');
     require('./required.js');
     import 'node:fs';
+    export * from 'di-bag/node';
   `);
   const traced = traceInstalledRoot(join(graph, 'entry.js'));
-  expect(traced.bareImports).toEqual(['node:fs']);
+  expect(traced.bareImports).toEqual(['di-bag/node', 'node:fs']);
   expect(traced.unresolvedRelativeImports).toEqual([]);
   expect(traced.files.map(file => file.slice(graph.length + 1))).toEqual([
     'dynamic.js', 'entry.js', 'exported.js', 'required.js', 'side.js',
@@ -150,7 +151,7 @@ test('packed core root runs in CJS and ESM under Node and Bun without boxes or N
   const traced = traceInstalledRoot(join(distRoot, 'index.js'));
   expect(traced.unresolvedRelativeImports).toEqual([]);
   expect(traced.files.every(file => file.startsWith(`${distRoot}/`))).toBe(true);
-  expect(traced.bareImports.filter(specifier => specifier.startsWith('node:'))).toEqual([]);
+  expect(traced.bareImports).toEqual([]);
   expect(traced.files.some(file => /[/\\](?:node|sas-box|val-box)\.js$/.test(file))).toBe(false);
   const failures: unknown[] = [];
   for (const mode of ['commonjs', 'module'] as const) {

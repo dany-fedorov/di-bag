@@ -17,7 +17,7 @@ export type FinalAdversarialRuntimeResult = Readonly<{
   readonly I9: Readonly<{ automaticEffects: 0; rawIdentity: true; thenReads: 0; rawDisposals: 1 }>;
   readonly I10: Readonly<{ syncIdentity: true; rawIdentity: true; syncRawThenReads: 0; asyncThenReads: 1; failureIdentity: true; disposerCalls: 0 }>;
   readonly I11: Readonly<{ boundaryErrorIdentity: true; retryFresh: true; dispose: readonly ['source', 'source'] }>;
-  readonly I12: Readonly<{ ordinaryWrapper: 'DiBagStartupError'; ordinaryCauseIdentity: true; ordinaryCleanupFailures: 0; abortWrapper: 'DiBagStartupCancelledError'; abortCauseIdentity: true; timeoutWrapper: 'DiBagStartupCancelledError'; timeoutCauseName: 'TimeoutError'; dispose: readonly ['immediate', 'late'] }>;
+  readonly I12: Readonly<{ ordinaryWrapper: 'DiBagStartupError'; ordinaryCauseIdentity: true; ordinaryCleanupFailures: 0; abortWrapper: 'DiBagStartupCancelledError'; abortCauseIdentity: true; timeoutWrapper: 'DiBagStartupCancelledError'; timeoutCauseName: 'TimeoutError'; dispose: readonly ['late', 'immediate'] }>;
   readonly I13: Readonly<{ closingEffects: 0; parentDispose: readonly ['child', 'parent']; finalDispose: readonly ['child', 'parent', 'fork']; unsharedDistinct: true }>;
   readonly I14: Readonly<{ classicPositiveDiagnostics: 0; cjsPositiveDiagnostics: 0; mjsPositiveDiagnostics: 0; classicNegativeMarkers: 2; newNativeGapIds: readonly [] }>;
   readonly I15: Readonly<{ cjsMatchesSource: true; esmMatchesSource: true; coreHasBoxes: false; rootLoadsNode: false; forbiddenFiles: 0 }>;
@@ -35,7 +35,9 @@ export const finalAdversarialExpectedResult: FinalAdversarialRuntimeResult = {
   I9: { automaticEffects: 0, rawIdentity: true, thenReads: 0, rawDisposals: 1 },
   I10: { syncIdentity: true, rawIdentity: true, syncRawThenReads: 0, asyncThenReads: 1, failureIdentity: true, disposerCalls: 0 },
   I11: { boundaryErrorIdentity: true, retryFresh: true, dispose: ['source', 'source'] },
-  I12: { ordinaryWrapper: 'DiBagStartupError', ordinaryCauseIdentity: true, ordinaryCleanupFailures: 0, abortWrapper: 'DiBagStartupCancelledError', abortCauseIdentity: true, timeoutWrapper: 'DiBagStartupCancelledError', timeoutCauseName: 'TimeoutError', dispose: ['immediate', 'late'] },
+  // README "Cleanup and ownership" requires unrelated resources to close in
+  // reverse successful-acquisition order after late work has drained.
+  I12: { ordinaryWrapper: 'DiBagStartupError', ordinaryCauseIdentity: true, ordinaryCleanupFailures: 0, abortWrapper: 'DiBagStartupCancelledError', abortCauseIdentity: true, timeoutWrapper: 'DiBagStartupCancelledError', timeoutCauseName: 'TimeoutError', dispose: ['late', 'immediate'] },
   I13: { closingEffects: 0, parentDispose: ['child', 'parent'], finalDispose: ['child', 'parent', 'fork'], unsharedDistinct: true },
   I14: { classicPositiveDiagnostics: 0, cjsPositiveDiagnostics: 0, mjsPositiveDiagnostics: 0, classicNegativeMarkers: 2, newNativeGapIds: [] },
   I15: { cjsMatchesSource: true, esmMatchesSource: true, coreHasBoxes: false, rootLoadsNode: false, forbiddenFiles: 0 },
@@ -415,8 +417,8 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   invariant(i12Ordinary instanceof DiBagStartupError && i12Ordinary.cause === i12PluginCause && i12Ordinary.cleanupFailures.length === 0, 'I12', 'ordinary wrapper changed');
   invariant(i12Cancelled instanceof DiBagStartupCancelledError && i12Cancelled.reason === 'aborted' && i12Cancelled.cause === i12AbortCause, 'I12', 'abort wrapper changed');
   invariant(i12Timeout instanceof DiBagStartupCancelledError && i12Timeout.reason === 'timeout' && i12Timeout.cause?.name === 'TimeoutError', 'I12', 'timeout wrapper changed');
-  invariant(JSON.stringify(i12Dispose) === JSON.stringify(['immediate', 'late']), 'I12', `late cleanup changed: ${JSON.stringify(i12Dispose)}`);
-  invariant(JSON.stringify(i12TimeoutDispose) === JSON.stringify(['immediate', 'late']), 'I12', `timeout cleanup changed: ${JSON.stringify(i12TimeoutDispose)}`);
+  invariant(JSON.stringify(i12Dispose) === JSON.stringify(['late', 'immediate']), 'I12', `late cleanup changed: ${JSON.stringify(i12Dispose)}`);
+  invariant(JSON.stringify(i12TimeoutDispose) === JSON.stringify(['late', 'immediate']), 'I12', `timeout cleanup changed: ${JSON.stringify(i12TimeoutDispose)}`);
 
   // I13: admission closes before a captured lazy reference can acquire.
   const i13Dispose: string[] = []; let i13Effects = 0; let i13Lazy: (() => unknown) | undefined;
@@ -459,7 +461,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
     I9: { automaticEffects: i9AutomaticEffects as 0, rawIdentity: true, thenReads: i9ThenReads as 0, rawDisposals: i9RawDisposals as 1 },
     I10: { syncIdentity: true, rawIdentity: true, syncRawThenReads: i10BeforeAsync as 0, asyncThenReads: i10ThenReads as 1, failureIdentity: true, disposerCalls: i10Disposers as 0 },
     I11: { boundaryErrorIdentity: true, retryFresh: i11FailedId !== i11RetryId, dispose: i11Dispose as ['source', 'source'] },
-    I12: { ordinaryWrapper: i12Ordinary.name, ordinaryCauseIdentity: true, ordinaryCleanupFailures: i12Ordinary.cleanupFailures.length as 0, abortWrapper: i12Cancelled.name, abortCauseIdentity: true, timeoutWrapper: i12Timeout.name, timeoutCauseName: i12Timeout.cause.name, dispose: i12Dispose as ['immediate', 'late'] },
+    I12: { ordinaryWrapper: i12Ordinary.name, ordinaryCauseIdentity: true, ordinaryCleanupFailures: i12Ordinary.cleanupFailures.length as 0, abortWrapper: i12Cancelled.name, abortCauseIdentity: true, timeoutWrapper: i12Timeout.name, timeoutCauseName: i12Timeout.cause.name, dispose: i12Dispose as ['late', 'immediate'] },
     I13: { closingEffects: i13Effects as 0, parentDispose: i13ParentDispose as ['child', 'parent'], finalDispose: i13Dispose as ['child', 'parent', 'fork'], unsharedDistinct: true },
     I14: { classicPositiveDiagnostics: 0, cjsPositiveDiagnostics: 0, mjsPositiveDiagnostics: 0, classicNegativeMarkers: 2, newNativeGapIds: [] },
     I15: { cjsMatchesSource: true, esmMatchesSource: true, coreHasBoxes: false, rootLoadsNode: false, forbiddenFiles: 0 },
