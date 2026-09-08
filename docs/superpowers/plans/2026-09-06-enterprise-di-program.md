@@ -166,11 +166,14 @@ execution; do not stop for another planning approval between increments.
     68/95 with exactly 27 gaps; source, utility, package, full and example gates
     pass. Native parity and T2 remain open. Evidence:
     `docs/reports/2026-09-08-native-diagnostics.md`.
-- [ ] Release handoff: execute `2026-09-08-release-handoff.md` after the
-  adversarial integration plan to complete examples, migrations, changelogs,
-  verified local tarballs, and safe publication instructions for all three
-  libraries. Registry checks, login, push, tag, and publication remain outside
-  that plan and require fresh explicit authorization.
+- [ ] Local release-candidate handoff: Task 1 of
+  `2026-09-08-release-handoff.md` reconciles the `0.1.0` changelog,
+  package-boundary guidance, migration rules, local evidence workflow,
+  immutable-version recovery, and separately authorized online appendix.
+  Artifact tooling, frozen archives, offline consumers, sanitized evidence, and
+  final audit remain in Tasks 2-5. The registry version and publication remain unavailable
+  because registry checks, login, push, tag, and publication are outside the
+  authorized local workflow and require fresh explicit authorization.
 
 ## Execution rules
 

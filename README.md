@@ -1064,6 +1064,30 @@ a dependency-free structural example with separate box and payload owners.
 
 ## Development
 
+### Package entry points and release-candidate checks
+
+The package manifest declares four entry points: host-independent `di-bag`, the
+Node/Bun native-Promise facade `di-bag/node`, and the structural adapters
+`di-bag/sas-box` and `di-bag/val-box`. The root and Node entry points do not import
+either adapter, and the package has no dependency, peer dependency, optional
+dependency, or bundled dependency on either box library. A core-only installation
+therefore needs no box package. Applications that use an adapter install and own
+the corresponding box implementation themselves.
+
+Choose `raw` when the exact value, Promise, or thenable is the service. Choose
+`native` only for a genuine native Promise whose fulfillment is the service. Use
+selected scopes to make sharing and overrides explicit. Lifecycle callbacks are
+non-blocking observers, so applications separately await telemetry when needed.
+Plugin loading remains application-owned: validation admits the output while an
+optional plugin disposer retains ownership of the original acquired value.
+
+`npm run check` is the primary source, runtime, declaration, package, and build
+gate. Run `npm run typecheck:native`, `npm run build:native`, and
+`npm run check:native` as separate native checks. A release candidate additionally
+requires the local, offline archive workflow in [`PUBLISHING.md`](PUBLISHING.md).
+That workflow records unavailable registry facts rather than claiming a release,
+tag, remote commit, publication, or version availability.
+
 ```sh
 npm install
 npm run check          # strict types, runtime/type/package tests, build
