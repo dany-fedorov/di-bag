@@ -3,8 +3,8 @@ import { closeSync, fstatSync, openSync, readFileSync, readSync, realpathSync, r
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path';
 import { inspectNpmArchive } from './release-archive.ts';
 import { APPROVED_HANDOFF_PATHS, PUBLIC_EVIDENCE_SUFFIX } from './create-release-audit.ts';
-import type { NativeGapFingerprint } from './release-native-inventory.ts';
-import type { ReleaseCommandEvidence, ReleaseFileHash } from './run-release-command.ts';
+import { collectReviewedNativeGaps, type NativeGapFingerprint } from './release-native-inventory.ts';
+import { validateReleaseCommandEvidence, type ReleaseCommandEvidence } from './run-release-command.ts';
 
 export type { NativeGapFingerprint, ReleaseCommandEvidence };
 export type ReleasePackageRecord = Readonly<{ name: 'di-bag' | 'sas-box' | 'val-box'; version: string; archive: string; checkout: Readonly<{ path: string; branch: string; candidateSourceCommit: string; status: string }>; pack: Readonly<{ dryRunJson: unknown; packJson: unknown; packedAt: string }>; commands: readonly ReleaseCommandEvidence[]; integrity: string; sha256: string; sha512: string; bytes: number; files: readonly string[]; packageMetadata: Readonly<{ name: string; version: string; main?: string; types?: string; files: readonly string[]; exports: unknown; dependencies: Readonly<Record<string, string>>; peerDependencies: Readonly<Record<string, string>>; optionalDependencies: Readonly<Record<string, string>>; bundledDependencies: readonly string[] }> }>;
@@ -47,19 +47,8 @@ function exactIso(value: unknown, label: string): asserts value is string { if (
 function normalizeMap(value: unknown, label: string): Readonly<Record<string, string>> { if (value === undefined) return Object.freeze({}); if (!value || typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(item => typeof item !== 'string')) throw new Error(`invalid ${label}`); return Object.freeze(Object.fromEntries(Object.entries(value as Record<string, string>).sort(([a], [b]) => a.localeCompare(b)))); }
 function stable(value: unknown): unknown { if (Array.isArray(value)) return value.map(stable); if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, stable(item)])); return value; }
 function commandEvidence(value: ReleaseCommandEvidence, artifact: string): ReleaseCommandEvidence {
-  if (!Array.isArray(value.argv) || !value.argv.length || value.argv.some(item => typeof item !== 'string') || typeof value.cwd !== 'string' || realpathSync(value.cwd) !== value.cwd) throw new Error('missing command argv/cwd evidence');
-  exactIso(value.startedAt, 'command start'); exactIso(value.finishedAt, 'command finish');
-  const start = Date.parse(value.startedAt), finish = Date.parse(value.finishedAt);
-  if (finish < start || !Number.isFinite(value.elapsedMilliseconds) || value.elapsedMilliseconds < 0 || Math.abs(finish - start - value.elapsedMilliseconds) > 1000) throw new Error('command timing evidence is inconsistent');
-  if (value.exitCode !== 0 || value.signal !== null || value.terminationReason !== null) throw new Error('command evidence records failure');
-  if (!Number.isFinite(value.peakObservedRssMiB) || value.peakObservedRssMiB < 0) throw new Error('invalid command RSS evidence');
-  const inputs = [...value.inputs].sort((a, b) => a.path.localeCompare(b.path)); if (new Set(inputs.map(item => item.path)).size !== inputs.length) throw new Error('duplicate command input');
-  for (const input of inputs) validateHash(input, readRegularOnce(input.path), 'command input');
-  const stdout = validateLog(value.stdout, artifact, 'stdout'), stderr = validateLog(value.stderr, artifact, 'stderr');
-  return Object.freeze({ ...value, argv: Object.freeze([...value.argv]), inputs: Object.freeze(inputs), stdout, stderr });
+  return validateReleaseCommandEvidence(value, artifact);
 }
-function validateHash(record: ReleaseFileHash, bytes: Uint8Array, label: string): void { if (record.bytes !== bytes.byteLength || record.sha256 !== digest('sha256', bytes)) throw new Error(`${label} hash mismatch`); }
-function validateLog(log: ReleaseFileHash, artifact: string, label: string): ReleaseFileHash { const bytes = readRegularOnce(log.path, artifact); validateHash(log, bytes, `${label} log`); return Object.freeze({ ...log }); }
 function gapKey(gap: NativeGapFingerprint): string { return `${gap.fixture}\0${gap.markerLine}\0${gap.id}\0${gap.markerOccurrence}\0${gap.fingerprint}`; }
 function validateGaps(reviewed: readonly NativeGapFingerprint[], fresh: readonly NativeGapFingerprint[]): void {
   if (reviewed.length !== 27) throw new Error('reviewed native gaps must contain exactly 27 occurrences');
@@ -67,7 +56,7 @@ function validateGaps(reviewed: readonly NativeGapFingerprint[], fresh: readonly
     const occurrence = new Set<string>();
     for (const gap of gaps) {
       const base = { id: gap.id, fixture: gap.fixture, markerLine: gap.markerLine, markerOccurrence: gap.markerOccurrence, code: gap.code, normalizedMessage: gap.normalizedMessage.replace(/\r\n?/g, '\n') };
-      if (!gap.id || gap.fixture.startsWith('/') || gap.fixture.includes('\\') || !Number.isInteger(gap.markerLine) || gap.markerLine < 1 || !Number.isInteger(gap.markerOccurrence) || gap.markerOccurrence < 1 || gap.code !== 2769 || gap.normalizedMessage !== base.normalizedMessage || gap.fingerprint !== digest('sha256', new TextEncoder().encode(JSON.stringify(base)))) throw new Error(`changed ${label} native fingerprint`);
+      if (!gap.id || gap.fixture.startsWith('/') || gap.fixture.includes('\\') || gap.fixture.split('/').some(part => !part || part === '.' || part === '..') || !Number.isInteger(gap.markerLine) || gap.markerLine < 1 || !Number.isInteger(gap.markerOccurrence) || gap.markerOccurrence < 1 || gap.code !== 2769 || gap.normalizedMessage !== base.normalizedMessage || gap.fingerprint !== digest('sha256', new TextEncoder().encode(JSON.stringify(base)))) throw new Error(`changed ${label} native fingerprint`);
       const position = `${gap.fixture}\0${gap.markerLine}\0${gap.id}\0${gap.markerOccurrence}`; if (occurrence.has(position)) throw new Error(`duplicate ${label} native occurrence`); occurrence.add(position);
     }
   }
@@ -116,6 +105,10 @@ export function createReleaseManifest(input: ReleaseEvidenceInput): ReleaseManif
   validateGaps(input.nativeDiagnostics.reviewedGaps, input.nativeDiagnostics.freshGaps);
   if (!Array.isArray(input.packages) || input.packages.length !== 3 || new Set(input.packages.map(item => item.name)).size !== 3 || PACKAGE_NAMES.some(name => !input.packages.some(item => item.name === name))) throw new Error('exactly three unique package records are required');
   const packages = input.packages.map(item => packageRecord(item, artifact)).sort((a, b) => a.name.localeCompare(b.name));
+  const diBag = packages.find(item => item.name === 'di-bag')!;
+  const authoritativeReviewed = collectReviewedNativeGaps(resolve(diBag.checkout.path, 'tests/types'));
+  const compareGaps = (gaps: readonly NativeGapFingerprint[]) => JSON.stringify([...gaps].sort((a, b) => a.fixture.localeCompare(b.fixture) || a.markerLine - b.markerLine || a.id.localeCompare(b.id)));
+  if (compareGaps(input.nativeDiagnostics.reviewedGaps) !== compareGaps(authoritativeReviewed)) throw new Error('reviewed native gaps differ from frozen source authority');
   const retainedLogs = packages.flatMap(item => item.commands.flatMap(command => [command.stdout.path, command.stderr.path]));
   if (new Set(retainedLogs).size !== retainedLogs.length) throw new Error('duplicate retained command log path');
   const sortGaps = (gaps: readonly NativeGapFingerprint[]) => Object.freeze([...gaps].sort((a, b) => a.fixture.localeCompare(b.fixture) || a.markerLine - b.markerLine || a.id.localeCompare(b.id)));
@@ -124,7 +117,12 @@ export function createReleaseManifest(input: ReleaseEvidenceInput): ReleaseManif
     handoff: Object.freeze({ candidateSourceCommit: input.handoff.candidateSourceCommit, handoffCommit: input.handoff.handoffCommit, changedPaths: Object.freeze([...input.handoff.changedPaths].sort()) }), packages: Object.freeze(packages) });
 }
 function sanitizeCommand(command: ReleaseCommandEvidence, roots: readonly [string, string][]): unknown {
-  const clean = (value: string) => { for (const [root, token] of roots) if (value === root || value.startsWith(`${root}/`)) return `${token}${value.slice(root.length)}`; return value; };
+  const clean = (value: string) => {
+    let cleaned = value;
+    for (const [root, token] of roots) cleaned = cleaned.split(root).join(token);
+    if (isAbsolute(cleaned) || /(?:^|[= :])\/(?!\/)/.test(cleaned)) throw new Error('public evidence contains an unsanitized absolute path');
+    return cleaned;
+  };
   return { argv: command.argv.map(clean), cwd: clean(command.cwd), startedAt: command.startedAt, finishedAt: command.finishedAt, elapsedMilliseconds: command.elapsedMilliseconds, exitCode: command.exitCode, signal: command.signal, terminationReason: command.terminationReason, peakObservedRssMiB: command.peakObservedRssMiB,
     inputs: command.inputs.map(input => ({ path: clean(input.path), bytes: input.bytes, sha256: input.sha256 })), stdout: { bytes: command.stdout.bytes, sha256: command.stdout.sha256 }, stderr: { bytes: command.stderr.bytes, sha256: command.stderr.sha256 } };
 }

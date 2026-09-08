@@ -172,12 +172,13 @@ afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 function tarField(header: Uint8Array, offset: number, length: number, value: string): void {
   header.set(Buffer.from(value), offset); header[Math.min(offset + value.length, offset + length - 1)] = 0;
 }
-function archiveOf(entries: readonly Readonly<{ path: string; content: string; type?: number; declaredSize?: number }>[], options: Readonly<{ badChecksum?: boolean; badMagic?: boolean; nonzeroPadding?: boolean; terminators?: number; trailing?: string }> = {}): Uint8Array {
+function archiveOf(entries: readonly Readonly<{ path: string; content: string; type?: number; declaredSize?: number }>[], options: Readonly<{ badChecksum?: boolean; badMagic?: boolean; badNumericSuffix?: boolean; nonzeroPadding?: boolean; terminators?: number; trailing?: string }> = {}): Uint8Array {
   const parts: Uint8Array[] = [];
   for (const entry of entries) {
     const header = new Uint8Array(512); tarField(header, 0, 100, entry.path); tarField(header, 100, 8, '0000644'); tarField(header, 108, 8, '0000000'); tarField(header, 116, 8, '0000000');
     const content = new TextEncoder().encode(entry.content), size = entry.declaredSize ?? content.length;
     tarField(header, 124, 12, size.toString(8).padStart(11, '0')); tarField(header, 136, 12, '00000000000'); header.fill(32, 148, 156); header[156] = entry.type ?? 48; tarField(header, 257, 6, options.badMagic ? 'bad!!' : 'ustar'); header.set(new TextEncoder().encode('00'), 263);
+    if (options.badNumericSuffix) header[155] = 88;
     let sum = 0; for (const byte of header) sum += byte; tarField(header, 148, 8, (sum + (options.badChecksum ? 1 : 0)).toString(8).padStart(6, '0'));
     const padding = new Uint8Array((512 - content.length % 512) % 512); if (options.nonzeroPadding && padding.length) padding[0] = 1;
     parts.push(header, content, padding);
@@ -216,6 +217,7 @@ describe('safe npm archive parser', () => {
     ['entry size ceiling', () => archiveOf([{ path: 'package/package.json', content: minimalPackage(), declaredSize: 129 * 1024 * 1024 }]), 'size limit'],
     ['checksum', () => archiveOf([{ path: 'package/package.json', content: minimalPackage() }], { badChecksum: true }), 'checksum mismatch'],
     ['magic', () => archiveOf([{ path: 'package/package.json', content: minimalPackage() }], { badMagic: true }), 'ustar magic'],
+    ['numeric NUL suffix', () => archiveOf([{ path: 'package/package.json', content: minimalPackage() }], { badNumericSuffix: true }), 'NUL suffix'],
     ['nonzero padding', () => archiveOf([{ path: 'package/package.json', content: minimalPackage() }], { nonzeroPadding: true }), 'nonzero padding'],
     ['terminator', () => archiveOf([{ path: 'package/package.json', content: minimalPackage() }], { terminators: 1 }), 'terminator'],
     ['trailing junk', () => archiveOf([{ path: 'package/package.json', content: minimalPackage() }], { trailing: 'junk' }), 'trailing junk'],
@@ -282,6 +284,18 @@ describe('command evidence runner', () => {
       const supervisor: any = async () => ({ stdout: '', stderr: '', milliseconds: 1, peakObservedRssMiB: 2, ...result });
       await expect(runReleaseCommand(args, limits, supervisor)).rejects.toThrow(message); expect(Bun.file(record).size).toBe(0);
     }
+  });
+  test('failed reruns and thrown supervisors erase stale success evidence', async () => {
+    const record = resolve(artifact, 'rerun.json');
+    const success = parseReleaseCommandArgs(['--artifact-dir', artifact, '--record', record, '--cwd', cwd, '--', process.execPath, '-e', 'console.log("old success")']);
+    await runReleaseCommand(success, { timeoutMilliseconds: 5_000, maxRssMiB: 1024, maxOutputBytes: 1024, sampleMilliseconds: 5 }); expect(Bun.file(record).size).toBeGreaterThan(0);
+    const failure = parseReleaseCommandArgs(['--artifact-dir', artifact, '--record', record, '--cwd', cwd, '--', process.execPath, '-e', 'process.exit(9)']);
+    await expect(runReleaseCommand(failure, { timeoutMilliseconds: 5_000, maxRssMiB: 1024, maxOutputBytes: 1024, sampleMilliseconds: 5 })).rejects.toThrow('exit 9');
+    for (const path of [record, `${record}.stdout`, `${record}.stderr`]) expect(Bun.file(path).size).toBe(0);
+    writeFileSync(record, 'stale'); writeFileSync(`${record}.stdout`, 'stale'); writeFileSync(`${record}.stderr`, 'stale');
+    const throwing: any = async () => { throw new Error('supervisor exploded'); };
+    await expect(runReleaseCommand(success, { timeoutMilliseconds: 1, maxRssMiB: 1, maxOutputBytes: 1, sampleMilliseconds: 1 }, throwing)).rejects.toThrow('exploded');
+    for (const path of [record, `${record}.stdout`, `${record}.stderr`]) expect(Bun.file(path).size).toBe(0);
   });
   test('hashes inputs before execution and rolls back orphan logs if record publication fails', async () => {
     const input = resolve(scratch, 'mutated-input'); writeFileSync(input, 'before');
@@ -406,6 +420,11 @@ describe('manifest validation and deterministic projection', () => {
       (value: any) => { value.nativeDiagnostics.freshGaps.push(structuredClone(value.nativeDiagnostics.freshGaps[0])); },
       (value: any) => { value.nativeDiagnostics.reviewedGaps.pop(); },
     ]) { const value: any = structuredClone(validInput()); mutate(value); expect(() => createReleaseManifest(value)).toThrow(); }
+    const replaced: any = structuredClone(validInput()), gap = replaced.nativeDiagnostics.reviewedGaps[0]; replaced.nativeDiagnostics.freshGaps = []; gap.fixture = 'negative/replaced.ts';
+    gap.fingerprint = createHash('sha256').update(JSON.stringify({ id: gap.id, fixture: gap.fixture, markerLine: gap.markerLine, markerOccurrence: gap.markerOccurrence, code: gap.code, normalizedMessage: gap.normalizedMessage })).digest('hex');
+    expect(() => createReleaseManifest(replaced)).toThrow('frozen source authority');
+    const traversal: any = structuredClone(validInput()); traversal.nativeDiagnostics.reviewedGaps[0].fixture = '../escape.ts';
+    expect(() => createReleaseManifest(traversal)).toThrow('changed reviewed native fingerprint');
   });
   test('rejects failed, malformed-time, duplicate-input and mutated-log command evidence', () => {
     for (const mutate of [
@@ -431,16 +450,23 @@ describe('manifest validation and deterministic projection', () => {
     symlinkSync(resolve(scratch, 'outside-public'), resolve(reports, '2026-09-08-release-candidate-evidence.json'));
     expect(() => parseManifestArgs(['--input', '/tmp/i', '--out', '/tmp/o', '--public-out', 'docs/reports/2026-09-08-release-candidate-evidence.json'], checkout)).toThrow('symlink');
   });
+  test('public projection rejects absolute argv and input paths outside known roots', () => {
+    const executableInput: any = validInput(); executableInput.packages[0].commands[0].argv = ['/usr/bin/node', '-v'];
+    expect(() => createPublicReleaseEvidence(createReleaseManifest(executableInput))).toThrow('unsanitized absolute path');
+    const external: any = validInput(); external.packages[0].commands[0].inputs = [hashFile('/etc/hosts')];
+    expect(() => createPublicReleaseEvidence(createReleaseManifest(external))).toThrow('unsanitized absolute path');
+  });
 });
 
 describe('final release audit', () => {
-  const checkout = resolve(scratch, 'audit-checkout'), reports = resolve(checkout, 'docs/reports'), recordsDir = resolve(scratch, 'audit-records');
+  const checkout = resolve(scratch, 'audit-checkout'), reports = resolve(checkout, 'docs/reports'), recordsDir = `/tmp/di-bag-release-candidate/audit-test-${process.pid}`;
   mkdirSync(reports, { recursive: true }); mkdirSync(recordsDir);
+  afterAll(() => rmSync(recordsDir, { recursive: true, force: true }));
   const manifest = resolve(scratch, 'audit-manifest.json'), publicEvidence = resolve(reports, '2026-09-08-release-candidate-evidence.json');
   writeFileSync(manifest, '{}\n'); writeFileSync(publicEvidence, '{}\n');
   const candidate = '1'.repeat(40), handoff = '2'.repeat(40);
   function argsAndRecords() {
-    const manifestHash = hashFile(manifest), publicHash = hashFile(publicEvidence), inputs = [manifestHash, publicHash];
+    const manifestHash = hashFile(manifest), publicHash = hashFile(publicEvidence), inputs = [manifestHash, publicHash].sort((a, b) => a.path.localeCompare(b.path));
     const roles: Array<[string, readonly string[], string]> = [
       ['head', ['git', 'rev-parse', 'HEAD'], `${handoff}\n`], ['diff', ['git', 'diff', '--name-only', `${candidate}..${handoff}`], `${APPROVED_HANDOFF_PATHS.join('\n')}\n`],
       ['status', ['git', 'status', '--short'], '?? docs/reports/2026-09-08-execution-handoff.md\n'], ['tests', ['bun', 'test', 'tests/release-artifacts.test.ts'], 'pass\n'],
@@ -458,10 +484,25 @@ describe('final release audit', () => {
   test('rejects missing, duplicate, failed, mutated, stale-input and wrong-Git evidence', () => {
     { const args: any = argsAndRecords(); args.records.pop(); expect(() => createReleaseAudit(args)).toThrow(/missing|five/); }
     { const args: any = argsAndRecords(); args.records[4] = args.records[0]; expect(() => createReleaseAudit(args)).toThrow(/duplicate|missing/); }
-    { const args = argsAndRecords(); const record = JSON.parse(readFileSync(args.records[0]!, 'utf8')); record.exitCode = 1; writeFileSync(args.records[0]!, JSON.stringify(record)); expect(() => createReleaseAudit(args)).toThrow('failed'); }
-    { const args = argsAndRecords(); const record = JSON.parse(readFileSync(args.records[0]!, 'utf8')); writeFileSync(record.stdout.path, 'wrong\n'); expect(() => createReleaseAudit(args)).toThrow('mutated'); }
-    { const args = argsAndRecords(); const record = JSON.parse(readFileSync(args.records[0]!, 'utf8')); record.inputs[0].sha256 = '0'.repeat(64); writeFileSync(args.records[0]!, JSON.stringify(record)); expect(() => createReleaseAudit(args)).toThrow('stale'); }
+    { const args = argsAndRecords(); const record = JSON.parse(readFileSync(args.records[0]!, 'utf8')); record.exitCode = 1; writeFileSync(args.records[0]!, JSON.stringify(record)); expect(() => createReleaseAudit(args)).toThrow(/successful|failed/); }
+    { const args = argsAndRecords(); const record = JSON.parse(readFileSync(args.records[0]!, 'utf8')); writeFileSync(record.stdout.path, 'wrong\n'); expect(() => createReleaseAudit(args)).toThrow(/mutated|hash mismatch/); }
+    { const args = argsAndRecords(); const record = JSON.parse(readFileSync(args.records[0]!, 'utf8')); record.inputs[0].sha256 = '0'.repeat(64); writeFileSync(args.records[0]!, JSON.stringify(record)); expect(() => createReleaseAudit(args)).toThrow(/stale|hash mismatch/); }
     { const args = argsAndRecords(); const record = JSON.parse(readFileSync(args.records[0]!, 'utf8')); writeFileSync(record.stdout.path, `${candidate}\n`); record.stdout = hashFile(record.stdout.path); writeFileSync(args.records[0]!, JSON.stringify(record)); expect(() => createReleaseAudit(args)).toThrow('HEAD'); }
+    { const args = argsAndRecords(); const record = JSON.parse(readFileSync(args.records[1]!, 'utf8')); writeFileSync(record.stdout.path, 'src/index.ts\n'); record.stdout = hashFile(record.stdout.path); writeFileSync(args.records[1]!, JSON.stringify(record)); expect(() => createReleaseAudit(args)).toThrow('path diff'); }
+  });
+  test('rejects every invalid retained command field and fixed limit violation', () => {
+    for (const mutate of [
+      (record: any) => { record.startedAt = 'invalid'; }, (record: any) => { record.finishedAt = '2026-09-07T00:00:00.000Z'; },
+      (record: any) => { record.elapsedMilliseconds = 9000; }, (record: any) => { record.peakObservedRssMiB = 4097; },
+      (record: any) => { record.signal = 'SIGTERM'; }, (record: any) => { record.terminationReason = 'monitor'; },
+      (record: any) => { record.inputs.push(structuredClone(record.inputs[0])); }, (record: any) => { record.inputs.reverse(); },
+      (record: any) => { record.argv = ['npm', 'publish', 'x.tgz']; }, (record: any) => { record.cwd = '/not/canonical'; },
+    ]) {
+      const args = argsAndRecords(), record: any = JSON.parse(readFileSync(args.records[0]!, 'utf8')); mutate(record); writeFileSync(args.records[0]!, JSON.stringify(record)); expect(() => createReleaseAudit(args)).toThrow();
+    }
+    { const args = argsAndRecords(), record: any = JSON.parse(readFileSync(args.records[0]!, 'utf8')); const extra = resolve(scratch, 'audit-extra-input'); writeFileSync(extra, 'extra'); record.inputs.push(hashFile(extra)); record.inputs.sort((a: any, b: any) => a.path.localeCompare(b.path)); writeFileSync(args.records[0]!, JSON.stringify(record)); expect(() => createReleaseAudit(args)).toThrow('stale manifest/public'); }
+    { const args = argsAndRecords(), record: any = JSON.parse(readFileSync(args.records[0]!, 'utf8')); writeFileSync(record.stderr.path, new Uint8Array(16 * 1024 * 1024 + 1)); record.stderr = hashFile(record.stderr.path); writeFileSync(args.records[0]!, JSON.stringify(record)); expect(() => createReleaseAudit(args)).toThrow('output evidence exceeds limit'); }
+    { const args = argsAndRecords(), record: any = JSON.parse(readFileSync(args.records[0]!, 'utf8')); const link = resolve(recordsDir, 'linked-head.stdout'); symlinkSync(record.stdout.path, link); record.stdout = hashFile(link); writeFileSync(args.records[0]!, JSON.stringify(record)); expect(() => createReleaseAudit(args)).toThrow(/descriptor|symlink/); rmSync(link, { force: true }); }
   });
   test('audit CLI rejects wrong output, public location, OIDs, duplicate and extra options', () => {
     const base = ['--record', '/tmp/1', '--record', '/tmp/2', '--record', '/tmp/3', '--record', '/tmp/4', '--record', '/tmp/5', '--manifest', manifest, '--public-evidence', publicEvidence, '--candidate-commit', candidate, '--handoff-commit', handoff, '--out', '/tmp/di-bag-release-candidate/final-audit.json'];

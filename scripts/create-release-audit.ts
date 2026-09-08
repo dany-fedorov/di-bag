@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { closeSync, fstatSync, openSync, readSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { basename, isAbsolute, resolve } from 'node:path';
-import type { ReleaseCommandEvidence, ReleaseFileHash } from './run-release-command.ts';
+import { basename, isAbsolute, relative, resolve } from 'node:path';
+import { validateReleaseCommandEvidence, type ReleaseCommandEvidence, type ReleaseFileHash } from './run-release-command.ts';
 
 export const PUBLIC_EVIDENCE_SUFFIX = 'docs/reports/2026-09-08-release-candidate-evidence.json';
 export const APPROVED_HANDOFF_PATHS = Object.freeze([
@@ -11,6 +11,7 @@ export const APPROVED_HANDOFF_PATHS = Object.freeze([
 ]);
 export type ReleaseAuditArgs = Readonly<{ records: readonly string[]; manifest: string; publicEvidence: string; candidateCommit: string; handoffCommit: string; out: string }>;
 const oid = /^[0-9a-f]{40}$/;
+const ARTIFACT_DIRECTORY = '/tmp/di-bag-release-candidate';
 
 function absolute(path: string, label: string): string { if (!isAbsolute(path) || resolve(path) !== path) throw new Error(`${label} must be absolute and canonical`); return path; }
 export function parseReleaseAuditArgs(argv: readonly string[]): ReleaseAuditArgs {
@@ -37,18 +38,14 @@ function readOnce(path: string): Uint8Array {
 }
 function hash(path: string, bytes = readOnce(path)): ReleaseFileHash { return Object.freeze({ path, bytes: bytes.byteLength, sha256: createHash('sha256').update(bytes).digest('hex') }); }
 function equalHash(actual: ReleaseFileHash, expected: ReleaseFileHash): boolean { return actual.path === expected.path && actual.bytes === expected.bytes && actual.sha256 === expected.sha256; }
-function validRecord(record: ReleaseCommandEvidence): void {
-  if (record.exitCode !== 0 || record.signal !== null || record.terminationReason !== null) throw new Error('final command record is failed');
-  if (!Array.isArray(record.argv) || typeof record.cwd !== 'string') throw new Error('malformed final command record');
-  for (const log of [record.stdout, record.stderr]) if (!equalHash(log, hash(log.path))) throw new Error('mutated final command log');
-}
 function stdout(record: ReleaseCommandEvidence): string { return Buffer.from(readOnce(record.stdout.path)).toString('utf8').trimEnd(); }
 export function createReleaseAudit(args: ReleaseAuditArgs): unknown {
   const manifestHash = hash(args.manifest), publicHash = hash(args.publicEvidence);
   const parsed = args.records.map(path => {
+    const rel = relative(ARTIFACT_DIRECTORY, path); if (!rel || rel.startsWith('..') || isAbsolute(rel)) throw new Error('final record is outside artifact directory');
     const bytes = readOnce(path); let record: ReleaseCommandEvidence;
     try { record = JSON.parse(Buffer.from(bytes).toString('utf8')); } catch { throw new Error('invalid final command record JSON'); }
-    validRecord(record);
+    record = validateReleaseCommandEvidence(record, ARTIFACT_DIRECTORY);
     if (record.inputs.length !== 2 || !record.inputs.some(input => equalHash(input, manifestHash)) || !record.inputs.some(input => equalHash(input, publicHash))) throw new Error('final command record has stale manifest/public input hashes');
     return { path, record, recordHash: hash(path, bytes) };
   });

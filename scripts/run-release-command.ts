@@ -52,10 +52,13 @@ export function parseReleaseCommandArgs(argv: readonly string[]): ReleaseCommand
   assertSafeReleaseArgv(command);
   return Object.freeze({ artifactDir, record, cwd, inputs: Object.freeze(canonicalInputs), argv: Object.freeze([...command]) });
 }
-function readRegularOnce(path: string): Uint8Array {
+function readRegularOnce(path: string, container?: string): Uint8Array {
+  if (!isAbsolute(path) || resolve(path) !== path) throw new Error(`file path must be absolute and canonical: ${path}`);
+  if (container && !contained(container, path)) throw new Error(`file path is outside artifact directory: ${path}`);
   const descriptor = openSync(path, 'r');
   try {
-    if (realpathSync(`/proc/self/fd/${descriptor}`) !== path) throw new Error(`file descriptor escaped expected path: ${path}`);
+    const opened = realpathSync(`/proc/self/fd/${descriptor}`);
+    if (opened !== path || container && !contained(container, opened)) throw new Error(`file descriptor escaped expected path: ${path}`);
     const before = fstatSync(descriptor); if (!before.isFile()) throw new Error(`not a regular file: ${path}`);
     const bytes = new Uint8Array(before.size); let offset = 0;
     while (offset < bytes.length) { const count = readSync(descriptor, bytes, offset, bytes.length - offset, offset); if (!count) throw new Error(`short read: ${path}`); offset += count; }
@@ -63,26 +66,48 @@ function readRegularOnce(path: string): Uint8Array {
     return bytes;
   } finally { closeSync(descriptor); }
 }
-function fileHash(path: string): ReleaseFileHash { const bytes = readRegularOnce(path); return Object.freeze({ path, bytes: bytes.byteLength, sha256: createHash('sha256').update(bytes).digest('hex') }); }
+function fileHash(path: string, container?: string): ReleaseFileHash { const bytes = readRegularOnce(path, container); return Object.freeze({ path, bytes: bytes.byteLength, sha256: createHash('sha256').update(bytes).digest('hex') }); }
+function equalHash(left: ReleaseFileHash, right: ReleaseFileHash): boolean { return left.path === right.path && left.bytes === right.bytes && left.sha256 === right.sha256; }
+function exactIso(value: unknown): value is string { return typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value; }
+export function validateReleaseCommandEvidence(value: ReleaseCommandEvidence, artifactDir: string): ReleaseCommandEvidence {
+  const artifact = canonicalExisting(artifactDir, 'artifact directory');
+  assertSafeReleaseArgv(value.argv);
+  if (!isAbsolute(value.cwd) || resolve(value.cwd) !== value.cwd || realpathSync(value.cwd) !== value.cwd) throw new Error('command cwd is not canonical');
+  if (!exactIso(value.startedAt) || !exactIso(value.finishedAt)) throw new Error('command timestamps are invalid');
+  const wall = Date.parse(value.finishedAt) - Date.parse(value.startedAt);
+  if (wall < 0 || !Number.isInteger(value.elapsedMilliseconds) || value.elapsedMilliseconds < 0 || Math.abs(wall - value.elapsedMilliseconds) > 1000) throw new Error('command elapsed time is inconsistent');
+  if (value.exitCode !== 0 || value.signal !== null || value.terminationReason !== null) throw new Error('command result is not successful');
+  if (!Number.isFinite(value.peakObservedRssMiB) || value.peakObservedRssMiB < 0 || value.peakObservedRssMiB > RELEASE_COMMAND_LIMITS.maxRssMiB) throw new Error('command RSS evidence exceeds limit');
+  if (!Array.isArray(value.inputs)) throw new Error('command inputs are missing');
+  const inputPaths = value.inputs.map(input => input.path);
+  if (new Set(inputPaths).size !== inputPaths.length || inputPaths.some((path, index) => index > 0 && inputPaths[index - 1]!.localeCompare(path) >= 0)) throw new Error('command inputs must be unique and sorted');
+  for (const input of value.inputs) if (!equalHash(input, fileHash(input.path))) throw new Error('command input hash mismatch');
+  if (value.stdout.path === value.stderr.path) throw new Error('command logs must be distinct');
+  const stdout = fileHash(value.stdout.path, artifact), stderr = fileHash(value.stderr.path, artifact);
+  if (!equalHash(value.stdout, stdout) || !equalHash(value.stderr, stderr)) throw new Error('command log hash mismatch');
+  if (stdout.bytes + stderr.bytes > RELEASE_COMMAND_LIMITS.maxOutputBytes) throw new Error('command output evidence exceeds limit');
+  return Object.freeze({ ...value, argv: Object.freeze([...value.argv]), inputs: Object.freeze(value.inputs.map(input => Object.freeze({ ...input }))), stdout, stderr });
+}
 function atomicWrite(path: string, bytes: Uint8Array): void { const temp = `${path}.tmp-${process.pid}-${Math.random().toString(16).slice(2)}`; try { writeFileSync(temp, bytes, { flag: 'wx' }); renameSync(temp, path); } finally { rmSync(temp, { force: true }); } }
 function bestEffortRemoveFile(path: string): void { try { const stat = lstatSync(path); if (stat.isFile() || stat.isSymbolicLink()) rmSync(path, { force: true }); } catch {} }
 
 export type ReleaseSupervisor = typeof supervise;
 export async function runReleaseCommand(args: ReleaseCommandArgs, limits: ProcessLimits = RELEASE_COMMAND_LIMITS, supervisor: ReleaseSupervisor = supervise): Promise<ReleaseCommandEvidence> {
   assertSafeReleaseArgv(args.argv);
-  const inputs = args.inputs.map(fileHash).sort((a, b) => a.path.localeCompare(b.path));
   const stdoutPath = `${args.record}.stdout`, stderrPath = `${args.record}.stderr`;
-  const startedAt = new Date().toISOString();
-  const result = await supervisor(args.argv[0]!, args.argv.slice(1), args.cwd, limits);
-  const finishedAt = new Date().toISOString();
-  if (result.status !== 0 || result.signal !== null || result.terminationReason !== undefined)
-    throw new Error(`release command failed: ${result.terminationReason ?? result.signal ?? `exit ${result.status}`}`);
+  bestEffortRemoveFile(args.record); bestEffortRemoveFile(stdoutPath); bestEffortRemoveFile(stderrPath);
   try {
+    const inputs = args.inputs.map(path => fileHash(path)).sort((a, b) => a.path.localeCompare(b.path));
+    const startedAt = new Date().toISOString();
+    const result = await supervisor(args.argv[0]!, args.argv.slice(1), args.cwd, limits);
+    const finishedAt = new Date().toISOString();
+    if (result.status !== 0 || result.signal !== null || result.terminationReason !== undefined)
+      throw new Error(`release command failed: ${result.terminationReason ?? result.signal ?? `exit ${result.status}`}`);
     atomicWrite(stdoutPath, new TextEncoder().encode(result.stdout));
     atomicWrite(stderrPath, new TextEncoder().encode(result.stderr));
     const record: ReleaseCommandEvidence = Object.freeze({ argv: Object.freeze([...args.argv]), cwd: args.cwd, startedAt, finishedAt,
       elapsedMilliseconds: result.milliseconds, exitCode: 0, signal: null, terminationReason: null, peakObservedRssMiB: result.peakObservedRssMiB,
-      inputs: Object.freeze(inputs), stdout: fileHash(stdoutPath), stderr: fileHash(stderrPath) });
+      inputs: Object.freeze(inputs), stdout: fileHash(stdoutPath, args.artifactDir), stderr: fileHash(stderrPath, args.artifactDir) });
     atomicWrite(args.record, new TextEncoder().encode(`${JSON.stringify(record, null, 2)}\n`));
     return record;
   } catch (error) {

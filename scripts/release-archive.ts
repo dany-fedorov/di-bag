@@ -21,7 +21,9 @@ function headerText(header: Uint8Array, start: number, length: number, field: st
 }
 
 function octal(header: Uint8Array, start: number, length: number, field: string): number {
-  const raw = Buffer.from(header.subarray(start, start + length)).toString('ascii').replace(/\0.*$/s, '').trim();
+  const bytes = header.subarray(start, start + length), nul = bytes.indexOf(0);
+  if (nul >= 0 && bytes.subarray(nul + 1).some(byte => byte !== 0 && byte !== 32)) throw new Error(`invalid tar ${field} NUL suffix`);
+  const raw = Buffer.from(bytes.subarray(0, nul < 0 ? bytes.length : nul)).toString('ascii').trim();
   if (!/^[0-7]+$/.test(raw)) throw new Error(`invalid tar ${field}`);
   const value = Number.parseInt(raw, 8);
   if (!Number.isSafeInteger(value) || value < 0) throw new Error(`invalid tar ${field}`);
