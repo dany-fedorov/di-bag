@@ -253,7 +253,7 @@ captured baseline, never to change existing ceilings.
 and `RelevantProvided<E extends Entry, K extends PropertyKey>`; existing
 `IncrementalChecked<E,N>` input/result contract remains unchanged.
 
-- [ ] **Step 1: Add exact projection and graph-behavior tests.**
+- [x] **Step 1: Add exact projection and graph-behavior tests.**
 
 ```ts
 import { DiBag } from '../../src';
@@ -292,7 +292,7 @@ programs and record their actual instantiations. Add a targeted comparison requi
 candidate work `<= Math.floor(baselineInstantiations * 0.75)`; record that it fails
 against the unchanged baseline. This target does not replace either fixed ceiling.
 
-- [ ] **Step 2: Implement the projection candidate without changing public generics.**
+- [x] **Step 2: Implement the projection candidate without changing public generics.**
 
 ```ts
 export type RelevantEntries<E extends Entry, K extends PropertyKey> =
@@ -321,7 +321,7 @@ key union has no overlap with `keyof N`; exclude overwritten consumers first.
 Import `TokenKey` from `./tokens`. Keep `Checked<N>`, unknown/opaque admission,
 error selection and final `Complete` unchanged.
 
-- [ ] **Step 3: Run source/reflection and work GREEN before larger cases.**
+- [x] **Step 3: Run source/reflection and work GREEN before larger cases.**
 
 ```sh
 flock -x /tmp/di-bag-compiler-heavy.lock bun test tests/types.test.ts --test-name-pattern 'incremental|replacement|builder views|modern inline|token'
@@ -339,7 +339,7 @@ If the candidate cannot improve relevant work without changing diagnostics or
 the grouped1000 gate, revert its source delta. At most three causal projection
 variants; record the measured outcome before selecting another architecture.
 
-- [ ] **Step 4: Validate original named/binding cases and checkpoint.**
+- [x] **Step 4: Validate original named/binding cases and checkpoint.**
 
 Use selected runner classic/native 500 chained valid and wrong-shape, 500 bindings
 valid/invariant mismatch, and 1000 chained/bindings valid, one process at a time.
@@ -348,6 +348,19 @@ Run locked `npm run typecheck`, `npm run build`, then `git diff --check`.
 Commit only the adopted projection and source/work tests with
 `git commit -m "perf(types): narrow incremental dependency projections"`.
 Review soundness and unchanged worker/ceiling contracts before Task 3.
+
+Task 2 evaluated all three permitted causal variants at source checkpoint
+`94288a32c2ca9f21d60d10f6f04b84f9a8049aed`. None met the mandatory 75% work
+ceilings: the best named result was 873,932 versus 662,854 required, while every
+variant increased token work above the 1,461,065 baseline. The complete
+production candidate was therefore reverted. Retained compatibility and
+negative fixtures pass on both compiler lanes; the negative marker mutation RED
+and opt-in performance RED remain reproducible. The final native audit accepted
+115 files with 650 expected, 623 matched, the same 27 declared gaps, and zero
+failures. Classic/native typecheck and build also pass. Per the staged stop rule,
+larger selected candidate cases were not run after the work-gate rejection.
+Detailed commands and all three measurements are in
+`.superpowers/sdd/2026-09-08-compiler-scalability/task-2-report.md`.
 
 ## Task 3: Incremental installation constraints and remaining-depth decision
 

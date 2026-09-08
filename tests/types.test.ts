@@ -113,6 +113,11 @@ test('incremental checks preserve forward, replacement and frame contracts', () 
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('incremental projection candidates preserve replacement and resolved contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/incremental-projections.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('builder views preserve exact accepted registration histories', () => {
   expect(diagnostics(resolve(__dirname, 'types/builder-views.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

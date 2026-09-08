@@ -3,9 +3,10 @@ import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 const cases = [
-  { name: '100 named additions', args: ['scripts/benchmark-types.ts', '--worker', '100', 'chained', 'valid'], ceiling: 1_500_000 },
-  { name: '100 token bindings', args: ['scripts/check-token-scale.ts', 'bindings', 'valid'], ceiling: 2_000_000 },
+  { name: '100 named additions', args: ['scripts/benchmark-types.ts', '--worker', '100', 'chained', 'valid'], ceiling: 1_500_000, baselineInstantiations: 883_806 },
+  { name: '100 token bindings', args: ['scripts/check-token-scale.ts', 'bindings', 'valid'], ceiling: 2_000_000, baselineInstantiations: 1_461_065 },
 ] as const;
+const requireProjectionReduction = process.env.DI_BAG_REQUIRE_PROJECTION_REDUCTION === '1';
 
 for (const item of cases) {
   test(`incremental compiler work: ${item.name}`, () => {
@@ -25,5 +26,10 @@ for (const item of cases) {
     expect(Number.isInteger(result.instantiations)).toBe(true);
     expect(result.instantiations).toBeGreaterThan(0);
     expect(result.instantiations).toBeLessThanOrEqual(item.ceiling);
+    if (requireProjectionReduction) {
+      expect(result.instantiations).toBeLessThanOrEqual(
+        Math.floor(item.baselineInstantiations * 0.75),
+      );
+    }
   }, 65_000);
 }
