@@ -524,7 +524,8 @@ describe('archive verifier', () => {
       const command: ReleaseCommandEvidence = { argv: ['npm', 'run', 'build'], cwd: name === 'di-bag' ? checkout : resolve(root, `.related-repos/${name}`), startedAt: '2026-09-08T00:00:00.000Z', finishedAt: '2026-09-08T00:00:00.001Z', elapsedMilliseconds: 1, exitCode: 0, signal: null, terminationReason: null, peakObservedRssMiB: 10, inputs: [], stdout: writeLogEvidence(stdout, 'ok\n'), stderr: writeLogEvidence(stderr, '') };
       return { name, version: '0.1.0', archive, checkout: { path: name === 'di-bag' ? checkout : resolve(root, `.related-repos/${name}`), branch: 'feat/v0.1', candidateSourceCommit: 'a'.repeat(40), status: '' }, pack: { dryRunJson: [result], packJson: [structuredClone(result)], packedAt: '2026-09-08T00:00:01.000Z' }, commands: [command] };
     });
-    manifest = createReleaseManifest({ schemaVersion: 1, generatedAt: '2026-09-08T00:00:02.000Z', artifactDirectory: artifact, tools: { node: process.version, npm: '11', bun: Bun.version, classic6: '6.0.2', native7: '7.0.2', sasBoxTypeScript: '5.9.3', valBoxTypeScript: '5.9.3' }, nativeDiagnostics: { reviewedAt: '2026-09-08T00:00:00.000Z', reviewedGaps: reviewed, freshGaps: reviewed }, handoff: { candidateSourceCommit: 'a'.repeat(40), handoffCommit: 'b'.repeat(40), changedPaths: [...APPROVED_HANDOFF_PATHS] }, packages });
+    const versionOf = (executable: string) => spawnSync(executable, ['--version'], { cwd: root, encoding: 'utf8' }).stdout.trim().replace(/^Version /, '');
+    manifest = createReleaseManifest({ schemaVersion: 1, generatedAt: '2026-09-08T00:00:02.000Z', artifactDirectory: artifact, tools: { node: process.version, npm: '11', bun: Bun.version, classic6: versionOf(resolve(root, 'node_modules/.bin/tsc6')), native7: versionOf(resolve(root, 'node_modules/.bin/tsc')), sasBoxTypeScript: '5.9.3', valBoxTypeScript: '5.9.3' }, nativeDiagnostics: { reviewedAt: '2026-09-08T00:00:00.000Z', reviewedGaps: reviewed, freshGaps: reviewed }, handoff: { candidateSourceCommit: 'a'.repeat(40), handoffCommit: 'b'.repeat(40), changedPaths: [...APPROVED_HANDOFF_PATHS] }, packages });
     writeFileSync(manifestPath, serializeStable(manifest)); publish(manifest);
   });
   afterAll(() => rmSync(directory, { recursive: true, force: true }));
@@ -553,6 +554,12 @@ describe('archive verifier', () => {
     ];
     for (const packageName of ['di-bag', 'sas-box', 'val-box']) for (const [, mutate] of cases) {
       const failures = staticFailures(value => mutate(value.packages.find((record: any) => record.name === packageName))); expect(failures.length).toBeGreaterThan(0);
+    }
+  });
+  test('rejects malformed dependency, files, and bundled dependency metadata shapes', () => {
+    for (const [field, malformed] of [['dependencies', []], ['peerDependencies', ['x']], ['optionalDependencies', 1], ['files', {}], ['bundledDependencies', {}]] as const) {
+      const value: any = structuredClone(manifest), entries = archiveEntries('di-bag'), packageEntry = entries.find(entry => entry.path === 'package/package.json')!, metadata = JSON.parse(packageEntry.content); metadata[field] = malformed; packageEntry.content = JSON.stringify(metadata);
+      replaceArchive(value, 'di-bag', archiveOf(entries), `malformed-${field}`); publish(value); expect(verifyReleaseManifestStatic(value).failures.some(failure => failure.includes('metadata shape'))).toBe(true);
     }
   });
   test('rejects forbidden source, test, fixture, dependency, credential, and tarball content', () => {
@@ -614,6 +621,11 @@ describe('archive verifier', () => {
     const occupied = resolve(directory, 'api-occupied'); mkdirSync(occupied); writeFileSync(resolve(occupied, 'sentinel'), 'keep'); expect((await verifyReleaseArtifacts(manifestPath, occupied)).ok).toBe(false); expect(readFileSync(resolve(occupied, 'sentinel'), 'utf8')).toBe('keep');
     const target = resolve(directory, 'api-target'); mkdirSync(target); const alias = resolve(directory, 'api-alias'); symlinkSync(target, alias); expect((await verifyReleaseArtifacts(manifestPath, alias)).ok).toBe(false); expect(readdirSync(target)).toEqual([]);
   });
+  test('binds both declaration compilers to the exact manifest versions before emitting', async () => {
+    const value: any = structuredClone(manifest); value.tools.classic6 = '0.0.0'; const path = writeCandidate(value, 'compiler-version-mismatch'), work = resolve(directory, 'compiler-version-work');
+    const result = await verifyReleaseArtifacts(path, work); expect(result.ok).toBe(false); expect(result.failures.some(failure => failure.includes('classic6 compiler version mismatch'))).toBe(true);
+    expect(readdirSync(resolve(work, 'full-consumer')).some(name => name.startsWith('declarations-'))).toBe(false); publish(manifest);
+  }, 30_000);
   test('installs owned verified bytes and passes real Node/Bun, CJS/ESM, core-only, and declaration oracles', async () => {
     publish(manifest); const work = resolve(directory, 'real-work'); const result = await verifyReleaseArtifacts(manifestPath, work);
     expect(result).toEqual({ ok: true, failures: [] });

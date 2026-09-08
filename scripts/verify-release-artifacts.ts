@@ -74,11 +74,17 @@ function stable(value: unknown): unknown { if (Array.isArray(value)) return valu
 const same = (left: unknown, right: unknown) => JSON.stringify(stable(left)) === JSON.stringify(stable(right));
 
 function normalizedMetadata(raw: any): ReleasePackageRecord['packageMetadata'] {
-  const map = (value: unknown) => Object.freeze(value && typeof value === 'object' && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))) : {});
+  const map = (value: unknown, field: string) => {
+    if (value === undefined) return Object.freeze({});
+    if (!value || typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(item => typeof item !== 'string')) throw new Error(`invalid ${field} metadata shape`);
+    return Object.freeze(Object.fromEntries(Object.entries(value as Record<string, string>).sort(([a], [b]) => a.localeCompare(b))));
+  };
+  if (raw.files !== undefined && (!Array.isArray(raw.files) || raw.files.some((item: unknown) => typeof item !== 'string'))) throw new Error('invalid files metadata shape');
+  if (raw.bundledDependencies !== undefined && (!Array.isArray(raw.bundledDependencies) || raw.bundledDependencies.some((item: unknown) => typeof item !== 'string'))) throw new Error('invalid bundledDependencies metadata shape');
   return Object.freeze({ name: raw.name, version: raw.version, ...(typeof raw.main === 'string' ? { main: raw.main } : {}), ...(typeof raw.types === 'string' ? { types: raw.types } : {}),
-    files: Object.freeze(Array.isArray(raw.files) ? [...raw.files].sort() : []), exports: stable(raw.exports ?? null), dependencies: map(raw.dependencies) as Record<string, string>,
-    peerDependencies: map(raw.peerDependencies) as Record<string, string>, optionalDependencies: map(raw.optionalDependencies) as Record<string, string>,
-    bundledDependencies: Object.freeze(Array.isArray(raw.bundledDependencies) ? [...raw.bundledDependencies].sort() : []) });
+    files: Object.freeze(raw.files === undefined ? [] : [...raw.files].sort()), exports: stable(raw.exports ?? null), dependencies: map(raw.dependencies, 'dependencies'),
+    peerDependencies: map(raw.peerDependencies, 'peerDependencies'), optionalDependencies: map(raw.optionalDependencies, 'optionalDependencies'),
+    bundledDependencies: Object.freeze(raw.bundledDependencies === undefined ? [] : [...raw.bundledDependencies].sort()) });
 }
 function packFailures(record: ReleasePackageRecord, inspection: NpmArchiveInspection, bytes: Uint8Array): string[] {
   const failures: string[] = [], files = inspection.entries.map(entry => entry.path.slice('package/'.length)).sort();
@@ -223,23 +229,37 @@ async function verifyRuntimeConsumers(manifest: ReleaseManifest, workDir: string
       if (!same(runtimeEntries, EXPECTED_RUNTIME)) throw new Error(`I1-I13 ${mode} ${executable} oracle mismatch`);
     }
   }
-  await verifyDeclarations(full, manifest.packages.find(record => record.name === 'di-bag')!.checkout.path);
+  await verifyDeclarations(full, manifest.packages.find(record => record.name === 'di-bag')!.checkout.path, manifest.tools);
 }
-async function verifyDeclarations(consumer: string, checkout: string): Promise<void> {
-  const source = `import {DiBag,type ProviderOutput,type ProviderTokenNeeds,type ProviderAcquisitionMetadata,type ValBoxFrame}from'di-bag';import{fromSasBox}from'di-bag/sas-box';import{fromValBox}from'di-bag/val-box';import{SasBox}from'sas-box';import{ValBox}from'val-box';export const key=Symbol('release');export const token=DiBag.token(key).of<number>();export const boxed=fromValBox(fromSasBox(DiBag.fromTokens([token],value=>SasBox.fromValue(new ValBox.WithValue.WithMetadata({boxed:true as const,value},{origin:'release' as const},'release'))),{mode:'sync'}));export type Contract=[ProviderOutput<typeof boxed>,ProviderTokenNeeds<typeof boxed>,ProviderAcquisitionMetadata<typeof boxed>,ValBoxFrame<{origin:'release'}>];`;
-  for (const [emitter, emitCompiler] of [['classic6', resolve(checkout, 'node_modules/.bin/tsc6')], ['native7', resolve(checkout, 'node_modules/.bin/tsc')]] as const) for (const format of ['cts', 'mts'] as const) {
-    const runtimeExtension = format === 'cts' ? 'cjs' : 'mjs', directory = resolve(consumer, `declarations-${emitter}-${format}`), out = resolve(directory, 'out'); mkdirSync(directory); const producer = resolve(directory, `producer.${format}`); writeFileSync(producer, source);
+async function verifyDeclarations(consumer: string, checkout: string, versions: ReleaseManifest['tools']): Promise<void> {
+  const assertions = 'type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;';
+  const route = (text: string) => text
+    .replace(/from '(?:\.\.\/)+\.related-repos\/(sas-box|val-box)\/src'/g, "from '$1'")
+    .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)
+    .replace(/import type \{ Assert, Equal \} from '\.\.?\/assert';/, assertions);
+  const producerSource = route(readFileSync(resolve(checkout, 'tests/types/final-adversarial-integration.ts'), 'utf8'));
+  const consumerSource = route(readFileSync(resolve(checkout, 'tests/types/final-adversarial-integration-consumer.ts'), 'utf8'));
+  const negativeSource = route(readFileSync(resolve(checkout, 'tests/types/negative/final-adversarial-integration.ts'), 'utf8'));
+  if ((negativeSource.match(/\/\/ diagnostic:/g) ?? []).length !== 2) throw new Error('I14 negative fixture must contain exactly two unsuppressed diagnostic markers');
+  const compilers = [['classic6', resolve(checkout, 'node_modules/.bin/tsc6')], ['native7', resolve(checkout, 'node_modules/.bin/tsc')]] as const;
+  for (const [name, compiler] of compilers) {
+    const expected = versions[name];
+    const output = (await runChecked([compiler, '--version'], checkout)).trim();
+    if (output !== `Version ${expected}`) throw new Error(`${name} compiler version mismatch: expected ${expected}, received ${output}`);
+  }
+  for (const [emitter, emitCompiler] of compilers) for (const format of ['cts', 'mts'] as const) {
+    const runtimeExtension = format === 'cts' ? 'cjs' : 'mjs', directory = resolve(consumer, `declarations-${emitter}-${format}`), out = resolve(directory, 'out'); mkdirSync(directory); const producer = resolve(directory, `producer.${format}`); writeFileSync(producer, producerSource);
     writeFileSync(resolve(directory, 'tsconfig.json'), JSON.stringify({ compilerOptions: { strict: true, declaration: true, emitDeclarationOnly: true, skipLibCheck: false, noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022', rootDir: directory, outDir: out, types: [] }, files: [`producer.${format}`] }));
     await runChecked([emitCompiler, '-p', resolve(directory, 'tsconfig.json')], directory); unlinkSync(producer);
-    const assertion = `import{boxed,token}from'./producer.${runtimeExtension}';import type{ProviderOutput,ProviderTokenNeeds}from'di-bag';type A<T extends true>=T;type E<X,Y>=(<T>()=>T extends X?1:2)extends(<T>()=>T extends Y?1:2)?true:false;export type Contract=[A<E<ProviderOutput<typeof boxed>,{boxed:true;value:number}>>,A<E<ProviderTokenNeeds<typeof boxed>,typeof token>>];`;
-    const negative = `import{boxed}from'./producer.${runtimeExtension}';import type{ProviderOutput}from'di-bag';// diagnostic: Type 'string' is not assignable to type 'number'\nconst wrongValue:ProviderOutput<typeof boxed>={boxed:true,value:'wrong'};// diagnostic: Type 'false' is not assignable to type 'true'\nconst wrongTag:ProviderOutput<typeof boxed>={boxed:false,value:1};`;
+    const assertion = consumerSource.replace("from './final-adversarial-integration'", `from './producer.${runtimeExtension}'`);
+    const negative = negativeSource;
     writeFileSync(resolve(out, `consumer.${format}`), assertion); writeFileSync(resolve(out, `negative.${format}`), negative);
     for (const [downstream, compiler] of [['classic6', resolve(checkout, 'node_modules/.bin/tsc6')], ['native7', resolve(checkout, 'node_modules/.bin/tsc')]] as const) {
       const positiveConfig = resolve(out, `tsconfig.${downstream}.json`); writeFileSync(positiveConfig, JSON.stringify({ compilerOptions: { strict: true, noEmit: true, skipLibCheck: false, noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022', types: [] }, files: [`consumer.${format}`] }));
       await runChecked([compiler, '-p', positiveConfig], out);
       const negativeConfig = resolve(out, `tsconfig.${downstream}.negative.json`); writeFileSync(negativeConfig, JSON.stringify({ compilerOptions: { strict: true, noEmit: true, skipLibCheck: false, noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022', types: [] }, files: [`negative.${format}`] }));
       const result = await supervise(compiler, ['-p', negativeConfig], out, RELEASE_COMMAND_LIMITS), output = `${result.stdout}\n${result.stderr}`;
-      if (result.status === 0 || result.signal !== null || result.terminationReason !== undefined || (output.match(/error TS\d+:/g) ?? []).length !== 2 || output.includes('TS2589') || !output.includes("Type 'string' is not assignable to type 'number'") || !output.includes("Type 'false' is not assignable to type 'true'")) throw new Error(`I14 negative declaration evidence mismatch for ${emitter}/${format}/${downstream}: ${output}`);
+      if (result.status === 0 || result.signal !== null || result.terminationReason !== undefined || (output.match(/error TS\d+:/g) ?? []).length !== 2 || output.includes('TS2589')) throw new Error(`I14 negative declaration evidence mismatch for ${emitter}/${format}/${downstream}: ${output}`);
     }
   }
 }
