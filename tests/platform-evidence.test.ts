@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import {
+  assertBrowserMetafile,
   evaluatePlatformChild,
   packIsolatedClassic,
   stableJson,
@@ -358,5 +359,12 @@ test('evidence writer appends stable sorted JSONL under the source/date director
   }
   for (const utc of ['2026-02-30T12:00:00.000Z', '2026-09-08T12:00:00+00:00', '2026-09-08']) {
     await expect(writePlatformEvidence(root, { ...row, utc })).rejects.toThrow('canonical UTC ISO timestamp');
+  }
+});
+
+test('browser metafile parser rejects malformed shapes before resolving inputs', () => {
+  const root = temporaryRoot();
+  for (const malformed of [null, [], {}, { inputs: null }, { inputs: [] }, { inputs: {}, outputs: null }]) {
+    expect(() => assertBrowserMetafile(malformed, root)).toThrow('invalid esbuild metafile');
   }
 });

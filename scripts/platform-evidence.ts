@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { gunzipSync } from 'node:zlib';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { gunzipSync, gzipSync } from 'node:zlib';
 
 export type PlatformTool = 'node' | 'npm' | 'classic6' | 'bun' | 'deno' | 'esbuild' | 'playwright' | 'chromium';
 export type ToolUnavailableReason = 'not-provisioned' | 'version-mismatch' | 'hash-mismatch';
@@ -40,8 +40,34 @@ export type PackedArchive = {
   files: readonly string[];
 };
 
+export type BrowserBundle = {
+  path: string;
+  sha256: string;
+  bytes: number;
+  gzipBytes: number;
+  metafilePath: string;
+  metafileSha256: string;
+  resolvedDiBag: string;
+};
+
+export type BrowserWorkerTranscript = {
+  messages: readonly unknown[];
+  errors: readonly string[];
+  console: readonly string[];
+  timedOut: boolean;
+};
+
+export type BrowserWorkerDriver = (
+  bundleBytes: Uint8Array,
+  chromium: VerifiedTool,
+) => Promise<BrowserWorkerTranscript>;
+
 function sha256File(path: string): string {
   return createHash('sha256').update(Uint8Array.from(readFileSync(path))).digest('hex');
+}
+
+function sha256Bytes(bytes: Uint8Array): string {
+  return createHash('sha256').update(bytes).digest('hex');
 }
 
 function isStringTuple(value: unknown): value is [string, ...string[]] {
@@ -170,6 +196,243 @@ function platformGit(): PlatformRow['git'] {
 
 function denoRow(status: PlatformRow['status'], fields: Record<string, unknown> = {}): PlatformRow {
   return { schema: 1, lane: 'deno-root', status, utc: new Date().toISOString(), git: platformGit(), ...fields };
+}
+
+function browserRow(status: PlatformRow['status'], fields: Record<string, unknown> = {}): PlatformRow {
+  return { schema: 1, lane: 'browser-worker-minified', status, utc: new Date().toISOString(), git: platformGit(), ...fields };
+}
+
+type MetafileImport = { path?: unknown; external?: unknown };
+type MetafileInput = { imports?: unknown };
+type EsbuildMetafile = { inputs: Record<string, MetafileInput>; outputs: Record<string, unknown> };
+
+function parseMetafile(value: unknown): EsbuildMetafile {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('invalid esbuild metafile');
+  const candidate = value as { inputs?: unknown; outputs?: unknown };
+  if (!candidate.inputs || typeof candidate.inputs !== 'object' || Array.isArray(candidate.inputs)
+    || !candidate.outputs || typeof candidate.outputs !== 'object' || Array.isArray(candidate.outputs)) {
+    throw new Error('invalid esbuild metafile');
+  }
+  return candidate as EsbuildMetafile;
+}
+
+function pathInside(path: string, directory: string): boolean {
+  return path.startsWith(`${directory}${sep}`);
+}
+
+export function assertBrowserMetafile(value: unknown, consumer: string): string {
+  const metafile = parseMetafile(value);
+  const consumerRoot = realpathSync(consumer);
+  const modulesRoot = join(consumerRoot, 'node_modules');
+  const packageRoot = realpathSync(join(modulesRoot, 'di-bag'));
+  const expectedRoot = realpathSync(join(packageRoot, 'dist', 'index.js'));
+  let rootEntries = 0;
+
+  const rejectNodeImports = (record: Record<string, unknown>) => {
+    for (const detail of Object.values(record)) {
+      if (!detail || typeof detail !== 'object' || Array.isArray(detail)) throw new Error('invalid esbuild metafile');
+      const imports = (detail as { imports?: unknown }).imports ?? [];
+      if (!Array.isArray(imports)) throw new Error('invalid esbuild metafile');
+      for (const imported of imports as MetafileImport[]) {
+        if (!imported || typeof imported !== 'object' || typeof imported.path !== 'string') throw new Error('invalid esbuild metafile');
+        if (imported.path.startsWith('node:')) throw new Error('browser bundle contains a node: input');
+      }
+    }
+  };
+  rejectNodeImports(metafile.inputs);
+  rejectNodeImports(metafile.outputs);
+
+  for (const [input, detail] of Object.entries(metafile.inputs)) {
+    if (input.startsWith('node:')) throw new Error('browser bundle contains a node: input');
+    const lexicalInput = isAbsolute(input) ? resolve(input) : resolve(consumerRoot, input);
+    if (!pathInside(lexicalInput, consumerRoot)) throw new Error('browser bundle input is outside the browser consumer');
+    let resolvedInput: string;
+    try { resolvedInput = realpathSync(lexicalInput); }
+    catch { throw new Error(`browser bundle input does not exist: ${input}`); }
+    if (!pathInside(resolvedInput, consumerRoot)) throw new Error('browser bundle input is outside the browser consumer');
+    if (pathInside(lexicalInput, modulesRoot) || pathInside(resolvedInput, modulesRoot)) {
+      if (!pathInside(resolvedInput, packageRoot)) throw new Error('browser package input is outside the installed di-bag archive');
+      const packageRelative = relative(packageRoot, resolvedInput).split(sep).join('/');
+      if (!/^dist\/[^/]+\.js$/.test(packageRelative)) throw new Error('browser package input is not under dist as a JavaScript file');
+      if (packageRelative === 'dist/node.js') throw new Error('browser bundle contains the node facade');
+      if (resolvedInput === expectedRoot) rootEntries++;
+    }
+  }
+  if (rootEntries !== 1) throw new Error('browser bundle must contain exactly one di-bag root entry');
+  return expectedRoot;
+}
+
+function inspectBrowserBundle(bundle: BrowserBundle): { bytes: number; gzipBytes: number; contents: Uint8Array } {
+  if (!existsSync(bundle.path) || !statSync(bundle.path).isFile()) throw new Error('browser bundle does not exist');
+  const bytes = Uint8Array.from(readFileSync(bundle.path));
+  if (sha256Bytes(bytes) !== bundle.sha256) throw new Error('bundle SHA-256 mismatch');
+  if (bytes.length === 0) throw new Error('browser bundle is empty');
+  if (bytes.length !== bundle.bytes) throw new Error('bundle byte count mismatch');
+  let gzipBytes: number;
+  try { gzipBytes = gzipSync(bytes).length; }
+  catch { throw new Error('browser bundle gzip failed'); }
+  if (gzipBytes !== bundle.gzipBytes) throw new Error('bundle gzip byte count mismatch');
+  if (!existsSync(bundle.metafilePath) || !statSync(bundle.metafilePath).isFile()) throw new Error('browser metafile does not exist');
+  const metafileBytes = Uint8Array.from(readFileSync(bundle.metafilePath));
+  if (sha256Bytes(metafileBytes) !== bundle.metafileSha256) throw new Error('metafile SHA-256 mismatch');
+  let metafile: unknown;
+  try { metafile = JSON.parse(new TextDecoder().decode(metafileBytes)); }
+  catch { throw new Error('invalid esbuild metafile'); }
+  const resolvedRoot = assertBrowserMetafile(metafile, dirname(bundle.path));
+  let claimedRoot: string;
+  try { claimedRoot = realpathSync(bundle.resolvedDiBag); }
+  catch { throw new Error('resolved di-bag root mismatch'); }
+  if (claimedRoot !== resolvedRoot) throw new Error('resolved di-bag root mismatch');
+  return { bytes: bytes.length, gzipBytes, contents: bytes };
+}
+
+export function validateBrowserBundle(bundle: BrowserBundle): { bytes: number; gzipBytes: number } {
+  const { bytes, gzipBytes } = inspectBrowserBundle(bundle);
+  return { bytes, gzipBytes };
+}
+
+export async function bundleBrowserRoot(
+  archive: PackedArchive,
+  esbuild: VerifiedTool | { status: 'unavailable'; reason: ToolUnavailableReason },
+): Promise<BrowserBundle> {
+  if (esbuild.status === 'unavailable') throw new Error(`esbuild unavailable: ${esbuild.reason}`);
+  if (esbuild.name !== 'esbuild') throw new Error('browser bundling requires the verified esbuild tool');
+  const npm = await verifyTool(platformRoot, 'npm');
+  if (npm.status === 'unavailable') throw new Error(`npm unavailable: ${npm.reason}`);
+  const consumer = mkdtempSync(join(tmpdir(), 'di-bag-browser-consumer-'));
+  let retain = false;
+  try {
+    validatePackedArchive(archive);
+    writeFileSync(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
+    const installed = runExact(npm, ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive.path], consumer);
+    if (installed.signal !== null || installed.status !== 0 || installed.stderr !== '') throw new Error('offline archive installation failed');
+    cpSync(join(platformRoot, 'tests', 'platform', 'portable'), join(consumer, 'portable'), { recursive: true });
+    cpSync(join(platformRoot, 'tests', 'platform', 'browser-entry.ts'), join(consumer, 'browser-entry.ts'));
+    const path = join(consumer, 'worker.js');
+    const metafilePath = join(consumer, 'worker-meta.json');
+    const args = [
+      'browser-entry.ts', '--bundle', '--platform=browser', '--format=iife', '--target=es2022', '--minify',
+      '--tree-shaking=true', '--legal-comments=none', '--log-level=error', `--outfile=${path}`, `--metafile=${metafilePath}`,
+    ] as const;
+    const result = runExact(esbuild, args, consumer);
+    if (result.signal !== null || result.status !== 0 || result.stderr !== '') throw new Error(`browser bundling failed: ${result.stderr || result.stdout}`);
+    const bundleBytes = Uint8Array.from(readFileSync(path));
+    const metafileBytes = Uint8Array.from(readFileSync(metafilePath));
+    const resolvedDiBag = assertBrowserMetafile(JSON.parse(new TextDecoder().decode(metafileBytes)), consumer);
+    const bundle: BrowserBundle = {
+      path,
+      sha256: sha256Bytes(bundleBytes),
+      bytes: bundleBytes.length,
+      gzipBytes: gzipSync(bundleBytes).length,
+      metafilePath,
+      metafileSha256: sha256Bytes(metafileBytes),
+      resolvedDiBag,
+    };
+    validateBrowserBundle(bundle);
+    retain = true;
+    return bundle;
+  } finally {
+    if (!retain) rmSync(consumer, { recursive: true, force: true });
+  }
+}
+
+export function evaluateBrowserWorkerProtocol(transcript: BrowserWorkerTranscript): PlatformAssertion {
+  if (transcript.timedOut) return { status: 'fail', reason: 'Worker timed out' };
+  if (transcript.errors.length > 0) return { status: 'fail', reason: `Worker error: ${transcript.errors[0]}` };
+  if (transcript.console.length > 0) return { status: 'fail', reason: 'Worker console output is not empty' };
+  if (transcript.messages.length === 0) return { status: 'fail', reason: 'Worker posted no message' };
+  if (transcript.messages.length !== 1) return { status: 'fail', reason: 'Worker posted extra messages' };
+  const message = transcript.messages[0];
+  if (!message || typeof message !== 'object' || Array.isArray(message)) return { status: 'fail', reason: 'Worker message is not an object' };
+  const value = message as { lane?: unknown; result?: unknown };
+  if (value.lane !== 'browser-worker-minified') return { status: 'fail', reason: 'Worker lane mismatch' };
+  try {
+    if (stableJson(value.result) !== stableJson(expectedPortableResult)) return { status: 'fail', reason: 'Worker result mismatch' };
+  } catch {
+    return { status: 'fail', reason: 'Worker result mismatch' };
+  }
+  return { status: 'pass' };
+}
+
+function playwrightPackageEntry(tool: VerifiedTool): string {
+  let current = dirname(tool.hashPath);
+  while (current !== dirname(current)) {
+    const packagePath = join(current, 'package.json');
+    if (existsSync(packagePath)) {
+      const document = JSON.parse(readFileSync(packagePath, 'utf8')) as { name?: unknown; main?: unknown };
+      if (document.name === 'playwright' && typeof document.main === 'string') return join(current, document.main);
+    }
+    current = dirname(current);
+  }
+  throw new Error('verified Playwright package entry cannot be resolved');
+}
+
+const executeBrowserWorker: BrowserWorkerDriver = async (bundleBytes, chromiumTool) => {
+  const playwrightTool = await verifyTool(platformRoot, 'playwright');
+  if (playwrightTool.status === 'unavailable') throw new Error(`playwright unavailable: ${playwrightTool.reason}`);
+  const module = await import(pathToFileURL(playwrightPackageEntry(playwrightTool)).href) as any;
+  const playwright = module.chromium ? module : module.default;
+  if (!playwright?.chromium) throw new Error('verified Playwright module has no Chromium API');
+  const browser = await playwright.chromium.launch({ executablePath: chromiumTool.hashPath });
+  const messages: unknown[] = [], errors: string[] = [], consoleOutput: string[] = [];
+  let timedOut = false;
+  try {
+    const page = await browser.newPage();
+    page.on('console', (message: any) => { consoleOutput.push(message.text()); });
+    page.on('pageerror', (error: Error) => { errors.push(error.message); });
+    await page.exposeFunction('__diBagWorkerMessage', (message: unknown) => { messages.push(message); });
+    await page.exposeFunction('__diBagWorkerError', (message: string) => { errors.push(message); });
+    await page.setContent('<!doctype html><meta charset="utf-8">');
+    const source = Buffer.from(bundleBytes).toString('base64');
+    await page.evaluate((encoded: string) => {
+      const text = atob(encoded);
+      const bytes = Uint8Array.from(text, character => character.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'text/javascript' }));
+      const worker = new Worker(url);
+      (globalThis as any).__diBagWorker = worker;
+      worker.onmessage = event => { void (globalThis as any).__diBagWorkerMessage(event.data); };
+      worker.onerror = event => { event.preventDefault(); void (globalThis as any).__diBagWorkerError(event.message); };
+    }, source);
+    const deadline = Date.now() + 5_000;
+    while (messages.length === 0 && errors.length === 0 && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    if (messages.length === 0 && errors.length === 0) timedOut = true;
+    else await new Promise(resolve => setTimeout(resolve, 100));
+    await page.evaluate(() => { (globalThis as any).__diBagWorker?.terminate(); });
+  } finally {
+    await browser.close();
+  }
+  return { messages, errors, console: consoleOutput, timedOut };
+};
+
+export async function runBrowserWorkerLane(
+  bundle: BrowserBundle,
+  chromium: VerifiedTool | { status: 'unavailable'; reason: ToolUnavailableReason },
+  driver?: BrowserWorkerDriver,
+): Promise<PlatformRow> {
+  if (chromium.status === 'unavailable') return browserRow('unavailable', { reason: chromium.reason });
+  if (chromium.name !== 'chromium') return browserRow('fail', { reason: 'browser Worker lane requires the verified chromium tool' });
+  try {
+    const validated = inspectBrowserBundle(bundle);
+    if (!driver) {
+      const playwright = await verifyTool(platformRoot, 'playwright');
+      if (playwright.status === 'unavailable') return browserRow('unavailable', { reason: `playwright-${playwright.reason}` });
+    }
+    const transcript = await (driver ?? executeBrowserWorker)(validated.contents, chromium);
+    const assertion = evaluateBrowserWorkerProtocol(transcript);
+    if (assertion.status === 'fail') return browserRow('fail', { reason: assertion.reason, bundleSha256: bundle.sha256 });
+    return browserRow('pass', {
+      bundleSha256: bundle.sha256,
+      bytes: bundle.bytes,
+      gzipBytes: bundle.gzipBytes,
+      metafileSha256: bundle.metafileSha256,
+      resolvedDiBag: bundle.resolvedDiBag,
+      result: expectedPortableResult,
+    });
+  } catch (error) {
+    return browserRow('fail', { reason: error instanceof Error ? error.message : String(error) });
+  }
 }
 
 export function evaluateDenoChild(installedPackage: string, supervised: PlatformEnvironment): PlatformAssertion {
