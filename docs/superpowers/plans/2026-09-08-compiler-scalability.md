@@ -507,7 +507,7 @@ modify `docs/benchmarks/typescript.md` and enterprise program tracker.
 physical producer emission/deletion machinery, `runCompilerCase`, and original
 full-report commands. No public production export is predetermined.
 
-- [ ] **Step 1: Add declaration-only consumer RED before fixture routing.**
+- [x] **Step 1: Add declaration-only consumer RED before fixture routing.**
 
 ```ts
 import { result, token, tokenGraph } from './incremental-modules';
@@ -532,7 +532,7 @@ A missing routing/source-deletion assertion is valid harness RED. Any actual
 declaration naming failure requires a minimal source/emitted reproducer before a
 root type export or API change; never suppress it with skipLibCheck or casts.
 
-- [ ] **Step 2: Run physical archive and source GREEN.**
+- [x] **Step 2: Run physical archive and source GREEN.**
 
 ```sh
 flock -x /tmp/di-bag-compiler-heavy.lock bun test tests/types.test.ts --timeout 120000
@@ -545,7 +545,7 @@ routes must run, with both downstream compilers. Preserve real box frames, moder
 inline inference, metadata/acquired types, utility/reflection contracts, shared
 token brands, and Node/Bun CJS/ESM runtime smoke tests.
 
-- [ ] **Step 3: Freeze final combined source and collect all 108 original rows.**
+- [x] **Step 3: Freeze final combined source and collect all 108 original rows.**
 
 Complete companion diagnostic source changes first or explicitly record their
 remaining two matrix failures. Run these commands serially:
@@ -564,7 +564,7 @@ does not make failure rows pass. If sources change after this freeze, record the
 affected evidence as pre-change and rerun affected rows with an explicit mapping.
 Do not relabel historical native rows from cc9dbdc.
 
-- [ ] **Step 4: Run redundant final integration and examples.**
+- [x] **Step 4: Run redundant final integration and examples.**
 
 ```sh
 flock -x /tmp/di-bag-compiler-heavy.lock npm run check
@@ -604,10 +604,17 @@ tests on that committed source. No push/publication occurs in this plan.
 
 ## Self-review checklist
 
-- [ ] Every original form/count/scenario appears in the four final matrices.
-- [ ] Semantic guards, performance RED and historical evidence are labelled separately.
-- [ ] Reflection, explicit generics and equivalent-history positives survive both emitters.
-- [ ] Full fallback retains contribution/all/opaque/lifetime and private C obligations.
-- [ ] No new ceiling, gap allowance, stack flag, producer annotation or source substitution slipped in.
-- [ ] All heavy gates share the outer lock, and measurements identify actual source bytes.
-- [ ] Failed feasibility produces an explicit unresolved obligation rather than a completion claim.
+- [x] Every original form/count/scenario appears in the four final matrices.
+- [x] Semantic guards, performance RED and historical evidence are labelled separately.
+- [x] Reflection, explicit generics and equivalent-history positives survive both emitters.
+- [x] Full fallback retains contribution/all/opaque/lifetime and private C obligations.
+- [x] No new ceiling, gap allowance, stack flag, producer annotation or source substitution slipped in.
+- [x] All heavy gates share the outer lock, and measurements identify actual source bytes.
+- [x] Failed feasibility produces an explicit unresolved obligation rather than a completion claim.
+
+Task 4 freezes production source at SHA-256 `90d656f6`, retains exact clone-safe
+36/18/36/18 row logs, and accepts 83/108 original identities. All 500 individual
+module rows pass; 25 original 1000-depth/diagnostic rows remain explicit failures.
+Physical declarations, redundant full gates and all nine examples pass. Evidence:
+`docs/reports/2026-09-08-compiler-scalability.md`. Step 5 remains open only for
+independent committed-source covering review.

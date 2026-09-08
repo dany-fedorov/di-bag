@@ -341,3 +341,33 @@ the source and installed rejection gate records 27 explicitly known source
 message gaps; those declarations never grant matrix acceptance. Classic 6.0.3
 remains primary, and no full new classic large matrix was run to replace the
 labeled 5.9.3 historical tables above.
+
+## Final TypeScript 6/native 7 matrix (2026-09-08)
+
+The final combined compiler-scalability source has production-source SHA-256
+`90d656f628878dd926da736db2ce4781f9763e9d5fdc0f6834ae0128f475c198`.
+All 108 original rows ran serially with unchanged source forms and limits. The
+classic named/token matrices accept 30/36 and 12/18; the native named/token
+matrices accept 28/36 and 13/18. This is 83/108 overall.
+
+The 500 individual-module rows now all pass on both lanes. The 25 remaining
+failures comprise six classic 1000 named stack overflows, six classic 1000 token
+timeouts, two native replacement message failures, three native 1000 named
+timeouts, three native 1000 named replacement memory kills, two native 1000
+binding TS2589 failures, and three native 1000-module timeouts. These stay open;
+collector completion does not convert them into accepted rows.
+
+| Lane | Selected valid control | Median compiler ms | Three-run range ms | Instantiations |
+| --- | --- | ---: | ---: | ---: |
+| classic | 100 chained | 1,442 | 1,416-1,453 | 902,444 |
+| classic | 100 bindings | 1,945 | 1,940-1,952 | 1,479,703 |
+| classic | 500 modules | 29,898 | 26,733-30,778 | 41,313,485 |
+| native | 100 chained | 395 | 392-427 | 882,741 |
+| native | 100 bindings | 584 | 566-590 | 1,452,944 |
+| native | 500 modules | 15,257 | 14,898-16,467 | 41,297,853 |
+
+The three serial observations are cold shared-machine measurements, not editor
+latency guarantees. Exact rows, diagnostics, generated hashes and summaries are
+retained under `.superpowers/sdd/2026-09-08-compiler-scalability/task-4-*`.
+The full interpretation and package proof are in
+`docs/reports/2026-09-08-compiler-scalability.md`.

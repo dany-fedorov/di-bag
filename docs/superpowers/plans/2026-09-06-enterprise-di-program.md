@@ -123,6 +123,13 @@ execution; do not stop for another planning approval between increments.
     unchanged acceptance rules. All16failures remain required scale work, not
     successful type rejections. Whole-branch review and its consolidated
     classification/monitor correction are complete through `664f6e3`.
+  - [x] Bounded compiler-scalability implementation and evidence are complete at
+    production-source hash `90d656f6`. Incremental installation resolves every
+    original 500 individual-module row on classic and native compilers; physical
+    `.d.cts`/`.d.mts` consumers, both emitters, full gates and all nine examples
+    pass. The final frozen 108-row matrix accepts 83 rows and retains 25 failures,
+    so T2 and the parent compiler follow-up remain open. Evidence:
+    `docs/reports/2026-09-08-compiler-scalability.md`.
   - [ ] Native replacement diagnostic quality:27existing invalid calls are
     rejected but7.0.2prints only the last token-overload error. Task2 records
     exact native-only rejection fingerprints separately from useful messages;
