@@ -447,6 +447,11 @@ test('platform command retains archive failure rows and makes required failures 
     { ...result.rows[1], status: 'unavailable' },
     { ...result.rows[2], status: 'unavailable' },
   ])).toBe(0);
+  expect(platformEvidenceExitCode([
+    { ...archivePass, status: 'pass' },
+    { ...result.rows[1], status: 'fail', reason: 'available Deno lane failed' },
+    result.rows[2],
+  ])).toBe(1);
 }, 30_000);
 
 test('browser metafile parser rejects malformed shapes before resolving inputs', () => {
