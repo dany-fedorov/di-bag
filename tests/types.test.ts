@@ -15,6 +15,11 @@ test('plugins retain exact inferred cross-file contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('final adversarial integration retains exact inferred cross-file contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/final-adversarial-integration-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('contributions retain exact inferred cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/contributions-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
@@ -50,7 +55,7 @@ test('lifetime declarations retain exact inferred cross-file contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
-for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins']) test(`${fixture} inferred exports survive declaration consumption`, () => {
+for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration']) test(`${fixture} inferred exports survive declaration consumption`, () => {
   const producerPath = resolve(__dirname, `types/${fixture}.ts`);
   const consumerPath = resolve(__dirname, `types/${fixture}-consumer.ts`);
   const declarationPath = producerPath.replace(/\.ts$/, '.d.ts');

@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { replacementDiagnosticFixtures } from "../scripts/replacement-diagnostics.ts";
 
 const baseBoxContractFixtures = [
+  'final-adversarial-integration.ts', 'negative/final-adversarial-integration.ts',
   'plugins.ts', 'negative/plugins.ts', 'observers.ts', 'negative/observers.ts',
   'contributions.ts', 'negative/contributions.ts', 'aliases.ts', 'negative/aliases.ts',
   'dependency-references.ts', 'negative/dependency-references.ts',

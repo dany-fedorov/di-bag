@@ -134,7 +134,7 @@ for (const emitter of ['classic6', 'native7']) {
             supplementalExpected: markers.supplementalExpected, supplementalMatched: markers.supplementalMatched,
             knownNativeRejections: markers.knownNativeRejections, gaps: markers.gaps }));
         }
-        for (const feature of ['modern-inline', 'token-modules', 'incremental-modules', 'acquisition-mode', 'scopes', 'lifetimes', 'startup', 'selected-scopes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'replacement-reflection']) {
+        for (const feature of ['modern-inline', 'token-modules', 'incremental-modules', 'acquisition-mode', 'scopes', 'lifetimes', 'startup', 'selected-scopes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'replacement-reflection']) {
           const sourceDir = join(consumer, `${feature}-source`), outputDir = join(consumer, `${feature}-output`);
           mkdirSync(sourceDir); mkdirSync(outputDir);
           const assertions = "type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;";
@@ -146,7 +146,7 @@ for (const emitter of ['classic6', 'native7']) {
           const producer = join(sourceDir, `feature.${extension}`);
           writeFileSync(producer, route(readFileSync(join(root, 'tests/types', fixture), 'utf8'), true));
           expect(existsSync(producer)).toBe(true);
-          if (emitter === 'classic6' && (feature === 'incremental-modules' || feature === 'acquisition-mode' || feature === 'scopes' || feature === 'lifetimes' || feature === 'startup' || feature === 'selected-scopes' || feature === 'composition-adapters' || feature === 'dependency-references' || feature === 'aliases' || feature === 'contributions' || feature === 'observers' || feature === 'plugins' || feature === 'replacement-reflection')) {
+          if (emitter === 'classic6' && (feature === 'incremental-modules' || feature === 'acquisition-mode' || feature === 'scopes' || feature === 'lifetimes' || feature === 'startup' || feature === 'selected-scopes' || feature === 'composition-adapters' || feature === 'dependency-references' || feature === 'aliases' || feature === 'contributions' || feature === 'observers' || feature === 'plugins' || feature === 'final-adversarial-integration' || feature === 'replacement-reflection')) {
             const program = ts.createProgram([producer], { strict: true, declaration: true, emitDeclarationOnly: true, rootDir: sourceDir, outDir: outputDir,
               noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, types: [], target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext });
             const emitted = program.emit();
@@ -161,7 +161,7 @@ for (const emitter of ['classic6', 'native7']) {
           const downstream = join(consumer, `${feature}-consumer.${extension}`);
           const consumerFixture = feature === 'token-modules' ? 'token-modules/consumer.ts' : `${feature}-consumer.ts`;
           const text = route(readFileSync(join(root, 'tests/types', consumerFixture), 'utf8'))
-            .replace(/from '\.\/(modern-inline|feature|incremental-modules|acquisition-mode|scopes|lifetimes|startup|selected-scopes|composition-adapters|dependency-references|aliases|contributions|observers|plugins|replacement-reflection)'/g, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`)
+            .replace(/from '\.\/(modern-inline|feature|incremental-modules|acquisition-mode|scopes|lifetimes|startup|selected-scopes|composition-adapters|dependency-references|aliases|contributions|observers|plugins|final-adversarial-integration|replacement-reflection)'/g, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`)
             .replace(/import\('\.\/plugins'\)/g, `import('./${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}')`);
           writeFileSync(downstream, text);
           const consumed = await compileNative(compiler, consumer, [downstream]);

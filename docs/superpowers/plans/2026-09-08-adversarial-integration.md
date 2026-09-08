@@ -154,7 +154,7 @@ git commit -m "test: add adversarial integration source matrix"
 - Consumes: Task 1 real-box/provider scenarios plus existing `Assert`, `Equal`, marker, and package-routing conventions.
 - Produces: `finalAdversarialFeature` declaration consumed only through `.d.cts`/`.d.mts` and selected-override markers.
 
-- [ ] **Step 1: Write positive producer and source-deleted consumer.**
+- [x] **Step 1: Write positive producer and source-deleted consumer.**
 
 ```ts
 export const finalAdversarialFeature = DiBag.module()
@@ -165,7 +165,7 @@ export const finalAdversarialFeature = DiBag.module()
 
 Assert inferred class/function, plugin, box, token, alias, and selected-scope contracts through existing public type carriers without application casts.
 
-- [ ] **Step 2: Write negative fixture and run RED.**
+- [x] **Step 2: Write negative fixture and run RED.**
 
 ```ts
 // diagnostic: scope cannot share and override the same token
@@ -180,23 +180,23 @@ Run: `bun test tests/types.test.ts`
 
 Expected: FAIL until the new producer/consumer and physical fixture names are registered. The first unsuppressed marker isolates the `boxed` share/override collision; the second overrides `plugin` while sharing `boxed`, so its diagnostic isolates the incompatible output and one compiler error cannot satisfy both markers.
 
-- [ ] **Step 3: Register exact declaration routes.**
+- [x] **Step 3: Register exact declaration routes.**
 
 Add `final-adversarial-integration.ts` and `negative/final-adversarial-integration.ts` to `boxContractFixtures`; register the producer/consumer in `tests/types.test.ts` so host source is absent and only emitted declaration is present.
 
-- [ ] **Step 4: Run classic fixtures to verify GREEN.**
+- [x] **Step 4: Run classic fixtures to verify GREEN.**
 
 Run: `bun test tests/types.test.ts tests/diagnostic-markers.test.ts`
 
 Expected: PASS; positive consumer has no diagnostics and every marker matches with no unexpected diagnostic.
 
-- [ ] **Step 5: Run native classification.**
+- [x] **Step 5: Run native classification.**
 
 Run: `npm run typecheck:native && npm run check:native`
 
 Expected: exit 0, zero unexpected diagnostics, and current gap IDs equal the reviewed inventory or a strict subset of it. A subset, including zero gaps, is accepted only after each removed ID is absent from the fresh output; any new ID or changed fingerprint fails.
 
-- [ ] **Step 6: Commit type-contract task.**
+- [x] **Step 6: Commit type-contract task.**
 
 ```bash
 git add tests/types/final-adversarial-integration.ts tests/types/final-adversarial-integration-consumer.ts tests/types/negative/final-adversarial-integration.ts tests/types.test.ts tests/box-contract-fixtures.ts
