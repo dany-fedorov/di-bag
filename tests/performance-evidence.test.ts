@@ -12,7 +12,7 @@ import {
   type RuntimeChildOutput,
   type RuntimeChildRequest,
 } from '../scripts/performance-evidence.ts';
-import { runRuntimeChildProtocol } from '../scripts/runtime-benchmark-child.ts';
+import { printRuntimeChild, runRuntimeChildProtocol } from '../scripts/runtime-benchmark-child.ts';
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'di-bag-performance-test-'));
@@ -80,6 +80,9 @@ test('rejects every semantic control mismatch', () => withFixture(({ request, ou
 test('rejects invalid request provenance rather than attaching it to a valid child result', () => withFixture(({ request, output }) => {
   expect(() => validateRuntimeSample({ ...request, archiveIdentity: 'dirty-tree' }, output)).toThrow('invalid runtime archive identity');
   expect(() => validateRuntimeSample({ ...request, implementationIdentity: '' }, output)).toThrow('invalid runtime implementation identity');
+  expect(() => validateRuntimeSample({ ...request, implementationIdentity: '   ' }, output)).toThrow('invalid runtime implementation identity');
+  expect(() => validateRuntimeSample({ ...request, implementationIdentity: 42 as never }, output)).toThrow('invalid runtime implementation identity');
+  expect(() => validateRuntimeSample({ ...request, implementationIdentity: { source: 'current' } as never }, output)).toThrow('invalid runtime implementation identity');
   expect(() => validateRuntimeSample({ ...request, orderSlot: -1 }, output)).toThrow('invalid runtime order slot');
 }));
 
@@ -245,4 +248,21 @@ test('child protocol prepares before timing and emits request identity with veri
     'prepare:cold-linear-resolve:10', 'clock', 'run:true', 'clock', 'verify:true:true',
   ]);
   expect(actual).toEqual({ ...output, elapsedNanoseconds: '33' });
+}));
+
+test('actual child printer writes one canonical newline-terminated object accepted by the parent', async () => withAsyncFixture(async ({ request, output }) => {
+  let stdout = '';
+  const lifecycle = {
+    async prepareScenario() { return {}; },
+    async runTimed() { return {}; },
+    verifyScenario() { return request.expected; },
+  };
+  const clocks = [100n, 201n];
+  await printRuntimeChild(
+    request, output.resolvedDiBag, lifecycle, () => clocks.shift()!, (chunk: string) => { stdout += chunk; },
+  );
+  expect(stdout).toBe(`${JSON.stringify({ ...output, elapsedNanoseconds: output.elapsedNanoseconds })}\n`);
+  expect(parseRuntimeChild(request, {
+    status: 0, signal: null, timedOut: false, stdout, stderr: '',
+  })).toMatchObject({ checksum: 'cold-10', elapsedNanoseconds: '101' });
 }));

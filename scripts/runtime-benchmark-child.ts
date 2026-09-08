@@ -35,7 +35,9 @@ export async function printRuntimeChild<P extends PreparedScenario, T extends Ti
   request: RuntimeChildRequest,
   resolvedDiBag: string,
   lifecycle: RuntimeScenarioLifecycle<P, T>,
+  clock: () => bigint = process.hrtime.bigint,
+  write: (chunk: string) => unknown = chunk => process.stdout.write(chunk),
 ): Promise<void> {
-  const output = await runRuntimeChildProtocol(request, resolvedDiBag, lifecycle);
-  process.stdout.write(`${canonicalRuntimeChildJson(output)}\n`);
+  const output = await runRuntimeChildProtocol(request, resolvedDiBag, lifecycle, clock);
+  write(`${canonicalRuntimeChildJson(output)}\n`);
 }

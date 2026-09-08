@@ -168,7 +168,8 @@ export function validateRuntimeSample(request: RuntimeChildRequest, child: Runti
     throw new Error('runtime cleanup log mismatch');
   }
   if (!/^[a-f0-9]{64}$/.test(request.archiveIdentity)) throw new Error('invalid runtime archive identity');
-  if (!request.implementationIdentity) throw new Error('invalid runtime implementation identity');
+  if (typeof request.implementationIdentity !== 'string'
+    || request.implementationIdentity.trim() === '') throw new Error('invalid runtime implementation identity');
   if (!Number.isSafeInteger(request.orderSlot) || request.orderSlot < 0) throw new Error('invalid runtime order slot');
   return {
     archiveIdentity: request.archiveIdentity,
