@@ -1,0 +1,110 @@
+diff --git a/src/di-bag.ts b/src/di-bag.ts
+index 3e6e8ab..218549f 100644
+--- a/src/di-bag.ts
++++ b/src/di-bag.ts
+@@ -30,6 +30,7 @@ import { token, readTokenKey } from './tokens';
+ import { fromPlugin } from './plugins';
+ import type { TokenBase, TokenKey, TokenService } from './tokens';
+ import type { Binding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey, ReboundSelection } from './token-types';
++import type { BuilderReplacementRegistration, ReplacementAdmission, ReplacedEntries } from './replacement-types';
+ import type {
+   Checked,
+   Complete,
+@@ -228,17 +229,10 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
+     registration: V & (Factory | DisposableFactory<Factory>) & IncrementalChecked<E, Record<K, NoInfer<V>>> &
+       CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
+   ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
+-  replace<const K extends string, V extends Registration>(
+-    key: K & ReplacementKey<From<E>, K>,
+-    registration: V & Registration & IncrementalChecked<E, Record<K, NoInfer<V>>> &
+-      CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
+-  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
+-  replace<T extends TokenBase, V extends Registration>(
+-    token: T & TokenMember<From<E>, T>,
+-    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
+-      IncrementalChecked<E, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>> &
+-      CheckedConstraints<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
+-  ): Builder<Exclude<E, { key: TokenKey<T> }> | { key: TokenKey<T>; registration: Binding<T, V> }, C>;
++  replace<const K extends string | TokenBase, V extends Registration>(
++    key: K & NoInfer<ReplacementAdmission<From<E>, K>>,
++    registration: V & Registration & BuilderReplacementRegistration<E, C, NoInfer<K>, V>,
++  ): Builder<ReplacedEntries<E, K, V>, C>;
+   replace(selection: string | TokenBase, registration: Registration): unknown {
+     const key = typeof selection === 'string' ? selection : readTokenKey(selection);
+     if (!this.#graph.hasPublic(key)) {
+diff --git a/src/module.ts b/src/module.ts
+index 1280db2..eab4538 100644
+--- a/src/module.ts
++++ b/src/module.ts
+@@ -12,5 +12,6 @@ import { readTokenKey } from './tokens';
+ import { withTokenBinding } from './provider';
+ import type { TokenBase, TokenKey } from './tokens';
+ import type { Binding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey } from './token-types';
++import type { ModuleReplacementRegistration, ReplacementAdmission, ReplacedEntries } from './replacement-types';
+ import type { NamedAdmission } from './types';
+ import type { BindingKey } from './runtime';
+@@ -100,15 +101,10 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
+     key: K & ReplacementKey<From<E>, K>,
+     registration: V & (Factory | DisposableFactory<Factory>) & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> & CheckedContributions<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
+   ): ModuleBuilder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
+-  replace<const K extends string, V extends Registration>(
+-    key: K & ReplacementKey<From<E>, K>,
+-    registration: V & Registration & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> & CheckedContributions<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
+-  ): ModuleBuilder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
+-  replace<T extends TokenBase, V extends Registration>(
+-    token: T & TokenMember<From<E>, T>,
+-    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
+-      Checked<Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>> & CheckedContributions<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
+-  ): ModuleBuilder<Exclude<E, { key: TokenKey<T> }> | { key: TokenKey<T>; registration: Binding<T, V> }, C>;
++  replace<const K extends string | TokenBase, V extends Registration>(
++    key: K & NoInfer<ReplacementAdmission<From<E>, K>>,
++    registration: V & Registration & ModuleReplacementRegistration<E, C, NoInfer<K>, V>,
++  ): ModuleBuilder<ReplacedEntries<E, K, V>, C>;
+   replace(selection: string | TokenBase, registration: Registration): unknown {
+     const key = typeof selection === 'string' ? selection : readTokenKey(selection);
+     if (!this.#registrations.has(key)) throw new Error(`replace accepts existing tokens only: ${String(key)}`);
+diff --git a/src/replacement-types.ts b/src/replacement-types.ts
+new file mode 100644
+index 0000000..8f2673f
+--- /dev/null
++++ b/src/replacement-types.ts
+@@ -0,0 +1,39 @@
++import type { Registration, Registrations } from './registration';
++import type { Entry, From, Merge, Checked, IncrementalChecked, ReplacementKey } from './types';
++import type { NeedConstraint, CheckedConstraints } from './module-types';
++import type { ContributionConstraint, CheckedContributions } from './contribution-types';
++import type { TokenBase, TokenKey } from './tokens';
++import type { Binding, BindingOutput, TokenMember } from './token-types';
++
++export type ReplacementAdmission<R extends Registrations, K extends string | TokenBase> =
++  [K] extends [string] ? ReplacementKey<R, K> : TokenMember<R, K>;
++
++export type BuilderReplacementRegistration<
++  E extends Entry, C extends NeedConstraint, K extends string | TokenBase, V extends Registration,
++> = [K] extends [string]
++  ? IncrementalChecked<E, Record<K, NoInfer<V>>> &
++    CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>
++  : [K] extends [TokenBase]
++    ? BindingOutput<NoInfer<K>, NoInfer<V>> &
++      IncrementalChecked<E, Record<TokenKey<K>, Binding<NoInfer<K>, NoInfer<V>>>> &
++      CheckedConstraints<C, Merge<From<E>, Record<TokenKey<K>, Binding<NoInfer<K>, NoInfer<V>>>>>
++    : never;
++
++export type ModuleReplacementRegistration<
++  E extends Entry, C extends ContributionConstraint, K extends string | TokenBase, V extends Registration,
++> = [K] extends [string]
++  ? Checked<Merge<From<E>, Record<K, NoInfer<V>>>> &
++    CheckedContributions<C, Merge<From<E>, Record<K, NoInfer<V>>>>
++  : [K] extends [TokenBase]
++    ? BindingOutput<NoInfer<K>, NoInfer<V>> &
++      Checked<Merge<From<E>, Record<TokenKey<K>, Binding<NoInfer<K>, NoInfer<V>>>>> &
++      CheckedContributions<C, Merge<From<E>, Record<TokenKey<K>, Binding<NoInfer<K>, NoInfer<V>>>>>
++    : never;
++
++type ReflectedEntry = { key: never; registration: Binding<TokenBase, Registration> };
++export type ReplacedEntries<
++  E extends Entry, K extends string | TokenBase, V extends Registration,
++> = [K] extends [string] ? Exclude<E, { key: K }> | { key: K; registration: V }
++  : [K] extends [TokenBase]
++    ? Exclude<E, { key: TokenKey<K> }> | { key: TokenKey<K>; registration: Binding<K, V> }
++    : E | ReflectedEntry;

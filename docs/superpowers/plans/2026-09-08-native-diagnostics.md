@@ -228,7 +228,7 @@ The ten original negative files may lose only individually stale gap comments.
 All are internal named type aliases; no root export or runtime implementation
 change is assumed.
 
-- [ ] **Step 1: Write the real parity RED gate and freeze candidate controls.**
+- [x] **Step 1: Write the real parity RED gate and freeze candidate controls.**
 
 Add a test in `tests/native-replacement-diagnostics.test.ts` calling
 `auditReplacementDiagnostics(process.cwd())`, requiring accepted true,
@@ -243,7 +243,7 @@ CLI; preserve relative layout. Include `replacement-supported.ts`,
 `modern-inline.ts`, `builder-views.ts`, `negative/replacement-views.ts`
 and their needed imports. No weakened fixture bodies.
 
-- [ ] **Step 2: Implement the single causal candidate in scratch.**
+- [x] **Step 2: Implement the single causal candidate in scratch.**
 
 The candidate helper contents are:
 
@@ -304,7 +304,7 @@ In ModuleBuilder use `ModuleReplacementRegistration` and return
 context, invariant witnesses and method generic argument order. The fallback
 entry is a reflected-type representation only; it must not admit a broad key.
 
-- [ ] **Step 3: Run the smallest soundness gate before a full corpus.**
+- [x] **Step 3: Run the smallest soundness gate before a full corpus.**
 
 Compile Task 1 positive/negative reflection controls on both compilers and assert
 the exact expected locations/messages. Compile implicit/explicit token and named
@@ -324,7 +324,7 @@ Keep admission/validation identical so the comparison answers whether named
 state indexing changes the failed match. No further fallback overloads, any
 inputs, union-erasing state, or arbitrary NoInfer variations are allowed.
 
-- [ ] **Step 4: If feasible, prove all source messages before production adoption.**
+- [x] **Step 4: If feasible, prove all source messages before production adoption.**
 
 Run the strict audit and complete classic/native source fixture corpus against
 scratch. Required domains include name unions, widened/template/unknown names;
@@ -346,7 +346,7 @@ the explicit failing CLI/report gate; do not turn its failure into an allowance.
 Native parity stays open. A public method split or compiler migration requires a
 new design amendment, not another undocumented candidate.
 
-- [ ] **Step 5: Adopt only proved source and remove individually stale gaps.**
+- [x] **Step 5: Adopt only proved source and remove individually stale gaps.**
 
 Copy the passing helper/signature delta to current production, incorporating
 current scale-checker helpers and C constraints. Remove gap comments only where
@@ -365,6 +365,15 @@ diagnostics and fixed ceilings. Run classic/native builds and `git diff --check`
 Commit scoped helper/signature/fixture changes with
 `git commit -m "fix(types): preserve replacement diagnostics and reflected history"`
 only on full GREEN. Review utility safety and preserved module contribution C.
+
+Task 2 outcome: both permitted factorizations passed the focused classic/native
+utility, reflection, inference and history controls, but each stopped at 94/95
+strict native primary messages because `negative/union-replace.ts` line 8 kept
+the singleton-key text hidden behind `NoInfer<InvalidReplacement<...>>`. The
+adoption guard therefore left production signatures, fixtures and all 27 gap
+fingerprints unchanged. Replayable patches, raw rows, hashes and the minimized
+FunctionMatch reproduction are retained in
+`.superpowers/sdd/2026-09-08-native-diagnostics/task-2-report.md`.
 
 ## Task 3: Full physical replacement diagnostic and utility proof
 
