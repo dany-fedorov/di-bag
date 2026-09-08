@@ -19,7 +19,6 @@ const erasedBuilder: typeof plain = builder;
 // diagnostic: not assignable
 const erasedBag: Bag<{ service: () => { read(): number; extra(): boolean }; handler: () => { run(): number }; promised: () => Promise<number>; logger: () => { log(message: string): void } }> = builder.end();
 // diagnostic: a dependency has the wrong shape
-// diagnostic-native-gap: last-token-string
 builder.replace('service', () => ({ read() { return 2; } }));
 // diagnostic: not assignable
 builder.end().fork(['service'], { service: () => ({ read() { return 2; } }) });

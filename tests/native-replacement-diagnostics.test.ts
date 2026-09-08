@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import {
+  auditReplacementDiagnostics,
   evaluateReplacementDiagnostics,
   replacementDiagnosticExpectations,
   replacementDiagnosticFixtures,
@@ -16,6 +17,19 @@ const useful = {
   code: 2345,
   message: 'a dependency has the wrong shape',
 };
+
+test('native replacement diagnostics retain every useful primary and supplemental message', async () => {
+  const result = await auditReplacementDiagnostics(process.cwd());
+  expect(result).toMatchObject({
+    accepted: true,
+    missingPrimary: 0,
+    primaryExpected: 95,
+    primaryMatched: 95,
+    supplementalExpected: 1,
+    supplementalMatched: 1,
+    unexpected: 0,
+  });
+}, 120_000);
 
 test('strict replacement audit requires useful primary text at its own region', () => {
   expect(evaluateReplacementDiagnostics(source, file, [useful], true).accepted).toBe(true);

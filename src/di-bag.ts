@@ -30,6 +30,7 @@ import { token, readTokenKey } from './tokens';
 import { fromPlugin } from './plugins';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
 import type { Binding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey, ReboundSelection } from './token-types';
+import type { BuilderReplacementRegistration, ReplacementAdmission, ReplacedEntries } from './replacement-types';
 import type {
   Checked,
   Complete,
@@ -228,17 +229,10 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
     registration: V & (Factory | DisposableFactory<Factory>) & IncrementalChecked<E, Record<K, NoInfer<V>>> &
       CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
   ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
-  replace<const K extends string, V extends Registration>(
-    key: K & ReplacementKey<From<E>, K>,
-    registration: V & Registration & IncrementalChecked<E, Record<K, NoInfer<V>>> &
-      CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
-  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
-  replace<T extends TokenBase, V extends Registration>(
-    token: T & TokenMember<From<E>, T>,
-    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
-      IncrementalChecked<E, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>> &
-      CheckedConstraints<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
-  ): Builder<Exclude<E, { key: TokenKey<T> }> | { key: TokenKey<T>; registration: Binding<T, V> }, C>;
+  replace<const K extends string | TokenBase, V extends Registration>(
+    key: K & NoInfer<ReplacementAdmission<From<E>, K>>,
+    registration: V & Registration & BuilderReplacementRegistration<E, C, NoInfer<K>, V>,
+  ): Builder<ReplacedEntries<E, K, V>, C>;
   replace(selection: string | TokenBase, registration: Registration): unknown {
     const key = typeof selection === 'string' ? selection : readTokenKey(selection);
     if (!this.#graph.hasPublic(key)) {

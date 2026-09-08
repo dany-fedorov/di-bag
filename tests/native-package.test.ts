@@ -22,18 +22,7 @@ const root = resolve(__dirname, '..');
 const node = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8', timeout: 10000 }).trim();
 const bun = process.execPath;
 const npmCli = realpathSync(join(dirname(node), 'npm'));
-const replacementNativeGapCounts: Readonly<Record<string, number>> = {
-  'negative/incremental.ts': 4,
-  'negative/inline-replacement-wrong-shape.ts': 1,
-  'negative/module-hidden-private-needs.ts': 1,
-  'negative/module-narrowing.ts': 1,
-  'negative/module-rename.ts': 1,
-  'negative/provider-boundaries.ts': 1,
-  'negative/replacement-context.ts': 12,
-  'negative/replacement-wrong-shape.ts': 1,
-  'negative/required-this.ts': 1,
-  'negative/union-replace.ts': 4,
-};
+const replacementNativeGapCounts: Readonly<Record<string, number>> = {};
 const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
   ? "const { DiBag, DiBagPluginError } = require('di-bag/node'); const assert = require('node:assert/strict');"
   : "import { DiBag, DiBagPluginError } from 'di-bag/node'; import assert from 'node:assert/strict';"}

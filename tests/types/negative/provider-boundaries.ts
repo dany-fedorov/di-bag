@@ -37,7 +37,6 @@ declare const erased: Registration;
 // diagnostic-also: TS2684 missing factories
 DiBag.begin().add({ erased }).end();
 // diagnostic: factory dependencies must be finite
-// diagnostic-native-gap: last-token-string
 DiBag.begin().add({ value: () => 1 }).replace('value', erased).end();
 // diagnostic: factory dependencies must be finite
 DiBag.module().add({ erased }).exports(['erased']);

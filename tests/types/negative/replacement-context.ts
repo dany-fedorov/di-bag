@@ -7,32 +7,24 @@ const consumers = {
 const builder = DiBag.begin().add(consumers);
 const module = DiBag.module().add(consumers);
 // diagnostic: a dependency has the wrong shape
-// diagnostic-native-gap: last-token-string
 builder.replace('clock', () => ({ now() { return 2; } }));
 // diagnostic: a dependency has the wrong shape
-// diagnostic-native-gap: last-token-string
 builder.replace('clock', () => ({ zone() { return 'new'; } }));
 // diagnostic: a dependency has the wrong shape
-// diagnostic-native-gap: last-token-string
 module.replace('clock', () => ({ now() { return 2; } }));
 // diagnostic: a dependency has the wrong shape
-// diagnostic-native-gap: last-token-string
 module.replace('clock', () => ({ zone() { return 'new'; } }));
 const privateModule = DiBag.module().add({ hidden: ({ clock }: { clock: { now(): number } }) => clock.now() }).exports([]);
 const host = DiBag.begin().install(privateModule).add({ clock: () => ({ now: () => 1 }) });
 // diagnostic: a dependency has the wrong shape
-// diagnostic-native-gap: last-token-string
 host.replace('clock', () => ({ other() { return true; } }));
 const sameLabel = DiBag.module().add({ clock: ({ clock }: { clock: { now(): number } }) => ({ now: () => clock.now() }) }).exports(['clock']);
 // diagnostic: a dependency has the wrong shape
-// diagnostic-native-gap: last-token-string
 DiBag.begin().install(sameLabel).replace('clock', () => ({ other() { return true; } }));
 const optional = { value: () => ({ read: () => 1 }), consumer: ({ value }: { value?: { read(): number } }) => value?.read() };
 // diagnostic: a dependency has the wrong shape
-// diagnostic-native-gap: last-token-string
 DiBag.begin().add(optional).replace('value', () => undefined);
 // diagnostic: a dependency has the wrong shape
-// diagnostic-native-gap: last-token-string
 DiBag.module().add(optional).replace('value', () => undefined);
 type Registration = Parameters<typeof DiBag.withMetadata>[0];
 type Opaque = Exclude<Registration, ((...args: never[]) => unknown) | { create: unknown }>;
@@ -40,16 +32,12 @@ declare const opaque: Opaque;
 declare const broad: (this: void, deps: never) => unknown;
 const broadOwned = DiBag.withDisposal(broad, () => {});
 // diagnostic: factory dependencies must be finite
-// diagnostic-native-gap: last-token-string
 builder.replace('clock', opaque);
 // diagnostic: factory dependencies must be finite
-// diagnostic-native-gap: last-token-string
 module.replace('clock', opaque);
 // diagnostic: factory dependencies must be finite
-// diagnostic-native-gap: last-token-string
 builder.replace('clock', broad);
 // diagnostic: factory dependencies must be finite
-// diagnostic-native-gap: last-token-string
 module.replace('clock', broadOwned);
 // diagnostic: does not satisfy the constraint
 builder.replace<'clock', unknown>('clock', () => ({ now: () => 1, zone: () => 'utc' }));

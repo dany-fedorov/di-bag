@@ -12,6 +12,7 @@ import { readTokenKey } from './tokens';
 import { withTokenBinding } from './provider';
 import type { TokenBase, TokenKey } from './tokens';
 import type { Binding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey } from './token-types';
+import type { ModuleReplacementRegistration, ReplacementAdmission, ReplacedEntries } from './replacement-types';
 import type { NamedAdmission } from './types';
 import type { BindingKey } from './runtime';
 
@@ -100,15 +101,10 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
     key: K & ReplacementKey<From<E>, K>,
     registration: V & (Factory | DisposableFactory<Factory>) & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> & CheckedContributions<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
   ): ModuleBuilder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
-  replace<const K extends string, V extends Registration>(
-    key: K & ReplacementKey<From<E>, K>,
-    registration: V & Registration & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> & CheckedContributions<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
-  ): ModuleBuilder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
-  replace<T extends TokenBase, V extends Registration>(
-    token: T & TokenMember<From<E>, T>,
-    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
-      Checked<Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>> & CheckedContributions<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
-  ): ModuleBuilder<Exclude<E, { key: TokenKey<T> }> | { key: TokenKey<T>; registration: Binding<T, V> }, C>;
+  replace<const K extends string | TokenBase, V extends Registration>(
+    key: K & NoInfer<ReplacementAdmission<From<E>, K>>,
+    registration: V & Registration & ModuleReplacementRegistration<E, C, NoInfer<K>, V>,
+  ): ModuleBuilder<ReplacedEntries<E, K, V>, C>;
   replace(selection: string | TokenBase, registration: Registration): unknown {
     const key = typeof selection === 'string' ? selection : readTokenKey(selection);
     if (!this.#registrations.has(key)) throw new Error(`replace accepts existing tokens only: ${String(key)}`);

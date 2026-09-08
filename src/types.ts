@@ -172,8 +172,8 @@ export type ReplacementKey<R extends Registrations, K extends string> =
   Singleton<K> extends true
     ? K extends keyof R
       ? unknown
-      : InvalidReplacement<K>
-    : InvalidReplacement<K>;
+      : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>
+    : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>;
 
 // Context needs one compatible output per surviving consumer. Intersect their
 // callback parameters, not their value unions: string | number in one consumer
@@ -194,11 +194,6 @@ type ReplacementRequirements<R extends Registrations, K extends PropertyKey, C> 
 export type ReplacementOutput<R extends Registrations, K extends PropertyKey, C = never> =
   [ReplacementRequirements<R, K, C>] extends [never] ? unknown
     : ReplacementRequirements<R, K, C> extends (value: infer O) => void ? O : unknown;
-
-type InvalidReplacement<K> = Unsatisfied<
-  'replace requires one existing singleton string-literal key',
-  { key: K }
->;
 
 // Validate each tuple element, not K[number]: a multi-key tuple is valid even
 // though the union of all of its elements is not itself a singleton.
