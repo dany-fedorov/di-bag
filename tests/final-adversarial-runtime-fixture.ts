@@ -480,3 +480,21 @@ export const finalAdversarialRuntimeAssertions = `
   console.log(JSON.stringify(result));
 })().catch(error => { console.error(error); process.exitCode = 1; });
 `;
+
+/** Build a dependency-free consumer program using only published package subpaths. */
+export function finalAdversarialPackageRuntimeSource(mode: 'commonjs' | 'module'): string {
+  const imports = mode === 'commonjs'
+    ? `const { DiBag, DiBagCleanupError, DiBagPluginError, DiBagStartupError, DiBagStartupCancelledError } = require('di-bag/node');
+const { DiBag: PortableDiBag } = require('di-bag');
+const { fromSasBox } = require('di-bag/sas-box');
+const { fromValBox, fromValBoxAsync } = require('di-bag/val-box');
+const { SasBox } = require('sas-box');
+const { ValBox } = require('val-box');`
+    : `import { DiBag, DiBagCleanupError, DiBagPluginError, DiBagStartupError, DiBagStartupCancelledError } from 'di-bag/node';
+import { DiBag as PortableDiBag } from 'di-bag';
+import { fromSasBox } from 'di-bag/sas-box';
+import { fromValBox, fromValBoxAsync } from 'di-bag/val-box';
+import { SasBox } from 'sas-box';
+import { ValBox } from 'val-box';`;
+  return `${imports}\n${finalAdversarialRuntimeAssertions}`;
+}

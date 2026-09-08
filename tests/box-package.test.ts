@@ -1,12 +1,15 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { cpSync, mkdtempSync, readFileSync, existsSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, existsSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import ts from 'typescript';
 import { boxContractFixtures, boxContractSource } from './box-contract-fixtures';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 import { describeDiagnostic } from './compiler';
+import { finalAdversarialExpectedResult, finalAdversarialPackageRuntimeSource } from './final-adversarial-runtime-fixture';
+import { supervise } from '../scripts/native-process';
+import { nativeLimits } from '../scripts/native-compiler';
 
 const root = resolve(__dirname, '..');
 const fixtures = resolve(__dirname, 'fixtures/box-packages');
@@ -20,11 +23,52 @@ afterAll(() => {
   for (const directory of [packed, consumer, coreConsumer, packageTree]) rmSync(directory, { recursive: true, force: true });
 });
 
+async function execute(command: string[], cwd = root) {
+  const result = await supervise(command[0]!, command.slice(1), cwd,
+    { ...nativeLimits, timeoutMilliseconds: 120_000 });
+  return { code: result.status, stdout: result.stdout, stderr: result.stderr,
+    signal: result.signal, terminationReason: result.terminationReason };
+}
+
 async function run(command: string[], cwd = root) {
-  const child = Bun.spawn(command, { cwd, stdout: 'pipe', stderr: 'pipe' });
-  const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
-  expect({ code, stderr: code === 0 ? '' : stderr }).toEqual({ code: 0, stderr: '' });
+  const { code, stdout, stderr, signal, terminationReason } = await execute(command, cwd);
+  expect({ code, stderr: code === 0 ? '' : stderr, signal, terminationReason })
+    .toEqual({ code: 0, stderr: '', signal: null, terminationReason: undefined });
   return stdout;
+}
+
+function traceInstalledRoot(entry: string) {
+  const pending = [entry];
+  const files = new Set<string>();
+  const bareImports = new Set<string>();
+  const unresolvedRelativeImports = new Set<string>();
+  while (pending.length > 0) {
+    const file = pending.pop()!;
+    if (files.has(file)) continue;
+    files.add(file);
+    const source = readFileSync(file, 'utf8');
+    const specifiers: string[] = [];
+    const syntax = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    const visit = (node: ts.Node): void => {
+      if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node))
+        && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) specifiers.push(node.moduleSpecifier.text);
+      if (ts.isCallExpression(node) && node.arguments.length > 0 && ts.isStringLiteral(node.arguments[0]!)) {
+        if (node.expression.kind === ts.SyntaxKind.ImportKeyword
+          || (ts.isIdentifier(node.expression) && node.expression.text === 'require')) specifiers.push(node.arguments[0]!.text);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(syntax);
+    for (const specifier of specifiers) {
+      if (!specifier.startsWith('.')) { bareImports.add(specifier); continue; }
+      const base = resolve(dirname(file), specifier);
+      const target = [base, `${base}.js`, join(base, 'index.js')].find(existsSync);
+      if (target === undefined) unresolvedRelativeImports.add(`${file}:${specifier}`);
+      else pending.push(target);
+    }
+  }
+  return { files: [...files].sort(), bareImports: [...bareImports].sort(),
+    unresolvedRelativeImports: [...unresolvedRelativeImports].sort() };
 }
 
 beforeAll(async () => {
@@ -33,9 +77,16 @@ beforeAll(async () => {
   const result = JSON.parse(await run(['npm', 'pack', '--ignore-scripts', '--json', '--pack-destination', packed], packageTree));
   archive = join(packed, result[0].filename);
   const files: string[] = result[0].files.map((entry: { path: string }) => entry.path);
-  expect(files.some(path => path.includes('fixtures') || path.endsWith('.tgz') || path.includes('node_modules'))).toBe(false);
+  expect(files.every(path => ['package.json', 'README.md', 'LICENSE'].includes(path) || path.startsWith('dist/'))).toBe(true);
+  expect(files.some(path => /(^|\/)(?:fixtures?|tests?|src|node_modules)(?:\/|$)/i.test(path)
+    || path.endsWith('.tgz') || /(?:credentials?|secrets?|(?:^|\/)\.env(?:\.|$)|(?:^|\/)\.npmrc$)/i.test(path)
+    || /^dist\/(?:adapters?|internal)\//.test(path))).toBe(false);
   for (const name of ['sas-box', 'val-box']) {
     expect(files.filter(path => path.includes(name))).toEqual([`dist/${name}.d.ts`, `dist/${name}.js`]);
+  }
+  for (const name of ['index', 'node', 'sas-box', 'val-box']) {
+    expect(files).toContain(`dist/${name}.d.ts`);
+    expect(files).toContain(`dist/${name}.js`);
   }
   await run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive,
     join(fixtures, 'sas-box-0.1.0.tgz'), join(fixtures, 'val-box-0.1.0.tgz')], consumer);
@@ -61,19 +112,89 @@ test('real fixtures retain the verified archive hashes', () => {
   ]) expect(createHash('sha512').update(new Uint8Array(readFileSync(join(fixtures, `${name}-0.1.0.tgz`)))).digest('hex')).toBe(expected!);
 });
 
-test('packed core runs with neither box installed and no runtime adapter import', async () => {
+test('embedded CJS and ESM adversarial consumers use every public subpath without repository imports', () => {
+  for (const mode of ['commonjs', 'module'] as const) {
+    const source = finalAdversarialPackageRuntimeSource(mode);
+    for (const specifier of ['di-bag', 'di-bag/node', 'di-bag/sas-box', 'di-bag/val-box', 'sas-box', 'val-box']) {
+      expect(source).toContain(mode === 'commonjs' ? `require('${specifier}')` : `from '${specifier}'`);
+    }
+    expect(source).not.toMatch(/(?:\.related-repos|(?:^|[/'])src[/']|tests?[/'])/m);
+  }
+});
+
+test('installed import graph tracing includes ESM side effects, exports, dynamic imports, and CJS requires', () => {
+  const graph = join(coreConsumer, 'trace-fixture');
+  mkdirSync(graph);
+  cpSync(join(coreConsumer, 'node_modules/di-bag/package.json'), join(graph, 'package.json'), { recursive: true });
+  for (const name of ['side', 'exported', 'dynamic', 'required']) writeFileSync(join(graph, `${name}.js`), '');
+  writeFileSync(join(graph, 'entry.js'), `
+    import './side.js';
+    export * from './exported.js';
+    void import('./dynamic.js');
+    require('./required.js');
+    import 'node:fs';
+  `);
+  const traced = traceInstalledRoot(join(graph, 'entry.js'));
+  expect(traced.bareImports).toEqual(['node:fs']);
+  expect(traced.unresolvedRelativeImports).toEqual([]);
+  expect(traced.files.map(file => file.slice(graph.length + 1))).toEqual([
+    'dynamic.js', 'entry.js', 'exported.js', 'required.js', 'side.js',
+  ]);
+});
+
+test('packed core root runs in CJS and ESM under Node and Bun without boxes or Node runtime imports', async () => {
   expect(existsSync(join(coreConsumer, 'node_modules/sas-box'))).toBe(false);
   expect(existsSync(join(coreConsumer, 'node_modules/val-box'))).toBe(false);
-  const output = await run(['node', '--eval', `const Module = require('node:module'); const load = Module._load;
-    Module._load = function(name, ...args) { if (name.startsWith('node:')) throw new Error('core imported Node'); return load.call(this, name, ...args); };
-    const { DiBag } = require('di-bag');
-    const bag = DiBag.begin().add({ answer: DiBag.factory(() => 42, { acquisition: 'raw' }) }).end();
-    if (Object.keys(require.cache).some(path => /dist[/\\\\](sas-box|val-box)\\.js$/.test(path))) throw new Error('adapter loaded');
-    console.log(bag.resolve('answer')); bag.close();`], coreConsumer);
-  expect(output.trim()).toBe('42');
+  const packageRoot = join(coreConsumer, 'node_modules/di-bag');
+  const distRoot = join(packageRoot, 'dist');
+  const traced = traceInstalledRoot(join(distRoot, 'index.js'));
+  expect(traced.unresolvedRelativeImports).toEqual([]);
+  expect(traced.files.every(file => file.startsWith(`${distRoot}/`))).toBe(true);
+  expect(traced.bareImports.filter(specifier => specifier.startsWith('node:'))).toEqual([]);
+  expect(traced.files.some(file => /[/\\](?:node|sas-box|val-box)\.js$/.test(file))).toBe(false);
+  const failures: unknown[] = [];
+  for (const mode of ['commonjs', 'module'] as const) {
+    const runtime = join(coreConsumer, `core-only.${mode === 'commonjs' ? 'cjs' : 'mjs'}`);
+    const load = mode === 'commonjs'
+      ? `const Module = require('node:module'); const originalLoad = Module._load;
+        Module._load = function(name, ...args) { if (name.startsWith('node:')) throw new Error('core imported Node'); return originalLoad.call(this, name, ...args); };
+        const { DiBag } = require('di-bag');
+        if (Object.keys(require.cache).some(path => /dist[/\\\\](sas-box|val-box)\\.js$/.test(path))) throw new Error('adapter loaded');`
+      : `import Module, { createRequire } from 'node:module'; const originalLoad = Module._load;
+        Module._load = function(name, ...args) { if (name.startsWith('node:')) throw new Error('core imported Node'); return originalLoad.call(this, name, ...args); };
+        const { DiBag } = await import('di-bag');
+        const localRequire = createRequire(import.meta.url);
+        if (Object.keys(localRequire.cache).some(path => /dist[/\\\\](sas-box|val-box)\\.js$/.test(path))) throw new Error('adapter loaded');`;
+    writeFileSync(runtime, `${load}
+      (async () => {
+      const bag = DiBag.begin().add({ answer: DiBag.factory(() => 42, { acquisition: 'raw' }) }).end();
+      console.log(bag.resolve('answer')); await bag.close();
+      })().catch(error => { console.error(error); process.exitCode = 1; });`);
+    for (const executable of ['node', process.execPath]) {
+      const executed = await execute([executable, runtime], coreConsumer);
+      if (executed.code !== 0 || executed.stderr !== '' || executed.stdout.trim() !== '42') failures.push({ mode, executable, ...executed });
+    }
+  }
+  expect(failures).toEqual([]);
 });
 
 for (const mode of ['commonjs', 'module'] as const) {
+  test(`installed real box ${mode} archive runs the full adversarial oracle in Node and Bun`, async () => {
+    const runtime = join(consumer, `final-adversarial.${mode === 'commonjs' ? 'cjs' : 'mjs'}`);
+    writeFileSync(runtime, finalAdversarialPackageRuntimeSource(mode));
+    const failures: unknown[] = [];
+    for (const executable of ['node', process.execPath]) {
+      const executed = await execute([executable, runtime], consumer);
+      let result: unknown;
+      try { result = JSON.parse(executed.stdout.trim()); } catch { result = undefined; }
+      if (executed.code !== 0 || executed.stderr !== ''
+        || JSON.stringify(result) !== JSON.stringify(finalAdversarialExpectedResult)) {
+        failures.push({ executable, ...executed, result });
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
   test(`installed real boxes compose in Node ${mode} and share cross-loader descriptors`, async () => {
     const load = mode === 'commonjs'
       ? `const { DiBag } = require('di-bag/node'); const { fromSasBox } = require('di-bag/sas-box'); const { fromValBox } = require('di-bag/val-box'); const { SasBox } = require('sas-box'); const { ValBox } = require('val-box');`

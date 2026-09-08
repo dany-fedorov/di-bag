@@ -1,6 +1,7 @@
-import { beforeAll, expect, test } from 'bun:test';
-import { resolve } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { join, resolve } from 'node:path';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import ts from 'typescript';
 import { describeDiagnostic } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
@@ -12,22 +13,26 @@ import { aliasRuntimeAssertions } from './aliases-runtime-fixture';
 import { contributionRuntimeAssertions } from './contributions-runtime-fixture';
 import { observerRuntimeAssertions } from './observers-runtime-fixture';
 import { pluginRuntimeAssertions } from './plugins-runtime-fixture';
+import { finalAdversarialExpectedResult, finalAdversarialPackageRuntimeSource } from './final-adversarial-runtime-fixture';
+import { supervise } from '../scripts/native-process';
+import { nativeLimits } from '../scripts/native-compiler';
 
 const root = resolve(__dirname, '..');
+const classicPackageConsumer = mkdtempSync(join(tmpdir(), 'di-bag-classic-package-consumer-'));
+const classicPackageArtifacts = mkdtempSync(join(tmpdir(), 'di-bag-classic-package-artifacts-'));
 
-async function run(command: string[]) {
-  const process = Bun.spawn(command, {
-    cwd: root,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  });
-  const [exitCode, stdout, stderr] = await Promise.all([
-    process.exited,
-    new Response(process.stdout).text(),
-    new Response(process.stderr).text(),
-  ]);
-  expect({ exitCode, stderr }).toEqual({ exitCode: 0, stderr: '' });
+async function run(command: string[], cwd = root) {
+  const { exitCode, stdout, stderr, signal, terminationReason } = await execute(command, cwd);
+  expect({ exitCode, stderr, signal, terminationReason })
+    .toEqual({ exitCode: 0, stderr: '', signal: null, terminationReason: undefined });
   return stdout.trim();
+}
+
+async function execute(command: string[], cwd = root) {
+  const result = await supervise(command[0]!, command.slice(1), cwd,
+    { ...nativeLimits, timeoutMilliseconds: 120_000 });
+  return { exitCode: result.status, stdout: result.stdout, stderr: result.stderr,
+    signal: result.signal, terminationReason: result.terminationReason };
 }
 
 beforeAll(async () => {
@@ -37,6 +42,16 @@ beforeAll(async () => {
     '-p',
     'tsconfig.build.json',
   ]);
+  const packed = JSON.parse(await run(['npm', 'pack', '--ignore-scripts', '--json', '--pack-destination', classicPackageArtifacts]));
+  const archive = join(classicPackageArtifacts, packed[0].filename);
+  await run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive,
+    join(root, 'tests/fixtures/box-packages/sas-box-0.1.0.tgz'),
+    join(root, 'tests/fixtures/box-packages/val-box-0.1.0.tgz')], classicPackageConsumer);
+});
+
+afterAll(() => {
+  rmSync(classicPackageConsumer, { recursive: true, force: true });
+  rmSync(classicPackageArtifacts, { recursive: true, force: true });
 });
 
 test('feature library inferred token exports survive declaration emission', () => {
@@ -80,6 +95,16 @@ test('feature library inferred token exports survive declaration emission', () =
 });
 
 for (const mode of ['commonjs', 'module'] as const) {
+  test(`classic installed ${mode} archive returns the full adversarial oracle`, async () => {
+    const executed = await execute(['node', `--input-type=${mode}`, '--eval', finalAdversarialPackageRuntimeSource(mode)], classicPackageConsumer);
+    let result: unknown;
+    try { result = JSON.parse(executed.stdout.trim()); } catch { result = undefined; }
+    expect({ ...executed, stdout: executed.stdout.trim(), result }).toEqual({
+      exitCode: 0, stdout: JSON.stringify(finalAdversarialExpectedResult), stderr: '', signal: null,
+      terminationReason: undefined, result: finalAdversarialExpectedResult,
+    });
+  });
+
   test(`Node ${mode} consumers can resolve and dispose through the public package`, async () => {
     const load =
       mode === 'commonjs'

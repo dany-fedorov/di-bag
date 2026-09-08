@@ -16,6 +16,7 @@ import { aliasRuntimeAssertions } from './aliases-runtime-fixture';
 import { contributionRuntimeAssertions } from './contributions-runtime-fixture';
 import { observerRuntimeAssertions } from './observers-runtime-fixture';
 import { pluginRuntimeAssertions } from './plugins-runtime-fixture';
+import { finalAdversarialExpectedResult, finalAdversarialPackageRuntimeSource } from './final-adversarial-runtime-fixture';
 
 const root = resolve(__dirname, '..');
 const node = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8', timeout: 10000 }).trim();
@@ -86,6 +87,7 @@ for (const emitter of ['classic6', 'native7']) {
   test(`native installed contracts and physical downstream declarations from ${emitter}`, async () => {
     const directory = mkdtempSync(join(tmpdir(), `di-bag-native-package-${emitter}-`));
     const failures: unknown[] = [];
+    const runtimeFailures: unknown[] = [];
     try {
       const compiler = await resolveNative(root);
       const packageTree = join(directory, 'package'); mkdirSync(packageTree);
@@ -111,6 +113,19 @@ for (const emitter of ['classic6', 'native7']) {
             stdout: '{"log":[2,1,3],"rootDisposed":1,"scopedDisposed":1,"transientsDisposed":2}',
           });
           expect(executed.terminationReason).toBeUndefined();
+        }
+        const adversarialRuntime = join(consumer, `final-adversarial.${extension === 'cts' ? 'cjs' : 'mjs'}`);
+        writeFileSync(adversarialRuntime, finalAdversarialPackageRuntimeSource(extension === 'cts' ? 'commonjs' : 'module'));
+        for (const executable of [node, bun]) {
+          const executed = await supervise(executable, [adversarialRuntime], consumer, nativeLimits);
+          let result: unknown;
+          try { result = JSON.parse(executed.stdout.trim()); } catch { result = undefined; }
+          if (executed.status !== 0 || executed.signal !== null || executed.stderr !== ''
+            || JSON.stringify(result) !== JSON.stringify(finalAdversarialExpectedResult)
+            || executed.terminationReason !== undefined) {
+            runtimeFailures.push({ emitter, extension, executable, status: executed.status, signal: executed.signal,
+              stderr: executed.stderr, stdout: executed.stdout.trim(), terminationReason: executed.terminationReason, result });
+          }
         }
         const replacementModuleFeature = join(consumer, 'replacement-module-feature.ts');
         writeFileSync(replacementModuleFeature, readFileSync(join(root, 'tests/types/modules/feature.ts'), 'utf8')
@@ -174,6 +189,7 @@ for (const emitter of ['classic6', 'native7']) {
         }
       }
       expect(failures).toEqual([]);
+      expect(runtimeFailures).toEqual([]);
     } finally { rmSync(directory, { recursive: true, force: true }); }
   }, 120000);
 }
