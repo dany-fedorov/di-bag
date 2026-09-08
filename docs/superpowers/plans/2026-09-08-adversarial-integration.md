@@ -51,7 +51,7 @@
 - Consumes: public `DiBag`, `DiBagCleanupError`, `DiBagPluginError`, `DiBagStartupError`, `DiBagStartupCancelledError`, `fromSasBox`, `fromValBox`, `fromValBoxAsync`, `SasBox`, and `ValBox` APIs already exported by the repository and fixtures.
 - Produces: `FinalAdversarialRuntimeResult`, `finalAdversarialExpectedResult`, and `finalAdversarialRuntimeAssertions` from `tests/final-adversarial-runtime-fixture.ts`.
 
-- [ ] **Step 1: Write the failing source tests for I1-I4.**
+- [x] **Step 1: Write the failing source tests for I1-I4.**
 
 ```ts
 test('I1 preserves real-box payload/frame references and reverse ownership', async () => {
@@ -69,13 +69,13 @@ test('I1 preserves real-box payload/frame references and reverse ownership', asy
 
 Add `toBe` assertions for I2 root/scoped/transient identity, I3 absent/present-undefined and snapshot errors, and I4 direct plugin error phase/identity plus original-result disposal. For the I4 startup route assert `DiBagStartupError` and `startupError.cause === directPluginError`; never expect `start()` to reject the raw plugin error. Use fixture packages; do not mock their protocol.
 
-- [ ] **Step 2: Run the new source test to verify RED.**
+- [x] **Step 2: Run the new source test to verify RED.**
 
 Run: `bun test tests/final-adversarial-integration.test.ts`
 
 Expected: FAIL because the source matrix and runtime fixture have not been created.
 
-- [ ] **Step 3: Implement the shared result shape and I1-I4 tests.**
+- [x] **Step 3: Implement the shared result shape and I1-I4 tests.**
 
 ```ts
 export const finalAdversarialExpectedResult: FinalAdversarialRuntimeResult = {
@@ -99,7 +99,7 @@ export const finalAdversarialExpectedResult: FinalAdversarialRuntimeResult = {
 
 Define the complete deterministic I1-I15 expected object before archive wiring. The runtime string throws `Error('I1: payload identity changed')` (and the corresponding literal message for every other row) and writes exactly one JSON line only after all assertions pass.
 
-- [ ] **Step 4: Add I5-I13 deterministic failure/closure cases.**
+- [x] **Step 4: Add I5-I13 deterministic failure/closure cases.**
 
 ```ts
 const deferred = <T>() => { let resolve!: (value: T) => void;
@@ -124,6 +124,14 @@ For I5, separately assert direct `resolveAll`: first call throws `i5Error`, leav
 Run: `bun test tests/final-adversarial-integration.test.ts tests/box-adapters.test.ts tests/plugins.test.ts tests/observers.test.ts tests/startup.test.ts`
 
 Expected: PASS with I1-I13 and all pre-existing focused suites.
+
+Task 1 stopped at the global failure policy on 2026-09-08. The unmodified runtime produces
+I12 cancellation disposal order `['late', 'immediate']`; the reviewed oracle requires
+`['immediate', 'late']`. Temporarily bypassing only that assertion made the complete I1-I13
+source oracle pass, and the four neighboring suites passed 66 tests with 384 assertions.
+The retained precise RED is `I12: late cleanup changed: ["late","immediate"]`; the relevant
+ordering path is `src/acquisition.ts` `disposeAll()`, reached by cancellation through
+`src/startup.ts`. No production file was changed.
 
 - [ ] **Step 6: Commit the source-matrix task.**
 
