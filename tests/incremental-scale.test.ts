@@ -3,8 +3,9 @@ import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 const cases = [
-  { name: '100 named additions', args: ['scripts/benchmark-types.ts', '--worker', '100', 'chained', 'valid'], ceiling: 1_500_000, baselineInstantiations: 883_806 },
-  { name: '100 token bindings', args: ['scripts/check-token-scale.ts', 'bindings', 'valid'], ceiling: 2_000_000, baselineInstantiations: 1_461_065 },
+  { name: '100 named additions', args: ['scripts/benchmark-types.ts', '--worker', '100', 'chained', 'valid'], form: 'chained', ceiling: 1_500_000, baselineInstantiations: 883_806 },
+  { name: '100 named replacements', args: ['scripts/benchmark-types.ts', '--worker', '100', 'replacement', 'valid'], form: 'replacement', ceiling: 1_500_000, baselineInstantiations: 3_045_479 },
+  { name: '100 token bindings', args: ['scripts/check-token-scale.ts', 'bindings', 'valid'], form: 'bindings', ceiling: 2_000_000, baselineInstantiations: 1_461_065 },
 ] as const;
 const requireProjectionReduction = process.env.DI_BAG_REQUIRE_PROJECTION_REDUCTION === '1';
 
@@ -19,7 +20,7 @@ for (const item of cases) {
     const result = JSON.parse(child.stdout);
     expect(result.count).toBe(100);
     expect(result.scenario).toBe('valid');
-    expect(result.form).toBe(item.args[0].includes('benchmark') ? 'chained' : 'bindings');
+    expect(result.form).toBe(item.form);
     expect(result.typescript).toBe('6.0.3');
     if ('diagnostics' in result) expect(result.diagnostics).toEqual([]);
     else { expect(result.accepted).toBe(true); expect(result.diagnosticCount).toBe(0); }

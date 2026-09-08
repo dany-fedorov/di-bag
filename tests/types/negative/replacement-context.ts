@@ -58,3 +58,23 @@ DiBag.begin().install(needsModule.replace('value', ({ missing }: { missing: numb
 DiBag.begin().install(needsModule.replace('value', (deps?: { missing: number }) => ({ read() { return deps?.missing; } })).exports(['value'])).end();
 // diagnostic: missing factories
 DiBag.begin().install(needsModule.replace('value', ({ missing }: { missing: number } = { missing: 0 }) => ({ read() { return missing; } })).exports(['value'])).end();
+
+const wrongOptionalBuilder = DiBag.begin().add({ dep: () => 1, service: () => 0 });
+const wrongOptionalModule = DiBag.module().add({ dep: () => 1, service: () => 0 });
+type WrongOptionalFactory = (deps?: { dep: string }) => number;
+// diagnostic: a dependency has the wrong shape
+wrongOptionalBuilder.replace('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
+// diagnostic: a dependency has the wrong shape
+wrongOptionalBuilder.replace('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);
+// diagnostic: a dependency has the wrong shape
+wrongOptionalBuilder.replace<'service', WrongOptionalFactory>('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
+// diagnostic: a dependency has the wrong shape
+wrongOptionalBuilder.replace<'service', WrongOptionalFactory>('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);
+// diagnostic: a dependency has the wrong shape
+wrongOptionalModule.replace('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
+// diagnostic: a dependency has the wrong shape
+wrongOptionalModule.replace('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);
+// diagnostic: a dependency has the wrong shape
+wrongOptionalModule.replace<'service', WrongOptionalFactory>('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);
+// diagnostic: a dependency has the wrong shape
+wrongOptionalModule.replace<'service', WrongOptionalFactory>('service', ({ dep }: { dep: string } = { dep: '' }) => dep.length);

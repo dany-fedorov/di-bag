@@ -30,7 +30,7 @@ import { token, readTokenKey } from './tokens';
 import { fromPlugin } from './plugins';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
 import type { Binding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey, ReboundSelection } from './token-types';
-import type { BuilderReplacementRegistration, ReplacementAdmission, ReplacedEntries } from './replacement-types';
+import type { BuilderReplacementRegistration, ReplacementAdmission, ReplacedEntries, ZeroDependencyAdmission } from './replacement-types';
 import type {
   Checked,
   Complete,
@@ -221,12 +221,13 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
     return new Builder(this.#graph.withPublicBinding(key, withTokenBinding<T, V>(token, registration)), this.context);
   }
 
-  // Give the preliminary callable context real empty needs and a consumer-safe
-  // output. Final checks still inspect V; the general overload retains required
-  // factory parameters and mixed registrations, including explicit K,V calls.
+  // ZeroDependencyAdmission proves empty needs, while ReplacementOutput proves
+  // every surviving consumer requirement. Repeating
+  // IncrementalChecked here only rescans accepted history. The general overload
+  // retains full checks for parameters, mixed registrations and explicit K,V.
   replace<const K extends string, V extends ((this: void) => ReplacementOutput<From<E>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<From<E>, K, C>>>(
     key: K & ReplacementKey<From<E>, K>,
-    registration: V & (Factory | DisposableFactory<Factory>) & IncrementalChecked<E, Record<K, NoInfer<V>>> &
+    registration: V & (Factory | DisposableFactory<Factory>) & ZeroDependencyAdmission<NoInfer<V>> &
       CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
   ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
   replace<const K extends string | TokenBase, V extends Registration>(

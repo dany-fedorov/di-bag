@@ -12,7 +12,7 @@ import { readTokenKey } from './tokens';
 import { withTokenBinding } from './provider';
 import type { TokenBase, TokenKey } from './tokens';
 import type { Binding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey } from './token-types';
-import type { ModuleReplacementRegistration, ReplacementAdmission, ReplacedEntries } from './replacement-types';
+import type { ModuleReplacementRegistration, ReplacementAdmission, ReplacedEntries, ZeroDependencyAdmission } from './replacement-types';
 import type { NamedAdmission } from './types';
 import type { BindingKey } from './runtime';
 
@@ -95,11 +95,12 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
     return new ModuleBuilder(new Map([...this.#registrations, [key, withTokenBinding<T, V>(token, registration)]]), this.#contributions);
   }
 
-  // The preliminary zero-arg context satisfies surviving local consumers;
-  // complete checks below still validate the actual inferred registration.
+  // ZeroDependencyAdmission proves empty needs and ReplacementOutput proves
+  // surviving local consumers. Repeating Checked here
+  // only rescans the accepted module; the general overload retains full checks.
   replace<const K extends string, V extends ((this: void) => ReplacementOutput<From<E>, K>) | DisposableFactory<(this: void) => ReplacementOutput<From<E>, K>>>(
     key: K & ReplacementKey<From<E>, K>,
-    registration: V & (Factory | DisposableFactory<Factory>) & Checked<Merge<From<E>, Record<K, NoInfer<V>>>> & CheckedContributions<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
+    registration: V & (Factory | DisposableFactory<Factory>) & ZeroDependencyAdmission<NoInfer<V>> & CheckedContributions<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
   ): ModuleBuilder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
   replace<const K extends string | TokenBase, V extends Registration>(
     key: K & NoInfer<ReplacementAdmission<From<E>, K>>,

@@ -620,3 +620,36 @@ Physical declarations, redundant full gates and all nine examples pass. Evidence
 review reran the physical native package and compiler-case gates, recomputed all
 108 identities, hashes and boundaries, and found no Critical, Important or Minor
 issues.
+
+## 2026-09-09 replacement and blocker follow-up
+
+The successful native diagnostic signature exposed a redundant whole-history
+check in the zero-argument named replacement overloads. A new classic compiler
+work test first failed at 3,045,479 instantiations against the existing 1,500,000
+named ceiling. Removing only `IncrementalChecked` from the root fast overload and
+`Checked` from the module fast overload is sound because
+`ZeroDependencyAdmission` excludes optional, defaulted, required, broad and union
+factories with dependencies, while `ReplacementOutput` proves every surviving
+consumer output requirement and the constraint checks remain. The general
+named/token overload continues to validate parameterized, mixed, explicit and
+reflected calls. The 100-row work fell to 1,098,024 instantiations; the 500 valid
+row fell from 69,620,879 to 23,983,624 and from 38.98 to 14.46 seconds. Every
+100/500 valid, missing and wrong-shape row retained its original acceptance and
+useful diagnostic.
+
+Independent review caught the initial optional/default-parameter hole before
+commit. Eight builder/module direct/explicit negative regions failed first, then
+passed after `ZeroDependencyAdmission` restricted the fast path; matching valid
+optional/default cases continue through the general overload. The strict native
+inventory consequently expands from the original 95 to 103 useful primary
+regions, with all 103 matched, its supplement matched, and zero gaps or unexpected
+diagnostics.
+
+An exact non-generic classic control isolates the unresolved 1000-call failure
+before type checking: a zero-generic fluent interface passes 550 chained calls
+and overflows the TypeScript 6.0.3 binder at 575 and above under the required
+default stack. The unchanged 1000-call chained and replacement forms therefore
+cannot be fixed by library types on this compiler. The grouped-50 1000-provider
+form remains a passing usage route, but it does not satisfy the original row.
+T2 stays open for a compiler-support or source-shape decision and for the native
+token completion work.

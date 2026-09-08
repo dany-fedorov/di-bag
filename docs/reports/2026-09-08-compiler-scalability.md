@@ -140,3 +140,34 @@ and found no Critical, Important or Minor issue.
 No source, generator, diagnostic acceptance, compiler ceiling, stack setting or
 native gap allowance changed after the matrix freeze. No push or publication was
 performed.
+
+## 2026-09-09 follow-up
+
+At `5c085b3`, classic TypeScript 6.0.3 compiled the 100/500 valid replacement
+rows with 3,045,479/69,620,879 instantiations and 2.357/38.980 seconds. A TDD
+work-ceiling regression then covered the 100 replacement form. The adopted
+optimization removes redundant whole-history validation only from the
+zero-dependency named replacement overload in `Builder` and `ModuleBuilder`.
+Candidate results were 1,098,024/23,983,624 instantiations and 1.408/14.458
+seconds, reductions of 63.9% and 65.6% in work. All six 100/500 replacement
+valid/missing/wrong-shape rows passed their unchanged boundaries and messages.
+The classic type corpus, strict 103/103 native diagnostic audit, classic/native
+typechecks and builds, 79-test package suite, and both physical declaration
+emitters passed.
+
+Independent review found that optional and defaulted parameters are callable with
+zero arguments but still carry provider needs. Eight direct/explicit builder/module
+negative regions reproduced the unsound fast route. `ZeroDependencyAdmission`
+now excludes every dependency-bearing union branch from that overload, while the
+unchanged general overload validates those factories. The expanded strict native
+audit matches 103/103 useful primary regions plus its supplement, with zero gaps
+or unexpected diagnostics.
+
+A non-generic control with `add(value: object): Chain` passes at 550 chained calls
+and fails at 575 with `RangeError: Maximum call stack size exceeded` in the
+classic binder. A matching non-generic replacement chain also fails at 1000.
+These controls contain no library generics or instantiations, proving the pinned
+classic compiler cannot bind the unchanged original 1000-call AST under the
+required default stack. Grouping 1000 providers in modules of 50 remains accepted
+in 3.15-3.30 seconds for valid, missing and wrong-shape scenarios, but is evidence
+for the documented usage route rather than acceptance of the original row.

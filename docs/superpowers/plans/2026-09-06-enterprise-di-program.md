@@ -153,6 +153,15 @@ execution; do not stop for another planning approval between increments.
     pass. The final frozen 108-row matrix accepts 83 rows and retains 25 failures,
     so T2 and the parent compiler follow-up remain open. Evidence:
     `docs/reports/2026-09-08-compiler-scalability.md`.
+    The 2026-09-09 follow-up adds a 100-replacement work ceiling and removes two
+    redundant zero-dependency replacement checks, reducing classic 100/500 work
+    by about 64-66%. Eight optional/default direct/explicit negative regressions
+    guard the `ZeroDependencyAdmission` fast-path boundary; the strict native audit
+    now matches all 103 primary regions and its supplement. A
+    zero-generic control proves the pinned classic compiler's unchanged fluent AST
+    overflows its binder between 550 and 575 calls, before library type checking;
+    the original classic 1000 rows therefore require a compiler-support or
+    source-shape decision. Native 1000-token completion optimization remains active.
   - [x] Native replacement diagnostic quality: a factored named/token replacement
     signature plus an inline invalid-key diagnostic now reports the useful message
     at all 95 primary regions, including the union-name case, with the supplemental

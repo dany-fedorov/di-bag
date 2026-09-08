@@ -1,9 +1,17 @@
 import type { ContributionConstraint, CheckedContributions } from './contribution-types';
 import type { NeedConstraint, CheckedConstraints } from './module-types';
+import type { ProviderFactory } from './provider';
 import type { Registration, Registrations } from './registration';
 import type { Binding, BindingOutput, TokenMember } from './token-types';
 import type { TokenBase, TokenKey } from './tokens';
 import type { Checked, Entry, From, IncrementalChecked, Merge, ReplacementKey } from './types';
+
+type DependencyBearingRegistration<R extends Registration> = R extends unknown
+  ? Parameters<ProviderFactory<R>> extends [] ? never : R
+  : never;
+
+export type ZeroDependencyAdmission<R extends Registration> =
+  [DependencyBearingRegistration<R>] extends [never] ? unknown : never;
 
 export type ReplacementAdmission<R extends Registrations, K extends string | TokenBase> =
   [K] extends [string] ? ReplacementKey<R, K> : TokenMember<R, K>;

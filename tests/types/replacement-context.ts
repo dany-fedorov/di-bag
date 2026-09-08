@@ -72,3 +72,10 @@ type ExplicitBag = Assert<Equal<ReturnType<typeof explicitBag.resolve<'service'>
 const explicitModule = DiBag.module().add({ dep: () => 1, service: () => 0 })
   .replace<'service', ExplicitFactory>('service', ({ dep }) => ({ read() { return dep; }, richer() { return true; } })).exports(['service']);
 type ExplicitModule = Assert<Equal<ModuleProvides<typeof explicitModule>['service'], { read(): number; richer(): boolean }>>;
+type ExplicitOptionalFactory = (deps?: { dep: number }) => { read(): number | undefined; richer(): boolean };
+const explicitOptionalBag = DiBag.begin().add({ dep: () => 1, service: () => 0 })
+  .replace<'service', ExplicitOptionalFactory>('service', (deps?: { dep: number }) => ({ read() { return deps?.dep; }, richer() { return true; } })).end();
+type ExplicitOptionalBag = Assert<Equal<ReturnType<typeof explicitOptionalBag.resolve<'service'>>, { read(): number | undefined; richer(): boolean }>>;
+const explicitDefaultModule = DiBag.module().add({ dep: () => 1, service: () => 0 })
+  .replace<'service', ExplicitOptionalFactory>('service', ({ dep }: { dep: number } = { dep: 1 }) => ({ read() { return dep; }, richer() { return true; } })).exports(['service']);
+type ExplicitDefaultModule = Assert<Equal<ModuleProvides<typeof explicitDefaultModule>['service'], { read(): number | undefined; richer(): boolean }>>;
