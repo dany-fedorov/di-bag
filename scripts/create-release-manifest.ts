@@ -120,18 +120,26 @@ function sanitizeCommand(command: ReleaseCommandEvidence, roots: readonly [strin
   const clean = (value: string) => {
     let cleaned = value;
     for (const [root, token] of roots) cleaned = cleaned.split(root).join(token);
-    if (isAbsolute(cleaned) || /(?:^|[= :])\/(?!\/)/.test(cleaned)) throw new Error('public evidence contains an unsanitized absolute path');
+    if (containsAbsolutePath(cleaned)) throw new Error('public evidence contains an unsanitized absolute path');
     return cleaned;
   };
   return { argv: command.argv.map(clean), cwd: clean(command.cwd), startedAt: command.startedAt, finishedAt: command.finishedAt, elapsedMilliseconds: command.elapsedMilliseconds, exitCode: command.exitCode, signal: command.signal, terminationReason: command.terminationReason, peakObservedRssMiB: command.peakObservedRssMiB,
     inputs: command.inputs.map(input => ({ path: clean(input.path), bytes: input.bytes, sha256: input.sha256 })), stdout: { bytes: command.stdout.bytes, sha256: command.stdout.sha256 }, stderr: { bytes: command.stderr.bytes, sha256: command.stderr.sha256 } };
 }
+function containsAbsolutePath(value: string): boolean { return value.includes('file:/') || /(^|[^A-Za-z0-9._<>\/~:-])\/(?!\/)/.test(value) || /^\//.test(value); }
+function assertPublicPathSafe(value: unknown): void {
+  if (typeof value === 'string') { if (containsAbsolutePath(value)) throw new Error('public evidence contains an unsanitized absolute path'); return; }
+  if (Array.isArray(value)) { for (const item of value) assertPublicPathSafe(item); return; }
+  if (value && typeof value === 'object') for (const [key, item] of Object.entries(value)) { assertPublicPathSafe(key); assertPublicPathSafe(item); }
+}
 export function createPublicReleaseEvidence(manifest: ReleaseManifest): unknown {
   const roots: [string, string][] = [[manifest.artifactDirectory, '<artifact>'], ...manifest.packages.map(item => [item.checkout.path, `<checkout:${item.name}>`] as [string, string])]; roots.sort((a, b) => b[0].length - a[0].length);
-  return stable({ schemaVersion: 1, generatedAt: manifest.generatedAt, tools: manifest.tools, nativeDiagnostics: manifest.nativeDiagnostics,
+  const projection = stable({ schemaVersion: 1, generatedAt: manifest.generatedAt, tools: manifest.tools, nativeDiagnostics: manifest.nativeDiagnostics,
     handoff: { candidateSourceCommit: manifest.handoff.candidateSourceCommit, allowedHandoffPaths: APPROVED_HANDOFF_PATHS },
     packages: manifest.packages.map(item => ({ name: item.name, version: item.version, checkout: { branch: item.checkout.branch, candidateSourceCommit: item.checkout.candidateSourceCommit, status: item.checkout.status },
-      pack: item.pack, commands: item.commands.map(command => sanitizeCommand(command, roots)), integrity: item.integrity, sha256: item.sha256, sha512: item.sha512, bytes: item.bytes, files: item.files, packageMetadata: item.packageMetadata })) });
+      packedAt: item.pack.packedAt, commands: item.commands.map(command => sanitizeCommand(command, roots)), integrity: item.integrity, sha256: item.sha256, sha512: item.sha512, bytes: item.bytes, files: item.files, packageMetadata: item.packageMetadata })) });
+  assertPublicPathSafe(projection);
+  return projection;
 }
 function atomicWrite(path: string, bytes: Uint8Array): void { const temp = `${path}.tmp-${process.pid}`; try { writeFileSync(temp, bytes, { flag: 'wx' }); renameSync(temp, path); } finally { rmSync(temp, { force: true }); } }
 export function serializeStable(value: unknown): string { return `${JSON.stringify(stable(value), null, 2)}\n`; }

@@ -244,6 +244,7 @@ describe('command evidence runner', () => {
   for (const argv of [
     ['bash', '-c', 'echo hi'], ['npm', 'view', 'di-bag'], ['npm', 'login'], ['npm', 'publish', 'a.tgz'], ['npm', 'dist-tag', 'add'], ['git', 'push'], ['git', 'tag', 'v1'],
     ['node', '--registry', 'x'], ['node', 'https://registry.npmjs.org'], ['node', '&&'], ['node -e thing'],
+    ['env', 'npm', 'publish', 'x.tgz'], ['env', 'git', 'push'], ['npx', 'npm', 'view', 'di-bag'], ['bunx', 'tool'], ['corepack', 'npm', 'login'],
   ]) test(`rejects unsafe argv: ${argv.join(' ')}`, () => expect(() => assertSafeReleaseArgv(argv)).toThrow());
   test('rejects relative, escaping, symlinked, duplicate, and unsupported arguments', () => {
     expect(() => parseReleaseCommandArgs(['--artifact-dir', 'relative', '--record', resolve(artifact, 'x'), '--cwd', cwd, '--', 'node', '-v'])).toThrow('absolute canonical');
@@ -455,6 +456,11 @@ describe('manifest validation and deterministic projection', () => {
     expect(() => createPublicReleaseEvidence(createReleaseManifest(executableInput))).toThrow('unsanitized absolute path');
     const external: any = validInput(); external.packages[0].commands[0].inputs = [hashFile('/etc/hosts')];
     expect(() => createPublicReleaseEvidence(createReleaseManifest(external))).toThrow('unsanitized absolute path');
+    const quoted: any = validInput(); quoted.packages[0].commands[0].argv = ['node', '--config="/etc/secret"'];
+    expect(() => createPublicReleaseEvidence(createReleaseManifest(quoted))).toThrow('unsanitized absolute path');
+    const extraPackField: any = validInput(); extraPackField.packages[0].pack.packJson[0].hostPath = '/etc/secret'; extraPackField.packages[0].pack.dryRunJson[0].hostPath = '/etc/secret';
+    const projected = serializeStable(createPublicReleaseEvidence(createReleaseManifest(extraPackField)));
+    expect(projected).not.toContain('/etc/secret'); expect(projected).not.toContain('dryRunJson'); expect(projected).not.toContain('packJson');
   });
 });
 

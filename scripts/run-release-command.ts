@@ -24,14 +24,20 @@ function outputPath(artifactDir: string, path: string, label: string): string {
   return path;
 }
 export function assertSafeReleaseArgv(argv: readonly string[]): void {
-  if (!argv.length || !argv[0] || argv[0].includes('\0') || /\s/.test(argv[0])) throw new Error('command executable must be one argv token');
+  if (!argv.length || argv.some(value => typeof value !== 'string' || value.includes('\0')) || !argv[0] || /\s/.test(argv[0])) throw new Error('command executable must be one argv token');
   const executable = basename(argv[0]).toLowerCase();
   if (['sh', 'bash', 'dash', 'zsh', 'fish', 'cmd', 'cmd.exe', 'powershell', 'pwsh'].includes(executable)) throw new Error('shell commands are forbidden');
+  if (['env', 'npx', 'bunx', 'corepack', 'xargs', 'nohup', 'sudo', 'command'].includes(executable)) throw new Error('command wrappers are forbidden');
   const lower = argv.map(value => value.toLowerCase());
   if (argv.some(value => value.includes('\0') || ['&&', '||', ';', '|', '>', '>>', '<'].includes(value))) throw new Error('shell operators are forbidden');
   if (lower.some(value => value.includes('registry.npmjs.org') || value.includes('_authtoken') || value === '--registry')) throw new Error('registry and credential operations are forbidden');
   if (executable === 'npm' && lower.slice(1).some(value => ['view', 'whoami', 'login', 'publish', 'dist-tag', 'token', 'config', 'adduser', 'logout'].includes(value))) throw new Error('online or publication npm command is forbidden');
   if (executable === 'git' && lower.slice(1).some(value => ['push', 'tag', 'fetch', 'pull', 'clone', 'remote'].includes(value))) throw new Error('remote or mutating Git command is forbidden');
+  for (let index = 0; index < lower.length; index++) {
+    const token = basename(lower[index]!);
+    if (token === 'npm' && lower.slice(index + 1).some(value => ['view', 'whoami', 'login', 'publish', 'dist-tag', 'token', 'config', 'adduser', 'logout'].includes(value))) throw new Error('wrapped online or publication npm command is forbidden');
+    if (token === 'git' && lower.slice(index + 1).some(value => ['push', 'tag', 'fetch', 'pull', 'clone', 'remote'].includes(value))) throw new Error('wrapped remote or mutating Git command is forbidden');
+  }
 }
 export function parseReleaseCommandArgs(argv: readonly string[]): ReleaseCommandArgs {
   const divider = argv.indexOf('--');
@@ -75,7 +81,7 @@ export function validateReleaseCommandEvidence(value: ReleaseCommandEvidence, ar
   if (!isAbsolute(value.cwd) || resolve(value.cwd) !== value.cwd || realpathSync(value.cwd) !== value.cwd) throw new Error('command cwd is not canonical');
   if (!exactIso(value.startedAt) || !exactIso(value.finishedAt)) throw new Error('command timestamps are invalid');
   const wall = Date.parse(value.finishedAt) - Date.parse(value.startedAt);
-  if (wall < 0 || !Number.isInteger(value.elapsedMilliseconds) || value.elapsedMilliseconds < 0 || Math.abs(wall - value.elapsedMilliseconds) > 1000) throw new Error('command elapsed time is inconsistent');
+  if (wall < 0 || !Number.isInteger(value.elapsedMilliseconds) || value.elapsedMilliseconds < 0 || value.elapsedMilliseconds > RELEASE_COMMAND_LIMITS.timeoutMilliseconds || Math.abs(wall - value.elapsedMilliseconds) > 1000) throw new Error('command elapsed time is inconsistent');
   if (value.exitCode !== 0 || value.signal !== null || value.terminationReason !== null) throw new Error('command result is not successful');
   if (!Number.isFinite(value.peakObservedRssMiB) || value.peakObservedRssMiB < 0 || value.peakObservedRssMiB > RELEASE_COMMAND_LIMITS.maxRssMiB) throw new Error('command RSS evidence exceeds limit');
   if (!Array.isArray(value.inputs)) throw new Error('command inputs are missing');
