@@ -162,7 +162,7 @@ Launch only the verified Playwright Chromium executable, create a classic Worker
 - [x] **Step 5: Run focused and cross-package gates.**
 
 Retained Task 3 execution facts: the focused platform suite passed `17 / 17`
-with `147` assertions; the classic installed-package matrix passed `77 / 77`
+with `148` assertions; the classic installed-package matrix passed `77 / 77`
 with `495` assertions; and the classic/native archive matrix passed `2 / 2`
 with `1,152` assertions. Classic and native typechecks and builds exited zero.
 esbuild, Playwright and Chromium remain `unavailable: not-provisioned`; no

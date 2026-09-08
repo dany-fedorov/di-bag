@@ -53,11 +53,11 @@ function cleanMetafile(_consumer: string): { inputs: Record<string, { bytes?: nu
   };
 }
 
-function browserBundle(): BrowserBundle {
+function browserBundle(source = 'minified-worker();'): BrowserBundle {
   const consumer = consumerFixture();
   const path = join(consumer, 'worker.js');
   const metafilePath = join(consumer, 'worker-meta.json');
-  const bytes = Uint8Array.from(Buffer.from('minified-worker();'));
+  const bytes = Uint8Array.from(Buffer.from(source));
   const metafile = `${JSON.stringify(cleanMetafile(consumer))}\n`;
   writeFileSync(path, bytes);
   writeFileSync(metafilePath, metafile);
@@ -116,6 +116,10 @@ test('browser metafile accepts only the installed root export and package-local 
   const nestedForeign = cleanMetafile(consumer);
   nestedForeign.inputs['portable/node_modules/foreign/index.js'] = {};
   expect(() => assertBrowserMetafile(nestedForeign, consumer)).toThrow('outside the installed di-bag archive');
+  symlinkSync('node_modules/foreign/index.js', join(consumer, 'portable/foreign-link.js'));
+  const disguisedNestedForeign = cleanMetafile(consumer);
+  disguisedNestedForeign.inputs['portable/foreign-link.js'] = {};
+  expect(() => assertBrowserMetafile(disguisedNestedForeign, consumer)).toThrow('outside the installed di-bag archive');
 
   expect(() => assertBrowserMetafile({ ...cleanMetafile(consumer), outputs: {} }, consumer))
     .toThrow('exactly one browser output');
@@ -222,11 +226,12 @@ test('explicitly unprovisioned browser tools stay unavailable without archive or
     status: 'pinned', name: 'chromium', argv: ['/fake/chromium'], versionArgv: ['/fake/chromium', '--version'],
     version: '1', versionText: '1\n', sha256: '1'.repeat(64), hashPath: '/fake/chromium',
   } satisfies VerifiedTool;
-  await expect(runBrowserWorkerLane(browserBundle(), fakeChromium)).resolves.toMatchObject({
+  const unavailablePlaywright = { status: 'unavailable', reason: 'not-provisioned' } as const;
+  await expect(runBrowserWorkerLane(browserBundle(), fakeChromium, undefined, 6_000, unavailablePlaywright)).resolves.toMatchObject({
     lane: 'browser-worker-minified', status: 'unavailable', reason: 'playwright-not-provisioned',
   });
   const stale = { ...browserBundle(), sha256: '0'.repeat(64) };
-  await expect(runBrowserWorkerLane(stale, fakeChromium)).resolves.toMatchObject({
+  await expect(runBrowserWorkerLane(stale, fakeChromium, undefined, 6_000, unavailablePlaywright)).resolves.toMatchObject({
     lane: 'browser-worker-minified', status: 'unavailable', reason: 'playwright-not-provisioned',
   });
 });
@@ -251,6 +256,17 @@ test('provisioned browser tools execute the real packed archive lane', async () 
     await expect(runBrowserWorkerLane(bundle, chromium as VerifiedTool)).resolves.toMatchObject({
       lane: 'browser-worker-minified', status: 'pass',
     });
+    const payload = JSON.stringify({ lane: 'browser-worker-minified', result: portableResult });
+    const runtimeMutations: Array<[string, BrowserBundle, number, string]> = [
+      ['duplicate', browserBundle(`postMessage(${payload});postMessage(${payload});`), 1_000, 'Worker posted extra messages'],
+      ['error', browserBundle("throw new Error('worker exploded')"), 1_000, 'Worker error:'],
+      ['console', browserBundle(`console.log('noise');postMessage(${payload});`), 1_000, 'Worker console output is not empty'],
+      ['timeout', browserBundle('void 0;'), 100, 'Worker timed out'],
+    ];
+    for (const [name, mutated, timeoutMs, reason] of runtimeMutations) {
+      await expect(runBrowserWorkerLane(mutated, chromium as VerifiedTool, undefined, timeoutMs), name)
+        .resolves.toMatchObject({ status: 'fail', reason: expect.stringContaining(reason) });
+    }
   } finally {
     rmSync(archive.packageTree, { recursive: true, force: true });
     rmSync(dirname(bundle.path), { recursive: true, force: true });

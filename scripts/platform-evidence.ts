@@ -255,7 +255,8 @@ export function assertBrowserMetafile(value: unknown, consumer: string): string 
     catch { throw new Error(`browser bundle input does not exist: ${input}`); }
     if (!pathInside(resolvedInput, consumerRoot)) throw new Error('browser bundle input is outside the browser consumer');
     const lexicalParts = relative(consumerRoot, lexicalInput).split(sep);
-    const isDependency = lexicalParts.includes('node_modules') || pathInside(resolvedInput, modulesRoot);
+    const resolvedParts = relative(consumerRoot, resolvedInput).split(sep);
+    const isDependency = lexicalParts.includes('node_modules') || resolvedParts.includes('node_modules');
     if (isDependency) {
       if (!pathInside(resolvedInput, packageRoot)) throw new Error('browser package input is outside the installed di-bag archive');
       if (pathInside(lexicalInput, packageRoot)
@@ -444,12 +445,13 @@ export async function runBrowserWorkerLane(
   chromium: VerifiedTool | { status: 'unavailable'; reason: ToolUnavailableReason },
   driver?: BrowserWorkerDriver,
   timeoutMs = 6_000,
+  unavailablePlaywright?: { status: 'unavailable'; reason: ToolUnavailableReason },
 ): Promise<PlatformRow> {
   if (chromium.status === 'unavailable') return browserRow('unavailable', { reason: chromium.reason });
   if (chromium.name !== 'chromium') return browserRow('fail', { reason: 'browser Worker lane requires the verified chromium tool' });
   try {
     if (!driver) {
-      const playwright = await verifyTool(platformRoot, 'playwright');
+      const playwright = unavailablePlaywright ?? await verifyTool(platformRoot, 'playwright');
       if (playwright.status === 'unavailable') return browserRow('unavailable', { reason: `playwright-${playwright.reason}` });
     }
     const validated = inspectBrowserBundle(bundle);

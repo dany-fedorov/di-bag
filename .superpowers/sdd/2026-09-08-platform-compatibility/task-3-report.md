@@ -28,7 +28,7 @@ slip between hash validation and launch.
 $ bun test tests/platform/browser-worker.test.ts tests/platform-evidence.test.ts
 17 pass
 0 fail
-147 expect() calls
+148 expect() calls
 ```
 
 The archive-building suite ran with native child-process access; managed
@@ -108,3 +108,13 @@ boundary. The final focused counts above supersede the pre-review `16 / 138`
 run. Classic/native typechecks and builds all exited zero after these fixes;
 package matrices were not repeated because package source and declarations did
 not change.
+
+Re-review kept two Important items open. A second RED probe used a fixture path
+without `node_modules` that resolved through a symlink into a nested foreign
+package; dependency classification now checks path segments before and after
+realpath. The missing-Playwright test now injects only an unavailable state and
+cannot break when the repository is later provisioned. The conditional
+provisioned branch additionally runs real Chromium mutations for duplicate
+messages, Worker errors, console output and timeout. Those mutations are ready
+but did not execute here because the exact browser pins remain unavailable.
+The final `17 / 148` result includes these fixes.
