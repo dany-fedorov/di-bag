@@ -1102,6 +1102,32 @@ API. The [compiler benchmark report](docs/benchmarks/typescript.md) records
 100/500/1,000-provider results and remaining limits. Passing the grouped gate
 does not establish that equally long individual call chains are supported.
 
+## Performance evidence
+
+Runtime measurements are retained as ordinary-machine **informational**
+evidence. Two complete, independently ordered runs compare the measured source
+at `8ee8696` with the intrinsic `739b509` baseline built from `git archive`.
+Neither run met all review predicates, and neither ran on a marked controlled
+host, so they establish no universal speed claim. The raw children, statistics,
+package identities and limitations are in the
+[runtime evidence directory](docs/benchmarks/results/2026-09-08-8ee8696/README.md).
+
+Repeated compiler controls are also informational and comparable only when the
+compiler and fixture identities match. They cover supported controls and do not
+replace the exhaustive matrix or its retained failures. See the
+[compiler-control evidence](docs/benchmarks/results/2026-09-08-e5456f8/README.md).
+Earlier single-observation tables in the
+[compiler benchmark history](docs/benchmarks/typescript.md) remain explicitly
+**historical**.
+
+Optional third-party measurements require a reviewed adapter that passes the
+**restricted common-subset throughput** contract for synchronous named graphs,
+singleton and transient resolution, and explicit lifecycle. Typed Inject and
+Awilix are **unavailable** because neither package is lockfile-pinned. No
+third-party timing row or comparison claim exists. The exact status rows and
+admission rules are retained in the
+[comparator evidence directory](docs/benchmarks/results/2026-09-08-bf8b1ac/README.md).
+
 Current code lives in `src/`. Previous experiments are preserved under
 [`docs/history/`](docs/history/README.md). The [v0.1 design](docs/superpowers/specs/2026-09-06-v0.1-design.md)
 and [implementation plan](docs/superpowers/plans/2026-09-06-v0.1.md) record the

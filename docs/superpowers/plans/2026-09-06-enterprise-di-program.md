@@ -110,6 +110,13 @@ execution; do not stop for another planning approval between increments.
     retained as unavailable. These rows do not claim Deno/browser execution or
     extend support to `di-bag/node`. Evidence:
     `docs/benchmarks/results/2026-09-08-62e72b9/`.
+  - [x] Reproducible performance evidence: two complete intrinsic-baseline
+    runtime seeds remain informational, repeated compiler controls retain all
+    raw children and identities, and the exhaustive 83/108 compiler matrix
+    remains separate. The optional comparator boundary rejects semantic and
+    lifecycle mismatches. Typed Inject and Awilix are truthfully recorded
+    `unavailable: not-lockfile-pinned`; no third-party timing row exists.
+    Evidence: `docs/reports/2026-09-08-performance-evidence.md`.
 - [ ] Compiler/inference follow-up: execute
   `2026-09-08-compiler-scalability.md` and
   `2026-09-08-native-diagnostics.md` to resolve the remaining measured 500/1000

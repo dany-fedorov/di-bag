@@ -170,7 +170,7 @@ Expected: control rows have complete samples/markers; exhaustive output retains 
 
 **Interfaces:** Produce `ComparatorAdapter` with `{ name, version, sourceSha256, semantics: 'restricted-common-subset', buildGraph(count): unknown, resolve(graph, name): unknown, dispose(graph): Promise<void> }`; statuses include `'not-comparable'`.
 
-- [ ] **Step 1: Write failing common-subset/admission tests.**
+- [x] **Step 1: Write failing common-subset/admission tests.**
 
 ```ts
 test('comparator cannot enter lifecycle table without the common contract', async () => {
@@ -178,17 +178,17 @@ test('comparator cannot enter lifecycle table without the common contract', asyn
 });
 ```
 
-- [ ] **Step 2: Run the RED test.**
+- [x] **Step 2: Run the RED test.**
 
 Run: `bun test tests/comparator-contract.test.ts`
 
 Expected: FAIL because comparator protocol is absent.
 
-- [ ] **Step 3: Add adapters only after exact lockfile-pinned packages are installed and reviewed.**
+- [x] **Step 3: Add adapters only after exact lockfile-pinned packages are installed and reviewed.**
 
 Implement Typed Inject and Awilix adapters only for synchronous named graphs, singleton/transient resolution and explicit lifecycle where supported. Hash adapter source and package archive; record license/version. Exclude all other di-bag semantics in the table. If either cannot satisfy the test, emit `not-comparable` and stop rather than change its workload.
 
-- [ ] **Step 4: Publish only supported claims.**
+- [x] **Step 4: Publish only supported claims.**
 
 README and report must label ordinary measurements “informational”, comparator data “restricted common-subset throughput”, old rows “historical”, and missing tools “unavailable”. Add no universal speed, feature-quality, bundle-budget or platform claim absent matching retained results.
 
