@@ -1,0 +1,37 @@
+bun test v1.4.0 (34cbb9a40)
+
+tests/compiler-case.test.ts:
+(pass) selected compiler case admits only original matrix identities [0.18ms]
+(pass) a claimed accepted result cannot hide an original-boundary failure [0.40ms]
+(pass) direct selected-case calls reject invalid lane and matrix identities before dispatch [0.28ms]
+(pass) recomputed boundary rejects self-consistent worker evidence at the wrong boundary [0.12ms]
+(pass) selected evidence rejects sourceCommit drift while compilation runs [0.06ms]
+(pass) selected evidence rejects sourceStatus drift while compilation runs
+(pass) selected evidence rejects sourceSha256 drift while compilation runs
+(pass) selected evidence rejects generatedSha256 drift while compilation runs
+(pass) native selected evidence preserves the hash of the compiled snapshot [0.03ms]
+(pass) compiler CLI deterministically selects exit status from simulated evidence [0.03ms]
+(pass) classic selected 100 bulk valid returns verified evidence [1219.89ms]
+(pass) classic selected 100 bulk missing returns verified evidence [1253.20ms]
+(pass) native selected 100 bulk valid returns verified evidence [139.85ms]
+(pass) native selected 100 bulk missing returns verified evidence [144.94ms]
+(pass) selected compiler CLI rejects an invalid identity without JSON success [260.57ms]
+
+tests/native-compiler.test.ts:
+(pass) parser retains real native multiline diagnostics, positions and metrics [0.10ms]
+(pass) parser exposes configuration errors, TS2589 and unknown output [0.04ms]
+(pass) source marker gate rejects wrong file, region, message, TS2589 and unmatched cascades [0.49ms]
+(pass) verified native executable checks real nonempty valid and invalid projects [675.74ms]
+(pass) native small control bulk valid [124.96ms]
+(pass) native small control bulk missing [129.04ms]
+(pass) native small control bindings valid [588.16ms]
+(pass) native small control bindings missing-final-token [573.88ms]
+
+tests/incremental-scale.test.ts:
+(pass) incremental compiler work: 100 named additions [1741.90ms]
+(pass) incremental compiler work: 100 token bindings [2192.55ms]
+
+ 25 pass
+ 0 fail
+ 144 expect() calls
+Ran 25 tests across 3 files. [9.20s]

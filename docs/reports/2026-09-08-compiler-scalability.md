@@ -41,13 +41,19 @@ Focused GREEN evidence:
 
 ## Original 108-row matrix
 
-All four collectors ran once, serially, under
-`/tmp/di-bag-compiler-heavy.lock`. Reconciliation found the exact 36/18/36/18
-identities with no duplicates or missing rows. Native rows record the source
+All collectors ran serially under `/tmp/di-bag-compiler-heavy.lock`. The native
+matrices ran once. The classic matrices were regenerated once after the
+provenance correction described below. Reconciliation found the exact
+36/18/36/18 final identities with no duplicates or missing rows. Native rows record the source
 commit, production-source hash, generated-source hash and executable identity.
-The older classic collector does not embed repository provenance in each row;
-it ran in the same frozen worktree before any later file edit, and selected-case
-evidence independently records matching before/after source and generated hashes.
+Review found that the initial classic collector did not. That run remains in Git
+history as pre-fix evidence and was superseded, not retroactively relabelled. The
+classic collector now uses the same closed selected-case provenance path and the
+affected 54 rows were regenerated once at commit
+`ba418e1c460f215c82db297b656f66605c517773`. Every classic row, including
+timeouts and stack failures, records matching before/after commit, clean source
+status, source hash, generated hash, TypeScript 6.0.3 and Node v24.20.0. The
+production source and generated forms did not change.
 
 | Lane and matrix | Accepted | Failed | Result |
 | --- | ---: | ---: | --- |
@@ -87,6 +93,10 @@ Complete row evidence and summaries are clone-safe in:
 - `.superpowers/sdd/2026-09-08-compiler-scalability/task-4-native-named.log`
 - `.superpowers/sdd/2026-09-08-compiler-scalability/task-4-native-token.log`
 
+Retained package, full-check, native-audit, focused-suite and exact per-example
+path/status/output evidence is indexed in
+`.superpowers/sdd/2026-09-08-compiler-scalability/task-4-verification.md`.
+
 ## Repeat observations
 
 Three serial observations per selected valid control use the same production
@@ -115,6 +125,9 @@ latency or general performance guarantees.
   the same 27 declared diagnostic gaps, 0 unexpected diagnostics and 0 failures.
 - Focused compiler-case, work and native-supervision gate: 25 tests, 144
   assertions, 0 failures in 9.20 seconds.
+- After the provenance correction, the expanded compiler collector, boundary,
+  work and native-supervision suite passed 51 tests and 263 assertions in 34.73
+  seconds; classic typecheck also passed.
 - All nine runnable examples exited zero: WBS scope, modules, box adapters,
   tokens, scopes, composition, contributions, observers and plugins.
 
