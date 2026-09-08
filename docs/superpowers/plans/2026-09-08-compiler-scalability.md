@@ -591,7 +591,7 @@ bun run examples/plugins.ts
 
 Do not invent runtime coverage from a CI file.
 
-- [ ] **Step 5: Publish local evidence and obtain independent covering review.**
+- [x] **Step 5: Publish local evidence and obtain independent covering review.**
 
 The report must state current compiler identities, source hashes, RED/GREEN
 commands, original outcome counts, unresolved rows, utility and physical package
@@ -616,5 +616,7 @@ Task 4 freezes production source at SHA-256 `90d656f6`, retains exact clone-safe
 36/18/36/18 row logs, and accepts 83/108 original identities. All 500 individual
 module rows pass; 25 original 1000-depth/diagnostic rows remain explicit failures.
 Physical declarations, redundant full gates and all nine examples pass. Evidence:
-`docs/reports/2026-09-08-compiler-scalability.md`. Step 5 remains open only for
-independent committed-source covering review.
+`docs/reports/2026-09-08-compiler-scalability.md`. Independent committed-source
+review reran the physical native package and compiler-case gates, recomputed all
+108 identities, hashes and boundaries, and found no Critical, Important or Minor
+issues.
