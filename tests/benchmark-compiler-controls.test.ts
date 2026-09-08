@@ -1,7 +1,10 @@
 import { expect, test } from 'bun:test';
 import {
+  captureCompilerControlSample,
   collectCompilerControl,
   compilerControlCases,
+  compilerControlLanes,
+  normalizeCompilerSample,
   summarizeCompilerControl,
   validateCompilerControl,
   type CompilerControlSample,
@@ -85,6 +88,7 @@ test('controls reject invalid work metrics and source provenance drift', () => {
     completedSample({ processMilliseconds: 0 }),
     completedSample({ maxRssMiB: -1 }),
     completedSample({ instantiations: -1 }),
+    completedSample({ instantiations: 0 }),
   ]) {
     expect(validateCompilerControl(negativeCase, sample))
       .toMatchObject({ accepted: false, reason: 'invalid compiler work metrics' });
@@ -98,6 +102,62 @@ test('controls reject invalid work metrics and source provenance drift', () => {
     sourceStatusAfter: ' M src/index.ts',
   })))
     .toMatchObject({ accepted: false, reason: 'source tree is dirty' });
+});
+
+test('normalizer validates classic work and canonicalizes diagnostic paths', () => {
+  const raw = {
+    ...completedSample(),
+    case: undefined,
+    compiler: undefined,
+    milliseconds: 123,
+    typescript: '6.0.3',
+    maxRssMiB: 300,
+    instantiations: 456,
+    diagnostics: [{
+      ...completedSample().diagnostics[0]!,
+      file: '/an/ephemeral/checkout/tests/generated-type-scale.ts',
+    }],
+  };
+  expect(normalizeCompilerSample(negativeCase, 'classic6:6.0.3:hash', 'classic', raw)).toMatchObject({
+    compiler: 'classic6:6.0.3:hash',
+    compileMilliseconds: 123,
+    processMilliseconds: 1400,
+    maxRssMiB: 300,
+    instantiations: 456,
+    diagnostics: [{ file: 'tests/generated-type-scale.ts', line: 102, code: 2684 }],
+  });
+  expect(() => normalizeCompilerSample(negativeCase, 'classic6:6.0.3:hash', 'classic', {
+    ...raw,
+    diagnostics: [{ ...raw.diagnostics[0]!, file: 7 }],
+  })).toThrow('compiler row has malformed diagnostics');
+  expect(() => normalizeCompilerSample(negativeCase, 'classic6:6.0.3:hash', 'classic', {
+    ...raw,
+    typescript: '6.0.4',
+  })).toThrow('compiler row identity differs from requested compiler');
+});
+
+test('normalizer extracts native extended metrics without substituting process time', () => {
+  const raw = {
+    ...completedSample(),
+    case: undefined,
+    compiler: undefined,
+    milliseconds: 400,
+    typescript: '7.0.2',
+    peakObservedRssMiB: 155.5,
+    nativeMetrics: { 'Total time': 0.321, Instantiations: 777 },
+    diagnostics: [{
+      ...completedSample().diagnostics[0]!,
+      file: '/tmp/di-bag-native-scale-random/tests/generated-type-scale.ts',
+    }],
+  };
+  expect(normalizeCompilerSample(negativeCase, 'native7:7.0.2:hash', 'native', raw)).toMatchObject({
+    compiler: 'native7:7.0.2:hash',
+    compileMilliseconds: 321,
+    processMilliseconds: 400,
+    maxRssMiB: 155.5,
+    instantiations: 777,
+    diagnostics: [{ file: 'tests/generated-type-scale.ts', line: 102, code: 2684 }],
+  });
 });
 
 test('summary preserves every ordered sample and derives literal statistics', () => {
@@ -152,6 +212,7 @@ test('collector performs five warm-ups then 31 retained samples serially', async
 });
 
 test('catalog contains only the exact nine supported controls', () => {
+  expect(compilerControlLanes).toEqual(['classic', 'native']);
   expect(compilerControlCases.map(control => control.case)).toEqual([
     'named-chained-100-valid',
     'named-chained-100-missing',
@@ -163,4 +224,64 @@ test('catalog contains only the exact nine supported controls', () => {
     'token-bindings-100-missing-final-token',
     'token-bindings-100-mismatched-invariant-service',
   ]);
+});
+
+test('failed child evidence is journaled before normalization rejects it', async () => {
+  const records: unknown[] = [];
+  const raw = {
+    ...completedSample(),
+    case: undefined,
+    compiler: undefined,
+    milliseconds: 123,
+    typescript: '6.0.3',
+    maxRssMiB: 300,
+    instantiations: 456,
+    status: 1,
+    stdout: '{"diagnostics":[]}',
+    stderr: 'compiler failed',
+    accepted: false,
+  };
+  await expect(captureCompilerControlSample(
+    negativeCase,
+    'classic6:6.0.3:hash',
+    'classic',
+    'sample',
+    7,
+    async () => raw,
+    record => records.push(record),
+  )).rejects.toThrow('compiler case was not accepted');
+  expect(records).toEqual([{
+    schema: 1,
+    type: 'failure',
+    phase: 'sample',
+    index: 7,
+    lane: 'classic',
+    compiler: 'classic6:6.0.3:hash',
+    case: 'named-chained-100-missing',
+    error: 'Error: named-chained-100-missing: compiler case was not accepted',
+    raw,
+  }]);
+});
+
+test('spawn failures are journaled even when no child row exists', async () => {
+  const records: unknown[] = [];
+  await expect(captureCompilerControlSample(
+    validCase,
+    'native7:7.0.2:hash',
+    'native',
+    'warmup',
+    2,
+    async () => { throw new Error('native spawn failed'); },
+    record => records.push(record),
+  )).rejects.toThrow('native spawn failed');
+  expect(records).toEqual([{
+    schema: 1,
+    type: 'failure',
+    phase: 'warmup',
+    index: 2,
+    lane: 'native',
+    compiler: 'native7:7.0.2:hash',
+    case: 'named-chained-100-valid',
+    error: 'Error: native spawn failed',
+  }]);
 });

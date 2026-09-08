@@ -18,6 +18,16 @@ provenance value, work metric, TS2589 exclusion, and exact boundary marker.
 The file SHA-256 is
 `3f13f311f553b870f86651eb7817e983d7b9400858bec8e65c203bba76452979`.
 
+The original journal preserves the absolute diagnostic file text emitted by
+each measured compiler, including native compiler paths in removed temporary
+directories. The clone-stable
+`compiler-controls-diagnostic-identities.json` maps all 504 sample diagnostics
+to their declared generated fixture after verifying every captured suffix; its
+SHA-256 is
+`1d35a665cf38000074e917d468cbb9cd91a95286fcecdf6419a96c15f826de8d`.
+The runner now emits that stable relative file identity directly. This derived
+manifest keeps the completed measurements intact and avoids rerunning them.
+
 The repeated controls were run once with:
 
 ```sh

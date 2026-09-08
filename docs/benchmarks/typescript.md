@@ -430,6 +430,7 @@ all 31 retained samples. They do not set a performance threshold.
 | native 7.0.2 | token bindings 100 | wrong-shape | 544 | 587 | 154.5 | 1,448,487 |
 
 The [raw journal](results/2026-09-08-e5456f8/compiler-controls-2026-09-08T11-21-35.870Z.jsonl)
+the [clone-stable diagnostic identities](results/2026-09-08-e5456f8/compiler-controls-diagnostic-identities.json),
 and [evidence manifest](results/2026-09-08-e5456f8/README.md) retain all samples,
 statistics, hashes, diagnostics, and command provenance. The same evidence
 directory retains fresh logs for the full four-lane matrix. Its result remains

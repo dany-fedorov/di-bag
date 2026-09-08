@@ -114,6 +114,7 @@ export const compilerControlCases: readonly CompilerControlDefinition[] = [
   token('missing-final-token'),
   token('mismatched-invariant-service'),
 ];
+export const compilerControlLanes: readonly CompilerLane[] = ['classic', 'native'];
 
 function finiteNonnegative(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
@@ -135,7 +136,7 @@ export function validateCompilerControl(
     if (diagnostics.length !== 0) return { accepted: false, reason: 'valid control returned diagnostics' };
   } else {
     const markers = diagnostics.filter(diagnostic =>
-      diagnostic.file?.endsWith(control.generatedPath)
+      typeof diagnostic.file === 'string' && diagnostic.file.endsWith(control.generatedPath)
       && diagnostic.line === sample.boundaryLine
       && diagnostic.message.includes(control.expectedMarker!),
     );
@@ -147,7 +148,7 @@ export function validateCompilerControl(
     return { accepted: false, reason: 'control identity mismatch' };
   }
   if (!finitePositive(sample.compileMilliseconds) || !finitePositive(sample.processMilliseconds)
-    || !finitePositive(sample.maxRssMiB) || !finiteNonnegative(sample.instantiations)) {
+    || !finitePositive(sample.maxRssMiB) || !finitePositive(sample.instantiations)) {
     return { accepted: false, reason: 'invalid compiler work metrics' };
   }
   const stable = sample.sourceCommitBefore === sample.sourceCommitAfter
@@ -238,6 +239,12 @@ export function normalizeCompilerSample(
   lane: CompilerLane,
   row: Record<string, unknown>,
 ): CompilerControlSample {
+  const [family, version, hash, ...extraIdentity] = compiler.split(':');
+  const expectedFamily = lane === 'classic' ? 'classic6' : 'native7';
+  if (family !== expectedFamily || !version || !hash || extraIdentity.length !== 0
+    || row.typescript !== version) {
+    throw new Error('compiler row identity differs from requested compiler');
+  }
   const metrics = row.nativeMetrics;
   const nativeMetrics = typeof metrics === 'object' && metrics !== null
     ? metrics as Record<string, unknown>
@@ -245,9 +252,18 @@ export function normalizeCompilerSample(
   const diagnostics = row.diagnostics;
   if (!Array.isArray(diagnostics) || !diagnostics.every(diagnostic =>
     typeof diagnostic === 'object' && diagnostic !== null
-    && Number.isInteger(diagnostic.code) && typeof diagnostic.message === 'string')) {
+    && Number.isInteger(diagnostic.code) && diagnostic.code > 0
+    && typeof diagnostic.message === 'string'
+    && typeof diagnostic.file === 'string'
+    && diagnostic.file.endsWith(control.generatedPath)
+    && Number.isInteger(diagnostic.line) && diagnostic.line > 0
+    && (diagnostic.column === undefined || Number.isInteger(diagnostic.column) && diagnostic.column > 0))) {
     throw new Error('compiler row has malformed diagnostics');
   }
+  const canonicalDiagnostics = diagnostics.map(diagnostic => ({
+    ...(diagnostic as Diagnostic),
+    file: control.generatedPath,
+  }));
   const sample: CompilerControlSample = {
     compiler,
     case: control.case,
@@ -266,7 +282,7 @@ export function normalizeCompilerSample(
     instantiations: lane === 'classic'
       ? requiredNumber(row, 'instantiations')
       : requiredNumber(nativeMetrics, 'Instantiations'),
-    diagnostics: diagnostics as Diagnostic[],
+    diagnostics: canonicalDiagnostics,
     boundaryLine: row.boundaryLine === undefined ? undefined : requiredNumber(row, 'boundaryLine'),
     accepted: row.accepted === true,
     sourceCommitBefore: requiredString(row, 'sourceCommitBefore'),
@@ -281,6 +297,37 @@ export function normalizeCompilerSample(
   const validation = validateCompilerControl(control, sample);
   if (!validation.accepted) throw new Error(`${control.case}: ${validation.reason}`);
   return sample;
+}
+
+export async function captureCompilerControlSample(
+  control: CompilerControlDefinition,
+  compiler: string,
+  lane: CompilerLane,
+  phase: 'warmup' | 'sample',
+  index: number,
+  run: () => Promise<Record<string, unknown>>,
+  record: (entry: Record<string, unknown>) => void,
+): Promise<CompilerControlSample> {
+  let raw: Record<string, unknown> | undefined;
+  try {
+    raw = await run();
+    const sample = normalizeCompilerSample(control, compiler, lane, raw);
+    record({ schema: 1, type: 'sample', phase, index, lane, ...sample });
+    return sample;
+  } catch (error) {
+    record({
+      schema: 1,
+      type: 'failure',
+      phase,
+      index,
+      lane,
+      compiler,
+      case: control.case,
+      error: String(error),
+      ...(raw === undefined ? {} : { raw }),
+    });
+    throw error;
+  }
 }
 
 function sha256(path: string): string {
@@ -321,20 +368,18 @@ async function main() {
     controls: compilerControlCases.map(control => control.case),
   })}\n`);
   const summaries: CompilerControlRow[] = [];
-  for (const lane of ['classic', 'native'] as const) {
+  for (const lane of compilerControlLanes) {
     for (const control of compilerControlCases) {
       const summary = await collectCompilerControl(control, identities[lane], async (phase, index) => {
-        const raw = await runCompilerCase(root, lane, control);
-        const sample = normalizeCompilerSample(control, identities[lane], lane, raw);
-        appendFileSync(rawPath, `${JSON.stringify({
-          schema: 1,
-          type: 'sample',
+        return captureCompilerControlSample(
+          control,
+          identities[lane],
+          lane,
           phase,
           index,
-          lane,
-          ...sample,
-        })}\n`);
-        return sample;
+          () => runCompilerCase(root, lane, control),
+          record => appendFileSync(rawPath, `${JSON.stringify(record)}\n`),
+        );
       });
       summaries.push(summary);
       appendFileSync(rawPath, `${JSON.stringify({ type: 'summary', ...summary })}\n`);
