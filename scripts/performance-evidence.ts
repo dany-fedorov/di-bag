@@ -76,6 +76,36 @@ export type PairedBootstrapSummary = {
   medianRatioCi95: readonly [number, number];
 };
 
+export type BaselineToolIdentity = {
+  readonly argv: readonly string[];
+  readonly version: string;
+  readonly sha256: string;
+};
+
+export type BaselinePackedArchive = Awaited<ReturnType<typeof packIsolatedClassic>> & {
+  readonly baseline: {
+    readonly requestedRef: string;
+    readonly commit: string;
+    readonly tree: string;
+    readonly sourceArchiveSha256: string;
+    readonly lockfileSha256: string;
+    readonly tools: Record<'node' | 'npm' | 'classic6' | 'git' | 'tar', BaselineToolIdentity>;
+  };
+};
+
+export type ComparisonVerdict = PairedBootstrapSummary & {
+  readonly status: 'informational' | 'review' | 'unavailable' | 'fail';
+  readonly controlledRunner: boolean;
+  readonly confirmationRequired: boolean;
+  readonly medianRatio: number;
+  readonly p95Ratio: number;
+  readonly predicates: {
+    readonly median: boolean;
+    readonly p95: boolean;
+    readonly confidenceInterval: boolean;
+  };
+};
+
 const scenarios = new Set<RuntimeScenario>([
   'build-close',
   'cold-linear-resolve',
@@ -271,6 +301,42 @@ export type UnavailableRuntimeEvidenceRow = {
   readonly reason: string;
 };
 
+export type RuntimeComparisonEvidenceRow = {
+  readonly schema: 1;
+  readonly lane: 'comparison';
+  readonly status: 'informational' | 'review';
+  readonly scenario: RuntimeScenario;
+  readonly providers: 10 | 100;
+  readonly warmups: 5;
+  readonly samples: 31;
+  readonly orderSeed: number;
+  readonly current: {
+    readonly archiveIdentity: string;
+    readonly implementationIdentity: string;
+    readonly resolvedDiBag: string;
+    readonly summary: BenchmarkSummary;
+  };
+  readonly baseline: {
+    readonly archiveIdentity: string;
+    readonly implementationIdentity: string;
+    readonly resolvedDiBag: string;
+    readonly summary: BenchmarkSummary;
+    readonly provenance: BaselinePackedArchive['baseline'];
+  };
+  readonly verdict: ComparisonVerdict;
+  readonly rawEvidence: string;
+  readonly provenance: RuntimeProvenance;
+};
+
+export type UnavailableRuntimeComparisonRow = {
+  readonly schema: 1;
+  readonly lane: 'comparison';
+  readonly status: 'unavailable' | 'fail';
+  readonly baselineRef: string;
+  readonly orderSeed: number;
+  readonly reason: string;
+};
+
 export async function collectRuntimeSamples(
   request: RuntimeChildRequest,
   execute: (request: RuntimeChildRequest) => Promise<RuntimeChildExecution>,
@@ -348,6 +414,7 @@ function runtimeProvenance(
   tools: readonly [VerifiedTool, VerifiedTool, VerifiedTool],
   git: { sha: string; dirty: boolean },
   utc: string,
+  command: readonly string[] = [...tools[0].argv, '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', 'scripts/performance-evidence.ts', '--current'],
 ): RuntimeProvenance {
   const [node, npm, classic6] = tools;
   const tool = (value: VerifiedTool) => ({ version: value.version, sha256: value.sha256, argv: [...value.argv] });
@@ -367,7 +434,7 @@ function runtimeProvenance(
         scenarios: sha256File(join(root, 'tests', 'benchmarks', 'runtime-scenarios.ts')),
       },
     },
-    command: [...node.argv, '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', 'scripts/performance-evidence.ts', '--current'],
+    command: [...command],
   };
 }
 
@@ -451,6 +518,164 @@ Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow)[]> 
   }
 }
 
+type InstalledRuntimeConsumer = {
+  readonly root: string;
+  readonly childScript: string;
+  readonly installedPackageRoot: string;
+};
+
+function installRuntimeConsumer(
+  root: string,
+  archive: Awaited<ReturnType<typeof packIsolatedClassic>>,
+  npm: VerifiedTool,
+): InstalledRuntimeConsumer {
+  const consumer = mkdtempSync(join(tmpdir(), 'di-bag-runtime-comparison-'));
+  try {
+    writeFileSync(join(consumer, 'package.json'), '{"private":true}\n');
+    const installed = spawnSync(npm.argv[0], [
+      ...npm.argv.slice(1), 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive.path,
+    ], { cwd: consumer, encoding: 'utf8', timeout: 120_000, maxBuffer: 4 * 1024 * 1024 });
+    if (installed.error || installed.signal !== null || installed.status !== 0 || installed.stderr !== '') {
+      throw new Error(`runtime comparison archive install failed: ${installed.stderr || installed.stdout || installed.error?.message}`);
+    }
+    const childScript = join(consumer, 'scripts', 'runtime-benchmark-child.ts');
+    const fixtureScript = join(consumer, 'tests', 'benchmarks', 'runtime-scenarios.ts');
+    mkdirSync(dirname(childScript), { recursive: true });
+    mkdirSync(dirname(fixtureScript), { recursive: true });
+    cpSync(join(root, 'scripts', 'runtime-benchmark-child.ts'), childScript);
+    cpSync(join(root, 'scripts', 'performance-evidence.ts'), join(consumer, 'scripts', 'performance-evidence.ts'));
+    cpSync(join(root, 'scripts', 'platform-evidence.ts'), join(consumer, 'scripts', 'platform-evidence.ts'));
+    cpSync(join(root, 'tests', 'benchmarks', 'runtime-scenarios.ts'), fixtureScript);
+    return { root: consumer, childScript, installedPackageRoot: realpathSync(join(consumer, 'node_modules', 'di-bag')) };
+  } catch (error) {
+    rmSync(consumer, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+function redactComparisonRecord(
+  record: RuntimeComparisonExecutionRecord,
+  consumers: Readonly<Record<'current' | 'baseline', InstalledRuntimeConsumer>>,
+  archives: Readonly<Record<'current' | 'baseline', Awaited<ReturnType<typeof packIsolatedClassic>>>>,
+): RuntimeComparisonExecutionRecord {
+  const substitutions = [
+    [consumers.current.root, '$CURRENT_CONSUMER'],
+    [consumers.baseline.root, '$BASELINE_CONSUMER'],
+    [archives.current.packageTree, '$CURRENT_ARCHIVE_BUILD'],
+    [archives.baseline.packageTree, '$BASELINE_ARCHIVE_BUILD'],
+  ] as const;
+  const redact = (value: string): string => substitutions.reduce(
+    (result, [actual, marker]) => result.split(actual).join(marker), value,
+  );
+  return {
+    ...record,
+    request: { ...record.request, installedPackageRoot: redact(record.request.installedPackageRoot) },
+    execution: { ...record.execution, stdout: redact(record.execution.stdout), stderr: redact(record.execution.stderr) },
+  };
+}
+
+export async function runBaselineRuntimeEvidence(
+  root: string,
+  baselineRef: string,
+  seed: number,
+  record: (record: unknown) => void | Promise<void> = () => {},
+  rawEvidence = 'callback',
+): Promise<readonly (RuntimeComparisonEvidenceRow | UnavailableRuntimeComparisonRow)[]> {
+  if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffff_ffff) throw new Error('order seed must be an unsigned integer');
+  const checked = await Promise.all((['node', 'npm', 'classic6'] as const).map(name => verifyTool(root, name)));
+  const unavailableIndex = checked.findIndex(tool => tool.status === 'unavailable');
+  if (unavailableIndex >= 0) {
+    const unavailable = checked[unavailableIndex]!;
+    return [{ schema: 1, lane: 'comparison', status: 'unavailable', baselineRef, orderSeed: seed,
+      reason: `${(['node', 'npm', 'classic6'] as const)[unavailableIndex]}-${unavailable.status === 'unavailable' ? unavailable.reason : 'not-provisioned'}` }];
+  }
+  const [node, npm, classic6] = checked as [VerifiedTool, VerifiedTool, VerifiedTool];
+  let currentArchive: Awaited<ReturnType<typeof packIsolatedClassic>> | undefined;
+  let baselineArchive: BaselinePackedArchive | undefined;
+  let currentConsumer: InstalledRuntimeConsumer | undefined;
+  let baselineConsumer: InstalledRuntimeConsumer | undefined;
+  try {
+    currentArchive = await packIsolatedClassic(root, node, npm, classic6);
+    baselineArchive = await buildBaselineArchive(root, baselineRef);
+    currentConsumer = installRuntimeConsumer(root, currentArchive, npm);
+    baselineConsumer = installRuntimeConsumer(root, baselineArchive, npm);
+    const consumers = { current: currentConsumer, baseline: baselineConsumer } as const;
+    const archives = { current: currentArchive, baseline: baselineArchive } as const;
+    const git = currentGit(root);
+    const command = [...node.argv, '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', 'scripts/performance-evidence.ts',
+      '--current', `--baseline=${baselineRef}`, `--seed=${seed}`];
+    const provenance = runtimeProvenance(root, [node, npm, classic6], git, new Date().toISOString(), command);
+    const identities = {
+      current: `current:${git.sha}${git.dirty ? ':dirty' : ''}`,
+      baseline: `baseline:${baselineArchive.baseline.commit}`,
+    } as const;
+    await record({
+      schema: 1, kind: 'runtime-comparison-run', baseline: baselineArchive.baseline,
+      current: { archiveIdentity: currentArchive.sha256, implementationIdentity: identities.current },
+      orderSeed: seed, warmups: 5, samples: 31, provenance,
+    });
+    const rows: RuntimeComparisonEvidenceRow[] = [];
+    for (const providers of [10, 100] as const) {
+      for (const scenario of runtimeScenarios) {
+        const expected = expectedScenarioResult(scenario, providers);
+        const requests = {
+          current: {
+            lane: 'current', scenario, providers, archiveIdentity: currentArchive.sha256,
+            implementationIdentity: identities.current, orderSlot: 0,
+            installedPackageRoot: currentConsumer.installedPackageRoot, expected,
+          },
+          baseline: {
+            lane: 'baseline', scenario, providers, archiveIdentity: baselineArchive.sha256,
+            implementationIdentity: identities.baseline, orderSlot: 0,
+            installedPackageRoot: baselineConsumer.installedPackageRoot, expected,
+          },
+        } satisfies Record<'current' | 'baseline', RuntimeChildRequest>;
+        const collected = await collectPairedRuntimeSamples(
+          requests,
+          (implementation, request) => Promise.resolve(exactChildExecution(node, consumers[implementation].childScript, request)),
+          seed,
+          5,
+          31,
+          childRecord => record(redactComparisonRecord(childRecord, consumers, archives)),
+        );
+        const currentSamples = collected.current.map(sample => BigInt(sample.elapsedNanoseconds));
+        const baselineSamples = collected.baseline.map(sample => BigInt(sample.elapsedNanoseconds));
+        const verdict = comparePaired(currentSamples, baselineSamples, seed);
+        const entry = (implementation: 'current' | 'baseline'): string => {
+          const samples = collected[implementation];
+          const first = samples[0]!;
+          if (samples.some(sample => sample.resolvedDiBag !== first.resolvedDiBag)) {
+            throw new Error(`runtime ${implementation} package identity changed between samples`);
+          }
+          return relative(consumers[implementation].root, first.resolvedDiBag);
+        };
+        rows.push({
+          schema: 1, lane: 'comparison', status: verdict.status as 'informational' | 'review', scenario, providers,
+          warmups: 5, samples: 31, orderSeed: seed,
+          current: {
+            archiveIdentity: currentArchive.sha256, implementationIdentity: identities.current,
+            resolvedDiBag: entry('current'), summary: summarize(currentSamples),
+          },
+          baseline: {
+            archiveIdentity: baselineArchive.sha256, implementationIdentity: identities.baseline,
+            resolvedDiBag: entry('baseline'), summary: summarize(baselineSamples), provenance: baselineArchive.baseline,
+          },
+          verdict, rawEvidence, provenance,
+        });
+      }
+    }
+    return rows;
+  } catch (error) {
+    return [{ schema: 1, lane: 'comparison', status: 'fail', baselineRef, orderSeed: seed,
+      reason: error instanceof Error ? error.message : String(error) }];
+  } finally {
+    if (currentConsumer) rmSync(currentConsumer.root, { recursive: true, force: true });
+    if (baselineConsumer) rmSync(baselineConsumer.root, { recursive: true, force: true });
+    if (currentArchive) rmSync(currentArchive.packageTree, { recursive: true, force: true });
+    if (baselineArchive) rmSync(baselineArchive.packageTree, { recursive: true, force: true });
+  }
+}
+
 export function validateCurrentRuntimeEvidenceRow(value: unknown): CurrentRuntimeEvidenceRow {
   if (!isRecord(value) || value.schema !== 1 || value.lane !== 'current' || value.status !== 'informational'
     || !scenarios.has(value.scenario as RuntimeScenario) || (value.providers !== 10 && value.providers !== 100)
@@ -482,6 +707,53 @@ export function validateCurrentRuntimeEvidenceRow(value: unknown): CurrentRuntim
   if (!isRecord(value.summary) || value.summary.count !== 31 || !Array.isArray(value.summary.samples)
     || value.summary.samples.length !== 31) throw new Error('runtime evidence summary mismatch');
   return value as CurrentRuntimeEvidenceRow;
+}
+
+export function validateRuntimeComparisonEvidenceRow(value: unknown): RuntimeComparisonEvidenceRow {
+  const hash = (item: unknown, length = 64) => typeof item === 'string' && new RegExp(`^[a-f0-9]{${length}}$`).test(item);
+  if (!isRecord(value) || value.schema !== 1 || value.lane !== 'comparison'
+    || (value.status !== 'informational' && value.status !== 'review') || !scenarios.has(value.scenario as RuntimeScenario)
+    || (value.providers !== 10 && value.providers !== 100) || value.warmups !== 5 || value.samples !== 31
+    || !Number.isSafeInteger(value.orderSeed) || Number(value.orderSeed) < 0 || typeof value.rawEvidence !== 'string') {
+    throw new Error('comparison evidence row mismatch');
+  }
+  if (value.rawEvidence.startsWith('/') || value.rawEvidence.includes('..')
+    || !value.rawEvidence.startsWith('docs/benchmarks/results/')) throw new Error('comparison raw evidence must be clone-safe');
+  const checkImplementation = (item: unknown): void => {
+    if (!isRecord(item) || !hash(item.archiveIdentity) || typeof item.implementationIdentity !== 'string'
+      || typeof item.resolvedDiBag !== 'string' || item.resolvedDiBag.startsWith('/') || item.resolvedDiBag.includes('..')
+      || !item.resolvedDiBag.startsWith('node_modules/di-bag/dist/') || !isRecord(item.summary)
+      || item.summary.count !== 31 || !Array.isArray(item.summary.samples) || item.summary.samples.length !== 31) {
+      throw new Error('comparison summary mismatch');
+    }
+  };
+  checkImplementation(value.current);
+  checkImplementation(value.baseline);
+  if (!isRecord(value.verdict) || value.verdict.status !== value.status || value.verdict.seed !== value.orderSeed
+    || value.verdict.samples !== 10_000 || typeof value.verdict.confirmationRequired !== 'boolean'
+    || (value.status === 'review') !== value.verdict.confirmationRequired) throw new Error('comparison verdict mismatch');
+  const baseline = value.baseline as Record<string, unknown>;
+  const baselineProvenance = baseline.provenance;
+  if (!isRecord(baselineProvenance) || typeof baselineProvenance.requestedRef !== 'string'
+    || !hash(baselineProvenance.commit, 40) || !hash(baselineProvenance.tree, 40)
+    || !hash(baselineProvenance.sourceArchiveSha256) || !hash(baselineProvenance.lockfileSha256)
+    || !isRecord(baselineProvenance.tools)) throw new Error('comparison baseline provenance mismatch');
+  for (const name of ['node', 'npm', 'classic6', 'git', 'tar']) {
+    const tool = baselineProvenance.tools[name];
+    if (!isRecord(tool) || !Array.isArray(tool.argv) || !tool.argv.every(part => typeof part === 'string')
+      || typeof tool.version !== 'string' || !hash(tool.sha256)) throw new Error('comparison baseline provenance mismatch');
+  }
+  const current = value.current as Record<string, unknown>;
+  if (current.archiveIdentity === baseline.archiveIdentity && current.implementationIdentity === baseline.implementationIdentity) {
+    throw new Error('comparison implementations must have distinct identities');
+  }
+  validateCurrentRuntimeEvidenceRow({
+    schema: 1, lane: 'current', status: 'informational', scenario: value.scenario, providers: value.providers,
+    warmups: 5, samples: 31, archiveIdentity: current.archiveIdentity,
+    implementationIdentity: current.implementationIdentity, resolvedDiBag: current.resolvedDiBag,
+    summary: current.summary, rawEvidence: value.rawEvidence, provenance: value.provenance,
+  });
+  return value as RuntimeComparisonEvidenceRow;
 }
 
 function assertSamples(samples: readonly bigint[]): void {
@@ -570,6 +842,158 @@ export function pairedBootstrapMedianRatio(
   };
 }
 
+function exactCommandIdentity(command: string, versionArguments: readonly string[]): BaselineToolIdentity {
+  const located = spawnSync('which', [command], { encoding: 'utf8' });
+  if (located.status !== 0 || located.signal !== null || !located.stdout.endsWith('\n')) {
+    throw new Error(`cannot locate baseline ${command} tool`);
+  }
+  const path = realpathSync(located.stdout.trim());
+  const version = spawnSync(path, [...versionArguments], { encoding: 'utf8' });
+  if (version.status !== 0 || version.signal !== null || version.stderr !== '') {
+    throw new Error(`cannot identify baseline ${command} tool`);
+  }
+  return { argv: [path], version: version.stdout.trim(), sha256: sha256File(path) };
+}
+
+function verifiedIdentity(tool: VerifiedTool): BaselineToolIdentity {
+  return { argv: [...tool.argv], version: tool.version, sha256: tool.sha256 };
+}
+
+function exactGitObject(root: string, expression: string, label: string): string {
+  const result = spawnSync('git', ['rev-parse', '--verify', expression], { cwd: root, encoding: 'utf8' });
+  if (result.status !== 0 || result.signal !== null || !/^[a-f0-9]{40}\n$/.test(result.stdout) || result.stderr !== '') {
+    throw new Error(`cannot identify baseline ${label}`);
+  }
+  return result.stdout.trim();
+}
+
+export async function buildBaselineArchive(root: string, requestedRef: string): Promise<BaselinePackedArchive> {
+  if (!/^[a-f0-9]{7,40}$/.test(requestedRef)) throw new Error('baseline ref must be a hexadecimal Git object name');
+  const checked = await Promise.all((['node', 'npm', 'classic6'] as const).map(name => verifyTool(root, name)));
+  const unavailable = checked.find(tool => tool.status === 'unavailable');
+  if (unavailable?.status === 'unavailable') throw new Error(`baseline tool unavailable: ${unavailable.reason}`);
+  const [node, npm, classic6] = checked as [VerifiedTool, VerifiedTool, VerifiedTool];
+  const commit = exactGitObject(root, `${requestedRef}^{commit}`, 'commit');
+  const tree = exactGitObject(root, `${commit}^{tree}`, 'tree');
+  const extractionRoot = mkdtempSync(join(tmpdir(), 'di-bag-baseline-source-'));
+  const sourceTree = join(extractionRoot, 'source');
+  const sourceArchive = join(extractionRoot, 'source.tar');
+  mkdirSync(sourceTree);
+  try {
+    const archived = spawnSync('git', ['archive', '--format=tar', '--output', sourceArchive, commit], {
+      cwd: root, encoding: 'utf8', timeout: 120_000, maxBuffer: 4 * 1024 * 1024,
+    });
+    if (archived.status !== 0 || archived.signal !== null || archived.stdout !== '' || archived.stderr !== '') {
+      throw new Error(`baseline git archive failed: ${archived.stderr || archived.stdout}`);
+    }
+    const extracted = spawnSync('tar', ['-xf', sourceArchive, '--directory', sourceTree], {
+      encoding: 'utf8', timeout: 120_000, maxBuffer: 4 * 1024 * 1024,
+    });
+    if (extracted.status !== 0 || extracted.signal !== null || extracted.stdout !== '' || extracted.stderr !== '') {
+      throw new Error(`baseline archive extraction failed: ${extracted.stderr || extracted.stdout}`);
+    }
+    const archive = await packIsolatedClassic(sourceTree, node, npm, classic6);
+    return {
+      ...archive,
+      baseline: {
+        requestedRef,
+        commit,
+        tree,
+        sourceArchiveSha256: sha256File(sourceArchive),
+        lockfileSha256: sha256File(join(sourceTree, 'package-lock.json')),
+        tools: {
+          node: verifiedIdentity(node), npm: verifiedIdentity(npm), classic6: verifiedIdentity(classic6),
+          git: exactCommandIdentity('git', ['--version']), tar: exactCommandIdentity('tar', ['--version']),
+        },
+      },
+    };
+  } finally {
+    rmSync(extractionRoot, { recursive: true, force: true });
+  }
+}
+
+export function pairedExecutionOrder(seed: number, pairs = 31): readonly ('current' | 'baseline')[] {
+  if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffff_ffff) throw new Error('order seed must be an unsigned integer');
+  if (!Number.isSafeInteger(pairs) || pairs <= 0) throw new Error('pair count must be positive');
+  const first = randomGenerator(seed)() < 0.5 ? 'current' : 'baseline';
+  const order: ('current' | 'baseline')[] = [];
+  for (let pair = 0; pair < pairs; pair += 1) {
+    const leading = pair % 2 === 0 ? first : first === 'current' ? 'baseline' : 'current';
+    order.push(leading, leading === 'current' ? 'baseline' : 'current');
+  }
+  return order;
+}
+
+export type RuntimeComparisonExecutionRecord = {
+  readonly schema: 1;
+  readonly kind: 'runtime-comparison-child';
+  readonly sequence: number;
+  readonly phase: 'warmup' | 'sample';
+  readonly implementation: 'current' | 'baseline';
+  readonly request: RuntimeChildRequest;
+  readonly execution: RuntimeChildExecution;
+};
+
+export async function collectPairedRuntimeSamples(
+  requests: Readonly<Record<'current' | 'baseline', RuntimeChildRequest>>,
+  execute: (implementation: 'current' | 'baseline', request: RuntimeChildRequest) => Promise<RuntimeChildExecution>,
+  seed: number,
+  warmups = 5,
+  sampleCount = 31,
+  record: (record: RuntimeComparisonExecutionRecord) => void | Promise<void> = () => {},
+): Promise<Readonly<Record<'current' | 'baseline', readonly BenchmarkSample[]>>> {
+  if (!Number.isSafeInteger(warmups) || warmups < 0) throw new Error('runtime warmup count must be nonnegative');
+  if (!Number.isSafeInteger(sampleCount) || sampleCount <= 0) throw new Error('runtime sample count must be positive');
+  const retained: Record<'current' | 'baseline', BenchmarkSample[]> = { current: [], baseline: [] };
+  let sequence = 0;
+  const runPhase = async (phase: 'warmup' | 'sample', count: number, orderSeed: number): Promise<void> => {
+    const indexes: Record<'current' | 'baseline', number> = { current: 0, baseline: 0 };
+    for (const implementation of pairedExecutionOrder(orderSeed, count)) {
+      const orderSlot = indexes[implementation]++;
+      const request = { ...requests[implementation], lane: implementation, orderSlot };
+      const execution = await execute(implementation, request);
+      await record({ schema: 1, kind: 'runtime-comparison-child', sequence, phase, implementation, request, execution });
+      sequence += 1;
+      const sample = parseRuntimeChild(request, execution);
+      if (phase === 'sample') retained[implementation].push(sample);
+    }
+  };
+  if (warmups > 0) await runPhase('warmup', warmups, (seed ^ 0xa5a5_a5a5) >>> 0);
+  await runPhase('sample', sampleCount, seed);
+  return retained;
+}
+
+export function comparePaired(
+  current: readonly bigint[],
+  baseline: readonly bigint[],
+  seed: number,
+): ComparisonVerdict {
+  if (current.length !== 31 || baseline.length !== 31) {
+    throw new Error('paired comparison requires exactly 31 samples per implementation');
+  }
+  const bootstrap = pairedBootstrapMedianRatio(current, baseline, seed);
+  const currentSummary = summarize(current);
+  const baselineSummary = summarize(baseline);
+  const medianRatio = Number(currentSummary.medianNanoseconds) / Number(baselineSummary.medianNanoseconds);
+  const p95Ratio = Number(currentSummary.p95Nanoseconds) / Number(baselineSummary.p95Nanoseconds);
+  const predicates = {
+    median: medianRatio >= 1.15,
+    p95: p95Ratio >= 1.20,
+    confidenceInterval: bootstrap.medianRatioCi95[0] > 1.10,
+  };
+  const controlledRunner = process.env.DI_BAG_CONTROLLED_PERFORMANCE_RUNNER === '1';
+  const review = controlledRunner && predicates.median && predicates.p95 && predicates.confidenceInterval;
+  return {
+    ...bootstrap,
+    medianRatio,
+    p95Ratio,
+    status: review ? 'review' : 'informational',
+    controlledRunner,
+    confirmationRequired: review,
+    predicates,
+  };
+}
+
 export async function executePreparedRuntimeScenario<P extends PreparedScenario, T extends TimedScenarioResult>(
   prepared: P,
   runTimed: (prepared: P) => Promise<T>,
@@ -612,18 +1036,70 @@ export function createRuntimeJournal(root: string, sha: string, utc: string): {
   };
 }
 
+export function createRuntimeComparisonJournal(root: string, sha: string, utc: string, baseline: string, seed: number): {
+  readonly path: string;
+  readonly relativePath: string;
+  append(record: unknown): void;
+} {
+  if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error('runtime journal requires an exact Git SHA');
+  if (!/^[a-f0-9]{7,40}$/.test(baseline)) throw new Error('baseline must be a hexadecimal Git object name');
+  if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffff_ffff) throw new Error('comparison seed must be an unsigned integer');
+  let canonicalUtc = false;
+  try { canonicalUtc = new Date(utc).toISOString() === utc; } catch { /* rejected below */ }
+  if (!canonicalUtc) throw new Error('runtime journal requires canonical UTC');
+  const filename = `runtime-baseline-${baseline.slice(0, 7)}-seed-${seed}-${utc.replace(/[:.]/g, '-')}.jsonl`;
+  const relativePath = join('docs', 'benchmarks', 'results', `${utc.slice(0, 10)}-${sha.slice(0, 7)}`, filename);
+  const path = join(root, relativePath);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, '', { flag: 'wx' });
+  return {
+    path,
+    relativePath,
+    append(record: unknown): void { writeFileSync(path, `${stableJson(record)}\n`, { flag: 'a' }); },
+  };
+}
+
+export type PerformanceEvidenceArguments =
+  | { readonly mode: 'current' }
+  | { readonly mode: 'comparison'; readonly baseline: string; readonly seed: number };
+
+export function parsePerformanceEvidenceArgs(args: readonly string[]): PerformanceEvidenceArguments {
+  if (args[0] !== '--current') throw new Error('runtime evidence requires --current');
+  if (args.length === 1) return { mode: 'current' };
+  const baselineArguments = args.filter(argument => argument.startsWith('--baseline='));
+  const seedArguments = args.filter(argument => argument.startsWith('--seed='));
+  if (baselineArguments.length !== 1) throw new Error('comparison requires one --baseline');
+  const baseline = baselineArguments[0]!.slice('--baseline='.length);
+  if (!/^[a-f0-9]{7,40}$/.test(baseline)) throw new Error('baseline must be a hexadecimal Git object name');
+  if (seedArguments.length !== 1) throw new Error('comparison requires one --seed');
+  if (args.length !== 3) throw new Error('runtime evidence has unexpected arguments');
+  const seedText = seedArguments[0]!.slice('--seed='.length);
+  if (!/^(0|[1-9][0-9]*)$/.test(seedText)) throw new Error('comparison seed must be an unsigned integer');
+  const seed = Number(seedText);
+  if (!Number.isSafeInteger(seed) || seed > 0xffff_ffff) throw new Error('comparison seed must be an unsigned integer');
+  return { mode: 'comparison', baseline, seed };
+}
+
 export async function performanceEvidenceMain(
   args = process.argv.slice(2),
   root = resolve(process.cwd()),
   write: (chunk: string) => unknown = chunk => process.stdout.write(chunk),
-): Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow)[]> {
-  if (args.length !== 1 || args[0] !== '--current') throw new Error('runtime evidence requires --current');
+): Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow | RuntimeComparisonEvidenceRow | UnavailableRuntimeComparisonRow)[]> {
+  const parsed = parsePerformanceEvidenceArgs(args);
   const git = currentGit(root);
   const utc = new Date().toISOString();
-  const journal = createRuntimeJournal(root, git.sha, utc);
-  const rows = await runCurrentRuntimeEvidence(root, record => journal.append(record), journal.relativePath);
+  const journal = parsed.mode === 'current'
+    ? createRuntimeJournal(root, git.sha, utc)
+    : createRuntimeComparisonJournal(root, git.sha, utc, parsed.baseline, parsed.seed);
+  const rows = parsed.mode === 'current'
+    ? await runCurrentRuntimeEvidence(root, record => journal.append(record), journal.relativePath)
+    : await runBaselineRuntimeEvidence(root, parsed.baseline, parsed.seed, record => journal.append(record), journal.relativePath);
   for (const row of rows) {
-    if (row.status === 'informational') validateCurrentRuntimeEvidenceRow(row);
+    if (row.lane === 'current' && row.status === 'informational') validateCurrentRuntimeEvidenceRow(row);
+    if (row.lane === 'comparison' && (row.status === 'informational' || row.status === 'review')) {
+      validateRuntimeComparisonEvidenceRow(row);
+      journal.append({ schema: 1, kind: 'runtime-comparison-summary', row });
+    }
     write(`${stableJson(row)}\n`);
   }
   return rows;
