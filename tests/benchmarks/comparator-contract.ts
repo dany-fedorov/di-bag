@@ -54,6 +54,10 @@ function promiseLike(value: unknown): value is PromiseLike<unknown> {
   return record(value) && typeof value.then === 'function';
 }
 
+function consumeForbiddenAsync(value: PromiseLike<unknown>): void {
+  void Promise.resolve(value).catch(() => {});
+}
+
 function probe(value: unknown, lifetime: Probe['lifetime'], serial: number): value is Probe {
   return record(value)
     && value.contract === 'di-bag-comparator-v1'
@@ -88,7 +92,10 @@ export async function validateComparator(adapter: ComparatorAdapter): Promise<Co
   } catch (error) {
     return rejection(adapter, `buildGraph failed: ${error instanceof Error ? error.message : String(error)}`);
   }
-  if (promiseLike(graph)) return rejection(adapter, 'buildGraph must be synchronous');
+  if (promiseLike(graph)) {
+    consumeForbiddenAsync(graph);
+    return rejection(adapter, 'buildGraph must be synchronous');
+  }
 
   let terminal: unknown;
   let singleton1: unknown;
@@ -96,31 +103,37 @@ export async function validateComparator(adapter: ComparatorAdapter): Promise<Co
   let transient1: unknown;
   let transient2: unknown;
   let semanticFailure: string | undefined;
+  const resolve = (name: string): unknown => {
+    const value = adapter.resolve(graph, name);
+    if (promiseLike(value)) {
+      consumeForbiddenAsync(value);
+      semanticFailure ??= 'resolve must be synchronous';
+    }
+    return value;
+  };
   try {
-    terminal = adapter.resolve(graph, 'service-2');
-    singleton1 = adapter.resolve(graph, 'singleton');
-    singleton2 = adapter.resolve(graph, 'singleton');
-    transient1 = adapter.resolve(graph, 'transient');
-    transient2 = adapter.resolve(graph, 'transient');
-    if ([terminal, singleton1, singleton2, transient1, transient2].some(promiseLike)) {
-      semanticFailure = 'resolve must be synchronous';
-    } else if (!record(terminal)
+    terminal = resolve('service-2');
+    singleton1 = resolve('singleton');
+    singleton2 = resolve('singleton');
+    transient1 = resolve('transient');
+    transient2 = resolve('transient');
+    if (semanticFailure === undefined && (!record(terminal)
       || terminal.contract !== 'di-bag-comparator-v1'
       || terminal.kind !== 'linear-terminal'
       || terminal.count !== 3
-      || terminal.checksum !== 'service-0>service-1>service-2') {
+      || terminal.checksum !== 'service-0>service-1>service-2')) {
       semanticFailure = 'linear named graph result mismatch';
-    } else if (singleton1 !== singleton2) {
+    } else if (semanticFailure === undefined && singleton1 !== singleton2) {
       semanticFailure = 'singleton identity mismatch';
-    } else if (!probe(singleton1, 'singleton', 1)) {
+    } else if (semanticFailure === undefined && !probe(singleton1, 'singleton', 1)) {
       semanticFailure = 'singleton result mismatch';
-    } else if (transient1 === transient2) {
+    } else if (semanticFailure === undefined && transient1 === transient2) {
       semanticFailure = 'transient identity mismatch';
-    } else if (!probe(transient1, 'transient', 1) || !probe(transient2, 'transient', 2)) {
+    } else if (semanticFailure === undefined && (!probe(transient1, 'transient', 1) || !probe(transient2, 'transient', 2))) {
       semanticFailure = 'transient result mismatch';
     }
   } catch (error) {
-    semanticFailure = `resolve failed: ${error instanceof Error ? error.message : String(error)}`;
+    semanticFailure ??= `resolve failed: ${error instanceof Error ? error.message : String(error)}`;
   }
 
   let disposal: Promise<void>;
@@ -129,7 +142,10 @@ export async function validateComparator(adapter: ComparatorAdapter): Promise<Co
   } catch (error) {
     return rejection(adapter, `dispose failed: ${error instanceof Error ? error.message : String(error)}`);
   }
-  if (!(disposal instanceof Promise)) return rejection(adapter, 'dispose must return a Promise');
+  if (!(disposal instanceof Promise)) {
+    if (promiseLike(disposal)) consumeForbiddenAsync(disposal);
+    return rejection(adapter, 'dispose must return a Promise');
+  }
   try {
     await disposal;
   } catch (error) {

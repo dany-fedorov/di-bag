@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   inspectOptionalComparators,
   validateComparator,
@@ -89,6 +91,42 @@ test('rejects asynchronous construction or resolution from the synchronous commo
     .resolves.toMatchObject({ status: 'not-comparable', reason: 'buildGraph must be synchronous' });
   await expect(validateComparator(validAdapter({ resolve: (() => Promise.resolve({})) as never })))
     .resolves.toMatchObject({ status: 'not-comparable', reason: 'resolve must be synchronous' });
+});
+
+test('forbidden rejected async results are consumed before the child exits', () => {
+  const moduleUrl = pathToFileURL(join(process.cwd(), 'tests', 'benchmarks', 'comparator-contract.ts')).href;
+  const base = `
+    import { validateComparator } from ${JSON.stringify(moduleUrl)};
+    const singleton = { contract: 'di-bag-comparator-v1', lifetime: 'singleton', serial: 1, disposed: false };
+    const graph = { singleton, transients: [] };
+    const adapter = {
+      name: 'fixture-container', version: '1.2.3', sourceSha256: '${'a'.repeat(64)}',
+      semantics: 'restricted-common-subset', buildGraph() { return graph; },
+      async dispose() { singleton.disposed = true; for (const value of graph.transients) value.disposed = true; },
+    };
+  `;
+  const cases = [
+    `${base} adapter.buildGraph = () => Promise.reject(new Error('async build failed'));
+      adapter.resolve = () => singleton;
+      console.log(JSON.stringify(await validateComparator(adapter)));`,
+    `${base} adapter.resolve = () => Promise.reject(new Error('async resolve failed'));
+      console.log(JSON.stringify(await validateComparator(adapter)));`,
+    `${base} let calls = 0; adapter.resolve = () => {
+        calls += 1;
+        if (calls === 1) return Promise.reject(new Error('early async resolve failed'));
+        throw new Error('later resolve failed');
+      };
+      console.log(JSON.stringify(await validateComparator(adapter)));`,
+  ];
+  for (const source of cases) {
+    const child = spawnSync(process.execPath, ['--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', '--input-type=module', '--eval', source], {
+      encoding: 'utf8', timeout: 10_000,
+    });
+    expect(child.status).toBe(0);
+    expect(child.signal).toBeNull();
+    expect(child.stderr).toBe('');
+    expect(JSON.parse(child.stdout)).toMatchObject({ status: 'not-comparable' });
+  }
 });
 
 test('rejects a changed named workload, singleton caching or transient freshness', async () => {
