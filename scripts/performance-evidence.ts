@@ -5,6 +5,10 @@ import { arch, platform, release, tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { packIsolatedClassic, stableJson, verifyTool, type VerifiedTool } from './platform-evidence.ts';
 import { expectedScenarioResult } from '../tests/benchmarks/runtime-scenarios.ts';
+import {
+  inspectOptionalComparators,
+  type ComparatorEvidenceRow,
+} from '../tests/benchmarks/comparator-contract.ts';
 
 export type RuntimeScenario =
   | 'build-close'
@@ -1090,10 +1094,12 @@ export function createRuntimeComparisonJournal(root: string, sha: string, utc: s
 }
 
 export type PerformanceEvidenceArguments =
+  | { readonly mode: 'comparators' }
   | { readonly mode: 'current' }
   | { readonly mode: 'comparison'; readonly baseline: string; readonly seed: number };
 
 export function parsePerformanceEvidenceArgs(args: readonly string[]): PerformanceEvidenceArguments {
+  if (args.length === 1 && args[0] === '--comparators') return { mode: 'comparators' };
   if (args[0] !== '--current') throw new Error('runtime evidence requires --current');
   if (args.length === 1) return { mode: 'current' };
   const baselineArguments = args.filter(argument => argument.startsWith('--baseline='));
@@ -1127,8 +1133,13 @@ export async function performanceEvidenceMain(
   args = process.argv.slice(2),
   root = resolve(process.cwd()),
   write: (chunk: string) => unknown = chunk => process.stdout.write(chunk),
-): Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow | RuntimeComparisonEvidenceRow | UnavailableRuntimeComparisonRow)[]> {
+): Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow | RuntimeComparisonEvidenceRow | UnavailableRuntimeComparisonRow | ComparatorEvidenceRow)[]> {
   const parsed = parsePerformanceEvidenceArgs(args);
+  if (parsed.mode === 'comparators') {
+    const rows = await inspectOptionalComparators(root);
+    for (const row of rows) write(`${stableJson(row)}\n`);
+    return rows;
+  }
   const git = currentGit(root);
   const utc = new Date().toISOString();
   const journal = parsed.mode === 'current'
