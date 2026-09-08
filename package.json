@@ -34,6 +34,7 @@
     "example:wbs": "bun run examples/wbs-scope.ts",
     "build": "tsc6 -p ./tsconfig.build.json",
     "benchmark:types": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/benchmark-types.ts",
+    "benchmark:compiler-controls": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/benchmark-compiler-controls.ts",
     "benchmark:runtime": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/performance-evidence.ts --current",
     "evidence:platform": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/platform-evidence.ts",
     "prepack": "npm run build",
