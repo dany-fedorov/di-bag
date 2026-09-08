@@ -71,7 +71,7 @@ The CLI takes exactly lane/count/form/scenario, prints one JSON row and exits 1
 when `accepted !== true`. Existing whole-report commands keep their current
 collector semantics.
 
-- [ ] **Step 1: Write parser and acceptance RED tests before creating the helper.**
+- [x] **Step 1: Write parser and acceptance RED tests before creating the helper.**
 
 ```ts
 import { expect, test } from 'bun:test';
@@ -112,7 +112,7 @@ Run `bun test tests/compiler-case.test.ts`; expect missing helper/import RED.
 Existing `tests/benchmark-types.test.ts` already has malformed-JSON, process,
 same-file cascade and duplicate-boundary controls; retain them.
 
-- [ ] **Step 2: Implement exact identity parsing and supervised dispatch.**
+- [x] **Step 2: Implement exact identity parsing and supervised dispatch.**
 
 In `scripts/compiler-case.ts`, use this parser:
 
@@ -177,7 +177,7 @@ async function main() {
 main().catch(error => { console.error(error); process.exitCode = 1; });
 ```
 
-- [ ] **Step 3: Add real small controls and run GREEN.**
+- [x] **Step 3: Add real small controls and run GREEN.**
 
 Add tests calling `runCompilerCase` for classic/native 100 bulk valid and missing.
 Assert exact case identity, compiler identity, nonempty hash fields, accepted true,
@@ -189,7 +189,7 @@ for an invalid identity: nonzero exit, no JSON success. Bound outer Bun tests at
 flock -x /tmp/di-bag-compiler-heavy.lock bun test tests/compiler-case.test.ts tests/benchmark-types.test.ts tests/native-compiler.test.ts --timeout 120000
 ```
 
-- [ ] **Step 4: Collect current representative RED evidence, serially.**
+- [x] **Step 4: Collect current representative RED evidence, serially.**
 
 Run one current 100 named/work control, 100 token/work control, native 500 modules
 valid, native 1000 bindings valid, native 1000 chained valid, and native 100
@@ -207,13 +207,41 @@ Retain actual outputs, including unexpected current improvements. A historical
 failure that now passes is not genuine current RED. Do not run all large rows
 during this reconnaissance step.
 
-- [ ] **Step 5: Verify the evidence interface and make a scoped checkpoint.**
+- [x] **Step 5: Verify the evidence interface and make a scoped checkpoint.**
 
 Run `npm run typecheck` under the lock, `git diff --check`, and inspect that
 no generator or acceptance allowance changed. Commit only the new helper/CLI/tests
 after GREEN: `git add scripts/compiler-case.ts scripts/check-compiler-case.ts tests/compiler-case.test.ts`,
 then `git commit -m "test: add strict selected compiler case runner"`.
 Request review of worker supervision, identity validation and honest RED evidence.
+
+Task 1 evidence at source `ad8a11d942ad55b12c916b403bf35d81a95d7060` is retained in
+`.superpowers/sdd/2026-09-08-compiler-scalability/baseline.jsonl`. The missing-helper
+RED failed before implementation. A separate exit-branch mutation RED returned
+status 0 instead of 1. The focused GREEN passed 8 tests / 56 assertions;
+the covering compiler-harness gate passed 40 tests / 206 assertions. Classic 100
+chained and token-binding controls passed at 883,806 and 1,461,065 instantiations.
+The unchanged native bounds honestly retained the current failures: 500 modules
+and 1000 chained timed out, 1000 bindings returned TS2589, and 100 replacement
+wrong-shape returned TS2769 without the useful named diagnostic. Both incremental
+work controls and the locked classic typecheck passed.
+
+Task 1 review fixes validate direct-call identities before dispatch, compare
+commit/status/source/generated hashes before and after every lane, retain the
+native compiler's copied-source hash, and expose deterministic boundary and CLI
+verification seams. Five independent mutation runs proved the direct identity,
+recomputed boundary, four provenance fields, native snapshot retention and CLI
+exit tests fail when their guards are removed. The revised focused gate passed
+15 tests / 88 assertions and the covering gate passed 48 tests / 242 assertions;
+the locked classic typecheck and diff check passed.
+
+The remaining Task 1 review fix keeps exported `runCompilerCase` at exactly three
+arguments and closes it over the real dispatcher and provenance sampler. Synthetic
+evidence now enters only `verifyCompilerCaseEvidence`, whose name and explicit
+inputs cannot claim compiler execution; deterministic CLI tests use the pure
+`compilerCaseExitCode` selector. A fourth-argument mutation made the compile-time
+guard fail with TS2578. After restoration, the focused 15/88 gate, covering
+48/242 gate and locked classic typecheck passed again.
 
 ## Task 2: Dependency-directed root projections
 
