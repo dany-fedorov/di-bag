@@ -135,7 +135,7 @@ Expected: schema, order alternation and reproducible source identities pass; eac
 
 **Interfaces:** Produce `npm run benchmark:compiler-controls` and `CompilerControlRow` with `compiler`, `case`, `warmups`, `samples`, `compileMilliseconds`, `processMilliseconds`, `maxRssMiB`, `instantiations`, `diagnostics`, `markerAccepted`.
 
-- [ ] **Step 1: Write failing exact-marker tests.**
+- [x] **Step 1: Write failing exact-marker tests.**
 
 ```ts
 test('negative controls reject a fast compile that lost its marker', () => {
@@ -144,21 +144,21 @@ test('negative controls reject a fast compile that lost its marker', () => {
 });
 ```
 
-- [ ] **Step 2: Run the RED test.**
+- [x] **Step 2: Run the RED test.**
 
 Run: `bun test tests/benchmark-compiler-controls.test.ts`
 
 Expected: FAIL because the control runner is absent.
 
-- [ ] **Step 3: Implement fresh-child supported controls.**
+- [x] **Step 3: Implement fresh-child supported controls.**
 
 Reuse `scaleSource`, `tokenScaleSource`, diagnostic marker evaluators and `nativeScale` supervision semantics. Execute valid/missing/wrong-shape for named chained 100, named grouped 1000 and token bindings 100: five warm-ups, 31 fresh child samples, classic then native as separate output series. Preserve exact marker at the generated boundary and record whole process/RSS/instantiations.
 
-- [ ] **Step 4: Document series limits and keep exhaustive failures visible.**
+- [x] **Step 4: Document series limits and keep exhaustive failures visible.**
 
 Add a dated section that labels repeated controls informational/comparable only to matching compiler identities. Link to raw evidence and explicitly retain full `npm run benchmark:types`, including non-completing 500/1000 rows; do not claim controls establish those limits.
 
-- [ ] **Step 5: Run focused, existing matrix and full gates.**
+- [x] **Step 5: Run focused, existing matrix and full gates.**
 
 Run: `bun test tests/benchmark-compiler-controls.test.ts tests/benchmark-types.test.ts && npm run benchmark:compiler-controls && npm run benchmark:types && npm run benchmark:types -- --native && npm run benchmark:types -- --native --tokens && npm run check`
 

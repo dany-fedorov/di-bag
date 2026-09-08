@@ -7,6 +7,7 @@ npm run benchmark:types
 npm run benchmark:types -- --tokens
 npm run benchmark:types -- --native
 npm run benchmark:types -- --native --tokens
+npm run benchmark:compiler-controls
 ```
 
 The default command runs 36 cases, each in a fresh Node process: 100, 500, and 1,000
@@ -390,3 +391,48 @@ primaries with 27 gaps and 1/1 supplements. The matching source hash permits
 reuse of the final 108 rows above; their 83/108 result and 25 unresolved rows do
 not change. Full evidence is in
 `docs/reports/2026-09-08-native-diagnostics.md`.
+
+## Repeated supported controls (2026-09-08)
+
+The repeated control runner measured exactly three supported fixture families:
+named chained 100, named grouped 1,000, and token bindings 100. Each valid,
+missing, and wrong-shape control ran in five warm-up children followed by 31
+retained fresh children. Classic TypeScript 6.0.3 and native TypeScript 7.0.2
+are separate series identified by compiler binary hash. Every negative sample
+retained exactly one required message at its generated boundary and no TS2589;
+every valid sample retained zero diagnostics. The runner also validated case
+identity, clean and stable source provenance, generated-source hash, compiler
+work, process wall time, RSS, instantiations, and all derived statistics.
+
+These shared-machine figures are informational and are comparable only with a
+run using the same compiler identity and protocol. Values below are medians of
+all 31 retained samples. They do not set a performance threshold.
+
+| Compiler | Control | Case | Compile ms | Process ms | Peak MiB | Instantiations |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| classic 6.0.3 | named chained 100 | valid | 1,454 | 1,742 | 397 | 902,444 |
+| classic 6.0.3 | named chained 100 | missing | 1,460 | 1,749 | 399 | 898,603 |
+| classic 6.0.3 | named chained 100 | wrong-shape | 1,472 | 1,758 | 399 | 905,700 |
+| classic 6.0.3 | named grouped 1,000 | valid | 3,302 | 3,598 | 664 | 2,699,591 |
+| classic 6.0.3 | named grouped 1,000 | missing | 3,266 | 3,559 | 643 | 2,664,429 |
+| classic 6.0.3 | named grouped 1,000 | wrong-shape | 3,289 | 3,587 | 649 | 2,698,561 |
+| classic 6.0.3 | token bindings 100 | valid | 1,975 | 2,242 | 445 | 1,479,703 |
+| classic 6.0.3 | token bindings 100 | missing | 1,957 | 2,225 | 438 | 1,412,637 |
+| classic 6.0.3 | token bindings 100 | wrong-shape | 1,979 | 2,245 | 444 | 1,475,246 |
+| native 7.0.2 | named chained 100 | valid | 362 | 396 | 125.7 | 882,741 |
+| native 7.0.2 | named chained 100 | missing | 362 | 397 | 120.6 | 878,900 |
+| native 7.0.2 | named chained 100 | wrong-shape | 362 | 393 | 121.2 | 885,998 |
+| native 7.0.2 | named grouped 1,000 | valid | 1,245 | 1,296 | 240.1 | 2,682,508 |
+| native 7.0.2 | named grouped 1,000 | missing | 1,242 | 1,293 | 243.1 | 2,647,346 |
+| native 7.0.2 | named grouped 1,000 | wrong-shape | 1,250 | 1,301 | 238.0 | 2,681,479 |
+| native 7.0.2 | token bindings 100 | valid | 548 | 590 | 154.5 | 1,452,944 |
+| native 7.0.2 | token bindings 100 | missing | 536 | 581 | 153.6 | 1,385,867 |
+| native 7.0.2 | token bindings 100 | wrong-shape | 544 | 587 | 154.5 | 1,448,487 |
+
+The [raw journal](results/2026-09-08-e5456f8/compiler-controls-2026-09-08T11-21-35.870Z.jsonl)
+and [evidence manifest](results/2026-09-08-e5456f8/README.md) retain all samples,
+statistics, hashes, diagnostics, and command provenance. The same evidence
+directory retains fresh logs for the full four-lane matrix. Its result remains
+83/108 with the same 25 unresolved rows described above. In particular, these
+smaller repeated controls do not establish the 500/1,000 individual-chain
+limits and do not replace the non-completing exhaustive rows.
