@@ -25,9 +25,9 @@ archive and hash.
 
 ```text
 $ bun test tests/platform-evidence.test.ts
-9 pass
+10 pass
 0 fail
-71 expect() calls
+91 expect() calls
 ```
 
 The direct process gates run outside managed child-process interception. A
@@ -104,5 +104,40 @@ renames the following raw entry. The checker accepts only regular files and
 directories and rejects metadata, links and other entry types rather than
 silently misinterpreting them.
 
-The GREEN run is the 9-test, 71-assertion result above; classic typecheck and
-build also exited zero after the fixes.
+The GREEN run is superseded by the final 10-test, 91-assertion result above;
+classic typecheck and build also exited zero after the fixes.
+
+## Exact-evidence hardening round
+
+A later review required canonical child bytes, a closed archive allowlist,
+exact compiler/npm invocation and strict row provenance. New RED mutations
+showed that reordered root and nested keys were accepted; archive claims and
+bytes could each contain extra files; package documents could differ from the
+isolated inputs; tar data after the terminator was ignored; `packIsolatedClassic`
+could substitute the separately supplied Node runtime; and abbreviated SHAs or
+noncanonical/invalid timestamps could select evidence directories.
+
+The evaluator now requires `stableJson(actual) + "\\n"`. Archive validation
+derives the complete allowlist from the fresh `dist` tree plus the three package
+documents, requires claimed and actual inventories to equal it in both
+directions, rejects source/test/credential files, rejects nonzero tar trailers,
+parses the archived package manifest and compares package document bytes to the
+isolated inputs. Build and pack run through the exact verified `classic6` and
+`npm` argv after enforcing their common pinned Node runtime. Evidence rows
+require a lowercase 40-character Git SHA and an exactly round-trippable UTC ISO
+timestamp.
+
+Final verification:
+
+```text
+$ bun test tests/platform-evidence.test.ts
+10 pass, 0 fail, 91 expect() calls
+
+$ npm run typecheck && npm run build && git diff --check
+exit 0
+```
+
+The native archive suite was not repeated in this round because no `src`,
+package manifest, lockfile or compiler dependency changed; its fresh
+2-test/1,152-assertion result above remains applicable to the same package
+source.

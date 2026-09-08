@@ -14,6 +14,7 @@ import {
   writePlatformEvidence,
   type PlatformEnvironment,
   type PlatformTool,
+  type VerifiedTool,
 } from '../scripts/platform-evidence.ts';
 
 const temporaryRoots: string[] = [];
@@ -34,7 +35,7 @@ function hash(text: string): string {
 
 type TestTarEntry = { path: string; contents: string; type?: '0' | 'x' };
 
-function tarArchiveEntries(entries: readonly TestTarEntry[]): Uint8Array {
+function tarArchiveEntries(entries: readonly TestTarEntry[], trailing = new Uint8Array()): Uint8Array {
   const chunks: Uint8Array[] = [];
   for (const { path, contents, type = '0' } of entries) {
     const body = Buffer.from(contents);
@@ -56,6 +57,7 @@ function tarArchiveEntries(entries: readonly TestTarEntry[]): Uint8Array {
     if (padding) chunks.push(new Uint8Array(padding));
   }
   chunks.push(new Uint8Array(1024));
+  if (trailing.length) chunks.push(trailing);
   return Uint8Array.from(gzipSync(Uint8Array.from(Buffer.concat(chunks))));
 }
 
@@ -104,11 +106,18 @@ test('child evidence rejects noncanonical output, stderr, process failures and t
   expect(evaluatePlatformChild(expected, { ...cleanChild, status: null }))
     .toEqual({ status: 'fail', reason: 'child exited with status null' });
   expect(evaluatePlatformChild(expected, { ...cleanChild,
-    stdout: '{"lane":"deno-root","result":{"ok":true},"__proto__":{"hostile":true}}\n' }))
+    stdout: '{"__proto__":{"hostile":true},"lane":"deno-root","result":{"ok":true}}\n' }))
     .toEqual({ status: 'fail', reason: 'child result mismatch' });
   expect(evaluatePlatformChild(expected, { ...cleanChild,
-    stdout: '{"lane":"deno-root","result":{"ok":true,"__proto__":{"hostile":true}}}\n' }))
+    stdout: '{"lane":"deno-root","result":{"__proto__":{"hostile":true},"ok":true}}\n' }))
     .toEqual({ status: 'fail', reason: 'child result mismatch' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild,
+    stdout: '{"result":{"ok":true},"lane":"deno-root"}\n' }))
+    .toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
+  const nestedExpected = { lane: 'deno-root', result: { a: true, z: true } };
+  expect(evaluatePlatformChild(nestedExpected, { ...cleanChild,
+    stdout: '{"lane":"deno-root","result":{"z":true,"a":true}}\n' }))
+    .toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
 });
 
 test('tool verification rejects explicit unavailability, version drift and hash drift', async () => {
@@ -188,6 +197,7 @@ const packedFiles = [
   'package.json', 'README.md', 'LICENSE',
   'dist/index.d.ts', 'dist/index.js', 'dist/node.d.ts', 'dist/node.js',
   'dist/sas-box.d.ts', 'dist/sas-box.js', 'dist/val-box.d.ts', 'dist/val-box.js',
+  'dist/internal.js',
 ];
 
 function archiveFixture() {
@@ -195,8 +205,16 @@ function archiveFixture() {
   writeFileSync(join(packageTree, 'package.json'), JSON.stringify(packageDocument));
   writeFileSync(join(packageTree, 'README.md'), 'readme');
   writeFileSync(join(packageTree, 'LICENSE'), 'license');
+  mkdirSync(join(packageTree, 'dist'));
+  for (const path of packedFiles.filter(path => path.startsWith('dist/'))) {
+    writeFileSync(join(packageTree, path), `contents for ${path}`);
+  }
   const result = { filename: 'di-bag-0.1.0.tgz', files: packedFiles.map(path => ({ path })) };
   return { packageTree, result, stdout: `${JSON.stringify([result])}\n` };
+}
+
+function packedContents(packageTree: string): Record<string, string> {
+  return Object.fromEntries(packedFiles.map(path => [path, readFileSync(join(packageTree, path), 'utf8')]));
 }
 
 test('pack output requires exactly one archive and empty stderr', () => {
@@ -213,7 +231,7 @@ test('pack output requires exactly one archive and empty stderr', () => {
 });
 
 test('pack output rejects every missing declared export and package document', () => {
-  for (const missing of packedFiles) {
+  for (const missing of packedFiles.filter(path => path !== 'dist/internal.js')) {
     const fixture = archiveFixture();
     fixture.result.files = fixture.result.files.filter(file => file.path !== missing);
     expect(() => validatePackOutput(fixture.packageTree, JSON.stringify([fixture.result]))).toThrow(`missing ${missing}`);
@@ -223,8 +241,8 @@ test('pack output rejects every missing declared export and package document', (
 test('packed archive validation catches a missing archive, changed bytes and stale file inventory', () => {
   const fixture = archiveFixture();
   const archivePath = join(fixture.packageTree, fixture.result.filename);
-  const archiveBytes = tarArchive(Object.fromEntries(packedFiles.map(path => [path,
-    path === 'package.json' ? JSON.stringify(packageDocument) : `contents for ${path}`])));
+  const contents = packedContents(fixture.packageTree);
+  const archiveBytes = tarArchive(contents);
   writeFileSync(archivePath, archiveBytes);
   const sha256 = createHash('sha256').update(archiveBytes).digest('hex');
   const archive = { path: archivePath, packageTree: fixture.packageTree, sha256, files: packedFiles };
@@ -239,14 +257,13 @@ test('packed archive validation catches a missing archive, changed bytes and sta
   writeFileSync(archivePath, 'not an archive');
   const fake = { ...archive, sha256: hash('not an archive') };
   expect(() => validatePackedArchive(fake)).toThrow('not a gzip tar archive');
-  const missingActual = tarArchive(Object.fromEntries(packedFiles.filter(path => path !== 'dist/node.js')
-    .map(path => [path, path === 'package.json' ? JSON.stringify(packageDocument) : `contents for ${path}`])));
+  const missingActual = tarArchive(Object.fromEntries(Object.entries(contents).filter(([path]) => path !== 'dist/node.js')));
   writeFileSync(archivePath, missingActual);
   expect(() => validatePackedArchive({ ...archive, sha256: createHash('sha256').update(missingActual).digest('hex') }))
     .toThrow('archive bytes are missing dist/node.js');
   const paxOverride = tarArchiveEntries([
-    ...packedFiles.filter(path => path !== 'dist/index.js').map(path => ({
-      path, contents: path === 'package.json' ? JSON.stringify(packageDocument) : `contents for ${path}`,
+    ...Object.entries(contents).filter(([path]) => path !== 'dist/index.js').map(([path, entryContents]) => ({
+      path, contents: entryContents,
     })),
     { path: 'PaxHeader/index.js', type: 'x', contents: paxPath('package/dist/not-index.js') },
     { path: 'dist/index.js', contents: 'misleading raw header' },
@@ -254,6 +271,41 @@ test('packed archive validation catches a missing archive, changed bytes and sta
   writeFileSync(archivePath, paxOverride);
   expect(() => validatePackedArchive({ ...archive, sha256: createHash('sha256').update(paxOverride).digest('hex') }))
     .toThrow('unsupported tar entry type');
+});
+
+test('archive inventory is an exact allowlist and package documents match isolated inputs byte-for-byte', () => {
+  const fixture = archiveFixture();
+  const archivePath = join(fixture.packageTree, fixture.result.filename);
+  const contents = packedContents(fixture.packageTree);
+  const writeArchive = (entries: Record<string, string>, files = Object.keys(entries), trailing?: Uint8Array) => {
+    const bytes = trailing
+      ? tarArchiveEntries(Object.entries(entries).map(([path, entryContents]) => ({ path, contents: entryContents })), Uint8Array.from(trailing))
+      : tarArchive(entries);
+    writeFileSync(archivePath, bytes);
+    return { path: archivePath, packageTree: fixture.packageTree,
+      sha256: createHash('sha256').update(bytes).digest('hex'), files };
+  };
+
+  expect(() => validatePackedArchive(writeArchive(contents))).not.toThrow();
+  expect(() => validatePackedArchive(writeArchive(contents, packedFiles.filter(path => path !== 'dist/internal.js'))))
+    .toThrow('claimed inventory is missing dist/internal.js');
+  const withoutInternal = Object.fromEntries(Object.entries(contents).filter(([path]) => path !== 'dist/internal.js'));
+  expect(() => validatePackedArchive(writeArchive(withoutInternal, packedFiles)))
+    .toThrow('archive bytes are missing dist/internal.js');
+
+  for (const unexpected of ['src/index.ts', 'tests/secret.ts', '.npmrc', '.env']) {
+    expect(() => validatePackedArchive(writeArchive({ ...contents, [unexpected]: 'secret' }, [...packedFiles, unexpected])))
+      .toThrow(`unexpected file ${unexpected}`);
+  }
+  for (const document of ['package.json', 'README.md', 'LICENSE']) {
+    const changed = document === 'package.json' ? JSON.stringify({ ...packageDocument, name: 'wrong-package' }) : `${contents[document]} mutated`;
+    expect(() => validatePackedArchive(writeArchive({ ...contents, [document]: changed })))
+      .toThrow(`content mismatch for ${document}`);
+  }
+  expect(() => validatePackedArchive(writeArchive({ ...contents, 'package.json': '{broken' })))
+    .toThrow('invalid package.json');
+  expect(() => validatePackedArchive(writeArchive(contents, packedFiles, Uint8Array.of(1))))
+    .toThrow('nonzero data after tar terminator');
 });
 
 test('repository manifest verifies every provisioned identity and retains absent tools as unavailable', async () => {
@@ -282,15 +334,18 @@ test('isolated classic pack contains only freshly built declared exports and rec
   expect(readFileSync(join(archive.packageTree, 'src/index.ts'), 'utf8')).toBe(readFileSync(join(root, 'src/index.ts'), 'utf8'));
   expect(existsSync(join(archive.packageTree, 'dist/index.js'))).toBe(true);
   expect(existsSync(archive.path)).toBe(true);
-  expect(archive.files).toEqual(expect.arrayContaining(packedFiles));
+  expect(archive.files).toEqual(expect.arrayContaining(packedFiles.filter(path => path !== 'dist/internal.js')));
   expect(() => validatePackedArchive(archive)).not.toThrow();
+
+  const wrongNode = { ...node, argv: [realpathSync('/bin/false')] } as VerifiedTool;
+  await expect(packIsolatedClassic(root, wrongNode, npm, classic6)).rejects.toThrow('must share exact runtime');
 });
 
 test('evidence writer appends stable sorted JSONL under the source/date directory', async () => {
   const root = temporaryRoot();
   const row = {
     schema: 1 as const, lane: 'archive', status: 'pass' as const, utc: '2026-09-08T12:00:00.000Z',
-    git: { sha: 'abcdef0123456789', dirty: true }, z: 2, a: 1,
+    git: { sha: 'abcdef0123456789abcdef0123456789abcdef01', dirty: true }, z: 2, a: 1,
   };
   const path = await writePlatformEvidence(root, row);
   expect(path).toBe(join(root, 'docs/benchmarks/results/2026-09-08-abcdef0/platform.jsonl'));
@@ -298,4 +353,10 @@ test('evidence writer appends stable sorted JSONL under the source/date director
   await writePlatformEvidence(root, { ...row, lane: 'deno-root', status: 'unavailable', reason: 'not-provisioned' });
   expect(readFileSync(path, 'utf8').split('\n').filter(Boolean)).toHaveLength(2);
   expect(readFileSync(path, 'utf8').split('\n')[0]).toStartWith('{"a":1,"git"');
+  for (const git of [{ sha: 'abcdef0', dirty: false }, { sha: 'A'.repeat(40), dirty: false }]) {
+    await expect(writePlatformEvidence(root, { ...row, git })).rejects.toThrow('40-character Git SHA');
+  }
+  for (const utc of ['2026-02-30T12:00:00.000Z', '2026-09-08T12:00:00+00:00', '2026-09-08']) {
+    await expect(writePlatformEvidence(root, { ...row, utc })).rejects.toThrow('canonical UTC ISO timestamp');
+  }
 });

@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, isAbsolute, join, resolve } from 'node:path';
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 
 export type PlatformTool = 'node' | 'npm' | 'classic6' | 'bun' | 'deno' | 'esbuild' | 'playwright' | 'chromium';
@@ -129,7 +129,7 @@ export function evaluatePlatformChild(expected: { lane: string; [key: string]: u
   try { actual = JSON.parse(supervised.stdout); }
   catch { return { status: 'fail', reason: 'child stdout is not one canonical JSON object' }; }
   if (!actual || typeof actual !== 'object' || Array.isArray(actual)
-    || supervised.stdout !== `${JSON.stringify(actual)}\n`) {
+    || supervised.stdout !== `${stableJson(actual)}\n`) {
     return { status: 'fail', reason: 'child stdout is not one canonical JSON object' };
   }
   if ((actual as { lane?: unknown }).lane !== expected.lane) return { status: 'fail', reason: 'child lane mismatch' };
@@ -144,8 +144,9 @@ function runExact(tool: VerifiedTool, args: readonly string[], cwd: string): Pla
   return { status: result.status, signal: result.signal, stdout: result.stdout, stderr: result.stderr };
 }
 
-function requiredArchiveFiles(packageTree: string): string[] {
-  const packageJson = JSON.parse(readFileSync(join(packageTree, 'package.json'), 'utf8')) as {
+function requiredArchiveFilesFromDocument(document: unknown): string[] {
+  if (!document || typeof document !== 'object' || Array.isArray(document)) throw new Error('packed archive has invalid package.json');
+  const packageJson = document as {
     exports?: Record<string, { default?: string; types?: string }>;
   };
   const required = new Set(['package.json', 'README.md', 'LICENSE']);
@@ -154,6 +155,27 @@ function requiredArchiveFiles(packageTree: string): string[] {
     if (typeof target.types === 'string') required.add(target.types.replace(/^\.\//, ''));
   }
   return [...required].sort();
+}
+
+function requiredArchiveFiles(packageTree: string): string[] {
+  return requiredArchiveFilesFromDocument(JSON.parse(readFileSync(join(packageTree, 'package.json'), 'utf8')));
+}
+
+function allowedArchiveFiles(packageTree: string): string[] {
+  const allowed = new Set(['package.json', 'README.md', 'LICENSE']);
+  const dist = join(packageTree, 'dist');
+  if (!existsSync(dist) || !statSync(dist).isDirectory()) throw new Error('isolated package has no dist directory');
+  const visit = (directory: string) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) visit(path);
+      else if (entry.isFile() && !lstatSync(path).isSymbolicLink()) {
+        allowed.add(relative(packageTree, path).split(sep).join('/'));
+      } else throw new Error(`isolated package has unsupported dist entry ${relative(packageTree, path)}`);
+    }
+  };
+  visit(dist);
+  return [...allowed].sort();
 }
 
 export function validatePackOutput(packageTree: string, stdout: string, stderr = ''): PackResult {
@@ -169,10 +191,16 @@ export function validatePackOutput(packageTree: string, stdout: string, stderr =
   if (isAbsolute(result.filename) || basename(result.filename) !== result.filename) {
     throw new Error('npm pack returned an unsafe archive filename');
   }
-  const files = new Set(result.files.map(file => file?.path).filter((path): path is string => typeof path === 'string'));
+  const listed = result.files.map(file => file?.path);
+  if (listed.some(path => typeof path !== 'string' || !path)) throw new Error('npm pack result has an invalid file entry');
+  const files = new Set(listed as string[]);
+  if (files.size !== listed.length) throw new Error('npm pack result has duplicate files');
   for (const required of requiredArchiveFiles(packageTree)) {
     if (!files.has(required)) throw new Error(`packed archive is missing ${required}`);
   }
+  const allowed = new Set(allowedArchiveFiles(packageTree));
+  for (const file of files) if (!allowed.has(file)) throw new Error(`packed archive contains unexpected file ${file}`);
+  for (const file of allowed) if (!files.has(file)) throw new Error(`packed archive is missing allowed file ${file}`);
   return result as PackResult;
 }
 
@@ -186,15 +214,18 @@ function tarOctal(bytes: Uint8Array, start: number, length: number): number {
   return Number.parseInt(value, 8);
 }
 
-function archiveFiles(path: string): Set<string> {
+function archiveFiles(path: string): Map<string, Uint8Array> {
   let bytes: Uint8Array;
   try { bytes = Uint8Array.from(gunzipSync(Uint8Array.from(readFileSync(path)))); }
   catch { throw new Error('packed archive is not a gzip tar archive'); }
-  const files = new Set<string>();
+  const files = new Map<string, Uint8Array>();
   let offset = 0, ended = false;
   while (offset + 512 <= bytes.length) {
     const header = bytes.subarray(offset, offset + 512);
-    if (header.every(byte => byte === 0)) { ended = true; break; }
+    if (header.every(byte => byte === 0)) {
+      if (!bytes.subarray(offset).every(byte => byte === 0)) throw new Error('packed archive has nonzero data after tar terminator');
+      ended = true; break;
+    }
     if (tarText(header, 257, 6) !== 'ustar') throw new Error('packed archive has an invalid tar header');
     const recordedChecksum = tarOctal(header, 148, 8);
     let actualChecksum = 0;
@@ -219,7 +250,7 @@ function archiveFiles(path: string): Set<string> {
         throw new Error('packed archive has an unsafe file path');
       }
       if (files.has(relative)) throw new Error(`packed archive has duplicate file ${relative}`);
-      files.add(relative);
+      files.set(relative, bytes.slice(offset + 512, offset + 512 + size));
     }
     offset = next;
   }
@@ -232,23 +263,42 @@ export function validatePackedArchive(archive: PackedArchive): void {
   if (sha256File(archive.path) !== archive.sha256) throw new Error('packed archive SHA-256 mismatch');
   const claimed = new Set(archive.files);
   const actual = archiveFiles(archive.path);
-  for (const required of requiredArchiveFiles(archive.packageTree)) {
+  if (claimed.size !== archive.files.length) throw new Error('packed archive claimed inventory has duplicates');
+  const allowed = new Set(allowedArchiveFiles(archive.packageTree));
+  for (const file of claimed) if (!allowed.has(file)) throw new Error(`packed archive contains unexpected file ${file}`);
+  for (const file of allowed) if (!claimed.has(file)) throw new Error(`packed archive claimed inventory is missing ${file}`);
+  for (const file of actual.keys()) if (!claimed.has(file)) throw new Error(`packed archive bytes contain unclaimed file ${file}`);
+  for (const file of claimed) if (!actual.has(file)) throw new Error(`packed archive bytes are missing ${file}`);
+  let packedDocument: unknown;
+  try { packedDocument = JSON.parse(new TextDecoder().decode(actual.get('package.json'))); }
+  catch { throw new Error('packed archive has invalid package.json'); }
+  for (const document of ['package.json', 'README.md', 'LICENSE']) {
+    const expected = Uint8Array.from(readFileSync(join(archive.packageTree, document)));
+    const received = actual.get(document);
+    if (!received || expected.length !== received.length || expected.some((byte, index) => received[index] !== byte)) {
+      throw new Error(`packed archive content mismatch for ${document}`);
+    }
+  }
+  for (const required of requiredArchiveFilesFromDocument(packedDocument)) {
     if (!claimed.has(required)) throw new Error(`packed archive is missing ${required}`);
     if (!actual.has(required)) throw new Error(`packed archive bytes are missing ${required}`);
   }
-  for (const file of claimed) if (!actual.has(file)) throw new Error(`packed archive bytes are missing ${file}`);
 }
 
 export async function packIsolatedClassic(root: string, node: VerifiedTool, npm: VerifiedTool, classic6: VerifiedTool): Promise<PackedArchive> {
+  if (node.name !== 'node' || npm.name !== 'npm' || classic6.name !== 'classic6'
+    || npm.argv[0] !== node.argv[0] || classic6.argv[0] !== node.argv[0]) {
+    throw new Error('node, npm and classic6 must share exact runtime');
+  }
   const packageTree = mkdtempSync(join(tmpdir(), 'di-bag-platform-'));
   for (const name of ['src', 'package.json', 'tsconfig.json', 'tsconfig.build.json', 'README.md', 'LICENSE']) {
     const source = join(root, name);
     if (!existsSync(source)) throw new Error(`isolated package source is missing ${name}`);
     cpSync(source, join(packageTree, name), { recursive: true });
   }
-  const build = runExact(node, [...classic6.argv.slice(1), '-p', 'tsconfig.build.json'], packageTree);
+  const build = runExact(classic6, ['-p', 'tsconfig.build.json'], packageTree);
   if (build.signal !== null || build.status !== 0 || build.stderr !== '') throw new Error(`isolated classic build failed: ${build.stderr || build.stdout}`);
-  const packed = runExact(node, [...npm.argv.slice(1), 'pack', '--ignore-scripts', '--json'], packageTree);
+  const packed = runExact(npm, ['pack', '--ignore-scripts', '--json'], packageTree);
   if (packed.signal !== null || packed.status !== 0) throw new Error(`npm pack failed: ${packed.stderr || packed.stdout}`);
   const result = validatePackOutput(packageTree, packed.stdout, packed.stderr);
   const path = resolve(packageTree, result.filename);
@@ -258,9 +308,10 @@ export async function packIsolatedClassic(root: string, node: VerifiedTool, npm:
 }
 
 export async function writePlatformEvidence(root: string, row: PlatformRow): Promise<string> {
-  if (!/^\d{4}-\d{2}-\d{2}T/.test(row.utc) || !/^[a-f0-9]{7,40}$/.test(row.git.sha)) {
-    throw new Error('platform evidence row needs UTC time and Git SHA');
-  }
+  if (!/^[a-f0-9]{40}$/.test(row.git.sha)) throw new Error('platform evidence row needs an exact 40-character Git SHA');
+  let canonicalUtc = false;
+  try { canonicalUtc = new Date(row.utc).toISOString() === row.utc; } catch { /* rejected below */ }
+  if (!canonicalUtc) throw new Error('platform evidence row needs a canonical UTC ISO timestamp');
   const directory = join(root, 'docs', 'benchmarks', 'results', `${row.utc.slice(0, 10)}-${row.git.sha.slice(0, 7)}`);
   mkdirSync(directory, { recursive: true });
   const path = join(directory, 'platform.jsonl');
