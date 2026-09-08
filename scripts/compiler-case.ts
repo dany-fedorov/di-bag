@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
+import ts from 'typescript';
 import {
   scaleBoundaryLine,
   scaleSource,
@@ -165,6 +166,8 @@ export function verifyCompilerCaseEvidence(
     sourceDirty: before.sourceStatus !== '',
     sourceStatus: before.sourceStatus,
     ...(lane === 'classic' ? {
+      typescript: ts.version,
+      node: process.version,
       sourceCommit: before.sourceCommit,
       sourceSha256: before.sourceSha256,
       generatedSha256: before.generatedSha256,

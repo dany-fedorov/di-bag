@@ -158,6 +158,26 @@ test('compiler CLI deterministically selects exit status from simulated evidence
   expect(compilerCaseExitCode({ ...validItem, accepted: true })).toBe(0);
 });
 
+test('classic process failures retain compiler identity and complete provenance', () => {
+  const row = verifyFakeEvidence('classic', {
+    ...validItem,
+    accepted: false,
+    diagnostics: [],
+    failureReason: 'worker did not complete cleanly',
+  }, undefined);
+
+  expect(row).toMatchObject({
+    accepted: false,
+    typescript: '6.0.3',
+    node: process.version,
+    sourceCommit: cleanSnapshot.sourceCommit,
+    sourceStatus: cleanSnapshot.sourceStatus,
+    sourceSha256: cleanSnapshot.sourceSha256,
+    generatedSha256: cleanSnapshot.generatedSha256,
+    failureReason: 'worker did not complete cleanly',
+  });
+});
+
 for (const lane of ['classic', 'native'] as const) {
   for (const scenario of ['valid', 'missing'] as const) {
     test(`${lane} selected 100 bulk ${scenario} returns verified evidence`, async () => {

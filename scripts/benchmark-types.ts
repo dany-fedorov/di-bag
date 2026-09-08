@@ -1,17 +1,16 @@
 import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import ts from 'typescript';
-import { evaluateWorker, type MatrixCase } from './benchmark-result.ts';
+import type { MatrixCase } from './benchmark-result.ts';
 import { nativeScale } from './native-scale.ts';
 import { nativeLimits, resolveNative } from './native-compiler.ts';
+import { runCompilerCase } from './compiler-case.ts';
 import {
   compilerProgram,
   describeDiagnostic,
   scaleBoundaryLine,
   scalePath,
   scaleSource,
-  tokenScalePath,
 } from '../tests/compiler.ts';
 import type {
   ScaleCase,
@@ -73,16 +72,7 @@ async function main() {
     let row: Record<string, unknown>;
     if (native) {
       row = await nativeScale(root, native, item);
-    } else {
-      const workerArgs = tokenMode ? [resolve(root, 'scripts/check-token-scale.ts'), form, scenario, String(count)]
-        : [resolve(root, 'scripts/benchmark-types.ts'), '--worker', String(count), form, scenario];
-      const start = performance.now();
-      const child = spawnSync('node', ['--max-old-space-size=3072', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', ...workerArgs],
-        { encoding: 'utf8', timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
-      row = { ...evaluateWorker(item, { status: child.status, signal: child.signal,
-        ...(child.error ? { error: child.error.message } : {}), stdout: child.stdout, stderr: child.stderr }, tokenMode ? tokenScalePath : scalePath),
-        processMilliseconds: Math.round(performance.now() - start) };
-    }
+    } else row = await runCompilerCase(root, 'classic', item);
     if (!row.accepted) failures.push({ ...item, reason: row.failureReason });
     console.log(JSON.stringify(row));
   }
