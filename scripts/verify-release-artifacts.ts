@@ -7,6 +7,7 @@ import { createPublicReleaseEvidence, serializeStable, type ReleaseManifest, typ
 import { inspectNpmArchive, type NpmArchiveInspection } from './release-archive.ts';
 import { RELEASE_COMMAND_LIMITS } from './run-release-command.ts';
 import { supervise } from './native-process.ts';
+import { matchDiagnosticMarkers, parseNativeDiagnostics } from './native-compiler.ts';
 
 const ARTIFACT_DIRECTORY = '/tmp/di-bag-release-candidate';
 const PUBLIC_EVIDENCE = 'docs/reports/2026-09-08-release-candidate-evidence.json';
@@ -258,10 +259,21 @@ async function verifyDeclarations(consumer: string, checkout: string, versions: 
       const positiveConfig = resolve(out, `tsconfig.${downstream}.json`); writeFileSync(positiveConfig, JSON.stringify({ compilerOptions: { strict: true, noEmit: true, skipLibCheck: false, noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022', types: [] }, files: [`consumer.${format}`] }));
       await runChecked([compiler, '-p', positiveConfig], out);
       const negativeConfig = resolve(out, `tsconfig.${downstream}.negative.json`); writeFileSync(negativeConfig, JSON.stringify({ compilerOptions: { strict: true, noEmit: true, skipLibCheck: false, noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022', types: [] }, files: [`negative.${format}`] }));
-      const result = await supervise(compiler, ['-p', negativeConfig], out, RELEASE_COMMAND_LIMITS), output = `${result.stdout}\n${result.stderr}`;
-      if (result.status === 0 || result.signal !== null || result.terminationReason !== undefined || (output.match(/error TS\d+:/g) ?? []).length !== 2 || output.includes('TS2589')) throw new Error(`I14 negative declaration evidence mismatch for ${emitter}/${format}/${downstream}: ${output}`);
+      const result = await supervise(compiler, ['-p', negativeConfig, '--pretty', 'false'], out, RELEASE_COMMAND_LIMITS);
+      const diagnosticMatch = releaseNegativeDiagnosticMatch(negative, resolve(out, `negative.${format}`), result.stdout, out);
+      if (result.status === 0 || result.status === null || result.signal !== null || result.terminationReason !== undefined || result.stderr !== '' || !diagnosticMatch.accepted) throw new Error(`I14 negative declaration evidence mismatch for ${emitter}/${format}/${downstream}: ${JSON.stringify(diagnosticMatch)}\n${result.stdout}\n${result.stderr}`);
     }
   }
+}
+
+export function matchesReleaseNegativeDiagnostics(source: string, file: string, stdout: string, cwd: string): boolean {
+  return releaseNegativeDiagnosticMatch(source, file, stdout, cwd).accepted;
+}
+function releaseNegativeDiagnosticMatch(source: string, file: string, stdout: string, cwd: string) {
+  const parsed = parseNativeDiagnostics(stdout, cwd), matched = matchDiagnosticMarkers(source, file, parsed.diagnostics);
+  const accepted = parsed.diagnostics.length === 2 && parsed.diagnostics.every(diagnostic => diagnostic.code !== 2589)
+    && matched.primaryExpected === 2 && matched.primaryMatched === 2 && matched.missing.length === 0 && matched.unexpected.length === 0;
+  return { accepted, parsed, matched };
 }
 
 export async function verifyReleaseArtifacts(manifestPath: string, workDir: string): Promise<VerifyReleaseResult> {

@@ -11,7 +11,7 @@ import { assertSafeReleaseArgv, parseReleaseCommandArgs, runReleaseCommand, type
 import { collectFreshNativeGaps, collectReviewedNativeGaps, createNativeInventory, parseNativeInventoryArgs } from '../scripts/release-native-inventory.ts';
 import { APPROVED_HANDOFF_PATHS, createReleaseAudit, parseReleaseAuditArgs } from '../scripts/create-release-audit.ts';
 import { hashReleaseTree, parseReleaseTreeArgs } from '../scripts/hash-release-tree.ts';
-import { parseVerifyReleaseArgs, releaseInstallArgv, traceInstalledRoot, verifyReleaseArtifacts, verifyReleaseManifestStatic, VERIFY_RELEASE_USAGE } from '../scripts/verify-release-artifacts.ts';
+import { matchesReleaseNegativeDiagnostics, parseVerifyReleaseArgs, releaseInstallArgv, traceInstalledRoot, verifyReleaseArtifacts, verifyReleaseManifestStatic, VERIFY_RELEASE_USAGE } from '../scripts/verify-release-artifacts.ts';
 import { nativeDiagnosticGapMessages } from './native-diagnostic-markers.ts';
 
 const root = resolve(__dirname, '..');
@@ -626,6 +626,13 @@ describe('archive verifier', () => {
     const result = await verifyReleaseArtifacts(path, work); expect(result.ok).toBe(false); expect(result.failures.some(failure => failure.includes('classic6 compiler version mismatch'))).toBe(true);
     expect(readdirSync(resolve(work, 'full-consumer')).some(name => name.startsWith('declarations-'))).toBe(false); publish(manifest);
   }, 30_000);
+  test('matches both I14 diagnostics to their marked regions and expected message fragments', () => {
+    const file = resolve(directory, 'marked-negative.cts'), source = "// diagnostic: wanted first\nconst first = 1;\n// diagnostic: wanted second\nconst second = 2;";
+    const located = (firstMessage: string, firstLine = 2, secondMessage = 'wanted second', secondLine = 4) => `${file}(${firstLine},1): error TS2322: ${firstMessage}\n${file}(${secondLine},1): error TS2322: ${secondMessage}\n`;
+    expect(matchesReleaseNegativeDiagnostics(source, file, located('wanted first'), directory)).toBe(true);
+    expect(matchesReleaseNegativeDiagnostics(source, file, located('unrelated first', 2, 'unrelated second', 4), directory)).toBe(false);
+    expect(matchesReleaseNegativeDiagnostics(source, file, located('wanted first', 1, 'wanted second', 2), directory)).toBe(false);
+  });
   test('installs owned verified bytes and passes real Node/Bun, CJS/ESM, core-only, and declaration oracles', async () => {
     publish(manifest); const work = resolve(directory, 'real-work'); const result = await verifyReleaseArtifacts(manifestPath, work);
     expect(result).toEqual({ ok: true, failures: [] });
