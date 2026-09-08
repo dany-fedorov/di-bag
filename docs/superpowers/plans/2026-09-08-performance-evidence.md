@@ -192,7 +192,7 @@ Implement Typed Inject and Awilix adapters only for synchronous named graphs, si
 
 README and report must label ordinary measurements “informational”, comparator data “restricted common-subset throughput”, old rows “historical”, and missing tools “unavailable”. Add no universal speed, feature-quality, bundle-budget or platform claim absent matching retained results.
 
-- [ ] **Step 5: Run final focused/package/full gates and review evidence.**
+- [x] **Step 5: Run final focused/package/full gates and review evidence.**
 
 Run: `bun test tests/performance-evidence.test.ts tests/runtime-benchmark-child.test.ts tests/performance-baseline.test.ts tests/benchmark-compiler-controls.test.ts tests/comparator-contract.test.ts && npm run benchmark:runtime -- --baseline=739b509 --seed=17 && npm run benchmark:compiler-controls && npm run check && git diff --check`
 

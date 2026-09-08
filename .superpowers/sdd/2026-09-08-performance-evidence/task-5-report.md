@@ -40,8 +40,7 @@ by its completion row and independently validated Task 4 report.
 The first full repository gate after the public-report delta passed 875 tests,
 5,176 assertions and the classic build in 578.97 seconds. Its retained log is
 `/tmp/di-bag-performance-task5-check.log`; the focused log is
-`/tmp/di-bag-performance-task5-focused.log`. A final full gate follows the
-identity mutation correction and review before Task 5 is marked complete.
+`/tmp/di-bag-performance-task5-focused.log`.
 
 Independent review found one Important issue: forbidden rejected Promises from
 asynchronous construction or resolution were classified but left unhandled.
@@ -50,3 +49,10 @@ fix attaches rejection handling to each async result immediately, including an
 earlier rejected result when a later resolve throws. The child-process GREEN
 covers build rejection, repeated resolve rejection and reject-then-throw; the
 review-fix focused gate passes 71 tests / 363 assertions.
+
+Scoped re-review independently reproduced all three child cases at exit status
+zero, passed all 10 comparator tests, matched the status rows and hashes, and
+reported no remaining findings. The final exact-head `npm run check` passed 876
+tests / 5,189 assertions across 48 files in 595.97 seconds, followed by a
+successful classic build. The retained final log SHA-256 is
+`162c17d705880275d8bf00112f3a0848e50a50667bbfe9711ce623493e805649`.

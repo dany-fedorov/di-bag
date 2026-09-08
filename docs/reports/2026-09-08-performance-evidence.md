@@ -55,3 +55,11 @@ The existing runtime baseline was not rerun for this documentation and
 comparator-status change. Its source, fixture and lockfile identities are
 already retained at the exact measured checkpoints, and this task does not
 alter the runtime implementation or benchmark workload.
+
+## Verification
+
+The final focused performance matrix passed 71 tests / 363 assertions,
+including a real archive build of the intrinsic baseline and child-process
+tests for forbidden rejected comparator results. Independent scoped re-review
+reported no remaining findings. The final repository gate passed 876 tests /
+5,189 assertions across 48 files, followed by a successful classic build.
