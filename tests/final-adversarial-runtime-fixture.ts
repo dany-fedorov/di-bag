@@ -121,8 +121,10 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i3PresenceBox = new ValBox.WithValue.WithMetadata(undefined, i1Metadata, '');
   const i3Error = new Error('I3 snapshot');
   const i3StartedIds: symbol[] = [];
+  let i3ObservedAbsentError: unknown;
   const i3Observed = DiBag.observe({ onEvent(event: any) {
     if (event.kind === 'acquisition-started' && ['absent', 'present', 'failing'].includes(event.label)) i3StartedIds.push(event.acquisitionId);
+    if (event.kind === 'acquisition-failed' && event.label === 'absent') i3ObservedAbsentError = event.error;
   }, onError() {} });
   const i3Failing = DiBag.withDisposal(() => ({ snapshot() { throw i3Error; } }), () => { i3Dispose.push('source'); });
   const i3Bag = i3Observed.begin().add({
@@ -137,12 +139,13 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   try { i3Bag.resolve('failing'); } catch (error) { i3GetterError = error; }
   const i3Frame = i3Bag.inspect('present').acquisitions[0]?.metadata[0]?.value;
   i3PresenceBox.setValue('mutated'); i3PresenceBox.setMetadata({ source: 'mutated' });
+  await flush();
   invariant(i3AbsentError instanceof Error && i3AbsentError.message === 'val-box value is absent', 'I3', 'absent error changed');
+  invariant(i3AbsentError === i3ObservedAbsentError, 'I3', 'absent error identity changed');
   invariant(i3Presence.present === true && i3Presence.value === undefined && Object.isFrozen(i3Presence), 'I3', 'present undefined changed');
   // val-box 0.1.0 treats an empty constructor alias as anonymous, represented by null.
   invariant(i3Frame?.alias === null && i3Frame.metadata.value === i1Metadata, 'I3', 'snapshot frame changed');
   invariant(i3GetterError === i3Error, 'I3', 'getter error identity changed');
-  await flush();
   await i3Bag.close();
   invariant(JSON.stringify(i3Dispose) === JSON.stringify(['source']), 'I3', 'source ownership changed');
 

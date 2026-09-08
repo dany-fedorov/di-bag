@@ -30,5 +30,8 @@ bun test tests/box-adapters.test.ts tests/plugins.test.ts tests/observers.test.t
 384 assertions
 ```
 
+The combined focused command reports `78 pass`, the one intentional I12 failure, and `396`
+assertions. I7 and I13 each pass when selected alone; I12 alone reproduces the same retained RED.
+
 `npm run typecheck` also exited zero after the fixture was added. The task stops here under the
 plan's failure policy so Task 4 can classify and design any production correction.
