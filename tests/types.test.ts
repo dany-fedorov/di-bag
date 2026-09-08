@@ -123,6 +123,11 @@ test('incremental module installation preserves private, forward, and token cont
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('incremental module declarations retain exact results and token outputs', () => {
+  expect(diagnostics(resolve(__dirname, 'types/incremental-modules-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('builder views preserve exact accepted registration histories', () => {
   expect(diagnostics(resolve(__dirname, 'types/builder-views.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
