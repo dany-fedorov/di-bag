@@ -135,7 +135,7 @@ Expected: contract and Deno lane pass when pinned Deno is provisioned; otherwise
 
 **Interfaces:** Produce `bundleBrowserRoot(archive, esbuild): Promise<{ path: string; sha256: string; bytes: number; gzipBytes: number; metafileSha256: string; resolvedDiBag: string }>` and `runBrowserWorkerLane(bundle, chromium): Promise<PlatformRow>`. Browser entry must `postMessage({ lane: 'browser-worker-minified', result })` and no other messages.
 
-- [ ] **Step 1: Write failing bundle/Worker tests.**
+- [x] **Step 1: Write failing bundle/Worker tests.**
 
 ```ts
 test('rejects node facade input and stale minified bundle', async () => {
@@ -145,21 +145,28 @@ test('rejects node facade input and stale minified bundle', async () => {
 });
 ```
 
-- [ ] **Step 2: Run the RED test.**
+- [x] **Step 2: Run the RED test.**
 
 Run: `bun test tests/platform/browser-worker.test.ts tests/platform-evidence.test.ts`
 
 Expected: FAIL because bundler and Worker helpers are absent.
 
-- [ ] **Step 3: Implement archive-root bundling and artifact validation.**
+- [x] **Step 3: Implement archive-root bundling and artifact validation.**
 
 Install the archive with `[node.argv[0], npmCli, 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive.path]`, recursively copy `tests/platform/portable/` to `consumer/portable/`, and copy `tests/platform/browser-entry.ts` to `consumer/browser-entry.ts`. `browser-entry.ts` imports bare `di-bag` and `./portable/contract.ts`. Invoke pinned esbuild from that consumer with `--bundle --platform=browser --format=iife --target=es2022 --minify --tree-shaking=true --legal-comments=none` and explicit temporary output/metafile paths. Resolve every metafile input: fixture inputs may be under `realpath(consumer) + sep`; every `node_modules` input must be beneath `realpath(consumer/node_modules/di-bag) + sep`; that package input set must contain exactly one `dist/index.js` root entry and may contain additional package-local `dist/*.js` dependencies. Retain the resolved `dist/index.js` as `resolvedDiBag`. Reject empty output, gzip failure, any `node:` input, `dist/node.js`, a second/missing root entry, or any package input outside the local tarball. Store no bundle in the repository.
 
-- [ ] **Step 4: Implement Chromium Worker parent.**
+- [x] **Step 4: Implement Chromium Worker parent.**
 
 Launch only the verified Playwright Chromium executable, create a classic Worker from the recorded minified bytes, accept exactly one structured message, and terminate it. The parent must verify bundle hash immediately before launch and validate the same portable result as the Deno lane; timeout, console output, extra messages and Worker errors fail the row.
 
-- [ ] **Step 5: Run focused and cross-package gates.**
+- [x] **Step 5: Run focused and cross-package gates.**
+
+Retained Task 3 execution facts: the focused platform suite passed `16 / 16`
+with `138` assertions; the classic installed-package matrix passed `77 / 77`
+with `495` assertions; and the classic/native archive matrix passed `2 / 2`
+with `1,152` assertions. Classic and native typechecks and builds exited zero.
+esbuild, Playwright and Chromium remain `unavailable: not-provisioned`; no
+browser bundle or Worker runtime pass is claimed and no tool was downloaded.
 
 Run: `bun test tests/platform/browser-worker.test.ts tests/platform-evidence.test.ts && npm run build && bun test tests/native-package.test.ts`
 
