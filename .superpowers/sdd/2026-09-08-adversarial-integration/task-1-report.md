@@ -16,9 +16,9 @@ error: I12: late cleanup changed: ["late","immediate"]
 
 The expected cancellation sequence is `['immediate', 'late']`. The unmodified cleanup path waits
 for pending ownership and then reverses acquisition order in `src/acquisition.ts` `disposeAll()`;
-cancellation reaches it from `src/startup.ts`. With only this assertion temporarily bypassed, the
-complete I1-I13 source test passed (`1 pass`, `0 fail`). The required assertion was restored after
-the probe.
+cancellation reaches it from `src/startup.ts`. A source-only probe accepts the known I12 order so
+I1-I11 and I13 remain independently selectable. The ordinary runtime and embedded archive string
+retain the required assertion and fail on the observed I12 order.
 
 Neighboring source verification remained green:
 
