@@ -166,14 +166,15 @@ execution; do not stop for another planning approval between increments.
     68/95 with exactly 27 gaps; source, utility, package, full and example gates
     pass. Native parity and T2 remain open. Evidence:
     `docs/reports/2026-09-08-native-diagnostics.md`.
-- [ ] Local release-candidate handoff: Task 1 of
-  `2026-09-08-release-handoff.md` reconciles the `0.1.0` changelog,
+- [ ] Local release-candidate handoff: Tasks 1-3 of
+  `2026-09-08-release-handoff.md` are complete. They reconcile the `0.1.0` changelog,
   package-boundary guidance, migration rules, local evidence workflow,
-  immutable-version recovery, and separately authorized online appendix.
-  Artifact tooling, frozen archives, offline consumers, sanitized evidence, and
-  final audit remain in Tasks 2-5. The registry version and publication remain unavailable
-  because registry checks, login, push, tag, and publication are outside the
-  authorized local workflow and require fresh explicit authorization.
+  immutable-version recovery, separately authorized online appendix, artifact
+  tooling, and the offline archive verifier. Task 4 is restarting after hardening
+  the release-test compiler version probe. The separately authorized checkpoint
+  push of `afe6326` is complete and supplies no registry evidence. Frozen archives,
+  sanitized evidence, Task 5 review, and final audit remain; registry version and publication remain unavailable because registry checks, login, tag, provenance,
+  credential changes, and publication require fresh explicit authorization.
 
 ## Execution rules
 

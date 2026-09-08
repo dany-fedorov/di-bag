@@ -561,8 +561,13 @@ describe('archive verifier', () => {
       const command: ReleaseCommandEvidence = { argv: ['npm', 'run', 'build'], cwd: name === 'di-bag' ? checkout : resolve(root, `.related-repos/${name}`), startedAt: '2026-09-08T00:00:00.000Z', finishedAt: '2026-09-08T00:00:00.001Z', elapsedMilliseconds: 1, exitCode: 0, signal: null, terminationReason: null, peakObservedRssMiB: 10, inputs: [], stdout: writeLogEvidence(stdout, 'ok\n'), stderr: writeLogEvidence(stderr, '') };
       return { name, version: '0.1.0', archive, checkout: { path: name === 'di-bag' ? checkout : resolve(root, `.related-repos/${name}`), branch: 'feat/v0.1', candidateSourceCommit: 'a'.repeat(40), status: '' }, pack: { dryRunJson: [result], packJson: [structuredClone(result)], packedAt: '2026-09-08T00:00:01.000Z' }, commands: [command] };
     });
-    const versionOf = (executable: string) => spawnSync(executable, ['--version'], { cwd: root, encoding: 'utf8' }).stdout.trim().replace(/^Version /, '');
-    manifest = createReleaseManifest({ schemaVersion: 1, generatedAt: '2026-09-08T00:00:02.000Z', artifactDirectory: artifact, tools: { node: process.version, npm: '11', bun: Bun.version, classic6: versionOf(resolve(root, 'node_modules/.bin/tsc6')), native7: versionOf(resolve(root, 'node_modules/.bin/tsc')), sasBoxTypeScript: '5.9.3', valBoxTypeScript: '5.9.3' }, nativeDiagnostics: { reviewedAt: '2026-09-08T00:00:00.000Z', reviewedGaps: reviewed, freshGaps: reviewed }, handoff: { candidateSourceCommit: 'a'.repeat(40), handoffCommit: 'b'.repeat(40), changedPaths: [...APPROVED_HANDOFF_PATHS] }, packages });
+    const versionOf = (executable: string, argv = ['--version']) => {
+      const result = spawnSync(executable, argv, { cwd: root, encoding: 'utf8' });
+      const version = result.stdout.trim().replace(/^Version /, '');
+      if (result.status !== 0 || result.error || !version) throw new Error(`compiler version probe failed: ${result.error ?? result.stderr}`);
+      return version;
+    };
+    manifest = createReleaseManifest({ schemaVersion: 1, generatedAt: '2026-09-08T00:00:02.000Z', artifactDirectory: artifact, tools: { node: process.version, npm: '11', bun: Bun.version, classic6: versionOf('node', [resolve(root, 'node_modules/typescript/bin/tsc6'), '--version']), native7: versionOf(resolve(root, 'node_modules/.bin/tsc')), sasBoxTypeScript: '5.9.3', valBoxTypeScript: '5.9.3' }, nativeDiagnostics: { reviewedAt: '2026-09-08T00:00:00.000Z', reviewedGaps: reviewed, freshGaps: reviewed }, handoff: { candidateSourceCommit: 'a'.repeat(40), handoffCommit: 'b'.repeat(40), changedPaths: [...APPROVED_HANDOFF_PATHS] }, packages });
     writeFileSync(manifestPath, serializeStable(manifest)); publish(manifest);
   });
   afterAll(() => rmSync(directory, { recursive: true, force: true }));
