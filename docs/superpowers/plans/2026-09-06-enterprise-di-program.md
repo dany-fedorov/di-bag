@@ -166,21 +166,30 @@ execution; do not stop for another planning approval between increments.
     68/95 with exactly 27 gaps; source, utility, package, full and example gates
     pass. Native parity and T2 remain open. Evidence:
     `docs/reports/2026-09-08-native-diagnostics.md`.
-- [ ] Local release-candidate handoff: Tasks 1-3 of
+- [x] Local release-candidate handoff: Tasks 1-3 of
   `2026-09-08-release-handoff.md` are complete. They reconcile the `0.1.0` changelog,
   package-boundary guidance, migration rules, local evidence workflow,
   immutable-version recovery, separately authorized online appendix, artifact
-  tooling, and the offline archive verifier. Task 4 is restarting after isolating
-  manifest-test archives from the fixed candidate artifact paths; the prior test
-  lifecycle deleted those candidate archives and invalidated their evidence chain.
+  tooling, and the offline archive verifier. Task 4 local candidate evidence is
+  complete at source commit `c9db88e`: exactly 72 supervised roles reconcile to
+  package command counts 40/16/16, all three build/dry-run/pack tree documents
+  compare byte-identically, and the offline verifier reports no failures. A prior
+  test lifecycle deleted candidate archives and invalidated its evidence chain;
+  isolated fixture directories and a root-archive survival regression now prevent
+  that destructive path.
   The fresh box-package gate then crossed its fixed 4096 MiB limit once; an exact
   retry passed at 3287.0625 MiB, confirming unstable retention across 115 in-process
   TypeScript programs. Forced collection between test cases preserved every
   assertion and reduced three exact supervised peaks to 991.78125, 843.02734375,
   and 994.07421875 MiB; a final `--rerun-each 2` stress run passed 242 tests / 690
-  assertions at 930.5 MiB. The separately authorized checkpoint pushes of
-  `afe6326` and `284c725` are complete and supply no registry evidence. Frozen archives,
-  sanitized evidence, Task 5 review, and final audit remain; registry version and publication remain unavailable because registry checks, login, tag, provenance,
+  assertions at 930.5 MiB. The accepted candidate box-package role passed at
+  780.4765625 MiB. The separately authorized checkpoint pushes of `afe6326`,
+  `284c725`, `e62a729`, and `c9db88e` are complete and supply no registry
+  evidence. Task 4 independent evidence review is clean after an 88-test / 431
+  assertion archive-survival run and a distinct-workdir verifier rerun. Task 5
+  commits only the three approved evidence paths and binds the ignored detailed
+  manifest plus final audit to that commit; no tracked change follows.
+  registry version and publication remain unavailable because registry checks, login, tag, provenance,
   credential changes, and publication require fresh explicit authorization.
 
 ## Execution rules

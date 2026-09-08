@@ -1,18 +1,25 @@
 # Final adversarial integration evidence
 
-The adversarial integration increment is locally complete at reviewed checkpoint
-`e93b0a5435e2ee6a2ec339605389c800043deb4e`. This report records verification
-captured on 2026-09-08 in Europe/Kyiv; the final matrix observation was recorded
-at `2026-09-08T19:06:18+03:00`. No registry query, network install, login, push,
-tag or publication action ran.
+The adversarial integration increment and local release candidate are complete at
+candidate source commit `c9db88ecc1a9a990aaccdf94a54de67a0aec4772`.
+This report records verification captured on 2026-09-08 and 2026-09-09 in
+Europe/Kyiv; the final matrix observation was recorded at
+`2026-09-08T19:06:18+03:00`, and the candidate evidence input was generated at
+`2026-09-09T00:55:09+03:00`. Separately authorized branch checkpoint pushes of
+`afe6326`, `284c725`, `e62a729`, and `c9db88e` ran outside the candidate command
+records; the final push left local `HEAD` and `origin/feat/v0.1` equal before the
+freeze. They provide no registry or publication evidence. No registry query,
+network install, login, tag, provenance, credential, dist-tag, or publication
+action ran.
 
 ## I1-I15 matrix
 
 The source command was
-`bun test tests/final-adversarial-integration.test.ts`. The archive command was
-`bun test tests/final-adversarial-integration.test.ts tests/box-package.test.ts tests/package.test.ts tests/native-package.test.ts`.
-The latter passed 215 tests and 2,065 assertions across four files in 318.32
-seconds. Every archive execution parsed exactly one JSON object and compared the
+`bun test tests/final-adversarial-integration.test.ts`. The archive checks were
+four separately supervised commands: that source file, `tests/box-package.test.ts`,
+`tests/package.test.ts`, and `tests/native-package.test.ts`. Together they passed
+215 tests and 2,065 assertions in 318.21 seconds. Every archive execution parsed
+exactly one JSON object and compared the
 complete object with `finalAdversarialExpectedResult`; no partial-field result
 was accepted. The archive routes comprised the classic archive under Node CJS
 and ESM, fixed real-box archives under Node and Bun CJS and ESM, and archives
@@ -94,29 +101,93 @@ matches, 27 reviewed native rejections, all 11 supplemental diagnostics matched,
 zero unexpected diagnostics and zero failed fixtures. I14 itself introduces two
 classic negative markers and no native gap.
 
+## Local release candidate
+
+The frozen root is `c9db88ecc1a9a990aaccdf94a54de67a0aec4772` on
+`feat/v0.1`; its status contains only the preserved untracked execution handoff.
+The frozen sas-box checkout is clean at
+`b895f9d1f1d168992f44e9f46025bc1ac9d26e14`, and val-box is clean at
+`07506fcb3e49f460b6de357ecad7d88262a7f32d`. The recorded tools are Node
+24.20.0, npm 11.19.0, Bun 1.4.0, classic TypeScript CLI 6.0.3, native
+TypeScript 7.0.2, and TypeScript 5.9.3 in both box checkouts. The classic
+wrapper package version 6.0.2 is retained separately and is not used as the CLI
+version.
+
+The evidence input reconciles exactly 72 supervised command roles: 40 for DI
+Bag, 16 for sas-box, and 16 for val-box. All commands exited zero with null
+signal and termination reason. The native inventory contains 27 reviewed and 27
+fresh per-occurrence fingerprints. Example discovery and its independent
+validator accepted exactly the nine documented files and rejected missing,
+extra, duplicate, and reordered inventories before all nine examples ran
+separately.
+
+| Package | Bytes | SHA-256 | Archive file count |
+| --- | ---: | --- | ---: |
+| `di-bag@0.1.0` | 62,498 | `60ad1b2ccb0904188f250fc55c5ea35685e41a3e1aaeb0136b42599a0269a153` | 71 |
+| `sas-box@0.1.0` | 3,397 | `23f1d407e38e28f64531515afa6b04a9514ab6d8edaec95d6c39c8cbeda77a91` | 5 |
+| `val-box@0.1.0` | 6,527 | `a44566c0b07cbc0b1040075c4fbf88deab30dd5236d4a8203d7b53c16ad37e0a` | 7 |
+
+Each package's post-build, post-dry-run, and post-pack tree documents are
+byte-identical, with separately supervised comparisons bound to both inputs.
+Both box post-pack statuses are empty; the DI Bag post-pack status still contains
+only the handoff. Dry-run JSON, actual pack JSON, independently inspected bytes,
+metadata, exports, dependency emptiness, file lists, hashes, and integrity all
+agree. The public evidence is the byte-exact stable sanitized projection of the
+detailed manifest and contains no absolute path or raw log content.
+
+The offline verifier passed with `{"ok":true,"failures":[]}` in 13,496 ms at
+148.703125 MiB observed peak. It copied each once-read verified archive into its
+owned work directory, installed only those bytes with the fixed offline argv,
+and passed the malicious archive, metadata, Node/Bun CJS/ESM, declaration,
+diagnostic-region, and core-only import-tracing oracles.
+Independent review then reran all 88 release-artifact tests with 431 assertions,
+proved the three root archives remained byte-identical, and passed the verifier
+again in a distinct work directory.
+
+Rejected trials were not promoted or repaired in place. Two original combined
+adversarial attempts exceeded the fixed 4096 MiB limit and caused the four-file
+serial contract. A prior candidate was invalidated when a release test deleted
+its three archives; fixture isolation now has a survival regression and received
+clean independent review. A later fresh box-package attempt crossed 4096 MiB,
+and its exact retry passed at 3287.0625 MiB; collecting unreachable TypeScript
+program graphs after each case then produced three peaks below 1 GiB and a
+double-run peak of 930.5 MiB. In this accepted candidate, the final box-package
+record passed at 780.4765625 MiB. An initial evidence reconciliation rejected
+four wrong record names, so roles 035-049 and every subsequent build and pack
+were rerun in order under the required names. The manifest CLI also rejected an
+absolute public-output argument before publication; the accepted role uses its
+required repository-relative path. The runner removed incomplete records from
+each rejected supervised attempt.
+
 ## Redundant release gates
 
 | Command | Result | Observed output |
 | --- | --- | --- |
-| `npm run typecheck` | exit 0 | classic TypeScript 6 strict source check |
+| `npm run check` | exit 0 | 990 tests, 0 failures, 5,734 assertions, 50 files, 592.77 s, followed by a successful classic build |
 | `bun test tests/final-adversarial-integration.test.ts` | exit 0 | 13 tests, 0 failures, 13 assertions, 1 file |
-| `npm test` | exit 0 | 902 tests, 0 failures, 5,305 assertions, 49 files, 575.06 s |
-| `npm run build` | exit 0 | classic declaration/runtime build |
+| `bun test tests/box-package.test.ts` | exit 0 | 121 tests, 0 failures, 345 assertions, 780.4765625 MiB peak |
+| `bun test tests/package.test.ts` | exit 0 | 79 tests, 0 failures, 497 assertions, 3851.03515625 MiB peak |
+| `bun test tests/native-package.test.ts` | exit 0 | 2 tests, 0 failures, 1,210 assertions, 1547.79296875 MiB peak |
+| `npm run build` | exit 0 | final classic declaration/runtime build before pack |
 | `npm run typecheck:native` | exit 0 | native TypeScript 7 strict source check |
 | `npm run build:native` | exit 0 | native declaration/runtime build |
 | `npm run check:native` | exit 0 | 124 files; 662 expected, 635 matched, 27 reviewed gaps, 0 unexpected, 0 failures |
-| `for file in examples/*.ts; do bun run "$file"; done` with `set -e` | exit 0 | exactly nine individual examples passed: box-adapters, composition, contributions, modules, observers, plugins, scopes, tokens and wbs-scope |
-| `bun test tests/final-adversarial-integration.test.ts tests/box-package.test.ts tests/package.test.ts tests/native-package.test.ts` | exit 0 | 215 tests, 0 failures, 2,065 assertions, 4 files, 318.32 s |
+| nine separate `bun run examples/<name>.ts` roles | exit 0 | exactly box-adapters, composition, contributions, modules, observers, plugins, scopes, tokens and wbs-scope |
 
 An initial `npm test` inside the managed filesystem sandbox is excluded from
 the release evidence. That environment suppressed child-process executable
 paths and output, producing 36 failures and one harness error in process,
 compiler and package tests. The same command with real child-process execution
-passed all 902 tests; every previously affected lane was green.
+passed every affected lane. The accepted candidate's supervised `npm run check`
+result is the 990-test row above.
 
-Tasks 1-4 received independent reviews and their corrections are present in the
-checkpoint. Task 5 also received independent review; its one Important wording
-finding was corrected by describing I15's actual bounded allowlist rather than
-claiming a complete expected-file inventory. The original 83/108 compiler-scale
-result and 27 native diagnostic-quality gaps remain open work. Release
-preparation and every external publication action remain open.
+Tasks 1-4 and the candidate-blocking fixture, compiler-probe, and memory fixes
+received clean independent reviews. Local evidence is complete; Task 5 binds the
+ignored detailed manifest and final audit to this three-path handoff commit, with
+no later tracked change. The original 83/108 compiler-scale result and 27 native
+diagnostic-quality gaps remain open work. Registry availability, ownership,
+access, tag, and provenance remain unavailable. No Task 5 command runs `npm view`,
+`npm whoami`, `npm login`, `npm publish`, `npm dist-tag`, `git tag`, `git push`, or
+a credential write; the separately authorized checkpoint pushes are disclosed
+above. Fresh explicit authorization is required before online preflight or
+publication.
