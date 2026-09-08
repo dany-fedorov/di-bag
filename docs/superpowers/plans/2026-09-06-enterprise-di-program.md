@@ -92,8 +92,24 @@ execution; do not stop for another planning approval between increments.
     examples pass. Final check is 720 tests / 3,830 assertions; native audit keeps
     27 declared diagnostic-message gaps with zero unexpected diagnostics. Evidence:
     `docs/reports/2026-09-08-dynamic-plugins.md` (retained final command logs).
-- [ ] Compatibility and comparison: package consumers, runtime/bundler matrix, reproducible performance and compiler measurements, adversarial integration tests. The prior parent benchmark evaluator Minor is closed by direct malformed JSON/identity/diagnostic, process-failure, boundary and TS2589 tests in the reviewed native compiler checkpoint `ad73249`.
-- [ ] Compiler/inference follow-up: resolve the remaining measured 500/1000 individual-chain limits, large-graph latency and modern native compiler compatibility. Actual nominal-module 1000-provider gates pass, separately from registration groups; this does not prove equally long individual call chains.
+- [ ] Compatibility and comparison: package consumers, runtime/bundler matrix,
+  reproducible performance and compiler measurements, adversarial integration
+  tests. Concrete execution plans are `2026-09-08-platform-compatibility.md`,
+  `2026-09-08-performance-evidence.md`, and
+  `2026-09-08-adversarial-integration.md`. Every task uses focused mutation and
+  negative tests, neighboring regression suites, physical archive consumers,
+  and final full gates; retain unavailable lanes and failed measurements rather
+  than weakening them. The prior parent benchmark evaluator Minor is closed by
+  direct malformed JSON/identity/diagnostic, process-failure, boundary and
+  TS2589 tests in the reviewed native compiler checkpoint `ad73249`.
+- [ ] Compiler/inference follow-up: execute
+  `2026-09-08-compiler-scalability.md` and
+  `2026-09-08-native-diagnostics.md` to resolve the remaining measured 500/1000
+  individual-chain limits, large-graph latency and modern native compiler
+  compatibility. Actual nominal-module 1000-provider gates pass, separately
+  from registration groups; this does not prove equally long individual call
+  chains. Preserve the original 108 matrix rows and utility-type soundness as
+  independent acceptance gates.
   - [x] Both inline inference cases now pass on the supported TypeScript 6.0.3
     compiler: the richer selected async override and nested `snapshot()` factory.
     Checkpoint `9126993` adds source, installed CJS/ESM, declaration emission and
@@ -114,7 +130,11 @@ execution; do not stop for another planning approval between increments.
     rejected because standard ReturnType views introduced cast-free history
     erasure. Production signatures remain unchanged; new regression tests must
     preserve utility-type soundness alongside direct-call inference.
-- [ ] Release handoff: complete examples, migrations, changelogs, verified tarballs, and safe publication instructions for all three libraries.
+- [ ] Release handoff: execute `2026-09-08-release-handoff.md` after the
+  adversarial integration plan to complete examples, migrations, changelogs,
+  verified local tarballs, and safe publication instructions for all three
+  libraries. Registry checks, login, push, tag, and publication remain outside
+  that plan and require fresh explicit authorization.
 
 ## Execution rules
 
