@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { crc32, inflateRawSync } from 'node:zlib';
+import { inflateRawSync } from 'node:zlib';
 
 export const MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
 export const MAX_UNPACKED_BYTES = 512 * 1024 * 1024;
@@ -7,6 +7,15 @@ export const MAX_ENTRY_BYTES = 128 * 1024 * 1024;
 
 export type NpmArchiveEntry = Readonly<{ path: string; bytes: number; mode: number; sha256: string; content: Uint8Array }>;
 export type NpmArchiveInspection = Readonly<{ entries: readonly NpmArchiveEntry[]; packageJson: Uint8Array; unpackedBytes: number }>;
+
+function crc32(bytes: Uint8Array): number {
+  let value = 0xffffffff;
+  for (const byte of bytes) {
+    value ^= byte;
+    for (let bit = 0; bit < 8; bit++) value = value >>> 1 ^ (value & 1 ? 0xedb88320 : 0);
+  }
+  return (value ^ 0xffffffff) >>> 0;
+}
 
 function gunzipSingle(bytes: Uint8Array): Uint8Array {
   if (bytes.length < 18 || bytes[0] !== 0x1f || bytes[1] !== 0x8b || bytes[2] !== 8) throw new Error('invalid gzip header');

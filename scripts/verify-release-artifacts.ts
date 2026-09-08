@@ -1,16 +1,31 @@
 import { createHash } from 'node:crypto';
 import { closeSync, existsSync, fstatSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, readSync, realpathSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import { createPublicReleaseEvidence, serializeStable, type ReleaseManifest, type ReleasePackageRecord } from './create-release-manifest.ts';
 import { inspectNpmArchive, type NpmArchiveInspection } from './release-archive.ts';
 import { RELEASE_COMMAND_LIMITS } from './run-release-command.ts';
 import { supervise } from './native-process.ts';
-import { finalAdversarialExpectedResult, finalAdversarialPackageRuntimeSource } from '../tests/final-adversarial-runtime-fixture.ts';
 
 const ARTIFACT_DIRECTORY = '/tmp/di-bag-release-candidate';
 const PUBLIC_EVIDENCE = 'docs/reports/2026-09-08-release-candidate-evidence.json';
 const PACKAGE_NAMES = ['di-bag', 'sas-box', 'val-box'] as const;
+const EXPECTED_RUNTIME = {
+  I1: { payloadIdentity: true, metadataIdentity: true, aliasIdentity: true, dispose: ['payload', 'sas'], acquisitions: 1 },
+  I2: { nativePromise: true, rootShared: true, transientDistinct: true, childDispose: ['transient-2', 'transient-1', 'scoped'], parentDispose: ['transient-2', 'transient-1', 'scoped', 'root'], acquisitions: 4 },
+  I3: { absentIdentity: true, presentUndefined: true, getterIdentity: true, dispose: ['source'], acquisitions: 3 },
+  I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, dispose: ['plugin', 'sas'], payloadDisposals: 0, acquisitions: 1 },
+  I5: { directRetained: true, directDispose: ['direct-1'], startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, startupDispose: ['startup-first'], retryFresh: true },
+  I6: { aliasAcquisitions: 0, sharedIdentity: true, unsharedDistinct: true, dispose: ['installation-2', 'installation-1'], acquisitions: 2 },
+  I7: { root: 1, scoped: 1, transient: 2, contributions: 2, cleanupFailureIdentity: true, independentCleanupCount: 5 },
+  I8: { callbackOrder: ['A:acquisition-ready', 'B:acquisition-ready', 'A:cleanup-completed', 'B:cleanup-completed'], filteredOnEventCalls: 4, aOnErrorCalls: 1, bOnErrorCalls: 0, observerErrorIdentity: true, observerErrorEventIdentity: true, telemetryBlocksClose: false, lateDisposals: 1 },
+  I9: { automaticEffects: 0, rawIdentity: true, thenReads: 0, rawDisposals: 1 },
+  I10: { syncIdentity: true, rawIdentity: true, syncRawThenReads: 0, asyncThenReads: 1, failureIdentity: true, disposerCalls: 0 },
+  I11: { boundaryErrorIdentity: true, retryFresh: true, dispose: ['source', 'source'] },
+  I12: { ordinaryWrapper: 'DiBagStartupError', ordinaryCauseIdentity: true, ordinaryCleanupFailures: 0, abortWrapper: 'DiBagStartupCancelledError', abortCauseIdentity: true, timeoutWrapper: 'DiBagStartupCancelledError', timeoutCauseName: 'TimeoutError', dispose: ['late', 'immediate'] },
+  I13: { closingEffects: 0, parentDispose: ['child', 'parent'], finalDispose: ['child', 'parent', 'fork'], unsharedDistinct: true },
+} as const;
 const FORBIDDEN_PATH = /(^|\/)(?:fixtures?|tests?|src|node_modules|scratch)(?:\/|$)|\.tgz$|(^|\/)(?:\.env(?:\.|$)|\.npmrc$)|(?:credentials?|secrets?)/i;
 export const VERIFY_RELEASE_USAGE = 'Usage: node scripts/verify-release-artifacts.ts --manifest <absolute-json> --work-dir <absolute-contained-directory>';
 
@@ -66,14 +81,17 @@ function normalizedMetadata(raw: any): ReleasePackageRecord['packageMetadata'] {
     bundledDependencies: Object.freeze(Array.isArray(raw.bundledDependencies) ? [...raw.bundledDependencies].sort() : []) });
 }
 function packFailures(record: ReleasePackageRecord, inspection: NpmArchiveInspection, bytes: Uint8Array): string[] {
-  const failures: string[] = [], files = inspection.entries.map(entry => entry.path.slice('package/'.length));
+  const failures: string[] = [], files = inspection.entries.map(entry => entry.path.slice('package/'.length)).sort();
   const expected = { id: `${record.name}@${record.version}`, name: record.name, version: record.version, filename: `${record.name}-${record.version}.tgz`, size: bytes.byteLength,
     unpackedSize: inspection.unpackedBytes, shasum: hash('sha1', bytes), integrity: `sha512-${hash('sha512', bytes, 'base64')}` };
   for (const [label, raw] of [['dry-run', record.pack?.dryRunJson], ['actual', record.pack?.packJson]] as const) {
     if (!Array.isArray(raw) || raw.length !== 1 || !raw[0] || typeof raw[0] !== 'object') { failures.push(`${record.name} ${label} pack JSON must contain exactly one result`); continue; }
     const result: any = raw[0];
+    const expectedKeys = ['bundled', 'entryCount', 'filename', 'files', 'id', 'integrity', 'name', 'shasum', 'size', 'unpackedSize', 'version'];
+    if (!same(Object.keys(result).sort(), expectedKeys)) failures.push(`${record.name} ${label} pack fields mismatch`);
     for (const [field, value] of Object.entries(expected)) if (result[field] !== value) failures.push(`${record.name} ${label} pack ${field} mismatch`);
     const actualFiles = Array.isArray(result.files) ? result.files.map((file: any) => ({ path: file?.path, size: file?.size, mode: file?.mode })).sort((a: any, b: any) => String(a.path).localeCompare(String(b.path))) : [];
+    if (Array.isArray(result.files) && result.files.some((file: any) => !file || !same(Object.keys(file).sort(), ['mode', 'path', 'size']))) failures.push(`${record.name} ${label} pack file fields mismatch`);
     const expectedFiles = inspection.entries.map(entry => ({ path: entry.path.slice('package/'.length), size: entry.bytes, mode: entry.mode }));
     if (result.entryCount !== files.length || new Set(actualFiles.map((file: any) => file.path)).size !== files.length || !same(actualFiles, expectedFiles)) failures.push(`${record.name} ${label} pack file inventory mismatch`);
     if (!Array.isArray(result.bundled) || result.bundled.length) failures.push(`${record.name} ${label} pack bundled list mismatch`);
@@ -81,9 +99,10 @@ function packFailures(record: ReleasePackageRecord, inspection: NpmArchiveInspec
   return failures;
 }
 function contentFailures(record: ReleasePackageRecord, inspection: NpmArchiveInspection): string[] {
-  const failures: string[] = [], files = inspection.entries.map(entry => entry.path.slice('package/'.length));
+  const failures: string[] = [], files = inspection.entries.map(entry => entry.path.slice('package/'.length)).sort();
   for (const required of ['LICENSE', 'README.md', 'package.json']) if (!files.includes(required)) failures.push(`${record.name} missing ${required}`);
   for (const file of files) if (!['LICENSE', 'README.md', 'package.json'].includes(file) && !file.startsWith('dist/') || FORBIDDEN_PATH.test(file) || /^dist\/(?:adapters?|internal)\//.test(file)) failures.push(`${record.name} forbidden package file: ${file}`);
+  if (record.packageMetadata.main !== './dist/index.js' || record.packageMetadata.types !== './dist/index.d.ts') failures.push(`${record.name} main/types metadata mismatch`);
   if (record.name === 'sas-box') {
     const expected = ['LICENSE', 'README.md', 'dist/index.d.ts', 'dist/index.js', 'package.json']; if (!same(files, expected)) failures.push('sas-box package must contain exactly five approved entries');
   } else if (record.name === 'val-box') {
@@ -96,6 +115,12 @@ function contentFailures(record: ReleasePackageRecord, inspection: NpmArchiveIns
     for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'] as const) if (Object.keys(record.packageMetadata[field]).length) failures.push(`di-bag ${field} must be empty`);
     if (record.packageMetadata.bundledDependencies.length) failures.push('di-bag bundledDependencies must be empty');
   }
+  if (record.name !== 'di-bag') {
+    if (!same(record.packageMetadata.files, ['dist'])) failures.push(`${record.name} package metadata files must equal ['dist']`);
+    if (!same(record.packageMetadata.exports, { '.': { types: './dist/index.d.ts', default: './dist/index.js' } })) failures.push(`${record.name} public exports mismatch`);
+    for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'] as const) if (Object.keys(record.packageMetadata[field]).length) failures.push(`${record.name} ${field} must be empty`);
+    if (record.packageMetadata.bundledDependencies.length) failures.push(`${record.name} bundledDependencies must be empty`);
+  }
   return failures;
 }
 
@@ -103,7 +128,7 @@ function validateManifestShape(value: any): asserts value is ReleaseManifest {
   if (!value || value.schemaVersion !== 1 || value.artifactDirectory !== ARTIFACT_DIRECTORY || !Array.isArray(value.packages) || value.packages.length !== 3) throw new Error('invalid release manifest schema');
   if (new Set(value.packages.map((item: any) => item?.name)).size !== 3 || PACKAGE_NAMES.some(name => !value.packages.some((item: any) => item?.name === name))) throw new Error('release manifest package set mismatch');
 }
-type VerifiedArchive = Readonly<{ inspection: NpmArchiveInspection; bytes: Uint8Array }>;
+type VerifiedArchive = Readonly<{ inspection: NpmArchiveInspection; bytes: Uint8Array; version: string }>;
 export function verifyReleaseManifestStatic(manifest: ReleaseManifest): Readonly<{ failures: readonly string[]; archives: ReadonlyMap<string, VerifiedArchive> }> {
   const failures: string[] = [], archives = new Map<string, VerifiedArchive>();
   for (const record of manifest.packages) {
@@ -115,8 +140,8 @@ export function verifyReleaseManifestStatic(manifest: ReleaseManifest): Readonly
       if (record.integrity !== `sha512-${hash('sha512', bytes, 'base64')}`) failures.push(`${record.name} integrity mismatch`);
       let inspection: NpmArchiveInspection;
       try { inspection = inspectNpmArchive(bytes); } catch (error) { failures.push(`${record.name} unsafe or malformed archive: ${String(error)}`); continue; }
-      archives.set(record.name, Object.freeze({ inspection, bytes }));
-      const files = inspection.entries.map(entry => entry.path.slice('package/'.length));
+      archives.set(record.name, Object.freeze({ inspection, bytes, version: record.version }));
+      const files = inspection.entries.map(entry => entry.path.slice('package/'.length)).sort();
       if (!same(record.files, files)) failures.push(`${record.name} manifest file list mismatch`);
       let metadata: any; try { metadata = JSON.parse(new TextDecoder().decode(inspection.packageJson)); } catch { failures.push(`${record.name} package.json is invalid JSON`); continue; }
       if (!same(record.packageMetadata, normalizedMetadata(metadata))) failures.push(`${record.name} package metadata mismatch`);
@@ -137,7 +162,7 @@ function materializeVerifiedArchives(archives: ReadonlyMap<string, VerifiedArchi
   const extraction = resolve(root, 'extracted'), owned = resolve(root, 'archives'); mkdirSync(extraction, { recursive: true }); mkdirSync(owned);
   const paths: Record<string, string> = {};
   for (const [name, verified] of archives) {
-    const archivePath = resolve(owned, `${name}-0.1.0.tgz`); writeFileSync(archivePath, verified.bytes, { flag: 'wx' });
+    const archivePath = resolve(owned, `${name}-${verified.version}.tgz`); writeFileSync(archivePath, verified.bytes, { flag: 'wx' });
     const reread = readRegularOnce(archivePath, root); if (hash('sha256', reread) !== hash('sha256', verified.bytes)) throw new Error('owned archive copy mismatch'); paths[name] = archivePath;
     for (const entry of verified.inspection.entries) {
     const relativePath = entry.path.slice('package/'.length), target = resolve(extraction, name, relativePath), packageRoot = resolve(extraction, name);
@@ -154,9 +179,12 @@ async function runChecked(argv: readonly string[], cwd: string): Promise<string>
 }
 function writeConsumerManifest(directory: string): void { mkdirSync(directory, { recursive: true }); writeFileSync(resolve(directory, 'package.json'), `${JSON.stringify({ private: true })}\n`, { flag: 'wx' }); }
 async function installOffline(directory: string, archives: readonly string[]): Promise<void> {
-  await runChecked(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', ...archives], directory);
+  await runChecked(releaseInstallArgv(archives), directory);
 }
-function traceInstalledRoot(entry: string): Readonly<{ files: readonly string[]; bareImports: readonly string[]; unresolved: readonly string[] }> {
+export function releaseInstallArgv(archives: readonly string[]): readonly string[] {
+  return Object.freeze(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', ...archives]);
+}
+export function traceInstalledRoot(entry: string): Readonly<{ files: readonly string[]; bareImports: readonly string[]; unresolved: readonly string[] }> {
   const pending = [entry], files = new Set<string>(), bare = new Set<string>(), unresolved = new Set<string>();
   while (pending.length) {
     const file = pending.pop()!; if (files.has(file)) continue; files.add(file);
@@ -172,7 +200,9 @@ function traceInstalledRoot(entry: string): Readonly<{ files: readonly string[];
 }
 async function verifyRuntimeConsumers(manifest: ReleaseManifest, workDir: string, archives: Readonly<Record<string, string>>): Promise<void> {
   const full = resolve(workDir, 'full-consumer'), core = resolve(workDir, 'core-consumer'); writeConsumerManifest(full); writeConsumerManifest(core);
-  await installOffline(full, [archives['di-bag'], archives['sas-box'], archives['val-box']]); await installOffline(core, [archives['di-bag']]);
+  const diBagArchive = archives['di-bag'], sasBoxArchive = archives['sas-box'], valBoxArchive = archives['val-box'];
+  if (!diBagArchive || !sasBoxArchive || !valBoxArchive) throw new Error('verified archive set is incomplete');
+  await installOffline(full, [diBagArchive, sasBoxArchive, valBoxArchive]); await installOffline(core, [diBagArchive]);
   for (const box of ['sas-box', 'val-box']) if (existsSync(resolve(core, 'node_modules', box))) throw new Error(`unexpected ${box} in core-only consumer`);
   const packageRoot = resolve(core, 'node_modules/di-bag'), distRoot = resolve(packageRoot, 'dist'), traced = traceInstalledRoot(resolve(distRoot, 'index.js'));
   if (traced.unresolved.length || traced.bareImports.length || traced.files.some(file => !contained(distRoot, file) || /\/(?:node|sas-box|val-box)\.js$/.test(file))) throw new Error(`core-only import graph is not isolated: ${JSON.stringify(traced)}`);
@@ -181,13 +211,16 @@ async function verifyRuntimeConsumers(manifest: ReleaseManifest, workDir: string
       ? `const Module=require('node:module');const old=Module._load;Module._load=function(name,...args){if(name.startsWith('node:'))throw new Error('core imported Node');return old.call(this,name,...args)};const {DiBag}=require('di-bag');`
       : `import Module,{createRequire}from'node:module';const old=Module._load;Module._load=function(name,...args){if(name.startsWith('node:'))throw new Error('core imported Node');return old.call(this,name,...args)};const {DiBag}=await import('di-bag');`;
     writeFileSync(corePath, `${load}(async()=>{const bag=DiBag.begin().add({answer:DiBag.factory(()=>42,{acquisition:'raw'})}).end();console.log(bag.resolve('answer'));await bag.close()})().catch(e=>{console.error(e);process.exitCode=1});`);
-    for (const executable of ['node', 'bun']) if ((await runChecked([executable, corePath], core)).trim() !== '42') throw new Error(`core-only ${mode} ${executable} output mismatch`);
-    const fullPath = resolve(full, `oracle.${mode === 'commonjs' ? 'cjs' : 'mjs'}`); writeFileSync(fullPath, finalAdversarialPackageRuntimeSource(mode));
+    for (const executable of ['node', 'bun']) { const output = await runChecked([executable, corePath], core); if (output.trim() !== '42') throw new Error(`core-only ${mode} ${executable} output mismatch: ${JSON.stringify(output)}`); }
+    const fullPath = resolve(full, `oracle.${mode === 'commonjs' ? 'cjs' : 'mjs'}`);
+    const checkout = manifest.packages.find(record => record.name === 'di-bag')!.checkout.path;
+    const runtimeFixture = resolve(checkout, 'tests/final-adversarial-runtime-fixture.ts');
+    const source = await runChecked(['bun', '-e', `const m=await import(${JSON.stringify(pathToFileURL(runtimeFixture).href)});process.stdout.write(m.finalAdversarialPackageRuntimeSource(${JSON.stringify(mode)}))`], full);
+    writeFileSync(fullPath, source);
     for (const executable of ['node', 'bun']) {
       const output = await runChecked([executable, fullPath], full); let parsed: unknown; try { parsed = JSON.parse(output.trim()); } catch { throw new Error(`I1-I15 ${mode} ${executable} emitted invalid JSON`); }
       const runtimeEntries = Object.fromEntries(Object.entries(parsed as Record<string, unknown>).filter(([key]) => /^I(?:[1-9]|1[0-3])$/.test(key)));
-      const expectedEntries = Object.fromEntries(Object.entries(finalAdversarialExpectedResult).filter(([key]) => /^I(?:[1-9]|1[0-3])$/.test(key)));
-      if (!same(runtimeEntries, expectedEntries)) throw new Error(`I1-I13 ${mode} ${executable} oracle mismatch`);
+      if (!same(runtimeEntries, EXPECTED_RUNTIME)) throw new Error(`I1-I13 ${mode} ${executable} oracle mismatch`);
     }
   }
   await verifyDeclarations(full, manifest.packages.find(record => record.name === 'di-bag')!.checkout.path);
@@ -213,7 +246,13 @@ async function verifyDeclarations(consumer: string, checkout: string): Promise<v
 
 export async function verifyReleaseArtifacts(manifestPath: string, workDir: string): Promise<VerifyReleaseResult> {
   const failures: string[] = []; let manifest: ReleaseManifest;
-  try { const bytes = readRegularOnce(manifestPath, ARTIFACT_DIRECTORY); manifest = JSON.parse(new TextDecoder().decode(bytes)); validateManifestShape(manifest); }
+  try {
+    exactAbsolute(manifestPath, 'manifest'); exactAbsolute(workDir, 'work directory');
+    if (!contained(realpathSync(ARTIFACT_DIRECTORY), manifestPath) || realpathSync(manifestPath) !== manifestPath || !lstatSync(manifestPath).isFile()) throw new Error('manifest must be a contained canonical regular file');
+    if (!contained(realpathSync(ARTIFACT_DIRECTORY), workDir) || workDir === manifestPath || realpathSync(dirname(workDir)) !== dirname(workDir)) throw new Error('work directory must be contained with a canonical parent');
+    if (existsSync(workDir) && (!lstatSync(workDir).isDirectory() || realpathSync(workDir) !== workDir || readdirSync(workDir).length)) throw new Error('work directory must be an empty canonical directory');
+    const bytes = readRegularOnce(manifestPath, ARTIFACT_DIRECTORY); manifest = JSON.parse(new TextDecoder().decode(bytes)); validateManifestShape(manifest);
+  }
   catch (error) { return Object.freeze({ ok: false, failures: Object.freeze([`manifest validation failed: ${String(error)}`]) }); }
   const checked = verifyReleaseManifestStatic(manifest); failures.push(...checked.failures);
   if (failures.length) return Object.freeze({ ok: false, failures: Object.freeze(failures) });

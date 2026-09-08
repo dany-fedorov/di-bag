@@ -1,17 +1,17 @@
-import { afterAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { gzipSync } from 'node:zlib';
 import { inspectNpmArchive } from '../scripts/release-archive.ts';
-import { createPublicReleaseEvidence, createReleaseManifest, parseManifestArgs, serializeStable, type ReleaseEvidenceInput } from '../scripts/create-release-manifest.ts';
+import { createPublicReleaseEvidence, createReleaseManifest, parseManifestArgs, serializeStable, type ReleaseEvidenceInput, type ReleaseManifest } from '../scripts/create-release-manifest.ts';
 import { assertSafeReleaseArgv, parseReleaseCommandArgs, runReleaseCommand, type ReleaseCommandEvidence } from '../scripts/run-release-command.ts';
 import { collectFreshNativeGaps, collectReviewedNativeGaps, createNativeInventory, parseNativeInventoryArgs } from '../scripts/release-native-inventory.ts';
 import { APPROVED_HANDOFF_PATHS, createReleaseAudit, parseReleaseAuditArgs } from '../scripts/create-release-audit.ts';
 import { hashReleaseTree, parseReleaseTreeArgs } from '../scripts/hash-release-tree.ts';
-import { parseVerifyReleaseArgs, verifyReleaseArtifacts } from '../scripts/verify-release-artifacts.ts';
+import { parseVerifyReleaseArgs, releaseInstallArgv, traceInstalledRoot, verifyReleaseArtifacts, verifyReleaseManifestStatic, VERIFY_RELEASE_USAGE } from '../scripts/verify-release-artifacts.ts';
 import { nativeDiagnosticGapMessages } from './native-diagnostic-markers.ts';
 
 const root = resolve(__dirname, '..');
@@ -472,9 +472,159 @@ describe('manifest validation and deterministic projection', () => {
   });
 });
 
+describe('archive verifier', () => {
+  const artifact = '/tmp/di-bag-release-candidate';
+  const directory = resolve(artifact, `task3-test-${process.pid}`);
+  const checkout = resolve(directory, 'checkout');
+  const reports = resolve(checkout, 'docs/reports');
+  const manifestPath = resolve(directory, 'candidate.json');
+  const publicPath = resolve(reports, '2026-09-08-release-candidate-evidence.json');
+  let manifest: ReleaseManifest;
+
+  function packResult(name: string, archivePath: string) {
+    const bytes = new Uint8Array(readFileSync(archivePath)), inspection = inspectNpmArchive(bytes);
+    return { id: `${name}@0.1.0`, name, version: '0.1.0', filename: `${name}-0.1.0.tgz`, size: bytes.length, unpackedSize: inspection.unpackedBytes,
+      shasum: createHash('sha1').update(bytes).digest('hex'), integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`,
+      files: inspection.entries.map(entry => ({ path: entry.path.slice(8), size: entry.bytes, mode: entry.mode })), entryCount: inspection.entries.length, bundled: [] };
+  }
+  function publish(value: ReleaseManifest): void {
+    writeFileSync(publicPath, serializeStable(createPublicReleaseEvidence(value)));
+  }
+  function staticFailures(mutate: (value: any) => void): readonly string[] {
+    const value: any = structuredClone(manifest); mutate(value); publish(value); return verifyReleaseManifestStatic(value).failures;
+  }
+  function writeCandidate(value: ReleaseManifest, suffix: string): string {
+    const path = resolve(directory, `${suffix}.json`); writeFileSync(path, serializeStable(value)); publish(value); return path;
+  }
+  function replaceArchive(value: any, packageName: string, bytes: Uint8Array, suffix: string): void {
+    const record = value.packages.find((item: any) => item.name === packageName), path = resolve(directory, `${suffix}.tgz`); writeFileSync(path, bytes);
+    record.archive = path; record.bytes = bytes.length; record.sha256 = createHash('sha256').update(bytes).digest('hex'); record.sha512 = createHash('sha512').update(bytes).digest('hex'); record.integrity = `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
+  }
+  function adoptArchive(value: any, packageName: string, bytes: Uint8Array, suffix: string): void {
+    replaceArchive(value, packageName, bytes, suffix); const record = value.packages.find((item: any) => item.name === packageName), inspection = inspectNpmArchive(bytes), metadata = JSON.parse(new TextDecoder().decode(inspection.packageJson));
+    record.files = inspection.entries.map(entry => entry.path.slice(8)).sort();
+    record.packageMetadata = { name: metadata.name, version: metadata.version, ...(typeof metadata.main === 'string' ? { main: metadata.main } : {}), ...(typeof metadata.types === 'string' ? { types: metadata.types } : {}), files: [...(metadata.files ?? [])].sort(), exports: metadata.exports ?? null, dependencies: metadata.dependencies ?? {}, peerDependencies: metadata.peerDependencies ?? {}, optionalDependencies: metadata.optionalDependencies ?? {}, bundledDependencies: [...(metadata.bundledDependencies ?? [])].sort() };
+    const result = packResult(packageName, record.archive); record.pack.dryRunJson = [result]; record.pack.packJson = [structuredClone(result)];
+  }
+  function archiveEntries(packageName: string): Array<{ path: string; content: string }> {
+    const record = manifest.packages.find(item => item.name === packageName)!; return inspectNpmArchive(new Uint8Array(readFileSync(record.archive))).entries.map(entry => ({ path: entry.path, content: new TextDecoder().decode(entry.content) }));
+  }
+
+  beforeAll(() => {
+    rmSync(directory, { recursive: true, force: true }); mkdirSync(reports, { recursive: true });
+    process.env.npm_config_cache = resolve(directory, '.npm-cache');
+    cpSync(resolve(root, 'tests/types'), resolve(checkout, 'tests/types'), { recursive: true }); symlinkSync(resolve(root, 'node_modules'), resolve(checkout, 'node_modules'));
+    symlinkSync(resolve(root, 'tests/final-adversarial-runtime-fixture.ts'), resolve(checkout, 'tests/final-adversarial-runtime-fixture.ts'));
+    const diPack = spawnSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', directory], { cwd: root, encoding: 'utf8', env: { ...process.env, npm_config_cache: resolve(directory, '.npm-cache') } });
+    if (diPack.status !== 0) throw new Error(`task3 DI pack setup failed: ${diPack.stdout}\n${diPack.stderr}`);
+    for (const name of ['sas-box', 'val-box'] as const) cpSync(resolve(root, `tests/fixtures/box-packages/${name}-0.1.0.tgz`), resolve(directory, `${name}-0.1.0.tgz`));
+    const reviewed = collectReviewedNativeGaps(resolve(root, 'tests/types'));
+    const packages = (['di-bag', 'sas-box', 'val-box'] as const).map(name => {
+      const archive = resolve(directory, `${name}-0.1.0.tgz`), stdout = resolve(directory, `${name}.stdout`), stderr = resolve(directory, `${name}.stderr`), result = packResult(name, archive);
+      const command: ReleaseCommandEvidence = { argv: ['npm', 'run', 'build'], cwd: name === 'di-bag' ? checkout : resolve(root, `.related-repos/${name}`), startedAt: '2026-09-08T00:00:00.000Z', finishedAt: '2026-09-08T00:00:00.001Z', elapsedMilliseconds: 1, exitCode: 0, signal: null, terminationReason: null, peakObservedRssMiB: 10, inputs: [], stdout: writeLogEvidence(stdout, 'ok\n'), stderr: writeLogEvidence(stderr, '') };
+      return { name, version: '0.1.0', archive, checkout: { path: name === 'di-bag' ? checkout : resolve(root, `.related-repos/${name}`), branch: 'feat/v0.1', candidateSourceCommit: 'a'.repeat(40), status: '' }, pack: { dryRunJson: [result], packJson: [structuredClone(result)], packedAt: '2026-09-08T00:00:01.000Z' }, commands: [command] };
+    });
+    manifest = createReleaseManifest({ schemaVersion: 1, generatedAt: '2026-09-08T00:00:02.000Z', artifactDirectory: artifact, tools: { node: process.version, npm: '11', bun: Bun.version, classic6: '6.0.2', native7: '7.0.2', sasBoxTypeScript: '5.9.3', valBoxTypeScript: '5.9.3' }, nativeDiagnostics: { reviewedAt: '2026-09-08T00:00:00.000Z', reviewedGaps: reviewed, freshGaps: reviewed }, handoff: { candidateSourceCommit: 'a'.repeat(40), handoffCommit: 'b'.repeat(40), changedPaths: [...APPROVED_HANDOFF_PATHS] }, packages });
+    writeFileSync(manifestPath, serializeStable(manifest)); publish(manifest);
+  });
+  afterAll(() => rmSync(directory, { recursive: true, force: true }));
+
+  test('independently accepts exact archive, pack, metadata, export, dependency, and public facts', () => {
+    publish(manifest); expect(verifyReleaseManifestStatic(manifest).failures).toEqual([]);
+  });
+  test('rejects every archive digest and file-list mismatch', () => {
+    for (const mutate of [(r: any) => r.bytes++, (r: any) => r.sha256 = '0'.repeat(64), (r: any) => r.sha512 = '0'.repeat(128), (r: any) => r.integrity = 'sha512-bad', (r: any) => r.files.pop()]) {
+      const failures = staticFailures(value => mutate(value.packages[0])); expect(failures.length).toBeGreaterThan(0);
+    }
+  });
+  test('rejects altered, duplicate, stale, divergent, extra-field, and filename pack JSON', () => {
+    const cases: Array<(record: any) => void> = [
+      r => r.pack.packJson[0].size++, r => r.pack.packJson.push(structuredClone(r.pack.packJson[0])), r => r.pack.dryRunJson[0].shasum = 'bad',
+      r => r.pack.dryRunJson[0].files.pop(), r => r.pack.packJson[0].filename = 'surprise.tgz', r => r.pack.packJson[0].hostPath = '/etc/secret',
+      r => r.pack.packJson[0].files[0].extra = true,
+    ];
+    for (const mutate of cases) expect(staticFailures(value => mutate(value.packages[0])).some(failure => failure.includes('pack'))).toBe(true);
+  });
+  test('enforces exact DI and box package metadata, exports, entry counts, and empty dependencies', () => {
+    const cases: Array<[string, (record: any) => void]> = [
+      ['main/types', r => r.packageMetadata.main = './wrong.js'], ['files', r => r.packageMetadata.files = ['dist', 'src']], ['exports', r => r.packageMetadata.exports = { '.': './dist/index.js' }],
+      ['dependencies', r => r.packageMetadata.dependencies = { surprise: '1.0.0' }], ['peerDependencies', r => r.packageMetadata.peerDependencies = { surprise: '1.0.0' }],
+      ['optionalDependencies', r => r.packageMetadata.optionalDependencies = { surprise: '1.0.0' }], ['bundledDependencies', r => r.packageMetadata.bundledDependencies = ['surprise']],
+    ];
+    for (const packageName of ['di-bag', 'sas-box', 'val-box']) for (const [, mutate] of cases) {
+      const failures = staticFailures(value => mutate(value.packages.find((record: any) => record.name === packageName))); expect(failures.length).toBeGreaterThan(0);
+    }
+  });
+  test('rejects forbidden source, test, fixture, dependency, credential, and tarball content', () => {
+    for (const path of ['package/src/private.ts', 'package/test/private.js', 'package/fixtures/private.js', 'package/node_modules/x/index.js', 'package/.npmrc', 'package/credentials/token', 'package/dist/nested.tgz']) {
+      const value: any = structuredClone(manifest), bytes = archiveOf([...archiveEntries('di-bag'), { path, content: 'forbidden' }]); adoptArchive(value, 'di-bag', bytes, `forbidden-${createHash('sha256').update(path).digest('hex').slice(0, 8)}`);
+      expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('forbidden package file'))).toBe(true);
+    }
+  });
+  test('rejects missing DI export pairs and extra box entries from archive bytes', () => {
+    { const value: any = structuredClone(manifest), bytes = archiveOf(archiveEntries('di-bag').filter(entry => entry.path !== 'package/dist/node.d.ts')); adoptArchive(value, 'di-bag', bytes, 'missing-node-types'); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('missing public export file'))).toBe(true); }
+    for (const name of ['sas-box', 'val-box']) { const value: any = structuredClone(manifest), bytes = archiveOf([...archiveEntries(name), { path: 'package/dist/extra.js', content: 'export{}' }]); adoptArchive(value, name, bytes, `${name}-extra`); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('approved entries'))).toBe(true); }
+  });
+  test('requires byte-identical stable public evidence and rejects missing, stale, malformed, and extra bytes', () => {
+    for (const bytes of ['', '{}\n', `${serializeStable(createPublicReleaseEvidence(manifest))} `, serializeStable({ ...createPublicReleaseEvidence(manifest) as any, extra: true })]) {
+      writeFileSync(publicPath, bytes); expect(verifyReleaseManifestStatic(manifest).failures.some(failure => failure.includes('public evidence'))).toBe(true);
+    }
+    publish(manifest);
+  });
+  test('rejects malicious archives before creating or running a consumer workdir', async () => {
+    const malicious: Array<[string, Uint8Array]> = [
+      ['absolute', archiveOf([{ path: '/package/package.json', content: minimalPackage() }])],
+      ['traversal', archiveOf([{ path: 'package/../escape', content: 'x' }, { path: 'package/package.json', content: minimalPackage() }])],
+      ['prefix', archiveOf([{ path: 'package/a', content: 'x' }, { path: 'package/a/b', content: 'x' }, { path: 'package/package.json', content: minimalPackage() }])],
+      ['directory-prefix', archiveOf([{ path: 'package/a', content: 'x' }, { path: 'package/a/b', content: '', type: 53 }, { path: 'package/package.json', content: minimalPackage() }])],
+      ['symlink', archiveOf([{ path: 'package/package.json', content: minimalPackage(), type: 50 }])],
+      ['hardlink', archiveOf([{ path: 'package/package.json', content: minimalPackage(), type: 49 }])],
+      ['fifo', archiveOf([{ path: 'package/package.json', content: minimalPackage(), type: 54 }])],
+      ['oversized', archiveOf([{ path: 'package/package.json', content: minimalPackage(), declaredSize: 129 * 1024 * 1024 }])],
+      ['truncated-gzip', new Uint8Array([31, 139, 8, 0])],
+    ];
+    const validArchive = new Uint8Array(readFileSync(manifest.packages[0]!.archive)); malicious.push(['concatenated-gzip', new Uint8Array([...validArchive, ...validArchive])]);
+    for (const [name, bytes] of malicious) {
+      const value: any = structuredClone(manifest); replaceArchive(value, 'di-bag', bytes, `malicious-${name}`); const path = writeCandidate(value, `candidate-${name}`), work = resolve(directory, `work-${name}`);
+      const result = await verifyReleaseArtifacts(path, work); expect(result.ok).toBe(false); expect(result.failures.some(failure => /unsafe|malformed|archive/.test(failure))).toBe(true); expect(existsSync(work)).toBe(false);
+    }
+    publish(manifest);
+  });
+  test('uses one fixed explicit offline install argv with no fallback', () => {
+    expect(releaseInstallArgv(['/a.tgz', '/b.tgz'])).toEqual(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', '/a.tgz', '/b.tgz']);
+  });
+  test('core import tracing rejects bare, self, node builtin, and unresolved relative specifiers', () => {
+    const graph = resolve(directory, 'trace'); mkdirSync(graph); writeFileSync(resolve(graph, 'local.js'), 'export{}');
+    writeFileSync(resolve(graph, 'index.js'), "import './local.js';import './missing.js';import 'di-bag';import 'node:fs';import 'surprise';");
+    expect(traceInstalledRoot(resolve(graph, 'index.js'))).toMatchObject({ bareImports: ['di-bag', 'node:fs', 'surprise'], unresolved: [expect.stringContaining('./missing.js')] });
+  });
+  test('CLI accepts only canonical contained manifest and empty work directory paths', () => {
+    const work = resolve(directory, 'cli-work');
+    expect(parseVerifyReleaseArgs(['--manifest', manifestPath, '--work-dir', work])).toEqual({ manifest: manifestPath, workDir: work });
+    expect(parseVerifyReleaseArgs(['--help'])).toEqual({ help: true }); expect(VERIFY_RELEASE_USAGE).toContain('--manifest');
+    for (const argv of [[], ['--manifest', manifestPath], ['--manifest', manifestPath, '--manifest', manifestPath], ['--manifest', manifestPath, '--work-dir', 'relative'], ['--manifest', manifestPath, '--work-dir', '/tmp/outside'], ['--manifest', manifestPath, '--work-dir', work, 'positional'], ['--candidate', manifestPath, '--work-dir', work]]) expect(() => parseVerifyReleaseArgs(argv)).toThrow();
+    mkdirSync(work); writeFileSync(resolve(work, 'occupied'), 'x'); expect(() => parseVerifyReleaseArgs(['--manifest', manifestPath, '--work-dir', work])).toThrow('empty'); rmSync(work, { recursive: true });
+    const alias = resolve(directory, 'manifest-alias.json'); symlinkSync(manifestPath, alias); expect(() => parseVerifyReleaseArgs(['--manifest', alias, '--work-dir', work])).toThrow();
+    const help = spawnSync('node', ['--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', resolve(root, 'scripts/verify-release-artifacts.ts'), '--help'], { cwd: root, encoding: 'utf8' }); expect(help).toMatchObject({ status: 0, stdout: VERIFY_RELEASE_USAGE + '\n', stderr: '' });
+    const invalid = spawnSync('node', ['--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', resolve(root, 'scripts/verify-release-artifacts.ts'), '--candidate', manifestPath], { cwd: root, encoding: 'utf8' }); expect(invalid.status).not.toBe(0);
+  });
+  test('direct verifier API rejects outside, relative, aliased, and nonempty work paths before mutation', async () => {
+    publish(manifest);
+    for (const work of ['relative-work', resolve(scratch, 'outside-work')]) { const result = await verifyReleaseArtifacts(manifestPath, work); expect(result.ok).toBe(false); expect(existsSync(work)).toBe(false); }
+    const occupied = resolve(directory, 'api-occupied'); mkdirSync(occupied); writeFileSync(resolve(occupied, 'sentinel'), 'keep'); expect((await verifyReleaseArtifacts(manifestPath, occupied)).ok).toBe(false); expect(readFileSync(resolve(occupied, 'sentinel'), 'utf8')).toBe('keep');
+    const target = resolve(directory, 'api-target'); mkdirSync(target); const alias = resolve(directory, 'api-alias'); symlinkSync(target, alias); expect((await verifyReleaseArtifacts(manifestPath, alias)).ok).toBe(false); expect(readdirSync(target)).toEqual([]);
+  });
+  test('installs owned verified bytes and passes real Node/Bun, CJS/ESM, core-only, and declaration oracles', async () => {
+    publish(manifest); const work = resolve(directory, 'real-work'); const result = await verifyReleaseArtifacts(manifestPath, work);
+    expect(result).toEqual({ ok: true, failures: [] });
+    for (const record of manifest.packages) expect(new Uint8Array(readFileSync(resolve(work, `archives/${record.name}-0.1.0.tgz`)))).toEqual(new Uint8Array(readFileSync(record.archive)));
+    for (const emitter of ['classic6', 'native7']) for (const format of ['cts', 'mts']) { const declaration = resolve(work, `full-consumer/declarations-${emitter}-${format}/out/producer.d.${format}`); expect(existsSync(declaration)).toBe(true); expect(existsSync(resolve(work, `full-consumer/declarations-${emitter}-${format}/producer.${format}`))).toBe(false); }
+  }, 180_000);
+});
+
 describe('final release audit', () => {
   const checkout = resolve(scratch, 'audit-checkout'), reports = resolve(checkout, 'docs/reports'), recordsDir = `/tmp/di-bag-release-candidate/audit-test-${process.pid}`;
-  mkdirSync(reports, { recursive: true }); mkdirSync(recordsDir);
+  mkdirSync(reports, { recursive: true }); rmSync(recordsDir, { recursive: true, force: true }); mkdirSync(recordsDir);
   afterAll(() => rmSync(recordsDir, { recursive: true, force: true }));
   const manifest = resolve(scratch, 'audit-manifest.json'), publicEvidence = resolve(reports, '2026-09-08-release-candidate-evidence.json');
   writeFileSync(manifest, '{}\n'); writeFileSync(publicEvidence, '{}\n');
