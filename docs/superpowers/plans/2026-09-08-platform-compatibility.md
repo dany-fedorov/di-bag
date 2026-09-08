@@ -119,8 +119,8 @@ Expected: the first run may FAIL only with a documented local-resolution error. 
 
 - [x] **Step 6: Run focused and package gates.**
 
-Retained Task 2 execution facts: focused platform tests passed `14 / 14` with
-`103` assertions; package/native archive tests passed `79 / 79` with `1,647`
+Retained Task 2 execution facts: focused platform tests passed `15 / 15` with
+`121` assertions; package/native archive tests passed `79 / 79` with `1,647`
 assertions. Classic and native typechecks and builds exited zero. The Deno row
 is `unavailable: not-provisioned`; it is not a runtime pass. The additional
 full-suite gate passed `794 / 794` with `4,734` assertions across `42` files.

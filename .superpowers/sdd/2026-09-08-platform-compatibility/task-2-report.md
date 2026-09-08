@@ -22,13 +22,19 @@ both missing or foreign real paths as a closed validation failure.
 
 The final focused suite verifies the exact portable result, canonical child
 output, empty stderr, local real-path containment, exact result matching,
-missing-install handling and the manifest-driven unavailable row.
+missing-install handling and the manifest-driven unavailable row. A review fix
+also routes inspection through a pure validator that requires non-null snapshot
+and metadata objects, exact `{ portable: true }` metadata, and both objects to
+be frozen. Mutation cases cover primitives, missing/wrong/extra metadata and
+either unfrozen object. Exactness uses all own keys, with explicit symbol and
+non-enumerable extra-key mutations. This also corrected the fixture to inspect
+the canonical root binding rather than the alias-local metadata snapshot.
 
 ```text
 $ bun test tests/platform-deno.test.ts tests/platform-evidence.test.ts
-14 pass
+15 pass
 0 fail
-103 expect() calls
+121 expect() calls
 ```
 
 ## Deno availability

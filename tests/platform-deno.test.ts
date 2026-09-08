@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { DiBag } from '../src';
 import { evaluateDenoChild, runDenoLane, verifyTool, type PackedArchive } from '../scripts/platform-evidence';
-import { portableContract } from './platform/portable/contract';
+import { portableContract, validatePortableInspection } from './platform/portable/contract';
 
 test('portable root contract has host-independent semantics', async () => {
   await expect(portableContract(DiBag)).resolves.toEqual({
@@ -18,6 +18,30 @@ test('portable root contract has host-independent semantics', async () => {
     inspectionFrozen: true,
     metadataFrozen: true,
   });
+});
+
+test('portable inspection proof rejects nonobjects and inexact or unfrozen metadata', () => {
+  const validMetadata = Object.freeze({ portable: true });
+  expect(validatePortableInspection(Object.freeze({ metadata: validMetadata }))).toEqual({
+    inspectionFrozen: true,
+    metadataFrozen: true,
+  });
+  for (const inspection of [undefined, null, true, 1, 'snapshot']) {
+    expect(validatePortableInspection(inspection)).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
+  }
+  for (const metadata of [undefined, null, true, 1, 'metadata', {}, { portable: false }, { portable: true, extra: true }]) {
+    expect(validatePortableInspection(Object.freeze({ metadata }))).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
+  }
+  const symbolMetadata = Object.freeze({ portable: true, [Symbol('extra')]: true });
+  const hiddenMetadata = { portable: true };
+  Object.defineProperty(hiddenMetadata, 'extra', { value: true });
+  Object.freeze(hiddenMetadata);
+  for (const metadata of [symbolMetadata, hiddenMetadata]) {
+    expect(validatePortableInspection(Object.freeze({ metadata }))).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
+  }
+  expect(validatePortableInspection({ metadata: validMetadata })).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
+  expect(validatePortableInspection(Object.freeze({ metadata: { portable: true } })))
+    .not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
 });
 
 const portableResult = {

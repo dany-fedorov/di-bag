@@ -23,6 +23,32 @@ export type PortableDiBag = {
   withMetadata(factory: any, metadata: Readonly<Record<string, unknown>>): any;
 };
 
+export function validatePortableInspection(inspection: unknown): {
+  inspectionFrozen: boolean;
+  metadataFrozen: boolean;
+} {
+  if (typeof inspection !== 'object' || inspection === null || Array.isArray(inspection)) {
+    return { inspectionFrozen: false, metadataFrozen: false };
+  }
+  try {
+    const metadata = (inspection as { metadata?: unknown }).metadata;
+    if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) {
+      return { inspectionFrozen: false, metadataFrozen: false };
+    }
+    const metadataKeys = Reflect.ownKeys(metadata);
+    if (metadataKeys.length !== 1 || metadataKeys[0] !== 'portable'
+      || (metadata as { portable?: unknown }).portable !== true) {
+      return { inspectionFrozen: false, metadataFrozen: false };
+    }
+    return {
+      inspectionFrozen: Object.isFrozen(inspection),
+      metadataFrozen: Object.isFrozen(metadata),
+    };
+  } catch {
+    return { inspectionFrozen: false, metadataFrozen: false };
+  }
+}
+
 export async function portableContract(DiBag: PortableDiBag): Promise<PortableContractResult> {
   const cleanupLog: string[] = [];
   const privateHelper = Object.freeze({ source: 'private-module-helper' });
@@ -66,7 +92,8 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   const scoped1 = child.resolve('scoped');
   const scoped2 = child.resolve('scoped');
   const rawValue = child.resolve('raw');
-  const inspection = child.inspect('rootAlias');
+  const inspection = child.inspect('root');
+  const inspectionProof = validatePortableInspection(inspection);
 
   await child.close();
   await root.close();
@@ -74,8 +101,8 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   return {
     aliasCanonical: aliasCanonical as true,
     cleanupLog: cleanupLog as unknown as PortableContractResult['cleanupLog'],
-    inspectionFrozen: Object.isFrozen(inspection) as true,
-    metadataFrozen: Object.isFrozen(inspection.metadata) as true,
+    inspectionFrozen: inspectionProof.inspectionFrozen as true,
+    metadataFrozen: inspectionProof.metadataFrozen as true,
     rawDisposerIdentity: (rawDisposed === rawPromise) as true,
     rawPromiseIdentity: (rawValue === rawPromise) as true,
     rootOnce: (rootCalls === 1) as true,
