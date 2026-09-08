@@ -17,6 +17,8 @@
 - Artifact directory is explicit, absolute, ignored, and contains no secrets.
 - Build before `npm pack --ignore-scripts`; every consumer installs explicit tarball paths with `npm install --offline --ignore-scripts --no-audit --no-fund --no-package-lock`.
 - Capture the current reviewed native-gap inventory before release validation; fresh IDs must equal that inventory or a strict subset, allowing the prior 27 IDs to become zero while rejecting every new ID or changed fingerprint.
+- Complete all source, test, script, manifest, lockfile, README, changelog, migration, and publishing-guide edits before freezing. Post-freeze commits may modify only the final integration report, sanitized release evidence, and enterprise tracker, and the manifest must record and verify that exact path diff.
+- Run every retained command with an enforced timeout, RSS ceiling, output bound, signal result, exact argv/cwd, and separately hashed stdout/stderr log. A timeout, signal, output truncation, monitor failure, or nonzero exit rejects the candidate.
 - Stop before `npm view`, `npm whoami`, `npm login`, `npm publish`, `npm dist-tag`, `git tag`, `git push`, or credential write. Registry checks are unavailable in this plan.
 
 ---
@@ -29,10 +31,15 @@
 | `CHANGELOG.md` | Release heading matching frozen `package.json` version. |
 | `README.md` | Export, adapter/no-box-dependency, and local verification guidance. |
 | `docs/migrations/0.1-to-enterprise.md` | Raw/native, scope, adapter, observer, plugin ownership migration rules. |
-| `scripts/create-release-manifest.ts` | Validate explicit local inputs and write deterministic candidate JSON. |
+| `scripts/create-release-manifest.ts` | Validate explicit local inputs and write detailed plus sanitized deterministic candidate JSON. |
+| `scripts/run-release-command.ts` | Supervise argv directly and atomically retain bounded command/log evidence. |
+| `scripts/release-native-inventory.ts` | Derive reviewed/fresh per-occurrence native diagnostic fingerprints. |
+| `scripts/create-release-audit.ts` | Bind final postcommit command records to detailed/public manifest hashes. |
+| `scripts/hash-release-tree.ts` | Write deterministic sorted path/bytes/SHA-256 evidence for a built `dist`. |
 | `scripts/verify-release-artifacts.ts` | Read-only archive/hash/metadata/content/offline-consumer verifier. |
 | `tests/release-artifacts.test.ts` | TDD acceptance/rejection coverage for scripts/docs. |
 | `docs/reports/2026-09-08-final-integration-release.md` | Local commands, matrix, hashes, stop statement. |
+| `docs/reports/2026-09-08-release-candidate-evidence.json` | Sanitized durable candidate facts without absolute paths or raw logs. |
 | `docs/superpowers/plans/2026-09-06-enterprise-di-program.md` | Program state from observed local evidence. |
 
 ### Task 1: Freeze facts and reconcile release documentation
@@ -113,11 +120,16 @@ git commit -m "docs: prepare local release candidate handoff"
 
 **Files:**
 - Create: `scripts/create-release-manifest.ts`
+- Create: `scripts/run-release-command.ts`
+- Create: `scripts/release-native-inventory.ts`
+- Create: `scripts/create-release-audit.ts`
+- Create: `scripts/hash-release-tree.ts`
+- Modify: `tests/native-diagnostic-markers.ts`
 - Modify: `tests/release-artifacts.test.ts`
 
 **Interfaces:**
-- Consumes: `--input /tmp/di-bag-release-candidate/release-evidence-input.json` and `--out /tmp/di-bag-release-candidate/candidate.json`.
-- Produces: `ReleaseManifest` from one supplied evidence schema containing package commit/branch/status, tool versions, dry-run/pack JSON, timestamps, and command logs plus derived immutable archive facts.
+- Consumes: `--input /tmp/di-bag-release-candidate/release-evidence-input.json`, `--out /tmp/di-bag-release-candidate/candidate.json`, and optional `--public-out docs/reports/2026-09-08-release-candidate-evidence.json`.
+- Produces: `ReleaseManifest` from one supplied evidence schema containing package commit/branch/status, tool versions, dry-run/pack JSON, timestamps, and command logs plus derived immutable archive facts. The optional public output is a stable projection that omits absolute paths, raw logs, and the self-referential final handoff commit while retaining candidate source commits, allowed handoff paths, hashes, command argv/results/log hashes, native fingerprints, package metadata, and file lists. `run-release-command.ts` writes the exact command records consumed here. `release-native-inventory.ts` writes the reviewed/fresh fingerprints consumed here.
 
 - [ ] **Step 1: Write failing manifest-input tests.**
 
@@ -130,28 +142,45 @@ expect(() => parseManifestArgs([
 ])).toThrow('unsupported option: --package');
 ```
 
-Also test input rejection for duplicate package record, archive outside artifact directory, missing branch/status/commit/tool/pack JSON/timestamp/command output path, a nonzero command result, fresh native gap ID absent from reviewed inventory, and recorded version differing from `package/package.json`.
+Test optional `--public-out` rejection for an absolute path, traversal, symlink escape, or any target other than `docs/reports/2026-09-08-release-candidate-evidence.json`. Prove the public projection contains no absolute checkout/archive/log path, records the constant approved handoff-path allowlist rather than the self-referential observed diff, and remains byte-identical when `handoffCommit` or observed `changedPaths` changes within that allowlist.
+
+Also test input rejection for duplicate package records; archive or log paths that are outside by traversal/prefix collision, noncanonical, symlink-escaping, missing, or replaced; missing branch/status/commit/tool/pack JSON/timestamp/command evidence; invalid ISO timestamps, reverse ordering, or inconsistent elapsed duration; duplicate/mutated logs; a nonzero, signaled, timed-out, output-limited, or monitor-failed command; and recorded version differing from `package/package.json`. Native fixtures must reject new or changed fingerprints, duplicate/moved/count-changed occurrences, while accepting an empty fresh inventory and strict subsets.
+
+Add command-runner tests for timeout, RSS, output overflow, signal, spawn failure, stderr preservation, argv values containing spaces, atomic log-write failure, and pre-execution input hashing. Repeated inputs are canonicalized and sorted by path; duplicate inputs reject and caller order cannot change the record. The CLI accepts `--artifact-dir <absolute> --record <contained-json> --cwd <absolute> [--input <absolute>]... -- <argv...>` only, rejects shell strings and online/publish/remote-Git command tokens, and normalizes successful `terminationReason` from the supervisor's `undefined` to `null`. Fixed limits are 900,000 ms, 4096 MiB observed process RSS, 16 MiB combined output, and 20 ms sampling; exported test-only orchestration accepts smaller injected limits.
+
+Add inventory-generator tests for exactly 27 committed reviewed declarations, recomputed hashes, repeated IDs with stable occurrences, and rejection of missing/extra/moved/duplicate/changed-code/changed-message records. Its exact command is `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/release-native-inventory.ts --reviewed-root tests/types --fresh-jsonl /tmp/di-bag-release-candidate/logs/di-bag-check-native.stdout --out /tmp/di-bag-release-candidate/native-diagnostics.json`. It consumes the full `gaps` objects already emitted by `scripts/check-native-contracts.ts`; export the immutable exact fingerprint table from `tests/native-diagnostic-markers.ts` so reviewed and fresh records share one authority.
+
+Add final-audit tests for missing/duplicate/mutated command records, a record whose pre-execution manifest/public hashes differ, a failed result, wrong final commit/path diff, and deterministic valid output. Its CLI accepts repeated `--record` plus exact `--manifest`, fixed sanitized `--public-evidence`, `--candidate-commit`, `--handoff-commit`, `--out`, and no command execution. It validates and hashes the already completed postcommit records, then atomically writes `/tmp/di-bag-release-candidate/final-audit.json`; creation is the final validation, so no self-attestation is claimed.
+
+Add release-tree digest tests for sorted regular-file paths, bytes and SHA-256; empty trees, symlinks, special files, traversal/output aliasing, and mutation. Its CLI accepts only canonical `--root <checkout>/dist --out <contained-json>`, reads every regular file once, and atomically writes the digest. Task 4 compares byte-identical digest JSON immediately after explicit build, after dry-run/prepack, and after actual `--ignore-scripts` pack.
 
 - [ ] **Step 2: Run manifest tests to verify RED.**
 
-Run: `bun test tests/release-artifacts.test.ts -t "manifest"`
+Run: `bun test tests/release-artifacts.test.ts`
 
-Expected: FAIL because parser/writer do not exist.
+Expected: FAIL in the manifest, command-runner, native-inventory, and final-audit contracts because their scripts do not exist.
 
 - [ ] **Step 3: Implement exact types and deterministic writer.**
 
 ```ts
 export type ReleasePackageRecord = Readonly<{
   name: 'di-bag' | 'sas-box' | 'val-box'; version: string; archive: string;
-  checkout: Readonly<{ path: string; branch: string; commit: string; status: string }>;
+  checkout: Readonly<{ path: string; branch: string; candidateSourceCommit: string; status: string }>;
   pack: Readonly<{ dryRunJson: unknown; packJson: unknown; packedAt: string }>;
-  commands: readonly Readonly<{ command: string; startedAt: string; finishedAt: string; exitCode: 0; stdoutPath: string; stderrPath: string }>[];
+  commands: readonly ReleaseCommandEvidence[];
   integrity: string; sha256: string; sha512: string; bytes: number; files: readonly string[];
+  packageMetadata: Readonly<{ name: string; version: string; main?: string; types?: string;
+    files: readonly string[]; exports: unknown; dependencies: Readonly<Record<string, string>>;
+    peerDependencies: Readonly<Record<string, string>>; optionalDependencies: Readonly<Record<string, string>>;
+    bundledDependencies: readonly string[] }>;
 }>;
 export type ReleaseManifest = Readonly<{
   schemaVersion: 1; artifactDirectory: string; generatedAt: string;
-  tools: Readonly<{ node: string; npm: string; bun: string; classic6: string; native7: string }>;
-  nativeDiagnostics: Readonly<{ reviewedAt: string; reviewedGapIds: readonly string[]; freshGapIds: readonly string[] }>;
+  tools: Readonly<{ node: string; npm: string; bun: string; classic6: string; native7: string;
+    sasBoxTypeScript: '5.9.3'; valBoxTypeScript: '5.9.3' }>;
+  nativeDiagnostics: Readonly<{ reviewedAt: string; reviewedGaps: readonly NativeGapFingerprint[];
+    freshGaps: readonly NativeGapFingerprint[] }>;
+  handoff: Readonly<{ candidateSourceCommit: string; handoffCommit: string; changedPaths: readonly string[] }>;
   packages: readonly ReleasePackageRecord[];
 }>;
 ```
@@ -161,27 +190,32 @@ Add the supplied input type before `ReleaseManifest`:
 ```ts
 export type ReleaseEvidenceInput = Readonly<{
   schemaVersion: 1; generatedAt: string; artifactDirectory: '/tmp/di-bag-release-candidate';
-  tools: Readonly<{ node: string; npm: string; bun: string; classic6: string; native7: string }>;
-  nativeDiagnostics: Readonly<{ reviewedAt: string; reviewedGapIds: readonly string[]; freshGapIds: readonly string[] }>;
+  tools: Readonly<{ node: string; npm: string; bun: string; classic6: string; native7: string;
+    sasBoxTypeScript: '5.9.3'; valBoxTypeScript: '5.9.3' }>;
+  nativeDiagnostics: Readonly<{ reviewedAt: string; reviewedGaps: readonly NativeGapFingerprint[];
+    freshGaps: readonly NativeGapFingerprint[] }>;
+  handoff: Readonly<{ candidateSourceCommit: string; handoffCommit: string; changedPaths: readonly string[] }>;
   packages: readonly Readonly<{ name: 'di-bag' | 'sas-box' | 'val-box'; version: string; archive: string;
-    checkout: Readonly<{ path: string; branch: string; commit: string; status: string }>;
+    checkout: Readonly<{ path: string; branch: string; candidateSourceCommit: string; status: string }>;
     pack: Readonly<{ dryRunJson: unknown; packJson: unknown; packedAt: string }>;
-    commands: readonly Readonly<{ command: string; startedAt: string; finishedAt: string; exitCode: 0; stdoutPath: string; stderrPath: string }>[]; }> [];
+    commands: readonly ReleaseCommandEvidence[]; }> [];
 }>;
 ```
 
-Use `realpathSync`, `statSync`, `createHash`, and supplied `packJson`. Sort package records/files lexically. Require exactly the three package names and reject missing/duplicate facts. Fresh native IDs must be a subset of reviewed IDs. Do not invoke npm, Git, or a network client; record supplied local facts only.
+Define `NativeGapFingerprint` with `id`, fixture path, marker line, stable marker occurrence, diagnostic code, normalized message, and SHA-256 fingerprint. Define `ReleaseCommandEvidence` with exact argv array, canonical cwd, valid ordered ISO start/finish timestamps, monotonic elapsed milliseconds, `exitCode: 0`, `signal: null`, `terminationReason: null`, a sorted `inputs` array of pre-execution path/bytes/SHA-256 records, and stdout/stderr path, byte count, and SHA-256. Store sorted gap occurrences rather than an ID set because IDs can repeat.
+
+Open each regular archive/log once, validate containment with `realpathSync` plus `path.relative`, and hash the retained bytes so prefix collisions, symlink escapes, and path replacement cannot pass. Sort package records/files/gap occurrences lexically. Require exactly the three package names and reject missing/duplicate facts. Fresh native fingerprint occurrences must be a multiset subset of reviewed occurrences. Derive normalized package metadata and validate every dry-run/actual pack identity, size, shasum, integrity, and file-list field against independently inspected archive bytes. Require the handoff diff to contain only the three approved evidence paths. Do not invoke npm, Git, or a network client; record supplied local facts only.
 
 - [ ] **Step 4: Run manifest tests to verify GREEN.**
 
-Run: `bun test tests/release-artifacts.test.ts -t "manifest"`
+Run: `bun test tests/release-artifacts.test.ts`
 
 Expected: PASS; equivalent inputs serialize identically and every invalid input has its stated rejection.
 
 - [ ] **Step 5: Commit manifest task.**
 
 ```bash
-git add scripts/create-release-manifest.ts tests/release-artifacts.test.ts
+git add scripts/create-release-manifest.ts scripts/run-release-command.ts scripts/release-native-inventory.ts scripts/create-release-audit.ts scripts/hash-release-tree.ts tests/native-diagnostic-markers.ts tests/release-artifacts.test.ts
 git commit -m "build: add local release manifest writer"
 ```
 
@@ -204,7 +238,7 @@ expect(await verifyReleaseArtifacts(manifestWithFixtureFile, workDir)).toMatchOb
   failures: [expect.stringContaining('forbidden package file')] });
 ```
 
-Cover five/seven box entry totals, DI Bag `files: ['dist']`, missing root/node/sas-box/val-box pairs, changed integrity, test/source/fixture/node_modules/credential content, and unexpected box in core-only consumer.
+Cover five/seven box entry totals, DI Bag `files: ['dist']`, missing root/node/sas-box/val-box pairs, changed integrity, test/source/fixture/node_modules/credential content, and unexpected box in core-only consumer. Construct malicious archives for absolute/traversal names, prefix collisions, symlinks, hardlinks, duplicate entries, truncated gzip, oversized entries, and non-regular tar types; prove each fails before extraction or consumer execution. Cover altered/duplicate pack JSON results, stale dry-run JSON, dry-run/actual file divergence, unexpected filenames, and metadata/dependency mismatch.
 
 - [ ] **Step 2: Run verifier tests to verify RED.**
 
@@ -220,12 +254,13 @@ export async function verifyReleaseArtifacts(manifestPath: string, workDir: stri
 }> {
   const manifest = readReleaseManifest(manifestPath);
   const failures = [...verifyArchiveBytes(manifest), ...verifyPackageContents(manifest)];
+  if (failures.length > 0) return { ok: false, failures };
   await verifyOfflineConsumers(manifest, workDir, failures);
   return { ok: failures.length === 0, failures };
 }
 ```
 
-Hash exact bytes; inspect `package/package.json` and paths; compare contents. Three-package consumer executes Node `require('di-bag/node')`, ESM `di-bag/node`, public `fromSasBox`/`fromValBox` real-box composition, and declarations with `skipLibCheck: false`. Core-only consumer runs `import('di-bag')` and asserts both box directories absent. Only execute offline install with explicit tarballs.
+Read and hash exact bytes once; parse gzip/tar headers before extraction; reject unsafe names, links, devices, FIFOs, duplicates, excess sizes, and malformed/truncated input. Inspect `package/package.json` and paths and compare normalized metadata. Locate the fixed sanitized evidence path relative to the canonical DI Bag checkout recorded in the detailed manifest; reject it when missing, malformed, stale, extra-field, absolute-path leaking, or different from the deterministic public projection after excluding final `handoffCommit`/observed-diff fields. Three-package consumers execute all four DI Bag public exports in CJS/ESM under Node and Bun and compare the complete I1-I15 JSON oracle. Core-only CJS/ESM consumers run under Node and Bun, assert both box directories absent, and use installed-artifact import-graph tracing so ESM side-effect/self imports cannot load Node or adapter entries. Source-deleted declaration consumers compile with pinned classic TypeScript 6 and native TypeScript 7, `skipLibCheck: false`. Only execute offline install with explicit tarballs through bounded supervision.
 
 - [ ] **Step 4: Run verifier tests to verify GREEN.**
 
@@ -235,9 +270,9 @@ Expected: PASS valid fixture and reject every tampering/content/core-only case.
 
 - [ ] **Step 5: Verify CLI scope.**
 
-Run: `node scripts/verify-release-artifacts.ts --help`
+Run: `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-release-artifacts.ts --help`
 
-Expected: usage lists only `--manifest` and `--work-dir`; no login, publish, tag, registry, credential, push, or remote option.
+Expected: usage lists only `--manifest` and `--work-dir`; the sanitized path is fixed and cannot be supplied by CLI. No login, publish, tag, registry, credential, push, or remote option exists. Tests also reject unknown/duplicate/missing options, positional arguments, relative or noncontained work directories, manifest/work-directory aliasing, and a nonempty work directory.
 
 - [ ] **Step 6: Commit verifier task.**
 
@@ -253,6 +288,7 @@ git commit -m "test: verify local release archives offline"
 - Create ignored: `/tmp/di-bag-release-candidate/release-evidence-input.json`
 - Create ignored: `/tmp/di-bag-release-candidate/commands.log`
 - Create ignored: `/tmp/di-bag-release-candidate/verify-work/`
+- Create: `docs/reports/2026-09-08-release-candidate-evidence.json`
 - Modify: `docs/reports/2026-09-08-final-integration-release.md`
 
 **Interfaces:**
@@ -261,53 +297,55 @@ git commit -m "test: verify local release archives offline"
 
 - [ ] **Step 1: Capture and validate freeze inputs.**
 
-Run: `git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD; git status --short; node --version; npm --version; bun --version`
+Run every probe through `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/run-release-command.ts --artifact-dir /tmp/di-bag-release-candidate --record <unique-contained-record.json> --cwd <absolute-checkout> -- <argv...>`. Probe `git rev-parse --show-toplevel`, `git branch --show-current`, `git rev-parse HEAD`, `git status --short`, `node --version`, `npm --version`, `bun --version`, both DI Bag compiler versions, and each box checkout's local `node_modules/typescript/bin/tsc --version` separately.
 
-Expected: paths match spec; sas-box begins `b895f9d1f1d168992f44e9f46025bc1ac9d26e14`; val-box begins `07506fcb3e49f460b6de357ecad7d88262a7f32d`; status is clean except reviewed docs/manifest/ignored outputs. Run from all three authoritative checkouts and record branch, commit, status, command start/finish timestamps, stdout path, stderr path, and exit code in `release-evidence-input.json`.
+Expected: paths match spec; sas-box is exactly `b895f9d1f1d168992f44e9f46025bc1ac9d26e14`; val-box is exactly `07506fcb3e49f460b6de357ecad7d88262a7f32d`; both box statuses are empty. DI Bag status contains only the intentionally preserved untracked `docs/reports/2026-09-08-execution-handoff.md`; any modified source, test, script, manifest, lockfile, package documentation, or build input restarts freeze. Record this DI Bag `HEAD` as `candidateSourceCommit`. Run from all three authoritative checkouts and record branch, candidate commit, exact status, command start/finish timestamps, argv/cwd, signal/termination result, and hashed stdout/stderr logs in `release-evidence-input.json`.
 
 - [ ] **Step 2: Run DI Bag source/native/integration/example gates serially.**
 
-Run: `npm run check && npm run typecheck:native && npm run build:native && npm run check:native && for file in examples/*.ts; do bun run "$file"; done && bun test tests/final-adversarial-integration.test.ts tests/box-package.test.ts tests/package.test.ts tests/native-package.test.ts`
+Run separately through `scripts/run-release-command.ts`: `npm run check`; `npm run typecheck:native`; `npm run build:native`; `npm run check:native`; and `bun test tests/final-adversarial-integration.test.ts tests/box-package.test.ts tests/package.test.ts tests/native-package.test.ts`. Assert sorted discovery equals exactly `examples/box-adapters.ts`, `examples/composition.ts`, `examples/contributions.ts`, `examples/modules.ts`, `examples/observers.ts`, `examples/plugins.ts`, `examples/scopes.ts`, `examples/tokens.ts`, and `examples/wbs-scope.ts`; test missing, extra, duplicate, and reordered inputs. Then run each literal file as a separately recorded `bun run <path>` command in that order.
 
-Expected: every exit 0; no timeout/OOM/synthetic supervisor/skip; native has zero unexpected diagnostics and fresh gap IDs equal reviewed IDs or a strict subset, including zero. Record both lists and review timestamp in `nativeDiagnostics`.
+Expected: every exit 0 with null signal/termination, bounded output, and no skip. Feed the retained `npm run check:native` stdout to the exact `scripts/release-native-inventory.ts` command from Task 2. It requires 27 reviewed committed occurrences, recomputes every constituent fingerprint, and allows the fresh multiset to equal the reviewed inventory or a strict subset, including empty; ID-only comparison is insufficient.
 
 - [ ] **Step 3: Run frozen box gates and build before packing.**
 
-Run in each related checkout: `npm run check && npm run build && npm pack --dry-run --json`
+Run as separate `scripts/run-release-command.ts` invocations in each related checkout: `npm run check`; `npm run build`; `npm pack --dry-run --json`.
 
-Expected: exit 0; sas-box list has five entries and val-box seven; pack input commits match freeze record. Preserve each dry-run JSON, pack JSON, command timestamps, and output paths in that package's evidence record.
+Expected: exit 0; sas-box list has five entries and val-box seven; pack input commits match freeze record. Preserve each dry-run JSON, command timestamps, and hashed output logs in that package's evidence record. Then run DI Bag `npm run build` with classic TypeScript and `npm pack --dry-run --json` immediately before its actual pack; record both and reject any native-build residue or dry-run/actual divergence.
 
 - [ ] **Step 4: Pack all candidates to explicit local artifact directory.**
 
-Run after build: `npm pack --ignore-scripts --json --pack-destination /tmp/di-bag-release-candidate`
+Run separately in each checkout immediately after its recorded build/dry-run: `npm pack --ignore-scripts --json --pack-destination /tmp/di-bag-release-candidate`
 
-Expected: one tarball per candidate with JSON filename/integrity/files; no prepack changes built output.
+Expected: one tarball per candidate with one JSON result whose filename/name/version/size/unpacked size/shasum/integrity/sorted files match independently inspected bytes and its dry-run. Reject multiple matching tarballs. For each package run `scripts/hash-release-tree.ts` through the command runner immediately after explicit build, after dry-run/prepack, and after actual pack; all three sorted path/bytes/SHA-256 documents must be byte-identical, and `git status --short` must show no prepack change.
 
 - [ ] **Step 5: Write the supplied evidence input, then create and verify manifest.**
 
-Write `/tmp/di-bag-release-candidate/release-evidence-input.json` with exactly one `packages` entry for `di-bag`, `sas-box`, and `val-box`; all must include the schema fields defined in Task 2. Its `artifactDirectory` is exactly `/tmp/di-bag-release-candidate`; each archive is the tarball produced by Step 4; every `commands` entry has `exitCode: 0` and references retained stdout/stderr files under that directory.
+Write `/tmp/di-bag-release-candidate/release-evidence-input.json` with exactly one `packages` entry for `di-bag`, `sas-box`, and `val-box`; all must include the schema fields defined in Task 2. Its `artifactDirectory` is exactly `/tmp/di-bag-release-candidate`; each archive is the tarball produced by Step 4; every command entry contains exact argv/cwd/timestamps, `exitCode: 0`, null signal/termination, and canonical retained stdout/stderr paths, sizes, and hashes under that directory. Initially set `handoffCommit` to `candidateSourceCommit` and `changedPaths` empty.
 
-Run: `node scripts/create-release-manifest.ts --input /tmp/di-bag-release-candidate/release-evidence-input.json --out /tmp/di-bag-release-candidate/candidate.json`
+Run: `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/create-release-manifest.ts --input /tmp/di-bag-release-candidate/release-evidence-input.json --out /tmp/di-bag-release-candidate/candidate.json --public-out docs/reports/2026-09-08-release-candidate-evidence.json`
 
 Expected: exit 0 and manifest includes SHA-256/SHA-512/integrity/bytes/files plus supplied branch/commit/status/tools/pack JSON/timestamps/commands.
 
-Run: `node scripts/verify-release-artifacts.ts --manifest /tmp/di-bag-release-candidate/candidate.json --work-dir /tmp/di-bag-release-candidate/verify-work`
+Run: `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-release-artifacts.ts --manifest /tmp/di-bag-release-candidate/candidate.json --work-dir /tmp/di-bag-release-candidate/verify-work`
 
-Expected: exit 0, proving extraction and offline consumers. Preserve both command outputs in `commands.log`.
+Expected: exit 0, proving safe extraction and every offline consumer. Preserve both command outputs in `commands.log`.
 
-- [ ] **Step 6: Commit only report/tracker evidence.**
+- [ ] **Step 6: Prepare reviewable tracked evidence without committing.**
 
 ```bash
-git add docs/reports/2026-09-08-final-integration-release.md docs/superpowers/plans/2026-09-06-enterprise-di-program.md
-git commit -m "docs: record local release candidate handoff"
+git diff --check
+git diff --name-only
 ```
 
-Never add tarballs, manifest, extracted packages, verify work, or log to Git/package.
+Expected: the tracked diff contains only the final integration report, sanitized release evidence, and enterprise tracker. The sanitized JSON contains no absolute path or raw log content. Never add tarballs, the detailed manifest/input, extracted packages, verify work, or raw logs to Git/package. Task 5 reviews and commits these three paths once, then regenerates only the ignored detailed manifest with the actual final handoff commit.
 
 ### Task 5: Review local handoff and stop
 
 **Files:**
 - Modify: `docs/reports/2026-09-08-final-integration-release.md`
+- Modify: `docs/reports/2026-09-08-release-candidate-evidence.json`
+- Modify: `docs/superpowers/plans/2026-09-06-enterprise-di-program.md`
 
 **Interfaces:**
 - Consumes: freeze record, candidate manifest, command log, package contents, verifier, integration report, and final diff.
@@ -326,9 +364,9 @@ Never add tarballs, manifest, extracted packages, verify work, or log to Git/pac
 
 - [ ] **Step 2: Run final diff and retained-artifact audit.**
 
-Run: `git diff --check && git status --short && node scripts/verify-release-artifacts.ts --manifest /tmp/di-bag-release-candidate/candidate.json --work-dir /tmp/di-bag-release-candidate/review-work`
+Run separately: `git diff --check`; `git diff --name-only`; `git status --short`; `bun test tests/release-artifacts.test.ts`; and `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-release-artifacts.ts --manifest /tmp/di-bag-release-candidate/candidate.json --work-dir /tmp/di-bag-release-candidate/review-work`.
 
-Expected: diff exits 0; status has reviewed source/docs plus ignored artifacts; verifier exits 0 again.
+Expected: diff exits 0; the tracked diff contains exactly the three approved evidence paths; status additionally contains only the preserved untracked execution handoff; every release test passes; verifier exits 0 again and confirms the public sanitized projection matches the detailed manifest except for excluded absolute/self-referential fields.
 
 - [ ] **Step 3: Write explicit stop statement.**
 
@@ -338,18 +376,22 @@ State that local evidence is complete; registry availability/owner/access/tag/pr
 
 ```bash
 git add docs/reports/2026-09-08-final-integration-release.md
+git add docs/reports/2026-09-08-release-candidate-evidence.json
+git add docs/superpowers/plans/2026-09-06-enterprise-di-program.md
 git commit -m "docs: complete local release handoff"
 ```
 
-- [ ] **Step 5: Stop before external operation.**
+- [ ] **Step 5: Bind the ignored manifest to final handoff commit and stop.**
 
-Run no further command. The next activity is a separately authorized online runbook beginning with registry preflight; this plan has no such command.
+After the evidence commit, first run bootstrap `git rev-parse HEAD`, `git diff --name-only <candidateSourceCommit>..<bootstrap-head>`, and `git status --short` records through `scripts/run-release-command.ts` using only the fixed sanitized evidence as a pre-execution input. Parse them to obtain `handoffCommit` and `changedPaths`; update the ignored evidence input and regenerate only `/tmp/di-bag-release-candidate/candidate.json` without `--public-out`.
+
+Then rerun the exact three named Git probes as fresh final records, this time supplying both the regenerated detailed manifest and sanitized evidence as repeated pre-execution `--input` values. Require final HEAD to equal `handoffCommit`, the path diff to equal only the three approved evidence paths, and status to equal only the preserved untracked execution handoff. Require `/tmp/di-bag-release-candidate/final-work` not to exist, then run the complete release-artifact tests and the verifier there one final time through the runner with those same two input hashes. Candidate gate records are manifest-bound; only these rerun postcommit records enter the final audit, so every recorded manifest hash equals the final detailed file. As the final command, run `scripts/create-release-audit.ts` with the exact manifest/public evidence, candidate/final commits, the three final Git records, and final test/verifier records; it must parse and match the Git outputs before atomically writing `/tmp/di-bag-release-candidate/final-audit.json`. Run nothing afterward. The next activity is a separately authorized online runbook beginning with registry preflight; this plan has no such command.
 
 ## Plan self-review
 
 - [ ] Candidate, build, pack, hash, extraction, offline consumer, documentation, review, and recovery requirements map to a task.
 - [ ] Every path, interface, input, output, expected result, and command is concrete; no incomplete, deferred, or vague implementation instruction remains.
 - [ ] Registry availability and login/push/tag/publish are accurately labeled unavailable/separately authorized, with no task command that performs them.
-- [ ] The manifest creator accepts only `--input /tmp/di-bag-release-candidate/release-evidence-input.json --out /tmp/di-bag-release-candidate/candidate.json`; commit, branch, status, tools, pack JSON, timestamps, and commands are present for every package.
-- [ ] Fresh native gap IDs equal the reviewed inventory or a strict subset, no fresh ID/fingerprint is new, and an empty fresh list is accepted.
+- [ ] The manifest creator accepts only `--input`, `--out`, and the exact optional sanitized `--public-out`; candidate/handoff commits, allowed path diff, branch, status, tools, pack JSON, timestamps, exact argv/cwd/results, and hashed logs are present.
+- [ ] Fresh native fingerprint occurrences equal the reviewed inventory or a multiset subset; no new, moved, duplicated, or changed occurrence is accepted, and an empty fresh list is accepted.
 - [ ] Final task terminates at local handoff without advancing to network or publication.
