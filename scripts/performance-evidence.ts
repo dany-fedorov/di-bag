@@ -591,6 +591,27 @@ export function canonicalRuntimeChildJson(output: RuntimeChildOutput): string {
   return canonicalChildJson(output);
 }
 
+export function createRuntimeJournal(root: string, sha: string, utc: string): {
+  readonly path: string;
+  readonly relativePath: string;
+  append(record: unknown): void;
+} {
+  if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error('runtime journal requires an exact Git SHA');
+  let canonicalUtc = false;
+  try { canonicalUtc = new Date(utc).toISOString() === utc; } catch { /* rejected below */ }
+  if (!canonicalUtc) throw new Error('runtime journal requires canonical UTC');
+  const filename = `runtime-current-${utc.replace(/[:.]/g, '-')}.jsonl`;
+  const relativePath = join('docs', 'benchmarks', 'results', `${utc.slice(0, 10)}-${sha.slice(0, 7)}`, filename);
+  const path = join(root, relativePath);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, '', { flag: 'wx' });
+  return {
+    path,
+    relativePath,
+    append(record: unknown): void { writeFileSync(path, `${stableJson(record)}\n`, { flag: 'a' }); },
+  };
+}
+
 export async function performanceEvidenceMain(
   args = process.argv.slice(2),
   root = resolve(process.cwd()),
@@ -599,13 +620,8 @@ export async function performanceEvidenceMain(
   if (args.length !== 1 || args[0] !== '--current') throw new Error('runtime evidence requires --current');
   const git = currentGit(root);
   const utc = new Date().toISOString();
-  const rawEvidence = join('docs', 'benchmarks', 'results', `${utc.slice(0, 10)}-${git.sha.slice(0, 7)}`, 'runtime-current-raw.jsonl');
-  const rawPath = join(root, rawEvidence);
-  mkdirSync(dirname(rawPath), { recursive: true });
-  writeFileSync(rawPath, '');
-  const rows = await runCurrentRuntimeEvidence(root, record => {
-    writeFileSync(rawPath, `${stableJson(record)}\n`, { flag: 'a' });
-  }, rawEvidence);
+  const journal = createRuntimeJournal(root, git.sha, utc);
+  const rows = await runCurrentRuntimeEvidence(root, record => journal.append(record), journal.relativePath);
   for (const row of rows) {
     if (row.status === 'informational') validateCurrentRuntimeEvidenceRow(row);
     write(`${stableJson(row)}\n`);

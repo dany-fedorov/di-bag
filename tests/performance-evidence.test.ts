@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
-import { mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   executePreparedRuntimeScenario,
   collectRuntimeSamples,
+  createRuntimeJournal,
   validateCurrentRuntimeEvidenceRow,
   pairedBootstrapMedianRatio,
   parseRuntimeChild,
@@ -322,6 +323,24 @@ test('current evidence validation requires reproducible environment, tools, fixt
     .toThrow('runtime evidence provenance mismatch');
   expect(() => validateCurrentRuntimeEvidenceRow({ ...row, resolvedDiBag: '/tmp/consumer/node_modules/di-bag/dist/index.js' }))
     .toThrow('runtime evidence entry must be clone-safe');
+});
+
+test('runtime journals use exclusive per-invocation paths and never truncate prior evidence', () => {
+  const root = mkdtempSync(join(tmpdir(), 'di-bag-runtime-journal-'));
+  try {
+    const utc = '2026-09-08T10:31:15.452Z';
+    const first = createRuntimeJournal(root, 'a'.repeat(40), utc);
+    first.append({ run: 1 });
+    expect(first.relativePath).toBe('docs/benchmarks/results/2026-09-08-aaaaaaa/runtime-current-2026-09-08T10-31-15-452Z.jsonl');
+    expect(() => createRuntimeJournal(root, 'a'.repeat(40), utc)).toThrow();
+    expect(readFileSync(first.path, 'utf8')).toBe('{"run":1}\n');
+    const second = createRuntimeJournal(root, 'a'.repeat(40), '2026-09-08T10:31:15.453Z');
+    second.append({ run: 2 });
+    expect(readFileSync(first.path, 'utf8')).toBe('{"run":1}\n');
+    expect(readFileSync(second.path, 'utf8')).toBe('{"run":2}\n');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('actual child printer writes one canonical newline-terminated object accepted by the parent', async () => withAsyncFixture(async ({ request, output }) => {

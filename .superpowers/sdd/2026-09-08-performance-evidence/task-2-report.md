@@ -19,7 +19,7 @@ with explicit `$CONSUMER` and `$ARCHIVE_BUILD` markers.
 
 Verification:
 
-- Focused scenarios/protocol: 39 pass, 0 fail, 170 assertions.
+- Focused scenarios/protocol: 40 pass, 0 fail, 175 assertions.
 - Classic typecheck: pass.
 - Classic package build: pass (`task-2-build.log`).
 - Native installed-package matrix: 2 pass, 0 fail, 1,152 assertions
@@ -41,3 +41,9 @@ was incomplete, and output was buffered until the whole matrix completed. The
 follow-up makes the linear scope chain root-owned, checks actual returned
 root/scoped/transient identities, repeatedly resolves one transient key, adds
 the complete provenance block, and journals each execution before validation.
+Re-review found that a same-day rerun could truncate the first journal. New
+runs now allocate a timestamped path with exclusive creation before checking
+prerequisites; a filesystem regression test proves a collision fails without
+changing the prior journal or its summary reference. The already retained
+`runtime-current-raw.jsonl` remains at its recorded path, while every subsequent
+run receives a unique timestamped filename.
