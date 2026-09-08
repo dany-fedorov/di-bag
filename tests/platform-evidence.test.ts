@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { gzipSync } from 'node:zlib';
 import {
   evaluatePlatformChild,
   packIsolatedClassic,
@@ -29,6 +30,31 @@ function temporaryRoot(): string {
 
 function hash(text: string): string {
   return createHash('sha256').update(text).digest('hex');
+}
+
+function tarArchive(files: Readonly<Record<string, string>>): Uint8Array {
+  const chunks: Uint8Array[] = [];
+  for (const [path, contents] of Object.entries(files)) {
+    const body = Buffer.from(contents);
+    const header = Buffer.alloc(512);
+    header.write(`package/${path}`, 0, 100, 'utf8');
+    header.write('0000644\0', 100, 8, 'ascii');
+    header.write('0000000\0', 108, 8, 'ascii');
+    header.write('0000000\0', 116, 8, 'ascii');
+    header.write(`${body.length.toString(8).padStart(11, '0')}\0`, 124, 12, 'ascii');
+    header.write('00000000000\0', 136, 12, 'ascii');
+    header.fill(0x20, 148, 156);
+    header.write('0', 156, 1, 'ascii');
+    header.write('ustar\0', 257, 6, 'ascii');
+    header.write('00', 263, 2, 'ascii');
+    const checksum = [...header].reduce((sum, byte) => sum + byte, 0);
+    header.write(`${checksum.toString(8).padStart(6, '0')}\0 `, 148, 8, 'ascii');
+    chunks.push(Uint8Array.from(header), Uint8Array.from(body));
+    const padding = (512 - body.length % 512) % 512;
+    if (padding) chunks.push(new Uint8Array(padding));
+  }
+  chunks.push(new Uint8Array(1024));
+  return Uint8Array.from(gzipSync(Uint8Array.from(Buffer.concat(chunks))));
 }
 
 const expected = { lane: 'deno-root', result: { ok: true } };
@@ -64,6 +90,12 @@ test('child evidence rejects noncanonical output, stderr, process failures and t
     .toEqual({ status: 'fail', reason: 'child result mismatch' });
   expect(evaluatePlatformChild(expected, { ...cleanChild, status: null }))
     .toEqual({ status: 'fail', reason: 'child exited with status null' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild,
+    stdout: '{"lane":"deno-root","result":{"ok":true},"__proto__":{"hostile":true}}\n' }))
+    .toEqual({ status: 'fail', reason: 'child result mismatch' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild,
+    stdout: '{"lane":"deno-root","result":{"ok":true,"__proto__":{"hostile":true}}}\n' }))
+    .toEqual({ status: 'fail', reason: 'child result mismatch' });
 });
 
 test('tool verification rejects explicit unavailability, version drift and hash drift', async () => {
@@ -105,6 +137,22 @@ test('tool verification rejects malformed pins and unavailable executables befor
     version: '2.4.5', versionText: 'deno 2.4.5\n', sha256: '0'.repeat(64),
   } }));
   await expect(verifyTool(root, 'deno')).resolves.toEqual({ status: 'unavailable', reason: 'not-provisioned' });
+  const script = join(root, 'version.js');
+  const otherScript = join(root, 'other-version.js');
+  const source = "console.log('deno 2.4.5')\n";
+  writeFileSync(script, source);
+  writeFileSync(otherScript, source);
+  const executable = realpathSync(process.execPath);
+  writeFileSync(join(root, 'tools/platform-versions.json'), JSON.stringify({ schema: 1, deno: {
+    status: 'pinned', argv: ['/missing/runtime', script], versionArgv: ['/missing/runtime', script, '--version'],
+    version: '2.4.5', versionText: 'deno 2.4.5\n', sha256: hash(source),
+  } }));
+  await expect(verifyTool(root, 'deno')).resolves.toEqual({ status: 'unavailable', reason: 'not-provisioned' });
+  writeFileSync(join(root, 'tools/platform-versions.json'), JSON.stringify({ schema: 1, deno: {
+    status: 'pinned', argv: [executable, script], versionArgv: [executable, otherScript, '--version'],
+    version: '2.4.5', versionText: 'deno 2.4.5\n', sha256: hash(source),
+  } }));
+  await expect(verifyTool(root, 'deno')).rejects.toThrow('version argv must extend invocation argv');
   writeFileSync(join(root, 'tools/platform-versions.json'), JSON.stringify({ schema: 1, deno: {
     status: 'pinned', argv: ['deno'], versionArgv: ['deno', '--version'], version: '2.4.5',
   } }));
@@ -162,17 +210,27 @@ test('pack output rejects every missing declared export and package document', (
 test('packed archive validation catches a missing archive, changed bytes and stale file inventory', () => {
   const fixture = archiveFixture();
   const archivePath = join(fixture.packageTree, fixture.result.filename);
-  writeFileSync(archivePath, 'archive bytes');
-  const sha256 = hash('archive bytes');
+  const archiveBytes = tarArchive(Object.fromEntries(packedFiles.map(path => [path,
+    path === 'package.json' ? JSON.stringify(packageDocument) : `contents for ${path}`])));
+  writeFileSync(archivePath, archiveBytes);
+  const sha256 = createHash('sha256').update(archiveBytes).digest('hex');
   const archive = { path: archivePath, packageTree: fixture.packageTree, sha256, files: packedFiles };
   expect(() => validatePackedArchive(archive)).not.toThrow();
   expect(() => validatePackedArchive({ ...archive, sha256: '0'.repeat(64) })).toThrow('SHA-256 mismatch');
   writeFileSync(archivePath, 'mutated archive bytes');
   expect(() => validatePackedArchive(archive)).toThrow('SHA-256 mismatch');
   expect(() => validatePackedArchive({ ...archive, path: join(fixture.packageTree, 'missing.tgz') })).toThrow('does not exist');
-  writeFileSync(archivePath, 'archive bytes');
+  writeFileSync(archivePath, archiveBytes);
   expect(() => validatePackedArchive({ ...archive, files: packedFiles.filter(path => path !== 'dist/index.js') }))
     .toThrow('missing dist/index.js');
+  writeFileSync(archivePath, 'not an archive');
+  const fake = { ...archive, sha256: hash('not an archive') };
+  expect(() => validatePackedArchive(fake)).toThrow('not a gzip tar archive');
+  const missingActual = tarArchive(Object.fromEntries(packedFiles.filter(path => path !== 'dist/node.js')
+    .map(path => [path, path === 'package.json' ? JSON.stringify(packageDocument) : `contents for ${path}`])));
+  writeFileSync(archivePath, missingActual);
+  expect(() => validatePackedArchive({ ...archive, sha256: createHash('sha256').update(missingActual).digest('hex') }))
+    .toThrow('archive bytes are missing dist/node.js');
 });
 
 test('repository manifest verifies every provisioned identity and retains absent tools as unavailable', async () => {

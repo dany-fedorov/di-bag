@@ -27,7 +27,7 @@ archive and hash.
 $ bun test tests/platform-evidence.test.ts
 9 pass
 0 fail
-64 expect() calls
+70 expect() calls
 ```
 
 The direct process gates run outside managed child-process interception. A
@@ -80,3 +80,23 @@ Ran 2 tests across 1 file. [158.03s]
 
 Task 1 establishes evidence primitives only. Deno consumers and browser lanes
 remain Tasks 2 and 3, and the evidence command/result summary remains Task 4.
+
+## Independent review fix round
+
+Review found three false-certification paths. Tests first reproduced each one:
+an owned JSON `__proto__` field disappeared during canonicalization; a working
+but unrelated `versionArgv` could certify an absent runtime in `argv`; and
+plain text bytes could pass archive validation when paired with their own hash
+and fabricated file inventory.
+
+Canonical JSON now uses null-prototype accumulators and rejects unexpected
+`__proto__` fields at root and nested levels. A version command must extend the
+exact invocation argv, and the invoked runtime and hashed tool artifact must
+both exist before probing. Archive validation now decompresses gzip internally,
+validates tar magic, headers, checksums, entry bounds, termination, paths and
+duplicates, and checks claimed plus required exports against the actual tar
+inventory. This avoids relying on an additional unpinned system `tar` tool.
+
+The focused review-fix RED run had three failing tests for those three paths.
+The GREEN run is the 9-test, 70-assertion result above; classic typecheck and
+build also exited zero after the fixes.
