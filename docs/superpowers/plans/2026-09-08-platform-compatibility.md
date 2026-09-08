@@ -80,7 +80,7 @@ Expected: focused evidence tests, classic type/build and existing real Node/Bun 
 
 **Interfaces:** Produce `portableContract(DiBag: PortableDiBag): Promise<PortableContractResult>` from `tests/platform/portable/contract.ts`, where `PortableContractResult` is `{ aliasCanonical: true; rootOnce: true; scopedOnce: true; transientDistinct: true; cleanupLog: readonly ['scoped', 'transient-2', 'transient-1', 'root']; rawPromiseIdentity: true; rawDisposerIdentity: true; inspectionFrozen: true; metadataFrozen: true }`; `PortableDiBag` is the minimal public root static surface used by the fixture. Produce `runDenoLane(archive, tool): Promise<PlatformRow>`.
 
-- [ ] **Step 1: Write a Node control test for the exact portable result.**
+- [x] **Step 1: Write a Node control test for the exact portable result.**
 
 ```ts
 test('portable root contract has host-independent semantics', async () => {
@@ -92,27 +92,38 @@ test('portable root contract has host-independent semantics', async () => {
 });
 ```
 
-- [ ] **Step 2: Run the RED test.**
+- [x] **Step 2: Run the RED test.**
 
 Run: `bun test tests/platform-deno.test.ts`
 
 Expected: FAIL because `tests/platform/portable/contract.ts` does not exist.
 
-- [ ] **Step 3: Implement the pure fixture and consumer.**
+- [x] **Step 3: Implement the pure fixture and consumer.**
 
 Build the complete portable fixture tree with one private helper/exported token, a string alias, root/scoped/transient owned providers and an explicit `DiBag.factory(() => rawPromise, { acquisition: 'raw' })` provider wrapped by `DiBag.withDisposal`. It must await close, compare the original raw object passed to its disposer, and return only the exact data shape above. `deno-consumer.ts` imports `DiBag` from bare `'di-bag'`, imports `portableContract` from `./portable/contract.ts`, resolves `import.meta.resolve('di-bag')`, and prints exactly `JSON.stringify({ lane: 'deno-root', resolvedDiBag, result })` once.
 
 - [ ] **Step 4: Establish and freeze Deno local-package resolution with one RED probe.**
 
+Blocked honestly on this checkout: the pinned manifest records Deno as
+`unavailable: not-provisioned`. The local `deno.json` configuration is present,
+but no Deno process executed it, no resolution claim is made, and no tool was
+downloaded or replaced with a registry/source fallback.
+
 Run: `bun test tests/platform-deno.test.ts`
 
 Expected: the first run may FAIL only with a documented local-resolution error. Change only `tests/platform/deno.json`, which is copied as `consumer/deno.json`, to establish the needed `node_modules/di-bag` configuration; rerun until its resolved module is inside `consumer/node_modules/di-bag`. Do not substitute a source or registry import.
 
-- [ ] **Step 5: Implement Deno lane parent validation.**
+- [x] **Step 5: Implement Deno lane parent validation.**
 
 `runDenoLane` uses `[node.argv[0], npmCli, 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive.path]` in a fresh consumer, recursively copies `tests/platform/portable/` to `consumer/portable/`, copies `tests/platform/deno-consumer.ts` and `tests/platform/deno.json` to `consumer/`, then invokes the verified Deno executable with `run --node-modules-dir=manual --allow-read deno-consumer.ts`. Validate exact stdout, empty stderr, local resolution and result; `fileURLToPath(resolvedDiBag)` must begin with `realpath(consumer/node_modules/di-bag) + sep`. Write a `deno-root` row even when the tool is unavailable.
 
-- [ ] **Step 6: Run focused and package gates.**
+- [x] **Step 6: Run focused and package gates.**
+
+Retained Task 2 execution facts: focused platform tests passed `14 / 14` with
+`103` assertions; package/native archive tests passed `79 / 79` with `1,647`
+assertions. Classic and native typechecks and builds exited zero. The Deno row
+is `unavailable: not-provisioned`; it is not a runtime pass. The additional
+full-suite gate passed `794 / 794` with `4,734` assertions across `42` files.
 
 Run: `bun test tests/platform-deno.test.ts tests/platform-evidence.test.ts && bun test tests/package.test.ts tests/native-package.test.ts`
 

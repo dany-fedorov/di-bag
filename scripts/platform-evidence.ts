@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 
 export type PlatformTool = 'node' | 'npm' | 'classic6' | 'bun' | 'deno' | 'esbuild' | 'playwright' | 'chromium';
@@ -142,6 +143,102 @@ function runExact(tool: VerifiedTool, args: readonly string[], cwd: string): Pla
   const result = spawnSync(command, [...tool.argv.slice(1), ...args], { cwd, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
   if (result.error) throw result.error;
   return { status: result.status, signal: result.signal, stdout: result.stdout, stderr: result.stderr };
+}
+
+const platformRoot = resolve(__dirname, '..');
+const expectedPortableResult = {
+  aliasCanonical: true,
+  cleanupLog: ['scoped', 'transient-2', 'transient-1', 'root'],
+  inspectionFrozen: true,
+  metadataFrozen: true,
+  rawDisposerIdentity: true,
+  rawPromiseIdentity: true,
+  rootOnce: true,
+  scopedOnce: true,
+  transientDistinct: true,
+} as const;
+
+function platformGit(): PlatformRow['git'] {
+  const sha = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: platformRoot, encoding: 'utf8' });
+  const dirty = spawnSync('git', ['status', '--porcelain'], { cwd: platformRoot, encoding: 'utf8' });
+  if (sha.status !== 0 || sha.signal !== null || !/^[a-f0-9]{40}\n$/.test(sha.stdout)
+    || dirty.status !== 0 || dirty.signal !== null) {
+    throw new Error('cannot establish platform evidence Git identity');
+  }
+  return { sha: sha.stdout.trim(), dirty: dirty.stdout !== '' };
+}
+
+function denoRow(status: PlatformRow['status'], fields: Record<string, unknown> = {}): PlatformRow {
+  return { schema: 1, lane: 'deno-root', status, utc: new Date().toISOString(), git: platformGit(), ...fields };
+}
+
+export function evaluateDenoChild(installedPackage: string, supervised: PlatformEnvironment): PlatformAssertion {
+  if (supervised.signal !== null) return { status: 'fail', reason: `child terminated by ${supervised.signal}` };
+  if (supervised.status !== 0) return { status: 'fail', reason: `child exited with status ${String(supervised.status)}` };
+  if (supervised.stderr !== '') return { status: 'fail', reason: 'child stderr is not empty' };
+  let actual: unknown;
+  try { actual = JSON.parse(supervised.stdout); }
+  catch { return { status: 'fail', reason: 'child stdout is not one canonical JSON object' }; }
+  if (!actual || typeof actual !== 'object' || Array.isArray(actual)
+    || supervised.stdout !== `${stableJson(actual)}\n`) {
+    return { status: 'fail', reason: 'child stdout is not one canonical JSON object' };
+  }
+  const value = actual as { lane?: unknown; resolvedDiBag?: unknown; result?: unknown };
+  if (value.lane !== 'deno-root') return { status: 'fail', reason: 'child lane mismatch' };
+  if (typeof value.resolvedDiBag !== 'string') return { status: 'fail', reason: 'child result mismatch' };
+  let resolvedModule: string;
+  let packagePrefix: string;
+  try {
+    resolvedModule = realpathSync(fileURLToPath(value.resolvedDiBag));
+    packagePrefix = `${realpathSync(installedPackage)}${sep}`;
+  } catch {
+    return { status: 'fail', reason: 'Deno resolved di-bag outside the local archive install' };
+  }
+  if (!resolvedModule.startsWith(packagePrefix)) {
+    return { status: 'fail', reason: 'Deno resolved di-bag outside the local archive install' };
+  }
+  return evaluatePlatformChild({ lane: 'deno-root', resolvedDiBag: value.resolvedDiBag, result: expectedPortableResult }, supervised);
+}
+
+export async function runDenoLane(
+  archive: PackedArchive,
+  tool: VerifiedTool | { status: 'unavailable'; reason: ToolUnavailableReason },
+): Promise<PlatformRow> {
+  if (tool.status === 'unavailable') return denoRow('unavailable', { reason: tool.reason });
+  if (tool.name !== 'deno') return denoRow('fail', { reason: 'Deno lane requires the verified deno tool' });
+
+  const npm = await verifyTool(platformRoot, 'npm');
+  if (npm.status === 'unavailable') return denoRow('unavailable', { reason: `npm-${npm.reason}` });
+  const consumer = mkdtempSync(join(tmpdir(), 'di-bag-deno-consumer-'));
+  try {
+    validatePackedArchive(archive);
+    writeFileSync(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
+    const installed = runExact(npm, ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive.path], consumer);
+    if (installed.signal !== null || installed.status !== 0 || installed.stderr !== '') {
+      return denoRow('fail', { reason: 'offline archive installation failed' });
+    }
+    const portable = join(consumer, 'portable');
+    cpSync(join(platformRoot, 'tests', 'platform', 'portable'), portable, { recursive: true });
+    cpSync(join(platformRoot, 'tests', 'platform', 'deno-consumer.ts'), join(consumer, 'deno-consumer.ts'));
+    cpSync(join(platformRoot, 'tests', 'platform', 'deno.json'), join(consumer, 'deno.json'));
+    const command = ['run', '--node-modules-dir=manual', '--allow-read', 'deno-consumer.ts'] as const;
+    const executed = runExact(tool, command, consumer);
+    const assertion = evaluateDenoChild(join(consumer, 'node_modules', 'di-bag'), executed);
+    if (assertion.status === 'fail') {
+      return denoRow('fail', { reason: assertion.reason, archiveSha256: archive.sha256, command: [...tool.argv, ...command] });
+    }
+    const output = JSON.parse(executed.stdout) as { resolvedDiBag: string; result: unknown };
+    return denoRow('pass', {
+      archiveSha256: archive.sha256,
+      command: [...tool.argv, ...command],
+      resolvedDiBag: output.resolvedDiBag,
+      result: output.result,
+    });
+  } catch (error) {
+    return denoRow('fail', { reason: error instanceof Error ? error.message : String(error) });
+  } finally {
+    rmSync(consumer, { recursive: true, force: true });
+  }
 }
 
 function requiredArchiveFilesFromDocument(document: unknown): string[] {

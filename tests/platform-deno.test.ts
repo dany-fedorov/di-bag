@@ -1,0 +1,90 @@
+import { expect, test } from 'bun:test';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { DiBag } from '../src';
+import { evaluateDenoChild, runDenoLane, verifyTool, type PackedArchive } from '../scripts/platform-evidence';
+import { portableContract } from './platform/portable/contract';
+
+test('portable root contract has host-independent semantics', async () => {
+  await expect(portableContract(DiBag)).resolves.toEqual({
+    aliasCanonical: true,
+    rootOnce: true,
+    scopedOnce: true,
+    transientDistinct: true,
+    cleanupLog: ['scoped', 'transient-2', 'transient-1', 'root'],
+    rawPromiseIdentity: true,
+    rawDisposerIdentity: true,
+    inspectionFrozen: true,
+    metadataFrozen: true,
+  });
+});
+
+const portableResult = {
+  aliasCanonical: true as const,
+  cleanupLog: ['scoped', 'transient-2', 'transient-1', 'root'] as const,
+  inspectionFrozen: true as const,
+  metadataFrozen: true as const,
+  rawDisposerIdentity: true as const,
+  rawPromiseIdentity: true as const,
+  rootOnce: true as const,
+  scopedOnce: true as const,
+  transientDistinct: true as const,
+};
+
+test('Deno child validation requires canonical output from the local installed archive', () => {
+  const consumer = mkdtempSync(join(tmpdir(), 'di-bag-deno-evaluator-'));
+  const installed = join(consumer, 'node_modules', 'di-bag');
+  mkdirSync(join(installed, 'dist'), { recursive: true });
+  writeFileSync(join(installed, 'dist', 'index.js'), 'export {};\n');
+  const local = `file://${installed}/dist/index.js`;
+  const expected = { lane: 'deno-root', resolvedDiBag: local, result: portableResult };
+  const stdout = `${JSON.stringify(expected)}\n`;
+
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout }))
+    .toEqual({ status: 'pass' });
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${stdout}noise` }))
+    .toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${JSON.stringify({ ...expected, resolvedDiBag: 'file:///tmp/foreign/dist/index.js' })}\n` }))
+    .toEqual({ status: 'fail', reason: 'Deno resolved di-bag outside the local archive install' });
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: 'warning', stdout }))
+    .toEqual({ status: 'fail', reason: 'child stderr is not empty' });
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${JSON.stringify({ ...expected, result: { ...portableResult, rootOnce: false } })}\n` }))
+    .toEqual({ status: 'fail', reason: 'child result mismatch' });
+  expect(evaluateDenoChild(installed, { status: 9, signal: null, stderr: '', stdout }))
+    .toEqual({ status: 'fail', reason: 'child exited with status 9' });
+  expect(evaluateDenoChild(installed, { status: null, signal: 'SIGTERM', stderr: '', stdout }))
+    .toEqual({ status: 'fail', reason: 'child terminated by SIGTERM' });
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${JSON.stringify({ ...expected, lane: 'other' })}\n` }))
+    .toEqual({ status: 'fail', reason: 'child lane mismatch' });
+  rmSync(consumer, { recursive: true, force: true });
+});
+
+test('Deno child validation fails closed when the expected installation is absent', () => {
+  const foreign = mkdtempSync(join(tmpdir(), 'di-bag-deno-foreign-'));
+  const resolved = join(foreign, 'index.js');
+  writeFileSync(resolved, 'export {};\n');
+  const expected = {
+    lane: 'deno-root',
+    resolvedDiBag: `file://${resolved}`,
+    result: portableResult,
+  };
+  expect(evaluateDenoChild('/tmp/missing-di-bag', {
+    status: 0,
+    signal: null,
+    stderr: '',
+    stdout: `${JSON.stringify(expected)}\n`,
+  })).toEqual({ status: 'fail', reason: 'Deno resolved di-bag outside the local archive install' });
+  rmSync(foreign, { recursive: true, force: true });
+});
+
+test('an unprovisioned Deno pin yields an explicit unavailable row without touching the archive', async () => {
+  const archive = { path: '/missing/archive.tgz', packageTree: '/missing/tree', sha256: '0'.repeat(64), files: [] } satisfies PackedArchive;
+  const deno = await verifyTool(resolve(__dirname, '..'), 'deno');
+  expect(deno).toEqual({ status: 'unavailable', reason: 'not-provisioned' });
+  await expect(runDenoLane(archive, deno)).resolves.toMatchObject({
+    lane: 'deno-root',
+    status: 'unavailable',
+    reason: 'not-provisioned',
+  });
+});
