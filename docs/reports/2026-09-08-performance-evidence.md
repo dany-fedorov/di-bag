@@ -45,7 +45,7 @@ errors and failed or partial cleanup produce `not-comparable`.
 Typed Inject and Awilix are absent from both `package-lock.json` and the
 installed tree. The actual `--comparators` command records each as
 `unavailable: not-lockfile-pinned` in
-`docs/benchmarks/results/2026-09-08-bf8b1ac/comparators.jsonl`. No dependency was
+`docs/benchmarks/results/2026-09-08-ad70a14/comparators.jsonl`. No dependency was
 downloaded, no adapter was added and no third-party throughput row exists.
 Future admitted data must be labelled **restricted common-subset throughput**;
 it cannot stand in for modules, private exports, typed closure, tokens, aliases,

@@ -29,7 +29,7 @@ TDD evidence:
   child protocol, baseline construction, compiler controls and comparators.
 
 The retained status evidence is under
-`docs/benchmarks/results/2026-09-08-bf8b1ac/`. Runtime baseline evidence from
+`docs/benchmarks/results/2026-09-08-ad70a14/`. Runtime baseline evidence from
 `8ee8696` and compiler controls from `e5456f8` were reused because this task
 changes neither runtime implementation nor workload. A fresh structural recount
 confirmed each runtime seed has 14 informational summaries, 140 warmups and 868
@@ -42,3 +42,11 @@ The first full repository gate after the public-report delta passed 875 tests,
 `/tmp/di-bag-performance-task5-check.log`; the focused log is
 `/tmp/di-bag-performance-task5-focused.log`. A final full gate follows the
 identity mutation correction and review before Task 5 is marked complete.
+
+Independent review found one Important issue: forbidden rejected Promises from
+asynchronous construction or resolution were classified but left unhandled.
+A child-process RED reproduced `not-comparable` followed by exit status 1. The
+fix attaches rejection handling to each async result immediately, including an
+earlier rejected result when a later resolve throws. The child-process GREEN
+covers build rejection, repeated resolve rejection and reject-then-throw; the
+review-fix focused gate passes 71 tests / 363 assertions.

@@ -1126,7 +1126,7 @@ singleton and transient resolution, and explicit lifecycle. Typed Inject and
 Awilix are **unavailable** because neither package is lockfile-pinned. No
 third-party timing row or comparison claim exists. The exact status rows and
 admission rules are retained in the
-[comparator evidence directory](docs/benchmarks/results/2026-09-08-bf8b1ac/README.md).
+[comparator evidence directory](docs/benchmarks/results/2026-09-08-ad70a14/README.md).
 
 Current code lives in `src/`. Previous experiments are preserved under
 [`docs/history/`](docs/history/README.md). The [v0.1 design](docs/superpowers/specs/2026-09-06-v0.1-design.md)
