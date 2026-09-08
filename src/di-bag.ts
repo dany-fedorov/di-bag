@@ -11,7 +11,7 @@ import { BindingGraph, Runtime } from './runtime';
 import type { BindingKey } from './runtime';
 import { beginModule, moduleGraph } from './module';
 import type { Module } from './module';
-import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
+import type { CheckedConstraints, CompleteConstraints, IncrementalConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes } from './lifetime-types';
 import { withLifetime } from './lifetime';
 import { withContext } from './acquisition-context';
@@ -250,8 +250,8 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
 
   install<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(
     module: Module<P, R, MC, D> & Introduces<From<E>, D> &
-      Checked<Merge<From<E>, D>> &
-      CheckedConstraints<C | MC, Merge<From<E>, D>>,
+      IncrementalChecked<E, D> &
+      IncrementalConstraints<C, MC, From<E>, D>,
   ): Builder<E | Entries<D>, C | MC> {
     return new Builder(this.#graph.withInstallation(moduleGraph(module)), this.context);
   }

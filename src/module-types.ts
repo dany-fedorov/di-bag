@@ -35,6 +35,16 @@ type MissingTokenConstraint<C, A extends Registrations> = C extends { kind: 'con
 export type CheckedConstraints<C extends NeedConstraint, A extends Registrations> =
   [WrongConstraint<C, Provided<A>> | WrongTokenConstraint<C, A>] extends [never] ? CheckedContributions<C, A>
     : Unsatisfied<'a dependency has the wrong shape', { tokens: WrongConstraint<C, Provided<A>> | WrongTokenConstraint<C, A> }>;
+export type IncrementalConstraints<
+  C extends NeedConstraint,
+  MC extends NeedConstraint,
+  Old extends Registrations,
+  Incoming extends Registrations,
+> = [Extract<C | MC, { kind: 'contribution' | 'all' | 'opaque' | 'lifetime' }>] extends [never]
+  ? unknown extends CheckedConstraints<C, Incoming>
+    ? CheckedConstraints<MC, import('./types').Merge<Old, Incoming>>
+    : CheckedConstraints<C, Incoming>
+  : CheckedConstraints<C | MC, import('./types').Merge<Old, Incoming>>;
 export type CompleteConstraints<C extends NeedConstraint, A extends Registrations> =
   [MissingConstraint<C, Provided<A>> | MissingTokenConstraint<C, A>] extends [never] ? CompleteContributions<C, A>
     : Unsatisfied<'missing factories', { missing: MissingConstraint<C, Provided<A>> | MissingTokenConstraint<C, A> }>;

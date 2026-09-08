@@ -118,6 +118,11 @@ test('incremental projection candidates preserve replacement and resolved contra
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('incremental module installation preserves private, forward, and token contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/incremental-modules.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('builder views preserve exact accepted registration histories', () => {
   expect(diagnostics(resolve(__dirname, 'types/builder-views.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

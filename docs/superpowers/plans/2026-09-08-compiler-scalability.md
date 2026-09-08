@@ -376,7 +376,7 @@ Read `src/contribution-types.ts`, `src/lifetime-types.ts`, `src/token-types.ts`.
 `IncrementalConstraints<C extends NeedConstraint, MC extends NeedConstraint, Old extends Registrations, Incoming extends Registrations>`.
 Root install retains `Builder<E | Entries<D>, C | MC>`.
 
-- [ ] **Step 1: Write private/forward/token installation regression fixtures.**
+- [x] **Step 1: Write private/forward/token installation regression fixtures.**
 
 Positive producer:
 
@@ -420,7 +420,7 @@ DiBag.begin().bind(narrow, () => 1).install(needsWide);
 Add source positive routing. Use current 500/modules/valid failed selected-case
 assertion as performance RED; retain initially passing semantic controls.
 
-- [ ] **Step 2: Implement plain-constraint incrementality with full fallback.**
+- [x] **Step 2: Implement plain-constraint incrementality with full fallback.**
 
 ```ts
 export type IncrementalConstraints<
@@ -445,7 +445,7 @@ lifetime checks unchanged. Existing C is retained even when no present providers
 satisfy it. Optional token constraints reject incompatible present services while
 permitting absence; do not treat every token-tagged member as required.
 
-- [ ] **Step 3: Exercise fallback and all retained constraints.**
+- [x] **Step 3: Exercise fallback and all retained constraints.**
 
 ```sh
 flock -x /tmp/di-bag-compiler-heavy.lock bun test tests/types.test.ts --test-name-pattern 'module|incremental|contribution|lifetime|alias|replacement|builder views'
@@ -459,7 +459,7 @@ collections, lexical root captive constraints and mixed contribution groups.
 Extend new fixtures with imported existing producer exports where a retained
 contract is otherwise absent; never copy an erased substitute provider.
 
-- [ ] **Step 4: Measure modules and isolate any remaining 1000-depth failure.**
+- [x] **Step 4: Measure modules and isolate any remaining 1000-depth failure.**
 
 Run selected classic/native 500 modules valid/missing/invariant and 1000 modules
 valid, then 1000 bindings valid. Use exact source and bounds. In owned scratch
@@ -475,13 +475,26 @@ specify its invariant carrier and prove mismatched explicit generic/ReturnType
 views impossible before implementation; this plan does not authorize an unproved
 extra generic. Keep failing rows open and preserve the successful smaller changes.
 
-- [ ] **Step 5: Review and checkpoint adopted installation changes.**
+- [x] **Step 5: Review and checkpoint adopted installation changes.**
 
 Run locked classic typecheck/build and `git diff --check`. Commit only the adopted
 helper, install operand and fixtures with
 `git commit -m "perf(types): check module installation relationships incrementally"`.
 Review the full fallback categories and replacement retention, not only the
 generated chain that became faster.
+
+Task 3 adopted the bounded root-install optimization at source checkpoint
+`94e81a23fb1f0f635a708c20990839172434299e`. The unchanged classic 500-module
+valid case timed out at 60.197 seconds; the candidate accepts all classic/native
+500-module valid, missing-final-token, and mismatched-invariant-service rows.
+The full classic type suite, native audit, scale/work suites, and classic/native
+typecheck/build gates pass. A fallback mutation loses an existing contribution
+diagnostic and is rejected. Original 1000-module/binding rows remain failed, and
+the same-expression non-generic control exposes a separate classic binder stack
+limit. The remaining work requires a proved sealed index plus verified compiler
+support; no new cache generic is authorized here. Exact measurements and the
+decision record are in
+`.superpowers/sdd/2026-09-08-compiler-scalability/task-3-report.md`.
 
 ## Task 4: Physical declarations, original matrices and final redundant proof
 
