@@ -6,4 +6,3 @@ type Exact = [
   Assert<Equal<typeof result, number>>,
   Assert<Equal<typeof resolved, number>>,
 ];
-
