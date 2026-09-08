@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import ts from 'typescript';
@@ -119,7 +119,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     });
   });
 
-  for (const feature of ['token-modules', 'incremental-modules'] as const) test(`installed ${mode} ${feature} declaration survives emission and unchanged consumption`, () => {
+  for (const feature of ['token-modules', 'incremental-modules', 'replacement-reflection'] as const) test(`installed ${mode} ${feature} declaration survives emission and unchanged consumption`, () => {
     const extension = mode === 'commonjs' ? 'cts' : 'mts';
     const runtimeExtension = mode === 'commonjs' ? 'cjs' : 'mjs';
     const featurePath = join(consumer, `${feature}-feature.${extension}`);
@@ -127,12 +127,18 @@ for (const mode of ['commonjs', 'module'] as const) {
     const output = consumer;
     // Keep the feature author and consumer unchanged; redirect only their
     // package and emitted-feature resolution edges into this installed archive.
-    const producerFixture = feature === 'token-modules' ? 'types/token-modules/feature.ts' : 'types/incremental-modules.ts';
-    const consumerFixture = feature === 'token-modules' ? 'types/token-modules/consumer.ts' : 'types/incremental-modules-consumer.ts';
+    const producerFixture = feature === 'token-modules' ? 'types/token-modules/feature.ts'
+      : feature === 'incremental-modules' ? 'types/incremental-modules.ts'
+        : 'types/replacement-reflection.ts';
+    const consumerFixture = feature === 'token-modules' ? 'types/token-modules/consumer.ts'
+      : feature === 'incremental-modules' ? 'types/incremental-modules-consumer.ts'
+        : 'types/replacement-reflection-consumer.ts';
     const source = readFileSync(resolve(__dirname, producerFixture), 'utf8')
       .replace("import type { Assert, Equal } from './assert';", "type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;")
       .replace(/from '(?:\.\.\/)+src\/(module-types)'/g, "from './node_modules/di-bag/dist/$1.js'")
       .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`);
+    writeFileSync(featurePath, source);
+    expect(existsSync(featurePath)).toBe(true);
     const options: ts.CompilerOptions = {
       strict: true,
       declaration: true,
@@ -152,16 +158,21 @@ for (const mode of ['commonjs', 'module'] as const) {
     producerHost.getSourceFile = (name, version, onError, fresh) => name === featurePath
       ? ts.createSourceFile(name, source, version, true)
       : readProducer(name, version, onError, fresh);
-    producerHost.writeFile = (name, text) => { declarations.set(name, text); };
+    producerHost.writeFile = (name, text) => { declarations.set(name, text); writeFileSync(name, text); };
     const producer = ts.createProgram([featurePath], options, producerHost);
     const emitted = producer.emit();
     expect([...ts.getPreEmitDiagnostics(producer), ...emitted.diagnostics].map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
     const declarationEntry = [...declarations].find(([name]) => name.endsWith(`${feature}-feature.d.${extension}`));
     expect(declarationEntry).toBeDefined();
     const [declarationPath, declaration] = declarationEntry!;
+    expect(existsSync(declarationPath)).toBe(true);
+    rmSync(featurePath);
+    expect(existsSync(featurePath)).toBe(false);
     const consumerSource = readFileSync(resolve(__dirname, consumerFixture), 'utf8')
       .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)
-      .replace(feature === 'token-modules' ? "from './feature'" : "from './incremental-modules'", `from './${feature}-feature.${runtimeExtension}'`);
+      .replace(feature === 'token-modules' ? "from './feature'"
+        : feature === 'incremental-modules' ? "from './incremental-modules'"
+          : "from './replacement-reflection'", `from './${feature}-feature.${runtimeExtension}'`);
     const { rootDir: _rootDir, outDir: _outDir, ...sharedConsumerOptions } = options;
     const consumerOptions: ts.CompilerOptions = { ...sharedConsumerOptions, declaration: false, emitDeclarationOnly: false, noEmit: true };
     const consumerHost = ts.createCompilerHost(consumerOptions);

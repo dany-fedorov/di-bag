@@ -21,6 +21,18 @@ const root = resolve(__dirname, '..');
 const node = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8', timeout: 10000 }).trim();
 const bun = process.execPath;
 const npmCli = realpathSync(join(dirname(node), 'npm'));
+const replacementNativeGapCounts: Readonly<Record<string, number>> = {
+  'negative/incremental.ts': 4,
+  'negative/inline-replacement-wrong-shape.ts': 1,
+  'negative/module-hidden-private-needs.ts': 1,
+  'negative/module-narrowing.ts': 1,
+  'negative/module-rename.ts': 1,
+  'negative/provider-boundaries.ts': 1,
+  'negative/replacement-context.ts': 12,
+  'negative/replacement-wrong-shape.ts': 1,
+  'negative/required-this.ts': 1,
+  'negative/union-replace.ts': 4,
+};
 const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
   ? "const { DiBag, DiBagPluginError } = require('di-bag/node'); const assert = require('node:assert/strict');"
   : "import { DiBag, DiBagPluginError } from 'di-bag/node'; import assert from 'node:assert/strict';"}
@@ -100,6 +112,11 @@ for (const emitter of ['classic6', 'native7']) {
           });
           expect(executed.terminationReason).toBeUndefined();
         }
+        const replacementModuleFeature = join(consumer, 'replacement-module-feature.ts');
+        writeFileSync(replacementModuleFeature, readFileSync(join(root, 'tests/types/modules/feature.ts'), 'utf8')
+          .replace(/from '(?:\.\.\/)+src'/g, "from 'di-bag'"));
+        const support = await compileNative(compiler, consumer, [replacementModuleFeature]);
+        expect({ checked: support.checked, diagnostics: support.diagnostics }).toEqual({ checked: true, diagnostics: [] });
         for (const fixture of boxContractFixtures) {
           const file = join(consumer, `consumer.${extension}`), source = boxContractSource(fixture);
           writeFileSync(file, source);
@@ -107,13 +124,17 @@ for (const emitter of ['classic6', 'native7']) {
           expect({ fixture, checked: result.checked, unparsed: result.unparsed }).toEqual({ fixture, checked: true, unparsed: [] });
           const markers = matchNativeDiagnosticMarkers(source, file, result.diagnostics);
           if (!markers.accepted) failures.push({ emitter, extension, fixture, ...markers });
-          expect({ fixture, knownNativeRejections: markers.knownNativeRejections }).toEqual({ fixture, knownNativeRejections: fixture === 'negative/incremental.ts' ? 4 : 0 });
+          expect(result.diagnostics.some(error => error.code === 2589)).toBe(false);
+          expect({ fixture, knownNativeRejections: markers.knownNativeRejections }).toEqual({
+            fixture,
+            knownNativeRejections: replacementNativeGapCounts[fixture] ?? 0,
+          });
           if (markers.knownNativeRejections && process.env.DI_BAG_VERBOSE_NATIVE === '1') console.log(JSON.stringify({ emitter, extension, fixture, status: markers.status,
             primaryExpected: markers.primaryExpected, primaryMatched: markers.primaryMatched,
             supplementalExpected: markers.supplementalExpected, supplementalMatched: markers.supplementalMatched,
             knownNativeRejections: markers.knownNativeRejections, gaps: markers.gaps }));
         }
-        for (const feature of ['modern-inline', 'token-modules', 'incremental-modules', 'acquisition-mode', 'scopes', 'lifetimes', 'startup', 'selected-scopes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins']) {
+        for (const feature of ['modern-inline', 'token-modules', 'incremental-modules', 'acquisition-mode', 'scopes', 'lifetimes', 'startup', 'selected-scopes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'replacement-reflection']) {
           const sourceDir = join(consumer, `${feature}-source`), outputDir = join(consumer, `${feature}-output`);
           mkdirSync(sourceDir); mkdirSync(outputDir);
           const assertions = "type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;";
@@ -124,7 +145,8 @@ for (const emitter of ['classic6', 'native7']) {
           const fixture = feature === 'token-modules' ? 'token-modules/feature.ts' : `${feature}.ts`;
           const producer = join(sourceDir, `feature.${extension}`);
           writeFileSync(producer, route(readFileSync(join(root, 'tests/types', fixture), 'utf8'), true));
-          if (emitter === 'classic6' && (feature === 'incremental-modules' || feature === 'acquisition-mode' || feature === 'scopes' || feature === 'lifetimes' || feature === 'startup' || feature === 'selected-scopes' || feature === 'composition-adapters' || feature === 'dependency-references' || feature === 'aliases' || feature === 'contributions' || feature === 'observers' || feature === 'plugins')) {
+          expect(existsSync(producer)).toBe(true);
+          if (emitter === 'classic6' && (feature === 'incremental-modules' || feature === 'acquisition-mode' || feature === 'scopes' || feature === 'lifetimes' || feature === 'startup' || feature === 'selected-scopes' || feature === 'composition-adapters' || feature === 'dependency-references' || feature === 'aliases' || feature === 'contributions' || feature === 'observers' || feature === 'plugins' || feature === 'replacement-reflection')) {
             const program = ts.createProgram([producer], { strict: true, declaration: true, emitDeclarationOnly: true, rootDir: sourceDir, outDir: outputDir,
               noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, types: [], target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext });
             const emitted = program.emit();
@@ -135,10 +157,11 @@ for (const emitter of ['classic6', 'native7']) {
           }
           const declaration = join(outputDir, `feature.d.${extension}`); expect(existsSync(declaration)).toBe(true);
           rmSync(sourceDir, { recursive: true, force: true });
+          expect(existsSync(producer)).toBe(false);
           const downstream = join(consumer, `${feature}-consumer.${extension}`);
           const consumerFixture = feature === 'token-modules' ? 'token-modules/consumer.ts' : `${feature}-consumer.ts`;
           const text = route(readFileSync(join(root, 'tests/types', consumerFixture), 'utf8'))
-            .replace(/from '\.\/(modern-inline|feature|incremental-modules|acquisition-mode|scopes|lifetimes|startup|selected-scopes|composition-adapters|dependency-references|aliases|contributions|observers|plugins)'/g, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`)
+            .replace(/from '\.\/(modern-inline|feature|incremental-modules|acquisition-mode|scopes|lifetimes|startup|selected-scopes|composition-adapters|dependency-references|aliases|contributions|observers|plugins|replacement-reflection)'/g, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`)
             .replace(/import\('\.\/plugins'\)/g, `import('./${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}')`);
           writeFileSync(downstream, text);
           const consumed = await compileNative(compiler, consumer, [downstream]);

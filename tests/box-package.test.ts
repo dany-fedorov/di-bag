@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { cpSync, mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, existsSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -40,6 +40,18 @@ beforeAll(async () => {
   await run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive,
     join(fixtures, 'sas-box-0.1.0.tgz'), join(fixtures, 'val-box-0.1.0.tgz')], consumer);
   await run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive], coreConsumer);
+  writeFileSync(join(consumer, 'replacement-module-feature.ts'),
+    readFileSync(resolve(__dirname, 'types/modules/feature.ts'), 'utf8')
+      .replace(/from '(?:\.\.\/)+src'/g, "from 'di-bag'"));
+});
+
+test('installed replacement module support compiles through the public archive', () => {
+  const path = join(consumer, 'replacement-module-feature.ts');
+  const options: ts.CompilerOptions = { strict: true, noEmit: true, noUncheckedIndexedAccess: true,
+    exactOptionalPropertyTypes: true, types: [], target: ts.ScriptTarget.ES2022,
+    module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext };
+  expect(ts.getPreEmitDiagnostics(ts.createProgram([path], options)).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
 test('real fixtures retain the verified archive hashes', () => {
@@ -195,6 +207,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       if (!fixture.startsWith('negative/')) expect(errors.map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
       else {
         expect(errors.every(error => error.file?.fileName === path)).toBe(true);
+        expect(errors.some(error => error.code === 2589)).toBe(false);
         const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
         expect(matched.missing).toEqual([]); expect(matched.unexpected).toEqual([]);
       }

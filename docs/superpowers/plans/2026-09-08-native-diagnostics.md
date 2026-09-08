@@ -385,7 +385,7 @@ reuse the ten original negatives and `tests/types/modules/feature.ts`.
 `boxContractSource` must route source imports to actual installed declarations.
 Physical producer feature name is `replacement-reflection` in both emitter lanes.
 
-- [ ] **Step 1: Write downstream-only exact checks and missing-routing RED.**
+- [x] **Step 1: Write downstream-only exact checks and missing-routing RED.**
 
 ```ts
 import { builder, moduleBuilder, result, forward } from './replacement-reflection';
@@ -403,7 +403,7 @@ Before routing, assert the installed feature .d.cts/.d.mts exists and producer
 source is absent; capture the missing artifact/routing RED. Source fixture
 success alone is insufficient.
 
-- [ ] **Step 2: Route all ten original negative programs without changing bodies.**
+- [x] **Step 2: Route all ten original negative programs without changing bodies.**
 
 Append the ten fixed inventory files to `boxContractFixtures` only if absent,
 plus `replacement-reflection.ts`, `negative/replacement-reflection.ts` and
@@ -429,7 +429,7 @@ Add the same dependency setup in classic box-package and native-package loops.
 Keep unrelated type-internal routing exactly as currently supported. Assert each
 negative's diagnostics belong to its actual consumer path/region, with no TS2589.
 
-- [ ] **Step 3: Add both emitter branches and source-deletion consumer routing.**
+- [x] **Step 3: Add both emitter branches and source-deletion consumer routing.**
 
 Add `replacement-reflection` to native-package feature inventory AND its
 `emitter === 'classic6'` classic-emission selection, so the classic-emitter
@@ -466,6 +466,14 @@ existing Node/Bun CJS/ESM runtime tests, real boxes and core-without-boxes route
 No public type export may be added merely to silence TS4023: first capture the
 nameability RED and make a justified export decision. Run diff/typecheck and
 commit `test: verify replacement parity through physical package declarations`.
+
+Task 3 package proof is implemented at the Task 2 no-adoption source. Both
+emitters and both downstream module formats retain the exact utility contracts,
+and all ten fixed negative programs now traverse installed declarations. The
+package gates accept only the pre-existing per-fixture native fingerprints,
+which total 27. Step 4 remains incomplete because native useful-message parity
+did not recover; detailed RED/GREEN evidence is retained in
+`.superpowers/sdd/2026-09-08-native-diagnostics/task-3-report.md`.
 
 ## Task 4: Work/scale/native/full verification and honest closure
 
