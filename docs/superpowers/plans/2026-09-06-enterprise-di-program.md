@@ -102,14 +102,14 @@ execution; do not stop for another planning approval between increments.
   than weakening them. The prior parent benchmark evaluator Minor is closed by
   direct malformed JSON/identity/diagnostic, process-failure, boundary and
   TS2589 tests in the reviewed native compiler checkpoint `ad73249`.
-  - [x] Packed platform evidence command at source `b9801a6`: the isolated
+  - [x] Packed platform evidence command at final reviewed source `62e72b9`: the isolated
     classic TypeScript 6 archive build and pack row passes with retained source,
     lockfile, tool, command and artifact hashes. Deno is explicitly
     `unavailable: not-provisioned`; the browser Worker lane is explicitly
     `unavailable: esbuild-not-provisioned`, with Playwright and Chromium also
     retained as unavailable. These rows do not claim Deno/browser execution or
     extend support to `di-bag/node`. Evidence:
-    `docs/benchmarks/results/2026-09-08-b9801a6/`.
+    `docs/benchmarks/results/2026-09-08-62e72b9/`.
 - [ ] Compiler/inference follow-up: execute
   `2026-09-08-compiler-scalability.md` and
   `2026-09-08-native-diagnostics.md` to resolve the remaining measured 500/1000
