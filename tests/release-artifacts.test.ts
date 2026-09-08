@@ -361,17 +361,20 @@ describe('command evidence runner', () => {
 
 describe('native gap inventory', () => {
   const reviewedRoot = resolve(root, 'tests/types');
-  test('freezes exactly 27 recomputed stable reviewed occurrences', () => {
+  const syntheticRoot = resolve(scratch, 'synthetic-native-gap-authority');
+  mkdirSync(syntheticRoot);
+  writeFileSync(resolve(syntheticRoot, 'legacy.ts'), '// diagnostic: legacy failure\n// diagnostic-native-gap: last-token-string\nconst legacy = true;\n');
+  test('freezes the exact current zero-gap source authority', () => {
     expect(Object.isFrozen(nativeDiagnosticGapMessages)).toBe(true);
-    const gaps = collectReviewedNativeGaps(reviewedRoot); expect(gaps).toHaveLength(27); expect(Object.isFrozen(gaps)).toBe(true);
-    expect(new Set(gaps.map(gap => `${gap.fixture}:${gap.markerLine}:${gap.markerOccurrence}`)).size).toBe(27);
-    for (const gap of gaps) expect(gap.fingerprint).toMatch(/^[0-9a-f]{64}$/);
+    const gaps = collectReviewedNativeGaps(reviewedRoot); expect(gaps).toEqual([]); expect(Object.isFrozen(gaps)).toBe(true);
   });
-  test('accepts empty and strict-subset fresh inventory and rejects changed or moved facts', () => {
-    const reviewed = collectReviewedNativeGaps(reviewedRoot), first = reviewed[0]!;
+  test('accepts empty and reviewed fresh inventory while an empty authority rejects a new gap', () => {
+    const reviewed = collectReviewedNativeGaps(syntheticRoot), first = reviewed[0]!;
+    expect(reviewed).toHaveLength(1); expect(first.fingerprint).toMatch(/^[0-9a-f]{64}$/);
     expect(collectFreshNativeGaps('', reviewed)).toEqual([]);
     const row = JSON.stringify({ fixture: first.fixture, gaps: [{ id: first.id, primary: { line: first.markerLine - 1 }, diagnostic: { code: 2769, message: first.normalizedMessage } }] });
     expect(collectFreshNativeGaps(row, reviewed)).toEqual([first]);
+    expect(() => collectFreshNativeGaps(row, [])).toThrow('new or moved native gap occurrence');
     expect(() => collectFreshNativeGaps(row.replace('2769', '1234'), reviewed)).toThrow('malformed');
     expect(() => collectFreshNativeGaps(row.replace(`"line":${first.markerLine - 1}`, '"line":99999'), reviewed)).toThrow('moved');
     const changed = JSON.stringify({ fixture: first.fixture, gaps: [{ id: first.id, primary: { line: first.markerLine - 1 }, diagnostic: { code: 2769, message: `${first.normalizedMessage} changed` } }] });
@@ -470,18 +473,31 @@ describe('manifest validation and deterministic projection', () => {
       (value: any) => { value.tools.native7 = ''; },
     ]) { const value: any = structuredClone(validInput()); mutate(value); expect(() => createReleaseManifest(value)).toThrow(); }
   });
-  test('rejects new, changed, duplicate and count-changed native occurrences while accepting zero', () => {
-    const empty: any = structuredClone(validInput()); empty.nativeDiagnostics.freshGaps = []; expect(() => createReleaseManifest(empty)).not.toThrow();
+  test('accepts zero reviewed and fresh native gaps and rejects every unexpected fresh occurrence', () => {
+    const empty: any = structuredClone(validInput()); expect(() => createReleaseManifest(empty)).not.toThrow();
+    const unexpected: any = structuredClone(validInput());
+    unexpected.nativeDiagnostics.freshGaps = [{ id: 'last-token-string', fixture: 'negative/replacement.ts', markerLine: 2, markerOccurrence: 1, code: 2769, normalizedMessage: nativeDiagnosticGapMessages['last-token-string'], fingerprint: '0'.repeat(64) }];
+    expect(() => createReleaseManifest(unexpected)).toThrow();
+  });
+  test('retains nonempty-authority manifest validation for historical candidates', () => {
+    const checkout = resolve(fixtureArtifact, 'historical-checkout');
+    mkdirSync(resolve(checkout, 'tests/types'), { recursive: true });
+    writeFileSync(resolve(checkout, 'tests/types/replacement.ts'), '// diagnostic: legacy failure\n// diagnostic-native-gap: last-token-string\n');
+    const input: any = structuredClone(validInput());
+    input.packages.find((item: any) => item.name === 'di-bag').checkout.path = checkout;
+    input.nativeDiagnostics.reviewedGaps = collectReviewedNativeGaps(resolve(checkout, 'tests/types'));
+    input.nativeDiagnostics.freshGaps = structuredClone(input.nativeDiagnostics.reviewedGaps);
+    expect(() => createReleaseManifest(input)).not.toThrow();
     for (const mutate of [
       (value: any) => { value.nativeDiagnostics.freshGaps[0].fixture = 'negative/moved.ts'; },
       (value: any) => { value.nativeDiagnostics.freshGaps[0].normalizedMessage += 'x'; },
       (value: any) => { value.nativeDiagnostics.freshGaps.push(structuredClone(value.nativeDiagnostics.freshGaps[0])); },
       (value: any) => { value.nativeDiagnostics.reviewedGaps.pop(); },
-    ]) { const value: any = structuredClone(validInput()); mutate(value); expect(() => createReleaseManifest(value)).toThrow(); }
-    const replaced: any = structuredClone(validInput()), gap = replaced.nativeDiagnostics.reviewedGaps[0]; replaced.nativeDiagnostics.freshGaps = []; gap.fixture = 'negative/replaced.ts';
+    ]) { const value: any = structuredClone(input); mutate(value); expect(() => createReleaseManifest(value)).toThrow(); }
+    const replaced: any = structuredClone(input), gap = replaced.nativeDiagnostics.reviewedGaps[0]; replaced.nativeDiagnostics.freshGaps = []; gap.fixture = 'negative/replaced.ts';
     gap.fingerprint = createHash('sha256').update(JSON.stringify({ id: gap.id, fixture: gap.fixture, markerLine: gap.markerLine, markerOccurrence: gap.markerOccurrence, code: gap.code, normalizedMessage: gap.normalizedMessage })).digest('hex');
     expect(() => createReleaseManifest(replaced)).toThrow('frozen source authority');
-    const traversal: any = structuredClone(validInput()); traversal.nativeDiagnostics.reviewedGaps[0].fixture = '../escape.ts';
+    const traversal: any = structuredClone(input); traversal.nativeDiagnostics.reviewedGaps[0].fixture = '../escape.ts';
     expect(() => createReleaseManifest(traversal)).toThrow('changed reviewed native fingerprint');
   });
   test('rejects failed, malformed-time, duplicate-input and mutated-log command evidence', () => {

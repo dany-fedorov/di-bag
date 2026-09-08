@@ -51,7 +51,6 @@ function commandEvidence(value: ReleaseCommandEvidence, artifact: string): Relea
 }
 function gapKey(gap: NativeGapFingerprint): string { return `${gap.fixture}\0${gap.markerLine}\0${gap.id}\0${gap.markerOccurrence}\0${gap.fingerprint}`; }
 function validateGaps(reviewed: readonly NativeGapFingerprint[], fresh: readonly NativeGapFingerprint[]): void {
-  if (reviewed.length !== 27) throw new Error('reviewed native gaps must contain exactly 27 occurrences');
   for (const [label, gaps] of [['reviewed', reviewed], ['fresh', fresh]] as const) {
     const occurrence = new Set<string>();
     for (const gap of gaps) {

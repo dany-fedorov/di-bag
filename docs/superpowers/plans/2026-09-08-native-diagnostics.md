@@ -576,7 +576,7 @@ signatures/allowances, and identify the required migration/upstream decision.
 Do not label that outcome diagnostic parity or leave an ordinary suite falsely
 green by removing required negative expressions.
 
-Task 4 is complete as an honest no-adoption closeout. Fresh selected
+Task 4 was complete as an honest no-adoption closeout. Fresh selected
 rows confirm classic acceptance and native diagnostic-quality failure at the
 exact 100/500 boundaries. The strict audit remains 68/95 with 27 gaps. Matching
 production-source hashes allow reuse of the final 108-row matrix, and all
@@ -594,6 +594,21 @@ audit, and passed the physical classic/native declaration gate at 2 tests /
 - [x] Module replacement retains contribution C and full registration validation.
 - [x] All ten installed negative fixtures resolve real archive declarations, including module support source.
 - [x] Classic feature emitter branch actually uses classic emission; producer source is absent downstream.
-- [ ] Native source/package gaps are removed only after useful-marker proof, without new allowances.
+- [x] Native source/package gaps are removed only after useful-marker proof, without new allowances.
 - [x] Original matrix syntax/boundaries and fixed work/resource ceilings remain intact.
 - [x] Failed candidate feasibility remains an open program obligation with concrete evidence.
+
+## 2026-09-09 parity follow-up
+
+A third candidate retained the direct factored replacement overload and inlined
+the `Unsatisfied<'replace requires one existing singleton string-literal key',
+{ key: K }>` result in both invalid `ReplacementKey` branches. That preserves the
+utility and reflected-history contracts while making native 7.0.2 select the useful
+named diagnostic in the last union-name region. The strict audit now accepts 95/95
+primary regions, 1/1 supplemental region and zero unexpected diagnostics. The 27
+fixture allowances were removed. Release inventory validation now derives the exact
+authority from candidate source; an empty authority rejects every fresh gap.
+
+This diagnostic adoption does not waive compiler-scale requirements. The original
+100/500 replacement wrong-shape rows now carry the useful message, while the native
+1000 replacement-valid row still exceeds the 3072 MiB ceiling and remains T2 work.

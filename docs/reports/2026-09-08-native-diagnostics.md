@@ -88,3 +88,30 @@ logs are retained under
 `.superpowers/sdd/2026-09-08-native-diagnostics/task-4-*`; their index is
 `task-4-verification.md` in that directory. No push or publication was
 performed.
+
+## 2026-09-09 parity follow-up
+
+The earlier no-adoption result above remains the record for its tested candidates.
+A third candidate succeeded by combining the direct factored replacement overload
+with the invalid-key `Unsatisfied` type written directly in both conditional
+branches. Native 7.0.2 now matches all 95 primary messages, the one supplemental
+message, and zero unexpected diagnostics across the unchanged invalid expressions.
+The ordinary native audit reports 124 fixtures, 662 expected and 662 matched
+regions, zero reviewed gaps, zero unexpected diagnostics and zero failed fixtures.
+
+Focused utility/reflection/history verification passed 147 tests and 517
+assertions. Native 100- and 500-entry replacement wrong-shape probes now retain the
+useful message; the 1000-entry valid probe still exceeds the fixed 3072 MiB ceiling.
+Release inventory and manifest tests were migrated from the historical 27-gap
+checkpoint to the candidate-derived authority and explicitly reject a fresh gap
+when the committed authority is empty. The prior `b4ff1f2` release evidence remains
+historically valid, but these tracked source changes require a new release candidate.
+
+Clean-commit selected probes at `69beafe0940af1dfdf03bc66f70bdb5a6bc168df`
+and source hash `e9a52097e7fdbbde99bb20763e4318fef5f1906b5fe87c3ded86a0065e1c0f40`
+accepted the classic/native 100- and 500-entry replacement wrong-shape rows with
+the exact useful TS2769 message and no TS2589. Peaks were 546/2604 MiB for classic
+and 175.76/1526.18 MiB for native. The complete working-tree suite then passed 992
+tests across 50 files with 5,714 assertions; classic/native typechecks and builds,
+the 89-test release suite, both physical package lanes, and all nine examples also
+passed. Independent review found no Critical or Important issue.

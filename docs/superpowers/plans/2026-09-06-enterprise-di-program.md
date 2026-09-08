@@ -153,18 +153,16 @@ execution; do not stop for another planning approval between increments.
     pass. The final frozen 108-row matrix accepts 83 rows and retains 25 failures,
     so T2 and the parent compiler follow-up remain open. Evidence:
     `docs/reports/2026-09-08-compiler-scalability.md`.
-  - [ ] Native replacement diagnostic quality: 27 existing invalid calls are
-    rejected but 7.0.2 prints only the last token-overload error. Task 2 records
-    exact native-only rejection fingerprints separately from useful messages;
-    this does not complete diagnostic parity. A proposed overload redesign was
-    rejected because standard ReturnType views introduced cast-free history
-    erasure. Production signatures remain unchanged; new regression tests must
-    preserve utility-type soundness alongside direct-call inference.
-    The bounded follow-up is complete with honest no-adoption evidence: both
-    permitted factorizations reached 94/95 strict messages but the union-name
-    diagnostic still hid the useful requirement. Fresh strict audits remain
-    68/95 with exactly 27 gaps; source, utility, package, full and example gates
-    pass. Native parity and T2 remain open. Evidence:
+  - [x] Native replacement diagnostic quality: a factored named/token replacement
+    signature plus an inline invalid-key diagnostic now reports the useful message
+    at all 95 primary regions, including the union-name case, with the supplemental
+    region matched and zero unexpected diagnostics. All 27 reviewed fixture
+    exceptions were removed. Utility/reflection/history checks preserve direct-call
+    inference, forwarding parameters, cast-free history rejection, module output,
+    token inference, contribution constraints, and physical declarations. The
+    release inventory now derives its count from candidate source and rejects every
+    fresh occurrence when that authority is empty. The 1000-entry compiler resource
+    failures remain part of T2. Evidence:
     `docs/reports/2026-09-08-native-diagnostics.md`.
 - [x] Local release-candidate handoff: Tasks 1-3 of
   `2026-09-08-release-handoff.md` are complete. They reconcile the `0.1.0` changelog,
@@ -188,7 +186,9 @@ execution; do not stop for another planning approval between increments.
   evidence. Task 4 independent evidence review is clean after an 88-test / 431
   assertion archive-survival run and a distinct-workdir verifier rerun. Task 5
   commits only the three approved evidence paths and binds the ignored detailed
-  manifest plus final audit to that commit; no tracked change follows.
+  manifest plus final audit to that original handoff commit. The later `69beafe`
+  diagnostic-parity source commit invalidates that candidate for publication;
+  Task 4/5 candidate evidence must be regenerated after the remaining scale work.
   registry version and publication remain unavailable because registry checks, login, tag, provenance,
   credential changes, and publication require fresh explicit authorization.
 

@@ -49,7 +49,6 @@ export function collectReviewedNativeGaps(root: string): readonly NativeGapFinge
     });
   }
   records.sort(compareGap);
-  if (records.length !== 27) throw new Error(`reviewed native inventory must contain exactly 27 occurrences; got ${records.length}`);
   assertUnique(records, 'reviewed');
   return Object.freeze(records);
 }

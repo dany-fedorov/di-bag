@@ -184,8 +184,11 @@ result is the 990-test row above.
 Tasks 1-4 and the candidate-blocking fixture, compiler-probe, and memory fixes
 received clean independent reviews. Local evidence is complete; Task 5 binds the
 ignored detailed manifest and final audit to this three-path handoff commit, with
-no later tracked change. The original 83/108 compiler-scale result and 27 native
-diagnostic-quality gaps remain open work. Registry availability, ownership,
+no later tracked change during that original evidence sequence. The original
+83/108 compiler-scale result remains historical evidence. The later 2026-09-09
+`69beafe` source milestone closes the 27 native diagnostic-quality gaps and thereby
+invalidates this candidate for publication; a fresh candidate must be produced
+after the remaining scale work settles. Registry availability, ownership,
 access, tag, and provenance remain unavailable. No Task 5 command runs `npm view`,
 `npm whoami`, `npm login`, `npm publish`, `npm dist-tag`, `git tag`, `git push`, or
 a credential write; the separately authorized checkpoint pushes are disclosed
