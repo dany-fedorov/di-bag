@@ -173,7 +173,13 @@ execution; do not stop for another planning approval between increments.
   tooling, and the offline archive verifier. Task 4 is restarting after isolating
   manifest-test archives from the fixed candidate artifact paths; the prior test
   lifecycle deleted those candidate archives and invalidated their evidence chain.
-  The separately authorized checkpoint push of `afe6326` is complete and supplies no registry evidence. Frozen archives,
+  The fresh box-package gate then crossed its fixed 4096 MiB limit once; an exact
+  retry passed at 3287.0625 MiB, confirming unstable retention across 115 in-process
+  TypeScript programs. Forced collection between test cases preserved every
+  assertion and reduced three exact supervised peaks to 991.78125, 843.02734375,
+  and 994.07421875 MiB; a final `--rerun-each 2` stress run passed 242 tests / 690
+  assertions at 930.5 MiB. The separately authorized checkpoint pushes of
+  `afe6326` and `284c725` are complete and supply no registry evidence. Frozen archives,
   sanitized evidence, Task 5 review, and final audit remain; registry version and publication remain unavailable because registry checks, login, tag, provenance,
   credential changes, and publication require fresh explicit authorization.
 

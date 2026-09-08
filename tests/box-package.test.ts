@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { afterAll, afterEach, beforeAll, expect, test } from 'bun:test';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, existsSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -22,6 +22,10 @@ let archive: string;
 afterAll(() => {
   for (const directory of [packed, consumer, coreConsumer, packageTree]) rmSync(directory, { recursive: true, force: true });
 });
+
+// Compiler-heavy cases create large TypeScript graphs. Collect them between cases so
+// the release gate's fixed memory bound measures one contract at a time.
+afterEach(() => Bun.gc(true));
 
 async function execute(command: string[], cwd = root) {
   const result = await supervise(command[0]!, command.slice(1), cwd,
