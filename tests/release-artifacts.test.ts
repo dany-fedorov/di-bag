@@ -412,15 +412,20 @@ describe('manifest validation and deterministic projection', () => {
   const artifact = '/tmp/di-bag-release-candidate';
   mkdirSync(artifact, { recursive: true });
   const prefix = `task2-test-${process.pid}`;
-  const created: string[] = [];
-  afterAll(() => { for (const path of created) rmSync(path, { force: true, recursive: true }); });
+  const archiveSnapshots = packageNames.map(name => {
+    const path = resolve(artifact, `${name}-0.1.0.tgz`);
+    return { path, existed: existsSync(path), bytes: existsSync(path) ? readFileSync(path) : undefined };
+  });
+  const fixtureArtifact = resolve(artifact, prefix);
+  mkdirSync(fixtureArtifact);
+  afterAll(() => rmSync(fixtureArtifact, { force: true, recursive: true }));
   const reviewed = collectReviewedNativeGaps(resolve(root, 'tests/types'));
   function validInput(): ReleaseEvidenceInput {
     const packages = (['di-bag', 'sas-box', 'val-box'] as const).map(name => {
       const packageJson = JSON.stringify({ name, version: '0.1.0', main: './dist/index.js', types: './dist/index.d.ts', files: ['dist'], exports: { '.': { types: './dist/index.d.ts', default: './dist/index.js' } } });
       const bytes = archiveOf([{ path: 'package/package.json', content: packageJson }, { path: 'package/dist/index.d.ts', content: 'export {}' }, { path: 'package/dist/index.js', content: 'export {}' }]);
-      const archive = resolve(artifact, `${name}-0.1.0.tgz`); writeFileSync(archive, bytes); created.push(archive);
-      const stdout = resolve(artifact, `${prefix}-${name}.stdout`), stderr = resolve(artifact, `${prefix}-${name}.stderr`); created.push(stdout, stderr);
+      const archive = resolve(fixtureArtifact, `${name}-0.1.0.tgz`); writeFileSync(archive, bytes);
+      const stdout = resolve(fixtureArtifact, `${name}.stdout`), stderr = resolve(fixtureArtifact, `${name}.stderr`);
       const command: ReleaseCommandEvidence = { argv: ['npm', 'run', 'build'], cwd: root, startedAt: '2026-09-08T00:00:00.000Z', finishedAt: '2026-09-08T00:00:00.001Z', elapsedMilliseconds: 1, exitCode: 0, signal: null, terminationReason: null, peakObservedRssMiB: 10, inputs: [], stdout: writeLogEvidence(stdout, 'ok\n'), stderr: writeLogEvidence(stderr, '') };
       const inspection = inspectNpmArchive(bytes), files = inspection.entries.map(entry => entry.path.slice('package/'.length));
       const result = { id: `${name}@0.1.0`, name, version: '0.1.0', size: bytes.length, unpackedSize: inspection.unpackedBytes, shasum: createHash('sha1').update(bytes).digest('hex'), integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`, filename: `${name}-0.1.0.tgz`, files: files.map(path => ({ path, size: inspection.entries.find(entry => entry.path === `package/${path}`)!.bytes, mode: 420 })), entryCount: files.length, bundled: [] };
@@ -428,6 +433,13 @@ describe('manifest validation and deterministic projection', () => {
     });
     return { schemaVersion: 1, generatedAt: '2026-09-08T00:00:02.000Z', artifactDirectory: artifact, tools: { node: 'v24', npm: '11', bun: '1.4.0', classic6: '6.0.2', native7: '7.0.2', sasBoxTypeScript: '5.9.3', valBoxTypeScript: '5.9.3' }, nativeDiagnostics: { reviewedAt: '2026-09-08T00:00:00.000Z', reviewedGaps: reviewed, freshGaps: reviewed.slice(0, 2) }, handoff: { candidateSourceCommit: 'a'.repeat(40), handoffCommit: 'b'.repeat(40), changedPaths: [...APPROVED_HANDOFF_PATHS] }, packages };
   }
+  test('manifest fixtures leave root candidate archive existence and bytes unchanged', () => {
+    validInput();
+    for (const snapshot of archiveSnapshots) {
+      expect(existsSync(snapshot.path)).toBe(snapshot.existed);
+      if (snapshot.existed) expect(readFileSync(snapshot.path)).toEqual(snapshot.bytes!);
+    }
+  });
   test('derives immutable archive facts and is deterministic across caller ordering', () => {
     const input = validInput(), first = createReleaseManifest(input); const reordered: any = structuredClone(input); reordered.packages.reverse(); reordered.nativeDiagnostics.reviewedGaps.reverse();
     const second = createReleaseManifest(reordered); expect(serializeStable(first)).toBe(serializeStable(second));
@@ -484,8 +496,8 @@ describe('manifest validation and deterministic projection', () => {
   test('rejects archive containment, symlink escape, absence and replacement facts', () => {
     const outside = resolve(scratch, 'outside.tgz'); writeFileSync(outside, archiveOf([{ path: 'package/package.json', content: minimalPackage() }]));
     const value: any = structuredClone(validInput()); value.packages[0].archive = outside; expect(() => createReleaseManifest(value)).toThrow('outside');
-    const link = resolve(artifact, `${prefix}-link.tgz`); symlinkSync(outside, link); created.push(link); value.packages[0].archive = link; expect(() => createReleaseManifest(value)).toThrow(/symlink|realpath/);
-    value.packages[0].archive = resolve(artifact, 'absent.tgz'); expect(() => createReleaseManifest(value)).toThrow();
+    const link = resolve(fixtureArtifact, 'link.tgz'); symlinkSync(outside, link); value.packages[0].archive = link; expect(() => createReleaseManifest(value)).toThrow(/symlink|realpath/);
+    value.packages[0].archive = resolve(fixtureArtifact, 'absent.tgz'); expect(() => createReleaseManifest(value)).toThrow();
   });
   test('manifest CLI rejects every non-fixed public target form', () => {
     expect(() => parseManifestArgs(['--input', '/tmp/i', '--out', '/tmp/o', '--public-out', '/tmp/public.json'])).toThrow('public output');
