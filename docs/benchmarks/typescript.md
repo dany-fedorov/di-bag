@@ -371,3 +371,22 @@ latency guarantees. Exact rows, diagnostics, generated hashes and summaries are
 retained under `.superpowers/sdd/2026-09-08-compiler-scalability/task-4-*`.
 The full interpretation and package proof are in
 `docs/reports/2026-09-08-compiler-scalability.md`.
+
+## Native replacement diagnostic closeout (2026-09-08)
+
+The bounded replacement-signature experiment did not meet its strict adoption
+gate. Its best two candidates each matched 94/95 useful primary messages; the
+remaining union-name case exposed a private `NoInfer<InvalidReplacement<...>>`
+alias. No production signature was adopted and the original 27 native gap
+fingerprints remain.
+
+Fresh selected-case runs at the same production-source SHA-256
+`90d656f628878dd926da736db2ce4781f9763e9d5fdc0f6834ae0128f475c198`
+confirmed the existing matrix classification: classic 6.0.3 accepted the 100
+and 500 replacement wrong-shape rows with the required useful message at lines
+152 and 752; native 7.0.2 rejected both at the correct boundaries with TS2769
+but omitted that message. The strict source audit remained 68/95 useful
+primaries with 27 gaps and 1/1 supplements. The matching source hash permits
+reuse of the final 108 rows above; their 83/108 result and 25 unresolved rows do
+not change. Full evidence is in
+`docs/reports/2026-09-08-native-diagnostics.md`.

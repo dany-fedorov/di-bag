@@ -130,13 +130,19 @@ execution; do not stop for another planning approval between increments.
     pass. The final frozen 108-row matrix accepts 83 rows and retains 25 failures,
     so T2 and the parent compiler follow-up remain open. Evidence:
     `docs/reports/2026-09-08-compiler-scalability.md`.
-  - [ ] Native replacement diagnostic quality:27existing invalid calls are
-    rejected but7.0.2prints only the last token-overload error. Task2 records
+  - [ ] Native replacement diagnostic quality: 27 existing invalid calls are
+    rejected but 7.0.2 prints only the last token-overload error. Task 2 records
     exact native-only rejection fingerprints separately from useful messages;
     this does not complete diagnostic parity. A proposed overload redesign was
     rejected because standard ReturnType views introduced cast-free history
     erasure. Production signatures remain unchanged; new regression tests must
     preserve utility-type soundness alongside direct-call inference.
+    The bounded follow-up is complete with honest no-adoption evidence: both
+    permitted factorizations reached 94/95 strict messages but the union-name
+    diagnostic still hid the useful requirement. Fresh strict audits remain
+    68/95 with exactly 27 gaps; source, utility, package, full and example gates
+    pass. Native parity and T2 remain open. Evidence:
+    `docs/reports/2026-09-08-native-diagnostics.md`.
 - [ ] Release handoff: execute `2026-09-08-release-handoff.md` after the
   adversarial integration plan to complete examples, migrations, changelogs,
   verified local tarballs, and safe publication instructions for all three

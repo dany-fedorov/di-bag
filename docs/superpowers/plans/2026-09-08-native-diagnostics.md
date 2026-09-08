@@ -485,7 +485,7 @@ outcomes. Reuse `scripts/check-replacement-diagnostics.ts` and the scale plan's
 compiler at final stable combined source. The scale plan owns collection; this
 task independently verifies relevant identities/boundaries and source hashes.
 
-- [ ] **Step 1: Prove the exact original message-related matrix failures are fixed.**
+- [x] **Step 1: Verify the exact original message-related matrix outcomes.**
 
 After the selected-case runner exists, execute:
 
@@ -504,7 +504,7 @@ in `tests/native-replacement-diagnostics.test.ts`; the exact interface is
 {count:100,form:'replacement',scenario:'wrong-shape'})`, then repeat count 500.
 Do not invoke an unsupported CLI flag or standalone unsupervised classic worker.
 
-- [ ] **Step 2: Run all source/utility/work/native regression gates.**
+- [x] **Step 2: Run all source/utility/work/native regression gates.**
 
 ```sh
 flock -x /tmp/di-bag-compiler-heavy.lock node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-replacement-diagnostics.ts
@@ -518,7 +518,7 @@ Useful primaries and exact supplements are separately reported; zero gap invento
 must correspond to unchanged expression coverage. Check that source inventory
 did not silently lose a file when comments disappeared.
 
-- [ ] **Step 3: Consume or collect the complete original matrix, serially.**
+- [x] **Step 3: Consume or collect the complete original matrix, serially.**
 
 If the scale plan already collected final-source rows after these signatures,
 verify their hashes and exact 36/18/36/18 identities rather than rerun them.
@@ -536,7 +536,7 @@ messages are repaired. Collector exit status, source-gap fingerprints or an
 intended error accompanied by TS2589 do not grant row acceptance. No concurrency
 with package or source runs.
 
-- [ ] **Step 4: Run redundant integration, archives and all examples.**
+- [x] **Step 4: Run redundant integration, archives and all examples.**
 
 ```sh
 flock -x /tmp/di-bag-compiler-heavy.lock npm run check
@@ -576,14 +576,22 @@ signatures/allowances, and identify the required migration/upstream decision.
 Do not label that outcome diagnostic parity or leave an ordinary suite falsely
 green by removing required negative expressions.
 
+Task 4 Steps 1-4 are complete as an honest no-adoption closeout. Fresh selected
+rows confirm classic acceptance and native diagnostic-quality failure at the
+exact 100/500 boundaries. The strict audit remains 68/95 with 27 gaps. Matching
+production-source hashes allow reuse of the final 108-row matrix, and all
+focused, native, package, full and example gates pass. Step 5 remains pending
+for independent committed-state review. Evidence is recorded in
+`docs/reports/2026-09-08-native-diagnostics.md`.
+
 ## Self-review checklist
 
 - [ ] Fixed ten-file inventory still covers all 27 original expressions after comment removal.
-- [ ] Both direct-call and standard utility/reflection contracts pass on both compilers.
-- [ ] Root erased view rejects and safe module reflected view still yields exact numbers.
-- [ ] Module replacement retains contribution C and full registration validation.
-- [ ] All ten installed negative fixtures resolve real archive declarations, including module support source.
-- [ ] Classic feature emitter branch actually uses classic emission; producer source is absent downstream.
+- [x] Both direct-call and standard utility/reflection contracts pass on both compilers.
+- [x] Root erased view rejects and safe module reflected view still yields exact numbers.
+- [x] Module replacement retains contribution C and full registration validation.
+- [x] All ten installed negative fixtures resolve real archive declarations, including module support source.
+- [x] Classic feature emitter branch actually uses classic emission; producer source is absent downstream.
 - [ ] Native source/package gaps are removed only after useful-marker proof, without new allowances.
-- [ ] Original matrix syntax/boundaries and fixed work/resource ceilings remain intact.
-- [ ] Failed candidate feasibility remains an open program obligation with concrete evidence.
+- [x] Original matrix syntax/boundaries and fixed work/resource ceilings remain intact.
+- [x] Failed candidate feasibility remains an open program obligation with concrete evidence.
