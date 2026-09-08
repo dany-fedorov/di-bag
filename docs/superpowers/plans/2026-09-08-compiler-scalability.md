@@ -356,11 +356,16 @@ variant increased token work above the 1,461,065 baseline. The complete
 production candidate was therefore reverted. Retained compatibility and
 negative fixtures pass on both compiler lanes; the negative marker mutation RED
 and opt-in performance RED remain reproducible. The final native audit accepted
-115 files with 650 expected, 623 matched, the same 27 declared gaps, and zero
+115 files with 652 expected, 625 matched, the same 27 declared gaps, and zero
 failures. Classic/native typecheck and build also pass. Per the staged stop rule,
 larger selected candidate cases were not run after the work-gate rejection.
 Detailed commands and all three measurements are in
 `.superpowers/sdd/2026-09-08-compiler-scalability/task-2-report.md`.
+The proposed `RelevantEntries`/`RelevantProvided` interface was not adopted and
+is not claimed by the retained source fixture. Exact candidate patches,
+provenance-complete JSONL rows, and their command/limit manifest are retained in
+that evidence directory; committed semantic tests cover the observable output,
+provider-graph, named-boundary, and token-boundary contracts instead.
 
 ## Task 3: Incremental installation constraints and remaining-depth decision
 
