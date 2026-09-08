@@ -27,7 +27,7 @@
 
 **Interfaces:** Produce `RuntimeScenario = 'build-close' | 'cold-linear-resolve' | 'warm-root-resolve' | 'scope-resolve-close' | 'transient-resolve-close' | 'raw-promise-identity' | 'node-native-promise'`; `PreparedScenario`; `TimedScenarioResult`; `BenchmarkSample`; `BenchmarkSummary`; `prepareScenario(name, providers, DiBag): Promise<PreparedScenario>`; `runTimed(prepared): Promise<TimedScenarioResult>`; `verifyScenario(prepared, timed): RuntimeWorkResult`; `runRuntimeChild(request): Promise<BenchmarkSample>`; `summarize(samples): BenchmarkSummary`; `validateRuntimeSample(request, child): BenchmarkSample`.
 
-- [ ] **Step 1: Write failing schema/statistics tests.**
+- [x] **Step 1: Write failing schema/statistics tests.**
 
 ```ts
 test('rejects a correct duration with an incorrect workload checksum', () => {
@@ -39,17 +39,17 @@ test('computes summary from all raw nanoseconds', () => {
 });
 ```
 
-- [ ] **Step 2: Run the RED test.**
+- [x] **Step 2: Run the RED test.**
 
 Run: `bun test tests/performance-evidence.test.ts`
 
 Expected: FAIL because runner exports are absent.
 
-- [ ] **Step 3: Implement canonical JSON schema and statistic functions.**
+- [x] **Step 3: Implement canonical JSON schema and statistic functions.**
 
 Child request includes lane, scenario, provider count, archive identity, implementation identity and order slot. Child output is exactly `{ lane, scenario, providers, resolvedDiBag, elapsedNanoseconds, checksum, factories, disposers, cleanupLog }`; serialize bigint duration as a decimal string. Child calls `prepareScenario`, captures `const start = process.hrtime.bigint()`, awaits only `runTimed`, captures `const elapsedNanoseconds = process.hrtime.bigint() - start`, then calls `verifyScenario` and prints one JSON object. Parent rejects extra stdout/stderr, any `resolvedDiBag` outside the current consumer's real `node_modules/di-bag`, and derives sorted min/p05/median/p95/mean/stddev/max without rounding raw values. Implement a deterministic paired bootstrap (10,000 seeded resamples) returning `medianRatioCi95`.
 
-- [ ] **Step 4: Run focused GREEN tests.**
+- [x] **Step 4: Run focused GREEN tests.**
 
 Run: `bun test tests/performance-evidence.test.ts`
 
