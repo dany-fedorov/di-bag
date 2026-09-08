@@ -27,7 +27,7 @@
 
 **Interfaces:** Produce `PlatformTool`, `PlatformEnvironment`, `PlatformRow`, `verifyTool(root, name): Promise<VerifiedTool | { status: 'unavailable'; reason: string }>`; `packIsolatedClassic(root, node, npm, classic6): Promise<PackedArchive>`; `evaluatePlatformChild(expected, supervised): PlatformAssertion`; `writePlatformEvidence(root, row): Promise<string>`. `PlatformRow.status` is exactly `'pass' | 'fail' | 'unavailable'`.
 
-- [ ] **Step 1: Write failing unit tests for tool identity and hostile child output.**
+- [x] **Step 1: Write failing unit tests for tool identity and hostile child output.**
 
 ```ts
 test('rejects version drift, hash drift, stderr and noncanonical child JSON', async () => {
@@ -37,13 +37,13 @@ test('rejects version drift, hash drift, stderr and noncanonical child JSON', as
 });
 ```
 
-- [ ] **Step 2: Run the focused RED test.**
+- [x] **Step 2: Run the focused RED test.**
 
 Run: `bun test tests/platform-evidence.test.ts`
 
 Expected: FAIL because `scripts/platform-evidence.ts` and its exported functions do not exist.
 
-- [ ] **Step 3: Add the exact manifest and minimal verifier/evaluator.**
+- [x] **Step 3: Add the exact manifest and minimal verifier/evaluator.**
 
 ```ts
 type ToolPin =
@@ -54,17 +54,21 @@ type PlatformVersions = { schema: 1; node: ToolPin; npm: ToolPin; classic6: Tool
 
 The initial non-network probe creates a `pinned` entry only after it has exact argv, version text and SHA-256; otherwise it writes the explicit `unavailable` union arm. Resolve `npmCli` with `realpath(join(dirname(node.argv[0]), 'npm'))`; pin it as `argv: [node.argv[0], npmCli]` and hash `npmCli`. Resolve classic6 as `realpath(join(root, 'node_modules/typescript/bin/tsc6'))`; pin it as `argv: [node.argv[0], classic6]` and hash that script. Implement the reader to reject incomplete pinned identity, run `versionArgv`, compare exact stdout, and return `unavailable` before spawning a lane. `packIsolatedClassic` copies `src`, `package.json`, `tsconfig.json`, `tsconfig.build.json`, `README.md` and `LICENSE` into `mkdtempSync(join(tmpdir(), 'di-bag-platform-'))`; invokes `[node.argv[0], classic6, '-p', 'tsconfig.build.json']`; then invokes `[node.argv[0], npmCli, 'pack', '--ignore-scripts', '--json']` and validates exactly one archive, its package documents and all declared export files.
 
-- [ ] **Step 4: Make the test pass and add archive mutation coverage.**
+- [x] **Step 4: Make the test pass and add archive mutation coverage.**
 
 Run: `bun test tests/platform-evidence.test.ts`
 
 Expected: PASS; include mutations for multiple tarballs, missing `dist/index.js`, `dist/node.js`, `dist/sas-box.js`, `dist/val-box.js`, wrong hash, unexpected stderr and lane-ID mismatch.
 
-- [ ] **Step 5: Add pinned development dependencies after recording actual RED-probe versions.**
+- [x] **Step 5: Add pinned development dependencies after recording actual RED-probe versions.**
+
+The offline probe found no Deno, esbuild, Playwright or Chromium installation.
+Their manifest entries therefore retain `unavailable: not-provisioned`; no
+dependency or lockfile change and no network fallback was made.
 
 In `package.json`, add exact (no range) `esbuild` and `playwright` dev dependencies chosen by the pinned-tool provisioning policy, regenerate `package-lock.json`, and update their manifest entries with the exact version text and SHA-256. Do not use this operation to download Chromium during tests.
 
-- [ ] **Step 6: Run redundant foundation gates.**
+- [x] **Step 6: Run redundant foundation gates.**
 
 Run: `bun test tests/platform-evidence.test.ts && npm run typecheck && npm run build && bun test tests/native-package.test.ts`
 
