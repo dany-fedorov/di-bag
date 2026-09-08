@@ -559,7 +559,7 @@ proof deliberately. Preserve actual command outputs and assertions; no compiler
 heavy process overlaps any other. Later repetition needs a new delta/failure or
 an independent committed-state verification reason.
 
-- [ ] **Step 5: Record exact outcomes and obtain independent final review.**
+- [x] **Step 5: Record exact outcomes and obtain independent final review.**
 
 Report original27/current useful counts, supplements, package emitter/module
 routes, ReturnType FunctionMatch and cast-free assignment evidence, original
@@ -576,17 +576,19 @@ signatures/allowances, and identify the required migration/upstream decision.
 Do not label that outcome diagnostic parity or leave an ordinary suite falsely
 green by removing required negative expressions.
 
-Task 4 Steps 1-4 are complete as an honest no-adoption closeout. Fresh selected
+Task 4 is complete as an honest no-adoption closeout. Fresh selected
 rows confirm classic acceptance and native diagnostic-quality failure at the
 exact 100/500 boundaries. The strict audit remains 68/95 with 27 gaps. Matching
 production-source hashes allow reuse of the final 108-row matrix, and all
-focused, native, package, full and example gates pass. Step 5 remains pending
-for independent committed-state review. Evidence is recorded in
+focused, native, package, full and example gates pass. Independent committed-state
+review passed 133 focused tests / 482 assertions, reproduced the exact strict
+audit, and passed the physical classic/native declaration gate at 2 tests /
+1,152 assertions with no findings. Evidence is recorded in
 `docs/reports/2026-09-08-native-diagnostics.md`.
 
 ## Self-review checklist
 
-- [ ] Fixed ten-file inventory still covers all 27 original expressions after comment removal.
+- [x] Fixed ten-file inventory still covers all 27 original expressions after comment removal.
 - [x] Both direct-call and standard utility/reflection contracts pass on both compilers.
 - [x] Root erased view rejects and safe module reflected view still yields exact numbers.
 - [x] Module replacement retains contribution C and full registration validation.
