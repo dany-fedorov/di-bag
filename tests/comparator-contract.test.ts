@@ -173,6 +173,9 @@ test('rejects package and adapter identity drift before semantic admission', asy
     writeFileSync(join(installed, 'package.json'), JSON.stringify({ name: 'awilix', version: '9.0.0' }));
     expect((await inspectOptionalComparators(root, { awilix: validAdapter({ name: 'wrong-name', version: '9.0.0' }) }))[1])
       .toMatchObject({ status: 'not-comparable', reason: 'adapter-package-identity-mismatch' });
+    writeFileSync(join(installed, 'package.json'), JSON.stringify({ name: 'lookalike', version: '9.0.0' }));
+    expect((await inspectOptionalComparators(root, { awilix: validAdapter({ name: 'awilix', version: '9.0.0' }) }))[1])
+      .toMatchObject({ status: 'unavailable', reason: 'installed-package-name-mismatch' });
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

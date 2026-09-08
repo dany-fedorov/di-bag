@@ -150,10 +150,13 @@ export async function validateComparator(adapter: ComparatorAdapter): Promise<Co
 
 type LockPackage = { readonly version?: unknown; readonly integrity?: unknown };
 
-function packageVersion(root: string, packageName: string): string | undefined {
+function installedPackage(root: string, packageName: string): { name?: string; version?: string } | undefined {
   try {
     const parsed = JSON.parse(readFileSync(join(root, 'node_modules', packageName, 'package.json'), 'utf8')) as unknown;
-    return record(parsed) && typeof parsed.version === 'string' ? parsed.version : undefined;
+    return record(parsed) ? {
+      ...(typeof parsed.name === 'string' ? { name: parsed.name } : {}),
+      ...(typeof parsed.version === 'string' ? { version: parsed.version } : {}),
+    } : undefined;
   } catch {
     return undefined;
   }
@@ -181,12 +184,16 @@ export async function inspectOptionalComparators(
       rows.push({ schema: 1, lane: 'comparator', name, status: 'unavailable', reason: 'not-lockfile-pinned' });
       continue;
     }
-    const installedVersion = packageVersion(root, name);
-    if (installedVersion === undefined) {
+    const installed = installedPackage(root, name);
+    if (installed?.version === undefined) {
       rows.push({ schema: 1, lane: 'comparator', name, version: locked.version, status: 'unavailable', reason: 'lockfile-pinned-but-not-installed' });
       continue;
     }
-    if (installedVersion !== locked.version) {
+    if (installed.name !== name) {
+      rows.push({ schema: 1, lane: 'comparator', name, version: locked.version, status: 'unavailable', reason: 'installed-package-name-mismatch' });
+      continue;
+    }
+    if (installed.version !== locked.version) {
       rows.push({ schema: 1, lane: 'comparator', name, version: locked.version, status: 'unavailable', reason: 'installed-version-mismatch' });
       continue;
     }
