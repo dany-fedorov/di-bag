@@ -209,6 +209,9 @@ function archiveFiles(path: string): Set<string> {
     const next = offset + 512 + Math.ceil(size / 512) * 512;
     if (!Number.isSafeInteger(size) || next > bytes.length) throw new Error('packed archive has a truncated tar entry');
     const type = header[156];
+    if (type !== 0 && type !== 0x30 && type !== 0x35) {
+      throw new Error(`packed archive has unsupported tar entry type ${String.fromCharCode(type ?? 0)}`);
+    }
     if (type === 0 || type === 0x30) {
       if (!fullName.startsWith('package/')) throw new Error('packed archive has a file outside package/');
       const relative = fullName.slice('package/'.length);

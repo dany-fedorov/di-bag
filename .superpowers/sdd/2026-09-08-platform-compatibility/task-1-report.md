@@ -27,7 +27,7 @@ archive and hash.
 $ bun test tests/platform-evidence.test.ts
 9 pass
 0 fail
-70 expect() calls
+71 expect() calls
 ```
 
 The direct process gates run outside managed child-process interception. A
@@ -98,5 +98,11 @@ duplicates, and checks claimed plus required exports against the actual tar
 inventory. This avoids relying on an additional unpinned system `tar` tool.
 
 The focused review-fix RED run had three failing tests for those three paths.
-The GREEN run is the 9-test, 70-assertion result above; classic typecheck and
+Re-review then reproduced a PAX path-override bypass in the tar inventory.
+Another RED/GREEN mutation now supplies a standards-shaped PAX header that
+renames the following raw entry. The checker accepts only regular files and
+directories and rejects metadata, links and other entry types rather than
+silently misinterpreting them.
+
+The GREEN run is the 9-test, 71-assertion result above; classic typecheck and
 build also exited zero after the fixes.

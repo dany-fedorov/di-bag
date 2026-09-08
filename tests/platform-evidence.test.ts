@@ -32,9 +32,11 @@ function hash(text: string): string {
   return createHash('sha256').update(text).digest('hex');
 }
 
-function tarArchive(files: Readonly<Record<string, string>>): Uint8Array {
+type TestTarEntry = { path: string; contents: string; type?: '0' | 'x' };
+
+function tarArchiveEntries(entries: readonly TestTarEntry[]): Uint8Array {
   const chunks: Uint8Array[] = [];
-  for (const [path, contents] of Object.entries(files)) {
+  for (const { path, contents, type = '0' } of entries) {
     const body = Buffer.from(contents);
     const header = Buffer.alloc(512);
     header.write(`package/${path}`, 0, 100, 'utf8');
@@ -44,7 +46,7 @@ function tarArchive(files: Readonly<Record<string, string>>): Uint8Array {
     header.write(`${body.length.toString(8).padStart(11, '0')}\0`, 124, 12, 'ascii');
     header.write('00000000000\0', 136, 12, 'ascii');
     header.fill(0x20, 148, 156);
-    header.write('0', 156, 1, 'ascii');
+    header.write(type, 156, 1, 'ascii');
     header.write('ustar\0', 257, 6, 'ascii');
     header.write('00', 263, 2, 'ascii');
     const checksum = [...header].reduce((sum, byte) => sum + byte, 0);
@@ -55,6 +57,17 @@ function tarArchive(files: Readonly<Record<string, string>>): Uint8Array {
   }
   chunks.push(new Uint8Array(1024));
   return Uint8Array.from(gzipSync(Uint8Array.from(Buffer.concat(chunks))));
+}
+
+function tarArchive(files: Readonly<Record<string, string>>): Uint8Array {
+  return tarArchiveEntries(Object.entries(files).map(([path, contents]) => ({ path, contents })));
+}
+
+function paxPath(path: string): string {
+  const body = ` path=${path}\n`;
+  let length = body.length + 1;
+  while (`${length}${body}`.length !== length) length = `${length}${body}`.length;
+  return `${length}${body}`;
 }
 
 const expected = { lane: 'deno-root', result: { ok: true } };
@@ -231,6 +244,16 @@ test('packed archive validation catches a missing archive, changed bytes and sta
   writeFileSync(archivePath, missingActual);
   expect(() => validatePackedArchive({ ...archive, sha256: createHash('sha256').update(missingActual).digest('hex') }))
     .toThrow('archive bytes are missing dist/node.js');
+  const paxOverride = tarArchiveEntries([
+    ...packedFiles.filter(path => path !== 'dist/index.js').map(path => ({
+      path, contents: path === 'package.json' ? JSON.stringify(packageDocument) : `contents for ${path}`,
+    })),
+    { path: 'PaxHeader/index.js', type: 'x', contents: paxPath('package/dist/not-index.js') },
+    { path: 'dist/index.js', contents: 'misleading raw header' },
+  ]);
+  writeFileSync(archivePath, paxOverride);
+  expect(() => validatePackedArchive({ ...archive, sha256: createHash('sha256').update(paxOverride).digest('hex') }))
+    .toThrow('unsupported tar entry type');
 });
 
 test('repository manifest verifies every provisioned identity and retains absent tools as unavailable', async () => {
