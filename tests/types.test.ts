@@ -138,6 +138,11 @@ test('supported replacement wrappers and reflected methods stay exact and non-an
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('replacement reflection preserves utility soundness and module history', () => {
+  expect(diagnostics(resolve(__dirname, 'types/replacement-reflection.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('modern inline inference retains exact contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/modern-inline-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

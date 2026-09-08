@@ -1,0 +1,40 @@
+{
+  "baseCommit": "8586fe64db4f818b95aece1ee88a8f18a213614a",
+  "compiler": {
+    "classicApi": "6.0.3",
+    "classicWrapper": "6.0.2",
+    "nativeCli": "7.0.2"
+  },
+  "commands": [
+    "git apply --unidiff-zero .superpowers/sdd/2026-09-08-native-diagnostics/historical-combined-overload.patch",
+    "flock -x /tmp/di-bag-compiler-heavy.lock bun test tests/types.test.ts --test-name-pattern 'replacement reflection|replacement-reflection'",
+    "flock -x /tmp/di-bag-compiler-heavy.lock node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON .superpowers/sdd/2026-09-08-native-diagnostics/historical-combined-overload-native.ts"
+  ],
+  "sha256": {
+    "patch": "9b3fe919a93acb45543b0c052887c337b2be39047fd7047efe3af0f678f2a28f",
+    "nativeRunner": "c9d64fcbb4d930d6fd3c621846ca9853b2b791f580f50db6037bf55e92b922dc",
+    "classicRawOutput": "d674ac88d6872fa064f1bb4df266e117a21d3b63eade96bb3f86890123aeecbb",
+    "nativeRawOutput": "6dd9b076ed1b5ff7606251ddf469ebce070564bdec470cb583a25db1a639e9fe",
+    "baselineDiBag": "f3b1f4dca011509c2e08eed613443fdc62207afda06637c2e83f8d2312718e31",
+    "candidateDiBag": "e36d0866a72beaacb5f76fd3dd689edb780f16b4f6cb6c6c463992ffa4e9baac",
+    "baselineModule": "9182bc9b0a959ce3aec3b75dcee97e50b02a3c9aac81bed49aee550aff2c9ef4",
+    "candidateModule": "b0262eb07ff49b2a01d03bc28943030e7b308440b015fc25cd725932b101b337",
+    "positiveOracle": "e64c968468ff795b20e5d6a6fdece47d313232daa0a441052322cd3a0f0986d6",
+    "negativeOracle": "538dff61758c80c69854536747d7cfb956f3999fada610465ec72ee5f51d40fd"
+  },
+  "strictInventory": {
+    "orderedPrimaryFragments": 95,
+    "orderedSupplementalCodeTextPairs": 1,
+    "auditSourceSha256": "c70b60a76287470426e75a20907dd914ac1201313016cc56158f5a726ae7cfef",
+    "mutationTestSha256": "c4ee326418c73ae8e998d80b4375619e4625c4e35cd5e571ec078fd163ebe9d1"
+  },
+  "result": {
+    "classicExit": 1,
+    "classicTestsFailed": 2,
+    "nativeProcessesChecked": true,
+    "positiveUnexpectedDiagnostics": 5,
+    "negativeExpected": 3,
+    "negativeMatched": 1,
+    "negativeMissing": 2
+  }
+}

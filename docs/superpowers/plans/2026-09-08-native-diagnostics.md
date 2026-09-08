@@ -66,7 +66,7 @@ matcher result plus `accepted`; audit returns rows and
 The CLI prints JSON audit evidence and exits 1 unless accepted. No native fallback
 is consulted and the fixture inventory does not shrink when gap comments vanish.
 
-- [ ] **Step 1: Write strict-oracle RED and mutation tests.**
+- [x] **Step 1: Write strict-oracle RED and mutation tests.**
 
 ```ts
 import { expect, test } from 'bun:test';
@@ -92,7 +92,7 @@ RED. Add a supplemental-marker case requiring its exact TS code and text; removi
 it must fail even if the useful primary matches. Existing gap-matcher mutation
 tests remain unchanged as historical guardrails.
 
-- [ ] **Step 2: Implement the strict evaluator and fixed inventory.**
+- [x] **Step 2: Implement the strict evaluator and fixed inventory.**
 
 ```ts
 import { matchDiagnosticMarkers, type Diagnostic } from '../tests/diagnostic-markers.ts';
@@ -137,7 +137,7 @@ auditReplacementDiagnostics(process.cwd()).then(result => {
 }).catch(error => { console.error(error); process.exitCode = 1; });
 ```
 
-- [ ] **Step 3: Add reflection source controls and prove the baseline.**
+- [x] **Step 3: Add reflection source controls and prove the baseline.**
 
 Positive producer:
 
@@ -197,7 +197,7 @@ they are strengthened soundness controls. The historical combined-overload
 scratch candidate must fail FunctionMatch/non-any and erase the root assignment
 diagnostic, reproducing real unsafe RED before any new candidate is assessed.
 
-- [ ] **Step 4: Run audit GREEN as an evidence collector, keeping parity RED explicit.**
+- [x] **Step 4: Run audit GREEN as an evidence collector, keeping parity RED explicit.**
 
 ```sh
 flock -x /tmp/di-bag-compiler-heavy.lock bun test tests/native-replacement-diagnostics.test.ts tests/native-diagnostic-markers.test.ts tests/diagnostic-markers.test.ts
@@ -210,7 +210,7 @@ useful primary messages on the unchanged known baseline. Capture actual inventor
 and process evidence; if current source differs, record actual counts rather
 than forcing 27. A native process/configuration failure is not diagnostic RED.
 
-- [ ] **Step 5: Checkpoint the green audit tooling and guard fixtures.**
+- [x] **Step 5: Checkpoint the green audit tooling and guard fixtures.**
 
 Run locked classic typecheck, then `git diff --check`; commit scoped files with
 `git commit -m "test: add strict native replacement diagnostic oracle"`.
@@ -570,4 +570,3 @@ green by removing required negative expressions.
 - [ ] Native source/package gaps are removed only after useful-marker proof, without new allowances.
 - [ ] Original matrix syntax/boundaries and fixed work/resource ceilings remain intact.
 - [ ] Failed candidate feasibility remains an open program obligation with concrete evidence.
-
