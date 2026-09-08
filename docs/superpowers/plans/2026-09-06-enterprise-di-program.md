@@ -117,6 +117,14 @@ execution; do not stop for another planning approval between increments.
     lifecycle mismatches. Typed Inject and Awilix are truthfully recorded
     `unavailable: not-lockfile-pinned`; no third-party timing row exists.
     Evidence: `docs/reports/2026-09-08-performance-evidence.md`.
+  - [x] Final adversarial integration is locally complete at reviewed checkpoint
+    `e93b0a5`. The deterministic I1-I15 oracle passes in source, classic and
+    native physical declarations, installed CJS/ESM archives, and Node/Bun
+    runtime lanes. The final redundant gate passed 902 tests / 5,305 assertions;
+    the focused source/package/native rerun passed 215 tests / 2,065 assertions;
+    all nine examples passed. The existing 27 native diagnostic gaps remain
+    exact with zero new or unexpected diagnostics. Evidence:
+    `docs/reports/2026-09-08-final-integration-release.md`.
 - [ ] Compiler/inference follow-up: execute
   `2026-09-08-compiler-scalability.md` and
   `2026-09-08-native-diagnostics.md` to resolve the remaining measured 500/1000
