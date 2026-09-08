@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   executePreparedRuntimeScenario,
+  collectRuntimeSamples,
   pairedBootstrapMedianRatio,
   parseRuntimeChild,
   runRuntimeChild,
@@ -248,6 +249,33 @@ test('child protocol prepares before timing and emits request identity with veri
     'prepare:cold-linear-resolve:10', 'clock', 'run:true', 'clock', 'verify:true:true',
   ]);
   expect(actual).toEqual({ ...output, elapsedNanoseconds: '33' });
+}));
+
+test('current-only collection runs five warmups then retains 31 validated samples serially', async () => withAsyncFixture(async ({ request, output }) => {
+  const calls: number[] = [];
+  let active = 0;
+  const collected = await collectRuntimeSamples(request, async childRequest => {
+    active += 1;
+    expect(active).toBe(1);
+    calls.push(childRequest.orderSlot);
+    await Promise.resolve();
+    const elapsedNanoseconds = String(100 + calls.length);
+    active -= 1;
+    return {
+      status: 0,
+      signal: null,
+      timedOut: false,
+      stdout: `${JSON.stringify({ ...output, elapsedNanoseconds })}\n`,
+      stderr: '',
+    };
+  });
+  expect(calls).toEqual(Array.from({ length: 36 }, (_, index) => index));
+  expect(collected.warmups).toBe(5);
+  expect(collected.samples).toHaveLength(31);
+  expect(collected.samples.map(sample => sample.elapsedNanoseconds)).toEqual(
+    Array.from({ length: 31 }, (_, index) => String(index + 106)),
+  );
+  expect(collected.summary).toMatchObject({ count: 31, minNanoseconds: '106', medianNanoseconds: '121', maxNanoseconds: '136' });
 }));
 
 test('actual child printer writes one canonical newline-terminated object accepted by the parent', async () => withAsyncFixture(async ({ request, output }) => {

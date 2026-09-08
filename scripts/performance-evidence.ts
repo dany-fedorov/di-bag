@@ -1,5 +1,9 @@
-import { realpathSync } from 'node:fs';
-import { sep } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, relative, resolve, sep } from 'node:path';
+import { packIsolatedClassic, stableJson, verifyTool, type VerifiedTool } from './platform-evidence.ts';
+import { expectedScenarioResult } from '../tests/benchmarks/runtime-scenarios.ts';
 
 export type RuntimeScenario =
   | 'build-close'
@@ -207,6 +211,142 @@ export async function runRuntimeChild(
   return parseRuntimeChild(request, await execute(request));
 }
 
+export type RuntimeSampleCollection = {
+  readonly warmups: number;
+  readonly samples: readonly BenchmarkSample[];
+  readonly summary: BenchmarkSummary;
+};
+
+export type CurrentRuntimeEvidenceRow = {
+  readonly schema: 1;
+  readonly lane: 'current';
+  readonly status: 'informational';
+  readonly scenario: RuntimeScenario;
+  readonly providers: 10 | 100;
+  readonly warmups: 5;
+  readonly samples: 31;
+  readonly archiveIdentity: string;
+  readonly implementationIdentity: string;
+  readonly resolvedDiBag: string;
+  readonly summary: BenchmarkSummary;
+};
+
+export type UnavailableRuntimeEvidenceRow = {
+  readonly schema: 1;
+  readonly lane: 'current';
+  readonly status: 'unavailable';
+  readonly reason: string;
+};
+
+export async function collectRuntimeSamples(
+  request: RuntimeChildRequest,
+  execute: (request: RuntimeChildRequest) => Promise<RuntimeChildExecution>,
+  warmups = 5,
+  sampleCount = 31,
+): Promise<RuntimeSampleCollection> {
+  if (!Number.isSafeInteger(warmups) || warmups < 0) throw new Error('runtime warmup count must be nonnegative');
+  if (!Number.isSafeInteger(sampleCount) || sampleCount <= 0) throw new Error('runtime sample count must be positive');
+  const samples: BenchmarkSample[] = [];
+  for (let index = 0; index < warmups + sampleCount; index += 1) {
+    const sample = await runRuntimeChild({ ...request, orderSlot: index }, execute);
+    if (index >= warmups) samples.push(sample);
+  }
+  return {
+    warmups,
+    samples,
+    summary: summarize(samples.map(sample => BigInt(sample.elapsedNanoseconds))),
+  };
+}
+
+const runtimeScenarios: readonly RuntimeScenario[] = [
+  'build-close', 'cold-linear-resolve', 'warm-root-resolve', 'scope-resolve-close',
+  'transient-resolve-close', 'raw-promise-identity', 'node-native-promise',
+];
+
+function exactChildExecution(node: VerifiedTool, script: string, request: RuntimeChildRequest): RuntimeChildExecution {
+  const result = spawnSync(node.argv[0], [
+    ...node.argv.slice(1), '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', script, JSON.stringify(request),
+  ], { cwd: dirname(dirname(script)), encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024 });
+  return {
+    status: result.status,
+    signal: result.signal,
+    timedOut: result.error !== undefined && 'code' in result.error && result.error.code === 'ETIMEDOUT',
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
+}
+
+function currentGitIdentity(root: string): string {
+  const head = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
+  if (head.status !== 0 || head.signal !== null || !/^[a-f0-9]{40}\n$/.test(head.stdout)) throw new Error('cannot identify current runtime source');
+  const dirty = spawnSync('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: root, encoding: 'utf8' });
+  if (dirty.status !== 0 || dirty.signal !== null) throw new Error('cannot identify current runtime worktree state');
+  return `current:${head.stdout.trim()}${dirty.stdout === '' ? '' : ':dirty'}`;
+}
+
+export async function runCurrentRuntimeEvidence(root = resolve(process.cwd())):
+Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow)[]> {
+  const checked = await Promise.all((['node', 'npm', 'classic6'] as const).map(name => verifyTool(root, name)));
+  const unavailableIndex = checked.findIndex(tool => tool.status === 'unavailable');
+  if (unavailableIndex >= 0) {
+    const unavailable = checked[unavailableIndex]!;
+    return [{ schema: 1, lane: 'current', status: 'unavailable', reason: `${(['node', 'npm', 'classic6'] as const)[unavailableIndex]}-${unavailable.status === 'unavailable' ? unavailable.reason : 'not-provisioned'}` }];
+  }
+  const [node, npm, classic6] = checked as [VerifiedTool, VerifiedTool, VerifiedTool];
+  const archive = await packIsolatedClassic(root, node, npm, classic6);
+  const consumer = mkdtempSync(join(tmpdir(), 'di-bag-runtime-consumer-'));
+  try {
+    writeFileSync(join(consumer, 'package.json'), '{"private":true}\n');
+    const installed = spawnSync(npm.argv[0], [
+      ...npm.argv.slice(1), 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive.path,
+    ], { cwd: consumer, encoding: 'utf8', timeout: 120_000, maxBuffer: 4 * 1024 * 1024 });
+    if (installed.error || installed.signal !== null || installed.status !== 0) {
+      throw new Error(`runtime archive install failed: ${installed.stderr || installed.stdout || installed.error?.message}`);
+    }
+    const childScript = join(consumer, 'scripts', 'runtime-benchmark-child.ts');
+    const fixtureScript = join(consumer, 'tests', 'benchmarks', 'runtime-scenarios.ts');
+    const protocolScript = join(consumer, 'scripts', 'performance-evidence.ts');
+    mkdirSync(dirname(childScript), { recursive: true });
+    mkdirSync(dirname(fixtureScript), { recursive: true });
+    cpSync(join(root, 'scripts', 'runtime-benchmark-child.ts'), childScript);
+    cpSync(join(root, 'scripts', 'performance-evidence.ts'), protocolScript);
+    cpSync(join(root, 'scripts', 'platform-evidence.ts'), join(consumer, 'scripts', 'platform-evidence.ts'));
+    cpSync(join(root, 'tests', 'benchmarks', 'runtime-scenarios.ts'), fixtureScript);
+    const installedPackageRoot = realpathSync(join(consumer, 'node_modules', 'di-bag'));
+    const implementationIdentity = currentGitIdentity(root);
+    const rows: CurrentRuntimeEvidenceRow[] = [];
+    for (const providers of [10, 100] as const) {
+      for (const scenario of runtimeScenarios) {
+        const request: RuntimeChildRequest = {
+          lane: 'current', scenario, providers, archiveIdentity: archive.sha256,
+          implementationIdentity, orderSlot: 0, installedPackageRoot,
+          expected: expectedScenarioResult(scenario, providers),
+        };
+        const collection = await collectRuntimeSamples(
+          request,
+          childRequest => Promise.resolve(exactChildExecution(node, childScript, childRequest)),
+          5,
+          31,
+        );
+        const first = collection.samples[0]!;
+        const relativeEntry = relative(consumer, first.resolvedDiBag);
+        if (collection.samples.some(sample => sample.resolvedDiBag !== first.resolvedDiBag)) {
+          throw new Error('runtime child package identity changed between samples');
+        }
+        rows.push({
+          schema: 1, lane: 'current', status: 'informational', scenario, providers,
+          warmups: 5, samples: 31, archiveIdentity: archive.sha256, implementationIdentity,
+          resolvedDiBag: relativeEntry, summary: collection.summary,
+        });
+      }
+    }
+    return rows;
+  } finally {
+    rmSync(consumer, { recursive: true, force: true });
+    rmSync(archive.packageTree, { recursive: true, force: true });
+  }
+}
+
 function assertSamples(samples: readonly bigint[]): void {
   if (samples.length === 0) throw new Error('runtime samples must not be empty');
   for (const sample of samples) {
@@ -312,4 +452,23 @@ export function canonicalRuntimeChildJson(output: RuntimeChildOutput): string {
   assertChildSchema(output);
   duration(output.elapsedNanoseconds);
   return canonicalChildJson(output);
+}
+
+export async function performanceEvidenceMain(
+  args = process.argv.slice(2),
+  root = resolve(process.cwd()),
+  write: (chunk: string) => unknown = chunk => process.stdout.write(chunk),
+): Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow)[]> {
+  if (args.length !== 1 || args[0] !== '--current') throw new Error('runtime evidence requires --current');
+  const rows = await runCurrentRuntimeEvidence(root);
+  for (const row of rows) write(`${stableJson(row)}\n`);
+  return rows;
+}
+
+const performanceEvidenceScript = resolve(process.cwd(), 'scripts', 'performance-evidence.ts');
+if (process.argv[1] !== undefined && resolve(process.argv[1]) === performanceEvidenceScript) {
+  performanceEvidenceMain().catch(error => {
+    process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  });
 }

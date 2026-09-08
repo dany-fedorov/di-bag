@@ -61,7 +61,7 @@ Expected: PASS, including malformed JSON, status/signal/timeout, wrong identity,
 
 **Interfaces:** Produce `prepareScenario`, `runTimed`, and `verifyScenario` from Task 1, and `npm run benchmark:runtime` mapped to `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/performance-evidence.ts --current`.
 
-- [ ] **Step 1: Write failing semantic scenario tests.**
+- [x] **Step 1: Write failing semantic scenario tests.**
 
 ```ts
 test('scope-resolve-close verifies work after its timed operation', async () => {
@@ -74,21 +74,21 @@ test('scope-resolve-close verifies work after its timed operation', async () => 
 });
 ```
 
-- [ ] **Step 2: Run the RED test.**
+- [x] **Step 2: Run the RED test.**
 
 Run: `bun test tests/runtime-benchmark-child.test.ts`
 
 Expected: FAIL because scenario fixture does not exist.
 
-- [ ] **Step 3: Implement each fixed workload.**
+- [x] **Step 3: Implement each fixed workload.**
 
 For each N in `10` and `100`, `prepareScenario` creates all named linear binding descriptors, counters, raw Promise and lifecycle log outside timing. The sole construction measurement is `build-close`: it times `DiBag.begin().add(bindings).end()` then `.close()` and verifies zero factories. `cold-linear-resolve` builds an unprimed bag in preparation, times one terminal resolve, and verifies N factories/checksum; `warm-root-resolve` builds and primes before the timer, then times one terminal cache resolve and verifies no additional factory calls; `scope-resolve-close` prepares the parent then times `scope()`, root/scoped/two transient resolves and child `.close()`, verifying identity/count/log afterwards; `transient-resolve-close` prepares the bag then times N transient resolves and `.close()`, verifying N distinct values/disposals afterwards; `raw-promise-identity` prepares the raw provider then times one resolve and close, verifying exact resolved/disposed object afterwards. `node-native-promise` uses the same phases with `di-bag/node`, and no portable/comparator scenario imports it.
 
-- [ ] **Step 4: Install an archive and fork samples only after setup.**
+- [x] **Step 4: Install an archive and fork samples only after setup.**
 
 Use `packIsolatedClassic` defined in `scripts/platform-evidence.ts`, then invoke `[node.argv[0], npmCli, 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive.path]` in a temporary consumer. Copy `scripts/runtime-benchmark-child.ts` to `consumer/scripts/runtime-benchmark-child.ts` and `tests/benchmarks/runtime-scenarios.ts` to `consumer/tests/benchmarks/runtime-scenarios.ts`, preserving the child's `../tests/benchmarks/runtime-scenarios.ts` relative import; then execute `consumer/scripts/runtime-benchmark-child.ts` with the pinned Node argv. The child imports bare `di-bag`, prints `require.resolve('di-bag')`/`realpath` as `resolvedDiBag`, and the parent requires it to begin with `realpath(consumer/node_modules/di-bag) + sep`. Perform copying, module loading and `prepareScenario` before `hrtime`; run five warm-up children then 31 sample children serially.
 
-- [ ] **Step 5: Run focused and package gates.**
+- [x] **Step 5: Run focused and package gates.**
 
 Run: `bun test tests/runtime-benchmark-child.test.ts tests/performance-evidence.test.ts && npm run build && bun test tests/native-package.test.ts && npm run benchmark:runtime`
 
