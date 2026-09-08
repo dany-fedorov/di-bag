@@ -8,6 +8,7 @@ import {
   comparePaired,
   parsePerformanceEvidenceArgs,
   pairedExecutionOrder,
+  journalRuntimeEvidenceRow,
   validateRuntimeComparisonEvidenceRow,
 } from '../scripts/performance-evidence.ts';
 
@@ -180,6 +181,26 @@ test('comparison row validation rejects incomplete, unsafe and unpaired evidence
   expect(() => validateRuntimeComparisonEvidenceRow({ ...row, verdict: { ...row.verdict, seed: 29 } })).toThrow('comparison verdict mismatch');
   expect(() => validateRuntimeComparisonEvidenceRow({ ...row, current: { ...row.current, summary: { ...summary, samples: summary.samples.slice(1) } } }))
     .toThrow('comparison summary mismatch');
+  expect(() => validateRuntimeComparisonEvidenceRow({ ...row, current: { ...row.current, summary: { ...summary, samples: [...summary.samples.slice(0, 30), '-1'] } } }))
+    .toThrow('comparison summary mismatch');
+  expect(() => validateRuntimeComparisonEvidenceRow({ ...row, current: { ...row.current, summary: { ...summary, medianNanoseconds: '-100' } } }))
+    .toThrow('comparison summary mismatch');
+  expect(() => validateRuntimeComparisonEvidenceRow({
+    ...row, status: 'review', verdict: { ...row.verdict, status: 'review', confirmationRequired: true, controlledRunner: false,
+      medianRatio: 1.3, p95Ratio: 1.3, medianRatioCi95: [1.2, 1.3],
+      predicates: { median: true, p95: true, confidenceInterval: true } },
+  })).toThrow('comparison verdict mismatch');
+});
+
+test('journaling retains unavailable and failed terminal rows as well as validated summaries', () => {
+  const records: any[] = [];
+  const journal = { append(record: unknown) { records.push(record); } };
+  journalRuntimeEvidenceRow(journal, { schema: 1, lane: 'comparison', status: 'unavailable', baselineRef: '739b509', orderSeed: 17, reason: 'node-unavailable' });
+  journalRuntimeEvidenceRow(journal, { schema: 1, lane: 'comparison', status: 'fail', baselineRef: '739b509', orderSeed: 17, reason: 'archive failed' });
+  expect(records).toEqual([
+    { schema: 1, kind: 'runtime-comparison-terminal', row: { schema: 1, lane: 'comparison', status: 'unavailable', baselineRef: '739b509', orderSeed: 17, reason: 'node-unavailable' } },
+    { schema: 1, kind: 'runtime-comparison-terminal', row: { schema: 1, lane: 'comparison', status: 'fail', baselineRef: '739b509', orderSeed: 17, reason: 'archive failed' } },
+  ]);
 });
 
 test('baseline archive is built from the exact commit with retained source and tool identities', async () => {

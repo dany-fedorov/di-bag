@@ -100,7 +100,7 @@ Expected: focused/package checks pass and a current-only informational evidence 
 
 **Interfaces:** Produce `buildBaselineArchive(root, '739b509'): Promise<PackedArchive>` and `comparePaired(current, baseline, seed): ComparisonVerdict` where status is `'informational' | 'review' | 'unavailable' | 'fail'`.
 
-- [ ] **Step 1: Write failing baseline/verdict tests.**
+- [x] **Step 1: Write failing baseline/verdict tests.**
 
 ```ts
 test('review requires all three regression predicates', () => {
@@ -109,21 +109,21 @@ test('review requires all three regression predicates', () => {
 });
 ```
 
-- [ ] **Step 2: Run the RED test.**
+- [x] **Step 2: Run the RED test.**
 
 Run: `bun test tests/performance-baseline.test.ts`
 
 Expected: FAIL because baseline archiving and verdict policy do not exist.
 
-- [ ] **Step 3: Build baseline reproducibly and alternate pairs.**
+- [x] **Step 3: Build baseline reproducibly and alternate pairs.**
 
 Run `git archive --format=tar 739b509` into a unique temporary tree, record commit/tree/archive/lock hashes, build and pack it with the same pinned tools as current. For each scenario/count, execute pairs `A,B` then `B,A` until each implementation has 31 samples. Persist order seed and every sample before summaries.
 
-- [ ] **Step 4: Implement evidence status policy and two-run confirmation.**
+- [x] **Step 4: Implement evidence status policy and two-run confirmation.**
 
 On ordinary machines return `informational` after structural validation. Permit `review` only with an environment marker for dedicated controlled runner and all thresholds. Store a `confirmationRequired: true` record; a second different-seed 31-sample run must independently meet thresholds before prose names a regression.
 
-- [ ] **Step 5: Run focused and repeatability gates.**
+- [x] **Step 5: Run focused and repeatability gates.**
 
 Run: `bun test tests/performance-baseline.test.ts tests/performance-evidence.test.ts && npm run benchmark:runtime -- --baseline=739b509 --seed=17 && npm run benchmark:runtime -- --baseline=739b509 --seed=29`
 

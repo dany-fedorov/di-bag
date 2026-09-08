@@ -719,19 +719,49 @@ export function validateRuntimeComparisonEvidenceRow(value: unknown): RuntimeCom
   }
   if (value.rawEvidence.startsWith('/') || value.rawEvidence.includes('..')
     || !value.rawEvidence.startsWith('docs/benchmarks/results/')) throw new Error('comparison raw evidence must be clone-safe');
-  const checkImplementation = (item: unknown): void => {
+  const checkImplementation = (item: unknown): BenchmarkSummary => {
     if (!isRecord(item) || !hash(item.archiveIdentity) || typeof item.implementationIdentity !== 'string'
       || typeof item.resolvedDiBag !== 'string' || item.resolvedDiBag.startsWith('/') || item.resolvedDiBag.includes('..')
       || !item.resolvedDiBag.startsWith('node_modules/di-bag/dist/') || !isRecord(item.summary)
       || item.summary.count !== 31 || !Array.isArray(item.summary.samples) || item.summary.samples.length !== 31) {
       throw new Error('comparison summary mismatch');
     }
+    let recomputed: BenchmarkSummary;
+    try {
+      recomputed = summarize(item.summary.samples.map(sample => {
+        if (typeof sample !== 'string' || !/^[1-9][0-9]*$/.test(sample)) throw new Error('invalid sample');
+        return BigInt(sample);
+      }));
+    } catch {
+      throw new Error('comparison summary mismatch');
+    }
+    if (stableJson(recomputed) !== stableJson(item.summary)) throw new Error('comparison summary mismatch');
+    return recomputed;
   };
-  checkImplementation(value.current);
-  checkImplementation(value.baseline);
+  const currentSummary = checkImplementation(value.current);
+  const baselineSummary = checkImplementation(value.baseline);
   if (!isRecord(value.verdict) || value.verdict.status !== value.status || value.verdict.seed !== value.orderSeed
     || value.verdict.samples !== 10_000 || typeof value.verdict.confirmationRequired !== 'boolean'
     || (value.status === 'review') !== value.verdict.confirmationRequired) throw new Error('comparison verdict mismatch');
+  const currentSamples = currentSummary.samples.map(BigInt);
+  const baselineSamples = baselineSummary.samples.map(BigInt);
+  const bootstrap = pairedBootstrapMedianRatio(currentSamples, baselineSamples, Number(value.orderSeed));
+  const medianRatio = Number(currentSummary.medianNanoseconds) / Number(baselineSummary.medianNanoseconds);
+  const p95Ratio = Number(currentSummary.p95Nanoseconds) / Number(baselineSummary.p95Nanoseconds);
+  const predicates = {
+    median: medianRatio >= 1.15,
+    p95: p95Ratio >= 1.20,
+    confidenceInterval: bootstrap.medianRatioCi95[0] > 1.10,
+  };
+  if (typeof value.verdict.controlledRunner !== 'boolean'
+    || value.verdict.medianRatio !== medianRatio || value.verdict.p95Ratio !== p95Ratio
+    || stableJson(value.verdict.medianRatioCi95) !== stableJson(bootstrap.medianRatioCi95)
+    || stableJson(value.verdict.predicates) !== stableJson(predicates)
+    || (value.status === 'review' && (!value.verdict.controlledRunner
+      || !predicates.median || !predicates.p95 || !predicates.confidenceInterval))
+    || (value.status === 'informational' && value.verdict.confirmationRequired !== false)) {
+    throw new Error('comparison verdict mismatch');
+  }
   const baseline = value.baseline as Record<string, unknown>;
   const baselineProvenance = baseline.provenance;
   if (!isRecord(baselineProvenance) || typeof baselineProvenance.requestedRef !== 'string'
@@ -1080,6 +1110,19 @@ export function parsePerformanceEvidenceArgs(args: readonly string[]): Performan
   return { mode: 'comparison', baseline, seed };
 }
 
+export function journalRuntimeEvidenceRow(
+  journal: { append(record: unknown): void },
+  row: RuntimeComparisonEvidenceRow | UnavailableRuntimeComparisonRow,
+): void {
+  journal.append({
+    schema: 1,
+    kind: row.status === 'informational' || row.status === 'review'
+      ? 'runtime-comparison-summary'
+      : 'runtime-comparison-terminal',
+    row,
+  });
+}
+
 export async function performanceEvidenceMain(
   args = process.argv.slice(2),
   root = resolve(process.cwd()),
@@ -1098,8 +1141,8 @@ export async function performanceEvidenceMain(
     if (row.lane === 'current' && row.status === 'informational') validateCurrentRuntimeEvidenceRow(row);
     if (row.lane === 'comparison' && (row.status === 'informational' || row.status === 'review')) {
       validateRuntimeComparisonEvidenceRow(row);
-      journal.append({ schema: 1, kind: 'runtime-comparison-summary', row });
     }
+    if (row.lane === 'comparison') journalRuntimeEvidenceRow(journal, row);
     write(`${stableJson(row)}\n`);
   }
   return rows;
