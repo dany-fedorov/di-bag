@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { arch, platform, release, tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { gunzipSync, gzipSync } from 'node:zlib';
@@ -38,6 +38,27 @@ export type PackedArchive = {
   sha256: string;
   packageTree: string;
   files: readonly string[];
+  execution?: {
+    build: PlatformCommandEvidence;
+    pack: PlatformCommandEvidence;
+  };
+};
+
+export type PlatformCommandEvidence = {
+  argv: readonly string[];
+  cwd: string;
+  elapsedMs: number;
+  status: number | null;
+  signal: string | null;
+  stdoutSha256: string;
+  stderrSha256: string;
+};
+
+export type PlatformEvidenceResult = {
+  rows: readonly [PlatformRow, PlatformRow, PlatformRow];
+  jsonlPath: string;
+  markdownPath: string;
+  summaryPath: string;
 };
 
 export type BrowserBundle = {
@@ -70,6 +91,10 @@ function sha256File(path: string): string {
 
 function sha256Bytes(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
+}
+
+function sha256Text(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
 }
 
 function isStringTuple(value: unknown): value is [string, ...string[]] {
@@ -173,7 +198,8 @@ function runExact(tool: VerifiedTool, args: readonly string[], cwd: string): Pla
   return { status: result.status, signal: result.signal, stdout: result.stdout, stderr: result.stderr };
 }
 
-const platformRoot = resolve(__dirname, '..');
+const platformRoot = resolve(process.cwd());
+const platformScript = resolve(platformRoot, 'scripts', 'platform-evidence.ts');
 const expectedPortableResult = {
   aliasCanonical: true,
   cleanupLog: ['scoped', 'transient-2', 'transient-1', 'root'],
@@ -713,13 +739,29 @@ export async function packIsolatedClassic(root: string, node: VerifiedTool, npm:
     if (!existsSync(source)) throw new Error(`isolated package source is missing ${name}`);
     cpSync(source, join(packageTree, name), { recursive: true });
   }
-  const build = runExact(classic6, ['-p', 'tsconfig.build.json'], packageTree);
+  const buildArgs = ['-p', 'tsconfig.build.json'] as const;
+  const buildStarted = performance.now();
+  const build = runExact(classic6, buildArgs, packageTree);
+  const buildElapsedMs = performance.now() - buildStarted;
   if (build.signal !== null || build.status !== 0 || build.stderr !== '') throw new Error(`isolated classic build failed: ${build.stderr || build.stdout}`);
-  const packed = runExact(npm, ['pack', '--ignore-scripts', '--json'], packageTree);
+  const packArgs = ['pack', '--ignore-scripts', '--json'] as const;
+  const packStarted = performance.now();
+  const packed = runExact(npm, packArgs, packageTree);
+  const packElapsedMs = performance.now() - packStarted;
   if (packed.signal !== null || packed.status !== 0) throw new Error(`npm pack failed: ${packed.stderr || packed.stdout}`);
   const result = validatePackOutput(packageTree, packed.stdout, packed.stderr);
   const path = resolve(packageTree, result.filename);
-  const archive: PackedArchive = { path, packageTree, sha256: sha256File(path), files: result.files.map(file => file.path).sort() };
+  const commandEvidence = (tool: VerifiedTool, args: readonly string[], result: PlatformEnvironment, elapsedMs: number): PlatformCommandEvidence => ({
+    argv: [...tool.argv, ...args], cwd: packageTree, elapsedMs, status: result.status, signal: result.signal,
+    stdoutSha256: sha256Text(result.stdout), stderrSha256: sha256Text(result.stderr),
+  });
+  const archive: PackedArchive = {
+    path, packageTree, sha256: sha256File(path), files: result.files.map(file => file.path).sort(),
+    execution: {
+      build: commandEvidence(classic6, buildArgs, build, buildElapsedMs),
+      pack: commandEvidence(npm, packArgs, packed, packElapsedMs),
+    },
+  };
   validatePackedArchive(archive);
   return archive;
 }
@@ -734,4 +776,172 @@ export async function writePlatformEvidence(root: string, row: PlatformRow): Pro
   const path = join(directory, 'platform.jsonl');
   writeFileSync(path, `${stableJson(row)}\n`, { flag: 'a' });
   return path;
+}
+
+function toolEvidence(tool: VerifiedTool | { status: 'unavailable'; reason: ToolUnavailableReason }): Record<string, unknown> {
+  if (tool.status === 'unavailable') return { status: tool.status, reason: tool.reason };
+  return {
+    status: tool.status,
+    argv: tool.argv,
+    versionArgv: tool.versionArgv,
+    version: tool.version,
+    versionText: tool.versionText,
+    sha256: tool.sha256,
+  };
+}
+
+function sourceTreeSha256(root: string): string {
+  const digest = createHash('sha256');
+  const visit = (directory: string) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) visit(path);
+      else if (entry.isFile() && !entry.isSymbolicLink()) {
+        digest.update(relative(root, path).split(sep).join('/')).update('\0')
+          .update(Uint8Array.from(readFileSync(path))).update('\0');
+      } else throw new Error(`unsupported source tree entry ${relative(root, path)}`);
+    }
+  };
+  visit(join(root, 'src'));
+  return digest.digest('hex');
+}
+
+function evidenceEnvironment(): Record<string, string> {
+  return {
+    architecture: arch(),
+    node: process.version,
+    operatingSystem: platform(),
+    operatingSystemRelease: release(),
+  };
+}
+
+function writePlatformMatrix(root: string, rows: readonly PlatformRow[]): { jsonlPath: string; markdownPath: string } {
+  if (rows.length !== 3 || rows.map(row => row.lane).join(',') !== 'archive,deno-root,browser-worker-minified') {
+    throw new Error('platform evidence matrix must contain archive, Deno root and browser Worker rows in order');
+  }
+  const identity = rows[0]!;
+  if (rows.some(row => row.git.sha !== identity.git.sha || row.utc.slice(0, 10) !== identity.utc.slice(0, 10))) {
+    throw new Error('platform evidence rows must share one source SHA and UTC date');
+  }
+  const directory = join(root, 'docs', 'benchmarks', 'results', `${identity.utc.slice(0, 10)}-${identity.git.sha.slice(0, 7)}`);
+  mkdirSync(directory, { recursive: true });
+  const jsonlPath = join(directory, 'platform.jsonl');
+  writeFileSync(jsonlPath, `${rows.map(row => stableJson(row)).join('\n')}\n`);
+  const artifact = (row: PlatformRow) => {
+    if (row.lane === 'archive') return String((row.archive as { sha256?: unknown } | undefined)?.sha256 ?? '—');
+    if (row.lane === 'deno-root') return String(row.archiveSha256 ?? '—');
+    return String(row.bundleSha256 ?? '—');
+  };
+  const environment = (identity.executionEnvironment as Record<string, string> | undefined) ?? {};
+  const lines = [
+    '# Platform evidence',
+    '',
+    `Source: \`${identity.git.sha}\` (${identity.git.dirty ? 'dirty worktree' : 'clean worktree'})`,
+    '',
+    `Execution environment: ${environment.operatingSystem ?? 'unknown'} ${environment.operatingSystemRelease ?? 'unknown'} / ${environment.architecture ?? 'unknown'} / ${environment.node ?? 'unknown'}`,
+    '',
+    '| Lane | Status | Execution environment | Artifact SHA-256 | Reason |',
+    '| --- | --- | --- | --- | --- |',
+    ...rows.map(row => `| ${row.lane} | ${row.status} | ${environment.operatingSystem ?? 'unknown'} ${environment.architecture ?? 'unknown'} | ${artifact(row)} | ${String(row.reason ?? '')} |`),
+    '',
+    'Historical Node/Bun archive results are not reclassified as current runtime evidence.',
+    'Earlier full-suite counts are historical records. This file reports only the executions represented by the rows above.',
+    '`di-bag/node` is outside the portable Deno/browser root-package boundary.',
+    '',
+  ];
+  const markdownPath = join(directory, 'README.md');
+  writeFileSync(markdownPath, lines.join('\n'));
+  return { jsonlPath, markdownPath };
+}
+
+export async function runPlatformEvidence(root = platformRoot, outputRoot = root): Promise<PlatformEvidenceResult> {
+  const tools = Object.fromEntries(await Promise.all(
+    (['node', 'npm', 'classic6', 'bun', 'deno', 'esbuild', 'playwright', 'chromium'] as const)
+      .map(async name => [name, await verifyTool(root, name)] as const),
+  )) as Record<PlatformTool, VerifiedTool | { status: 'unavailable'; reason: ToolUnavailableReason }>;
+  for (const name of ['node', 'npm', 'classic6'] as const) {
+    const tool = tools[name];
+    if (tool.status === 'unavailable') throw new Error(`required platform tool ${name} is unavailable: ${tool.reason}`);
+  }
+  const archive = await packIsolatedClassic(
+    root, tools.node as VerifiedTool, tools.npm as VerifiedTool, tools.classic6 as VerifiedTool,
+  );
+  try {
+    const git = platformGit();
+    const utc = new Date().toISOString();
+    const executionEnvironment = evidenceEnvironment();
+    const archiveRow: PlatformRow = {
+      schema: 1,
+      lane: 'archive',
+      status: 'pass',
+      utc,
+      git,
+      executionEnvironment,
+      source: {
+        lockfileSha256: sha256File(join(root, 'package-lock.json')),
+        srcSha256: sourceTreeSha256(root),
+      },
+      tools: {
+        node: toolEvidence(tools.node),
+        npm: toolEvidence(tools.npm),
+        classic6: toolEvidence(tools.classic6),
+        bun: toolEvidence(tools.bun),
+      },
+      archive: { sha256: archive.sha256, files: archive.files },
+      commands: archive.execution,
+    };
+    const deno = await runDenoLane(archive, tools.deno);
+    const denoEvidence: PlatformRow = {
+      ...deno,
+      utc,
+      git,
+      executionEnvironment,
+      archiveSha256: archive.sha256,
+      tools: { deno: toolEvidence(tools.deno) },
+    };
+    let browser: PlatformRow;
+    if (tools.esbuild.status === 'unavailable') {
+      browser = browserRow('unavailable', { reason: `esbuild-${tools.esbuild.reason}` });
+    } else {
+      try {
+        const bundle = await bundleBrowserRoot(archive, tools.esbuild);
+        browser = await runBrowserWorkerLane(
+          bundle,
+          tools.chromium,
+          undefined,
+          6_000,
+          tools.playwright.status === 'unavailable' ? tools.playwright : undefined,
+        );
+      } catch (error) {
+        browser = browserRow('fail', { reason: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    const browserEvidence: PlatformRow = {
+      ...browser,
+      utc,
+      git,
+      executionEnvironment,
+      archiveSha256: archive.sha256,
+      tools: {
+        esbuild: toolEvidence(tools.esbuild),
+        playwright: toolEvidence(tools.playwright),
+        chromium: toolEvidence(tools.chromium),
+      },
+    };
+    const rows = [archiveRow, denoEvidence, browserEvidence] as const;
+    const paths = writePlatformMatrix(outputRoot, rows);
+    return { rows, ...paths, summaryPath: paths.markdownPath };
+  } finally {
+    rmSync(archive.packageTree, { recursive: true, force: true });
+  }
+}
+
+if (process.argv[1] !== undefined && resolve(process.argv[1]) === platformScript) {
+  runPlatformEvidence().then(result => {
+    for (const row of result.rows) process.stdout.write(`${stableJson(row)}\n`);
+    if (result.rows.some(row => row.status === 'fail')) process.exitCode = 1;
+  }).catch(error => {
+    process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  });
 }

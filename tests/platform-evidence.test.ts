@@ -1,13 +1,16 @@
 import { afterEach, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
+import { pathToFileURL } from 'node:url';
 import {
   assertBrowserMetafile,
   evaluatePlatformChild,
   packIsolatedClassic,
+  runPlatformEvidence,
   stableJson,
   validatePackOutput,
   validatePackedArchive,
@@ -360,6 +363,65 @@ test('evidence writer appends stable sorted JSONL under the source/date director
   for (const utc of ['2026-02-30T12:00:00.000Z', '2026-09-08T12:00:00+00:00', '2026-09-08']) {
     await expect(writePlatformEvidence(root, { ...row, utc })).rejects.toThrow('canonical UTC ISO timestamp');
   }
+});
+
+test('platform command writes one sorted matrix with an executed archive and explicit unavailable lanes', async () => {
+  const root = resolve(__dirname, '..');
+  const outputRoot = temporaryRoot();
+  const result = await runPlatformEvidence(root, outputRoot);
+  const expectedJsonl = `${result.rows.map(row => stableJson(row)).join('\n')}\n`;
+  const jsonl = readFileSync(result.jsonlPath, 'utf8');
+
+  expect(jsonl).toBe(expectedJsonl);
+  expect(jsonl.split('\n').filter(Boolean)).toHaveLength(3);
+
+  expect(result.rows.map(row => ({ lane: row.lane, status: row.status }))).toEqual([
+    { lane: 'archive', status: 'pass' },
+    { lane: 'deno-root', status: 'unavailable' },
+    { lane: 'browser-worker-minified', status: 'unavailable' },
+  ]);
+  expect((result.rows[0].archive as { files: readonly string[] }).files).toEqual(expect.arrayContaining([
+    'dist/index.js', 'dist/node.js', 'dist/sas-box.js', 'dist/val-box.js',
+  ]));
+  expect(result.rows[0]).toMatchObject({
+    tools: {
+      classic6: { status: 'pinned', version: '6.0.3' },
+      node: { status: 'pinned', version: '24.20.0' },
+      npm: { status: 'pinned', version: '11.19.0' },
+    },
+  });
+  expect(result.rows[1]).toMatchObject({
+    reason: 'not-provisioned',
+    tools: { deno: { status: 'unavailable', reason: 'not-provisioned' } },
+  });
+  expect(result.rows[2]).toMatchObject({
+    reason: 'esbuild-not-provisioned',
+    tools: {
+      chromium: { status: 'unavailable', reason: 'not-provisioned' },
+      esbuild: { status: 'unavailable', reason: 'not-provisioned' },
+      playwright: { status: 'unavailable', reason: 'not-provisioned' },
+    },
+  });
+
+  const summary = readFileSync(result.summaryPath, 'utf8');
+  expect(summary).toContain('| archive | pass |');
+  expect(summary).toContain('| deno-root | unavailable |');
+  expect(summary).toContain('| browser-worker-minified | unavailable |');
+  expect(summary).toContain('Historical Node/Bun archive results are not reclassified as current runtime evidence.');
+}, 60_000);
+
+test('platform evidence module imports under the pinned Node ESM loader', async () => {
+  const root = resolve(__dirname, '..');
+  const node = await verifyTool(root, 'node');
+  if (node.status !== 'pinned') throw new Error('pinned Node unavailable');
+  const imported = spawnSync(node.argv[0], [
+    '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
+    '--input-type=module',
+    '--eval',
+    `import(${JSON.stringify(pathToFileURL(join(root, 'scripts/platform-evidence.ts')).href)})`,
+  ], { cwd: root, encoding: 'utf8' });
+  expect({ status: imported.status, signal: imported.signal, stdout: imported.stdout, stderr: imported.stderr })
+    .toEqual({ status: 0, signal: null, stdout: '', stderr: '' });
 });
 
 test('browser metafile parser rejects malformed shapes before resolving inputs', () => {
