@@ -27,6 +27,26 @@ const packageManifest = JSON.parse(readFileSync(resolve(root, 'package.json'), '
 
 const packageNames = ['sas-box', 'val-box', 'di-bag'] as const;
 const authorizationHeading = '## DO NOT RUN without fresh explicit authorization';
+const adversarialReleaseFiles = [
+  'tests/final-adversarial-integration.test.ts',
+  'tests/box-package.test.ts',
+  'tests/package.test.ts',
+  'tests/native-package.test.ts',
+] as const;
+
+function validateAdversarialReleaseCommands(document: string): readonly string[] {
+  const failures: string[] = [], roles: string[] = [];
+  for (const match of document.matchAll(/bun test ([^`\n;]+)/g)) {
+    const argv = ['bun', 'test', ...match[1]!.trim().split(/\s+/)];
+    const relevant = argv.filter(token => adversarialReleaseFiles.includes(token as typeof adversarialReleaseFiles[number]));
+    if (!relevant.length) continue;
+    if (argv.length !== 3 || relevant.length !== 1) failures.push(`adversarial role must be one exact file: ${argv.join(' ')}`);
+    roles.push(...relevant);
+  }
+  if (roles.length !== adversarialReleaseFiles.length || [...roles].sort().join('\n') !== [...adversarialReleaseFiles].sort().join('\n'))
+    failures.push('adversarial roles must equal the four-file inventory exactly once');
+  return failures;
+}
 
 function onlineCommands(version: string): readonly string[] {
   return [
@@ -83,17 +103,15 @@ describe('release documentation contract', () => {
     const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
     const handoff = readFileSync(resolve(root, 'docs/superpowers/plans/2026-09-08-release-handoff.md'), 'utf8');
     const design = readFileSync(resolve(root, 'docs/superpowers/specs/2026-09-08-release-handoff-design.md'), 'utf8');
-    const files = [
-      'tests/final-adversarial-integration.test.ts',
-      'tests/box-package.test.ts',
-      'tests/package.test.ts',
-      'tests/native-package.test.ts',
-    ];
-    const combined = `bun test ${files.join(' ')}`;
-    for (const document of [publishing, handoff, design]) {
-      expect(document).not.toContain(combined);
-      for (const file of files) expect(document.split(`bun test ${file}`)).toHaveLength(2);
-    }
+    for (const document of [publishing, handoff, design]) expect(validateAdversarialReleaseCommands(document)).toEqual([]);
+    const first = `bun test ${adversarialReleaseFiles[0]}`;
+    for (const invalid of [
+      publishing.replace(first, `bun test ${adversarialReleaseFiles[1]} ${adversarialReleaseFiles[0]}`),
+      publishing.replace(first, `bun test ${adversarialReleaseFiles[0]} ${adversarialReleaseFiles[2]} ${adversarialReleaseFiles[3]}`),
+      publishing.replace(first, `bun test --rerun-each 1 ${adversarialReleaseFiles[0]}`),
+      publishing.replace(first, ''),
+      publishing.replace(first, `${first}\n${first}`),
+    ]) expect(validateAdversarialReleaseCommands(invalid).length).toBeGreaterThan(0);
     expect(handoff).toContain('four separately supervised');
     expect(handoff).toContain('4096 MiB');
   });
