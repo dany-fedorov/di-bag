@@ -50,6 +50,7 @@ export function boxContractSource(fixture: string): string {
         // @ts-expect-error Async boxes have no sync route.
         fromSasBox(() => SasBox.fromAsync(async () => 7), { mode: 'sync' });
       ` : readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
+        .replace(/from '(?:\.\.\/)+\.related-repos\/(sas-box|val-box)\/src'/g, "from '$1'")
         .replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types|module-types)'/g, "from './node_modules/di-bag/dist/$1.js'")
         .replace(/from '(?:\.\.\/)+src\/di-bag'/g, "from 'di-bag'")
         .replace(/import\('(?:\.\.\/)+src\/token-types'\)/g, "import('./node_modules/di-bag/dist/token-types.js')")

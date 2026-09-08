@@ -36,6 +36,7 @@ export type FinalAdversarialConsumerContracts = [
   Assert<Equal<ProviderTokenNeeds<typeof client>, typeof port>>,
   Assert<Equal<ProviderAcquired<typeof plugin>, { readonly plugin: true; readonly port: number }>>,
   Assert<Equal<ProviderOutput<typeof boxed>, { boxed: true; port: number }>>,
+  Assert<Equal<ProviderTokenNeeds<typeof boxed>, typeof port>>,
   Assert<Equal<ProviderAcquisitionMetadata<typeof boxed>, readonly [ValBoxFrame<{ origin: 'final-adversarial' }>]>>,
   Assert<Equal<ModuleProvides<typeof finalAdversarialFeature>['clientAlias'], Client>>,
 ];
