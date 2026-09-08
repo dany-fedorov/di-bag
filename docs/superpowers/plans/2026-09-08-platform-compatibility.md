@@ -178,7 +178,7 @@ Expected: browser lane passes with cached pinned Chromium; otherwise it produces
 
 **Interfaces:** Produce `npm run evidence:platform` mapped to `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/platform-evidence.ts`; its exit is nonzero for archive or an available-lane failure, zero for pass/unavailable-only results, and JSONL rows carry `status` explicitly.
 
-- [ ] **Step 1: Write failing command/result-index assertions.**
+- [x] **Step 1: Write failing command/result-index assertions.**
 
 ```ts
 test('platform command writes sorted JSONL and calls unavailable tools unavailable', async () => {
@@ -188,23 +188,31 @@ test('platform command writes sorted JSONL and calls unavailable tools unavailab
 });
 ```
 
-- [ ] **Step 2: Run the RED test.**
+- [x] **Step 2: Run the RED test.**
 
 Run: `bun test tests/platform-evidence.test.ts`
 
 Expected: FAIL until the command/result writer exists.
 
-- [ ] **Step 3: Implement command and result summary.**
+- [x] **Step 3: Implement command and result summary.**
 
 Run archive first, retain a row for archive, Deno and browser, and write a Markdown table with lane/status/execution environment/artifact hashes. State “unavailable” for absent pinned tools and label old Node/Bun counts historical. Only after actual retained Deno/browser passes, revise README's environment section to name exact tested versions and root-only boundary.
 
-- [ ] **Step 4: Run all required gates and inspect evidence.**
+- [x] **Step 4: Run all required gates and inspect evidence.**
 
 Run: `npm run evidence:platform && bun test tests/platform-evidence.test.ts tests/platform-deno.test.ts tests/platform/browser-worker.test.ts && npm run typecheck && npm run typecheck:native && npm run build && npm run build:native && bun test tests/package.test.ts tests/native-package.test.ts && npm test`
 
 Expected: every provisioned lane has a passing exact row; unavailable tools have explicit rows; all focused/package/full tests pass. Do not run a network installation as a substitute.
 
-- [ ] **Step 5: Review claim language and commit the coherent increment.**
+Retained Task 4 facts: `npm run evidence:platform` exits zero with archive
+`pass`, Deno `unavailable: not-provisioned`, and browser
+`unavailable: esbuild-not-provisioned`; Playwright and Chromium are also
+explicitly unavailable. The combined focused platform suite passes `24 / 24`
+with `190` assertions. Both classic/native typechecks and builds exit zero. The
+single final full suite passes `804 / 804` with `4,821` assertions across `43`
+files, including both physical classic/native archive matrices.
+
+- [x] **Step 5: Review claim language and commit the coherent increment.**
 
 Run: `git diff --check && git diff -- docs/superpowers/specs/2026-09-08-platform-compatibility-design.md README.md docs/benchmarks/results`
 
