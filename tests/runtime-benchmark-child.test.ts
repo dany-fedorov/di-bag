@@ -39,6 +39,14 @@ for (const providers of [10, 100] as const) {
       disposers: 3,
       cleanupLog: ['transient-2', 'transient-1', 'scoped'],
     });
+    expect(prepared.bag!.inspect(`provider${providers - 1}`).acquisitions).toHaveLength(1);
+    expect(timed.rootValue).toBe(providers);
+    expect(timed.scopedValue).toBe(prepared.scopedValue);
+    expect(timed.values).toEqual(prepared.values);
+    expect(() => verifyScenario(prepared, {
+      ...timed, rootValue: undefined, scopedValue: undefined,
+      values: Array.from({ length: 2 }, () => ({})),
+    })).toThrow('scope resolution result mismatch');
   });
 
   test(`transient-resolve-close verifies ${providers} distinct owned values in reverse cleanup order`, async () => {
@@ -50,6 +58,10 @@ for (const providers of [10, 100] as const) {
       cleanupLog: Array.from({ length: providers }, (_, index) => `transient-${providers - index}`),
     });
     expect(new Set(timed.values)).toHaveLength(providers);
+    expect(timed.values).toEqual(prepared.values);
+    expect(() => verifyScenario(prepared, {
+      ...timed, values: Array.from({ length: providers }, () => ({})),
+    })).toThrow('transient resolution identity mismatch');
   });
 
   test(`raw-promise-identity retains the exact raw Promise through resolution and disposal at ${providers}`, async () => {

@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { arch, platform, release, tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { packIsolatedClassic, stableJson, verifyTool, type VerifiedTool } from './platform-evidence.ts';
 import { expectedScenarioResult } from '../tests/benchmarks/runtime-scenarios.ts';
@@ -229,6 +230,38 @@ export type CurrentRuntimeEvidenceRow = {
   readonly implementationIdentity: string;
   readonly resolvedDiBag: string;
   readonly summary: BenchmarkSummary;
+  readonly rawEvidence: string;
+  readonly provenance: RuntimeProvenance;
+};
+
+export type RuntimeProvenance = {
+  readonly utc: string;
+  readonly git: { readonly sha: string; readonly dirty: boolean };
+  readonly executionEnvironment: {
+    readonly operatingSystem: string;
+    readonly operatingSystemRelease: string;
+    readonly architecture: string;
+    readonly node: string;
+  };
+  readonly tools: Record<'node' | 'npm' | 'classic6', {
+    readonly version: string;
+    readonly sha256: string;
+    readonly argv: readonly string[];
+  }>;
+  readonly source: {
+    readonly lockfileSha256: string;
+    readonly srcSha256: string;
+    readonly fixtureSha256: { readonly child: string; readonly protocol: string; readonly scenarios: string };
+  };
+  readonly command: readonly string[];
+};
+
+export type RuntimeExecutionRecord = {
+  readonly schema: 1;
+  readonly kind: 'runtime-child';
+  readonly phase: 'warmup' | 'sample';
+  readonly request: RuntimeChildRequest;
+  readonly execution: RuntimeChildExecution;
 };
 
 export type UnavailableRuntimeEvidenceRow = {
@@ -243,12 +276,16 @@ export async function collectRuntimeSamples(
   execute: (request: RuntimeChildRequest) => Promise<RuntimeChildExecution>,
   warmups = 5,
   sampleCount = 31,
+  record: (record: RuntimeExecutionRecord) => void | Promise<void> = () => {},
 ): Promise<RuntimeSampleCollection> {
   if (!Number.isSafeInteger(warmups) || warmups < 0) throw new Error('runtime warmup count must be nonnegative');
   if (!Number.isSafeInteger(sampleCount) || sampleCount <= 0) throw new Error('runtime sample count must be positive');
   const samples: BenchmarkSample[] = [];
   for (let index = 0; index < warmups + sampleCount; index += 1) {
-    const sample = await runRuntimeChild({ ...request, orderSlot: index }, execute);
+    const childRequest = { ...request, orderSlot: index };
+    const execution = await execute(childRequest);
+    await record({ schema: 1, kind: 'runtime-child', phase: index < warmups ? 'warmup' : 'sample', request: childRequest, execution });
+    const sample = parseRuntimeChild(childRequest, execution);
     if (index >= warmups) samples.push(sample);
   }
   return {
@@ -276,15 +313,78 @@ function exactChildExecution(node: VerifiedTool, script: string, request: Runtim
   };
 }
 
-function currentGitIdentity(root: string): string {
+function currentGit(root: string): { sha: string; dirty: boolean } {
   const head = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
   if (head.status !== 0 || head.signal !== null || !/^[a-f0-9]{40}\n$/.test(head.stdout)) throw new Error('cannot identify current runtime source');
   const dirty = spawnSync('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: root, encoding: 'utf8' });
   if (dirty.status !== 0 || dirty.signal !== null) throw new Error('cannot identify current runtime worktree state');
-  return `current:${head.stdout.trim()}${dirty.stdout === '' ? '' : ':dirty'}`;
+  return { sha: head.stdout.trim(), dirty: dirty.stdout !== '' };
 }
 
-export async function runCurrentRuntimeEvidence(root = resolve(process.cwd())):
+function sha256File(path: string): string {
+  return createHash('sha256').update(Uint8Array.from(readFileSync(path))).digest('hex');
+}
+
+function sourceTreeSha256(root: string): string {
+  const hash = createHash('sha256');
+  const visit = (directory: string): void => {
+    for (const name of readdirSync(directory).sort()) {
+      const path = join(directory, name);
+      if (statSync(path).isDirectory()) visit(path);
+      else {
+        hash.update(relative(root, path));
+        hash.update('\0');
+        hash.update(Uint8Array.from(readFileSync(path)));
+        hash.update('\0');
+      }
+    }
+  };
+  visit(join(root, 'src'));
+  return hash.digest('hex');
+}
+
+function runtimeProvenance(
+  root: string,
+  tools: readonly [VerifiedTool, VerifiedTool, VerifiedTool],
+  git: { sha: string; dirty: boolean },
+  utc: string,
+): RuntimeProvenance {
+  const [node, npm, classic6] = tools;
+  const tool = (value: VerifiedTool) => ({ version: value.version, sha256: value.sha256, argv: [...value.argv] });
+  return {
+    utc,
+    git,
+    executionEnvironment: {
+      operatingSystem: platform(), operatingSystemRelease: release(), architecture: arch(), node: process.version,
+    },
+    tools: { node: tool(node), npm: tool(npm), classic6: tool(classic6) },
+    source: {
+      lockfileSha256: sha256File(join(root, 'package-lock.json')),
+      srcSha256: sourceTreeSha256(root),
+      fixtureSha256: {
+        child: sha256File(join(root, 'scripts', 'runtime-benchmark-child.ts')),
+        protocol: sha256File(join(root, 'scripts', 'performance-evidence.ts')),
+        scenarios: sha256File(join(root, 'tests', 'benchmarks', 'runtime-scenarios.ts')),
+      },
+    },
+    command: [...node.argv, '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', 'scripts/performance-evidence.ts', '--current'],
+  };
+}
+
+function redactRuntimeRecord(record: RuntimeExecutionRecord, consumer: string, archiveTree: string): RuntimeExecutionRecord {
+  const redact = (value: string) => value.split(consumer).join('$CONSUMER').split(archiveTree).join('$ARCHIVE_BUILD');
+  return {
+    ...record,
+    request: { ...record.request, installedPackageRoot: redact(record.request.installedPackageRoot) },
+    execution: { ...record.execution, stdout: redact(record.execution.stdout), stderr: redact(record.execution.stderr) },
+  };
+}
+
+export async function runCurrentRuntimeEvidence(
+  root = resolve(process.cwd()),
+  record: (record: unknown) => void | Promise<void> = () => {},
+  rawEvidence = 'callback',
+):
 Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow)[]> {
   const checked = await Promise.all((['node', 'npm', 'classic6'] as const).map(name => verifyTool(root, name)));
   const unavailableIndex = checked.findIndex(tool => tool.status === 'unavailable');
@@ -313,7 +413,10 @@ Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow)[]> 
     cpSync(join(root, 'scripts', 'platform-evidence.ts'), join(consumer, 'scripts', 'platform-evidence.ts'));
     cpSync(join(root, 'tests', 'benchmarks', 'runtime-scenarios.ts'), fixtureScript);
     const installedPackageRoot = realpathSync(join(consumer, 'node_modules', 'di-bag'));
-    const implementationIdentity = currentGitIdentity(root);
+    const git = currentGit(root);
+    const implementationIdentity = `current:${git.sha}${git.dirty ? ':dirty' : ''}`;
+    const provenance = runtimeProvenance(root, [node, npm, classic6], git, new Date().toISOString());
+    await record({ schema: 1, kind: 'runtime-run', archiveIdentity: archive.sha256, provenance });
     const rows: CurrentRuntimeEvidenceRow[] = [];
     for (const providers of [10, 100] as const) {
       for (const scenario of runtimeScenarios) {
@@ -327,6 +430,7 @@ Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow)[]> 
           childRequest => Promise.resolve(exactChildExecution(node, childScript, childRequest)),
           5,
           31,
+          childRecord => record(redactRuntimeRecord(childRecord, consumer, archive.packageTree)),
         );
         const first = collection.samples[0]!;
         const relativeEntry = relative(consumer, first.resolvedDiBag);
@@ -336,7 +440,7 @@ Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow)[]> 
         rows.push({
           schema: 1, lane: 'current', status: 'informational', scenario, providers,
           warmups: 5, samples: 31, archiveIdentity: archive.sha256, implementationIdentity,
-          resolvedDiBag: relativeEntry, summary: collection.summary,
+          resolvedDiBag: relativeEntry, summary: collection.summary, rawEvidence, provenance,
         });
       }
     }
@@ -345,6 +449,39 @@ Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow)[]> 
     rmSync(consumer, { recursive: true, force: true });
     rmSync(archive.packageTree, { recursive: true, force: true });
   }
+}
+
+export function validateCurrentRuntimeEvidenceRow(value: unknown): CurrentRuntimeEvidenceRow {
+  if (!isRecord(value) || value.schema !== 1 || value.lane !== 'current' || value.status !== 'informational'
+    || !scenarios.has(value.scenario as RuntimeScenario) || (value.providers !== 10 && value.providers !== 100)
+    || value.warmups !== 5 || value.samples !== 31 || typeof value.archiveIdentity !== 'string'
+    || !/^[a-f0-9]{64}$/.test(value.archiveIdentity) || typeof value.implementationIdentity !== 'string'
+    || typeof value.resolvedDiBag !== 'string' || typeof value.rawEvidence !== 'string') {
+    throw new Error('runtime evidence row mismatch');
+  }
+  if (value.resolvedDiBag.startsWith('/') || value.resolvedDiBag.includes('..')
+    || !value.resolvedDiBag.startsWith('node_modules/di-bag/dist/')) throw new Error('runtime evidence entry must be clone-safe');
+  const provenance = value.provenance;
+  const hash = (item: unknown) => typeof item === 'string' && /^[a-f0-9]{64}$/.test(item);
+  if (!isRecord(provenance) || typeof provenance.utc !== 'string' || !isRecord(provenance.git)
+    || typeof provenance.git.sha !== 'string' || !/^[a-f0-9]{40}$/.test(provenance.git.sha)
+    || typeof provenance.git.dirty !== 'boolean' || !isRecord(provenance.executionEnvironment)
+    || !isRecord(provenance.tools) || !isRecord(provenance.source) || !isRecord(provenance.source.fixtureSha256)
+    || !hash(provenance.source.lockfileSha256) || !hash(provenance.source.srcSha256)
+    || !hash(provenance.source.fixtureSha256.child) || !hash(provenance.source.fixtureSha256.protocol)
+    || !hash(provenance.source.fixtureSha256.scenarios) || !Array.isArray(provenance.command)) {
+    throw new Error('runtime evidence provenance mismatch');
+  }
+  for (const name of ['node', 'npm', 'classic6']) {
+    const tool = provenance.tools[name];
+    if (!isRecord(tool) || typeof tool.version !== 'string' || !hash(tool.sha256)
+      || !Array.isArray(tool.argv) || !tool.argv.every(part => typeof part === 'string')) {
+      throw new Error('runtime evidence provenance mismatch');
+    }
+  }
+  if (!isRecord(value.summary) || value.summary.count !== 31 || !Array.isArray(value.summary.samples)
+    || value.summary.samples.length !== 31) throw new Error('runtime evidence summary mismatch');
+  return value as CurrentRuntimeEvidenceRow;
 }
 
 function assertSamples(samples: readonly bigint[]): void {
@@ -460,8 +597,19 @@ export async function performanceEvidenceMain(
   write: (chunk: string) => unknown = chunk => process.stdout.write(chunk),
 ): Promise<readonly (CurrentRuntimeEvidenceRow | UnavailableRuntimeEvidenceRow)[]> {
   if (args.length !== 1 || args[0] !== '--current') throw new Error('runtime evidence requires --current');
-  const rows = await runCurrentRuntimeEvidence(root);
-  for (const row of rows) write(`${stableJson(row)}\n`);
+  const git = currentGit(root);
+  const utc = new Date().toISOString();
+  const rawEvidence = join('docs', 'benchmarks', 'results', `${utc.slice(0, 10)}-${git.sha.slice(0, 7)}`, 'runtime-current-raw.jsonl');
+  const rawPath = join(root, rawEvidence);
+  mkdirSync(dirname(rawPath), { recursive: true });
+  writeFileSync(rawPath, '');
+  const rows = await runCurrentRuntimeEvidence(root, record => {
+    writeFileSync(rawPath, `${stableJson(record)}\n`, { flag: 'a' });
+  }, rawEvidence);
+  for (const row of rows) {
+    if (row.status === 'informational') validateCurrentRuntimeEvidenceRow(row);
+    write(`${stableJson(row)}\n`);
+  }
   return rows;
 }
 

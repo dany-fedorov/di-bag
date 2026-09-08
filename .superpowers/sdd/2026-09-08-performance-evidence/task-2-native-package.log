@@ -1,10 +1,10 @@
 bun test v1.4.0 (34cbb9a40)
 
 tests/native-package.test.ts:
-(pass) native installed contracts and physical downstream declarations from classic6 [85866.24ms]
-(pass) native installed contracts and physical downstream declarations from native7 [69352.30ms]
+(pass) native installed contracts and physical downstream declarations from classic6 [86550.96ms]
+(pass) native installed contracts and physical downstream declarations from native7 [69930.48ms]
 
  2 pass
  0 fail
  1152 expect() calls
-Ran 2 tests across 1 file. [155.38s]
+Ran 2 tests across 1 file. [156.65s]

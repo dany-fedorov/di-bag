@@ -3,6 +3,7 @@ import type { RuntimeScenario, RuntimeWorkResult } from '../../scripts/performan
 type Registration = unknown;
 type RuntimeBag = {
   resolve(name: string): unknown;
+  inspect(name: string): { acquisitions: readonly unknown[] };
   scope(): RuntimeBag;
   close(): Promise<void>;
 };
@@ -32,12 +33,15 @@ export type PreparedRuntimeScenario = {
   rawPromise?: Promise<object>;
   nativePromise?: Promise<object>;
   nativeValue?: object;
+  scopedValue?: object;
   disposedValue?: unknown;
 };
 
 export type TimedRuntimeScenario = {
   readonly preparedId: object;
   readonly value?: unknown;
+  readonly rootValue?: unknown;
+  readonly scopedValue?: unknown;
   readonly values: readonly object[];
 };
 
@@ -106,10 +110,11 @@ export async function prepareScenario(
     return prepared;
   }
   if (scenario === 'scope-resolve-close') {
-    Object.assign(prepared.bindings, linearBindings(prepared));
+    Object.assign(prepared.bindings, linearBindings(prepared, 'root'));
     prepared.bindings.scoped = prepared.facade.withDisposal(prepared.facade.factory(() => {
       prepared.factories += 1;
-      return { label: 'scoped' };
+      prepared.scopedValue = { label: 'scoped' };
+      return prepared.scopedValue;
     }, { acquisition: 'raw' }), () => { prepared.disposers += 1; prepared.cleanupLog.push('scoped'); });
     prepared.bindings.transient = prepared.facade.withLifetime(prepared.facade.withDisposal(prepared.facade.factory(() => {
       prepared.factories += 1;
@@ -124,17 +129,18 @@ export async function prepareScenario(
     return prepared;
   }
   if (scenario === 'transient-resolve-close') {
-    for (let index = 0; index < count; index += 1) {
-      prepared.bindings[`provider${index}`] = prepared.facade.withLifetime(prepared.facade.withDisposal(
-        prepared.facade.factory(() => {
-          prepared.factories += 1;
-          const value = { id: index + 1 };
-          prepared.values.push(value);
-          return value;
-        }, { acquisition: 'raw' }),
-        value => { prepared.disposers += 1; prepared.cleanupLog.push(`transient-${(value as { id: number }).id}`); },
-      ), 'transient');
+    for (let index = 0; index < count - 1; index += 1) {
+      prepared.bindings[`provider${index}`] = prepared.facade.factory(() => index, { acquisition: 'raw' });
     }
+    prepared.bindings.transient = prepared.facade.withLifetime(prepared.facade.withDisposal(
+      prepared.facade.factory(() => {
+        prepared.factories += 1;
+        const value = { id: prepared.factories };
+        prepared.values.push(value);
+        return value;
+      }, { acquisition: 'raw' }),
+      value => { prepared.disposers += 1; prepared.cleanupLog.push(`transient-${(value as { id: number }).id}`); },
+    ), 'transient');
     prepared.bag = prepared.facade.begin().add(prepared.bindings).end();
     return prepared;
   }
@@ -162,6 +168,8 @@ export async function prepareScenario(
 
 export async function runTimed(prepared: PreparedRuntimeScenario): Promise<TimedRuntimeScenario> {
   let value: unknown;
+  let rootValue: unknown;
+  let scopedValue: unknown;
   let values: readonly object[] = [];
   if (prepared.scenario === 'build-close') {
     const bag = prepared.facade.begin().add(prepared.bindings).end();
@@ -170,21 +178,20 @@ export async function runTimed(prepared: PreparedRuntimeScenario): Promise<Timed
     value = prepared.bag!.resolve(terminal(prepared));
   } else if (prepared.scenario === 'scope-resolve-close') {
     const child = prepared.bag!.scope();
-    child.resolve(terminal(prepared));
-    child.resolve('scoped');
-    child.resolve('transient');
-    child.resolve('transient');
-    values = prepared.values.slice();
+    rootValue = child.resolve(terminal(prepared));
+    scopedValue = child.resolve('scoped');
+    values = [child.resolve('transient'), child.resolve('transient')] as object[];
     await child.close();
   } else if (prepared.scenario === 'transient-resolve-close') {
-    for (let index = 0; index < prepared.providers; index += 1) prepared.bag!.resolve(`provider${index}`);
-    values = prepared.values.slice();
+    const resolved: object[] = [];
+    for (let index = 0; index < prepared.providers; index += 1) resolved.push(prepared.bag!.resolve('transient') as object);
+    values = resolved;
     await prepared.bag!.close();
   } else {
     value = prepared.bag!.resolve('promise');
     await prepared.bag!.close();
   }
-  return { preparedId: prepared.id, value, values };
+  return { preparedId: prepared.id, value, rootValue, scopedValue, values };
 }
 
 export function verifyScenario(prepared: PreparedRuntimeScenario, timed: TimedRuntimeScenario): RuntimeWorkResult {
@@ -200,6 +207,14 @@ export function verifyScenario(prepared: PreparedRuntimeScenario, timed: TimedRu
   }
   if ((prepared.scenario === 'scope-resolve-close' || prepared.scenario === 'transient-resolve-close')
     && new Set(timed.values).size !== timed.values.length) throw new Error('transient scenario identity mismatch');
+  if (prepared.scenario === 'scope-resolve-close') {
+    if (timed.rootValue !== prepared.providers || timed.scopedValue !== prepared.scopedValue
+      || timed.values.length !== 2 || timed.values.some((value, index) => value !== prepared.values[index])
+      || prepared.bag!.inspect(terminal(prepared)).acquisitions.length !== 1) throw new Error('scope resolution result mismatch');
+  }
+  if (prepared.scenario === 'transient-resolve-close'
+    && (timed.values.length !== prepared.providers
+      || timed.values.some((value, index) => value !== prepared.values[index]))) throw new Error('transient resolution identity mismatch');
   if (prepared.scenario === 'raw-promise-identity'
     && (timed.value !== prepared.rawPromise || prepared.disposedValue !== prepared.rawPromise)) throw new Error('raw Promise identity mismatch');
   if (prepared.scenario === 'node-native-promise'

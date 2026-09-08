@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import {
   executePreparedRuntimeScenario,
   collectRuntimeSamples,
+  validateCurrentRuntimeEvidenceRow,
   pairedBootstrapMedianRatio,
   parseRuntimeChild,
   runRuntimeChild,
@@ -277,6 +278,51 @@ test('current-only collection runs five warmups then retains 31 validated sample
   );
   expect(collected.summary).toMatchObject({ count: 31, minNanoseconds: '106', medianNanoseconds: '121', maxNanoseconds: '136' });
 }));
+
+test('collection journals every execution before validation so a late failure retains prior and rejected output', async () => withAsyncFixture(async ({ request, output }) => {
+  const journal: unknown[] = [];
+  let calls = 0;
+  await expect(collectRuntimeSamples(request, async () => {
+    calls += 1;
+    return calls === 4
+      ? { status: 1, signal: null, timedOut: false, stdout: 'rejected stdout', stderr: 'rejected stderr' }
+      : { status: 0, signal: null, timedOut: false, stdout: `${JSON.stringify(output)}\n`, stderr: '' };
+  }, 1, 5, record => { journal.push(record); })).rejects.toThrow('runtime child exited with status 1');
+  expect(journal).toHaveLength(4);
+  expect(journal[0]).toMatchObject({ phase: 'warmup', request: { orderSlot: 0 }, execution: { status: 0 } });
+  expect(journal[3]).toMatchObject({
+    phase: 'sample', request: { orderSlot: 3 },
+    execution: { status: 1, stdout: 'rejected stdout', stderr: 'rejected stderr' },
+  });
+}));
+
+test('current evidence validation requires reproducible environment, tools, fixture and source identities', () => {
+  const row = {
+    schema: 1, lane: 'current', status: 'informational', scenario: 'build-close', providers: 10,
+    warmups: 5, samples: 31, archiveIdentity: 'a'.repeat(64), implementationIdentity: 'current:' + 'b'.repeat(40),
+    resolvedDiBag: 'node_modules/di-bag/dist/index.js', rawEvidence: 'docs/benchmarks/results/current.jsonl',
+    summary: summarize(Array.from({ length: 31 }, (_, index) => BigInt(index + 1))),
+    provenance: {
+      utc: '2026-09-08T00:00:00.000Z', git: { sha: 'b'.repeat(40), dirty: false },
+      executionEnvironment: { operatingSystem: 'linux', operatingSystemRelease: '1', architecture: 'x64', node: 'v24.20.0' },
+      tools: {
+        node: { version: '24.20.0', sha256: 'c'.repeat(64), argv: ['/bin/node'] },
+        npm: { version: '11.19.0', sha256: 'd'.repeat(64), argv: ['/bin/node', '/bin/npm'] },
+        classic6: { version: '6.0.3', sha256: 'e'.repeat(64), argv: ['/bin/node', '/bin/tsc'] },
+      },
+      source: {
+        lockfileSha256: 'f'.repeat(64), srcSha256: '1'.repeat(64),
+        fixtureSha256: { child: '2'.repeat(64), protocol: '3'.repeat(64), scenarios: '4'.repeat(64) },
+      },
+      command: ['node', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', 'scripts/performance-evidence.ts', '--current'],
+    },
+  } as const;
+  expect(validateCurrentRuntimeEvidenceRow(row)).toBe(row);
+  expect(() => validateCurrentRuntimeEvidenceRow({ ...row, provenance: { ...row.provenance, source: undefined } }))
+    .toThrow('runtime evidence provenance mismatch');
+  expect(() => validateCurrentRuntimeEvidenceRow({ ...row, resolvedDiBag: '/tmp/consumer/node_modules/di-bag/dist/index.js' }))
+    .toThrow('runtime evidence entry must be clone-safe');
+});
 
 test('actual child printer writes one canonical newline-terminated object accepted by the parent', async () => withAsyncFixture(async ({ request, output }) => {
   let stdout = '';
