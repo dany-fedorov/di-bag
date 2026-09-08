@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -10,6 +10,7 @@ import {
   assertBrowserMetafile,
   evaluatePlatformChild,
   packIsolatedClassic,
+  platformEvidenceExitCode,
   runPlatformEvidence,
   stableJson,
   validatePackOutput,
@@ -423,6 +424,30 @@ test('platform evidence module imports under the pinned Node ESM loader', async 
   expect({ status: imported.status, signal: imported.signal, stdout: imported.stdout, stderr: imported.stderr })
     .toEqual({ status: 0, signal: null, stdout: '', stderr: '' });
 });
+
+test('platform command retains archive failure rows and makes required failures nonzero', async () => {
+  const root = resolve(__dirname, '..');
+  const brokenRoot = temporaryRoot();
+  cpSync(join(root, 'tools/platform-versions.json'), join(brokenRoot, 'tools/platform-versions.json'));
+  for (const name of ['src', 'package.json', 'package-lock.json', 'tsconfig.json', 'README.md', 'LICENSE']) {
+    cpSync(join(root, name), join(brokenRoot, name), { recursive: true });
+  }
+
+  const result = await runPlatformEvidence(brokenRoot, brokenRoot);
+  expect(result.rows.map(row => ({ lane: row.lane, status: row.status, reason: row.reason }))).toEqual([
+    { lane: 'archive', status: 'fail', reason: 'isolated package source is missing tsconfig.build.json' },
+    { lane: 'deno-root', status: 'unavailable', reason: 'archive-failed' },
+    { lane: 'browser-worker-minified', status: 'unavailable', reason: 'archive-failed' },
+  ]);
+  expect(platformEvidenceExitCode(result.rows)).toBe(1);
+  expect(readFileSync(result.jsonlPath, 'utf8')).toBe(`${result.rows.map(row => stableJson(row)).join('\n')}\n`);
+  const { reason: _archiveReason, ...archivePass } = result.rows[0];
+  expect(platformEvidenceExitCode([
+    { ...archivePass, status: 'pass' },
+    { ...result.rows[1], status: 'unavailable' },
+    { ...result.rows[2], status: 'unavailable' },
+  ])).toBe(0);
+}, 30_000);
 
 test('browser metafile parser rejects malformed shapes before resolving inputs', () => {
   const root = temporaryRoot();

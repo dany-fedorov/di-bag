@@ -734,6 +734,7 @@ export async function packIsolatedClassic(root: string, node: VerifiedTool, npm:
     throw new Error('node, npm and classic6 must share exact runtime');
   }
   const packageTree = mkdtempSync(join(tmpdir(), 'di-bag-platform-'));
+  try {
   for (const name of ['src', 'package.json', 'tsconfig.json', 'tsconfig.build.json', 'README.md', 'LICENSE']) {
     const source = join(root, name);
     if (!existsSync(source)) throw new Error(`isolated package source is missing ${name}`);
@@ -764,6 +765,10 @@ export async function packIsolatedClassic(root: string, node: VerifiedTool, npm:
   };
   validatePackedArchive(archive);
   return archive;
+  } catch (error) {
+    rmSync(packageTree, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 export async function writePlatformEvidence(root: string, row: PlatformRow): Promise<string> {
@@ -859,17 +864,50 @@ export async function runPlatformEvidence(root = platformRoot, outputRoot = root
     (['node', 'npm', 'classic6', 'bun', 'deno', 'esbuild', 'playwright', 'chromium'] as const)
       .map(async name => [name, await verifyTool(root, name)] as const),
   )) as Record<PlatformTool, VerifiedTool | { status: 'unavailable'; reason: ToolUnavailableReason }>;
+  const git = platformGit();
+  const utc = new Date().toISOString();
+  const executionEnvironment = evidenceEnvironment();
+  const source = {
+    lockfileSha256: sha256File(join(root, 'package-lock.json')),
+    srcSha256: sourceTreeSha256(root),
+  };
+  const finish = (rows: readonly [PlatformRow, PlatformRow, PlatformRow]): PlatformEvidenceResult => {
+    const paths = writePlatformMatrix(outputRoot, rows);
+    return { rows, ...paths, summaryPath: paths.markdownPath };
+  };
+  const foundationTools = {
+    node: toolEvidence(tools.node),
+    npm: toolEvidence(tools.npm),
+    classic6: toolEvidence(tools.classic6),
+    bun: toolEvidence(tools.bun),
+  };
   for (const name of ['node', 'npm', 'classic6'] as const) {
     const tool = tools[name];
-    if (tool.status === 'unavailable') throw new Error(`required platform tool ${name} is unavailable: ${tool.reason}`);
+    if (tool.status === 'unavailable') {
+      const reason = `${name}-${tool.reason}`;
+      return finish([
+        { schema: 1, lane: 'archive', status: 'unavailable', reason, utc, git, executionEnvironment, source, tools: foundationTools },
+        { schema: 1, lane: 'deno-root', status: 'unavailable', reason: 'archive-unavailable', utc, git, executionEnvironment, tools: { deno: toolEvidence(tools.deno) } },
+        { schema: 1, lane: 'browser-worker-minified', status: 'unavailable', reason: 'archive-unavailable', utc, git, executionEnvironment,
+          tools: { esbuild: toolEvidence(tools.esbuild), playwright: toolEvidence(tools.playwright), chromium: toolEvidence(tools.chromium) } },
+      ]);
+    }
   }
-  const archive = await packIsolatedClassic(
-    root, tools.node as VerifiedTool, tools.npm as VerifiedTool, tools.classic6 as VerifiedTool,
-  );
+  let archive: PackedArchive;
   try {
-    const git = platformGit();
-    const utc = new Date().toISOString();
-    const executionEnvironment = evidenceEnvironment();
+    archive = await packIsolatedClassic(
+      root, tools.node as VerifiedTool, tools.npm as VerifiedTool, tools.classic6 as VerifiedTool,
+    );
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return finish([
+      { schema: 1, lane: 'archive', status: 'fail', reason, utc, git, executionEnvironment, source, tools: foundationTools },
+      { schema: 1, lane: 'deno-root', status: 'unavailable', reason: 'archive-failed', utc, git, executionEnvironment, tools: { deno: toolEvidence(tools.deno) } },
+      { schema: 1, lane: 'browser-worker-minified', status: 'unavailable', reason: 'archive-failed', utc, git, executionEnvironment,
+        tools: { esbuild: toolEvidence(tools.esbuild), playwright: toolEvidence(tools.playwright), chromium: toolEvidence(tools.chromium) } },
+    ]);
+  }
+  try {
     const archiveRow: PlatformRow = {
       schema: 1,
       lane: 'archive',
@@ -877,16 +915,8 @@ export async function runPlatformEvidence(root = platformRoot, outputRoot = root
       utc,
       git,
       executionEnvironment,
-      source: {
-        lockfileSha256: sha256File(join(root, 'package-lock.json')),
-        srcSha256: sourceTreeSha256(root),
-      },
-      tools: {
-        node: toolEvidence(tools.node),
-        npm: toolEvidence(tools.npm),
-        classic6: toolEvidence(tools.classic6),
-        bun: toolEvidence(tools.bun),
-      },
+      source,
+      tools: foundationTools,
       archive: { sha256: archive.sha256, files: archive.files },
       commands: archive.execution,
     };
@@ -929,17 +959,21 @@ export async function runPlatformEvidence(root = platformRoot, outputRoot = root
       },
     };
     const rows = [archiveRow, denoEvidence, browserEvidence] as const;
-    const paths = writePlatformMatrix(outputRoot, rows);
-    return { rows, ...paths, summaryPath: paths.markdownPath };
+    return finish(rows);
   } finally {
     rmSync(archive.packageTree, { recursive: true, force: true });
   }
 }
 
+export function platformEvidenceExitCode(rows: readonly PlatformRow[]): 0 | 1 {
+  return rows[0]?.lane === 'archive' && rows[0].status === 'pass'
+    && rows.every(row => row.status !== 'fail') ? 0 : 1;
+}
+
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === platformScript) {
   runPlatformEvidence().then(result => {
     for (const row of result.rows) process.stdout.write(`${stableJson(row)}\n`);
-    if (result.rows.some(row => row.status === 'fail')) process.exitCode = 1;
+    process.exitCode = platformEvidenceExitCode(result.rows);
   }).catch(error => {
     process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
     process.exitCode = 1;
