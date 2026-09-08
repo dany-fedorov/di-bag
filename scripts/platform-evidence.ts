@@ -45,6 +45,7 @@ export type BrowserBundle = {
   sha256: string;
   bytes: number;
   gzipBytes: number;
+  gzipSha256: string;
   metafilePath: string;
   metafileSha256: string;
   resolvedDiBag: string;
@@ -60,6 +61,7 @@ export type BrowserWorkerTranscript = {
 export type BrowserWorkerDriver = (
   bundleBytes: Uint8Array,
   chromium: VerifiedTool,
+  signal: AbortSignal,
 ) => Promise<BrowserWorkerTranscript>;
 
 function sha256File(path: string): string {
@@ -236,11 +238,13 @@ export function assertBrowserMetafile(value: unknown, consumer: string): string 
       for (const imported of imports as MetafileImport[]) {
         if (!imported || typeof imported !== 'object' || typeof imported.path !== 'string') throw new Error('invalid esbuild metafile');
         if (imported.path.startsWith('node:')) throw new Error('browser bundle contains a node: input');
+        if (imported.external === true) throw new Error('browser bundle contains an external input');
       }
     }
   };
   rejectNodeImports(metafile.inputs);
   rejectNodeImports(metafile.outputs);
+  if (Object.keys(metafile.outputs).length !== 1) throw new Error('browser metafile must contain exactly one browser output');
 
   for (const [input, detail] of Object.entries(metafile.inputs)) {
     if (input.startsWith('node:')) throw new Error('browser bundle contains a node: input');
@@ -250,8 +254,14 @@ export function assertBrowserMetafile(value: unknown, consumer: string): string 
     try { resolvedInput = realpathSync(lexicalInput); }
     catch { throw new Error(`browser bundle input does not exist: ${input}`); }
     if (!pathInside(resolvedInput, consumerRoot)) throw new Error('browser bundle input is outside the browser consumer');
-    if (pathInside(lexicalInput, modulesRoot) || pathInside(resolvedInput, modulesRoot)) {
+    const lexicalParts = relative(consumerRoot, lexicalInput).split(sep);
+    const isDependency = lexicalParts.includes('node_modules') || pathInside(resolvedInput, modulesRoot);
+    if (isDependency) {
       if (!pathInside(resolvedInput, packageRoot)) throw new Error('browser package input is outside the installed di-bag archive');
+      if (pathInside(lexicalInput, packageRoot)
+        && relative(packageRoot, lexicalInput).split(sep).join('/') === 'dist/node.js') {
+        throw new Error('browser bundle contains the node facade');
+      }
       const packageRelative = relative(packageRoot, resolvedInput).split(sep).join('/');
       if (!/^dist\/[^/]+\.js$/.test(packageRelative)) throw new Error('browser package input is not under dist as a JavaScript file');
       if (packageRelative === 'dist/node.js') throw new Error('browser bundle contains the node facade');
@@ -269,9 +279,11 @@ function inspectBrowserBundle(bundle: BrowserBundle): { bytes: number; gzipBytes
   if (bytes.length === 0) throw new Error('browser bundle is empty');
   if (bytes.length !== bundle.bytes) throw new Error('bundle byte count mismatch');
   let gzipBytes: number;
-  try { gzipBytes = gzipSync(bytes).length; }
+  let gzip: Uint8Array;
+  try { gzip = Uint8Array.from(gzipSync(bytes)); gzipBytes = gzip.length; }
   catch { throw new Error('browser bundle gzip failed'); }
   if (gzipBytes !== bundle.gzipBytes) throw new Error('bundle gzip byte count mismatch');
+  if (sha256Bytes(gzip) !== bundle.gzipSha256) throw new Error('bundle gzip SHA-256 mismatch');
   if (!existsSync(bundle.metafilePath) || !statSync(bundle.metafilePath).isFile()) throw new Error('browser metafile does not exist');
   const metafileBytes = Uint8Array.from(readFileSync(bundle.metafilePath));
   if (sha256Bytes(metafileBytes) !== bundle.metafileSha256) throw new Error('metafile SHA-256 mismatch');
@@ -318,12 +330,14 @@ export async function bundleBrowserRoot(
     if (result.signal !== null || result.status !== 0 || result.stderr !== '') throw new Error(`browser bundling failed: ${result.stderr || result.stdout}`);
     const bundleBytes = Uint8Array.from(readFileSync(path));
     const metafileBytes = Uint8Array.from(readFileSync(metafilePath));
+    const gzipBytes = Uint8Array.from(gzipSync(bundleBytes));
     const resolvedDiBag = assertBrowserMetafile(JSON.parse(new TextDecoder().decode(metafileBytes)), consumer);
     const bundle: BrowserBundle = {
       path,
       sha256: sha256Bytes(bundleBytes),
       bytes: bundleBytes.length,
-      gzipBytes: gzipSync(bundleBytes).length,
+      gzipBytes: gzipBytes.length,
+      gzipSha256: sha256Bytes(gzipBytes),
       metafilePath,
       metafileSha256: sha256Bytes(metafileBytes),
       resolvedDiBag,
@@ -345,13 +359,26 @@ export function evaluateBrowserWorkerProtocol(transcript: BrowserWorkerTranscrip
   const message = transcript.messages[0];
   if (!message || typeof message !== 'object' || Array.isArray(message)) return { status: 'fail', reason: 'Worker message is not an object' };
   const value = message as { lane?: unknown; result?: unknown };
-  if (value.lane !== 'browser-worker-minified') return { status: 'fail', reason: 'Worker lane mismatch' };
-  try {
-    if (stableJson(value.result) !== stableJson(expectedPortableResult)) return { status: 'fail', reason: 'Worker result mismatch' };
-  } catch {
-    return { status: 'fail', reason: 'Worker result mismatch' };
+  const messageKeys = Reflect.ownKeys(value);
+  if (messageKeys.length !== 2 || !messageKeys.includes('lane') || !messageKeys.includes('result')) {
+    return { status: 'fail', reason: 'Worker message shape mismatch' };
   }
+  if (value.lane !== 'browser-worker-minified') return { status: 'fail', reason: 'Worker lane mismatch' };
+  if (!exactStructuredValue(value.result, expectedPortableResult)) return { status: 'fail', reason: 'Worker result mismatch' };
   return { status: 'pass' };
+}
+
+function exactStructuredValue(actual: unknown, expected: unknown): boolean {
+  if (Object.is(actual, expected)) return true;
+  if (!actual || !expected || typeof actual !== 'object' || typeof expected !== 'object') return false;
+  if (Array.isArray(actual) !== Array.isArray(expected)) return false;
+  const actualKeys = Reflect.ownKeys(actual);
+  const expectedKeys = Reflect.ownKeys(expected);
+  if (actualKeys.length !== expectedKeys.length || expectedKeys.some(key => !actualKeys.includes(key))) return false;
+  return expectedKeys.every(key => exactStructuredValue(
+    (actual as Record<PropertyKey, unknown>)[key],
+    (expected as Record<PropertyKey, unknown>)[key],
+  ));
 }
 
 function playwrightPackageEntry(tool: VerifiedTool): string {
@@ -367,13 +394,19 @@ function playwrightPackageEntry(tool: VerifiedTool): string {
   throw new Error('verified Playwright package entry cannot be resolved');
 }
 
-const executeBrowserWorker: BrowserWorkerDriver = async (bundleBytes, chromiumTool) => {
+const executeBrowserWorker: BrowserWorkerDriver = async (bundleBytes, chromiumTool, signal) => {
   const playwrightTool = await verifyTool(platformRoot, 'playwright');
   if (playwrightTool.status === 'unavailable') throw new Error(`playwright unavailable: ${playwrightTool.reason}`);
   const module = await import(pathToFileURL(playwrightPackageEntry(playwrightTool)).href) as any;
   const playwright = module.chromium ? module : module.default;
   if (!playwright?.chromium) throw new Error('verified Playwright module has no Chromium API');
   const browser = await playwright.chromium.launch({ executablePath: chromiumTool.hashPath });
+  if (signal.aborted) {
+    await browser.close();
+    return { messages: [], errors: [], console: [], timedOut: true };
+  }
+  const abort = () => { void browser.close().catch(() => undefined); };
+  signal.addEventListener('abort', abort, { once: true });
   const messages: unknown[] = [], errors: string[] = [], consoleOutput: string[] = [];
   let timedOut = false;
   try {
@@ -393,14 +426,14 @@ const executeBrowserWorker: BrowserWorkerDriver = async (bundleBytes, chromiumTo
       worker.onmessage = event => { void (globalThis as any).__diBagWorkerMessage(event.data); };
       worker.onerror = event => { event.preventDefault(); void (globalThis as any).__diBagWorkerError(event.message); };
     }, source);
-    const deadline = Date.now() + 5_000;
-    while (messages.length === 0 && errors.length === 0 && Date.now() < deadline) {
+    while (messages.length === 0 && errors.length === 0 && !signal.aborted) {
       await new Promise(resolve => setTimeout(resolve, 20));
     }
-    if (messages.length === 0 && errors.length === 0) timedOut = true;
+    if (signal.aborted) timedOut = true;
     else await new Promise(resolve => setTimeout(resolve, 100));
     await page.evaluate(() => { (globalThis as any).__diBagWorker?.terminate(); });
   } finally {
+    signal.removeEventListener('abort', abort);
     await browser.close();
   }
   return { messages, errors, console: consoleOutput, timedOut };
@@ -410,22 +443,44 @@ export async function runBrowserWorkerLane(
   bundle: BrowserBundle,
   chromium: VerifiedTool | { status: 'unavailable'; reason: ToolUnavailableReason },
   driver?: BrowserWorkerDriver,
+  timeoutMs = 6_000,
 ): Promise<PlatformRow> {
   if (chromium.status === 'unavailable') return browserRow('unavailable', { reason: chromium.reason });
   if (chromium.name !== 'chromium') return browserRow('fail', { reason: 'browser Worker lane requires the verified chromium tool' });
   try {
-    const validated = inspectBrowserBundle(bundle);
     if (!driver) {
       const playwright = await verifyTool(platformRoot, 'playwright');
       if (playwright.status === 'unavailable') return browserRow('unavailable', { reason: `playwright-${playwright.reason}` });
     }
-    const transcript = await (driver ?? executeBrowserWorker)(validated.contents, chromium);
+    const validated = inspectBrowserBundle(bundle);
+    const controller = new AbortController();
+    const timeout = Symbol('browser-timeout');
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const execution = (driver ?? executeBrowserWorker)(validated.contents, chromium, controller.signal);
+    let transcript: BrowserWorkerTranscript | typeof timeout;
+    try {
+      transcript = await Promise.race([
+        execution,
+        new Promise<typeof timeout>(resolveTimeout => { timer = setTimeout(() => resolveTimeout(timeout), timeoutMs); }),
+      ]);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
+    if (transcript === timeout) {
+      controller.abort();
+      await Promise.race([
+        execution.catch(() => undefined),
+        new Promise(resolveCleanup => setTimeout(resolveCleanup, 250)),
+      ]);
+      return browserRow('fail', { reason: 'Worker timed out', bundleSha256: bundle.sha256 });
+    }
     const assertion = evaluateBrowserWorkerProtocol(transcript);
     if (assertion.status === 'fail') return browserRow('fail', { reason: assertion.reason, bundleSha256: bundle.sha256 });
     return browserRow('pass', {
       bundleSha256: bundle.sha256,
       bytes: bundle.bytes,
       gzipBytes: bundle.gzipBytes,
+      gzipSha256: bundle.gzipSha256,
       metafileSha256: bundle.metafileSha256,
       resolvedDiBag: bundle.resolvedDiBag,
       result: expectedPortableResult,

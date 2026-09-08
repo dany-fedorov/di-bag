@@ -26,9 +26,9 @@ slip between hash validation and launch.
 
 ```text
 $ bun test tests/platform/browser-worker.test.ts tests/platform-evidence.test.ts
-16 pass
+17 pass
 0 fail
-138 expect() calls
+147 expect() calls
 ```
 
 The archive-building suite ran with native child-process access; managed
@@ -80,3 +80,31 @@ Ran 2 tests across 1 file. [155.27s]
 
 Task 4 still owns the evidence command, retained result rows and final
 documentation matrix.
+
+## Independent review fix round
+
+Review found no Critical issues and four Important false-certification or
+supervision gaps. RED probes demonstrated that external `di-bag/node` and URL
+imports, a nested `node_modules` dependency, extra message keys, an extra
+`undefined` result key and a never-settling driver could pass or hang. The
+unavailable test also depended directly on this checkout's manifest, so it
+would fail rather than exercise a newly provisioned browser lane.
+
+Metafile validation now rejects every external import, classifies any lexical
+`node_modules` segment as a dependency, checks lexical plus resolved node
+facades, and requires exactly one output. Worker messages and their nested
+portable result use exact own-key/value comparison. The parent starts one
+overall deadline before driver setup, aborts on expiry, gives cancellation a
+bounded cleanup window and returns a timeout row. Tool-unavailable unit cases
+use explicit values, while a conditional integration test builds the isolated
+archive and uses real esbuild, Playwright and Chromium whenever all exact pins
+are provisioned. On this checkout it records only the manifest's unavailable
+state.
+
+The review's two Minor findings were also addressed: gzip bytes now have a
+retained and revalidated SHA-256, and default execution checks Playwright
+availability before inspecting an artifact, matching the Chromium unavailable
+boundary. The final focused counts above supersede the pre-review `16 / 138`
+run. Classic/native typechecks and builds all exited zero after these fixes;
+package matrices were not repeated because package source and declarations did
+not change.

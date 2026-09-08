@@ -8,6 +8,7 @@ import {
   assertBrowserMetafile,
   bundleBrowserRoot,
   evaluateBrowserWorkerProtocol,
+  packIsolatedClassic,
   runBrowserWorkerLane,
   validateBrowserBundle,
   verifyTool,
@@ -65,6 +66,7 @@ function browserBundle(): BrowserBundle {
     sha256: sha256(bytes),
     bytes: bytes.length,
     gzipBytes: gzipSync(bytes).length,
+    gzipSha256: sha256(Uint8Array.from(gzipSync(bytes))),
     metafilePath,
     metafileSha256: sha256(metafile),
     resolvedDiBag: join(consumer, 'node_modules/di-bag/dist/index.js'),
@@ -90,13 +92,15 @@ test('browser metafile accepts only the installed root export and package-local 
   );
 
   const mutations: Array<[string, unknown, string]> = [
-    ['missing root', { inputs: { 'browser-entry.ts': {}, 'portable/contract.ts': {} }, outputs: {} }, 'exactly one di-bag root entry'],
-    ['node facade', { inputs: { ...cleanMetafile(consumer).inputs, 'node_modules/di-bag/dist/node.js': {} }, outputs: {} }, 'node facade'],
-    ['node builtin input', { inputs: { ...cleanMetafile(consumer).inputs, 'node:util/types': {} }, outputs: {} }, 'node: input'],
-    ['node builtin external import', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'node:fs', external: true }] } }, outputs: {} }, 'node: input'],
+    ['missing root', { inputs: { 'browser-entry.ts': {}, 'portable/contract.ts': {} }, outputs: cleanMetafile(consumer).outputs }, 'exactly one di-bag root entry'],
+    ['node facade', { inputs: { ...cleanMetafile(consumer).inputs, 'node_modules/di-bag/dist/node.js': {} }, outputs: cleanMetafile(consumer).outputs }, 'node facade'],
+    ['node builtin input', { inputs: { ...cleanMetafile(consumer).inputs, 'node:util/types': {} }, outputs: cleanMetafile(consumer).outputs }, 'node: input'],
+    ['node builtin external import', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'node:fs', external: true }] } }, outputs: cleanMetafile(consumer).outputs }, 'node: input'],
+    ['external node facade', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'di-bag/node', external: true }] } }, outputs: cleanMetafile(consumer).outputs }, 'external input'],
+    ['external registry URL', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'https://registry.example/di-bag.js', external: true }] } }, outputs: cleanMetafile(consumer).outputs }, 'external input'],
     ['node builtin output import', { inputs: cleanMetafile(consumer).inputs, outputs: { 'worker.js': { imports: [{ path: 'node:path', external: true }] } } }, 'node: input'],
-    ['foreign package input', { inputs: { ...cleanMetafile(consumer).inputs, 'node_modules/other/index.js': {} }, outputs: {} }, 'outside the installed di-bag archive'],
-    ['parent traversal', { inputs: { ...cleanMetafile(consumer).inputs, [`../${basename(consumer)}-foreign.ts`]: {} }, outputs: {} }, 'outside the browser consumer'],
+    ['foreign package input', { inputs: { ...cleanMetafile(consumer).inputs, 'node_modules/other/index.js': {} }, outputs: cleanMetafile(consumer).outputs }, 'outside the installed di-bag archive'],
+    ['parent traversal', { inputs: { ...cleanMetafile(consumer).inputs, [`../${basename(consumer)}-foreign.ts`]: {} }, outputs: cleanMetafile(consumer).outputs }, 'outside the browser consumer'],
   ];
   for (const [name, metafile, message] of mutations) {
     expect(() => assertBrowserMetafile(metafile, consumer), name).toThrow(message);
@@ -106,6 +110,15 @@ test('browser metafile accepts only the installed root export and package-local 
   const disguisedForeign = cleanMetafile(consumer);
   disguisedForeign.inputs['node_modules/other/linked.js'] = {};
   expect(() => assertBrowserMetafile(disguisedForeign, consumer)).toThrow('outside the installed di-bag archive');
+
+  mkdirSync(join(consumer, 'portable/node_modules/foreign'), { recursive: true });
+  writeFileSync(join(consumer, 'portable/node_modules/foreign/index.js'), 'foreign\n');
+  const nestedForeign = cleanMetafile(consumer);
+  nestedForeign.inputs['portable/node_modules/foreign/index.js'] = {};
+  expect(() => assertBrowserMetafile(nestedForeign, consumer)).toThrow('outside the installed di-bag archive');
+
+  expect(() => assertBrowserMetafile({ ...cleanMetafile(consumer), outputs: {} }, consumer))
+    .toThrow('exactly one browser output');
 
   const alias = join(consumer, 'node_modules/di-bag/dist/root-alias.js');
   symlinkSync('index.js', alias);
@@ -122,6 +135,7 @@ test('browser bundle validation rejects stale bytes, sizes, gzip size, metafile 
     ['bundle hash', { ...bundle, sha256: '0'.repeat(64) }, 'bundle SHA-256 mismatch'],
     ['byte count', { ...bundle, bytes: bundle.bytes + 1 }, 'bundle byte count mismatch'],
     ['gzip count', { ...bundle, gzipBytes: bundle.gzipBytes + 1 }, 'bundle gzip byte count mismatch'],
+    ['gzip hash', { ...bundle, gzipSha256: '0'.repeat(64) }, 'bundle gzip SHA-256 mismatch'],
     ['metafile hash', { ...bundle, metafileSha256: '0'.repeat(64) }, 'metafile SHA-256 mismatch'],
     ['root path', { ...bundle, resolvedDiBag: join(resolve(bundle.path, '..'), 'node_modules/di-bag/dist/internal.js') }, 'resolved di-bag root mismatch'],
   ];
@@ -132,7 +146,7 @@ test('browser bundle validation rejects stale bytes, sizes, gzip size, metafile 
 
   const empty = browserBundle();
   writeFileSync(empty.path, '');
-  expect(() => validateBrowserBundle({ ...empty, sha256: sha256(''), bytes: 0, gzipBytes: gzipSync('').length }))
+  expect(() => validateBrowserBundle({ ...empty, sha256: sha256(''), bytes: 0, gzipBytes: gzipSync('').length, gzipSha256: sha256(Uint8Array.from(gzipSync(''))) }))
     .toThrow('browser bundle is empty');
   const missingMetafile = browserBundle();
   rmSync(missingMetafile.metafilePath);
@@ -149,6 +163,8 @@ test('Worker protocol accepts exactly one structured portable result and rejects
   expect(evaluateBrowserWorkerProtocol({ ...clean, messages: [...clean.messages, clean.messages[0]] })).toEqual({ status: 'fail', reason: 'Worker posted extra messages' });
   expect(evaluateBrowserWorkerProtocol({ ...clean, messages: [{ lane: 'wrong', result: portableResult }] })).toEqual({ status: 'fail', reason: 'Worker lane mismatch' });
   expect(evaluateBrowserWorkerProtocol({ ...clean, messages: [{ lane: 'browser-worker-minified', result: { ...portableResult, rootOnce: false } }] })).toEqual({ status: 'fail', reason: 'Worker result mismatch' });
+  expect(evaluateBrowserWorkerProtocol({ ...clean, messages: [{ lane: 'browser-worker-minified', result: portableResult, extra: 'noise' }] })).toEqual({ status: 'fail', reason: 'Worker message shape mismatch' });
+  expect(evaluateBrowserWorkerProtocol({ ...clean, messages: [{ lane: 'browser-worker-minified', result: { ...portableResult, extra: undefined } }] })).toEqual({ status: 'fail', reason: 'Worker result mismatch' });
   expect(evaluateBrowserWorkerProtocol({ ...clean, messages: [null] })).toEqual({ status: 'fail', reason: 'Worker message is not an object' });
   const cyclic: { self?: unknown } = {};
   cyclic.self = cyclic;
@@ -185,13 +201,17 @@ test('browser Worker lane rechecks the artifact before execution and maps protoc
     messages: [{ lane: 'browser-worker-minified', result: portableResult }], errors: [], console: ['debug'], timedOut: false,
   });
   await expect(runBrowserWorkerLane(bundle, chromium, consoleDriver)).resolves.toMatchObject({ status: 'fail', reason: 'Worker console output is not empty' });
+  const neverDriver: BrowserWorkerDriver = async (_bytes, _tool, signal) => new Promise(resolve => {
+    signal.addEventListener('abort', () => resolve({ messages: [], errors: [], console: [], timedOut: true }), { once: true });
+  });
+  await expect(runBrowserWorkerLane(bundle, chromium, neverDriver, 10)).resolves.toMatchObject({ status: 'fail', reason: 'Worker timed out' });
+  const rejectedDriver: BrowserWorkerDriver = async () => { throw new Error('browser setup failed'); };
+  await expect(runBrowserWorkerLane(bundle, chromium, rejectedDriver, 10)).resolves.toMatchObject({ status: 'fail', reason: 'browser setup failed' });
 });
 
-test('unprovisioned browser tools stay unavailable without archive or bundle fallback', async () => {
-  const root = resolve(__dirname, '../..');
-  const [esbuild, chromium] = await Promise.all([verifyTool(root, 'esbuild'), verifyTool(root, 'chromium')]);
-  expect(esbuild).toEqual({ status: 'unavailable', reason: 'not-provisioned' });
-  expect(chromium).toEqual({ status: 'unavailable', reason: 'not-provisioned' });
+test('explicitly unprovisioned browser tools stay unavailable without archive or bundle fallback', async () => {
+  const esbuild = { status: 'unavailable', reason: 'not-provisioned' } as const;
+  const chromium = { status: 'unavailable', reason: 'not-provisioned' } as const;
   const archive = { path: '/missing/archive.tgz', packageTree: '/missing/tree', sha256: '0'.repeat(64), files: [] } satisfies PackedArchive;
   await expect(bundleBrowserRoot(archive, esbuild)).rejects.toThrow('esbuild unavailable: not-provisioned');
   await expect(runBrowserWorkerLane(browserBundle(), chromium)).resolves.toMatchObject({
@@ -205,4 +225,34 @@ test('unprovisioned browser tools stay unavailable without archive or bundle fal
   await expect(runBrowserWorkerLane(browserBundle(), fakeChromium)).resolves.toMatchObject({
     lane: 'browser-worker-minified', status: 'unavailable', reason: 'playwright-not-provisioned',
   });
+  const stale = { ...browserBundle(), sha256: '0'.repeat(64) };
+  await expect(runBrowserWorkerLane(stale, fakeChromium)).resolves.toMatchObject({
+    lane: 'browser-worker-minified', status: 'unavailable', reason: 'playwright-not-provisioned',
+  });
 });
+
+test('provisioned browser tools execute the real packed archive lane', async () => {
+  const root = resolve(__dirname, '../..');
+  const [node, npm, classic6, esbuild, playwright, chromium] = await Promise.all([
+    verifyTool(root, 'node'), verifyTool(root, 'npm'), verifyTool(root, 'classic6'),
+    verifyTool(root, 'esbuild'), verifyTool(root, 'playwright'), verifyTool(root, 'chromium'),
+  ]);
+  const browserTools = [esbuild, playwright, chromium];
+  if (browserTools.some(tool => tool.status === 'unavailable')) {
+    expect(browserTools.filter(tool => tool.status === 'unavailable').length).toBeGreaterThan(0);
+    return;
+  }
+  if (node.status === 'unavailable' || npm.status === 'unavailable' || classic6.status === 'unavailable') {
+    throw new Error('foundation tools unavailable while browser tools are provisioned');
+  }
+  const archive = await packIsolatedClassic(root, node, npm, classic6);
+  const bundle = await bundleBrowserRoot(archive, esbuild as VerifiedTool);
+  try {
+    await expect(runBrowserWorkerLane(bundle, chromium as VerifiedTool)).resolves.toMatchObject({
+      lane: 'browser-worker-minified', status: 'pass',
+    });
+  } finally {
+    rmSync(archive.packageTree, { recursive: true, force: true });
+    rmSync(dirname(bundle.path), { recursive: true, force: true });
+  }
+}, 30_000);
