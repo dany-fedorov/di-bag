@@ -79,6 +79,25 @@ function appendixCommands(document: string): readonly string[] {
 }
 
 describe('release documentation contract', () => {
+  test('adversarial release gates are four separately supervised file commands', () => {
+    const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
+    const handoff = readFileSync(resolve(root, 'docs/superpowers/plans/2026-09-08-release-handoff.md'), 'utf8');
+    const design = readFileSync(resolve(root, 'docs/superpowers/specs/2026-09-08-release-handoff-design.md'), 'utf8');
+    const files = [
+      'tests/final-adversarial-integration.test.ts',
+      'tests/box-package.test.ts',
+      'tests/package.test.ts',
+      'tests/native-package.test.ts',
+    ];
+    const combined = `bun test ${files.join(' ')}`;
+    for (const document of [publishing, handoff, design]) {
+      expect(document).not.toContain(combined);
+      for (const file of files) expect(document.split(`bun test ${file}`)).toHaveLength(2);
+    }
+    expect(handoff).toContain('four separately supervised');
+    expect(handoff).toContain('4096 MiB');
+  });
+
   test('release documents match the frozen package and gate every online command', () => {
     const changelog = readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8');
     const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');

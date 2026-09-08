@@ -39,7 +39,10 @@ npm run check
 npm run typecheck:native
 npm run build:native
 npm run check:native
-bun test tests/final-adversarial-integration.test.ts tests/box-package.test.ts tests/package.test.ts tests/native-package.test.ts
+bun test tests/final-adversarial-integration.test.ts
+bun test tests/box-package.test.ts
+bun test tests/package.test.ts
+bun test tests/native-package.test.ts
 bun run examples/box-adapters.ts
 bun run examples/composition.ts
 bun run examples/contributions.ts
@@ -52,9 +55,11 @@ bun run examples/wbs-scope.ts
 bun test tests/release-artifacts.test.ts
 ```
 
-Run the corresponding documented check and build in each box checkout. Record
-every gate through the release command supervisor; do not substitute one combined
-command for a missing individual record. Create each dry-run preview and actual
+Run the four adversarial files serially as four separately supervised commands.
+Each file must have its own successful record and log hashes under the fixed
+4096 MiB limit. Run the corresponding documented check and build in each box
+checkout. Record every gate through the release command supervisor. Create each
+dry-run preview and actual
 archive only after its explicit build, using `--ignore-scripts` for the actual pack.
 
 The pack destination must be `/tmp/di-bag-release-candidate`. Inspect every archive
