@@ -127,9 +127,9 @@ Expected: PASS with I1-I13 and all pre-existing focused suites.
 
 Task 1 stopped at the global failure policy on 2026-09-08. The unmodified runtime produces
 I12 cancellation disposal order `['late', 'immediate']`; the reviewed oracle requires
-`['immediate', 'late']`. A source-only probe accepted the known I12 runtime order so I1-I11 and
-I13 could run independently; those rows passed, and the four neighboring suites passed 66 tests
-with 384 assertions.
+`['immediate', 'late']`. Source row selection suppresses assertions from unrelated rows so I1-I11
+and I13 run independently; those rows passed, and the four neighboring suites passed 66 tests with
+384 assertions.
 The retained precise RED is `I12: late cleanup changed: ["late","immediate"]`; the relevant
 ordering path is `src/acquisition.ts` `disposeAll()`, reached by cancellation through
 `src/startup.ts`. No production file was changed.

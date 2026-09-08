@@ -16,9 +16,10 @@ error: I12: late cleanup changed: ["late","immediate"]
 
 The expected cancellation sequence is `['immediate', 'late']`. The unmodified cleanup path waits
 for pending ownership and then reverses acquisition order in `src/acquisition.ts` `disposeAll()`;
-cancellation reaches it from `src/startup.ts`. A source-only probe accepts the known I12 order so
-I1-I11 and I13 remain independently selectable. The ordinary runtime and embedded archive string
-retain the required assertion and fail on the observed I12 order.
+cancellation reaches it from `src/startup.ts`. Source tests select one row at a time; assertions
+from unrelated rows are suppressed while all setup still exercises the composed runtime. I1-I11
+and I13 pass independently. I12 and the embedded archive string retain the required assertion and
+fail on the observed I12 order.
 
 Neighboring source verification remained green:
 
