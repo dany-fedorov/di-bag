@@ -14,3 +14,8 @@
 /tools/platform-versions.local.json
 /tools/platform/node_modules/
 /tools/platform/.browsers/
+
+# Documentation dependencies and the generated website (Markdown is tracked).
+/tools/docs/node_modules/
+/tools/docs/site/
+/tools/docs/.cache/

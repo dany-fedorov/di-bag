@@ -13,12 +13,21 @@ import type { Acquired, AcquisitionMode, NativeOutput, StageOptions } from './ac
 declare const providerInvariant: unique symbol;
 
 // Non-generic admission preserves invariant concrete contracts at graph boundaries.
+/** A type-only common contract for immutable provider descriptions. */
 class ProviderBase {
   declare private readonly nominal: void;
 }
 
+/**
+ * An immutable provider description retaining factory, metadata, inspection-frame,
+ * dependency-graph, and acquired-value contracts.
+ *
+ * Create providers through {@link Facade.factory}, composition adapters, or provider
+ * decorators. This type-only class has no public constructor.
+ */
 class Provider<F extends Factory, M extends object = Readonly<{}>, A extends readonly unknown[] = readonly [], G extends GraphContract = TokenGraph, V = Awaited<ReturnType<F>>> extends ProviderBase {
   // Unlike an ordinary private field, this witness survives declaration emit.
+  /** @internal */
   declare readonly [providerInvariant]: (value: [F, M, A, G, V]) => [F, M, A, G, V];
 }
 
@@ -36,6 +45,7 @@ export type ProviderContext<F extends Factory, G extends GraphContract = GraphCo
 // Infer through an intersection before distributing. A bare infer preserves
 // NoInfer's substitution wrapper, which tests heterogeneous unions as a whole
 // and can miss every branch. Every registration is non-nullish.
+/** Extract the callable factory contract retained by a registration. */
 export type ProviderFactory<R extends Registration> = R extends infer T & {} ? FactoryOf<T> : never;
 type FactoryOf<R> = R extends Factory ? R
   : R extends { create: infer F extends Factory } ? F
@@ -43,22 +53,28 @@ type FactoryOf<R> = R extends Factory ? R
       : R extends ProviderBase ? (this: void, deps: unknown) => unknown : never;
 // An erased provider cannot prove an output or dependency shape, including
 // when mixed with concrete registrations behind a NoInfer boundary.
+/** Extract the exact service value exposed by a registration, including Promise identity. */
 export type ProviderOutput<R extends Registration> = ProviderBase extends R ? unknown : ReturnType<ProviderFactory<R>>;
+/** Extract the fulfilled or raw value passed to the registration's outer disposer. */
 export type ProviderAcquired<R extends Registration> = ProviderBase extends R ? unknown
   : R extends infer T & {} ? AcquiredOf<T> : unknown;
 type AcquiredOf<R> = R extends { readonly [providerInvariant]: (...args: never[]) => [Factory, object, readonly unknown[], GraphContract, infer V] } ? V
   : R extends Factory ? Awaited<ReturnType<R>>
     : R extends DisposableFactory<infer F> ? Awaited<ReturnType<F>> : unknown;
+/** Extract the registration's named dependency object. */
 export type ProviderNeeds<R extends Registration> = ProviderBase extends R ? unknown : Parameters<ProviderFactory<R>> extends [] ? Record<never, never>
   : Exclude<Parameters<ProviderFactory<R>>[0], undefined>;
+/** Extract static metadata attached to a registration. */
 export type ProviderMetadata<R> = R extends infer T & {} ? MetadataOf<T> : unknown;
 type MetadataOf<R> = R extends Provider<infer _F, infer M, infer _A, infer _G, infer _V> ? M
   : R extends Factory | DisposableFactory<Factory> ? Readonly<{}> : unknown;
+/** Extract the ordered acquisition-frame metadata tuple exposed by inspection. */
 export type ProviderAcquisitionMetadata<R> = ProviderBase extends R ? readonly unknown[]
   : R extends infer T & {} ? AcquisitionMetadataOf<T> : readonly unknown[];
 type AcquisitionMetadataOf<R> = R extends Provider<infer _F, infer _M, infer A, infer _G, infer _V> ? A
   : R extends Factory | DisposableFactory<Factory> ? readonly [] : readonly unknown[];
 
+/** Extract the retained typed-token and lifetime graph contract. */
 export type ProviderGraph<R> = ProviderBase extends R ? OpaqueGraph
   : R extends infer T & {} ? GraphOf<T> : OpaqueGraph;
 type GraphOf<R> = R extends Provider<infer _F, infer _M, infer _A, infer G, infer _V> ? G
@@ -67,16 +83,36 @@ type GraphOf<R> = R extends Provider<infer _F, infer _M, infer _A, infer G, infe
 type RequiredTokens<G> = G extends TokenGraph<infer T, TokenBase, readonly TokenBase[]> ? T[number] : TokenBase;
 type Bound<G> = G extends TokenGraph<readonly TokenBase[], infer B, readonly TokenBase[]> ? B : TokenBase;
 type OptionalTokens<G> = G extends TokenGraph<readonly TokenBase[], TokenBase, infer O> ? O[number] : TokenBase;
+/** Extract token collection requirements from a registration. */
 export type ProviderAllTokenNeeds<R> = ProviderGraph<R> extends infer G ? G extends { readonly all: infer T extends readonly TokenBase[] } ? T[number] : never : never;
+/** Extract optional typed-token requirements from a registration. */
 export type ProviderOptionalTokenNeeds<R> = OptionalTokens<ProviderGraph<R>>;
+/** Extract required typed-token dependencies from a registration. */
 export type ProviderTokenNeeds<R> = RequiredTokens<ProviderGraph<R>>;
 export type BoundToken<R> = Bound<ProviderGraph<R>>;
 
-/** Select declared token services as positional arguments without awaiting them. */
+/**
+ * Inject declared token services and dependency references into a callback in tuple order.
+ * Arguments and the callback result are not implicitly awaited; the new output stage uses
+ * `auto` acquisition unless an explicit mode is supplied.
+ * @param tokens - A finite tuple of tokens, optional/lazy references, or collection references.
+ * @param callback - A receiver-free function called once per provider acquisition.
+ * @param modeOptions - Optional acquisition mode for the callback result.
+ * @returns An immutable provider description; no callback runs until resolution.
+ * @typeParam F - The exact callback signature and return type retained by the provider.
+ */
 export function fromTokens<const T extends readonly Dependency[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
   tokens: T & DependencyTupleAdmission<T>, callback: F,
   ...modeOptions: StageOptions<M>
 ): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
+/**
+ * Inject a tuple of required typed-token services into a callback without awaiting them.
+ * @param tokens - A finite tuple of genuine typed tokens.
+ * @param callback - A receiver-free callback whose parameters follow token order.
+ * @param modeOptions - Optional acquisition mode for the callback result.
+ * @returns A reusable provider that retains the declared token requirements.
+ * @typeParam F - The exact callback signature and return type retained by the provider.
+ */
 // Keep the legacy token-only diagnostic and reflected signature last.
 export function fromTokens<const T extends readonly TokenBase[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
   tokens: T & TokenTupleAdmission<T>, callback: F,
@@ -121,7 +157,16 @@ export function transform<R extends Registration, F extends Factory, A extends r
   return handle;
 }
 
-/** Project the exact source value without awaiting it or the projector result. */
+/**
+ * Project a registration's exact source value without awaiting either stage.
+ * Dependencies, metadata, earlier ownership stages, and lifetime policy are retained;
+ * mapping itself does not transfer ownership.
+ * @param registration - The source factory, owned factory, or provider.
+ * @param project - A receiver-free projector called with the exact exposed source value.
+ * @param modeOptions - Optional acquisition mode for the projected result.
+ * @returns A reusable provider exposing the projector's exact return value.
+ * @typeParam P - The exact synchronous projector signature retained by the provider.
+ */
 export function mapSync<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
   registration: R & Registration,
   project: P,
@@ -130,7 +175,14 @@ export function mapSync<R extends Registration, P extends (this: void, value: Pr
   return transform<R, MappedFactory<R, ReturnType<P>>, ProviderAcquisitionMetadata<R>, Acquired<ReturnType<P>, M>>(registration, { kind: 'map-sync', project, acquisition: acquisitionMode(modeOptions[0]) });
 }
 
-/** Explicitly await the source and projector result; always expose a Promise. */
+/**
+ * Await a registration's source and projector result through an explicit async boundary.
+ * Dependencies, metadata, earlier ownership stages, and lifetime policy are retained.
+ * @param registration - The source factory, owned factory, or provider.
+ * @param project - A receiver-free projector receiving the awaited source value.
+ * @returns A provider exposing a native Promise of the awaited projection.
+ * @typeParam P - The exact asynchronous-boundary projector signature retained by the provider.
+ */
 export function mapAsync<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(
   registration: R & Registration,
   project: P,
@@ -147,7 +199,14 @@ type MetadataKeys<R, M> = [NonFiniteKeys<M> | Extract<MetadataKeyUnion<M>, numbe
     : Unsatisfied<'duplicate metadata keys', { duplicates: MetadataKeyUnion<M> & MetadataKeyUnion<ProviderMetadata<R>> }>
   : Unsatisfied<'metadata keys must be finite string or unique-symbol keys', {}>;
 
-/** Add static metadata without evaluating the factory or transferring ownership. */
+/**
+ * Attach static metadata without evaluating the registration or transferring ownership.
+ * Own string and symbol keys are copied and frozen; payload objects keep their identity.
+ * @param registration - The source registration to describe.
+ * @param metadata - A finite, noncolliding metadata record.
+ * @returns A provider retaining the source output, dependencies, frames, and ownership stages.
+ * @throws If metadata is not an object or an own key duplicates existing metadata.
+ */
 export function withMetadata<R extends Registration, M extends object>(
   registration: R & Registration,
   metadata: M & MetadataKeys<NoInfer<R>, M>,
@@ -176,7 +235,15 @@ export function withMetadata<R extends Registration, M extends object>(
 
 export type { Provider, ProviderBase };
 
-/** Select source acquisition semantics without transferring ownership. */
+/**
+ * Describe a factory with explicit result acquisition semantics and no ownership transfer.
+ * `raw` exposes the exact result, `native` observes Promise fulfillment, and `auto` uses
+ * the facade's configured native-Promise predicate.
+ * @param create - A receiver-free service factory.
+ * @param options - The required acquisition mode for its result.
+ * @returns An immutable provider description; the factory remains lazy and per-bag cached.
+ * @throws If the factory or acquisition option is invalid.
+ */
 export function factory<F extends Factory, M extends AcquisitionMode>(create: F,
   options: { readonly acquisition: M } & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
 ): Provider<F, Readonly<{}>, readonly [], TokenGraph, Acquired<ReturnType<F>, M>> {

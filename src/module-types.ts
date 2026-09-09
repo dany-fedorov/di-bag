@@ -61,6 +61,7 @@ export type RegistrationConstraints<V extends Registrations[string], R extends R
     | TokenConstraint<K, ProviderTokenNeeds<V>, R, Public>
     | TokenConstraint<K, ProviderOptionalTokenNeeds<V>, R, Public, true>
     | ([ProviderGraph<V>] extends [TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? never : { readonly kind: 'opaque' });
+/** Retained requirements of a module's public and private registrations. */
 export type ModuleConstraints<R extends Registrations, Public extends keyof R> = {
   [K in keyof R & (string | symbol)]: RegistrationConstraints<R[K], R, Public, K>;
 }[keyof R & (string | symbol)] | PrivateLifetimes<R, Public>;
@@ -94,8 +95,11 @@ export type PublicProvider<R> = R extends Registrations[string]
   : never;
 type PublicGraph<G> = G extends TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]> ? { [K in keyof G]: K extends 'required' | 'optional' | 'all' ? readonly [] : G[K] } : never;
 type RetainedPublicProvider<R extends Registrations[string]> = Provider<() => ProviderOutput<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, PublicGraph<ProviderGraph<R>>, ProviderAcquired<R>>;
+/** Project registrations to dependency-free public descriptions while retaining behavioral contracts. */
 export type PublicProviders<R extends object> = { [K in keyof R]: PublicProvider<R[K]> };
+/** Project selected module exports while retaining their lexical private graph where required. */
 export type ModulePublicProviders<R extends Registrations, P extends keyof R> = { [K in P]: LexicalProvider<PublicProvider<R[K]>, R, P, K> };
+/** Rename one string key in an object contract. */
 export type Renamed<P extends object, Old extends string, New extends string> = {
   [K in keyof P as K extends Old ? New : K]: P[K];
 };
@@ -109,5 +113,7 @@ export type RenameKeys<P, Old extends string, New extends string> =
       : InvalidRename : InvalidRename : InvalidRename;
 type InvalidRename = Unsatisfied<'rename requires an existing export and a noncolliding singleton string-literal name', {}>;
 
+/** Extract a readonly map of services publicly exposed by a module. */
 export type ModuleProvides<M> = M extends Module<infer P, infer _R, infer _C, infer _D> ? Readonly<P> : never;
+/** Extract a readonly map of services a module requires from its host. */
 export type ModuleRequires<M> = M extends Module<infer _P, infer R, infer _C, infer _D> ? Readonly<R> : never;

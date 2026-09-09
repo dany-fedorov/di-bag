@@ -6,6 +6,7 @@ import type { TokenKey } from './tokens';
 import type { Checked, Complete, Unsatisfied } from './types';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint, Renamed } from './module-types';
 
+/** A module provider's retained local registrations and public-to-local export mapping. */
 export type LexicalContext<R extends Registrations = Registrations, E extends object = object> = {
   readonly registrations: R;
   /** Current public name -> original local name. */
@@ -36,9 +37,11 @@ type RenamedGraph<G extends GraphContract, Old extends string, New extends strin
 export type RenamedLifetimeProvider<V extends Registration, Old extends string, New extends string> =
   V extends infer T & {} ? T extends Registration ? ProviderGraph<T> extends { readonly lexical: unknown }
     ? Provider<ProviderFactory<T>, ProviderMetadata<T> & object, ProviderAcquisitionMetadata<T>, RenamedGraph<ProviderGraph<T>, Old, New>, ProviderAcquired<T>> : T : never : never;
+/** Rename public lifetime-carrier registrations while preserving their lexical sources. */
 export type RenamedLifetimeProviders<D extends Registrations, Old extends string, New extends string> = {
   [K in keyof D as K extends Old ? New : K]: RenamedLifetimeProvider<D[K], Old, New>;
 };
+/** Rename a retained lifetime obligation's public export view. */
 export type RenamedLifetimeObligation<C extends LifetimeObligation, Old extends string, New extends string> = {
   readonly kind: 'lifetime'; readonly source: C['source'];
   readonly context: LexicalContext<C['context']['registrations'], Renamed<C['context']['exports'], Old, New>>;
@@ -100,9 +103,11 @@ type Captives<R extends Registrations, C> = PublicCaptives<R, C> | PrivateCaptiv
 type OverrideCaptives<R extends Registrations, O extends Registrations, G> = {
   [K in keyof O & keyof R]: CheckRoot<R, R[K], undefined, PublicSite<K>, G>;
 }[keyof O & keyof R];
+/** Reject root providers introduced by a scope override when they capture scoped dependencies. */
 export type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, G = never> =
   [OverrideCaptives<R, O, G>] extends [never] ? unknown
     : Unsatisfied<'root lifetime cannot capture scoped dependency', { readonly captives: OverrideCaptives<R, O, G> }>;
+/** Reject strict root providers that transitively capture scoped dependencies. */
 export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> =
   [Captives<R, C>] extends [never] ? unknown
     : unknown extends Checked<R> & Complete<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R>

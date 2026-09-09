@@ -12,17 +12,32 @@ class Owned<F extends Factory> {
   constructor(readonly create: F) {}
 }
 
+/** A nominal registration pairing a factory with fulfilled-value cleanup. */
 export type DisposableFactory<F extends Factory> = Owned<F>;
 
+/** A factory, disposable factory, or immutable provider accepted by builders and decorators. */
 export type Registration = Factory | Owned<Factory> | ProviderBase;
 
 export type Registrations = Record<string, Registration>;
 
-/** Declare that each bag owns, and must dispose, this factory's fulfilled value. */
+/**
+ * Declare that each acquiring bag owns a factory's fulfilled value.
+ * Neither callback runs until acquisition; cleanup runs once after dependent resources.
+ * @param create - The receiver-free service factory.
+ * @param dispose - Cleanup for its fulfilled value; it may complete synchronously or asynchronously.
+ * @returns A nominal disposable registration preserving the factory's exact output.
+ */
 export function withDisposal<F extends Factory>(
   create: F,
   dispose: (this: void, value: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>,
 ): DisposableFactory<F>;
+/**
+ * Add an ownership stage to an existing registration.
+ * Earlier disposal stages remain attached and run after this stage in reverse order.
+ * @param provider - The registration whose acquired value becomes owned at this stage.
+ * @param dispose - Cleanup for the registration's acquired value.
+ * @returns A provider retaining output, dependencies, metadata, frames, and earlier ownership.
+ */
 export function withDisposal<R extends Registration>(
   provider: R & Registration,
   dispose: (this: void, value: ProviderAcquired<NoInfer<R>>) => void | Promise<void>,

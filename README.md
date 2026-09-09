@@ -14,7 +14,7 @@ A **service** can be a configuration object, a database client, or a function.
 A **factory** creates a service. A **bag** holds those factories and gives each
 one access to the services it needs.
 
-[Install](#install) · [Quickstart](#quickstart) · [Server guide](docs/guides/server-integration.md) · [API reference](docs/guides/api-reference.md) · [Examples](examples)
+[Documentation website](https://dany-fedorov.github.io/di-bag/) · [Tutorial](docs/guides/tutorial.md) · [Quickstart](#quickstart) · [Server guide](docs/guides/server-integration.md) · [API reference](docs/guides/api-reference.md) · [Examples](examples)
 
 ## Why DI Bag?
 
@@ -125,7 +125,7 @@ console.log(await app.resolve('message')); // Hello, Ada!
 
 By default, repeated resolutions share the same in-flight promise. Synchronous
 factories keep returning ordinary values. See
-[async behavior](docs/guides/api-reference.md#async-edges-are-explicit) for details.
+[async behavior](docs/guides/tutorial.md#async-edges-are-explicit) for details.
 
 ## Give resources a clear owner
 
@@ -161,15 +161,15 @@ Start with named factories, then add the features your application needs.
 
 | When you need to… | Use… |
 | --- | --- |
-| Reuse a feature while keeping its internals private | [Modules and exports](docs/guides/api-reference.md#reuse-named-modules) |
-| Inject services into existing constructors and functions | [Typed tokens and adapters](docs/guides/api-reference.md#adapt-classes-and-positional-functions) |
-| Allow a missing dependency or defer a lookup | [Optional and lazy dependencies](docs/guides/api-reference.md#declare-optional-and-lazy-dependencies) |
-| Assemble middleware, handlers, or other ordered lists | [Contributions and collections](docs/guides/api-reference.md#compose-an-ordered-collection) |
-| Isolate a request or background job | [Child scopes and sharing](docs/guides/api-reference.md#create-tracked-child-scopes) |
-| Choose one instance per family, per scope, or per resolution | [Root, scoped, and transient lifetimes](docs/guides/api-reference.md#choose-root-scoped-or-transient-caching) |
-| Start selected services before accepting work | [Startup and cooperative cancellation](docs/guides/api-reference.md#start-selected-services-and-cancel-cooperatively) |
-| Inspect registrations or observe their lifecycle | [Metadata and inspection](docs/guides/api-reference.md#attach-metadata-and-inspect-without-resolving), [observers](docs/guides/api-reference.md#observe-lifecycle-transitions) |
-| Validate the output of an application-selected plugin | [Plugin providers](docs/guides/api-reference.md#admit-an-application-selected-plugin) |
+| Reuse a feature while keeping its internals private | [Modules and exports](docs/guides/tutorial.md#reuse-named-modules) |
+| Inject services into existing constructors and functions | [Typed tokens and adapters](docs/guides/tutorial.md#adapt-classes-and-positional-functions) |
+| Allow a missing dependency or defer a lookup | [Optional and lazy dependencies](docs/guides/tutorial.md#declare-optional-and-lazy-dependencies) |
+| Assemble middleware, handlers, or other ordered lists | [Contributions and collections](docs/guides/tutorial.md#compose-an-ordered-collection) |
+| Isolate a request or background job | [Child scopes and sharing](docs/guides/tutorial.md#create-tracked-child-scopes) |
+| Choose one instance per family, per scope, or per resolution | [Root, scoped, and transient lifetimes](docs/guides/tutorial.md#choose-root-scoped-or-transient-caching) |
+| Start selected services before accepting work | [Startup and cooperative cancellation](docs/guides/tutorial.md#start-selected-services-and-cancel-cooperatively) |
+| Inspect registrations or observe their lifecycle | [Metadata and inspection](docs/guides/tutorial.md#attach-metadata-and-inspect-without-resolving), [observers](docs/guides/tutorial.md#observe-lifecycle-transitions) |
+| Validate the output of an application-selected plugin | [Plugin providers](docs/guides/tutorial.md#admit-an-application-selected-plugin) |
 
 ### Scopes and forks at a glance
 
@@ -195,8 +195,8 @@ The package has **zero runtime dependencies** and four entry points:
 | `di-bag/val-box` | Optional structural adapters for ValBox values. |
 
 The box adapters are separate entry points; applications supply their own box
-libraries. See [host configuration](docs/guides/api-reference.md#compose-services)
-and [box adapters](docs/guides/api-reference.md#optional-box-adapters) for details.
+libraries. See [host configuration](docs/guides/tutorial.md#portable-mode)
+and [box adapters](docs/guides/tutorial.md#optional-box-adapters) for details.
 
 ### A few things to know
 
@@ -214,7 +214,8 @@ and [box adapters](docs/guides/api-reference.md#optional-box-adapters) for detai
 
 | Resource | What you'll find |
 | --- | --- |
-| [API reference](docs/guides/api-reference.md) | Detailed usage, ownership rules, async behavior, and API boundaries. |
+| [Complete tutorial](docs/guides/tutorial.md) | Learn every public API through examples, from first composition to advanced ownership. |
+| [API reference](docs/guides/api-reference.md) | Exact generated signatures, overloads, type parameters, and API inventories. |
 | [Server guide](docs/guides/server-integration.md) | Node HTTP, Express, Fastify, Bun, and Deno: shared services, request scopes, startup, and shutdown. |
 | [Runnable examples](examples) | Modules, tokens, composition, collections, plugins, observers, scopes, and adapters. |
 | [Integration guide](docs/guides/enterprise-integration.md) | Tested recipes for request ownership, substitutions, and dynamic features. |

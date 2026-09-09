@@ -4,6 +4,7 @@ import type { Unsatisfied } from './types';
 import type { Registration, Registrations } from './registration';
 import type { BoundToken, Provider, ProviderFactory, ProviderGraph, ProviderMetadata, ProviderAcquisitionMetadata, ProviderAcquired, ProviderOutput, ProviderTokenNeeds, ProviderOptionalTokenNeeds } from './provider';
 
+/** A provider's retained required, bound, and optional typed-token contracts. */
 export type TokenGraph<T extends readonly TokenBase[] = readonly [], B extends TokenBase = never, O extends readonly TokenBase[] = readonly []> = {
   readonly kind: 'tokens'; readonly required: T; readonly bound: B; readonly optional: O;
 };
@@ -38,9 +39,11 @@ export type ReboundGraph<G extends GraphContract, T extends TokenBase> = G exten
   ? U extends TokenGraph<readonly TokenBase[], TokenBase, readonly TokenBase[]> ? { [K in keyof U]: K extends 'bound' ? T : U[K] } : U extends GraphContract ? U : never
   : never;
 
+/** A registration rebound to an invariant typed-token service contract. */
 export type Binding<T extends TokenBase, R extends Registration> = Provider<ProviderFactory<R>, ProviderMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraph<R>, T>, ProviderAcquired<R>>;
 export type BindingOutput<T extends TokenBase, R extends Registration> = [ProviderOutput<R>] extends [TokenService<T>] ? unknown
   : Unsatisfied<'token binding output is not assignable to its service', {}>;
+/** Convert a string selection to itself or a typed token to its symbol key. */
 export type SelectionKey<T> = T extends string ? T : TokenKey<T>;
 type SameToken<A, B> = [A] extends [B] ? [B] extends [A] ? true : false : false;
 export type WrongToken<T, R extends Registrations> = T extends unknown
@@ -49,6 +52,7 @@ export type WrongToken<T, R extends Registrations> = T extends unknown
     : never : 'opaque token contract' : never;
 export type MissingToken<T, R extends Registrations> = T extends unknown
   ? ValidToken<T> extends true ? Exclude<TokenKey<T>, keyof R> : 'opaque token contract' : never;
+/** Admit a genuine token only when it exactly matches an existing binding contract. */
 export type TokenMember<R extends Registrations, T> = ValidToken<T> extends true
   ? [WrongToken<T, R> | MissingToken<T, R>] extends [never] ? unknown
     : Unsatisfied<'token must match an existing binding contract', {}>
@@ -62,8 +66,10 @@ export type MissingTokens<R extends Registrations> = {
   [K in keyof R]: MissingToken<ProviderTokenNeeds<R[K]>, R>;
 }[keyof R];
 // Keep the symbol-keyed mapped result nameable in inferred declarations.
+/** Rebind symbol-keyed override registrations to the original typed-token contracts. */
 export type ReboundProviders<R extends Registrations, O extends Registrations> = {
   [K in keyof O]: K extends keyof R ? K extends symbol
     ? Binding<BoundToken<R[K]>, O[K]> : O[K] : O[K];
 };
+/** Preserve named overrides and rebind any symbol-keyed override providers. */
 export type ReboundSelection<R extends Registrations, O extends Registrations> = [Extract<keyof O, symbol>] extends [never] ? O : ReboundProviders<R, O>;

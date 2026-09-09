@@ -1,8 +1,14 @@
 import type { Observers } from './observers';
 import type { Unsatisfied } from './types';
 
+/**
+ * How an acquisition stage treats its returned value: configured classification,
+ * the exact raw value, or an observed native Promise fulfillment.
+ */
 export type AcquisitionMode = 'auto' | 'raw' | 'native';
+/** Portable facade configuration for `auto` acquisition stages. */
 export interface RuntimeOptions {
+  /** Return true only for native Promises the host can observe without thenable assimilation. */
   readonly isNativePromise: (this: void, value: unknown) => boolean;
 }
 export interface RuntimeContext { readonly isNativePromise?: RuntimeOptions['isNativePromise']; readonly observers?: Observers }

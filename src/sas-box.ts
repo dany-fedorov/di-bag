@@ -24,7 +24,15 @@ type Output<B, M extends Mode> = M extends 'sync' ? Result<B, 'sync'>
   : M extends 'async' ? Promise<Awaited<Result<Awaited<B>, 'async'>>> : Promise<Awaited<FirstResult<Awaited<B>>>>;
 type AcquisitionOptions<M extends Mode, A extends AcquisitionMode> = [M] extends ['sync'] ? ModeOptions<A> : { readonly acquisition?: never };
 
-/** Explicitly select a structural sas-box capability; never transfer ownership. */
+/**
+ * Adapt a structural sas-box capability without transferring ownership.
+ * `sync` invokes the immediate capability, `async` awaits the box and async capability,
+ * and `sync-first` prefers a defined synchronous capability before falling back to async.
+ * @param registration - A registration exposing the required structural box capability.
+ * @param options - Required capability mode; acquisition is accepted only for `sync`.
+ * @returns A provider retaining source dependencies, metadata, frames, lifetime, and ownership.
+ * @throws If the selected runtime capability is missing or not callable.
+ */
 export function fromSasBox<R extends Registration, M extends Mode, A extends AcquisitionMode = 'auto'>(
   registration: R & Registration,
   options: { readonly mode: M } & AcquisitionOptions<M, A> & Valid<NoInfer<R>, NoInfer<M>> & NativeOutput<Output<ProviderOutput<NoInfer<R>>, NoInfer<M>>, NoInfer<A>>,

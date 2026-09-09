@@ -3,4 +3,5 @@ declare const require: (specifier: 'node:util/types') => { isPromise: (this: voi
 const { isPromise } = require('node:util/types');
 import { DiBag as CoreDiBag } from './di-bag';
 export * from './index';
+/** The Node/Bun facade preconfigured with the host's native-Promise classifier. */
 export const DiBag: typeof CoreDiBag = CoreDiBag.configure({ isNativePromise: isPromise });

@@ -10,6 +10,7 @@ export type AliasAdmission<T> = Singleton<T> extends true ? unknown : ValidToken
 export type AliasTarget<R extends Registrations, T> = T extends string
   ? T extends keyof R ? unknown : Unsatisfied<'alias requires an existing named target', {}>
   : [WrongToken<T, R>] extends [never] ? unknown : Unsatisfied<'token dependency has an incompatible or opaque contract', {}>;
+/** Resolve the service type exposed by a possible alias target. */
 export type AliasOutput<R extends Registrations, T> = T extends string
   ? T extends keyof R ? ProviderOutput<R[T]> : never : TokenService<T>;
 export type AliasDestination<R extends Registrations, D, T> = D extends TokenBase
@@ -17,6 +18,7 @@ export type AliasDestination<R extends Registrations, D, T> = D extends TokenBas
     : Unsatisfied<'alias output is not assignable to destination service', {}> : unknown;
 // The synthetic needs retain replacement/completeness obligations. The marker
 // tells lifetime walks to follow the target without adding a lifetime boundary.
+/** A provider contract that forwards a destination to a canonical target acquisition. */
 export type AliasRegistration<R extends Registrations, D, T> = Provider<
   (this: void, deps: T extends string ? Record<T, AliasOutput<R, T>> : Record<never, never>) => AliasOutput<R, T>,
   Readonly<object>, readonly unknown[],
@@ -24,6 +26,7 @@ export type AliasRegistration<R extends Registrations, D, T> = Provider<
     readonly alias: SelectionKey<T>;
   }, unknown
 >;
+/** The single registration-map entry introduced by an alias operation. */
 export type AliasEntries<R extends Registrations, D, T> = Record<SelectionKey<D>, AliasRegistration<R, D, T>>;
 /** Reflected generic methods cannot introduce a checked singleton destination. */
 export type AliasEntry<R extends Registrations, D, T> = unknown extends AliasAdmission<D> & AliasAdmission<T>

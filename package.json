@@ -39,6 +39,11 @@
     "evidence:platform": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/platform-evidence.ts",
     "platform:pin": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/pin-platform-tools.ts",
     "check:platform": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/platform-evidence.ts --required",
+    "docs:generate": "node tools/docs/generate.mjs",
+    "docs:check": "node --test --test-isolation=none tools/docs/test/*.test.mjs && node tools/docs/generate.mjs --check && node tools/docs/site.mjs check",
+    "docs:build": "node tools/docs/site.mjs build",
+    "docs:dev": "node tools/docs/site.mjs dev",
+    "docs:preview": "node tools/docs/site.mjs preview",
     "prepack": "npm run build",
     "check": "npm run typecheck && npm test && npm run build"
   },

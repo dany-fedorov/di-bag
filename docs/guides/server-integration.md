@@ -26,7 +26,7 @@ checking with the [supported compiler](development.md).
 - [Startup failures and deadlines](#startup-failures-and-deadlines)
 - [Disconnects, streaming, and WebSockets](#disconnects-streaming-and-websockets)
 - [Background jobs and message consumers](#background-jobs-and-message-consumers)
-- [Test a server's application services](#test-a-servers-application-services)
+- [Test application services](#test-application-services)
 - [Organize a larger application](#organize-a-larger-application)
 - [Troubleshooting](#troubleshooting)
 
@@ -47,7 +47,7 @@ A root service must not capture request state. For example, keep a connection
 pool at the root and create a transaction in the request scope. DI Bag rejects
 root-to-scoped dependencies by default. The deliberate `captureScoped` option
 uses the root's context, so it does not supply the current request's identity.
-See [lifetime rules](api-reference.md#choose-root-scoped-or-transient-caching).
+See [lifetime rules](tutorial.md#choose-root-scoped-or-transient-caching).
 
 ## Build the application once
 
@@ -445,7 +445,7 @@ new automatic stages; select explicit modes where those APIs accept an
 acquisition option. `mapAsync`, `fromValBoxAsync`, and the async SasBox modes
 already declare native acquisition and accept no acquisition option. ValBox
 presence mode defaults to `raw`. See
-[portable host configuration](api-reference.md#compose-services).
+[portable host configuration](tutorial.md#portable-mode).
 
 Save this as `server.ts` and run `deno run --allow-net server.ts`:
 
@@ -528,7 +528,7 @@ try {
 Cancellation rejects promptly, so its cleanup may still be running. A factory
 using `withContext` can forward the supplied signal to a cooperative operation
 such as `fetch`. Cancelling the startup wait cannot terminate arbitrary code.
-The full [startup API](api-reference.md#start-selected-services-and-cancel-cooperatively)
+The full [startup API](tutorial.md#start-selected-services-and-cancel-cooperatively)
 covers external signals, sequential startup, readiness, and rollback.
 
 ## Disconnects, streaming, and WebSockets
@@ -585,7 +585,7 @@ reuse that request's scoped connection or transaction. Pass plain job input,
 resolve services again in the job scope, and await jobs during worker shutdown.
 Retries can create fresh scopes without replacing the shared root pool.
 
-## Test a server's application services
+## Test application services
 
 Use the same request helper to test behavior without opening a socket:
 
@@ -632,15 +632,15 @@ well when validating routing, serialization, disconnects, or streaming.
 
 | Need | API and example |
 | --- | --- |
-| Keep a feature's connection private while exposing its service | [`module`, `exports`, `install`, `rename`](api-reference.md#reuse-named-modules) |
-| Inject a database contract into existing classes | [`token`, `bind`, `fromClass`](api-reference.md#adapt-classes-and-positional-functions) |
-| Assemble ordered middleware or job handlers | [`contribute`, `all`, `resolveAll`](api-reference.md#compose-an-ordered-collection) |
-| Enable optional telemetry | [`optional`](api-reference.md#declare-optional-and-lazy-dependencies) |
-| Defer an expensive dependency until a method needs it | [`lazy`](api-reference.md#declare-optional-and-lazy-dependencies) |
-| Give one service another public name | [`alias`](api-reference.md#give-a-dependency-another-lookup-name) |
-| Expose a narrow interface while keeping ownership of the original client | [`mapSync`, `mapAsync`, `withDisposal`](api-reference.md#project-services-explicitly) |
-| Label services and report acquisition events | [`withMetadata`, `inspect`, `observe`](api-reference.md#attach-metadata-and-inspect-without-resolving) |
-| Load and validate an application-selected extension | [`fromPlugin`](api-reference.md#admit-an-application-selected-plugin) |
+| Keep a feature's connection private while exposing its service | [`module`, `exports`, `install`, `rename`](tutorial.md#reuse-named-modules) |
+| Inject a database contract into existing classes | [`token`, `bind`, `fromClass`](tutorial.md#adapt-classes-and-positional-functions) |
+| Assemble ordered middleware or job handlers | [`contribute`, `all`, `resolveAll`](tutorial.md#compose-an-ordered-collection) |
+| Enable optional telemetry | [`optional`](tutorial.md#declare-optional-and-lazy-dependencies) |
+| Defer an expensive dependency until a method needs it | [`lazy`](tutorial.md#declare-optional-and-lazy-dependencies) |
+| Give one service another public name | [`alias`](tutorial.md#give-a-dependency-another-lookup-name) |
+| Expose a narrow interface while keeping ownership of the original client | [`mapSync`, `mapAsync`, `withDisposal`](tutorial.md#project-services-explicitly) |
+| Label services and report acquisition events | [`withMetadata`, `inspect`, `observe`](tutorial.md#attach-metadata-and-inspect-without-resolving) |
+| Load and validate an application-selected extension | [`fromPlugin`](tutorial.md#admit-an-application-selected-plugin) |
 
 NestJS and Angular also own controllers, components, and framework-specific
 scopes. Embedding a bag does not connect those lifecycles automatically. The

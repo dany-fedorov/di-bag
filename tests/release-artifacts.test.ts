@@ -162,6 +162,7 @@ describe('release documentation contract', () => {
   test('public docs state entry-point, adapter, acquisition, ownership, and release limits', () => {
     const readme = readFileSync(resolve(root, 'README.md'), 'utf8');
     const reference = readFileSync(resolve(root, 'docs/guides/api-reference.md'), 'utf8');
+    const tutorial = readFileSync(resolve(root, 'docs/guides/tutorial.md'), 'utf8');
     const development = readFileSync(resolve(root, 'docs/guides/development.md'), 'utf8');
     const migration = readFileSync(resolve(root, 'docs/migrations/0.1-to-enterprise.md'), 'utf8');
     const tracker = readFileSync(resolve(root, 'docs/superpowers/plans/2026-09-06-enterprise-di-program.md'), 'utf8');
@@ -183,8 +184,10 @@ describe('release documentation contract', () => {
     }
     // The landing page links to the detailed contracts and verification evidence.
     expect(readme).toContain('(docs/guides/api-reference.md)');
+    expect(readme).toContain('(docs/guides/tutorial.md)');
+    expect(reference).toContain('../reference/index/interfaces/Facade.md');
     expect(readme).toContain('(docs/guides/development.md)');
-    for (const text of [`${reference}\n${development}`, migration]) {
+    for (const text of [`${tutorial}\n${development}`, migration]) {
       for (const fact of ['structural adapters', 'raw', 'native', 'selected scopes', 'non-blocking observers', 'original acquired value'])
         expect(text).toContain(fact);
     }
@@ -193,7 +196,7 @@ describe('release documentation contract', () => {
     expect(development).toContain('zero reviewed gaps or unexpected diagnostics');
     expect(development).toContain('applications at 1,000 providers');
     expect(development).toContain('groups of 50');
-    for (const text of [readme, reference, development])
+    for (const text of [readme, reference, tutorial, development])
       expect(text).not.toContain('27 explicitly recorded replacement diagnostic-quality gaps');
     expect(migration).toContain('application-owned plugin loading');
     expect(tracker).toContain('Local release-candidate handoff');

@@ -4,9 +4,13 @@ import type { RuntimeContext } from './acquisition-mode';
 import { readTokenKey } from './tokens';
 import { DiBagCleanupError, DiBagStartupCancelledError, DiBagStartupError } from './errors';
 
+/** Controls eager acquisition performed by {@link Builder.start}. */
 export interface StartupOptions {
+  /** An external signal that promptly cancels the startup wait and begins cleanup. */
   readonly signal?: AbortSignal;
+  /** A finite positive deadline in milliseconds. */
   readonly timeoutMs?: number;
+  /** Start all selected services together, or await them in tuple order. Defaults to `parallel`. */
   readonly concurrency?: 'parallel' | 'sequential';
 }
 

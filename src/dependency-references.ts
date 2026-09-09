@@ -9,9 +9,13 @@ class ReferenceBase {
 class DependencyReference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'> extends ReferenceBase {
   declare readonly [referenceInvariant]: (value: [T, K]) => [T, K];
 }
+/** A positional dependency that yields the token service or `undefined` when unbound. */
 export type OptionalReference<T extends TokenBase> = DependencyReference<T, 'optional'>;
+/** A positional dependency that yields all contributions for a token as a readonly array. */
 export type AllReference<T extends TokenBase> = DependencyReference<T, 'all'>;
+/** A positional dependency that yields a function which resolves the token on demand. */
 export type LazyReference<T extends TokenBase> = DependencyReference<T, 'lazy'>;
+/** A typed token or one of the positional dependency-reference handles. */
 export type Dependency = TokenBase | ReferenceBase;
 // Extract invariant carriers through a covariant view of their return tuple.
 type ReferenceParts<R> = R extends { readonly [referenceInvariant]: (...args: never[]) => [infer T extends TokenBase, infer K] } ? [T, K] : never;
@@ -38,17 +42,31 @@ function reference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'>(t
   return handle;
 }
 
-/** Supply undefined only when this token has no binding in the lexical graph. */
+/**
+ * Describe a positional dependency that supplies `undefined` only when the token is unbound.
+ * A present `undefined` value and acquisition failures remain present dependency results.
+ * @param token - The genuine typed token to read optionally.
+ * @returns An immutable reference accepted by positional provider adapters.
+ */
 export function optional<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>,
   ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []
 ): OptionalReference<T> { return reference<T, 'optional'>(token, 'optional'); }
 
-/** Defer each dependency read within the capturing provider's acquisition. */
+/**
+ * Describe a positional dependency supplied as an on-demand lookup function.
+ * Each invocation follows the target lifetime and records its dependency edge then.
+ * @param token - The genuine typed token to resolve lazily.
+ * @returns An immutable lazy reference accepted by positional provider adapters.
+ */
 export function lazy<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>,
   ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []
 ): LazyReference<T> { return reference<T, 'lazy'>(token, 'lazy'); }
 
-/** Supply every present contributor, including an empty frozen array. */
+/**
+ * Describe a positional dependency containing every contribution for a token.
+ * @param token - The genuine collection token.
+ * @returns An immutable reference that supplies a fresh frozen array, including when empty.
+ */
 export function all<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>,
   ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []
 ): AllReference<T> { return reference<T, 'all'>(token, 'all'); }

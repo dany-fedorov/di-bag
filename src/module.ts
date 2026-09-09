@@ -25,10 +25,15 @@ interface ModuleDescription {
 const descriptions = new WeakMap<object, ModuleDescription>();
 declare const moduleInvariant: unique symbol;
 
-/** A sealed, non-resolving module. All four contracts are invariant. */
+/**
+ * A sealed, non-resolving module with private registrations and selected public exports.
+ * Create modules through {@link Facade.module} and {@link ModuleBuilder.exports}; this
+ * type-only class has no public constructor.
+ */
 class Module<P extends object, R extends object, C extends NeedConstraint = never, D extends Registrations = PublicRegistrations<P>> {
   declare private readonly nominal: void;
   // Unexported symbol keeps all contracts invariant in emitted declarations too.
+  /** @internal */
   declare readonly [moduleInvariant]: (value: [P, R, C, D]) => [P, R, C, D];
 
   constructor(description: ModuleDescription) {
@@ -36,6 +41,14 @@ class Module<P extends object, R extends object, C extends NeedConstraint = neve
     Object.freeze(this);
   }
 
+  /**
+   * Return a module view with one string-named export renamed.
+   * Factory dependency names and private identities remain unchanged.
+   * @param oldKey - An existing public string export.
+   * @param newKey - A noncolliding string-literal export name.
+   * @returns A new sealed module, or the same instance when both names are equal.
+   * @throws If runtime input names are invalid, absent, or collide.
+   */
   rename<const Old extends string, const New extends string>(
     oldKey: Old & RenameKeys<P, Old, New>, newKey: New & RenameKeys<P, Old, New>,
   ): Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedLifetimeProviders<D, Old, New>> {
@@ -52,7 +65,12 @@ class Module<P extends object, R extends object, C extends NeedConstraint = neve
   }
 }
 
+/**
+ * An immutable builder for a reusable graph with private services and explicit exports.
+ * Create one with {@link Facade.module}; module builders do not resolve or own services.
+ */
 class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
+  /** @internal */
   declare readonly [moduleInvariant]: (value: readonly [From<E>, C]) => readonly [From<E>, C];
   readonly #registrations: ReadonlyMap<BindingKey, Registration>;
   readonly #contributions: readonly (readonly [symbol, Registration])[];
@@ -61,6 +79,12 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
     this.#registrations = new Map(registrations);
   }
 
+  /**
+   * Add new string-named registrations to the module's local graph.
+   * @param more - A finite object of new named registrations.
+   * @returns A new module builder containing snapshots of the supplied registrations.
+   * @throws If the input is malformed, contains non-string keys, or duplicates a local name.
+   */
   add<N extends { [K in keyof N]: Registration }>(
     more: N & Registrations & NamedAdmission<N> & Introduces<From<E>, N> & Checked<Merge<From<E>, N>> & CheckedContributions<C, Merge<From<E>, N>>,
   ): ModuleBuilder<E | Entries<N>, C> {
@@ -68,6 +92,12 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
     return new ModuleBuilder(new Map([...this.#registrations, ...Object.entries(snapshot)]), this.#contributions);
   }
 
+  /**
+   * Add another local name or token for an existing canonical acquisition.
+   * @param destination - A new local string name or token.
+   * @param target - The local or externally supplied name or token to alias.
+   * @returns A new module builder; the alias creates no separate cache or owner.
+   */
   alias<const D extends AliasSelection, const T extends AliasSelection>(
     destination: D & (unknown extends AliasAdmission<D> ? Introduces<From<E>, AliasEntries<From<E>, D, T>> : AliasAdmission<D>),
     target: T & AliasAdmission<T> & (unknown extends AliasAdmission<T>
@@ -80,11 +110,24 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
     return new ModuleBuilder(new Map([...this.#registrations, [key, registration]]), this.#contributions);
   }
 
+  /**
+   * Append a provider to a typed-token collection contributed by this module.
+   * Contributions are installed even when the module exports no ordinary services.
+   * @param token - The collection token.
+   * @param registration - A registration compatible with the token service type.
+   * @returns A new module builder preserving contribution order.
+   */
   readonly contribute: ModuleContribute<E, C> = ((token: unknown, registration: Registration) => {
     const entry = contributionEntry(token, registration);
     return new ModuleBuilder(this.#registrations, [...this.#contributions, entry]);
   }) as ModuleContribute<E, C>;
 
+  /**
+   * Bind a local registration to a typed token.
+   * @param token - A new local token identity.
+   * @param registration - A registration whose output satisfies the token service contract.
+   * @returns A new module builder retaining provider behavior and type contracts.
+   */
   bind<T extends TokenBase, V extends Registration>(
     token: T & TokenTupleAdmission<readonly [T]> & Introduces<From<E>, Record<TokenKey<T>, V>>,
     registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
@@ -98,10 +141,23 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
   // ZeroDependencyAdmission proves empty needs and ReplacementOutput proves
   // surviving local consumers. Repeating Checked here
   // only rescans the accepted module; the general overload retains full checks.
+  /**
+   * Replace one existing string-named local registration with a dependency-free factory.
+   * @param key - The existing singleton string-literal name.
+   * @param registration - A replacement checked against surviving module consumers.
+   * @returns A new module builder with the replacement.
+   * @typeParam V - The exact replacement factory or disposable-factory type.
+   */
   replace<const K extends string, V extends ((this: void) => ReplacementOutput<From<E>, K>) | DisposableFactory<(this: void) => ReplacementOutput<From<E>, K>>>(
     key: K & ReplacementKey<From<E>, K>,
     registration: V & (Factory | DisposableFactory<Factory>) & ZeroDependencyAdmission<NoInfer<V>> & CheckedContributions<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
   ): ModuleBuilder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
+  /**
+   * Replace one existing local name or token.
+   * @param key - The local service name or typed token to replace.
+   * @param registration - A replacement compatible with the token and known consumers.
+   * @returns A new module builder with the replacement.
+   */
   replace<const K extends string | TokenBase, V extends Registration>(
     key: K & NoInfer<ReplacementAdmission<From<E>, K>>,
     registration: V & Registration & ModuleReplacementRegistration<E, C, NoInfer<K>, V>,
@@ -115,6 +171,13 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
     return new ModuleBuilder(registrations, this.#contributions);
   }
 
+  /**
+   * Seal the module and select its public names and typed tokens.
+   * Unselected registrations stay private to each installation.
+   * @param keys - A finite tuple of existing local names or tokens; an empty tuple is allowed.
+   * @returns An immutable module that can be renamed or installed in an application builder.
+   * @throws If the selection is not a tuple or contains an absent token.
+   */
   exports<const K extends readonly unknown[]>(keys: K & Selection<From<E>, K, 'exports'>): Module<
     Pick<Provided<From<E>>, Extract<SelectionKey<K[number]>, keyof From<E>>>,
     ExternalRequirements<ModuleConstraints<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>> | ModuleContributionConstraints<C, From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>>,
@@ -164,5 +227,6 @@ export function moduleGraph(value: object): GraphDescription {
   return { bindings, publicSlots, contributions };
 }
 
+/** Begin an empty immutable module graph. */
 export const beginModule = (): ModuleBuilder<never> => new ModuleBuilder();
 export type { Module, ModuleBuilder };

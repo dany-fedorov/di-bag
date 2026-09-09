@@ -1,0 +1,496 @@
+[
+  {
+    "text": "index",
+    "link": "/reference/index/",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "Classes",
+        "collapsed": true,
+        "items": [
+          {
+            "text": "DiBagCleanupError",
+            "link": "/reference/index/classes/DiBagCleanupError.md"
+          },
+          {
+            "text": "DiBagPluginError",
+            "link": "/reference/index/classes/DiBagPluginError.md"
+          },
+          {
+            "text": "DiBagStartupCancelledError",
+            "link": "/reference/index/classes/DiBagStartupCancelledError.md"
+          },
+          {
+            "text": "DiBagStartupError",
+            "link": "/reference/index/classes/DiBagStartupError.md"
+          }
+        ]
+      },
+      {
+        "text": "Interfaces",
+        "collapsed": true,
+        "items": [
+          {
+            "text": "AcquisitionContext",
+            "link": "/reference/index/interfaces/AcquisitionContext.md"
+          },
+          {
+            "text": "AcquisitionEventFields",
+            "link": "/reference/index/interfaces/AcquisitionEventFields.md"
+          },
+          {
+            "text": "AcquisitionSnapshot",
+            "link": "/reference/index/interfaces/AcquisitionSnapshot.md"
+          },
+          {
+            "text": "Bag",
+            "link": "/reference/index/interfaces/Bag.md"
+          },
+          {
+            "text": "Builder",
+            "link": "/reference/index/interfaces/Builder.md"
+          },
+          {
+            "text": "CleanupFailure",
+            "link": "/reference/index/interfaces/CleanupFailure.md"
+          },
+          {
+            "text": "Facade",
+            "link": "/reference/index/interfaces/Facade.md"
+          },
+          {
+            "text": "InspectionSnapshot",
+            "link": "/reference/index/interfaces/InspectionSnapshot.md"
+          },
+          {
+            "text": "Module",
+            "link": "/reference/index/interfaces/Module.md"
+          },
+          {
+            "text": "ModuleBuilder",
+            "link": "/reference/index/interfaces/ModuleBuilder.md"
+          },
+          {
+            "text": "ObserverFailure",
+            "link": "/reference/index/interfaces/ObserverFailure.md"
+          },
+          {
+            "text": "ObserverOptions",
+            "link": "/reference/index/interfaces/ObserverOptions.md"
+          },
+          {
+            "text": "PluginOptions",
+            "link": "/reference/index/interfaces/PluginOptions.md"
+          },
+          {
+            "text": "Provider",
+            "link": "/reference/index/interfaces/Provider.md"
+          },
+          {
+            "text": "RuntimeOptions",
+            "link": "/reference/index/interfaces/RuntimeOptions.md"
+          },
+          {
+            "text": "ScopeEventFields",
+            "link": "/reference/index/interfaces/ScopeEventFields.md"
+          },
+          {
+            "text": "StartupOptions",
+            "link": "/reference/index/interfaces/StartupOptions.md"
+          },
+          {
+            "text": "Token",
+            "link": "/reference/index/interfaces/Token.md"
+          },
+          {
+            "text": "TokenBase",
+            "link": "/reference/index/interfaces/TokenBase.md"
+          }
+        ]
+      },
+      {
+        "text": "Type Aliases",
+        "collapsed": true,
+        "items": [
+          {
+            "text": "AcquisitionMode",
+            "link": "/reference/index/type-aliases/AcquisitionMode.md"
+          },
+          {
+            "text": "AliasEntries",
+            "link": "/reference/index/type-aliases/AliasEntries.md"
+          },
+          {
+            "text": "AliasOutput",
+            "link": "/reference/index/type-aliases/AliasOutput.md"
+          },
+          {
+            "text": "AliasRegistration",
+            "link": "/reference/index/type-aliases/AliasRegistration.md"
+          },
+          {
+            "text": "AllReference",
+            "link": "/reference/index/type-aliases/AllReference.md"
+          },
+          {
+            "text": "Binding",
+            "link": "/reference/index/type-aliases/Binding.md"
+          },
+          {
+            "text": "BuilderContribute",
+            "link": "/reference/index/type-aliases/BuilderContribute.md"
+          },
+          {
+            "text": "Checked",
+            "link": "/reference/index/type-aliases/Checked.md"
+          },
+          {
+            "text": "CheckedLifetimes",
+            "link": "/reference/index/type-aliases/CheckedLifetimes.md"
+          },
+          {
+            "text": "CheckedScopeLifetimes",
+            "link": "/reference/index/type-aliases/CheckedScopeLifetimes.md"
+          },
+          {
+            "text": "Complete",
+            "link": "/reference/index/type-aliases/Complete.md"
+          },
+          {
+            "text": "CompositionArguments",
+            "link": "/reference/index/type-aliases/CompositionArguments.md"
+          },
+          {
+            "text": "CompositionFunction",
+            "link": "/reference/index/type-aliases/CompositionFunction.md"
+          },
+          {
+            "text": "ContextualFactory",
+            "link": "/reference/index/type-aliases/ContextualFactory.md"
+          },
+          {
+            "text": "Contribution",
+            "link": "/reference/index/type-aliases/Contribution.md"
+          },
+          {
+            "text": "ContributionConstraint",
+            "link": "/reference/index/type-aliases/ContributionConstraint.md"
+          },
+          {
+            "text": "Dependency",
+            "link": "/reference/index/type-aliases/Dependency.md"
+          },
+          {
+            "text": "DisjointScopeSelection",
+            "link": "/reference/index/type-aliases/DisjointScopeSelection.md"
+          },
+          {
+            "text": "DisposableFactory",
+            "link": "/reference/index/type-aliases/DisposableFactory.md"
+          },
+          {
+            "text": "Entries",
+            "link": "/reference/index/type-aliases/Entries.md"
+          },
+          {
+            "text": "ForkContext",
+            "link": "/reference/index/type-aliases/ForkContext.md"
+          },
+          {
+            "text": "FramePresenceTuple",
+            "link": "/reference/index/type-aliases/FramePresenceTuple.md"
+          },
+          {
+            "text": "From",
+            "link": "/reference/index/type-aliases/From.md"
+          },
+          {
+            "text": "fromPlugin",
+            "link": "/reference/index/type-aliases/fromPlugin.md"
+          },
+          {
+            "text": "LazyReference",
+            "link": "/reference/index/type-aliases/LazyReference.md"
+          },
+          {
+            "text": "LexicalContext",
+            "link": "/reference/index/type-aliases/LexicalContext.md"
+          },
+          {
+            "text": "LifecycleEvent",
+            "link": "/reference/index/type-aliases/LifecycleEvent.md"
+          },
+          {
+            "text": "Lifetime",
+            "link": "/reference/index/type-aliases/Lifetime.md"
+          },
+          {
+            "text": "Merge",
+            "link": "/reference/index/type-aliases/Merge.md"
+          },
+          {
+            "text": "ModuleConstraints",
+            "link": "/reference/index/type-aliases/ModuleConstraints.md"
+          },
+          {
+            "text": "ModuleContribute",
+            "link": "/reference/index/type-aliases/ModuleContribute.md"
+          },
+          {
+            "text": "ModuleContributionConstraints",
+            "link": "/reference/index/type-aliases/ModuleContributionConstraints.md"
+          },
+          {
+            "text": "ModuleContributions",
+            "link": "/reference/index/type-aliases/ModuleContributions.md"
+          },
+          {
+            "text": "ModuleProvides",
+            "link": "/reference/index/type-aliases/ModuleProvides.md"
+          },
+          {
+            "text": "ModulePublicProviders",
+            "link": "/reference/index/type-aliases/ModulePublicProviders.md"
+          },
+          {
+            "text": "ModuleRequires",
+            "link": "/reference/index/type-aliases/ModuleRequires.md"
+          },
+          {
+            "text": "ObserverCallback",
+            "link": "/reference/index/type-aliases/ObserverCallback.md"
+          },
+          {
+            "text": "ObserverErrorCallback",
+            "link": "/reference/index/type-aliases/ObserverErrorCallback.md"
+          },
+          {
+            "text": "OptionalReference",
+            "link": "/reference/index/type-aliases/OptionalReference.md"
+          },
+          {
+            "text": "Overrides",
+            "link": "/reference/index/type-aliases/Overrides.md"
+          },
+          {
+            "text": "PluginAcquisition",
+            "link": "/reference/index/type-aliases/PluginAcquisition.md"
+          },
+          {
+            "text": "PluginPredicate",
+            "link": "/reference/index/type-aliases/PluginPredicate.md"
+          },
+          {
+            "text": "PluginResult",
+            "link": "/reference/index/type-aliases/PluginResult.md"
+          },
+          {
+            "text": "Presence",
+            "link": "/reference/index/type-aliases/Presence.md"
+          },
+          {
+            "text": "Provided",
+            "link": "/reference/index/type-aliases/Provided.md"
+          },
+          {
+            "text": "ProviderAcquired",
+            "link": "/reference/index/type-aliases/ProviderAcquired.md"
+          },
+          {
+            "text": "ProviderAcquisitionMetadata",
+            "link": "/reference/index/type-aliases/ProviderAcquisitionMetadata.md"
+          },
+          {
+            "text": "ProviderAllTokenNeeds",
+            "link": "/reference/index/type-aliases/ProviderAllTokenNeeds.md"
+          },
+          {
+            "text": "ProviderFactory",
+            "link": "/reference/index/type-aliases/ProviderFactory.md"
+          },
+          {
+            "text": "ProviderGraph",
+            "link": "/reference/index/type-aliases/ProviderGraph.md"
+          },
+          {
+            "text": "ProviderMetadata",
+            "link": "/reference/index/type-aliases/ProviderMetadata.md"
+          },
+          {
+            "text": "ProviderNeeds",
+            "link": "/reference/index/type-aliases/ProviderNeeds.md"
+          },
+          {
+            "text": "ProviderOptionalTokenNeeds",
+            "link": "/reference/index/type-aliases/ProviderOptionalTokenNeeds.md"
+          },
+          {
+            "text": "ProviderOutput",
+            "link": "/reference/index/type-aliases/ProviderOutput.md"
+          },
+          {
+            "text": "ProviderTokenNeeds",
+            "link": "/reference/index/type-aliases/ProviderTokenNeeds.md"
+          },
+          {
+            "text": "PublicProviders",
+            "link": "/reference/index/type-aliases/PublicProviders.md"
+          },
+          {
+            "text": "ReboundProviders",
+            "link": "/reference/index/type-aliases/ReboundProviders.md"
+          },
+          {
+            "text": "ReboundSelection",
+            "link": "/reference/index/type-aliases/ReboundSelection.md"
+          },
+          {
+            "text": "Registration",
+            "link": "/reference/index/type-aliases/Registration.md"
+          },
+          {
+            "text": "Renamed",
+            "link": "/reference/index/type-aliases/Renamed.md"
+          },
+          {
+            "text": "RenamedLifetimeObligation",
+            "link": "/reference/index/type-aliases/RenamedLifetimeObligation.md"
+          },
+          {
+            "text": "RenamedLifetimeProviders",
+            "link": "/reference/index/type-aliases/RenamedLifetimeProviders.md"
+          },
+          {
+            "text": "ScopedAliases",
+            "link": "/reference/index/type-aliases/ScopedAliases.md"
+          },
+          {
+            "text": "ScopeOptions",
+            "link": "/reference/index/type-aliases/ScopeOptions.md"
+          },
+          {
+            "text": "Selected",
+            "link": "/reference/index/type-aliases/Selected.md"
+          },
+          {
+            "text": "Selection",
+            "link": "/reference/index/type-aliases/Selection.md"
+          },
+          {
+            "text": "SelectionKey",
+            "link": "/reference/index/type-aliases/SelectionKey.md"
+          },
+          {
+            "text": "SharedAliasProviders",
+            "link": "/reference/index/type-aliases/SharedAliasProviders.md"
+          },
+          {
+            "text": "TokenGraph",
+            "link": "/reference/index/type-aliases/TokenGraph.md"
+          },
+          {
+            "text": "TokenKey",
+            "link": "/reference/index/type-aliases/TokenKey.md"
+          },
+          {
+            "text": "TokenMember",
+            "link": "/reference/index/type-aliases/TokenMember.md"
+          },
+          {
+            "text": "TokenService",
+            "link": "/reference/index/type-aliases/TokenService.md"
+          },
+          {
+            "text": "UnsharedAliases",
+            "link": "/reference/index/type-aliases/UnsharedAliases.md"
+          }
+        ]
+      },
+      {
+        "text": "Variables",
+        "collapsed": true,
+        "items": [
+          {
+            "text": "DiBag",
+            "link": "/reference/index/variables/DiBag.md"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "text": "node",
+    "link": "/reference/node/",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "Type Aliases",
+        "collapsed": true,
+        "items": [
+          {
+            "text": "fromPlugin",
+            "link": "/reference/node/type-aliases/fromPlugin.md"
+          }
+        ]
+      },
+      {
+        "text": "Variables",
+        "collapsed": true,
+        "items": [
+          {
+            "text": "DiBag",
+            "link": "/reference/node/variables/DiBag.md"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "text": "sas-box",
+    "link": "/reference/sas-box/",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "Functions",
+        "collapsed": true,
+        "items": [
+          {
+            "text": "fromSasBox",
+            "link": "/reference/sas-box/functions/fromSasBox.md"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "text": "val-box",
+    "link": "/reference/val-box/",
+    "collapsed": true,
+    "items": [
+      {
+        "text": "Type Aliases",
+        "collapsed": true,
+        "items": [
+          {
+            "text": "ValBoxFrame",
+            "link": "/reference/val-box/type-aliases/ValBoxFrame.md"
+          }
+        ]
+      },
+      {
+        "text": "Functions",
+        "collapsed": true,
+        "items": [
+          {
+            "text": "fromValBox",
+            "link": "/reference/val-box/functions/fromValBox.md"
+          },
+          {
+            "text": "fromValBoxAsync",
+            "link": "/reference/val-box/functions/fromValBoxAsync.md"
+          }
+        ]
+      }
+    ]
+  }
+]

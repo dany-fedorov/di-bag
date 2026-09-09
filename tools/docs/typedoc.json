@@ -1,0 +1,42 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "DI Bag API",
+  "entryPoints": [
+    "../../src/index.ts",
+    "../../src/node.ts",
+    "../../src/sas-box.ts",
+    "../../src/val-box.ts"
+  ],
+  "tsconfig": "../../tsconfig.build.json",
+  "plugin": [
+    "typedoc-plugin-markdown",
+    "typedoc-vitepress-theme"
+  ],
+  "readme": "none",
+  "entryFileName": "index.md",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "gitRevision": "main",
+  "useCodeBlocks": true,
+  "expandParameters": true,
+  "parametersFormat": "table",
+  "sidebar": {
+    "pretty": true,
+    "collapsed": true
+  },
+  "validation": {
+    "notExported": false,
+    "invalidLink": true,
+    "notDocumented": true
+  },
+  "treatWarningsAsErrors": true,
+  "requiredToBeDocumented": [
+    "Class",
+    "Interface",
+    "TypeAlias",
+    "Variable",
+    "Function"
+  ]
+}

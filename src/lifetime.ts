@@ -5,6 +5,7 @@ import { describe, retainDescription } from './provider-operations';
 import type { GraphContract } from './token-types';
 import type { Singleton, Unsatisfied } from './types';
 
+/** Cache at the ownership-family root, once per scope, or once per resolution. */
 export type Lifetime = 'root' | 'scoped' | 'transient';
 export interface LifetimePolicy {
   readonly kind: Lifetime;
@@ -22,14 +23,25 @@ export type LifetimeGraph<G extends GraphContract, L extends Lifetime, O> = G ex
     : Omit<T, 'lifetime'> & { readonly lifetime: { readonly kind: L; readonly captureScoped: [O] extends [{ readonly captureScoped: true }] ? true : false } }
   : never : never;
 
-/** Select family-root caching, per-scope caching, or a fresh owned attempt per read.
- * Strict roots cannot capture scoped dependencies; captureScoped opts into root-context capture.
- * Wrapping preserves the factory, acquired value, metadata and owned stages.
+/**
+ * Select family-root caching, per-scope caching, or a fresh owned attempt per read.
+ * Strict roots cannot capture scoped dependencies. Wrapping preserves the factory,
+ * acquired value, metadata, frames, and ownership stages.
+ * @param registration - The registration whose caching policy to replace.
+ * @param lifetime - An individually known `root`, `scoped`, or `transient` literal.
+ * @returns A provider with the selected lifetime policy.
  */
 export function withLifetime<R extends Registration, const L extends Lifetime>(
   registration: R & Registration,
   lifetime: L & Admission<L>,
 ): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, LifetimeGraph<ProviderGraph<R>, L, undefined>, ProviderAcquired<R>>;
+/**
+ * Select a lifetime and optionally permit a root provider to capture scoped dependencies.
+ * @param registration - The registration whose caching policy to replace.
+ * @param lifetime - An individually known `root`, `scoped`, or `transient` literal.
+ * @param options - Root-only `{ captureScoped: boolean }` admission.
+ * @returns A provider preserving factory, output, metadata, frames, and ownership stages.
+ */
 export function withLifetime<R extends Registration, const L extends Lifetime, const O extends object | undefined>(
   registration: R & Registration,
   lifetime: L & Admission<L>,

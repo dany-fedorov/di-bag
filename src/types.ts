@@ -8,6 +8,7 @@ import type { InvalidGraphs, MissingTokens, SelectionKey, TokenMember, ValidToke
 
 export type Needs<R extends Registration> = ProviderNeeds<R>;
 
+/** Map registrations to the exact service values they expose. */
 export type Provided<R extends Registrations> = {
   [K in keyof R]: ProviderOutput<R[K]>;
 };
@@ -15,14 +16,17 @@ export type Provided<R extends Registrations> = {
 // Keep builder history flat; reconstruct a map only at graph-check boundaries.
 export type Entry = { key: string | symbol; registration: Registration };
 
+/** Convert a registration map to the union of entries retained by a builder. */
 export type Entries<R extends Registrations> = {
   [K in keyof R & (string | symbol)]: { key: K; registration: R[K] };
 }[keyof R & (string | symbol)];
 
+/** Reconstruct a registration map from a builder's retained entry union. */
 export type From<E extends Entry> = {
   [P in E as P['key']]: P['registration'];
 };
 
+/** Replace overlapping registrations in `F` with registrations from `N`. */
 export type Merge<F extends Registrations, N extends Registrations> = Omit<
   F,
   keyof N
@@ -71,6 +75,7 @@ type WrongShapes<R extends Registrations> = {
     : K;
 }[keyof R];
 
+/** Compile-time admission for finite dependency objects and compatible known services. */
 export type Checked<R extends Registrations> = [
   InvalidNeeds<R> | NonFiniteKeys<R> | Extract<keyof R, number>,
 ] extends [never]
@@ -121,6 +126,7 @@ type RequiredOf<R extends Registrations> = {
   [K in keyof R]: keyof Needs<R[K]>;
 }[keyof R];
 
+/** Compile-time admission requiring every named and typed-token dependency to be bound. */
 export type Complete<R extends Registrations> = [
   Exclude<RequiredOf<R>, keyof R> | MissingTokens<R>,
 ] extends [never]
@@ -135,6 +141,7 @@ type BadOverrides<F extends Registrations, O extends Registrations> = {
   [K in keyof O & keyof F]: Provided<O>[K] extends Provided<F>[K] ? never : K;
 }[keyof O & keyof F];
 
+/** Admit overrides only for existing keys whose service values remain assignable. */
 export type Overrides<F extends Registrations, O extends Registrations> = [
   Exclude<keyof O, keyof F>,
 ] extends [never]
@@ -202,6 +209,7 @@ type InvalidElements<K extends readonly unknown[]> = {
 }[number];
 type InvalidMembers<R extends Registrations, T> = T extends string ? never : unknown extends TokenMember<R, T> ? never : T;
 
+/** Validate a finite tuple of existing singleton names or genuine typed tokens. */
 export type Selection<R extends Registrations, K extends readonly unknown[], Operation extends string = 'fork'> =
   true extends IsUnion<K>
     ? InvalidSelection<Operation>
@@ -223,12 +231,14 @@ type InvalidSelection<Operation extends string> = Unsatisfied<
   { selection: 'use a const tuple with individually known keys' }
 >;
 
+/** Select registration-valued own fields corresponding to a checked key tuple. */
 export type Selected<K extends readonly unknown[], O> = {
   [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], Registration>;
 };
 
 // A graph-compatible bound gives context-sensitive factories a usable first
 // inference pass, while requiring every selected key in explicit type arguments.
+/** Contextual override shape used to infer a selected fork or child-scope graph. */
 export type ForkContext<
   R extends Registrations,
   K extends readonly unknown[],
