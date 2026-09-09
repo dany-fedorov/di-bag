@@ -1,0 +1,10 @@
+✔ Node disposes a deep ready graph in dependency order and only once (192.20542ms)
+✔ Node admits a late acyclic edge and rejects a late cycle across a deep graph (122.746981ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 328.886719

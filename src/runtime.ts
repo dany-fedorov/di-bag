@@ -37,12 +37,18 @@ export class BindingGraph {
   #explicitlyClassified = false;
 
   constructor(description: GraphDescription = { bindings: new Map(), publicSlots: new Map() }) {
+    const lexicalSnapshots = new Map<BindingDescription['localNames'], BindingDescription['localNames']>();
     for (const [id, binding] of description.bindings) {
+      let localNames = lexicalSnapshots.get(binding.localNames);
+      if (!localNames) {
+        localNames = new Map([...binding.localNames].map(([name, ref]) => [name, Object.freeze({ ...ref })]));
+        lexicalSnapshots.set(binding.localNames, localNames);
+      }
       this.#bindings.set(id, Object.freeze({
         id: binding.id,
         label: binding.label,
         registration: binding.registration,
-        localNames: new Map([...binding.localNames].map(([name, ref]) => [name, Object.freeze({ ...ref })])),
+        localNames,
       }));
       this.#registrations.set(id, Object.freeze(normalize(binding.registration)));
     }
@@ -50,17 +56,32 @@ export class BindingGraph {
     for (const [key, ids] of description.contributions ?? []) this.#contributions.set(key, Object.freeze([...ids]));
   }
 
+  /** Reuse encapsulated snapshots; only the lookup tables need new ownership. */
+  private copy(): BindingGraph {
+    const graph = new BindingGraph();
+    for (const [id, binding] of this.#bindings) graph.#bindings.set(id, binding);
+    for (const [id, registration] of this.#registrations) graph.#registrations.set(id, registration);
+    for (const [key, id] of this.#publicSlots) graph.#publicSlots.set(key, id);
+    for (const [key, ids] of this.#contributions) graph.#contributions.set(key, ids);
+    return graph;
+  }
+
+  private addBinding(label: string, registration: Registration): BindingId {
+    const id = Symbol(label);
+    this.#bindings.set(id, Object.freeze({ id, label, registration, localNames: new Map() }));
+    this.#registrations.set(id, Object.freeze(normalize(registration)));
+    return id;
+  }
+
   contributionBindings(key: symbol): readonly BindingId[] {
     return this.#contributions.get(key) ?? Object.freeze([]);
   }
 
   withContribution(key: symbol, registration: Registration): BindingGraph {
-    const id = Symbol(`contribution:${String(key)}`);
-    const bindings = new Map(this.#bindings);
-    bindings.set(id, { id, label: `contribution:${String(key)}`, registration, localNames: new Map() });
-    const contributions = new Map(this.#contributions);
-    contributions.set(key, [...this.contributionBindings(key), id]);
-    return new BindingGraph({ bindings, publicSlots: this.#publicSlots, contributions });
+    const graph = this.copy();
+    const id = graph.addBinding(`contribution:${String(key)}`, registration);
+    graph.#contributions.set(key, Object.freeze([...this.contributionBindings(key), id]));
+    return graph;
   }
 
   hasPublic(key: BindingKey): boolean {
@@ -115,19 +136,12 @@ export class BindingGraph {
   /** Replace ordered string or symbol slots in one immutable graph reconstruction. */
   withPublicBindings(entries: readonly (readonly [BindingKey, Registration])[]): BindingGraph {
     if (entries.length === 0) return this;
-    const bindings = new Map(this.#bindings);
-    const publicSlots = new Map(this.#publicSlots);
+    const graph = this.copy();
     for (const [key, registration] of entries) {
-      const id = Symbol(String(key));
-      bindings.set(id, {
-        id,
-        label: String(key),
-        registration,
-        localNames: new Map(),
-      });
-      publicSlots.set(key, id);
+      const id = graph.addBinding(String(key), registration);
+      graph.#publicSlots.set(key, id);
     }
-    return new BindingGraph({ bindings, publicSlots, contributions: this.#contributions });
+    return graph;
   }
 
   /** Replace one public slot, preserving lexical references and symbol identity. */
@@ -140,13 +154,15 @@ export class BindingGraph {
     for (const key of description.publicSlots.keys()) {
       if (this.#publicSlots.has(key)) throw new Error(`duplicate registration: ${String(key)}`);
     }
-    const contributions = new Map(this.#contributions);
-    for (const [key, ids] of description.contributions ?? []) contributions.set(key, [...this.contributionBindings(key), ...ids]);
-    return new BindingGraph({
-      contributions,
-      bindings: new Map([...this.#bindings, ...description.bindings]),
-      publicSlots: new Map([...this.#publicSlots, ...description.publicSlots]),
-    });
+    const installation = new BindingGraph(description);
+    const graph = this.copy();
+    for (const [id, binding] of installation.#bindings) graph.#bindings.set(id, binding);
+    for (const [id, registration] of installation.#registrations) graph.#registrations.set(id, registration);
+    for (const [key, id] of installation.#publicSlots) graph.#publicSlots.set(key, id);
+    for (const [key, ids] of installation.#contributions) {
+      graph.#contributions.set(key, Object.freeze([...this.contributionBindings(key), ...ids]));
+    }
+    return graph;
   }
 }
 

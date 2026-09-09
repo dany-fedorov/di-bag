@@ -272,10 +272,10 @@ export class Acquisitions {
     this.family.retireIncoming(attempt);
     if (this.retired.has(attempt.id)) return;
     const release = () => {
+      this.family.release(attempt);
       attempt.dependencies.clear();
       attempt.execution.release();
       this.attempts.delete(attempt.id);
-      this.family.release(attempt);
       this.owned.delete(attempt.id);
       this.retired.delete(attempt.id);
     };
@@ -297,15 +297,26 @@ export class Acquisitions {
       }
       const ordered: Acquisition[] = [];
       const visited = new Set<AcquisitionId>();
-      const visit = (id: AcquisitionId) => {
+      const stack: { attempt: Acquisition; dependencies: SetIterator<AcquisitionId> }[] = [];
+      const enter = (id: AcquisitionId) => {
         if (visited.has(id)) return;
         visited.add(id);
         const attempt = this.attempts.get(id);
         if (!attempt) return;
-        for (const dependency of attempt.dependencies) visit(dependency);
-        if (attempt.execution.hasOwnership) ordered.push(attempt);
+        stack.push({ attempt, dependencies: attempt.dependencies.values() });
       };
-      for (const id of this.owned.keys()) visit(id);
+      // Explicit DFS frames preserve dependency/insertion order without using
+      // the JavaScript call stack for a potentially deep acquisition graph.
+      for (const id of this.owned.keys()) {
+        enter(id);
+        while (stack.length) {
+          const frame = stack[stack.length - 1]!;
+          const next = frame.dependencies.next();
+          if (!next.done) { enter(next.value); continue; }
+          stack.pop();
+          if (frame.attempt.execution.hasOwnership) ordered.push(frame.attempt);
+        }
+      }
       for (const attempt of ordered.reverse()) {
         attempt.state = 'disposing';
         await attempt.execution.dispose();
