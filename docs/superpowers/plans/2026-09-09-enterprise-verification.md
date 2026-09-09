@@ -96,6 +96,9 @@ initial push. Delivery remains open until these corrections pass hosted CI.
   missing build input remains the reason for failure on every provisioned host.
 - [x] Give real browser protocol mutations the existing production lane budget,
   including cold startup; retain the deliberately short timeout mutation.
+- [x] Reproduce the remaining release-verifier setup failure in an isolated
+  clone and replace ignored sibling paths with fixture-owned canonical
+  directories while preserving all production validation.
 - [x] Verify these changes locally and in an isolated clone, and obtain an
   independent review with no actionable findings.
 

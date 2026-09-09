@@ -590,8 +590,10 @@ describe('archive verifier', () => {
     const reviewed = collectReviewedNativeGaps(resolve(root, 'tests/types'));
     const packages = (['di-bag', 'sas-box', 'val-box'] as const).map(name => {
       const archive = resolve(directory, `${name}-0.1.0.tgz`), stdout = resolve(directory, `${name}.stdout`), stderr = resolve(directory, `${name}.stderr`), result = packResult(name, archive);
-      const command: ReleaseCommandEvidence = { argv: ['npm', 'run', 'build'], cwd: name === 'di-bag' ? checkout : resolve(root, `.related-repos/${name}`), startedAt: '2026-09-08T00:00:00.000Z', finishedAt: '2026-09-08T00:00:00.001Z', elapsedMilliseconds: 1, exitCode: 0, signal: null, terminationReason: null, peakObservedRssMiB: 10, inputs: [], stdout: writeLogEvidence(stdout, 'ok\n'), stderr: writeLogEvidence(stderr, '') };
-      return { name, version: '0.1.0', archive, checkout: { path: name === 'di-bag' ? checkout : resolve(root, `.related-repos/${name}`), branch: 'feat/v0.1', candidateSourceCommit: 'a'.repeat(40), status: '' }, pack: { dryRunJson: [result], packJson: [structuredClone(result)], packedAt: '2026-09-08T00:00:01.000Z' }, commands: [command] };
+      const packageCheckout = name === 'di-bag' ? checkout : resolve(directory, name);
+      mkdirSync(packageCheckout, { recursive: true });
+      const command: ReleaseCommandEvidence = { argv: ['npm', 'run', 'build'], cwd: packageCheckout, startedAt: '2026-09-08T00:00:00.000Z', finishedAt: '2026-09-08T00:00:00.001Z', elapsedMilliseconds: 1, exitCode: 0, signal: null, terminationReason: null, peakObservedRssMiB: 10, inputs: [], stdout: writeLogEvidence(stdout, 'ok\n'), stderr: writeLogEvidence(stderr, '') };
+      return { name, version: '0.1.0', archive, checkout: { path: packageCheckout, branch: 'feat/v0.1', candidateSourceCommit: 'a'.repeat(40), status: '' }, pack: { dryRunJson: [result], packJson: [structuredClone(result)], packedAt: '2026-09-08T00:00:01.000Z' }, commands: [command] };
     });
     const versionOf = (executable: string, argv = ['--version']) => {
       const result = spawnSync(executable, argv, { cwd: root, encoding: 'utf8' });

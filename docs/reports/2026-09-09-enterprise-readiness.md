@@ -117,3 +117,20 @@ acceptance requires both jobs to pass; the
 [branch workflow history](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml?query=branch%3Afeat%2Fv0.1)
 records each delivered revision independently of these local observations.
 The pre-existing untracked execution handoff is preserved.
+
+The [second hosted run](https://github.com/dany-fedorov/di-bag/actions/runs/34320037792)
+at `0e5e70e` passed the entire portable job. Its retained matrix records a clean
+checkout and all three passing lanes. The contract job passed 988 tests but its
+release-verifier setup still referred to ignored sibling directories; that
+before-hook failure prevented the archive-verifier cases from executing. The
+same failure was reproduced in the isolated clone. That synthetic manifest
+fixture now creates its own canonical box checkout directories beneath its
+temporary directory and removes them with the existing fixture cleanup. Actual
+archive bytes still come from the tracked packages, and production manifest and
+archive validation remain unchanged.
+
+After that correction, all 89 release-artifact tests passed in the isolated clone
+with 412 assertions, including the real Node/Bun archive and declaration
+consumers. Both classic and native source typechecks passed there as well. The
+strict native audit accepted all 124 files with 670 expected/670 matched
+diagnostics and zero unexpected diagnostics or failures.
