@@ -198,6 +198,14 @@ The box adapters are separate entry points; applications supply their own box
 libraries. See [host configuration](docs/guides/tutorial.md#portable-mode)
 and [box adapters](docs/guides/tutorial.md#optional-box-adapters) for details.
 
+Use `sas-box` when reusable plugins must declare which sync/async acquisition
+routes they support. Use `val-box` when an acquired result needs explicit
+presence and provenance, such as the configuration source or secret version
+that actually supplied it. Ordinary factories and static `withMetadata` labels
+already cover simpler cases. The [production use-case assessment](docs/research/2026-09-10-box-production-use-cases.md)
+compares these patterns with Babel, Sass, Spring Boot, and other primary sources,
+including where plain functions or records are sufficient.
+
 ### A few things to know
 
 - **Async dependencies are explicit.** A factory returning `Promise<T>` exposes
