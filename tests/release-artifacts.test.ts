@@ -13,6 +13,8 @@ import { APPROVED_HANDOFF_PATHS, createReleaseAudit, parseReleaseAuditArgs } fro
 import { hashReleaseTree, parseReleaseTreeArgs } from '../scripts/hash-release-tree.ts';
 import { matchesReleaseNegativeDiagnostics, parseVerifyReleaseArgs, releaseInstallArgv, traceInstalledRoot, verifyReleaseArtifacts, verifyReleaseManifestStatic, VERIFY_RELEASE_USAGE } from '../scripts/verify-release-artifacts.ts';
 import { nativeDiagnosticGapMessages } from './native-diagnostic-markers.ts';
+import { nativeLimits } from '../scripts/native-compiler.ts';
+import { supervise } from '../scripts/native-process.ts';
 
 const root = resolve(__dirname, '..');
 const packageManifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as {
@@ -579,12 +581,17 @@ describe('archive verifier', () => {
     const record = manifest.packages.find(item => item.name === packageName)!; return inspectNpmArchive(new Uint8Array(readFileSync(record.archive))).entries.map(entry => ({ path: entry.path, content: new TextDecoder().decode(entry.content) }));
   }
 
-  beforeAll(() => {
+  beforeAll(async () => {
     rmSync(directory, { recursive: true, force: true }); mkdirSync(reports, { recursive: true });
     process.env.npm_config_cache = resolve(directory, '.npm-cache');
     cpSync(resolve(root, 'tests/types'), resolve(checkout, 'tests/types'), { recursive: true }); symlinkSync(resolve(root, 'node_modules'), resolve(checkout, 'node_modules'));
     symlinkSync(resolve(root, 'tests/final-adversarial-runtime-fixture.ts'), resolve(checkout, 'tests/final-adversarial-runtime-fixture.ts'));
-    const diPack = spawnSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', directory], { cwd: root, encoding: 'utf8', env: { ...process.env, npm_config_cache: resolve(directory, '.npm-cache') } });
+    for (const name of ['src', 'package.json', 'README.md', 'LICENSE', 'tsconfig.json', 'tsconfig.build.json']) {
+      cpSync(resolve(root, name), resolve(checkout, name), { recursive: true });
+    }
+    const built = await supervise('node', [resolve(root, 'node_modules/typescript/bin/tsc6'), '-p', 'tsconfig.build.json'], checkout, nativeLimits);
+    if (built.status !== 0 || built.signal !== null || built.terminationReason || built.error || built.stderr !== '') throw new Error(`task3 DI build setup failed: ${JSON.stringify({ status: built.status, signal: built.signal, terminationReason: built.terminationReason, error: built.error })}\n${built.stdout}\n${built.stderr}`);
+    const diPack = spawnSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', directory], { cwd: checkout, encoding: 'utf8', env: { ...process.env, npm_config_cache: resolve(directory, '.npm-cache') } });
     if (diPack.status !== 0) throw new Error(`task3 DI pack setup failed: ${diPack.stdout}\n${diPack.stderr}`);
     for (const name of ['sas-box', 'val-box'] as const) cpSync(resolve(root, `tests/fixtures/box-packages/${name}-0.1.0.tgz`), resolve(directory, `${name}-0.1.0.tgz`));
     const reviewed = collectReviewedNativeGaps(resolve(root, 'tests/types'));

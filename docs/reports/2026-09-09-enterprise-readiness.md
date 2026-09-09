@@ -157,3 +157,19 @@ The corrected supervisor passed all 16 focused tests with 83 assertions and both
 source typecheckers. These focused results do not replace the complete gates.
 Hosted acceptance for the delivered revision is recorded separately in the
 branch workflow history.
+
+Running the complete gate in a fresh clone also exposed a release-fixture build
+ordering assumption: its `npm pack --ignore-scripts` consumed the root `dist/`
+without building it. A prior test or a manual build had masked this dependency.
+The release fixture now copies the current source and package inputs into its
+temporary checkout, builds there under the existing compiler resource limits,
+and packs that isolated tree. This preserves the missing-export rejection and
+removes dependence on the caller's build output or test-file order.
+
+The pre-correction full fresh-clone run completed 1,007 tests: 1,004 passed and
+the three missing-build fixture checks failed (574.70 seconds). Both classic and
+native installed-package suites passed with the supervisor correction. After the
+isolated-build fix, all 89 release-artifact tests passed with 412 assertions in a
+separate clone whose root `dist/` was absent before and after the run. Both
+typecheckers passed there. Independent review found no actionable issues in the
+isolated setup; final hosted acceptance remains revision-specific.

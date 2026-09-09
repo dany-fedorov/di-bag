@@ -108,6 +108,12 @@ initial push. Delivery remains open until these corrections pass hosted CI.
 - [x] Verify the supervisor correction with all 16 focused tests, both source
   typecheckers and an independent code review. Full gates remain a separate
   acceptance requirement below.
+- [x] Make the release fixture build and pack its own temporary source tree
+  under the existing compiler limits after a full fresh-clone run exposed its
+  dependency on another test building the root `dist/` first.
+- [x] Verify all 89 release-artifact tests and both typecheckers in a separate
+  clone with root `dist/` absent before and after execution; independently review
+  the isolated setup.
 
 Delivery requires pushing the follow-up and observing both hosted jobs pass for
 the delivered revision. The [branch workflow history](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml?query=branch%3Afeat%2Fv0.1)
