@@ -161,6 +161,8 @@ describe('release documentation contract', () => {
 
   test('public docs state entry-point, adapter, acquisition, ownership, and release limits', () => {
     const readme = readFileSync(resolve(root, 'README.md'), 'utf8');
+    const reference = readFileSync(resolve(root, 'docs/guides/api-reference.md'), 'utf8');
+    const development = readFileSync(resolve(root, 'docs/guides/development.md'), 'utf8');
     const migration = readFileSync(resolve(root, 'docs/migrations/0.1-to-enterprise.md'), 'utf8');
     const tracker = readFileSync(resolve(root, 'docs/superpowers/plans/2026-09-06-enterprise-di-program.md'), 'utf8');
 
@@ -178,15 +180,21 @@ describe('release documentation contract', () => {
     for (const text of [readme, migration]) {
       for (const entry of ['di-bag', 'di-bag/node', 'di-bag/sas-box', 'di-bag/val-box'])
         expect(text).toContain(`\`${entry}\``);
+    }
+    // The landing page links to the detailed contracts and verification evidence.
+    expect(readme).toContain('(docs/guides/api-reference.md)');
+    expect(readme).toContain('(docs/guides/development.md)');
+    for (const text of [`${reference}\n${development}`, migration]) {
       for (const fact of ['structural adapters', 'raw', 'native', 'selected scopes', 'non-blocking observers', 'original acquired value'])
         expect(text).toContain(fact);
     }
     expect(readme).toContain('npm run check');
     expect(readme).toContain('npm run check:native');
-    expect(readme).toContain('zero reviewed gaps or unexpected diagnostics');
-    expect(readme).toContain('applications at 1,000 providers');
-    expect(readme).toContain('groups of 50');
-    expect(readme).not.toContain('27 explicitly recorded replacement diagnostic-quality gaps');
+    expect(development).toContain('zero reviewed gaps or unexpected diagnostics');
+    expect(development).toContain('applications at 1,000 providers');
+    expect(development).toContain('groups of 50');
+    for (const text of [readme, reference, development])
+      expect(text).not.toContain('27 explicitly recorded replacement diagnostic-quality gaps');
     expect(migration).toContain('application-owned plugin loading');
     expect(tracker).toContain('Local release-candidate handoff');
     expect(tracker).toContain('registry version and publication remain unavailable');

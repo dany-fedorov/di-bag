@@ -1,5 +1,7 @@
 # Request scopes, test fixtures, and dynamic features
 
+[← README](../../README.md) · [API guide](api-reference.md) · [Server recipes](server-integration.md)
+
 DI Bag supplies the ownership and composition primitives needed at a request,
 job, message or UI environment boundary. The application decides when that
 boundary begins and when all its work has finished. The
@@ -37,9 +39,14 @@ is not an extra package export.
 
 Use `DiBag.withContext` for cooperative work that needs the acquisition owner's
 `AbortSignal`. Closing the scope aborts its signal and drains owned acquisitions.
-For transport cancellation, arrange for the transport's disconnect/abort hook to
-call that operation's `scope.close()` and observe its rejection. Remove the hook
-when the operation finishes. Cancellation does not forcibly stop arbitrary code.
+For transport cancellation of an active service method, abort an
+application-controlled signal, coordinate completion of that work, and then
+close the scope. A scope tracks acquisition work and disposal, not every later
+method call on a service. Calling `scope.close()` directly from a disconnect hook
+is appropriate only when no such call still needs the scope's owned resources.
+Observe cleanup rejection and remove hooks when the operation finishes.
+Cancellation does not forcibly stop arbitrary code. See the
+[server cancellation guidance](server-integration.md#disconnects-streaming-and-websockets).
 For streamed responses, keep the scope open until the stream finishes or is
 cancelled; returning a stream object from the work callback ends this recipe's
 ownership too soon.
