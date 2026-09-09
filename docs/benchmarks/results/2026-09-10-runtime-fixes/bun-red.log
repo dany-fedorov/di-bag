@@ -1,0 +1,52 @@
+bun test v1.4.2 (744846f84)
+
+tests/runtime-scale.test.ts:
+(pass) closing a deep graph disposes every dependent before its dependency exactly once [909.91ms]
+47 |   const unrelated = Array.from({ length: 1000 }, (_, index) => identity(`unrelated${index}`));
+48 |   for (const attempt of [target, consumer, ...unrelated]) family.add(attempt);
+49 |   family.recordEdge(consumer, target);
+50 |   family.retireIncoming(target);
+51 |   expect(consumer.dependencies.has(target.id)).toBe(false);
+52 |   expect(unrelated.reduce((sum, attempt) => sum + (attempt.dependencies as MeasuredDependencies).deletions, 0)).toBe(0);
+                                                                                                                     ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1000
+
+      at <anonymous> (/home/df/wd/personal/di-bag/tests/runtime-scale.test.ts:52:113)
+(fail) retiring an acquisition touches only its actual incoming consumers [7.97ms]
+60 |   for (let index = 0; index < downstream.length - 1; index++) family.recordEdge(downstream[index]!, downstream[index + 1]!);
+61 |   family.recordEdge(consumer, downstream[0]!);
+62 |   for (const attempt of downstream) (attempt.dependencies as MeasuredDependencies).traversals = 0;
+63 |   for (let index = 0; index < 1000; index++) family.recordEdge(consumer, downstream[0]!);
+64 |   expect(consumer.dependencies.size).toBe(1);
+65 |   expect(downstream.reduce((sum, attempt) => sum + (attempt.dependencies as MeasuredDependencies).traversals, 0)).toBe(0);
+                                                                                                                       ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 100000
+
+      at <anonymous> (/home/df/wd/personal/di-bag/tests/runtime-scale.test.ts:65:115)
+(fail) repeated reads of an existing edge do not traverse the downstream graph again [9.18ms]
+(pass) late edges across a deep ready graph find cycles without overflowing the stack [559.71ms]
+86 |   for (let index = 0; index < 100; index++) {
+87 |     const id = Symbol(`p${index}`);
+88 |     bindings.set(id, { id, label: `p${index}`, registration: () => index, localNames });
+89 |   }
+90 |   const graph = new BindingGraph({ bindings, publicSlots: new Map() });
+91 |   expect(reads).toBe(1);
+                     ^
+error: expect(received).toBe(expected)
+
+Expected: 1
+Received: 100
+
+      at <anonymous> (/home/df/wd/personal/di-bag/tests/runtime-scale.test.ts:91:17)
+(fail) one module lexical map is snapshotted once while external mutations stay isolated [0.72ms]
+
+ 2 pass
+ 3 fail
+ 11 expect() calls
+Ran 5 tests across 1 file. [1493.00ms]

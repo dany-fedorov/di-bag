@@ -126,10 +126,13 @@ function sanitizeCommand(command: ReleaseCommandEvidence, roots: readonly [strin
     inputs: command.inputs.map(input => ({ path: clean(input.path), bytes: input.bytes, sha256: input.sha256 })), stdout: { bytes: command.stdout.bytes, sha256: command.stdout.sha256 }, stderr: { bytes: command.stderr.bytes, sha256: command.stderr.sha256 } };
 }
 function containsAbsolutePath(value: string): boolean { return value.includes('file:/') || /(^|[^A-Za-z0-9._<>\/~:-])\/(?!\/)/.test(value) || /^\//.test(value); }
-function assertPublicPathSafe(value: unknown): void {
-  if (typeof value === 'string') { if (containsAbsolutePath(value)) throw new Error('public evidence contains an unsanitized absolute path'); return; }
-  if (Array.isArray(value)) { for (const item of value) assertPublicPathSafe(item); return; }
-  if (value && typeof value === 'object') for (const [key, item] of Object.entries(value)) { assertPublicPathSafe(key); assertPublicPathSafe(item); }
+function assertPublicPathSafe(value: unknown, path: readonly (string | number)[] = []): void {
+  if (typeof value === 'string') {
+    const packageIntegrity = path.length === 3 && path[0] === 'packages' && typeof path[1] === 'number' && path[2] === 'integrity' && /^sha512-[A-Za-z0-9+/]{85}[AQgw]==$/.test(value);
+    if (!packageIntegrity && containsAbsolutePath(value)) throw new Error('public evidence contains an unsanitized absolute path'); return;
+  }
+  if (Array.isArray(value)) { for (const [index, item] of value.entries()) assertPublicPathSafe(item, [...path, index]); return; }
+  if (value && typeof value === 'object') for (const [key, item] of Object.entries(value)) { assertPublicPathSafe(key); assertPublicPathSafe(item, [...path, key]); }
 }
 export function createPublicReleaseEvidence(manifest: ReleaseManifest): unknown {
   const roots: [string, string][] = [[manifest.artifactDirectory, '<artifact>'], ...manifest.packages.map(item => [item.checkout.path, `<checkout:${item.name}>`] as [string, string])]; roots.sort((a, b) => b[0].length - a[0].length);

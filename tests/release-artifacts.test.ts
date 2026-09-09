@@ -472,6 +472,15 @@ describe('manifest validation and deterministic projection', () => {
     const changed: any = structuredClone(input); changed.handoff.handoffCommit = 'c'.repeat(40); changed.handoff.changedPaths = [];
     expect(serializeStable(createPublicReleaseEvidence(createReleaseManifest(changed)))).toBe(first);
   });
+  test('allows canonical SHA-512 SRI only in package integrity fields', () => {
+    const integrity = 'sha512-/ul7PV5WpdFxqftO2GgDAni9hloVlI9rKAlfydsKkI3FuovS7AqB4EeIU5G+/2I/lYfvhH3nNnhmxKUBek00zQ==';
+    const manifest: any = structuredClone(createReleaseManifest(validInput())); manifest.packages[0].integrity = integrity;
+    expect((createPublicReleaseEvidence(manifest) as any).packages[0].integrity).toBe(integrity);
+    const malformed: any = structuredClone(manifest); malformed.packages[0].integrity = 'sha512-+/etc/secret';
+    expect(() => createPublicReleaseEvidence(malformed)).toThrow('unsanitized absolute path');
+    const nested: any = structuredClone(manifest); nested.packages[0].packageMetadata.dependencies.integrity = '/etc/secret';
+    expect(() => createPublicReleaseEvidence(nested)).toThrow('unsanitized absolute path');
+  });
   test('rejects duplicate/missing packages, bad versions, metadata, pack facts and handoff paths', () => {
     for (const mutate of [
       (value: any) => value.packages.pop(),
