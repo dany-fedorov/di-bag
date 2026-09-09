@@ -1,0 +1,27 @@
+diff --git a/src/types.ts b/src/types.ts
+index 438a385..20e7816 100644
+--- a/src/types.ts
++++ b/src/types.ts
+@@ -22,3 +22,10 @@
+ export type From<E extends Entry> = {
+   [P in E as P['key']]: P['registration'];
+ };
++
++export type RelevantEntries<E extends Entry, K extends PropertyKey> =
++  E extends Entry ? E['key'] extends K ? E : never : never;
++
++export type RelevantProvided<E extends Entry, K extends PropertyKey> = {
++  [P in RelevantEntries<E, K> as P['key']]: ProviderOutput<P['registration']>;
++};
+@@ -93,4 +100,4 @@
+ type NewWrong<E extends Entry, N extends Registrations> = {
+-  [K in keyof N]: Pick<Provided<From<E>>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> extends
++  [K in keyof N]: RelevantProvided<E, Exclude<keyof Needs<N[K]>, keyof N>> extends
+     Pick<Needs<N[K]>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> ? never : K
+ }[keyof N];
+@@ -97,4 +104,5 @@
+ type OldWrong<E extends Entry, N extends Registrations> = E extends Entry
+   ? E['key'] extends keyof N ? never
++    : [keyof Needs<E['registration']> & keyof N] extends [never] ? never
+     : Pick<Provided<N>, keyof Needs<E['registration']> & keyof N> extends
+       Pick<Needs<E['registration']>, keyof Needs<E['registration']> & keyof N> ? never : E['key']

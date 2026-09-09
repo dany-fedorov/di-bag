@@ -1,0 +1,65 @@
+bun test v1.4.0 (34cbb9a40)
+
+tests/compiler-case.test.ts:
+(pass) selected compiler case admits only original matrix identities [0.18ms]
+(pass) a claimed accepted result cannot hide an original-boundary failure [0.34ms]
+(pass) direct selected-case calls reject invalid lane and matrix identities before dispatch [0.24ms]
+(pass) recomputed boundary rejects self-consistent worker evidence at the wrong boundary [0.11ms]
+(pass) selected evidence rejects sourceCommit drift while compilation runs [0.05ms]
+(pass) selected evidence rejects sourceStatus drift while compilation runs
+(pass) selected evidence rejects sourceSha256 drift while compilation runs
+(pass) selected evidence rejects generatedSha256 drift while compilation runs
+(pass) native selected evidence preserves the hash of the compiled snapshot [0.03ms]
+(pass) compiler CLI deterministically selects exit status from simulated evidence [0.02ms]
+(pass) classic process failures retain compiler identity and complete provenance [0.02ms]
+(pass) classic selected 100 bulk valid returns verified evidence [1250.16ms]
+(pass) classic selected 100 bulk missing returns verified evidence [1220.19ms]
+(pass) native selected 100 bulk valid returns verified evidence [174.79ms]
+(pass) native selected 100 bulk missing returns verified evidence [174.89ms]
+(pass) selected compiler CLI rejects an invalid identity without JSON success [244.79ms]
+
+tests/native-compiler.test.ts:
+(pass) parser retains real native multiline diagnostics, positions and metrics [0.11ms]
+(pass) parser exposes configuration errors, TS2589 and unknown output [0.04ms]
+(pass) source marker gate rejects wrong file, region, message, TS2589 and unmatched cascades [0.49ms]
+(pass) verified native executable checks real nonempty valid and invalid projects [694.94ms]
+(pass) native small control bulk valid [164.50ms]
+(pass) native small control bulk missing [144.29ms]
+(pass) native small control bindings valid [584.49ms]
+(pass) native small control bindings missing-final-token [602.19ms]
+
+tests/incremental-scale.test.ts:
+(pass) incremental compiler work: 100 named additions [1663.89ms]
+(pass) incremental compiler work: 100 token bindings [2158.98ms]
+
+tests/benchmark-types.test.ts:
+(pass) parent evaluator validates untrusted worker evidence and preserves requested identities [1.35ms]
+(pass) benchmark rejects unsupported flags: --native --native [252.43ms]
+(pass) benchmark rejects unsupported flags: --tokens --tokens [250.52ms]
+(pass) benchmark rejects unsupported flags: --unknown [247.89ms]
+(pass) benchmark rejects unsupported flags: --native --tokens --unknown [239.40ms]
+(pass) named benchmark boundary: 100 bulk valid [1025.54ms]
+(pass) named benchmark boundary: 100 bulk missing [762.28ms]
+(pass) named benchmark boundary: 100 bulk wrong-shape [696.49ms]
+(pass) named benchmark boundary: 100 chained valid [1307.97ms]
+(pass) named benchmark boundary: 100 chained missing [1218.21ms]
+(pass) named benchmark boundary: 100 chained wrong-shape [1291.23ms]
+(pass) named benchmark boundary: 100 grouped valid [572.21ms]
+(pass) named benchmark boundary: 100 grouped missing [768.24ms]
+(pass) named benchmark boundary: 100 grouped wrong-shape [752.25ms]
+(pass) named benchmark boundary: 100 replacement valid [2848.45ms]
+(pass) named benchmark boundary: 100 replacement missing [2892.38ms]
+(pass) named benchmark boundary: 100 replacement wrong-shape [3042.48ms]
+(pass) named benchmark worker retains complete boundary diagnostics [1694.78ms]
+(pass) token worker defaults a valid invocation to 100 services [2270.12ms]
+(pass) token worker accepts an explicit supported count [2213.20ms]
+(pass) token worker rejects an extra argument before compilation [231.13ms]
+(pass) token worker rejects count zero before compilation [220.81ms]
+(pass) token worker rejects an unsupported count before compilation [245.13ms]
+(pass) token worker rejects an invalid form before compilation [236.45ms]
+(pass) token worker rejects an invalid scenario before compilation [237.68ms]
+
+ 51 pass
+ 0 fail
+ 263 expect() calls
+Ran 51 tests across 4 files. [34.73s]

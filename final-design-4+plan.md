@@ -1,5 +1,10 @@
 # di-bag v14 — findings and plan (2026-09-06)
 
+> Historical findings. The v14 source is now preserved in `docs/history/src/v14/`.
+> The implemented v0.1 design and verification record are in
+> `docs/superpowers/specs/2026-09-06-v0.1-design.md` and
+> `docs/superpowers/plans/2026-09-06-v0.1.md`.
+
 ## Intention
 
 di-bag is the composition root for **service factories**. Its first consumer is

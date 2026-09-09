@@ -1,0 +1,54 @@
+import { DiBag } from '../../src';
+const { withLifetime } = DiBag;
+import type { Provider, Module, Bag } from '../../src';
+import { fromValBox, fromValBoxAsync } from '../../src/val-box';
+import { fromSasBox } from '../../src/sas-box';
+import { withTokenBinding } from '../../src/provider';
+
+export const graph = DiBag.begin().add({
+  db: withLifetime(() => ({ query: () => 1 }), 'root'),
+  repo: withLifetime(({ db }: { db: { query(): number } }) => db.query(), 'root'),
+}).end();
+export const scoped = graph.scope();
+export const independent = graph.fork();
+export const raw = withLifetime(DiBag.factory(() => Promise.resolve({ id: 1 }), { acquisition: 'raw' }), 'root');
+export const native = withLifetime(DiBag.factory(() => Promise.resolve({ id: 1 }), { acquisition: 'native' }), 'transient');
+export const metadata = DiBag.withMetadata(DiBag.withDisposal(raw, value => { const exact: Promise<{ id: number }> = value; void exact; }), { owner: 'app' as const });
+export const builder = DiBag.begin().add({ raw: metadata });
+export const feature = DiBag.module().add({ raw: metadata }).exports(['raw']);
+export const moduleBag = DiBag.begin().install(feature).end();
+export const capturing = DiBag.begin().add({ scoped: () => 1, permissive: withLifetime(({ scoped }: { scoped: number }) => scoped, 'root', { captureScoped: true }), strict: withLifetime(({ permissive }: { permissive: number }) => permissive, 'root') }).end();
+export const cycles = DiBag.begin().add({ a: withLifetime(({ b }: { b: number }): number => b, 'transient'), b: withLifetime(({ a }: { a: number }): number => a, 'transient') }).end();
+export const privateValid = DiBag.module().add({ db: withLifetime(() => 1, 'root'), bridge: withLifetime(({ db }: { db: number }) => db, 'transient') }).exports(['bridge']);
+export const privateBag = DiBag.begin().install(privateValid).add({ db: () => 1, root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).end();
+export const replacedRoot = DiBag.module().add({ db: () => 1, root: withLifetime(({ db }: { db: number }) => db, 'root') }).exports(['root']);
+export const replacedBag = DiBag.begin().install(replacedRoot).replace('root', () => 1).end();
+export const renamedRoot = DiBag.module().add({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ db }: { db: number }) => db, 'root') }).exports(['db', 'root']).rename('db', 'database');
+export const renamedBag = DiBag.begin().install(renamedRoot).end();
+export const key: unique symbol = Symbol('root');
+export const token = DiBag.token(key).of<number>();
+export const bound = withTokenBinding(token, withLifetime(() => 1, 'root'));
+export const rebound = withTokenBinding(token, DiBag.mapSync(bound, value => value));
+export const tokenBag = DiBag.begin().bind(token, rebound).add({ root: withLifetime(DiBag.fromTokens([token], value => value), 'root') }).end();
+export const tokenFork = tokenBag.fork([token], { [key]: withLifetime(() => 2, 'root') });
+export const frames = fromValBox(withLifetime(() => ({ snapshot: () => ({ value: { present: true as const, value: Promise.resolve({ id: 1 }) }, metadata: { present: true as const, value: { frame: 1 } }, alias: 'box' }) }), 'root'), { value: 'required', acquisition: 'raw' });
+export const asyncFrames = fromValBoxAsync(withLifetime(() => ({ snapshot: () => ({ value: { present: true as const, value: 1 }, metadata: { present: false as const }, alias: null }) }), 'transient'));
+export const capability = fromSasBox(withLifetime(() => ({ sync: () => Promise.resolve(1) }), 'root'), { mode: 'sync', acquisition: 'raw' });
+export const mapped = DiBag.mapSync(metadata, value => value, { acquisition: 'raw' });
+export const asyncMapped = DiBag.mapAsync(metadata, value => value);
+export const explicitDefault = withLifetime(() => 1, 'scoped');
+export const defaultProvider: Provider<() => number> = explicitDefault;
+export const defaultModule: Module<{ value: number }, Readonly<{}>> = DiBag.module().add({ value: explicitDefault }).exports(['value']);
+export const defaultBag: Bag<{ value: () => number }> = DiBag.begin().add({ value: () => 1 }).end();
+export const mixed = Math.random() ? withLifetime(() => 1, 'root') : () => 1;
+export const wrappedMixed = withLifetime(mixed, 'transient');
+export const scopedCycle = DiBag.begin().add({ a: ({ b }: { b: number }): number => b, b: withLifetime(({ a }: { a: number }): number => a, 'transient') }).end();
+export const pureCycleRoot = DiBag.begin().add({ a: withLifetime(({ b }: { b: number }): number => b, 'transient'), b: withLifetime(({ a }: { a: number }): number => a, 'transient'), root: withLifetime(({ a }: { a: number }) => a, 'root') }).end();
+export const exportlessValid = DiBag.begin().install(DiBag.module().add({ privateRoot: withLifetime(() => 1, 'root') }).exports([])).end();
+export const renameCollisionValid = DiBag.module().add({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ db, publicDb }: { db: number; publicDb: number }) => db + publicDb, 'root') }).exports(['db', 'root']).rename('db', 'publicDb');
+export const renameCollisionBag = DiBag.begin().install(renameCollisionValid).end();
+export const reflectedScope = graph.scope;
+export const reflectedFork = graph.fork;
+export const resetPolicy = withLifetime(withLifetime(() => 1, 'root', { captureScoped: true }), 'scoped');
+export const replacedPrivateExport = DiBag.module().add({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') }).exports(['db']).rename('db', 'database');
+export const replacedPrivateBag = DiBag.begin().install(replacedPrivateExport).replace('database', withLifetime(() => 1, 'root')).end();

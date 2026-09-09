@@ -1,6 +1,12 @@
 {
   "extends": "./tsconfig.json",
-  "include": [
-    "src"
-  ]
+  "compilerOptions": {
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": []
+  },
+  "include": ["src/index.ts", "src/node.ts", "src/sas-box.ts", "src/val-box.ts"]
 }

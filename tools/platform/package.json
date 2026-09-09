@@ -1,0 +1,11 @@
+{
+  "name": "di-bag-platform-tools",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Locked development tools for portable packed-package verification",
+  "dependencies": {
+    "deno": "2.9.6",
+    "esbuild": "0.28.2",
+    "playwright": "1.63.0"
+  }
+}

@@ -1,17 +1,18 @@
 {
-  "extends": "@tsconfig/strictest/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./src",
-    "outDir": "./dist",
-    "declaration": true,
-    "module": "commonjs",
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "module": "NodeNext",
     "target": "es2022",
-    "paths": {},
-    "ignoreDeprecations": "5.0"
+    "moduleResolution": "NodeNext",
+    "rootDir": ".",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["bun"]
   },
-  "include": [
-    "src",
-    "examples",
-    "tests"
-  ]
+  "include": ["src", "tests", "examples"],
+  "exclude": ["tests/types/negative"]
 }

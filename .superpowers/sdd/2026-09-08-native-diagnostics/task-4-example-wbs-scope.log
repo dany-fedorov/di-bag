@@ -1,0 +1,26 @@
+{
+  "changes": [
+    {
+      "id": "one",
+      "title": "Plan milestone",
+      "at": 42,
+      "scope": "batch-a"
+    },
+    {
+      "id": "two",
+      "title": "Verify ownership",
+      "at": 42,
+      "scope": "batch-b"
+    }
+  ],
+  "lifecycle": [
+    "source:open",
+    "replay:open",
+    "collector:batch-a:open",
+    "collector:batch-b:open",
+    "collector:batch-a:close",
+    "collector:batch-b:close",
+    "replay:close",
+    "source:close"
+  ]
+}

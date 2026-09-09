@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.window", "dom", "es2022"],
+    "strict": true
+  },
+  "nodeModulesDir": "manual"
+}
