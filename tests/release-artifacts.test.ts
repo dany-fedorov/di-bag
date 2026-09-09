@@ -181,6 +181,10 @@ describe('release documentation contract', () => {
     }
     expect(readme).toContain('npm run check');
     expect(readme).toContain('npm run check:native');
+    expect(readme).toContain('zero reviewed gaps or unexpected diagnostics');
+    expect(readme).toContain('applications at 1,000 providers');
+    expect(readme).toContain('groups of 50');
+    expect(readme).not.toContain('27 explicitly recorded replacement diagnostic-quality gaps');
     expect(migration).toContain('application-owned plugin loading');
     expect(tracker).toContain('Local release-candidate handoff');
     expect(tracker).toContain('registry version and publication remain unavailable');

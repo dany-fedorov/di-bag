@@ -1,6 +1,6 @@
 # Compiler scalability design
 
-Date: 2026-09-08. Status: specified for implementation; no new scale success is claimed.
+Date: 2026-09-08. Status: implemented; support boundary amended 2026-09-09.
 
 Binding program: `2026-09-06-enterprise-di-design.md`, requirement T2. Companion:
 `2026-09-08-native-diagnostics-design.md`. Inspected source checkpoint:
@@ -179,3 +179,31 @@ case evidence; root projections; incremental installations and remaining-depth
 decision; physical consumers/full matrices/reporting. The diagnostics plan owns
 replacement signature redesign. Execute source mutations serially and rebase
 measurements on the actual combined source before final acceptance.
+
+## 2026-09-09 support-boundary amendment
+
+The original matrix remains immutable evidence, but exhaustive unchanged
+1000-call fluency is no longer a release-support requirement. A zero-generic
+control proves TypeScript 6.0.3 overflows in its binder between 550 and 575 calls
+before library types participate. Native-only checker prototypes could not meet
+the combined resource, soundness and inferred-declaration requirements. Treating
+those rows as an implementable library obligation would make T2 impossible on
+the pinned primary compiler.
+
+The supported scale contract is therefore:
+
+- individual named additions and replacements are continuously checked at 100
+  operations and measured at 500 operations;
+- direct token bindings and individual module installation are continuously
+  checked at 100 operations and measured at 500 operations;
+- 1000-provider applications use bulk registration, registration groups, or
+  reusable named modules of bounded size;
+- valid, missing and wrong-shape cases must pass or reject usefully for every
+  supported test shape on both compiler lanes and through physical declarations;
+- the original 108 rows remain a regression and compiler-limit inventory. A
+  failed unsupported fluent row may never be reported as compiler acceptance.
+
+This amendment selects the existing grouped source/API route. It does not change
+runtime behavior, erase graph checks, raise limits, increase the stack, or relabel
+historical rows. Any later claim of 1000 individual-call support requires a new
+compiler-support design and a fresh full matrix.

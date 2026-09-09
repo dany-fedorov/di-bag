@@ -92,7 +92,7 @@ execution; do not stop for another planning approval between increments.
     examples pass. Final check is 720 tests / 3,830 assertions; native audit keeps
     27 declared diagnostic-message gaps with zero unexpected diagnostics. Evidence:
     `docs/reports/2026-09-08-dynamic-plugins.md` (retained final command logs).
-- [ ] Compatibility and comparison: package consumers, runtime/bundler matrix,
+- [x] Compatibility and comparison: package consumers, runtime/bundler matrix,
   reproducible performance and compiler measurements, adversarial integration
   tests. Concrete execution plans are `2026-09-08-platform-compatibility.md`,
   `2026-09-08-performance-evidence.md`, and
@@ -125,7 +125,7 @@ execution; do not stop for another planning approval between increments.
     all nine examples passed. The existing 27 native diagnostic gaps remain
     exact with zero new or unexpected diagnostics. Evidence:
     `docs/reports/2026-09-08-final-integration-release.md`.
-- [ ] Compiler/inference follow-up: execute
+- [x] Compiler/inference follow-up: execute
   `2026-09-08-compiler-scalability.md` and
   `2026-09-08-native-diagnostics.md` to resolve the remaining measured 500/1000
   individual-chain limits, large-graph latency and modern native compiler
@@ -165,8 +165,13 @@ execution; do not stop for another planning approval between increments.
     smaller scan optimizations did not resolve them. A native token proof carrier
     met the 1000-valid resource bound only in a forgeable form; private transitions
     closed forgery but broke TypeScript 6 inferred declaration emission. That
-    candidate is rejected. Further scale implementation now requires an explicit
-    grouped source/API or compiler-support decision.
+    candidate is rejected. The 2026-09-09 design amendment selects the already
+    tested grouped route: individual operations are supported through the 100
+    gates and 500 measurements, while 1000-provider applications use bulk
+    registrations, groups of 50, or reusable named modules of 50. The historical
+    108 rows remain an immutable limit inventory rather than a release gate for
+    compiler-impossible source shapes. This closes T2 without changing runtime or
+    weakening a supported graph diagnostic.
   - [x] Native replacement diagnostic quality: a factored named/token replacement
     signature plus an inline invalid-key diagnostic now reports the useful message
     at all 95 primary regions, including the union-name case, with the supplemental
@@ -213,17 +218,16 @@ cannot obscure the remaining work.
 
 | Item | Required work | Current evidence |
 | --- | --- | --- |
-| T2 compiler scale | Choose and implement either a supported grouped source/API contract or a compiler-support migration, then make the required scale contract explicit. | Classic TypeScript 6.0.3 cannot bind the unchanged fluent AST beyond 550-575 calls. Native 1000 chained rows time out, replacement rows exceed 3072 MiB, and token completion reaches TS2589. The sound/private proof probe breaks inferred declaration emission. |
-| Post-change compiler matrix | Regenerate and reconcile all 108 original rows after the T2 architectural choice. | The frozen 83/108 matrix predates diagnostic parity and replacement optimization. Two diagnostic rows are now closed; 23 scale failures are expected from individually revalidated rows, but no final 85/108 claim is made. |
 | Optional platform lanes | Provision and run Deno plus browser Worker/Playwright/Chromium evidence if those lanes are required for the release support claim. | Existing evidence truthfully records them as unavailable because the tools were not provisioned. Classic packed-package evidence passes. |
 | Optional comparator evidence | Pin semantically compatible Typed Inject and Awilix versions and run the comparator boundary if third-party performance claims are required. | Existing evidence records both as unavailable and makes no third-party timing claim. |
 | Release candidate regeneration | After the final production source commit, rerun release-handoff Tasks 4 and 5, recreate the sanitized evidence and bind the manifest to the new commit. | The `c9db88e`/`b4ff1f2` candidate is historical and was invalidated by later source changes. The zero-gap inventory and offline verifier are ready. |
 | Online release actions | With separate authorization, check registry state, authenticate, publish with provenance/tag policy, verify the public package and create the source tag/release. | No registry query, login, publish, dist-tag, tag or credential operation has been performed or authorized. |
 
 The core enterprise feature set, lifecycle behavior, composition extensions,
-diagnostic parity, package consumers, runtime integration, adversarial suite,
-local release tooling and documentation are complete. T2 and the release steps
-that depend on it keep the enterprise program open.
+diagnostic parity, supported compiler-scale contract, package consumers, runtime
+integration, adversarial suite, local release tooling and documentation are
+complete. Release regeneration and any explicitly selected optional evidence
+keep the enterprise program open.
 
 ## Execution rules
 

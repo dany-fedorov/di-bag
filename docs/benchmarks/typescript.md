@@ -437,3 +437,25 @@ directory retains fresh logs for the full four-lane matrix. Its result remains
 83/108 with the same 25 unresolved rows described above. In particular, these
 smaller repeated controls do not establish the 500/1,000 individual-chain
 limits and do not replace the non-completing exhaustive rows.
+
+## Supported scale contract (2026-09-09)
+
+The final type-only follow-up reduced 100/500 named replacement work by about
+64-66% while preserving the complete source, package and declaration contracts.
+Native replacement diagnostic parity now has zero reviewed gaps, closing the two
+diagnostic-quality failures in the frozen matrix. The complete matrix has not
+been relabelled because its source predates these changes.
+
+The unchanged classic 1000-call AST is outside the supported source shape. A
+zero-generic fluent control passes at 550 calls and overflows the TypeScript 6.0.3
+binder at 575, before library checking. Native 1000 chained, replacement and
+token forms still cross fixed time, memory or instantiation bounds. Soundness and
+declaration-emission probes rejected the remaining type-only shortcuts.
+
+The release contract supports individual operations through the continuously
+tested 100-operation gates and retained 500-operation measurements. At 1,000
+providers, use bulk registration, registration groups of 50, or reusable named
+modules of 50. The grouped and named-module valid, missing and wrong-shape cases
+pass on the pinned classic and native compilers. The original 108-row inventory
+remains available to detect compiler changes and to prevent failed fluent rows
+from being mistaken for accepted checks.

@@ -183,7 +183,7 @@ Every row is required before claiming the program complete.
 | B1 | Correct sas-box acquisition capability API and packaging | runtime tests, strict declaration fixtures, tarball consumers |
 | B2 | Correct val-box conversions and immutable snapshots | nine-way runtime/type fixtures, mutation-isolation tests, tarball consumers |
 | T1 | Registration, override, descriptor, and receiver hardening | no-cast regression fixtures plus runtime hidden-key tests |
-| T2 | Scalable inference and useful errors | generated 100/500/1000-provider graphs, chained and modular composition measurements, negative diagnostics |
+| T2 | Scalable inference and useful errors | generated 100/500 individual-operation graphs, supported 1000-provider bulk/grouped/module graphs, retained individual-chain limit measurements, negative diagnostics |
 | M1 | Typed reusable modules, requirements, exports, and tokens | cross-file compiler fixtures and runtime private-provider isolation |
 | L1 | Root/scoped/transient instances and explicit sharing | identity and lifetime-leak tests across nested scopes |
 | L2 | Per-acquisition ownership and robust shutdown | async ordering, transient multiplicity, cleanup-error and race tests |

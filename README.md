@@ -1107,24 +1107,25 @@ and TypeScript's emitted-declaration resolution. Distribution files and type
 declarations are emitted to `dist/`.
 
 Classic TypeScript 6.0.3 remains the primary compiler. Native 7.0.2 checks the
-source and installed declaration contracts, but has 27 explicitly recorded
-replacement diagnostic-quality gaps: it rejects those inputs without exposing
-the intended useful message. Native acceptance reports those gaps separately;
-the scale matrices allow no such exceptions. The native development tests and
+source and installed declaration contracts. The strict native audit currently
+matches every expected diagnostic, including all replacement diagnostics, with
+zero reviewed gaps or unexpected diagnostics. The scale matrices allow no
+diagnostic exceptions. The native development tests and
 supervised reports currently require Linux. Native reports supervise the actual
 Linux executable with a 60-second limit, 3,072 MiB sampled child-RSS threshold,
 and 4 MiB combined output cap. These are bounded observations, not universal
-scale or editor-latency guarantees; failed matrix cases remain unsupported by
-that evidence. See the [modern compiler report](docs/reports/2026-09-07-modern-compilers.md).
+scale or editor-latency guarantees. See the
+[compiler scalability report](docs/reports/2026-09-08-compiler-scalability.md).
 
 Builders accumulate a flat union of registration entries internally; the public
 `Bag<R>` type still takes a registration map. Compile-time acceptance tests cover
 100 chained additions, 100 replacements, and 1,000 providers assembled from
-reusable registration groups, including missing and wrong-shaped dependencies.
-These groups are ordinary registration objects; they are not a nominal module
-API. The [compiler benchmark report](docs/benchmarks/typescript.md) records
-100/500/1,000-provider results and remaining limits. Passing the grouped gate
-does not establish that equally long individual call chains are supported.
+reusable registration groups and named modules, including missing and
+wrong-shaped dependencies. TypeScript 6.0.3 cannot bind an unchanged fluent AST
+beyond 550-575 calls under its default stack, so applications at 1,000 providers
+must use bulk registration, registration groups of 50, or reusable named
+modules. The [compiler benchmark report](docs/benchmarks/typescript.md) records
+the passing supported routes and retains every failed original fluent row.
 
 ## Performance evidence
 
