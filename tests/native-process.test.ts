@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, spyOn, test } from 'bun:test';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { supervise, validateLimits } from '../scripts/native-process.ts';
@@ -21,7 +21,7 @@ async function waitForExit(pid: number): Promise<void> {
   throw new Error(`Child ${pid} was not reaped`);
 }
 
-for (const failure of ['EIO', 'ENOENT', 'missing VmRSS'] as const) {
+for (const failure of ['EIO', 'ENOENT', 'ESRCH', 'missing VmRSS'] as const) {
   test(`supervisor terminates and reaps a live child on monitor ${failure}`, async () => {
     let pid = 0, samples = 0;
     const result = await supervise(node, ['-e', 'setInterval(() => {}, 1000)'], process.cwd(), limits, async childPid => {
@@ -41,7 +41,30 @@ for (const failure of ['EIO', 'ENOENT', 'missing VmRSS'] as const) {
   });
 }
 
-for (const sampleResult of ['missing VmRSS during exit', 'ENOENT after exit'] as const) {
+test('supervisor confirms ESRCH process disappearance before its exit callback runs', async () => {
+  let sampledPid = 0, probes = 0;
+  const kill = process.kill.bind(process);
+  // Model the OS reporting a departed PID before the JS child-exit notification.
+  // Keep a real child and real pipes to verify that completion still drains them.
+  const probe = spyOn(process, 'kill').mockImplementation((pid, signal) => {
+    if (pid === sampledPid && signal === 0) {
+      probes++;
+      throw Object.assign(new Error('process no longer exists'), { code: 'ESRCH' });
+    }
+    return kill(pid, signal);
+  });
+  try {
+    const result = await supervise(node, ['-e', "setTimeout(() => { console.log('out'); console.error('err'); }, 50)"], process.cwd(), limits, async pid => {
+      sampledPid = pid;
+      throw Object.assign(new Error('status read ESRCH during exit'), { code: 'ESRCH' });
+    });
+    expect(result).toMatchObject({ status: 0, signal: null, stdout: 'out\n', stderr: 'err\n' });
+    expect(result.terminationReason).toBeUndefined();
+    expect(probes).toBeGreaterThan(0);
+  } finally { probe.mockRestore(); }
+});
+
+for (const sampleResult of ['missing VmRSS during exit', 'ENOENT after exit', 'ESRCH after exit'] as const) {
   test(`supervisor drains streams and awaits pending sample cleanup for ${sampleResult}`, async () => {
     let release!: () => void;
     const held = new Promise<void>(resolve => { release = resolve; });
@@ -55,7 +78,7 @@ for (const sampleResult of ['missing VmRSS during exit', 'ENOENT after exit'] as
       sampled();
       await held;
       sampleCompleted = true;
-      if (sampleResult === 'ENOENT after exit') throw Object.assign(new Error('process exited'), { code: 'ENOENT' });
+      if (sampleResult !== 'missing VmRSS during exit') throw Object.assign(new Error('process exited'), { code: sampleResult.split(' ')[0] });
       return 'State:\tZ (zombie)\n';
     }).then(result => { completed = true; return result; });
     try {

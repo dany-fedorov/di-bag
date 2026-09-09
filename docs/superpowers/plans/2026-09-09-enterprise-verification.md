@@ -99,8 +99,15 @@ initial push. Delivery remains open until these corrections pass hosted CI.
 - [x] Reproduce the remaining release-verifier setup failure in an isolated
   clone and replace ignored sibling paths with fixture-owned canonical
   directories while preserving all production validation.
-- [x] Verify these changes locally and in an isolated clone, and obtain an
-  independent review with no actionable findings.
+- [x] Add live-process, pending-exit-callback and post-exit `ESRCH` regressions;
+  route `ESRCH` through the existing disappearance probe and retain all resource
+  limits, live-monitor rejection and stream draining. Include exact process
+  metadata in compiler failure messages.
+- [x] Verify the checkout/setup corrections locally and in an isolated clone,
+  and obtain an independent review with no actionable findings.
+- [x] Verify the supervisor correction with all 16 focused tests, both source
+  typecheckers and an independent code review. Full gates remain a separate
+  acceptance requirement below.
 
 Delivery requires pushing the follow-up and observing both hosted jobs pass for
 the delivered revision. The [branch workflow history](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml?query=branch%3Afeat%2Fv0.1)

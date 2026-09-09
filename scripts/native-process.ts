@@ -58,8 +58,10 @@ export async function supervise(executable: string, args: readonly string[], cwd
           if (result.peakObservedRssMiB > limits.maxRssMiB) stop('memory');
         }
       } catch (error) {
-        // /proc can disappear before the exit event is delivered. Confirm ownership has ended.
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        // A disappearing /proc path reports ENOENT; an already-open descriptor
+        // can report ESRCH before the exit callback. Confirm ownership has ended.
+        const code = (error as NodeJS.ErrnoException).code;
+        if (code === 'ENOENT' || code === 'ESRCH') {
           try { process.kill(child.pid, 0); if (!exited) stop('monitor', String(error)); }
           catch (probe) { if ((probe as NodeJS.ErrnoException).code !== 'ESRCH' && !exited) stop('monitor', String(error)); }
         } else if (!exited) stop('monitor', String(error));

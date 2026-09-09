@@ -83,7 +83,8 @@ for (const emitter of ['classic6', 'native7']) {
       for (const file of ['src', 'package.json', 'tsconfig.json', 'tsconfig.build.json']) cpSync(join(root, file), join(packageTree, file), { recursive: true });
       const built = await supervise(emitter === 'classic6' ? node : compiler.executable,
         [...(emitter === 'classic6' ? [join(root, 'node_modules/typescript/bin/tsc6')] : []), '-p', 'tsconfig.build.json'], packageTree, nativeLimits);
-      expect(built).toMatchObject({ status: 0, signal: null, stderr: '' }); expect(built.terminationReason).toBeUndefined();
+      const buildEvidence = JSON.stringify({ status: built.status, signal: built.signal, terminationReason: built.terminationReason, error: built.error });
+      expect(built, buildEvidence).toMatchObject({ status: 0, signal: null, stderr: '' }); expect(built.terminationReason, buildEvidence).toBeUndefined();
       const pack = await supervise(node, [npmCli, 'pack', '--ignore-scripts', '--json'], packageTree, nativeLimits);
       expect(pack.status).toBe(0);
       const archive = join(packageTree, JSON.parse(pack.stdout)[0].filename);

@@ -261,7 +261,7 @@ async function verifyDeclarations(consumer: string, checkout: string, versions: 
       const negativeConfig = resolve(out, `tsconfig.${downstream}.negative.json`); writeFileSync(negativeConfig, JSON.stringify({ compilerOptions: { strict: true, noEmit: true, skipLibCheck: false, noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true, module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022', types: [] }, files: [`negative.${format}`] }));
       const result = await supervise(compiler, ['-p', negativeConfig, '--pretty', 'false'], out, RELEASE_COMMAND_LIMITS);
       const diagnosticMatch = releaseNegativeDiagnosticMatch(negative, resolve(out, `negative.${format}`), result.stdout, out);
-      if (result.status === 0 || result.status === null || result.signal !== null || result.terminationReason !== undefined || result.stderr !== '' || !diagnosticMatch.accepted) throw new Error(`I14 negative declaration evidence mismatch for ${emitter}/${format}/${downstream}: ${JSON.stringify(diagnosticMatch)}\n${result.stdout}\n${result.stderr}`);
+      if (result.status === 0 || result.status === null || result.signal !== null || result.terminationReason !== undefined || result.stderr !== '' || !diagnosticMatch.accepted) throw new Error(`I14 negative declaration evidence mismatch for ${emitter}/${format}/${downstream}: ${JSON.stringify({ status: result.status, signal: result.signal, terminationReason: result.terminationReason, error: result.error, diagnosticMatch })}\n${result.stdout}\n${result.stderr}`);
     }
   }
 }

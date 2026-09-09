@@ -134,3 +134,26 @@ with 412 assertions, including the real Node/Bun archive and declaration
 consumers. Both classic and native source typechecks passed there as well. The
 strict native audit accepted all 124 files with 670 expected/670 matched
 diagnostics and zero unexpected diagnostics or failures.
+
+The [third hosted run](https://github.com/dany-fedorov/di-bag/actions/runs/34321229970)
+at `9b18b1d` passed the portable job and executed all 1,004 contract tests. It
+passed 1,002 tests; a completed classic build was incorrectly marked as a monitor
+failure, and the archive negative-declaration check failed despite matching its
+expected diagnostics. The latter error lacked process metadata, so its exact
+termination cause could not be distinguished from the retained message.
+
+Review found an unhandled supervisor exit race: Linux can return `ESRCH` when
+reading a process descriptor after exit, as documented by the
+[kernel](https://www.kernel.org/doc/html/latest/filesystems/proc.html). The
+supervisor recognized only `ENOENT`. A controlled regression reproduced an
+incorrect kill/monitor result before the exit callback; handling both errors
+through the existing process-ownership probe fixes it. A live process with either
+error still fails closed. Real post-exit stream-drain tests and the existing
+memory, timeout and output limits are retained. Compiler assertion messages now
+include status, signal, termination reason and monitor error to identify any
+future failure precisely.
+
+The corrected supervisor passed all 16 focused tests with 83 assertions and both
+source typecheckers. These focused results do not replace the complete gates.
+Hosted acceptance for the delivered revision is recorded separately in the
+branch workflow history.
