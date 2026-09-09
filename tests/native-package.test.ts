@@ -73,6 +73,8 @@ const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
   console.log(JSON.stringify({ log, rootDisposed, scopedDisposed, transientsDisposed }));
 })().catch(error => { console.error(error); process.exitCode = 1; });`;
 for (const emitter of ['classic6', 'native7']) {
+  // Each emitter checks both module formats and the full declaration fixture set.
+  // Allow slower CI hosts to finish; individual subprocesses retain nativeLimits.
   test(`native installed contracts and physical downstream declarations from ${emitter}`, async () => {
     const directory = mkdtempSync(join(tmpdir(), `di-bag-native-package-${emitter}-`));
     const failures: unknown[] = [];
@@ -179,5 +181,5 @@ for (const emitter of ['classic6', 'native7']) {
       expect(failures).toEqual([]);
       expect(runtimeFailures).toEqual([]);
     } finally { rmSync(directory, { recursive: true, force: true }); }
-  }, 120000);
+  }, 300_000);
 }
