@@ -171,3 +171,53 @@ classic compiler cannot bind the unchanged original 1000-call AST under the
 required default stack. Grouping 1000 providers in modules of 50 remains accepted
 in 3.15-3.30 seconds for valid, missing and wrong-shape scenarios, but is evidence
 for the documented usage route rather than acceptance of the original row.
+
+### Remaining native 1000-entry boundary
+
+Fresh selected-case runs at `ccf5b32352eb6c1150424087b424480d6a5d155f`
+revalidated all three native 1000 replacement scenarios. Valid, missing and
+wrong-shape were killed at the 3072 MiB sampled-RSS limit after 30.019, 25.968
+and 28.415 seconds respectively. The source SHA-256 was
+`6ea5528505d8dee131477a6057fd7e94cb2f099118f8a214bacce5d42788c914`, and
+the native compiler binary SHA-256 was
+`4f2de678286401759b3fb4475bafe35b8f32b4b3a07d92642bbf37eadc9b34a4`.
+Short-circuiting the impossible old-token scan for string-key registrations
+reduced native chained work by 14.6% at 100 and 18.6% at 500, but the 1000 row
+still timed out. It missed the plan's 25% work-reduction adoption threshold and
+did not resolve a required row, so it was rejected. Direct per-property variants
+were slower and were also rejected.
+
+Token-binding ablations localized most work to bind admission and final graph
+completion. Sound old/new-token scan short-circuits reduced work by 24.7% at
+100 and 31.3% at 500, but the 1000 row still returned TS2589 at about 70.6
+million instantiations. Removing final invalid-graph validation allowed the row
+to pass but was unsound for manually declared `Builder<E, C>` values.
+
+A correlated third generic was then tested as an adversarial feasibility probe.
+The first prototype let native TypeScript complete 1000 valid bindings in 40.93
+seconds at 2884.7 MiB sampled RSS and 124,358,713 instantiations, but its exported
+transition helper let callers mint a proof for an invalid graph. Making the
+transition private rejected malicious synthesis plus `any`, `never`, `unknown`,
+widened-builder and foreign-proof probes. That sounder form failed TypeScript 6
+declaration emission with TS4023/TS4094 because the private proof could not be
+named. Exporting enough structure for declaration emission again made arbitrary
+invalid proofs spellable. The prototype is therefore rejected: under the current
+public inferred-declaration contract, it cannot be both non-synthesizable and
+nameable.
+
+### Decision boundary
+
+No tested type-only change satisfies the unchanged 1000-row source, compiler,
+soundness and declaration requirements. The next implementation must be preceded
+by an explicit design choice between a supported grouped source/API shape and a
+compiler-support migration. Grouped modules are already a passing operational
+route, but they do not close original fluent-row acceptance. A compiler migration
+must rerun the complete source, declaration, package, diagnostic and 108-row
+evidence rather than inheriting results from the pinned lanes.
+
+After diagnostic parity, the prior frozen 83/108 matrix is historical. The two
+native replacement diagnostic rows are now closed, leaving 23 expected scale
+failures based on individually revalidated affected rows: six classic named,
+six classic token, six native named and five native token. This is not relabelled
+as an 85/108 final matrix because all 108 rows have not been regenerated on the
+post-optimization source.

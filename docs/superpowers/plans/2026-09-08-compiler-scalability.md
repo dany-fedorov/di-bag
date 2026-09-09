@@ -651,5 +651,17 @@ and overflows the TypeScript 6.0.3 binder at 575 and above under the required
 default stack. The unchanged 1000-call chained and replacement forms therefore
 cannot be fixed by library types on this compiler. The grouped-50 1000-provider
 form remains a passing usage route, but it does not satisfy the original row.
-T2 stays open for a compiler-support or source-shape decision and for the native
-token completion work.
+Fresh post-optimization native runs also retain all three 1000 replacement RSS
+failures. String-key scan short-circuits did not resolve the required chained or
+replacement rows and were rejected. Native token ablations isolated final graph
+completion; a correlated-proof prototype passed the 1000 valid row within bounds
+only while callers could forge invalid proofs. Private transitions closed that
+hole but caused TS4023/TS4094 on inferred TypeScript 6 declaration emission, and
+making the proof nameable reopened forgery. The candidate is rejected.
+
+T2 stays open. Under the fixed plan constraints, further implementation requires
+an explicit supported grouped source/API shape or a separately justified compiler
+migration. Diagnostic parity closes the two prior message-quality rows, so 23
+scale rows are expected to remain from individually revalidated evidence; the
+complete post-change 108 matrix remains to be regenerated after the architectural
+choice and must not be inferred from the historical 83/108 result.

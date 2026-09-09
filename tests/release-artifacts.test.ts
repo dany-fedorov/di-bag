@@ -627,9 +627,10 @@ describe('archive verifier', () => {
     }
   });
   test('rejects malformed dependency, files, and bundled dependency metadata shapes', () => {
+    publish(manifest);
     for (const [field, malformed] of [['dependencies', []], ['peerDependencies', ['x']], ['optionalDependencies', 1], ['files', {}], ['bundledDependencies', {}]] as const) {
       const value: any = structuredClone(manifest), entries = archiveEntries('di-bag'), packageEntry = entries.find(entry => entry.path === 'package/package.json')!, metadata = JSON.parse(packageEntry.content); metadata[field] = malformed; packageEntry.content = JSON.stringify(metadata);
-      replaceArchive(value, 'di-bag', archiveOf(entries), `malformed-${field}`); publish(value); expect(verifyReleaseManifestStatic(value).failures.some(failure => failure.includes('metadata shape'))).toBe(true);
+      replaceArchive(value, 'di-bag', archiveOf(entries), `malformed-${field}`); expect(verifyReleaseManifestStatic(value).failures.some(failure => failure.includes('metadata shape'))).toBe(true);
     }
   });
   test('rejects forbidden source, test, fixture, dependency, credential, and tarball content', () => {
