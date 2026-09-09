@@ -717,7 +717,7 @@ describe('archive verifier', () => {
   });
   test('installs owned verified bytes and passes real Node/Bun, CJS/ESM, core-only, and declaration oracles', async () => {
     publish(manifest); const work = resolve(directory, 'real-work'); const result = await verifyReleaseArtifacts(manifestPath, work);
-    expect(result).toEqual({ ok: true, failures: [] });
+    expect(result, result.failures.join('\n')).toEqual({ ok: true, failures: [] });
     for (const record of manifest.packages) expect(new Uint8Array(readFileSync(resolve(work, `archives/${record.name}-0.1.0.tgz`)))).toEqual(new Uint8Array(readFileSync(record.archive)));
     for (const emitter of ['classic6', 'native7']) for (const format of ['cts', 'mts']) { const declaration = resolve(work, `consumer/declarations-${emitter}-${format}/out/producer.d.${format}`); expect(existsSync(declaration)).toBe(true); expect(existsSync(resolve(work, `consumer/declarations-${emitter}-${format}/producer.${format}`))).toBe(false); }
   }, 180_000);
