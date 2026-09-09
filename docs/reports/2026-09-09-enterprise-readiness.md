@@ -22,7 +22,7 @@ tests and first-party upstream sources supplied the review evidence.
 | Informational platform exit status accepted unavailable lanes | Added `check:platform`; required mode rejects unavailable, missing, duplicate, reordered and failed rows. Informational collection retains its documented behavior. |
 | Test expectations assumed portable tools were always absent | Kept explicit unavailable fixtures and made repository integration tests require successful execution of every provisioned lane. |
 | Installed tool evidence could report an inconsistent or nonnumeric version | Added rejecting regressions, numeric version admission and agreement with the actual version output. Local manifest errors do not fall back silently. |
-| Executable byte copying made Chromium hashing take about 14 seconds under Bun | A view of the same 293,285,184 bytes produced the identical hash in 160 ms. Version probes are also asynchronous and bounded. No platform timeout was raised. |
+| Executable byte copying made Chromium hashing take about 14 seconds under Bun | A view of the same 293,285,184 bytes produced the identical hash in 160 ms. Version probes are also asynchronous and bounded. The production platform timeout remains unchanged. |
 | The real browser test timed out inside Bun's promise matcher | Await Playwright execution before the matcher; preserve the success and duplicate/error/console/timeout assertions. |
 | Request/test/dynamic-feature patterns were implicit | Added an application-owned scope recipe and seven integration cases covering concurrency, private dependencies, root sharing, cancellation on close, error retention, test substitutions, dynamic import/plugin validation/contributions, startup rollback and thenable work results. |
 | The new recipe initially described an awaited thenable as its wrapper type | A compiler regression failed before changing its return contract to `Promise<Awaited<R>>`; both compiler lanes now accept the exact number-valued consumer. Core provider Promise identity is unchanged. |
@@ -88,5 +88,32 @@ with its locked `npm ci` command.
   revisions. This branch-delivery task does not publish packages or create a
   source tag. The existing untracked execution handoff is preserved.
 
-Branch delivery target: `origin/feat/v0.1`. Remote verification is recorded in
-the final delivery update after the authorized push.
+## Hosted CI follow-up
+
+Implementation commit `709de4628480dd16f45a4490d9facabb3adff46e` was pushed
+to the existing `origin/feat/v0.1` branch. The first
+[hosted run](https://github.com/dany-fedorov/di-bag/actions/runs/34319167669)
+passed the required archive/Deno/Chromium matrix but failed both jobs because of
+test setup assumptions that were hidden by the local workspace:
+
+- Two adversarial source fixtures imported ignored sibling source checkouts.
+  They now import the public box packages, installed from the tracked archives
+  as development dependencies. Production dependencies remain empty.
+- The broken-archive fixture copied historical machine paths. It now uses the
+  active configured tool identities and still requires the exact missing-build-
+  input failure and nonzero exit result.
+- Three real browser protocol mutations used a one-second budget including cold
+  Chromium startup. They now use the existing six-second production lane budget.
+  The explicit 100 ms timeout mutation and all protocol failure assertions remain.
+
+Local follow-up verification passed both typecheckers, 128 adversarial/type tests
+with 460 assertions, and all 29 platform tests with 226 assertions, including
+actual Chromium protocol failures. An isolated clone with no sibling checkouts
+or ignored platform packages passed a locked `npm ci`, foundation pinning, both
+typechecks and 42 affected tests with 233 assertions. The initial offline install
+attempt lacked the compiler tarball in its cache; the locked registry install
+succeeded. Independent review found no actionable follow-up issues. Hosted
+acceptance requires both jobs to pass; the
+[branch workflow history](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml?query=branch%3Afeat%2Fv0.1)
+records each delivered revision independently of these local observations.
+The pre-existing untracked execution handoff is preserved.

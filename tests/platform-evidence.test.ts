@@ -474,7 +474,7 @@ test('platform evidence module imports under the pinned Node ESM loader', async 
 test('platform command retains archive failure rows and makes required failures nonzero', async () => {
   const root = resolve(__dirname, '..');
   const brokenRoot = temporaryRoot();
-  cpSync(join(root, 'tools/platform-versions.json'), join(brokenRoot, 'tools/platform-versions.json'));
+  writeFileSync(join(brokenRoot, 'tools/platform-versions.json'), JSON.stringify(configuredTools(root)));
   for (const name of ['src', 'package.json', 'package-lock.json', 'tsconfig.json', 'README.md', 'LICENSE']) {
     cpSync(join(root, name), join(brokenRoot, name), { recursive: true });
   }

@@ -258,10 +258,12 @@ test('provisioned browser tools execute the real packed archive lane', async () 
       lane: 'browser-worker-minified', status: 'pass',
     });
     const payload = JSON.stringify({ lane: 'browser-worker-minified', result: portableResult });
-    const runtimeMutations: Array<[string, BrowserBundle, number, string]> = [
-      ['duplicate', browserBundle(`postMessage(${payload});postMessage(${payload});`), 1_000, 'Worker posted extra messages'],
-      ['error', browserBundle("throw new Error('worker exploded')"), 1_000, 'Worker error:'],
-      ['console', browserBundle(`console.log('noise');postMessage(${payload});`), 1_000, 'Worker console output is not empty'],
+    // Protocol mutations need the normal lane budget, which includes cold browser startup.
+    // Only the timeout mutation intentionally shortens that budget.
+    const runtimeMutations: Array<[string, BrowserBundle, number | undefined, string]> = [
+      ['duplicate', browserBundle(`postMessage(${payload});postMessage(${payload});`), undefined, 'Worker posted extra messages'],
+      ['error', browserBundle("throw new Error('worker exploded')"), undefined, 'Worker error:'],
+      ['console', browserBundle(`console.log('noise');postMessage(${payload});`), undefined, 'Worker console output is not empty'],
       ['timeout', browserBundle('void 0;'), 100, 'Worker timed out'],
     ];
     for (const [name, mutated, timeoutMs, reason] of runtimeMutations) {

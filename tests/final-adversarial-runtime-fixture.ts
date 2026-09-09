@@ -2,8 +2,8 @@ import { DiBag, DiBagCleanupError, DiBagPluginError, DiBagStartupCancelledError,
 import { DiBag as PortableDiBag } from '../src';
 import { fromSasBox } from '../src/sas-box';
 import { fromValBox, fromValBoxAsync } from '../src/val-box';
-import { SasBox } from '../.related-repos/sas-box/src';
-import { ValBox } from '../.related-repos/val-box/src';
+import { SasBox } from 'sas-box';
+import { ValBox } from 'val-box';
 
 export type FinalAdversarialRuntimeResult = Readonly<{
   readonly I1: Readonly<{ payloadIdentity: true; metadataIdentity: true; aliasIdentity: true; dispose: readonly ['payload', 'sas']; acquisitions: 1 }>;

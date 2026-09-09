@@ -6,6 +6,10 @@ verified independent checkouts. They allow fresh offline consumer tests without
 depending on `.related-repos` or temporary artifacts. They are excluded from the
 published di-bag package by its `files: ["dist"]` allowlist.
 
+Root development dependencies install these same archives with `npm ci`, so
+source typechecks and adversarial runtime fixtures also exercise their public
+package exports in a fresh checkout.
+
 | Archive | Repository revision | SHA-512 |
 | --- | --- | --- |
 | sas-box-0.1.0.tgz | b895f9d1f1d168992f44e9f46025bc1ac9d26e14 | 1df071c09f98ae59141986622f174a1180d28835acd4aef2d7aac5339e5e5debfeb4d9c5de9f32d87181f92183c3a18af1ac4b84a4baec43971b3aec62d329db |

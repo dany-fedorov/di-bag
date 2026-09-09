@@ -57,9 +57,11 @@
   "author": "Dany Fedorov",
   "license": "MIT",
   "devDependencies": {
-    "@typescript/native": "npm:typescript@7.0.2",
     "@types/bun": "^1.3.0",
-    "typescript": "npm:@typescript/typescript6@6.0.2"
+    "@typescript/native": "npm:typescript@7.0.2",
+    "sas-box": "file:tests/fixtures/box-packages/sas-box-0.1.0.tgz",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "val-box": "file:tests/fixtures/box-packages/val-box-0.1.0.tgz"
   },
   "overrides": {
     "@typescript/old": "npm:typescript@6.0.3"

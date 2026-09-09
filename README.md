@@ -1086,7 +1086,9 @@ non-blocking observers, so applications separately await telemetry when needed.
 Plugin loading remains application-owned: validation admits the output while an
 optional plugin disposer retains ownership of the original acquired value.
 
-`npm run check` is the primary source, runtime, declaration, package, and build
+`npm ci` installs the tracked box package archives as development dependencies;
+source checks do not require sibling source checkouts. `npm run check` is the
+primary source, runtime, declaration, package, and build
 gate. Run `npm run typecheck:native`, `npm run build:native`, and
 `npm run check:native` as separate native checks. A release candidate additionally
 requires the local, offline archive workflow in [`PUBLISHING.md`](PUBLISHING.md).
@@ -1094,7 +1096,8 @@ That workflow records unavailable registry facts rather than claiming a release,
 tag, remote commit, publication, or version availability.
 
 ```sh
-npm install
+npm ci
+npm run platform:pin   # capture the installed foundation tool identities
 npm run check          # strict types, runtime/type/package tests, build
 npm run check:native   # native 7.0.2 source rejection gate; requires zero message gaps
 npm run typecheck:native

@@ -9,8 +9,8 @@ import {
 } from '../../src';
 import { fromSasBox } from '../../src/sas-box';
 import { fromValBox } from '../../src/val-box';
-import { SasBox } from '../../.related-repos/sas-box/src';
-import { ValBox } from '../../.related-repos/val-box/src';
+import { SasBox } from 'sas-box';
+import { ValBox } from 'val-box';
 import type { Assert, Equal } from './assert';
 
 export const portKey = Symbol('final-adversarial-port');

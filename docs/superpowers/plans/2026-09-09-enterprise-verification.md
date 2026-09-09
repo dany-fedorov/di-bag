@@ -80,7 +80,26 @@ Files: new `docs/research/2026-09-09-enterprise-parity.md`, new readiness report
   reconcile stale tracker statements against current release evidence.
 - [x] Run `npm run check`, native typecheck/build/audit, all runnable examples,
   strict platform evidence and independent review. Retain actual output counts.
-- [ ] Run `git diff --check`, inspect the complete staged file list, commit only
+- [x] Run `git diff --check`, inspect the complete staged file list, commit only
   task-owned changes, push `HEAD:feat/v0.1`, and verify remote SHA equals local HEAD.
-- [ ] Audit the full user objective and original enterprise acceptance rows before
+- [x] Audit the full user objective and original enterprise acceptance rows before
   marking complete; missing evidence or parity remains unfinished work.
+
+## Hosted CI follow-up
+
+The first hosted run found fresh-checkout assumptions after the local gates and
+initial push. Delivery remains open until these corrections pass hosted CI.
+
+- [x] Install the tracked sas-box/val-box archives as development dependencies
+  and import their public exports in the adversarial source fixtures.
+- [x] Copy the active platform identity into the broken-archive fixture, so
+  missing build input remains the reason for failure on every provisioned host.
+- [x] Give real browser protocol mutations the existing production lane budget,
+  including cold startup; retain the deliberately short timeout mutation.
+- [x] Verify these changes locally and in an isolated clone, and obtain an
+  independent review with no actionable findings.
+
+Delivery requires pushing the follow-up and observing both hosted jobs pass for
+the delivered revision. The [branch workflow history](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml?query=branch%3Afeat%2Fv0.1)
+is the revision-specific acceptance record; local success alone does not establish
+hosted acceptance.
