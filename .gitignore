@@ -9,3 +9,8 @@
 
 # Independent checkouts used for cross-package development.
 /.related-repos/
+
+# Host-specific platform identities and development tools.
+/tools/platform-versions.local.json
+/tools/platform/node_modules/
+/tools/platform/.browsers/

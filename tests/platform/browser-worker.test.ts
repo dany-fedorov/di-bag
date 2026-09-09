@@ -253,7 +253,8 @@ test('provisioned browser tools execute the real packed archive lane', async () 
   const archive = await packIsolatedClassic(root, node, npm, classic6);
   const bundle = await bundleBrowserRoot(archive, esbuild as VerifiedTool);
   try {
-    await expect(runBrowserWorkerLane(bundle, chromium as VerifiedTool)).resolves.toMatchObject({
+    const actual = await runBrowserWorkerLane(bundle, chromium as VerifiedTool);
+    expect(actual).toMatchObject({
       lane: 'browser-worker-minified', status: 'pass',
     });
     const payload = JSON.stringify({ lane: 'browser-worker-minified', result: portableResult });
@@ -264,8 +265,8 @@ test('provisioned browser tools execute the real packed archive lane', async () 
       ['timeout', browserBundle('void 0;'), 100, 'Worker timed out'],
     ];
     for (const [name, mutated, timeoutMs, reason] of runtimeMutations) {
-      await expect(runBrowserWorkerLane(mutated, chromium as VerifiedTool, undefined, timeoutMs), name)
-        .resolves.toMatchObject({ status: 'fail', reason: expect.stringContaining(reason) });
+      const result = await runBrowserWorkerLane(mutated, chromium as VerifiedTool, undefined, timeoutMs);
+      expect(result, name).toMatchObject({ status: 'fail', reason: expect.stringContaining(reason) });
     }
   } finally {
     rmSync(archive.packageTree, { recursive: true, force: true });

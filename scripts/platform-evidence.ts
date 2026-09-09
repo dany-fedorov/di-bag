@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { arch, platform, release, tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
@@ -86,7 +86,8 @@ export type BrowserWorkerDriver = (
 ) => Promise<BrowserWorkerTranscript>;
 
 function sha256File(path: string): string {
-  return createHash('sha256').update(Uint8Array.from(readFileSync(path))).digest('hex');
+  const bytes = readFileSync(path);
+  return createHash('sha256').update(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength)).digest('hex');
 }
 
 function sha256Bytes(bytes: Uint8Array): string {
@@ -102,7 +103,8 @@ function isStringTuple(value: unknown): value is [string, ...string[]] {
 }
 
 function readManifest(root: string): PlatformVersions {
-  const path = join(root, 'tools', 'platform-versions.json');
+  const local = join(root, 'tools', 'platform-versions.local.json');
+  const path = existsSync(local) ? local : join(root, 'tools', 'platform-versions.json');
   const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'));
   if (!parsed || typeof parsed !== 'object' || (parsed as { schema?: unknown }).schema !== 1) {
     throw new Error('platform tool manifest must have schema 1');
@@ -120,7 +122,7 @@ function assertPin(name: PlatformTool, value: unknown): ToolPin {
     return pin as ToolPin;
   }
   if (pin.status !== 'pinned' || !isStringTuple(pin.argv) || !isStringTuple(pin.versionArgv)
-    || typeof pin.version !== 'string' || !pin.version
+    || typeof pin.version !== 'string' || !/^\d+(?:\.\d+){2,3}$/.test(pin.version)
     || typeof pin.versionText !== 'string' || !pin.versionText
     || typeof pin.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(pin.sha256)) {
     throw new Error(`platform tool ${name} has incomplete pinned identity`);
@@ -148,8 +150,16 @@ export async function verifyTool(root: string, name: PlatformTool): Promise<Veri
     if (!existsSync(pin.argv[0]) || !statSync(pin.argv[0]).isFile()
       || !existsSync(hashPath) || !statSync(hashPath).isFile()) return { status: 'unavailable', reason: 'not-provisioned' };
     if (sha256File(hashPath) !== pin.sha256) return { status: 'unavailable', reason: 'hash-mismatch' };
-    const probe = spawnSync(pin.versionArgv[0], pin.versionArgv.slice(1), { cwd: root, encoding: 'utf8', maxBuffer: 1024 * 1024 });
-    if (probe.error || probe.status !== 0 || probe.signal !== null || probe.stderr !== '' || probe.stdout !== pin.versionText) {
+    // A bounded asynchronous probe prevents an unresponsive tool from blocking
+    // the runner while independent installed-tool identities are checked.
+    const probe = await new Promise<{ error: Error | null; stdout: string; stderr: string }>(resolve => {
+      execFile(pin.versionArgv[0], pin.versionArgv.slice(1), {
+        cwd: root, encoding: 'utf8', timeout: 10_000, maxBuffer: 1024 * 1024,
+      }, (error, stdout, stderr) => resolve({ error, stdout, stderr }));
+    });
+    const versionWords = probe.stdout.split('\n')[0]?.trim().split(/\s+/) ?? [];
+    if (probe.error || probe.stderr !== '' || probe.stdout !== pin.versionText
+      || !versionWords.some(word => word === pin.version || word === `v${pin.version}`)) {
       return { status: 'unavailable', reason: 'version-mismatch' };
     }
   } catch {
@@ -787,6 +797,7 @@ function toolEvidence(tool: VerifiedTool | { status: 'unavailable'; reason: Tool
   if (tool.status === 'unavailable') return { status: tool.status, reason: tool.reason };
   return {
     status: tool.status,
+    hashScope: 'version-probe-entry',
     argv: tool.argv,
     versionArgv: tool.versionArgv,
     version: tool.version,
@@ -869,6 +880,8 @@ export async function runPlatformEvidence(root = platformRoot, outputRoot = root
   const executionEnvironment = evidenceEnvironment();
   const source = {
     lockfileSha256: sha256File(join(root, 'package-lock.json')),
+    platformLockfileSha256: existsSync(join(root, 'tools/platform/package-lock.json'))
+      ? sha256File(join(root, 'tools/platform/package-lock.json')) : null,
     srcSha256: sourceTreeSha256(root),
   };
   const finish = (rows: readonly [PlatformRow, PlatformRow, PlatformRow]): PlatformEvidenceResult => {
@@ -965,15 +978,24 @@ export async function runPlatformEvidence(root = platformRoot, outputRoot = root
   }
 }
 
-export function platformEvidenceExitCode(rows: readonly PlatformRow[]): 0 | 1 {
+export function platformEvidenceExitCode(rows: readonly PlatformRow[], required = false): 0 | 1 {
+  if (required) {
+    return rows.map(row => row.lane).join(',') === 'archive,deno-root,browser-worker-minified'
+      && rows.every(row => row.status === 'pass') ? 0 : 1;
+  }
   return rows[0]?.lane === 'archive' && rows[0].status === 'pass'
     && rows.every(row => row.status !== 'fail') ? 0 : 1;
 }
 
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === platformScript) {
+  const args = process.argv.slice(2);
+  if (args.length > 1 || (args.length === 1 && args[0] !== '--required')) {
+    process.stderr.write('Usage: node scripts/platform-evidence.ts [--required]\n');
+    process.exit(1);
+  }
   runPlatformEvidence().then(result => {
     for (const row of result.rows) process.stdout.write(`${stableJson(row)}\n`);
-    process.exitCode = platformEvidenceExitCode(result.rows);
+    process.exitCode = platformEvidenceExitCode(result.rows, args[0] === '--required');
   }).catch(error => {
     process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
     process.exitCode = 1;

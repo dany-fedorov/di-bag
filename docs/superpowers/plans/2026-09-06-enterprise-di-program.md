@@ -220,23 +220,27 @@ execution; do not stop for another planning approval between increments.
   manifest and final audit are bound to the resulting commit immediately after
   commit. No online command was run.
 
-## Remaining enterprise work as of 2026-09-09
+## Delivery and publication status as of 2026-09-09
 
-All incomplete items are listed here so parent checkboxes and historical evidence
-cannot obscure the remaining work.
+These ongoing gates and separately scoped publication actions distinguish branch
+delivery from a registry release. Historical evidence above retains its original
+commit identities and limitations.
 
 | Item | Required work | Current evidence |
 | --- | --- | --- |
-| Optional platform lanes | Provision and run Deno plus browser Worker/Playwright/Chromium evidence if those lanes are required for the release support claim. | Existing evidence truthfully records them as unavailable because the tools were not provisioned. Classic packed-package evidence passes. |
+| Portable runtime verification | Keep the strict Deno and browser Worker CI lanes passing on locked tools. | On 2026-09-09 the actual classic archive passed Deno 2.9.6 and a minified Chromium 153.0.8010.12 Worker. The new host pinning command and `check:platform` make unavailable lanes fail required verification. Historical unavailable rows remain unchanged. |
 | Optional comparator evidence | Pin semantically compatible Typed Inject and Awilix versions and run the comparator boundary if third-party performance claims are required. | Existing evidence records both as unavailable and makes no third-party timing claim. |
-| Release candidate regeneration | After the final production source commit, rerun release-handoff Tasks 4 and 5, recreate the sanitized evidence and bind the manifest to the new commit. | The `c9db88e`/`b4ff1f2` candidate is historical and was invalidated by later source changes. The zero-gap inventory and offline verifier are ready. |
+| Publication candidate refresh | Before an eventual publication, produce a fresh candidate for the exact intended release commit. | The completed `cb24cfa` candidate and `fee5a42` handoff remain archived evidence for those commits. The subsequent verification tooling and README changes are checked for branch delivery and do not relabel that archive as a later release. |
 | Online release actions | With separate authorization, check registry state, authenticate, publish with provenance/tag policy, verify the public package and create the source tag/release. | No registry query, login, publish, dist-tag, tag or credential operation has been performed or authorized. |
 
 The core enterprise feature set, lifecycle behavior, composition extensions,
 diagnostic parity, supported compiler-scale contract, package consumers, runtime
 integration, adversarial suite, local release tooling and documentation are
-complete. Release regeneration and any explicitly selected optional evidence
-keep the enterprise program open.
+complete under the documented DI capability and compiler support contracts.
+The 2026-09-09 branch-delivery increment adds an explicit NestJS/Angular comparison,
+CI, actual portable runtime evidence, and tested application-owned request, test
+fixture and dynamic-feature lifecycle recipes. Publication remains a separate
+action; no registry or release status is inferred from a verified branch push.
 
 ## Execution rules
 

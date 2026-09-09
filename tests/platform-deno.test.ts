@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { DiBag } from '../src';
-import { evaluateDenoChild, runDenoLane, verifyTool, type PackedArchive } from '../scripts/platform-evidence';
+import { evaluateDenoChild, runDenoLane, type PackedArchive } from '../scripts/platform-evidence';
 import { portableContract, validatePortableInspection } from './platform/portable/contract';
 
 test('portable root contract has host-independent semantics', async () => {
@@ -104,8 +104,7 @@ test('Deno child validation fails closed when the expected installation is absen
 
 test('an unprovisioned Deno pin yields an explicit unavailable row without touching the archive', async () => {
   const archive = { path: '/missing/archive.tgz', packageTree: '/missing/tree', sha256: '0'.repeat(64), files: [] } satisfies PackedArchive;
-  const deno = await verifyTool(resolve(__dirname, '..'), 'deno');
-  expect(deno).toEqual({ status: 'unavailable', reason: 'not-provisioned' });
+  const deno = { status: 'unavailable', reason: 'not-provisioned' } as const;
   await expect(runDenoLane(archive, deno)).resolves.toMatchObject({
     lane: 'deno-root',
     status: 'unavailable',

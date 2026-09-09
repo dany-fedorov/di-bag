@@ -37,6 +37,8 @@
     "benchmark:compiler-controls": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/benchmark-compiler-controls.ts",
     "benchmark:runtime": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/performance-evidence.ts --current",
     "evidence:platform": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/platform-evidence.ts",
+    "platform:pin": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/pin-platform-tools.ts",
+    "check:platform": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/platform-evidence.ts --required",
     "prepack": "npm run build",
     "check": "npm run typecheck && npm test && npm run build"
   },

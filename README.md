@@ -3,6 +3,11 @@
 A small dependency bag for service factories, with inferred requirements,
 lazy resolution, scoped forks, and optional disposal. Zero runtime dependencies.
 
+The [enterprise DI comparison](docs/research/2026-09-09-enterprise-parity.md)
+maps its capabilities to NestJS, Angular and established containers. See the
+[integration guide](docs/guides/enterprise-integration.md) for tested request
+scope ownership, checked test substitutions and dynamic feature lifecycles.
+
 ## Compose services
 
 ```ts
@@ -1091,7 +1096,7 @@ tag, remote commit, publication, or version availability.
 ```sh
 npm install
 npm run check          # strict types, runtime/type/package tests, build
-npm run check:native   # native 7.0.2 source rejection gate; reports known message gaps
+npm run check:native   # native 7.0.2 source rejection gate; requires zero message gaps
 npm run typecheck:native
 npm run build:native
 npm run benchmark:types # isolated Node compiler measurements (Node 24+)
@@ -1100,6 +1105,33 @@ npm run benchmark:types -- --native --tokens # supervised native token matrix (L
 node scripts/check-token-scale.ts bindings valid # one isolated 100-token case
 npm pack --dry-run    # builds and previews the publication contents
 ```
+
+CI runs the source, package and both compiler gates on Linux with Node 24.20.0,
+npm 11.19.0 and Bun 1.4.0. A separate portable job runs the actual packed root
+package in Deno and a minified Chromium Worker. To reproduce that job locally:
+
+```sh
+npm ci
+npm ci --prefix tools/platform --no-audit --no-fund
+export PLAYWRIGHT_BROWSERS_PATH="$PWD/tools/platform/.browsers"
+node tools/platform/node_modules/playwright/cli.js install chromium
+npm run platform:pin -- --all
+npm run check:platform
+```
+
+On Linux hosts missing browser system libraries, use Playwright's
+[`install --with-deps chromium`](https://playwright.dev/docs/browsers#install-system-dependencies).
+`platform:pin` without `--all` captures only the foundation tools. Pinning never
+downloads tools: it validates installed versions and writes version-probe entry hashes
+to ignored `tools/platform-versions.local.json`. A local manifest takes precedence
+over the historical machine-specific manifest; an invalid one fails explicitly.
+The private platform tools have their own lockfile and are excluded from the
+published package. `check:platform` requires all three lanes to pass, while
+`evidence:platform` remains an informational collector that can record unavailable
+portable tools. CI configuration is separate from evidence that a run passed.
+Evidence also records the platform lockfile hash. A script tool's entry hash
+identifies its version-probe wrapper, not every transitive driver/compiler file;
+use the locked `npm ci` installation when reproducing the run.
 
 Tests compile positive usage and each negative fixture independently. Package
 smoke tests build the distribution and exercise Node's CommonJS and ESM loaders

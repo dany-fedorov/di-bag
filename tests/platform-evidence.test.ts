@@ -19,10 +19,40 @@ import {
   writePlatformEvidence,
   type PlatformEnvironment,
   type PlatformTool,
+  type PlatformVersions,
   type VerifiedTool,
 } from '../scripts/platform-evidence.ts';
 
 const temporaryRoots: string[] = [];
+
+test('required platform evidence rejects incomplete or unavailable matrices', () => {
+  const rows = ['archive', 'deno-root', 'browser-worker-minified'].map(lane => ({
+    schema: 1 as const, lane, status: 'pass' as const, utc: '2026-09-09T00:00:00.000Z',
+    git: { sha: 'a'.repeat(40), dirty: false },
+  }));
+  expect(platformEvidenceExitCode(rows, true)).toBe(0);
+  for (const index of [0, 1, 2]) {
+    for (const status of ['unavailable', 'fail'] as const) {
+      expect(platformEvidenceExitCode(rows.map((row, i) => i === index ? { ...row, status } : row), true)).toBe(1);
+    }
+    expect(platformEvidenceExitCode(rows.filter((_, i) => i !== index), true)).toBe(1);
+  }
+  expect(platformEvidenceExitCode([...rows, rows[0]!], true)).toBe(1);
+  expect(platformEvidenceExitCode([...rows].reverse(), true)).toBe(1);
+  expect(platformEvidenceExitCode([], true)).toBe(1);
+});
+
+test('local platform identity takes precedence and invalid local identity never falls back', async () => {
+  const root = temporaryRoot();
+  const base = join(root, 'tools/platform-versions.json');
+  const local = join(root, 'tools/platform-versions.local.json');
+  writeFileSync(base, JSON.stringify({ schema: 1, deno: { status: 'unavailable', reason: 'not-provisioned' } }));
+  writeFileSync(local, JSON.stringify({ schema: 1, deno: { status: 'unavailable', reason: 'version-mismatch' } }));
+  await expect(verifyTool(root, 'deno')).resolves.toEqual({ status: 'unavailable', reason: 'version-mismatch' });
+  writeFileSync(local, '{broken');
+  await expect(verifyTool(root, 'deno')).rejects.toThrow();
+});
+
 afterEach(() => {
   for (const root of temporaryRoots.splice(0)) rmSync(root, { recursive: true, force: true });
 });
@@ -36,6 +66,11 @@ function temporaryRoot(): string {
 
 function hash(text: string): string {
   return createHash('sha256').update(text).digest('hex');
+}
+
+function configuredTools(root: string): PlatformVersions {
+  const local = join(root, 'tools/platform-versions.local.json');
+  return JSON.parse(readFileSync(existsSync(local) ? local : join(root, 'tools/platform-versions.json'), 'utf8'));
 }
 
 type TestTarEntry = { path: string; contents: string; type?: '0' | 'x' };
@@ -141,6 +176,16 @@ test('tool verification rejects explicit unavailability, version drift and hash 
   };
   writeFileSync(join(root, 'tools/platform-versions.json'), JSON.stringify(manifest));
   await expect(verifyTool(root, 'deno')).resolves.toMatchObject({ status: 'pinned', version: '2.4.5' });
+
+  manifest.deno.version = '999.0.0';
+  writeFileSync(join(root, 'tools/platform-versions.json'), JSON.stringify(manifest));
+  await expect(verifyTool(root, 'deno')).resolves.toEqual({ status: 'unavailable', reason: 'version-mismatch' });
+  manifest.deno.version = '2.4.5';
+
+  manifest.deno.version = 'deno';
+  writeFileSync(join(root, 'tools/platform-versions.json'), JSON.stringify(manifest));
+  await expect(verifyTool(root, 'deno')).rejects.toThrow('incomplete pinned identity');
+  manifest.deno.version = '2.4.5';
 
   manifest.deno.versionText = 'deno 2.4.4\n';
   writeFileSync(join(root, 'tools/platform-versions.json'), JSON.stringify(manifest));
@@ -317,14 +362,12 @@ test('repository manifest verifies every provisioned identity and retains absent
   const root = resolve(__dirname, '..');
   const names: PlatformTool[] = ['node', 'npm', 'classic6', 'bun', 'deno', 'esbuild', 'playwright', 'chromium'];
   const results = await Promise.all(names.map(name => verifyTool(root, name)));
-  expect(results.map(result => result.status)).toEqual([
-    'pinned', 'pinned', 'pinned', 'pinned', 'unavailable', 'unavailable', 'unavailable', 'unavailable',
-  ]);
-  for (const result of results.slice(0, 4)) {
-    expect(result).toMatchObject({ status: 'pinned' });
-    expect(existsSync((result as { hashPath: string }).hashPath)).toBe(true);
+  const manifest = configuredTools(root);
+  for (const [index, name] of names.entries()) {
+    const result = results[index]!;
+    expect(result).toMatchObject(manifest[name]);
+    if (result.status === 'pinned') expect(existsSync(result.hashPath)).toBe(true);
   }
-  for (const result of results.slice(4)) expect(result).toEqual({ status: 'unavailable', reason: 'not-provisioned' });
 }, 20_000);
 
 test('isolated classic pack contains only freshly built declared exports and rechecks its hash', async () => {
@@ -366,7 +409,7 @@ test('evidence writer appends stable sorted JSONL under the source/date director
   }
 });
 
-test('platform command writes one sorted matrix with an executed archive and explicit unavailable lanes', async () => {
+test('platform command writes one sorted matrix and executes every provisioned lane', async () => {
   const root = resolve(__dirname, '..');
   const outputRoot = temporaryRoot();
   const result = await runPlatformEvidence(root, outputRoot);
@@ -376,10 +419,13 @@ test('platform command writes one sorted matrix with an executed archive and exp
   expect(jsonl).toBe(expectedJsonl);
   expect(jsonl.split('\n').filter(Boolean)).toHaveLength(3);
 
+  const pins = configuredTools(root);
+  const denoReady = pins.deno.status === 'pinned';
+  const browserReady = [pins.esbuild, pins.playwright, pins.chromium].every(pin => pin.status === 'pinned');
   expect(result.rows.map(row => ({ lane: row.lane, status: row.status }))).toEqual([
     { lane: 'archive', status: 'pass' },
-    { lane: 'deno-root', status: 'unavailable' },
-    { lane: 'browser-worker-minified', status: 'unavailable' },
+    { lane: 'deno-root', status: denoReady ? 'pass' : 'unavailable' },
+    { lane: 'browser-worker-minified', status: browserReady ? 'pass' : 'unavailable' },
   ]);
   expect((result.rows[0].archive as { files: readonly string[] }).files).toEqual(expect.arrayContaining([
     'dist/index.js', 'dist/node.js', 'dist/sas-box.js', 'dist/val-box.js',
@@ -391,11 +437,11 @@ test('platform command writes one sorted matrix with an executed archive and exp
       npm: { status: 'pinned', version: '11.19.0' },
     },
   });
-  expect(result.rows[1]).toMatchObject({
+  if (!denoReady) expect(result.rows[1]).toMatchObject({
     reason: 'not-provisioned',
     tools: { deno: { status: 'unavailable', reason: 'not-provisioned' } },
   });
-  expect(result.rows[2]).toMatchObject({
+  if (!browserReady) expect(result.rows[2]).toMatchObject({
     reason: 'esbuild-not-provisioned',
     tools: {
       chromium: { status: 'unavailable', reason: 'not-provisioned' },
@@ -406,8 +452,8 @@ test('platform command writes one sorted matrix with an executed archive and exp
 
   const summary = readFileSync(result.summaryPath, 'utf8');
   expect(summary).toContain('| archive | pass |');
-  expect(summary).toContain('| deno-root | unavailable |');
-  expect(summary).toContain('| browser-worker-minified | unavailable |');
+  expect(summary).toContain(`| deno-root | ${denoReady ? 'pass' : 'unavailable'} |`);
+  expect(summary).toContain(`| browser-worker-minified | ${browserReady ? 'pass' : 'unavailable'} |`);
   expect(summary).toContain('Historical Node/Bun archive results are not reclassified as current runtime evidence.');
 }, 60_000);
 
