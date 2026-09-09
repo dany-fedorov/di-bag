@@ -7,13 +7,11 @@ compiler and performance evidence. Run commands from the repository root.
 
 ## Package entry points and release-candidate checks
 
-The package manifest declares four entry points: host-independent `di-bag`, the
-Node/Bun native-Promise facade `di-bag/node`, and the structural adapters
-`di-bag/sas-box` and `di-bag/val-box`. The root and Node entry points do not import
-either adapter, and the package has no dependency, peer dependency, optional
-dependency, or bundled dependency on either box library. A core-only installation
-therefore needs no box package. Applications that use an adapter install and own
-the corresponding box implementation themselves.
+The package manifest declares two entry points: host-independent `di-bag` and the
+Node/Bun native-Promise facade `di-bag/node`. The package has no runtime, peer,
+optional, or bundled dependencies. Ordinary factory functions, records,
+projections, presence values, and provider metadata cover acquisition boundaries
+without a companion package.
 
 Choose `raw` when the exact value, Promise, or thenable is the service. Choose
 `native` only for a genuine native Promise whose fulfillment is the service. Use
@@ -22,8 +20,7 @@ non-blocking observers, so applications separately await telemetry when needed.
 Plugin loading remains application-owned: validation admits the output while an
 optional plugin disposer retains ownership of the original acquired value.
 
-`npm ci` installs the tracked box package archives as development dependencies;
-source checks do not require sibling source checkouts. `npm run check` is the
+`npm ci` installs the locked development toolchain. `npm run check` is the
 primary source, runtime, declaration, package, and build
 gate. Run `npm run typecheck:native`, `npm run build:native`, and
 `npm run check:native` as separate native checks. A release candidate additionally

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import ts from 'typescript';
 import { execFileSync } from 'node:child_process';
-import { boxContractFixtures, boxContractSource } from './box-contract-fixtures';
+import { providerContractFixtures, providerContractSource } from './provider-contract-fixtures';
 import { compileNative, nativeLimits, resolveNative } from '../scripts/native-compiler.ts';
 import { matchNativeDiagnosticMarkers } from './native-diagnostic-markers.ts';
 import { supervise } from '../scripts/native-process.ts';
@@ -90,8 +90,7 @@ for (const emitter of ['classic6', 'native7']) {
       const archive = join(packageTree, JSON.parse(pack.stdout)[0].filename);
       for (const extension of ['cts', 'mts'] as const) {
         const consumer = join(directory, extension); mkdirSync(consumer);
-        const installed = await supervise(node, [npmCli, 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive,
-          join(root, 'tests/fixtures/box-packages/sas-box-0.1.0.tgz'), join(root, 'tests/fixtures/box-packages/val-box-0.1.0.tgz')], consumer, nativeLimits);
+        const installed = await supervise(node, [npmCli, 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive], consumer, nativeLimits);
         expect(installed.status).toBe(0); expect(installed.terminationReason).toBeUndefined();
         const runtime = join(consumer, `scope-runtime.${extension === 'cts' ? 'cjs' : 'mjs'}`);
         writeFileSync(runtime, scopeRuntimeSource(extension));
@@ -122,8 +121,8 @@ for (const emitter of ['classic6', 'native7']) {
           .replace(/from '(?:\.\.\/)+src'/g, "from 'di-bag'"));
         const support = await compileNative(compiler, consumer, [replacementModuleFeature]);
         expect({ checked: support.checked, diagnostics: support.diagnostics }).toEqual({ checked: true, diagnostics: [] });
-        for (const fixture of boxContractFixtures) {
-          const file = join(consumer, `consumer.${extension}`), source = boxContractSource(fixture);
+        for (const fixture of providerContractFixtures) {
+          const file = join(consumer, `consumer.${extension}`), source = providerContractSource(fixture);
           writeFileSync(file, source);
           const result = await compileNative(compiler, consumer, [file]);
           expect({ fixture, checked: result.checked, unparsed: result.unparsed }).toEqual({ fixture, checked: true, unparsed: [] });
@@ -144,7 +143,6 @@ for (const emitter of ['classic6', 'native7']) {
           mkdirSync(sourceDir); mkdirSync(outputDir);
           const assertions = "type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;";
           const route = (text: string, nested = false) => text
-            .replace(/from '(?:\.\.\/)+\.related-repos\/(sas-box|val-box)\/src'/g, "from '$1'")
             .replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types|module-types)'/g, `from '${nested ? '..' : '.'}/node_modules/di-bag/dist/$1.js'`)
             .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)
             .replace(/import type \{ Assert, Equal \} from '\.\.?\/assert';/, assertions);

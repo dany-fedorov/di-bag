@@ -371,7 +371,7 @@ An immutable lazy reference accepted by positional provider adapters.
 mapAsync: <R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, project: P) => Provider<MappedFactory<R, Promise<Awaited<ReturnType<P>>>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>>;
 ```
 
-Defined in: [di-bag.ts:430](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L430)
+Defined in: [di-bag.ts:434](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L434)
 
 Await and project a registration through a native Promise boundary.
 
@@ -404,7 +404,7 @@ A provider exposing a native Promise of the awaited projection.
 mapSync: <R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, project: P, ...modeOptions: StageOptions<M>) => Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>, Acquired<ReturnType<P>, M>>;
 ```
 
-Defined in: [di-bag.ts:428](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L428)
+Defined in: [di-bag.ts:432](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L432)
 
 Project a registration's exact source value synchronously.
 
@@ -537,6 +537,80 @@ An object whose `of<Service>()` method creates an immutable typed token.
 const clockKey = Symbol('clock');
 const clock = DiBag.token(clockKey).of<{ now(): number }>();
 ```
+
+***
+
+### withAcquisitionMetadata
+
+```ts
+withAcquisitionMetadata: <R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object>(registration: R & Registration, describe: P & AcquisitionMetadataAdmission<ReturnType<P>>) => Provider<ProviderFactory<R>, RetainedMetadata<R>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraph<R>, ProviderAcquired<R>>;
+```
+
+Defined in: [di-bag.ts:428](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L428)
+
+Describe the exact source output with synchronous acquisition metadata.
+
+Describe the exact source output with acquisition-local metadata, without awaiting it.
+Retains the source value identity, acquisition mode, dependencies, lifetime, and ownership.
+
+#### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `R` | - |
+| `P` | The exact synchronous metadata callback signature retained by the provider. |
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `registration` | The source registration to describe. |
+| `describe` | A receiver-free synchronous callback returning a plain object record. |
+
+#### Returns
+
+A provider appending a shallowly copied and frozen metadata frame per acquisition.
+
+#### Throws
+
+If the callback or its returned record is invalid, or annotation fails.
+
+***
+
+### withAcquisitionMetadataAsync
+
+```ts
+withAcquisitionMetadataAsync: <R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object>(registration: R & Registration, describe: P & AcquisitionMetadataAdmission<ReturnType<P>>) => Provider<MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, RetainedMetadata<R>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraph<R>, Awaited<ProviderOutput<R>>>;
+```
+
+Defined in: [di-bag.ts:430](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L430)
+
+Await the source and describe its value with synchronous acquisition metadata.
+
+Await the source and describe its fulfilled value with acquisition-local metadata.
+Dependencies, lifetime, and existing ownership are retained; annotation adds no ownership.
+
+#### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `R` | - |
+| `P` | The exact synchronous metadata callback signature retained by the provider. |
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `registration` | The source registration to await and describe. |
+| `describe` | A receiver-free synchronous callback returning a plain object record. |
+
+#### Returns
+
+A provider exposing a native Promise of the source value and appending a frozen frame.
+
+#### Throws
+
+If the callback is invalid; source and annotation failures reject asynchronously.
 
 ***
 

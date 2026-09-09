@@ -97,7 +97,6 @@
       "TokenMember",
       "TokenService",
       "UnsharedAliases",
-      "ValBoxFrame",
       "fromPlugin"
     ],
     "node": [
@@ -197,16 +196,7 @@
       "TokenMember",
       "TokenService",
       "UnsharedAliases",
-      "ValBoxFrame",
       "fromPlugin"
-    ],
-    "sas-box": [
-      "fromSasBox"
-    ],
-    "val-box": [
-      "ValBoxFrame",
-      "fromValBox",
-      "fromValBoxAsync"
     ]
   },
   "callableOverloads": {
@@ -246,6 +236,8 @@
     "index.Facade.withLifetime": 2,
     "index.Facade.withContext": 1,
     "index.Facade.withMetadata": 1,
+    "index.Facade.withAcquisitionMetadata": 1,
+    "index.Facade.withAcquisitionMetadataAsync": 1,
     "index.Facade.mapSync": 1,
     "index.Facade.mapAsync": 1,
     "index.Module.rename": 1,
@@ -296,6 +288,8 @@
     "node.Facade.withLifetime": 2,
     "node.Facade.withContext": 1,
     "node.Facade.withMetadata": 1,
+    "node.Facade.withAcquisitionMetadata": 1,
+    "node.Facade.withAcquisitionMetadataAsync": 1,
     "node.Facade.mapSync": 1,
     "node.Facade.mapAsync": 1,
     "node.Module.rename": 1,
@@ -309,9 +303,6 @@
     "node.fromPlugin": 1,
     "node.PluginOptions.validate": 1,
     "node.ObserverOptions.onEvent": 1,
-    "node.ObserverOptions.onError": 1,
-    "sas-box.fromSasBox": 1,
-    "val-box.fromValBox": 2,
-    "val-box.fromValBoxAsync": 2
+    "node.ObserverOptions.onError": 1
   }
 }

@@ -7,11 +7,11 @@ import { collectReviewedNativeGaps, type NativeGapFingerprint } from './release-
 import { validateReleaseCommandEvidence, type ReleaseCommandEvidence } from './run-release-command.ts';
 
 export type { NativeGapFingerprint, ReleaseCommandEvidence };
-export type ReleasePackageRecord = Readonly<{ name: 'di-bag' | 'sas-box' | 'val-box'; version: string; archive: string; checkout: Readonly<{ path: string; branch: string; candidateSourceCommit: string; status: string }>; pack: Readonly<{ dryRunJson: unknown; packJson: unknown; packedAt: string }>; commands: readonly ReleaseCommandEvidence[]; integrity: string; sha256: string; sha512: string; bytes: number; files: readonly string[]; packageMetadata: Readonly<{ name: string; version: string; main?: string; types?: string; files: readonly string[]; exports: unknown; dependencies: Readonly<Record<string, string>>; peerDependencies: Readonly<Record<string, string>>; optionalDependencies: Readonly<Record<string, string>>; bundledDependencies: readonly string[] }> }>;
-export type ReleaseEvidenceInput = Readonly<{ schemaVersion: 1; generatedAt: string; artifactDirectory: '/tmp/di-bag-release-candidate'; tools: Readonly<{ node: string; npm: string; bun: string; classic6: string; native7: string; sasBoxTypeScript: '5.9.3'; valBoxTypeScript: '5.9.3' }>; nativeDiagnostics: Readonly<{ reviewedAt: string; reviewedGaps: readonly NativeGapFingerprint[]; freshGaps: readonly NativeGapFingerprint[] }>; handoff: Readonly<{ candidateSourceCommit: string; handoffCommit: string; changedPaths: readonly string[] }>; packages: readonly Readonly<{ name: 'di-bag' | 'sas-box' | 'val-box'; version: string; archive: string; checkout: Readonly<{ path: string; branch: string; candidateSourceCommit: string; status: string }>; pack: Readonly<{ dryRunJson: unknown; packJson: unknown; packedAt: string }>; commands: readonly ReleaseCommandEvidence[] }> [] }>;
+export type ReleasePackageRecord = Readonly<{ name: 'di-bag'; version: string; archive: string; checkout: Readonly<{ path: string; branch: string; candidateSourceCommit: string; status: string }>; pack: Readonly<{ dryRunJson: unknown; packJson: unknown; packedAt: string }>; commands: readonly ReleaseCommandEvidence[]; integrity: string; sha256: string; sha512: string; bytes: number; files: readonly string[]; packageMetadata: Readonly<{ name: string; version: string; main?: string; types?: string; files: readonly string[]; exports: unknown; dependencies: Readonly<Record<string, string>>; peerDependencies: Readonly<Record<string, string>>; optionalDependencies: Readonly<Record<string, string>>; bundledDependencies: readonly string[] }> }>;
+export type ReleaseEvidenceInput = Readonly<{ schemaVersion: 1; generatedAt: string; artifactDirectory: '/tmp/di-bag-release-candidate'; tools: Readonly<{ node: string; npm: string; bun: string; classic6: string; native7: string }>; nativeDiagnostics: Readonly<{ reviewedAt: string; reviewedGaps: readonly NativeGapFingerprint[]; freshGaps: readonly NativeGapFingerprint[] }>; handoff: Readonly<{ candidateSourceCommit: string; handoffCommit: string; changedPaths: readonly string[] }>; packages: readonly Readonly<{ name: 'di-bag'; version: string; archive: string; checkout: Readonly<{ path: string; branch: string; candidateSourceCommit: string; status: string }>; pack: Readonly<{ dryRunJson: unknown; packJson: unknown; packedAt: string }>; commands: readonly ReleaseCommandEvidence[] }> [] }>;
 export type ReleaseManifest = Readonly<{ schemaVersion: 1; artifactDirectory: string; generatedAt: string; tools: ReleaseEvidenceInput['tools']; nativeDiagnostics: ReleaseEvidenceInput['nativeDiagnostics']; handoff: ReleaseEvidenceInput['handoff']; packages: readonly ReleasePackageRecord[] }>;
 export type ManifestArgs = Readonly<{ input: string; out: string; publicOut?: string }>;
-const PACKAGE_NAMES = ['di-bag', 'sas-box', 'val-box'] as const;
+const PACKAGE_NAMES = ['di-bag'] as const;
 const FULL_OID = /^[0-9a-f]{40}$/;
 
 function absoluteCanonical(path: string, label: string): string { if (!isAbsolute(path) || resolve(path) !== path) throw new Error(`${label} must be absolute`); return path; }
@@ -98,11 +98,11 @@ export function createReleaseManifest(input: ReleaseEvidenceInput): ReleaseManif
   if (input?.schemaVersion !== 1 || input.artifactDirectory !== '/tmp/di-bag-release-candidate') throw new Error('unsupported release evidence schema or artifact directory');
   const artifact = realpathSync(input.artifactDirectory);
   exactIso(input.generatedAt, 'generatedAt'); exactIso(input.nativeDiagnostics?.reviewedAt, 'reviewedAt');
-  if (!input.tools || Object.entries(input.tools).some(([, value]) => typeof value !== 'string' || !value || value.includes('/') || value.includes('\\')) || input.tools.sasBoxTypeScript !== '5.9.3' || input.tools.valBoxTypeScript !== '5.9.3') throw new Error('missing or invalid tool evidence');
+  if (!input.tools || !['node', 'npm', 'bun', 'classic6', 'native7'].every(name => typeof input.tools[name as keyof typeof input.tools] === 'string' && input.tools[name as keyof typeof input.tools] && !input.tools[name as keyof typeof input.tools].includes('/') && !input.tools[name as keyof typeof input.tools].includes('\\')) || Object.keys(input.tools).length !== 5) throw new Error('missing or invalid tool evidence');
   if (!FULL_OID.test(input.handoff?.candidateSourceCommit ?? '') || !FULL_OID.test(input.handoff?.handoffCommit ?? '')) throw new Error('invalid handoff commits');
   if (!Array.isArray(input.handoff.changedPaths) || new Set(input.handoff.changedPaths).size !== input.handoff.changedPaths.length || input.handoff.changedPaths.some(path => !APPROVED_HANDOFF_PATHS.includes(path))) throw new Error('handoff changed paths are not approved');
   validateGaps(input.nativeDiagnostics.reviewedGaps, input.nativeDiagnostics.freshGaps);
-  if (!Array.isArray(input.packages) || input.packages.length !== 3 || new Set(input.packages.map(item => item.name)).size !== 3 || PACKAGE_NAMES.some(name => !input.packages.some(item => item.name === name))) throw new Error('exactly three unique package records are required');
+  if (!Array.isArray(input.packages) || input.packages.length !== 1 || input.packages[0]?.name !== 'di-bag') throw new Error('exactly one di-bag package record is required');
   const packages = input.packages.map(item => packageRecord(item, artifact)).sort((a, b) => a.name.localeCompare(b.name));
   const diBag = packages.find(item => item.name === 'di-bag')!;
   const authoritativeReviewed = collectReviewedNativeGaps(resolve(diBag.checkout.path, 'tests/types'));
@@ -126,10 +126,17 @@ function sanitizeCommand(command: ReleaseCommandEvidence, roots: readonly [strin
     inputs: command.inputs.map(input => ({ path: clean(input.path), bytes: input.bytes, sha256: input.sha256 })), stdout: { bytes: command.stdout.bytes, sha256: command.stdout.sha256 }, stderr: { bytes: command.stderr.bytes, sha256: command.stderr.sha256 } };
 }
 function containsAbsolutePath(value: string): boolean { return value.includes('file:/') || /(^|[^A-Za-z0-9._<>\/~:-])\/(?!\/)/.test(value) || /^\//.test(value); }
-function assertPublicPathSafe(value: unknown): void {
-  if (typeof value === 'string') { if (containsAbsolutePath(value)) throw new Error('public evidence contains an unsanitized absolute path'); return; }
+function assertPublicPathSafe(value: unknown, field?: string): void {
+  if (typeof value === 'string') {
+    if (field === 'integrity') {
+      if (!/^sha512-[A-Za-z0-9+/]{86}==$/.test(value)) throw new Error('public evidence contains malformed integrity');
+      return;
+    }
+    if (containsAbsolutePath(value)) throw new Error('public evidence contains an unsanitized absolute path');
+    return;
+  }
   if (Array.isArray(value)) { for (const item of value) assertPublicPathSafe(item); return; }
-  if (value && typeof value === 'object') for (const [key, item] of Object.entries(value)) { assertPublicPathSafe(key); assertPublicPathSafe(item); }
+  if (value && typeof value === 'object') for (const [key, item] of Object.entries(value)) { assertPublicPathSafe(key); assertPublicPathSafe(item, key); }
 }
 export function createPublicReleaseEvidence(manifest: ReleaseManifest): unknown {
   const roots: [string, string][] = [[manifest.artifactDirectory, '<artifact>'], ...manifest.packages.map(item => [item.checkout.path, `<checkout:${item.name}>`] as [string, string])]; roots.sort((a, b) => b[0].length - a[0].length);

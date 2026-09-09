@@ -5,12 +5,7 @@ import {
   type ProviderAcquisitionMetadata,
   type ProviderOutput,
   type ProviderTokenNeeds,
-  type ValBoxFrame,
 } from '../../src';
-import { fromSasBox } from '../../src/sas-box';
-import { fromValBox } from '../../src/val-box';
-import { SasBox } from 'sas-box';
-import { ValBox } from 'val-box';
 import type { Assert, Equal } from './assert';
 
 export const portKey = Symbol('final-adversarial-port');
@@ -36,36 +31,36 @@ export const plugin = DiBag.fromPlugin([port], {
     && Reflect.get(value, 'plugin') === true && typeof Reflect.get(value, 'port') === 'number',
 });
 
-const boxedSource = DiBag.fromFunction([port], value => SasBox.fromValue(
-  new ValBox.WithValue.WithMetadata(
-    { boxed: true as const, port: value },
-    { origin: 'final-adversarial' as const },
-    'final-adversarial',
-  ),
-));
-export const boxed = fromValBox(fromSasBox(boxedSource, { mode: 'sync' }));
+const annotatedSource = DiBag.fromFunction([port], value => ({
+  value: { annotated: true as const, port: value },
+  metadata: { origin: 'final-adversarial' as const },
+}));
+export const annotated = DiBag.mapSync(
+  DiBag.withAcquisitionMetadata(annotatedSource, result => result.metadata),
+  result => result.value,
+);
 
 export const finalAdversarialFeature = DiBag.module()
   .bind(port, () => 8080)
-  .add({ client, plugin, boxed })
+  .add({ client, plugin, annotated })
   .alias('clientAlias', 'client')
-  .exports(['client', 'plugin', 'boxed', 'clientAlias']);
+  .exports(['client', 'plugin', 'annotated', 'clientAlias']);
 
 export const finalAdversarialBag = DiBag.begin().install(finalAdversarialFeature).end();
 export const finalAdversarialChild = finalAdversarialBag.scope(['plugin'], {
   plugin: () => ({ plugin: true as const, port: 9090, selected: true as const }),
-}, { share: ['boxed'] });
+}, { share: ['annotated'] });
 
-type BoxedValue = { boxed: true; port: number };
+type AnnotatedValue = { annotated: true; port: number };
 export type FinalAdversarialProducerContracts = [
   Assert<Equal<ProviderOutput<typeof client>, Client>>,
   Assert<Equal<ProviderTokenNeeds<typeof client>, typeof port>>,
   Assert<Equal<ProviderOutput<typeof plugin>, PluginService>>,
   Assert<Equal<ProviderAcquired<typeof plugin>, PluginService>>,
   Assert<Equal<ProviderTokenNeeds<typeof plugin>, typeof port>>,
-  Assert<Equal<ProviderOutput<typeof boxed>, BoxedValue>>,
-  Assert<Equal<ProviderTokenNeeds<typeof boxed>, typeof port>>,
-  Assert<Equal<ProviderAcquisitionMetadata<typeof boxed>, readonly [ValBoxFrame<{ origin: 'final-adversarial' }>]>>,
+  Assert<Equal<ProviderOutput<typeof annotated>, AnnotatedValue>>,
+  Assert<Equal<ProviderTokenNeeds<typeof annotated>, typeof port>>,
+  Assert<Equal<ProviderAcquisitionMetadata<typeof annotated>, readonly [Readonly<{ origin: 'final-adversarial' }>]>>,
   Assert<Equal<ModuleProvides<typeof finalAdversarialFeature>['client'], Client>>,
   Assert<Equal<ReturnType<typeof finalAdversarialBag.resolve<'clientAlias'>>, Client>>,
   Assert<Equal<ReturnType<typeof finalAdversarialChild.resolve<'plugin'>>, { plugin: true; port: number; selected: true }>>,

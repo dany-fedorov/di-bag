@@ -21,7 +21,7 @@ Run repository examples from the repository root with `bun run examples/<name>.t
 5. Use [typed tokens and positional adapters](#use-typed-tokens-for-explicit-positional-injection) when names and object parameters do not fit.
 6. Add [optional or lazy dependencies](#declare-optional-and-lazy-dependencies), [aliases](#give-a-dependency-another-lookup-name), and [ordered collections](#compose-an-ordered-collection).
 7. Introduce [projections](#project-services-explicitly), [metadata and inspection](#attach-metadata-and-inspect-without-resolving), [observers](#observe-lifecycle-transitions), or [plugin validation](#admit-an-application-selected-plugin) at explicit boundaries.
-8. Read the [portable runtime](#portable-mode) and [box adapter](#optional-box-adapters) rules when those environments apply.
+8. Read the [portable runtime](#portable-mode) and [native provider metadata](#represent-acquisition-values-and-metadata-natively) rules when those environments apply.
 
 The [API reference](api-reference.md) is the compact source for exact signatures,
 error fields, and exported TypeScript types. This guide concentrates on when to
@@ -860,6 +860,18 @@ dependencies, acquisition mode, and ownership. It copies and freezes all own
 string and symbol entries, including non-enumerable keys; payload objects keep
 their identity. Repeated metadata wrappers may add keys but cannot collide.
 
+Use `withAcquisitionMetadata(registration, describe)` when the metadata is known
+only after a value is produced. `describe` synchronously receives the exact
+source output, including a raw or native Promise itself, and its record becomes
+the next typed acquisition frame. The provider still exposes the exact source
+value with the same acquisition mode. Use
+`withAcquisitionMetadataAsync(registration, describe)` to await the source,
+describe its fulfilled value, and expose a native
+`Promise<Awaited<SourceOutput>>`. Both callbacks must synchronously return a
+plain object record with the current realm's `Object.prototype` or `null` as its
+prototype. Arrays, functions, class instances, dates, Promises, and thenable
+records are rejected.
+
 `inspect(nameOrToken)` returns a frozen snapshot with `bindingId`, `label`,
 `metadata`, and `acquisitions`. Each acquisition has `acquisitionId`, `state`, and
 an ordered tuple of acquisition metadata frames. It contains no service values
@@ -869,7 +881,8 @@ close, static metadata remains available and acquisition lists are empty.
 
 `inspectAll(token)` does the same for each contribution in declaration order.
 Aliases expose their direct target description and canonical acquisition state.
-Box adapters add typed frames as described under [optional box adapters](#optional-box-adapters).
+Native metadata decorators add frames as described under
+[acquisition values and metadata](#represent-acquisition-values-and-metadata-natively).
 
 ## Observe lifecycle transitions
 
@@ -1011,97 +1024,84 @@ The stage rules are precise:
 - `factory`, `fromTokens`, `fromFunction`, `fromClass`, `withContext`, and
   `mapSync` select the acquisition mode of the stage they add. Omitting their
   optional mode uses `auto`; `factory` always requires an explicit mode.
-- `mapAsync` and the asynchronous box adapters always add a native stage.
-- `withDisposal`, `withLifetime`, `withMetadata`, token binding, aliases, and
-  module installation retain the modes already described by their sources.
+- `mapAsync` and `withAcquisitionMetadataAsync` always add a native stage.
+- `withDisposal`, `withLifetime`, `withMetadata`,
+  `withAcquisitionMetadata`, token binding, aliases, and module installation
+  retain the modes already described by their sources.
 
 Automatic or native observation tracks fulfillment for ownership and readiness
 without replacing the exposed Promise. A raw Promise is an immediate value. See
 the [server guide's Deno section](server-integration.md#deno-and-portable-acquisition)
 for a full portable-host composition.
 
-## Optional box adapters
+## Represent acquisition values and metadata natively
 
-Box adapters are standalone subpath imports. They are structural: DI Bag does
-not install, import, or own a box library, and core applications need neither
-package.
+Use ordinary factory return values to carry a payload and facts learned while
+producing it. Then use `mapSync` or `mapAsync` to project the part consumers need.
+`Presence<T>` preserves the difference between an absent value and a present
+value whose payload is `undefined`.
 
-**Standalone structural example:**
+**Standalone example:**
 
 ```ts
 import { DiBag, type Presence } from 'di-bag/node';
-import { fromSasBox } from 'di-bag/sas-box';
-import { fromValBoxAsync } from 'di-bag/val-box';
 
-const payload = { read: () => 42 };
-const box = {
-  snapshot() {
-    return {
-      value: { present: true, value: payload } satisfies Presence<typeof payload>,
-      metadata: { present: false } satisfies Presence<never>,
-      alias: 'db',
-    };
-  },
-  close() {},
+type Located<T> = {
+  readonly value: Presence<T>;
+  readonly origin: string;
 };
 
-const source = fromSasBox(
-  () => ({ sync: undefined, async: async () => box }),
-  { mode: 'sync-first' },
+const located = DiBag.withAcquisitionMetadata(
+  (): Located<number | undefined> => ({
+    value: { present: true, value: undefined },
+    origin: 'environment',
+  }),
+  result => ({ origin: result.origin }),
 );
-const service = fromValBoxAsync(
-  DiBag.withDisposal(source, acquiredBox => acquiredBox.close()),
-);
+const value = DiBag.mapSync(located, result => result.value);
 
-const app = DiBag.begin().add({ service }).end();
-console.log((await app.resolve('service')).read());
+const app = DiBag.begin().add({ value }).end();
+const acquired = app.resolve('value');
+console.log(acquired.present); // true
+console.log(acquired.present && acquired.value); // undefined
+console.log(app.inspect('value').acquisitions[0]?.metadata[0]);
 await app.close();
 ```
 
-Real `SasBox` and `ValBox` objects implement these same structural boundaries.
-`fromSasBox(registration, options)` requires a capability mode:
+The immediate decorator calls its synchronous `describe` callback with the
+exact source output and preserves that output's identity and acquisition policy.
+This matters when a raw stage intentionally exposes a Promise as an ordinary
+value: the callback and consumer see the same Promise object.
 
-- `sync` invokes an immediate box's zero-required-argument `sync` method with the
-  box as receiver. Its return value and Promise identity are preserved. Only this
-  mode accepts a separate `acquisition` option.
-- `async` awaits the box, calls its `async` method, and returns a native Promise
-  for the awaited result.
-- `sync-first` awaits the box, uses callable `sync` when present, and otherwise
-  calls `async`. The source type must have a complete required `sync` field. If
-  that field may be `undefined`, a callable `async` fallback is also required.
-
-`fromValBox(registration, options?)` takes one immediate snapshot. Required-value
-mode is the default and throws on absence. `{ value: 'presence' }` instead exposes
-the frozen `Presence<T>`. It may also accept a compatible acquisition selection;
-an acquisition-only object keeps required mode, while an empty options object is
-invalid. Presence defaults to raw and cannot select native acquisition.
-
-`fromValBoxAsync(registration, options?)` awaits the box and exposed value and
-always returns a native Promise. If options are present, they must select
-`value: 'required' | 'presence'`; this adapter has no acquisition option. A
-present `undefined` value differs from absence, and an empty alias differs from
-`null`.
-
-Each val adapter appends a typed frame to the acquisition snapshot. During source
-creation the slot is `{ present: false }`; after a snapshot it records val-box
-metadata and alias. Nested adapters keep frames in acquisition order. Inspection
-copies and freezes presence records and frame tuples without freezing payloads.
-
-Adapters add no ownership. Wrap the source when the bag owns the box:
-
-**Conceptual snippet:** `openBox` is an application factory.
+The asynchronous decorator awaits the source before calling `describe` and
+always exposes a native Promise of the source's awaited value:
 
 ```ts
-const service = fromValBox(
-  DiBag.withDisposal(openBox, box => box.close()),
+const located = DiBag.withAcquisitionMetadataAsync(
+  async () => ({ value: 42, origin: 'remote-config' }),
+  result => ({ origin: result.origin }),
 );
+const value = DiBag.mapAsync(located, result => result.value);
 ```
 
-This provider owns the box and borrows its payload. Wrapping `service` with
-another `withDisposal`
-would explicitly own the payload too, releasing it before the box. Run
-[`examples/box-adapters.ts`](../../examples/box-adapters.ts) for a dependency-free
-structural example.
+Each decorator reserves an absent frame before its source runs. The immediate
+form fills that frame as soon as the source returns and `describe` succeeds,
+even when the exact source output is a still-pending Promise. The asynchronous
+form leaves its frame absent until the source fulfills and `describe` succeeds.
+Frames from repeated decorators remain in declaration order. Inspection itself
+never starts an acquisition.
+
+Each captured metadata frame is a shallow, frozen copy of the returned record.
+Nested objects and service payloads keep their identities and are not
+deep-frozen. Invalid records, asynchronous metadata callbacks, and callback
+errors fail the acquisition through the decorator's selected mode.
+
+Metadata decorators and projections add no ownership. Existing ownership from
+`withDisposal` is retained through them; add a new `withDisposal` only when the
+bag should own the projected value too. Ordinary factories remain borrowed even
+when their values have `close()` or `dispose()` methods. Run
+[`examples/provider-metadata.ts`](../../examples/provider-metadata.ts) for sync
+and async acquisition metadata, present `undefined`, projection, and cleanup.
 
 ## Exported TypeScript types
 

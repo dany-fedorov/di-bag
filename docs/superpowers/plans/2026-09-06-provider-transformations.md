@@ -515,8 +515,9 @@ can select sync, and assert the correct output union for fully supported modes.
 Reject selected methods requiring an ordinary argument or an incompatible
 explicit `this`; retain a positive method whose receiver is its actual box.
 
-Packed-consumer tests use the verified local repositories' artifacts documented
-in `docs/reports/2026-09-06-box-foundations.md`. Generate the committed test-only
+Packed-consumer tests used the verified local repositories' artifacts. The
+box-only foundation report was removed during the later native provider metadata
+migration. This historical plan generated the committed test-only
 archives using each unchanged box checkout's `npm pack --ignore-scripts
 --pack-destination /absolute/repo/tests/fixtures/box-packages` and verify their
 SHA-512 matches the recorded verified archive. Existing emitted box output is

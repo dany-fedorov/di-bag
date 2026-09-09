@@ -581,9 +581,3 @@ Re-exports [TokenService](../index/type-aliases/TokenService.md)
 ### UnsharedAliases
 
 Re-exports [UnsharedAliases](../index/type-aliases/UnsharedAliases.md)
-
-***
-
-### ValBoxFrame
-
-Re-exports [ValBoxFrame](../val-box/type-aliases/ValBoxFrame.md)

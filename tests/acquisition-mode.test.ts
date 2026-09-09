@@ -3,10 +3,8 @@ import { DiBag } from '../src/node';
 import { DiBag as Core } from '../src';
 import { isPromise } from 'node:util/types';
 import { runInNewContext } from 'node:vm';
-import { fromValBox, fromValBoxAsync } from '../src/val-box';
-import { fromSasBox } from '../src/sas-box';
 
-for (const stage of ['source', 'projection', 'val-box'] as const) {
+for (const stage of ['source', 'projection', 'metadata'] as const) {
   test(`close waits for a native acquisition with shadowed then at ${stage}`, async () => {
     let release!: (value: { id: number }) => void;
     const value = { id: 7 };
@@ -15,8 +13,7 @@ for (const stage of ['source', 'projection', 'val-box'] as const) {
     const disposed: unknown[] = [];
     const factory = stage === 'source' ? () => pending : stage === 'projection'
       ? DiBag.mapSync(() => 0, () => pending)
-      : fromValBox(() => ({ snapshot: () => ({ value: { present: true as const, value: pending },
-        metadata: { present: false as const }, alias: null }) }));
+      : DiBag.withAcquisitionMetadata(() => pending, () => ({ stage: 'metadata' }));
     const bag = DiBag.begin().add({
       value: DiBag.withDisposal(factory, resource => { disposed.push(resource); }),
     }).end();
@@ -126,31 +123,25 @@ for (const foreign of [false, true]) for (const mode of ['auto', 'native'] as co
   });
 }
 
-test('presence frames default to raw while required frames and sync capabilities select output mode', async () => {
+test('native metadata preserves raw presence records and explicit payload projection', async () => {
   const pending = new Promise<number>(() => {});
-  const source = Core.factory(() => ({ snapshot: () => ({ value: { present: true as const, value: pending }, metadata: { present: false as const }, alias: null }) }), { acquisition: 'raw' });
+  const source = Core.withAcquisitionMetadata(
+    Core.factory(() => ({ present: true as const, value: pending }), { acquisition: 'raw' }),
+    () => ({ source: 'pending' }),
+  );
   const disposed: unknown[] = [];
-  const raw = Core.withDisposal(fromValBox(source, { value: 'required', acquisition: 'raw' }), value => { disposed.push(value); });
-  const bag = Core.begin().add({ presence: fromValBox(source, { value: 'presence' }), raw }).end();
+  const raw = Core.withDisposal(Core.mapSync(source, record => record.value, { acquisition: 'raw' }), value => { disposed.push(value); });
+  const bag = Core.begin().add({ presence: source, raw }).end();
   expect(bag.resolve('presence')).toEqual({ present: true, value: pending });
   expect(bag.resolve('raw')).toBe(pending);
   await bag.close();
   expect(disposed).toEqual([pending]);
-  expect(() => Reflect.apply(fromValBox, undefined, [source, { value: 'presence', acquisition: 'native' }])).toThrow('presence');
 });
 
-test('async adapters retain their native output contract without reading hidden acquisition options', async () => {
-  expect(() => Reflect.apply(fromSasBox, undefined, [() => ({ async: async () => 7 }), { mode: 'async', acquisition: 'raw' }])).toThrow('acquisition');
-  const source = Core.factory(() => ({ snapshot: () => ({ value: { present: true as const, value: 7 }, metadata: { present: false as const }, alias: null }) }), { acquisition: 'raw' });
-  const options = { value: 'required' as const, get acquisition(): never { throw new Error('hidden acquisition'); } };
-  const bag = Core.begin().add({ value: fromValBoxAsync(source, options) }).end();
+test('async metadata retains a native output contract without a portable classifier', async () => {
+  const source = Core.factory(() => Promise.resolve(7), { acquisition: 'native' });
+  const bag = Core.begin().add({ value: Core.withAcquisitionMetadataAsync(source, value => ({ result: value })) }).end();
   expect(await bag.resolve('value')).toBe(7);
+  expect(bag.inspect('value').acquisitions[0]?.metadata).toEqual([{ present: true, value: { result: 7 } }]);
   await bag.close();
-});
-
-test('val-box options preserve invalid value rejection and require a selection when supplied', () => {
-  const source = () => ({ snapshot: () => ({ value: { present: true as const, value: 7 }, metadata: { present: false as const }, alias: null }) });
-  for (const adapt of [fromValBox, fromValBoxAsync]) for (const options of [{}, { value: null }]) {
-    expect(() => Reflect.apply(adapt, undefined, [source, options])).toThrow('value');
-  }
 });

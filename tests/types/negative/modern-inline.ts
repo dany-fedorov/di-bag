@@ -1,5 +1,4 @@
 import { DiBag } from '../../../src';
-import { fromValBox } from '../../../src/val-box';
 
 const providers = {
   service: () => ({ read() { return Number(1); }, extra() { return true; } }),
@@ -13,12 +12,7 @@ root.fork(['service', 'promised'], {
   promised: async ({service}: {service: {richer(): number}}) => service.richer(),
 });
 
-// diagnostic: invalid val-box snapshot capability
-fromValBox(() => ({ snapshot(required: string) {
-  return { value: {present: true as const, value: required}, metadata: {present: false as const}, alias: null };
-} }));
-
-// diagnostic: invalid val-box snapshot capability
-fromValBox(() => ({ snapshot(this: {missing: true}) {
-  return { value: {present: true as const, value: 1}, metadata: {present: false as const}, alias: null };
-} }));
+// diagnostic: not assignable
+DiBag.withAcquisitionMetadata(() => 1, (value: string) => ({ length: value.length }));
+// diagnostic: not assignable
+DiBag.withAcquisitionMetadata(() => 1, function (this: { missing: true }) { return { value: this.missing }; });

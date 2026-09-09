@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import { DiBag, type LifecycleEvent, type ObserverFailure } from '../src';
-import { fromValBox } from '../src/val-box';
 import { DiBag as NodeDiBag } from '../src/node';
 
 function recording() {
@@ -182,8 +181,10 @@ test('intermediate native failure bypassed by raw projection is not final failur
 test('private module frames are immutable snapshots without freezing application metadata', async () => {
   const { events, observed } = recording();
   const payload = { owner: 'application' };
-  const box = { snapshot: () => ({ value: { present: true as const, value: 7 }, metadata: { present: true as const, value: payload }, alias: null }) };
-  const wrapped = fromValBox(observed.withMetadata(observed.factory(() => box, { acquisition: 'raw' }), { payload }), { acquisition: 'raw' });
+  const wrapped = observed.withAcquisitionMetadata(
+    observed.withMetadata(observed.factory(() => 7, { acquisition: 'raw' }), { payload }),
+    () => ({ payload }),
+  );
   const feature = observed.module().add({ secret: wrapped, publicValue: observed.factory(({ secret }: { secret: number }) => secret, { acquisition: 'raw' }) }).exports(['publicValue']);
   const bag = observed.begin().install(feature).end();
   expect(bag.resolve('publicValue')).toBe(7);
@@ -192,7 +193,7 @@ test('private module frames are immutable snapshots without freezing application
   const ready = events.find(event => event.kind === 'acquisition-ready' && event.frames.length)!;
   if (!('frames' in started) || !('frames' in ready)) throw new Error('missing framed events');
   expect(started.frames).toEqual([{ present: false }]);
-  expect(ready.frames).toEqual([{ present: true, value: { kind: 'val-box', metadata: { present: true, value: payload }, alias: null } }]);
+  expect(ready.frames).toEqual([{ present: true, value: { payload } }]);
   expect(Object.isFrozen(ready.frames)).toBe(true);
   expect(Object.isFrozen(ready.frames[0])).toBe(true);
   expect(Object.isFrozen(ready.metadata)).toBe(true);

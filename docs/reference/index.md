@@ -6,5 +6,3 @@
 
 - [index](index/index.md)
 - [node](node/index.md)
-- [sas-box](sas-box/index.md)
-- [val-box](val-box/index.md)

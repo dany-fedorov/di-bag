@@ -2,8 +2,6 @@ import { DiBag } from '../../src';
 import type { Provider, ProviderAcquired, ProviderOutput, ProviderMetadata, PublicProviders } from '../../src';
 import type { ProviderBase } from '../../src/provider';
 import type { Assert, Equal } from './assert';
-import { fromValBox } from '../../src/val-box';
-import { fromSasBox } from '../../src/sas-box';
 
 const pending = Promise.resolve({ id: 7 });
 export const raw = DiBag.factory(() => pending, { acquisition: 'raw' });
@@ -17,8 +15,8 @@ export const tokenProvider = DiBag.fromTokens([token], value => value, { acquisi
 export const feature = DiBag.module().bind(token, metadata).add({ raw: rawOwned }).exports([token, 'raw']);
 export const bag = DiBag.begin().install(feature).replace('raw', raw).end();
 export const projected = DiBag.mapSync(native, value => value, { acquisition: 'raw' });
-export const framed = fromValBox(DiBag.factory(() => ({ snapshot: () => ({ value: { present: true as const, value: pending }, metadata: { present: false as const }, alias: null }) }), { acquisition: 'raw' }), { value: 'required', acquisition: 'raw' });
-export const capability = fromSasBox(DiBag.factory(() => ({ sync: () => pending }), { acquisition: 'raw' }), { mode: 'sync', acquisition: 'raw' });
+export const framed = DiBag.withAcquisitionMetadata(raw, () => ({ source: 'raw' }));
+export const capability = DiBag.mapSync(DiBag.factory(() => ({ read: () => pending }), { acquisition: 'raw' }), source => source.read(), { acquisition: 'raw' });
 export type Checks = [
   Assert<Equal<ProviderOutput<typeof raw>, Promise<{ id: number }>>>,
   Assert<Equal<ProviderAcquired<typeof rawOwned>, Promise<{ id: number }>>>,

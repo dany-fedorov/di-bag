@@ -1,8 +1,6 @@
 import { DiBag } from '../../src';
 const { withLifetime } = DiBag;
 import type { Provider, Module, Bag } from '../../src';
-import { fromValBox, fromValBoxAsync } from '../../src/val-box';
-import { fromSasBox } from '../../src/sas-box';
 import { withTokenBinding } from '../../src/provider';
 
 export const graph = DiBag.begin().add({
@@ -31,9 +29,9 @@ export const bound = withTokenBinding(token, withLifetime(() => 1, 'root'));
 export const rebound = withTokenBinding(token, DiBag.mapSync(bound, value => value));
 export const tokenBag = DiBag.begin().bind(token, rebound).add({ root: withLifetime(DiBag.fromTokens([token], value => value), 'root') }).end();
 export const tokenFork = tokenBag.fork([token], { [key]: withLifetime(() => 2, 'root') });
-export const frames = fromValBox(withLifetime(() => ({ snapshot: () => ({ value: { present: true as const, value: Promise.resolve({ id: 1 }) }, metadata: { present: true as const, value: { frame: 1 } }, alias: 'box' }) }), 'root'), { value: 'required', acquisition: 'raw' });
-export const asyncFrames = fromValBoxAsync(withLifetime(() => ({ snapshot: () => ({ value: { present: true as const, value: 1 }, metadata: { present: false as const }, alias: null }) }), 'transient'));
-export const capability = fromSasBox(withLifetime(() => ({ sync: () => Promise.resolve(1) }), 'root'), { mode: 'sync', acquisition: 'raw' });
+export const frames = DiBag.withAcquisitionMetadata(raw, () => ({ frame: 1 }));
+export const asyncFrames = DiBag.withAcquisitionMetadataAsync(withLifetime(() => 1, 'transient'), () => ({}));
+export const capability = DiBag.mapSync(withLifetime(() => ({ read: () => Promise.resolve(1) }), 'root'), value => value.read(), { acquisition: 'raw' });
 export const mapped = DiBag.mapSync(metadata, value => value, { acquisition: 'raw' });
 export const asyncMapped = DiBag.mapAsync(metadata, value => value);
 export const explicitDefault = withLifetime(() => 1, 'scoped');

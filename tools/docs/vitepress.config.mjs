@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitepress';
 
 const generated = JSON.parse(readFileSync(new URL('../reference/typedoc-sidebar.json', import.meta.url), 'utf8'));
-const labels = { index: 'Portable API · di-bag', node: 'Node and Bun · di-bag/node', 'sas-box': 'SasBox adapter', 'val-box': 'ValBox adapter' };
+const labels = { index: 'Portable API · di-bag', node: 'Node and Bun · di-bag/node' };
 const api = generated.map(group => ({ ...group, text: labels[group.text] ?? group.text }));
 const guide = [
   { text: 'Start here', items: [

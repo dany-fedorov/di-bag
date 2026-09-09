@@ -239,14 +239,11 @@ const packageDocument = {
   exports: {
     '.': { types: './dist/index.d.ts', default: './dist/index.js' },
     './node': { types: './dist/node.d.ts', default: './dist/node.js' },
-    './sas-box': { types: './dist/sas-box.d.ts', default: './dist/sas-box.js' },
-    './val-box': { types: './dist/val-box.d.ts', default: './dist/val-box.js' },
   },
 };
 const packedFiles = [
   'package.json', 'README.md', 'LICENSE',
   'dist/index.d.ts', 'dist/index.js', 'dist/node.d.ts', 'dist/node.js',
-  'dist/sas-box.d.ts', 'dist/sas-box.js', 'dist/val-box.d.ts', 'dist/val-box.js',
   'dist/internal.js',
 ];
 
@@ -428,7 +425,7 @@ test('platform command writes one sorted matrix and executes every provisioned l
     { lane: 'browser-worker-minified', status: browserReady ? 'pass' : 'unavailable' },
   ]);
   expect((result.rows[0].archive as { files: readonly string[] }).files).toEqual(expect.arrayContaining([
-    'dist/index.js', 'dist/node.js', 'dist/sas-box.js', 'dist/val-box.js',
+    'dist/index.js', 'dist/node.js',
   ]));
   expect(result.rows[0]).toMatchObject({
     tools: {

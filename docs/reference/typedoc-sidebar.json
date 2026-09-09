@@ -444,53 +444,5 @@
         ]
       }
     ]
-  },
-  {
-    "text": "sas-box",
-    "link": "/reference/sas-box/",
-    "collapsed": true,
-    "items": [
-      {
-        "text": "Functions",
-        "collapsed": true,
-        "items": [
-          {
-            "text": "fromSasBox",
-            "link": "/reference/sas-box/functions/fromSasBox.md"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "text": "val-box",
-    "link": "/reference/val-box/",
-    "collapsed": true,
-    "items": [
-      {
-        "text": "Type Aliases",
-        "collapsed": true,
-        "items": [
-          {
-            "text": "ValBoxFrame",
-            "link": "/reference/val-box/type-aliases/ValBoxFrame.md"
-          }
-        ]
-      },
-      {
-        "text": "Functions",
-        "collapsed": true,
-        "items": [
-          {
-            "text": "fromValBox",
-            "link": "/reference/val-box/functions/fromValBox.md"
-          },
-          {
-            "text": "fromValBoxAsync",
-            "link": "/reference/val-box/functions/fromValBoxAsync.md"
-          }
-        ]
-      }
-    ]
   }
 ]

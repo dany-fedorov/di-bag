@@ -20,7 +20,7 @@ import { selectScope } from './scope-selection';
 import type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases } from './scope-types';
 import type { CheckedScopeLifetimes } from './lifetime-types';
 import type { StartupOptions } from './startup';
-import { withMetadata, mapSync, mapAsync, fromTokens, withTokenBinding, factory } from './provider';
+import { withMetadata, withAcquisitionMetadata, withAcquisitionMetadataAsync, mapSync, mapAsync, fromTokens, withTokenBinding, factory } from './provider';
 import { fromFunction, fromClass } from './composition';
 import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
@@ -424,6 +424,10 @@ export interface Facade {
   withContext: typeof withContext;
   /** Attach static inspection and observer metadata. */
   withMetadata: typeof withMetadata;
+  /** Describe the exact source output with synchronous acquisition metadata. */
+  withAcquisitionMetadata: typeof withAcquisitionMetadata;
+  /** Await the source and describe its value with synchronous acquisition metadata. */
+  withAcquisitionMetadataAsync: typeof withAcquisitionMetadataAsync;
   /** Project a registration's exact source value synchronously. */
   mapSync: typeof mapSync;
   /** Await and project a registration through a native Promise boundary. */
@@ -447,6 +451,8 @@ function facade(context: RuntimeContext): Facade { return Object.freeze({
   withLifetime,
   withContext,
   withMetadata,
+  withAcquisitionMetadata,
+  withAcquisitionMetadataAsync,
   mapSync,
   mapAsync,
 }); }

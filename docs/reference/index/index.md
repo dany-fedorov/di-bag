@@ -112,9 +112,3 @@
 ## Variables
 
 - [DiBag](variables/DiBag.md)
-
-## References
-
-### ValBoxFrame
-
-Re-exports [ValBoxFrame](../val-box/type-aliases/ValBoxFrame.md)

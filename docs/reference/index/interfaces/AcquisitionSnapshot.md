@@ -36,7 +36,7 @@ readonly metadata: FramePresenceTuple<A>;
 
 Defined in: [inspection.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L16)
 
-Ordered presence records for adapter-provided acquisition metadata.
+Ordered presence records for metadata captured during acquisition.
 
 ***
 

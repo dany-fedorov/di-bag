@@ -11,12 +11,12 @@ import { matchDiagnosticMarkers, parseNativeDiagnostics } from './native-compile
 
 const ARTIFACT_DIRECTORY = '/tmp/di-bag-release-candidate';
 const PUBLIC_EVIDENCE = 'docs/reports/2026-09-08-release-candidate-evidence.json';
-const PACKAGE_NAMES = ['di-bag', 'sas-box', 'val-box'] as const;
+const PACKAGE_NAMES = ['di-bag'] as const;
 const EXPECTED_RUNTIME = {
-  I1: { payloadIdentity: true, metadataIdentity: true, aliasIdentity: true, dispose: ['payload', 'sas'], acquisitions: 1 },
+  I1: { payloadIdentity: true, metadataIdentity: true, aliasIdentity: true, dispose: ['payload', 'source'], acquisitions: 1 },
   I2: { nativePromise: true, rootShared: true, transientDistinct: true, childDispose: ['transient-2', 'transient-1', 'scoped'], parentDispose: ['transient-2', 'transient-1', 'scoped', 'root'], acquisitions: 4 },
   I3: { absentIdentity: true, presentUndefined: true, getterIdentity: true, dispose: ['source'], acquisitions: 3 },
-  I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, dispose: ['plugin', 'sas'], payloadDisposals: 0, acquisitions: 1 },
+  I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, dispose: ['plugin', 'source'], payloadDisposals: 0, acquisitions: 1 },
   I5: { directRetained: true, directDispose: ['direct-1'], startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, startupDispose: ['startup-first'], retryFresh: true },
   I6: { aliasAcquisitions: 0, sharedIdentity: true, unsharedDistinct: true, dispose: ['installation-2', 'installation-1'], acquisitions: 2 },
   I7: { root: 1, scoped: 1, transient: 2, contributions: 2, cleanupFailureIdentity: true, independentCleanupCount: 5 },
@@ -26,6 +26,8 @@ const EXPECTED_RUNTIME = {
   I11: { boundaryErrorIdentity: true, retryFresh: true, dispose: ['source', 'source'] },
   I12: { ordinaryWrapper: 'DiBagStartupError', ordinaryCauseIdentity: true, ordinaryCleanupFailures: 0, abortWrapper: 'DiBagStartupCancelledError', abortCauseIdentity: true, timeoutWrapper: 'DiBagStartupCancelledError', timeoutCauseName: 'TimeoutError', dispose: ['late', 'immediate'] },
   I13: { closingEffects: 0, parentDispose: ['child', 'parent'], finalDispose: ['child', 'parent', 'fork'], unsharedDistinct: true },
+  I14: { classicPositiveDiagnostics: 0, cjsPositiveDiagnostics: 0, mjsPositiveDiagnostics: 0, classicNegativeMarkers: 2, newNativeGapIds: [] },
+  I15: { cjsMatchesSource: true, esmMatchesSource: true, runtimeDependencies: 0, rootLoadsNode: false, forbiddenFiles: 0 },
 } as const;
 const FORBIDDEN_PATH = /(^|\/)(?:fixtures?|tests?|src|node_modules|scratch)(?:\/|$)|\.tgz$|(^|\/)(?:\.env(?:\.|$)|\.npmrc$)|(?:credentials?|secrets?)/i;
 export const VERIFY_RELEASE_USAGE = 'Usage: node scripts/verify-release-artifacts.ts --manifest <absolute-json> --work-dir <absolute-contained-directory>';
@@ -110,30 +112,19 @@ function contentFailures(record: ReleasePackageRecord, inspection: NpmArchiveIns
   for (const required of ['LICENSE', 'README.md', 'package.json']) if (!files.includes(required)) failures.push(`${record.name} missing ${required}`);
   for (const file of files) if (!['LICENSE', 'README.md', 'package.json'].includes(file) && !file.startsWith('dist/') || FORBIDDEN_PATH.test(file) || /^dist\/(?:adapters?|internal)\//.test(file)) failures.push(`${record.name} forbidden package file: ${file}`);
   if (record.packageMetadata.main !== './dist/index.js' || record.packageMetadata.types !== './dist/index.d.ts') failures.push(`${record.name} main/types metadata mismatch`);
-  if (record.name === 'sas-box') {
-    const expected = ['LICENSE', 'README.md', 'dist/index.d.ts', 'dist/index.js', 'package.json']; if (!same(files, expected)) failures.push('sas-box package must contain exactly five approved entries');
-  } else if (record.name === 'val-box') {
-    const expected = ['LICENSE', 'README.md', 'dist/index.d.ts', 'dist/index.js', 'dist/snapshot.d.ts', 'dist/snapshot.js', 'package.json']; if (!same(files, expected)) failures.push('val-box package must contain exactly seven approved entries');
-  } else {
-    if (!same(record.packageMetadata.files, ['dist'])) failures.push("di-bag package metadata files must equal ['dist']");
-    for (const name of ['index', 'node', 'sas-box', 'val-box']) for (const extension of ['d.ts', 'js']) if (!files.includes(`dist/${name}.${extension}`)) failures.push(`di-bag missing public export file dist/${name}.${extension}`);
-    const expectedExports = { './node': { types: './dist/node.d.ts', default: './dist/node.js' }, '.': { types: './dist/index.d.ts', default: './dist/index.js' }, './sas-box': { types: './dist/sas-box.d.ts', default: './dist/sas-box.js' }, './val-box': { types: './dist/val-box.d.ts', default: './dist/val-box.js' } };
-    if (!same(record.packageMetadata.exports, expectedExports)) failures.push('di-bag public exports mismatch');
-    for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'] as const) if (Object.keys(record.packageMetadata[field]).length) failures.push(`di-bag ${field} must be empty`);
-    if (record.packageMetadata.bundledDependencies.length) failures.push('di-bag bundledDependencies must be empty');
-  }
-  if (record.name !== 'di-bag') {
-    if (!same(record.packageMetadata.files, ['dist'])) failures.push(`${record.name} package metadata files must equal ['dist']`);
-    if (!same(record.packageMetadata.exports, { '.': { types: './dist/index.d.ts', default: './dist/index.js' } })) failures.push(`${record.name} public exports mismatch`);
-    for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'] as const) if (Object.keys(record.packageMetadata[field]).length) failures.push(`${record.name} ${field} must be empty`);
-    if (record.packageMetadata.bundledDependencies.length) failures.push(`${record.name} bundledDependencies must be empty`);
-  }
+  if (!same(record.packageMetadata.files, ['dist'])) failures.push("di-bag package metadata files must equal ['dist']");
+  for (const name of ['index', 'node']) for (const extension of ['d.ts', 'js']) if (!files.includes(`dist/${name}.${extension}`)) failures.push(`di-bag missing public export file dist/${name}.${extension}`);
+  for (const name of ['sas-box', 'val-box']) if (files.some(file => file === `dist/${name}.js` || file === `dist/${name}.d.ts`)) failures.push(`di-bag contains removed package entry: ${name}`);
+  const expectedExports = { './node': { types: './dist/node.d.ts', default: './dist/node.js' }, '.': { types: './dist/index.d.ts', default: './dist/index.js' } };
+  if (!same(record.packageMetadata.exports, expectedExports)) failures.push('di-bag public exports mismatch');
+  for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'] as const) if (Object.keys(record.packageMetadata[field]).length) failures.push(`di-bag ${field} must be empty`);
+  if (record.packageMetadata.bundledDependencies.length) failures.push('di-bag bundledDependencies must be empty');
   return failures;
 }
 
 function validateManifestShape(value: any): asserts value is ReleaseManifest {
-  if (!value || value.schemaVersion !== 1 || value.artifactDirectory !== ARTIFACT_DIRECTORY || !Array.isArray(value.packages) || value.packages.length !== 3) throw new Error('invalid release manifest schema');
-  if (new Set(value.packages.map((item: any) => item?.name)).size !== 3 || PACKAGE_NAMES.some(name => !value.packages.some((item: any) => item?.name === name))) throw new Error('release manifest package set mismatch');
+  if (!value || value.schemaVersion !== 1 || value.artifactDirectory !== ARTIFACT_DIRECTORY || !Array.isArray(value.packages) || value.packages.length !== 1) throw new Error('invalid release manifest schema');
+  if (value.packages[0]?.name !== PACKAGE_NAMES[0]) throw new Error('release manifest package set mismatch');
 }
 type VerifiedArchive = Readonly<{ inspection: NpmArchiveInspection; bytes: Uint8Array; version: string }>;
 export function verifyReleaseManifestStatic(manifest: ReleaseManifest): Readonly<{ failures: readonly string[]; archives: ReadonlyMap<string, VerifiedArchive> }> {
@@ -206,36 +197,34 @@ export function traceInstalledRoot(entry: string): Readonly<{ files: readonly st
   return Object.freeze({ files: Object.freeze([...files].sort()), bareImports: Object.freeze([...bare].sort()), unresolved: Object.freeze([...unresolved].sort()) });
 }
 async function verifyRuntimeConsumers(manifest: ReleaseManifest, workDir: string, archives: Readonly<Record<string, string>>): Promise<void> {
-  const full = resolve(workDir, 'full-consumer'), core = resolve(workDir, 'core-consumer'); writeConsumerManifest(full); writeConsumerManifest(core);
-  const diBagArchive = archives['di-bag'], sasBoxArchive = archives['sas-box'], valBoxArchive = archives['val-box'];
-  if (!diBagArchive || !sasBoxArchive || !valBoxArchive) throw new Error('verified archive set is incomplete');
-  await installOffline(full, [diBagArchive, sasBoxArchive, valBoxArchive]); await installOffline(core, [diBagArchive]);
-  for (const box of ['sas-box', 'val-box']) if (existsSync(resolve(core, 'node_modules', box))) throw new Error(`unexpected ${box} in core-only consumer`);
-  const packageRoot = resolve(core, 'node_modules/di-bag'), distRoot = resolve(packageRoot, 'dist'), traced = traceInstalledRoot(resolve(distRoot, 'index.js'));
-  if (traced.unresolved.length || traced.bareImports.length || traced.files.some(file => !contained(distRoot, file) || /\/(?:node|sas-box|val-box)\.js$/.test(file))) throw new Error(`core-only import graph is not isolated: ${JSON.stringify(traced)}`);
+  const consumer = resolve(workDir, 'consumer'); writeConsumerManifest(consumer);
+  const diBagArchive = archives['di-bag'];
+  if (!diBagArchive) throw new Error('verified archive set is incomplete');
+  await installOffline(consumer, [diBagArchive]);
+  const packageRoot = resolve(consumer, 'node_modules/di-bag'), distRoot = resolve(packageRoot, 'dist'), traced = traceInstalledRoot(resolve(distRoot, 'index.js'));
+  if (traced.unresolved.length || traced.bareImports.length || traced.files.some(file => !contained(distRoot, file) || /\/(?:node|sas-box|val-box)\.js$/.test(file))) throw new Error(`root import graph is not isolated: ${JSON.stringify(traced)}`);
   for (const mode of ['commonjs', 'module'] as const) {
-    const corePath = resolve(core, `core.${mode === 'commonjs' ? 'cjs' : 'mjs'}`), load = mode === 'commonjs'
+    const corePath = resolve(consumer, `core.${mode === 'commonjs' ? 'cjs' : 'mjs'}`), load = mode === 'commonjs'
       ? `const Module=require('node:module');const old=Module._load;Module._load=function(name,...args){if(name.startsWith('node:'))throw new Error('core imported Node');return old.call(this,name,...args)};const {DiBag}=require('di-bag');`
       : `import Module,{createRequire}from'node:module';const old=Module._load;Module._load=function(name,...args){if(name.startsWith('node:'))throw new Error('core imported Node');return old.call(this,name,...args)};const {DiBag}=await import('di-bag');`;
     writeFileSync(corePath, `${load}(async()=>{const bag=DiBag.begin().add({answer:DiBag.factory(()=>42,{acquisition:'raw'})}).end();console.log(bag.resolve('answer'));await bag.close()})().catch(e=>{console.error(e);process.exitCode=1});`);
-    for (const executable of ['node', 'bun']) { const output = await runChecked([executable, corePath], core); if (output.trim() !== '42') throw new Error(`core-only ${mode} ${executable} output mismatch: ${JSON.stringify(output)}`); }
-    const fullPath = resolve(full, `oracle.${mode === 'commonjs' ? 'cjs' : 'mjs'}`);
+    for (const executable of ['node', 'bun']) { const output = await runChecked([executable, corePath], consumer); if (output.trim() !== '42') throw new Error(`root ${mode} ${executable} output mismatch: ${JSON.stringify(output)}`); }
+    const fullPath = resolve(consumer, `oracle.${mode === 'commonjs' ? 'cjs' : 'mjs'}`);
     const checkout = manifest.packages.find(record => record.name === 'di-bag')!.checkout.path;
     const runtimeFixture = resolve(checkout, 'tests/final-adversarial-runtime-fixture.ts');
-    const source = await runChecked(['bun', '-e', `const m=await import(${JSON.stringify(pathToFileURL(runtimeFixture).href)});process.stdout.write(m.finalAdversarialPackageRuntimeSource(${JSON.stringify(mode)}))`], full);
+    const source = await runChecked(['bun', '-e', `const m=await import(${JSON.stringify(pathToFileURL(runtimeFixture).href)});process.stdout.write(m.finalAdversarialPackageRuntimeSource(${JSON.stringify(mode)}))`], consumer);
     writeFileSync(fullPath, source);
     for (const executable of ['node', 'bun']) {
-      const output = await runChecked([executable, fullPath], full); let parsed: unknown; try { parsed = JSON.parse(output.trim()); } catch { throw new Error(`I1-I15 ${mode} ${executable} emitted invalid JSON`); }
-      const runtimeEntries = Object.fromEntries(Object.entries(parsed as Record<string, unknown>).filter(([key]) => /^I(?:[1-9]|1[0-3])$/.test(key)));
-      if (!same(runtimeEntries, EXPECTED_RUNTIME)) throw new Error(`I1-I13 ${mode} ${executable} oracle mismatch`);
+      const output = await runChecked([executable, fullPath], consumer); let parsed: unknown; try { parsed = JSON.parse(output.trim()); } catch { throw new Error(`I1-I15 ${mode} ${executable} emitted invalid JSON`); }
+      const runtimeEntries = Object.fromEntries(Object.entries(parsed as Record<string, unknown>).filter(([key]) => /^I(?:[1-9]|1[0-5])$/.test(key)));
+      if (!same(runtimeEntries, EXPECTED_RUNTIME)) throw new Error(`I1-I15 ${mode} ${executable} oracle mismatch`);
     }
   }
-  await verifyDeclarations(full, manifest.packages.find(record => record.name === 'di-bag')!.checkout.path, manifest.tools);
+  await verifyDeclarations(consumer, manifest.packages[0]!.checkout.path, manifest.tools);
 }
 async function verifyDeclarations(consumer: string, checkout: string, versions: ReleaseManifest['tools']): Promise<void> {
   const assertions = 'type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;';
   const route = (text: string) => text
-    .replace(/from '(?:\.\.\/)+\.related-repos\/(sas-box|val-box)\/src'/g, "from '$1'")
     .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)
     .replace(/import type \{ Assert, Equal \} from '\.\.?\/assert';/, assertions);
   const producerSource = route(readFileSync(resolve(checkout, 'tests/types/final-adversarial-integration.ts'), 'utf8'));

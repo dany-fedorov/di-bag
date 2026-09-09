@@ -153,8 +153,8 @@ test('modern inline inference retains exact contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
-test('box adapters preserve exact modes, requirements and frames', () => {
-  expect(diagnostics(resolve(__dirname, 'types/box-adapters.ts')).map(error =>
+test('native acquisition metadata preserves exact outputs, requirements and frames', () => {
+  expect(diagnostics(resolve(__dirname, 'types/acquisition-metadata.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 

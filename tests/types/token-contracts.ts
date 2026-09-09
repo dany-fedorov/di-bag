@@ -2,8 +2,6 @@ import { DiBag, type Token, type TokenKey, type TokenService, type Provider, typ
 import { fromTokens, withTokenBinding, type ProviderGraph, type BoundToken, type ProviderFactory, type ProviderBase } from '../../src/provider';
 import type { TokenGraph, OpaqueGraph } from '../../src/token-types';
 import type { TokenBase } from '../../src/tokens';
-import { fromSasBox } from '../../src/sas-box';
-import { fromValBox, fromValBoxAsync } from '../../src/val-box';
 import type { Assert, Equal } from './assert';
 
 const key = Symbol('number'); const otherKey = Symbol('other');
@@ -31,11 +29,11 @@ type Retention = [Assert<Equal<ProviderGraph<typeof annotated>, SourceGraph>>, A
   Assert<Equal<BoundToken<typeof bound>, typeof binding>>, Assert<Equal<ProviderFactory<typeof bound>, ProviderFactory<typeof owned>>>,
   Assert<Equal<ProviderMetadata<typeof bound>, Readonly<{ owner: string }>>>, Assert<Equal<ProviderAcquisitionMetadata<typeof bound>, readonly []>>,
   Assert<Equal<ProviderOutput<typeof sync>, Promise<string>>>, Assert<Equal<ProviderOutput<typeof async>, Promise<number>>>];
-const boxed = fromTokens([token], value => ({ sync: () => value }));
-const sas = fromSasBox(boxed, { mode: 'sync' });
-const valSource = fromTokens([token], value => ({ snapshot: () => ({ value: { present: true as const, value }, metadata: { present: true as const, value: 'frame' }, alias: null }) }));
-const val = fromValBox(valSource); const valAsync = fromValBoxAsync(valSource);
-const framedMetadata = DiBag.withMetadata(val, { framed: true });
+const immediate = fromTokens([token], value => value);
+const annotatedSource = DiBag.mapSync(fromTokens([token], value => value), value => value);
+const framed = DiBag.withAcquisitionMetadata(annotatedSource, () => ({ source: 'frame' }));
+const framedAwaited = DiBag.withAcquisitionMetadataAsync(annotatedSource, () => ({ source: 'frame' }));
+const framedMetadata = DiBag.withMetadata(framed, { framed: true });
 const framedOwned = DiBag.withDisposal(framedMetadata, value => { type Value = Assert<Equal<typeof value, number>>; });
 const framedSync = DiBag.mapSync(framedOwned, value => String(value));
 const framedAsync = DiBag.mapAsync(framedOwned, value => String(value));
@@ -45,14 +43,14 @@ type Framed = [Assert<Equal<ProviderGraph<typeof framedMetadata>, TokenGraph<rea
   Assert<Equal<ProviderGraph<typeof framedAsync>, TokenGraph<readonly [typeof token]>>>,
   Assert<Equal<ProviderMetadata<typeof framedSync>, Readonly<{ framed: boolean }>>>,
   Assert<Equal<ProviderMetadata<typeof framedAsync>, Readonly<{ framed: boolean }>>>,
-  Assert<Equal<ProviderAcquisitionMetadata<typeof framedOwned>, ProviderAcquisitionMetadata<typeof val>>>,
-  Assert<Equal<ProviderAcquisitionMetadata<typeof framedMetadata>, ProviderAcquisitionMetadata<typeof val>>>,
-  Assert<Equal<ProviderAcquisitionMetadata<typeof framedSync>, ProviderAcquisitionMetadata<typeof val>>>,
-  Assert<Equal<ProviderAcquisitionMetadata<typeof framedAsync>, ProviderAcquisitionMetadata<typeof val>>>];
-type Boxes = [Assert<Equal<ProviderGraph<typeof sas>, TokenGraph<readonly [typeof token]>>>,
-  Assert<Equal<ProviderGraph<typeof val>, TokenGraph<readonly [typeof token]>>>, Assert<Equal<ProviderGraph<typeof valAsync>, TokenGraph<readonly [typeof token]>>>,
-  Assert<Equal<ProviderOutput<typeof sas>, number>>, Assert<Equal<ProviderOutput<typeof val>, number>>, Assert<Equal<ProviderOutput<typeof valAsync>, Promise<number>>>,
-  Assert<Equal<ProviderAcquisitionMetadata<typeof val>, readonly [import('../../src').ValBoxFrame<string>]>>];
+  Assert<Equal<ProviderAcquisitionMetadata<typeof framedOwned>, ProviderAcquisitionMetadata<typeof framed>>>,
+  Assert<Equal<ProviderAcquisitionMetadata<typeof framedMetadata>, ProviderAcquisitionMetadata<typeof framed>>>,
+  Assert<Equal<ProviderAcquisitionMetadata<typeof framedSync>, ProviderAcquisitionMetadata<typeof framed>>>,
+  Assert<Equal<ProviderAcquisitionMetadata<typeof framedAsync>, ProviderAcquisitionMetadata<typeof framed>>>];
+type AcquisitionContracts = [Assert<Equal<ProviderGraph<typeof immediate>, TokenGraph<readonly [typeof token]>>>,
+  Assert<Equal<ProviderGraph<typeof framed>, TokenGraph<readonly [typeof token]>>>, Assert<Equal<ProviderGraph<typeof framedAwaited>, TokenGraph<readonly [typeof token]>>>,
+  Assert<Equal<ProviderOutput<typeof immediate>, number>>, Assert<Equal<ProviderOutput<typeof framed>, number>>, Assert<Equal<ProviderOutput<typeof framedAwaited>, Promise<number>>>,
+  Assert<Equal<ProviderAcquisitionMetadata<typeof framed>, readonly [Readonly<{ source: string }>]>>];
 const plain = ({ named }: { named: boolean }) => named;
 const ordinary = DiBag.withDisposal(() => 1, () => {});
 type Mixed = typeof source | typeof plain | typeof ordinary;
@@ -69,7 +67,7 @@ const mixedMapped = DiBag.mapSync(mixed, value => { type Value = Assert<Equal<ty
 type MixedMapped = Assert<Equal<ProviderGraph<typeof mixedMapped>, MixedGraph>>;
 type Heterogeneous = typeof framedOwned | typeof plain | typeof ordinary;
 type HeterogeneousChecks = [Assert<Equal<ProviderMetadata<NoInfer<Heterogeneous>>, Readonly<{}> | Readonly<{ framed: boolean }>>>,
-  Assert<Equal<ProviderAcquisitionMetadata<NoInfer<Heterogeneous>>, readonly [] | ProviderAcquisitionMetadata<typeof val>>>,
+  Assert<Equal<ProviderAcquisitionMetadata<NoInfer<Heterogeneous>>, readonly [] | ProviderAcquisitionMetadata<typeof framed>>>,
   Assert<Equal<ProviderGraph<NoInfer<Heterogeneous>>, TokenGraph | TokenGraph<readonly [typeof token]>>>,
   Assert<Equal<ProviderNeeds<NoInfer<Heterogeneous>>, Record<never, never> | { named: boolean }>>,
   Assert<Equal<ProviderGraph<NoInfer<typeof bound | typeof plain>>, ProviderGraph<typeof bound> | TokenGraph>>,

@@ -4,6 +4,11 @@
 
 ### Added
 
+- `DiBag.withAcquisitionMetadata` and `DiBag.withAcquisitionMetadataAsync`
+  capture typed, shallowly copied and frozen records for each acquisition.
+  The immediate form preserves the exact value and acquisition mode; the async
+  form awaits the source. Frames survive projection and retain existing
+  dependency, lifetime and ownership contracts.
 - `DiBag.fromPlugin(dependencies, descriptor, { acquisition, validate })`
   authenticates an application-selected unknown descriptor and admits its checked
   result as one typed provider. Descriptors use own `apiVersion: 1` and `create`

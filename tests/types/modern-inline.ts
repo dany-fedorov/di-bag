@@ -1,31 +1,21 @@
 import { DiBag, type ProviderOutput, type ProviderNeeds, type ProviderMetadata,
-  type ProviderAcquisitionMetadata, type ValBoxFrame } from '../../src';
+  type ProviderAcquisitionMetadata } from '../../src';
 import type { ProviderFactory } from '../../src/provider';
-import { fromValBox } from '../../src/val-box';
 import type { Assert, Equal } from './assert';
 
-export const raw = { snapshot(this: { snapshot: unknown }) {
-  return { value: { present: true as const, value: Promise.resolve(42) },
-    metadata: { present: true as const, value: { owner: 'db' } }, alias: null };
-} };
-const factory = () => ({ snapshot() { return {
-  value: { present: true as const, value: raw },
-  metadata: { present: false as const }, alias: '',
-}; } });
-const predeclared = fromValBox(factory);
-export const inline = fromValBox(() => ({ snapshot() { return {
-  value: { present: true as const, value: raw },
-  metadata: { present: false as const }, alias: '',
-}; } }));
-export const twice = fromValBox(inline);
-const predeclaredTwice = fromValBox(predeclared);
+export const raw = { value: Promise.resolve(42), metadata: { owner: 'db' } };
+const factory = () => ({ value: raw });
+const predeclared = DiBag.mapSync(DiBag.withAcquisitionMetadata(factory, () => ({})), result => result.value);
+export const inline = DiBag.mapSync(DiBag.withAcquisitionMetadata(() => ({ value: raw }), () => ({})), result => result.value);
+export const twice = DiBag.mapSync(DiBag.withAcquisitionMetadata(inline, result => result.metadata), result => result.value);
+const predeclaredTwice = DiBag.mapSync(DiBag.withAcquisitionMetadata(predeclared, result => result.metadata), result => result.value);
 type SnapshotChecks = [
   Assert<Equal<ProviderOutput<typeof inline>, typeof raw>>,
   Assert<Equal<ProviderNeeds<typeof inline>, Record<never, never>>>,
   Assert<Equal<ProviderFactory<typeof inline>, (this: void, deps: Record<never, never>) => typeof raw>>,
   Assert<Equal<ProviderMetadata<typeof inline>, Readonly<{}>>>,
   Assert<Equal<ProviderOutput<typeof twice>, Promise<number>>>,
-  Assert<Equal<ProviderAcquisitionMetadata<typeof twice>, readonly [ValBoxFrame<never>, ValBoxFrame<{owner:string}>]>>,
+  Assert<Equal<ProviderAcquisitionMetadata<typeof twice>, readonly [Readonly<{}>, Readonly<{owner:string}>]>>,
   Assert<Equal<ProviderOutput<typeof predeclared>, typeof raw>>,
   Assert<Equal<ProviderOutput<typeof predeclaredTwice>, Promise<number>>>,
 ];
