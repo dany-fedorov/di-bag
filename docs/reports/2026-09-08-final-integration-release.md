@@ -194,3 +194,51 @@ access, tag, and provenance remain unavailable. No Task 5 command runs `npm view
 a credential write; the separately authorized checkpoint pushes are disclosed
 above. Fresh explicit authorization is required before online preflight or
 publication.
+
+## 2026-09-09 candidate regeneration
+
+The prior `c9db88e`/`b4ff1f2` evidence above is retained as historical. The
+production, diagnostic and support-contract changes through
+`cb24cfab438da8a35143d8167e40a0667c374209` required and received a complete
+new local candidate run. The root remained on `feat/v0.1` with only the preserved
+untracked execution handoff; sas-box remained clean at
+`b895f9d1f1d168992f44e9f46025bc1ac9d26e14` and val-box remained clean at
+`07506fcb3e49f460b6de357ecad7d88262a7f32d`.
+
+All 72 package and gate roles passed under the fixed supervisor: 40 for DI Bag,
+16 for sas-box and 16 for val-box. The candidate `npm run check` passed 993 tests
+and 5,742 assertions across 50 files, followed by the classic declaration build.
+Native typecheck/build passed, and the strict audit matched all 670 expected
+diagnostics across 124 files: 659 primary and 11 supplemental, with zero reviewed
+gaps, unexpected diagnostics or failed fixtures. The four separately supervised
+adversarial/package roles passed 13/13, 121/345, 79/513 and 2/1,210 tests/assertions.
+Their observed peaks were 53.16796875, 779.10546875, 3777.45703125 and
+1657.64453125 MiB respectively, all below the fixed 4096 MiB limit. Every one of
+the nine discovered examples passed as its own retained role.
+
+Both box checks and builds passed. For all three packages, the post-build,
+post-dry-run and post-pack tree documents are byte-identical and both post-pack
+box statuses are empty. The freshly inspected archives are:
+
+| Package | Bytes | SHA-256 | Archive file count |
+| --- | ---: | --- | ---: |
+| `di-bag@0.1.0` | 62,939 | `62bf40bfc68240a51e6f23bbd7792ac12f0641eac613a4c96acbc9ee333a88cf` | 73 |
+| `sas-box@0.1.0` | 3,397 | `23f1d407e38e28f64531515afa6b04a9514ab6d8edaec95d6c39c8cbeda77a91` | 5 |
+| `val-box@0.1.0` | 6,527 | `a44566c0b07cbc0b1040075c4fbf88deab30dd5236d4a8203d7b53c16ad37e0a` | 7 |
+
+The detailed manifest reconciles the exact commands, timestamps, tool versions,
+archive bytes, dry-run/pack JSON, metadata, exports, dependency emptiness, file
+lists and integrity values. Its sanitized projection contains no absolute path
+or raw log content. The offline verifier installed only these exact archives and
+passed its Node/Bun, CJS/ESM, core-only import tracing, declaration, diagnostic
+region and malicious archive oracles with `{"ok":true,"failures":[]}` in 13,555
+ms at 154.26953125 MiB observed peak.
+
+This regenerated candidate replaces the invalidated historical candidate for
+local handoff. The independent Task 5 review passed all 89 release-artifact tests
+and 412 assertions, then passed the verifier again in a distinct work directory
+in 13,687 ms at 149.76953125 MiB. This three-path evidence commit is the tracked
+Task 5 handoff target; the ignored detailed manifest and final audit are bound to
+its actual commit immediately afterward. Registry availability, ownership,
+access, tag and provenance remain unavailable. No registry query, login,
+publication, dist-tag, source tag or credential operation occurred.

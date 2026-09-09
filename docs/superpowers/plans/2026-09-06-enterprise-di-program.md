@@ -210,6 +210,15 @@ execution; do not stop for another planning approval between increments.
   Task 4/5 candidate evidence must be regenerated after the remaining scale work.
   registry version and publication remain unavailable because registry checks, login, tag, provenance,
   credential changes, and publication require fresh explicit authorization.
+  A complete regenerated candidate now exists at source commit `cb24cfa`: all
+  72 supervised package/gate roles pass, the candidate full check is 993 tests /
+  5,742 assertions, strict native evidence has 670/670 expected matches and zero
+  gaps, all three build/dry-run/pack trees are byte-identical, and the offline
+  verifier passes the new 73/5/7-file archives. Independent Task 5 review passes
+  89 release tests / 412 assertions and a distinct-workdir verifier rerun. This
+  three-path evidence commit completes the tracked handoff; its ignored detailed
+  manifest and final audit are bound to the resulting commit immediately after
+  commit. No online command was run.
 
 ## Remaining enterprise work as of 2026-09-09
 

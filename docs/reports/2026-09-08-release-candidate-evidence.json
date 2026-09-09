@@ -1,512 +1,24 @@
 {
-  "generatedAt": "2026-09-08T21:55:09.894Z",
+  "generatedAt": "2026-09-09T00:49:37.050Z",
   "handoff": {
     "allowedHandoffPaths": [
       "docs/reports/2026-09-08-final-integration-release.md",
       "docs/reports/2026-09-08-release-candidate-evidence.json",
       "docs/superpowers/plans/2026-09-06-enterprise-di-program.md"
     ],
-    "candidateSourceCommit": "c9db88ecc1a9a990aaccdf94a54de67a0aec4772"
+    "candidateSourceCommit": "cb24cfab438da8a35143d8167e40a0667c374209"
   },
   "nativeDiagnostics": {
-    "freshGaps": [
-      {
-        "code": 2769,
-        "fingerprint": "5870b296d0b4c4826bee97428bd38b95c085e569c6a5b53d49026c4e66fd466f",
-        "fixture": "negative/incremental.ts",
-        "id": "last-token-string",
-        "markerLine": 12,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "f18b0b484fc53c3fe63cb032d34280a1e4cd94595ebe671283d8a7058e15718f",
-        "fixture": "negative/incremental.ts",
-        "id": "last-token-string",
-        "markerLine": 15,
-        "markerOccurrence": 2,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "559000ed25e72a0500e6d6c28f7a2e8865041b5f6c046b0375579e57ce5a490d",
-        "fixture": "negative/incremental.ts",
-        "id": "last-token-string",
-        "markerLine": 26,
-        "markerOccurrence": 3,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "f6a43721fe0a841ef0c76105eb8e78145ce448aabb5823506adfa6770fee53eb",
-        "fixture": "negative/incremental.ts",
-        "id": "last-token-string",
-        "markerLine": 46,
-        "markerOccurrence": 4,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "045224b4259c72a64ccae762aa0e505dd0da47eed9c6824fb59a2b35ad8d18ca",
-        "fixture": "negative/inline-replacement-wrong-shape.ts",
-        "id": "last-token-string",
-        "markerLine": 3,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "d330a9cf71b4c5cb07c8b97d4550d1a98565acc6bfb7ddc77e275a2089f57229",
-        "fixture": "negative/module-hidden-private-needs.ts",
-        "id": "last-token-string",
-        "markerLine": 16,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "9bedc6e4a34feb6ade8d01041c98576ce88c4d895da92a101cdb5b78a472185b",
-        "fixture": "negative/module-narrowing.ts",
-        "id": "last-token-string",
-        "markerLine": 22,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "d05a4db1efa6fbad6e99cb13f4dd3be3e81f46885c85d0f5df4dbf0600ec0b1f",
-        "fixture": "negative/module-rename.ts",
-        "id": "last-token-string",
-        "markerLine": 21,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "79981e3932c891056bf07458a9ddc02cbbb6f894e1fb20094415ba97ddac8e7e",
-        "fixture": "negative/provider-boundaries.ts",
-        "id": "last-token-string",
-        "markerLine": 40,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "ab25d3a1f6dbf63057549be83bd44ae57f228743724e9acbc1671028aa20408a",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 10,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "4cbf1ad10c2c1324c6a7dd21f38b79c98d71e7e9ea7c73869e30839736c33c4c",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 13,
-        "markerOccurrence": 2,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "c2d764022d8d725e6e5005f656a7e8475e7f6527fbae4cce79c9e3d84e798fe7",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 16,
-        "markerOccurrence": 3,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "9312c425d439c069944cf778d88526d6ada2216c89a03fec9fb03482190d5b06",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 19,
-        "markerOccurrence": 4,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "c06a051e7173ff1a0b3f6828044d74722abe6d24b07c5ddce3c8fc4b021ba2a7",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 24,
-        "markerOccurrence": 5,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "dfba908981c11d736f96a41552571ac29d645f32f7d697bf505cf780e152ceb4",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 28,
-        "markerOccurrence": 6,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "28728fa078642e8f2e4a989f428793dff8c8a365e59c76e66e4d8ee8a79681a7",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 32,
-        "markerOccurrence": 7,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "2225654843eada8a654cd72562267d0ead6d681b2f28a062bb56a19240c873a4",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 35,
-        "markerOccurrence": 8,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "7a8af4baba3b96ccf45a35697903b0b01cba376f1f8b52d2f0c69eb52dadaafd",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 43,
-        "markerOccurrence": 9,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "6f16cec964adfbe8a58840fb160c322c9aaa3a6743637cd4a4cf2802c589bab7",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 46,
-        "markerOccurrence": 10,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "c1bb24816bd2d8e22e8726123a6613adb1d5c149d211d56abac3b0cad1788399",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 49,
-        "markerOccurrence": 11,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "1dbe66aa675323450dd293f0b58173b914eda1c96da84ec265005d301fcef545",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 52,
-        "markerOccurrence": 12,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "981511db0caf619c3c9eb2c99c69c10635a66a8466824c5565bbb94d55f57b60",
-        "fixture": "negative/replacement-wrong-shape.ts",
-        "id": "last-token-string",
-        "markerLine": 3,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "a95c769addd6576864aa62870bc5fad39427af90f3516c8e360c789445ba5227",
-        "fixture": "negative/required-this.ts",
-        "id": "last-token-string",
-        "markerLine": 8,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "73f0b8f48a75bed6607e7ad78d918cc79c876e742c5a234241c5b76d5e727389",
-        "fixture": "negative/union-replace.ts",
-        "id": "last-token-string-union",
-        "markerLine": 7,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n        Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "a1733f140435bcbe4778b2a4a71705770184227348cfa3019640b50e8fe075a1",
-        "fixture": "negative/union-replace.ts",
-        "id": "last-token-string",
-        "markerLine": 10,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "f1b42ca86cc001baf92883d96684833e30e5a8f8871b840c2620eb13e7aa5870",
-        "fixture": "negative/union-replace.ts",
-        "id": "last-token-open-template",
-        "markerLine": 13,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type '`a${string}`' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type '`a${string}`' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "6b7545fbb49953ff1683682d2e9ea8e2dcacc6cc1646b09e1fe30c6a7620c0ac",
-        "fixture": "negative/union-replace.ts",
-        "id": "last-token-string",
-        "markerLine": 16,
-        "markerOccurrence": 2,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      }
-    ],
-    "reviewedAt": "2026-09-08T21:36:36.265Z",
-    "reviewedGaps": [
-      {
-        "code": 2769,
-        "fingerprint": "5870b296d0b4c4826bee97428bd38b95c085e569c6a5b53d49026c4e66fd466f",
-        "fixture": "negative/incremental.ts",
-        "id": "last-token-string",
-        "markerLine": 12,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "f18b0b484fc53c3fe63cb032d34280a1e4cd94595ebe671283d8a7058e15718f",
-        "fixture": "negative/incremental.ts",
-        "id": "last-token-string",
-        "markerLine": 15,
-        "markerOccurrence": 2,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "559000ed25e72a0500e6d6c28f7a2e8865041b5f6c046b0375579e57ce5a490d",
-        "fixture": "negative/incremental.ts",
-        "id": "last-token-string",
-        "markerLine": 26,
-        "markerOccurrence": 3,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "f6a43721fe0a841ef0c76105eb8e78145ce448aabb5823506adfa6770fee53eb",
-        "fixture": "negative/incremental.ts",
-        "id": "last-token-string",
-        "markerLine": 46,
-        "markerOccurrence": 4,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "045224b4259c72a64ccae762aa0e505dd0da47eed9c6824fb59a2b35ad8d18ca",
-        "fixture": "negative/inline-replacement-wrong-shape.ts",
-        "id": "last-token-string",
-        "markerLine": 3,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "d330a9cf71b4c5cb07c8b97d4550d1a98565acc6bfb7ddc77e275a2089f57229",
-        "fixture": "negative/module-hidden-private-needs.ts",
-        "id": "last-token-string",
-        "markerLine": 16,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "9bedc6e4a34feb6ade8d01041c98576ce88c4d895da92a101cdb5b78a472185b",
-        "fixture": "negative/module-narrowing.ts",
-        "id": "last-token-string",
-        "markerLine": 22,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "d05a4db1efa6fbad6e99cb13f4dd3be3e81f46885c85d0f5df4dbf0600ec0b1f",
-        "fixture": "negative/module-rename.ts",
-        "id": "last-token-string",
-        "markerLine": 21,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "79981e3932c891056bf07458a9ddc02cbbb6f894e1fb20094415ba97ddac8e7e",
-        "fixture": "negative/provider-boundaries.ts",
-        "id": "last-token-string",
-        "markerLine": 40,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "ab25d3a1f6dbf63057549be83bd44ae57f228743724e9acbc1671028aa20408a",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 10,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "4cbf1ad10c2c1324c6a7dd21f38b79c98d71e7e9ea7c73869e30839736c33c4c",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 13,
-        "markerOccurrence": 2,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "c2d764022d8d725e6e5005f656a7e8475e7f6527fbae4cce79c9e3d84e798fe7",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 16,
-        "markerOccurrence": 3,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "9312c425d439c069944cf778d88526d6ada2216c89a03fec9fb03482190d5b06",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 19,
-        "markerOccurrence": 4,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "c06a051e7173ff1a0b3f6828044d74722abe6d24b07c5ddce3c8fc4b021ba2a7",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 24,
-        "markerOccurrence": 5,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "dfba908981c11d736f96a41552571ac29d645f32f7d697bf505cf780e152ceb4",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 28,
-        "markerOccurrence": 6,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "28728fa078642e8f2e4a989f428793dff8c8a365e59c76e66e4d8ee8a79681a7",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 32,
-        "markerOccurrence": 7,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "2225654843eada8a654cd72562267d0ead6d681b2f28a062bb56a19240c873a4",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 35,
-        "markerOccurrence": 8,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "7a8af4baba3b96ccf45a35697903b0b01cba376f1f8b52d2f0c69eb52dadaafd",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 43,
-        "markerOccurrence": 9,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "6f16cec964adfbe8a58840fb160c322c9aaa3a6743637cd4a4cf2802c589bab7",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 46,
-        "markerOccurrence": 10,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "c1bb24816bd2d8e22e8726123a6613adb1d5c149d211d56abac3b0cad1788399",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 49,
-        "markerOccurrence": 11,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "1dbe66aa675323450dd293f0b58173b914eda1c96da84ec265005d301fcef545",
-        "fixture": "negative/replacement-context.ts",
-        "id": "last-token-string",
-        "markerLine": 52,
-        "markerOccurrence": 12,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "981511db0caf619c3c9eb2c99c69c10635a66a8466824c5565bbb94d55f57b60",
-        "fixture": "negative/replacement-wrong-shape.ts",
-        "id": "last-token-string",
-        "markerLine": 3,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "a95c769addd6576864aa62870bc5fad39427af90f3516c8e360c789445ba5227",
-        "fixture": "negative/required-this.ts",
-        "id": "last-token-string",
-        "markerLine": 8,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "73f0b8f48a75bed6607e7ad78d918cc79c876e742c5a234241c5b76d5e727389",
-        "fixture": "negative/union-replace.ts",
-        "id": "last-token-string-union",
-        "markerLine": 7,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n        Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "a1733f140435bcbe4778b2a4a71705770184227348cfa3019640b50e8fe075a1",
-        "fixture": "negative/union-replace.ts",
-        "id": "last-token-string",
-        "markerLine": 10,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "f1b42ca86cc001baf92883d96684833e30e5a8f8871b840c2620eb13e7aa5870",
-        "fixture": "negative/union-replace.ts",
-        "id": "last-token-open-template",
-        "markerLine": 13,
-        "markerOccurrence": 1,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type '`a${string}`' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type '`a${string}`' is not assignable to type 'TokenBase'."
-      },
-      {
-        "code": 2769,
-        "fingerprint": "6b7545fbb49953ff1683682d2e9ea8e2dcacc6cc1646b09e1fe30c6a7620c0ac",
-        "fixture": "negative/union-replace.ts",
-        "id": "last-token-string",
-        "markerLine": 16,
-        "markerOccurrence": 2,
-        "normalizedMessage": "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'."
-      }
-    ]
+    "freshGaps": [],
+    "reviewedAt": "2026-09-09T00:43:18.841Z",
+    "reviewedGaps": []
   },
   "packages": [
     {
-      "bytes": 62498,
+      "bytes": 62939,
       "checkout": {
         "branch": "feat/v0.1",
-        "candidateSourceCommit": "c9db88ecc1a9a990aaccdf94a54de67a0aec4772",
+        "candidateSourceCommit": "cb24cfab438da8a35143d8167e40a0667c374209",
         "status": "?? docs/reports/2026-09-08-execution-handoff.md\n"
       },
       "commands": [
@@ -519,11 +31,11 @@
           "cwd": "<checkout:di-bag>",
           "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:34.654Z",
+          "finishedAt": "2026-09-09T00:33:04.477Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:34.647Z",
+          "startedAt": "2026-09-09T00:33:04.470Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -543,11 +55,11 @@
           "cwd": "<checkout:di-bag>",
           "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:34.730Z",
+          "finishedAt": "2026-09-09T00:33:03.431Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:34.723Z",
+          "startedAt": "2026-09-09T00:33:03.425Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -565,20 +77,20 @@
             "HEAD"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 6,
+          "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:34.807Z",
+          "finishedAt": "2026-09-09T00:33:04.002Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:34.801Z",
+          "startedAt": "2026-09-09T00:33:03.995Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           "stdout": {
             "bytes": 41,
-            "sha256": "08c161b53fbdaa72e711a0685827928a75bb0f7bff3f1ada42a0fab42e54b871"
+            "sha256": "a88f0f637e073b3c9bf920f8de73162c7467ddbe5da83ae982bb03a154287bfc"
           },
           "terminationReason": null
         },
@@ -589,13 +101,13 @@
             "--short"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 6,
+          "elapsedMilliseconds": 8,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:34.886Z",
+          "finishedAt": "2026-09-09T00:33:04.400Z",
           "inputs": [],
-          "peakObservedRssMiB": 5.140625,
+          "peakObservedRssMiB": 4.95703125,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:34.880Z",
+          "startedAt": "2026-09-09T00:33:04.392Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -612,13 +124,13 @@
             "--version"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 7,
+          "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:35.599Z",
+          "finishedAt": "2026-09-09T00:33:04.178Z",
           "inputs": [],
-          "peakObservedRssMiB": 9.390625,
+          "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:35.592Z",
+          "startedAt": "2026-09-09T00:33:04.171Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -635,13 +147,13 @@
             "--version"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 64,
+          "elapsedMilliseconds": 61,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:35.735Z",
+          "finishedAt": "2026-09-09T00:33:04.311Z",
           "inputs": [],
-          "peakObservedRssMiB": 59.7890625,
+          "peakObservedRssMiB": 60.73828125,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:35.671Z",
+          "startedAt": "2026-09-09T00:33:04.250Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -658,13 +170,13 @@
             "--version"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 7,
+          "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:35.816Z",
+          "finishedAt": "2026-09-09T00:33:03.503Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:35.810Z",
+          "startedAt": "2026-09-09T00:33:03.497Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -681,13 +193,13 @@
             "--version"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 56,
+          "elapsedMilliseconds": 58,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:35.941Z",
+          "finishedAt": "2026-09-09T00:33:03.630Z",
           "inputs": [],
-          "peakObservedRssMiB": 68.24609375,
+          "peakObservedRssMiB": 67.6484375,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:35.885Z",
+          "startedAt": "2026-09-09T00:33:03.572Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -704,13 +216,13 @@
             "--version"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 38,
+          "elapsedMilliseconds": 33,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:36.058Z",
+          "finishedAt": "2026-09-09T00:33:04.101Z",
           "inputs": [],
-          "peakObservedRssMiB": 44.75,
+          "peakObservedRssMiB": 49.45703125,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:36.019Z",
+          "startedAt": "2026-09-09T00:33:04.067Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -730,13 +242,13 @@
             "--json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 177,
+          "elapsedMilliseconds": 186,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:36.593Z",
+          "finishedAt": "2026-09-09T00:33:03.909Z",
           "inputs": [],
-          "peakObservedRssMiB": 92.71484375,
+          "peakObservedRssMiB": 92.05859375,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:36.416Z",
+          "startedAt": "2026-09-09T00:33:03.722Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -754,16 +266,16 @@
             "check"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 600507,
+          "elapsedMilliseconds": 594703,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:35:04.632Z",
+          "finishedAt": "2026-09-09T00:43:00.157Z",
           "inputs": [],
-          "peakObservedRssMiB": 67.82421875,
+          "peakObservedRssMiB": 68.171875,
           "signal": null,
-          "startedAt": "2026-09-08T21:25:04.125Z",
+          "startedAt": "2026-09-09T00:33:05.453Z",
           "stderr": {
-            "bytes": 85514,
-            "sha256": "188442573b90ac1e409734d31c345f2b2c2234381f571bfe3fafb85d146a5464"
+            "bytes": 85836,
+            "sha256": "728fbc1c7d7ad228210d844f8e96c4bb28330efed6198077a70f8e0e2e719959"
           },
           "stdout": {
             "bytes": 245,
@@ -778,13 +290,13 @@
             "typecheck:native"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 883,
+          "elapsedMilliseconds": 946,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:35:43.543Z",
+          "finishedAt": "2026-09-09T00:43:01.186Z",
           "inputs": [],
-          "peakObservedRssMiB": 68.140625,
+          "peakObservedRssMiB": 68.16015625,
           "signal": null,
-          "startedAt": "2026-09-08T21:35:42.659Z",
+          "startedAt": "2026-09-09T00:43:00.240Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -802,13 +314,13 @@
             "build:native"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 225,
+          "elapsedMilliseconds": 236,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:35:54.353Z",
+          "finishedAt": "2026-09-09T00:43:01.516Z",
           "inputs": [],
-          "peakObservedRssMiB": 68.0546875,
+          "peakObservedRssMiB": 68.171875,
           "signal": null,
-          "startedAt": "2026-09-08T21:35:54.127Z",
+          "startedAt": "2026-09-09T00:43:01.279Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -826,20 +338,20 @@
             "check:native"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 17711,
+          "elapsedMilliseconds": 17065,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:36:22.731Z",
+          "finishedAt": "2026-09-09T00:43:18.664Z",
           "inputs": [],
-          "peakObservedRssMiB": 68.16015625,
+          "peakObservedRssMiB": 68.16796875,
           "signal": null,
-          "startedAt": "2026-09-08T21:36:05.020Z",
+          "startedAt": "2026-09-09T00:43:01.599Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           "stdout": {
-            "bytes": 57199,
-            "sha256": "c6358709cd49d4830f6ce8b1d0b562d69c1fb06f84497ca64de0f1663ced9f39"
+            "bytes": 38900,
+            "sha256": "d64a09d836ef495f6b29285f713a9b932c9aeb39f62c52ffa762e32b4eb27ea8"
           },
           "terminationReason": null
         },
@@ -856,19 +368,13 @@
             "<artifact>/native-diagnostics.json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 73,
+          "elapsedMilliseconds": 71,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:36:36.265Z",
-          "inputs": [
-            {
-              "bytes": 57199,
-              "path": "<artifact>/records/033-di-bag-check-native.json.stdout",
-              "sha256": "c6358709cd49d4830f6ce8b1d0b562d69c1fb06f84497ca64de0f1663ced9f39"
-            }
-          ],
-          "peakObservedRssMiB": 84.02734375,
+          "finishedAt": "2026-09-09T00:43:18.841Z",
+          "inputs": [],
+          "peakObservedRssMiB": 82.89453125,
           "signal": null,
-          "startedAt": "2026-09-08T21:36:36.192Z",
+          "startedAt": "2026-09-09T00:43:18.769Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -886,16 +392,16 @@
             "tests/final-adversarial-integration.test.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 167,
+          "elapsedMilliseconds": 159,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:47:26.900Z",
+          "finishedAt": "2026-09-09T00:43:19.089Z",
           "inputs": [],
-          "peakObservedRssMiB": 52.90234375,
+          "peakObservedRssMiB": 53.16796875,
           "signal": null,
-          "startedAt": "2026-09-08T21:47:26.733Z",
+          "startedAt": "2026-09-09T00:43:18.930Z",
           "stderr": {
-            "bytes": 1097,
-            "sha256": "dd91a6635407f38767026423bd96d5d8003f41fdaf9cd88c447b570c4a7e5fb5"
+            "bytes": 1098,
+            "sha256": "75a32b8b6ea5b3961aca800630ca8a78ac2b6a12e54e2d0824da6b6652a006cc"
           },
           "stdout": {
             "bytes": 28,
@@ -910,16 +416,16 @@
             "tests/box-package.test.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 97345,
+          "elapsedMilliseconds": 98585,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:49:15.392Z",
+          "finishedAt": "2026-09-09T00:44:57.784Z",
           "inputs": [],
-          "peakObservedRssMiB": 780.4765625,
+          "peakObservedRssMiB": 779.10546875,
           "signal": null,
-          "startedAt": "2026-09-08T21:47:38.047Z",
+          "startedAt": "2026-09-09T00:43:19.199Z",
           "stderr": {
-            "bytes": 10332,
-            "sha256": "2c791ea733b16af797e1f9264e55c12c5b6c16e05b34c9ba224f5573b7896832"
+            "bytes": 10334,
+            "sha256": "1e240bcf599a1e2d44e75b762c591141e913e5be9766d083240ec516caeb8f94"
           },
           "stdout": {
             "bytes": 28,
@@ -934,16 +440,16 @@
             "tests/package.test.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 58327,
+          "elapsedMilliseconds": 59108,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:50:24.576Z",
+          "finishedAt": "2026-09-09T00:45:56.974Z",
           "inputs": [],
-          "peakObservedRssMiB": 3851.03515625,
+          "peakObservedRssMiB": 3777.45703125,
           "signal": null,
-          "startedAt": "2026-09-08T21:49:26.249Z",
+          "startedAt": "2026-09-09T00:44:57.865Z",
           "stderr": {
-            "bytes": 6915,
-            "sha256": "2909bb0551cfb86022a063a24947151b39409b6656c14501aebdeedec76ac1d7"
+            "bytes": 6914,
+            "sha256": "88670a3b2155b7a1b4a601892a131c3cab0f88e3269ea2cd2bb3ada7a42cf1cd"
           },
           "stdout": {
             "bytes": 28,
@@ -958,16 +464,16 @@
             "tests/native-package.test.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 162656,
+          "elapsedMilliseconds": 163885,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:53:18.419Z",
+          "finishedAt": "2026-09-09T00:48:40.946Z",
           "inputs": [],
-          "peakObservedRssMiB": 1547.79296875,
+          "peakObservedRssMiB": 1657.64453125,
           "signal": null,
-          "startedAt": "2026-09-08T21:50:35.763Z",
+          "startedAt": "2026-09-09T00:45:57.061Z",
           "stderr": {
             "bytes": 301,
-            "sha256": "fe9cb6eeab2f7d1dab08ea76dd9c0f48d7d0ef91b429ff9ffda1185243b34056"
+            "sha256": "9d15a416b40a80c73d5d5239a0dd18947f98908e7bfeb90fc171ce3ba6e01382"
           },
           "stdout": {
             "bytes": 28,
@@ -993,11 +499,11 @@
           "cwd": "<checkout:di-bag>",
           "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:53:37.800Z",
+          "finishedAt": "2026-09-09T00:48:41.049Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:53:37.793Z",
+          "startedAt": "2026-09-09T00:48:41.042Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1015,24 +521,13 @@
             "<artifact>/records/039-example-discovery.json.stdout"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 24,
+          "elapsedMilliseconds": 26,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:53:51.960Z",
-          "inputs": [
-            {
-              "bytes": 197,
-              "path": "<artifact>/records/039-example-discovery.json.stdout",
-              "sha256": "ea3670236eccf9a8bc78fbf3c9b27fbbe770915fcad7c6359dbb5d19be4a7b2e"
-            },
-            {
-              "bytes": 1069,
-              "path": "<artifact>/validate-examples.mjs",
-              "sha256": "9287b2da79f030ceee2f779ae50ead01296352667f0d8b3cad8b4ae9b10e4500"
-            }
-          ],
-          "peakObservedRssMiB": 14.08203125,
+          "finishedAt": "2026-09-09T00:48:41.150Z",
+          "inputs": [],
+          "peakObservedRssMiB": 40.76953125,
           "signal": null,
-          "startedAt": "2026-09-08T21:53:51.936Z",
+          "startedAt": "2026-09-09T00:48:41.124Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1050,13 +545,13 @@
             "examples/box-adapters.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 13,
+          "elapsedMilliseconds": 15,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:02.259Z",
+          "finishedAt": "2026-09-09T00:48:41.238Z",
           "inputs": [],
-          "peakObservedRssMiB": 10.84765625,
+          "peakObservedRssMiB": 7.94140625,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:02.246Z",
+          "startedAt": "2026-09-09T00:48:41.223Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1074,13 +569,13 @@
             "examples/composition.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 26,
+          "elapsedMilliseconds": 33,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:02.363Z",
+          "finishedAt": "2026-09-09T00:48:41.340Z",
           "inputs": [],
-          "peakObservedRssMiB": 34.0078125,
+          "peakObservedRssMiB": 26.5703125,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:02.337Z",
+          "startedAt": "2026-09-09T00:48:41.306Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1098,13 +593,13 @@
             "examples/contributions.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 14,
+          "elapsedMilliseconds": 13,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:02.459Z",
+          "finishedAt": "2026-09-09T00:48:41.452Z",
           "inputs": [],
-          "peakObservedRssMiB": 10.58984375,
+          "peakObservedRssMiB": 9.265625,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:02.444Z",
+          "startedAt": "2026-09-09T00:48:41.438Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1122,13 +617,13 @@
             "examples/modules.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 14,
+          "elapsedMilliseconds": 16,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:02.546Z",
+          "finishedAt": "2026-09-09T00:48:41.539Z",
           "inputs": [],
-          "peakObservedRssMiB": 8.3984375,
+          "peakObservedRssMiB": 7.68359375,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:02.531Z",
+          "startedAt": "2026-09-09T00:48:41.523Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1146,13 +641,13 @@
             "examples/observers.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 14,
+          "elapsedMilliseconds": 13,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:02.630Z",
+          "finishedAt": "2026-09-09T00:48:41.642Z",
           "inputs": [],
-          "peakObservedRssMiB": 7.96484375,
+          "peakObservedRssMiB": 11.01953125,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:02.615Z",
+          "startedAt": "2026-09-09T00:48:41.629Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1170,13 +665,13 @@
             "examples/plugins.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 13,
+          "elapsedMilliseconds": 17,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:02.717Z",
+          "finishedAt": "2026-09-09T00:48:41.755Z",
           "inputs": [],
-          "peakObservedRssMiB": 8.9296875,
+          "peakObservedRssMiB": 8.0234375,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:02.703Z",
+          "startedAt": "2026-09-09T00:48:41.738Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1194,13 +689,13 @@
             "examples/scopes.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 28,
+          "elapsedMilliseconds": 26,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:02.826Z",
+          "finishedAt": "2026-09-09T00:48:41.858Z",
           "inputs": [],
-          "peakObservedRssMiB": 34.1796875,
+          "peakObservedRssMiB": 34.0625,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:02.798Z",
+          "startedAt": "2026-09-09T00:48:41.831Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1220,11 +715,11 @@
           "cwd": "<checkout:di-bag>",
           "elapsedMilliseconds": 15,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:02.920Z",
+          "finishedAt": "2026-09-09T00:48:41.953Z",
           "inputs": [],
-          "peakObservedRssMiB": 8.55078125,
+          "peakObservedRssMiB": 8.34375,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:02.904Z",
+          "startedAt": "2026-09-09T00:48:41.938Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1242,13 +737,13 @@
             "examples/wbs-scope.ts"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 15,
+          "elapsedMilliseconds": 14,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:03.008Z",
+          "finishedAt": "2026-09-09T00:48:42.048Z",
           "inputs": [],
-          "peakObservedRssMiB": 8.02734375,
+          "peakObservedRssMiB": 7.69921875,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:02.993Z",
+          "startedAt": "2026-09-09T00:48:42.033Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1266,13 +761,13 @@
             "build"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 1034,
+          "elapsedMilliseconds": 1032,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:46.424Z",
+          "finishedAt": "2026-09-09T00:48:55.070Z",
           "inputs": [],
-          "peakObservedRssMiB": 68.1015625,
+          "peakObservedRssMiB": 68.3828125,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:45.389Z",
+          "startedAt": "2026-09-09T00:48:54.038Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1296,13 +791,13 @@
             "<artifact>/di-bag-tree-build.json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 72,
+          "elapsedMilliseconds": 73,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:46.578Z",
+          "finishedAt": "2026-09-09T00:48:55.231Z",
           "inputs": [],
-          "peakObservedRssMiB": 80.33984375,
+          "peakObservedRssMiB": 78.50390625,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:46.506Z",
+          "startedAt": "2026-09-09T00:48:55.157Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1321,20 +816,20 @@
             "--json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 1261,
+          "elapsedMilliseconds": 1253,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:47.917Z",
+          "finishedAt": "2026-09-09T00:48:56.589Z",
           "inputs": [],
-          "peakObservedRssMiB": 101.55859375,
+          "peakObservedRssMiB": 101.578125,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:46.656Z",
+          "startedAt": "2026-09-09T00:48:55.335Z",
           "stderr": {
             "bytes": 96,
             "sha256": "b652f0b63f362b24e6e3df63c4ad0032eef3a4fb05dfb4bd281688de60e1c709"
           },
           "stdout": {
-            "bytes": 7358,
-            "sha256": "247468e122591ad19a36e2a18f42eab67cfdcfd0c2af96ba9a15a1def2856a72"
+            "bytes": 7566,
+            "sha256": "ca1928c82c83b4dcab3fae0ab88250dae4c6671e01429e07488870a9c584cc9d"
           },
           "terminationReason": null
         },
@@ -1351,13 +846,13 @@
             "<artifact>/di-bag-tree-dryrun.json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 73,
+          "elapsedMilliseconds": 72,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:48.087Z",
+          "finishedAt": "2026-09-09T00:48:56.733Z",
           "inputs": [],
-          "peakObservedRssMiB": 78.49609375,
+          "peakObservedRssMiB": 81.203125,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:48.013Z",
+          "startedAt": "2026-09-09T00:48:56.660Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1378,22 +873,11 @@
           "cwd": "<checkout:di-bag>",
           "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:48.171Z",
-          "inputs": [
-            {
-              "bytes": 10200,
-              "path": "<artifact>/di-bag-tree-build.json",
-              "sha256": "aacfa5a7ca52317befd80da1e09c09c4f7b82631260ccaeb382ebdb4ad70ba6b"
-            },
-            {
-              "bytes": 10200,
-              "path": "<artifact>/di-bag-tree-dryrun.json",
-              "sha256": "aacfa5a7ca52317befd80da1e09c09c4f7b82631260ccaeb382ebdb4ad70ba6b"
-            }
-          ],
+          "finishedAt": "2026-09-09T00:48:56.837Z",
+          "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:48.165Z",
+          "startedAt": "2026-09-09T00:48:56.831Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1413,11 +897,11 @@
           "cwd": "<checkout:di-bag>",
           "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:48.249Z",
+          "finishedAt": "2026-09-09T00:48:56.913Z",
           "inputs": [],
-          "peakObservedRssMiB": 5.140625,
+          "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:48.242Z",
+          "startedAt": "2026-09-09T00:48:56.906Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1438,20 +922,20 @@
             "<artifact>"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 227,
+          "elapsedMilliseconds": 228,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:48.556Z",
+          "finishedAt": "2026-09-09T00:48:57.214Z",
           "inputs": [],
-          "peakObservedRssMiB": 101.72265625,
+          "peakObservedRssMiB": 102.0390625,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:48.329Z",
+          "startedAt": "2026-09-09T00:48:56.985Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           },
           "stdout": {
-            "bytes": 7358,
-            "sha256": "247468e122591ad19a36e2a18f42eab67cfdcfd0c2af96ba9a15a1def2856a72"
+            "bytes": 7566,
+            "sha256": "ca1928c82c83b4dcab3fae0ab88250dae4c6671e01429e07488870a9c584cc9d"
           },
           "terminationReason": null
         },
@@ -1468,13 +952,13 @@
             "<artifact>/di-bag-tree-pack.json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 71,
+          "elapsedMilliseconds": 76,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:48.711Z",
+          "finishedAt": "2026-09-09T00:48:57.387Z",
           "inputs": [],
-          "peakObservedRssMiB": 66.78125,
+          "peakObservedRssMiB": 77.7109375,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:48.639Z",
+          "startedAt": "2026-09-09T00:48:57.311Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1495,22 +979,11 @@
           "cwd": "<checkout:di-bag>",
           "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:48.799Z",
-          "inputs": [
-            {
-              "bytes": 10200,
-              "path": "<artifact>/di-bag-tree-build.json",
-              "sha256": "aacfa5a7ca52317befd80da1e09c09c4f7b82631260ccaeb382ebdb4ad70ba6b"
-            },
-            {
-              "bytes": 10200,
-              "path": "<artifact>/di-bag-tree-pack.json",
-              "sha256": "aacfa5a7ca52317befd80da1e09c09c4f7b82631260ccaeb382ebdb4ad70ba6b"
-            }
-          ],
+          "finishedAt": "2026-09-09T00:48:57.473Z",
+          "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:48.793Z",
+          "startedAt": "2026-09-09T00:48:57.466Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1530,11 +1003,11 @@
           "cwd": "<checkout:di-bag>",
           "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:48.879Z",
+          "finishedAt": "2026-09-09T00:48:57.557Z",
           "inputs": [],
-          "peakObservedRssMiB": 5.27734375,
+          "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:48.873Z",
+          "startedAt": "2026-09-09T00:48:57.550Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1599,6 +1072,8 @@
         "dist/provider.js",
         "dist/registration.d.ts",
         "dist/registration.js",
+        "dist/replacement-types.d.ts",
+        "dist/replacement-types.js",
         "dist/runtime.d.ts",
         "dist/runtime.js",
         "dist/sas-box.d.ts",
@@ -1619,7 +1094,7 @@
         "dist/val-box.js",
         "package.json"
       ],
-      "integrity": "sha512-0fIK1/g7SsEOclpXqKmRHDCmgXJQr1Mswq1G9sbMTN5fw3HCByiLacuTBlmW4qw5gSeBF2+kxglmA1p5CQrOwA==",
+      "integrity": "sha512-j5uMDMdnAM1sQl8/QVruiBbClMoa/JlqLIHxrt5XxEyIuzK+pr8Fiq87as8zjNbDwfFNA9/1hVGk2U6Aha8kRg==",
       "name": "di-bag",
       "packageMetadata": {
         "bundledDependencies": [],
@@ -1652,9 +1127,9 @@
         "types": "./dist/index.d.ts",
         "version": "0.1.0"
       },
-      "packedAt": "2026-09-08T21:54:48.556Z",
-      "sha256": "60ad1b2ccb0904188f250fc55c5ea35685e41a3e1aaeb0136b42599a0269a153",
-      "sha512": "d1f20ad7f83b4ac10e725a57a8a9911c30a6817250af532cc2ad46f6c6cc4cde5fc371c207288b69cb93065996e2ac39812781176fa4c60966035a79090acec0",
+      "packedAt": "2026-09-09T00:48:57.214Z",
+      "sha256": "62bf40bfc68240a51e6f23bbd7792ac12f0641eac613a4c96acbc9ee333a88cf",
+      "sha512": "8f9b8c0cc76700cd6c425f3f415aee8816c294ca1afc996a2c81f1aede57c44c88bb32bea6bf058aaf3b6acf338cd6c3c1f14d03dff58551a4d94e8085af2446",
       "version": "0.1.0"
     },
     {
@@ -1674,11 +1149,11 @@
           "cwd": "<checkout:sas-box>",
           "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:34.963Z",
+          "finishedAt": "2026-09-09T00:33:04.799Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:34.957Z",
+          "startedAt": "2026-09-09T00:33:04.793Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1698,11 +1173,11 @@
           "cwd": "<checkout:sas-box>",
           "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:35.049Z",
+          "finishedAt": "2026-09-09T00:33:04.565Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:35.041Z",
+          "startedAt": "2026-09-09T00:33:04.557Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1720,13 +1195,13 @@
             "HEAD"
           ],
           "cwd": "<checkout:sas-box>",
-          "elapsedMilliseconds": 6,
+          "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:35.129Z",
+          "finishedAt": "2026-09-09T00:33:04.642Z",
           "inputs": [],
-          "peakObservedRssMiB": 0,
+          "peakObservedRssMiB": 4.296875,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:35.122Z",
+          "startedAt": "2026-09-09T00:33:04.635Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1744,13 +1219,13 @@
             "--short"
           ],
           "cwd": "<checkout:sas-box>",
-          "elapsedMilliseconds": 6,
+          "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:35.203Z",
+          "finishedAt": "2026-09-09T00:33:04.723Z",
           "inputs": [],
-          "peakObservedRssMiB": 0,
+          "peakObservedRssMiB": 4.72265625,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:35.197Z",
+          "startedAt": "2026-09-09T00:33:04.716Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1767,13 +1242,13 @@
             "--version"
           ],
           "cwd": "<checkout:sas-box>",
-          "elapsedMilliseconds": 58,
+          "elapsedMilliseconds": 60,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:36.205Z",
+          "finishedAt": "2026-09-09T00:33:04.927Z",
           "inputs": [],
-          "peakObservedRssMiB": 66.296875,
+          "peakObservedRssMiB": 66.84375,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:36.147Z",
+          "startedAt": "2026-09-09T00:33:04.867Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1791,16 +1266,16 @@
             "check"
           ],
           "cwd": "<checkout:sas-box>",
-          "elapsedMilliseconds": 3140,
+          "elapsedMilliseconds": 3143,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:26.400Z",
+          "finishedAt": "2026-09-09T00:48:45.262Z",
           "inputs": [],
-          "peakObservedRssMiB": 67.87890625,
+          "peakObservedRssMiB": 67.90625,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:23.260Z",
+          "startedAt": "2026-09-09T00:48:42.118Z",
           "stderr": {
             "bytes": 1823,
-            "sha256": "6c4c6ec43f83eb1dc586f3bf75aadbb8b82504f5a82b794cca1aa34b3bea3bd6"
+            "sha256": "3fb3a4f1cc2ca1ffd3e23c51c59a58795b95c5524d3d12f6e37454e97156c372"
           },
           "stdout": {
             "bytes": 243,
@@ -1815,13 +1290,13 @@
             "build"
           ],
           "cwd": "<checkout:sas-box>",
-          "elapsedMilliseconds": 570,
+          "elapsedMilliseconds": 566,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:27.059Z",
+          "finishedAt": "2026-09-09T00:48:45.910Z",
           "inputs": [],
-          "peakObservedRssMiB": 67.78515625,
+          "peakObservedRssMiB": 67.83203125,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:26.488Z",
+          "startedAt": "2026-09-09T00:48:45.343Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1845,13 +1320,13 @@
             "<artifact>/sas-box-tree-build.json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 77,
+          "elapsedMilliseconds": 68,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:27.225Z",
+          "finishedAt": "2026-09-09T00:48:46.048Z",
           "inputs": [],
-          "peakObservedRssMiB": 77.72265625,
+          "peakObservedRssMiB": 61.41015625,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:27.147Z",
+          "startedAt": "2026-09-09T00:48:45.980Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1870,13 +1345,13 @@
             "--json"
           ],
           "cwd": "<checkout:sas-box>",
-          "elapsedMilliseconds": 755,
+          "elapsedMilliseconds": 769,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:28.070Z",
+          "finishedAt": "2026-09-09T00:48:46.903Z",
           "inputs": [],
-          "peakObservedRssMiB": 92.6953125,
+          "peakObservedRssMiB": 93.484375,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:27.314Z",
+          "startedAt": "2026-09-09T00:48:46.134Z",
           "stderr": {
             "bytes": 97,
             "sha256": "38ae559837afcd81758ec9d46e3103888abb12ea0da315b4f853b660bbb780a3"
@@ -1900,13 +1375,13 @@
             "<artifact>/sas-box-tree-dryrun.json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 67,
+          "elapsedMilliseconds": 65,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:28.226Z",
+          "finishedAt": "2026-09-09T00:48:47.044Z",
           "inputs": [],
-          "peakObservedRssMiB": 61.578125,
+          "peakObservedRssMiB": 61.85546875,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:28.159Z",
+          "startedAt": "2026-09-09T00:48:46.978Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1925,24 +1400,13 @@
             "<artifact>/sas-box-tree-dryrun.json"
           ],
           "cwd": "<checkout:sas-box>",
-          "elapsedMilliseconds": 6,
+          "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:28.316Z",
-          "inputs": [
-            {
-              "bytes": 330,
-              "path": "<artifact>/sas-box-tree-build.json",
-              "sha256": "926537c689386d5e628873ec7e41b235a4fa65023af1146f58f15cd12d03248b"
-            },
-            {
-              "bytes": 330,
-              "path": "<artifact>/sas-box-tree-dryrun.json",
-              "sha256": "926537c689386d5e628873ec7e41b235a4fa65023af1146f58f15cd12d03248b"
-            }
-          ],
+          "finishedAt": "2026-09-09T00:48:47.138Z",
+          "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:28.310Z",
+          "startedAt": "2026-09-09T00:48:47.130Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1960,13 +1424,13 @@
             "--short"
           ],
           "cwd": "<checkout:sas-box>",
-          "elapsedMilliseconds": 6,
+          "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:28.391Z",
+          "finishedAt": "2026-09-09T00:48:47.217Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:28.384Z",
+          "startedAt": "2026-09-09T00:48:47.210Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -1987,13 +1451,13 @@
             "<artifact>"
           ],
           "cwd": "<checkout:sas-box>",
-          "elapsedMilliseconds": 192,
+          "elapsedMilliseconds": 189,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:28.651Z",
+          "finishedAt": "2026-09-09T00:48:47.476Z",
           "inputs": [],
-          "peakObservedRssMiB": 94.1875,
+          "peakObservedRssMiB": 93.875,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:28.459Z",
+          "startedAt": "2026-09-09T00:48:47.286Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2017,13 +1481,13 @@
             "<artifact>/sas-box-tree-pack.json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 69,
+          "elapsedMilliseconds": 68,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:28.804Z",
+          "finishedAt": "2026-09-09T00:48:47.646Z",
           "inputs": [],
-          "peakObservedRssMiB": 64.1171875,
+          "peakObservedRssMiB": 61.66015625,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:28.735Z",
+          "startedAt": "2026-09-09T00:48:47.578Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2044,22 +1508,11 @@
           "cwd": "<checkout:sas-box>",
           "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:28.886Z",
-          "inputs": [
-            {
-              "bytes": 330,
-              "path": "<artifact>/sas-box-tree-build.json",
-              "sha256": "926537c689386d5e628873ec7e41b235a4fa65023af1146f58f15cd12d03248b"
-            },
-            {
-              "bytes": 330,
-              "path": "<artifact>/sas-box-tree-pack.json",
-              "sha256": "926537c689386d5e628873ec7e41b235a4fa65023af1146f58f15cd12d03248b"
-            }
-          ],
+          "finishedAt": "2026-09-09T00:48:47.743Z",
+          "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:28.880Z",
+          "startedAt": "2026-09-09T00:48:47.737Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2079,11 +1532,11 @@
           "cwd": "<checkout:sas-box>",
           "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:28.967Z",
+          "finishedAt": "2026-09-09T00:48:47.819Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:28.961Z",
+          "startedAt": "2026-09-09T00:48:47.812Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2123,7 +1576,7 @@
         "types": "./dist/index.d.ts",
         "version": "0.1.0"
       },
-      "packedAt": "2026-09-08T21:54:28.651Z",
+      "packedAt": "2026-09-09T00:48:47.476Z",
       "sha256": "23f1d407e38e28f64531515afa6b04a9514ab6d8edaec95d6c39c8cbeda77a91",
       "sha512": "1df071c09f98ae59141986622f174a1180d28835acd4aef2d7aac5339e5e5debfeb4d9c5de9f32d87181f92183c3a18af1ac4b84a4baec43971b3aec62d329db",
       "version": "0.1.0"
@@ -2143,13 +1596,13 @@
             "--show-toplevel"
           ],
           "cwd": "<checkout:val-box>",
-          "elapsedMilliseconds": 6,
+          "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:35.279Z",
+          "finishedAt": "2026-09-09T00:33:05.246Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:35.273Z",
+          "startedAt": "2026-09-09T00:33:05.239Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2169,11 +1622,11 @@
           "cwd": "<checkout:val-box>",
           "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:35.360Z",
+          "finishedAt": "2026-09-09T00:33:05.009Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:35.354Z",
+          "startedAt": "2026-09-09T00:33:05.003Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2191,13 +1644,13 @@
             "HEAD"
           ],
           "cwd": "<checkout:val-box>",
-          "elapsedMilliseconds": 6,
+          "elapsedMilliseconds": 8,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:35.440Z",
+          "finishedAt": "2026-09-09T00:33:05.085Z",
           "inputs": [],
-          "peakObservedRssMiB": 0,
+          "peakObservedRssMiB": 4.23046875,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:35.433Z",
+          "startedAt": "2026-09-09T00:33:05.077Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2215,13 +1668,13 @@
             "--short"
           ],
           "cwd": "<checkout:val-box>",
-          "elapsedMilliseconds": 6,
+          "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:35.516Z",
+          "finishedAt": "2026-09-09T00:33:05.167Z",
           "inputs": [],
-          "peakObservedRssMiB": 0,
+          "peakObservedRssMiB": 4.7421875,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:35.510Z",
+          "startedAt": "2026-09-09T00:33:05.160Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2238,13 +1691,13 @@
             "--version"
           ],
           "cwd": "<checkout:val-box>",
-          "elapsedMilliseconds": 58,
+          "elapsedMilliseconds": 60,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:24:36.343Z",
+          "finishedAt": "2026-09-09T00:33:05.376Z",
           "inputs": [],
-          "peakObservedRssMiB": 66.015625,
+          "peakObservedRssMiB": 64.76171875,
           "signal": null,
-          "startedAt": "2026-09-08T21:24:36.284Z",
+          "startedAt": "2026-09-09T00:33:05.316Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2262,16 +1715,16 @@
             "check"
           ],
           "cwd": "<checkout:val-box>",
-          "elapsedMilliseconds": 3349,
+          "elapsedMilliseconds": 3398,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:32.392Z",
+          "finishedAt": "2026-09-09T00:48:51.291Z",
           "inputs": [],
-          "peakObservedRssMiB": 67.8671875,
+          "peakObservedRssMiB": 67.71484375,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:29.042Z",
+          "startedAt": "2026-09-09T00:48:47.893Z",
           "stderr": {
             "bytes": 2117,
-            "sha256": "5ec7cd8ea10c47a6627c41c4dc41c88458c2ae0b3539ed315b0e5a92da02b4fa"
+            "sha256": "670af655f928cc9dd510e337572ab7244cda8fe7cc90e665460989a5fc96ca4f"
           },
           "stdout": {
             "bytes": 243,
@@ -2286,13 +1739,13 @@
             "build"
           ],
           "cwd": "<checkout:val-box>",
-          "elapsedMilliseconds": 598,
+          "elapsedMilliseconds": 621,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:33.078Z",
+          "finishedAt": "2026-09-09T00:48:51.992Z",
           "inputs": [],
-          "peakObservedRssMiB": 67.8203125,
+          "peakObservedRssMiB": 67.828125,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:32.480Z",
+          "startedAt": "2026-09-09T00:48:51.371Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2316,13 +1769,13 @@
             "<artifact>/val-box-tree-build.json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 65,
+          "elapsedMilliseconds": 73,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:33.234Z",
+          "finishedAt": "2026-09-09T00:48:52.146Z",
           "inputs": [],
-          "peakObservedRssMiB": 62.26171875,
+          "peakObservedRssMiB": 75.83203125,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:33.169Z",
+          "startedAt": "2026-09-09T00:48:52.072Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2341,13 +1794,13 @@
             "--json"
           ],
           "cwd": "<checkout:val-box>",
-          "elapsedMilliseconds": 811,
+          "elapsedMilliseconds": 812,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:34.126Z",
+          "finishedAt": "2026-09-09T00:48:53.060Z",
           "inputs": [],
-          "peakObservedRssMiB": 93.359375,
+          "peakObservedRssMiB": 93.609375,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:33.315Z",
+          "startedAt": "2026-09-09T00:48:52.248Z",
           "stderr": {
             "bytes": 97,
             "sha256": "bd7c8ad3198e116319dc7e724a6571bd39c3c89045c95635060b820967d54a84"
@@ -2371,13 +1824,13 @@
             "<artifact>/val-box-tree-dryrun.json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 69,
+          "elapsedMilliseconds": 65,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:34.282Z",
+          "finishedAt": "2026-09-09T00:48:53.210Z",
           "inputs": [],
-          "peakObservedRssMiB": 64.1640625,
+          "peakObservedRssMiB": 61.703125,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:34.213Z",
+          "startedAt": "2026-09-09T00:48:53.144Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2398,22 +1851,11 @@
           "cwd": "<checkout:val-box>",
           "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:34.375Z",
-          "inputs": [
-            {
-              "bytes": 624,
-              "path": "<artifact>/val-box-tree-build.json",
-              "sha256": "c7b8409b3b6ac17d73e7c9580716019587045fb5605f72ddfb319274baf22170"
-            },
-            {
-              "bytes": 624,
-              "path": "<artifact>/val-box-tree-dryrun.json",
-              "sha256": "c7b8409b3b6ac17d73e7c9580716019587045fb5605f72ddfb319274baf22170"
-            }
-          ],
+          "finishedAt": "2026-09-09T00:48:53.290Z",
+          "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:34.368Z",
+          "startedAt": "2026-09-09T00:48:53.284Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2431,13 +1873,13 @@
             "--short"
           ],
           "cwd": "<checkout:val-box>",
-          "elapsedMilliseconds": 6,
+          "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:34.449Z",
+          "finishedAt": "2026-09-09T00:48:53.367Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:34.443Z",
+          "startedAt": "2026-09-09T00:48:53.360Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2458,13 +1900,13 @@
             "<artifact>"
           ],
           "cwd": "<checkout:val-box>",
-          "elapsedMilliseconds": 192,
+          "elapsedMilliseconds": 194,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:34.730Z",
+          "finishedAt": "2026-09-09T00:48:53.629Z",
           "inputs": [],
-          "peakObservedRssMiB": 92.81640625,
+          "peakObservedRssMiB": 92.203125,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:34.538Z",
+          "startedAt": "2026-09-09T00:48:53.434Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2488,13 +1930,13 @@
             "<artifact>/val-box-tree-pack.json"
           ],
           "cwd": "<checkout:di-bag>",
-          "elapsedMilliseconds": 75,
+          "elapsedMilliseconds": 65,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:34.883Z",
+          "finishedAt": "2026-09-09T00:48:53.793Z",
           "inputs": [],
-          "peakObservedRssMiB": 75.73046875,
+          "peakObservedRssMiB": 61.83203125,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:34.808Z",
+          "startedAt": "2026-09-09T00:48:53.727Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2513,24 +1955,13 @@
             "<artifact>/val-box-tree-pack.json"
           ],
           "cwd": "<checkout:val-box>",
-          "elapsedMilliseconds": 6,
+          "elapsedMilliseconds": 7,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:34.976Z",
-          "inputs": [
-            {
-              "bytes": 624,
-              "path": "<artifact>/val-box-tree-build.json",
-              "sha256": "c7b8409b3b6ac17d73e7c9580716019587045fb5605f72ddfb319274baf22170"
-            },
-            {
-              "bytes": 624,
-              "path": "<artifact>/val-box-tree-pack.json",
-              "sha256": "c7b8409b3b6ac17d73e7c9580716019587045fb5605f72ddfb319274baf22170"
-            }
-          ],
+          "finishedAt": "2026-09-09T00:48:53.888Z",
+          "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:34.970Z",
+          "startedAt": "2026-09-09T00:48:53.881Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2550,11 +1981,11 @@
           "cwd": "<checkout:val-box>",
           "elapsedMilliseconds": 6,
           "exitCode": 0,
-          "finishedAt": "2026-09-08T21:54:35.053Z",
+          "finishedAt": "2026-09-09T00:48:53.967Z",
           "inputs": [],
           "peakObservedRssMiB": 0,
           "signal": null,
-          "startedAt": "2026-09-08T21:54:35.047Z",
+          "startedAt": "2026-09-09T00:48:53.960Z",
           "stderr": {
             "bytes": 0,
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -2596,7 +2027,7 @@
         "types": "./dist/index.d.ts",
         "version": "0.1.0"
       },
-      "packedAt": "2026-09-08T21:54:34.730Z",
+      "packedAt": "2026-09-09T00:48:53.629Z",
       "sha256": "a44566c0b07cbc0b1040075c4fbf88deab30dd5236d4a8203d7b53c16ad37e0a",
       "sha512": "3e4a4b9fbdb39523eab607f2f758e65fa86e919251655ca31e4905c2c4e3c12c3f214a54f64a4929ce01abac7d2ee92df105e51e614c4831d356c8c669cc7ed8",
       "version": "0.1.0"
