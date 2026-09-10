@@ -65,7 +65,7 @@ export class ProviderExecution {
   sourceInFlight = true;
 
   constructor(private readonly events: ExecutionEvents, description: RegistrationDescription, private readonly context: RuntimeContext) {
-    // Reserve every adapter slot before the source can reenter inspection.
+    // Reserve every metadata frame before the source can reenter inspection.
     this.frames = description.operations.filter(operation => operation.kind === 'frame-sync' || operation.kind === 'frame-async')
       .map(() => Object.freeze({ present: false as const }));
   }

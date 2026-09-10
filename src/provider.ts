@@ -190,6 +190,84 @@ export function mapAsync<R extends Registration, P extends (this: void, value: A
   return transform<R, MappedFactory<R, Promise<Awaited<ReturnType<P>>>>>(registration, { kind: 'map-async', project, acquisition: 'native' });
 }
 
+type InvalidAcquisitionMetadata<M> = M extends unknown
+  ? M extends readonly unknown[] | ((...args: never[]) => unknown) ? true
+    : 'then' extends keyof M
+      ? unknown extends M['then'] ? true
+        : Extract<M['then'], (...args: never[]) => unknown> extends never ? never : true
+      : never
+  : never;
+type AcquisitionMetadataAdmission<M> = [InvalidAcquisitionMetadata<M>] extends [never] ? unknown
+  : Unsatisfied<'acquisition metadata must be a synchronous object record', {}>;
+type AcquisitionFrames<R, M> = readonly [...ProviderAcquisitionMetadata<R>, Readonly<M>];
+
+/**
+ * Describe the exact source output with acquisition-local metadata, without awaiting it.
+ * Retains the source value identity, acquisition mode, dependencies, lifetime, and ownership.
+ * @param registration - The source registration to describe.
+ * @param describe - A receiver-free synchronous callback returning a plain object record.
+ * @returns A provider appending a shallowly copied and frozen metadata frame per acquisition.
+ * @typeParam P - The exact synchronous metadata callback signature retained by the provider.
+ * @throws If the callback or its returned record is invalid, or annotation fails.
+ */
+export function withAcquisitionMetadata<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object>(
+  registration: R & Registration,
+  describe: P & AcquisitionMetadataAdmission<ReturnType<P>>,
+): Provider<ProviderFactory<R>, RetainedMetadata<R>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraph<R>, ProviderAcquired<R>> {
+  return annotate<R, ProviderFactory<R>, ReturnType<P>, ProviderAcquired<R>>(registration, describe, false);
+}
+
+/**
+ * Await the source and describe its fulfilled value with acquisition-local metadata.
+ * Dependencies, lifetime, and existing ownership are retained; annotation adds no ownership.
+ * @param registration - The source registration to await and describe.
+ * @param describe - A receiver-free synchronous callback returning a plain object record.
+ * @returns A provider exposing a native Promise of the source value and appending a frozen frame.
+ * @typeParam P - The exact synchronous metadata callback signature retained by the provider.
+ * @throws If the callback is invalid; source and annotation failures reject asynchronously.
+ */
+export function withAcquisitionMetadataAsync<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object>(
+  registration: R & Registration,
+  describe: P & AcquisitionMetadataAdmission<ReturnType<P>>,
+): Provider<MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, RetainedMetadata<R>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraph<R>, Awaited<ProviderOutput<R>>> {
+  return annotate<R, MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, ReturnType<P>, Awaited<ProviderOutput<R>>>(registration, describe, true);
+}
+
+function annotate<R extends Registration, F extends Factory, M extends object, V>(registration: R, callback: (this: void, value: never) => object, async: boolean): Provider<F, RetainedMetadata<R>, AcquisitionFrames<R, M>, ProviderGraph<R>, V> {
+  if (typeof callback !== 'function') throw new TypeError('acquisition metadata requires a function');
+  const description = describe(registration);
+  // Decoration retains the current output stage's mode even across metadata and ownership.
+  let acquisition = description.source.acquisition;
+  for (const operation of description.operations) {
+    if ('acquisition' in operation) acquisition = operation.acquisition;
+  }
+  return transform<R, F, AcquisitionFrames<R, M>, V>(registration, {
+    kind: async ? 'frame-async' : 'frame-sync',
+    acquisition: async ? 'native' : acquisition,
+    project(value: never) {
+      const metadata = callback(value);
+      if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) {
+        return invalidAcquisitionMetadata(metadata);
+      }
+      const prototype = Object.getPrototypeOf(metadata);
+      if (prototype !== null && prototype !== Object.prototype) return invalidAcquisitionMetadata(metadata);
+      const frame = Object.create(null) as Record<PropertyKey, unknown>;
+      for (const key of Reflect.ownKeys(metadata)) frame[key] = Reflect.get(metadata, key);
+      const then = Object.hasOwn(frame, 'then') ? frame.then : Reflect.get(metadata, 'then');
+      if (typeof then === 'function') return invalidAcquisitionMetadata(metadata);
+      return { value, frame: Object.freeze(frame) };
+    },
+  });
+}
+
+function invalidAcquisitionMetadata(value: unknown): never {
+  // A widened callback can return a rejected Promise. Observe that invalid result
+  // before throwing, without reading its `then` or assimilating service values.
+  // The intrinsic rejects non-Promise receivers without invoking user code.
+  try { Promise.prototype.then.call(value, () => {}, () => {}); } catch { /* Not an observable native Promise. */ }
+  throw new TypeError('acquisition metadata must be a synchronous plain object record');
+}
+
 export type MetadataKeyUnion<M> = M extends unknown ? keyof M : never;
 type NonFiniteKeys<M> = M extends unknown ? {
   [K in keyof M]-?: Record<never, never> extends Record<K, never> ? K : never;

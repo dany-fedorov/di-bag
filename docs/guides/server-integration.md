@@ -464,12 +464,11 @@ export function createRequestScope(app: Application, requestId: string) {
 Keep `owned-scope.ts` and `handle-request.ts` from the earlier sections.
 `raw` preserves the exact value without inspecting `then`.
 `native` tracks a genuine native promise and gives its fulfillment to the
-disposer. Wrapping with `withDisposal` or `withLifetime` preserves the chosen
-mode. `mapSync`, positional adapters, and synchronous box adapters may introduce
-new automatic stages; select explicit modes where those APIs accept an
-acquisition option. `mapAsync`, `fromValBoxAsync`, and the async SasBox modes
-already declare native acquisition and accept no acquisition option. ValBox
-presence mode defaults to `raw`. See
+disposer. Wrapping with `withDisposal`, `withLifetime`, `withMetadata`, or
+`withAcquisitionMetadata` preserves the chosen mode. `mapSync` and
+positional adapters may introduce new automatic stages; select explicit modes
+where those APIs accept an acquisition option. `mapAsync` and
+`withAcquisitionMetadataAsync` declare native acquisition. See
 [portable host configuration](tutorial.md#portable-mode).
 
 Save this as `server.ts` and run `deno run --allow-net server.ts`:

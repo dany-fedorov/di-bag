@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { join, resolve } from 'node:path';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import ts from 'typescript';
 import { describeDiagnostic } from './compiler';
@@ -20,6 +20,7 @@ import { nativeLimits } from '../scripts/native-compiler';
 const root = resolve(__dirname, '..');
 const classicPackageConsumer = mkdtempSync(join(tmpdir(), 'di-bag-classic-package-consumer-'));
 const classicPackageArtifacts = mkdtempSync(join(tmpdir(), 'di-bag-classic-package-artifacts-'));
+let packageArchiveFiles: readonly string[] = [];
 
 async function run(command: string[], cwd = root) {
   const { exitCode, stdout, stderr, signal, terminationReason } = await execute(command, cwd);
@@ -36,17 +37,17 @@ async function execute(command: string[], cwd = root) {
 }
 
 beforeAll(async () => {
-  await run([
-    'node',
-    'node_modules/typescript/bin/tsc6',
-    '-p',
-    'tsconfig.build.json',
-  ]);
+  // The self-reference fixtures below also need this checkout's fresh dist tree.
+  await run(['npm', 'run', 'build']);
   const packed = JSON.parse(await run(['npm', 'pack', '--ignore-scripts', '--json', '--pack-destination', classicPackageArtifacts]));
+  packageArchiveFiles = packed[0].files.map((entry: { path: string }) => entry.path);
   const archive = join(classicPackageArtifacts, packed[0].filename);
-  await run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive,
-    join(root, 'tests/fixtures/box-packages/sas-box-0.1.0.tgz'),
-    join(root, 'tests/fixtures/box-packages/val-box-0.1.0.tgz')], classicPackageConsumer);
+  await run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive], classicPackageConsumer);
+});
+
+test('standalone archive contains root and node entries without removed adapters', () => {
+  for (const entry of ['dist/index.d.ts', 'dist/index.js', 'dist/node.d.ts', 'dist/node.js']) expect(packageArchiveFiles).toContain(entry);
+  expect(packageArchiveFiles.some(path => /(?:^|\/)(?:sas-box|val-box)\.(?:d\.ts|js)$/.test(path))).toBe(false);
 });
 
 afterAll(() => {
@@ -68,7 +69,7 @@ test('feature library inferred token exports survive declaration emission', () =
   const producerHost = ts.createCompilerHost(options);
   // Keep producer and consumer text unchanged; redirect only the package edge.
   producerHost.resolveModuleNames = (names, containingFile) => names.map(name =>
-    name === '../../../src' ? { resolvedFileName: resolve(root, 'dist/index.d.ts'), extension: ts.Extension.Dts }
+    name === '../../../src' ? { resolvedFileName: resolve(classicPackageConsumer, 'node_modules/di-bag/dist/index.d.ts'), extension: ts.Extension.Dts }
       : ts.resolveModuleName(name, containingFile, options, producerHost).resolvedModule);
   producerHost.writeFile = (name, text) => { declarations.set(name, text); };
   const producer = ts.createProgram([featurePath], options, producerHost);
@@ -79,7 +80,7 @@ test('feature library inferred token exports survive declaration emission', () =
   const consumerOptions = { ...options, noEmit: true, emitDeclarationOnly: false, rootDir: root };
   const consumerHost = ts.createCompilerHost(consumerOptions);
   consumerHost.resolveModuleNames = (names, containingFile) => names.map(name =>
-    name === '../../../src' ? { resolvedFileName: resolve(root, 'dist/index.d.ts'), extension: ts.Extension.Dts }
+    name === '../../../src' ? { resolvedFileName: resolve(classicPackageConsumer, 'node_modules/di-bag/dist/index.d.ts'), extension: ts.Extension.Dts }
       : ts.resolveModuleName(name, containingFile, consumerOptions, consumerHost).resolvedModule);
   const readConsumer = consumerHost.getSourceFile.bind(consumerHost);
   const declarationPath = featurePath.replace(/\.ts$/, '.d.ts');
@@ -95,6 +96,20 @@ test('feature library inferred token exports survive declaration emission', () =
 });
 
 for (const mode of ['commonjs', 'module'] as const) {
+  test(`classic installed ${mode} archive rejects removed box package entry points`, async () => {
+    expect(existsSync(join(classicPackageConsumer, 'node_modules/sas-box'))).toBe(false);
+    expect(existsSync(join(classicPackageConsumer, 'node_modules/val-box'))).toBe(false);
+    const load = mode === 'commonjs'
+      ? "async specifier => { try { require(specifier); } catch (error) { return error.code; } }"
+      : "async specifier => { try { await import(specifier); } catch (error) { return error.code; } }";
+    const stdout = await run(['node', `--input-type=${mode}`, '--eval', `
+      const load = ${load};
+      Promise.all(['di-bag/sas-box', 'di-bag/val-box'].map(load))
+        .then(codes => console.log(JSON.stringify(codes)));
+    `], classicPackageConsumer);
+    expect(JSON.parse(stdout)).toEqual(['ERR_PACKAGE_PATH_NOT_EXPORTED', 'ERR_PACKAGE_PATH_NOT_EXPORTED']);
+  });
+
   test(`classic installed ${mode} archive returns the full adversarial oracle`, async () => {
     const executed = await execute(['node', `--input-type=${mode}`, '--eval', finalAdversarialPackageRuntimeSource(mode)], classicPackageConsumer);
     let result: unknown;

@@ -185,26 +185,20 @@ see the [server guide](docs/guides/server-integration.md) and
 
 ## Runtime support
 
-The package has **zero runtime dependencies** and four entry points:
+The package has **zero runtime dependencies** and two entry points:
 
 | Import | Purpose |
 | --- | --- |
 | `di-bag/node` | Ready-to-use factory composition in Node and Bun, with native Promise detection. |
 | `di-bag` | Portable core for other hosts, including Deno and bundled browsers. Use explicit acquisition modes or configure a trusted native Promise predicate. |
-| `di-bag/sas-box` | Optional structural adapters for SasBox values. |
-| `di-bag/val-box` | Optional structural adapters for ValBox values. |
 
-The box adapters are separate entry points; applications supply their own box
-libraries. See [host configuration](docs/guides/tutorial.md#portable-mode)
-and [box adapters](docs/guides/tutorial.md#optional-box-adapters) for details.
-
-Use `sas-box` when reusable plugins must declare which sync/async acquisition
-routes they support. Use `val-box` when an acquired result needs explicit
-presence and provenance, such as the configuration source or secret version
-that actually supplied it. Ordinary factories and static `withMetadata` labels
-already cover simpler cases. The [production use-case assessment](docs/research/2026-09-10-box-production-use-cases.md)
-compares these patterns with Babel, Sass, Spring Boot, and other primary sources,
-including where plain functions or records are sufficient.
+Ordinary synchronous and asynchronous factory functions express acquisition
+capabilities. Use `Presence<T>` records when absent and present `undefined` must
+remain distinct, `withMetadata` for static annotations, and
+`withAcquisitionMetadata` or `withAcquisitionMetadataAsync` for facts learned
+while producing one value. See [host configuration](docs/guides/tutorial.md#portable-mode)
+and [provider metadata](docs/guides/tutorial.md#attach-metadata-and-inspect-without-resolving)
+for details.
 
 ### A few things to know
 
@@ -225,7 +219,7 @@ including where plain functions or records are sufficient.
 | [Complete tutorial](docs/guides/tutorial.md) | Learn every public API through examples, from first composition to advanced ownership. |
 | [API reference](docs/guides/api-reference.md) | Exact generated signatures, overloads, type parameters, and API inventories. |
 | [Server guide](docs/guides/server-integration.md) | Node HTTP, Express, Fastify, Bun, and Deno: shared services, request scopes, startup, and shutdown. |
-| [Runnable examples](examples) | Modules, tokens, composition, collections, plugins, observers, scopes, and adapters. |
+| [Runnable examples](examples) | Modules, tokens, composition, collections, plugins, observers, scopes, and provider metadata. |
 | [Integration guide](docs/guides/enterprise-integration.md) | Tested recipes for request ownership, substitutions, and dynamic features. |
 | [Comparison with alternatives](docs/research/2026-09-09-enterprise-parity.md) | Capability comparisons with Awilix, InversifyJS, TSyringe, Typed Inject, Effect, NestJS, and Angular, including differences and limits. |
 | [Migration guide](docs/migrations/0.1-to-enterprise.md) | Changes across the enterprise capability work. |

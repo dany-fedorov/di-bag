@@ -140,14 +140,14 @@ test('metadata preserves synchronous ownership and borrowed cleanup methods', as
   expect(disposed).toEqual([raw]);
   expect(disposed[0]).toBe(raw);
 });
-test('adapter execution captures projected values and acquisition frames', async () => {
-  // Exercise the engine independently so missing public subpaths cannot mask RED.
-  const operation: ProviderOperation = { kind: 'frame-sync', acquisition: 'raw', project: () => ({ value: 42, frame: Object.freeze({ kind: 'val-box', metadata: Object.freeze({ present: false }), alias: 'engine' }) }) };
+test('provider execution captures projected values and acquisition frames', async () => {
+  // Exercise the frame engine independently of public decorators.
+  const operation: ProviderOperation = { kind: 'frame-sync', acquisition: 'raw', project: () => ({ value: 42, frame: Object.freeze({ source: 'engine' }) }) };
   const registration = transform<() => object, () => number, readonly [unknown]>(() => ({}), operation);
   const bag = DiBag.begin().add({ value: registration }).end();
   expect(bag.resolve('value')).toBe(42);
   expect(bag.inspect('value').acquisitions[0]!.metadata).toEqual([
-    { present: true, value: { kind: 'val-box', metadata: { present: false }, alias: 'engine' } },
+    { present: true, value: { source: 'engine' } },
   ]);
   await bag.close();
 });

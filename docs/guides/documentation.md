@@ -5,7 +5,7 @@
 DI Bag's documentation starts with ordinary Markdown. The README introduces the
 library, the tutorial teaches its APIs, and the server guide shows how to use
 those APIs in applications. TypeDoc generates the exact API reference from the
-four public TypeScript entry points. VitePress publishes these pages as a
+two public TypeScript entry points. VitePress publishes these pages as a
 searchable website at [dany-fedorov.github.io/di-bag](https://dany-fedorov.github.io/di-bag/).
 
 ## Work locally
@@ -57,7 +57,7 @@ the generated reference for exact overloads and generic constraints.
 ## How generation is checked
 
 `npm run docs:generate` uses TypeDoc, its Markdown plugin, and its VitePress theme.
-It reads only `src/index.ts`, `src/node.ts`, `src/sas-box.ts`, and `src/val-box.ts`.
+It reads only `src/index.ts` and `src/node.ts`.
 The rendering extension prints declarations with TypeScript so constructor
 constraints, grouping, readonly fields, and const type parameters retain their
 meaning. TypeDoc supplies the prose, navigation, and source links.

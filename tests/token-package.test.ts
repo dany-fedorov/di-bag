@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import ts from 'typescript';
@@ -7,10 +7,11 @@ import ts from 'typescript';
 const root = resolve(__dirname, '..');
 const packed = mkdtempSync(join(tmpdir(), 'di-bag-token-pack-'));
 const consumer = mkdtempSync(join(tmpdir(), 'di-bag-token-consumer-'));
+const packageTree = mkdtempSync(join(tmpdir(), 'di-bag-token-package-tree-'));
 let archive: string;
 
 afterAll(() => {
-  for (const directory of [packed, consumer]) rmSync(directory, { recursive: true, force: true });
+  for (const directory of [packed, consumer, packageTree]) rmSync(directory, { recursive: true, force: true });
 });
 
 async function run(command: string[], cwd = root) {
@@ -25,18 +26,20 @@ async function run(command: string[], cwd = root) {
 }
 
 beforeAll(async () => {
-  await run(['node', 'node_modules/typescript/bin/tsc6', '-p', 'tsconfig.build.json']);
-  const result = JSON.parse(await run(['npm', 'pack', '--ignore-scripts', '--json', '--pack-destination', packed]));
+  for (const file of ['src', 'package.json', 'tsconfig.json', 'tsconfig.build.json', 'README.md', 'LICENSE']) cpSync(join(root, file), join(packageTree, file), { recursive: true });
+  symlinkSync(join(root, 'node_modules'), join(packageTree, 'node_modules'));
+  await run(['npm', 'run', 'build'], packageTree);
+  const result = JSON.parse(await run(['npm', 'pack', '--ignore-scripts', '--json', '--pack-destination', packed], packageTree));
   archive = join(packed, result[0].filename);
   await run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive], consumer);
 });
 
 for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
-  test(`installed ${runtime} ${extension} facade shares core tokens, modes and adapters`, async () => {
+  test(`installed ${runtime} ${extension} facade shares core tokens, modes and acquisition metadata`, async () => {
     const file = join(consumer, `${runtime}-facade.${extension}`);
     const load = extension === 'cjs'
-      ? "const { DiBag: Core } = require('di-bag'); const { DiBag } = require('di-bag/node'); const { fromValBox } = require('di-bag/val-box');"
-      : "import { DiBag as Core } from 'di-bag'; import { DiBag } from 'di-bag/node'; import { fromValBox } from 'di-bag/val-box';";
+      ? "const { DiBag: Core } = require('di-bag'); const { DiBag } = require('di-bag/node');"
+      : "import { DiBag as Core } from 'di-bag'; import { DiBag } from 'di-bag/node';";
     writeFileSync(file, `${load}
       (async () => {
         let release; const resource = { id: 7 };
@@ -44,19 +47,22 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
         Object.defineProperty(pending, 'then', { value: undefined });
         const key = Symbol('shared'); const token = Core.token(key).of();
         const disposed = [];
-        const source = Core.factory(() => ({ snapshot: () => ({ value: { present: true, value: pending }, metadata: { present: false }, alias: null }) }), { acquisition: 'raw' });
-        const owned = Core.withDisposal(fromValBox(source), value => { disposed.push(value === resource ? 'resource' : 'wrong'); });
+        const source = Core.withAcquisitionMetadata(() => pending, value => ({ samePromise: value === pending }));
+        const owned = Core.withDisposal(source, value => { disposed.push(value === resource ? 'resource' : 'wrong'); });
         const bag = DiBag.begin().bind(token, owned).end();
-        const identity = bag.resolve(token) === pending;
+        const acquired = bag.resolve(token);
+        const identity = acquired === pending;
+        const nativePromise = acquired instanceof Promise;
+        const metadata = bag.inspect(token).acquisitions[0].metadata;
         const closing = bag.close(); await Promise.resolve(); await Promise.resolve();
         const before = [...disposed]; release(resource); await closing;
         let preflight = false; try { Core.begin().add({ value: () => 1 }).end(); } catch { preflight = true; }
         const rawDisposed = [];
         const raw = Core.begin().add({ value: Core.withDisposal(Core.factory(() => pending, { acquisition: 'raw' }), value => { rawDisposed.push(value === pending); }) }).end();
         raw.resolve('value'); await raw.close();
-        console.log(JSON.stringify({ identity, before, disposed, preflight, rawDisposed }));
+        console.log(JSON.stringify({ identity, nativePromise, metadata, before, disposed, preflight, rawDisposed }));
       })().catch(error => { console.error(error); process.exitCode = 1; });`);
-    expect(JSON.parse(await run([runtime, file], consumer))).toEqual({ identity: true, before: [], disposed: ['resource'], preflight: true, rawDisposed: [true] });
+    expect(JSON.parse(await run([runtime, file], consumer))).toEqual({ identity: true, nativePromise: true, metadata: [{ present: true, value: { samePromise: true } }], before: [], disposed: ['resource'], preflight: true, rawDisposed: [true] });
   });
 }
 

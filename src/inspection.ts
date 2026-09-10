@@ -12,7 +12,7 @@ export interface AcquisitionSnapshot<A extends readonly unknown[] = readonly []>
   readonly acquisitionId: symbol;
   /** State at the instant the snapshot was copied. */
   readonly state: 'creating' | 'pending' | 'ready' | 'failed' | 'disposing' | 'disposed';
-  /** Ordered presence records for adapter-provided acquisition metadata. */
+  /** Ordered presence records for metadata captured during acquisition. */
   readonly metadata: FramePresenceTuple<A>;
 }
 

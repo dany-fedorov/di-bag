@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { setImmediate } from 'node:timers/promises';
 import { test } from 'node:test';
 
@@ -9,7 +9,6 @@ import { test } from 'node:test';
 const require = createRequire(import.meta.url);
 const entry = resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/node.js');
 const { DiBag } = require(entry);
-const { fromValBox } = require(resolve(dirname(entry), 'val-box.js'));
 assert.equal(typeof globalThis.gc, 'function', 'this suite requires --expose-gc');
 const transient = provider => DiBag.withLifetime(provider, 'transient');
 const raw = create => DiBag.factory(create, { acquisition: 'raw' });
@@ -96,16 +95,17 @@ test('borrowed mapped payloads are collectible while independent inspection fram
   const source = raw(() => {
     const value = Array(256).fill(11);
     refs.push(new WeakRef(value));
-    return { snapshot: () => ({ value: { present: true, value }, metadata: { present: true, value: frame }, alias: null }) };
+    return { value };
   });
-  const bag = DiBag.begin().add({ value: transient(fromValBox(source, { acquisition: 'raw' })) }).end();
+  const annotated = DiBag.withAcquisitionMetadata(source, () => ({ metadata: frame }));
+  const bag = DiBag.begin().add({ value: transient(DiBag.mapSync(annotated, source => source.value, { acquisition: 'raw' })) }).end();
   try {
     for (let index = 0; index < 16; index++) assert.equal(bag.resolve('value')[0], 11);
     const before = bag.inspect('value');
     await collected(refs);
     assert.deepEqual(bag.inspect('value'), before);
     assert.equal(before.acquisitions.length, 16);
-    assert.equal(before.acquisitions[0].metadata[0].value.metadata.value, frame);
+    assert.equal(before.acquisitions[0].metadata[0].value.metadata, frame);
   } finally { await bag.close(); }
 });
 
@@ -139,14 +139,14 @@ test('transient owned source and mapped identities survive GC until reverse stag
 
 test('closing releases compacted frame payloads even when a dependency proxy is retained', async () => {
   const refs = [];
-  function box(value) {
+  function describe() {
     const frame = { tag: 'release on close' };
     refs.push(new WeakRef(frame));
-    return { snapshot: () => ({ value: { present: true, value }, metadata: { present: true, value: frame }, alias: null }) };
+    return { metadata: frame };
   }
   const bag = DiBag.begin().add({
     other: raw(() => 42),
-    value: transient(fromValBox(raw(deps => box(() => deps.other)), { acquisition: 'raw' })),
+    value: transient(DiBag.withAcquisitionMetadata(raw(deps => () => deps.other), describe)),
   }).end();
   const read = bag.resolve('value');
   assert.equal(read(), 42);

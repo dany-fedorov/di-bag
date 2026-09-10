@@ -16,7 +16,6 @@ export type { Binding, TokenMember, TokenGraph, ReboundProviders, ReboundSelecti
 export type { CheckedLifetimes, CheckedScopeLifetimes, LexicalContext, RenamedLifetimeObligation, RenamedLifetimeProviders } from './lifetime-types';
 export type { Checked, Complete, Entries, ForkContext, From, Merge, Overrides, Provided, Selected, Selection } from './types';
 export type { Presence, FramePresenceTuple, AcquisitionSnapshot, InspectionSnapshot } from './inspection';
-export type { ValBoxFrame } from './val-box';
 export type { CompositionArguments, CompositionFunction } from './composition';
 export type { OptionalReference, LazyReference, AllReference, Dependency } from './dependency-references';
 export type { fromPlugin, PluginAcquisition, PluginOptions, PluginPredicate, PluginResult } from './plugins';

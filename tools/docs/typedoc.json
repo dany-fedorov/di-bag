@@ -3,9 +3,7 @@
   "name": "DI Bag API",
   "entryPoints": [
     "../../src/index.ts",
-    "../../src/node.ts",
-    "../../src/sas-box.ts",
-    "../../src/val-box.ts"
+    "../../src/node.ts"
   ],
   "tsconfig": "../../tsconfig.build.json",
   "plugin": [
@@ -19,6 +17,9 @@
   "excludeInternal": true,
   "excludeExternals": true,
   "gitRevision": "main",
+  "disableGit": true,
+  "displayBasePath": "../../src",
+  "sourceLinkTemplate": "https://github.com/dany-fedorov/di-bag/blob/{gitRevision}/src/{path}#L{line}",
   "useCodeBlocks": true,
   "expandParameters": true,
   "parametersFormat": "table",

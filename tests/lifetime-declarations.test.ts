@@ -2,8 +2,6 @@ import { expect, test } from 'bun:test';
 import { DiBag } from '../src/node';
 import { withLifetime } from '../src/lifetime';
 import { normalize } from '../src/provider-operations';
-import { fromSasBox } from '../src/sas-box';
-import { fromValBox, fromValBoxAsync } from '../src/val-box';
 import { withTokenBinding } from '../src/provider';
 
 test('lifetime replacement preserves the source and owned stages', () => {
@@ -49,10 +47,10 @@ test('options are read once and snapshotted, and replacement clears capture', ()
 });
 
 test('all provider transformations retain the immutable policy', () => {
-  const source = withLifetime(() => ({ sync: () => 1, async: async () => 1, snapshot: () => ({ value: { present: true as const, value: 1 }, metadata: { present: false as const }, alias: null }) }), 'root');
+  const source = withLifetime(() => 1, 'root');
   const key = Symbol('value');
   const token = DiBag.token(key).of<ReturnType<ReturnType<typeof normalize>['create']>>();
   const variants = [DiBag.withMetadata(source, { x: 1 }), DiBag.withDisposal(source, () => {}), DiBag.mapSync(source, x => x), DiBag.mapAsync(source, x => x),
-    fromSasBox(source, { mode: 'sync' }), fromSasBox(source, { mode: 'async' }), fromSasBox(source, { mode: 'sync-first' }), fromValBox(source), fromValBoxAsync(source), withTokenBinding(token, source)];
+    DiBag.withAcquisitionMetadata(source, value => ({ value })), DiBag.withAcquisitionMetadataAsync(source, value => ({ value })), withTokenBinding(token, source)];
   for (const variant of variants) expect(normalize(variant).lifetime).toBe(normalize(source).lifetime);
 });

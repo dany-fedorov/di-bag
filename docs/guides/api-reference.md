@@ -13,8 +13,6 @@ return types, and links to source declarations.
 | --- | --- |
 | [`di-bag`](../reference/index/index.md) | Portable facade, public types, and the four error classes. |
 | [`di-bag/node`](../reference/node/index.md) | The same API with Node/Bun native-Promise detection configured. |
-| [`di-bag/sas-box`](../reference/sas-box/index.md) | `fromSasBox` structural adapter. |
-| [`di-bag/val-box`](../reference/val-box/index.md) | `fromValBox`, `fromValBoxAsync`, and the `ValBoxFrame` type. |
 
 Start with the [`Facade`](../reference/index/interfaces/Facade.md),
 [`Builder`](../reference/index/interfaces/Builder.md), and
@@ -60,6 +58,8 @@ happen separately.
 | `withLifetime(registration, lifetime, options?)` | Choose [`root`, `scoped`, or `transient`](tutorial.md#choose-root-scoped-or-transient-caching); only `root` accepts `captureScoped`. |
 | `withContext(create, options?)` | Give a factory an [acquisition context](tutorial.md#start-selected-services-and-cancel-cooperatively) as its second argument. |
 | `withMetadata(registration, metadata)` | Attach [static metadata](tutorial.md#attach-metadata-and-inspect-without-resolving). |
+| `withAcquisitionMetadata(registration, describe)` | Append a typed metadata frame after an immediate source produces its [exact output](tutorial.md#represent-acquisition-values-and-metadata-natively). |
+| `withAcquisitionMetadataAsync(registration, describe)` | Await a source, append a typed metadata frame, and expose a native Promise of its [awaited output](tutorial.md#represent-acquisition-values-and-metadata-natively). |
 | `mapSync(registration, project, options?)` | [Project the exposed value](tutorial.md#project-services-explicitly) immediately, preserving raw arguments and results. |
 | `mapAsync(registration, project)` | Await the source and project it through an explicit [async boundary](tutorial.md#project-services-explicitly). |
 
@@ -67,6 +67,12 @@ The optional options argument on `fromTokens`, `fromFunction`, `fromClass`,
 `withContext`, and `mapSync` selects the new stage's `acquisition` mode. Omitting
 it uses `auto`. `mapAsync` is always an async boundary. Configuration returns a
 new facade; it does not change global state or retrofit existing builders.
+
+Both acquisition metadata callbacks are synchronous and must return a plain
+object record with the current realm's `Object.prototype` or `null` as its
+prototype. The immediate form retains the source output and acquisition policy;
+the async form awaits the source and exposes a native Promise. Neither decorator
+adds ownership.
 
 ### Build and reuse a graph
 
@@ -104,18 +110,6 @@ gives its acquisitions an owning bag. Module builders do not expose `install`,
 | `fork()` | Create an [independent bag](tutorial.md#fork-for-scopes-and-tests) with fresh instances. |
 | `fork(keys, overrides)` | Create an independent bag with selected replacements. |
 | `close()` | Return the shutdown promise; stop new resolutions, drain work, and dispose owned resources. Repeated calls share the same promise. |
-
-### Optional adapter entry points
-
-| Import | Function | Options |
-| --- | --- | --- |
-| `di-bag/sas-box` | `fromSasBox(registration, options)` | Required `mode: 'sync'`, `'async'`, or `'sync-first'`; `acquisition` is allowed only in `sync` mode. |
-| `di-bag/val-box` | `fromValBox(registration, options?)` | Immediate snapshot; optional `value: 'required'` or `'presence'` and compatible `acquisition`. An acquisition-only object selects required mode. |
-| `di-bag/val-box` | `fromValBoxAsync(registration, options?)` | Await source and result; supplied options must specify `value: 'required'` or `'presence'`. |
-
-These are standalone named imports from their subpaths, not methods on `DiBag`.
-See [box adapters](tutorial.md#optional-box-adapters) for capability requirements, metadata,
-absence, and ownership.
 
 ## Errors and recovery
 
@@ -162,8 +156,7 @@ possible failure. Observer callback failures are delivered to the observer's
 ## Exported TypeScript types
 
 All names in this section are type-only exports from `di-bag` and `di-bag/node`.
-Use `import type` for them. `ValBoxFrame` is also a type-only export from
-`di-bag/val-box`. They provide annotations and preserve contracts in generated
+Use `import type` for them. They provide annotations and preserve contracts in generated
 declarations; they do not provide unchecked runtime constructors.
 
 For application code, prefer inferred values and `typeof` or `ReturnType` when
@@ -200,7 +193,6 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | [`CompositionArguments`](../reference/index/type-aliases/CompositionArguments.md), [`CompositionFunction`](../reference/index/type-aliases/CompositionFunction.md) | Positional argument compatibility and callback signatures for function/constructor adaptation. |
 | [`Presence`](../reference/index/type-aliases/Presence.md) | `{ present: false }` or `{ present: true, value }`, including present `undefined`. |
 | [`FramePresenceTuple`](../reference/index/type-aliases/FramePresenceTuple.md), [`AcquisitionSnapshot`](../reference/index/interfaces/AcquisitionSnapshot.md), [`InspectionSnapshot`](../reference/index/interfaces/InspectionSnapshot.md) | Inspection frames, acquisition state, and registration metadata snapshots. |
-| [`ValBoxFrame`](../reference/val-box/type-aliases/ValBoxFrame.md) | Acquired box metadata with `kind`, `metadata`, and `alias`. |
 | [`CleanupFailure`](../reference/index/interfaces/CleanupFailure.md) | The detached acquisition identity, label, and original cleanup error. |
 | [`ObserverOptions`](../reference/index/interfaces/ObserverOptions.md), [`ObserverCallback`](../reference/index/type-aliases/ObserverCallback.md), [`ObserverErrorCallback`](../reference/index/type-aliases/ObserverErrorCallback.md) | Observer configuration and its event/failure callbacks. |
 | [`LifecycleEvent`](../reference/index/type-aliases/LifecycleEvent.md), [`ObserverFailure`](../reference/index/interfaces/ObserverFailure.md), [`ScopeEventFields`](../reference/index/interfaces/ScopeEventFields.md), [`AcquisitionEventFields`](../reference/index/interfaces/AcquisitionEventFields.md) | Discriminated lifecycle events and observer failure context. |
@@ -244,8 +236,8 @@ contracts; they do not perform runtime validation.
 | [`CheckedLifetimes`](../reference/index/type-aliases/CheckedLifetimes.md), [`CheckedScopeLifetimes`](../reference/index/type-aliases/CheckedScopeLifetimes.md) | Check root capture and lifetime compatibility in completed graphs and scope overrides. |
 | [`LexicalContext`](../reference/index/type-aliases/LexicalContext.md), [`RenamedLifetimeObligation`](../reference/index/type-aliases/RenamedLifetimeObligation.md), [`RenamedLifetimeProviders`](../reference/index/type-aliases/RenamedLifetimeProviders.md) | Retain lifetime ownership and requirements through lexical module boundaries and renaming. |
 
-The authoritative export lists are [`src/index.ts`](../../src/index.ts),
-[`src/sas-box.ts`](../../src/sas-box.ts), and [`src/val-box.ts`](../../src/val-box.ts).
+The authoritative export lists are [`src/index.ts`](../../src/index.ts) and
+[`src/node.ts`](../../src/node.ts).
 Internal helpers in other source files are not package exports.
 
 ## Boundaries
@@ -346,6 +338,6 @@ also preserve existing bookmarks into the earlier combined guide.
 
 [Read the tutorial section](tutorial.md#wbs-shaped-ownership-example).
 
-### Optional box adapters
+### Represent acquisition values and metadata natively
 
-[Read the tutorial section](tutorial.md#optional-box-adapters).
+[Read the tutorial section](tutorial.md#represent-acquisition-values-and-metadata-natively).

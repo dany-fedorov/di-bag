@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 
-const entryPoints = ['index', 'node', 'sas-box', 'val-box'];
+const entryPoints = ['index', 'node'];
 
 function target(reflection) {
   return reflection.tryGetTargetReflection?.() ?? reflection;

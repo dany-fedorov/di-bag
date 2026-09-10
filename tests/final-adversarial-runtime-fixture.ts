@@ -1,15 +1,11 @@
 import { DiBag, DiBagCleanupError, DiBagPluginError, DiBagStartupCancelledError, DiBagStartupError } from '../src/node';
 import { DiBag as PortableDiBag } from '../src';
-import { fromSasBox } from '../src/sas-box';
-import { fromValBox, fromValBoxAsync } from '../src/val-box';
-import { SasBox } from 'sas-box';
-import { ValBox } from 'val-box';
 
 export type FinalAdversarialRuntimeResult = Readonly<{
-  readonly I1: Readonly<{ payloadIdentity: true; metadataIdentity: true; aliasIdentity: true; dispose: readonly ['payload', 'sas']; acquisitions: 1 }>;
+  readonly I1: Readonly<{ payloadIdentity: true; metadataIdentity: true; aliasIdentity: true; dispose: readonly ['payload', 'source']; acquisitions: 1 }>;
   readonly I2: Readonly<{ nativePromise: true; rootShared: true; transientDistinct: true; childDispose: readonly ['transient-2', 'transient-1', 'scoped']; parentDispose: readonly ['transient-2', 'transient-1', 'scoped', 'root']; acquisitions: 4 }>;
   readonly I3: Readonly<{ absentIdentity: true; presentUndefined: true; getterIdentity: true; dispose: readonly ['source']; acquisitions: 3 }>;
-  readonly I4: Readonly<{ outputPhase: 'output'; errorIdentity: true; startupWrapper: 'DiBagStartupError'; startupCauseIdentity: true; dispose: readonly ['plugin', 'sas']; payloadDisposals: 0; acquisitions: 1 }>;
+  readonly I4: Readonly<{ outputPhase: 'output'; errorIdentity: true; startupWrapper: 'DiBagStartupError'; startupCauseIdentity: true; dispose: readonly ['plugin', 'source']; payloadDisposals: 0; acquisitions: 1 }>;
   readonly I5: Readonly<{ directRetained: true; directDispose: readonly ['direct-1']; startupWrapper: 'DiBagStartupError'; startupCauseIdentity: true; startupDispose: readonly ['startup-first']; retryFresh: true }>;
   readonly I6: Readonly<{ aliasAcquisitions: 0; sharedIdentity: true; unsharedDistinct: true; dispose: readonly ['installation-2', 'installation-1']; acquisitions: 2 }>;
   readonly I7: Readonly<{ root: 1; scoped: 1; transient: 2; contributions: 2; cleanupFailureIdentity: true; independentCleanupCount: 5 }>;
@@ -20,14 +16,14 @@ export type FinalAdversarialRuntimeResult = Readonly<{
   readonly I12: Readonly<{ ordinaryWrapper: 'DiBagStartupError'; ordinaryCauseIdentity: true; ordinaryCleanupFailures: 0; abortWrapper: 'DiBagStartupCancelledError'; abortCauseIdentity: true; timeoutWrapper: 'DiBagStartupCancelledError'; timeoutCauseName: 'TimeoutError'; dispose: readonly ['late', 'immediate'] }>;
   readonly I13: Readonly<{ closingEffects: 0; parentDispose: readonly ['child', 'parent']; finalDispose: readonly ['child', 'parent', 'fork']; unsharedDistinct: true }>;
   readonly I14: Readonly<{ classicPositiveDiagnostics: 0; cjsPositiveDiagnostics: 0; mjsPositiveDiagnostics: 0; classicNegativeMarkers: 2; newNativeGapIds: readonly [] }>;
-  readonly I15: Readonly<{ cjsMatchesSource: true; esmMatchesSource: true; coreHasBoxes: false; rootLoadsNode: false; forbiddenFiles: 0 }>;
+  readonly I15: Readonly<{ cjsMatchesSource: true; esmMatchesSource: true; runtimeDependencies: 0; rootLoadsNode: false; forbiddenFiles: 0 }>;
 }>;
 
 export const finalAdversarialExpectedResult: FinalAdversarialRuntimeResult = {
-  I1: { payloadIdentity: true, metadataIdentity: true, aliasIdentity: true, dispose: ['payload', 'sas'], acquisitions: 1 },
+  I1: { payloadIdentity: true, metadataIdentity: true, aliasIdentity: true, dispose: ['payload', 'source'], acquisitions: 1 },
   I2: { nativePromise: true, rootShared: true, transientDistinct: true, childDispose: ['transient-2', 'transient-1', 'scoped'], parentDispose: ['transient-2', 'transient-1', 'scoped', 'root'], acquisitions: 4 },
   I3: { absentIdentity: true, presentUndefined: true, getterIdentity: true, dispose: ['source'], acquisitions: 3 },
-  I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, dispose: ['plugin', 'sas'], payloadDisposals: 0, acquisitions: 1 },
+  I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, dispose: ['plugin', 'source'], payloadDisposals: 0, acquisitions: 1 },
   I5: { directRetained: true, directDispose: ['direct-1'], startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, startupDispose: ['startup-first'], retryFresh: true },
   I6: { aliasAcquisitions: 0, sharedIdentity: true, unsharedDistinct: true, dispose: ['installation-2', 'installation-1'], acquisitions: 2 },
   I7: { root: 1, scoped: 1, transient: 2, contributions: 2, cleanupFailureIdentity: true, independentCleanupCount: 5 },
@@ -40,7 +36,7 @@ export const finalAdversarialExpectedResult: FinalAdversarialRuntimeResult = {
   I12: { ordinaryWrapper: 'DiBagStartupError', ordinaryCauseIdentity: true, ordinaryCleanupFailures: 0, abortWrapper: 'DiBagStartupCancelledError', abortCauseIdentity: true, timeoutWrapper: 'DiBagStartupCancelledError', timeoutCauseName: 'TimeoutError', dispose: ['late', 'immediate'] },
   I13: { closingEffects: 0, parentDispose: ['child', 'parent'], finalDispose: ['child', 'parent', 'fork'], unsharedDistinct: true },
   I14: { classicPositiveDiagnostics: 0, cjsPositiveDiagnostics: 0, mjsPositiveDiagnostics: 0, classicNegativeMarkers: 2, newNativeGapIds: [] },
-  I15: { cjsMatchesSource: true, esmMatchesSource: true, coreHasBoxes: false, rootLoadsNode: false, forbiddenFiles: 0 },
+  I15: { cjsMatchesSource: true, esmMatchesSource: true, runtimeDependencies: 0, rootLoadsNode: false, forbiddenFiles: 0 },
 };
 
 type RuntimeDependencies = Readonly<{
@@ -50,16 +46,11 @@ type RuntimeDependencies = Readonly<{
   DiBagPluginError: any;
   DiBagStartupError: any;
   DiBagStartupCancelledError: any;
-  fromSasBox: any;
-  fromValBox: any;
-  fromValBoxAsync: any;
-  SasBox: any;
-  ValBox: any;
 }>;
 
 async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedId?: string): Promise<FinalAdversarialRuntimeResult> {
   const { DiBag, PortableDiBag, DiBagCleanupError, DiBagPluginError, DiBagStartupError,
-    DiBagStartupCancelledError, fromSasBox, fromValBox, fromValBoxAsync, SasBox, ValBox } = api;
+    DiBagStartupCancelledError } = api;
   const invariant: (condition: unknown, id: string, detail: string) => asserts condition = (condition, id, detail) => {
     if (!condition && (selectedId === undefined || selectedId === id)) throw new Error(`${id}: ${detail}`);
   };
@@ -70,34 +61,35 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
     return { promise, resolve };
   };
 
-  // I1: two ownership layers wrap one real SasBox/ValBox chain.
+  // I1: native metadata and projection retain two independent ownership layers.
   const i1Payload = { id: 'I1' };
   const i1Metadata = { source: 'I1' };
   const i1Dispose: string[] = [];
-  const i1Box = new ValBox.WithValue.WithMetadata(i1Payload, i1Metadata, 'I1-alias');
-  const i1Source = DiBag.withDisposal(() => SasBox.fromValue(i1Box), () => { i1Dispose.push('sas'); });
-  const i1Adapted = DiBag.withDisposal(fromValBox(fromSasBox(i1Source, { mode: 'sync' })), () => { i1Dispose.push('payload'); });
+  const i1Record = { value: i1Payload, metadata: i1Metadata, alias: 'I1-alias' };
+  const i1Source = DiBag.withDisposal(() => i1Record, () => { i1Dispose.push('source'); });
+  const i1Annotated = DiBag.withAcquisitionMetadata(i1Source, (record: typeof i1Record) => ({ metadata: record.metadata, alias: record.alias }));
+  const i1Adapted = DiBag.withDisposal(DiBag.mapSync(i1Annotated, (record: typeof i1Record) => record.value), () => { i1Dispose.push('payload'); });
   const i1Token = DiBag.token(Symbol('I1')).of();
   const i1Module = DiBag.module().bind(i1Token, i1Adapted).exports([i1Token]);
   const i1Bag = DiBag.begin().install(i1Module).end();
   const i1Value = i1Bag.resolve(i1Token);
   const i1Inspection = i1Bag.inspect(i1Token);
   const i1Frame = i1Inspection.acquisitions[0]?.metadata[0]?.value;
-  i1Box.setValue({ id: 'mutated' });
-  i1Box.setMetadata({ source: 'mutated' });
-  i1Box.alias = 'mutated';
+  i1Record.value = { id: 'mutated' };
+  i1Record.metadata = { source: 'mutated' };
+  i1Record.alias = 'mutated';
   invariant(i1Value === i1Payload, 'I1', 'payload identity changed');
-  invariant(i1Frame?.metadata?.value === i1Metadata, 'I1', 'metadata identity changed');
+  invariant(i1Frame?.metadata === i1Metadata, 'I1', 'metadata identity changed');
   invariant(i1Frame?.alias === 'I1-alias', 'I1', 'alias identity changed');
   invariant(i1Bag.resolve(i1Token) === i1Payload, 'I1', 'source mutation escaped snapshot');
   await i1Bag.close();
-  invariant(JSON.stringify(i1Dispose) === JSON.stringify(['payload', 'sas']), 'I1', 'reverse ownership changed');
+  invariant(JSON.stringify(i1Dispose) === JSON.stringify(['payload', 'source']), 'I1', 'reverse ownership changed');
 
-  // I2: native box output crosses every lifetime in a selected child.
+  // I2: native async metadata crosses every lifetime in a selected child.
   const i2Dispose: string[] = [];
   let i2Id = 0;
   const i2Registration = (lifetime: 'root' | 'scoped' | 'transient') => DiBag.withLifetime(
-    DiBag.withDisposal(fromValBoxAsync(fromSasBox(() => SasBox.fromAsync(async () => new ValBox.WithValue({ id: ++i2Id })), { mode: 'sync-first' })),
+    DiBag.withDisposal(DiBag.withAcquisitionMetadataAsync(async () => ({ id: ++i2Id }), () => ({ lifetime })),
       (value: { id: number }) => { i2Dispose.push(lifetime === 'transient' ? `transient-${value.id - 2}` : lifetime); }), lifetime);
   const i2Parent = DiBag.begin().add({ root: i2Registration('root'), scoped: i2Registration('scoped'), transient: i2Registration('transient') }).end();
   const i2Child = i2Parent.scope({ share: ['root'] });
@@ -119,8 +111,8 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
 
   // I3: snapshot presence, immutable frames, and original boundary errors.
   const i3Dispose: string[] = [];
-  const i3AbsentBox = new ValBox.WithMetadata({ source: 'absent' }, '');
-  const i3PresenceBox = new ValBox.WithValue.WithMetadata(undefined, i1Metadata, '');
+  const i3AbsentRecord = { present: false as const };
+  const i3PresenceRecord: { value: Readonly<{ present: true; value: unknown }>; metadata: { source: string } } = { value: Object.freeze({ present: true, value: undefined }), metadata: i1Metadata };
   const i3Error = new Error('I3 snapshot');
   const i3StartedIds: symbol[] = [];
   let i3ObservedAbsentError: unknown;
@@ -128,11 +120,14 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
     if (event.kind === 'acquisition-started' && ['absent', 'present', 'failing'].includes(event.label)) i3StartedIds.push(event.acquisitionId);
     if (event.kind === 'acquisition-failed' && event.label === 'absent') i3ObservedAbsentError = event.error;
   }, onError() {} });
-  const i3Failing = DiBag.withDisposal(() => ({ snapshot() { throw i3Error; } }), () => { i3Dispose.push('source'); });
+  const i3Failing = DiBag.withDisposal(() => ({ get metadata(): object { throw i3Error; } }), () => { i3Dispose.push('source'); });
   const i3Bag = i3Observed.begin().add({
-    absent: fromValBox(() => i3AbsentBox),
-    present: fromValBox(() => i3PresenceBox, { value: 'presence' }),
-    failing: fromValBox(i3Failing),
+    absent: DiBag.mapSync(() => i3AbsentRecord, (presence: typeof i3AbsentRecord) => {
+      if (!presence.present) throw new Error('required value is absent');
+      return presence;
+    }),
+    present: DiBag.mapSync(DiBag.withAcquisitionMetadata(() => i3PresenceRecord, (record: typeof i3PresenceRecord) => ({ metadata: record.metadata })), (record: typeof i3PresenceRecord) => record.value),
+    failing: DiBag.withAcquisitionMetadata(i3Failing, (record: { metadata: object }) => record.metadata),
   }).end();
   let i3AbsentError: unknown;
   let i3GetterError: unknown;
@@ -140,13 +135,12 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i3Presence = i3Bag.resolve('present');
   try { i3Bag.resolve('failing'); } catch (error) { i3GetterError = error; }
   const i3Frame = i3Bag.inspect('present').acquisitions[0]?.metadata[0]?.value;
-  i3PresenceBox.setValue('mutated'); i3PresenceBox.setMetadata({ source: 'mutated' });
+  i3PresenceRecord.value = Object.freeze({ present: true, value: 'mutated' }); i3PresenceRecord.metadata = { source: 'mutated' };
   await flush();
-  invariant(i3AbsentError instanceof Error && i3AbsentError.message === 'val-box value is absent', 'I3', 'absent error changed');
+  invariant(i3AbsentError instanceof Error && i3AbsentError.message === 'required value is absent', 'I3', 'absent error changed');
   invariant(i3AbsentError === i3ObservedAbsentError, 'I3', 'absent error identity changed');
   invariant(i3Presence.present === true && i3Presence.value === undefined && Object.isFrozen(i3Presence), 'I3', 'present undefined changed');
-  // val-box 0.1.0 treats an empty constructor alias as anonymous, represented by null.
-  invariant(i3Frame?.alias === null && i3Frame.metadata.value === i1Metadata, 'I3', 'snapshot frame changed');
+  invariant(i3Frame?.metadata === i1Metadata, 'I3', 'snapshot frame changed');
   invariant(i3GetterError === i3Error, 'I3', 'getter error identity changed');
   await i3Bag.close();
   invariant(JSON.stringify(i3Dispose) === JSON.stringify(['source']), 'I3', 'source ownership changed');
@@ -161,8 +155,8 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
     invariant(value === i4PluginResult, 'I4', 'plugin disposer result identity changed'); i4Dispose.push('plugin');
   } },
     { acquisition: 'raw', validate() { throw i4PluginError; } });
-  const i4Source = DiBag.withDisposal(() => SasBox.fromValue({ id: 'plugin' }), () => { i4Dispose.push('sas'); });
-  const i4Bag = DiBag.begin().bind(i4Token, fromSasBox(i4Source, { mode: 'sync' })).add({ plugin: i4Plugin }).end();
+  const i4Source = DiBag.withDisposal(() => ({ id: 'plugin' }), () => { i4Dispose.push('source'); });
+  const i4Bag = DiBag.begin().bind(i4Token, i4Source).add({ plugin: i4Plugin }).end();
   let i4Direct: unknown;
   try { i4Bag.resolve('plugin'); } catch (error) { i4Direct = error; }
   const i4Acquisitions = i4Bag.inspect('plugin').acquisitions.length;
@@ -172,7 +166,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i4Startup = await DiBag.begin().add({ plugin: i4StartupPlugin }).start(['plugin']).catch((error: unknown) => error);
   invariant(i4Direct === i4PluginError && i4PluginError.phase === 'output', 'I4', 'plugin error identity changed');
   invariant(i4Startup instanceof DiBagStartupError && i4Startup.cause === i4PluginError, 'I4', 'startup cause changed');
-  invariant(JSON.stringify(i4Dispose) === JSON.stringify(['plugin', 'sas']), 'I4', 'plugin ownership changed');
+  invariant(JSON.stringify(i4Dispose) === JSON.stringify(['plugin', 'source']), 'I4', 'plugin ownership changed');
   invariant(i4PayloadDisposals === 0, 'I4', 'plugin implicitly disposed its payload');
   let i4ExplicitPayloadDisposals = 0;
   const i4ExplicitBag = DiBag.begin().add({ payload: DiBag.withDisposal(() => i4PluginResult, (value: any) => { value.dispose(); i4ExplicitPayloadDisposals++; }) }).end();
@@ -200,9 +194,9 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
     },
   }, { acquisition: 'raw', validate: (value: unknown): value is any => typeof value === 'object' && value !== null });
   const i5DirectBag = i5Observed.begin()
-    .bind(i5Required, fromValBox(() => new ValBox.WithValue(7)))
-    .bind(i5Lazy, fromSasBox(() => SasBox.fromValue(++i5LazyCalls), { mode: 'sync' }))
-    .contribute(i5Token, i5Observed.withDisposal(fromValBox(() => new ValBox.WithValue(1)), () => { i5DirectDispose.push('direct-1'); }))
+    .bind(i5Required, () => 7)
+    .bind(i5Lazy, () => ++i5LazyCalls)
+    .contribute(i5Token, i5Observed.withDisposal(() => 1, () => { i5DirectDispose.push('direct-1'); }))
     .contribute(i5Token, () => { if (++i5SecondCalls === 1) throw i5Error; return 2; })
     .add({ dependencyPlugin: i5DependencyPlugin }).end();
   // Resolve the plugin only after the contribution retry below, so `all` observes the accepted collection.
@@ -265,7 +259,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   let i7Root = 0; let i7Scoped = 0; let i7Transient = 0; let i7Contributions = 0; let i7Independent = 0;
   const i7Events: any[] = [];
   const i7Observed = DiBag.observe({ onEvent(event: any) { i7Events.push(event); }, onError() {} });
-  const owned = (kind: string, failing = false) => DiBag.withDisposal(fromValBox(() => new ValBox.WithValue({ kind })), () => {
+  const owned = (kind: string, failing = false) => DiBag.withDisposal(DiBag.withAcquisitionMetadata(() => ({ kind }), () => ({ kind })), () => {
     i7Independent++; if (failing) throw i7Error;
   });
   const i7Bag = i7Observed.begin().add({
@@ -324,28 +318,27 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i9Then = i9Raw.then.bind(i9Raw);
   Object.defineProperty(i9Raw, 'then', { configurable: true, get() { i9ThenReads++; return i9Then; } });
   const i9Bag = PortableDiBag.begin().add({ raw: PortableDiBag.withDisposal(
-    fromValBox(PortableDiBag.factory(() => new ValBox.WithValue(i9Raw), { acquisition: 'raw' }), { acquisition: 'raw' }),
+    PortableDiBag.withAcquisitionMetadata(PortableDiBag.factory(() => i9Raw, { acquisition: 'raw' }), () => ({ source: 'raw' })),
     (value: unknown) => { invariant(value === i9Raw, 'I9', 'raw disposer identity changed'); i9RawDisposals++; }) }).end();
   const i9Resolved = i9Bag.resolve('raw'); await i9Bag.close();
   invariant(i9AutomaticError instanceof Error && i9AutomaticEffects === 0, 'I9', 'automatic graph ran effects');
   invariant(i9Resolved === i9Raw && i9ThenReads === 0 && i9RawDisposals === 1, 'I9', 'raw identity changed');
 
-  // I10: capability routing reads structural then only on the async route.
+  // I10: native projection reads structural then only at an explicit async boundary.
   let i10ThenReads = 0;
   const i10Thenable = { get then() { i10ThenReads++; return (resolve: (value: number) => void) => resolve(10); } };
-  const i10SyncBox = { sync: () => i10Thenable, async: async () => 10 };
+  const i10Source = () => i10Thenable;
   const i10SyncBag = DiBag.begin().add({
-    sync: fromSasBox(() => i10SyncBox, { mode: 'sync', acquisition: 'raw' }),
+    sync: DiBag.mapSync(DiBag.factory(i10Source, { acquisition: 'raw' }), (value: typeof i10Thenable) => value, { acquisition: 'raw' }),
     raw: DiBag.factory(() => i10Thenable, { acquisition: 'raw' }),
   }).end();
   const i10Sync = i10SyncBag.resolve('sync'); const i10Raw = i10SyncBag.resolve('raw'); await i10SyncBag.close();
   const i10BeforeAsync = i10ThenReads;
-  const i10AsyncBox = { async: async () => 10 };
-  const i10AsyncBag = DiBag.begin().add({ value: fromSasBox(() => i10AsyncBox, { mode: 'async' }) }).end();
+  const i10AsyncSource = async () => 10;
+  const i10AsyncBag = DiBag.begin().add({ value: DiBag.mapAsync(i10AsyncSource, (value: number) => value) }).end();
   await i10AsyncBag.resolve('value'); await i10AsyncBag.close();
-  const i10SyncFirstBox = { sync: undefined, async: () => i10Thenable };
-  const i10SyncFirstBag = DiBag.begin().add({ value: fromSasBox(() => i10SyncFirstBox, { mode: 'sync-first' }) }).end();
-  invariant(await i10SyncFirstBag.resolve('value') === 10, 'I10', 'sync-first route changed'); await i10SyncFirstBag.close();
+  const i10AwaitedBag = DiBag.begin().add({ value: DiBag.mapAsync(DiBag.factory(i10Source, { acquisition: 'raw' }), (value: number) => value) }).end();
+  invariant(await i10AwaitedBag.resolve('value') === 10, 'I10', 'async projection changed'); await i10AwaitedBag.close();
   const i10Error = new Error('I10 classifier'); let i10Disposers = 0;
   const i10Events: any[] = [];
   const i10Configured = PortableDiBag.configure({ isNativePromise() { throw i10Error; } }).observe({ onEvent(event: any) { i10Events.push(event); }, onError() {} });
@@ -357,15 +350,15 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   invariant(i10ThenReads === 1 && i10Failure === i10Error && i10Disposers === 0
     && !i10Events.some(event => event.kind === 'acquisition-ready'), 'I10', 'async/classification behavior changed');
 
-  // I11: failed snapshot attempts are evicted and their upstream ownership remains accountable.
+  // I11: failed metadata attempts are evicted and upstream ownership remains accountable.
   const i11Error = new Error('I11 snapshot'); const i11Dispose: string[] = []; let i11Calls = 0;
   const i11Events: any[] = [];
   const i11Observed = DiBag.observe({ onEvent(event: any) { i11Events.push(event); }, onError() {} });
   const i11Source = DiBag.withDisposal(() => {
     i11Calls++;
-    return i11Calls === 1 ? { snapshot() { throw i11Error; } } : new ValBox.WithValue({ id: 'valid' });
+    return { id: 'valid', get metadata(): object { if (i11Calls === 1) throw i11Error; return { source: 'valid' }; } };
   }, () => { i11Dispose.push('source'); });
-  const i11Bag = i11Observed.begin().add({ value: fromValBox(i11Source) }).end();
+  const i11Bag = i11Observed.begin().add({ value: DiBag.withAcquisitionMetadata(i11Source, (record: { metadata: object }) => record.metadata) }).end();
   let i11Failure: unknown;
   try { i11Bag.resolve('value'); } catch (error) { i11Failure = error; }
   const i11FailedId = i11Bag.inspect('value').acquisitions.at(-1).acquisitionId;
@@ -390,13 +383,13 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
     if (event.kind === 'cleanup-completed') i12CleanupEvents.push(event);
   }, onError() {} });
   const i12Starting = i12Observed.begin().add({
-    adapter: i12Observed.withDisposal(fromValBox(() => new ValBox.WithValue({ id: 'immediate' })), () => { i12Dispose.push('immediate'); }),
+    adapter: i12Observed.withDisposal(DiBag.withAcquisitionMetadata(() => ({ id: 'immediate' }), () => ({ source: 'immediate' })), () => { i12Dispose.push('immediate'); }),
     plugin: i12Observed.fromPlugin([], { apiVersion: 1, create: () => ({ id: 'plugin' }) },
       { acquisition: 'raw', validate: (value: unknown): value is object => typeof value === 'object' && value !== null }),
     items: i12Observed.fromTokens([i12Observed.all(i12Items)], (items: readonly unknown[]) => items),
     late: DiBag.withDisposal(DiBag.factory(() => i12Late.promise, { acquisition: 'native' }), () => { i12Dispose.push('late'); }),
-  }).contribute(i12Items, fromSasBox(() => SasBox.fromValue(1), { mode: 'sync' }))
-    .contribute(i12Items, fromValBox(() => new ValBox.WithValue(2)))
+  }).contribute(i12Items, () => 1)
+    .contribute(i12Items, () => 2)
     .start(['adapter', 'plugin', 'items', 'late'], { signal: i12Abort.signal });
   i12Abort.abort(i12AbortCause);
   const i12Cancelled = await i12Starting.catch((error: unknown) => error);
@@ -450,10 +443,10 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   invariant(new Set(i13Ids).size === 3 && JSON.stringify(i13Dispose) === JSON.stringify(['child', 'parent', 'fork']), 'I13', 'fork identity or disposal changed');
 
   return {
-    I1: { payloadIdentity: true, metadataIdentity: true, aliasIdentity: true, dispose: i1Dispose as ['payload', 'sas'], acquisitions: i1Inspection.acquisitions.length as 1 },
+    I1: { payloadIdentity: true, metadataIdentity: true, aliasIdentity: true, dispose: i1Dispose as ['payload', 'source'], acquisitions: i1Inspection.acquisitions.length as 1 },
     I2: { nativePromise: true, rootShared: true, transientDistinct: true, childDispose: i2ChildDispose as ['transient-2', 'transient-1', 'scoped'], parentDispose: i2Dispose as ['transient-2', 'transient-1', 'scoped', 'root'], acquisitions: new Set(i2Acquisitions).size as 4 },
     I3: { absentIdentity: true, presentUndefined: true, getterIdentity: true, dispose: i3Dispose as ['source'], acquisitions: new Set(i3StartedIds).size as 3 },
-    I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: i4Startup.name, startupCauseIdentity: true, dispose: i4Dispose as ['plugin', 'sas'], payloadDisposals: i4ImplicitPayloadDisposals as 0, acquisitions: i4Acquisitions as 1 },
+    I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: i4Startup.name, startupCauseIdentity: true, dispose: i4Dispose as ['plugin', 'source'], payloadDisposals: i4ImplicitPayloadDisposals as 0, acquisitions: i4Acquisitions as 1 },
     I5: { directRetained: true, directDispose: i5DirectDispose as ['direct-1'], startupWrapper: i5Started.name, startupCauseIdentity: true, startupDispose: i5StartupDispose as ['startup-first'], retryFresh: i5Failed !== i5RetryId },
     I6: { aliasAcquisitions: 0, sharedIdentity: true, unsharedDistinct: true, dispose: i6Dispose as ['installation-2', 'installation-1'], acquisitions: i6Created as 2 },
     I7: { root: i7Root as 1, scoped: i7Scoped as 1, transient: i7Transient as 2, contributions: i7Contributions as 2, cleanupFailureIdentity: true, independentCleanupCount: (i7Independent - 1) as 5 },
@@ -464,21 +457,20 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
     I12: { ordinaryWrapper: i12Ordinary.name, ordinaryCauseIdentity: true, ordinaryCleanupFailures: i12Ordinary.cleanupFailures.length as 0, abortWrapper: i12Cancelled.name, abortCauseIdentity: true, timeoutWrapper: i12Timeout.name, timeoutCauseName: i12Timeout.cause.name, dispose: i12Dispose as ['late', 'immediate'] },
     I13: { closingEffects: i13Effects as 0, parentDispose: i13ParentDispose as ['child', 'parent'], finalDispose: i13Dispose as ['child', 'parent', 'fork'], unsharedDistinct: true },
     I14: { classicPositiveDiagnostics: 0, cjsPositiveDiagnostics: 0, mjsPositiveDiagnostics: 0, classicNegativeMarkers: 2, newNativeGapIds: [] },
-    I15: { cjsMatchesSource: true, esmMatchesSource: true, coreHasBoxes: false, rootLoadsNode: false, forbiddenFiles: 0 },
+    I15: { cjsMatchesSource: true, esmMatchesSource: true, runtimeDependencies: 0, rootLoadsNode: false, forbiddenFiles: 0 },
   } as FinalAdversarialRuntimeResult;
 }
 
 export function runFinalAdversarialSourceMatrix(selectedId?: keyof FinalAdversarialRuntimeResult): Promise<FinalAdversarialRuntimeResult> {
   return executeFinalAdversarialMatrix({ DiBag, PortableDiBag, DiBagCleanupError, DiBagPluginError,
-    DiBagStartupError, DiBagStartupCancelledError, fromSasBox, fromValBox, fromValBoxAsync, SasBox, ValBox }, selectedId);
+    DiBagStartupError, DiBagStartupCancelledError }, selectedId);
 }
 
 /** Embedded by package tests after binding these public API names in consumer scope. */
 export const finalAdversarialRuntimeAssertions = `
 (async () => {
   const result = await (${executeFinalAdversarialMatrix.toString()})({ DiBag, PortableDiBag, DiBagCleanupError,
-    DiBagPluginError, DiBagStartupError, DiBagStartupCancelledError, fromSasBox, fromValBox,
-    fromValBoxAsync, SasBox, ValBox });
+    DiBagPluginError, DiBagStartupError, DiBagStartupCancelledError });
   console.log(JSON.stringify(result));
 })().catch(error => { console.error(error); process.exitCode = 1; });
 `;
@@ -488,15 +480,9 @@ export function finalAdversarialPackageRuntimeSource(mode: 'commonjs' | 'module'
   const imports = mode === 'commonjs'
     ? `const { DiBag, DiBagCleanupError, DiBagPluginError, DiBagStartupError, DiBagStartupCancelledError } = require('di-bag/node');
 const { DiBag: PortableDiBag } = require('di-bag');
-const { fromSasBox } = require('di-bag/sas-box');
-const { fromValBox, fromValBoxAsync } = require('di-bag/val-box');
-const { SasBox } = require('sas-box');
-const { ValBox } = require('val-box');`
+`
     : `import { DiBag, DiBagCleanupError, DiBagPluginError, DiBagStartupError, DiBagStartupCancelledError } from 'di-bag/node';
 import { DiBag as PortableDiBag } from 'di-bag';
-import { fromSasBox } from 'di-bag/sas-box';
-import { fromValBox, fromValBoxAsync } from 'di-bag/val-box';
-import { SasBox } from 'sas-box';
-import { ValBox } from 'val-box';`;
+`;
   return `${imports}\n${finalAdversarialRuntimeAssertions}`;
 }

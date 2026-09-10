@@ -1,5 +1,4 @@
 import { DiBag, type Provider, type Module, type ProviderOutput, type ProviderAcquisitionMetadata, type ModuleProvides, type FramePresenceTuple } from '../../src';
-import { fromValBox } from '../../src/val-box';
 import type { Assert, Equal } from './assert';
 const key = Symbol('service'); const token = DiBag.token(key).of<{ value: number }>();
 const rewrapped = DiBag.token(key).of<{ value: number }>();
@@ -23,8 +22,8 @@ DiBag.begin().bind(token, namedNeeds).add({ name: () => 'ok' }).end();
 DiBag.begin().add({ name: () => 'ok' }).bind(token, namedNeeds).end();
 const plainModule: Module<{ value: number }, {}> = DiBag.module().add({ value: () => 1 }).exports(['value']);
 const plainProvider: Provider<() => number> = DiBag.fromTokens([], () => 1);
-const frameSource = DiBag.fromTokens([promiseToken], promise => ({ snapshot: () => ({ value: { present: true as const, value: promise }, metadata: { present: true as const, value: 'frame' }, alias: null }) }));
-const framed = fromValBox(frameSource);
+const frameSource = DiBag.fromTokens([promiseToken], promise => promise);
+const framed = DiBag.withAcquisitionMetadata(frameSource, () => ({ source: 'frame' }));
 const frameBag = DiBag.begin().install(DiBag.module().add({ framed }).exports(['framed'])).bind(promiseToken, () => promised).end();
 const frameInspection = frameBag.inspect('framed');
 type Frames = [Assert<Equal<ProviderOutput<typeof framed>, Promise<number>>>, Assert<Equal<typeof frameInspection.acquisitions[number]['metadata'], FramePresenceTuple<ProviderAcquisitionMetadata<typeof framed>>>>];

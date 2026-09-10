@@ -27,11 +27,10 @@ const packageManifest = JSON.parse(readFileSync(resolve(root, 'package.json'), '
   bundledDependencies?: readonly string[];
 };
 
-const packageNames = ['sas-box', 'val-box', 'di-bag'] as const;
+const packageNames = ['di-bag'] as const;
 const authorizationHeading = '## DO NOT RUN without fresh explicit authorization';
 const adversarialReleaseFiles = [
   'tests/final-adversarial-integration.test.ts',
-  'tests/box-package.test.ts',
   'tests/package.test.ts',
   'tests/native-package.test.ts',
 ] as const;
@@ -46,7 +45,7 @@ function validateAdversarialReleaseCommands(document: string): readonly string[]
     roles.push(...relevant);
   }
   if (roles.length !== adversarialReleaseFiles.length || [...roles].sort().join('\n') !== [...adversarialReleaseFiles].sort().join('\n'))
-    failures.push('adversarial roles must equal the four-file inventory exactly once');
+    failures.push('adversarial roles must equal the file inventory exactly once');
   return failures;
 }
 
@@ -55,10 +54,6 @@ function onlineCommands(version: string): readonly string[] {
     ...packageNames.map(name =>
       `npm view ${name}@${version} version --registry=https://registry.npmjs.org`),
     'npm login --registry=https://registry.npmjs.org',
-    `npm publish /tmp/di-bag-release-candidate/sas-box-${version}.tgz --access public --provenance`,
-    `npm dist-tag add sas-box@${version} latest --registry=https://registry.npmjs.org`,
-    `npm publish /tmp/di-bag-release-candidate/val-box-${version}.tgz --access public --provenance`,
-    `npm dist-tag add val-box@${version} latest --registry=https://registry.npmjs.org`,
     `npm publish /tmp/di-bag-release-candidate/di-bag-${version}.tgz --access public --provenance`,
     `npm dist-tag add di-bag@${version} latest --registry=https://registry.npmjs.org`,
   ];
@@ -85,8 +80,6 @@ function validatePublishingDocument(document: string, version: string): string[]
   }
   for (const required of [
     '/tmp/di-bag-release-candidate',
-    '.related-repos/sas-box',
-    '.related-repos/val-box',
     'npm install --offline --ignore-scripts --no-audit --no-fund --no-package-lock',
     'Registry version/owner/access/tag/provenance status is unavailable',
     'npm versions are immutable',
@@ -101,21 +94,18 @@ function appendixCommands(document: string): readonly string[] {
 }
 
 describe('release documentation contract', () => {
-  test('adversarial release gates are four separately supervised file commands', () => {
+  test('adversarial release gates are separately supervised file commands', () => {
     const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
-    const handoff = readFileSync(resolve(root, 'docs/superpowers/plans/2026-09-08-release-handoff.md'), 'utf8');
-    const design = readFileSync(resolve(root, 'docs/superpowers/specs/2026-09-08-release-handoff-design.md'), 'utf8');
-    for (const document of [publishing, handoff, design]) expect(validateAdversarialReleaseCommands(document)).toEqual([]);
+    expect(validateAdversarialReleaseCommands(publishing)).toEqual([]);
     const first = `bun test ${adversarialReleaseFiles[0]}`;
     for (const invalid of [
       publishing.replace(first, `bun test ${adversarialReleaseFiles[1]} ${adversarialReleaseFiles[0]}`),
-      publishing.replace(first, `bun test ${adversarialReleaseFiles[0]} ${adversarialReleaseFiles[2]} ${adversarialReleaseFiles[3]}`),
+      publishing.replace(first, `bun test ${adversarialReleaseFiles[0]} ${adversarialReleaseFiles[2]}`),
       publishing.replace(first, `bun test --rerun-each 1 ${adversarialReleaseFiles[0]}`),
       publishing.replace(first, ''),
       publishing.replace(first, `${first}\n${first}`),
     ]) expect(validateAdversarialReleaseCommands(invalid).length).toBeGreaterThan(0);
-    expect(handoff).toContain('four separately supervised');
-    expect(handoff).toContain('4096 MiB');
+    expect(publishing).toContain('separately supervised');
   });
 
   test('release documents match the frozen package and gate every online command', () => {
@@ -171,15 +161,13 @@ describe('release documentation contract', () => {
     expect(packageManifest.exports).toEqual({
       './node': { types: './dist/node.d.ts', default: './dist/node.js' },
       '.': { types: './dist/index.d.ts', default: './dist/index.js' },
-      './sas-box': { types: './dist/sas-box.d.ts', default: './dist/sas-box.js' },
-      './val-box': { types: './dist/val-box.d.ts', default: './dist/val-box.js' },
     });
     expect(packageManifest.dependencies ?? {}).toEqual({});
     expect(packageManifest.peerDependencies ?? {}).toEqual({});
     expect(packageManifest.optionalDependencies ?? {}).toEqual({});
     expect(packageManifest.bundledDependencies ?? []).toEqual([]);
     for (const text of [readme, migration]) {
-      for (const entry of ['di-bag', 'di-bag/node', 'di-bag/sas-box', 'di-bag/val-box'])
+      for (const entry of ['di-bag', 'di-bag/node'])
         expect(text).toContain(`\`${entry}\``);
     }
     // The landing page links to the detailed contracts and verification evidence.
@@ -188,7 +176,7 @@ describe('release documentation contract', () => {
     expect(reference).toContain('../reference/index/interfaces/Facade.md');
     expect(readme).toContain('(docs/guides/development.md)');
     for (const text of [`${tutorial}\n${development}`, migration]) {
-      for (const fact of ['structural adapters', 'raw', 'native', 'selected scopes', 'non-blocking observers', 'original acquired value'])
+      for (const fact of ['provider metadata', 'raw', 'native', 'selected scopes', 'non-blocking observers', 'original acquired value'])
         expect(text).toContain(fact);
     }
     expect(readme).toContain('npm run check');
@@ -431,17 +419,16 @@ function writeLogEvidence(path: string, text: string) { writeFileSync(path, text
 describe('manifest validation and deterministic projection', () => {
   const artifact = '/tmp/di-bag-release-candidate';
   mkdirSync(artifact, { recursive: true });
-  const prefix = `task2-test-${process.pid}`;
+  const prefix = 'task2-test-';
   const archiveSnapshots = packageNames.map(name => {
     const path = resolve(artifact, `${name}-0.1.0.tgz`);
     return { path, existed: existsSync(path), bytes: existsSync(path) ? readFileSync(path) : undefined };
   });
-  const fixtureArtifact = resolve(artifact, prefix);
-  mkdirSync(fixtureArtifact);
+  const fixtureArtifact = mkdtempSync(resolve(artifact, prefix));
   afterAll(() => rmSync(fixtureArtifact, { force: true, recursive: true }));
   const reviewed = collectReviewedNativeGaps(resolve(root, 'tests/types'));
   function validInput(): ReleaseEvidenceInput {
-    const packages = (['di-bag', 'sas-box', 'val-box'] as const).map(name => {
+    const packages = (['di-bag'] as const).map(name => {
       const packageJson = JSON.stringify({ name, version: '0.1.0', main: './dist/index.js', types: './dist/index.d.ts', files: ['dist'], exports: { '.': { types: './dist/index.d.ts', default: './dist/index.js' } } });
       const bytes = archiveOf([{ path: 'package/package.json', content: packageJson }, { path: 'package/dist/index.d.ts', content: 'export {}' }, { path: 'package/dist/index.js', content: 'export {}' }]);
       const archive = resolve(fixtureArtifact, `${name}-0.1.0.tgz`); writeFileSync(archive, bytes);
@@ -451,7 +438,7 @@ describe('manifest validation and deterministic projection', () => {
       const result = { id: `${name}@0.1.0`, name, version: '0.1.0', size: bytes.length, unpackedSize: inspection.unpackedBytes, shasum: createHash('sha1').update(bytes).digest('hex'), integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`, filename: `${name}-0.1.0.tgz`, files: files.map(path => ({ path, size: inspection.entries.find(entry => entry.path === `package/${path}`)!.bytes, mode: 420 })), entryCount: files.length, bundled: [] };
       return { name, version: '0.1.0', archive, checkout: { path: root, branch: 'feat/v0.1', candidateSourceCommit: 'a'.repeat(40), status: '' }, pack: { dryRunJson: [result], packJson: [structuredClone(result)], packedAt: '2026-09-08T00:00:01.000Z' }, commands: [command] };
     });
-    return { schemaVersion: 1, generatedAt: '2026-09-08T00:00:02.000Z', artifactDirectory: artifact, tools: { node: 'v24', npm: '11', bun: '1.4.0', classic6: '6.0.2', native7: '7.0.2', sasBoxTypeScript: '5.9.3', valBoxTypeScript: '5.9.3' }, nativeDiagnostics: { reviewedAt: '2026-09-08T00:00:00.000Z', reviewedGaps: reviewed, freshGaps: reviewed.slice(0, 2) }, handoff: { candidateSourceCommit: 'a'.repeat(40), handoffCommit: 'b'.repeat(40), changedPaths: [...APPROVED_HANDOFF_PATHS] }, packages };
+    return { schemaVersion: 1, generatedAt: '2026-09-08T00:00:02.000Z', artifactDirectory: artifact, tools: { node: 'v24', npm: '11', bun: '1.4.0', classic6: '6.0.2', native7: '7.0.2' }, nativeDiagnostics: { reviewedAt: '2026-09-08T00:00:00.000Z', reviewedGaps: reviewed, freshGaps: reviewed.slice(0, 2) }, handoff: { candidateSourceCommit: 'a'.repeat(40), handoffCommit: 'b'.repeat(40), changedPaths: [...APPROVED_HANDOFF_PATHS] }, packages };
   }
   test('manifest fixtures leave root candidate archive existence and bytes unchanged', () => {
     validInput();
@@ -463,7 +450,7 @@ describe('manifest validation and deterministic projection', () => {
   test('derives immutable archive facts and is deterministic across caller ordering', () => {
     const input = validInput(), first = createReleaseManifest(input); const reordered: any = structuredClone(input); reordered.packages.reverse(); reordered.nativeDiagnostics.reviewedGaps.reverse();
     const second = createReleaseManifest(reordered); expect(serializeStable(first)).toBe(serializeStable(second));
-    expect(first.packages.map(item => item.name)).toEqual(['di-bag', 'sas-box', 'val-box']);
+    expect(first.packages.map(item => item.name)).toEqual(['di-bag']);
     for (const item of first.packages) { expect(item.sha256).toMatch(/^[0-9a-f]{64}$/); expect(item.sha512).toMatch(/^[0-9a-f]{128}$/); expect(item.integrity).toStartWith('sha512-'); expect(item.files).toEqual(['dist/index.d.ts', 'dist/index.js', 'package.json']); }
   });
   test('public evidence has no absolute paths and is invariant to final commit and approved observed diff', () => {
@@ -477,14 +464,14 @@ describe('manifest validation and deterministic projection', () => {
     const manifest: any = structuredClone(createReleaseManifest(validInput())); manifest.packages[0].integrity = integrity;
     expect((createPublicReleaseEvidence(manifest) as any).packages[0].integrity).toBe(integrity);
     const malformed: any = structuredClone(manifest); malformed.packages[0].integrity = 'sha512-+/etc/secret';
-    expect(() => createPublicReleaseEvidence(malformed)).toThrow('unsanitized absolute path');
+    expect(() => createPublicReleaseEvidence(malformed)).toThrow('malformed integrity');
     const nested: any = structuredClone(manifest); nested.packages[0].packageMetadata.dependencies.integrity = '/etc/secret';
     expect(() => createPublicReleaseEvidence(nested)).toThrow('unsanitized absolute path');
   });
   test('rejects duplicate/missing packages, bad versions, metadata, pack facts and handoff paths', () => {
     for (const mutate of [
       (value: any) => value.packages.pop(),
-      (value: any) => { value.packages[1] = structuredClone(value.packages[0]); },
+      (value: any) => { value.packages.push(structuredClone(value.packages[0])); },
       (value: any) => { value.packages[0].version = '9.9.9'; },
       (value: any) => { value.packages[0].pack.packJson[0].size++; },
       (value: any) => { value.packages[0].pack.packJson[0].id = 'wrong@0.1.0'; },
@@ -532,8 +519,6 @@ describe('manifest validation and deterministic projection', () => {
       (command: any) => { command.finishedAt = '2026-09-07T00:00:00.000Z'; }, (command: any) => { command.elapsedMilliseconds = 9000; },
       (command: any) => { command.inputs = [{ ...command.stdout }, { ...command.stdout }]; }, (command: any) => { command.stdout.sha256 = '0'.repeat(64); },
     ]) { const value: any = structuredClone(validInput()); mutate(value.packages[0].commands[0]); expect(() => createReleaseManifest(value)).toThrow(); }
-    const duplicateLogs: any = structuredClone(validInput()); duplicateLogs.packages[1].commands[0].stdout = duplicateLogs.packages[0].commands[0].stdout;
-    expect(() => createReleaseManifest(duplicateLogs)).toThrow('duplicate retained command log');
   });
   test('rejects archive containment, symlink escape, absence and replacement facts', () => {
     const outside = resolve(scratch, 'outside.tgz'); writeFileSync(outside, archiveOf([{ path: 'package/package.json', content: minimalPackage() }]));
@@ -560,6 +545,10 @@ describe('manifest validation and deterministic projection', () => {
     const extraPackField: any = validInput(); extraPackField.packages[0].pack.packJson[0].hostPath = '/etc/secret'; extraPackField.packages[0].pack.dryRunJson[0].hostPath = '/etc/secret';
     const projected = serializeStable(createPublicReleaseEvidence(createReleaseManifest(extraPackField)));
     expect(projected).not.toContain('/etc/secret'); expect(projected).not.toContain('dryRunJson'); expect(projected).not.toContain('packJson');
+    const slashIntegrity: any = structuredClone(createReleaseManifest(validInput())); slashIntegrity.packages[0].integrity = `sha512-${'+/'.repeat(42)}+w==`;
+    expect(() => createPublicReleaseEvidence(slashIntegrity)).not.toThrow();
+    const malformedIntegrity: any = structuredClone(createReleaseManifest(validInput())); malformedIntegrity.packages[0].integrity = 'sha512-/etc/secret';
+    expect(() => createPublicReleaseEvidence(malformedIntegrity)).toThrow('malformed integrity');
   });
 });
 
@@ -613,12 +602,10 @@ describe('archive verifier', () => {
     if (built.status !== 0 || built.signal !== null || built.terminationReason || built.error || built.stderr !== '') throw new Error(`task3 DI build setup failed: ${JSON.stringify({ status: built.status, signal: built.signal, terminationReason: built.terminationReason, error: built.error })}\n${built.stdout}\n${built.stderr}`);
     const diPack = spawnSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', directory], { cwd: checkout, encoding: 'utf8', env: { ...process.env, npm_config_cache: resolve(directory, '.npm-cache') } });
     if (diPack.status !== 0) throw new Error(`task3 DI pack setup failed: ${diPack.stdout}\n${diPack.stderr}`);
-    for (const name of ['sas-box', 'val-box'] as const) cpSync(resolve(root, `tests/fixtures/box-packages/${name}-0.1.0.tgz`), resolve(directory, `${name}-0.1.0.tgz`));
     const reviewed = collectReviewedNativeGaps(resolve(root, 'tests/types'));
-    const packages = (['di-bag', 'sas-box', 'val-box'] as const).map(name => {
+    const packages = (['di-bag'] as const).map(name => {
       const archive = resolve(directory, `${name}-0.1.0.tgz`), stdout = resolve(directory, `${name}.stdout`), stderr = resolve(directory, `${name}.stderr`), result = packResult(name, archive);
-      const packageCheckout = name === 'di-bag' ? checkout : resolve(directory, name);
-      mkdirSync(packageCheckout, { recursive: true });
+      const packageCheckout = checkout;
       const command: ReleaseCommandEvidence = { argv: ['npm', 'run', 'build'], cwd: packageCheckout, startedAt: '2026-09-08T00:00:00.000Z', finishedAt: '2026-09-08T00:00:00.001Z', elapsedMilliseconds: 1, exitCode: 0, signal: null, terminationReason: null, peakObservedRssMiB: 10, inputs: [], stdout: writeLogEvidence(stdout, 'ok\n'), stderr: writeLogEvidence(stderr, '') };
       return { name, version: '0.1.0', archive, checkout: { path: packageCheckout, branch: 'feat/v0.1', candidateSourceCommit: 'a'.repeat(40), status: '' }, pack: { dryRunJson: [result], packJson: [structuredClone(result)], packedAt: '2026-09-08T00:00:01.000Z' }, commands: [command] };
     });
@@ -628,7 +615,7 @@ describe('archive verifier', () => {
       if (result.status !== 0 || result.error || !version) throw new Error(`compiler version probe failed: ${result.error ?? result.stderr}`);
       return version;
     };
-    manifest = createReleaseManifest({ schemaVersion: 1, generatedAt: '2026-09-08T00:00:02.000Z', artifactDirectory: artifact, tools: { node: process.version, npm: '11', bun: Bun.version, classic6: versionOf('node', [resolve(root, 'node_modules/typescript/bin/tsc6'), '--version']), native7: versionOf(resolve(root, 'node_modules/.bin/tsc')), sasBoxTypeScript: '5.9.3', valBoxTypeScript: '5.9.3' }, nativeDiagnostics: { reviewedAt: '2026-09-08T00:00:00.000Z', reviewedGaps: reviewed, freshGaps: reviewed }, handoff: { candidateSourceCommit: 'a'.repeat(40), handoffCommit: 'b'.repeat(40), changedPaths: [...APPROVED_HANDOFF_PATHS] }, packages });
+    manifest = createReleaseManifest({ schemaVersion: 1, generatedAt: '2026-09-08T00:00:02.000Z', artifactDirectory: artifact, tools: { node: process.version, npm: '11', bun: Bun.version, classic6: versionOf('node', [resolve(root, 'node_modules/typescript/bin/tsc6'), '--version']), native7: versionOf(resolve(root, 'node_modules/.bin/tsc')) }, nativeDiagnostics: { reviewedAt: '2026-09-08T00:00:00.000Z', reviewedGaps: reviewed, freshGaps: reviewed }, handoff: { candidateSourceCommit: 'a'.repeat(40), handoffCommit: 'b'.repeat(40), changedPaths: [...APPROVED_HANDOFF_PATHS] }, packages });
     writeFileSync(manifestPath, serializeStable(manifest)); publish(manifest);
   });
   afterAll(() => rmSync(directory, { recursive: true, force: true }));
@@ -637,7 +624,7 @@ describe('archive verifier', () => {
     publish(manifest); expect(verifyReleaseManifestStatic(manifest).failures).toEqual([]);
   });
   test('rejects every archive digest and file-list mismatch', () => {
-    for (const mutate of [(r: any) => r.bytes++, (r: any) => r.sha256 = '0'.repeat(64), (r: any) => r.sha512 = '0'.repeat(128), (r: any) => r.integrity = 'sha512-bad', (r: any) => r.files.pop()]) {
+    for (const mutate of [(r: any) => r.bytes++, (r: any) => r.sha256 = '0'.repeat(64), (r: any) => r.sha512 = '0'.repeat(128), (r: any) => r.integrity = `sha512-${'A'.repeat(86)}==`, (r: any) => r.files.pop()]) {
       const failures = staticFailures(value => mutate(value.packages[0])); expect(failures.length).toBeGreaterThan(0);
     }
   });
@@ -649,13 +636,13 @@ describe('archive verifier', () => {
     ];
     for (const mutate of cases) expect(staticFailures(value => mutate(value.packages[0])).some(failure => failure.includes('pack'))).toBe(true);
   });
-  test('enforces exact DI and box package metadata, exports, entry counts, and empty dependencies', () => {
+  test('enforces exact package metadata, exports, and empty dependencies', () => {
     const cases: Array<[string, (record: any) => void]> = [
       ['main/types', r => r.packageMetadata.main = './wrong.js'], ['files', r => r.packageMetadata.files = ['dist', 'src']], ['exports', r => r.packageMetadata.exports = { '.': './dist/index.js' }],
       ['dependencies', r => r.packageMetadata.dependencies = { surprise: '1.0.0' }], ['peerDependencies', r => r.packageMetadata.peerDependencies = { surprise: '1.0.0' }],
       ['optionalDependencies', r => r.packageMetadata.optionalDependencies = { surprise: '1.0.0' }], ['bundledDependencies', r => r.packageMetadata.bundledDependencies = ['surprise']],
     ];
-    for (const packageName of ['di-bag', 'sas-box', 'val-box']) for (const [, mutate] of cases) {
+    for (const packageName of ['di-bag']) for (const [, mutate] of cases) {
       const failures = staticFailures(value => mutate(value.packages.find((record: any) => record.name === packageName))); expect(failures.length).toBeGreaterThan(0);
     }
   });
@@ -672,9 +659,9 @@ describe('archive verifier', () => {
       expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('forbidden package file'))).toBe(true);
     }
   });
-  test('rejects missing DI export pairs and extra box entries from archive bytes', () => {
+  test('rejects missing public export pairs and removed adapter entries from archive bytes', () => {
     { const value: any = structuredClone(manifest), bytes = archiveOf(archiveEntries('di-bag').filter(entry => entry.path !== 'package/dist/node.d.ts')); adoptArchive(value, 'di-bag', bytes, 'missing-node-types'); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('missing public export file'))).toBe(true); }
-    for (const name of ['sas-box', 'val-box']) { const value: any = structuredClone(manifest), bytes = archiveOf([...archiveEntries(name), { path: 'package/dist/extra.js', content: 'export{}' }]); adoptArchive(value, name, bytes, `${name}-extra`); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('approved entries'))).toBe(true); }
+    for (const name of ['sas-box', 'val-box']) { const value: any = structuredClone(manifest), bytes = archiveOf([...archiveEntries('di-bag'), { path: `package/dist/${name}.js`, content: 'export{}' }]); adoptArchive(value, 'di-bag', bytes, `${name}-extra`); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('removed package entry'))).toBe(true); }
   });
   test('requires byte-identical stable public evidence and rejects missing, stale, malformed, and extra bytes', () => {
     for (const bytes of ['', '{}\n', `${serializeStable(createPublicReleaseEvidence(manifest))} `, serializeStable({ ...createPublicReleaseEvidence(manifest) as any, extra: true })]) {
@@ -702,7 +689,7 @@ describe('archive verifier', () => {
     publish(manifest);
   });
   test('uses one fixed explicit offline install argv with no fallback', () => {
-    expect(releaseInstallArgv(['/a.tgz', '/b.tgz'])).toEqual(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', '/a.tgz', '/b.tgz']);
+    expect(releaseInstallArgv(['/a.tgz'])).toEqual(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', '/a.tgz']);
   });
   test('core import tracing rejects bare, self, node builtin, and unresolved relative specifiers', () => {
     const graph = resolve(directory, 'trace'); mkdirSync(graph); writeFileSync(resolve(graph, 'local.js'), 'export{}');
@@ -728,7 +715,7 @@ describe('archive verifier', () => {
   test('binds both declaration compilers to the exact manifest versions before emitting', async () => {
     const value: any = structuredClone(manifest); value.tools.classic6 = '0.0.0'; const path = writeCandidate(value, 'compiler-version-mismatch'), work = resolve(directory, 'compiler-version-work');
     const result = await verifyReleaseArtifacts(path, work); expect(result.ok).toBe(false); expect(result.failures.some(failure => failure.includes('classic6 compiler version mismatch'))).toBe(true);
-    expect(readdirSync(resolve(work, 'full-consumer')).some(name => name.startsWith('declarations-'))).toBe(false); publish(manifest);
+    expect(readdirSync(resolve(work, 'consumer')).some(name => name.startsWith('declarations-'))).toBe(false); publish(manifest);
   }, 30_000);
   test('matches both I14 diagnostics to their marked regions and expected message fragments', () => {
     const file = resolve(directory, 'marked-negative.cts'), source = "// diagnostic: wanted first\nconst first = 1;\n// diagnostic: wanted second\nconst second = 2;";
@@ -739,9 +726,9 @@ describe('archive verifier', () => {
   });
   test('installs owned verified bytes and passes real Node/Bun, CJS/ESM, core-only, and declaration oracles', async () => {
     publish(manifest); const work = resolve(directory, 'real-work'); const result = await verifyReleaseArtifacts(manifestPath, work);
-    expect(result).toEqual({ ok: true, failures: [] });
+    expect(result, result.failures.join('\n')).toEqual({ ok: true, failures: [] });
     for (const record of manifest.packages) expect(new Uint8Array(readFileSync(resolve(work, `archives/${record.name}-0.1.0.tgz`)))).toEqual(new Uint8Array(readFileSync(record.archive)));
-    for (const emitter of ['classic6', 'native7']) for (const format of ['cts', 'mts']) { const declaration = resolve(work, `full-consumer/declarations-${emitter}-${format}/out/producer.d.${format}`); expect(existsSync(declaration)).toBe(true); expect(existsSync(resolve(work, `full-consumer/declarations-${emitter}-${format}/producer.${format}`))).toBe(false); }
+    for (const emitter of ['classic6', 'native7']) for (const format of ['cts', 'mts']) { const declaration = resolve(work, `consumer/declarations-${emitter}-${format}/out/producer.d.${format}`); expect(existsSync(declaration)).toBe(true); expect(existsSync(resolve(work, `consumer/declarations-${emitter}-${format}/producer.${format}`))).toBe(false); }
   }, 180_000);
 });
 
