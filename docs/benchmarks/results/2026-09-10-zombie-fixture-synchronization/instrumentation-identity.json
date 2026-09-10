@@ -1,0 +1,6 @@
+{
+  "source": "681270e3574ef938cec45ba413b00e16a2309087",
+  "originalSha256": "84a7dec43ac3d6cc92f5d8f1a069b5543c95230852f8a79962959e9a075d41b9",
+  "instrumentedSha256": "a30a5b8186705673b986321f0ffd8b7e0e154bc3a856d013f33c0bd69646dce2",
+  "qualification": "Diagnostic trace insertions may change timing; original focused test independently reproduced99pass1fail."
+}
