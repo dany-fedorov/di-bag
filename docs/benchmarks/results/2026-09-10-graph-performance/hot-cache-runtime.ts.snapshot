@@ -166,11 +166,7 @@ export class BindingGraph {
   }
 
   publicBinding(key: BindingKey): BindingId {
-    return this.#publicCache.get(key) ?? this.requirePublicBinding(key);
-  }
-
-  private requirePublicBinding(key: BindingKey): BindingId {
-    const id = this.slot(key);
+    const id = this.#publicCache.get(key) ?? this.slot(key);
     if (id === undefined) throw new Error(`no factory for ${String(key)}`);
     return id;
   }
@@ -188,11 +184,7 @@ export class BindingGraph {
   }
 
   registration(id: BindingId): Normalized {
-    return this.#registrationCache.get(id) ?? this.requireRegistration(id);
-  }
-
-  private requireRegistration(id: BindingId): Normalized {
-    const registration = this.entry(id)?.normalized;
+    const registration = this.#registrationCache.get(id) ?? this.entry(id)?.normalized;
     if (!registration) throw new Error(`no factory for ${this.label(id)}`);
     return registration;
   }

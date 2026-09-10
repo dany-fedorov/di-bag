@@ -56,8 +56,7 @@ export class BindingGraph {
   // registrations remain available to whole-graph preflight.
   #obsolete = new PersistentMap<true>();
   #contributions = new PersistentMap<Sequence<BindingId>>();
-  readonly #bindingCache = new Map<BindingId, BindingDescription>();
-  readonly #registrationCache = new Map<BindingId, Normalized>();
+  readonly #bindingCache = new Map<BindingId, BindingEntry>();
   readonly #publicCache = new Map<BindingKey, BindingId>();
   readonly #contributionCache = new Map<symbol, readonly BindingId[]>();
   #explicitlyClassified = false;
@@ -110,17 +109,20 @@ export class BindingGraph {
   }
 
   private entry(id: BindingId): BindingEntry | undefined {
-    const entry = this.#bindings.get(id);
-    if (entry) {
-      this.#bindingCache.set(id, entry.description);
-      this.#registrationCache.set(id, entry.normalized);
+    let entry = this.#bindingCache.get(id);
+    if (!entry) {
+      entry = this.#bindings.get(id);
+      if (entry) this.#bindingCache.set(id, entry);
     }
     return entry;
   }
 
   private slot(key: BindingKey): BindingId | undefined {
-    const id = this.#publicSlots.get(key);
-    if (id !== undefined) this.#publicCache.set(key, id);
+    let id = this.#publicCache.get(key);
+    if (id === undefined) {
+      id = this.#publicSlots.get(key);
+      if (id !== undefined) this.#publicCache.set(key, id);
+    }
     return id;
   }
 
@@ -152,7 +154,7 @@ export class BindingGraph {
     return graph;
   }
 
-  hasPublic(key: BindingKey): boolean { return this.#publicCache.has(key) || this.#publicSlots.has(key); }
+  hasPublic(key: BindingKey): boolean { return this.slot(key) !== undefined; }
   hasBinding(id: BindingId): boolean { return this.#bindings.has(id); }
 
   /** Immutable graphs need explicit-mode validation only once; configured forks are O(1). */
@@ -166,38 +168,28 @@ export class BindingGraph {
   }
 
   publicBinding(key: BindingKey): BindingId {
-    return this.#publicCache.get(key) ?? this.requirePublicBinding(key);
-  }
-
-  private requirePublicBinding(key: BindingKey): BindingId {
     const id = this.slot(key);
     if (id === undefined) throw new Error(`no factory for ${String(key)}`);
     return id;
   }
 
   findDependency(from: BindingId, localName: BindingKey): BindingId | undefined {
-    const ref = (this.#bindingCache.get(from) ?? this.entry(from)?.description)?.localNames.get(localName);
-    if (ref?.kind === 'private') return ref.id;
-    const key = ref?.key ?? localName;
-    return this.#publicCache.get(key) ?? this.slot(key);
+    const ref = this.entry(from)?.description.localNames.get(localName);
+    return ref?.kind === 'private' ? ref.id : this.slot(ref?.key ?? localName);
   }
 
   dependency(from: BindingId, localName: BindingKey): BindingId {
-    const ref = (this.#bindingCache.get(from) ?? this.entry(from)?.description)?.localNames.get(localName);
+    const ref = this.entry(from)?.description.localNames.get(localName);
     return ref?.kind === 'private' ? ref.id : this.publicBinding(ref?.key ?? localName);
   }
 
   registration(id: BindingId): Normalized {
-    return this.#registrationCache.get(id) ?? this.requireRegistration(id);
-  }
-
-  private requireRegistration(id: BindingId): Normalized {
     const registration = this.entry(id)?.normalized;
     if (!registration) throw new Error(`no factory for ${this.label(id)}`);
     return registration;
   }
 
-  label(id: BindingId): string { return (this.#bindingCache.get(id) ?? this.entry(id)?.description)?.label ?? String(id); }
+  label(id: BindingId): string { return this.entry(id)?.description.label ?? String(id); }
 
   withPublicRegistrations(registrations: Registrations): BindingGraph {
     return this.withPublicBindings(Object.keys(registrations).map(key => [key, registrations[key]!]));

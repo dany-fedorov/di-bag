@@ -32,10 +32,10 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run platform:pin
       - run: npm run check
-      - run: node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs
+      - run: node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs tests/graph-retention.node.mjs
       - run: npm run typecheck:native
       - run: npm run build:native
-      - run: node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs
+      - run: node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs tests/graph-retention.node.mjs
       - run: npm run check:native
       - name: Run examples
         run: |

@@ -1,0 +1,11 @@
+
+> di-bag@0.1.0 typecheck
+> tsc6 -p tsconfig.json
+
+tests/persistent-graph.test.ts(21,71): error TS2345: Argument of type '{}' is not assignable to parameter of type 'never'.
+tests/persistent-graph.test.ts(82,111): error TS2345: Argument of type '{}' is not assignable to parameter of type 'never'.
+tests/persistent-graph.test.ts(83,71): error TS2345: Argument of type '{}' is not assignable to parameter of type 'never'.
+tests/persistent-graph.test.ts(84,67): error TS2345: Argument of type '{}' is not assignable to parameter of type 'never'.
+tests/persistent-graph.test.ts(94,25): error TS2352: Conversion of type 'readonly symbol[][]' to type '(readonly symbol[])[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  The type 'readonly symbol[][]' is 'readonly' and cannot be assigned to the mutable type '(readonly symbol[])[]'.
+tests/persistent-graph.test.ts(98,90): error TS2345: Argument of type '{}' is not assignable to parameter of type 'never'.
