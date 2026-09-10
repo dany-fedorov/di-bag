@@ -1,0 +1,37 @@
+bun test v1.4.0 (34cbb9a40)
+
+tests/incremental-scale.test.ts:
+24 |     expect(result.typescript).toBe('6.0.3');
+25 |     if ('diagnostics' in result) expect(result.diagnostics).toEqual([]);
+26 |     else { expect(result.accepted).toBe(true); expect(result.diagnosticCount).toBe(0); }
+27 |     expect(Number.isInteger(result.instantiations)).toBe(true);
+28 |     expect(result.instantiations).toBeGreaterThan(0);
+29 |     expect(result.instantiations).toBeLessThanOrEqual(item.ceiling);
+                                       ^
+error: expect(received).toBeLessThanOrEqual(expected)
+
+Expected: <= 790000
+Received: 799760
+
+      at <anonymous> (/tmp/di-bag-replacement-spike/tests/incremental-scale.test.ts:29:35)
+(fail) incremental compiler work: 100 named additions [1642.97ms]
+(pass) incremental compiler work: 100 named replacements [1776.50ms]
+24 |     expect(result.typescript).toBe('6.0.3');
+25 |     if ('diagnostics' in result) expect(result.diagnostics).toEqual([]);
+26 |     else { expect(result.accepted).toBe(true); expect(result.diagnosticCount).toBe(0); }
+27 |     expect(Number.isInteger(result.instantiations)).toBe(true);
+28 |     expect(result.instantiations).toBeGreaterThan(0);
+29 |     expect(result.instantiations).toBeLessThanOrEqual(item.ceiling);
+                                       ^
+error: expect(received).toBeLessThanOrEqual(expected)
+
+Expected: <= 1300000
+Received: 1390368
+
+      at <anonymous> (/tmp/di-bag-replacement-spike/tests/incremental-scale.test.ts:29:35)
+(fail) incremental compiler work: 100 token bindings [2141.68ms]
+
+ 1 pass
+ 2 fail
+ 30 expect() calls
+Ran 3 tests across 1 file. [5.59s]
