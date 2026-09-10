@@ -15,6 +15,12 @@ A declaration of how a service is obtained, including the policies governing
 its acquisition and ownership.
 _Avoid_: Instance, resource
 
+**Service transformation**:
+A change to the service a provider exposes that retains its declared
+dependencies, lifetime, metadata, and existing cleanup obligations. The
+transformation does not itself establish ownership of the resulting service.
+_Avoid_: Mapping when the service-composition purpose should be explicit
+
 **Factory**:
 The service-creation callback within a provider. Its declared dependencies are
 the services it needs to create its result.
@@ -44,6 +50,16 @@ _Avoid_: Registration when referring to a created instance
 A source or transformation result within one acquisition, with its own rule for
 when a resource is ready and which value an attached owner receives.
 _Avoid_: Factory when referring to a later transformation result
+
+**Registration metadata**:
+Descriptive information attached to a provider declaration and available before
+its service is acquired. It is shared across acquisitions of that declaration.
+_Avoid_: Acquisition metadata for information fixed at declaration time
+
+**Acquisition metadata**:
+Descriptive information computed during a particular acquisition. Cached reuse
+retains that information, while a new acquisition computes its own metadata.
+_Avoid_: Registration metadata for observations about a particular acquisition
 
 **Acquired value**:
 The resource accepted for ownership at one acquisition stage. It may differ
