@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 
 const cases = [
   { name: '100 named additions', args: ['scripts/benchmark-types.ts', '--worker', '100', 'chained', 'valid'], form: 'chained', ceiling: 790_000, baselineInstantiations: 883_806 },
-  { name: '100 named replacements', args: ['scripts/benchmark-types.ts', '--worker', '100', 'replacement', 'valid'], form: 'replacement', ceiling: 1_070_000, baselineInstantiations: 3_045_479 },
+  { name: '100 named replacements', args: ['scripts/benchmark-types.ts', '--worker', '100', 'replacement', 'valid'], form: 'replacement', ceiling: 1_030_000, baselineInstantiations: 3_045_479 },
   { name: '100 token bindings', args: ['scripts/check-token-scale.ts', 'bindings', 'valid'], form: 'bindings', ceiling: 850_000, baselineInstantiations: 1_461_065 },
   { name: '100 installed token modules', args: ['scripts/check-token-scale.ts', 'modules', 'valid'], form: 'modules', ceiling: 1_220_000, baselineInstantiations: 1_884_069 },
 ] as const;

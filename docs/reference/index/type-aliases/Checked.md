@@ -16,7 +16,7 @@ type Checked<R extends Registrations> = [
 }>;
 ```
 
-Defined in: [types.ts:79](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L79)
+Defined in: [types.ts:82](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L82)
 
 Compile-time admission for finite dependency objects and compatible known services.
 

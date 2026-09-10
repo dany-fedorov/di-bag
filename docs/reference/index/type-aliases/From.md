@@ -10,7 +10,7 @@ type From<E extends Entry> = {
 };
 ```
 
-Defined in: [types.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L25)
+Defined in: [types.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L28)
 
 Reconstruct a registration map from a builder's retained entry union.
 
