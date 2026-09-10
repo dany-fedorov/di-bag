@@ -1,0 +1,7 @@
+{
+  "baseSourceCommit": "6e95bffd96c7ec23b7f09816d633636e587128e8",
+  "mergedBase": "e3cc8869dbc9c11a56c0cf777b2e73d0d7b8f666",
+  "hypothesis": "Final resolve() of native original1000modules reaches TS2589. As prior named-replacement inference trace showed fixed graph types can be revisited as inference candidates, isolate whether TokenMember guard inference rescans fixed R and/or inferred K. This is an unproven temporary hypothesis; preserve original generators and limits.",
+  "baseTypesSha256": "5f4304d3061c6e5251c60fb7f005b222e839b939b214e7f14952d3529ba24dc4",
+  "baseBuilderSha256": "fd77bf44c6f78c709e1402eaaa9d745d6961279c51b985f8030c5f045c505b5a"
+}
