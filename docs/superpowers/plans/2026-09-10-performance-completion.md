@@ -87,7 +87,8 @@ Task 1 implementation notes and verification contract:
 
 ## Task 2 — persistent graph storage and obsolete bindings
 
-Files: src/runtime.ts, new private persistent storage helpers, storage/runtime tests.
+Files: src/runtime.ts, src/module.ts runtime storage, new private persistent storage
+helpers, storage/runtime tests.
 Consumes: unchanged BindingGraph public internal methods. Produces: the same methods
 with structural sharing, collision-safe string/symbol lookup and safe pruning.
 - [ ] Add regressions for earlier builder immutability, colliding keys, token identity,
@@ -121,6 +122,17 @@ Task 2 compatibility and measurement notes:
 - Bulk insertion, repeated contribution append, replacement and scoped override
   are separate measurements. Check warm resolution/proxy reads after the storage
   change so construction improvements do not conceal a hot-path regression.
+- Count current users of each shared lexical snapshot and its protected private IDs.
+  Protection must not survive merely because an earlier graph used that snapshot.
+  When the last current user disappears, prune newly unreferenced former public
+  bindings without rescanning the whole graph; retain constructor-only private
+  registrations and existing private references for their original preflight contract.
+- Apply the same storage helpers to module-local registrations and contributions:
+  their measured 5,000 incremental additions take about 1.7 seconds before this
+  change. Preserve lexical declaration order, the position of replaced keys,
+  immutable prior builders, exported snapshots and rename behavior. Materialize
+  the existing ModuleDescription at the export boundary. Keep public type
+  signatures unchanged and retain paired module-local measurements.
 
 ## Task 3 — compiler bottlenecks
 
@@ -171,3 +183,28 @@ Files: scripts/create-release-manifest.ts, tests/release-artifacts.test.ts only.
 - Do not dispatch subagents. No network/push/merge. Preserve all unrelated edits.
 - Full report: implementation, exact red/green commands/results, changed files,
   self-review concerns; return only status, commit, test summary, report path.
+
+
+## Task 6 — repair CI process monitoring and aggregate package checks
+
+Files: scripts/native-process.ts, tests/native-process.test.ts, narrowly scoped
+native-package test organization, focused verification/evidence documentation.
+Runs after Task 2 review and before Task 3 compiler optimization.
+
+- [ ] Reproduce the process-monitor false failure with a deterministic real-child
+  exit-order control. Acquisition CI 34420434125 rejected a successful classic
+  declaration build with status 0, signal null and terminationReason monitor.
+  Preserve the exact failure and investigate the exit/error ordering before edits.
+- [ ] Distinguish a running child from an exited zombie when Linux status reads
+  race child-exit notification. Preserve fail-closed monitoring for live children,
+  unchanged per-worker time/RSS/output limits, stream drainage and child reaping.
+- [ ] Reproduce and diagnose the aggregate native-package test deadline failures.
+  Each emitter test currently runs both CJS/ESM consumers and many independent
+  source/emitted-declaration checks under one 120-second test deadline. Preserve
+  every contract, both emitters, both consumers and deleted-producer assertions.
+  Prefer removing repeated work; splitting independent format cases is permitted
+  if needed to make the test deadline cover a meaningful unit. Do not increase
+  compiler worker limits or change original scale generators/acceptance rules.
+- [ ] Run focused process-supervisor tests, full release-artifact and native-package
+  checks, both typechecks, retain exact results, commit and obtain scoped review.
+  Full integrated checks remain the controller's responsibility after Task 3/4.
