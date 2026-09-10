@@ -1,0 +1,177 @@
+[
+  {
+    "variant": "baseline",
+    "form": "chained",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "baseline",
+      "100",
+      "chained"
+    ],
+    "result": {
+      "variant": "baseline",
+      "count": 100,
+      "form": "chained",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 844832,
+      "milliseconds": 1401,
+      "maxRssMiB": 402.203125
+    }
+  },
+  {
+    "variant": "baseline",
+    "form": "bindings",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "baseline",
+      "100",
+      "bindings"
+    ],
+    "result": {
+      "variant": "baseline",
+      "count": 100,
+      "form": "bindings",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1436740,
+      "milliseconds": 1855,
+      "maxRssMiB": 445.0234375
+    }
+  },
+  {
+    "variant": "baseline",
+    "form": "modules",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "baseline",
+      "100",
+      "modules"
+    ],
+    "result": {
+      "variant": "baseline",
+      "count": 100,
+      "form": "modules",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 2059822,
+      "milliseconds": 2446,
+      "maxRssMiB": 588.7421875
+    }
+  },
+  {
+    "variant": "all-key-sets",
+    "form": "chained",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "all-key-sets",
+      "100",
+      "chained"
+    ],
+    "result": {
+      "variant": "all-key-sets",
+      "count": 100,
+      "form": "chained",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 799207,
+      "milliseconds": 1364,
+      "maxRssMiB": 396.0625
+    }
+  },
+  {
+    "variant": "all-key-sets",
+    "form": "bindings",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "all-key-sets",
+      "100",
+      "bindings"
+    ],
+    "result": {
+      "variant": "all-key-sets",
+      "count": 100,
+      "form": "bindings",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1389815,
+      "milliseconds": 1862,
+      "maxRssMiB": 472.8359375
+    }
+  },
+  {
+    "variant": "all-key-sets",
+    "form": "modules",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "all-key-sets",
+      "100",
+      "modules"
+    ],
+    "result": {
+      "variant": "all-key-sets",
+      "count": 100,
+      "form": "modules",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 2013587,
+      "milliseconds": 2490,
+      "maxRssMiB": 555.9375
+    }
+  },
+  {
+    "variant": "all-key-sets",
+    "form": "replacement",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "all-key-sets",
+      "100",
+      "replacement"
+    ],
+    "result": {
+      "variant": "all-key-sets",
+      "count": 100,
+      "form": "replacement",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1273966,
+      "milliseconds": 1497,
+      "maxRssMiB": 413.91796875
+    }
+  }
+]

@@ -85,6 +85,9 @@ type External<C> = C extends { kind: 'external'; needs: infer N } ? N
 export type ExternalRequirements<C> = [External<C>] extends [never] ? Readonly<{}>
   : Readonly<Intersect<External<C>>>;
 
+// Capture the output independently of the registration retained by its public projection.
+type OutputFactory<O> = () => O;
+
 export type PublicRegistrations<P extends object> = { [K in keyof P]: () => P[K] };
 // Retain opaque registrations as opaque, and consider keys of every metadata
 // union member before deciding whether the legacy synthetic default is enough.
@@ -93,7 +96,7 @@ export type PublicProvider<R> = R extends Registrations[string]
     : [ProviderGraphContract<R>] extends [TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? [Extract<ProviderGraphContract<R>, { readonly lifetime: unknown } | { readonly alias: PropertyKey }>] extends [never] ? [MetadataKeyUnion<ProviderRegistrationMetadata<R>> | BoundToken<R>] extends [never]
       ? ProviderAcquisitionMetadata<R> extends readonly []
         ? [ProviderAcquiredValue<R>] extends [Awaited<ProviderOutput<R>>]
-          ? [Awaited<ProviderOutput<R>>] extends [ProviderAcquiredValue<R>] ? () => ProviderOutput<R> : RetainedPublicProvider<R>
+          ? [Awaited<ProviderOutput<R>>] extends [ProviderAcquiredValue<R>] ? OutputFactory<ProviderOutput<R>> : RetainedPublicProvider<R>
           : RetainedPublicProvider<R>
         : RetainedPublicProvider<R>
       : RetainedPublicProvider<R>
@@ -101,7 +104,7 @@ export type PublicProvider<R> = R extends Registrations[string]
     : R
   : never;
 type PublicGraph<G> = G extends TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[]> ? { [K in keyof G]: K extends 'required' | 'optional' | 'all' ? readonly [] : G[K] } : never;
-type RetainedPublicProvider<R extends Registrations[string]> = Provider<() => ProviderOutput<R>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, PublicGraph<ProviderGraphContract<R>>, ProviderAcquiredValue<R>>;
+type RetainedPublicProvider<R extends Registrations[string]> = Provider<OutputFactory<ProviderOutput<R>>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, PublicGraph<ProviderGraphContract<R>>, ProviderAcquiredValue<R>>;
 /** Project registrations to dependency-free public descriptions while retaining behavioral contracts. */
 export type PublicProviders<R extends object> = { [K in keyof R]: PublicProvider<R[K]> };
 /** Project selected module exports while retaining their lexical private graph where required. */

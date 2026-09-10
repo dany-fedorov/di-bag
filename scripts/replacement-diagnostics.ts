@@ -39,6 +39,7 @@ export const replacementDiagnosticExpectations = {
       'provided service does not satisfy its consumer dependency', 'required service registrations are missing',
       'provided service does not satisfy its consumer dependency', 'incompatible or opaque',
       'provided service does not satisfy its consumer dependency',
+      'incompatible or opaque', 'required service registrations are missing', 'incompatible or opaque',
     ],
     supplemental: [],
   },

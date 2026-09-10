@@ -48,6 +48,18 @@ verification. Earlier enterprise plans and historical evidence remain historical
 - Keep the standalone root/node package and existing runtime/compiler/platform
   contracts. Do not publish an npm release; push and merge are authorized.
 
+## Integration assumptions
+
+Main advanced to `fb5fe6c` during local publication review. Preserve its persistent
+graph and module storage, acquisition retention fixes, compiler projection caches,
+and synchronized process-supervisor checks while adopting the renamed API.
+Preserve numeric startup scheduling added on main: `startupOrder` accepts
+`parallel`, `sequential`, or a positive safe integer. Numeric bounds limit selected
+readiness waits; provider dependency fanout remains independent. Keep the new
+compiler ceilings and run the Node garbage-collection retention suites after
+both compiler builds. Historical benchmark sources and logs keep the API names
+that were measured; record combined-source verification separately.
+
 ## Verification
 
 Runtime tests cover both metadata modes and transformation result policies,

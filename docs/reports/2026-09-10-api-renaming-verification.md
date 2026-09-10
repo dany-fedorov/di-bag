@@ -1,4 +1,9 @@
-# API renaming implementation and verification
+# Initial API renaming implementation and verification
+
+This report records the initial local checkpoint at `b911776`, before integrating
+subsequent main-branch changes. See the
+[combined integration verification](2026-09-10-api-main-integration-verification.md)
+for the current source and results.
 
 The complete [renaming plan](../api-renaming-plan.md) is implemented using the
 [recorded decisions and assumptions](../superpowers/specs/2026-09-10-api-renaming-design.md).
@@ -15,8 +20,8 @@ registry publication is separate work.
 
 The verified source SHA-256 is
 `8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53`.
-This hashes each sorted relative `src/**/*.ts` filename followed by its bytes,
-using the compiler-control protocol. It identifies the implementation separately
+This hashes each sorted TypeScript path relative to the `src` directory, followed
+by its bytes, using the compiler-control protocol. It identifies the implementation separately
 from documentation and integration commits.
 
 ## Review and regressions
@@ -53,7 +58,7 @@ internal links, anchors and assets. Current guides, examples, publishing guidanc
 changelog and migration notes use the selected API; explicitly historical Before
 examples retain their original spellings.
 
-## Final local gates
+## Initial local gates
 
 All commands completed successfully with pinned Node 24.20.0, npm 11.19.0,
 Bun 1.4.0, classic TypeScript 6.0.3 and native TypeScript 7.0.2. Subprocess gates
@@ -113,6 +118,6 @@ Known 1,000-call fluent compiler/resource limits remain documented in the
 The historical exhaustive matrix is unchanged. [Retained sanitized evidence](../benchmarks/results/2026-09-10-api-renaming/README.md)
 contains all measurements, diagnostics and portable runtime results.
 
-The associated pull request and main-branch history record the integration result
-and remote CI checks; source-content identity above remains stable across those
-integration and documentation commits.
+This checkpoint was verified locally. Push, pull-request creation, merge to main,
+and remote CI were not completed at this checkpoint; its measurements do not
+claim remote integration success.

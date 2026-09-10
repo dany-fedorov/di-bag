@@ -1,0 +1,17 @@
+{"name": "dependencies", "command": ["npm", "ci", "--offline", "--ignore-scripts", "--no-audit", "--no-fund", "--cache", "/tmp/di-bag-npm-cache"], "status": 0, "seconds": 0.45908451080322266}
+{"name": "runtime", "command": ["bun", "test", "tests/acquisition-metadata.test.ts", "tests/acquisition-mode.test.ts", "tests/acquisition.test.ts", "tests/disposal.test.ts", "tests/lifetimes.test.ts", "tests/startup.test.ts", "tests/persistent-map.test.ts", "tests/persistent-graph.test.ts", "tests/persistent-module.test.ts", "tests/binding-graph.test.ts", "tests/modules.test.ts", "tests/token-modules.test.ts", "tests/scopes.test.ts", "tests/selected-scopes.test.ts", "tests/selected-scope-runtime.test.ts", "tests/dependency-references.test.ts", "tests/runtime-scale.test.ts", "tests/projections.test.ts", "tests/providers.test.ts", "tests/observers.test.ts", "tests/contributions.test.ts", "tests/aliases.test.ts", "tests/final-adversarial-integration.test.ts"], "status": 0, "seconds": 0.5138900279998779}
+{"name": "typecheck-classic", "command": ["npm", "run", "typecheck"], "status": 0, "seconds": 6.406602621078491}
+{"name": "typecheck-native", "command": ["npm", "run", "typecheck:native"], "status": 0, "seconds": 0.9858031272888184}
+{"name": "build-classic", "command": ["npm", "run", "build"], "status": 0, "seconds": 1.1352806091308594}
+{"name": "node-classic", "command": ["node", "--expose-gc", "--test", "--test-isolation=none", "tests/runtime-scale.node.mjs", "tests/acquisition-retention.node.mjs", "tests/graph-retention.node.mjs"], "status": 1, "seconds": 0.6513540744781494}
+{"name": "node-classic-resolved", "command": ["node", "--expose-gc", "--test", "--test-isolation=none", "tests/runtime-scale.node.mjs", "tests/acquisition-retention.node.mjs", "tests/graph-retention.node.mjs"], "status": 0, "seconds": 0.6398663520812988}
+{"name": "build-native", "command": ["npm", "run", "build:native"], "status": 0, "seconds": 0.24826526641845703}
+{"name": "node-native", "command": ["node", "--expose-gc", "--test", "--test-isolation=none", "tests/runtime-scale.node.mjs", "tests/acquisition-retention.node.mjs", "tests/graph-retention.node.mjs"], "status": 0, "seconds": 0.6303741931915283}
+{"name": "replacement-audit", "command": ["bun", "test", "tests/native-replacement-diagnostics.test.ts"], "status": 0, "seconds": 1.4714570045471191}
+{"name": "docs-generate", "command": ["npm", "run", "docs:generate"], "status": 0, "seconds": 1.7488410472869873}
+{"name": "docs-check", "command": ["npm", "run", "docs:check"], "status": 0, "seconds": 4.483066558837891}
+{"name": "source-contracts-classic", "command": ["bun", "test", "tests/types.test.ts"], "status": 0, "seconds": 63.941237926483154}
+{"name": "source-contracts-native", "command": ["npm", "run", "check:native"], "status": 0, "seconds": 16.9986515045166}
+{"name": "package-contracts", "command": ["bun", "test", "tests/native-package.test.ts"], "status": 1, "seconds": 0.19095945358276367}
+{"name": "package-contracts-host", "command": ["bun", "test", "tests/native-package.test.ts"], "status": 0, "seconds": 95.70006322860718}
+{"name": "supervisor-release-host", "command": ["bun", "test", "tests/native-process.test.ts", "tests/release-artifacts.test.ts"], "status": 0, "seconds": 18.757272481918335}

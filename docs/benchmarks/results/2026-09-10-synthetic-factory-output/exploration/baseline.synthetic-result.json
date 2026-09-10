@@ -1,0 +1,10 @@
+{
+  "variant": "baseline",
+  "typescript": "6.0.3",
+  "count": 200,
+  "form": "modules",
+  "diagnostics": [],
+  "instantiations": 6349369,
+  "finalResolutionWork": 295172,
+  "milliseconds": 5406
+}

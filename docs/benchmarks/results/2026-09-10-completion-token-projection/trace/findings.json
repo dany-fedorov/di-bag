@@ -1,0 +1,22 @@
+{
+  "sourceCommit": "6e95bffd96c7ec23b7f09816d633636e587128e8",
+  "originalWorkload": {
+    "count": 1000,
+    "form": "bindings",
+    "scenario": "valid"
+  },
+  "observedBoundary": ".end()",
+  "limit": {
+    "instantiationCount": 5000000,
+    "instantiationDepth": 14
+  },
+  "repeatedSource": "src/types.ts From<E>: [P in E as P[key]]",
+  "compilerPath": "getIndexTypeForMappedType -> addMemberForKeyType -> instantiateType(nameType)",
+  "instrumentationOnly": true,
+  "defaultLimitsPreserved": true,
+  "sourceAcceptanceClaim": false,
+  "rawLogs": {
+    "classic-1000-bindings-trace-detail.stdout.log": "626a00a8f7199b40b9fb3f8822fa551b35aec390bf07be7a00f212924839266f",
+    "classic-1000-bindings-trace-detail.stderr.log": "3600281b06ccd428d2c50f0c634a28ff21655db7f598184b1b98264541e3e93c"
+  }
+}

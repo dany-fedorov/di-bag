@@ -1,0 +1,222 @@
+[
+  {
+    "step": "platform-pin",
+    "argv": [
+      "npm",
+      "run",
+      "platform:pin"
+    ],
+    "status": 0,
+    "seconds": 0.4969987589865923,
+    "log": "/tmp/di-bag-synthetic-factory-integration-platform-pin.log"
+  },
+  {
+    "step": "platform-recheck",
+    "argv": [
+      "bun",
+      "test",
+      "tests/platform-evidence.test.ts",
+      "tests/platform-tools.test.ts",
+      "tests/platform-deno.test.ts",
+      "tests/platform/browser-worker.test.ts"
+    ],
+    "status": 0,
+    "seconds": 4.210299858008511,
+    "log": "/tmp/di-bag-synthetic-factory-integration-platform-recheck.log"
+  },
+  {
+    "step": "classic-build",
+    "argv": [
+      "npm",
+      "run",
+      "build"
+    ],
+    "status": 0,
+    "seconds": 1.1054904160555452,
+    "log": "/tmp/di-bag-synthetic-factory-integration-classic-build.log"
+  },
+  {
+    "step": "classic-node",
+    "argv": [
+      "node",
+      "--expose-gc",
+      "--test",
+      "--test-isolation=none",
+      "tests/runtime-scale.node.mjs",
+      "tests/acquisition-retention.node.mjs",
+      "tests/graph-retention.node.mjs"
+    ],
+    "status": 0,
+    "seconds": 0.6461683489615098,
+    "log": "/tmp/di-bag-synthetic-factory-integration-classic-node.log"
+  },
+  {
+    "step": "native-typecheck",
+    "argv": [
+      "npm",
+      "run",
+      "typecheck:native"
+    ],
+    "status": 0,
+    "seconds": 0.86936040292494,
+    "log": "/tmp/di-bag-synthetic-factory-integration-native-typecheck.log"
+  },
+  {
+    "step": "native-build",
+    "argv": [
+      "npm",
+      "run",
+      "build:native"
+    ],
+    "status": 0,
+    "seconds": 0.2589518709573895,
+    "log": "/tmp/di-bag-synthetic-factory-integration-native-build.log"
+  },
+  {
+    "step": "native-node",
+    "argv": [
+      "node",
+      "--expose-gc",
+      "--test",
+      "--test-isolation=none",
+      "tests/runtime-scale.node.mjs",
+      "tests/acquisition-retention.node.mjs",
+      "tests/graph-retention.node.mjs"
+    ],
+    "status": 0,
+    "seconds": 0.6266903229989111,
+    "log": "/tmp/di-bag-synthetic-factory-integration-native-node.log"
+  },
+  {
+    "step": "native-audit",
+    "argv": [
+      "npm",
+      "run",
+      "check:native"
+    ],
+    "status": 0,
+    "seconds": 17.232164683984593,
+    "log": "/tmp/di-bag-synthetic-factory-integration-native-audit.log"
+  },
+  {
+    "step": "docs-generate",
+    "argv": [
+      "npm",
+      "run",
+      "docs:generate"
+    ],
+    "status": 0,
+    "seconds": 1.7948096849722788,
+    "log": "/tmp/di-bag-synthetic-factory-integration-docs-generate.log"
+  },
+  {
+    "step": "docs-check",
+    "argv": [
+      "npm",
+      "run",
+      "docs:check"
+    ],
+    "status": 0,
+    "seconds": 4.579849403002299,
+    "log": "/tmp/di-bag-synthetic-factory-integration-docs-check.log"
+  },
+  {
+    "step": "example-composition",
+    "argv": [
+      "bun",
+      "run",
+      "/tmp/di-bag-replacement-spike/examples/composition.ts"
+    ],
+    "status": 0,
+    "seconds": 0.036806224030442536,
+    "log": "/tmp/di-bag-synthetic-factory-integration-example-composition.log"
+  },
+  {
+    "step": "example-contributions",
+    "argv": [
+      "bun",
+      "run",
+      "/tmp/di-bag-replacement-spike/examples/contributions.ts"
+    ],
+    "status": 0,
+    "seconds": 0.029543726006522775,
+    "log": "/tmp/di-bag-synthetic-factory-integration-example-contributions.log"
+  },
+  {
+    "step": "example-modules",
+    "argv": [
+      "bun",
+      "run",
+      "/tmp/di-bag-replacement-spike/examples/modules.ts"
+    ],
+    "status": 0,
+    "seconds": 0.032239172025583684,
+    "log": "/tmp/di-bag-synthetic-factory-integration-example-modules.log"
+  },
+  {
+    "step": "example-observers",
+    "argv": [
+      "bun",
+      "run",
+      "/tmp/di-bag-replacement-spike/examples/observers.ts"
+    ],
+    "status": 0,
+    "seconds": 0.025424564024433494,
+    "log": "/tmp/di-bag-synthetic-factory-integration-example-observers.log"
+  },
+  {
+    "step": "example-plugins",
+    "argv": [
+      "bun",
+      "run",
+      "/tmp/di-bag-replacement-spike/examples/plugins.ts"
+    ],
+    "status": 0,
+    "seconds": 0.01675661001354456,
+    "log": "/tmp/di-bag-synthetic-factory-integration-example-plugins.log"
+  },
+  {
+    "step": "example-provider-metadata",
+    "argv": [
+      "bun",
+      "run",
+      "/tmp/di-bag-replacement-spike/examples/provider-metadata.ts"
+    ],
+    "status": 0,
+    "seconds": 0.021648786962032318,
+    "log": "/tmp/di-bag-synthetic-factory-integration-example-provider-metadata.log"
+  },
+  {
+    "step": "example-scopes",
+    "argv": [
+      "bun",
+      "run",
+      "/tmp/di-bag-replacement-spike/examples/scopes.ts"
+    ],
+    "status": 0,
+    "seconds": 0.03594850795343518,
+    "log": "/tmp/di-bag-synthetic-factory-integration-example-scopes.log"
+  },
+  {
+    "step": "example-tokens",
+    "argv": [
+      "bun",
+      "run",
+      "/tmp/di-bag-replacement-spike/examples/tokens.ts"
+    ],
+    "status": 0,
+    "seconds": 0.020154951023869216,
+    "log": "/tmp/di-bag-synthetic-factory-integration-example-tokens.log"
+  },
+  {
+    "step": "example-wbs-scope",
+    "argv": [
+      "bun",
+      "run",
+      "/tmp/di-bag-replacement-spike/examples/wbs-scope.ts"
+    ],
+    "status": 0,
+    "seconds": 0.025307150091975927,
+    "log": "/tmp/di-bag-synthetic-factory-integration-example-wbs-scope.log"
+  }
+]

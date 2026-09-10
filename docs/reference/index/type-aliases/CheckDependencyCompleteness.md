@@ -6,16 +6,16 @@
 
 ```ts
 type CheckDependencyCompleteness<R extends Registrations> = [
-    Exclude<RequiredOf<R>, keyof R> | MissingTokens<R>
-] extends [never] ? [InvalidGraphs<R>] extends [never] ? unknown : Unsatisfied<'token dependency has an incompatible or opaque contract', {
-    tokens: InvalidGraphs<R>;
+    Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>
+] extends [never] ? [InvalidGraphs<CompletionMap<R>>] extends [never] ? unknown : Unsatisfied<'token dependency has an incompatible or opaque contract', {
+    tokens: InvalidGraphs<CompletionMap<R>>;
 }> : Unsatisfied<'required service registrations are missing', {
-    missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<R>;
+    missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>;
     relationships: MissingRelationships<R>;
 }>;
 ```
 
-Defined in: [types.ts:137](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L137)
+Defined in: [types.ts:152](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L152)
 
 Compile-time admission requiring every named and typed-token dependency to be bound.
 

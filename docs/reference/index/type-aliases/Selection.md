@@ -10,7 +10,7 @@ type Selection<R extends Registrations, K extends readonly unknown[], Operation 
 }> : InvalidSelection<Operation> : InvalidSelection<Operation>;
 ```
 
-Defined in: [types.ts:220](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L220)
+Defined in: [types.ts:250](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L250)
 
 Validate a finite tuple of existing singleton names or genuine typed tokens.
 

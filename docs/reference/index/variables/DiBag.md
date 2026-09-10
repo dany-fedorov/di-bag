@@ -8,6 +8,6 @@
 const DiBag: DiBagApi;
 ```
 
-Defined in: [di-bag.ts:451](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L451)
+Defined in: [di-bag.ts:457](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L457)
 
 The portable, immutable DI Bag facade. Configure `auto` acquisition or use explicit modes.

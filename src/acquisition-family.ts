@@ -2,13 +2,17 @@ import { libraryError } from './errors';
 import type { BindingId } from './runtime';
 
 export type AcquisitionId = symbol;
+export interface AcquisitionHistory {
+  readonly id: AcquisitionId;
+  readonly previous: AcquisitionHistory | undefined;
+}
 export interface AttemptIdentity {
   readonly id: AcquisitionId;
   readonly bindingId: BindingId;
   readonly ownerId: symbol;
   readonly label: string;
   readonly dependencies: Set<AcquisitionId>;
-  readonly ancestry: readonly AcquisitionId[];
+  readonly ancestry: AcquisitionHistory | undefined;
   state: 'creating' | 'pending' | 'ready' | 'failed' | 'disposing' | 'disposed';
 }
 
@@ -18,8 +22,29 @@ export class AcquisitionFamily {
   private readonly incoming = new Map<AcquisitionId, Set<AcquisitionId>>();
   private readonly constructing: AcquisitionId[] = [];
 
-  add(attempt: AttemptIdentity): void { this.attempts.set(attempt.id, attempt); }
+  // Only constructing/pending attempts can repeat an active binding+owner.
+  private readonly active = new Map<BindingId, Map<symbol, Set<AcquisitionId>>>();
+
+  add(attempt: AttemptIdentity): void {
+    this.attempts.set(attempt.id, attempt);
+    if (attempt.state !== 'creating' && attempt.state !== 'pending') return;
+    let owners = this.active.get(attempt.bindingId);
+    if (!owners) this.active.set(attempt.bindingId, owners = new Map());
+    let ids = owners.get(attempt.ownerId);
+    if (!ids) owners.set(attempt.ownerId, ids = new Set());
+    ids.add(attempt.id);
+  }
+
+  deactivate(attempt: AttemptIdentity): void {
+    const owners = this.active.get(attempt.bindingId);
+    const ids = owners?.get(attempt.ownerId);
+    if (!ids) return;
+    ids.delete(attempt.id);
+    if (!ids.size) owners!.delete(attempt.ownerId);
+    if (!owners!.size) this.active.delete(attempt.bindingId);
+  }
   release(attempt: AttemptIdentity): void {
+    this.deactivate(attempt);
     // Remove this consumer from reverse indexes before its outgoing edges clear.
     for (const dependency of attempt.dependencies) {
       const consumers = this.incoming.get(dependency);
@@ -32,11 +57,17 @@ export class AcquisitionFamily {
   enter(attempt: AttemptIdentity): void { this.constructing.push(attempt.id); }
   leave(): void { this.constructing.pop(); }
 
-  ancestry(bindingId: BindingId, ownerId: symbol, label: string, from?: AttemptIdentity): readonly AcquisitionId[] {
+  ancestry(bindingId: BindingId, ownerId: symbol, label: string, from?: AttemptIdentity): AcquisitionHistory | undefined {
     const source = from ?? this.attempts.get(this.constructing.at(-1)!);
-    const ancestry = source ? [...source.ancestry, source.id] : [];
+    const ancestry = source ? { id: source.id, previous: source.ancestry } : undefined;
+    // Most cold reads introduce an unrelated binding. Share history in O(1),
+    // materializing the original label order only for a possible active cycle.
+    if (!this.active.get(bindingId)?.has(ownerId)) return ancestry;
+    const history: AcquisitionId[] = [];
+    for (let entry = ancestry; entry; entry = entry.previous) history.push(entry.id);
+    history.reverse();
     // A public synchronous resolve has no proxy edge, but is still construction.
-    const active = [...new Set([...ancestry, ...this.constructing])]
+    const active = [...new Set([...history, ...this.constructing])]
       .map(id => this.attempts.get(id))
       .filter((attempt): attempt is AttemptIdentity => !!attempt && (attempt.state === 'creating' || attempt.state === 'pending'));
     const repeated = active.findIndex(attempt => attempt.bindingId === bindingId && attempt.ownerId === ownerId);
@@ -45,7 +76,15 @@ export class AcquisitionFamily {
   }
 
   dependencyPath(from: AttemptIdentity, dependency: string): readonly string[] {
-    return Object.freeze([...from.ancestry.map(id => this.attempts.get(id)?.label).filter((label): label is string => label !== undefined), from.label, dependency]);
+    // Linked histories stay shared on successful acquisition; only diagnostics
+    // materialize the consumer path in root-to-leaf order.
+    const history: string[] = [];
+    for (let entry = from.ancestry; entry; entry = entry.previous) {
+      const label = this.attempts.get(entry.id)?.label;
+      if (label !== undefined) history.push(label);
+    }
+    history.reverse();
+    return Object.freeze([...history, from.label, dependency]);
   }
 
   retireIncoming(attempt: AttemptIdentity): void {

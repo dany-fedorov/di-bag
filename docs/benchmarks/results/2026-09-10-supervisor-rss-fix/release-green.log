@@ -1,0 +1,121 @@
+bun test v1.4.2 (744846f84)
+
+tests/release-artifacts.test.ts:
+(pass) release documentation contract > adversarial release gates are separately supervised file commands [0.29ms]
+(pass) release documentation contract > release documents match the frozen package and gate every online command [0.25ms]
+(pass) release documentation contract > the publication boundary rejects stale, missing, duplicated, and misplaced commands [0.27ms]
+(pass) release documentation contract > public docs state entry-point, adapter, acquisition, ownership, and release limits [4.33ms]
+(pass) release artifact scripts > reject unsafe and unsupported manifest arguments [0.32ms]
+(pass) release artifact scripts > expose guarded parsers and archive inspection [0.02ms]
+(pass) archive verifier TDD boundary > exports a read-only verifier and strict CLI parser
+(pass) safe npm archive parser > returns sorted regular entries and exact package metadata bytes [3.56ms]
+(pass) safe npm archive parser > rejects absolute name [0.38ms]
+(pass) safe npm archive parser > rejects traversal [0.40ms]
+(pass) safe npm archive parser > rejects backslash [0.27ms]
+(pass) safe npm archive parser > rejects outside package [0.25ms]
+(pass) safe npm archive parser > rejects duplicate [0.39ms]
+(pass) safe npm archive parser > rejects prefix collision [0.61ms]
+(pass) safe npm archive parser > rejects symlink [0.28ms]
+(pass) safe npm archive parser > rejects hardlink [0.26ms]
+(pass) safe npm archive parser > rejects fifo [0.29ms]
+(pass) safe npm archive parser > rejects device [0.23ms]
+(pass) safe npm archive parser > rejects unknown type [0.24ms]
+(pass) safe npm archive parser > rejects NUL ambiguity [0.30ms]
+(pass) safe npm archive parser > rejects entry size ceiling [0.24ms]
+(pass) safe npm archive parser > rejects checksum [0.24ms]
+(pass) safe npm archive parser > rejects magic [0.24ms]
+(pass) safe npm archive parser > rejects numeric NUL suffix [0.29ms]
+(pass) safe npm archive parser > rejects nonzero padding [0.41ms]
+(pass) safe npm archive parser > rejects terminator [0.30ms]
+(pass) safe npm archive parser > rejects trailing junk [0.26ms]
+(pass) safe npm archive parser > rejects truncated entry [0.26ms]
+(pass) safe npm archive parser > rejects missing metadata [0.23ms]
+(pass) safe npm archive parser > rejects invalid and empty gzip bytes [0.83ms]
+(pass) command evidence runner > parses canonical sorted inputs and preserves argv spaces [0.58ms]
+(pass) command evidence runner > rejects unsafe argv: bash -c echo hi [0.02ms]
+(pass) command evidence runner > rejects unsafe argv: npm view di-bag [0.02ms]
+(pass) command evidence runner > rejects unsafe argv: npm login [0.02ms]
+(pass) command evidence runner > rejects unsafe argv: npm publish a.tgz
+(pass) command evidence runner > rejects unsafe argv: npm dist-tag add
+(pass) command evidence runner > rejects unsafe argv: git push [0.01ms]
+(pass) command evidence runner > rejects unsafe argv: git tag v1
+(pass) command evidence runner > rejects unsafe argv: node --registry x
+(pass) command evidence runner > rejects unsafe argv: node https://registry.npmjs.org
+(pass) command evidence runner > rejects unsafe argv: node &&
+(pass) command evidence runner > rejects unsafe argv: node -e thing
+(pass) command evidence runner > rejects unsafe argv: env npm publish x.tgz
+(pass) command evidence runner > rejects unsafe argv: env git push
+(pass) command evidence runner > rejects unsafe argv: npx npm view di-bag
+(pass) command evidence runner > rejects unsafe argv: bunx tool
+(pass) command evidence runner > rejects unsafe argv: corepack npm login
+(pass) command evidence runner > rejects relative, escaping, symlinked, duplicate, and unsupported arguments [0.10ms]
+(pass) command evidence runner > records stdout, stderr, input hashes, normalized success and record-last evidence [10.27ms]
+(pass) command evidence runner > rejects timeout, output overflow, nonzero status, and spawn failure without publishing a record [52.49ms]
+(pass) command evidence runner > rejects injected memory, monitor, signal and spawn outcomes [0.83ms]
+(pass) command evidence runner > failed reruns and thrown supervisors erase stale success evidence [24.28ms]
+(pass) command evidence runner > hashes inputs before execution and rolls back orphan logs if record publication fails [27.20ms]
+(pass) native gap inventory > freezes the exact current zero-gap source authority [1.51ms]
+(pass) native gap inventory > accepts empty and reviewed fresh inventory while an empty authority rejects a new gap [1.33ms]
+(pass) native gap inventory > parses the documented relative reviewed root and exact absolute outputs [1.46ms]
+(pass) release tree hashing > hashes sorted regular paths deterministically [0.55ms]
+(pass) release tree hashing > rejects empty, symlink, special and unsafe argument layouts [2.24ms]
+(pass) release tree hashing > detects byte mutations through changed digest [0.14ms]
+(pass) manifest validation and deterministic projection > manifest fixtures leave root candidate archive existence and bytes unchanged [1.22ms]
+(pass) manifest validation and deterministic projection > derives immutable archive facts and is deterministic across caller ordering [4.92ms]
+(pass) manifest validation and deterministic projection > public evidence has no absolute paths and is invariant to final commit and approved observed diff [3.86ms]
+(pass) manifest validation and deterministic projection > allows canonical SHA-512 SRI only in package integrity fields [2.29ms]
+(pass) manifest validation and deterministic projection > rejects duplicate/missing packages, bad versions, metadata, pack facts and handoff paths [9.62ms]
+(pass) manifest validation and deterministic projection > accepts zero reviewed and fresh native gaps and rejects every unexpected fresh occurrence [2.41ms]
+(pass) manifest validation and deterministic projection > retains nonempty-authority manifest validation for historical candidates [2.27ms]
+(pass) manifest validation and deterministic projection > rejects failed, malformed-time, duplicate-input and mutated-log command evidence [3.73ms]
+(pass) manifest validation and deterministic projection > rejects archive containment, symlink escape, absence and replacement facts [0.90ms]
+(pass) manifest validation and deterministic projection > manifest CLI rejects every non-fixed public target form [0.23ms]
+(pass) manifest validation and deterministic projection > public projection rejects absolute argv and input paths outside known roots [11.89ms]
+(pass) archive verifier > independently accepts exact archive, pack, metadata, export, dependency, and public facts [22.37ms]
+(pass) archive verifier > rejects every archive digest and file-list mismatch [96.27ms]
+(pass) archive verifier > rejects altered, duplicate, stale, divergent, extra-field, and filename pack JSON [135.28ms]
+(pass) archive verifier > enforces exact package metadata, exports, and empty dependencies [133.70ms]
+(pass) archive verifier > rejects malformed dependency, files, and bundled dependency metadata shapes [207.97ms]
+(pass) archive verifier > rejects forbidden source, test, fixture, dependency, credential, and tarball content [552.42ms]
+(pass) archive verifier > rejects missing public export pairs and removed adapter entries from archive bytes [230.81ms]
+(pass) archive verifier > requires byte-identical stable public evidence and rejects missing, stale, malformed, and extra bytes [77.28ms]
+(pass) archive verifier > rejects malicious archives before creating or running a consumer workdir [16.16ms]
+(pass) archive verifier > uses one fixed explicit offline install argv with no fallback [0.08ms]
+(pass) archive verifier > core import tracing rejects bare, self, node builtin, and unresolved relative specifiers [4.01ms]
+(pass) archive verifier > CLI accepts only canonical contained manifest and empty work directory paths [510.55ms]
+(pass) archive verifier > direct verifier API rejects outside, relative, aliased, and nonempty work paths before mutation [1.04ms]
+(pass) archive verifier > binds both declaration compilers to the exact manifest versions before emitting [735.94ms]
+(pass) archive verifier > matches both I14 diagnostics to their marked regions and expected message fragments [1.03ms]
+(pass) archive verifier > installs owned verified bytes and passes real Node/Bun, CJS/ESM, core-only, and declaration oracles [13523.96ms]
+(pass) final release audit > validates exactly five roles and produces deterministic non-self-attestation [2.41ms]
+(pass) final release audit > rejects missing, duplicate, failed, mutated, stale-input and wrong-Git evidence [3.06ms]
+(pass) final release audit > rejects every invalid retained command field and fixed limit violation [50.62ms]
+(pass) final release audit > audit CLI rejects wrong output, public location, OIDs, duplicate and extra options [0.39ms]
+
+ 90 pass
+ 0 fail
+ 388 expect() calls
+Ran 90 tests across 1 file. [18.07s]
+	Command being timed: "bun test tests/release-artifacts.test.ts"
+	User time (seconds): 33.27
+	System time (seconds): 3.55
+	Percent of CPU this job got: 203%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:18.07
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 338356
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 1457082
+	Voluntary context switches: 66423
+	Involuntary context switches: 2483
+	Swaps: 0
+	File system inputs: 32
+	File system outputs: 47680
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

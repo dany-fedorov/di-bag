@@ -1,0 +1,49 @@
+{
+  "intervalSeconds": 0.5,
+  "note": "Observed descendant RSS sums, not a guaranteed total-memory maximum. No process limits changed.",
+  "samples": 969,
+  "racedOrUnavailableReads": 0,
+  "largestObservedTreeKiB": 11362120,
+  "largestObservedProcess": {
+    "pid": 504215,
+    "name": "bun",
+    "rssKiB": 11212460
+  },
+  "treeAtObservedPeak": [
+    {
+      "pid": 504117,
+      "name": "time",
+      "rssKiB": 1568
+    },
+    {
+      "pid": 504119,
+      "name": "npm",
+      "rssKiB": 4572
+    },
+    {
+      "pid": 504121,
+      "name": "npm run check",
+      "rssKiB": 69904
+    },
+    {
+      "pid": 504132,
+      "name": "sh",
+      "rssKiB": 1860
+    },
+    {
+      "pid": 504202,
+      "name": "npm test",
+      "rssKiB": 69896
+    },
+    {
+      "pid": 504214,
+      "name": "sh",
+      "rssKiB": 1860
+    },
+    {
+      "pid": 504215,
+      "name": "bun",
+      "rssKiB": 11212460
+    }
+  ]
+}

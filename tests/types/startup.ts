@@ -20,6 +20,7 @@ export const builder = DiBag.createBuilder().installModule(feature).register(sel
 export const lazy = builder.build();
 export const started = builder.buildAndStart(['contextual', selectedToken, 'raw', 'renamed']);
 export const sequential = builder.buildAndStart(['contextual'], { startupOrder: 'sequential', signal: new AbortController().signal, timeoutMs: 100 });
+export const bounded = builder.buildAndStart(['contextual'], { startupOrder: 4 });
 export const empty = builder.buildAndStart([]);
 export const native = DiBag.fromFactory(async (_deps: {}, context) => ({ signal: context.signal, value: 1 as const }), { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } });
 export const noDeps = DiBag.fromFactory(() => 7 as const, { context: 'acquisition' });
@@ -28,6 +29,7 @@ export type Contracts = [
   Assert<Equal<Awaited<typeof started>, typeof lazy>>,
   Assert<Equal<typeof sequential, typeof started>>,
   Assert<Equal<typeof empty, typeof started>>,
+  Assert<Equal<typeof bounded, typeof started>>,
   Assert<Equal<ReturnType<typeof reflected>, typeof started>>,
   Assert<Equal<ProviderNamedDependencies<typeof contextual>, { input: { readonly label: 'exact' } }>>,
   Assert<Equal<ProviderOutput<typeof contextual>, { read(): 'exact'; signal: AbortSignal }>>,

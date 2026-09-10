@@ -1,0 +1,102 @@
+[
+  {
+    "variant": "mapped-key-sets",
+    "form": "chained",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "mapped-key-sets",
+      "100",
+      "chained"
+    ],
+    "result": {
+      "variant": "mapped-key-sets",
+      "count": 100,
+      "form": "chained",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 830111,
+      "milliseconds": 1382,
+      "maxRssMiB": 396.3828125
+    }
+  },
+  {
+    "variant": "mapped-key-sets",
+    "form": "bindings",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "mapped-key-sets",
+      "100",
+      "bindings"
+    ],
+    "result": {
+      "variant": "mapped-key-sets",
+      "count": 100,
+      "form": "bindings",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1420719,
+      "milliseconds": 1867,
+      "maxRssMiB": 458.04296875
+    }
+  },
+  {
+    "variant": "mapped-key-sets",
+    "form": "modules",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "mapped-key-sets",
+      "100",
+      "modules"
+    ],
+    "result": {
+      "variant": "mapped-key-sets",
+      "count": 100,
+      "form": "modules",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 2044491,
+      "milliseconds": 2392,
+      "maxRssMiB": 498.34375
+    }
+  },
+  {
+    "variant": "mapped-key-sets",
+    "form": "replacement",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "mapped-key-sets",
+      "100",
+      "replacement"
+    ],
+    "result": {
+      "variant": "mapped-key-sets",
+      "count": 100,
+      "form": "replacement",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1335181,
+      "milliseconds": 1524,
+      "maxRssMiB": 413.3203125
+    }
+  }
+]

@@ -1,0 +1,31 @@
+{
+  "variant": "token-projection",
+  "typescript": "7.0.2",
+  "sourceSha256": "c99d2ade1516f8777bba2e38aba2ea3905d1d34e0c48a278c356eefb2f960af2",
+  "probeSha256": "81b38bca1eecb6777b96a8a29b91056c71bacaddfda5c5558559630225b0c0ac",
+  "status": 0,
+  "signal": null,
+  "stdout": "Files:              97\nLines:           60546\nIdentifiers:     61093\nSymbols:        143035\nTypes:           76981\nInstantiations: 259334\nMemory used:    91032K\nMemory allocs:  746253\nConfig time:    0.000s\nParse time:     0.035s\nBind time:      0.022s\nCheck time:     0.149s\nEmit time:      0.000s\nTotal time:     0.207s\n",
+  "stderr": "",
+  "milliseconds": 241,
+  "peakObservedRssMiB": 124.09765625,
+  "diagnostics": [],
+  "metrics": {
+    "Files": 97,
+    "Lines": 60546,
+    "Identifiers": 61093,
+    "Symbols": 143035,
+    "Types": 76981,
+    "Instantiations": 259334,
+    "Memory used": 91032,
+    "Memory allocs": 746253,
+    "Config time": 0,
+    "Parse time": 0.035,
+    "Bind time": 0.022,
+    "Check time": 0.149,
+    "Emit time": 0,
+    "Total time": 0.207
+  },
+  "unparsed": [],
+  "checked": true
+}

@@ -1,0 +1,1254 @@
+contracts	Run npm run check	﻿2026-09-10T05:30:27.6801552Z ##[group]Run npm run check
+contracts	Run npm run check	2026-09-10T05:30:27.6802047Z ^[[36;1mnpm run check^[[0m
+contracts	Run npm run check	2026-09-10T05:30:27.6838535Z shell: /usr/bin/bash -e {0}
+contracts	Run npm run check	2026-09-10T05:30:27.6838803Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:30:27.7838381Z 
+contracts	Run npm run check	2026-09-10T05:30:27.7838925Z > di-bag@0.1.0 check
+contracts	Run npm run check	2026-09-10T05:30:27.7839939Z > npm run typecheck && npm test && npm run build
+contracts	Run npm run check	2026-09-10T05:30:27.7840468Z 
+contracts	Run npm run check	2026-09-10T05:30:27.8850793Z 
+contracts	Run npm run check	2026-09-10T05:30:27.8851630Z > di-bag@0.1.0 typecheck
+contracts	Run npm run check	2026-09-10T05:30:27.8852216Z > tsc6 -p tsconfig.json
+contracts	Run npm run check	2026-09-10T05:30:27.8852430Z 
+contracts	Run npm run check	2026-09-10T05:30:37.7977591Z 
+contracts	Run npm run check	2026-09-10T05:30:37.7978341Z > di-bag@0.1.0 test
+contracts	Run npm run check	2026-09-10T05:30:37.7979353Z > bun test tests
+contracts	Run npm run check	2026-09-10T05:30:37.7979804Z 
+contracts	Run npm run check	2026-09-10T05:30:37.8045033Z bun test v1.4.0 (34cbb9a40)
+contracts	Run npm run check	2026-09-10T05:30:37.8123215Z 
+contracts	Run npm run check	2026-09-10T05:30:37.8124139Z ##[group]tests/native-replacement-diagnostics.test.ts:
+contracts	Run npm run check	2026-09-10T05:30:40.1303282Z (pass) native replacement diagnostics retain every useful primary and supplemental message [2303.44ms]
+contracts	Run npm run check	2026-09-10T05:30:40.1304765Z (pass) strict replacement audit requires useful primary text at its own region [0.38ms]
+contracts	Run npm run check	2026-09-10T05:30:40.1306027Z (pass) strict replacement audit requires exact supplemental code and text [0.34ms]
+contracts	Run npm run check	2026-09-10T05:30:40.1307371Z (pass) replacement audit keeps its ten source fixtures independent of native gap comments [0.10ms]
+contracts	Run npm run check	2026-09-10T05:30:40.1308876Z (pass) replacement audit rejects a fixture when its marker and invalid expression both disappear [0.15ms]
+contracts	Run npm run check	2026-09-10T05:30:40.1309627Z 
+contracts	Run npm run check	2026-09-10T05:30:40.1310329Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:30:40.1310552Z 
+contracts	Run npm run check	2026-09-10T05:30:40.1311348Z ##[group]tests/platform-deno.test.ts:
+contracts	Run npm run check	2026-09-10T05:30:40.1550409Z (pass) portable root contract has host-independent semantics [7.03ms]
+contracts	Run npm run check	2026-09-10T05:30:40.1552313Z (pass) portable inspection proof rejects nonobjects and inexact or unfrozen metadata [0.21ms]
+contracts	Run npm run check	2026-09-10T05:30:40.1566069Z (pass) Deno child validation requires canonical output from the local installed archive [1.35ms]
+contracts	Run npm run check	2026-09-10T05:30:40.1568804Z (pass) Deno child validation fails closed when the expected installation is absent [0.28ms]
+contracts	Run npm run check	2026-09-10T05:30:40.2614534Z (pass) an unprovisioned Deno pin yields an explicit unavailable row without touching the archive [104.46ms]
+contracts	Run npm run check	2026-09-10T05:30:40.2615366Z 
+contracts	Run npm run check	2026-09-10T05:30:40.2616464Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:30:40.2616701Z 
+contracts	Run npm run check	2026-09-10T05:30:40.2617322Z ##[group]tests/final-adversarial-integration.test.ts:
+contracts	Run npm run check	2026-09-10T05:30:40.2904854Z (pass) I1 preserves its deterministic adversarial source oracle [25.46ms]
+contracts	Run npm run check	2026-09-10T05:30:40.3034062Z (pass) I2 preserves its deterministic adversarial source oracle [12.96ms]
+contracts	Run npm run check	2026-09-10T05:30:40.3149667Z (pass) I3 preserves its deterministic adversarial source oracle [11.50ms]
+contracts	Run npm run check	2026-09-10T05:30:40.3254132Z (pass) I4 preserves its deterministic adversarial source oracle [10.48ms]
+contracts	Run npm run check	2026-09-10T05:30:40.3352550Z (pass) I5 preserves its deterministic adversarial source oracle [9.35ms]
+contracts	Run npm run check	2026-09-10T05:30:40.3469474Z (pass) I6 preserves its deterministic adversarial source oracle [12.15ms]
+contracts	Run npm run check	2026-09-10T05:30:40.3555476Z (pass) I7 preserves its deterministic adversarial source oracle [8.56ms]
+contracts	Run npm run check	2026-09-10T05:30:40.3632808Z (pass) I8 preserves its deterministic adversarial source oracle [7.77ms]
+contracts	Run npm run check	2026-09-10T05:30:40.3712664Z (pass) I9 preserves its deterministic adversarial source oracle [7.97ms]
+contracts	Run npm run check	2026-09-10T05:30:40.3789285Z (pass) I10 preserves its deterministic adversarial source oracle [7.64ms]
+contracts	Run npm run check	2026-09-10T05:30:40.3868232Z (pass) I11 preserves its deterministic adversarial source oracle [7.84ms]
+contracts	Run npm run check	2026-09-10T05:30:40.3950539Z (pass) I13 preserves its deterministic adversarial source oracle [8.20ms]
+contracts	Run npm run check	2026-09-10T05:30:40.4033332Z (pass) I12 disposes accepted late ownership before independent immediate ownership [8.27ms]
+contracts	Run npm run check	2026-09-10T05:30:40.4035193Z 
+contracts	Run npm run check	2026-09-10T05:30:40.4042769Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:30:40.4068400Z 
+contracts	Run npm run check	2026-09-10T05:30:40.4069245Z ##[group]tests/token-scale.test.ts:
+contracts	Run npm run check	2026-09-10T05:30:43.8319711Z (pass) token scale: 100 bindings valid [3427.88ms]
+contracts	Run npm run check	2026-09-10T05:30:47.2909636Z (pass) token scale: 100 bindings missing-final-token [3458.95ms]
+contracts	Run npm run check	2026-09-10T05:30:50.7637557Z (pass) token scale: 100 bindings mismatched-invariant-service [3472.80ms]
+contracts	Run npm run check	2026-09-10T05:30:55.1106187Z (pass) token scale: 100 modules valid [4346.86ms]
+contracts	Run npm run check	2026-09-10T05:30:59.3666270Z (pass) token scale: 100 modules missing-final-token [4256.00ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6428433Z (pass) token scale: 100 modules mismatched-invariant-service [4276.19ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6428871Z 
+contracts	Run npm run check	2026-09-10T05:31:03.6429230Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:03.6429366Z 
+contracts	Run npm run check	2026-09-10T05:31:03.6429642Z ##[group]tests/plugins.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:03.6495433Z (pass) plugin validation retains raw source ownership on success and failure [0.77ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6497730Z (pass) plugin descriptor requires own protocol fields before factory effects [0.26ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6499136Z (pass) plugin preflight validates dependencies and options before descriptor reads [0.15ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6502417Z (pass) plugin descriptor preflight preserves accessor errors and ignores extra getters [0.29ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6507316Z (pass) plugin snapshots dependencies, options and callbacks before later mutation [0.46ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6513026Z (pass) plugin routes required optional lazy and all dependency references positionally [0.54ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6523906Z (pass) raw plugin validation does not assimilate values or validator results [1.13ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6527598Z (pass) native plugin validates fulfilled values, caches final output and releases source ownership [0.37ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6534049Z (pass) native plugin rejection and output validation preserve causes and ownership [0.59ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6536235Z (pass) native plugins require a genuine Promise source [0.25ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6542578Z (pass) startup rollback releases an accepted plugin source once [0.63ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6547434Z (pass) plugin callbacks use no receiver and preserve factory and validator failures [0.40ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6560918Z (pass) plugin composition retains module privacy, aliases, contributions and selected sharing [1.33ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6571400Z (pass) plugin observers retain the canonical acquisition and cleanup events [0.49ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6572667Z (pass) native plugin readiness waits for source validation [0.41ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6573808Z (pass) plugin close waits for accepted disposer cleanup exactly once [0.36ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6578050Z (pass) plugin validation errors survive one failed retirement cleanup [0.45ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6582175Z (pass) plugin observer lifecycle events identify its canonical acquisition [0.39ms]
+contracts	Run npm run check	2026-09-10T05:31:03.6583166Z 
+contracts	Run npm run check	2026-09-10T05:31:03.6583820Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:03.6584003Z 
+contracts	Run npm run check	2026-09-10T05:31:03.6584346Z ##[group]tests/platform-tools.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:03.6669439Z (pass) tool capture binds the actual artifact and exact observed version output [7.39ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7115095Z (pass) tool capture rejects wrong versions, substring matches and unsuccessful probes [43.92ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7117333Z 
+contracts	Run npm run check	2026-09-10T05:31:03.7118071Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:03.7118316Z 
+contracts	Run npm run check	2026-09-10T05:31:03.7118767Z ##[group]tests/observers.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:03.7131850Z (pass) observers preserve raw identity and explicit ownership [0.55ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7135608Z (pass) ready follows the final native stage while retaining exposed identity [0.36ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7140101Z (pass) observer failure monitoring handles throws, rejection and throwing then without gating shutdown [0.42ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7146029Z (pass) configuration snapshots callbacks, appends in order and retains classification [0.59ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7148802Z (pass) reentrant observer resolution runs outside factory ancestry and respects published close [0.26ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7157321Z (pass) canonical owners distinguish shared roots, independent forks, contributions and transients [0.83ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7162968Z (pass) failed final projections retire accepted ownership once and preserve cleanup errors [0.56ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7165052Z (pass) intermediate native failure bypassed by raw projection is not final failure [0.22ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7170812Z (pass) private module frames are immutable snapshots without freezing application metadata [0.54ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7175591Z (pass) startup rollback observes accepted cleanup while preserving the startup cause [0.47ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7182792Z (pass) cancellation observes late accepted resources and final failure without awaiting telemetry [0.70ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7184900Z (pass) throwing-then error sink results are consumed and appending duplicates keeps every callback [0.22ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7187342Z (pass) delivery keeps emission order across immutable appended facade configurations [0.23ms]
+contracts	Run npm run check	2026-09-10T05:31:03.7187876Z 
+contracts	Run npm run check	2026-09-10T05:31:03.7188136Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:03.7188264Z 
+contracts	Run npm run check	2026-09-10T05:31:03.7188732Z ##[group]tests/performance-baseline.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:03.8318151Z (pass) review requires median, p95 and paired interval regression predicates together [107.66ms]
+contracts	Run npm run check	2026-09-10T05:31:03.8503284Z (pass) ordinary hosts remain informational even when every review threshold is met [18.56ms]
+contracts	Run npm run check	2026-09-10T05:31:03.8505383Z (pass) paired verdict validates the exact 31-sample protocol and unsigned seed [0.27ms]
+contracts	Run npm run check	2026-09-10T05:31:03.8509571Z (pass) seeded execution order is reproducible, balanced and alternates pair orientation [0.37ms]
+contracts	Run npm run check	2026-09-10T05:31:03.8534427Z (pass) paired collection runs serial warmups and retains samples in pair index order [2.49ms]
+contracts	Run npm run check	2026-09-10T05:31:03.8537218Z (pass) paired collection journals a rejected execution before validation stops the run [0.28ms]
+contracts	Run npm run check	2026-09-10T05:31:03.8540128Z (pass) comparison command accepts an exact pinned baseline and unsigned seed only [0.29ms]
+contracts	Run npm run check	2026-09-10T05:31:03.9083201Z (pass) comparison row validation rejects incomplete, unsafe and unpaired evidence [54.27ms]
+contracts	Run npm run check	2026-09-10T05:31:03.9084652Z (pass) journaling retains unavailable and failed terminal rows as well as validated summaries [0.14ms]
+contracts	Run npm run check	2026-09-10T05:31:06.3952362Z (pass) baseline archive is built from the exact commit with retained source and tool identities [2486.09ms]
+contracts	Run npm run check	2026-09-10T05:31:06.3953173Z 
+contracts	Run npm run check	2026-09-10T05:31:06.3953567Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:06.3953715Z 
+contracts	Run npm run check	2026-09-10T05:31:06.3954043Z ##[group]tests/token-package.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:09.3924734Z (pass) installed node cjs facade shares core tokens, modes and acquisition metadata [41.71ms]
+contracts	Run npm run check	2026-09-10T05:31:09.4457576Z (pass) installed node mjs facade shares core tokens, modes and acquisition metadata [53.21ms]
+contracts	Run npm run check	2026-09-10T05:31:09.4764651Z (pass) installed bun cjs facade shares core tokens, modes and acquisition metadata [30.74ms]
+contracts	Run npm run check	2026-09-10T05:31:09.4992262Z (pass) installed bun mjs facade shares core tokens, modes and acquisition metadata [22.75ms]
+contracts	Run npm run check	2026-09-10T05:31:09.5459785Z (pass) installed token composition crosses Node commonjs and the other loader [46.72ms]
+contracts	Run npm run check	2026-09-10T05:31:13.5679311Z (pass) installed commonjs token-modules declaration survives emission and unchanged consumption [4021.85ms]
+contracts	Run npm run check	2026-09-10T05:31:16.1453860Z (pass) installed commonjs incremental-modules declaration survives emission and unchanged consumption [2577.46ms]
+contracts	Run npm run check	2026-09-10T05:31:18.5865569Z (pass) installed commonjs replacement-reflection declaration survives emission and unchanged consumption [2441.07ms]
+contracts	Run npm run check	2026-09-10T05:31:18.6583195Z (pass) installed token composition crosses Node module and the other loader [69.48ms]
+contracts	Run npm run check	2026-09-10T05:31:22.4156011Z (pass) installed module token-modules declaration survives emission and unchanged consumption [3759.57ms]
+contracts	Run npm run check	2026-09-10T05:31:24.8780130Z (pass) installed module incremental-modules declaration survives emission and unchanged consumption [2462.41ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4384309Z (pass) installed module replacement-reflection declaration survives emission and unchanged consumption [2560.41ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4418834Z 
+contracts	Run npm run check	2026-09-10T05:31:27.4419487Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.4419723Z 
+contracts	Run npm run check	2026-09-10T05:31:27.4420096Z ##[group]tests/boundaries.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.4602439Z (pass) fork changes only the selected key hidden behind a narrowed override map [0.78ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4641963Z (pass) unselected override values and getters never participate [0.26ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4652001Z (pass) hidden duplicate additions throw atomically and leave builders reusable [0.30ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4682011Z (pass) hidden new keys cannot later silently replace visible registrations [0.17ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4702207Z (pass) add snapshots every own entry and validates before producing a builder [0.35ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4748938Z (pass) replacement writes its explicit key and preserves earlier builders [0.29ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4750266Z (pass) fork requires selected own entries before reading any selected getter [0.34ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4805712Z (pass) fork snapshots selection before an override getter mutates the caller tuple [0.20ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4810976Z (pass) fork selects indexed tuple entries even when its iterator omits a key [0.21ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4818810Z (pass) fork batches selected replacements without using the single-binding graph path [0.24ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4842166Z (pass) empty forks reuse the graph without reading unselected values and retain fresh ownership [0.79ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4843827Z (pass) selected overrides can depend on richer capabilities of other selected services [0.48ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4845187Z (pass) runtime registration validation rejects cloned and forged owned handles [0.22ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4846404Z (pass) normalization does not expose mutable ownership registry metadata [0.24ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4847468Z (pass) unchecked source Bag construction is not exported [0.03ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4848591Z (pass) plain registration maps from another realm retain their own factories [0.75ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4849206Z 
+contracts	Run npm run check	2026-09-10T05:31:27.4849718Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.4849925Z 
+contracts	Run npm run check	2026-09-10T05:31:27.4850536Z ##[group]tests/wbs-scope.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.4851765Z (pass) WBS scopes borrow infrastructure and recreate stores, collectors and services [2.01ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4853492Z (pass) an explicitly shared WBS service keeps its original stores and broadcaster [0.67ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4854877Z (pass) closing the root disposes its resources but leaves the startup-owned source usable [0.46ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4856272Z (pass) startup cleans every owner and discards held announcements when batch work fails [0.62ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4857567Z (pass) startup still closes later bags and its source when multiple disposers fail [1.01ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4858923Z (pass) a factory cleans partial acquisition before throwing; the bag does not dispose it twice [0.58ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4860198Z (pass) the runnable example reports published work and complete shutdown [0.76ms]
+contracts	Run npm run check	2026-09-10T05:31:27.4860801Z 
+contracts	Run npm run check	2026-09-10T05:31:27.4861447Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.4861660Z 
+contracts	Run npm run check	2026-09-10T05:31:27.4862130Z ##[group]tests/runtime-scale.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.7392859Z (pass) closing a deep graph disposes every dependent before its dependency exactly once [266.35ms]
+contracts	Run npm run check	2026-09-10T05:31:27.7462602Z (pass) retiring an acquisition touches only its actual incoming consumers [3.17ms]
+contracts	Run npm run check	2026-09-10T05:31:27.7503094Z (pass) repeated reads of an existing edge do not traverse the downstream graph again [1.15ms]
+contracts	Run npm run check	2026-09-10T05:31:27.7972879Z (pass) late edges across a deep ready graph find cycles without overflowing the stack [53.19ms]
+contracts	Run npm run check	2026-09-10T05:31:27.7992603Z (pass) one module lexical map is snapshotted once while external mutations stay isolated [0.74ms]
+contracts	Run npm run check	2026-09-10T05:31:27.7993789Z (pass) releasing a consumer removes its reverse incoming entries without retiring live peers [0.43ms]
+contracts	Run npm run check	2026-09-10T05:31:27.7994678Z (pass) a branching late cycle reports the first dependency-order path and leaves its rejected edge absent [0.25ms]
+contracts	Run npm run check	2026-09-10T05:31:27.7995129Z 
+contracts	Run npm run check	2026-09-10T05:31:27.7995460Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.7995585Z 
+contracts	Run npm run check	2026-09-10T05:31:27.7995850Z ##[group]tests/startup.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.8013762Z (pass) contexts follow acquisition owners through child-first roots and independent forks [0.82ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8017304Z (pass) abort listeners cannot reenter any closing scope admission gate [0.44ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8024732Z (pass) startup waits for selected native acquisition while leaving unrelated providers lazy [0.65ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8033704Z (pass) startup uses native observation with shadowed then and treats raw promises as ready [0.88ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8037651Z (pass) a ready native projection starts while its source remains pending until shutdown [0.45ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8044592Z (pass) failed native projection aborts a cooperative pending source before cleanup [0.62ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8047819Z (pass) sequential startup waits before invoking the next selection [0.38ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8056106Z (pass) startup selects genuine tokens and keeps separate owned transient attempts [0.56ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8058363Z (pass) late contextual dependencies receive an already aborted owner signal [0.48ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8072209Z (pass) startup removes its abort listener on success [0.46ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8092219Z (pass) startup removes its abort listener on failure [0.18ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8107659Z (pass) startup removes its abort listener on aborted [0.13ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8119824Z (pass) startup removes its abort listener on timeout [5.30ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8123309Z (pass) startup snapshots option getters once after snapshotting all selected keys [0.37ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8130887Z (pass) sequential startup stops after failure and waits for cleanup with original causes [0.68ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8135316Z (pass) parallel startup starts later selections after synchronous failure and cleans pending ownership [0.48ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8144751Z (pass) aborted rejects before late ownership and exposes eventual cleanup failure [0.79ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8197458Z (pass) timeout rejects before late ownership and exposes eventual cleanup failure [5.38ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8199740Z (pass) already aborted startup does not invoke any factories [0.28ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8204225Z (pass) cancellation can interrupt cleanup after ordinary startup failure [0.42ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8207430Z (pass) successful startup removes external cancellation and snapshots indexed selections [0.30ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8214874Z (pass) invalid startup inputs reject before factory or unsupported option getter effects [0.68ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8220981Z (pass) numeric startup 1 bounds selected readiness and preserves promise identity [0.59ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8222874Z (pass) numeric startup 2 bounds selected readiness and preserves promise identity [0.23ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8224671Z (pass) numeric startup 20 bounds selected readiness and preserves promise identity [0.16ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8228679Z (pass) numeric startup 1 snapshots options and retains duplicate selected lifetimes [0.39ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8230205Z (pass) numeric startup 2 snapshots options and retains duplicate selected lifetimes [0.15ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8235202Z (pass) numeric startup uses final raw readiness while owned sources remain pending [0.49ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8244310Z (pass) bounded startup stops dequeuing after failure and cleans started work [0.83ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8246561Z (pass) bounded startup stops dequeuing after aborted and cleans started work [0.28ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8301352Z (pass) bounded startup stops dequeuing after timeout and cleans started work [5.40ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8305037Z (pass) numeric startup rejects invalid bounds before factories [0.39ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8309266Z (pass) numeric startup stops initial worker admission when a factory aborts synchronously [0.40ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8309963Z 
+contracts	Run npm run check	2026-09-10T05:31:27.8310489Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.8310715Z 
+contracts	Run npm run check	2026-09-10T05:31:27.8311486Z ##[group]tests/projections.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.8327845Z (pass) a projected service does not replace its source disposer argument [0.26ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8331469Z (pass) an ownership operation on a metadata provider retains earlier ownership [0.33ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8333731Z (pass) mapSync receives and returns exact Promise identities [0.25ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8339403Z (pass) mapAsync rejects source and projector throws with their original values [0.54ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8343418Z (pass) mapAsync awaits recursive projector thenables and source fulfillment [0.38ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8347041Z (pass) a failed sync projection releases late source ownership [0.38ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8350353Z (pass) a synchronous status projection stays cached after its raw Promise rejects [0.31ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8353270Z (pass) ready outer ownership closes before a raw stage accepted later [0.29ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8357266Z (pass) failed projections clean only their stages and preserve cached dependencies [0.32ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8360813Z (pass) sync failure starts asynchronous cleanup without waiting and close drains it [0.35ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8365142Z (pass) late old ownership cannot evict or dispose a successful retry [0.44ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8369655Z (pass) retired cleanup errors keep invocation order and original attempt identities [0.43ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8373102Z (pass) a pending source can read dependencies in close after an outer projection is ready [0.33ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8376734Z (pass) a pending source can finish dependencies after its outer projection failed [0.36ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8379947Z (pass) completed source proxies cannot borrow a pending projection or retry permission [0.30ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8382620Z (pass) mapped dependencies still reject genuine acquisition cycles [0.27ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8389109Z (pass) asynchronous mappings preserve post-await cycle detection [0.63ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8391681Z (pass) a completed source cannot use its still pending asynchronous projector permission [0.21ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8395117Z (pass) mapping and added finalizers run receiver-free across metadata operations [0.35ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8399375Z (pass) failed outer projections retain owned values until a pending projector finishes using them [0.40ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8403770Z (pass) failed exposed acquisition abandons incoming edges while its owned source can acquire the recovered parent [0.41ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8404703Z 
+contracts	Run npm run check	2026-09-10T05:31:27.8405060Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.8405211Z 
+contracts	Run npm run check	2026-09-10T05:31:27.8405536Z ##[group]tests/binding-graph.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.8423271Z (pass) private bindings with the same label have distinct memoized identities [0.83ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8426023Z (pass) an owned private dependency closes after its public dependent [0.28ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8428417Z (pass) private Promise-valued bindings preserve their original exposed identity [0.22ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8433906Z (pass) graph snapshots preserve lexical private refs while forks use replaced public slots [0.49ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8438575Z (pass) batch public bindings preserve ordered duplicates and retained private identities [0.44ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8440256Z (pass) an empty public binding batch preserves immutable graph identity [0.04ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8441746Z (pass) mutating graph input maps cannot change public lookup or binding descriptions [0.19ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8444557Z (pass) cycles through private aliases discovered after await show binding labels [0.43ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8445295Z 
+contracts	Run npm run check	2026-09-10T05:31:27.8446776Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.8447164Z 
+contracts	Run npm run check	2026-09-10T05:31:27.8447939Z ##[group]tests/performance-evidence.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.8473989Z (pass) validates one canonical runtime sample and preserves its provenance [0.83ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8480213Z (pass) rejects a correct duration with an incorrect workload checksum [0.61ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8487648Z (pass) rejects every semantic control mismatch [0.76ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8495985Z (pass) rejects invalid request provenance rather than attaching it to a valid child result [0.79ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8502416Z (pass) rejects invalid duration arithmetic and malformed result fields [0.65ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8512775Z (pass) requires the resolved public entry to stay inside the real installed package [1.02ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8518544Z (pass) rejects noncanonical package and entry paths even when they resolve inside the archive [0.57ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8527571Z (pass) parses only one canonical JSON object from a clean successful child [0.89ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8534033Z (pass) rejects child timeout, signal, status, stderr and unexpected schema keys [0.64ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8541969Z (pass) runtime runner validates the execution returned for the exact request [0.79ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8543831Z (pass) computes summary from every raw nanosecond without mutating input [0.23ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8545840Z (pass) summary rejects absent, nonpositive and unsafe samples instead of producing invalid arithmetic [0.16ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8815409Z (pass) paired bootstrap is seeded, paired and sensitive to seed mutations [26.81ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8816842Z (pass) paired bootstrap rejects length, seed, count and denominator errors [0.27ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8822320Z (pass) scenario execution awaits only runTimed between clock reads and verifies afterwards [0.40ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8823749Z (pass) scenario execution rejects a backwards or zero clock before accepting evidence [0.25ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8832583Z (pass) child protocol prepares before timing and emits request identity with verified work [0.82ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8863356Z (pass) current-only collection runs five warmups then retains 31 validated samples serially [3.09ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8871922Z (pass) collection journals every execution before validation so a late failure retains prior and rejected output [0.80ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8875268Z (pass) current evidence validation requires reproducible environment, tools, fixture and source identities [0.36ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8884736Z (pass) runtime journals use exclusive per-invocation paths and never truncate prior evidence [0.94ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8893451Z (pass) actual child printer writes one canonical newline-terminated object accepted by the parent [0.87ms]
+contracts	Run npm run check	2026-09-10T05:31:27.8894235Z 
+contracts	Run npm run check	2026-09-10T05:31:27.8894766Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.8894980Z 
+contracts	Run npm run check	2026-09-10T05:31:27.8895479Z ##[group]tests/acquisition-metadata.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.9020640Z (pass) metadata is lazy, ordered, copied with hidden symbols, and retained after projection [0.69ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9023394Z (pass) immediate metadata retains raw Promise identity, policy, and outer disposer value [0.39ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9029202Z (pass) async metadata awaits raw thenables and exposes a native Promise [0.53ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9033515Z (pass) native acquisition remains pending and disposes fulfilled values after immediate annotation [0.45ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9039243Z (pass) annotation errors preserve original failures, cleanup, and independent retries and scopes [0.51ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9043179Z (pass) async annotation rejection cleans source ownership and skips failed sources [0.44ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9062220Z (pass) metadata callbacks and returned records reject malformed and asynchronous values [1.80ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9066473Z (pass) annotations retain present undefined values and add no ownership [0.47ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9082920Z (pass) rejecting accidentally async metadata observes its rejected Promise in both modes [1.63ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9092210Z (pass) metadata requires plain records and accepts records without a prototype [0.91ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9096132Z (pass) metadata getters are captured exactly once, including an ordinary then field [0.39ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9102024Z (pass) metadata retains typed token dependencies and root and transient lifetime caching [0.59ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9102717Z 
+contracts	Run npm run check	2026-09-10T05:31:27.9103220Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.9103425Z 
+contracts	Run npm run check	2026-09-10T05:31:27.9104344Z ##[group]tests/disposal.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.9122944Z (pass) disposal callbacks receive the owned value without a receiver [0.24ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9128257Z (pass) withDisposal exposes the value and closes each resolved instance once [0.53ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9130243Z (pass) ordinary values are borrowed even when they expose disposal methods [0.19ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9132924Z (pass) unresolved and failed factories have no disposal [0.27ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9136775Z (pass) throwing then inspection rejects each acquisition until a synchronous retry succeeds [0.36ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9139855Z (pass) a PromiseLike with a throwing then getter never reaches the fulfilled-value disposer [0.30ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9144066Z (pass) native Promise observer setup failures allow retry and preserve accepted Promise identity [0.41ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9146340Z (pass) native Promise ownership observation ignores an own then override [0.23ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9149291Z (pass) native Promise subclass ownership ignores an own then override [0.29ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9153750Z (pass) native constructor TypeError preserves the original failure and permits retry [0.43ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9154852Z (pass) native species TypeError preserves the original failure and permits retry [0.13ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9158680Z (pass) pending close observes native settlement without assimilating its species result [0.34ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9161434Z (pass) direct structural thenables reject without invoking then or accepting ownership [0.26ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9164206Z (pass) explicit structural conversion accepts fulfillment before a subsequent throw [0.28ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9167236Z (pass) explicit structural conversion retries rejection and disposes only the fulfilled retry [0.28ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9171580Z (pass) cleanup runs in reverse acquisition order through unmanaged intermediates [0.41ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9174797Z (pass) async disposers are awaited sequentially and receive fulfilled values [0.33ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9177341Z (pass) dependency ordering wins over async completion order [0.25ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9181129Z (pass) close drains pending factories and dependencies discovered after await [0.37ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9184161Z (pass) pending acquisition failure does not stop cleanup of other resources [0.29ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9188248Z (pass) every disposer runs and close aggregates the original cleanup failures [0.40ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9191459Z (pass) throwing undefined still rejects close and does not skip other disposers [0.31ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9194629Z (pass) reentrant close observes the same barrier even when its disposer rejects [0.31ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9197973Z (pass) parent and forks own independent instances and borrowed overrides stay borrowed [0.32ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9202667Z (pass) an owned override can replace an ordinary factory [0.47ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9206123Z (pass) pending factories can create a chain of synchronous dependencies during close [0.31ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9206855Z 
+contracts	Run npm run check	2026-09-10T05:31:27.9207158Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.9207296Z 
+contracts	Run npm run check	2026-09-10T05:31:27.9207564Z ##[group]tests/providers.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.9218009Z (pass) metadata is a snapshot and inspection never starts a factory [0.36ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9220407Z (pass) metadata preflight sees hidden collisions before reading any getters [0.22ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9222569Z (pass) metadata additions preserve symbol keys and snapshot accessors once [0.20ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9223876Z (pass) runtime rejects copied and forged provider registrations [0.15ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9228267Z (pass) inspection follows pending retries without retaining failed attempts or changing disposal [0.40ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9237393Z (pass) module rename and fork keep metadata with the actual binding [0.91ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9239759Z (pass) plain registrations expose empty metadata and frames, including creating snapshots [0.22ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9243316Z (pass) metadata preserves synchronous ownership and borrowed cleanup methods [0.35ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9245814Z (pass) provider execution captures projected values and acquisition frames [0.23ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9246479Z 
+contracts	Run npm run check	2026-09-10T05:31:27.9246888Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.9247037Z 
+contracts	Run npm run check	2026-09-10T05:31:27.9247335Z ##[group]tests/acquisition.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.9256891Z (pass) a retry does not inherit the identity of a caught failed attempt [0.20ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9262385Z (pass) a caught rejected attempt does not retarget its incoming edge to the retry [0.51ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9268386Z (pass) shutdown preserves every cleanup cause and its acquisition identity [0.62ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9269808Z (pass) cleanup diagnostics snapshot caller records without cloning the original cause [0.10ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9273640Z (pass) a failed attempt cannot borrow its pending retry permission to acquire during close [0.39ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9277199Z (pass) a completed factory cannot start late acquisitions while another factory drains [0.34ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9279635Z (pass) a retained failed proxy follows live dependencies without traversing removed attempts [0.28ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9280422Z 
+contracts	Run npm run check	2026-09-10T05:31:27.9280883Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.9281376Z 
+contracts	Run npm run check	2026-09-10T05:31:27.9281875Z ##[group]tests/composition-adapters.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:27.9301757Z (pass) class adapters construct lazily with private fields, inherited prototypes and new.target [0.76ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9304005Z (pass) constructor validation invokes neither the constructor nor its prototype getter [0.29ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9309425Z (pass) function adapters pass positional values exactly and support explicitly bound receivers [0.49ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9314341Z (pass) optional and rest function and constructor arguments follow selected positions [0.49ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9318006Z (pass) function adapters snapshot indexed tokens and ignore custom iterators [0.37ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9324515Z (pass) function adapters reject invalid declaration inputs before user effects [0.63ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9328370Z (pass) function acquisition failures retry and disposal is explicit [0.38ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9330282Z (pass) class adapters snapshot indexed tokens and ignore custom iterators [0.21ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9331874Z (pass) class adapters reject invalid declaration inputs before user effects [0.13ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9333200Z (pass) class acquisition failures retry and disposal is explicit [0.17ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9336868Z (pass) raw and native adapters retain Promise identity and select the disposal value [0.33ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9340362Z (pass) raw class adapters preserve thenables and auto rejects them without assimilation [0.34ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9342318Z (pass) automatic adapters require runtime classification before acquisition [0.16ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9350652Z (pass) module token graphs and selected sharing keep ownership and parent dependencies [0.77ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9354300Z (pass) strict root class adapters retain root dependencies through child overrides [0.37ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9358532Z (pass) native class acquisition preserves constructed promises and disposes their fulfilled value [0.40ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9360903Z (pass) rejected function acquisitions retry with the original Promise return [0.28ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9364420Z (pass) constructor proxies retain their acquisition trap and original new.target [0.31ms]
+contracts	Run npm run check	2026-09-10T05:31:27.9365114Z 
+contracts	Run npm run check	2026-09-10T05:31:27.9365560Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:31:27.9365784Z 
+contracts	Run npm run check	2026-09-10T05:31:27.9366217Z ##[group]tests/package.test.ts:
+contracts	Run npm run check	2026-09-10T05:31:30.6101787Z (pass) standalone archive contains root and node entries without removed adapters [0.23ms]
+contracts	Run npm run check	2026-09-10T05:31:33.9620156Z (pass) feature library inferred token exports survive declaration emission [3351.83ms]
+contracts	Run npm run check	2026-09-10T05:31:34.0034263Z (pass) classic installed commonjs archive rejects removed box package entry points [40.17ms]
+contracts	Run npm run check	2026-09-10T05:31:34.0728604Z (pass) classic installed commonjs archive returns the full adversarial oracle [70.63ms]
+contracts	Run npm run check	2026-09-10T05:31:34.1700152Z (pass) Node commonjs consumers can resolve and dispose through the public package [97.20ms]
+contracts	Run npm run check	2026-09-10T05:31:34.2156660Z (pass) Node commonjs observes local and foreign native subclass state directly [45.64ms]
+contracts	Run npm run check	2026-09-10T05:31:35.9183580Z (pass) TypeScript commonjs consumers can use the emitted declarations [1702.66ms]
+contracts	Run npm run check	2026-09-10T05:31:37.1482754Z (pass) TypeScript commonjs emitted provider contracts: plugins.ts [1228.48ms]
+contracts	Run npm run check	2026-09-10T05:31:38.8152845Z (pass) TypeScript commonjs emitted provider contracts: negative/plugins.ts [1668.38ms]
+contracts	Run npm run check	2026-09-10T05:31:40.2576085Z (pass) TypeScript commonjs emitted provider contracts: observers.ts [1441.85ms]
+contracts	Run npm run check	2026-09-10T05:31:41.5793355Z (pass) TypeScript commonjs emitted provider contracts: negative/observers.ts [1321.78ms]
+contracts	Run npm run check	2026-09-10T05:31:43.1593928Z (pass) TypeScript commonjs emitted provider contracts: contributions.ts [1580.40ms]
+contracts	Run npm run check	2026-09-10T05:31:45.6543780Z (pass) TypeScript commonjs emitted provider contracts: negative/contributions.ts [2491.79ms]
+contracts	Run npm run check	2026-09-10T05:31:47.5590300Z (pass) TypeScript commonjs emitted provider contracts: aliases.ts [1907.73ms]
+contracts	Run npm run check	2026-09-10T05:31:49.5311459Z (pass) TypeScript commonjs emitted provider contracts: negative/aliases.ts [1972.13ms]
+contracts	Run npm run check	2026-09-10T05:31:51.3918766Z (pass) TypeScript commonjs emitted provider contracts: dependency-references.ts [1860.74ms]
+contracts	Run npm run check	2026-09-10T05:31:53.2698282Z (pass) TypeScript commonjs emitted provider contracts: negative/dependency-references.ts [1877.93ms]
+contracts	Run npm run check	2026-09-10T05:31:54.7014661Z (pass) TypeScript commonjs emitted provider contracts: composition-adapters.ts [1431.55ms]
+contracts	Run npm run check	2026-09-10T05:31:56.0147743Z (pass) TypeScript commonjs emitted provider contracts: negative/composition-adapters.ts [1313.32ms]
+contracts	Run npm run check	2026-09-10T05:31:57.8385145Z (pass) TypeScript commonjs emitted provider contracts: selected-scopes.ts [1823.74ms]
+contracts	Run npm run check	2026-09-10T05:31:59.8057432Z (pass) TypeScript commonjs emitted provider contracts: negative/selected-scopes.ts [1967.15ms]
+contracts	Run npm run check	2026-09-10T05:32:01.1360018Z (pass) TypeScript commonjs emitted provider contracts: acquisition-mode.ts [1330.30ms]
+contracts	Run npm run check	2026-09-10T05:32:02.4292663Z (pass) TypeScript commonjs emitted provider contracts: negative/acquisition-mode.ts [1293.23ms]
+contracts	Run npm run check	2026-09-10T05:32:04.1432933Z (pass) TypeScript commonjs emitted provider contracts: scopes.ts [1714.00ms]
+contracts	Run npm run check	2026-09-10T05:32:05.6651491Z (pass) TypeScript commonjs emitted provider contracts: negative/scopes.ts [1521.83ms]
+contracts	Run npm run check	2026-09-10T05:32:07.2849651Z (pass) TypeScript commonjs emitted provider contracts: lifetimes.ts [1619.84ms]
+contracts	Run npm run check	2026-09-10T05:32:09.3896991Z (pass) TypeScript commonjs emitted provider contracts: negative/lifetimes.ts [2104.21ms]
+contracts	Run npm run check	2026-09-10T05:32:10.8872932Z (pass) TypeScript commonjs emitted provider contracts: tokens.ts [1497.95ms]
+contracts	Run npm run check	2026-09-10T05:32:12.5305681Z (pass) TypeScript commonjs emitted provider contracts: negative/tokens.ts [1643.31ms]
+contracts	Run npm run check	2026-09-10T05:32:13.9267141Z (pass) TypeScript commonjs emitted provider contracts: negative/token-modules.ts [1396.08ms]
+contracts	Run npm run check	2026-09-10T05:32:15.1965755Z (pass) TypeScript commonjs emitted provider contracts: token-contracts.ts [1269.89ms]
+contracts	Run npm run check	2026-09-10T05:32:16.5033127Z (pass) TypeScript commonjs emitted provider contracts: negative/token-contracts.ts [1306.63ms]
+contracts	Run npm run check	2026-09-10T05:32:17.9302731Z (pass) TypeScript commonjs emitted provider contracts: providers.ts [1427.01ms]
+contracts	Run npm run check	2026-09-10T05:32:19.4564258Z (pass) TypeScript commonjs emitted provider contracts: replacement-context.ts [1526.07ms]
+contracts	Run npm run check	2026-09-10T05:32:21.3036053Z (pass) TypeScript commonjs emitted provider contracts: negative/replacement-context.ts [1843.93ms]
+contracts	Run npm run check	2026-09-10T05:32:22.9525392Z (pass) TypeScript commonjs emitted provider contracts: negative/provider-boundaries.ts [1652.23ms]
+contracts	Run npm run check	2026-09-10T05:32:24.3542425Z (pass) TypeScript commonjs emitted provider contracts: negative/provider-module-metadata.ts [1401.65ms]
+contracts	Run npm run check	2026-09-10T05:32:25.6850109Z (pass) TypeScript commonjs emitted provider contracts: negative/provider-projections.ts [1330.76ms]
+contracts	Run npm run check	2026-09-10T05:32:25.7300225Z (pass) classic installed module archive rejects removed box package entry points [45.04ms]
+contracts	Run npm run check	2026-09-10T05:32:25.8144163Z (pass) classic installed module archive returns the full adversarial oracle [84.38ms]
+contracts	Run npm run check	2026-09-10T05:32:25.9111558Z (pass) Node module consumers can resolve and dispose through the public package [96.73ms]
+contracts	Run npm run check	2026-09-10T05:32:25.9603872Z (pass) Node module observes local and foreign native subclass state directly [49.25ms]
+contracts	Run npm run check	2026-09-10T05:32:27.5502664Z (pass) TypeScript module consumers can use the emitted declarations [1589.80ms]
+contracts	Run npm run check	2026-09-10T05:32:28.7763668Z (pass) TypeScript module emitted provider contracts: plugins.ts [1225.61ms]
+contracts	Run npm run check	2026-09-10T05:32:30.1219227Z (pass) TypeScript module emitted provider contracts: negative/plugins.ts [1345.97ms]
+contracts	Run npm run check	2026-09-10T05:32:31.2853225Z (pass) TypeScript module emitted provider contracts: observers.ts [1163.06ms]
+contracts	Run npm run check	2026-09-10T05:32:32.4812844Z (pass) TypeScript module emitted provider contracts: negative/observers.ts [1194.42ms]
+contracts	Run npm run check	2026-09-10T05:32:34.0545261Z (pass) TypeScript module emitted provider contracts: contributions.ts [1575.12ms]
+contracts	Run npm run check	2026-09-10T05:32:35.9842667Z (pass) TypeScript module emitted provider contracts: negative/contributions.ts [1927.89ms]
+contracts	Run npm run check	2026-09-10T05:32:38.0709402Z (pass) TypeScript module emitted provider contracts: aliases.ts [2088.50ms]
+contracts	Run npm run check	2026-09-10T05:32:40.2107758Z (pass) TypeScript module emitted provider contracts: negative/aliases.ts [2139.82ms]
+contracts	Run npm run check	2026-09-10T05:32:41.7844993Z (pass) TypeScript module emitted provider contracts: dependency-references.ts [1573.65ms]
+contracts	Run npm run check	2026-09-10T05:32:43.4467326Z (pass) TypeScript module emitted provider contracts: negative/dependency-references.ts [1662.18ms]
+contracts	Run npm run check	2026-09-10T05:32:44.7589114Z (pass) TypeScript module emitted provider contracts: composition-adapters.ts [1312.20ms]
+contracts	Run npm run check	2026-09-10T05:32:46.1181970Z (pass) TypeScript module emitted provider contracts: negative/composition-adapters.ts [1359.30ms]
+contracts	Run npm run check	2026-09-10T05:32:47.4595396Z (pass) TypeScript module emitted provider contracts: selected-scopes.ts [1341.30ms]
+contracts	Run npm run check	2026-09-10T05:32:49.2295422Z (pass) TypeScript module emitted provider contracts: negative/selected-scopes.ts [1769.97ms]
+contracts	Run npm run check	2026-09-10T05:32:50.4888967Z (pass) TypeScript module emitted provider contracts: acquisition-mode.ts [1259.35ms]
+contracts	Run npm run check	2026-09-10T05:32:51.7061371Z (pass) TypeScript module emitted provider contracts: negative/acquisition-mode.ts [1217.25ms]
+contracts	Run npm run check	2026-09-10T05:32:53.3308240Z (pass) TypeScript module emitted provider contracts: scopes.ts [1624.62ms]
+contracts	Run npm run check	2026-09-10T05:32:54.9516939Z (pass) TypeScript module emitted provider contracts: negative/scopes.ts [1620.87ms]
+contracts	Run npm run check	2026-09-10T05:32:56.5735289Z (pass) TypeScript module emitted provider contracts: lifetimes.ts [1621.86ms]
+contracts	Run npm run check	2026-09-10T05:32:58.6242833Z (pass) TypeScript module emitted provider contracts: negative/lifetimes.ts [2050.47ms]
+contracts	Run npm run check	2026-09-10T05:33:00.1170695Z (pass) TypeScript module emitted provider contracts: tokens.ts [1492.93ms]
+contracts	Run npm run check	2026-09-10T05:33:01.7890333Z (pass) TypeScript module emitted provider contracts: negative/tokens.ts [1672.00ms]
+contracts	Run npm run check	2026-09-10T05:33:03.1067343Z (pass) TypeScript module emitted provider contracts: negative/token-modules.ts [1317.70ms]
+contracts	Run npm run check	2026-09-10T05:33:04.4233756Z (pass) TypeScript module emitted provider contracts: token-contracts.ts [1316.64ms]
+contracts	Run npm run check	2026-09-10T05:33:05.8055749Z (pass) TypeScript module emitted provider contracts: negative/token-contracts.ts [1382.20ms]
+contracts	Run npm run check	2026-09-10T05:33:07.2717391Z (pass) TypeScript module emitted provider contracts: providers.ts [1466.16ms]
+contracts	Run npm run check	2026-09-10T05:33:08.6356201Z (pass) TypeScript module emitted provider contracts: replacement-context.ts [1363.84ms]
+contracts	Run npm run check	2026-09-10T05:33:10.5544693Z (pass) TypeScript module emitted provider contracts: negative/replacement-context.ts [1918.81ms]
+contracts	Run npm run check	2026-09-10T05:33:12.0155639Z (pass) TypeScript module emitted provider contracts: negative/provider-boundaries.ts [1461.05ms]
+contracts	Run npm run check	2026-09-10T05:33:13.5218382Z (pass) TypeScript module emitted provider contracts: negative/provider-module-metadata.ts [1506.23ms]
+contracts	Run npm run check	2026-09-10T05:33:15.0387813Z (pass) TypeScript module emitted provider contracts: negative/provider-projections.ts [1516.95ms]
+contracts	Run npm run check	2026-09-10T05:33:16.2686907Z (pass) unchecked Bag construction is rejected through di-bag [1229.93ms]
+contracts	Run npm run check	2026-09-10T05:33:18.1121713Z (pass) unchecked Bag construction is rejected through ../src/di-bag [1843.43ms]
+contracts	Run npm run check	2026-09-10T05:33:19.4086325Z (pass) unchecked Module construction is rejected through di-bag [1296.44ms]
+contracts	Run npm run check	2026-09-10T05:33:21.2762721Z (pass) unchecked Module construction is rejected through ../src/module [1867.64ms]
+contracts	Run npm run check	2026-09-10T05:33:22.5540269Z (pass) unchecked Provider construction is rejected through di-bag [1277.74ms]
+contracts	Run npm run check	2026-09-10T05:33:23.6090236Z (pass) unchecked Provider construction is rejected through ../src/provider [1054.93ms]
+contracts	Run npm run check	2026-09-10T05:33:24.8530755Z (pass) unchecked Token construction is rejected through di-bag [1244.07ms]
+contracts	Run npm run check	2026-09-10T05:33:26.2845742Z (pass) unchecked Token construction is rejected through ../src/tokens [1431.37ms]
+contracts	Run npm run check	2026-09-10T05:33:26.2866127Z 
+contracts	Run npm run check	2026-09-10T05:33:26.2868039Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:33:26.2869458Z 
+contracts	Run npm run check	2026-09-10T05:33:26.2870031Z ##[group]tests/benchmark-compiler-controls.test.ts:
+contracts	Run npm run check	2026-09-10T05:33:26.3077427Z (pass) negative controls reject a fast compile that lost its marker [0.21ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3079028Z (pass) negative controls require exactly one marker at the generated boundary [0.74ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3080219Z (pass) valid controls reject diagnostics and case identity substitution [0.07ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3081543Z (pass) controls reject invalid work metrics and source provenance drift [0.18ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3260767Z (pass) normalizer validates classic work and canonicalizes diagnostic paths [18.10ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3263467Z (pass) normalizer extracts native extended metrics without substituting process time [0.35ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3267204Z (pass) summary preserves every ordered sample and derives literal statistics [0.41ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3277400Z (pass) collector performs five warm-ups then 31 retained samples serially [0.99ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3278530Z (pass) catalog contains only the exact nine supported controls [0.08ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3282384Z (pass) failed child evidence is journaled before normalization rejects it [0.41ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3284113Z (pass) spawn failures are journaled even when no child row exists [0.19ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3284659Z 
+contracts	Run npm run check	2026-09-10T05:33:26.3285117Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:33:26.3285709Z 
+contracts	Run npm run check	2026-09-10T05:33:26.3286102Z ##[group]tests/platform-evidence.test.ts:
+contracts	Run npm run check	2026-09-10T05:33:26.3311215Z (pass) required platform evidence rejects incomplete or unavailable matrices [0.41ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3318069Z (pass) local platform identity takes precedence and invalid local identity never falls back [0.68ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3323336Z (pass) child evidence rejects noncanonical output, stderr, process failures and the wrong lane [0.45ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3550538Z (pass) tool verification rejects explicit unavailability, version drift and hash drift [22.66ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3559824Z (pass) tool verification rejects malformed pins and unavailable executables before a lane starts [0.99ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3578781Z (pass) pack output requires exactly one archive and empty stderr [1.94ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3634926Z (pass) pack output rejects every missing declared export and package document [5.60ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3706232Z (pass) packed archive validation catches a missing archive, changed bytes and stale file inventory [7.09ms]
+contracts	Run npm run check	2026-09-10T05:33:26.3861402Z (pass) archive inventory is an exact allowlist and package documents match isolated inputs byte-for-byte [15.44ms]
+contracts	Run npm run check	2026-09-10T05:33:26.6426368Z (pass) repository manifest verifies every provisioned identity and retains absent tools as unavailable [256.43ms]
+contracts	Run npm run check	2026-09-10T05:33:29.0286177Z (pass) isolated classic pack contains only freshly built declared exports and rechecks its hash [2385.97ms]
+contracts	Run npm run check	2026-09-10T05:33:29.0298196Z (pass) evidence writer appends stable sorted JSONL under the source/date directory [1.28ms]
+contracts	Run npm run check	2026-09-10T05:33:31.4675756Z (pass) platform command writes one sorted matrix and executes every provisioned lane [2437.69ms]
+contracts	Run npm run check	2026-09-10T05:33:31.7783800Z (pass) platform evidence module imports under the pinned Node ESM loader [310.80ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0647212Z (pass) platform command retains archive failure rows and makes required failures nonzero [286.29ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0651885Z (pass) browser metafile parser rejects malformed shapes before resolving inputs [0.53ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0652789Z 
+contracts	Run npm run check	2026-09-10T05:33:32.0653539Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:33:32.0655791Z 
+contracts	Run npm run check	2026-09-10T05:33:32.0656465Z ##[group]tests/release-artifacts.test.ts:
+contracts	Run npm run check	2026-09-10T05:33:32.0788692Z (pass) release documentation contract > adversarial release gates are separately supervised file commands [0.32ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0792345Z (pass) release documentation contract > release documents match the frozen package and gate every online command [0.35ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0796385Z (pass) release documentation contract > the publication boundary rejects stale, missing, duplicated, and misplaced commands [0.42ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0802613Z (pass) release documentation contract > public docs state entry-point, adapter, acquisition, ownership, and release limits [0.59ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0804914Z (pass) release artifact scripts > reject unsafe and unsupported manifest arguments [0.26ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0806186Z (pass) release artifact scripts > expose guarded parsers and archive inspection [0.04ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0807511Z (pass) archive verifier TDD boundary > exports a read-only verifier and strict CLI parser [0.02ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0842232Z (pass) safe npm archive parser > returns sorted regular entries and exact package metadata bytes [3.59ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0846828Z (pass) safe npm archive parser > rejects absolute name [0.52ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0853160Z (pass) safe npm archive parser > rejects traversal [0.63ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0857267Z (pass) safe npm archive parser > rejects backslash [0.40ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0862861Z (pass) safe npm archive parser > rejects outside package [0.55ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0871422Z (pass) safe npm archive parser > rejects duplicate [0.78ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0883830Z (pass) safe npm archive parser > rejects prefix collision [1.25ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0888400Z (pass) safe npm archive parser > rejects symlink [0.52ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0920392Z (pass) safe npm archive parser > rejects hardlink [0.59ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0921563Z (pass) safe npm archive parser > rejects fifo [0.53ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0922413Z (pass) safe npm archive parser > rejects device [0.63ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0923302Z (pass) safe npm archive parser > rejects unknown type [0.52ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0924200Z (pass) safe npm archive parser > rejects NUL ambiguity [0.56ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0925116Z (pass) safe npm archive parser > rejects entry size ceiling [0.41ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0926294Z (pass) safe npm archive parser > rejects checksum [0.52ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0931346Z (pass) safe npm archive parser > rejects magic [0.44ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0935389Z (pass) safe npm archive parser > rejects numeric NUL suffix [0.38ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0939427Z (pass) safe npm archive parser > rejects nonzero padding [0.40ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0943430Z (pass) safe npm archive parser > rejects terminator [0.40ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0947334Z (pass) safe npm archive parser > rejects trailing junk [0.39ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0954900Z (pass) safe npm archive parser > rejects truncated entry [0.41ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0956223Z (pass) safe npm archive parser > rejects missing metadata [0.35ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0960540Z (pass) safe npm archive parser > rejects invalid and empty gzip bytes [0.52ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0970714Z (pass) command evidence runner > parses canonical sorted inputs and preserves argv spaces [1.04ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0974300Z (pass) command evidence runner > rejects unsafe argv: bash -c echo hi [0.35ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0975652Z (pass) command evidence runner > rejects unsafe argv: npm view di-bag [0.05ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0977281Z (pass) command evidence runner > rejects unsafe argv: npm login [0.01ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0978547Z (pass) command evidence runner > rejects unsafe argv: npm publish a.tgz
+contracts	Run npm run check	2026-09-10T05:33:32.0979840Z (pass) command evidence runner > rejects unsafe argv: npm dist-tag add [0.01ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0980953Z (pass) command evidence runner > rejects unsafe argv: git push [0.03ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0982316Z (pass) command evidence runner > rejects unsafe argv: git tag v1 [0.01ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0983405Z (pass) command evidence runner > rejects unsafe argv: node --registry x
+contracts	Run npm run check	2026-09-10T05:33:32.0984625Z (pass) command evidence runner > rejects unsafe argv: node https://registry.npmjs.org
+contracts	Run npm run check	2026-09-10T05:33:32.0985713Z (pass) command evidence runner > rejects unsafe argv: node &&
+contracts	Run npm run check	2026-09-10T05:33:32.0986651Z (pass) command evidence runner > rejects unsafe argv: node -e thing
+contracts	Run npm run check	2026-09-10T05:33:32.0987806Z (pass) command evidence runner > rejects unsafe argv: env npm publish x.tgz [0.02ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0988941Z (pass) command evidence runner > rejects unsafe argv: env git push
+contracts	Run npm run check	2026-09-10T05:33:32.0989964Z (pass) command evidence runner > rejects unsafe argv: npx npm view di-bag
+contracts	Run npm run check	2026-09-10T05:33:32.0990901Z (pass) command evidence runner > rejects unsafe argv: bunx tool
+contracts	Run npm run check	2026-09-10T05:33:32.0992182Z (pass) command evidence runner > rejects unsafe argv: corepack npm login [0.01ms]
+contracts	Run npm run check	2026-09-10T05:33:32.0993512Z (pass) command evidence runner > rejects relative, escaping, symlinked, duplicate, and unsupported arguments [0.34ms]
+contracts	Run npm run check	2026-09-10T05:33:32.1085530Z (pass) command evidence runner > records stdout, stderr, input hashes, normalized success and record-last evidence [10.39ms]
+contracts	Run npm run check	2026-09-10T05:33:32.1543235Z (pass) command evidence runner > rejects timeout, output overflow, nonzero status, and spawn failure without publishing a record [45.75ms]
+contracts	Run npm run check	2026-09-10T05:33:32.1556750Z (pass) command evidence runner > rejects injected memory, monitor, signal and spawn outcomes [1.45ms]
+contracts	Run npm run check	2026-09-10T05:33:32.1682357Z (pass) command evidence runner > failed reruns and thrown supervisors erase stale success evidence [12.42ms]
+contracts	Run npm run check	2026-09-10T05:33:32.1965957Z (pass) command evidence runner > hashes inputs before execution and rolls back orphan logs if record publication fails [28.36ms]
+contracts	Run npm run check	2026-09-10T05:33:32.1986079Z (pass) native gap inventory > freezes the exact current zero-gap source authority [2.11ms]
+contracts	Run npm run check	2026-09-10T05:33:32.1999178Z (pass) native gap inventory > accepts empty and reviewed fresh inventory while an empty authority rejects a new gap [1.27ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2020949Z (pass) native gap inventory > parses the documented relative reviewed root and exact absolute outputs [2.18ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2030516Z (pass) release tree hashing > hashes sorted regular paths deterministically [0.97ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2181701Z (pass) release tree hashing > rejects empty, symlink, special and unsafe argument layouts [15.07ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2184818Z (pass) release tree hashing > detects byte mutations through changed digest [0.35ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2204601Z (pass) manifest validation and deterministic projection > manifest fixtures leave root candidate archive existence and bytes unchanged [1.93ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2296336Z (pass) manifest validation and deterministic projection > derives immutable archive facts and is deterministic across caller ordering [9.08ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2364884Z (pass) manifest validation and deterministic projection > public evidence has no absolute paths and is invariant to final commit and approved observed diff [6.84ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2402847Z (pass) manifest validation and deterministic projection > allows canonical SHA-512 SRI only in package integrity fields [3.77ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2549239Z (pass) manifest validation and deterministic projection > rejects duplicate/missing packages, bad versions, metadata, pack facts and handoff paths [14.63ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2589271Z (pass) manifest validation and deterministic projection > accepts zero reviewed and fresh native gaps and rejects every unexpected fresh occurrence [4.00ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2623309Z (pass) manifest validation and deterministic projection > retains nonempty-authority manifest validation for historical candidates [3.38ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2676468Z (pass) manifest validation and deterministic projection > rejects failed, malformed-time, duplicate-input and mutated-log command evidence [5.30ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2690989Z (pass) manifest validation and deterministic projection > rejects archive containment, symlink escape, absence and replacement facts [1.43ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2695284Z (pass) manifest validation and deterministic projection > manifest CLI rejects every non-fixed public target form [0.46ms]
+contracts	Run npm run check	2026-09-10T05:33:32.2887140Z (pass) manifest validation and deterministic projection > public projection rejects absolute argv and input paths outside known roots [19.07ms]
+contracts	Run npm run check	2026-09-10T05:33:34.7532937Z (pass) archive verifier > independently accepts exact archive, pack, metadata, export, dependency, and public facts [28.12ms]
+contracts	Run npm run check	2026-09-10T05:33:34.8758790Z (pass) archive verifier > rejects every archive digest and file-list mismatch [122.57ms]
+contracts	Run npm run check	2026-09-10T05:33:35.0429285Z (pass) archive verifier > rejects altered, duplicate, stale, divergent, extra-field, and filename pack JSON [167.02ms]
+contracts	Run npm run check	2026-09-10T05:33:35.2092597Z (pass) archive verifier > enforces exact package metadata, exports, and empty dependencies [166.26ms]
+contracts	Run npm run check	2026-09-10T05:33:35.4648035Z (pass) archive verifier > rejects malformed dependency, files, and bundled dependency metadata shapes [255.54ms]
+contracts	Run npm run check	2026-09-10T05:33:36.1513650Z (pass) archive verifier > rejects forbidden source, test, fixture, dependency, credential, and tarball content [686.58ms]
+contracts	Run npm run check	2026-09-10T05:33:36.4352159Z (pass) archive verifier > rejects missing public export pairs and removed adapter entries from archive bytes [283.79ms]
+contracts	Run npm run check	2026-09-10T05:33:36.5266732Z (pass) archive verifier > requires byte-identical stable public evidence and rejects missing, stale, malformed, and extra bytes [91.44ms]
+contracts	Run npm run check	2026-09-10T05:33:36.5485586Z (pass) archive verifier > rejects malicious archives before creating or running a consumer workdir [21.92ms]
+contracts	Run npm run check	2026-09-10T05:33:36.5486994Z (pass) archive verifier > uses one fixed explicit offline install argv with no fallback [0.08ms]
+contracts	Run npm run check	2026-09-10T05:33:36.5493086Z (pass) archive verifier > core import tracing rejects bare, self, node builtin, and unresolved relative specifiers [0.69ms]
+contracts	Run npm run check	2026-09-10T05:33:37.2468231Z (pass) archive verifier > CLI accepts only canonical contained manifest and empty work directory paths [697.55ms]
+contracts	Run npm run check	2026-09-10T05:33:37.2480344Z (pass) archive verifier > direct verifier API rejects outside, relative, aliased, and nonempty work paths before mutation [1.23ms]
+contracts	Run npm run check	2026-09-10T05:33:38.1622241Z (pass) archive verifier > binds both declaration compilers to the exact manifest versions before emitting [914.14ms]
+contracts	Run npm run check	2026-09-10T05:33:38.1626655Z (pass) archive verifier > matches both I14 diagnostics to their marked regions and expected message fragments [0.52ms]
+contracts	Run npm run check	2026-09-10T05:33:44.3364657Z 724 |     expect(matchesReleaseNegativeDiagnostics(source, file, located('unrelated first', 2, 'unrelated second', 4), directory)).toBe(false);
+contracts	Run npm run check	2026-09-10T05:33:44.3366296Z 725 |     expect(matchesReleaseNegativeDiagnostics(source, file, located('wanted first', 1, 'wanted second', 2), directory)).toBe(false);
+contracts	Run npm run check	2026-09-10T05:33:44.3367060Z 726 |   });
+contracts	Run npm run check	2026-09-10T05:33:44.3367838Z 727 |   test('installs owned verified bytes and passes real Node/Bun, CJS/ESM, core-only, and declaration oracles', async () => {
+contracts	Run npm run check	2026-09-10T05:33:44.3369122Z 728 |     publish(manifest); const work = resolve(directory, 'real-work'); const result = await verifyReleaseArtifacts(manifestPath, work);
+contracts	Run npm run check	2026-09-10T05:33:44.3370173Z 729 |     expect(result, result.failures.join('\n')).toEqual({ ok: true, failures: [] });
+contracts	Run npm run check	2026-09-10T05:33:44.3370769Z                                                      ^
+contracts	Run npm run check	2026-09-10T05:33:44.3383741Z error: offline consumer verification failed: Error: I14 negative declaration evidence mismatch for classic6/cts/classic6: {"status":2,"signal":null,"terminationReason":"monitor","error":"VmRSS is missing","diagnosticMatch":{"accepted":true,"parsed":{"diagnostics":[{"file":"/tmp/di-bag-release-candidate/task3-test-2529/real-work/consumer/declarations-classic6-cts/out/negative.cts","line":10,"column":64,"code":2345,"message":"Argument of type '{ share: [\"annotated\"]; }' is not assignable to parameter of type 'ScopeOptions<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, readonly [\"annotated\"]> & { readonly [errorBrand]: \"scope cannot share and override the same token\"; } & { ...; }'.\n  Property '[errorBrand]' is missing in type '{ share: [\"annotated\"]; }' but required in type '{ readonly [errorBrand]: \"scope cannot share and override the same token\"; }'."},{"file":"/tmp/di-bag-release-candidate/task3-test-2529/real-work/consumer/declarations-classic6-cts/out/negative.cts","line":15,"column":26,"code":2322,"message":"Type '() => { incompatible: boolean; }' is not assignable to type '(ProviderBase & { readonly [providerInvariant]: (...args: never[]) => [(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<...>>>) => { ...; }, object, readonly unknown[], TokenGraph, unknown]; }) | ... 5 m...'.\n  Type '() => { incompatible: boolean; }' is not assignable to type 'DisposableFactory<(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<readonly [\"plugin\"], { plugin: () => { incompatible: boolean; }; }>>>) => { ...; }> & Factory'.\n    Type '() => { incompatible: boolean; }' is not assignable to type 'DisposableFactory<(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<readonly [\"plugin\"], { plugin: () => { incompatible: boolean; }; }>>>) => { ...; }>'."}],"metrics":{},"unparsed":[]},"matched":{"expected":2,"matched":2,"primaryExpected":2,"primaryMatched":2,"supplementalExpected":0,"supplementalMatched":0,"unexpected":[],"missing":[]}}}
+contracts	Run npm run check	2026-09-10T05:33:44.3413579Z ##[error]negative.cts(10,64): error TS2345: Argument of type '{ share: ["annotated"]; }' is not assignable to parameter of type 'ScopeOptions<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, readonly ["annotated"]> & { readonly [errorBrand]: "scope cannot share and override the same token"; } & { ...; }'.
+contracts	Run npm run check	2026-09-10T05:33:44.3423365Z   Property '[errorBrand]' is missing in type '{ share: ["annotated"]; }' but required in type '{ readonly [errorBrand]: "scope cannot share and override the same token"; }'.
+contracts	Run npm run check	2026-09-10T05:33:44.3427022Z ##[error]negative.cts(15,26): error TS2322: Type '() => { incompatible: boolean; }' is not assignable to type '(ProviderBase & { readonly [providerInvariant]: (...args: never[]) => [(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<...>>>) => { ...; }, object, readonly unknown[], TokenGraph, unknown]; }) | ... 5 m...'.
+contracts	Run npm run check	2026-09-10T05:33:44.3430088Z   Type '() => { incompatible: boolean; }' is not assignable to type 'DisposableFactory<(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<readonly ["plugin"], { plugin: () => { incompatible: boolean; }; }>>>) => { ...; }> & Factory'.
+contracts	Run npm run check	2026-09-10T05:33:44.3432599Z     Type '() => { incompatible: boolean; }' is not assignable to type 'DisposableFactory<(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<readonly ["plugin"], { plugin: () => { incompatible: boolean; }; }>>>) => { ...; }>'.
+contracts	Run npm run check	2026-09-10T05:33:44.3433929Z 
+contracts	Run npm run check	2026-09-10T05:33:44.3433937Z 
+contracts	Run npm run check	2026-09-10T05:33:44.3433942Z 
+contracts	Run npm run check	2026-09-10T05:33:44.3434034Z   {
+contracts	Run npm run check	2026-09-10T05:33:44.3434248Z -   "failures": [],
+contracts	Run npm run check	2026-09-10T05:33:44.3434480Z -   "ok": true,
+contracts	Run npm run check	2026-09-10T05:33:44.3434711Z +   "failures": [
+contracts	Run npm run check	2026-09-10T05:33:44.3434917Z +     
+contracts	Run npm run check	2026-09-10T05:33:44.3436038Z + "offline consumer verification failed: Error: I14 negative declaration evidence mismatch for classic... (2172 bytes truncated) ...,"primaryMatched":2,"supplementalExpected":0,"supplementalMatched":0,"unexpected":[],"missing":[]}}}
+contracts	Run npm run check	2026-09-10T05:33:44.3439490Z ##[error]+ negative.cts(10,64): error TS2345: Argument of type '{ share: ["annotated"]; }' is not assignable to parameter of type 'ScopeOptions<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, readonly ["annotated"]> & { readonly [errorBrand]: "scope cannot share and override the same token"; } & { ...; }'.
+contracts	Run npm run check	2026-09-10T05:33:44.3442098Z +   Property '[errorBrand]' is missing in type '{ share: ["annotated"]; }' but required in type '{ readonly [errorBrand]: "scope cannot share and override the same token"; }'.
+contracts	Run npm run check	2026-09-10T05:33:44.3445569Z ##[error]+ negative.cts(15,26): error TS2322: Type '() => { incompatible: boolean; }' is not assignable to type '(ProviderBase & { readonly [providerInvariant]: (...args: never[]) => [(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<...>>>) => { ...; }, object, readonly unknown[], TokenGraph, unknown]; }) | ... 5 m...'.
+contracts	Run npm run check	2026-09-10T05:33:44.3448656Z +   Type '() => { incompatible: boolean; }' is not assignable to type 'DisposableFactory<(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<readonly ["plugin"], { plugin: () => { incompatible: boolean; }; }>>>) => { ...; }> & Factory'.
+contracts	Run npm run check	2026-09-10T05:33:44.3451463Z +     Type '() => { incompatible: boolean; }' is not assignable to type 'DisposableFactory<(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<readonly ["plugin"], { plugin: () => { incompatible: boolean; }; }>>>) => { ...; }>'.
+contracts	Run npm run check	2026-09-10T05:33:44.3452617Z + 
+contracts	Run npm run check	2026-09-10T05:33:44.3452802Z + "
+contracts	Run npm run check	2026-09-10T05:33:44.3452980Z + ,
+contracts	Run npm run check	2026-09-10T05:33:44.3453155Z +   ],
+contracts	Run npm run check	2026-09-10T05:33:44.3453349Z +   "ok": false,
+contracts	Run npm run check	2026-09-10T05:33:44.3453551Z   }
+contracts	Run npm run check	2026-09-10T05:33:44.3453653Z 
+contracts	Run npm run check	2026-09-10T05:33:44.3453745Z - Expected  - 2
+contracts	Run npm run check	2026-09-10T05:33:44.3453962Z + Received  + 13
+contracts	Run npm run check	2026-09-10T05:33:44.3454081Z 
+contracts	Run npm run check	2026-09-10T05:33:44.3454403Z       at <anonymous> (/home/runner/work/di-bag/di-bag/tests/release-artifacts.test.ts:729:48)
+contracts	Run npm run check	2026-09-10T05:33:44.3454761Z 
+contracts	Run npm run check	2026-09-10T05:33:44.3485215Z ##[error]  Property '[errorBrand]' is missing in type '{ share: ["annotated"]; }' but required in type '{ readonly [errorBrand]: "scope cannot share and override the same token"; }'.
+contracts	Run npm run check	negative.cts(15,26): error TS2322: Type '() => { incompatible: boolean; }' is not assignable to type '(ProviderBase & { readonly [providerInvariant]: (...args: never[]) => [(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<...>>>) => { ...; }, object, readonly unknown[], TokenGraph, unknown]; }) | ... 5 m...'.
+contracts	Run npm run check	  Type '() => { incompatible: boolean; }' is not assignable to type 'DisposableFactory<(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<readonly ["plugin"], { plugin: () => { incompatible: boolean; }; }>>>) => { ...; }> & Factory'.
+contracts	Run npm run check	    Type '() => { incompatible: boolean; }' is not assignable to type 'DisposableFactory<(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<readonly ["plugin"], { plugin: () => { incompatible: boolean; }; }>>>) => { ...; }>'.
+contracts	Run npm run check	
+contracts	Run npm run check	
+contracts	Run npm run check	
+contracts	Run npm run check	  {
+contracts	Run npm run check	-   "failures": [],
+contracts	Run npm run check	-   "ok": true,
+contracts	Run npm run check	+   "failures": [
+contracts	Run npm run check	+     
+contracts	Run npm run check	+ "offline consumer verification failed: Error: I14 negative declaration evidence mismatch for classic... (2172 bytes truncated) ...,"primaryMatched":2,"supplementalExpected":0,"supplementalMatched":0,"unexpected":[],"missing":[]}}}
+contracts	Run npm run check	+ negative.cts(10,64): error TS2345: Argument of type '{ share: ["annotated"]; }' is not assignable to parameter of type 'ScopeOptions<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, readonly ["annotated"]> & { readonly [errorBrand]: "scope cannot share and override the same token"; } & { ...; }'.
+contracts	Run npm run check	+   Property '[errorBrand]' is missing in type '{ share: ["annotated"]; }' but required in type '{ readonly [errorBrand]: "scope cannot share and override the same token"; }'.
+contracts	Run npm run check	+ negative.cts(15,26): error TS2322: Type '() => { incompatible: boolean; }' is not assignable to type '(ProviderBase & { readonly [providerInvariant]: (...args: never[]) => [(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<...>>>) => { ...; }, object, readonly unknown[], TokenGraph, unknown]; }) | ... 5 m...'.
+contracts	Run npm run check	+   Type '() => { incompatible: boolean; }' is not assignable to type 'DisposableFactory<(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<readonly ["plugin"], { plugin: () => { incompatible: boolean; }; }>>>) => { ...; }> & Factory'.
+contracts	Run npm run check	+     Type '() => { incompatible: boolean; }' is not assignable to type 'DisposableFactory<(this: void, deps: Provided<Merge<From<Entries<{ annotated: () => { annotated: true; port: number; }; plugin: () => { plugin: true; port: number; }; }>>, Selected<readonly ["plugin"], { plugin: () => { incompatible: boolean; }; }>>>) => { ...; }>'.
+contracts	Run npm run check	+ 
+contracts	Run npm run check	+ "
+contracts	Run npm run check	+ ,
+contracts	Run npm run check	+   ],
+contracts	Run npm run check	+   "ok": false,
+contracts	Run npm run check	  }
+contracts	Run npm run check	
+contracts	Run npm run check	- Expected  - 2
+contracts	Run npm run check	+ Received  + 13
+contracts	Run npm run check	
+contracts	Run npm run check	      at <anonymous> (/home/runner/work/di-bag/di-bag/tests/release-artifacts.test.ts:729:48)
+contracts	Run npm run check	2026-09-10T05:33:44.3497094Z (fail) archive verifier > installs owned verified bytes and passes real Node/Bun, CJS/ESM, core-only, and declaration oracles [6173.90ms]
+contracts	Run npm run check	2026-09-10T05:33:44.3540559Z (pass) final release audit > validates exactly five roles and produces deterministic non-self-attestation [5.99ms]
+contracts	Run npm run check	2026-09-10T05:33:44.3627334Z (pass) final release audit > rejects missing, duplicate, failed, mutated, stale-input and wrong-Git evidence [8.61ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4384605Z (pass) final release audit > rejects every invalid retained command field and fixed limit violation [75.67ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4389514Z (pass) final release audit > audit CLI rejects wrong output, public location, OIDs, duplicate and extra options [0.54ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4404179Z 
+contracts	Run npm run check	2026-09-10T05:33:44.4404789Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:33:44.4405056Z 
+contracts	Run npm run check	2026-09-10T05:33:44.4405535Z ##[group]tests/selected-scopes.test.ts:
+contracts	Run npm run check	2026-09-10T05:33:44.4462213Z (pass) selected sharing keeps parent dependencies while child overrides stay local [1.60ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4474910Z (pass) mixed token selections retain exact borrowed pending values and override bindings [0.58ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4485465Z (pass) scope snapshots selections and ignores unselected override getters and tuple iterators [0.57ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4486682Z (pass) invalid selections reject before override values or provider effects [0.69ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4487714Z (pass) empty selections are lazy and duplicates read each override once [0.42ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4488885Z (pass) inherited strict roots keep their graph when a child overrides a dependency as scoped [0.42ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4489498Z 
+contracts	Run npm run check	2026-09-10T05:33:44.4489919Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:33:44.4490093Z 
+contracts	Run npm run check	2026-09-10T05:33:44.4490855Z ##[group]tests/compiler-case.test.ts:
+contracts	Run npm run check	2026-09-10T05:33:44.4580197Z (pass) selected compiler case admits only original matrix identities [10.27ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4585535Z (pass) a claimed accepted result cannot hide an original-boundary failure [0.55ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4590249Z (pass) direct selected-case calls reject invalid lane and matrix identities before dispatch [0.44ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4592518Z (pass) recomputed boundary rejects self-consistent worker evidence at the wrong boundary [0.26ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4594005Z (pass) selected evidence rejects sourceCommit drift while compilation runs [0.11ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4595229Z (pass) selected evidence rejects sourceStatus drift while compilation runs [0.01ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4596306Z (pass) selected evidence rejects sourceSha256 drift while compilation runs
+contracts	Run npm run check	2026-09-10T05:33:44.4597451Z (pass) selected evidence rejects generatedSha256 drift while compilation runs
+contracts	Run npm run check	2026-09-10T05:33:44.4598656Z (pass) native selected evidence preserves the hash of the compiled snapshot [0.09ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4599999Z (pass) compiler CLI deterministically selects exit status from simulated evidence [0.06ms]
+contracts	Run npm run check	2026-09-10T05:33:44.4601644Z (pass) classic process failures retain compiler identity and complete provenance [0.17ms]
+contracts	Run npm run check	2026-09-10T05:33:46.8225817Z (pass) classic selected 100 bulk valid returns verified evidence [2362.79ms]
+contracts	Run npm run check	2026-09-10T05:33:49.1800401Z (pass) classic selected 100 bulk missing returns verified evidence [2357.38ms]
+contracts	Run npm run check	2026-09-10T05:33:49.4204465Z (pass) native selected 100 bulk valid returns verified evidence [240.41ms]
+contracts	Run npm run check	2026-09-10T05:33:49.6569074Z (pass) native selected 100 bulk missing returns verified evidence [236.49ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9805393Z (pass) selected compiler CLI rejects an invalid identity without JSON success [323.57ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9806109Z 
+contracts	Run npm run check	2026-09-10T05:33:49.9806683Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:33:49.9806900Z 
+contracts	Run npm run check	2026-09-10T05:33:49.9807365Z ##[group]tests/scopes.test.ts:
+contracts	Run npm run check	2026-09-10T05:33:49.9829428Z (pass) children own fresh acquisitions while independent forks outlive their source [0.83ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9837315Z (pass) parent close synchronously closes every descendant admission gate and waits for descendants [0.78ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9842180Z (pass) pending child sources may acquire dependencies after parent close starts [0.47ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9845466Z (pass) pending acquisition promises deduplicate only within one scope [0.35ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9854370Z (pass) nested cleanup failures flatten by registration order despite reversed completion [0.85ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9862700Z (pass) independently settled children detach on success and failure without replay [0.65ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9870200Z (pass) parent close includes a child already closing until its failure settles [0.53ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9871947Z (pass) unexpected child close rejection is retained after parent cleanup [0.43ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9880132Z (pass) scope preserves native shadowed-then and raw Promise ownership in configured core [0.69ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9883238Z (pass) child projection rollback finishes before a parent-owned finalizer [0.57ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9893190Z (pass) scopes retain module-private identities and unchanged public binding metadata [0.96ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9896908Z (pass) unchecked scope arguments reject before creating or acquiring a child [0.39ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9897285Z 
+contracts	Run npm run check	2026-09-10T05:33:49.9897572Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:33:49.9897917Z 
+contracts	Run npm run check	2026-09-10T05:33:49.9920895Z ##[group]tests/enterprise-integration.test.ts:
+contracts	Run npm run check	2026-09-10T05:33:49.9921960Z (pass) overlapping requests isolate private dependencies and release scopes before the shared root [1.09ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9924438Z (pass) owned-scope fixture preserves handler and cleanup failures without closing twice [0.34ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9928699Z (pass) test substitutions retain private module contracts and fresh transient instances [0.42ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9943086Z (pass) a dynamically imported module starts private providers and unloads contributions exactly once [1.41ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9945771Z (pass) owned-scope fixture preserves a thrown undefined value and cleanup-only failure [0.27ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9947183Z (pass) owned-scope work result types follow explicit awaiting of structural thenables [0.15ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9952728Z (pass) a fixture whose startup fails releases acquired resources without admitting work [0.53ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9953339Z 
+contracts	Run npm run check	2026-09-10T05:33:49.9953768Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:33:49.9953979Z 
+contracts	Run npm run check	2026-09-10T05:33:49.9954410Z ##[group]tests/token-modules.test.ts:
+contracts	Run npm run check	2026-09-10T05:33:49.9967573Z (pass) exported tokens retarget private module consumers in forks [0.46ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9973158Z (pass) private tokens get independent installations and dependency ordered cleanup [0.54ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9979072Z (pass) token bindings preserve source reuse, promise identity and public replacement [0.52ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9983054Z (pass) fork snapshots mixed selection indices and reads only selected own overrides [0.40ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9991923Z (pass) duplicate mixed overrides keep getter order and route final values through private consumers [0.83ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9994911Z (pass) invalid token selections preflight before any selected override getter [0.33ms]
+contracts	Run npm run check	2026-09-10T05:33:49.9999452Z (pass) runtime duplicate symbols reject atomically and leave builders reusable [0.44ms]
+contracts	Run npm run check	2026-09-10T05:33:50.0000223Z 
+contracts	Run npm run check	2026-09-10T05:33:50.0000670Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:33:50.0000891Z 
+contracts	Run npm run check	2026-09-10T05:33:50.0001754Z ##[group]tests/persistent-graph.test.ts:
+contracts	Run npm run check	2026-09-10T05:33:50.0136993Z (pass) replacement removes obsolete public IDs while earlier versions retain their own values [12.58ms]
+contracts	Run npm run check	2026-09-10T05:33:50.0139224Z (pass) replacement counts all public slots and contribution references to a binding [0.33ms]
+contracts	Run npm run check	2026-09-10T05:33:50.0144416Z (pass) private aliases protect replaced IDs but public aliases follow current slots [0.50ms]
+contracts	Run npm run check	2026-09-10T05:33:50.0146511Z (pass) constructor keeps unused private registrations for explicit preflight and dangling refs for inspection [0.17ms]
+contracts	Run npm run check	2026-09-10T05:33:50.0237577Z (pass) shared lexical input maps are snapshotted once per installation [9.09ms]
+contracts	Run npm run check	2026-09-10T05:33:50.0523466Z (pass) string collisions, special own keys and same-description symbols stay distinct across updates [28.42ms]
+contracts	Run npm run check	2026-09-10T05:33:50.0619840Z (pass) materialized contributions retain order through append and installation without changing old arrays [9.73ms]
+contracts	Run npm run check	2026-09-10T05:33:50.0624115Z (pass) root lifetime stays parent-owned after a child overrides one shared public slot [0.48ms]
+contracts	Run npm run check	2026-09-10T05:33:50.0629793Z (pass) former public targets are pruned when the last user of a shared lexical snapshot is replaced [0.21ms]
+contracts	Run npm run check	2026-09-10T05:33:50.1178181Z (pass) pruning cascades iteratively through displaced lexical targets [54.39ms]
+contracts	Run npm run check	2026-09-10T05:33:50.1179614Z (pass) contribution protection uses the once-read input snapshot through public replacement [0.79ms]
+contracts	Run npm run check	2026-09-10T05:33:50.1180438Z 
+contracts	Run npm run check	2026-09-10T05:33:50.1181068Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:33:50.1181965Z 
+contracts	Run npm run check	2026-09-10T05:33:50.1184637Z ##[group]tests/diagnostic-markers.test.ts:
+contracts	Run npm run check	2026-09-10T05:33:50.1209786Z (pass) strict matcher accounts for explicit supplemental diagnostics without splitting regions [0.20ms]
+contracts	Run npm run check	2026-09-10T05:33:50.1211625Z (pass) supplement cannot replace a missing primary [0.09ms]
+contracts	Run npm run check	2026-09-10T05:33:50.1215573Z (pass) supplement rejects {"code":2345} [0.14ms]
+contracts	Run npm run check	2026-09-10T05:33:50.1216559Z (pass) supplement rejects {"file":"/other.ts"} [0.05ms]
+contracts	Run npm run check	2026-09-10T05:33:50.1217543Z (pass) supplement rejects {"line":5} [0.03ms]
+contracts	Run npm run check	2026-09-10T05:33:50.1218457Z (pass) supplement rejects {"code":2589} [0.04ms]
+contracts	Run npm run check	2026-09-10T05:33:50.1219402Z (pass) supplement rejects {"message":"unrelated"} [0.02ms]
+contracts	Run npm run check	2026-09-10T05:33:50.1220418Z (pass) unrelated cascades and TS2589 remain unexpected [0.09ms]
+contracts	Run npm run check	2026-09-10T05:33:50.1221074Z 
+contracts	Run npm run check	2026-09-10T05:33:50.1221927Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:33:50.1222296Z 
+contracts	Run npm run check	2026-09-10T05:33:50.1222893Z ##[group]tests/native-package.test.ts:
+contracts	Run npm run check	2026-09-10T05:33:51.9243631Z 81 |     const runtimeFailures: unknown[] = [];
+contracts	Run npm run check	2026-09-10T05:33:51.9244255Z 82 |     try {
+contracts	Run npm run check	2026-09-10T05:33:51.9244800Z 83 |       const compiler = await resolveNative(root);
+contracts	Run npm run check	2026-09-10T05:33:51.9245722Z 84 |       const packageTree = join(directory, 'package'); mkdirSync(packageTree);
+contracts	Run npm run check	2026-09-10T05:33:51.9247396Z 85 |       for (const file of ['src', 'package.json', 'tsconfig.json', 'tsconfig.build.json']) cpSync(join(root, file), join(packageTree, file), { recursive: true });
+contracts	Run npm run check	2026-09-10T05:33:51.9248914Z 86 |       const built = await supervise(emitter === 'classic6' ? node : compiler.executable,
+contracts	Run npm run check	2026-09-10T05:33:51.9249782Z                                                                   ^
+contracts	Run npm run check	2026-09-10T05:33:51.9250675Z error: {"status":0,"signal":null,"terminationReason":"monitor","error":"VmRSS is missing"}
+contracts	Run npm run check	2026-09-10T05:33:51.9251039Z 
+contracts	Run npm run check	2026-09-10T05:33:51.9251538Z Received: "monitor"
+contracts	Run npm run check	2026-09-10T05:33:51.9251779Z 
+contracts	Run npm run check	2026-09-10T05:33:51.9252277Z       at <anonymous> (/home/runner/work/di-bag/di-bag/tests/native-package.test.ts:86:62)
+contracts	Run npm run check	2026-09-10T05:33:51.9252929Z 
+contracts	Run npm run check	2026-09-10T05:33:51.9255015Z ##[error]Received: "monitor"
+contracts	Run npm run check	
+contracts	Run npm run check	      at <anonymous> (/home/runner/work/di-bag/di-bag/tests/native-package.test.ts:86:62)
+contracts	Run npm run check	2026-09-10T05:33:51.9257852Z (fail) native installed contracts and physical downstream declarations from classic6 [1772.21ms]
+contracts	Run npm run check	2026-09-10T05:34:57.8512623Z (pass) native installed contracts and physical downstream declarations from native7 [65925.00ms]
+contracts	Run npm run check	2026-09-10T05:34:57.8541524Z 
+contracts	Run npm run check	2026-09-10T05:34:57.8542739Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:34:57.8571448Z 
+contracts	Run npm run check	2026-09-10T05:34:57.8601977Z ##[group]tests/comparator-contract.test.ts:
+contracts	Run npm run check	2026-09-10T05:34:57.8632188Z (pass) admits only a synchronous named graph with singleton, transient and explicit lifecycle semantics [1.67ms]
+contracts	Run npm run check	2026-09-10T05:34:57.8672089Z (pass) comparator cannot enter the table with incomplete or forged metadata [0.27ms]
+contracts	Run npm run check	2026-09-10T05:34:57.8684615Z (pass) rejects asynchronous construction or resolution from the synchronous common subset [0.26ms]
+contracts	Run npm run check	2026-09-10T05:34:57.9164549Z (pass) forbidden rejected async results are consumed before the child exits [62.94ms]
+contracts	Run npm run check	2026-09-10T05:34:57.9167786Z (pass) rejects a changed named workload, singleton caching or transient freshness [0.42ms]
+contracts	Run npm run check	2026-09-10T05:34:57.9173474Z (pass) rejects missing, partial and failing explicit disposal [0.55ms]
+contracts	Run npm run check	2026-09-10T05:34:57.9182192Z (pass) reports absent optional packages as unavailable without inventing adapter rows [0.79ms]
+contracts	Run npm run check	2026-09-10T05:34:57.9193483Z (pass) distinguishes unavailable installation from an unreviewed or semantically invalid adapter [1.14ms]
+contracts	Run npm run check	2026-09-10T05:34:57.9200415Z (pass) rejects package and adapter identity drift before semantic admission [0.71ms]
+contracts	Run npm run check	2026-09-10T05:34:57.9208481Z (pass) comparator CLI mode emits only truthful optional status rows and creates no timing evidence [0.79ms]
+contracts	Run npm run check	2026-09-10T05:34:57.9209127Z 
+contracts	Run npm run check	2026-09-10T05:34:57.9209537Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:34:57.9210857Z 
+contracts	Run npm run check	2026-09-10T05:34:57.9211998Z ##[group]tests/native-process.test.ts:
+contracts	Run npm run check	2026-09-10T05:34:57.9509160Z (pass) supervisor terminates and reaps a live child on monitor EIO [1.49ms]
+contracts	Run npm run check	2026-09-10T05:34:57.9517099Z (pass) supervisor terminates and reaps a live child on monitor ENOENT [0.84ms]
+contracts	Run npm run check	2026-09-10T05:34:57.9524349Z (pass) supervisor terminates and reaps a live child on monitor ESRCH [0.71ms]
+contracts	Run npm run check	2026-09-10T05:34:57.9751498Z (pass) supervisor terminates and reaps a live child on monitor missing VmRSS [22.56ms]
+contracts	Run npm run check	2026-09-10T05:34:58.0654101Z (pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [90.29ms]
+contracts	Run npm run check	2026-09-10T05:34:58.1466273Z (pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [81.18ms]
+contracts	Run npm run check	2026-09-10T05:34:58.2265223Z (pass) supervisor confirms ESRCH process disappearance before its exit callback runs [79.96ms]
+contracts	Run npm run check	2026-09-10T05:34:58.3141757Z (pass) supervisor drains streams and awaits pending sample cleanup for missing VmRSS during exit [87.55ms]
+contracts	Run npm run check	2026-09-10T05:34:58.4016091Z (pass) supervisor drains streams and awaits pending sample cleanup for ENOENT after exit [87.47ms]
+contracts	Run npm run check	2026-09-10T05:34:58.4889000Z (pass) supervisor drains streams and awaits pending sample cleanup for ESRCH after exit [87.28ms]
+contracts	Run npm run check	2026-09-10T05:34:58.5506802Z (pass) monitor termination waits for inherited stdout and stderr to close [61.67ms]
+contracts	Run npm run check	2026-09-10T05:34:58.6382004Z (pass) supervisor retains clean child streams and exit status [87.54ms]
+contracts	Run npm run check	2026-09-10T05:34:58.6392222Z (pass) failed spawn is explicit evidence [1.03ms]
+contracts	Run npm run check	2026-09-10T05:34:58.6622883Z (pass) supervisor terminates and reaps timeout child [23.06ms]
+contracts	Run npm run check	2026-09-10T05:34:58.6850238Z (pass) supervisor terminates and reaps memory child [22.74ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7129576Z (pass) supervisor terminates and reaps output child [27.92ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7132725Z (pass) invalid limits and unsupported platforms fail before spawning [0.36ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7419873Z (pass) output overflow remains byte bounded when UTF8 is cut within a character [28.64ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7420523Z 
+contracts	Run npm run check	2026-09-10T05:34:58.7421364Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:34:58.7422335Z 
+contracts	Run npm run check	2026-09-10T05:34:58.7422919Z ##[group]tests/selected-scope-runtime.test.ts:
+contracts	Run npm run check	2026-09-10T05:34:58.7450544Z (pass) selected service borrows parent configuration and ownership while child config is overridden [1.21ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7455108Z (pass) scoped sharing selects the immediate parent and must be selected again by grandchildren [0.44ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7462431Z (pass) child-defined roots anchor their graph while inherited roots construct in the original graph [0.71ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7468379Z (pass) shared pending promises deduplicate and failed acquisitions retry at the owner [0.60ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7475225Z (pass) closing a borrower leaves the pending owner context and finalizer intact [0.62ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7481883Z (pass) pending child sources discover shared parent dependencies during tree close [0.68ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7486059Z (pass) strict child roots reject shared scoped dependencies before reading a cached owner [0.43ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7488904Z (pass) shared dependency edges detect cycles through retained owner proxies [0.33ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7493957Z (pass) shared module bindings preserve lexical private dependencies despite child public replacements [0.44ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7497633Z (pass) synchronous shared owner reentry detects a cycle across acquisition owners [0.38ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7502245Z (pass) a ready projection retains source permission for late shared reads [0.44ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7504393Z (pass) a failed projection retains source permission for late shared reads [0.25ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7512777Z (pass) completed and retired child proxies cannot borrow another source closing permission for shared reads [0.38ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7514106Z 
+contracts	Run npm run check	2026-09-10T05:34:58.7514832Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:34:58.7515088Z 
+contracts	Run npm run check	2026-09-10T05:34:58.7515634Z ##[group]tests/tokens.test.ts:
+contracts	Run npm run check	2026-09-10T05:34:58.7529431Z (pass) token symbols participate in the same acquisition graph [0.43ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7531580Z (pass) handles authenticate identity and capture a receiver-free symbol [0.22ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7536681Z (pass) indexed snapshots ignore iterators and caller mutations [0.49ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7538137Z (pass) invalid selections fail before callbacks and binding transforms [0.19ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7542285Z (pass) same actual symbols and repeated token reads reuse one cache slot [0.33ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7546655Z (pass) distinct symbols with the same description resolve independent slots [0.44ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7551734Z (pass) symbol dependencies follow lexical private and public references [0.48ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7557287Z (pass) token and named cycles report symbol labels in both entry orders [0.58ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7560840Z (pass) rejected token acquisitions retry without awaiting callback arguments [0.35ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7565557Z (pass) late named reads from a token-bound source retain close permission and disposal order [0.45ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7567222Z (pass) undeclared well-known symbol reads remain undefined [0.17ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7573277Z (pass) binding views and transformations retain frozen source selection without mutating inputs [0.43ms]
+contracts	Run npm run check	2026-09-10T05:34:58.7574063Z 
+contracts	Run npm run check	2026-09-10T05:34:58.7574523Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:34:58.7574730Z 
+contracts	Run npm run check	2026-09-10T05:34:58.7575198Z ##[group]tests/incremental-scale.test.ts:
+contracts	Run npm run check	2026-09-10T05:35:01.5376447Z (pass) incremental compiler work: 100 named additions [2779.57ms]
+contracts	Run npm run check	2026-09-10T05:35:04.5536270Z (pass) incremental compiler work: 100 named replacements [3015.98ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0401415Z (pass) incremental compiler work: 100 token bindings [3486.48ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0401897Z 
+contracts	Run npm run check	2026-09-10T05:35:08.0402321Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:35:08.0403171Z 
+contracts	Run npm run check	2026-09-10T05:35:08.0403628Z ##[group]tests/persistent-map.test.ts:
+contracts	Run npm run check	2026-09-10T05:35:08.0441851Z (pass) collision replacement and deletion preserve other keys and earlier versions [3.24ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0590389Z (pass) mixed insert/delete operations agree with an independent native map [14.80ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0590925Z 
+contracts	Run npm run check	2026-09-10T05:35:08.0591591Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:35:08.0593107Z 
+contracts	Run npm run check	2026-09-10T05:35:08.0593770Z ##[group]tests/runtime.test.ts:
+contracts	Run npm run check	2026-09-10T05:35:08.0608528Z (pass) sync diamond dependencies are created once and stay synchronous [0.38ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0610324Z (pass) undefined is memoized [0.19ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0614524Z (pass) a creating undefined-valued factory cannot be returned through reentrant resolution [0.31ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0616544Z (pass) forward registration and forks use independent memoization [0.26ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0617964Z (pass) synchronous factory failure can be retried [0.15ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0623387Z (pass) ending one builder twice and forking create fresh owned roots [0.47ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0627079Z (pass) async dependencies remain explicit and concurrent resolutions share a promise [0.35ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0628716Z (pass) synchronous cycles include their dependency path [0.23ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0630217Z (pass) prototype properties are not factories [0.09ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0632580Z (pass) async factory rejections can be retried [0.27ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0635027Z (pass) synchronous failure discards abandoned edges before retrying another token [0.20ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0639103Z (pass) async failure discards abandoned edges before retrying another token [0.40ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0643535Z (pass) then inspection failure discards outgoing edges before another token retries [0.42ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0647794Z (pass) cycles discovered after await reject instead of hanging [0.46ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0648253Z 
+contracts	Run npm run check	2026-09-10T05:35:08.0648614Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:35:08.0649422Z 
+contracts	Run npm run check	2026-09-10T05:35:08.0650005Z ##[group]tests/native-diagnostic-markers.test.ts:
+contracts	Run npm run check	2026-09-10T05:35:08.0662569Z (pass) known native overload rejection retains its unmet useful requirement separately [0.33ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0663731Z (pass) native gap rejects unknown declaration [0.19ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0664639Z (pass) native gap rejects malformed declaration [0.03ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0665516Z (pass) native gap rejects duplicate declaration [0.06ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0666391Z (pass) native gap rejects misplaced declaration [0.03ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0679577Z (pass) native gap rejects not adjacent [0.05ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0680484Z (pass) native gap rejects stale declaration [0.03ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0681466Z (pass) native gap rejects wrong code [0.02ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0682203Z (pass) native gap rejects wrong full message [0.04ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0682955Z (pass) native gap rejects wrong file [0.02ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0683630Z (pass) native gap rejects wrong region [0.04ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0684292Z (pass) native gap rejects absent error [0.02ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0684915Z (pass) native gap rejects TS2589 [0.02ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0685571Z (pass) native gap rejects duplicate error [0.03ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0686640Z (pass) native gap rejects unrelated extra [0.02ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0687195Z (pass) native gap rejects no declaration [0.02ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0687709Z (pass) native gap cannot replace a supplemental expectation [0.10ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0688351Z (pass) union and open-template fingerprints require their own exact declarations [0.20ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0689145Z (pass) native gap cannot satisfy a different primary even when that primary matches its fingerprint [0.14ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0689566Z 
+contracts	Run npm run check	2026-09-10T05:35:08.0689832Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:35:08.0689954Z 
+contracts	Run npm run check	2026-09-10T05:35:08.0690431Z ##[group]tests/native-compiler.test.ts:
+contracts	Run npm run check	2026-09-10T05:35:08.0690980Z (pass) parser retains real native multiline diagnostics, positions and metrics [0.11ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0691996Z (pass) parser exposes configuration errors, TS2589 and unknown output [0.05ms]
+contracts	Run npm run check	2026-09-10T05:35:08.0692718Z (pass) source marker gate rejects wrong file, region, message, TS2589 and unmatched cascades [0.25ms]
+contracts	Run npm run check	2026-09-10T05:35:09.0243460Z (pass) verified native executable checks real nonempty valid and invalid projects [955.81ms]
+contracts	Run npm run check	2026-09-10T05:35:09.2350628Z (pass) native small control bulk valid [210.75ms]
+contracts	Run npm run check	2026-09-10T05:35:09.4623893Z (pass) native small control bulk missing [226.95ms]
+contracts	Run npm run check	2026-09-10T05:35:10.3073434Z (pass) native small control bindings valid [845.30ms]
+contracts	Run npm run check	2026-09-10T05:35:11.1539327Z (pass) native small control bindings missing-final-token [846.59ms]
+contracts	Run npm run check	2026-09-10T05:35:11.1539734Z 
+contracts	Run npm run check	2026-09-10T05:35:11.1540062Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:35:11.1542275Z 
+contracts	Run npm run check	2026-09-10T05:35:11.1542777Z ##[group]tests/benchmark-types.test.ts:
+contracts	Run npm run check	2026-09-10T05:35:11.1560605Z (pass) parent evaluator validates untrusted worker evidence and preserves requested identities [0.59ms]
+contracts	Run npm run check	2026-09-10T05:35:11.4768522Z (pass) benchmark rejects unsupported flags: --native --native [320.74ms]
+contracts	Run npm run check	2026-09-10T05:35:11.8004152Z (pass) benchmark rejects unsupported flags: --tokens --tokens [323.53ms]
+contracts	Run npm run check	2026-09-10T05:35:12.1196634Z (pass) benchmark rejects unsupported flags: --unknown [319.24ms]
+contracts	Run npm run check	2026-09-10T05:35:12.4377896Z (pass) benchmark rejects unsupported flags: --native --tokens --unknown [318.08ms]
+contracts	Run npm run check	2026-09-10T05:35:13.8296092Z (pass) named benchmark boundary: 100 bulk valid [1391.81ms]
+contracts	Run npm run check	2026-09-10T05:35:15.1296977Z (pass) named benchmark boundary: 100 bulk missing [1299.96ms]
+contracts	Run npm run check	2026-09-10T05:35:16.6645250Z (pass) named benchmark boundary: 100 bulk wrong-shape [1534.81ms]
+contracts	Run npm run check	2026-09-10T05:35:19.2252325Z (pass) named benchmark boundary: 100 chained valid [2560.19ms]
+contracts	Run npm run check	2026-09-10T05:35:21.7281017Z (pass) named benchmark boundary: 100 chained missing [2503.18ms]
+contracts	Run npm run check	2026-09-10T05:35:24.1408408Z (pass) named benchmark boundary: 100 chained wrong-shape [2412.87ms]
+contracts	Run npm run check	2026-09-10T05:35:25.3101648Z (pass) named benchmark boundary: 100 grouped valid [1169.30ms]
+contracts	Run npm run check	2026-09-10T05:35:26.4688469Z (pass) named benchmark boundary: 100 grouped missing [1158.69ms]
+contracts	Run npm run check	2026-09-10T05:35:27.6097181Z (pass) named benchmark boundary: 100 grouped wrong-shape [1140.89ms]
+contracts	Run npm run check	2026-09-10T05:35:30.4228898Z (pass) named benchmark boundary: 100 replacement valid [2813.08ms]
+contracts	Run npm run check	2026-09-10T05:35:33.1655450Z (pass) named benchmark boundary: 100 replacement missing [2742.66ms]
+contracts	Run npm run check	2026-09-10T05:35:36.3562623Z (pass) named benchmark boundary: 100 replacement wrong-shape [3190.67ms]
+contracts	Run npm run check	2026-09-10T05:35:39.0874994Z (pass) named benchmark worker retains complete boundary diagnostics [2730.22ms]
+contracts	Run npm run check	2026-09-10T05:35:42.4986022Z (pass) token worker defaults a valid invocation to 100 services [3412.16ms]
+contracts	Run npm run check	2026-09-10T05:35:45.9877691Z (pass) token worker accepts an explicit supported count [3489.17ms]
+contracts	Run npm run check	2026-09-10T05:35:46.2898375Z (pass) token worker rejects an extra argument before compilation [302.03ms]
+contracts	Run npm run check	2026-09-10T05:35:46.5909050Z (pass) token worker rejects count zero before compilation [301.04ms]
+contracts	Run npm run check	2026-09-10T05:35:46.8873919Z (pass) token worker rejects an unsupported count before compilation [296.47ms]
+contracts	Run npm run check	2026-09-10T05:35:47.1800330Z (pass) token worker rejects an invalid form before compilation [292.63ms]
+contracts	Run npm run check	2026-09-10T05:35:47.4733054Z (pass) token worker rejects an invalid scenario before compilation [293.29ms]
+contracts	Run npm run check	2026-09-10T05:35:47.4734164Z 
+contracts	Run npm run check	2026-09-10T05:35:47.4734498Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:35:47.4734642Z 
+contracts	Run npm run check	2026-09-10T05:35:47.4734907Z ##[group]tests/types.test.ts:
+contracts	Run npm run check	2026-09-10T05:35:48.8282027Z (pass) observers retain exact inferred cross-file contracts [1343.02ms]
+contracts	Run npm run check	2026-09-10T05:35:49.9466866Z (pass) plugins retain exact inferred cross-file contracts [1118.42ms]
+contracts	Run npm run check	2026-09-10T05:35:50.9953984Z (pass) final adversarial integration retains exact inferred cross-file contracts [1048.65ms]
+contracts	Run npm run check	2026-09-10T05:35:52.4104828Z (pass) contributions retain exact inferred cross-file contracts [1415.13ms]
+contracts	Run npm run check	2026-09-10T05:35:53.9627674Z (pass) aliases retain exact inferred cross-file contracts [1552.25ms]
+contracts	Run npm run check	2026-09-10T05:35:55.2965977Z (pass) dependency references retain exact inferred cross-file contracts [1333.78ms]
+contracts	Run npm run check	2026-09-10T05:35:56.7132698Z (pass) composition adapters retain exact inferred cross-file contracts [1416.66ms]
+contracts	Run npm run check	2026-09-10T05:35:57.9529846Z (pass) selected scopes retain exact inferred cross-file contracts [1239.68ms]
+contracts	Run npm run check	2026-09-10T05:35:59.0600294Z (pass) startup and contextual providers retain exact inferred cross-file contracts [1107.03ms]
+contracts	Run npm run check	2026-09-10T05:36:00.4170851Z (pass) lifetime declarations retain exact inferred cross-file contracts [1357.06ms]
+contracts	Run npm run check	2026-09-10T05:36:03.4289859Z (pass) lifetimes inferred exports survive declaration consumption [3011.84ms]
+contracts	Run npm run check	2026-09-10T05:36:06.4026972Z (pass) composition-adapters inferred exports survive declaration consumption [2973.71ms]
+contracts	Run npm run check	2026-09-10T05:36:09.0533850Z (pass) dependency-references inferred exports survive declaration consumption [2650.73ms]
+contracts	Run npm run check	2026-09-10T05:36:12.0669447Z (pass) aliases inferred exports survive declaration consumption [3013.46ms]
+contracts	Run npm run check	2026-09-10T05:36:14.9477406Z (pass) contributions inferred exports survive declaration consumption [2880.80ms]
+contracts	Run npm run check	2026-09-10T05:36:18.1425695Z (pass) observers inferred exports survive declaration consumption [3194.82ms]
+contracts	Run npm run check	2026-09-10T05:36:20.7851591Z (pass) plugins inferred exports survive declaration consumption [2642.51ms]
+contracts	Run npm run check	2026-09-10T05:36:23.4115872Z (pass) final-adversarial-integration inferred exports survive declaration consumption [2626.40ms]
+contracts	Run npm run check	2026-09-10T05:36:24.6706093Z (pass) acquisition modes retain exact acquired values across inferred exports [1259.09ms]
+contracts	Run npm run check	2026-09-10T05:36:25.8333214Z (pass) token modules preserve exact cross-file contracts [1162.61ms]
+contracts	Run npm run check	2026-09-10T05:36:27.2125342Z (pass) public token composition preserves exact outputs and frames [1379.21ms]
+contracts	Run npm run check	2026-09-10T05:36:28.4546134Z (pass) token contracts preserve exact identities and provider graphs [1242.06ms]
+contracts	Run npm run check	2026-09-10T05:36:29.9112761Z (pass) replacement context preserves exact contracts from surviving consumers [1453.22ms]
+contracts	Run npm run check	2026-09-10T05:36:31.1561560Z (pass) incremental checks preserve forward, replacement and frame contracts [1248.21ms]
+contracts	Run npm run check	2026-09-10T05:36:32.3466305Z (pass) incremental projection candidates preserve replacement and resolved contracts [1190.50ms]
+contracts	Run npm run check	2026-09-10T05:36:33.5922582Z (pass) incremental module installation preserves private, forward, and token contracts [1245.61ms]
+contracts	Run npm run check	2026-09-10T05:36:35.0973707Z (pass) incremental module declarations retain exact results and token outputs [1505.08ms]
+contracts	Run npm run check	2026-09-10T05:36:36.3154250Z (pass) builder views preserve exact accepted registration histories [1218.08ms]
+contracts	Run npm run check	2026-09-10T05:36:37.7077973Z (pass) supported replacement wrappers and reflected methods stay exact and non-any [1392.29ms]
+contracts	Run npm run check	2026-09-10T05:36:39.1370613Z (pass) replacement reflection preserves utility soundness and module history [1429.26ms]
+contracts	Run npm run check	2026-09-10T05:36:40.3532160Z (pass) modern inline inference retains exact contracts [1216.17ms]
+contracts	Run npm run check	2026-09-10T05:36:41.5243483Z (pass) native acquisition metadata preserves exact outputs, requirements and frames [1170.46ms]
+contracts	Run npm run check	2026-09-10T05:36:42.9362740Z (pass) typed provider metadata survives checked composition and inspection [1411.01ms]
+contracts	Run npm run check	2026-09-10T05:36:44.2880282Z (pass) named modules preserve contracts across a file boundary [1353.25ms]
+contracts	Run npm run check	2026-09-10T05:36:45.4180351Z (pass) valid composition preserves inferred values and explicit promise edges [1129.96ms]
+contracts	Run npm run check	2026-09-10T05:36:46.6507953Z (pass) registration boundaries preserve selected keys and exact factory types [1232.78ms]
+contracts	Run npm run check	2026-09-10T05:36:47.7852449Z (pass) scope preserves exact inferred contracts across a source boundary [1133.92ms]
+contracts	Run npm run check	2026-09-10T05:36:48.9185797Z (pass) inline method-returning factories preserve exact types: add [1133.72ms]
+contracts	Run npm run check	2026-09-10T05:36:50.1247294Z (pass) inline method-returning factories preserve exact types: fork [1206.16ms]
+contracts	Run npm run check	2026-09-10T05:36:51.6541539Z (pass) inline method-returning factories preserve exact types: disposal [1529.45ms]
+contracts	Run npm run check	2026-09-10T05:36:53.0519454Z (pass) type rejection: fork-wrong-shape.ts [1397.74ms]
+contracts	Run npm run check	2026-09-10T05:36:54.3349382Z (pass) type rejection: final-adversarial-integration.ts [1282.99ms]
+contracts	Run npm run check	2026-09-10T05:36:55.5019562Z (pass) type rejection: missing.ts [1167.06ms]
+contracts	Run npm run check	2026-09-10T05:36:56.7141705Z (pass) type rejection: object-registrations.ts [1212.12ms]
+contracts	Run npm run check	2026-09-10T05:36:57.7869496Z (pass) type rejection: inline-wrong-shape.ts [1072.81ms]
+contracts	Run npm run check	2026-09-10T05:36:58.9146065Z (pass) type rejection: object-overrides.ts [1127.58ms]
+contracts	Run npm run check	2026-09-10T05:37:00.0770363Z (pass) type rejection: startup.ts [1162.47ms]
+contracts	Run npm run check	2026-09-10T05:37:01.1902486Z (pass) type rejection: boolean-registrations.ts [1112.86ms]
+contracts	Run npm run check	2026-09-10T05:37:02.3505951Z (pass) type rejection: forward-wrong-shape.ts [1160.51ms]
+contracts	Run npm run check	2026-09-10T05:37:03.4463919Z (pass) type rejection: module-missing.ts [1095.87ms]
+contracts	Run npm run check	2026-09-10T05:37:04.6698649Z (pass) type rejection: provider-projections.ts [1223.43ms]
+contracts	Run npm run check	2026-09-10T05:37:05.8028948Z (pass) type rejection: fork-missing.ts [1133.02ms]
+contracts	Run npm run check	2026-09-10T05:37:06.8970690Z (pass) type rejection: inline-replacement-wrong-shape.ts [1094.11ms]
+contracts	Run npm run check	2026-09-10T05:37:08.1618999Z (pass) type rejection: scopes.ts [1264.85ms]
+contracts	Run npm run check	2026-09-10T05:37:09.2783969Z (pass) type rejection: primitive-parameter.ts [1116.54ms]
+contracts	Run npm run check	2026-09-10T05:37:10.3603524Z (pass) type rejection: async-resolve.ts [1081.84ms]
+contracts	Run npm run check	2026-09-10T05:37:11.5253889Z (pass) type rejection: incremental-modules.ts [1165.01ms]
+contracts	Run npm run check	2026-09-10T05:37:13.0417370Z (pass) type rejection: fork-dependency-shape.ts [1516.38ms]
+contracts	Run npm run check	2026-09-10T05:37:14.4788403Z (pass) type rejection: required-this.ts [1436.95ms]
+contracts	Run npm run check	2026-09-10T05:37:15.6301479Z (pass) type rejection: disposer-wrong-shape.ts [1151.39ms]
+contracts	Run npm run check	2026-09-10T05:37:16.8239332Z (pass) type rejection: replacement-reflection.ts [1193.75ms]
+contracts	Run npm run check	2026-09-10T05:37:17.9773827Z (pass) type rejection: template-registrations.ts [1153.50ms]
+contracts	Run npm run check	2026-09-10T05:37:19.0859018Z (pass) type rejection: spread-disposal.ts [1108.50ms]
+contracts	Run npm run check	2026-09-10T05:37:20.3562745Z (pass) type rejection: module-hidden-private-needs.ts [1270.32ms]
+contracts	Run npm run check	2026-09-10T05:37:21.4259132Z (pass) type rejection: invalid-registration.ts [1069.53ms]
+contracts	Run npm run check	2026-09-10T05:37:22.5162166Z (pass) type rejection: wrong-shape.ts [1090.28ms]
+contracts	Run npm run check	2026-09-10T05:37:24.1159255Z (pass) type rejection: dependency-references.ts [1599.74ms]
+contracts	Run npm run check	2026-09-10T05:37:25.4245503Z (pass) type rejection: provider-boundaries.ts [1308.59ms]
+contracts	Run npm run check	2026-09-10T05:37:26.8429863Z (pass) type rejection: module-narrowing.ts [1418.41ms]
+contracts	Run npm run check	2026-09-10T05:37:28.0335656Z (pass) type rejection: incremental-projections.ts [1190.55ms]
+contracts	Run npm run check	2026-09-10T05:37:29.5482218Z (pass) type rejection: inline-fork-extra.ts [1514.61ms]
+contracts	Run npm run check	2026-09-10T05:37:30.9745928Z (pass) type rejection: optional-parameter.ts [1426.37ms]
+contracts	Run npm run check	2026-09-10T05:37:32.4341826Z (pass) type rejection: composition-adapters.ts [1459.31ms]
+contracts	Run npm run check	2026-09-10T05:37:33.7617502Z (pass) type rejection: token-contracts.ts [1327.83ms]
+contracts	Run npm run check	2026-09-10T05:37:35.1470404Z (pass) type rejection: fork-selection.ts [1385.25ms]
+contracts	Run npm run check	2026-09-10T05:37:36.3838507Z (pass) type rejection: acquisition-mode.ts [1236.81ms]
+contracts	Run npm run check	2026-09-10T05:37:37.8513558Z (pass) type rejection: incremental.ts [1467.53ms]
+contracts	Run npm run check	2026-09-10T05:37:39.7555301Z (pass) type rejection: contributions.ts [1904.11ms]
+contracts	Run npm run check	2026-09-10T05:37:40.8872473Z (pass) type rejection: union-replace.ts [1127.72ms]
+contracts	Run npm run check	2026-09-10T05:37:42.3276210Z (pass) type rejection: replacement-context.ts [1444.32ms]
+contracts	Run npm run check	2026-09-10T05:37:43.4919078Z (pass) type rejection: modern-inline.ts [1164.24ms]
+contracts	Run npm run check	2026-09-10T05:37:45.0352389Z (pass) type rejection: fork-extra.ts [1542.24ms]
+contracts	Run npm run check	2026-09-10T05:37:46.4560785Z (pass) type rejection: inline-fork-wrong-shape.ts [1421.94ms]
+contracts	Run npm run check	2026-09-10T05:37:47.7277773Z (pass) type rejection: callable-parameter.ts [1271.59ms]
+contracts	Run npm run check	2026-09-10T05:37:48.9734724Z (pass) type rejection: acquisition-metadata.ts [1244.89ms]
+contracts	Run npm run check	2026-09-10T05:37:50.1622661Z (pass) type rejection: async-dependency.ts [1188.88ms]
+contracts	Run npm run check	2026-09-10T05:37:51.4005814Z (pass) type rejection: inline-fork-missing.ts [1238.95ms]
+contracts	Run npm run check	2026-09-10T05:37:52.6640968Z (pass) type rejection: module-private.ts [1263.46ms]
+contracts	Run npm run check	2026-09-10T05:37:53.8257978Z (pass) type rejection: replacement-wrong-shape.ts [1161.69ms]
+contracts	Run npm run check	2026-09-10T05:37:55.0849849Z (pass) type rejection: builder-views.ts [1259.22ms]
+contracts	Run npm run check	2026-09-10T05:37:56.2422401Z (pass) type rejection: duplicate-add.ts [1156.49ms]
+contracts	Run npm run check	2026-09-10T05:37:57.4197121Z (pass) type rejection: replacement-views.ts [1178.12ms]
+contracts	Run npm run check	2026-09-10T05:37:58.9871908Z (pass) type rejection: selected-scopes.ts [1567.41ms]
+contracts	Run npm run check	2026-09-10T05:38:00.5200054Z (pass) type rejection: union-parameter.ts [1532.86ms]
+contracts	Run npm run check	2026-09-10T05:38:01.9537816Z (pass) type rejection: inline-fork-dependency-shape.ts [1433.76ms]
+contracts	Run npm run check	2026-09-10T05:38:03.6658364Z (pass) type rejection: tokens.ts [1711.24ms]
+contracts	Run npm run check	2026-09-10T05:38:04.9550909Z (pass) type rejection: plugins.ts [1290.09ms]
+contracts	Run npm run check	2026-09-10T05:38:06.1593173Z (pass) type rejection: symbol-dependency.ts [1204.13ms]
+contracts	Run npm run check	2026-09-10T05:38:07.3320176Z (pass) type rejection: template-dependencies.ts [1172.72ms]
+contracts	Run npm run check	2026-09-10T05:38:08.6096715Z (pass) type rejection: inline-missing.ts [1277.63ms]
+contracts	Run npm run check	2026-09-10T05:38:09.7621332Z (pass) type rejection: disposable-missing.ts [1152.39ms]
+contracts	Run npm run check	2026-09-10T05:38:11.5920830Z (pass) type rejection: aliases.ts [1829.98ms]
+contracts	Run npm run check	2026-09-10T05:38:12.7913227Z (pass) type rejection: inline-forward-wrong-shape.ts [1198.51ms]
+contracts	Run npm run check	2026-09-10T05:38:13.9362651Z (pass) type rejection: module-exports.ts [1143.63ms]
+contracts	Run npm run check	2026-09-10T05:38:15.8055842Z (pass) type rejection: lifetimes.ts [1871.32ms]
+contracts	Run npm run check	2026-09-10T05:38:17.4340881Z (pass) type rejection: token-modules.ts [1628.49ms]
+contracts	Run npm run check	2026-09-10T05:38:18.7121669Z (pass) type rejection: module-wrong-shape.ts [1278.04ms]
+contracts	Run npm run check	2026-09-10T05:38:19.9565861Z (pass) type rejection: fork-explicit-generics.ts [1244.36ms]
+contracts	Run npm run check	2026-09-10T05:38:21.2804331Z (pass) type rejection: module-rename.ts [1322.75ms]
+contracts	Run npm run check	2026-09-10T05:38:22.5389147Z (pass) type rejection: provider-unions.ts [1259.50ms]
+contracts	Run npm run check	2026-09-10T05:38:23.7142243Z (pass) type rejection: indexed-registrations.ts [1175.21ms]
+contracts	Run npm run check	2026-09-10T05:38:24.9999022Z (pass) type rejection: provider-module-metadata.ts [1285.70ms]
+contracts	Run npm run check	2026-09-10T05:38:26.1046232Z (pass) type rejection: observers.ts [1104.68ms]
+contracts	Run npm run check	2026-09-10T05:38:27.2818530Z (pass) type rejection: prototype-registrations.ts [1177.20ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4000897Z (pass) type rejection: disposer-promise.ts [1118.27ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4001924Z 
+contracts	Run npm run check	2026-09-10T05:38:28.4005039Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:38:28.4005801Z 
+contracts	Run npm run check	2026-09-10T05:38:28.4006408Z ##[group]tests/modules.test.ts:
+contracts	Run npm run check	2026-09-10T05:38:28.4142663Z (pass) a module private retry keeps the caught failed attempt separate [2.93ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4168429Z (pass) module private dependencies follow exported replacements and fresh forks [1.76ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4183576Z (pass) renamed repeated installations isolate private instances and cleanup [0.62ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4204820Z (pass) rename preserves original parameter names even when an export takes a private name [2.49ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4206372Z (pass) invalid installations and export views fail atomically and reject forged modules [0.82ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4208306Z (pass) exports use indexed tuple snapshots and preserve hidden local registrations [0.49ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4214009Z (pass) module promise identity, retry and post-await cycle diagnostics use the host runtime [0.97ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4256168Z (pass) renaming an export leaves an unrelated external requirement at its original slot [4.13ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4259736Z (pass) module providers can be replaced before sealing without mutating earlier views [0.36ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4269419Z (pass) close drains module acquisitions that discover private and host dependencies after await [0.95ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4270057Z 
+contracts	Run npm run check	2026-09-10T05:38:28.4270638Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:38:28.4273323Z 
+contracts	Run npm run check	2026-09-10T05:38:28.4273784Z ##[group]tests/lifetime-declarations.test.ts:
+contracts	Run npm run check	2026-09-10T05:38:28.4280290Z (pass) lifetime replacement preserves the source and owned stages [0.15ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4283423Z (pass) invalid lifetime declarations fail before evaluating factories or option getters [0.30ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4284823Z (pass) options are read once and snapshotted, and replacement clears capture [0.12ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4286425Z (pass) all provider transformations retain the immutable policy [0.19ms]
+contracts	Run npm run check	2026-09-10T05:38:28.4286957Z 
+contracts	Run npm run check	2026-09-10T05:38:28.4287449Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:38:28.4287793Z 
+contracts	Run npm run check	2026-09-10T05:38:28.4288242Z ##[group]tests/type-scale.test.ts:
+contracts	Run npm run check	2026-09-10T05:38:29.7566601Z (pass) type scale: 100 bulk providers preserve consumer types [1327.12ms]
+contracts	Run npm run check	2026-09-10T05:38:32.3937438Z (pass) type scale: 100 chained providers preserve consumer types [2637.07ms]
+contracts	Run npm run check	2026-09-10T05:38:35.7530769Z (pass) type scale: 100 replacement providers preserve consumer types [3359.31ms]
+contracts	Run npm run check	2026-09-10T05:38:43.2301105Z (pass) type scale: 1000 grouped providers preserve consumer types [7477.03ms]
+contracts	Run npm run check	2026-09-10T05:38:44.5952639Z (pass) type scale: bulk rejects missing at the graph boundary [1365.07ms]
+contracts	Run npm run check	2026-09-10T05:38:45.9064365Z (pass) type scale: bulk rejects wrong-shape at the graph boundary [1311.22ms]
+contracts	Run npm run check	2026-09-10T05:38:48.5921417Z (pass) type scale: chained rejects missing at the graph boundary [2685.65ms]
+contracts	Run npm run check	2026-09-10T05:38:51.4277861Z (pass) type scale: chained rejects wrong-shape at the graph boundary [2835.67ms]
+contracts	Run npm run check	2026-09-10T05:38:58.9795373Z (pass) type scale: grouped rejects missing at the graph boundary [7551.74ms]
+contracts	Run npm run check	2026-09-10T05:39:06.5290982Z (pass) type scale: grouped rejects wrong-shape at the graph boundary [7549.52ms]
+contracts	Run npm run check	2026-09-10T05:39:09.9182534Z (pass) type scale: replacement rejects missing at the graph boundary [3389.11ms]
+contracts	Run npm run check	2026-09-10T05:39:13.3790809Z (pass) type scale: replacement rejects wrong-shape at the graph boundary [3460.83ms]
+contracts	Run npm run check	2026-09-10T05:39:43.8549710Z (pass) type scale: 1000 providers from reusable named modules: valid [30475.87ms]
+contracts	Run npm run check	2026-09-10T05:40:11.7655196Z (pass) type scale: 1000 providers from reusable named modules: missing [27910.53ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7171706Z (pass) type scale: 1000 providers from reusable named modules: wrong-shape [28951.63ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7172461Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7173014Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:40:40.7175289Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7175737Z ##[group]tests/lifetimes.test.ts:
+contracts	Run npm run check	2026-09-10T05:40:40.7318360Z (pass) root, scoped and transient identity have distinct ownership [2.47ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7326253Z (pass) child-first roots capture dependencies in the root owner through grandchildren and forks [0.81ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7332092Z (pass) same-object transients own separate attempts and preserve every cleanup cause [0.57ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7339606Z (pass) raw and native lifetimes retain original pending promises and classification [0.80ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7344952Z (pass) failed root cache entries retry across children with new acquisition identities [0.51ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7348476Z (pass) public synchronous transient reentrancy is rejected before a second factory invocation [0.37ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7352270Z (pass) pure transient post-await ancestry rejects repeated construction [0.36ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7356617Z (pass) mixed cached and transient post-await cycles preserve acquisition graph detection [0.40ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7358978Z (pass) independent pending transient calls are distinct nonrecursive acquisitions [0.23ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7361444Z (pass) a ready transient proxy may create a fresh instance on each later method call [0.22ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7367535Z (pass) pending child work acquires roots during parent close and root cleanup follows child cleanup [0.58ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7371354Z (pass) strict roots reject new scoped reads directly [0.42ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7373412Z (pass) strict roots reject new scoped reads through a transient [0.20ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7375096Z (pass) strict roots reject cached scoped reads directly [0.16ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7377149Z (pass) strict roots reject cached scoped reads through a transient [0.17ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7382211Z (pass) strict capture boundaries survive await and ready transient methods [0.43ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7385607Z (pass) strict roots can consume capturing roots without inheriting their permission [0.36ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7392362Z (pass) token captive reads reject at the observed edge before scoped creation [0.35ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7399885Z (pass) renamed module exports retain private root and transient ownership despite public collisions [1.04ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7406351Z (pass) private module scoped capture rejects despite an identically named public root [0.65ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7417181Z (pass) failed root rollback and retry retain distinct ownership across child consumers [1.06ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7423162Z (pass) child close releases its attempts while a child-first root remains pending [0.58ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7428490Z (pass) completed child and retired proxies cannot borrow another attempt closing permission for root reads [0.51ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7432677Z (pass) pending source permission survives a ready projection when routing late roots [0.44ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7436493Z (pass) family retirement removes cross-owner incoming edges but preserves outgoing rollback dependencies [0.35ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7438970Z (pass) retired transient ancestry does not block a retained proxy from retrying its binding [0.27ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7444019Z (pass) token roots retain family ownership through a transient token consumer and independent override [0.46ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7472875Z (pass) pending source permission survives failed projection rollback for late root reads [0.43ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7473959Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7474447Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:40:40.7474652Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7475122Z ##[group]tests/dependency-references.test.ts:
+contracts	Run npm run check	2026-09-10T05:40:40.7502328Z (pass) optional absence is distinct from a present undefined acquisition [0.74ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7513867Z (pass) optional factory failures and native rejections propagate and retry [0.93ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7515242Z (pass) lazy scoped dependencies defer construction and retain invocation ownership [0.54ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7516601Z (pass) lazy root dependencies defer construction and retain invocation ownership [0.16ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7518013Z (pass) lazy transient dependencies defer construction and retain invocation ownership [0.17ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7519416Z (pass) all adapters snapshot mixed references by index and authenticate every handle [1.45ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7520870Z (pass) lazy reads preserve lexical private tokens, export renames and external optional absence [0.69ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7527961Z (pass) lazy closures use shared/root owner context and independent fork overrides [0.69ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7533435Z (pass) raw and native references preserve Promise identity and disposal values [0.54ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7542035Z (pass) optional synchronous and post-await cycles propagate [0.82ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7545448Z (pass) lazy synchronous and post-await cycles propagate [0.41ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7554446Z (pass) lazy closure shutdown admission belongs to the capturing source attempt [0.82ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7556445Z (pass) observed reference reads retain strict root checks before routing [0.25ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7559730Z (pass) lazy reads detect a cycle between already ready consumers [0.33ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7566350Z (pass) a pending projection does not extend a lazy source shutdown admission [0.58ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7571711Z (pass) root explicit capture and optional reads retain the root lexical context [0.57ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7573004Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7575884Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:40:40.7595525Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7596472Z ##[group]tests/acquisition-mode.test.ts:
+contracts	Run npm run check	2026-09-10T05:40:40.7600623Z (pass) close waits for a native acquisition with shadowed then at source [0.42ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7602562Z (pass) close waits for a native acquisition with shadowed then at projection [0.17ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7604866Z (pass) close waits for a native acquisition with shadowed then at metadata [0.23ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7612055Z (pass) unconfigured core preflights every stage and private module before any factory effects [0.61ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7620350Z (pass) facades snapshot and isolate their predicate, carrying it through builders and forks [0.84ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7624910Z (pass) invalid configuration, modes and classifier results fail explicitly [0.50ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7627628Z (pass) automatic ordinary values preserve the then-presence guard [0.28ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7633179Z (pass) raw Promise and then-getter values retain exact ownership without observation or waiting [0.51ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7637564Z (pass) explicit native and async projections work without a classifier and preserve previous owners [0.43ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7640040Z (pass) auto observes local native state with non-callable then [0.28ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7641823Z (pass) native observes local native state with non-callable then [0.09ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7654561Z (pass) auto observes foreign native state with non-callable then [1.31ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7659212Z (pass) native observes foreign native state with non-callable then [0.49ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7664430Z (pass) native metadata preserves raw presence records and explicit payload projection [0.49ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7668176Z (pass) async metadata retains a native output contract without a portable classifier [0.38ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7669023Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7669624Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:40:40.7676272Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7677396Z ##[group]tests/contributions.test.ts:
+contracts	Run npm run check	2026-09-10T05:40:40.7696387Z (pass) contributions preserve order, empty reads and array immutability [0.49ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7712400Z (pass) host and repeated exportless modules append distinct lexical bindings [1.20ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7732234Z (pass) all adapters select frozen arrays and retain module export renames [0.74ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7749503Z (pass) root scoped and transient contributions retain individual ownership [0.47ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7751467Z (pass) shared aggregate borrows the parent graph while a lazy registry reads its local graph [0.64ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7758802Z (pass) partial failure retains accepted ownership and retries only failed contributors [0.39ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7760201Z (pass) pending native and raw promises preserve identity and disposal payloads [0.44ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7761712Z (pass) self collections participate in ordinary cycle detection [0.57ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7762995Z (pass) inspection is immutable nonresolving and does not freeze application values [0.49ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7764307Z (pass) forged tokens references and providers reject before provider effects [0.80ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7765910Z (pass) cooperative lazy registries admit late collection reads only for their in-flight source [0.73ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7767343Z (pass) observed strict roots reject cached scoped contributions before owner routing [0.53ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7773142Z (pass) startup failure rolls back accepted contribution ownership [0.63ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7773810Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7774467Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:40:40.7780722Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7781510Z ##[group]tests/persistent-module.test.ts:
+contracts	Run npm run check	2026-09-10T05:40:40.7829070Z (pass) one module update does not revisit its existing registration table [4.28ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7840173Z (pass) module updates preserve declaration positions, earlier builders and renamed lexical exports [1.11ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7841715Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7842351Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:40:40.7851708Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7852377Z ##[group]tests/runtime-benchmark-child.test.ts:
+contracts	Run npm run check	2026-09-10T05:40:40.7882278Z (pass) build-close constructs 10 registrations without acquiring them [1.42ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7883575Z (pass) cold-linear-resolve acquires each of 10 factories once [0.37ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7884875Z (pass) warm-root-resolve excludes priming and observes one cached terminal value at 10 [0.34ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7887819Z (pass) scope-resolve-close verifies child work after its timed operation at 10 [0.72ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7892969Z (pass) transient-resolve-close verifies 10 distinct owned values in reverse cleanup order [0.48ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7899627Z (pass) raw-promise-identity retains the exact raw Promise through resolution and disposal at 10 [0.64ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7902911Z (pass) node-native-promise awaits the native Promise and disposes its fulfillment at 10 [0.33ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7915084Z (pass) build-close constructs 100 registrations without acquiring them [0.62ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7918682Z (pass) cold-linear-resolve acquires each of 100 factories once [0.94ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7937292Z (pass) warm-root-resolve excludes priming and observes one cached terminal value at 100 [1.17ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7945342Z (pass) scope-resolve-close verifies child work after its timed operation at 100 [1.42ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7958841Z (pass) transient-resolve-close verifies 100 distinct owned values in reverse cleanup order [1.37ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7964930Z (pass) raw-promise-identity retains the exact raw Promise through resolution and disposal at 100 [0.58ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7970631Z (pass) node-native-promise awaits the native Promise and disposes its fulfillment at 100 [0.57ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7982344Z (pass) scenario preparation rejects unsupported provider counts [0.25ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7983562Z (pass) parent expectations cover the complete fixed scenario matrix [0.15ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7984769Z (pass) verification rejects a timed result from another preparation [0.40ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7986550Z (pass) child argument parser accepts one exact request and rejects malformed or extra input [0.22ms]
+contracts	Run npm run check	2026-09-10T05:40:40.7987362Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7987976Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:40:40.7989097Z 
+contracts	Run npm run check	2026-09-10T05:40:40.7989733Z ##[group]tests/aliases.test.ts:
+contracts	Run npm run check	2026-09-10T05:40:40.8009066Z (pass) named aliases preserve exact canonical object and immutable history [0.51ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8012983Z (pass) all token and name combinations and forward token requirements route identically [0.28ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8014709Z (pass) aliases preserve explicit raw and native promises without classification [0.32ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8018695Z (pass) transient aliases add no ownership and record actual target disposal edges [0.38ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8022851Z (pass) module aliases retain private targets and export renames under host collisions [0.40ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8026749Z (pass) selected sharing routes alias through parent graph while independent overrides follow child graph [0.37ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8029953Z (pass) runtime rejects transient sharing and root captures through aliases before invoking target [0.31ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8032895Z (pass) alias inspection reports direct target and canonical attempts without stale target metadata [0.28ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8036512Z (pass) alias cycles retain a useful lexical path [0.38ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8038964Z (pass) runtime rejects invalid alias selections without changing the builder [0.22ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8044777Z (pass) startup through an alias waits for final readiness and retries failed canonical acquisitions [0.53ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8047228Z (pass) shared alias inspection identifies its parent target despite a child override [0.27ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8049533Z (pass) aliases of root targets retain the root graph under child overrides [0.22ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8053842Z (pass) in-flight sources may read aliases while closing and retained reads close with the canonical owner [0.40ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8060654Z (pass) module token aliases preserve private identity and external host requirements [0.63ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8063597Z (pass) exported target replacements and renames remain visible through module aliases [0.34ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8067675Z (pass) re-sharing aliases keeps parent policy while fresh grandchildren and forks use local targets [0.39ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8078996Z (pass) strict roots use the effective shared alias policy in both lifetime directions [0.77ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8080517Z (pass) raw aliases do not inspect then getters or add cancellation contexts [0.26ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8081480Z 
+contracts	Run npm run check	2026-09-10T05:40:40.8082138Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:40:40.8085471Z 
+contracts	Run npm run check	2026-09-10T05:40:40.8086146Z ##[group]tests/platform/browser-worker.test.ts:
+contracts	Run npm run check	2026-09-10T05:40:40.8132045Z (pass) browser metafile accepts only the installed root export and package-local dependencies [3.21ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8186269Z (pass) browser bundle validation rejects stale bytes, sizes, gzip size, metafile and root identity [5.46ms]
+contracts	Run npm run check	2026-09-10T05:40:40.8189489Z (pass) Worker protocol accepts exactly one structured portable result and rejects hostile transcripts [0.35ms]
+contracts	Run npm run check	2026-09-10T05:40:40.9528558Z (pass) browser Worker lane rechecks the artifact before execution and maps protocol failures [133.79ms]
+contracts	Run npm run check	2026-09-10T05:40:41.0024809Z (pass) explicitly unprovisioned browser tools stay unavailable without archive or bundle fallback [49.60ms]
+contracts	Run npm run check	2026-09-10T05:40:41.2556388Z (pass) provisioned browser tools execute the real packed archive lane [253.17ms]
+contracts	Run npm run check	2026-09-10T05:40:41.2556990Z 
+contracts	Run npm run check	2026-09-10T05:40:41.2558001Z ##[endgroup]
+contracts	Run npm run check	2026-09-10T05:40:41.2558242Z 
+contracts	Run npm run check	2026-09-10T05:40:41.2558401Z 2 tests failed:
+contracts	Run npm run check	2026-09-10T05:40:41.2559667Z (fail) archive verifier > installs owned verified bytes and passes real Node/Bun, CJS/ESM, core-only, and declaration oracles [6173.90ms]
+contracts	Run npm run check	2026-09-10T05:40:41.2561421Z (fail) native installed contracts and physical downstream declarations from classic6 [1772.21ms]
+contracts	Run npm run check	2026-09-10T05:40:41.2562198Z 
+contracts	Run npm run check	2026-09-10T05:40:41.2562300Z  921 pass
+contracts	Run npm run check	2026-09-10T05:40:41.2562516Z  2 fail
+contracts	Run npm run check	2026-09-10T05:40:41.2562728Z  18188 expect() calls
+contracts	Run npm run check	2026-09-10T05:40:41.2563023Z Ran 923 tests across 55 files. [603.45s]
+contracts	Run npm run check	2026-09-10T05:40:41.8562693Z ##[error]Process completed with exit code 1.

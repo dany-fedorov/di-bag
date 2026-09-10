@@ -10,7 +10,7 @@ type ModulePublicProviders<R extends Registrations, P extends keyof R> = {
 };
 ```
 
-Defined in: [module-types.ts:108](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L108)
+Defined in: [module-types.ts:111](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L111)
 
 Project selected module exports while retaining their lexical private graph where required.
 

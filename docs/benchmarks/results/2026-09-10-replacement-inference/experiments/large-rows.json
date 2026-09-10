@@ -1,0 +1,104 @@
+[
+  {
+    "variant": "baseline",
+    "lane": "classic",
+    "count": 500,
+    "status": 1,
+    "seconds": 0.26079575601033866,
+    "argv": [
+      "node",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/check-compiler-case.ts",
+      "classic",
+      "500",
+      "replacement",
+      "valid"
+    ],
+    "result": null
+  },
+  {
+    "variant": "baseline",
+    "lane": "native",
+    "count": 500,
+    "status": 1,
+    "seconds": 0.24733794399071485,
+    "argv": [
+      "node",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/check-compiler-case.ts",
+      "native",
+      "500",
+      "replacement",
+      "valid"
+    ],
+    "result": null
+  },
+  {
+    "variant": "baseline",
+    "lane": "native",
+    "count": 1000,
+    "status": 1,
+    "seconds": 0.2669224620331079,
+    "argv": [
+      "node",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/check-compiler-case.ts",
+      "native",
+      "1000",
+      "replacement",
+      "valid"
+    ],
+    "result": null
+  },
+  {
+    "variant": "noinfer-history-PROTOTYPE",
+    "lane": "classic",
+    "count": 500,
+    "status": 1,
+    "seconds": 0.2578953839838505,
+    "argv": [
+      "node",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/check-compiler-case.ts",
+      "classic",
+      "500",
+      "replacement",
+      "valid"
+    ],
+    "result": null
+  },
+  {
+    "variant": "noinfer-history-PROTOTYPE",
+    "lane": "native",
+    "count": 500,
+    "status": 1,
+    "seconds": 0.25133563694544137,
+    "argv": [
+      "node",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/check-compiler-case.ts",
+      "native",
+      "500",
+      "replacement",
+      "valid"
+    ],
+    "result": null
+  },
+  {
+    "variant": "noinfer-history-PROTOTYPE",
+    "lane": "native",
+    "count": 1000,
+    "status": 1,
+    "seconds": 0.24705709505360574,
+    "argv": [
+      "node",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/check-compiler-case.ts",
+      "native",
+      "1000",
+      "replacement",
+      "valid"
+    ],
+    "result": null
+  }
+]

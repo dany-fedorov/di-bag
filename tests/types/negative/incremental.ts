@@ -54,3 +54,16 @@ DiBag.createBuilder().register({ read: ({ value }: { value: number }) => value }
 DiBag.createBuilder().register(token, () => 1).register({ local: () => 1,
   invalidNamed: ({ local }: { local: string }) => local.length,
   wrongToken: DiBag.fromFunction([wider], value => value) });
+
+// Manually described histories remain checked even when an incoming name cannot
+// match any typed-token key.
+declare const manuallyOpaque: import('../../../src').BagBuilder<{ key: 'opaque'; registration: typeof opaque }>;
+// diagnostic: incompatible or opaque
+manuallyOpaque.register({ unrelated: () => 1 });
+// diagnostic: required service registrations are missing
+manuallyOpaque.build();
+declare const manuallyMixed: import('../../../src').BagBuilder<
+  { key: 'opaque'; registration: typeof opaque } | { key: 'plain'; registration: () => number }
+>;
+// diagnostic: incompatible or opaque
+manuallyMixed.register({ unrelated: () => 1 });

@@ -29,5 +29,12 @@ export const providerContractFixtures = [...new Set([
 
 export function providerContractSource(fixture: string): string {
   const assertions = 'type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;';
-  return readFileSync(resolve(__dirname, 'types', fixture), 'utf8').replace(/from '(?:\.\.\/)+src\/(provider|composition|tokens|token-types|module-types)'/g, "from './node_modules/di-bag/dist/$1.js'").replace(/from '(?:\.\.\/)+src\/di-bag'/g, "from 'di-bag'").replace(/import\('(?:\.\.\/)+src\/token-types'\)/g, "import('./node_modules/di-bag/dist/token-types.js')").replace(/import\('(?:\.\.\/)+src'\)/g, "import('di-bag')").replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`).replace("from '../modules/feature'", "from './replacement-module-feature.js'").replace("import type { Assert, Equal } from './assert';", assertions);
+  return readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
+    .replace(/from '(?:\.\.\/)+src\/(provider|composition|tokens|token-types|module-types|types)'/g, "from './node_modules/di-bag/dist/$1.js'")
+    .replace(/from '(?:\.\.\/)+src\/di-bag'/g, "from 'di-bag'")
+    .replace(/import\('(?:\.\.\/)+src\/token-types'\)/g, "import('./node_modules/di-bag/dist/token-types.js')")
+    .replace(/import\('(?:\.\.\/)+src'\)/g, "import('di-bag')")
+    .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)
+    .replace("from '../modules/feature'", "from './replacement-module-feature.js'")
+    .replace("import type { Assert, Equal } from './assert';", assertions);
 }

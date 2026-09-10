@@ -1,0 +1,102 @@
+[
+  {
+    "variant": "finite-key-sets",
+    "form": "chained",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "finite-key-sets",
+      "100",
+      "chained"
+    ],
+    "result": {
+      "variant": "finite-key-sets",
+      "count": 100,
+      "form": "chained",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 799736,
+      "milliseconds": 1367,
+      "maxRssMiB": 396.25390625
+    }
+  },
+  {
+    "variant": "finite-key-sets",
+    "form": "bindings",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "finite-key-sets",
+      "100",
+      "bindings"
+    ],
+    "result": {
+      "variant": "finite-key-sets",
+      "count": 100,
+      "form": "bindings",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1390344,
+      "milliseconds": 1856,
+      "maxRssMiB": 453.4765625
+    }
+  },
+  {
+    "variant": "finite-key-sets",
+    "form": "modules",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "finite-key-sets",
+      "100",
+      "modules"
+    ],
+    "result": {
+      "variant": "finite-key-sets",
+      "count": 100,
+      "form": "modules",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 2014116,
+      "milliseconds": 2363,
+      "maxRssMiB": 455.88671875
+    }
+  },
+  {
+    "variant": "finite-key-sets",
+    "form": "replacement",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "finite-key-sets",
+      "100",
+      "replacement"
+    ],
+    "result": {
+      "variant": "finite-key-sets",
+      "count": 100,
+      "form": "replacement",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1274499,
+      "milliseconds": 1541,
+      "maxRssMiB": 414.4375
+    }
+  }
+]

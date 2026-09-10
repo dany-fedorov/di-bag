@@ -1,0 +1,473 @@
+bun test v1.4.0 (34cbb9a40)
+
+tests/native-process.test.ts:
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:29:26)
+(fail) supervisor terminates and reaps a live child on monitor EIO [0.58ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:29:26)
+(fail) supervisor terminates and reaps a live child on monitor EACCES [0.05ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:29:26)
+(fail) supervisor terminates and reaps a live child on monitor ENOENT [0.03ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:29:26)
+(fail) supervisor terminates and reaps a live child on monitor ESRCH [0.03ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:29:26)
+(fail) supervisor terminates and reaps a live child on monitor missing VmRSS [0.02ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:29:26)
+(fail) supervisor terminates and reaps a live child on monitor malformed VmRSS [0.02ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:51:26)
+(fail) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [0.15ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:51:26)
+(fail) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [0.03ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:78:26)
+(fail) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [0.12ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:78:26)
+(fail) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [0.03ms]
+(pass) supervisor preserves exit 0 with pre-zombie kernel exit evidence [26.42ms]
+(pass) supervisor preserves exit 2 with pre-zombie kernel exit evidence [22.37ms]
+(pass) supervisor fails closed when the thread leader exits but a worker still runs [42.66ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:190:26)
+(fail) supervisor confirms ESRCH process disappearance before its exit callback runs [0.33ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:207:21)
+(fail) supervisor drains streams and awaits pending sample cleanup for missing VmRSS during exit [0.26ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:207:21)
+(fail) supervisor drains streams and awaits pending sample cleanup for ENOENT after exit [0.05ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:207:21)
+(fail) supervisor drains streams and awaits pending sample cleanup for ESRCH after exit [0.02ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:250:24)
+(fail) monitor termination waits for inherited stdout and stderr to close [0.12ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:270:17)
+(fail) supervisor retains clean child streams and exit status [0.13ms]
+(pass) failed spawn is explicit evidence [0.88ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:283:26)
+(fail) supervisor terminates and reaps timeout child [0.16ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:283:26)
+(fail) supervisor terminates and reaps memory child [0.03ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:283:26)
+(fail) supervisor terminates and reaps output child [0.02ms]
+(pass) invalid limits and unsupported platforms fail before spawning [0.14ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:299:24)
+(fail) output overflow remains byte bounded when UTF8 is cut within a character [0.09ms]
+(pass) kernel exit proof parses complete stat records with unescaped task names and strict flags [0.13ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:341:28)
+(fail) supervisor checks empty initial group in task-group exit evidence [0.27ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:341:28)
+(fail) supervisor checks empty final group in task-group exit evidence [0.05ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:341:28)
+(fail) supervisor checks unproven final thread in task-group exit evidence [0.03ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:341:28)
+(fail) supervisor checks permission failure in task-group exit evidence [0.03ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:341:28)
+(fail) supervisor checks malformed stat in task-group exit evidence [0.02ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:341:28)
+(fail) supervisor checks departed thread ENOENT in task-group exit evidence [0.03ms]
+31 |   return new Promise(resolve => {
+32 |     const result: NativeProcessResult = { status: null, signal: null, stdout: '', stderr: '', milliseconds: 0, peakObservedRssMiB: 0 };
+33 |     const stdout: Uint8Array[] = [], stderr: Uint8Array[] = [];
+34 |     let bytes = 0, exited = false, monitoring = false, missingRss = false;
+35 |     let pendingSample: Promise<void> | undefined;
+36 |     const child = spawn(executable, [...args], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+                       ^
+TypeError: The argument 'file' cannot be empty. Received ''
+ code: "ERR_INVALID_ARG_VALUE"
+
+      at normalizeSpawnArguments (node:child_process:413:29)
+      at spawn (node:child_process:12:36)
+      at <anonymous> (/tmp/di-bag-replacement-performance/scripts/native-process.ts:36:19)
+      at new Promise (1:11)
+      at supervise (/tmp/di-bag-replacement-performance/scripts/native-process.ts:31:10)
+      at <anonymous> (/tmp/di-bag-replacement-performance/tests/native-process.test.ts:341:28)
+(fail) supervisor checks departed thread ESRCH in task-group exit evidence [0.03ms]
+
+ 6 pass
+ 27 fail
+ 46 expect() calls
+Ran 33 tests across 1 file. [162.00ms]

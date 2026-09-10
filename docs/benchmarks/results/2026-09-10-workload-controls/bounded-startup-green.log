@@ -1,0 +1,57 @@
+bun test v1.4.2 (744846f84)
+
+tests/startup.test.ts:
+(pass) contexts follow acquisition owners through child-first roots and independent forks [3.11ms]
+(pass) abort listeners cannot reenter any closing scope admission gate [0.42ms]
+(pass) startup waits for selected native acquisition while leaving unrelated providers lazy [0.81ms]
+(pass) startup uses native observation with shadowed then and treats raw promises as ready [0.79ms]
+(pass) a ready native projection starts while its source remains pending until shutdown [0.36ms]
+(pass) failed native projection aborts a cooperative pending source before cleanup [0.58ms]
+(pass) sequential startup waits before invoking the next selection [0.41ms]
+(pass) startup selects genuine tokens and keeps separate owned transient attempts [0.46ms]
+(pass) late contextual dependencies receive an already aborted owner signal [0.42ms]
+(pass) startup removes its abort listener on success [0.23ms]
+(pass) startup removes its abort listener on failure [0.11ms]
+(pass) startup removes its abort listener on aborted [0.13ms]
+(pass) startup removes its abort listener on timeout [5.45ms]
+(pass) startup snapshots option getters once after snapshotting all selected keys [0.31ms]
+(pass) sequential startup stops after failure and waits for cleanup with original causes [0.67ms]
+(pass) parallel startup starts later selections after synchronous failure and cleans pending ownership [0.29ms]
+(pass) aborted rejects before late ownership and exposes eventual cleanup failure [0.42ms]
+(pass) timeout rejects before late ownership and exposes eventual cleanup failure [5.47ms]
+(pass) already aborted startup does not invoke any factories [0.22ms]
+(pass) cancellation can interrupt cleanup after ordinary startup failure [0.39ms]
+(pass) successful startup removes external cancellation and snapshots indexed selections [0.26ms]
+(pass) invalid startup inputs reject before factory or unsupported option getter effects [0.42ms]
+(pass) numeric startup 1 bounds selected readiness and preserves promise identity [0.44ms]
+(pass) numeric startup 2 bounds selected readiness and preserves promise identity [0.15ms]
+(pass) numeric startup 20 bounds selected readiness and preserves promise identity [0.14ms]
+(pass) numeric startup 1 snapshots options and retains duplicate selected lifetimes [0.31ms]
+(pass) numeric startup 2 snapshots options and retains duplicate selected lifetimes [0.15ms]
+36 |   return mode;
+37 | }
+38 | export function requireClassificationCapability(modes: Iterable<AcquisitionMode>, context: RuntimeContext): void {
+39 |   if (context.isNativePromise) return;
+40 |   for (const mode of modes) if (mode === 'auto') {
+41 |     throw new Error('Automatic acquisition classification requires DiBag.configure, di-bag/node, or explicit acquisition modes');
+                   ^
+error: Automatic acquisition classification requires DiBag.configure, di-bag/node, or explicit acquisition modes
+      at requireClassificationCapability (/tmp/di-bag-performance-integration/src/acquisition-mode.ts:41:15)
+      at preflight (/tmp/di-bag-performance-integration/src/runtime.ts:163:7)
+      at new Runtime (/tmp/di-bag-performance-integration/src/runtime.ts:297:11)
+      at startRuntime (/tmp/di-bag-performance-integration/src/startup.ts:49:19)
+      at start (/tmp/di-bag-performance-integration/src/di-bag.ts:384:27)
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/startup.test.ts:380:6)
+(fail) numeric startup uses final raw readiness while owned sources remain pending [0.38ms]
+(pass) bounded startup stops dequeuing after failure and cleans started work [0.52ms]
+(pass) bounded startup stops dequeuing after aborted and cleans started work [0.23ms]
+(pass) bounded startup stops dequeuing after timeout and cleans started work [6.30ms]
+(pass) numeric startup rejects invalid bounds before factories [0.46ms]
+
+1 tests failed:
+(fail) numeric startup uses final raw readiness while owned sources remain pending [0.38ms]
+
+ 31 pass
+ 1 fail
+ 146 expect() calls
+Ran 32 tests across 1 file. [45.00ms]

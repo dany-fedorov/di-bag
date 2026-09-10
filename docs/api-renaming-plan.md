@@ -184,7 +184,7 @@ and native Promise policies.
 | Option `acquisition` | `acquisitionMode` |
 | Acquisition literal `native` | `nativePromise`; retain `auto` and `raw` |
 | Lifetime option `captureScoped` | `allowScopedDependencies` |
-| Startup option `concurrency` | `startupOrder`, candidate name for parallel/sequential scheduling |
+| Startup option `concurrency` | `startupOrder`, for parallel/sequential or bounded numeric scheduling |
 | Static snapshot/event `metadata` | `registrationMetadata` |
 | Acquisition snapshot `metadata` and event `frames` | `acquisitionMetadata` |
 | Inspection `alias` | `aliasTarget` |

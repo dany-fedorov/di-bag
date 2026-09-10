@@ -8,7 +8,7 @@
 type ModuleExportedServices<M> = M extends Module<infer P, infer _R, infer _C, infer _D> ? Readonly<P> : never;
 ```
 
-Defined in: [module-types.ts:124](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L124)
+Defined in: [module-types.ts:127](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L127)
 
 Extract a readonly map of services publicly exposed by a module.
 

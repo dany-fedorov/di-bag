@@ -334,3 +334,120 @@ test('invalid startup inputs reject before factory or unsupported option getter 
   }
   expect(effects).toBe(0);
 });
+
+for (const startupOrder of [1, 2, 20]) test(`numeric startup ${startupOrder} bounds selected readiness and preserves promise identity`, async () => {
+  const gates = [deferred<number>(), deferred<number>(), deferred<number>()];
+  const calls: number[] = [];
+  const disposed: number[] = [];
+  const provider = (index: number) => DiBag.withDisposal(() => { calls.push(index); return gates[index]!.promise; }, value => { disposed.push(value); });
+  const starting = DiBag.createBuilder().register({ a: provider(0), b: provider(1), c: provider(2) }).buildAndStart(['a', 'b', 'c'], { startupOrder });
+  const outcome = starting.catch(error => error);
+  await new Promise<void>(resolve => setImmediate(resolve));
+  expect(calls).toEqual(startupOrder === 1 ? [0] : startupOrder === 2 ? [0, 1] : [0, 1, 2]);
+  gates[0]!.resolve(10);
+  await new Promise<void>(resolve => setImmediate(resolve));
+  expect(calls).toEqual(startupOrder === 1 ? [0, 1] : [0, 1, 2]);
+  gates[1]!.resolve(11); gates[2]!.resolve(12);
+  const bag = await outcome;
+  if (bag instanceof Error) throw bag;
+  expect(bag.resolve('a')).toBe(gates[0]!.promise);
+  await bag.close();
+  expect(disposed).toEqual([12, 11, 10]);
+});
+
+for (const startupOrder of [1, 2]) test(`numeric startup ${startupOrder} snapshots options and retains duplicate selected lifetimes`, async () => {
+  let reads = 0, scoped = 0, transient = 0;
+  const disposed: number[] = [];
+  const builder = DiBag.createBuilder().register({
+    scoped: () => ++scoped,
+    transient: DiBag.withLifetime(DiBag.withDisposal(() => ++transient, value => { disposed.push(value); }), 'transient'),
+  });
+  const bag = await builder.buildAndStart(['scoped', 'scoped', 'transient', 'transient'], { get startupOrder() { reads++; return startupOrder; } });
+  expect(reads).toBe(1); expect(scoped).toBe(1); expect(transient).toBe(2);
+  await bag.close(); expect(disposed).toEqual([2, 1]);
+  await (await builder.buildAndStart([], { startupOrder })).close();
+});
+
+test('numeric startup uses final raw readiness while owned sources remain pending', async () => {
+  const source = deferred<number>();
+  let thenReads = 0, later = 0;
+  const raw = { get then() { thenReads++; throw new Error('raw then'); } };
+  const disposed: number[] = [];
+  const bag = await Core.createBuilder().register({
+    projected: Core.transformService(Core.withDisposal(Core.fromFactory(() => source.promise, { acquisitionMode: 'nativePromise' }), value => { disposed.push(value); }), { mode: 'direct', transform: () => raw, ...{ acquisitionMode: 'raw' } }),
+    later: Core.fromFactory(() => ++later, { acquisitionMode: 'raw' }),
+  }).buildAndStart(['projected', 'later'], { startupOrder: 1 });
+  expect(later).toBe(1); expect(thenReads).toBe(0); expect(bag.resolve('projected')).toBe(raw);
+  const closing = bag.close(); source.resolve(7); await closing;
+  expect(disposed).toEqual([7]); expect(thenReads).toBe(0);
+});
+
+for (const terminal of ['failure', 'aborted', 'timeout'] as const) test(`bounded startup stops dequeuing after ${terminal} and cleans started work`, async () => {
+  const gates = [deferred<number>(), deferred<number>()];
+  const abort = new AbortController();
+  const calls: string[] = [], disposed: number[] = [];
+  const cause = new Error('failed');
+  const cleanupError = new Error('cleanup');
+  const starting = DiBag.createBuilder().register({
+    a: DiBag.withDisposal(() => { calls.push('a'); return gates[0]!.promise; }, value => { disposed.push(value); }),
+    b: DiBag.withDisposal(() => { calls.push('b'); return gates[1]!.promise; }, value => { disposed.push(value); throw cleanupError; }),
+    queued: () => { calls.push('queued'); return 3; },
+  }).buildAndStart(['a', 'b', 'queued'], { startupOrder: 2, signal: abort.signal, ...(terminal === 'timeout' ? { timeoutMs: 5 } : {}) });
+  const outcome = starting.catch(error => error);
+  let settled = false; void outcome.then(() => { settled = true; });
+  expect(calls).toEqual(['a', 'b']);
+  if (terminal === 'failure') gates[0]!.reject(cause);
+  else if (terminal === 'aborted') abort.abort(cause);
+  let cancellation: InstanceType<typeof DiBagStartupCancelledError> | undefined;
+  if (terminal === 'failure') {
+    await new Promise<void>(resolve => setImmediate(resolve));
+    expect(settled).toBe(false);
+  } else {
+    const error: unknown = await outcome;
+    expect(error).toBeInstanceOf(DiBagStartupCancelledError);
+    if (!(error instanceof DiBagStartupCancelledError)) throw error;
+    cancellation = error;
+    expect(error.reason).toBe(terminal);
+  }
+  expect(calls).toEqual(['a', 'b']);
+  gates[0]!.resolve(1); gates[1]!.resolve(2);
+  if (cancellation) {
+    const cleanup: unknown = await cancellation.cleanupPromise.catch(error => error);
+    expect(cleanup).toBeInstanceOf(DiBagCleanupError);
+    if (!(cleanup instanceof DiBagCleanupError)) throw cleanup;
+    expect(cleanup.failures[0]!.error).toBe(cleanupError);
+  } else {
+    const error: unknown = await outcome;
+    expect(error).toBeInstanceOf(DiBagStartupError);
+    if (!(error instanceof DiBagStartupError)) throw error;
+    expect(error.cause).toBe(cause); expect(error.cleanupFailures[0]!.error).toBe(cleanupError);
+  }
+  expect(calls).toEqual(['a', 'b']);
+  expect(disposed).toEqual(terminal === 'failure' ? [2] : [2, 1]);
+});
+
+test('numeric startup rejects invalid bounds before factories', async () => {
+  let calls = 0;
+  const builder = DiBag.createBuilder().register({ value: () => ++calls });
+  for (const startupOrder of [0, -1, 0.5, NaN, Infinity, -Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    await expect(builder.buildAndStart(['value'], { startupOrder })).rejects.toThrow('buildAndStart startupOrder must be parallel, sequential, or a positive safe integer');
+  }
+  expect(calls).toBe(0);
+  await (await builder.buildAndStart(['value'], { startupOrder: Number.MAX_SAFE_INTEGER })).close();
+  expect(calls).toBe(1);
+});
+
+test('numeric startup stops initial worker admission when a factory aborts synchronously', async () => {
+  const abort = new AbortController();
+  const source = deferred<number>();
+  const calls: string[] = [], disposed: number[] = [];
+  const outcome = await DiBag.createBuilder().register({
+    first: DiBag.withDisposal(() => { calls.push('first'); abort.abort('stop'); return source.promise; }, value => { disposed.push(value); }),
+    next: () => { calls.push('next'); return 2; },
+  }).buildAndStart(['first', 'next'], { startupOrder: 2, signal: abort.signal }).catch(error => error);
+  expect(outcome).toBeInstanceOf(DiBagStartupCancelledError);
+  if (!(outcome instanceof DiBagStartupCancelledError)) throw outcome;
+  expect(calls).toEqual(['first']);
+  source.resolve(42); await outcome.cleanupPromise;
+  expect(disposed).toEqual([42]);
+});

@@ -1,5 +1,8 @@
 import { diagnostic, libraryError } from './errors';
 import { ScopeAcquisitions } from './acquisition';
+import { PersistentMap } from './persistent-map';
+import { append, materialize } from './persistent-sequence';
+import type { Sequence } from './persistent-sequence';
 import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import { normalize } from './registration';
@@ -29,74 +32,135 @@ export interface GraphDescription {
 
 type Normalized = Readonly<ReturnType<typeof normalize>>;
 
-/** Immutable descriptions: input maps are copied and retained maps never escape. */
+type LexicalSnapshot = {
+  readonly id: symbol;
+  readonly names: ReadonlyMap<BindingKey, BindingRef>;
+  readonly privateIds: readonly BindingId[];
+};
+type BindingEntry = {
+  readonly description: BindingDescription;
+  readonly normalized: Normalized;
+  readonly lexical?: LexicalSnapshot;
+};
+const emptyContributions: readonly BindingId[] = Object.freeze([]);
+const emptyNames: ReadonlyMap<BindingKey, BindingRef> = new Map();
+
+/** Immutable descriptions and path-copied lookup storage. Retained maps never escape. */
 export class BindingGraph {
-  readonly #bindings = new Map<BindingId, BindingDescription>();
-  readonly #registrations = new Map<BindingId, Normalized>();
-  readonly #publicSlots: Map<BindingKey, BindingId>;
-  readonly #contributions = new Map<symbol, readonly BindingId[]>();
+  #bindings = new PersistentMap<BindingEntry>();
+  #publicSlots = new PersistentMap<BindingId>();
+  #publicReferences = new PersistentMap<number>();
+  #lexicalUsers = new PersistentMap<number>();
+  #privateReferences = new PersistentMap<number>();
+  #contributed = new PersistentMap<true>();
+  // Only former public bindings are candidates; constructor-only private
+  // registrations remain available to whole-graph preflight.
+  #obsolete = new PersistentMap<true>();
+  #contributions = new PersistentMap<Sequence<BindingId>>();
+  readonly #bindingCache = new Map<BindingId, BindingDescription>();
+  readonly #registrationCache = new Map<BindingId, Normalized>();
+  readonly #publicCache = new Map<BindingKey, BindingId>();
+  readonly #contributionCache = new Map<symbol, readonly BindingId[]>();
   #explicitlyClassified = false;
 
   constructor(description: GraphDescription = { bindings: new Map(), publicSlots: new Map() }) {
-    const lexicalSnapshots = new Map<BindingDescription['localNames'], BindingDescription['localNames']>();
+    const lexicalSnapshots = new Map<BindingDescription['localNames'], LexicalSnapshot>();
     for (const [id, binding] of description.bindings) {
-      let localNames = lexicalSnapshots.get(binding.localNames);
-      if (!localNames) {
-        localNames = new Map([...binding.localNames].map(([name, ref]) => [name, Object.freeze({ ...ref })]));
-        lexicalSnapshots.set(binding.localNames, localNames);
+      let lexical = lexicalSnapshots.get(binding.localNames);
+      if (!lexical) {
+        const snapshot = new Map<BindingKey, BindingRef>();
+        const privateIds: BindingId[] = [];
+        for (const [name, ref] of binding.localNames) {
+          const copiedRef = Object.freeze({ ...ref });
+          snapshot.set(name, copiedRef);
+          if (copiedRef.kind === 'private') privateIds.push(copiedRef.id);
+        }
+        lexical = { id: Symbol('lexical'), names: snapshot, privateIds };
+        lexicalSnapshots.set(binding.localNames, lexical);
+        for (const target of privateIds) this.#privateReferences = this.#privateReferences.set(target, (this.#privateReferences.get(target) ?? 0) + 1);
       }
-      this.#bindings.set(id, Object.freeze({
-        id: binding.id,
-        label: binding.label,
-        registration: binding.registration,
-        localNames,
-      }));
-      this.#registrations.set(id, Object.freeze(normalize(binding.registration)));
+      this.#lexicalUsers = this.#lexicalUsers.set(lexical.id, (this.#lexicalUsers.get(lexical.id) ?? 0) + 1);
+      this.#bindings = this.#bindings.set(id, {
+        lexical,
+        description: Object.freeze({ id: binding.id, label: binding.label, registration: binding.registration, localNames: lexical.names }),
+        normalized: Object.freeze(normalize(binding.registration)),
+      });
     }
-    this.#publicSlots = new Map(description.publicSlots);
-    for (const [key, ids] of description.contributions ?? []) this.#contributions.set(key, Object.freeze([...ids]));
+    for (const [key, id] of description.publicSlots) {
+      this.#publicSlots = this.#publicSlots.set(key, id);
+      this.#publicReferences = this.#publicReferences.set(id, (this.#publicReferences.get(id) ?? 0) + 1);
+    }
+    for (const [key, ids] of description.contributions ?? []) {
+      const snapshot = Object.freeze([...ids]);
+      this.#contributions = this.#contributions.set(key, { values: snapshot });
+      for (const id of snapshot) this.#contributed = this.#contributed.set(id, true);
+    }
   }
 
-  /** Reuse encapsulated snapshots; only the lookup tables need new ownership. */
+  /** Share only storage roots. Caches never retain ancestor wrappers or old arrays. */
   private copy(): BindingGraph {
     const graph = new BindingGraph();
-    for (const [id, binding] of this.#bindings) graph.#bindings.set(id, binding);
-    for (const [id, registration] of this.#registrations) graph.#registrations.set(id, registration);
-    for (const [key, id] of this.#publicSlots) graph.#publicSlots.set(key, id);
-    for (const [key, ids] of this.#contributions) graph.#contributions.set(key, ids);
+    graph.#bindings = this.#bindings;
+    graph.#publicSlots = this.#publicSlots;
+    graph.#publicReferences = this.#publicReferences;
+    graph.#lexicalUsers = this.#lexicalUsers;
+    graph.#privateReferences = this.#privateReferences;
+    graph.#contributed = this.#contributed;
+    graph.#obsolete = this.#obsolete;
+    graph.#contributions = this.#contributions;
     return graph;
+  }
+
+  private entry(id: BindingId): BindingEntry | undefined {
+    const entry = this.#bindings.get(id);
+    if (entry) {
+      this.#bindingCache.set(id, entry.description);
+      this.#registrationCache.set(id, entry.normalized);
+    }
+    return entry;
+  }
+
+  private slot(key: BindingKey): BindingId | undefined {
+    const id = this.#publicSlots.get(key);
+    if (id !== undefined) this.#publicCache.set(key, id);
+    return id;
   }
 
   private addBinding(label: string, registration: Registration): BindingId {
     const id = Symbol(label);
-    this.#bindings.set(id, Object.freeze({ id, label, registration, localNames: new Map() }));
-    this.#registrations.set(id, Object.freeze(normalize(registration)));
+    this.#bindings = this.#bindings.set(id, {
+      description: Object.freeze({ id, label, registration, localNames: emptyNames }),
+      normalized: Object.freeze(normalize(registration)),
+    });
     return id;
   }
 
   contributionBindings(key: symbol): readonly BindingId[] {
-    return this.#contributions.get(key) ?? Object.freeze([]);
+    let ids = this.#contributionCache.get(key);
+    if (!ids) {
+      const sequence = this.#contributions.get(key);
+      if (!sequence) return emptyContributions;
+      ids = materialize(sequence);
+      this.#contributionCache.set(key, ids);
+    }
+    return ids;
   }
 
   withContribution(key: symbol, registration: Registration): BindingGraph {
     const graph = this.copy();
     const id = graph.addBinding(`contribution:${String(key)}`, registration);
-    graph.#contributions.set(key, Object.freeze([...this.contributionBindings(key), id]));
+    graph.#contributions = graph.#contributions.set(key, append(graph.#contributions.get(key), { values: [id] }));
+    graph.#contributed = graph.#contributed.set(id, true);
     return graph;
   }
 
-  hasPublic(key: BindingKey): boolean {
-    return this.#publicSlots.has(key);
-  }
-
-  hasBinding(id: BindingId): boolean {
-    return this.#bindings.has(id);
-  }
+  hasPublic(key: BindingKey): boolean { return this.#publicCache.has(key) || this.#publicSlots.has(key); }
+  hasBinding(id: BindingId): boolean { return this.#bindings.has(id); }
 
   /** Immutable graphs need explicit-mode validation only once; configured forks are O(1). */
   preflight(context: RuntimeContext): void {
     if (context.isNativePromise || this.#explicitlyClassified) return;
-    for (const description of this.#registrations.values()) {
+    for (const [, { normalized: description }] of this.#bindings) {
       requireClassificationCapability([description.acquisitionMode, ...description.operations.flatMap(operation =>
         'acquisitionMode' in operation ? [operation.acquisitionMode] : [])], context);
     }
@@ -104,14 +168,20 @@ export class BindingGraph {
   }
 
   publicBinding(key: BindingKey): BindingId {
-    const id = this.#publicSlots.get(key);
+    return this.#publicCache.get(key) ?? this.requirePublicBinding(key);
+  }
+
+  private requirePublicBinding(key: BindingKey): BindingId {
+    const id = this.slot(key);
     if (id === undefined) throw libraryError('DI_BAG_MISSING_REGISTRATION', `Service ${JSON.stringify(String(key))} is not registered.`, { operation: 'resolve', key });
     return id;
   }
 
   findDependency(from: BindingId, localName: BindingKey): BindingId | undefined {
-    const ref = this.#bindings.get(from)?.localNames.get(localName);
-    return ref?.kind === 'private' ? ref.id : this.#publicSlots.get(ref?.key ?? localName);
+    const ref = (this.#bindingCache.get(from) ?? this.entry(from)?.description)?.localNames.get(localName);
+    if (ref?.kind === 'private') return ref.id;
+    const key = ref?.key ?? localName;
+    return this.#publicCache.get(key) ?? this.slot(key);
   }
 
   dependency(from: BindingId, localName: BindingKey): BindingId {
@@ -121,49 +191,94 @@ export class BindingGraph {
   }
 
   registration(id: BindingId): Normalized {
-    const registration = this.#registrations.get(id);
+    return this.#registrationCache.get(id) ?? this.requireRegistration(id);
+  }
+
+  private requireRegistration(id: BindingId): Normalized {
+    const registration = this.entry(id)?.normalized;
     if (!registration) throw libraryError('DI_BAG_MISSING_REGISTRATION', `Service ${JSON.stringify(this.label(id))} is not registered.`, { bindingId: id });
     return registration;
   }
 
-  label(id: BindingId): string {
-    return this.#bindings.get(id)?.label ?? String(id);
-  }
+  label(id: BindingId): string { return (this.#bindingCache.get(id) ?? this.entry(id)?.description)?.label ?? String(id); }
 
-  /** Replacing a public slot preserves existing bindings and their lexical refs. */
   withPublicRegistrations(registrations: Registrations): BindingGraph {
     return this.withPublicBindings(Object.keys(registrations).map(key => [key, registrations[key]!]));
   }
 
-  /** Replace ordered string or symbol slots in one immutable graph reconstruction. */
+  /** Replace ordered slots and prune only unreferenced public replacement history. */
   withPublicBindings(entries: readonly (readonly [BindingKey, Registration])[]): BindingGraph {
     if (entries.length === 0) return this;
     const graph = this.copy();
     for (const [key, registration] of entries) {
+      const previous = graph.#publicSlots.get(key);
       const id = graph.addBinding(String(key), registration);
-      graph.#publicSlots.set(key, id);
+      graph.#publicSlots = graph.#publicSlots.set(key, id);
+      graph.#publicReferences = graph.#publicReferences.set(id, 1);
+      if (previous !== undefined) {
+        const remaining = (graph.#publicReferences.get(previous) ?? 1) - 1;
+        if (remaining) graph.#publicReferences = graph.#publicReferences.set(previous, remaining);
+        else {
+          graph.#publicReferences = graph.#publicReferences.delete(previous);
+          graph.#obsolete = graph.#obsolete.set(previous, true);
+          graph.prune([previous]);
+        }
+      }
     }
     return graph;
   }
 
-  /** Replace one public slot, preserving lexical references and symbol identity. */
   withPublicBinding(key: BindingKey, registration: Registration): BindingGraph {
     return this.withPublicBindings([[key, registration]]);
+  }
+
+  private releaseLexical(entry: BindingEntry, pending: BindingId[]): void {
+    const lexical = entry.lexical;
+    if (!lexical) return;
+    const remaining = this.#lexicalUsers.get(lexical.id)! - 1;
+    if (remaining) { this.#lexicalUsers = this.#lexicalUsers.set(lexical.id, remaining); return; }
+    this.#lexicalUsers = this.#lexicalUsers.delete(lexical.id);
+    for (const id of lexical.privateIds) {
+      const count = this.#privateReferences.get(id)! - 1;
+      if (count) this.#privateReferences = this.#privateReferences.set(id, count);
+      else { this.#privateReferences = this.#privateReferences.delete(id); pending.push(id); }
+    }
+  }
+
+  /** No recursion or graph-wide scan, even when losing a snapshot unlocks a chain. */
+  private prune(pending: BindingId[]): void {
+    while (pending.length) {
+      const id = pending.pop()!;
+      if (!this.#obsolete.has(id) || this.#publicReferences.has(id) || this.#privateReferences.has(id) || this.#contributed.has(id)) continue;
+      const entry = this.#bindings.get(id);
+      this.#bindings = this.#bindings.delete(id);
+      this.#obsolete = this.#obsolete.delete(id);
+      if (entry) this.releaseLexical(entry, pending);
+    }
   }
 
   /** Install disjoint public slots atomically, retaining lexical private refs. */
   withInstallation(description: GraphDescription): BindingGraph {
     for (const key of description.publicSlots.keys()) {
-      if (this.#publicSlots.has(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'installModule', key });
+      if (this.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'installModule', key });
     }
     const installation = new BindingGraph(description);
     const graph = this.copy();
-    for (const [id, binding] of installation.#bindings) graph.#bindings.set(id, binding);
-    for (const [id, registration] of installation.#registrations) graph.#registrations.set(id, registration);
-    for (const [key, id] of installation.#publicSlots) graph.#publicSlots.set(key, id);
-    for (const [key, ids] of installation.#contributions) {
-      graph.#contributions.set(key, Object.freeze([...this.contributionBindings(key), ...ids]));
+    const pending: BindingId[] = [];
+    // Publish all incoming protection before releasing overwritten descriptions.
+    for (const [id, count] of installation.#lexicalUsers) graph.#lexicalUsers = graph.#lexicalUsers.set(id, count);
+    for (const [id, count] of installation.#privateReferences) graph.#privateReferences = graph.#privateReferences.set(id, (graph.#privateReferences.get(id) ?? 0) + count);
+    for (const [id] of installation.#contributed) graph.#contributed = graph.#contributed.set(id, true);
+    for (const [key, id] of installation.#publicSlots) graph.#publicSlots = graph.#publicSlots.set(key, id);
+    for (const [id, count] of installation.#publicReferences) graph.#publicReferences = graph.#publicReferences.set(id, (graph.#publicReferences.get(id) ?? 0) + count);
+    for (const [id, entry] of installation.#bindings) {
+      const previous = graph.#bindings.get(id);
+      if (previous) graph.releaseLexical(previous, pending);
+      graph.#bindings = graph.#bindings.set(id, entry);
+      graph.#obsolete = graph.#obsolete.delete(id);
     }
+    for (const [key, sequence] of installation.#contributions) graph.#contributions = graph.#contributions.set(key, append(graph.#contributions.get(key), sequence));
+    graph.prune(pending);
     return graph;
   }
 }

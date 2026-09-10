@@ -1,0 +1,34 @@
+bun test v1.4.2 (744846f84)
+
+tests/native-process.test.ts:
+(pass) supervisor terminates and reaps a live child on monitor EIO [6.74ms]
+(pass) supervisor terminates and reaps a live child on monitor EACCES [0.82ms]
+(pass) supervisor terminates and reaps a live child on monitor ENOENT [1.28ms]
+(pass) supervisor terminates and reaps a live child on monitor ESRCH [0.56ms]
+(pass) supervisor terminates and reaps a live child on monitor missing VmRSS [21.04ms]
+(pass) supervisor terminates and reaps a live child on monitor malformed VmRSS [21.43ms]
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [75.93ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [76.94ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [183.57ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [189.10ms]
+(pass) supervisor preserves exit 0 while the kernel releases memory before zombie state [75.73ms]
+(pass) supervisor preserves exit 2 while the kernel releases memory before zombie state [64.70ms]
+(pass) supervisor fails closed when the thread leader exits but a worker still runs [43.21ms]
+(pass) supervisor confirms ESRCH process disappearance before its exit callback runs [76.04ms]
+(pass) supervisor drains streams and awaits pending sample cleanup for missing VmRSS during exit [88.89ms]
+(pass) supervisor drains streams and awaits pending sample cleanup for ENOENT after exit [85.34ms]
+(pass) supervisor drains streams and awaits pending sample cleanup for ESRCH after exit [92.85ms]
+(pass) monitor termination waits for inherited stdout and stderr to close [57.82ms]
+(pass) supervisor retains clean child streams and exit status [68.12ms]
+(pass) failed spawn is explicit evidence [0.92ms]
+(pass) supervisor terminates and reaps timeout child [21.16ms]
+(pass) supervisor terminates and reaps memory child [21.25ms]
+(pass) supervisor terminates and reaps output child [30.03ms]
+(pass) invalid limits and unsupported platforms fail before spawning [0.21ms]
+(pass) output overflow remains byte bounded when UTF8 is cut within a character [22.14ms]
+(pass) kernel exit proof parses complete stat records with unescaped task names and strict flags [0.19ms]
+
+ 26 pass
+ 0 fail
+ 145 expect() calls
+Ran 26 tests across 1 file. [1367.00ms]

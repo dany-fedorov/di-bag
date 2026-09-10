@@ -172,7 +172,7 @@ function materializeVerifiedArchives(archives: ReadonlyMap<string, VerifiedArchi
 }
 async function runChecked(argv: readonly string[], cwd: string): Promise<string> {
   const result = await supervise(argv[0]!, argv.slice(1), cwd, RELEASE_COMMAND_LIMITS);
-  if (result.status !== 0 || result.signal !== null || result.terminationReason !== undefined || result.stderr !== '') throw new Error(`command failed: ${JSON.stringify({ argv, status: result.status, signal: result.signal, terminationReason: result.terminationReason, stderr: result.stderr })}`);
+  if (result.status !== 0 || result.signal !== null || result.terminationReason !== undefined || result.stderr !== '') throw new Error(`command failed: ${JSON.stringify({ argv, status: result.status, signal: result.signal, terminationReason: result.terminationReason, error: result.error, stderr: result.stderr })}`);
   return result.stdout;
 }
 function writeConsumerManifest(directory: string): void { mkdirSync(directory, { recursive: true }); writeFileSync(resolve(directory, 'package.json'), `${JSON.stringify({ private: true })}\n`, { flag: 'wx' }); }

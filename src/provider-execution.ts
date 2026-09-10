@@ -13,7 +13,8 @@ interface AcceptedStage {
   state: 'accepted' | 'disposing' | 'disposed';
 }
 interface ValueStage {
-  readonly exposed: unknown;
+  exposed: unknown;
+  consumed: boolean;
   state: 'pending' | 'ready' | 'failed';
   value: unknown;
   error: unknown;
@@ -23,6 +24,7 @@ interface ValueStage {
 interface ExecutionEvents {
   accepted(): void;
   settled(): void;
+  drained(): void;
   invoking(): number;
   cleanupStarted?(): void;
   cleanupCompleted?(outcome: 'success' | 'failure'): void;
@@ -30,6 +32,28 @@ interface ExecutionEvents {
 }
 
 const observePromise = Promise.prototype.then<void, void>;
+
+const emptyFrames: AcquisitionMetadataPresence<readonly unknown[]> = Object.freeze([]);
+const emptyWork: readonly Promise<void>[] = Object.freeze([]);
+
+/** Fully drained borrowed attempts keep frames, but no execution closures or payloads. */
+export class CompletedExecution {
+  readonly state = 'ready';
+  readonly sourceInFlight = false;
+  readonly hasOwnership = false;
+  readonly error = undefined;
+  readonly work = emptyWork;
+  constructor(private frames: AcquisitionMetadataPresence<readonly unknown[]>) {}
+  inspectFrames(): AcquisitionMetadataPresence<readonly unknown[]> { return Object.freeze([...this.frames]); }
+  async ready(): Promise<void> {}
+  async dispose(): Promise<void> {}
+  release(): void {
+    // Frame-bearing records belong to one attempt; the shared empty record is
+    // never mutated. Inspection arrays already returned to callers stay intact.
+    if (this.frames.length) this.frames = emptyFrames;
+  }
+}
+const completedWithoutFrames = new CompletedExecution(emptyFrames);
 
 /** One source invocation and its ordered projections/ownership, local to an attempt. */
 export class ProviderExecution {
@@ -62,6 +86,26 @@ export class ProviderExecution {
     if (result.state === 'failed') throw result.error;
   }
 
+  compact(): ProviderExecution | CompletedExecution {
+    if (this.state !== 'ready' || this.pending.size || this.hasOwnership) return this;
+    return this.frames.length ? new CompletedExecution(this.inspectFrames()) : completedWithoutFrames;
+  }
+
+  /** Classify/own only after the direct operation-free source call has returned. */
+  publishSource(value: unknown, description: RegistrationDescription): void {
+    if (description.acquisitionMode === 'raw') {
+      this.sourceInFlight = false;
+      this.result = { exposed: undefined, consumed: true, state: 'ready', value: undefined, error: undefined, owners: [] };
+      if (description.dispose) this.accept(0, value, description.dispose);
+      return;
+    }
+    const stage = this.capture(() => value, true, description.acquisitionMode);
+    if (description.dispose) this.own(stage, 0, description.dispose);
+    this.result = stage;
+    this.consume(stage);
+    if (stage.state === 'failed') throw stage.error;
+  }
+
   evaluate(description: RegistrationDescription, deps: unknown, acquisitionContext: () => AcquisitionContext): unknown {
     const { create, dispose } = description;
     let current = this.capture(() => description.contextual
@@ -70,6 +114,7 @@ export class ProviderExecution {
     let nextFrame = 0;
     if (dispose) this.own(current, 0, dispose);
     description.operations.forEach((operation, offset) => {
+      const inputStage = current;
       const index = offset + 1;
       if (operation.kind === 'owned') {
         this.own(current, index, operation.dispose);
@@ -104,16 +149,27 @@ export class ProviderExecution {
           current = this.capture(() => apply(input.exposed), false, operation.acquisitionMode);
         }
       }
+      if (current !== inputStage) this.consume(inputStage);
     });
     this.result = current;
     if (current.state === 'failed') throw current.error;
-    return current.exposed;
+    const exposed = current.exposed;
+    this.consume(current);
+    return exposed;
+  }
+
+  private consume(stage: ValueStage): void {
+    // Projections have captured their input and ownership has its own value.
+    // Pending callbacks still accept ownership, but must not retain fulfillment.
+    stage.consumed = true;
+    stage.exposed = undefined;
+    stage.value = undefined;
   }
 
   private capture(create: () => unknown, source: boolean, mode: AcquisitionMode): ValueStage {
     try {
       const exposed = create();
-      const stage: ValueStage = { exposed, state: 'ready', value: exposed, error: undefined, owners: [] };
+      const stage: ValueStage = { exposed, consumed: false, state: 'ready', value: exposed, error: undefined, owners: [] };
       let native = mode === 'nativePromise';
       if (mode === 'auto') {
         const { isNativePromise } = this.context;
@@ -134,12 +190,14 @@ export class ProviderExecution {
         // participates in draining. No structural assimilation or error fallback.
         observePromise.call(exposed, value => {
           stage.state = 'ready';
-          stage.value = value;
+          if (!stage.consumed) stage.value = value;
           for (const owner of stage.owners) this.accept(owner.index, value, owner.dispose);
+          stage.owners.length = 0;
           finish();
         }, error => {
           stage.state = 'failed';
           stage.error = error;
+          stage.owners.length = 0;
           finish();
         });
         stage.state = 'pending';
@@ -151,6 +209,7 @@ export class ProviderExecution {
           this.pending.delete(barrier);
           settled();
           if (this.result === stage) this.events.settled();
+          if (!this.pending.size) this.events.drained();
         };
       } else if (source) {
         this.sourceInFlight = false;
@@ -158,7 +217,7 @@ export class ProviderExecution {
       return stage;
     } catch (error) {
       if (source) this.sourceInFlight = false;
-      return { exposed: undefined, state: 'failed', value: undefined, error, owners: [] };
+      return { exposed: undefined, consumed: true, state: 'failed', value: undefined, error, owners: [] };
     }
   }
 

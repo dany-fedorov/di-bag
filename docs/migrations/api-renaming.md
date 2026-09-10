@@ -149,7 +149,7 @@ are required. Older facades, builders, and bags retain their configuration.
 | `acquisition` option | `acquisitionMode` |
 | Acquisition literal `'native'` | `'nativePromise'` |
 | Root lifetime `captureScoped` | `allowScopedDependencies` |
-| Startup `concurrency` | `startupOrder` (`parallel` or `sequential`) |
+| Startup `concurrency` | `startupOrder` (`parallel`, `sequential`, or a positive safe integer) |
 | Registration snapshot/event `metadata` | `registrationMetadata` |
 | Acquisition snapshot `metadata`, event `frames` | `acquisitionMetadata` |
 | Registration snapshot `alias` | `aliasTarget` |

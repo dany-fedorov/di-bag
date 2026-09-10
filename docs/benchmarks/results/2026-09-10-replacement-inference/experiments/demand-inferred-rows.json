@@ -1,0 +1,31 @@
+[
+  {
+    "variant": "demand-index-inferred-PROTOTYPE",
+    "status": 0,
+    "seconds": 1.9123869410250336,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/benchmark-types.ts",
+      "--worker",
+      "100",
+      "replacement",
+      "valid"
+    ],
+    "result": {
+      "count": 100,
+      "form": "replacement",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "milliseconds": 1637,
+      "maxRssMiB": 417,
+      "diagnostics": [],
+      "diagnosticCount": 0,
+      "codes": [],
+      "instantiations": 1547724
+    }
+  }
+]

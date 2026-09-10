@@ -1,0 +1,1197 @@
+[
+  {
+    "build": "final-classic",
+    "scenario": "build-incremental",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 1.635200999999995,
+      "bulkMs": 0.44113000000000113,
+      "retainedHeapBytes": 159984
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "build-incremental",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 11.356752999999998,
+      "bulkMs": 1.9496490000000009,
+      "retainedHeapBytes": 931176
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "build-incremental",
+    "count": 5000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 26.446602999999996,
+      "bulkMs": 10.423905000000005,
+      "retainedHeapBytes": 3390776
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "close-deep",
+    "count": 1000,
+    "rows": 2,
+    "accepted": 2,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 3.921903999999998,
+      "disposed": 1000.0,
+      "disposedAfterSecondClose": 1000.0
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "close-deep",
+    "count": 10000,
+    "rows": 2,
+    "accepted": 2,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 26.114183999999995,
+      "disposed": 10000.0,
+      "disposedAfterSecondClose": 10000.0
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "close-flat",
+    "count": 1000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 2.5223859999999974
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "close-flat",
+    "count": 5000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 9.194763000000002
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "close-flat",
+    "count": 10000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 19.463835000000003
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "cold-chain",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 1.5823219999999978,
+      "created": 100,
+      "value": 100
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "cold-chain",
+    "count": 500,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 9.384719000000004,
+      "created": 500,
+      "value": 500
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "cold-chain",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 11.450167999999998,
+      "created": 1000,
+      "value": 1000
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "cold-chain",
+    "count": 2000,
+    "rows": 1,
+    "accepted": 0,
+    "medianOfAcceptedOnly": {},
+    "failures": [
+      {
+        "build": "final-classic",
+        "scenario": "cold-chain",
+        "count": 2000,
+        "sample": 1,
+        "processStatus": 0,
+        "timeout": false,
+        "observation": {
+          "scenario": "cold-chain",
+          "count": 2000,
+          "sample": 1,
+          "node": "v24.20.0",
+          "error": {
+            "name": "RangeError",
+            "message": "Maximum call stack size exceeded",
+            "stack": [
+              "RangeError: Maximum call stack size exceeded",
+              "    at Acquisitions.retire (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/classic/acquisition.js:316:32)",
+              "    at Acquisitions.resolveBinding (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/classic/acquisition.js:274:18)",
+              "    at read (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/classic/acquisition.js:234:77)",
+              "    at Object.get (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/classic/acquisition.js:245:24)",
+              "    at file:///tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/probe.mjs:89:129"
+            ]
+          },
+          "elapsedMs": 19.210237,
+          "created": 1148
+        },
+        "accepted": false
+      }
+    ]
+  },
+  {
+    "build": "final-classic",
+    "scenario": "module-install",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "installMs": 1.3827020000000019,
+      "retainedHeapBytes": 144976
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "module-install",
+    "count": 500,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "installMs": 3.844935999999997,
+      "retainedHeapBytes": 311968
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "module-install",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "installMs": 6.203743000000003,
+      "retainedHeapBytes": 489088
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "replace-history",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 2.022166999999996,
+      "retainedHeapBytes": 121720
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "replace-history",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 7.572451999999998,
+      "retainedHeapBytes": 277048
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "replace-history",
+    "count": 5000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 21.053043000000002,
+      "retainedHeapBytes": 397968
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "scope-override",
+    "count": 100,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "plainMs": 0.47530599999999623,
+      "overrideMs": 1.787586999999995
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "scope-override",
+    "count": 1000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "plainMs": 0.407274000000001,
+      "overrideMs": 1.1935860000000034
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "scope-override",
+    "count": 5000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "plainMs": 0.41523999999999717,
+      "overrideMs": 1.6556329999999946
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "transient-memory",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "retainedHeapBytes": 408208,
+      "retainedAcquisitions": 1000,
+      "closeMs": 0.9545650000000023,
+      "afterCloseHeapBytes": 126384
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "transient-memory",
+    "count": 5000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "retainedHeapBytes": 2055192,
+      "retainedAcquisitions": 5000,
+      "closeMs": 1.9015210000000025,
+      "afterCloseHeapBytes": 160176
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "transient-memory",
+    "count": 10000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "retainedHeapBytes": 3953968,
+      "retainedAcquisitions": 10000,
+      "closeMs": 3.5299210000000016,
+      "afterCloseHeapBytes": 161064
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "warm-proxy",
+    "count": 10,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "proxyMs": 3.496584999999996,
+      "directMs": 1.6291249999999948
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "warm-proxy",
+    "count": 100,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "proxyMs": 3.028967999999999,
+      "directMs": 1.5717619999999997
+    },
+    "failures": []
+  },
+  {
+    "build": "final-classic",
+    "scenario": "warm-proxy",
+    "count": 1000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "proxyMs": 2.6668710000000004,
+      "directMs": 1.5873100000000022
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "build-incremental",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 1.6698419999999956,
+      "bulkMs": 0.4353449999999981,
+      "retainedHeapBytes": 175520
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "build-incremental",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 11.346240000000002,
+      "bulkMs": 2.0798130000000015,
+      "retainedHeapBytes": 931192
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "build-incremental",
+    "count": 5000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 24.507853000000004,
+      "bulkMs": 9.610314000000002,
+      "retainedHeapBytes": 3380952
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "close-deep",
+    "count": 1000,
+    "rows": 2,
+    "accepted": 2,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 4.022176999999999,
+      "disposed": 1000.0,
+      "disposedAfterSecondClose": 1000.0
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "close-deep",
+    "count": 10000,
+    "rows": 2,
+    "accepted": 2,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 24.601704000000012,
+      "disposed": 10000.0,
+      "disposedAfterSecondClose": 10000.0
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "close-flat",
+    "count": 1000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 2.5965749999999943
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "close-flat",
+    "count": 5000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 8.878266000000004
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "close-flat",
+    "count": 10000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 17.42394399999999
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "cold-chain",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 1.6056469999999976,
+      "created": 100,
+      "value": 100
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "cold-chain",
+    "count": 500,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 6.140526999999999,
+      "created": 500,
+      "value": 500
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "cold-chain",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 10.671828999999995,
+      "created": 1000,
+      "value": 1000
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "cold-chain",
+    "count": 2000,
+    "rows": 1,
+    "accepted": 0,
+    "medianOfAcceptedOnly": {},
+    "failures": [
+      {
+        "build": "final-native",
+        "scenario": "cold-chain",
+        "count": 2000,
+        "sample": 1,
+        "processStatus": 0,
+        "timeout": false,
+        "observation": {
+          "scenario": "cold-chain",
+          "count": 2000,
+          "sample": 1,
+          "node": "v24.20.0",
+          "error": {
+            "name": "RangeError",
+            "message": "Maximum call stack size exceeded",
+            "stack": [
+              "RangeError: Maximum call stack size exceeded",
+              "    at Acquisitions.retire (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/native/acquisition.js:316:32)",
+              "    at Acquisitions.resolveBinding (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/native/acquisition.js:274:18)",
+              "    at read (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/native/acquisition.js:234:77)",
+              "    at Object.get (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/native/acquisition.js:245:24)",
+              "    at file:///tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/probe.mjs:89:129"
+            ]
+          },
+          "elapsedMs": 15.696748999999997,
+          "created": 1148
+        },
+        "accepted": false
+      }
+    ]
+  },
+  {
+    "build": "final-native",
+    "scenario": "module-install",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "installMs": 1.3938699999999997,
+      "retainedHeapBytes": 145792
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "module-install",
+    "count": 500,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "installMs": 3.596899999999998,
+      "retainedHeapBytes": 310624
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "module-install",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "installMs": 5.562654000000002,
+      "retainedHeapBytes": 492024
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "replace-history",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 1.9248720000000006,
+      "retainedHeapBytes": 115256
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "replace-history",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 7.4014919999999975,
+      "retainedHeapBytes": 294304
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "replace-history",
+    "count": 5000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 18.529628000000002,
+      "retainedHeapBytes": 399680
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "scope-override",
+    "count": 100,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "plainMs": 0.46496300000000446,
+      "overrideMs": 1.8394169999999974
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "scope-override",
+    "count": 1000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "plainMs": 0.5821880000000021,
+      "overrideMs": 1.7002630000000067
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "scope-override",
+    "count": 5000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "plainMs": 0.4033990000000003,
+      "overrideMs": 1.5338789999999989
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "transient-memory",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "retainedHeapBytes": 411200,
+      "retainedAcquisitions": 1000,
+      "closeMs": 0.877603999999998,
+      "afterCloseHeapBytes": 158152
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "transient-memory",
+    "count": 5000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "retainedHeapBytes": 2055192,
+      "retainedAcquisitions": 5000,
+      "closeMs": 1.8541229999999942,
+      "afterCloseHeapBytes": 160176
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "transient-memory",
+    "count": 10000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "retainedHeapBytes": 3954336,
+      "retainedAcquisitions": 10000,
+      "closeMs": 3.490796000000003,
+      "afterCloseHeapBytes": 161400
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "warm-proxy",
+    "count": 10,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "proxyMs": 3.785242999999994,
+      "directMs": 1.4754429999999985
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "warm-proxy",
+    "count": 100,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "proxyMs": 3.3808930000000004,
+      "directMs": 1.4941750000000056
+    },
+    "failures": []
+  },
+  {
+    "build": "final-native",
+    "scenario": "warm-proxy",
+    "count": 1000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "proxyMs": 2.6252990000000054,
+      "directMs": 1.4549030000000016
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "build-incremental",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 7.923394000000002,
+      "bulkMs": 0.18033199999999994,
+      "retainedHeapBytes": 128696
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "build-incremental",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 200.104861,
+      "bulkMs": 1.0505330000000015,
+      "retainedHeapBytes": 645280
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "build-incremental",
+    "count": 5000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 5416.390463000001,
+      "bulkMs": 5.398148999999648,
+      "retainedHeapBytes": 2883456
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "close-deep",
+    "count": 1000,
+    "rows": 2,
+    "accepted": 2,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 10.407765000000001,
+      "disposed": 1000.0,
+      "disposedAfterSecondClose": 1000.0
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "close-deep",
+    "count": 10000,
+    "rows": 2,
+    "accepted": 0,
+    "medianOfAcceptedOnly": {},
+    "failures": [
+      {
+        "build": "original-classic",
+        "scenario": "close-deep",
+        "count": 10000,
+        "sample": 1,
+        "processStatus": 0,
+        "timeout": false,
+        "observation": {
+          "scenario": "close-deep",
+          "count": 10000,
+          "sample": 1,
+          "node": "v24.20.0",
+          "error": {
+            "name": "AggregateError",
+            "message": "Failed to close 1 runtime operation(s)",
+            "stack": [
+              "AggregateError: Failed to close 1 runtime operation(s)",
+              "    at Runtime.finishClose (/tmp/di-bag-performance-original-main/dist/runtime.js:235:19)"
+            ],
+            "errors": [
+              {
+                "name": "RangeError",
+                "message": "Maximum call stack size exceeded",
+                "stack": [
+                  "RangeError: Maximum call stack size exceeded",
+                  "    at Set.has (<anonymous>)",
+                  "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:307:29)",
+                  "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)",
+                  "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)",
+                  "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)"
+                ]
+              }
+            ]
+          },
+          "elapsedMs": 936.3560180000001,
+          "disposed": 0,
+          "expectedDisposals": 10000,
+          "afterCloseAcquisitions": 0,
+          "disposedAfterSecondClose": 0,
+          "resolveAfterClose": "bag is closed"
+        },
+        "accepted": false
+      },
+      {
+        "build": "original-classic",
+        "scenario": "close-deep",
+        "count": 10000,
+        "sample": 2,
+        "processStatus": 0,
+        "timeout": false,
+        "observation": {
+          "scenario": "close-deep",
+          "count": 10000,
+          "sample": 2,
+          "node": "v24.20.0",
+          "error": {
+            "name": "AggregateError",
+            "message": "Failed to close 1 runtime operation(s)",
+            "stack": [
+              "AggregateError: Failed to close 1 runtime operation(s)",
+              "    at Runtime.finishClose (/tmp/di-bag-performance-original-main/dist/runtime.js:235:19)"
+            ],
+            "errors": [
+              {
+                "name": "RangeError",
+                "message": "Maximum call stack size exceeded",
+                "stack": [
+                  "RangeError: Maximum call stack size exceeded",
+                  "    at Set.has (<anonymous>)",
+                  "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:307:29)",
+                  "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)",
+                  "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)",
+                  "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)"
+                ]
+              }
+            ]
+          },
+          "elapsedMs": 924.127083,
+          "disposed": 0,
+          "expectedDisposals": 10000,
+          "afterCloseAcquisitions": 0,
+          "disposedAfterSecondClose": 0,
+          "resolveAfterClose": "bag is closed"
+        },
+        "accepted": false
+      }
+    ]
+  },
+  {
+    "build": "original-classic",
+    "scenario": "close-flat",
+    "count": 1000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 9.686968
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "close-flat",
+    "count": 5000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 121.719536
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "close-flat",
+    "count": 10000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 508.662192
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "cold-chain",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 2.9887960000000007,
+      "created": 100,
+      "value": 100
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "cold-chain",
+    "count": 500,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "elapsedMs": 28.099663,
+      "created": 500,
+      "value": 500
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "cold-chain",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 0,
+    "medianOfAcceptedOnly": {},
+    "failures": [
+      {
+        "build": "original-classic",
+        "scenario": "cold-chain",
+        "count": 1000,
+        "sample": 1,
+        "processStatus": 0,
+        "timeout": false,
+        "observation": {
+          "scenario": "cold-chain",
+          "count": 1000,
+          "sample": 1,
+          "node": "v24.20.0",
+          "error": {
+            "name": "RangeError",
+            "message": "Maximum call stack size exceeded",
+            "stack": [
+              "RangeError: Maximum call stack size exceeded",
+              "    at Acquisitions.resolveBinding (/tmp/di-bag-performance-original-main/dist/acquisition.js:248:25)",
+              "    at read (/tmp/di-bag-performance-original-main/dist/acquisition.js:218:60)",
+              "    at Object.get (/tmp/di-bag-performance-original-main/dist/acquisition.js:229:24)",
+              "    at file:///tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/probe.mjs:89:129",
+              "    at /tmp/di-bag-performance-original-main/dist/provider-execution.js:42:15"
+            ]
+          },
+          "elapsedMs": 53.876839000000004,
+          "created": 758
+        },
+        "accepted": false
+      }
+    ]
+  },
+  {
+    "build": "original-classic",
+    "scenario": "cold-chain",
+    "count": 2000,
+    "rows": 1,
+    "accepted": 0,
+    "medianOfAcceptedOnly": {},
+    "failures": [
+      {
+        "build": "original-classic",
+        "scenario": "cold-chain",
+        "count": 2000,
+        "sample": 1,
+        "processStatus": 0,
+        "timeout": false,
+        "observation": {
+          "scenario": "cold-chain",
+          "count": 2000,
+          "sample": 1,
+          "node": "v24.20.0",
+          "error": {
+            "name": "RangeError",
+            "message": "Maximum call stack size exceeded",
+            "stack": [
+              "RangeError: Maximum call stack size exceeded",
+              "    at Acquisitions.resolveBinding (/tmp/di-bag-performance-original-main/dist/acquisition.js:248:25)",
+              "    at read (/tmp/di-bag-performance-original-main/dist/acquisition.js:218:60)",
+              "    at Object.get (/tmp/di-bag-performance-original-main/dist/acquisition.js:229:24)",
+              "    at file:///tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/probe.mjs:89:129",
+              "    at /tmp/di-bag-performance-original-main/dist/provider-execution.js:42:15"
+            ]
+          },
+          "elapsedMs": 53.58405200000001,
+          "created": 758
+        },
+        "accepted": false
+      }
+    ]
+  },
+  {
+    "build": "original-classic",
+    "scenario": "module-install",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "installMs": 3.2023299999999963,
+      "retainedHeapBytes": 838144
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "module-install",
+    "count": 500,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "installMs": 54.720334,
+      "retainedHeapBytes": 17376832
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "module-install",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "installMs": 195.194196,
+      "retainedHeapBytes": 69028800
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "replace-history",
+    "count": 100,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 4.615920000000003,
+      "retainedHeapBytes": 165472
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "replace-history",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 166.69561499999998,
+      "retainedHeapBytes": 975208
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "replace-history",
+    "count": 5000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "incrementalMs": 4024.708384,
+      "retainedHeapBytes": 4386920
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "scope-override",
+    "count": 100,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "plainMs": 0.6335599999999957,
+      "overrideMs": 6.250294000000004
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "scope-override",
+    "count": 1000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "plainMs": 0.6464769999999973,
+      "overrideMs": 43.234851000000006
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "scope-override",
+    "count": 5000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "plainMs": 0.6601440000000025,
+      "overrideMs": 279.974315
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "transient-memory",
+    "count": 1000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "retainedHeapBytes": 3583904,
+      "retainedAcquisitions": 1000,
+      "closeMs": 7.1004039999999975,
+      "afterCloseHeapBytes": 158808
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "transient-memory",
+    "count": 5000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "retainedHeapBytes": 17839480,
+      "retainedAcquisitions": 5000,
+      "closeMs": 148.011277,
+      "afterCloseHeapBytes": 192784
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "transient-memory",
+    "count": 10000,
+    "rows": 1,
+    "accepted": 1,
+    "medianOfAcceptedOnly": {
+      "retainedHeapBytes": 35554024,
+      "retainedAcquisitions": 10000,
+      "closeMs": 657.460056,
+      "afterCloseHeapBytes": 193960
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "warm-proxy",
+    "count": 10,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "proxyMs": 9.268006999999997,
+      "directMs": 0.9344520000000003
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "warm-proxy",
+    "count": 100,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "proxyMs": 53.444828,
+      "directMs": 0.9433260000000132
+    },
+    "failures": []
+  },
+  {
+    "build": "original-classic",
+    "scenario": "warm-proxy",
+    "count": 1000,
+    "rows": 3,
+    "accepted": 3,
+    "medianOfAcceptedOnly": {
+      "proxyMs": 621.056576,
+      "directMs": 0.689534999999978
+    },
+    "failures": []
+  }
+]

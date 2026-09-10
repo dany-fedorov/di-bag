@@ -58,3 +58,25 @@ for (const item of [
   expect(row.status).toBe(item.scenario === 'valid' ? 0 : 1);
   expect(row.peakObservedRssMiB).toBeGreaterThan(0);
 }, 65000);
+
+test('native compiler completes 1000 dependent token bindings within the original limits', async () => {
+  const row = await nativeScale(process.cwd(), await resolveNative(process.cwd()), {
+    count: 1000, form: 'bindings', scenario: 'valid',
+  });
+  expect(row).toMatchObject({
+    count: 1000, form: 'bindings', scenario: 'valid', typescript: '7.0.2',
+    checked: true, accepted: true, status: 0, diagnostics: [],
+  });
+  expect(row.peakObservedRssMiB).toBeGreaterThan(0);
+}, 65000);
+
+test('native compiler resolves the final service from 1000 dependent token modules within the original limits', async () => {
+  const row = await nativeScale(process.cwd(), await resolveNative(process.cwd()), {
+    count: 1000, form: 'modules', scenario: 'valid',
+  });
+  expect(row).toMatchObject({
+    count: 1000, form: 'modules', scenario: 'valid', typescript: '7.0.2',
+    checked: true, accepted: true, status: 0, diagnostics: [],
+  });
+  expect(row.peakObservedRssMiB).toBeGreaterThan(0);
+}, 65000);

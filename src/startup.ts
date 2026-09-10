@@ -11,8 +11,8 @@ export interface StartupOptions {
   readonly signal?: AbortSignal;
   /** A finite positive deadline in milliseconds. */
   readonly timeoutMs?: number;
-  /** Start all selected services together, or await them in tuple order. Defaults to `parallel`. */
-  readonly startupOrder?: 'parallel' | 'sequential';
+  /** Start together (`parallel`, default), in tuple order (`sequential`), or with a positive safe integer bound on selected readiness waits. Dependency fanout is not bounded. */
+  readonly startupOrder?: 'parallel' | 'sequential' | number;
 }
 
 function snapshotOptions(options: StartupOptions | undefined): StartupOptions {
@@ -26,7 +26,8 @@ function snapshotOptions(options: StartupOptions | undefined): StartupOptions {
   if (Object.hasOwn(selected, 'timeoutMs') && (typeof selected.timeoutMs !== 'number' || !Number.isFinite(selected.timeoutMs) || selected.timeoutMs <= 0)) {
     throw libraryError('DI_BAG_INVALID_STARTUP', 'buildAndStart timeoutMs must be finite and positive', { operation: 'buildAndStart' });
   }
-  if (Object.hasOwn(selected, 'startupOrder') && selected.startupOrder !== 'parallel' && selected.startupOrder !== 'sequential') throw libraryError('DI_BAG_INVALID_STARTUP', 'invalid buildAndStart startupOrder', { operation: 'buildAndStart' });
+  if (Object.hasOwn(selected, 'startupOrder') && selected.startupOrder !== 'parallel' && selected.startupOrder !== 'sequential' &&
+    !(typeof selected.startupOrder === 'number' && Number.isSafeInteger(selected.startupOrder) && selected.startupOrder > 0)) throw libraryError('DI_BAG_INVALID_STARTUP', 'buildAndStart startupOrder must be parallel, sequential, or a positive safe integer', { operation: 'buildAndStart', option: 'startupOrder' });
   if (Object.hasOwn(selected, 'signal')) {
     try { Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted')!.get!.call(selected.signal); }
     catch { throw libraryError('DI_BAG_INVALID_STARTUP', 'buildAndStart signal must be an AbortSignal', { operation: 'buildAndStart' }); }
@@ -78,11 +79,22 @@ export function startRuntime(graph: BindingGraph, context: RuntimeContext, keys:
     if (checkCancellation()) return;
     if (timeoutMs !== undefined) schedule();
 
-    const runSequential = async () => {
-      for (const key of selected) {
-        if (checkCancellation()) return;
-        await runtime.acquire(key);
-      }
+    const runBounded = (limit: number) => {
+      let next = 0;
+      let failed = false;
+      const worker = async () => {
+        while (next < selected.length) {
+          if (failed || checkCancellation()) return;
+          const key = selected[next++]!;
+          try { await runtime.acquire(key); }
+          catch (cause) {
+            // Stop other workers before rollback begins, even if cleanup waits.
+            failed = true;
+            throw cause;
+          }
+        }
+      };
+      return Promise.all(Array.from({ length: Math.min(limit, selected.length) }, worker));
     };
     const runParallel = () => {
       const pending: Promise<void>[] = [];
@@ -92,7 +104,7 @@ export function startRuntime(graph: BindingGraph, context: RuntimeContext, keys:
       }
       return Promise.all(pending);
     };
-    const work = startupOrder === 'sequential' ? runSequential() : runParallel();
+    const work = startupOrder === 'parallel' ? runParallel() : runBounded(startupOrder === 'sequential' ? 1 : startupOrder);
     void work.then(() => {
       if (checkCancellation()) return;
       settled = true;

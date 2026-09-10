@@ -1,0 +1,182 @@
+[
+  {
+    "count": 100,
+    "build": "classic-before",
+    "successes": 3,
+    "directMs": {
+      "min": 20.78850399999999,
+      "median": 20.868044999999995,
+      "max": 27.570530000000005
+    },
+    "proxyMs": {
+      "min": 40.583733,
+      "median": 42.68148000000001,
+      "max": 44.595913
+    }
+  },
+  {
+    "count": 100,
+    "build": "classic-after",
+    "successes": 3,
+    "directMs": {
+      "min": 24.45984200000001,
+      "median": 24.531797999999995,
+      "max": 24.772425000000013
+    },
+    "proxyMs": {
+      "min": 44.219100999999995,
+      "median": 44.448569,
+      "max": 44.58390299999999
+    }
+  },
+  {
+    "count": 100,
+    "build": "native-before",
+    "successes": 3,
+    "directMs": {
+      "min": 21.11129199999999,
+      "median": 21.918256,
+      "max": 22.580241
+    },
+    "proxyMs": {
+      "min": 41.34889400000001,
+      "median": 41.478291999999996,
+      "max": 42.722217
+    }
+  },
+  {
+    "count": 100,
+    "build": "native-after",
+    "successes": 3,
+    "directMs": {
+      "min": 24.227841999999995,
+      "median": 24.928523,
+      "max": 25.968693000000002
+    },
+    "proxyMs": {
+      "min": 43.711586,
+      "median": 44.219444,
+      "max": 46.15843
+    }
+  },
+  {
+    "count": 1000,
+    "build": "classic-before",
+    "successes": 3,
+    "directMs": {
+      "min": 24.222057000000007,
+      "median": 28.478404000000012,
+      "max": 29.186654000000004
+    },
+    "proxyMs": {
+      "min": 41.06482799999999,
+      "median": 43.061632,
+      "max": 44.45052899999999
+    }
+  },
+  {
+    "count": 1000,
+    "build": "classic-after",
+    "successes": 3,
+    "directMs": {
+      "min": 24.751334000000014,
+      "median": 29.166503000000006,
+      "max": 30.440639000000004
+    },
+    "proxyMs": {
+      "min": 43.902872,
+      "median": 45.719351,
+      "max": 48.635514
+    }
+  },
+  {
+    "count": 1000,
+    "build": "native-before",
+    "successes": 3,
+    "directMs": {
+      "min": 20.699207000000015,
+      "median": 22.568820000000002,
+      "max": 26.127117999999996
+    },
+    "proxyMs": {
+      "min": 40.42476500000001,
+      "median": 40.577264,
+      "max": 40.90432800000001
+    }
+  },
+  {
+    "count": 1000,
+    "build": "native-after",
+    "successes": 3,
+    "directMs": {
+      "min": 23.407853999999986,
+      "median": 23.495592000000016,
+      "max": 24.94368700000001
+    },
+    "proxyMs": {
+      "min": 42.452571000000006,
+      "median": 42.493123999999995,
+      "max": 44.82838799999999
+    }
+  },
+  {
+    "count": 5000,
+    "build": "classic-before",
+    "successes": 3,
+    "directMs": {
+      "min": 19.304784000000012,
+      "median": 19.321172999999987,
+      "max": 24.946945
+    },
+    "proxyMs": {
+      "min": 39.063051000000016,
+      "median": 39.486265999999986,
+      "max": 43.681543000000005
+    }
+  },
+  {
+    "count": 5000,
+    "build": "classic-after",
+    "successes": 3,
+    "directMs": {
+      "min": 22.356550999999996,
+      "median": 24.618442999999985,
+      "max": 24.830827999999997
+    },
+    "proxyMs": {
+      "min": 41.93636799999999,
+      "median": 42.811469,
+      "max": 44.652443000000005
+    }
+  },
+  {
+    "count": 5000,
+    "build": "native-before",
+    "successes": 3,
+    "directMs": {
+      "min": 19.162735999999995,
+      "median": 25.209782999999987,
+      "max": 29.503175
+    },
+    "proxyMs": {
+      "min": 39.01848600000001,
+      "median": 44.66400400000002,
+      "max": 47.583123
+    }
+  },
+  {
+    "count": 5000,
+    "build": "native-after",
+    "successes": 3,
+    "directMs": {
+      "min": 21.74928,
+      "median": 21.926714000000004,
+      "max": 27.635918000000004
+    },
+    "proxyMs": {
+      "min": 42.030215999999996,
+      "median": 43.553628,
+      "max": 49.022525999999985
+    }
+  }
+]

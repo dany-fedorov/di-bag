@@ -38,14 +38,16 @@ import type {
   CheckDependencyCompleteness,
   RegistrationEntries,
   Entry,
+  EntryKeys,
   OverrideFactoryContext,
   RegistrationsFromEntries,
   IncrementalChecked,
   Introduces,
+  IntroducesKeys,
   OverrideRegistrations,
   Overrides,
   ServicesOf,
-  ReplacementKey,
+  ReplacementKeyOf,
   ReplacementOutput,
   SelectedRegistrations,
   Selection,
@@ -251,6 +253,8 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
   }
 
   // Infer actual keys before checking context-sensitive method-returning factories.
+  // Defer named admission until N is inferred, so trying this overload for a
+  // token registration does not project the entire retained history.
   /**
    * Add new string-named registrations.
    * @param more - A finite object whose own string keys are service names and values are registrations.
@@ -258,8 +262,10 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
    * @throws If the input is malformed, contains a non-string key, or duplicates a public name.
    */
   register<N extends { [K in keyof N]: Registration }>(
-    more: N & Registrations & NamedAdmission<N> & Introduces<RegistrationsFromEntries<E>, N> & IncrementalChecked<E, N> &
-      CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, N>>,
+    more: N & Registrations & ([N] extends [never]
+      ? never
+      : NamedAdmission<N> & IntroducesKeys<EntryKeys<E>, keyof N> & IncrementalChecked<E, N> &
+        CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, N>>),
   ): BagBuilder<E | RegistrationEntries<N>, C>;
   /**
    * Register a provider to a typed token.
@@ -268,8 +274,7 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
    * @returns A new builder retaining the provider's metadata, lifetime, dependencies, and ownership stages.
    */
   register<T extends TokenBase, V extends Registration>(
-    /** Create a typed token factory from a canonical unique symbol. */
-  token: T & TokenTupleAdmission<readonly [T]> & Introduces<RegistrationsFromEntries<E>, Record<TokenKey<T>, V>>,
+    token: T & TokenTupleAdmission<readonly [T]> & IntroducesKeys<EntryKeys<E>, TokenKey<T>>,
     registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
       IncrementalChecked<E, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>> &
       CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>>>,
@@ -320,6 +325,7 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
   // every surviving consumer requirement. Repeating
   // IncrementalChecked here only rescans accepted history. The general overload
   // retains full checks for parameters, mixed registrations and explicit K,V.
+  // Keep the fixed history out of replacement-factory inference with NoInfer.
   /**
    * Replace an existing string-named registration with a dependency-free factory.
    * @param key - One existing string-literal service name.
@@ -327,8 +333,8 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
    * @returns A new builder with the replacement.
    * @typeParam V - The exact replacement factory or disposable-factory type.
    */
-  replace<const K extends string, V extends ((this: void) => ReplacementOutput<RegistrationsFromEntries<E>, K, C>) | FactoryWithDisposal<(this: void) => ReplacementOutput<RegistrationsFromEntries<E>, K, C>>>(
-    key: K & ReplacementKey<RegistrationsFromEntries<E>, K>,
+  replace<const K extends string, V extends ((this: void) => ReplacementOutput<NoInfer<RegistrationsFromEntries<E>>, K, C>) | FactoryWithDisposal<(this: void) => ReplacementOutput<NoInfer<RegistrationsFromEntries<E>>, K, C>>>(
+    key: K & ReplacementKeyOf<EntryKeys<E>, K>,
     registration: V & (Factory | FactoryWithDisposal<Factory>) & ZeroDependencyAdmission<NoInfer<V>> &
       CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<K, NoInfer<V>>>>,
   ): BagBuilder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
@@ -357,7 +363,7 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
    * @returns A new builder exposing only the module's selected exports.
    */
   installModule<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(
-    module: Module<P, R, MC, D> & Introduces<RegistrationsFromEntries<E>, D> &
+    module: Module<P, R, MC, D> & IntroducesKeys<EntryKeys<E>, keyof D> &
       IncrementalChecked<E, D> &
       IncrementalConstraints<C, MC, RegistrationsFromEntries<E>, D>,
   ): BagBuilder<E | RegistrationEntries<D>, C | MC> {
@@ -376,7 +382,7 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
   /**
    * Create a fresh bag and acquire selected services before returning it.
    * @param keys - A finite tuple of existing names or typed tokens to make ready.
-   * @param options - Optional cancellation signal, positive timeout, and parallel or sequential scheduling.
+   * @param options - Optional cancellation signal, positive timeout, and parallel, sequential, or positive safe integer bounded scheduling.
    * @returns A promise for the new bag after every selected final stage is ready.
    * @throws {@link DiBagStartupError} after rollback on acquisition failure, or
    * {@link DiBagStartupCancelledError} promptly on abort or timeout.

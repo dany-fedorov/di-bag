@@ -1,0 +1,1358 @@
+[
+  {
+    "build": "classic-after",
+    "scenario": "build-incremental",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 1.8457360000000023,
+      "median": 1.8466459999999998,
+      "max": 2.012602000000001
+    },
+    "bulkMs": {
+      "min": 0.3077600000000018,
+      "median": 0.3096749999999986,
+      "max": 0.3323480000000032
+    },
+    "retainedHeapBytes": {
+      "min": 165008,
+      "median": 165040,
+      "max": 166832
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "build-incremental",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 1.8374999999999986,
+      "median": 1.9634560000000008,
+      "max": 2.359682999999997
+    },
+    "bulkMs": {
+      "min": 0.3089159999999964,
+      "median": 0.31317599999999857,
+      "max": 0.328479999999999
+    },
+    "retainedHeapBytes": {
+      "min": 162504,
+      "median": 170512,
+      "max": 172336
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "build-incremental",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 8.361320999999997,
+      "median": 9.642626,
+      "max": 11.936436999999998
+    },
+    "bulkMs": {
+      "min": 2.077762,
+      "median": 2.2115640000000027,
+      "max": 2.2860259999999926
+    },
+    "retainedHeapBytes": {
+      "min": 936232,
+      "median": 941896,
+      "max": 942528
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "build-incremental",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 7.912274000000004,
+      "median": 8.299790000000002,
+      "max": 9.294654000000001
+    },
+    "bulkMs": {
+      "min": 2.0206459999999993,
+      "median": 2.1067409999999995,
+      "max": 5.6209869999999995
+    },
+    "retainedHeapBytes": {
+      "min": 936776,
+      "median": 941896,
+      "max": 943288
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "build-incremental",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 23.939943,
+      "median": 24.813784999999996,
+      "max": 26.022767
+    },
+    "bulkMs": {
+      "min": 9.942034000000007,
+      "median": 10.301705999999996,
+      "max": 11.997639000000007
+    },
+    "retainedHeapBytes": {
+      "min": 3385376,
+      "median": 3385744,
+      "max": 3387136
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "build-incremental",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 24.469341999999997,
+      "median": 24.658185999999993,
+      "max": 25.509958000000005
+    },
+    "bulkMs": {
+      "min": 10.298508999999996,
+      "median": 10.675302000000002,
+      "max": 11.173873999999998
+    },
+    "retainedHeapBytes": {
+      "min": 3386984,
+      "median": 3387128,
+      "max": 3391888
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "replace-history",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 2.0854610000000022,
+      "median": 2.104501000000006,
+      "max": 2.301012
+    },
+    "retainedHeapBytes": {
+      "min": 126816,
+      "median": 127536,
+      "max": 133040
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "replace-history",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 2.079215000000005,
+      "median": 2.100526000000002,
+      "max": 2.241413999999999
+    },
+    "retainedHeapBytes": {
+      "min": 125144,
+      "median": 133056,
+      "max": 133056
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "replace-history",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 6.959643,
+      "median": 7.183459000000006,
+      "max": 7.658637000000006
+    },
+    "retainedHeapBytes": {
+      "min": 253608,
+      "median": 273088,
+      "max": 274352
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "replace-history",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 7.159908999999999,
+      "median": 7.454453999999998,
+      "max": 9.265236000000002
+    },
+    "retainedHeapBytes": {
+      "min": 269000,
+      "median": 278464,
+      "max": 298344
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "replace-history",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 17.195395000000005,
+      "median": 19.69672,
+      "max": 27.168565
+    },
+    "retainedHeapBytes": {
+      "min": 400848,
+      "median": 406272,
+      "max": 410808
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "replace-history",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "incrementalMs": {
+      "min": 17.312855000000006,
+      "median": 17.910717999999996,
+      "max": 19.774173999999995
+    },
+    "retainedHeapBytes": {
+      "min": 404720,
+      "median": 410224,
+      "max": 411696
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "scope-override",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "plainMs": {
+      "min": 0.41062000000000154,
+      "median": 0.42277999999999594,
+      "max": 0.44498500000000263
+    },
+    "overrideMs": {
+      "min": 1.693128999999999,
+      "median": 1.8575289999999995,
+      "max": 2.1976999999999975
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "scope-override",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "plainMs": {
+      "min": 0.39461299999999966,
+      "median": 0.4247309999999942,
+      "max": 0.43367800000000045
+    },
+    "overrideMs": {
+      "min": 1.710881999999998,
+      "median": 1.7390490000000014,
+      "max": 1.9030430000000038
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "scope-override",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "plainMs": {
+      "min": 0.40201199999999915,
+      "median": 0.4155900000000017,
+      "max": 1.3454380000000015
+    },
+    "overrideMs": {
+      "min": 1.7162030000000001,
+      "median": 1.7752089999999967,
+      "max": 3.329183999999998
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "scope-override",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "plainMs": {
+      "min": 0.4025699999999972,
+      "median": 0.40387799999999885,
+      "max": 0.42282000000000153
+    },
+    "overrideMs": {
+      "min": 1.5705840000000038,
+      "median": 1.6261250000000018,
+      "max": 1.731024000000005
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "scope-override",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "plainMs": {
+      "min": 0.3994380000000035,
+      "median": 0.4013919999999942,
+      "max": 0.4268809999999945
+    },
+    "overrideMs": {
+      "min": 1.5163470000000032,
+      "median": 1.5292620000000028,
+      "max": 1.586788999999996
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "scope-override",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "plainMs": {
+      "min": 0.39611200000000224,
+      "median": 0.42242500000000405,
+      "max": 0.4455679999999944
+    },
+    "overrideMs": {
+      "min": 1.593153000000001,
+      "median": 1.6272369999999938,
+      "max": 1.6438019999999938
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "module-install",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "installMs": {
+      "min": 1.3658149999999978,
+      "median": 1.4042669999999973,
+      "max": 1.5663899999999984
+    },
+    "retainedHeapBytes": {
+      "min": 145320,
+      "median": 145400,
+      "max": 148584
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "module-install",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "installMs": {
+      "min": 1.3833880000000036,
+      "median": 1.4596820000000008,
+      "max": 1.5601230000000044
+    },
+    "retainedHeapBytes": {
+      "min": 145096,
+      "median": 154888,
+      "max": 173648
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "module-install",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "installMs": {
+      "min": 5.379173999999999,
+      "median": 5.703696000000001,
+      "max": 5.776316999999999
+    },
+    "retainedHeapBytes": {
+      "min": 487792,
+      "median": 494544,
+      "max": 498256
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "module-install",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "installMs": {
+      "min": 5.374593999999995,
+      "median": 5.449630999999997,
+      "max": 5.7681460000000015
+    },
+    "retainedHeapBytes": {
+      "min": 498608,
+      "median": 498832,
+      "max": 499072
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "module-install",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "installMs": {
+      "min": 19.824782,
+      "median": 20.323581000000004,
+      "max": 20.441257
+    },
+    "retainedHeapBytes": {
+      "min": 1691616,
+      "median": 1693952,
+      "max": 1699648
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "module-install",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "installMs": {
+      "min": 19.46511300000001,
+      "median": 20.539291000000006,
+      "max": 22.013173999999992
+    },
+    "retainedHeapBytes": {
+      "min": 1697424,
+      "median": 1700400,
+      "max": 1726456
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "warm-proxy",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "proxyMs": {
+      "min": 3.1671029999999973,
+      "median": 3.5185010000000005,
+      "max": 5.384152999999998
+    },
+    "directMs": {
+      "min": 1.6347740000000002,
+      "median": 1.684542999999998,
+      "max": 1.704667999999998
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "warm-proxy",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "proxyMs": {
+      "min": 3.0136850000000024,
+      "median": 3.4648289999999946,
+      "max": 3.657086999999997
+    },
+    "directMs": {
+      "min": 1.4936270000000036,
+      "median": 1.5916759999999996,
+      "max": 1.6744559999999993
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "warm-proxy",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "proxyMs": {
+      "min": 2.597963,
+      "median": 2.6365199999999973,
+      "max": 2.778765
+    },
+    "directMs": {
+      "min": 1.4622870000000034,
+      "median": 1.5600729999999956,
+      "max": 2.277491999999995
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "warm-proxy",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "proxyMs": {
+      "min": 2.553765999999996,
+      "median": 2.6184280000000015,
+      "max": 2.6894569999999973
+    },
+    "directMs": {
+      "min": 1.529600000000002,
+      "median": 1.6670569999999998,
+      "max": 1.7937030000000007
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "warm-proxy",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "proxyMs": {
+      "min": 1.3439989999999966,
+      "median": 1.390346000000008,
+      "max": 2.0221250000000026
+    },
+    "directMs": {
+      "min": 0.667829999999995,
+      "median": 0.7479479999999938,
+      "max": 0.7635070000000042
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "warm-proxy",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "proxyMs": {
+      "min": 1.319909999999993,
+      "median": 1.350943000000001,
+      "max": 1.3552410000000066
+    },
+    "directMs": {
+      "min": 0.7094079999999963,
+      "median": 0.7268569999999954,
+      "max": 0.735590000000002
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "bulk-strings",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.0469480000000004,
+      "median": 1.0586529999999996,
+      "max": 1.092927000000003
+    },
+    "retainedHeapBytes": {
+      "min": 100960,
+      "median": 105112,
+      "max": 105272
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "bulk-strings",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.0886819999999986,
+      "median": 1.0938459999999992,
+      "max": 1.099775000000001
+    },
+    "retainedHeapBytes": {
+      "min": 100976,
+      "median": 106448,
+      "max": 112224
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "bulk-strings",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 4.079995000000004,
+      "median": 4.1026859999999985,
+      "max": 4.913494
+    },
+    "retainedHeapBytes": {
+      "min": 779512,
+      "median": 779632,
+      "max": 779640
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "bulk-strings",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 4.0317989999999995,
+      "median": 4.037318000000006,
+      "max": 4.0987459999999984
+    },
+    "retainedHeapBytes": {
+      "min": 765912,
+      "median": 779536,
+      "max": 788864
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "bulk-strings",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 11.947936000000006,
+      "median": 12.511268999999999,
+      "max": 12.796984000000002
+    },
+    "retainedHeapBytes": {
+      "min": 3141152,
+      "median": 3141200,
+      "max": 3141496
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "bulk-strings",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 12.667363000000002,
+      "median": 12.889486000000005,
+      "max": 16.189410000000002
+    },
+    "retainedHeapBytes": {
+      "min": 3132192,
+      "median": 3141200,
+      "max": 3141664
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "bulk-tokens",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 0.9602900000000005,
+      "median": 0.9614830000000012,
+      "max": 0.9789189999999977
+    },
+    "retainedHeapBytes": {
+      "min": 99752,
+      "median": 101320,
+      "max": 104064
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "bulk-tokens",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.0058080000000018,
+      "median": 1.0081309999999988,
+      "max": 1.0876459999999994
+    },
+    "retainedHeapBytes": {
+      "min": 101160,
+      "median": 109088,
+      "max": 109728
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "bulk-tokens",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 3.770013000000006,
+      "median": 3.798924999999997,
+      "max": 4.190362999999998
+    },
+    "retainedHeapBytes": {
+      "min": 698432,
+      "median": 705320,
+      "max": 705592
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "bulk-tokens",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 3.6633190000000013,
+      "median": 3.692353000000004,
+      "max": 4.005685999999997
+    },
+    "retainedHeapBytes": {
+      "min": 704344,
+      "median": 705472,
+      "max": 705656
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "bulk-tokens",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 12.216330999999997,
+      "median": 12.905791,
+      "max": 15.715550999999998
+    },
+    "retainedHeapBytes": {
+      "min": 3714440,
+      "median": 3715552,
+      "max": 3729696
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "bulk-tokens",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 12.407480999999997,
+      "median": 12.981138999999999,
+      "max": 14.860902999999993
+    },
+    "retainedHeapBytes": {
+      "min": 3707984,
+      "median": 3714888,
+      "max": 3715608
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "incremental-strings",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.273648999999999,
+      "median": 1.2763649999999984,
+      "max": 1.3616760000000028
+    },
+    "retainedHeapBytes": {
+      "min": 126960,
+      "median": 134856,
+      "max": 134856
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "incremental-strings",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.3118410000000011,
+      "median": 1.3472229999999996,
+      "max": 1.427190000000003
+    },
+    "retainedHeapBytes": {
+      "min": 132504,
+      "median": 134080,
+      "max": 140360
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "incremental-strings",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 5.797342999999998,
+      "median": 8.779077000000001,
+      "max": 9.619824999999999
+    },
+    "retainedHeapBytes": {
+      "min": 826392,
+      "median": 842736,
+      "max": 842832
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "incremental-strings",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 5.2164610000000025,
+      "median": 5.356840000000005,
+      "max": 5.521878000000001
+    },
+    "retainedHeapBytes": {
+      "min": 837344,
+      "median": 837392,
+      "max": 842920
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "incremental-strings",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 14.810498000000003,
+      "median": 16.955799,
+      "max": 18.827053999999997
+    },
+    "retainedHeapBytes": {
+      "min": 3194864,
+      "median": 3194920,
+      "max": 3194968
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "incremental-strings",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 14.747786000000005,
+      "median": 15.079194000000001,
+      "max": 15.902951999999999
+    },
+    "retainedHeapBytes": {
+      "min": 3195992,
+      "median": 3195992,
+      "max": 3196088
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "incremental-tokens",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.2105490000000003,
+      "median": 1.2581369999999978,
+      "max": 1.2674930000000018
+    },
+    "retainedHeapBytes": {
+      "min": 128424,
+      "median": 129720,
+      "max": 135128
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "incremental-tokens",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.3222790000000018,
+      "median": 1.359659999999998,
+      "max": 2.185068000000001
+    },
+    "retainedHeapBytes": {
+      "min": 125232,
+      "median": 129736,
+      "max": 142936
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "incremental-tokens",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 5.52525,
+      "median": 5.9332470000000015,
+      "max": 7.931572000000003
+    },
+    "retainedHeapBytes": {
+      "min": 762480,
+      "median": 768768,
+      "max": 975344
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "incremental-tokens",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 5.156942000000001,
+      "median": 5.218544000000001,
+      "max": 5.310822999999999
+    },
+    "retainedHeapBytes": {
+      "min": 756504,
+      "median": 757496,
+      "max": 763384
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "incremental-tokens",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 15.231878000000002,
+      "median": 15.946569000000004,
+      "max": 18.931182999999997
+    },
+    "retainedHeapBytes": {
+      "min": 3770408,
+      "median": 3770536,
+      "max": 3770888
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "incremental-tokens",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 15.671067999999998,
+      "median": 17.174435000000003,
+      "max": 20.936329
+    },
+    "retainedHeapBytes": {
+      "min": 3770032,
+      "median": 3770408,
+      "max": 3771624
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "replacement-memory",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.7739660000000015,
+      "median": 1.8057099999999977,
+      "max": 2.008296999999999
+    },
+    "retainedHeapBytes": {
+      "min": 99920,
+      "median": 99920,
+      "max": 102936
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "replacement-memory",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.8062159999999992,
+      "median": 1.869841000000001,
+      "max": 2.074432999999999
+    },
+    "retainedHeapBytes": {
+      "min": -203832,
+      "median": 99848,
+      "max": 105272
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "replacement-memory",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 7.502396999999995,
+      "median": 7.785427000000006,
+      "max": 10.525300999999999
+    },
+    "retainedHeapBytes": {
+      "min": 240840,
+      "median": 240856,
+      "max": 240976
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "replacement-memory",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 7.150751,
+      "median": 9.772462999999995,
+      "max": 10.956160000000004
+    },
+    "retainedHeapBytes": {
+      "min": 240792,
+      "median": 240872,
+      "max": 240872
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "replacement-memory",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 21.528922,
+      "median": 24.294472999999996,
+      "max": 24.326259999999998
+    },
+    "retainedHeapBytes": {
+      "min": 363176,
+      "median": 364360,
+      "max": 364360
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "replacement-memory",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 24.129945,
+      "median": 24.851746999999996,
+      "max": 26.135065000000004
+    },
+    "retainedHeapBytes": {
+      "min": 363152,
+      "median": 363176,
+      "max": 363504
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "contribution-append",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.238271999999995,
+      "median": 1.3713610000000003,
+      "max": 2.068106
+    },
+    "retainedHeapBytes": {
+      "min": 128480,
+      "median": 135216,
+      "max": 138280
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "contribution-append",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.205022999999997,
+      "median": 1.226505000000003,
+      "max": 1.2592640000000017
+    },
+    "retainedHeapBytes": {
+      "min": 138184,
+      "median": 141608,
+      "max": 392816
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "contribution-append",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 5.230084999999995,
+      "median": 6.247567999999994,
+      "max": 8.260074000000003
+    },
+    "retainedHeapBytes": {
+      "min": 835432,
+      "median": 860912,
+      "max": 864512
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "contribution-append",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 4.970256999999997,
+      "median": 5.221714999999996,
+      "max": 5.326642
+    },
+    "retainedHeapBytes": {
+      "min": 840104,
+      "median": 855304,
+      "max": 858832
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "contribution-append",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 14.326495000000001,
+      "median": 16.545513999999997,
+      "max": 16.690500999999998
+    },
+    "retainedHeapBytes": {
+      "min": 3358696,
+      "median": 3359112,
+      "max": 3359728
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "contribution-append",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 14.430329,
+      "median": 15.361035000000001,
+      "max": 15.893246999999995
+    },
+    "retainedHeapBytes": {
+      "min": 3358832,
+      "median": 3358912,
+      "max": 3359008
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "contribution-cached-memory",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 2.1880000000000024,
+      "median": 2.2265980000000027,
+      "max": 2.320152
+    },
+    "retainedHeapBytes": {
+      "min": 141368,
+      "median": 141368,
+      "max": 145680
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "contribution-cached-memory",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 2.0298429999999996,
+      "median": 2.397089000000001,
+      "max": 5.445517000000002
+    },
+    "retainedHeapBytes": {
+      "min": 141288,
+      "median": 145696,
+      "max": 151200
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "contribution-cached-memory",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 15.049405,
+      "median": 18.084112000000005,
+      "max": 20.506548000000002
+    },
+    "retainedHeapBytes": {
+      "min": 870664,
+      "median": 871504,
+      "max": 872888
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "contribution-cached-memory",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 14.618627000000004,
+      "median": 16.726771,
+      "max": 20.239613
+    },
+    "retainedHeapBytes": {
+      "min": 781360,
+      "median": 871368,
+      "max": 873840
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "contribution-cached-memory",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 182.72341999999998,
+      "median": 184.702276,
+      "max": 200.02499500000002
+    },
+    "retainedHeapBytes": {
+      "min": 3365960,
+      "median": 3367528,
+      "max": 3367712
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "contribution-cached-memory",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 183.966591,
+      "median": 185.28307800000002,
+      "max": 194.362366
+    },
+    "retainedHeapBytes": {
+      "min": 3367008,
+      "median": 3367032,
+      "max": 3368328
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "retained-versions",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.7288959999999989,
+      "median": 1.7995319999999992,
+      "max": 1.8238369999999975
+    },
+    "retainedHeapBytes": {
+      "min": 257344,
+      "median": 261704,
+      "max": 261720
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "retained-versions",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.761296999999999,
+      "median": 1.7723739999999992,
+      "max": 1.815691000000001
+    },
+    "retainedHeapBytes": {
+      "min": 261672,
+      "median": 262792,
+      "max": 265952
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "retained-versions",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 7.119702999999994,
+      "median": 7.674331000000002,
+      "max": 8.526839000000002
+    },
+    "retainedHeapBytes": {
+      "min": 1865088,
+      "median": 1870912,
+      "max": 1871960
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "retained-versions",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 7.355074000000002,
+      "median": 7.926425999999999,
+      "max": 13.357879999999994
+    },
+    "retainedHeapBytes": {
+      "min": 1870464,
+      "median": 1871976,
+      "max": 1882496
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "retained-versions",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 21.213306000000003,
+      "median": 22.103631,
+      "max": 22.3694
+    },
+    "retainedHeapBytes": {
+      "min": 8511008,
+      "median": 8511008,
+      "max": 8511360
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "retained-versions",
+    "count": 5000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 21.011771000000003,
+      "median": 24.105093999999994,
+      "max": 34.485773
+    },
+    "retainedHeapBytes": {
+      "min": 8509656,
+      "median": 8511056,
+      "max": 8512056
+    }
+  }
+]

@@ -1,0 +1,144 @@
+{
+  "variant": "candidate",
+  "compiler": "native",
+  "version": "7.0.2",
+  "stage": "semantic",
+  "status": 1,
+  "signal": null,
+  "stdout": "tests/context.ts(12,14): error TS2322: Type 'string | number | Promise<42> | { kind: \"object\"; }' is not assignable to type 'number'.\n  Type 'string' is not assignable to type 'number'.\ntests/context.ts(12,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '(\"a\" | \"b\" | \"object\" | \"promise\" | TokenBase) & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\ntests/context.ts(13,14): error TS2322: Type 'string | number | Promise<42> | { kind: \"object\"; }' is not assignable to type 'string'.\n  Type 'number' is not assignable to type 'string'.\ntests/context.ts(13,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '(\"a\" | \"b\" | \"object\" | \"promise\" | TokenBase) & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\ntests/context.ts(14,14): error TS2322: Type 'string | number | Promise<42> | { kind: \"object\"; }' is not assignable to type 'Promise<42>'.\n  Type 'string' is not assignable to type 'Promise<42>'.\ntests/context.ts(14,53): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '(\"a\" | \"b\" | \"object\" | \"promise\" | TokenBase) & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\ntests/context.ts(15,14): error TS2322: Type 'string | number' is not assignable to type 'number'.\n  Type 'string' is not assignable to type 'number'.\ntests/context.ts(16,14): error TS2322: Type 'string | number' is not assignable to type 'string'.\n  Type 'number' is not assignable to type 'string'.\ntests/context.ts(17,35): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '(\"a\" | \"b\" | \"object\" | \"promise\" | TokenBase) & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\ntests/context.ts(25,14): error TS2322: Type 'string | number' is not assignable to type 'number'.\n  Type 'string' is not assignable to type 'number'.\ntests/context.ts(26,14): error TS2322: Type '<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)) => Provided<R>[SelectionKey<K> & keyof R]' is not assignable to type '<K extends 'a' | 'b'>(key: K) => Provided<R>[K]'.\n  Types of parameters 'token' and 'key' are incompatible.\n    Type 'K' is not assignable to type 'K & ([K] extends [string] ? unknown : TokenMember<R, K>)'.\n      Type '\"a\" | \"b\"' is not assignable to type 'K & ([K] extends [string] ? unknown : TokenMember<R, K>)'.\n        Type '\"a\"' is not assignable to type 'K & ([K] extends [string] ? unknown : TokenMember<R, K>)'.\n          Type '\"a\"' is not assignable to type 'K'.\n            '\"a\"' is assignable to the constraint of type 'K', but 'K' could be instantiated with a different subtype of constraint '\"a\" | \"b\"'.\n              Type 'K' is not assignable to type '[K] extends [string] ? unknown : TokenMember<R, K>'.\n                Type 'string' is not assignable to type '[K] extends [string] ? unknown : TokenMember<R, K>'.\n                  Type 'string' is not assignable to type '[K] extends [string] ? unknown : TokenMember<R, K>'.\ntests/context.ts(29,32): error TS2345: Argument of type '{ kind: \"object\"; }' is not assignable to parameter of type 'never'.\ntests/reflected-keys.ts(26,9): error TS2344: Type 'false' does not satisfy the constraint 'true'.\ntests/reflected-keys.ts(27,9): error TS2344: Type 'false' does not satisfy the constraint 'true'.\ntests/reflected-keys.ts(28,9): error TS2344: Type 'false' does not satisfy the constraint 'true'.\ntests/reflected-keys.ts(33,9): error TS2344: Type 'false' does not satisfy the constraint 'true'.\nFiles:              108\nLines:            61093\nIdentifiers:      63987\nSymbols:         118929\nTypes:            94694\nInstantiations:  232204\nMemory used:    113147K\nMemory allocs:   878355\nConfig time:     0.000s\nParse time:      0.034s\nBind time:       0.015s\nCheck time:      0.207s\nEmit time:       0.000s\nTotal time:      0.258s\n",
+  "stderr": "",
+  "milliseconds": 302,
+  "peakObservedRssMiB": 150.94921875,
+  "diagnostics": [
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 12,
+      "column": 14,
+      "code": 2322,
+      "message": "Type 'string | number | Promise<42> | { kind: \"object\"; }' is not assignable to type 'number'.\n  Type 'string' is not assignable to type 'number'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 12,
+      "column": 47,
+      "code": 2345,
+      "message": "Argument of type 'unknown' is not assignable to parameter of type '(\"a\" | \"b\" | \"object\" | \"promise\" | TokenBase) & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 13,
+      "column": 14,
+      "code": 2322,
+      "message": "Type 'string | number | Promise<42> | { kind: \"object\"; }' is not assignable to type 'string'.\n  Type 'number' is not assignable to type 'string'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 13,
+      "column": 47,
+      "code": 2345,
+      "message": "Argument of type 'unknown' is not assignable to parameter of type '(\"a\" | \"b\" | \"object\" | \"promise\" | TokenBase) & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 14,
+      "column": 14,
+      "code": 2322,
+      "message": "Type 'string | number | Promise<42> | { kind: \"object\"; }' is not assignable to type 'Promise<42>'.\n  Type 'string' is not assignable to type 'Promise<42>'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 14,
+      "column": 53,
+      "code": 2345,
+      "message": "Argument of type 'unknown' is not assignable to parameter of type '(\"a\" | \"b\" | \"object\" | \"promise\" | TokenBase) & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 15,
+      "column": 14,
+      "code": 2322,
+      "message": "Type 'string | number' is not assignable to type 'number'.\n  Type 'string' is not assignable to type 'number'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 16,
+      "column": 14,
+      "code": 2322,
+      "message": "Type 'string | number' is not assignable to type 'string'.\n  Type 'number' is not assignable to type 'string'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 17,
+      "column": 35,
+      "code": 2345,
+      "message": "Argument of type 'unknown' is not assignable to parameter of type '(\"a\" | \"b\" | \"object\" | \"promise\" | TokenBase) & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 25,
+      "column": 14,
+      "code": 2322,
+      "message": "Type 'string | number' is not assignable to type 'number'.\n  Type 'string' is not assignable to type 'number'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 26,
+      "column": 14,
+      "code": 2322,
+      "message": "Type '<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)) => Provided<R>[SelectionKey<K> & keyof R]' is not assignable to type '<K extends 'a' | 'b'>(key: K) => Provided<R>[K]'.\n  Types of parameters 'token' and 'key' are incompatible.\n    Type 'K' is not assignable to type 'K & ([K] extends [string] ? unknown : TokenMember<R, K>)'.\n      Type '\"a\" | \"b\"' is not assignable to type 'K & ([K] extends [string] ? unknown : TokenMember<R, K>)'.\n        Type '\"a\"' is not assignable to type 'K & ([K] extends [string] ? unknown : TokenMember<R, K>)'.\n          Type '\"a\"' is not assignable to type 'K'.\n            '\"a\"' is assignable to the constraint of type 'K', but 'K' could be instantiated with a different subtype of constraint '\"a\" | \"b\"'.\n              Type 'K' is not assignable to type '[K] extends [string] ? unknown : TokenMember<R, K>'.\n                Type 'string' is not assignable to type '[K] extends [string] ? unknown : TokenMember<R, K>'.\n                  Type 'string' is not assignable to type '[K] extends [string] ? unknown : TokenMember<R, K>'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/context.ts",
+      "line": 29,
+      "column": 32,
+      "code": 2345,
+      "message": "Argument of type '{ kind: \"object\"; }' is not assignable to parameter of type 'never'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/reflected-keys.ts",
+      "line": 26,
+      "column": 9,
+      "code": 2344,
+      "message": "Type 'false' does not satisfy the constraint 'true'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/reflected-keys.ts",
+      "line": 27,
+      "column": 9,
+      "code": 2344,
+      "message": "Type 'false' does not satisfy the constraint 'true'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/reflected-keys.ts",
+      "line": 28,
+      "column": 9,
+      "code": 2344,
+      "message": "Type 'false' does not satisfy the constraint 'true'."
+    },
+    {
+      "file": "/tmp/di-bag-synthetic-factory-review/candidate/tests/reflected-keys.ts",
+      "line": 33,
+      "column": 9,
+      "code": 2344,
+      "message": "Type 'false' does not satisfy the constraint 'true'."
+    }
+  ],
+  "metrics": {
+    "Files": 108,
+    "Lines": 61093,
+    "Identifiers": 63987,
+    "Symbols": 118929,
+    "Types": 94694,
+    "Instantiations": 232204,
+    "Memory used": 113147,
+    "Memory allocs": 878355,
+    "Config time": 0,
+    "Parse time": 0.034,
+    "Bind time": 0.015,
+    "Check time": 0.207,
+    "Emit time": 0,
+    "Total time": 0.258
+  },
+  "unparsed": [],
+  "checked": true
+}

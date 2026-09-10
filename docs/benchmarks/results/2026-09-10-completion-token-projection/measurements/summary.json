@@ -1,0 +1,299 @@
+{
+  "baseline": "e3cc8869dbc9c11a56c0cf777b2e73d0d7b8f666",
+  "candidate": "3672fda107405ae8d08b6659f6aacbf01c364010",
+  "cases": 28,
+  "accepted": 22,
+  "failed": 6,
+  "sourceSha256": {
+    "baseline": "8cfea87bb4abaa5403e7985fc4d303e9352c01002d1a9cae0b28a49321761df4",
+    "candidate": "cd49f75bd3ff04da71ed5b9ac7f8985f3c383b1f8d158d2be065f39c3c02a844"
+  },
+  "comparisons": [
+    {
+      "form": "chained",
+      "lane": "classic",
+      "count": 500,
+      "beforeInstantiations": 14414026,
+      "afterInstantiations": 14410597,
+      "reductionPercent": 0.023789328533193987,
+      "beforeMilliseconds": 10328,
+      "afterMilliseconds": 10036,
+      "beforeProcessMilliseconds": 10714,
+      "afterProcessMilliseconds": 10432,
+      "beforeMaxRssMiB": 1719,
+      "afterMaxRssMiB": 1651,
+      "beforeNativeMemoryKiB": null,
+      "afterNativeMemoryKiB": null
+    },
+    {
+      "form": "chained",
+      "lane": "native",
+      "count": 500,
+      "beforeInstantiations": 14399056,
+      "afterInstantiations": 14395626,
+      "reductionPercent": 0.023821006043729533,
+      "beforeMilliseconds": 20702,
+      "afterMilliseconds": 20633,
+      "beforeProcessMilliseconds": 20735,
+      "afterProcessMilliseconds": 20667,
+      "beforeMaxRssMiB": 603.00390625,
+      "afterMaxRssMiB": 595.9453125,
+      "beforeNativeMemoryKiB": 442342,
+      "afterNativeMemoryKiB": 442612
+    },
+    {
+      "form": "replacement",
+      "lane": "classic",
+      "count": 500,
+      "beforeInstantiations": 27940071,
+      "afterInstantiations": 27936642,
+      "reductionPercent": 0.012272696085847455,
+      "beforeMilliseconds": 16775,
+      "afterMilliseconds": 16796,
+      "beforeProcessMilliseconds": 17191,
+      "afterProcessMilliseconds": 17233,
+      "beforeMaxRssMiB": 2177,
+      "afterMaxRssMiB": 2225,
+      "beforeNativeMemoryKiB": null,
+      "afterNativeMemoryKiB": null
+    },
+    {
+      "form": "replacement",
+      "lane": "native",
+      "count": 500,
+      "beforeInstantiations": 27925787,
+      "afterInstantiations": 27922357,
+      "reductionPercent": 0.012282554471965284,
+      "beforeMilliseconds": 8345,
+      "afterMilliseconds": 8376,
+      "beforeProcessMilliseconds": 8383,
+      "afterProcessMilliseconds": 8406,
+      "beforeMaxRssMiB": 1121.77734375,
+      "afterMaxRssMiB": 1100.34375,
+      "beforeNativeMemoryKiB": 763566,
+      "afterNativeMemoryKiB": 763764
+    },
+    {
+      "form": "bindings",
+      "lane": "classic",
+      "count": 500,
+      "beforeInstantiations": 23629621,
+      "afterInstantiations": 21375698,
+      "reductionPercent": 9.538549094799277,
+      "beforeMilliseconds": 14586,
+      "afterMilliseconds": 13848,
+      "beforeProcessMilliseconds": 14976,
+      "afterProcessMilliseconds": 14249,
+      "beforeMaxRssMiB": 1781,
+      "afterMaxRssMiB": 1743,
+      "beforeNativeMemoryKiB": null,
+      "afterNativeMemoryKiB": null
+    },
+    {
+      "form": "bindings",
+      "lane": "native",
+      "count": 500,
+      "beforeInstantiations": 23577427,
+      "afterInstantiations": 21323499,
+      "reductionPercent": 9.55968605056014,
+      "beforeMilliseconds": 7203,
+      "afterMilliseconds": 6715,
+      "beforeProcessMilliseconds": 7229,
+      "afterProcessMilliseconds": 6742,
+      "beforeMaxRssMiB": 839.62890625,
+      "afterMaxRssMiB": 776.91796875,
+      "beforeNativeMemoryKiB": 522165,
+      "afterNativeMemoryKiB": 522396
+    },
+    {
+      "form": "modules",
+      "lane": "classic",
+      "count": 500,
+      "beforeInstantiations": 35708698,
+      "afterInstantiations": 35705269,
+      "reductionPercent": 0.009602702400406758,
+      "beforeMilliseconds": 24963,
+      "afterMilliseconds": 25709,
+      "beforeProcessMilliseconds": 25553,
+      "afterProcessMilliseconds": 26137,
+      "beforeMaxRssMiB": 2106,
+      "afterMaxRssMiB": 2163,
+      "beforeNativeMemoryKiB": null,
+      "afterNativeMemoryKiB": null
+    },
+    {
+      "form": "modules",
+      "lane": "native",
+      "count": 500,
+      "beforeInstantiations": 35695884,
+      "afterInstantiations": 35692454,
+      "reductionPercent": 0.00960895099278113,
+      "beforeMilliseconds": 13450,
+      "afterMilliseconds": 13430,
+      "beforeProcessMilliseconds": 13484,
+      "afterProcessMilliseconds": 13460,
+      "beforeMaxRssMiB": 1032.6953125,
+      "afterMaxRssMiB": 1015.9609375,
+      "beforeNativeMemoryKiB": 556075,
+      "afterNativeMemoryKiB": 556270
+    }
+  ],
+  "original1000": [
+    {
+      "form": "chained",
+      "lane": "classic",
+      "scenario": "valid",
+      "accepted": false,
+      "reason": "compiler stack overflow",
+      "instantiations": null,
+      "diagnosticCodes": [],
+      "processMilliseconds": 1176,
+      "maxRssMiB": null,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    },
+    {
+      "form": "chained",
+      "lane": "native",
+      "scenario": "valid",
+      "accepted": false,
+      "reason": "timeout",
+      "instantiations": null,
+      "diagnosticCodes": [],
+      "processMilliseconds": 60084,
+      "maxRssMiB": 687.7890625,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    },
+    {
+      "form": "replacement",
+      "lane": "classic",
+      "scenario": "valid",
+      "accepted": false,
+      "reason": "compiler stack overflow",
+      "instantiations": null,
+      "diagnosticCodes": [],
+      "processMilliseconds": 1159,
+      "maxRssMiB": null,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    },
+    {
+      "form": "replacement",
+      "lane": "native",
+      "scenario": "valid",
+      "accepted": false,
+      "reason": "memory",
+      "instantiations": null,
+      "diagnosticCodes": [],
+      "processMilliseconds": 29308,
+      "maxRssMiB": 3074.98828125,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    },
+    {
+      "form": "bindings",
+      "lane": "classic",
+      "scenario": "valid",
+      "accepted": true,
+      "reason": "accepted",
+      "instantiations": 81922448,
+      "diagnosticCodes": [],
+      "processMilliseconds": 54741,
+      "maxRssMiB": 3013,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    },
+    {
+      "form": "bindings",
+      "lane": "native",
+      "scenario": "valid",
+      "accepted": true,
+      "reason": "accepted",
+      "instantiations": 81834749,
+      "diagnosticCodes": [],
+      "processMilliseconds": 26440,
+      "maxRssMiB": 2373.69921875,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    },
+    {
+      "form": "modules",
+      "lane": "classic",
+      "scenario": "valid",
+      "accepted": false,
+      "reason": "worker timeout",
+      "instantiations": null,
+      "diagnosticCodes": [],
+      "processMilliseconds": 60273,
+      "maxRssMiB": null,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    },
+    {
+      "form": "modules",
+      "lane": "native",
+      "scenario": "valid",
+      "accepted": false,
+      "reason": "TS2589",
+      "instantiations": 135783881,
+      "diagnosticCodes": [
+        2589
+      ],
+      "processMilliseconds": 55454,
+      "maxRssMiB": 2651.3203125,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    },
+    {
+      "form": "bindings",
+      "lane": "classic",
+      "scenario": "missing-final-token",
+      "accepted": true,
+      "reason": "accepted",
+      "instantiations": 81864483,
+      "diagnosticCodes": [
+        2684
+      ],
+      "processMilliseconds": 53806,
+      "maxRssMiB": 2989,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    },
+    {
+      "form": "bindings",
+      "lane": "classic",
+      "scenario": "mismatched-invariant-service",
+      "accepted": true,
+      "reason": "accepted",
+      "instantiations": 81885506,
+      "diagnosticCodes": [
+        2684,
+        2345
+      ],
+      "processMilliseconds": 53951,
+      "maxRssMiB": 2979,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    },
+    {
+      "form": "bindings",
+      "lane": "native",
+      "scenario": "missing-final-token",
+      "accepted": true,
+      "reason": "accepted",
+      "instantiations": 81776774,
+      "diagnosticCodes": [
+        2684
+      ],
+      "processMilliseconds": 26169,
+      "maxRssMiB": 2400.54296875,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    },
+    {
+      "form": "bindings",
+      "lane": "native",
+      "scenario": "mismatched-invariant-service",
+      "accepted": true,
+      "reason": "accepted",
+      "instantiations": 81797811,
+      "diagnosticCodes": [
+        2684,
+        2345
+      ],
+      "processMilliseconds": 26369,
+      "maxRssMiB": 2261.7890625,
+      "sourceCommit": "3672fda107405ae8d08b6659f6aacbf01c364010"
+    }
+  ]
+}

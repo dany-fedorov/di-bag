@@ -1,0 +1,75 @@
+diff --git a/src/di-bag.ts b/src/di-bag.ts
+index 01b98fd..4dbe033 100644
+--- a/src/di-bag.ts
++++ b/src/di-bag.ts
+@@ -371,7 +371,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
+   /**
+    * Create a fresh bag and acquire selected services before returning it.
+    * @param keys - A finite tuple of existing names or typed tokens to make ready.
+-   * @param options - Optional cancellation signal, positive timeout, and parallel or sequential scheduling.
++   * @param options - Optional cancellation signal, positive timeout, and parallel, sequential, or positive safe integer bounded scheduling.
+    * @returns A promise for the new bag after every selected final stage is ready.
+    * @throws {@link DiBagStartupError} after rollback on acquisition failure, or
+    * {@link DiBagStartupCancelledError} promptly on abort or timeout.
+diff --git a/src/startup.ts b/src/startup.ts
+index a7e99fd..eccc7dc 100644
+--- a/src/startup.ts
++++ b/src/startup.ts
+@@ -10,8 +10,8 @@ export interface StartupOptions {
+   readonly signal?: AbortSignal;
+   /** A finite positive deadline in milliseconds. */
+   readonly timeoutMs?: number;
+-  /** Start all selected services together, or await them in tuple order. Defaults to `parallel`. */
+-  readonly concurrency?: 'parallel' | 'sequential';
++  /** Start together (`parallel`, default), in tuple order (`sequential`), or with a positive safe integer bound on selected readiness waits. Dependency fanout is not bounded. */
++  readonly concurrency?: 'parallel' | 'sequential' | number;
+ }
+ 
+ function snapshotOptions(options: StartupOptions | undefined): StartupOptions {
+@@ -25,7 +25,8 @@ function snapshotOptions(options: StartupOptions | undefined): StartupOptions {
+   if (Object.hasOwn(selected, 'timeoutMs') && (typeof selected.timeoutMs !== 'number' || !Number.isFinite(selected.timeoutMs) || selected.timeoutMs <= 0)) {
+     throw new Error('startup timeoutMs must be finite and positive');
+   }
+-  if (Object.hasOwn(selected, 'concurrency') && selected.concurrency !== 'parallel' && selected.concurrency !== 'sequential') throw new Error('invalid startup concurrency');
++  if (Object.hasOwn(selected, 'concurrency') && selected.concurrency !== 'parallel' && selected.concurrency !== 'sequential' &&
++    !(typeof selected.concurrency === 'number' && Number.isSafeInteger(selected.concurrency) && selected.concurrency > 0)) throw new Error('invalid startup concurrency');
+   if (Object.hasOwn(selected, 'signal')) {
+     try { Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted')!.get!.call(selected.signal); }
+     catch { throw new Error('startup signal must be an AbortSignal'); }
+@@ -77,11 +78,22 @@ export function startRuntime(graph: BindingGraph, context: RuntimeContext, keys:
+     if (checkCancellation()) return;
+     if (timeoutMs !== undefined) schedule();
+ 
+-    const runSequential = async () => {
+-      for (const key of selected) {
+-        if (checkCancellation()) return;
+-        await runtime.acquire(key);
+-      }
++    const runBounded = (limit: number) => {
++      let next = 0;
++      let failed = false;
++      const worker = async () => {
++        while (next < selected.length) {
++          if (failed || checkCancellation()) return;
++          const key = selected[next++]!;
++          try { await runtime.acquire(key); }
++          catch (cause) {
++            // Stop other workers before rollback begins, even if cleanup waits.
++            failed = true;
++            throw cause;
++          }
++        }
++      };
++      return Promise.all(Array.from({ length: Math.min(limit, selected.length) }, worker));
+     };
+     const runParallel = () => {
+       const pending: Promise<void>[] = [];
+@@ -91,7 +103,7 @@ export function startRuntime(graph: BindingGraph, context: RuntimeContext, keys:
+       }
+       return Promise.all(pending);
+     };
+-    const work = concurrency === 'sequential' ? runSequential() : runParallel();
++    const work = concurrency === 'parallel' ? runParallel() : runBounded(concurrency === 'sequential' ? 1 : concurrency);
+     void work.then(() => {
+       if (checkCancellation()) return;
+       settled = true;

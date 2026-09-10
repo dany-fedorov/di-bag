@@ -1,0 +1,485 @@
+{
+  "variant": "baseline",
+  "version": "6.0.3",
+  "diagnostics": [
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 2298,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: any; } & ([OldWrong<{ key: any; registration: R; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...>)'.\n  Property '[errorBrand]' is missing in type '{ x: () => number; }' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 2443,
+      "message": "Argument of type 'A' is not assignable to parameter of type 'A & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: any; }'.\n  Property '[errorBrand]' is missing in type 'Token<unique symbol, number>' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 2584,
+      "message": "Argument of type 'A' is not assignable to parameter of type 'A & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: any; }'.\n  Property '[errorBrand]' is missing in type 'Token<unique symbol, number>' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 2731,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: any; } & ([Pick<Provided<{ x: () => number; }>, keyof Exclude<...> & \"x\"> extends Pick<...> ? never : any] extends [...] ? unknown : Unsatisfied<...>)'.\n  Property '[errorBrand]' is missing in type '{ x: () => number; }' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 3017,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: \"x\"; } & ([OpaqueTokenNeeds<{ key: string; registration: R; }>] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Property '[errorBrand]' is missing in type '{ x: () => number; }' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 3171,
+      "message": "Argument of type '() => number' is not assignable to parameter of type '((() => number) & Registration) & ([{ key: string; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<Registration & R>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '() => number' is not assignable to type '(() => number) & Factory & ([{ key: string; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<Registration & R>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n    Type '() => number' is not assignable to type '[{ key: string; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<Registration & R>> | OptionalTokens<ProviderGraph<...>>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 3315,
+      "message": "Argument of type '() => number' is not assignable to parameter of type '((() => number) & Registration) & ([{ key: string; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<(Factory & R) | (ProviderBase & R)>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '() => number' is not assignable to type '(() => number) & Factory & ([{ key: string; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<(Factory & R) | (ProviderBase & R)>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n    Type '() => number' is not assignable to type '[{ key: string; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<(Factory & R) | (ProviderBase & R)>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 3459,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: \"x\"; } & ([Pick<Provided<{ x: () => number; }>, keyof Exclude<...> & \"x\"> extends Pick<...> ? never : string] extends [...] ? unknown : Unsatisfied<...>)'.\n  Property '[errorBrand]' is missing in type '{ x: () => number; }' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 3602,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & ([OpaqueTokenNeeds<{ key: string; registration: R; }>] extends [never] ? [OldWrong<{ key: string; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[OpaqueTokenNeeds<{ key: string; registration: R; }>] extends [never] ? [OldWrong<{ key: string; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 3748,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & ([OpaqueTokenNeeds<{ key: symbol; registration: R; }>] extends [never] ? [OldWrong<{ key: symbol; registration: R; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[OpaqueTokenNeeds<{ key: symbol; registration: R; }>] extends [never] ? [OldWrong<{ key: symbol; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 3896,
+      "message": "Argument of type 'A' is not assignable to parameter of type 'A & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: unique symbol; }'.\n  Property '[errorBrand]' is missing in type 'Token<unique symbol, number>' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 4040,
+      "message": "Argument of type 'A' is not assignable to parameter of type 'A & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: unique symbol; }'.\n  Property '[errorBrand]' is missing in type 'Token<unique symbol, number>' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 4190,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & ([Pick<Provided<{ x: () => number; }>, keyof Exclude<D, undefined> & \"x\"> extends Pick<Exclude<D, undefined>, keyof Exclude<...> & \"x\"> ? never : symbol] extends [...] ? unknown : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[Pick<Provided<{ x: () => number; }>, keyof Exclude<D, undefined> & \"x\"> extends Pick<Exclude<D, undefined>, keyof Exclude<D, undefined> & \"x\"> ? never : symbol] extends [...] ? unknown : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 4333,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & ([OpaqueTokenNeeds<{ key: symbol; registration: R; }>] extends [never] ? [OldWrong<{ key: symbol; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[OpaqueTokenNeeds<{ key: symbol; registration: R; }>] extends [never] ? [OldWrong<{ key: symbol; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 4483,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & ([OpaqueTokenNeeds<{ key: \"consumer\"; registration: R; }>] extends [never] ? [OldWrong<{ key: \"consumer\"; registration: R; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[OpaqueTokenNeeds<{ key: \"consumer\"; registration: R; }>] extends [never] ? [OldWrong<{ key: \"consumer\"; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 4641,
+      "message": "Argument of type '() => number' is not assignable to parameter of type '((() => number) & Registration) & ([{ key: \"consumer\"; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<Registration & R>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '() => number' is not assignable to type '(() => number) & Factory & ([{ key: \"consumer\"; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<Registration & R>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n    Type '() => number' is not assignable to type '[{ key: \"consumer\"; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<Registration & R>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 4789,
+      "message": "Argument of type '() => number' is not assignable to parameter of type '((() => number) & Registration) & ([{ key: \"consumer\"; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<(Factory & R) | (ProviderBase & R)>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '() => number' is not assignable to type '(() => number) & Factory & ([{ key: \"consumer\"; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<(Factory & R) | (ProviderBase & R)>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n    Type '() => number' is not assignable to type '[{ key: \"consumer\"; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<(Factory & R) | (ProviderBase & R)>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 4937,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & ([Pick<Provided<{ x: () => number; }>, keyof Exclude<D, undefined> & \"x\"> extends Pick<Exclude<D, undefined>, keyof Exclude<...> & \"x\"> ? never : \"consumer\"] extends [...] ? unknown : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[Pick<Provided<{ x: () => number; }>, keyof Exclude<D, undefined> & \"x\"> extends Pick<Exclude<D, undefined>, keyof Exclude<D, undefined> & \"x\"> ? never : \"consumer\"] extends [...] ? unknown : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 5084,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & ([OpaqueTokenNeeds<{ key: \"consumer\"; registration: R; }>] extends [never] ? [OldWrong<{ key: \"consumer\"; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[OpaqueTokenNeeds<{ key: \"consumer\"; registration: R; }>] extends [never] ? [OldWrong<{ key: \"consumer\"; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 5232,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & ([OpaqueTokenNeeds<{ key: unique symbol; registration: R; }>] extends [never] ? [OldWrong<{ key: unique symbol; registration: R; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[OpaqueTokenNeeds<{ key: unique symbol; registration: R; }>] extends [never] ? [OldWrong<{ key: unique symbol; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 5382,
+      "message": "Argument of type 'A' is not assignable to parameter of type 'A & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: unique symbol; }'.\n  Property '[errorBrand]' is missing in type 'Token<unique symbol, number>' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 5528,
+      "message": "Argument of type 'A' is not assignable to parameter of type 'A & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: unique symbol; }'.\n  Property '[errorBrand]' is missing in type 'Token<unique symbol, number>' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 5680,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & ([Pick<Provided<{ x: () => number; }>, keyof Exclude<D, undefined> & \"x\"> extends Pick<Exclude<D, undefined>, keyof Exclude<...> & \"x\"> ? never : unique symbol] extends [...] ? unknown : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[Pick<Provided<{ x: () => number; }>, keyof Exclude<D, undefined> & \"x\"> extends Pick<Exclude<D, undefined>, keyof Exclude<D, undefined> & \"x\"> ? never : unique symbol] extends [...] ? unknown : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 5825,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & ([OpaqueTokenNeeds<{ key: unique symbol; registration: R; }>] extends [never] ? [OldWrong<{ key: unique symbol; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[OpaqueTokenNeeds<{ key: unique symbol; registration: R; }>] extends [never] ? [OldWrong<{ key: unique symbol; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 5986,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & ([OpaqueTokenNeeds<{ key: \"consumer\" | unique symbol; registration: R; }>] extends [never] ? [OldWrong<{ ...; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[OpaqueTokenNeeds<{ key: \"consumer\" | unique symbol; registration: R; }>] extends [never] ? [OldWrong<{ key: \"consumer\" | unique symbol; registration: R; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 6149,
+      "message": "Argument of type 'A' is not assignable to parameter of type 'A & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: unique symbol; }'.\n  Property '[errorBrand]' is missing in type 'Token<unique symbol, number>' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 6308,
+      "message": "Argument of type 'A' is not assignable to parameter of type 'A & { readonly [errorBrand]: \"add introduces new tokens only\"; } & { duplicates: unique symbol; }'.\n  Property '[errorBrand]' is missing in type 'Token<unique symbol, number>' but required in type '{ readonly [errorBrand]: \"add introduces new tokens only\"; }'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 6473,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & ([Pick<Provided<{ x: () => number; }>, keyof Exclude<D, undefined> & \"x\"> extends Pick<Exclude<D, undefined>, keyof Exclude<...> & \"x\"> ? never : \"consumer\" | unique symbol] extends [...] ? unknown : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[Pick<Provided<{ x: () => number; }>, keyof Exclude<D, undefined> & \"x\"> extends Pick<Exclude<D, undefined>, keyof Exclude<D, undefined> & \"x\"> ? never : \"consumer\" | unique symbol] extends [...] ? unknown : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 6631,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & ([OpaqueTokenNeeds<{ key: \"consumer\" | unique symbol; registration: R; }>] extends [never] ? [OldWrong<{ key: \"consumer\" | unique symbol; registration: R; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[OpaqueTokenNeeds<{ key: \"consumer\" | unique symbol; registration: R; }>] extends [never] ? [OldWrong<{ key: \"consumer\" | unique symbol; registration: R; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 6786,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & ([OpaqueTokenNeeds<{ key: `svc:${string}`; registration: R; }>] extends [never] ? [OldWrong<{ key: `svc:${string}`; registration: R; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[OpaqueTokenNeeds<{ key: `svc:${string}`; registration: R; }>] extends [never] ? [OldWrong<{ key: `svc:${string}`; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 6949,
+      "message": "Argument of type '() => number' is not assignable to parameter of type '((() => number) & Registration) & ([{ key: `svc:${string}`; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<Registration & R>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '() => number' is not assignable to type '(() => number) & Factory & ([{ key: `svc:${string}`; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<Registration & R>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n    Type '() => number' is not assignable to type '[{ key: `svc:${string}`; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<Registration & R>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 7102,
+      "message": "Argument of type '() => number' is not assignable to parameter of type '((() => number) & Registration) & ([{ key: `svc:${string}`; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<(Factory & R) | (ProviderBase & R)>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '() => number' is not assignable to type '(() => number) & Factory & ([{ key: `svc:${string}`; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<(Factory & R) | (ProviderBase & R)>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n    Type '() => number' is not assignable to type '[{ key: `svc:${string}`; registration: R; } extends Entry ? WrongToken<RequiredTokens<ProviderGraph<(Factory & R) | (ProviderBase & R)>> | OptionalTokens<...>, Record<...>> : never] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 7255,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & Registrations & ([Pick<Provided<{ x: () => number; }>, keyof Exclude<D, undefined> & \"x\"> extends Pick<Exclude<D, undefined>, keyof Exclude<...> & \"x\"> ? never : `svc:${string}`] extends [...] ? unknown : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[Pick<Provided<{ x: () => number; }>, keyof Exclude<D, undefined> & \"x\"> extends Pick<Exclude<D, undefined>, keyof Exclude<D, undefined> & \"x\"> ? never : `svc:${string}`] extends [...] ? unknown : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 7407,
+      "message": "Argument of type '{ x: () => number; }' is not assignable to parameter of type '{ x: () => number; } & ([OpaqueTokenNeeds<{ key: `svc:${string}`; registration: R; }>] extends [never] ? [OldWrong<{ key: `svc:${string}`; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ x: () => number; }' is not assignable to type '[OpaqueTokenNeeds<{ key: `svc:${string}`; registration: R; }>] extends [never] ? [OldWrong<{ key: `svc:${string}`; registration: R; }, { x: () => number; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 10884,
+      "message": "Argument of type '{ [a]: BindA; }' is not assignable to parameter of type '{ [a]: BindA; } & ([{ key: K; registration: NeedA; } extends Entry ? K extends unique symbol ? never : never : never] extends [never] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ [a]: BindA; }' is not assignable to type '[{ key: K; registration: NeedA; } extends Entry ? K extends unique symbol ? never : never : never] extends [never] ? [OldWrong<{ key: K; registration: NeedA; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 11015,
+      "message": "Argument of type '{ [a]: BindA; }' is not assignable to parameter of type '{ [a]: BindA; } & ([\"opaque token contract\" | (E extends Entry ? E[\"key\"] extends unique symbol ? never : WrongToken<RequiredTokens<ProviderGraph<E[\"registration\"]>> | OptionalTokens<...>, { ...; }> : never)] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ [a]: BindA; }' is not assignable to type '[\"opaque token contract\" | (E extends Entry ? E[\"key\"] extends unique symbol ? never : WrongToken<RequiredTokens<ProviderGraph<E[\"registration\"]>> | OptionalTokens<...>, { ...; }> : never)] extends [...] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 11143,
+      "message": "Argument of type '{ [a]: BindA; }' is not assignable to parameter of type '{ [a]: BindA; } & ([{ key: K; registration: NeedA; } extends Entry ? K extends unique symbol ? never : never : never] extends [never] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ [a]: BindA; }' is not assignable to type '[{ key: K; registration: NeedA; } extends Entry ? K extends unique symbol ? never : never : never] extends [never] ? [OldWrong<{ key: K; registration: NeedA; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    },
+    {
+      "code": 2345,
+      "file": "/tmp/di-bag-replacement-spike/tests/dependency-shortcuts-generic-review.ts",
+      "start": 11272,
+      "message": "Argument of type '{ [a]: BindA; }' is not assignable to parameter of type '{ [a]: BindA; } & ([{ key: K; registration: NeedA; } extends Entry ? K extends unique symbol ? never : never : never] extends [never] ? [...] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>)'.\n  Type '{ [a]: BindA; }' is not assignable to type '[{ key: K; registration: NeedA; } extends Entry ? K extends unique symbol ? never : never : never] extends [never] ? [OldWrong<{ key: K; registration: NeedA; }, { ...; }>] extends [...] ? unknown : Unsatisfied<...> : Unsatisfied<...>'."
+    }
+  ],
+  "declarations": [
+    {
+      "name": "checked",
+      "returnType": "[E, N]"
+    },
+    {
+      "name": "forwardAdd",
+      "returnType": "Builder<E | import(\"../src\").Entries<N>, never>"
+    },
+    {
+      "name": "forwardBind",
+      "returnType": "Builder<E | { key: import(\"../src\").TokenKey<T>; registration: import(\"../src\").Binding<T, V>; }, never>"
+    },
+    {
+      "name": "forwardCheck",
+      "returnType": "[E, N]"
+    },
+    {
+      "name": "addGenericRegistration_0",
+      "returnType": "Builder<{ key: never; registration: R; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "bindGenericRegistration_0",
+      "returnType": "Builder<{ key: never; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "needsGenericRegistration_0",
+      "returnType": "Builder<{ key: never; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "addGenericNeeds_0",
+      "returnType": "Builder<{ key: never; registration: (deps: D) => number; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "checkGenericRegistration_0",
+      "returnType": "[{ key: never; registration: R; }, { x: () => number; }]"
+    },
+    {
+      "name": "addGenericRegistration_1",
+      "returnType": "Builder<{ key: any; registration: R; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "bindGenericRegistration_1",
+      "returnType": "Builder<{ key: any; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "needsGenericRegistration_1",
+      "returnType": "Builder<{ key: any; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "addGenericNeeds_1",
+      "returnType": "Builder<{ key: any; registration: (deps: D) => number; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "checkGenericRegistration_1",
+      "returnType": "[{ key: any; registration: R; }, { x: () => number; }]"
+    },
+    {
+      "name": "addGenericRegistration_2",
+      "returnType": "Builder<{ key: string; registration: R; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "bindGenericRegistration_2",
+      "returnType": "Builder<{ key: string; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "needsGenericRegistration_2",
+      "returnType": "Builder<{ key: string; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "addGenericNeeds_2",
+      "returnType": "Builder<{ key: string; registration: (deps: D) => number; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "checkGenericRegistration_2",
+      "returnType": "[{ key: string; registration: R; }, { x: () => number; }]"
+    },
+    {
+      "name": "addGenericRegistration_3",
+      "returnType": "Builder<{ key: symbol; registration: R; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "bindGenericRegistration_3",
+      "returnType": "Builder<{ key: symbol; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "needsGenericRegistration_3",
+      "returnType": "Builder<{ key: symbol; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "addGenericNeeds_3",
+      "returnType": "Builder<{ key: symbol; registration: (deps: D) => number; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "checkGenericRegistration_3",
+      "returnType": "[{ key: symbol; registration: R; }, { x: () => number; }]"
+    },
+    {
+      "name": "addGenericRegistration_4",
+      "returnType": "Builder<{ key: \"consumer\"; registration: R; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "bindGenericRegistration_4",
+      "returnType": "Builder<{ key: \"consumer\"; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "needsGenericRegistration_4",
+      "returnType": "Builder<{ key: \"consumer\"; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "addGenericNeeds_4",
+      "returnType": "Builder<{ key: \"consumer\"; registration: (deps: D) => number; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "checkGenericRegistration_4",
+      "returnType": "[{ key: \"consumer\"; registration: R; }, { x: () => number; }]"
+    },
+    {
+      "name": "addGenericRegistration_5",
+      "returnType": "Builder<{ key: typeof a; registration: R; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "bindGenericRegistration_5",
+      "returnType": "Builder<{ key: typeof a; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "needsGenericRegistration_5",
+      "returnType": "Builder<{ key: typeof a; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "addGenericNeeds_5",
+      "returnType": "Builder<{ key: typeof a; registration: (deps: D) => number; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "checkGenericRegistration_5",
+      "returnType": "[{ key: typeof a; registration: R; }, { x: () => number; }]"
+    },
+    {
+      "name": "addGenericRegistration_6",
+      "returnType": "Builder<{ key: \"consumer\" | typeof a; registration: R; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "bindGenericRegistration_6",
+      "returnType": "Builder<{ key: \"consumer\" | typeof a; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "needsGenericRegistration_6",
+      "returnType": "Builder<{ key: \"consumer\" | typeof a; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "addGenericNeeds_6",
+      "returnType": "Builder<{ key: \"consumer\" | typeof a; registration: (deps: D) => number; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "checkGenericRegistration_6",
+      "returnType": "[{ key: \"consumer\" | typeof a; registration: R; }, { x: () => number; }]"
+    },
+    {
+      "name": "addGenericRegistration_7",
+      "returnType": "Builder<{ key: `svc:${string}`; registration: R; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "bindGenericRegistration_7",
+      "returnType": "Builder<{ key: `svc:${string}`; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "needsGenericRegistration_7",
+      "returnType": "Builder<{ key: `svc:${string}`; registration: R; } | { key: typeof a; registration: import(\"../src\").Binding<A, () => number>; }, never>"
+    },
+    {
+      "name": "addGenericNeeds_7",
+      "returnType": "Builder<{ key: `svc:${string}`; registration: (deps: D) => number; } | { key: \"x\"; registration: () => number; }, never>"
+    },
+    {
+      "name": "checkGenericRegistration_7",
+      "returnType": "[{ key: `svc:${string}`; registration: R; }, { x: () => number; }]"
+    },
+    {
+      "name": "addGenericIncoming_0",
+      "returnType": "Builder<Entry | import(\"../src\").Entries<N>, never>"
+    },
+    {
+      "name": "bindGenericIncoming_0",
+      "returnType": "Builder<Entry | { key: import(\"../src\").TokenKey<T>; registration: import(\"../src\").Binding<T, V>; }, never>"
+    },
+    {
+      "name": "addGenericIncoming_1",
+      "returnType": "Builder<import(\"../src\").Entries<N>, never>"
+    },
+    {
+      "name": "bindGenericIncoming_1",
+      "returnType": "Builder<{ key: import(\"../src\").TokenKey<T>; registration: import(\"../src\").Binding<T, V>; }, never>"
+    },
+    {
+      "name": "addGenericIncoming_2",
+      "returnType": "Builder<any, never>"
+    },
+    {
+      "name": "bindGenericIncoming_2",
+      "returnType": "Builder<any, never>"
+    },
+    {
+      "name": "addGenericIncoming_3",
+      "returnType": "Builder<{ key: never; registration: Opaque; } | import(\"../src\").Entries<N>, never>"
+    },
+    {
+      "name": "bindGenericIncoming_3",
+      "returnType": "Builder<{ key: never; registration: Opaque; } | { key: import(\"../src\").TokenKey<T>; registration: import(\"../src\").Binding<T, V>; }, never>"
+    },
+    {
+      "name": "addGenericIncoming_4",
+      "returnType": "Builder<{ key: any; registration: NeedA; } | import(\"../src\").Entries<N>, never>"
+    },
+    {
+      "name": "bindGenericIncoming_4",
+      "returnType": "Builder<{ key: any; registration: NeedA; } | { key: import(\"../src\").TokenKey<T>; registration: import(\"../src\").Binding<T, V>; }, never>"
+    },
+    {
+      "name": "addGenericIncoming_5",
+      "returnType": "Builder<{ key: \"consumer\"; registration: NeedA | Opaque; } | import(\"../src\").Entries<N>, never>"
+    },
+    {
+      "name": "bindGenericIncoming_5",
+      "returnType": "Builder<{ key: \"consumer\"; registration: NeedA | Opaque; } | { key: import(\"../src\").TokenKey<T>; registration: import(\"../src\").Binding<T, V>; }, never>"
+    },
+    {
+      "name": "addGenericIncoming_6",
+      "returnType": "Builder<{ key: \"consumer\"; registration: NeedA; } | { key: \"opaque\"; registration: Opaque; } | import(\"../src\").Entries<N>, never>"
+    },
+    {
+      "name": "bindGenericIncoming_6",
+      "returnType": "Builder<{ key: \"consumer\"; registration: NeedA; } | { key: \"opaque\"; registration: Opaque; } | { key: import(\"../src\").TokenKey<T>; registration: import(\"../src\").Binding<T, V>; }, never>"
+    },
+    {
+      "name": "genericKey",
+      "returnType": "[{ key: K; registration: NeedA; }, { [a]: BindA; }]"
+    },
+    {
+      "name": "genericUnion",
+      "returnType": "[E | { key: \"opaque\"; registration: Opaque; }, { [a]: BindA; }]"
+    },
+    {
+      "name": "constrainedKey",
+      "returnType": "[{ key: K; registration: NeedA; }, { [a]: BindA; }]"
+    },
+    {
+      "name": "constrainedSymbol",
+      "returnType": "[{ key: K; registration: NeedA; }, { [a]: BindA; }]"
+    }
+  ],
+  "source": "import type {Builder, Registration} from '../src';\nimport type {Entry, IncrementalChecked} from '../src/types';\nimport type {Registrations} from '../src/registration';\nimport type {TokenBase, Token} from '../src/tokens';\nimport type {Provider, ProviderBase} from '../src/provider';\nimport type {TokenGraph} from '../src/token-types';\ndeclare const a:unique symbol,b:unique symbol;\ntype A=Token<typeof a,number>;\ntype BadA=Token<typeof a,string>;\ntype NeedA=Provider<()=>number,{},readonly [],TokenGraph<readonly [A]>>;\ntype Opaque=Provider<()=>number,{},readonly [],TokenGraph<readonly [TokenBase]>>;\ntype BindA=Provider<()=>number,{},readonly [],TokenGraph<readonly [],A>>;\ndeclare const token:A;\ndeclare const bound:BindA;\ndeclare function checked<E extends Entry,N extends Registrations>(history:E, incoming:N & IncrementalChecked<E,N>): [E,N];\nexport function forwardAdd<E extends Entry,N extends Registrations>(builder:Builder<E>, registration:Parameters<typeof builder.add<N>>[0]) {return builder.add<N>(registration);}\nexport function forwardBind<E extends Entry,T extends TokenBase,V extends Registration>(builder:Builder<E>, token:Parameters<typeof builder.bind<T,V>>[0], registration:Parameters<typeof builder.bind<T,V>>[1]) {return builder.bind<T,V>(token,registration);}\nexport function forwardCheck<E extends Entry,N extends Registrations>(history:E, incoming:N & IncrementalChecked<E,N>) {return checked<E,N>(history,incoming);}\nexport function addGenericRegistration_0<R extends Registration>(builder:Builder<{key:never;registration:R}>) { return builder.add({x:()=>1}); }\nexport function bindGenericRegistration_0<R extends Registration>(builder:Builder<{key:never;registration:R}>) { return builder.bind(token,()=>1); }\nexport function needsGenericRegistration_0<R extends NeedA>(builder:Builder<{key:never;registration:R}>) { return builder.bind(token,()=>1); }\nexport function addGenericNeeds_0<D extends object>(builder:Builder<{key:never;registration:(deps:D)=>number}>) { return builder.add({x:()=>1}); }\nexport function checkGenericRegistration_0<R extends Registration>(history:{key:never;registration:R}) { return checked(history,{x:()=>1}); }\nexport function addGenericRegistration_1<R extends Registration>(builder:Builder<{key:any;registration:R}>) { return builder.add({x:()=>1}); }\nexport function bindGenericRegistration_1<R extends Registration>(builder:Builder<{key:any;registration:R}>) { return builder.bind(token,()=>1); }\nexport function needsGenericRegistration_1<R extends NeedA>(builder:Builder<{key:any;registration:R}>) { return builder.bind(token,()=>1); }\nexport function addGenericNeeds_1<D extends object>(builder:Builder<{key:any;registration:(deps:D)=>number}>) { return builder.add({x:()=>1}); }\nexport function checkGenericRegistration_1<R extends Registration>(history:{key:any;registration:R}) { return checked(history,{x:()=>1}); }\nexport function addGenericRegistration_2<R extends Registration>(builder:Builder<{key:string;registration:R}>) { return builder.add({x:()=>1}); }\nexport function bindGenericRegistration_2<R extends Registration>(builder:Builder<{key:string;registration:R}>) { return builder.bind(token,()=>1); }\nexport function needsGenericRegistration_2<R extends NeedA>(builder:Builder<{key:string;registration:R}>) { return builder.bind(token,()=>1); }\nexport function addGenericNeeds_2<D extends object>(builder:Builder<{key:string;registration:(deps:D)=>number}>) { return builder.add({x:()=>1}); }\nexport function checkGenericRegistration_2<R extends Registration>(history:{key:string;registration:R}) { return checked(history,{x:()=>1}); }\nexport function addGenericRegistration_3<R extends Registration>(builder:Builder<{key:symbol;registration:R}>) { return builder.add({x:()=>1}); }\nexport function bindGenericRegistration_3<R extends Registration>(builder:Builder<{key:symbol;registration:R}>) { return builder.bind(token,()=>1); }\nexport function needsGenericRegistration_3<R extends NeedA>(builder:Builder<{key:symbol;registration:R}>) { return builder.bind(token,()=>1); }\nexport function addGenericNeeds_3<D extends object>(builder:Builder<{key:symbol;registration:(deps:D)=>number}>) { return builder.add({x:()=>1}); }\nexport function checkGenericRegistration_3<R extends Registration>(history:{key:symbol;registration:R}) { return checked(history,{x:()=>1}); }\nexport function addGenericRegistration_4<R extends Registration>(builder:Builder<{key:\"consumer\";registration:R}>) { return builder.add({x:()=>1}); }\nexport function bindGenericRegistration_4<R extends Registration>(builder:Builder<{key:\"consumer\";registration:R}>) { return builder.bind(token,()=>1); }\nexport function needsGenericRegistration_4<R extends NeedA>(builder:Builder<{key:\"consumer\";registration:R}>) { return builder.bind(token,()=>1); }\nexport function addGenericNeeds_4<D extends object>(builder:Builder<{key:\"consumer\";registration:(deps:D)=>number}>) { return builder.add({x:()=>1}); }\nexport function checkGenericRegistration_4<R extends Registration>(history:{key:\"consumer\";registration:R}) { return checked(history,{x:()=>1}); }\nexport function addGenericRegistration_5<R extends Registration>(builder:Builder<{key:typeof a;registration:R}>) { return builder.add({x:()=>1}); }\nexport function bindGenericRegistration_5<R extends Registration>(builder:Builder<{key:typeof a;registration:R}>) { return builder.bind(token,()=>1); }\nexport function needsGenericRegistration_5<R extends NeedA>(builder:Builder<{key:typeof a;registration:R}>) { return builder.bind(token,()=>1); }\nexport function addGenericNeeds_5<D extends object>(builder:Builder<{key:typeof a;registration:(deps:D)=>number}>) { return builder.add({x:()=>1}); }\nexport function checkGenericRegistration_5<R extends Registration>(history:{key:typeof a;registration:R}) { return checked(history,{x:()=>1}); }\nexport function addGenericRegistration_6<R extends Registration>(builder:Builder<{key:\"consumer\" | typeof a;registration:R}>) { return builder.add({x:()=>1}); }\nexport function bindGenericRegistration_6<R extends Registration>(builder:Builder<{key:\"consumer\" | typeof a;registration:R}>) { return builder.bind(token,()=>1); }\nexport function needsGenericRegistration_6<R extends NeedA>(builder:Builder<{key:\"consumer\" | typeof a;registration:R}>) { return builder.bind(token,()=>1); }\nexport function addGenericNeeds_6<D extends object>(builder:Builder<{key:\"consumer\" | typeof a;registration:(deps:D)=>number}>) { return builder.add({x:()=>1}); }\nexport function checkGenericRegistration_6<R extends Registration>(history:{key:\"consumer\" | typeof a;registration:R}) { return checked(history,{x:()=>1}); }\nexport function addGenericRegistration_7<R extends Registration>(builder:Builder<{key:`svc:${string}`;registration:R}>) { return builder.add({x:()=>1}); }\nexport function bindGenericRegistration_7<R extends Registration>(builder:Builder<{key:`svc:${string}`;registration:R}>) { return builder.bind(token,()=>1); }\nexport function needsGenericRegistration_7<R extends NeedA>(builder:Builder<{key:`svc:${string}`;registration:R}>) { return builder.bind(token,()=>1); }\nexport function addGenericNeeds_7<D extends object>(builder:Builder<{key:`svc:${string}`;registration:(deps:D)=>number}>) { return builder.add({x:()=>1}); }\nexport function checkGenericRegistration_7<R extends Registration>(history:{key:`svc:${string}`;registration:R}) { return checked(history,{x:()=>1}); }\nexport function addGenericIncoming_0<N extends Registrations>(builder:Builder<Entry>, registration:Parameters<typeof builder.add<N>>[0]) { return builder.add<N>(registration); }\nexport function bindGenericIncoming_0<T extends TokenBase,V extends Registration>(builder:Builder<Entry>, token:Parameters<typeof builder.bind<T,V>>[0], registration:Parameters<typeof builder.bind<T,V>>[1]) { return builder.bind<T,V>(token,registration); }\nexport function addGenericIncoming_1<N extends Registrations>(builder:Builder<never>, registration:Parameters<typeof builder.add<N>>[0]) { return builder.add<N>(registration); }\nexport function bindGenericIncoming_1<T extends TokenBase,V extends Registration>(builder:Builder<never>, token:Parameters<typeof builder.bind<T,V>>[0], registration:Parameters<typeof builder.bind<T,V>>[1]) { return builder.bind<T,V>(token,registration); }\nexport function addGenericIncoming_2<N extends Registrations>(builder:Builder<any>, registration:Parameters<typeof builder.add<N>>[0]) { return builder.add<N>(registration); }\nexport function bindGenericIncoming_2<T extends TokenBase,V extends Registration>(builder:Builder<any>, token:Parameters<typeof builder.bind<T,V>>[0], registration:Parameters<typeof builder.bind<T,V>>[1]) { return builder.bind<T,V>(token,registration); }\nexport function addGenericIncoming_3<N extends Registrations>(builder:Builder<{key:never;registration:Opaque}>, registration:Parameters<typeof builder.add<N>>[0]) { return builder.add<N>(registration); }\nexport function bindGenericIncoming_3<T extends TokenBase,V extends Registration>(builder:Builder<{key:never;registration:Opaque}>, token:Parameters<typeof builder.bind<T,V>>[0], registration:Parameters<typeof builder.bind<T,V>>[1]) { return builder.bind<T,V>(token,registration); }\nexport function addGenericIncoming_4<N extends Registrations>(builder:Builder<{key:any;registration:NeedA}>, registration:Parameters<typeof builder.add<N>>[0]) { return builder.add<N>(registration); }\nexport function bindGenericIncoming_4<T extends TokenBase,V extends Registration>(builder:Builder<{key:any;registration:NeedA}>, token:Parameters<typeof builder.bind<T,V>>[0], registration:Parameters<typeof builder.bind<T,V>>[1]) { return builder.bind<T,V>(token,registration); }\nexport function addGenericIncoming_5<N extends Registrations>(builder:Builder<{key:\"consumer\";registration:NeedA | Opaque}>, registration:Parameters<typeof builder.add<N>>[0]) { return builder.add<N>(registration); }\nexport function bindGenericIncoming_5<T extends TokenBase,V extends Registration>(builder:Builder<{key:\"consumer\";registration:NeedA | Opaque}>, token:Parameters<typeof builder.bind<T,V>>[0], registration:Parameters<typeof builder.bind<T,V>>[1]) { return builder.bind<T,V>(token,registration); }\nexport function addGenericIncoming_6<N extends Registrations>(builder:Builder<{key:\"consumer\";registration:NeedA} | {key:\"opaque\";registration:Opaque}>, registration:Parameters<typeof builder.add<N>>[0]) { return builder.add<N>(registration); }\nexport function bindGenericIncoming_6<T extends TokenBase,V extends Registration>(builder:Builder<{key:\"consumer\";registration:NeedA} | {key:\"opaque\";registration:Opaque}>, token:Parameters<typeof builder.bind<T,V>>[0], registration:Parameters<typeof builder.bind<T,V>>[1]) { return builder.bind<T,V>(token,registration); }\nexport function genericKey<K extends string|symbol>(history:{key:K;registration:NeedA}) {return checked(history,{[a]:bound});}\nexport function genericUnion<E extends Entry>(history:E|{key:'opaque';registration:Opaque}) {return checked(history,{[a]:bound});}\nexport function constrainedKey<K extends 'consumer'>(history:{key:K;registration:NeedA}) {return checked(history,{[a]:bound});}\nexport function constrainedSymbol<K extends typeof b>(history:{key:K;registration:NeedA}) {return checked(history,{[a]:bound});}\n"
+}

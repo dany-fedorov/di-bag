@@ -75,4 +75,32 @@ export const startupRuntimeAssertions = `{
     await cancelled.cleanupPromise;
     assert.deepEqual(cleanup, [17]);
   }
+
+  for (const startupOrder of [1, 2]) {
+    const gates = Array.from({ length: 3 }, () => {
+      let release;
+      const promise = new Promise(resolve => { release = resolve; });
+      return { promise, release };
+    });
+    const calls = [], disposed = [];
+    const provider = index => DiBag.withDisposal(() => {
+      calls.push(index); return gates[index].promise;
+    }, value => { disposed.push(value); });
+    const pending = DiBag.createBuilder().register({ a: provider(0), b: provider(1), c: provider(2) })
+      .buildAndStart(['a', 'b', 'c'], { startupOrder });
+    assert.deepEqual(calls, startupOrder === 1 ? [0] : [0, 1]);
+    gates[0].release(10);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(calls, startupOrder === 1 ? [0, 1] : [0, 1, 2]);
+    gates[1].release(11); gates[2].release(12);
+    const bag = await pending;
+    assert.equal(bag.resolve('a'), gates[0].promise);
+    await bag.close(); assert.deepEqual(disposed, [12, 11, 10]);
+  }
+  let invalidCalls = 0;
+  const boundedBuilder = DiBag.createBuilder().register({ item: () => ++invalidCalls });
+  for (const startupOrder of [0, -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    await assert.rejects(boundedBuilder.buildAndStart(['item'], { startupOrder }), /buildAndStart startupOrder must be parallel, sequential, or a positive safe integer/);
+  }
+  assert.equal(invalidCalls, 0);
 }`;

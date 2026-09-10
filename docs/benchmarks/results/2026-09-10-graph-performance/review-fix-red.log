@@ -1,0 +1,42 @@
+bun test v1.4.2 (744846f84)
+
+tests/persistent-graph.test.ts:
+(pass) replacement removes obsolete public IDs while earlier versions retain their own values [14.77ms]
+(pass) replacement counts all public slots and contribution references to a binding [0.38ms]
+(pass) private aliases protect replaced IDs but public aliases follow current slots [1.92ms]
+(pass) constructor keeps unused private registrations for explicit preflight and dangling refs for inspection [0.36ms]
+(pass) shared lexical input maps are snapshotted once per installation [5.81ms]
+(pass) string collisions, special own keys and same-description symbols stay distinct across updates [16.18ms]
+(pass) materialized contributions retain order through append and installation without changing old arrays [6.12ms]
+(pass) root lifetime stays parent-owned after a child overrides one shared public slot [0.59ms]
+(pass) former public targets are pruned when the last user of a shared lexical snapshot is replaced [0.12ms]
+(pass) pruning cascades iteratively through displaced lexical targets [41.96ms]
+143 |     publicSlots: new Map([['item', target]]),
+144 |     contributions: new Map([[group, ids]]),
+145 |   });
+146 |   const updated = original.withPublicBinding('item', () => 2);
+147 |   expect({ reads, ids: updated.contributionBindings(group), hasTarget: updated.hasBinding(target) })
+148 |     .toEqual({ reads: 1, ids: [target], hasTarget: true });
+           ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "hasTarget": true,
++   "hasTarget": false,
+    "ids": [
+      Symbol(target),
+    ],
+-   "reads": 1,
++   "reads": 2,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/persistent-graph.test.ts:148:6)
+(fail) contribution protection uses the once-read input snapshot through public replacement [0.67ms]
+
+ 10 pass
+ 1 fail
+ 9086 expect() calls
+Ran 11 tests across 1 file. [103.00ms]

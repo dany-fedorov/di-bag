@@ -4,7 +4,7 @@
 
 # Interface: ConfigurationOptions
 
-Defined in: [di-bag.ts:397](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L397)
+Defined in: [di-bag.ts:403](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L403)
 
 Immutable facade configuration. Observers append in the supplied order.
 
@@ -16,7 +16,7 @@ Immutable facade configuration. Observers append in the supplied order.
 readonly observers?: readonly ObserverOptions[];
 ```
 
-Defined in: [di-bag.ts:399](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L399)
+Defined in: [di-bag.ts:405](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L405)
 
 ***
 
@@ -26,4 +26,4 @@ Defined in: [di-bag.ts:399](https://github.com/dany-fedorov/di-bag/blob/main/src
 readonly runtime?: RuntimeOptions;
 ```
 
-Defined in: [di-bag.ts:398](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L398)
+Defined in: [di-bag.ts:404](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L404)

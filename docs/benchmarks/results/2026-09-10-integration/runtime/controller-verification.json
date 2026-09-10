@@ -1,0 +1,196 @@
+{
+  "rows": 141,
+  "accepted": 135,
+  "acceptedByBuild": {
+    "original-classic": 43,
+    "final-classic": 46,
+    "final-native": 46
+  },
+  "sourceBuildProbeAndRowIdentitiesVerified": true,
+  "failures": [
+    {
+      "build": "original-classic",
+      "scenario": "cold-chain",
+      "count": 1000,
+      "sample": 1,
+      "observation": {
+        "scenario": "cold-chain",
+        "count": 1000,
+        "sample": 1,
+        "node": "v24.20.0",
+        "error": {
+          "name": "RangeError",
+          "message": "Maximum call stack size exceeded",
+          "stack": [
+            "RangeError: Maximum call stack size exceeded",
+            "    at Acquisitions.resolveBinding (/tmp/di-bag-performance-original-main/dist/acquisition.js:248:25)",
+            "    at read (/tmp/di-bag-performance-original-main/dist/acquisition.js:218:60)",
+            "    at Object.get (/tmp/di-bag-performance-original-main/dist/acquisition.js:229:24)",
+            "    at file:///tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/probe.mjs:89:129",
+            "    at /tmp/di-bag-performance-original-main/dist/provider-execution.js:42:15"
+          ]
+        },
+        "elapsedMs": 53.876839000000004,
+        "created": 758
+      }
+    },
+    {
+      "build": "original-classic",
+      "scenario": "cold-chain",
+      "count": 2000,
+      "sample": 1,
+      "observation": {
+        "scenario": "cold-chain",
+        "count": 2000,
+        "sample": 1,
+        "node": "v24.20.0",
+        "error": {
+          "name": "RangeError",
+          "message": "Maximum call stack size exceeded",
+          "stack": [
+            "RangeError: Maximum call stack size exceeded",
+            "    at Acquisitions.resolveBinding (/tmp/di-bag-performance-original-main/dist/acquisition.js:248:25)",
+            "    at read (/tmp/di-bag-performance-original-main/dist/acquisition.js:218:60)",
+            "    at Object.get (/tmp/di-bag-performance-original-main/dist/acquisition.js:229:24)",
+            "    at file:///tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/probe.mjs:89:129",
+            "    at /tmp/di-bag-performance-original-main/dist/provider-execution.js:42:15"
+          ]
+        },
+        "elapsedMs": 53.58405200000001,
+        "created": 758
+      }
+    },
+    {
+      "build": "original-classic",
+      "scenario": "close-deep",
+      "count": 10000,
+      "sample": 1,
+      "observation": {
+        "scenario": "close-deep",
+        "count": 10000,
+        "sample": 1,
+        "node": "v24.20.0",
+        "error": {
+          "name": "AggregateError",
+          "message": "Failed to close 1 runtime operation(s)",
+          "stack": [
+            "AggregateError: Failed to close 1 runtime operation(s)",
+            "    at Runtime.finishClose (/tmp/di-bag-performance-original-main/dist/runtime.js:235:19)"
+          ],
+          "errors": [
+            {
+              "name": "RangeError",
+              "message": "Maximum call stack size exceeded",
+              "stack": [
+                "RangeError: Maximum call stack size exceeded",
+                "    at Set.has (<anonymous>)",
+                "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:307:29)",
+                "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)",
+                "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)",
+                "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)"
+              ]
+            }
+          ]
+        },
+        "elapsedMs": 936.3560180000001,
+        "disposed": 0,
+        "expectedDisposals": 10000,
+        "afterCloseAcquisitions": 0,
+        "disposedAfterSecondClose": 0,
+        "resolveAfterClose": "bag is closed"
+      }
+    },
+    {
+      "build": "original-classic",
+      "scenario": "close-deep",
+      "count": 10000,
+      "sample": 2,
+      "observation": {
+        "scenario": "close-deep",
+        "count": 10000,
+        "sample": 2,
+        "node": "v24.20.0",
+        "error": {
+          "name": "AggregateError",
+          "message": "Failed to close 1 runtime operation(s)",
+          "stack": [
+            "AggregateError: Failed to close 1 runtime operation(s)",
+            "    at Runtime.finishClose (/tmp/di-bag-performance-original-main/dist/runtime.js:235:19)"
+          ],
+          "errors": [
+            {
+              "name": "RangeError",
+              "message": "Maximum call stack size exceeded",
+              "stack": [
+                "RangeError: Maximum call stack size exceeded",
+                "    at Set.has (<anonymous>)",
+                "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:307:29)",
+                "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)",
+                "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)",
+                "    at visit (/tmp/di-bag-performance-original-main/dist/acquisition.js:314:21)"
+              ]
+            }
+          ]
+        },
+        "elapsedMs": 924.127083,
+        "disposed": 0,
+        "expectedDisposals": 10000,
+        "afterCloseAcquisitions": 0,
+        "disposedAfterSecondClose": 0,
+        "resolveAfterClose": "bag is closed"
+      }
+    },
+    {
+      "build": "final-classic",
+      "scenario": "cold-chain",
+      "count": 2000,
+      "sample": 1,
+      "observation": {
+        "scenario": "cold-chain",
+        "count": 2000,
+        "sample": 1,
+        "node": "v24.20.0",
+        "error": {
+          "name": "RangeError",
+          "message": "Maximum call stack size exceeded",
+          "stack": [
+            "RangeError: Maximum call stack size exceeded",
+            "    at Acquisitions.retire (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/classic/acquisition.js:316:32)",
+            "    at Acquisitions.resolveBinding (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/classic/acquisition.js:274:18)",
+            "    at read (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/classic/acquisition.js:234:77)",
+            "    at Object.get (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/classic/acquisition.js:245:24)",
+            "    at file:///tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/probe.mjs:89:129"
+          ]
+        },
+        "elapsedMs": 19.210237,
+        "created": 1148
+      }
+    },
+    {
+      "build": "final-native",
+      "scenario": "cold-chain",
+      "count": 2000,
+      "sample": 1,
+      "observation": {
+        "scenario": "cold-chain",
+        "count": 2000,
+        "sample": 1,
+        "node": "v24.20.0",
+        "error": {
+          "name": "RangeError",
+          "message": "Maximum call stack size exceeded",
+          "stack": [
+            "RangeError: Maximum call stack size exceeded",
+            "    at Acquisitions.retire (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/native/acquisition.js:316:32)",
+            "    at Acquisitions.resolveBinding (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/native/acquisition.js:274:18)",
+            "    at read (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/native/acquisition.js:234:77)",
+            "    at Object.get (/tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/builds/native/acquisition.js:245:24)",
+            "    at file:///tmp/di-bag-performance-integration/docs/benchmarks/results/2026-09-10-integration/runtime/probe.mjs:89:129"
+          ]
+        },
+        "elapsedMs": 15.696748999999997,
+        "created": 1148
+      }
+    }
+  ]
+}

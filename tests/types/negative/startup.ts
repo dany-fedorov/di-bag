@@ -14,6 +14,8 @@ builder.buildAndStart();
 // diagnostic: not assignable
 builder.buildAndStart(['value'], { startupOrder: 'serial' });
 // diagnostic: not assignable
+builder.buildAndStart(['value'], { startupOrder: true });
+// diagnostic: not assignable
 builder.buildAndStart(['value'], { timeoutMs: '1' });
 // diagnostic: missing the following properties from type 'AbortSignal'
 builder.buildAndStart(['value'], { signal: {} });

@@ -4,7 +4,7 @@
 
 # Interface: DiBagApi
 
-Defined in: [di-bag.ts:402](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L402)
+Defined in: [di-bag.ts:408](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L408)
 
 The immutable public entry surface used by [DiBag](../variables/DiBag.md) and derived facades.
 
@@ -16,7 +16,7 @@ The immutable public entry surface used by [DiBag](../variables/DiBag.md) and de
 all: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => CollectionDependency<T>;
 ```
 
-Defined in: [di-bag.ts:414](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L414)
+Defined in: [di-bag.ts:420](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L420)
 
 Create a positional dependency containing ordered collection contributions.
 
@@ -47,7 +47,7 @@ An immutable reference that supplies a fresh frozen array, including when empty.
 createBuilder: () => BagBuilder<never>;
 ```
 
-Defined in: [di-bag.ts:422](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L422)
+Defined in: [di-bag.ts:428](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L428)
 
 Begin an empty immutable application graph; build creates its owning bag.
 
@@ -59,7 +59,7 @@ Begin an empty immutable application graph; build creates its owning bag.
 createModuleBuilder: () => ModuleBuilder<never>;
 ```
 
-Defined in: [di-bag.ts:424](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L424)
+Defined in: [di-bag.ts:430](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L430)
 
 Begin a reusable module graph with private services and selected public exports.
 
@@ -73,7 +73,7 @@ Begin an empty immutable module graph.
 fromClass: <const T extends readonly DependencyReference[], C extends new (...args: TokenArguments<NoInfer<T>>) => unknown, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>>, ...modeOptions: StageOptions<M>) => Provider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>>;
 ```
 
-Defined in: [di-bag.ts:420](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L420)
+Defined in: [di-bag.ts:426](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L426)
 
 Adapt a concrete constructor with positional dependency injection.
 
@@ -116,7 +116,7 @@ fromFactory: {
 };
 ```
 
-Defined in: [di-bag.ts:406](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L406)
+Defined in: [di-bag.ts:412](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L412)
 
 Describe a named-dependency factory, optionally receiving acquisition context.
 
@@ -182,19 +182,19 @@ A lazy provider retaining exact output and dependency types without adding owner
 
 ```ts
 fromFunction: {
-    <const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>, 'nativePromise' extends M ? Promise<unknown> : unknown>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
-    <const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
+    <const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>, 'nativePromise' extends M ? Promise<unknown> : unknown>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
+    <const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
 };
 ```
 
-Defined in: [di-bag.ts:418](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L418)
+Defined in: [di-bag.ts:424](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L424)
 
 Adapt a positional function with strict dependency tuple and argument checking.
 
 #### Call Signature
 
 ```ts
-<const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>, 'nativePromise' extends M ? Promise<unknown> : unknown>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
+<const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>, 'nativePromise' extends M ? Promise<unknown> : unknown>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
 ```
 
 Adapt a positional function without awaiting its arguments or return value.
@@ -222,7 +222,7 @@ A lazy provider retaining the dependency graph and exact return type.
 #### Call Signature
 
 ```ts
-<const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
+<const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
 ```
 
 Adapt a positional function whose parameters exactly match the selected dependency values.
@@ -255,7 +255,7 @@ A reusable provider; no dependency or result is implicitly awaited.
 fromPlugin: PluginProviderFactory;
 ```
 
-Defined in: [di-bag.ts:416](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L416)
+Defined in: [di-bag.ts:422](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L422)
 
 Validate an unknown plugin descriptor and its acquired output at a checked boundary.
 
@@ -267,7 +267,7 @@ Validate an unknown plugin descriptor and its acquired output at a checked bound
 lazy: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => LazyDependency<T>;
 ```
 
-Defined in: [di-bag.ts:412](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L412)
+Defined in: [di-bag.ts:418](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L418)
 
 Create a positional dependency resolved on demand by the receiving service.
 
@@ -299,7 +299,7 @@ An immutable lazy reference accepted by positional provider adapters.
 optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalDependency<T>;
 ```
 
-Defined in: [di-bag.ts:410](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L410)
+Defined in: [di-bag.ts:416](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L416)
 
 Create a positional dependency that yields undefined only when unregistered.
 
@@ -333,7 +333,7 @@ token: <const K extends symbol>(key: K & TokenKeyAdmission<K>, ...invalid: [K] e
 };
 ```
 
-Defined in: [di-bag.ts:408](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L408)
+Defined in: [di-bag.ts:414](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L414)
 
 Create a nominal typed token with a diagnostic label.
 
@@ -383,7 +383,7 @@ transformService: {
 };
 ```
 
-Defined in: [di-bag.ts:432](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L432)
+Defined in: [di-bag.ts:438](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L438)
 
 Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership.
 
@@ -457,7 +457,7 @@ A provider exposing a Promise of the awaited transform result.
 withConfiguration: (options: ConfigurationOptions) => DiBagApi;
 ```
 
-Defined in: [di-bag.ts:404](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L404)
+Defined in: [di-bag.ts:410](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L410)
 
 Return a facade with inherited runtime settings and appended observers.
 
@@ -478,7 +478,7 @@ withDisposal: {
 };
 ```
 
-Defined in: [di-bag.ts:426](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L426)
+Defined in: [di-bag.ts:432](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L432)
 
 Attach owned-value cleanup while retaining earlier disposal stages.
 
@@ -545,7 +545,7 @@ withLifetime: {
 };
 ```
 
-Defined in: [di-bag.ts:428](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L428)
+Defined in: [di-bag.ts:434](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L434)
 
 Select root, scoped, or transient caching within an ownership family.
 
@@ -646,7 +646,7 @@ withMetadata: {
 };
 ```
 
-Defined in: [di-bag.ts:430](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L430)
+Defined in: [di-bag.ts:436](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L436)
 
 Attach registration metadata and ordered acquisition metadata in direct or awaited mode.
 

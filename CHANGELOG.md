@@ -56,7 +56,7 @@
 - Selected scope contracts are verified through physical classic/native
   declarations and packed Node/Bun CommonJS/ESM consumers.
 - `BagBuilder.buildAndStart(keys, options?)` eagerly acquires selected names/tokens in a fresh
-  bag, with parallel/sequential startup, rollback on failure, external cancellation
+  bag, with parallel, sequential, or bounded numeric startup, rollback on failure, external cancellation
   and finite positive timeouts. `DiBagStartupError` retains setup and cleanup
   causes; `DiBagStartupCancelledError` rejects promptly and exposes eventual cleanup.
 - `DiBag.fromFactory` with `context: 'acquisition'` supplies a frozen acquisition-owner context and AbortSignal,

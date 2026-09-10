@@ -1,0 +1,294 @@
+[
+  {
+    "variant": "inferred-materialized",
+    "form": "chained",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-history-materialization-probe/worker.mjs",
+      "inferred-materialized",
+      "100",
+      "chained"
+    ],
+    "result": {
+      "variant": "inferred-materialized",
+      "count": 100,
+      "form": "chained",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [
+        {
+          "code": 2352,
+          "file": "/tmp/di-bag-replacement-spike/src/module.ts",
+          "line": 141,
+          "column": 49,
+          "message": "Conversion of type '(token: unknown, registration: Registration) => ModuleBuilder<Entry, C>' to type 'ModuleContribute<E, C>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.\n  Call signature return types 'ModuleBuilder<Entry, C>' and 'ModuleBuilder<E, C | Contribution<any, any, undefined>>' are incompatible.\n    Type at position 0 in source is not compatible with type at position 0 in target.\n      The types returned by '[moduleInvariant](...)' are incompatible between these types.\n        Type '{ [x: string]: Registration; [x: symbol]: Registration; }' is not comparable to type 'From<E>'."
+        },
+        {
+          "code": 2344,
+          "file": "/tmp/di-bag-replacement-spike/src/types.ts",
+          "line": 101,
+          "column": 31,
+          "message": "Type 'Exclude<keyof ProviderNeeds<N[K]>, keyof N> & E[\"key\"]' does not satisfy the constraint 'keyof From<E>'.\n  Type 'Exclude<keyof ProviderNeeds<N[K]>, keyof N> & E[\"key\"]' is not assignable to type 'string'."
+        }
+      ],
+      "instantiations": 815954,
+      "milliseconds": 1380,
+      "maxRssMiB": 399.078125
+    }
+  },
+  {
+    "variant": "inferred-materialized",
+    "form": "replacement",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-history-materialization-probe/worker.mjs",
+      "inferred-materialized",
+      "100",
+      "replacement"
+    ],
+    "result": {
+      "variant": "inferred-materialized",
+      "count": 100,
+      "form": "replacement",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [
+        {
+          "code": 2352,
+          "file": "/tmp/di-bag-replacement-spike/src/module.ts",
+          "line": 141,
+          "column": 49,
+          "message": "Conversion of type '(token: unknown, registration: Registration) => ModuleBuilder<Entry, C>' to type 'ModuleContribute<E, C>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.\n  Call signature return types 'ModuleBuilder<Entry, C>' and 'ModuleBuilder<E, C | Contribution<any, any, undefined>>' are incompatible.\n    Type at position 0 in source is not compatible with type at position 0 in target.\n      The types returned by '[moduleInvariant](...)' are incompatible between these types.\n        Type '{ [x: string]: Registration; [x: symbol]: Registration; }' is not comparable to type 'From<E>'."
+        },
+        {
+          "code": 2344,
+          "file": "/tmp/di-bag-replacement-spike/src/types.ts",
+          "line": 101,
+          "column": 31,
+          "message": "Type 'Exclude<keyof ProviderNeeds<N[K]>, keyof N> & E[\"key\"]' does not satisfy the constraint 'keyof From<E>'.\n  Type 'Exclude<keyof ProviderNeeds<N[K]>, keyof N> & E[\"key\"]' is not assignable to type 'string'."
+        }
+      ],
+      "instantiations": 1266386,
+      "milliseconds": 1528,
+      "maxRssMiB": 417.12109375
+    }
+  },
+  {
+    "variant": "inferred-materialized",
+    "form": "bindings",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-history-materialization-probe/worker.mjs",
+      "inferred-materialized",
+      "100",
+      "bindings"
+    ],
+    "result": {
+      "variant": "inferred-materialized",
+      "count": 100,
+      "form": "bindings",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [
+        {
+          "code": 2352,
+          "file": "/tmp/di-bag-replacement-spike/src/module.ts",
+          "line": 141,
+          "column": 49,
+          "message": "Conversion of type '(token: unknown, registration: Registration) => ModuleBuilder<Entry, C>' to type 'ModuleContribute<E, C>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.\n  Call signature return types 'ModuleBuilder<Entry, C>' and 'ModuleBuilder<E, C | Contribution<any, any, undefined>>' are incompatible.\n    Type at position 0 in source is not compatible with type at position 0 in target.\n      The types returned by '[moduleInvariant](...)' are incompatible between these types.\n        Type '{ [x: string]: Registration; [x: symbol]: Registration; }' is not comparable to type 'From<E>'."
+        },
+        {
+          "code": 2344,
+          "file": "/tmp/di-bag-replacement-spike/src/types.ts",
+          "line": 101,
+          "column": 31,
+          "message": "Type 'Exclude<keyof ProviderNeeds<N[K]>, keyof N> & E[\"key\"]' does not satisfy the constraint 'keyof From<E>'.\n  Type 'Exclude<keyof ProviderNeeds<N[K]>, keyof N> & E[\"key\"]' is not assignable to type 'string'."
+        }
+      ],
+      "instantiations": 1238248,
+      "milliseconds": 1833,
+      "maxRssMiB": 461.93359375
+    }
+  },
+  {
+    "variant": "inferred-materialized",
+    "form": "modules",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-history-materialization-probe/worker.mjs",
+      "inferred-materialized",
+      "100",
+      "modules"
+    ],
+    "result": {
+      "variant": "inferred-materialized",
+      "count": 100,
+      "form": "modules",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [
+        {
+          "code": 2352,
+          "file": "/tmp/di-bag-replacement-spike/src/module.ts",
+          "line": 141,
+          "column": 49,
+          "message": "Conversion of type '(token: unknown, registration: Registration) => ModuleBuilder<Entry, C>' to type 'ModuleContribute<E, C>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.\n  Call signature return types 'ModuleBuilder<Entry, C>' and 'ModuleBuilder<E, C | Contribution<any, any, undefined>>' are incompatible.\n    Type at position 0 in source is not compatible with type at position 0 in target.\n      The types returned by '[moduleInvariant](...)' are incompatible between these types.\n        Type '{ [x: string]: Registration; [x: symbol]: Registration; }' is not comparable to type 'From<E>'."
+        },
+        {
+          "code": 2344,
+          "file": "/tmp/di-bag-replacement-spike/src/types.ts",
+          "line": 101,
+          "column": 31,
+          "message": "Type 'Exclude<keyof ProviderNeeds<N[K]>, keyof N> & E[\"key\"]' does not satisfy the constraint 'keyof From<E>'.\n  Type 'Exclude<keyof ProviderNeeds<N[K]>, keyof N> & E[\"key\"]' is not assignable to type 'string'."
+        }
+      ],
+      "instantiations": 2079798,
+      "milliseconds": 2486,
+      "maxRssMiB": 500.984375
+    }
+  },
+  {
+    "variant": "symbol-materialized",
+    "form": "chained",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-history-materialization-probe/worker.mjs",
+      "symbol-materialized",
+      "100",
+      "chained"
+    ],
+    "result": {
+      "variant": "symbol-materialized",
+      "count": 100,
+      "form": "chained",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [
+        {
+          "code": 2352,
+          "file": "/tmp/di-bag-replacement-spike/src/module.ts",
+          "line": 141,
+          "column": 49,
+          "message": "Conversion of type '(token: unknown, registration: Registration) => ModuleBuilder<Entry, C>' to type 'ModuleContribute<E, C>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.\n  Call signature return types 'ModuleBuilder<Entry, C>' and 'ModuleBuilder<E, C | Contribution<any, any, undefined>>' are incompatible.\n    Type at position 0 in source is not compatible with type at position 0 in target.\n      The types returned by '[moduleInvariant](...)' are incompatible between these types.\n        Type 'EntryMap<Entry>' is not comparable to type 'From<E>'."
+        }
+      ],
+      "instantiations": 789435,
+      "milliseconds": 1374,
+      "maxRssMiB": 399.203125
+    }
+  },
+  {
+    "variant": "symbol-materialized",
+    "form": "replacement",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-history-materialization-probe/worker.mjs",
+      "symbol-materialized",
+      "100",
+      "replacement"
+    ],
+    "result": {
+      "variant": "symbol-materialized",
+      "count": 100,
+      "form": "replacement",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [
+        {
+          "code": 2352,
+          "file": "/tmp/di-bag-replacement-spike/src/module.ts",
+          "line": 141,
+          "column": 49,
+          "message": "Conversion of type '(token: unknown, registration: Registration) => ModuleBuilder<Entry, C>' to type 'ModuleContribute<E, C>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.\n  Call signature return types 'ModuleBuilder<Entry, C>' and 'ModuleBuilder<E, C | Contribution<any, any, undefined>>' are incompatible.\n    Type at position 0 in source is not compatible with type at position 0 in target.\n      The types returned by '[moduleInvariant](...)' are incompatible between these types.\n        Type 'EntryMap<Entry>' is not comparable to type 'From<E>'."
+        }
+      ],
+      "instantiations": 1275687,
+      "milliseconds": 1574,
+      "maxRssMiB": 413.0625
+    }
+  },
+  {
+    "variant": "symbol-materialized",
+    "form": "bindings",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-history-materialization-probe/worker.mjs",
+      "symbol-materialized",
+      "100",
+      "bindings"
+    ],
+    "result": {
+      "variant": "symbol-materialized",
+      "count": 100,
+      "form": "bindings",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [
+        {
+          "code": 2352,
+          "file": "/tmp/di-bag-replacement-spike/src/module.ts",
+          "line": 141,
+          "column": 49,
+          "message": "Conversion of type '(token: unknown, registration: Registration) => ModuleBuilder<Entry, C>' to type 'ModuleContribute<E, C>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.\n  Call signature return types 'ModuleBuilder<Entry, C>' and 'ModuleBuilder<E, C | Contribution<any, any, undefined>>' are incompatible.\n    Type at position 0 in source is not compatible with type at position 0 in target.\n      The types returned by '[moduleInvariant](...)' are incompatible between these types.\n        Type 'EntryMap<Entry>' is not comparable to type 'From<E>'."
+        }
+      ],
+      "instantiations": 1169586,
+      "milliseconds": 1804,
+      "maxRssMiB": 463.1171875
+    }
+  },
+  {
+    "variant": "symbol-materialized",
+    "form": "modules",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-history-materialization-probe/worker.mjs",
+      "symbol-materialized",
+      "100",
+      "modules"
+    ],
+    "result": {
+      "variant": "symbol-materialized",
+      "count": 100,
+      "form": "modules",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [
+        {
+          "code": 2352,
+          "file": "/tmp/di-bag-replacement-spike/src/module.ts",
+          "line": 141,
+          "column": 49,
+          "message": "Conversion of type '(token: unknown, registration: Registration) => ModuleBuilder<Entry, C>' to type 'ModuleContribute<E, C>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.\n  Call signature return types 'ModuleBuilder<Entry, C>' and 'ModuleBuilder<E, C | Contribution<any, any, undefined>>' are incompatible.\n    Type at position 0 in source is not compatible with type at position 0 in target.\n      The types returned by '[moduleInvariant](...)' are incompatible between these types.\n        Type 'EntryMap<Entry>' is not comparable to type 'From<E>'."
+        }
+      ],
+      "instantiations": 1831499,
+      "milliseconds": 2338,
+      "maxRssMiB": 495.8125
+    }
+  }
+]

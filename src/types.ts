@@ -78,13 +78,13 @@ type WrongShapes<R extends Registrations> = {
 // Expanded relationships appear only in failure branches; successful checks retain their fast predicates.
 type WrongRelationships<R extends Registrations, Consumers extends keyof R> = {
   [Consumer in Consumers]: {
-    [Dependency in keyof Needs<R[Consumer]> & keyof R]: ServicesOf<R>[Dependency] extends Required<Needs<R[Consumer]>>[Dependency]
-      ? never : { consumer: Consumer; dependency: Dependency; expected: Required<Needs<R[Consumer]>>[Dependency]; provided: ServicesOf<R>[Dependency] }
+    [DependencyReference in keyof Needs<R[Consumer]> & keyof R]: ServicesOf<R>[DependencyReference] extends Required<Needs<R[Consumer]>>[DependencyReference]
+      ? never : { consumer: Consumer; dependency: DependencyReference; expected: Required<Needs<R[Consumer]>>[DependencyReference]; provided: ServicesOf<R>[DependencyReference] }
   }[keyof Needs<R[Consumer]> & keyof R]
 }[Consumers];
 type MissingRelationships<R extends Registrations> = {
   [Consumer in keyof R]: {
-    [Dependency in Exclude<keyof Needs<R[Consumer]>, keyof R>]: { consumer: Consumer; dependency: Dependency; expected: Needs<R[Consumer]>[Dependency]; provided: undefined }
+    [DependencyReference in Exclude<keyof Needs<R[Consumer]>, keyof R>]: { consumer: Consumer; dependency: DependencyReference; expected: Needs<R[Consumer]>[DependencyReference]; provided: undefined }
   }[Exclude<keyof Needs<R[Consumer]>, keyof R>]
 }[keyof R];
 
@@ -103,8 +103,9 @@ export type CheckDependencyCompatibility<R extends Registrations> = [
 // BagBuilder history has already passed CheckDependencyCompatibility, so only relationships crossing
 // the accepted-history/incoming-registration boundary need validating again.
 type NewWrong<E extends Entry, N extends Registrations> = {
-  [K in keyof N]: Pick<ServicesOf<RegistrationsFromEntries<E>>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> extends
-    Pick<Needs<N[K]>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> ? never : K
+  [K in keyof N]: [Exclude<keyof Needs<N[K]>, keyof N> & E['key']] extends [never] ? never
+    : Pick<ServicesOf<RegistrationsFromEntries<E>>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> extends
+      Pick<Needs<N[K]>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> ? never : K
 }[keyof N];
 type OldWrong<E extends Entry, N extends Registrations> = E extends Entry
   ? E['key'] extends keyof N ? never
@@ -112,11 +113,21 @@ type OldWrong<E extends Entry, N extends Registrations> = E extends Entry
       Pick<Needs<E['registration']>, keyof Needs<E['registration']> & keyof N> ? never : E['key']
   : never;
 type NewTokenWrong<E extends Entry, N extends Registrations> = {
-  [K in keyof N]: WrongToken<ProviderRequiredTokens<N[K]> | ProviderOptionalTokens<N[K]>, RegistrationsFromEntries<Exclude<E, { key: keyof N }>>>
+  [K in keyof N]: WrongToken<ProviderRequiredTokens<N[K]> | ProviderOptionalTokens<N[K]>, RegistrationsFromEntries<[E['key'] & keyof N] extends [never] ? E : Exclude<E, { key: keyof N }>>>
 }[keyof N];
-type OldTokenWrong<E extends Entry, N extends Registrations> = E extends Entry
-  ? E['key'] extends keyof N ? never : WrongToken<ProviderRequiredTokens<E['registration']> | ProviderOptionalTokens<E['registration']>, N>
-  : never;
+// Without incoming symbol keys, only opaque token needs can fail. Cache that
+// check per retained entry while preserving removal of replaced registrations.
+type OpaqueTokenNeeds<E extends Entry> = E extends Entry
+  ? E['key'] extends never ? never : WrongToken<ProviderRequiredTokens<E['registration']> | ProviderOptionalTokens<E['registration']>, {}> : never;
+// Cache extraction per retained entry before comparing incoming token bindings.
+type RetainedTokenNeeds<E extends Entry> = E extends Entry
+  ? E['key'] extends never ? never : ProviderRequiredTokens<E['registration']> | ProviderOptionalTokens<E['registration']> : never;
+// Broad histories preserve conditional any-key behavior; empty keys must reduce
+// before a generic registration can defer the cached comparison.
+type OldTokenWrong<E extends Entry, N extends Registrations> = [Extract<keyof N, symbol>] extends [never]
+  ? OpaqueTokenNeeds<[E['key'] & keyof N] extends [never] ? E : Exclude<E, { key: keyof N }>> : string extends E['key'] ? E extends Entry
+    ? E['key'] extends keyof N ? never : WrongToken<ProviderRequiredTokens<E['registration']> | ProviderOptionalTokens<E['registration']>, N> : never
+    : [E['key']] extends [never] ? never : WrongToken<RetainedTokenNeeds<[E['key'] & keyof N] extends [never] ? E : Exclude<E, { key: keyof N }>>, N>;
 // Preserve CheckDependencyCompatibility's incoming-first precedence before inspecting cross-boundary
 // relationships, then prefer token-contract errors over named shape errors.
 export type IncrementalChecked<E extends Entry, N extends Registrations> = unknown extends CheckDependencyCompatibility<N>
@@ -133,15 +144,19 @@ type RequiredOf<R extends Registrations> = {
   [K in keyof R]: keyof Needs<R[K]>;
 }[keyof R];
 
+// Cache the key union once for token graph checks. Remapped builder histories
+// otherwise repeat their key projection for every required token.
+type CompletionMap<R extends Registrations> = { [K in keyof R]: R[K] };
+
 /** Compile-time admission requiring every named and typed-token dependency to be bound. */
 export type CheckDependencyCompleteness<R extends Registrations> = [
-  Exclude<RequiredOf<R>, keyof R> | MissingTokens<R>,
+  Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>,
 ] extends [never]
-  ? [InvalidGraphs<R>] extends [never] ? unknown
-    : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<R> }>
+  ? [InvalidGraphs<CompletionMap<R>>] extends [never] ? unknown
+    : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<CompletionMap<R>> }>
   : Unsatisfied<
       'required service registrations are missing',
-      { missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<R>; relationships: MissingRelationships<R> }
+      { missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>; relationships: MissingRelationships<R> }
     >;
 
 type BadOverrides<F extends Registrations, O extends Registrations> = {
@@ -172,6 +187,14 @@ export type Introduces<F extends Registrations, N extends Registrations> = [
       { duplicates: keyof F & keyof N }
     >;
 
+// Finite histories already carry their exact key union. Reconstruct broad
+// string histories so their implicit numeric index and opaque key shapes survive.
+export type EntryKeys<E extends Entry> = string extends E['key'] ? keyof RegistrationsFromEntries<E> : E['key'];
+
+// Duplicate admission needs keys, independently of registration values.
+export type IntroducesKeys<Known extends PropertyKey, New extends PropertyKey> = [Known & New] extends [never]
+ ? unknown : Unsatisfied<'register introduces new names or typed tokens only', { duplicates: Known & New }>;
+
 export type Singleton<K> = [K] extends [never]
   ? false
   : [K] extends [string]
@@ -185,6 +208,13 @@ export type Singleton<K> = [K] extends [never]
 export type ReplacementKey<R extends Registrations, K extends string> =
   Singleton<K> extends true
     ? K extends keyof R
+      ? unknown
+      : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>
+    : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>;
+
+export type ReplacementKeyOf<Keys extends PropertyKey, K extends string> =
+  Singleton<K> extends true
+    ? K extends Keys
       ? unknown
       : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>
     : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>;

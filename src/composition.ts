@@ -9,6 +9,9 @@ import type { DependencyReference } from './dependency-references';
 import type { TokenArguments, ReferenceGraph, DependencyTupleAdmission } from './token-types';
 import type { Unsatisfied } from './types';
 
+// Capture synthetic outputs independently of the retained callback type.
+type OutputFactory<O> = () => O;
+
 // Callable assignability allows unused trailing arguments. Composition instead
 // checks the supplied tuple against the actual optional/rest parameter tuple.
 /** Compile-time admission that checks supplied token values against a callable's parameter tuple. */
@@ -35,7 +38,7 @@ export function fromFunction<const T extends readonly DependencyReference[], F e
   tokens: T & DependencyTupleAdmission<T>,
   callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
   ...modeOptions: StageOptions<M>
-): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
+): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
 /**
  * Adapt a positional function whose parameters exactly match the selected dependency values.
  * @param tokens - A finite tuple of typed tokens and dependency references.
@@ -48,17 +51,17 @@ export function fromFunction<const T extends readonly DependencyReference[], F e
   tokens: T & DependencyTupleAdmission<T>,
   callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
   ...modeOptions: StageOptions<M>
-): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
+): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
 export function fromFunction<const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>>, M extends AcquisitionMode = 'auto'>(
   tokens: T & DependencyTupleAdmission<T>,
   callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
   ...modeOptions: StageOptions<M>
-): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>> {
+): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>> {
   const mode = acquisitionMode(modeOptions[0]);
   const references = snapshotReferences(tokens);
   if (typeof callback !== 'function') throw libraryError('DI_BAG_INVALID_FUNCTION', 'fromFunction callback must be a function', { operation: 'fromFunction' });
   const create = (deps: Record<symbol, unknown>) => Reflect.apply(callback, undefined, references.map(reference => Reflect.get(deps, reference.slot)));
-  const handle = createProvider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>();
+  const handle = createProvider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>();
   retainDescription(handle, sourceDescription(create, undefined, references.map(reference => reference.key), mode, false, references));
   return handle;
 }

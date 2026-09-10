@@ -1,4 +1,7 @@
 import { libraryError } from './errors';
+import { PersistentMap } from './persistent-map';
+import { append, materialize } from './persistent-sequence';
+import type { Sequence } from './persistent-sequence';
 import { contributionEntry } from './contributions';
 import type { ModuleContribute, ContributionConstraint, CheckedContributions, ModuleContributionConstraints } from './contribution-types';
 import { aliasEntry } from './aliases';
@@ -73,11 +76,25 @@ class Module<P extends object, R extends object, C extends NeedConstraint = neve
 class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
   /** @internal */
   declare readonly [moduleInvariant]: (value: readonly [RegistrationsFromEntries<E>, C]) => readonly [RegistrationsFromEntries<E>, C];
-  readonly #registrations: ReadonlyMap<BindingKey, Registration>;
-  readonly #contributions: readonly (readonly [symbol, Registration])[];
+  #registrations = new PersistentMap<Registration>();
+  #order: Sequence<BindingKey> | undefined;
+  #contributions: Sequence<readonly [symbol, Registration]> | undefined;
   constructor(registrations: ReadonlyMap<BindingKey, Registration> = new Map(), contributions: readonly (readonly [symbol, Registration])[] = []) {
-    this.#contributions = Object.freeze([...contributions]);
-    this.#registrations = new Map(registrations);
+    if (contributions.length) this.#contributions = { values: Object.freeze([...contributions]) };
+    for (const [key, registration] of registrations) this.setRegistration(key, registration);
+  }
+
+  private copy<N extends Entry, D extends ContributionConstraint = C>(): ModuleBuilder<N, D> {
+    const builder = new ModuleBuilder<N, D>();
+    builder.#registrations = this.#registrations;
+    builder.#order = this.#order;
+    builder.#contributions = this.#contributions;
+    return builder;
+  }
+
+  private setRegistration(key: BindingKey, registration: Registration): void {
+    if (!this.#registrations.has(key)) this.#order = append(this.#order, { values: [key] });
+    this.#registrations = this.#registrations.set(key, registration);
   }
 
   /**
@@ -103,11 +120,15 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
   register(moreOrToken: unknown, registration?: Registration): unknown {
     if (arguments.length === 1) {
       const snapshot = snapshotAdd(moreOrToken, key => this.#registrations.has(key));
-      return new ModuleBuilder(new Map([...this.#registrations, ...Object.entries(snapshot)]), this.#contributions);
+      const builder = this.copy();
+      for (const [key, registration] of Object.entries(snapshot)) builder.setRegistration(key, registration);
+      return builder;
     }
     const key = readTokenKey(moreOrToken);
     if (this.#registrations.has(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'register', key });
-    return new ModuleBuilder(new Map([...this.#registrations, [key, withTokenBinding(moreOrToken as never, registration as never)]]), this.#contributions);
+    const builder = this.copy();
+    builder.setRegistration(key, withTokenBinding(moreOrToken as never, registration as never));
+    return builder;
   }
 
   /**
@@ -125,7 +146,9 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
     ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []
   ): ModuleBuilder<E | AliasEntry<RegistrationsFromEntries<E>, D, T>, C> {
     const [key, registration] = aliasEntry(destination, target, key => this.#registrations.has(key));
-    return new ModuleBuilder(new Map([...this.#registrations, [key, registration]]), this.#contributions);
+    const builder = this.copy<E | AliasEntry<RegistrationsFromEntries<E>, D, T>>();
+    builder.setRegistration(key, registration);
+    return builder;
   }
 
   /**
@@ -137,7 +160,9 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
    */
   readonly contribute: ModuleContribute<E, C> = ((token: unknown, registration: Registration) => {
     const entry = contributionEntry(token, registration);
-    return new ModuleBuilder(this.#registrations, [...this.#contributions, entry]);
+    const builder = this.copy();
+    builder.#contributions = append(this.#contributions, { values: [entry] });
+    return builder;
   }) as ModuleContribute<E, C>;
 
 
@@ -170,9 +195,9 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
     const key = typeof selection === 'string' ? selection : readTokenKey(selection);
     if (!this.#registrations.has(key)) throw libraryError('DI_BAG_INVALID_REPLACEMENT', `replace accepts existing names or typed tokens only: ${String(key)}`, { operation: 'replace', key });
     normalize(registration);
-    const registrations = new Map(this.#registrations);
-    registrations.set(key, registration);
-    return new ModuleBuilder(registrations, this.#contributions);
+    const builder = this.copy();
+    builder.setRegistration(key, registration);
+    return builder;
   }
 
   /**
@@ -198,7 +223,9 @@ class ModuleBuilder<E extends Entry, C extends ContributionConstraint = never> {
       if (!this.#registrations.has(key)) throw libraryError('DI_BAG_INVALID_EXPORT', 'buildModule accepts existing names or typed tokens only', { operation: 'buildModule' });
       exports.set(key, key);
     }
-    return new Module({ registrations: this.#registrations, exports, contributions: this.#contributions });
+    const registrations = new Map<BindingKey, Registration>();
+    if (this.#order) for (const key of materialize(this.#order)) registrations.set(key, this.#registrations.get(key)!);
+    return new Module({ registrations, exports, contributions: this.#contributions ? materialize(this.#contributions) : [] });
   }
 }
 

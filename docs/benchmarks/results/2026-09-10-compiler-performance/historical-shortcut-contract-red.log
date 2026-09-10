@@ -1,0 +1,60 @@
+bun test v1.4.2 (744846f84)
+
+tests/types.test.ts:
+113 |     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+114 | });
+115 | 
+116 | test('incremental checks preserve forward, replacement and frame contracts', () => {
+117 |   expect(diagnostics(resolve(__dirname, 'types/incremental.ts')).map(error =>
+118 |     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+                                                                     ^
+error: expect(received).toEqual(expected)
+
+- []
++ [
++   "Type 'false' does not satisfy the constraint 'true'.",
++ ]
+
+- Expected  - 1
++ Received  + 3
+
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/types.test.ts:118:64)
+(fail) incremental checks preserve forward, replacement and frame contracts [1004.57ms]
+212 |     expect(expected.length).toBeGreaterThan(0);
+213 |     const errors = diagnostics(path);
+214 |     expect(errors.length).toBeGreaterThan(0);
+215 |     expect(errors.every((error) => error.file?.fileName === path)).toBe(true);
+216 |     const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
+217 |     expect(matched.missing).toEqual([]); expect(matched.unexpected).toEqual([]);
+                                  ^
+error: expect(received).toEqual(expected)
+
+- []
++ [
++   {
++     "code": undefined,
++     "end": 63,
++     "line": 61,
++     "message": "incompatible or opaque",
++     "supplemental": false,
++   },
++   {
++     "code": undefined,
++     "end": Infinity,
++     "line": 68,
++     "message": "incompatible or opaque",
++     "supplemental": false,
++   },
++ ]
+
+- Expected  - 1
++ Received  + 16
+
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/types.test.ts:217:29)
+(fail) type rejection: incremental.ts [845.61ms]
+
+ 0 pass
+ 113 filtered out
+ 2 fail
+ 5 expect() calls
+Ran 2 tests across 1 file. [1.99s]

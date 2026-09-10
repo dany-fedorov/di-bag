@@ -1,0 +1,17 @@
+
+> di-bag@0.1.0 check
+> npm run typecheck && npm test && npm run build
+
+
+> di-bag@0.1.0 typecheck
+> tsc6 -p tsconfig.json
+
+
+> di-bag@0.1.0 test
+> bun test tests
+
+bun test v1.4.2 (744846f84)
+
+> di-bag@0.1.0 build
+> tsc6 -p ./tsconfig.build.json
+

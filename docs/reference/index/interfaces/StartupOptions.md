@@ -25,12 +25,12 @@ An external signal that promptly cancels the startup wait and begins cleanup.
 ### startupOrder?
 
 ```ts
-readonly startupOrder?: 'parallel' | 'sequential';
+readonly startupOrder?: 'parallel' | 'sequential' | number;
 ```
 
 Defined in: [startup.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L15)
 
-Start all selected services together, or await them in tuple order. Defaults to `parallel`.
+Start together (`parallel`, default), in tuple order (`sequential`), or with a positive safe integer bound on selected readiness waits. Dependency fanout is not bounded.
 
 ***
 
