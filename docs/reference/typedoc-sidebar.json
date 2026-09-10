@@ -47,8 +47,8 @@
             "link": "/reference/index/interfaces/Bag.md"
           },
           {
-            "text": "BagBuilder",
-            "link": "/reference/index/interfaces/BagBuilder.md"
+            "text": "Builder",
+            "link": "/reference/index/interfaces/Builder.md"
           },
           {
             "text": "CleanupFailure",
@@ -73,10 +73,6 @@
           {
             "text": "Module",
             "link": "/reference/index/interfaces/Module.md"
-          },
-          {
-            "text": "ModuleBuilder",
-            "link": "/reference/index/interfaces/ModuleBuilder.md"
           },
           {
             "text": "ObserverFailure",
@@ -201,6 +197,14 @@
             "link": "/reference/index/type-aliases/DisjointScopeSelection.md"
           },
           {
+            "text": "Enclosed",
+            "link": "/reference/index/type-aliases/Enclosed.md"
+          },
+          {
+            "text": "EnclosedLifetimeObligation",
+            "link": "/reference/index/type-aliases/EnclosedLifetimeObligation.md"
+          },
+          {
             "text": "LazyDependency",
             "link": "/reference/index/type-aliases/LazyDependency.md"
           },
@@ -221,10 +225,6 @@
             "link": "/reference/index/type-aliases/ModuleConstraints.md"
           },
           {
-            "text": "ModuleContribute",
-            "link": "/reference/index/type-aliases/ModuleContribute.md"
-          },
-          {
             "text": "ModuleContributionConstraints",
             "link": "/reference/index/type-aliases/ModuleContributionConstraints.md"
           },
@@ -243,6 +243,14 @@
           {
             "text": "ModuleRequiredServices",
             "link": "/reference/index/type-aliases/ModuleRequiredServices.md"
+          },
+          {
+            "text": "ModuleScope",
+            "link": "/reference/index/type-aliases/ModuleScope.md"
+          },
+          {
+            "text": "ModuleSealedConstraints",
+            "link": "/reference/index/type-aliases/ModuleSealedConstraints.md"
           },
           {
             "text": "ObserverCallback",
@@ -357,6 +365,10 @@
             "link": "/reference/index/type-aliases/Renamed.md"
           },
           {
+            "text": "RenamedContext",
+            "link": "/reference/index/type-aliases/RenamedContext.md"
+          },
+          {
             "text": "RenamedLifetimeObligation",
             "link": "/reference/index/type-aliases/RenamedLifetimeObligation.md"
           },
@@ -371,6 +383,10 @@
           {
             "text": "ScopeOptions",
             "link": "/reference/index/type-aliases/ScopeOptions.md"
+          },
+          {
+            "text": "SealedConstraints",
+            "link": "/reference/index/type-aliases/SealedConstraints.md"
           },
           {
             "text": "SelectedRegistrations",

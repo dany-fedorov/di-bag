@@ -64,7 +64,7 @@ test('register, acquisition context, modules and immutable observer configuratio
   const configKey = Symbol('config');
   const token = api.token(configKey).of<number>();
   let signal: AbortSignal | undefined;
-  const module = api.createModuleBuilder().register({ internal: () => 3 }).buildModule(['internal']).renameExport('internal', 'number');
+  const module = api.createBuilder().register({ internal: () => 3 }).buildModule(['internal']).renameExport('internal', 'number');
   const bag = api.createBuilder().register(token, () => 4).installModule(module).register({
     contextual: api.fromFactory(({ number }: { number: number }, context) => { signal = context.signal; return number; }, { context: 'acquisition' }),
   }).build();

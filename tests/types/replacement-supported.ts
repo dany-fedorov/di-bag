@@ -3,8 +3,8 @@ import type { Assert, Equal } from './assert';
 const key = Symbol('service'); const token = DiBag.token(key).of<{ value: number }>();
 const named = DiBag.createBuilder().register({ named: () => 1 });
 const tokenBuilder = DiBag.createBuilder().register(token, () => ({ value: 1 }));
-const namedModule = DiBag.createModuleBuilder().register({ named: () => 1 });
-const tokenModule = DiBag.createModuleBuilder().register(token, () => ({ value: 1 }));
+const namedModule = DiBag.createBuilder().register({ named: () => 1 });
+const tokenModule = DiBag.createBuilder().register(token, () => ({ value: 1 }));
 type NamedFactory = () => { read(): number; extra: true };
 type TokenFactory = () => { value: number; extra: true };
 const namedFactory: NamedFactory = () => ({ read: () => 1, extra: true });
@@ -54,13 +54,12 @@ type ReflectedMethodsStayChecked = [
   Assert<Equal<IsAny<ReturnType<typeof tokenModule.replace>>, false>>,
 ];
 
-const dependentModule = DiBag.createModuleBuilder().register({
+const dependentModule = DiBag.createBuilder().register({
   value: () => 1,
   consumer: ({ value }: { value: number }) => value + 1,
 });
 type DependentModuleView = ReturnType<typeof dependentModule.replace>;
-const dependentView: DependentModuleView = dependentModule;
-const reflectedFeature = dependentView.buildModule(['value', 'consumer']);
+const reflectedFeature = dependentModule.buildModule(['value', 'consumer']);
 const reflectedBag = DiBag.createBuilder().installModule(reflectedFeature).build();
 const reflectedValue = reflectedBag.resolve('value');
 const reflectedConsumer = reflectedBag.resolve('consumer');

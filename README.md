@@ -66,7 +66,7 @@ The minimum supported TypeScript version is **6.0.3**; enable `strict` in your
 `tsconfig.json`. The repository checks classic TypeScript 6.0.3 and native 7.0.2.
 For browsers and Deno, see [runtime support](#runtime-support).
 
-For an older checkout, follow the [API migration guide](docs/migrations/api-renaming.md).
+For an older checkout, follow the [single builder](docs/migrations/single-builder.md) and [API renaming](docs/migrations/api-renaming.md) migration guides.
 
 ## Quickstart
 
@@ -247,7 +247,7 @@ for both setup options.
 | [Runnable examples](examples) | Modules, tokens, composition, collections, plugins, observers, scopes, and provider metadata. |
 | [Integration guide](docs/guides/enterprise-integration.md) | Tested recipes for request ownership, substitutions, and dynamic features. |
 | [Comparison with alternatives](docs/guides/comparison.md) | When DI Bag or another approach may be a better fit, with primary sources. |
-| [Migration guide](docs/migrations/api-renaming.md) | Before/after examples for the current breaking API changes. |
+| [Migration guides](docs/migrations/single-builder.md) | Before/after examples for the single builder and the [earlier API renaming](docs/migrations/api-renaming.md). |
 | [Development and verification](docs/guides/development.md) | Full checks, portable runtime testing, compiler scale, and performance evidence. |
 | [Documentation map](docs/README.md) | Current guides, migration history, and archived research and design notes. |
 

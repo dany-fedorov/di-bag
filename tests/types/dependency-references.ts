@@ -11,13 +11,13 @@ export const bag = DiBag.createBuilder().register({ optional }).build();
 export const mixed = DiBag.fromFunction([number, optionalHandle, lazyHandle], (value, maybe, get) => ({ value, maybe, get }));
 export class Client { constructor(readonly maybe: number | undefined, readonly get: () => number) {} }
 export const fromClass = DiBag.fromClass([optionalHandle, lazyHandle], Client);
-export const feature = DiBag.createModuleBuilder().register({ optional }).buildModule(['optional']);
-export const emptyFeature = DiBag.createModuleBuilder().register({ optional }).buildModule([]);
+export const feature = DiBag.createBuilder().register({ optional }).buildModule(['optional']);
+export const emptyFeature = DiBag.createBuilder().register({ optional }).buildModule([]);
 export const builder = DiBag.createBuilder().installModule(feature);
 export const emptyBuilder = DiBag.createBuilder().installModule(emptyFeature);
-export const requiredFeature = DiBag.createModuleBuilder().register({ lazy }).buildModule(['lazy']);
+export const requiredFeature = DiBag.createBuilder().register({ lazy }).buildModule(['lazy']);
 export const ownedOptional = DiBag.withDisposal(DiBag.withMetadata(optional, { static: { label: 'optional' as const } }), value => { void value; });
-export const retainedFeature = DiBag.createModuleBuilder().register({ ownedOptional }).buildModule(['ownedOptional']);
+export const retainedFeature = DiBag.createBuilder().register({ ownedOptional }).buildModule(['ownedOptional']);
 export const complete = DiBag.createBuilder().register(number, () => 42).register({ lazy, mixed, fromClass }).build();
 export const defaulted = DiBag.fromFunction([optionalHandle], (value = 3) => value);
 export const rest = DiBag.fromFunction([optionalHandle, optionalHandle], (...values: (number | undefined)[]) => values);
@@ -39,7 +39,7 @@ export type Exact = [Assert<Equal<typeof value, number | undefined>>, Assert<Equ
 export type Unions = [Assert<Equal<ProviderRequiredTokens<NoInfer<typeof optional | typeof lazy>>, typeof number>>,
   Assert<Equal<ProviderOptionalTokens<NoInfer<typeof optional | typeof lazy>>, typeof number>>];
 builder.build(); emptyBuilder.build(); DiBag.createBuilder().installModule(retainedFeature).build();
-const privateFeature = DiBag.createModuleBuilder().register(number, () => 5).register({ optional, lazy }).buildModule(['optional', 'lazy']).renameExport('optional', 'maybe');
+const privateFeature = DiBag.createBuilder().register(number, () => 5).register({ optional, lazy }).buildModule(['optional', 'lazy']).renameExport('optional', 'maybe');
 DiBag.createBuilder().installModule(privateFeature).build();
 const rootOptional = DiBag.withLifetime(optional, 'root');
 DiBag.createBuilder().register({ rootOptional }).build();

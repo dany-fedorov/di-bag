@@ -5,7 +5,7 @@ export const builder = DiBag.createBuilder().register({
   value: () => 1,
   consumer: ({ value }: { value: number }) => value + 1,
 });
-export const moduleBuilder = DiBag.createModuleBuilder().register({
+export const moduleBuilder = DiBag.createBuilder().register({
   value: () => 1,
   consumer: ({ value }: { value: number }) => value + 1,
 });
@@ -21,8 +21,7 @@ type Utilities = [
 ];
 
 export type ModuleView = ReturnType<typeof moduleBuilder.replace>;
-export const moduleView: ModuleView = moduleBuilder;
-export const feature = moduleView.buildModule(['value', 'consumer']);
+export const feature = moduleBuilder.buildModule(['value', 'consumer']);
 export const result = DiBag.createBuilder().installModule(feature).build().resolve('consumer');
 type Exact = Assert<Equal<typeof result, number>>;
 

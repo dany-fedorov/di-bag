@@ -11,12 +11,12 @@ DiBag.createBuilder().register(wrong, () => 'wrong').register({ source });
 // diagnostic: incompatible
 DiBag.createBuilder().register({ source }).register(wrong, () => 'wrong');
 // diagnostic: incompatible
-DiBag.createModuleBuilder().register(wrong, () => 'wrong').register({ source });
+DiBag.createBuilder().register(wrong, () => 'wrong').register({ source });
 // diagnostic: incompatible
-DiBag.createModuleBuilder().register({ source }).register(wrong, () => 'wrong');
+DiBag.createBuilder().register({ source }).register(wrong, () => 'wrong');
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().register({ lazySource }).build();
-const feature = DiBag.createModuleBuilder().register({ source }).buildModule([]);
+const feature = DiBag.createBuilder().register({ source }).buildModule([]);
 // diagnostic: consumer dependency
 DiBag.createBuilder().register(wrong, () => 'wrong').installModule(feature);
 // diagnostic: consumer dependency
@@ -74,10 +74,10 @@ const rootOptional = DiBag.withLifetime(source, 'root');
 DiBag.createBuilder().register(number, () => 1).register({ root }).build();
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().register(number, () => 1).register({ rootOptional }).build();
-const privateRoot = DiBag.createModuleBuilder().register({ rootOptional }).buildModule([]);
+const privateRoot = DiBag.createBuilder().register({ rootOptional }).buildModule([]);
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().installModule(privateRoot).register(number, () => 1).build();
-const privateLazy = DiBag.createModuleBuilder().register(number, () => 1).register({ root }).buildModule(['root']).renameExport('root', 'renamed');
+const privateLazy = DiBag.createBuilder().register(number, () => 1).register({ root }).buildModule(['root']).renameExport('root', 'renamed');
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().installModule(privateLazy).build();
 const valid = DiBag.createBuilder().register(number, DiBag.withLifetime(() => 1, 'root')).register({ root }).build();
@@ -108,7 +108,7 @@ DiBag.fromFunction([referenceUnion], value => value);
 DiBag.fromFunction([{ ...optional }], value => value);
 // diagnostic: not assignable
 const invariant: import('../../../src').OptionalDependency<import('../../../src').Token<typeof key, number | string>> = optional;
-const rootOptionalModule = DiBag.createModuleBuilder().register({ rootOptional }).buildModule(['rootOptional']).renameExport('rootOptional', 'renamed');
+const rootOptionalModule = DiBag.createBuilder().register({ rootOptional }).buildModule(['rootOptional']).renameExport('rootOptional', 'renamed');
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().installModule(rootOptionalModule).register(number, () => 1).build();
 const bound = DiBag.createBuilder().register(number, () => 1).register({ source }).build();

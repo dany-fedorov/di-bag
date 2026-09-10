@@ -70,7 +70,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i1Annotated = DiBag.withMetadata(i1Source, { dynamic: { mode: 'direct', describe: (record: typeof i1Record) => ({ metadata: record.metadata, alias: record.alias }) } });
   const i1Adapted = DiBag.withDisposal(DiBag.transformService(i1Annotated, { mode: 'direct', transform: (record: typeof i1Record) => record.value }), () => { i1Dispose.push('payload'); });
   const i1Token = DiBag.token(Symbol('I1')).of();
-  const i1Module = DiBag.createModuleBuilder().register(i1Token, i1Adapted).buildModule([i1Token]);
+  const i1Module = DiBag.createBuilder().register(i1Token, i1Adapted).buildModule([i1Token]);
   const i1Bag = DiBag.createBuilder().installModule(i1Module).build();
   const i1Value = i1Bag.resolve(i1Token);
   const i1Inspection = i1Bag.inspect(i1Token);
@@ -222,7 +222,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   let i6Created = 0;
   const i6Started: any[] = [];
   const i6Observed = DiBag.withConfiguration({ observers: [{ onEvent(event: any) { if (event.kind === 'acquisition-started') i6Started.push(event); }, onError() {} }] });
-  const i6Feature = i6Observed.createModuleBuilder().register({ privatePlugin: i6Observed.fromPlugin([], {
+  const i6Feature = i6Observed.createBuilder().register({ privatePlugin: i6Observed.fromPlugin([], {
     apiVersion: 1, create: () => ({ id: ++i6Created }), dispose: (value: any) => { i6Dispose.push(`installation-${value.id}`); },
   }, { acquisitionMode: 'raw', validate: (value: unknown): value is { id: number } => typeof value === 'object' && value !== null }) }).alias('publicPlugin', 'privatePlugin').buildModule(['publicPlugin']);
   const i6Bag = i6Observed.createBuilder().installModule(i6Feature).installModule(i6Feature.renameExport('publicPlugin', 'secondPlugin')).build();

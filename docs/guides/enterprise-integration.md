@@ -56,7 +56,7 @@ ownership too soon.
 
 Never pass an existing shared application root as `acquire()` unless the operation
 intentionally owns shutting down the entire application. If acquisition itself
-fails, it must clean its partial acquisitions. `BagBuilder.buildAndStart()` supplies startup
+fails, it must clean its partial acquisitions. `Builder.buildAndStart()` supplies startup
 rollback. A cancelled startup exposes eventual cleanup on
 `DiBagStartupCancelledError.cleanupPromise`; a host needing fully drained cancellation
 must await that promise explicitly.

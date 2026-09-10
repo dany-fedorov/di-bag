@@ -7,7 +7,7 @@ import {
 import type { ProviderGraphContract } from '../../src/provider';
 import type { Assert, Equal } from './assert';
 import type { IncrementalChecked, Entry, RegistrationEntries, ReplacementOutput, Unsatisfied } from '../../src/types';
-import type { BagBuilder, Registration } from '../../src';
+import type { Builder, Registration } from '../../src';
 
 const forward = DiBag.createBuilder().register({ read: ({ value }: { value: number }) => value }).register({ value: () => 1 }).build();
 const forwardValue = forward.resolve('read');
@@ -21,7 +21,7 @@ const replaced = initial.replace(token, () => ({ value: 2, richer: true as const
 const actual = replaced.resolve(token);
 type Rich = Assert<Equal<typeof actual, { value: number; richer: true }>>;
 
-const feature = DiBag.createModuleBuilder().register({ hidden: ({ external }: { external: number }) => external }).buildModule([]);
+const feature = DiBag.createBuilder().register({ hidden: ({ external }: { external: number }) => external }).buildModule([]);
 DiBag.createBuilder().installModule(feature).register({ external: () => 1 }).replace('external', () => 2).build();
 
 const frameSource = DiBag.withMetadata(DiBag.fromFunction([token], value => Promise.resolve(value.value)), { static: { owner: 'fixture' as const } });
@@ -57,7 +57,7 @@ export type CachedTokenBoundaryContracts = [
 
 // A string index in a manually annotated history also covers numeric keys.
 // Keep the duplicate-key rejection alongside the named-key admission failure.
-declare const broadKeys: BagBuilder<{ key: string; registration: () => number }>;
+declare const broadKeys: Builder<{ key: string; registration: () => number }>;
 type NumericDuplicateParameter = Parameters<typeof broadKeys.register<{ 1: () => number }>>[0];
 type BroadHistoryDuplicate = Assert<Equal<NumericDuplicateParameter, never>>;
 
@@ -66,7 +66,7 @@ export type RetainedTokenShortcutContracts = [
   Assert<Equal<Incremental<{ key: any; registration: ReadWider }, { [key]: Bound }>, Failure<typeof key>>>,
   Assert<Equal<Incremental<{ key: 'read'; registration: ReadWider | OpaqueRead }, { [key]: Bound }>, Failure<'opaque token contract' | typeof key>>>,
 ];
-function bindFromNeverHistory<R extends Registration>(builder: BagBuilder<{ key: never; registration: R }>) {
+function bindFromNeverHistory<R extends Registration>(builder: Builder<{ key: never; registration: R }>) {
   return builder.register(token, () => ({ value: 1 }));
 }
 

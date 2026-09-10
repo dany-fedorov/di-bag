@@ -7,7 +7,7 @@ export const selectedScopeRuntimeAssertions = `
     const selectedToken = DiBag.token(selectedKey).of();
     let settleSelected;
     const selectedPromise = new Promise(resolve => { settleSelected = resolve; });
-    const selectedFeature = DiBag.createModuleBuilder().register({
+    const selectedFeature = DiBag.createBuilder().register({
       privateResource: DiBag.withDisposal(({ config }) => ({ id: config.id }), () => { selectedLog.push('private'); }),
       publicResource: DiBag.withDisposal(({ privateResource }) => ({ privateResource }), () => { selectedLog.push('export'); }),
     }).buildModule(['publicResource']).renameExport('publicResource', 'shared');

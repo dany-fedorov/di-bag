@@ -22,14 +22,14 @@ const erasedBag: Bag<{ service: () => { read(): number; extra(): boolean }; hand
 builder.replace('service', () => ({ read() { return 2; } }));
 // diagnostic: not assignable
 builder.build().fork(['service'], { service: () => ({ read() { return 2; } }) });
-const open = DiBag.createModuleBuilder().register({ service: () => 1, hidden: ({ missing }: { missing: number }) => missing });
-const publicOnly = DiBag.createModuleBuilder().register({ service: () => 1 });
+const open = DiBag.createBuilder().register({ service: () => 1, hidden: ({ missing }: { missing: number }) => missing });
+const publicOnly = DiBag.createBuilder().register({ service: () => 1 });
 // diagnostic: not assignable
 const erasedOpen: typeof publicOnly = open;
-const noNeeds = DiBag.createModuleBuilder().register({ a: () => 1, b: () => 2 }).buildModule(['a', 'b']);
+const noNeeds = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).buildModule(['a', 'b']);
 // diagnostic: not assignable
 const fewerProvides: Module<{ a: number }, {}> = noNeeds;
-const needs = DiBag.createModuleBuilder().register({ value: ({ x, y }: { x: number; y: string }) => [x, y] }).buildModule(['value']);
+const needs = DiBag.createBuilder().register({ value: ({ x, y }: { x: number; y: string }) => [x, y] }).buildModule(['value']);
 type NeedsConstraints = typeof needs extends Module<infer _P, infer _R, infer C> ? C : never;
 // diagnostic: not assignable
 const fewerRequires: Module<ModuleExportedServices<typeof needs>, { x: number }, NeedsConstraints> = needs;

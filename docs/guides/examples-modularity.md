@@ -34,7 +34,7 @@ type Fulfillment = { reserve(sku: string, quantity: number): boolean };
 type Invoicing = { issue(orderId: string, amountCents: number): string };
 
 // fulfillment/module.ts: owned by the fulfillment team or agent.
-const fulfillmentModule = DiBag.createModuleBuilder()
+const fulfillmentModule = DiBag.createBuilder()
   .register({
     store: (): Stock => {
       const quantities = new Map([['coffee', 4]]);
@@ -54,7 +54,7 @@ const fulfillmentModule = DiBag.createModuleBuilder()
   .buildModule(['fulfillment']);
 
 // invoicing/module.ts: a separate implementation and private store.
-const invoicingModule = DiBag.createModuleBuilder()
+const invoicingModule = DiBag.createBuilder()
   .register({
     store: (): InvoiceStore => {
       const invoices = new Map<string, number>();
@@ -72,8 +72,8 @@ const invoicingModule = DiBag.createModuleBuilder()
   })
   .buildModule(['invoicing']);
 
-// app.ts: the integration owner connects public contracts, not private stores.
-const app = DiBag.createBuilder()
+// commerce/module.ts: compose public contracts into another reusable module.
+const commerceModule = DiBag.createBuilder()
   .installModule(fulfillmentModule)
   .installModule(invoicingModule)
   .register({
@@ -85,7 +85,10 @@ const app = DiBag.createBuilder()
       return invoicing.issue(orderId, quantity * 1200);
     },
   })
-  .build();
+  .buildModule(['placeOrder']);
+
+// app.ts: the application sees only the composed workflow.
+const app = DiBag.createBuilder().installModule(commerceModule).build();
 
 try {
   const placeOrder = app.resolve('placeOrder');
@@ -102,7 +105,8 @@ try {
 integration graph checks their declared contracts. In a real repository, move
 the marked sections into separate files and export only the modules and shared
 contract types. The module declarations are inert: building them does not create
-the stores.
+the stores. The commerce module nests both features and exports only `placeOrder`;
+the same builder API handles each level of composition.
 
 **Boundary:** DI Bag's private services are composition boundaries, not a
 filesystem access policy or a sandbox for agents. This order workflow also omits
@@ -124,7 +128,7 @@ type Gateway = { charge(amountCents: number): Promise<string> };
 type Receipt = { status: 'paid' | 'declined'; attempts: number };
 type Checkout = { pay(amountCents: number): Promise<Receipt> };
 
-const billingModule = DiBag.createModuleBuilder()
+const billingModule = DiBag.createBuilder()
   .register({
     state: () => ({ attempts: 0 }),
     checkout: ({ gateway, state }: {
@@ -227,7 +231,7 @@ type Tool = {
 const toolKey = Symbol('support tools');
 const tools = DiBag.token(toolKey).of<Tool>();
 
-const knowledgeModule = DiBag.createModuleBuilder()
+const knowledgeModule = DiBag.createBuilder()
   .register({
     repository: () => new Map([
       ['refunds', 'Refunds are available within 30 days.'],
@@ -245,7 +249,7 @@ const knowledgeModule = DiBag.createModuleBuilder()
   }))
   .buildModule([]);
 
-const ticketsModule = DiBag.createModuleBuilder()
+const ticketsModule = DiBag.createBuilder()
   .register({
     repository: () => new Map([['T-42', { status: 'waiting-for-customer' }]]),
   })

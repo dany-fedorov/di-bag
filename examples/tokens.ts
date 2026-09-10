@@ -10,7 +10,7 @@ const connection = DiBag.token(connectionKey).of<{
 }>();
 let nextConnectionId = 0;
 
-export const feature = DiBag.createModuleBuilder()
+export const feature = DiBag.createBuilder()
   .register(clock, () => ({ now: () => 42 }))
   .register(
     connection,

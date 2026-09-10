@@ -31,7 +31,8 @@ Each guide contains three complete, independently runnable application examples.
 
 | Document | Purpose |
 | --- | --- |
-| [API migration](migrations/api-renaming.md) | Update the most recent breaking method, option, and type renames. |
+| [Single builder migration](migrations/single-builder.md) | Replace the former builder types and learn nested module composition. |
+| [API renaming](migrations/api-renaming.md) | Update the earlier breaking method, option, and type renames. |
 | [Earlier migrations](migrations/0.1-to-enterprise.md) | Understand changes from older pre-1.0 checkouts. The filename is an internal milestone, not a released version range. |
 | [Changelog](../CHANGELOG.md) | Review the release candidate's changes. |
 | [Development](guides/development.md) | Run source, package, compiler, and platform checks. |

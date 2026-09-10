@@ -2,10 +2,10 @@ import { DiBag } from '../../src';
 import type { Assert, Equal } from './assert';
 import type { IncrementalConstraints } from '../../src/module-types';
 
-const requirement = DiBag.createModuleBuilder().register({
+const requirement = DiBag.createBuilder().register({
   hidden: ({ value }: { value: number }) => value.toFixed(),
 }).buildModule([]);
-const values = DiBag.createModuleBuilder().register({ value: () => 1 }).buildModule(['value']);
+const values = DiBag.createBuilder().register({ value: () => 1 }).buildModule(['value']);
 
 export const left = DiBag.createBuilder().installModule(requirement).installModule(values).build();
 export const right = DiBag.createBuilder().installModule(values).installModule(requirement).build();
@@ -14,11 +14,11 @@ type Exact = Assert<Equal<typeof result, number>>;
 
 const key = Symbol('value');
 export const token = DiBag.token(key).of<number>();
-const tokenNeed = DiBag.createModuleBuilder().register({
+const tokenNeed = DiBag.createBuilder().register({
   hidden: DiBag.fromFunction([token], value => value),
 }).buildModule([]);
 export const tokenGraph = DiBag.createBuilder().installModule(tokenNeed).register(token, () => 1).build();
-const optionalTokenNeed = DiBag.createModuleBuilder().register({
+const optionalTokenNeed = DiBag.createBuilder().register({
   hidden: DiBag.fromFunction([DiBag.optional(token)], value => value ?? 0),
 }).buildModule([]);
 export const optionalAbsent = DiBag.createBuilder().installModule(optionalTokenNeed).build();

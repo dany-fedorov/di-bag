@@ -269,7 +269,7 @@ test('child projection rollback finishes before a parent-owned finalizer', async
 
 test('scopes retain module-private identities and unchanged public binding metadata', async () => {
   let next = 0;
-  const feature = DiBag.createModuleBuilder().register({
+  const feature = DiBag.createBuilder().register({
     hidden: () => ({ id: ++next }),
     publicValue: DiBag.withMetadata(({ hidden, external }: { hidden: { id: number }; external: number }) =>
       ({ hidden, external }), { static: { owner: 'module' as const } }),

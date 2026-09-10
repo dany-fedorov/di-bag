@@ -34,7 +34,7 @@ test('unconfigured core preflights every stage and private module before any fac
   let calls = 0;
   const source = Core.fromFactory(() => { calls++; return 1; }, { acquisitionMode: 'raw' });
   const automatic = () => { calls++; return 2; };
-  const feature = Core.createModuleBuilder().register({ hidden: automatic, public: source }).buildModule(['public']);
+  const feature = Core.createBuilder().register({ hidden: automatic, public: source }).buildModule(['public']);
   for (const finalize of [
     () => Core.createBuilder().register({ source, automatic }).build(),
     () => Core.createBuilder().register({ projected: Core.transformService(source, { mode: 'direct', transform: value => { calls++; return value; } }) }).build(),
@@ -51,7 +51,7 @@ test('facades snapshot and isolate their predicate, carrying it through builders
   const symbol = Symbol('shared registry');
   const key = Core.token(symbol).of<Promise<number>>();
   const provider = Core.fromFactory(() => pending, { acquisitionMode: 'auto' });
-  const feature = Core.createModuleBuilder().register(key, provider).buildModule([key]);
+  const feature = Core.createBuilder().register(key, provider).buildModule([key]);
   const bag = configured.createBuilder().installModule(feature).build();
   const forks = [bag.fork(), bag.fork([key], { [key.key]: () => pending })];
   for (const item of [bag, ...forks]) { expect(item.resolve(key)).toBe(pending); await item.close(); }

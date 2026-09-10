@@ -20,7 +20,7 @@ test('host and repeated exportless modules append distinct lexical bindings', as
   const key = Symbol('items'); const items = DiBag.token(key).of<{ id: number; label: string }>();
   let ids = 0; const disposed: number[] = [];
   const sharedHandle = DiBag.withDisposal(({ helper }: { helper: number }) => ({ id: helper, label: 'module' }), value => { disposed.push(value.id); });
-  const feature = DiBag.createModuleBuilder().register({ helper: () => ++ids }).contribute(items, sharedHandle).contribute(items, sharedHandle).buildModule([]);
+  const feature = DiBag.createBuilder().register({ helper: () => ++ids }).contribute(items, sharedHandle).contribute(items, sharedHandle).buildModule([]);
   const base = DiBag.createBuilder().contribute(items, () => ({ id: 0, label: 'host' }));
   const bag = base.installModule(feature).installModule(feature).register(items, () => ({ id: 99, label: 'singular' })).build();
   expect(bag.resolveAll(items).map(value => value.id)).toEqual([0, 1, 1, 2, 2]);
@@ -36,7 +36,7 @@ test('host and repeated exportless modules append distinct lexical bindings', as
 test('all adapters select frozen arrays and retain module export renames', async () => {
   const key = Symbol('numbers'); const numbers = DiBag.token(key).of<number>();
   class Total { constructor(readonly values: readonly number[]) {} }
-  const feature = DiBag.createModuleBuilder().register({ helper: () => 7 }).contribute(numbers, ({ helper }: { helper: number }) => helper).buildModule(['helper']).renameExport('helper', 'renamed');
+  const feature = DiBag.createBuilder().register({ helper: () => 7 }).contribute(numbers, ({ helper }: { helper: number }) => helper).buildModule(['helper']).renameExport('helper', 'renamed');
   const ref = DiBag.all(numbers);
   const bag = DiBag.createBuilder().installModule(feature).register({
     tokens: DiBag.fromFunction([ref], values => values),
@@ -128,7 +128,7 @@ test('forged tokens references and providers reject before provider effects', as
   }
   const provider = DiBag.fromFunction([], () => { effects++; return 1; });
   expect(() => (DiBag.createBuilder().contribute as Function)(token, { ...provider })).toThrow();
-  expect(() => (DiBag.createModuleBuilder().contribute as Function)(token, {})).toThrow();
+  expect(() => (DiBag.createBuilder().contribute as Function)(token, {})).toThrow();
   const refs = [DiBag.all(token)]; refs[Symbol.iterator] = function* () { throw new Error('iterator'); };
   const bag = DiBag.createBuilder().contribute(token, () => 1).register({ list: DiBag.fromFunction(refs as [typeof refs[0]], values => values) }).build();
   expect(bag.resolve('list')).toEqual([1]); expect(effects).toBe(0); await bag.close();

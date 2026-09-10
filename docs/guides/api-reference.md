@@ -15,9 +15,8 @@ return types, and links to source declarations.
 | [`di-bag/node`](../reference/node/index.md) | The same API with Node/Bun native-Promise detection configured. |
 
 Start with the [`DiBagApi`](../reference/index/interfaces/DiBagApi.md),
-[`BagBuilder`](../reference/index/interfaces/BagBuilder.md), and
-[`Bag`](../reference/index/interfaces/Bag.md). Reusable graph composition uses
-[`ModuleBuilder`](../reference/index/interfaces/ModuleBuilder.md) and
+[`Builder`](../reference/index/interfaces/Builder.md), and
+[`Bag`](../reference/index/interfaces/Bag.md). The same builder seals a reusable
 [`Module`](../reference/index/interfaces/Module.md). The reference represents
 these type-only exports as interfaces; construct values through `DiBag`.
 
@@ -40,8 +39,7 @@ is a reusable declaration; creating one does not acquire a service.
 
 | Method | Result and purpose |
 | --- | --- |
-| `createBuilder()` | Create an empty immutable [application builder](tutorial.md#compose-services). |
-| `createModuleBuilder()` | Create an immutable [module builder](tutorial.md#reuse-named-modules). |
+| `createBuilder()` | Create an empty immutable [builder](tutorial.md#compose-services) that can build a bag or seal a [module](tutorial.md#reuse-named-modules). |
 | `withConfiguration({ runtime?, observers? })` | Return a new facade; inherit omitted runtime options and append the ordered observer array. |
 | `fromFactory(create, options?)` | Describe a named-dependency factory; `acquisitionMode` defaults to `auto`. Add `context: 'acquisition'` to supply the owner's cancellation context. |
 | `token(key).of<Service>()` | Create a [typed token](tutorial.md#use-typed-tokens-for-explicit-positional-injection) from a canonical unique symbol. |
@@ -66,25 +64,27 @@ mode tables, and before/after examples.
 
 ### Build and reuse a graph
 
-BagBuilder operations return a new builder. Keep the returned value or chain the
+Builder operations return a new builder. Keep the returned value or chain the
 next call; they do not mutate the original.
 
 | Method | Available on | Purpose |
 | --- | --- | --- |
-| `register(registrations)` | BagBuilder, ModuleBuilder | Add new [named factories](tutorial.md#compose-services); duplicate keys reject. |
-| `register(token, registration)` | BagBuilder, ModuleBuilder | Bind a [typed token](tutorial.md#use-typed-tokens-for-explicit-positional-injection). |
-| `replace(nameOrToken, registration)` | BagBuilder, ModuleBuilder | Replace one existing registration while checking its consumers and token contract. |
-| `alias(destination, target)` | BagBuilder, ModuleBuilder | Add another [name or token lookup](tutorial.md#give-a-dependency-another-lookup-name) for an existing service. |
-| `contribute(token, registration)` | BagBuilder, ModuleBuilder | Append an [ordered contribution](tutorial.md#compose-an-ordered-collection). |
-| `installModule(module)` | BagBuilder | Install a sealed [module](tutorial.md#reuse-named-modules) with private services and public exports. |
-| `build()` | BagBuilder | Check graph completeness and return a lazy bag. |
-| `buildAndStart(keys, options?)` | BagBuilder | Return a promise for a fresh bag after [selected services are ready](tutorial.md#start-selected-services-and-cancel-cooperatively). |
-| `buildModule(keys)` | ModuleBuilder | Seal the module and choose its public names and tokens. |
+| `register(registrations)` | Builder | Add new [named factories](tutorial.md#compose-services); duplicate keys reject. |
+| `register(token, registration)` | Builder | Bind a [typed token](tutorial.md#use-typed-tokens-for-explicit-positional-injection). |
+| `replace(nameOrToken, registration)` | Builder | Replace one existing registration while checking its consumers and token contract. |
+| `alias(destination, target)` | Builder | Add another [name or token lookup](tutorial.md#give-a-dependency-another-lookup-name) for an existing service. |
+| `contribute(token, registration)` | Builder | Append an [ordered contribution](tutorial.md#compose-an-ordered-collection). |
+| `installModule(module)` | Builder | Install a sealed [module](tutorial.md#reuse-named-modules) with private services and public exports; modules nest. |
+| `build()` | Builder | Check graph completeness and return a lazy bag. |
+| `buildAndStart(keys, options?)` | Builder | Return a promise for a fresh bag after [selected services are ready](tutorial.md#start-selected-services-and-cancel-cooperatively). |
+| `buildModule(keys)` | Builder | Seal the graph as a module and choose its public names and tokens; unmet dependencies become requirements. |
 | `renameExport(oldName, newName)` | Sealed Module | Return a module view with one string-named export renamed. |
 
+There is one builder. `build()` requires a complete graph; `buildModule(keys)`
+accepts an incomplete one and records the gaps as requirements of the module.
 Modules do not resolve services or have a close method. Installing a module
-gives its acquisitions an owning bag. Module builders do not expose `installModule`,
-`build`, or `buildAndStart`; compose sealed modules through an application builder.
+gives its acquisitions an owning bag and fresh private identities at every
+nesting depth.
 
 ### Use and close a bag
 
@@ -169,8 +169,8 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | --- | --- |
 | [`DiBagApi`](../reference/index/interfaces/DiBagApi.md) | The complete `DiBag` method surface, including configured and observed facades. |
 | [`ConfigurationOptions`](../reference/index/interfaces/ConfigurationOptions.md) | Runtime classification and observer options for `withConfiguration`. |
-| [`BagBuilder`](../reference/index/interfaces/BagBuilder.md), [`Bag`](../reference/index/interfaces/Bag.md) | A checked immutable builder and a resolving/owning bag. |
-| [`ModuleBuilder`](../reference/index/interfaces/ModuleBuilder.md), [`Module`](../reference/index/interfaces/Module.md) | A private composition builder and its sealed export view. |
+| [`Builder`](../reference/index/interfaces/Builder.md), [`Bag`](../reference/index/interfaces/Bag.md) | A checked immutable builder and a resolving/owning bag. |
+| [`Module`](../reference/index/interfaces/Module.md) | A sealed export view of a builder graph, installable in other builders. |
 | [`Registration`](../reference/index/type-aliases/Registration.md), [`FactoryWithDisposal`](../reference/index/interfaces/FactoryWithDisposal.md) | Accepted registration shapes and an owned factory description. |
 | [`Provider`](../reference/index/interfaces/Provider.md) | A provider description retaining its factory, metadata, frames, graph contracts, and acquired-value type. |
 | [`AcquisitionMode`](../reference/index/type-aliases/AcquisitionMode.md), [`RuntimeOptions`](../reference/index/interfaces/RuntimeOptions.md) | Acquisition mode literals and the `isNativePromise` configuration callback. |
@@ -200,6 +200,7 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | [`ProviderRequiredTokens`](../reference/index/type-aliases/ProviderRequiredTokens.md), [`ProviderOptionalTokens`](../reference/index/type-aliases/ProviderOptionalTokens.md), [`ProviderCollectionTokens`](../reference/index/type-aliases/ProviderCollectionTokens.md) | Extract required/lazy, optional, and collection token requirements. |
 | [`ModuleExportedServices`](../reference/index/type-aliases/ModuleExportedServices.md), [`ModuleRequiredServices`](../reference/index/type-aliases/ModuleRequiredServices.md) | Extract the readonly service exports and external requirements of a sealed module. |
 | [`ModuleConstraints`](../reference/index/type-aliases/ModuleConstraints.md) | Compute retained private-consumer and lifetime constraints for a registration map and public selection. |
+| [`SealedConstraints`](../reference/index/type-aliases/SealedConstraints.md), [`ModuleSealedConstraints`](../reference/index/type-aliases/ModuleSealedConstraints.md) | Re-scope constraints retained from installed modules when a builder seals; the complete constraint set of a sealed module. |
 | [`PublicProviders`](../reference/index/type-aliases/PublicProviders.md), [`ModulePublicProviders`](../reference/index/type-aliases/ModulePublicProviders.md) | Preserve provider contracts when projecting public module registrations. |
 | [`Renamed`](../reference/index/type-aliases/Renamed.md) | Represent the checked renaming of a module's public view. |
 
@@ -221,11 +222,12 @@ contracts; they do not perform runtime validation.
 | [`AliasRegistration`](../reference/index/type-aliases/AliasRegistration.md), [`AliasEntries`](../reference/index/type-aliases/AliasEntries.md), [`AliasOutput`](../reference/index/type-aliases/AliasOutput.md) | Model an alias registration, its graph entries, and its exposed result. |
 | [`Contribution`](../reference/index/type-aliases/Contribution.md), [`ContributionConstraint`](../reference/index/type-aliases/ContributionConstraint.md) | Describe an ordered contribution and its retained requirements. |
 | [`ModuleContributions`](../reference/index/type-aliases/ModuleContributions.md), [`ModuleContributionConstraints`](../reference/index/type-aliases/ModuleContributionConstraints.md) | Preserve contributions and their requirements in modules. |
-| [`BuilderContribute`](../reference/index/type-aliases/BuilderContribute.md), [`ModuleContribute`](../reference/index/type-aliases/ModuleContribute.md) | The generic `contribute` signatures on application and module builders. |
+| [`BuilderContribute`](../reference/index/type-aliases/BuilderContribute.md) | The generic `contribute` signature on the builder. |
 | [`DisjointScopeSelection`](../reference/index/type-aliases/DisjointScopeSelection.md) | Enforce separate override and sharing selections. |
 | [`UnsharedAliases`](../reference/index/type-aliases/UnsharedAliases.md), [`ScopedAliases`](../reference/index/type-aliases/ScopedAliases.md), [`SharedAliasProviders`](../reference/index/type-aliases/SharedAliasProviders.md) | Preserve alias contracts as scopes inherit or explicitly share services. |
 | [`CheckedLifetimes`](../reference/index/type-aliases/CheckedLifetimes.md), [`CheckedScopeLifetimes`](../reference/index/type-aliases/CheckedScopeLifetimes.md) | Check root capture and lifetime compatibility in completed graphs and scope overrides. |
-| [`LexicalContext`](../reference/index/type-aliases/LexicalContext.md), [`RenamedLifetimeObligation`](../reference/index/type-aliases/RenamedLifetimeObligation.md), [`RenamedLifetimeProviders`](../reference/index/type-aliases/RenamedLifetimeProviders.md) | Retain lifetime ownership and requirements through lexical module boundaries and renaming. |
+| [`LexicalContext`](../reference/index/type-aliases/LexicalContext.md), [`ModuleScope`](../reference/index/type-aliases/ModuleScope.md), [`Enclosed`](../reference/index/type-aliases/Enclosed.md), [`RenamedContext`](../reference/index/type-aliases/RenamedContext.md) | Lexical module scopes, chained through nesting, and their renamed views. |
+| [`RenamedLifetimeObligation`](../reference/index/type-aliases/RenamedLifetimeObligation.md), [`EnclosedLifetimeObligation`](../reference/index/type-aliases/EnclosedLifetimeObligation.md), [`RenamedLifetimeProviders`](../reference/index/type-aliases/RenamedLifetimeProviders.md) | Retain lifetime ownership and requirements through lexical module boundaries, nesting, and renaming. |
 
 The authoritative export lists are [`src/index.ts`](../../src/index.ts) and
 [`src/node.ts`](../../src/node.ts).

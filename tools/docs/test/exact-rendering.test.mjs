@@ -68,10 +68,8 @@ test('source declarations preserve aliases and property modifiers exactly', () =
   assert.match(startupError, /readonly cleanupError\?: unknown;/);
   assert.doesNotMatch(startupError, /readonly optional/);
   const builderContribute = readFileSync(join(output, 'index/type-aliases/BuilderContribute.md'), 'utf8');
-  const moduleContribute = readFileSync(join(output, 'index/type-aliases/ModuleContribute.md'), 'utf8');
   assert.match(compact(builderContribute), /<T extends TokenBase, V extends Registration>/);
-  assert.match(compact(builderContribute), /BagBuilder<E, C \| Contribution<T, V>>;/);
-  assert.match(compact(moduleContribute), /ModuleBuilder<E, C \| Contribution<T, V>>;/);
+  assert.match(compact(builderContribute), /Builder<E, C \| Contribution<T, V>>;/);
 });
 
 test('plugin factory is a callable type alias rather than a type-only function export', () => {

@@ -6,7 +6,7 @@ async function main() {
   const steps = DiBag.token(stepKey).of<Step>();
 
   // An exportless module can contribute a service using a private helper.
-  const prefixFeature = DiBag.createModuleBuilder()
+  const prefixFeature = DiBag.createBuilder()
     .register({ prefix: () => 'Hello, ' })
     .contribute(
       steps,

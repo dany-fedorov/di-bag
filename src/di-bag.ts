@@ -10,9 +10,9 @@ import { normalize, snapshotAdd, withDisposal } from './registration';
 import type { FactoryWithDisposal, Factory, Registration, Registrations } from './registration';
 import { BindingGraph, BagRuntime } from './runtime';
 import type { BindingKey } from './runtime';
-import { beginModule, moduleGraph } from './module';
+import { moduleGraph, sealModule } from './module';
 import type { Module } from './module';
-import type { CheckedConstraints, CompleteConstraints, IncrementalConstraints, NeedConstraint } from './module-types';
+import type { CheckedConstraints, CompleteConstraints, ExternalRequirements, IncrementalConstraints, ModulePublicProviders, ModuleSealedConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes } from './lifetime-types';
 import { withLifetime } from './lifetime';
 import { fromFactory } from './acquisition-context';
@@ -63,8 +63,8 @@ declare const constraintInvariant: unique symbol;
 /**
  * A resolving container with lazy acquisition, caching, and independent resource ownership.
  *
- * Create bags through {@link DiBagApi.createBuilder} followed by {@link BagBuilder.build} or
- * {@link BagBuilder.buildAndStart}; the class is exported as a type and has no public constructor.
+ * Create bags through {@link DiBagApi.createBuilder} followed by {@link Builder.build} or
+ * {@link Builder.buildAndStart}; the class is exported as a type and has no public constructor.
  */
 class Bag<R extends Registrations, C extends NeedConstraint = never> {
   /** @internal */
@@ -240,10 +240,13 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
 }
 
 /**
- * An immutable, type-checked application graph builder.
- * Create one with {@link DiBagApi.createBuilder}; every operation returns a new builder.
+ * An immutable, type-checked graph builder. Every operation returns a new builder.
+ * Create one with {@link DiBagApi.createBuilder}. The same builder value can
+ * {@link Builder.build} a bag once its graph is complete, or
+ * {@link Builder.buildModule} a reusable module whose unmet dependencies become
+ * requirements the installing host must satisfy.
  */
-class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
+class Builder<E extends Entry, C extends NeedConstraint = never> {
   // Preserve accepted registration history and module constraints through views.
   /** @internal */
   declare readonly [constraintInvariant]:
@@ -268,7 +271,7 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
       ? never
       : NamedAdmission<N> & IntroducesKeys<EntryKeys<E>, keyof N> & IncrementalChecked<E, N> &
         CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, N>>),
-  ): BagBuilder<E | RegistrationEntries<N>, C>;
+  ): Builder<E | RegistrationEntries<N>, C>;
   /**
    * Register a provider to a typed token.
    * @param token - A new typed token identity.
@@ -280,15 +283,15 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
     registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
       IncrementalChecked<E, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>> &
       CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>>>,
-  ): BagBuilder<E | { key: TokenKey<T>; registration: TokenBinding<T, V> }, C>;
+  ): Builder<E | { key: TokenKey<T>; registration: TokenBinding<T, V> }, C>;
   register(moreOrToken: unknown, registration?: Registration): unknown {
     if (arguments.length === 1) {
       const snapshot = snapshotAdd(moreOrToken, key => this.#graph.hasPublic(key));
-      return new BagBuilder(this.#graph.withPublicRegistrations(snapshot), this.context);
+      return new Builder(this.#graph.withPublicRegistrations(snapshot), this.context);
     }
     const key = readTokenKey(moreOrToken);
     if (this.#graph.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'register', key });
-    return new BagBuilder(this.#graph.withPublicBinding(key, withTokenBinding(moreOrToken as never, registration as never)), this.context);
+    return new Builder(this.#graph.withPublicBinding(key, withTokenBinding(moreOrToken as never, registration as never)), this.context);
   }
 
   /**
@@ -304,9 +307,9 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
       (unknown extends AliasAdmission<D> & AliasAdmission<T>
         ? IncrementalChecked<E, AliasEntries<RegistrationsFromEntries<E>, NoInfer<D>, NoInfer<T>>> & CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, AliasEntries<RegistrationsFromEntries<E>, NoInfer<D>, NoInfer<T>>>> : unknown),
     ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []
-  ): BagBuilder<E | AliasEntry<RegistrationsFromEntries<E>, D, T>, C> {
+  ): Builder<E | AliasEntry<RegistrationsFromEntries<E>, D, T>, C> {
     const [key, registration] = aliasEntry(destination, target, key => this.#graph.hasPublic(key));
-    return new BagBuilder(this.#graph.withPublicBinding(key, registration), this.context);
+    return new Builder(this.#graph.withPublicBinding(key, registration), this.context);
   }
 
   /**
@@ -318,7 +321,7 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
   // A named callable keeps extracted generic methods nameable in consumer declarations.
   readonly contribute: BuilderContribute<E, C> = ((token: unknown, registration: Registration) => {
     const [key, value] = contributionEntry(token, registration);
-    return new BagBuilder(this.#graph.withContribution(key, value), this.context);
+    return new Builder(this.#graph.withContribution(key, value), this.context);
   }) as BuilderContribute<E, C>;
 
 
@@ -339,7 +342,7 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
     key: K & ReplacementKeyOf<EntryKeys<E>, K>,
     registration: V & (Factory | FactoryWithDisposal<Factory>) & ZeroDependencyAdmission<NoInfer<V>> &
       CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<K, NoInfer<V>>>>,
-  ): BagBuilder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
+  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
   /**
    * Replace an existing named or typed-token registration.
    * @param key - The single existing name or token to replace.
@@ -349,14 +352,14 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
   replace<const K extends string | TokenBase, V extends Registration>(
     key: K & NoInfer<ReplacementAdmission<RegistrationsFromEntries<E>, K>>,
     registration: V & Registration & BuilderReplacementRegistration<E, C, NoInfer<K>, V>,
-  ): BagBuilder<ReplacedEntries<E, K, V>, C>;
+  ): Builder<ReplacedEntries<E, K, V>, C>;
   replace(selection: string | TokenBase, registration: Registration): unknown {
     const key = typeof selection === 'string' ? selection : readTokenKey(selection);
     if (!this.#graph.hasPublic(key)) {
       throw libraryError('DI_BAG_INVALID_REPLACEMENT', `replace accepts existing names or typed tokens only: ${String(key)}`, { operation: 'replace', key });
     }
     normalize(registration);
-    return new BagBuilder(this.#graph.withPublicBinding(key, registration), this.context);
+    return new Builder(this.#graph.withPublicBinding(key, registration), this.context);
   }
 
   /**
@@ -368,8 +371,26 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
     module: Module<P, R, MC, D> & IntroducesKeys<EntryKeys<E>, keyof D> &
       IncrementalChecked<E, D> &
       IncrementalConstraints<C, MC, RegistrationsFromEntries<E>, D>,
-  ): BagBuilder<E | RegistrationEntries<D>, C | MC> {
-    return new BagBuilder(this.#graph.withInstallation(moduleGraph(module)), this.context);
+  ): Builder<E | RegistrationEntries<D>, C | MC> {
+    return new Builder(this.#graph.withInstallation(moduleGraph(module)), this.context);
+  }
+
+  /**
+   * Seal this graph as a reusable module and select its public names and typed tokens.
+   * Unselected registrations stay private to each installation; unmet dependencies
+   * become requirements of the module. Installed modules nest: their private
+   * bindings and retained constraints are re-scoped inside this module.
+   * @param keys - A finite tuple of existing names or tokens; an empty tuple is allowed.
+   * @returns An immutable module that can be renamed or installed in another builder.
+   * @throws If the selection is not a tuple or contains an absent name or token.
+   */
+  buildModule<const K extends readonly unknown[]>(keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildModule'>): Module<
+    Pick<ServicesOf<RegistrationsFromEntries<E>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
+    ExternalRequirements<ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>,
+    ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
+    ModulePublicProviders<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>
+  > {
+    return sealModule(this.#graph, keys) as never;
   }
 
   /**
@@ -377,7 +398,7 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
    * @returns A fresh bag that owns the acquisitions it creates.
    * @throws At runtime if automatic acquisition is used without a configured Promise classifier.
    */
-  build(this: BagBuilder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>): Bag<RegistrationsFromEntries<E>, C> {
+  build(this: Builder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>): Bag<RegistrationsFromEntries<E>, C> {
     return new Bag(this.#graph, this.context);
   }
 
@@ -390,7 +411,7 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
    * {@link DiBagStartupCancelledError} promptly on abort or timeout.
    */
   async buildAndStart<const K extends readonly unknown[]>(
-    this: BagBuilder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>,
+    this: Builder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>,
     keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildAndStart'>,
     options?: StartupOptions,
   ): Promise<Bag<RegistrationsFromEntries<E>, C>> {
@@ -399,7 +420,7 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
   }
 }
 
-export type { Bag, BagBuilder };
+export type { Bag, Builder };
 
 /** Immutable facade configuration. Observers append in the supplied order. */
 export interface ConfigurationOptions {
@@ -426,10 +447,8 @@ export interface DiBagApi {
   fromFunction: typeof fromFunction;
   /** Adapt a concrete constructor with positional dependency injection. */
   fromClass: typeof fromClass;
-  /** Begin an empty immutable application graph; build creates its owning bag. */
-  createBuilder: () => BagBuilder<never>;
-  /** Begin a reusable module graph with private services and selected public exports. */
-  createModuleBuilder: typeof beginModule;
+  /** Begin an empty immutable graph; build creates its owning bag, buildModule seals a reusable module. */
+  createBuilder: () => Builder<never>;
   /** Attach owned-value cleanup while retaining earlier disposal stages. */
   withDisposal: typeof withDisposal;
   /** Select root, scoped, or transient caching within an ownership family. */
@@ -451,8 +470,7 @@ function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
     return facade(configured);
   },
   fromFactory, token, optional, lazy, all, fromPlugin, fromFunction, fromClass,
-  createBuilder: (): BagBuilder<never> => new BagBuilder(new BindingGraph(), context),
-  createModuleBuilder: beginModule,
+  createBuilder: (): Builder<never> => new Builder(new BindingGraph(), context),
   withDisposal, withLifetime, withMetadata, transformService,
 }); }
 /** The portable, immutable DI Bag facade. Configure `auto` acquisition or use explicit modes. */

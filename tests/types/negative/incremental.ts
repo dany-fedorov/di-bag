@@ -36,7 +36,7 @@ declare const opaqueBound: Provider<() => number, {}, readonly [], TokenDependen
 // diagnostic: incompatible or opaque
 DiBag.createBuilder().register({ opaqueBound });
 
-const privateModule = DiBag.createModuleBuilder().register({ hidden: ({ external }: { external: number }) => external }).buildModule([]);
+const privateModule = DiBag.createBuilder().register({ hidden: ({ external }: { external: number }) => external }).buildModule([]);
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().installModule(privateModule).register({ external: () => 'wrong' });
 // diagnostic: provided service does not satisfy its consumer dependency
@@ -44,7 +44,7 @@ DiBag.createBuilder().installModule(privateModule).register({ external: () => 1 
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().installModule(privateModule).build();
 
-const privateToken = DiBag.createModuleBuilder().register({ hidden: DiBag.fromFunction([wider], value => value) }).buildModule([]);
+const privateToken = DiBag.createBuilder().register({ hidden: DiBag.fromFunction([wider], value => value) }).buildModule([]);
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().installModule(privateToken).register(token, () => 1);
 
@@ -57,12 +57,12 @@ DiBag.createBuilder().register(token, () => 1).register({ local: () => 1,
 
 // Manually described histories remain checked even when an incoming name cannot
 // match any typed-token key.
-declare const manuallyOpaque: import('../../../src').BagBuilder<{ key: 'opaque'; registration: typeof opaque }>;
+declare const manuallyOpaque: import('../../../src').Builder<{ key: 'opaque'; registration: typeof opaque }>;
 // diagnostic: incompatible or opaque
 manuallyOpaque.register({ unrelated: () => 1 });
 // diagnostic: required service registrations are missing
 manuallyOpaque.build();
-declare const manuallyMixed: import('../../../src').BagBuilder<
+declare const manuallyMixed: import('../../../src').Builder<
   { key: 'opaque'; registration: typeof opaque } | { key: 'plain'; registration: () => number }
 >;
 // diagnostic: incompatible or opaque

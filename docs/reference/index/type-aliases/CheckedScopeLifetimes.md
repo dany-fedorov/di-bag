@@ -12,7 +12,7 @@ type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, G =
 }>;
 ```
 
-Defined in: [lifetime-types.ts:107](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L107)
+Defined in: [lifetime-types.ts:152](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L152)
 
 Reject root providers introduced by a scope override when they capture scoped dependencies.
 

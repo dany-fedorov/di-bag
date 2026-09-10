@@ -3,7 +3,9 @@
 [README](../../README.md) · [Tutorial](../guides/tutorial.md) · [Earlier migrations](0.1-to-enterprise.md)
 
 This is a breaking pre-1.0 API change. Update all callers together: deprecated
-aliases are not retained. The package still exposes `di-bag` and `di-bag/node`,
+aliases are not retained. A later change merged the two builders; see the
+[single builder migration](single-builder.md) for `createModuleBuilder` and
+`ModuleBuilder`. The package still exposes `di-bag` and `di-bag/node`,
 with no runtime dependencies. The underlying dependency graph, lifetime,
 acquisition, and ownership rules remain intact.
 
@@ -12,13 +14,13 @@ acquisition, and ownership rules remain intact.
 | Previous | Current |
 | --- | --- |
 | `DiBag.begin()` | `DiBag.createBuilder()` |
-| `DiBag.module()` | `DiBag.createModuleBuilder()` |
+| `DiBag.module()` | `DiBag.createModuleBuilder()`, since merged into `DiBag.createBuilder()` |
 | `builder.add(registrations)` | `builder.register(registrations)` |
 | `builder.bind(token, provider)` | `builder.register(token, provider)` |
 | `builder.end()` | `builder.build()` |
 | `builder.start(keys, options)` | `builder.buildAndStart(keys, options)` |
 | `builder.install(module)` | `builder.installModule(module)` |
-| `moduleBuilder.exports(keys)` | `moduleBuilder.buildModule(keys)` |
+| `moduleBuilder.exports(keys)` | `builder.buildModule(keys)` |
 | `module.rename(oldName, newName)` | `module.renameExport(oldName, newName)` |
 | `bag.scope(...)` | `bag.createScope(...)` |
 

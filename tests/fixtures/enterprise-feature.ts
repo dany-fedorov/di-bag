@@ -11,7 +11,7 @@ const descriptor: unknown = {
   create: () => (text: string) => text.toUpperCase(),
   dispose: () => { disposals.push('plugin'); },
 };
-export const feature = DiBag.createModuleBuilder().register(plugin, DiBag.fromPlugin([], descriptor, {
+export const feature = DiBag.createBuilder().register(plugin, DiBag.fromPlugin([], descriptor, {
   acquisitionMode: 'raw',
   validate: (value: unknown): value is (text: string) => string => typeof value === 'function',
 })).register({

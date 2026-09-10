@@ -4,7 +4,7 @@ const key: unique symbol = Symbol('service');
 const otherKey: unique symbol = Symbol('service');
 const token = DiBag.token(key).of<{ readonly value: number }>();
 const otherToken = DiBag.token(otherKey).of<{ readonly value: number }>();
-const feature = DiBag.createModuleBuilder().register({
+const feature = DiBag.createBuilder().register({
   hidden: ({ external }: { external: { readonly exact: true } }) => external.exact,
   publicValue: ({ hidden }: { hidden: true }) => hidden,
 }).buildModule(['publicValue']).renameExport('publicValue', 'renamed');
@@ -24,7 +24,7 @@ child.resolve('hidden');
 child.resolve(otherToken);
 // diagnostic: Type '() => { exact: false
 child.fork(['external'], { external: () => ({ exact: false as const, visible: 'wider' as const }) });
-const exportless = DiBag.createModuleBuilder().register({
+const exportless = DiBag.createBuilder().register({
   hidden: ({ external }: { external: { readonly exact: true } }) => external.exact,
 }).buildModule([]);
 const constrainedChild = DiBag.createBuilder().installModule(exportless).register({

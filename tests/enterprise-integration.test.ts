@@ -6,7 +6,7 @@ test('overlapping requests isolate private dependencies and release scopes befor
   const released: string[] = [];
   const signals: AbortSignal[] = [];
   let roots = 0;
-  const feature = DiBag.createModuleBuilder().register({
+  const feature = DiBag.createBuilder().register({
     privateSession: DiBag.withDisposal(DiBag.fromFactory(({ request }: { request: { id: string } }, context) => {
         signals.push(context.signal);
         return { id: request.id };
@@ -68,7 +68,7 @@ test('owned-scope fixture preserves handler and cleanup failures without closing
 
 test('test substitutions retain private module contracts and fresh transient instances', async () => {
   let created = 0;
-  const feature = DiBag.createModuleBuilder().register({
+  const feature = DiBag.createBuilder().register({
     privateRead: ({ clock }: { clock: { now(): number } }) => clock.now(),
     result: ({ privateRead }: { privateRead: number }) => privateRead,
   }).buildModule(['result']);

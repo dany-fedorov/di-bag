@@ -31,10 +31,16 @@ The identity by which a provided service and its consumers agree on a
 dependency.
 _Avoid_: Alias when identity rather than an alternative name is intended
 
+**Builder**:
+The single immutable declaration of a service graph. A builder builds a bag once
+its graph is complete, or seals a module while dependencies are still unmet.
+_Avoid_: Module builder, application builder, bag builder
+
 **Module**:
-A reusable unit of service composition with exported services and requirements
-that its surrounding application must satisfy.
-_Avoid_: Bag when referring to a reusable declaration
+A sealed builder graph with selected exports and requirements that its
+installing builder must satisfy. Modules install into builders, including
+builders that seal further modules.
+_Avoid_: Bag when referring to a reusable declaration; Builder when referring to the sealed value
 
 **Bag**:
 A resolvable service composition with its own acquisition and resource-ownership

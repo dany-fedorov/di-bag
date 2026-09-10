@@ -53,9 +53,9 @@ console.log(app.resolve('greeter').greet('Ada')); // Hello, Ada!
 await app.close();
 ```
 
-`createBuilder()` returns an immutable `BagBuilder`. `register()` returns another builder with
+`createBuilder()` returns an immutable `Builder`. `register()` returns another builder with
 new named registrations, and `build()` checks the complete graph and returns a
-`Bag`. Keep the returned builder or chain the call. Registration order does not
+`Bag`. The same builder can instead seal a reusable [module](#reuse-named-modules). Keep the returned builder or chain the call. Registration order does not
 matter, so a dependency may be added after its consumer. Duplicate names fail;
 use `replace()` when changing an existing registration is intentional.
 
@@ -496,14 +496,15 @@ recheck captive dependencies.
 ## Reuse named modules
 
 Modules group a feature's private services and publish only the entry points an
-application needs. `DiBag.createModuleBuilder()` returns an immutable `ModuleBuilder`.
+application needs. There is no separate module builder: any `Builder` seals into
+a module with `buildModule(keys)`, and any builder installs modules.
 
 **Standalone example:**
 
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const reports = DiBag.createModuleBuilder()
+const reports = DiBag.createBuilder()
   .register({
     connection: () => ({ open: true }),
     service: ({
@@ -530,12 +531,20 @@ app.resolve('service').read();
 await app.close();
 ```
 
-`ModuleBuilder.register`, `replace`, `alias`, and `contribute` have the same
-roles as their application-builder counterparts. `buildModule(keys)` seals the
-module and chooses its public string names and typed tokens. An empty export
-tuple is valid; contributions are still installed. A module builder cannot
-install, resolve, start, or close anything. The application builder's
-`installModule(module)` gives module acquisitions an owning bag.
+`buildModule(keys)` seals the builder's graph and chooses its public string
+names and typed tokens. An empty export tuple is valid; contributions are still
+installed. Where `build()` rejects a missing dependency, `buildModule` records
+it as a requirement the installing host must satisfy. A sealed module cannot
+resolve, start, or close anything; `installModule(module)` gives module
+acquisitions an owning bag.
+
+Modules nest. A builder that has installed modules can seal into a module of its
+own. Names resolve lexically: an inner module's own registrations first, then
+the enclosing module's, then the host's. Each installation, at every depth,
+receives fresh private identities and separate disposal ownership. Requirements
+an inner module leaves unmet pass outward unless the enclosing module satisfies
+them; a requirement satisfied by an enclosing export stays checked when the host
+replaces that export, while one satisfied privately is final.
 
 Private providers keep their external requirements, including requirements from
 providers that are not currently reachable from an export. The host may satisfy
@@ -716,7 +725,6 @@ binding identities.
 ## Give a dependency another lookup name
 
 `alias(destination, target)` adds a lookup for the target's canonical service.
-It is available on application and module builders.
 
 **Standalone example:**
 
@@ -766,7 +774,7 @@ type Step = (text: string) => string;
 const stepKey = Symbol('pipeline step');
 const step = DiBag.token(stepKey).of<Step>();
 
-const prefixFeature = DiBag.createModuleBuilder()
+const prefixFeature = DiBag.createBuilder()
   .register({ prefix: () => 'Hello, ' })
   .contribute(
     step,
@@ -867,7 +875,7 @@ const service = DiBag.withMetadata(
   ({ clock }: { clock: { now(): number } }) => ({ read: () => clock.now() }),
   { static: { 'app:owner': { team: 'platform' } } },
 );
-const feature = DiBag.createModuleBuilder()
+const feature = DiBag.createBuilder()
   .register({ service })
   .buildModule(['service']);
 const app = DiBag.createBuilder()
@@ -996,7 +1004,7 @@ const provider = DiBag.fromPlugin([], selected, {
     typeof value.handle === 'function',
 });
 
-const feature = DiBag.createModuleBuilder()
+const feature = DiBag.createBuilder()
   .register(handler, provider)
   .buildModule([handler]);
 const app = DiBag.createBuilder().installModule(feature).build();

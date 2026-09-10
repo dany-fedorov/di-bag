@@ -8,6 +8,12 @@ The API is pre-1.0 and includes breaking changes from earlier checkouts.
 
 ### Breaking changes
 
+- Merge `ModuleBuilder` into a single `Builder`. `DiBag.createModuleBuilder()`
+  and the `ModuleBuilder`, `BagBuilder`, and `ModuleContribute` types are removed;
+  `DiBag.createBuilder()` returns a `Builder` that both builds bags and seals
+  modules. Modules can now install modules. The
+  [single builder migration](docs/migrations/single-builder.md) lists the
+  replaced names and the nesting rules.
 - Consolidate builders, registration, configuration, metadata, and transformation
   APIs under descriptive names. For example, use `createBuilder`, `register`,
   `build`, and `createScope`. Compatibility aliases are not retained.

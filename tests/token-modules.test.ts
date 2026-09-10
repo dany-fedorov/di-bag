@@ -4,7 +4,7 @@ import { DiBag } from '../src/node';
 test('exported tokens retarget private module consumers in forks', async () => {
   const key = Symbol('database');
   const database = DiBag.token(key).of<{ read(): number }>();
-  const feature = DiBag.createModuleBuilder().register(database, () => ({ read: () => 1 })).register({ privateHandler: DiBag.fromFunction([database], db => ({ run: () => db.read() })),
+  const feature = DiBag.createBuilder().register(database, () => ({ read: () => 1 })).register({ privateHandler: DiBag.fromFunction([database], db => ({ run: () => db.read() })),
       handler: ({ privateHandler }: { privateHandler: { run(): number } }) => privateHandler }).buildModule([database, 'handler']);
   const root = DiBag.createBuilder().installModule(feature).build();
   const child = root.fork([database], { [database.key]: () => ({ read: () => 9 }) });
@@ -17,7 +17,7 @@ test('exported tokens retarget private module consumers in forks', async () => {
 test('private tokens get independent installations and dependency ordered cleanup', async () => {
   const key = Symbol('private'); const resource = DiBag.token(key).of<{ id: number }>();
   const closed: string[] = []; let id = 0;
-  const feature = DiBag.createModuleBuilder().register(resource, DiBag.withDisposal(() => ({ id: ++id }), value => { closed.push(`resource:${value.id}`); })).register({ handler: DiBag.withDisposal(DiBag.fromFunction([resource], value => ({ id: value.id })), value => { closed.push(`handler:${value.id}`); }) }).buildModule(['handler']);
+  const feature = DiBag.createBuilder().register(resource, DiBag.withDisposal(() => ({ id: ++id }), value => { closed.push(`resource:${value.id}`); })).register({ handler: DiBag.withDisposal(DiBag.fromFunction([resource], value => ({ id: value.id })), value => { closed.push(`handler:${value.id}`); }) }).buildModule(['handler']);
   const bag = DiBag.createBuilder().installModule(feature.renameExport('handler', 'first')).installModule(feature.renameExport('handler', 'second')).build();
   expect(bag.resolve('first').id).toBe(1);
   expect(bag.resolve('second').id).toBe(2);
@@ -31,7 +31,7 @@ test('token bindings preserve source reuse, promise identity and public replacem
   const token = DiBag.token(key).of<Promise<number>>(); const second = DiBag.token(secondKey).of<Promise<number>>();
   const same = DiBag.token(key).of<Promise<number>>(); const promise = Promise.resolve(4);
   const source = DiBag.withMetadata(() => promise, { static: { owner: 'team' } });
-  const feature = DiBag.createModuleBuilder().register(token, source).register({ consume: DiBag.fromFunction([token], value => value) }).buildModule([token, 'consume']);
+  const feature = DiBag.createBuilder().register(token, source).register({ consume: DiBag.fromFunction([token], value => value) }).buildModule([token, 'consume']);
   const replacement = Promise.resolve(9);
   const bag = DiBag.createBuilder().installModule(feature).register(second, source).replace(token, () => replacement).build();
   expect(bag.resolve(same)).toBe(replacement);
@@ -57,7 +57,7 @@ test('fork snapshots mixed selection indices and reads only selected own overrid
 test('duplicate mixed overrides keep getter order and route final values through private consumers', async () => {
   const key = Symbol('resource'); const resource = DiBag.token(key).of<{ read(): number }>();
   const closed: string[] = [];
-  const feature = DiBag.createModuleBuilder().register(resource, () => ({ read: () => 1 })).register({
+  const feature = DiBag.createBuilder().register(resource, () => ({ read: () => 1 })).register({
       named: () => 2,
       privateConsumer: DiBag.fromFunction([resource], value => value.read),
       handler: DiBag.withDisposal(
@@ -108,7 +108,7 @@ test('runtime duplicate symbols reject atomically and leave builders reusable', 
   const first = DiBag.token(firstKey).of<number>(); const second = DiBag.token(secondKey).of<number>();
   const builder = DiBag.createBuilder().register(first, () => 1);
   expect(() => builder.register(second, () => 2)).toThrow('duplicate');
-  const module = DiBag.createModuleBuilder().register(first, () => 3);
+  const module = DiBag.createBuilder().register(first, () => 3);
   expect(() => module.register(second, () => 4)).toThrow('duplicate');
   const bag = builder.build(); expect(bag.resolve(first)).toBe(1);
   const installed = DiBag.createBuilder().installModule(module.buildModule([first])).build(); expect(installed.resolve(first)).toBe(3);

@@ -12,7 +12,7 @@ export const raw = DiBag.withDisposal(DiBag.fromFactory((_deps: {}, _context) =>
   const exact: Promise<{ value: 42 }> = value;
   void exact;
 });
-const feature = DiBag.createModuleBuilder().register({
+const feature = DiBag.createBuilder().register({
   hidden: DiBag.fromFactory((deps: { input: { readonly label: 'exact' } }, context) => ({ label: deps.input.label, signal: context.signal }), { context: 'acquisition' }),
   exported: (deps: { hidden: { label: 'exact'; signal: AbortSignal } }) => deps.hidden,
 }).buildModule(['exported']).renameExport('exported', 'renamed');
