@@ -132,3 +132,22 @@ test('pruning cascades iteratively through displaced lexical targets', () => {
   value = value.withPublicBinding(`p${ids.length - 1}`, () => -1);
   for (const id of ids) expect(value.hasBinding(id)).toBe(false);
 });
+
+test('contribution protection uses the once-read input snapshot through public replacement', async () => {
+  const target = Symbol('target'), other = Symbol('other'), group = Symbol('group');
+  let reads = 0;
+  const ids = [target];
+  Object.defineProperty(ids, 0, { get: () => ++reads === 1 ? target : other });
+  const original = new BindingGraph({
+    bindings: new Map([[target, binding(target, 1)], [other, binding(other, 9)]]),
+    publicSlots: new Map([['item', target]]),
+    contributions: new Map([[group, ids]]),
+  });
+  const updated = original.withPublicBinding('item', () => 2);
+  expect({ reads, ids: updated.contributionBindings(group), hasTarget: updated.hasBinding(target) })
+    .toEqual({ reads: 1, ids: [target], hasTarget: true });
+  const runtime = new Runtime(updated);
+  expect(runtime.resolve('item')).toBe(2);
+  expect(runtime.resolveAll(group)).toEqual([1]);
+  await runtime.close();
+});

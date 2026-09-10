@@ -90,9 +90,8 @@ export class BindingGraph {
       this.#publicReferences = this.#publicReferences.set(id, (this.#publicReferences.get(id) ?? 0) + 1);
     }
     for (const [key, ids] of description.contributions ?? []) {
-      const snapshot = Object.freeze([...ids]);
-      this.#contributions = this.#contributions.set(key, { values: snapshot });
-      for (const id of snapshot) this.#contributed = this.#contributed.set(id, true);
+      this.#contributions = this.#contributions.set(key, { values: Object.freeze([...ids]) });
+      for (const id of ids) this.#contributed = this.#contributed.set(id, true);
     }
   }
 
@@ -167,11 +166,7 @@ export class BindingGraph {
   }
 
   publicBinding(key: BindingKey): BindingId {
-    return this.#publicCache.get(key) ?? this.requirePublicBinding(key);
-  }
-
-  private requirePublicBinding(key: BindingKey): BindingId {
-    const id = this.slot(key);
+    const id = this.#publicCache.get(key) ?? this.slot(key);
     if (id === undefined) throw new Error(`no factory for ${String(key)}`);
     return id;
   }
@@ -189,11 +184,7 @@ export class BindingGraph {
   }
 
   registration(id: BindingId): Normalized {
-    return this.#registrationCache.get(id) ?? this.requireRegistration(id);
-  }
-
-  private requireRegistration(id: BindingId): Normalized {
-    const registration = this.entry(id)?.normalized;
+    const registration = this.#registrationCache.get(id) ?? this.entry(id)?.normalized;
     if (!registration) throw new Error(`no factory for ${this.label(id)}`);
     return registration;
   }

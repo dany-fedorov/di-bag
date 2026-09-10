@@ -1,8 +1,6 @@
 {
-  "base": "56e502e125fd29760f03493ea4b16f126edb145e",
-  "node": "v24.20.0",
-  "classic": "Version 6.0.3",
-  "native": "Version 7.0.2",
+  "fixBase": "8f763c8a25516c5ee911a2e95caeeb3f90227c2a",
+  "originalComparisonBase": "56e502e125fd29760f03493ea4b16f126edb145e",
   "source": {
     "acquisition-context.ts": "375aff86dce5af3066faf7d37e824e20ebe8428558e1e76be255e7eb2a32ee60",
     "acquisition-family.ts": "30041c4bde9b55c84e5fd9cedba8d0c6debffd4def115e936097ce8324f155a9",
@@ -202,9 +200,18 @@
       }
     }
   },
-  "probes": {
-    "original-probe.mjs": "5959566e060ca72bb9947e0c0898b016abd54f70d3cc9bf1c3cf198aac2071a3",
-    "graph-probe.mjs": "6eb8129ce066a724cbf3fa559de9b25581b661735c677ef0f183be842b36a856",
-    "run.py": "9431ff2c225c3ec7357a60def2c5c9e3ef62bfdc071f15da81399945978cb0c8"
-  }
+  "preservedBaselineSha256": {
+    "manifest-before.json": "663a45acfbd03ee1a68b1efde72f93706d073a6da68e162ded1f43ac1a9966f1",
+    "commands-before.jsonl": "54e4e20a142a3967844fd4537aa35386baf6b50ccbeb567bd67060a6050dc90f",
+    "rows-before.jsonl": "4e0d5d160a122012537d788976a65b20f95e1c9ee85c519e80c17689bd8d3ee0",
+    "summary-before.json": "6ad4def6ebcf40c99422d4e026f593d16701a5ef647a39f516e2d30efe271284",
+    "module-commands.jsonl": "077578aa10cbacdcedafb650a3518d2abfbeaf476caa24c9e482190f1112cdd6",
+    "module-rows.jsonl": "e58e405c5a41fd2da89fff15d0cc83920dc95f51fb527b2b4e0537237a4de3a1",
+    "module-summary.json": "72d1baaf62cf8d59bba5b408fbba97e0af39cd3ee4adc79a2231d9dc6b76081e",
+    "original-probe.mjs": "5959566e060ca72bb9947e0c0898b016abd54f70d3cc9bf1c3cf198aac2071a3"
+  },
+  "archivedRuntimeSha256": "7ab64a839dd952996c201bedb79d7bfbd75a129960ae438c68496b0bcd37b738",
+  "finalRegressionSha256": "eb86db0799cd5fdd270a5bc171592f77f27025cc2754716b183afa6a8f6bec9b",
+  "refreshedWorkers": 306,
+  "failedRefreshedWorkers": 0
 }

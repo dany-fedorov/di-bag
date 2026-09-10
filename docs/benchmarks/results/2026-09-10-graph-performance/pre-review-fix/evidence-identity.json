@@ -10,7 +10,7 @@
     "docs/benchmarks/results/2026-09-10-graph-performance/run-module.py": "056b1a0629b347cb9d73eda66e7572d4bf462ff9a5538963acae0e7a54a15628",
     "docs/benchmarks/results/2026-09-10-graph-performance/run-module-after.py": "09a8d241bba45175c85bc157f0787193a87248b9f922c03d4b2f7af9ab8d374d",
     ".github/workflows/ci.yml": "5e10bb77040f8083b39efa08af6a807af996fdf01d6677f525407613e894a74a",
-    "tests/persistent-graph.test.ts": "eb86db0799cd5fdd270a5bc171592f77f27025cc2754716b183afa6a8f6bec9b",
+    "tests/persistent-graph.test.ts": "c32811f4600539fe42405047ec3384a300be785965164bb9cd6cbb9e77edd83c",
     "tests/persistent-map.test.ts": "cd4b6aa413f66a3262476410fea27909484d641be04e6e8a57da6fc59155170a",
     "tests/persistent-module.test.ts": "6fd96a350ecdcc29fb6dff8b08b6f8b0679e77a88f41f0a6743f7e0c1e7f4c3e",
     "tests/graph-retention.node.mjs": "29141fb72adbbc9fb29b7baeeaf10936931bbb6e84811bd0163f8837e673935b",
