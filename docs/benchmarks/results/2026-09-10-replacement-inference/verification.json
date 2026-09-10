@@ -45,7 +45,7 @@
     "status": 0
   },
   "files": {
-    "README.md": "da881ca10d6a63d3a6f3937423e85f803790d1629c50d359b92167bce4387118",
+    "README.md": "e0350d93bb91c3802dfd7acc7c8c0222a008499e5d2d2534b38f2008f1a0c912",
     "docs-generate.log": "92de5b64c2349ed56f86ee44415b47affae5d053fdd1c3ffb48c81a65402c63e",
     "docs-green.log": "0b7e4732b4760b8d37e68e886cfb969b96eaefbbc73b1d83c98a8c096712310e",
     "docs-missing-dependency.log": "40b4242e49aad217c3aa54b8b55314eae67e561fe45d6695babbf3eaab6ea062",
@@ -154,10 +154,28 @@
     "experiments/registration-map/types.ts": "695ec8ae781bb569e8648aa49dd1b504c24ac54b77254946b5e538af1882b549",
     "experiments/rows.json": "3024d82295a800645e771e74378260f52a6c7f58be7d3c1cbaef601702701e40",
     "experiments/sound-rows.json": "f1f4c2a5a34edb87f5edcbb62b078caf53aabc29838712f4875d5a5778f9aa45",
+    "final-classic-1000.json": "f81af5c415274ee6f830bd5ddf3849f5eb336dde409cb92de0fe4a2749ef172d",
+    "final-classic-1000.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "final-native-1000.json": "219c0acc03826f7a35f27786e893a42315cfb7e2a1163c30ede23e75ea6a578d",
+    "final-native-1000.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "native-audit-green.log": "a7049efd76f17d8d65c1e08ca1882ea162fed9557068432bd810a5d4a1aa29d8",
     "package-green.log": "bcc7977f36832c956b3304723aa40fab6a306fd959996b14aa21a505341e33e5",
+    "review.md": "22fd90b5cec144c7f41f5aa7b0a3ef768b0a0d2bc226523c19a6015b6c9e2eb0",
     "source-green.log": "cfec2757546dabaf81cc3a3b7f77167a7f455ef5c6ffa13dbb882b651a92c7a1",
     "source-manifest.json": "3c3e87a3034612162faa76ab9ab90bce1e5a473493fe517cc5ae3683d98fe363",
     "work-red.log": "696c75cd037b0b6a33e094c783788d9c5c584717ee9f7dd888c39bd299b0a1bc"
+  },
+  "independentReview": {
+    "candidate": "caf61bf22d6f19dd264f534b9f7b9d4a57b3a6b6",
+    "findings": 0,
+    "positiveDeclarations": 54,
+    "edgeDeclarations": 11,
+    "report": "review.md"
+  },
+  "finalLargeCases": {
+    "sourceCommit": "caf61bf22d6f19dd264f534b9f7b9d4a57b3a6b6",
+    "sourceDirty": false,
+    "classicAccepted": false,
+    "nativeAccepted": false
   }
 }

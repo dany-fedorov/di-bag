@@ -53,4 +53,16 @@ After the measured change, all 123 source-contract, work-count and strict native
 replacement-diagnostic tests passed, with 502 assertions, in 93.19 seconds using
 the CI-pinned Bun 1.4.0. This includes exact builder histories, replacement
 reflection, surviving local/module consumers, provider metadata and negative
-diagnostics. Packaged declaration validation passed all 96 tests (1,782 assertions), including both emitters and consumers. Both source typechecks passed, and the complete native audit matched all 639 diagnostic regions across 124 files with no failures. Documentation checks passed after regenerating the three API pages affected by the declaration change. The initial missing documentation dependency and stale-page results are retained separately. Independent review is pending.
+diagnostics. Packaged declaration validation passed all 96 tests (1,782 assertions), including both emitters and consumers. Both source typechecks passed, and the complete native audit matched all 639 diagnostic regions across 124 files with no failures. Documentation checks passed after regenerating the three API pages affected by the declaration change. The initial missing documentation dependency and stale-page results are retained separately. Independent review found no issues. It independently compared 54 positive declarations and 11 edge-case declarations, with identical inferred types and diagnostics. See [review](review.md).
+
+
+## Exact-commit large cases
+
+Fresh original 1,000-replacement probes ran against clean commit
+`caf61bf22d6f19dd264f534b9f7b9d4a57b3a6b6`, rebased onto merged `main`
+`0e6f3761d51be2efd6cd03f245324c0726340cf8`. The rebase preserved the complete
+validated tree. [Classic](final-classic-1000.json) still fails with a TypeScript
+`instantiateType` stack overflow; [native](final-native-1000.json) still reaches
+the existing memory cap (3,074.64 MiB observed peak RSS, 30.112 seconds). Neither
+case is accepted. The independent review covers the implementation commit;
+these final raw rows and the review report are subsequent evidence-only additions.
