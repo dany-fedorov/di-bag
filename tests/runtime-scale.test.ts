@@ -16,7 +16,7 @@ class MeasuredDependencies extends Set<symbol> {
 
 function identity(label: string, dependencies = new MeasuredDependencies()): AttemptIdentity {
   return { id: Symbol(label), bindingId: Symbol(label), ownerId: Symbol('owner'),
-    label, dependencies, ancestry: [], state: 'ready' };
+    label, dependencies, ancestry: undefined, state: 'ready' };
 }
 
 test('closing a deep graph disposes every dependent before its dependency exactly once', async () => {

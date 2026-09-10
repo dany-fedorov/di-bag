@@ -3,7 +3,7 @@ import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import type { BindingGraph, BindingId, BindingKey } from './runtime';
 import type { InspectionSnapshot, AcquisitionSnapshot } from './inspection';
-import { ProviderExecution } from './provider-execution';
+import { ProviderExecution, type CompletedExecution } from './provider-execution';
 import type { RuntimeContext } from './acquisition-mode';
 import { AcquisitionFamily } from './acquisition-family';
 import type { AcquisitionId, AttemptIdentity } from './acquisition-family';
@@ -11,8 +11,9 @@ import type { AcquisitionContext } from './acquisition-context';
 
 interface Acquisition extends AttemptIdentity {
   readonly strictRoot: string | undefined;
+  readonly transient: boolean;
   exposed: unknown;
-  execution: ProviderExecution;
+  execution: ProviderExecution | CompletedExecution;
 }
 
 /** Mutable, runtime-local attempts. Binding descriptions never carry ownership. */
@@ -59,7 +60,7 @@ export class Acquisitions {
 
   resolve(key: BindingKey): unknown {
     this.assertOpen();
-    return this.resolveBinding(this.graph.publicBinding(key)).exposed;
+    return this.takeExposed(this.resolveBinding(this.graph.publicBinding(key)));
   }
 
   resolveAll(key: symbol): readonly unknown[] {
@@ -68,12 +69,21 @@ export class Acquisitions {
   }
 
   private resolveCollection(key: symbol, from?: Acquisition): readonly unknown[] {
-    return Object.freeze(this.graph.contributionBindings(key).map(id => this.resolveBinding(id, from).exposed));
+    return Object.freeze(this.graph.contributionBindings(key).map(id => this.takeExposed(this.resolveBinding(id, from))));
   }
 
   async acquire(key: BindingKey): Promise<void> {
     this.assertOpen();
-    await this.resolveBinding(this.graph.publicBinding(key)).execution.ready();
+    const attempt = this.resolveBinding(this.graph.publicBinding(key));
+    this.takeExposed(attempt);
+    await attempt.execution.ready();
+  }
+
+  private takeExposed(attempt: Acquisition): unknown {
+    const value = attempt.exposed;
+    // Aliases and owner routing have already selected the canonical lifetime.
+    if (attempt.transient) attempt.exposed = undefined;
+    return value;
   }
 
   inspect(bindingId: BindingId, path: readonly BindingId[] = []): readonly AcquisitionSnapshot<readonly unknown[]>[] {
@@ -171,6 +181,33 @@ export class Acquisitions {
       return cached;
     }
     const ancestry = this.family.ancestry(bindingId, this.ownerId, this.graph.label(bindingId), from);
+    const execution = new ProviderExecution({
+      accepted: () => { this.owned.set(attempt.id, attempt); },
+      settled: () => {
+        if (attempt.execution.state === 'failed') {
+          this.observeAttempt(attempt, 'acquisition-failed', attempt.execution.error);
+          this.retire(attempt);
+        } else {
+          attempt.state = 'ready';
+          this.family.deactivate(attempt);
+          this.observeAttempt(attempt, 'acquisition-ready');
+        }
+      },
+      drained: () => {
+        if (attempt.execution instanceof ProviderExecution) attempt.execution = attempt.execution.compact();
+      },
+      ...(this.context.observers ? {
+        cleanupStarted: () => this.observeAttempt(attempt, 'cleanup-started'),
+        cleanupCompleted: (outcome: 'success' | 'failure') => {
+          this.context.observers!.emit({ ...this.eventFields(attempt), kind: 'cleanup-completed', outcome });
+        },
+      } : {}),
+      invoking: () => this.invocationSequence++,
+      cleanupFailed: (sequence, error) => {
+        if (this.context.observers) this.context.observers.emit({ ...this.eventFields(attempt), kind: 'cleanup-failed', disposalIndex: sequence, error });
+        this.failures.push({ sequence, acquisitionId: attempt.id, bindingId: attempt.bindingId, label: attempt.label, error });
+      },
+    }, description, this.context);
     const attempt: Acquisition = {
       id: Symbol(this.graph.label(bindingId)),
       bindingId,
@@ -182,30 +219,9 @@ export class Acquisitions {
         ? lifetime.captureScoped ? undefined : this.graph.label(bindingId)
         : from?.strictRoot,
       state: 'creating',
+      transient: lifetime.kind === 'transient',
       exposed: undefined,
-      execution: new ProviderExecution({
-        accepted: () => { this.owned.set(attempt.id, attempt); },
-        settled: () => {
-          if (attempt.execution.state === 'failed') {
-            this.observeAttempt(attempt, 'acquisition-failed', attempt.execution.error);
-            this.retire(attempt);
-          } else {
-            attempt.state = 'ready';
-            this.observeAttempt(attempt, 'acquisition-ready');
-          }
-        },
-        ...(this.context.observers ? {
-          cleanupStarted: () => this.observeAttempt(attempt, 'cleanup-started'),
-          cleanupCompleted: (outcome: 'success' | 'failure') => {
-            this.context.observers!.emit({ ...this.eventFields(attempt), kind: 'cleanup-completed', outcome });
-          },
-        } : {}),
-        invoking: () => this.invocationSequence++,
-        cleanupFailed: (sequence, error) => {
-          if (this.context.observers) this.context.observers.emit({ ...this.eventFields(attempt), kind: 'cleanup-failed', disposalIndex: sequence, error });
-          this.failures.push({ sequence, acquisitionId: attempt.id, bindingId: attempt.bindingId, label: attempt.label, error });
-        },
-      }, description, this.context),
+      execution,
     };
     if (lifetime.kind !== 'transient') this.cache.set(bindingId, attempt);
     this.attempts.set(attempt.id, attempt);
@@ -218,7 +234,7 @@ export class Acquisitions {
       }
       if (all) return this.resolveCollection(key as symbol, attempt);
       const target = optional ? this.graph.findDependency(bindingId, key) : this.graph.dependency(bindingId, key);
-      return target === undefined ? undefined : this.resolveBinding(target, attempt).exposed;
+      return target === undefined ? undefined : this.takeExposed(this.resolveBinding(target, attempt));
     };
     const references = new Map(description.references.map(reference => [reference.slot, reference]));
     const deps = new Proxy(Object.create(null) as Record<string, unknown>, {
@@ -232,13 +248,26 @@ export class Acquisitions {
     });
     this.observeAttempt(attempt, 'acquisition-started');
     this.family.enter(attempt);
+    const directSource = !description.contextual && !description.operations.length;
     try {
-      const value = attempt.execution.evaluate(description, deps, () => this.getContext());
+      let value: unknown;
+      if (directSource) {
+        const { create } = description;
+        value = create(deps as never);
+        execution.publishSource(value, description);
+      } else {
+        value = execution.evaluate(description, deps, () => this.getContext());
+      }
       attempt.exposed = value;
       attempt.state = attempt.execution.state;
-      if (attempt.state === 'ready') this.observeAttempt(attempt, 'acquisition-ready');
+      if (attempt.state === 'ready') {
+        this.family.deactivate(attempt);
+        this.observeAttempt(attempt, 'acquisition-ready');
+      }
+      attempt.execution = execution.compact();
       return attempt;
     } catch (error) {
+      if (directSource) execution.sourceInFlight = false;
       this.observeAttempt(attempt, 'acquisition-failed', error);
       this.retire(attempt);
       throw error;
@@ -266,6 +295,7 @@ export class Acquisitions {
   private retire(attempt: Acquisition): void {
     if (this.cache.get(attempt.bindingId) === attempt) this.cache.delete(attempt.bindingId);
     attempt.state = 'failed';
+    this.family.deactivate(attempt);
     attempt.exposed = undefined;
     // No consumer acquired this failed exposed value. Keep this attempt's
     // outgoing edges and pending work, but abandon unsuccessful incoming reads.

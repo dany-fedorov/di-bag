@@ -1,0 +1,17 @@
+transient-memory 10000 recorded
+cold-chain 100 recorded
+cold-chain 500 recorded
+cold-chain 1000 recorded
+cold-chain 1500 recorded
+cold-chain 2000 recorded
+cold-chain 4000 recorded
+cold-chain-auto 100 recorded
+cold-chain-auto 500 recorded
+cold-chain-auto 1000 recorded
+cold-chain-auto 1500 recorded
+cold-chain-auto 2000 recorded
+cold-chain-auto 4000 recorded
+transient-history-memory 10000 recorded
+transient-native-memory 10000 recorded
+transient-mapped-memory 10000 recorded
+cleanup-control 10000 recorded
