@@ -106,32 +106,50 @@ for (const exitCode of [0, 2]) {
 }
 
 for (const exitCode of [0, 2]) {
-  test(`supervisor preserves exit ${exitCode} while the kernel releases memory before zombie state`, async () => {
+  test(`supervisor preserves exit ${exitCode} with pre-zombie kernel exit evidence`, async () => {
     let samples = 0, exitingPid = 0;
-    const source = `printf -v memory '%67108864s' ''; printf 'out\\n'; printf 'err\\n' >&2; exit ${exitCode}`;
-    const result = await supervise('/bin/bash', ['-c', source], process.cwd(), limits, async pid => {
-      if (samples++ === 0) return (await readFile(`/proc/${pid}/status`, 'utf8')).replace(/^VmRSS:.*\n/m, '');
-      if (exitingPid) return readFile(`/proc/${pid}/status`, 'utf8');
-      // Prime one missing sample, then observe actual kernel teardown. The real
-      // single-threaded shell retains a 64 MiB allocation until native exit.
-      const deadline = Date.now() + 2000;
-      while (Date.now() < deadline) {
-        const status = readFileSync(`/proc/${pid}/status`, 'utf8');
-        const stat = readFileSync(`/proc/${pid}/stat`, 'utf8');
-        const flags = Number(stat.slice(stat.lastIndexOf(')') + 2).split(' ')[6]);
-        if (!/^VmRSS:/m.test(status) && /^State:\s+R/m.test(status) && (flags & 4) !== 0) {
-          process.kill(pid, 0);
-          exitingPid = pid;
-          return status;
-        }
+    const read = fs.readFileSync;
+    const delay = new Int32Array(new SharedArrayBuffer(4));
+    // The observed R/no-VmRSS/PF_EXITING window can finish before another JS
+    // sample is scheduled. Synchronize a real child, then replay only R at
+    // the /proc boundary once its real exit flag and missing memory are stable.
+    // Real kernel observations remain in observe-kernel-exit.mjs artifacts.
+    const proof = spyOn(fs, 'readFileSync').mockImplementation(((path, options) => {
+      if (exitingPid && String(path) === `/proc/${exitingPid}/status`) {
+        return read(path, 'utf8').replace(/^State:.*$/m, 'State:\tR (running)');
       }
-      throw new Error('Child did not expose real pre-zombie memory teardown');
-    });
-    expect(exitingPid).toBeGreaterThan(0);
-    expect(result).toMatchObject({ status: exitCode, signal: null, stdout: 'out\n', stderr: 'err\n' });
-    expect(result.terminationReason).toBeUndefined();
-    expect(result.error).toBeUndefined();
-    expect(() => process.kill(exitingPid, 0)).toThrow();
+      if (exitingPid && String(path) === `/proc/${exitingPid}/task/${exitingPid}/stat`) {
+        const stat = read(path, 'utf8'), close = stat.lastIndexOf(')');
+        return stat.slice(0, close + 2) + stat.slice(close + 2).replace(/^Z /, 'R ');
+      }
+      return read(path, options as any);
+    }) as typeof fs.readFileSync);
+    try {
+      const source = `kill -STOP $$; printf 'out\\n'; printf 'err\\n' >&2; exit ${exitCode}`;
+      const result = await supervise('/bin/bash', ['-c', source], process.cwd(), limits, async pid => {
+        if (samples++ > 1) return readFile(`/proc/${pid}/status`, 'utf8');
+        const first = samples === 1;
+        if (!first) process.kill(pid, 'SIGCONT');
+        const deadline = Date.now() + 2000;
+        while (Date.now() < deadline) {
+          const status = read(`/proc/${pid}/status`, 'utf8');
+          if (first && /^State:\s+T/m.test(status)) return status.replace(/^VmRSS:.*\n/m, '');
+          if (!first && /^State:\s+Z/m.test(status)) {
+            if (/^VmRSS:/m.test(status)) throw new Error('Exited child still has a memory map');
+            process.kill(pid, 0);
+            exitingPid = pid;
+            return status.replace(/^State:.*$/m, 'State:\tR (running)');
+          }
+          Atomics.wait(delay, 0, 0, 1);
+        }
+        throw new Error(`Child did not reach ${first ? 'stopped' : 'zombie'} synchronization state`);
+      });
+      expect(exitingPid).toBeGreaterThan(0);
+      expect(result).toMatchObject({ status: exitCode, signal: null, stdout: 'out\n', stderr: 'err\n' });
+      expect(result.terminationReason).toBeUndefined();
+      expect(result.error).toBeUndefined();
+      expect(() => process.kill(exitingPid, 0)).toThrow();
+    } finally { proof.mockRestore(); }
   });
 }
 
