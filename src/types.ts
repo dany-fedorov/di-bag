@@ -170,6 +170,14 @@ export type Introduces<F extends Registrations, N extends Registrations> = [
       { duplicates: keyof F & keyof N }
     >;
 
+// Finite histories already carry their exact key union. Reconstruct broad
+// string histories so their implicit numeric index and opaque key shapes survive.
+export type EntryKeys<E extends Entry> = string extends E['key'] ? keyof From<E> : E['key'];
+
+// Duplicate admission needs keys, independently of registration values.
+export type IntroducesKeys<Known extends PropertyKey, New extends PropertyKey> = [Known & New] extends [never]
+ ? unknown : Unsatisfied<'add introduces new tokens only', { duplicates: Known & New }>;
+
 export type Singleton<K> = [K] extends [never]
   ? false
   : [K] extends [string]
@@ -183,6 +191,13 @@ export type Singleton<K> = [K] extends [never]
 export type ReplacementKey<R extends Registrations, K extends string> =
   Singleton<K> extends true
     ? K extends keyof R
+      ? unknown
+      : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>
+    : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>;
+
+export type ReplacementKeyOf<Keys extends PropertyKey, K extends string> =
+  Singleton<K> extends true
+    ? K extends Keys
       ? unknown
       : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>
     : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>;

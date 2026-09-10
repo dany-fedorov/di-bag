@@ -36,14 +36,16 @@ import type {
   Complete,
   Entries,
   Entry,
+  EntryKeys,
   ForkContext,
   From,
   IncrementalChecked,
   Introduces,
+  IntroducesKeys,
   Merge,
   Overrides,
   Provided,
-  ReplacementKey,
+  ReplacementKeyOf,
   ReplacementOutput,
   Selected,
   Selection,
@@ -256,7 +258,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * @throws If the input is malformed, contains a non-string key, or duplicates a public name.
    */
   add<N extends { [K in keyof N]: Registration }>(
-    more: N & Registrations & NamedAdmission<N> & Introduces<From<E>, N> & IncrementalChecked<E, N> &
+    more: N & Registrations & NamedAdmission<N> & IntroducesKeys<EntryKeys<E>, keyof N> & IncrementalChecked<E, N> &
       CheckedConstraints<C, Merge<From<E>, N>>,
   ): Builder<E | Entries<N>, C> {
     const snapshot = snapshotAdd(more, key => this.#graph.hasPublic(key));
@@ -301,7 +303,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * @returns A new builder retaining the provider's metadata, lifetime, dependencies, and ownership stages.
    */
   bind<T extends TokenBase, V extends Registration>(
-    token: T & TokenTupleAdmission<readonly [T]> & Introduces<From<E>, Record<TokenKey<T>, V>>,
+    token: T & TokenTupleAdmission<readonly [T]> & IntroducesKeys<EntryKeys<E>, TokenKey<T>>,
     registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
       IncrementalChecked<E, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>> &
       CheckedConstraints<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>,
@@ -324,7 +326,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * @typeParam V - The exact replacement factory or disposable-factory type.
    */
   replace<const K extends string, V extends ((this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>>>(
-    key: K & ReplacementKey<From<E>, K>,
+    key: K & ReplacementKeyOf<EntryKeys<E>, K>,
     registration: V & (Factory | DisposableFactory<Factory>) & ZeroDependencyAdmission<NoInfer<V>> &
       CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>,
   ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
@@ -353,7 +355,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * @returns A new builder exposing only the module's selected exports.
    */
   install<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(
-    module: Module<P, R, MC, D> & Introduces<From<E>, D> &
+    module: Module<P, R, MC, D> & IntroducesKeys<EntryKeys<E>, keyof D> &
       IncrementalChecked<E, D> &
       IncrementalConstraints<C, MC, From<E>, D>,
   ): Builder<E | Entries<D>, C | MC> {

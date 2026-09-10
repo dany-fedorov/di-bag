@@ -4,7 +4,7 @@
 
 # Interface: Builder\<E *extends* `Entry`, C *extends* `NeedConstraint` = `never`\>
 
-Defined in: [di-bag.ts:240](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L240)
+Defined in: [di-bag.ts:242](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L242)
 
 An immutable, type-checked application graph builder.
 Create one with [Facade.begin](Facade.md#begin); every operation returns a new builder.
@@ -24,7 +24,7 @@ Create one with [Facade.begin](Facade.md#begin); every operation returns a new b
 readonly contribute: BuilderContribute<E, C>;
 ```
 
-Defined in: [di-bag.ts:292](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L292)
+Defined in: [di-bag.ts:294](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L294)
 
 Append a provider to a typed-token collection.
 
@@ -51,10 +51,10 @@ A new builder preserving contribution order.
 ```ts
 add<N extends {
     [K in keyof N]: Registration;
-}>(more: N & Registrations & NamedAdmission<N> & Introduces<From<E>, N> & IncrementalChecked<E, N> & CheckedConstraints<C, Merge<From<E>, N>>): Builder<E | Entries<N>, C>;
+}>(more: N & Registrations & NamedAdmission<N> & IntroducesKeys<EntryKeys<E>, keyof N> & IncrementalChecked<E, N> & CheckedConstraints<C, Merge<From<E>, N>>): Builder<E | Entries<N>, C>;
 ```
 
-Defined in: [di-bag.ts:258](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L258)
+Defined in: [di-bag.ts:260](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L260)
 
 Add new string-named registrations.
 
@@ -86,7 +86,7 @@ If the input is malformed, contains a non-string key, or duplicates a public nam
 alias<const D extends AliasSelection, const T extends AliasSelection>(destination: D & (unknown extends AliasAdmission<D> ? Introduces<From<E>, AliasEntries<From<E>, D, T>> : AliasAdmission<D>), target: T & AliasAdmission<T> & (unknown extends AliasAdmission<T> ? AliasTarget<From<E>, T> & AliasDestination<From<E>, NoInfer<D>, T> : unknown) & (unknown extends AliasAdmission<D> & AliasAdmission<T> ? IncrementalChecked<E, AliasEntries<From<E>, NoInfer<D>, NoInfer<T>>> & CheckedConstraints<C, Merge<From<E>, AliasEntries<From<E>, NoInfer<D>, NoInfer<T>>>> : unknown), ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []): Builder<E | AliasEntry<From<E>, D, T>, C>;
 ```
 
-Defined in: [di-bag.ts:273](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L273)
+Defined in: [di-bag.ts:275](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L275)
 
 Add another lookup name or token for an existing service.
 
@@ -114,13 +114,13 @@ A new builder; aliases add no cache or ownership of their own.
 ### bind()
 
 ```ts
-bind<T extends TokenBase, V extends Registration>(token: T & TokenTupleAdmission<readonly [T]> & Introduces<From<E>, Record<TokenKey<T>, V>>, registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & IncrementalChecked<E, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>> & CheckedConstraints<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>): Builder<E | {
+bind<T extends TokenBase, V extends Registration>(token: T & TokenTupleAdmission<readonly [T]> & IntroducesKeys<EntryKeys<E>, TokenKey<T>>, registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & IncrementalChecked<E, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>> & CheckedConstraints<C, Merge<From<E>, Record<TokenKey<T>, Binding<NoInfer<T>, NoInfer<V>>>>>): Builder<E | {
     key: TokenKey<T>;
     registration: Binding<T, V>;
 }, C>;
 ```
 
-Defined in: [di-bag.ts:303](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L303)
+Defined in: [di-bag.ts:305](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L305)
 
 Bind a registration to a typed token.
 
@@ -150,7 +150,7 @@ A new builder retaining the provider's metadata, lifetime, dependencies, and own
 end(this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, From<E>> & CheckedLifetimes<From<E>, C>): Bag<From<E>, C>;
 ```
 
-Defined in: [di-bag.ts:368](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L368)
+Defined in: [di-bag.ts:370](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L370)
 
 Finish a complete graph as a lazy bag.
 
@@ -173,10 +173,10 @@ At runtime if automatic acquisition is used without a configured Promise classif
 ### install()
 
 ```ts
-install<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(module: Module<P, R, MC, D> & Introduces<From<E>, D> & IncrementalChecked<E, D> & IncrementalConstraints<C, MC, From<E>, D>): Builder<E | Entries<D>, C | MC>;
+install<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(module: Module<P, R, MC, D> & IntroducesKeys<EntryKeys<E>, keyof D> & IncrementalChecked<E, D> & IncrementalConstraints<C, MC, From<E>, D>): Builder<E | Entries<D>, C | MC>;
 ```
 
-Defined in: [di-bag.ts:355](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L355)
+Defined in: [di-bag.ts:357](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L357)
 
 Install a sealed module, allocating fresh private bindings for this installation.
 
@@ -206,7 +206,7 @@ A new builder exposing only the module's selected exports.
 #### Call Signature
 
 ```ts
-replace<const K extends string, V extends ((this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>>>(key: K & ReplacementKey<From<E>, K>, registration: V & (Factory | DisposableFactory<Factory>) & ZeroDependencyAdmission<NoInfer<V>> & CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>): Builder<Exclude<E, {
+replace<const K extends string, V extends ((this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>>>(key: K & ReplacementKeyOf<EntryKeys<E>, K>, registration: V & (Factory | DisposableFactory<Factory>) & ZeroDependencyAdmission<NoInfer<V>> & CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>): Builder<Exclude<E, {
     key: K;
 }> | {
     key: K;
@@ -214,7 +214,7 @@ replace<const K extends string, V extends ((this: void) => ReplacementOutput<NoI
 }, C>;
 ```
 
-Defined in: [di-bag.ts:326](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L326)
+Defined in: [di-bag.ts:328](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L328)
 
 Replace an existing string-named registration with a dependency-free factory.
 
@@ -242,7 +242,7 @@ A new builder with the replacement.
 replace<const K extends string | TokenBase, V extends Registration>(key: K & NoInfer<ReplacementAdmission<From<E>, K>>, registration: V & Registration & BuilderReplacementRegistration<E, C, NoInfer<K>, V>): Builder<ReplacedEntries<E, K, V>, C>;
 ```
 
-Defined in: [di-bag.ts:337](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L337)
+Defined in: [di-bag.ts:339](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L339)
 
 Replace an existing named or typed-token registration.
 
@@ -272,7 +272,7 @@ A new builder with the replacement and its inferred service type.
 start<const K extends readonly unknown[]>(this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, From<E>> & CheckedLifetimes<From<E>, C>, keys: K & Selection<From<E>, K, 'start'>, options?: StartupOptions): Promise<Bag<From<E>, C>>;
 ```
 
-Defined in: [di-bag.ts:380](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L380)
+Defined in: [di-bag.ts:382](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L382)
 
 Create a fresh bag and acquire selected services before returning it.
 
