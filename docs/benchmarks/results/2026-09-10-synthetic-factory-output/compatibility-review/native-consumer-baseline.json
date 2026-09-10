@@ -1,0 +1,31 @@
+{
+  "variant": "baseline",
+  "compiler": "native",
+  "version": "7.0.2",
+  "stage": "consumer",
+  "status": 0,
+  "signal": null,
+  "stdout": "Files:              95\nLines:           58712\nIdentifiers:     56831\nSymbols:         85925\nTypes:           64424\nInstantiations: 121258\nMemory used:    88145K\nMemory allocs:  600317\nConfig time:    0.000s\nParse time:     0.024s\nBind time:      0.009s\nCheck time:     0.186s\nEmit time:      0.000s\nTotal time:     0.219s\n",
+  "stderr": "",
+  "milliseconds": 251,
+  "peakObservedRssMiB": 119.26171875,
+  "diagnostics": [],
+  "metrics": {
+    "Files": 95,
+    "Lines": 58712,
+    "Identifiers": 56831,
+    "Symbols": 85925,
+    "Types": 64424,
+    "Instantiations": 121258,
+    "Memory used": 88145,
+    "Memory allocs": 600317,
+    "Config time": 0,
+    "Parse time": 0.024,
+    "Bind time": 0.009,
+    "Check time": 0.186,
+    "Emit time": 0,
+    "Total time": 0.219
+  },
+  "unparsed": [],
+  "checked": true
+}

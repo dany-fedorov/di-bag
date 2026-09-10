@@ -8,7 +8,7 @@
 type ProviderNeeds<R extends Registration> = ProviderBase extends R ? unknown : Parameters<ProviderFactory<R>> extends [] ? Record<never, never> : Exclude<Parameters<ProviderFactory<R>>[0], undefined>;
 ```
 
-Defined in: [provider.ts:65](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L65)
+Defined in: [provider.ts:68](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L68)
 
 Extract the registration's named dependency object.
 

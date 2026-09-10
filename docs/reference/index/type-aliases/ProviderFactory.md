@@ -8,7 +8,7 @@
 type ProviderFactory<R extends Registration> = R extends infer T & {} ? FactoryOf<T> : never;
 ```
 
-Defined in: [provider.ts:49](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L49)
+Defined in: [provider.ts:52](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L52)
 
 Extract the callable factory contract retained by a registration.
 

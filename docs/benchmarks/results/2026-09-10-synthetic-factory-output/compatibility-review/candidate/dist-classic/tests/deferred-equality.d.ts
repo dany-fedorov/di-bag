@@ -1,0 +1,16 @@
+import type { fromTokens, Provider, ProviderFactory, ProviderOutput } from '../src/provider';
+import type { TokenBase } from '../src/tokens';
+import type { TokenGraph, TokenArguments } from '../src/token-types';
+import type { Registration, Registrations } from '../src/registration';
+import type { PublicProvider, PublicProviders, ModulePublicProviders } from '../src/module-types';
+import type { PublicProvider as LegacyPublicProvider, PublicProviders as LegacyPublicProviders, ModulePublicProviders as LegacyModulePublicProviders } from './legacy-module-types';
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
+type Assert<T extends true> = T;
+export type GenericFactory<F extends () => unknown> = Assert<Equal<ProviderFactory<ReturnType<typeof fromTokens<readonly [], F>>>, () => ReturnType<F>>>;
+export type GenericProvider<F extends () => unknown> = Assert<Equal<ReturnType<typeof fromTokens<readonly [], F>>, Provider<() => ReturnType<F>, Readonly<{}>, readonly [], TokenGraph<readonly []>, Awaited<ReturnType<F>>>>>;
+export type GenericValue<T> = Assert<Equal<ProviderOutput<ReturnType<typeof fromTokens<readonly [], () => T>>>, T>>;
+export type GenericTokens<T extends readonly TokenBase[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => unknown> = Assert<Equal<ReturnType<typeof fromTokens<T, F>>, Provider<() => ReturnType<F>, Readonly<{}>, readonly [], TokenGraph<T>, Awaited<ReturnType<F>>>>>;
+export type GenericPublic<R extends Registration> = Assert<Equal<PublicProvider<R>, LegacyPublicProvider<R>>>;
+export type GenericPublicMap<R extends object> = Assert<Equal<PublicProviders<R>, LegacyPublicProviders<R>>>;
+export type GenericPublicModule<R extends Registrations, K extends keyof R> = Assert<Equal<ModulePublicProviders<R, K>, LegacyModulePublicProviders<R, K>>>;
+export {};

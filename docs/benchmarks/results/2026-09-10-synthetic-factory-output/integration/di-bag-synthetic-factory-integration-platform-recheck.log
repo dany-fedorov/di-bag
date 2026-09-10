@@ -1,0 +1,43 @@
+bun test v1.4.0 (34cbb9a40)
+
+tests/platform-deno.test.ts:
+(pass) portable root contract has host-independent semantics [4.49ms]
+(pass) portable inspection proof rejects nonobjects and inexact or unfrozen metadata [0.10ms]
+(pass) Deno child validation requires canonical output from the local installed archive [0.81ms]
+(pass) Deno child validation fails closed when the expected installation is absent [0.20ms]
+(pass) an unprovisioned Deno pin yields an explicit unavailable row without touching the archive [8.60ms]
+
+tests/platform-tools.test.ts:
+(pass) tool capture binds the actual artifact and exact observed version output [8.58ms]
+(pass) tool capture rejects wrong versions, substring matches and unsuccessful probes [86.00ms]
+
+tests/platform-evidence.test.ts:
+(pass) required platform evidence rejects incomplete or unavailable matrices [0.45ms]
+(pass) local platform identity takes precedence and invalid local identity never falls back [1.19ms]
+(pass) child evidence rejects noncanonical output, stderr, process failures and the wrong lane [0.50ms]
+(pass) tool verification rejects explicit unavailability, version drift and hash drift [64.24ms]
+(pass) tool verification rejects malformed pins and unavailable executables before a lane starts [0.95ms]
+(pass) pack output requires exactly one archive and empty stderr [1.94ms]
+(pass) pack output rejects every missing declared export and package document [3.30ms]
+(pass) packed archive validation catches a missing archive, changed bytes and stale file inventory [16.40ms]
+(pass) archive inventory is an exact allowlist and package documents match isolated inputs byte-for-byte [12.26ms]
+(pass) repository manifest verifies every provisioned identity and retains absent tools as unavailable [193.19ms]
+(pass) isolated classic pack contains only freshly built declared exports and rechecks its hash [1443.74ms]
+(pass) evidence writer appends stable sorted JSONL under the source/date directory [1.24ms]
+(pass) platform command writes one sorted matrix and executes every provisioned lane [1503.56ms]
+(pass) platform evidence module imports under the pinned Node ESM loader [217.08ms]
+(pass) platform command retains archive failure rows and makes required failures nonzero [205.51ms]
+(pass) browser metafile parser rejects malformed shapes before resolving inputs [0.41ms]
+
+tests/platform/browser-worker.test.ts:
+(pass) browser metafile accepts only the installed root export and package-local dependencies [1.77ms]
+(pass) browser bundle validation rejects stale bytes, sizes, gzip size, metafile and root identity [3.71ms]
+(pass) Worker protocol accepts exactly one structured portable result and rejects hostile transcripts [0.44ms]
+(pass) browser Worker lane rechecks the artifact before execution and maps protocol failures [133.93ms]
+(pass) explicitly unprovisioned browser tools stay unavailable without archive or bundle fallback [50.74ms]
+(pass) provisioned browser tools execute the real packed archive lane [183.61ms]
+
+ 29 pass
+ 0 fail
+ 216 expect() calls
+Ran 29 tests across 4 files. [4.21s]

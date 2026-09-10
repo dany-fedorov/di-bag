@@ -10,6 +10,9 @@ import type { GraphContract, TokenGraph, OpaqueGraph, TokenTupleAdmission, Token
 import { acquisitionMode } from './acquisition-mode';
 import type { Acquired, AcquisitionMode, NativeOutput, StageOptions } from './acquisition-mode';
 
+// Capture the output so synthetic factories do not repeatedly expand callback types.
+type OutputFactory<O> = () => O;
+
 declare const providerInvariant: unique symbol;
 
 // Non-generic admission preserves invariant concrete contracts at graph boundaries.
@@ -104,7 +107,7 @@ export type BoundToken<R> = Bound<ProviderGraph<R>>;
 export function fromTokens<const T extends readonly Dependency[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
   tokens: T & DependencyTupleAdmission<T>, callback: F,
   ...modeOptions: StageOptions<M>
-): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
+): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
 /**
  * Inject a tuple of required typed-token services into a callback without awaiting them.
  * @param tokens - A finite tuple of genuine typed tokens.
@@ -117,11 +120,11 @@ export function fromTokens<const T extends readonly Dependency[], F extends (thi
 export function fromTokens<const T extends readonly TokenBase[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
   tokens: T & TokenTupleAdmission<T>, callback: F,
   ...modeOptions: StageOptions<M>
-): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], TokenGraph<T>, Acquired<ReturnType<F>, M>>;
+): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], TokenGraph<T>, Acquired<ReturnType<F>, M>>;
 export function fromTokens<const T extends readonly Dependency[], F extends (this: void, ...args: TokenArguments<NoInfer<T>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
   tokens: T & DependencyTupleAdmission<T>, callback: F,
   ...modeOptions: StageOptions<M>
-): Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>> {
+): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>> {
   const acquisition = acquisitionMode(modeOptions[0]);
   const references = snapshotReferences(tokens);
   if (typeof callback !== 'function') throw new Error('token callback must be a function');
@@ -129,7 +132,7 @@ export function fromTokens<const T extends readonly Dependency[], F extends (thi
     const args = references.map(reference => Reflect.get(deps, reference.slot));
     return Reflect.apply(callback, undefined, args);
   };
-  const handle = new Provider<() => ReturnType<F>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>();
+  const handle = new Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>();
   retainDescription(handle, sourceDescription(create, undefined, references.map(reference => reference.key), acquisition, false, references));
   return handle;
 }

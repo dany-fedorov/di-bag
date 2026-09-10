@@ -8,7 +8,7 @@
 type ProviderOptionalTokenNeeds<R> = OptionalTokens<ProviderGraph<R>>;
 ```
 
-Defined in: [provider.ts:89](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L89)
+Defined in: [provider.ts:92](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L92)
 
 Extract optional typed-token requirements from a registration.
 

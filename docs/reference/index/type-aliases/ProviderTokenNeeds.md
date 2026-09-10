@@ -8,7 +8,7 @@
 type ProviderTokenNeeds<R> = RequiredTokens<ProviderGraph<R>>;
 ```
 
-Defined in: [provider.ts:91](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L91)
+Defined in: [provider.ts:94](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L94)
 
 Extract required typed-token dependencies from a registration.
 

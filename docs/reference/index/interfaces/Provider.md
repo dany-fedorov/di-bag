@@ -4,7 +4,7 @@
 
 # Interface: Provider\<F *extends* `Factory`, M *extends* `object` = `Readonly`\<\{ \}\>, A *extends* readonly `unknown`[] = readonly \[\], G *extends* `GraphContract` = [`TokenGraph`](../type-aliases/TokenGraph.md), V = `Awaited`\<`ReturnType`\<`F`\>\>\>
 
-Defined in: [provider.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L28)
+Defined in: [provider.ts:31](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L31)
 
 An immutable provider description retaining factory, metadata, inspection-frame,
 dependency-graph, and acquired-value contracts.
