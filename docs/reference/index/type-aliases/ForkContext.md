@@ -10,7 +10,7 @@ type ForkContext<R extends Registrations, K extends readonly unknown[], O> = {
 };
 ```
 
-Defined in: [types.ts:268](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L268)
+Defined in: [types.ts:272](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L272)
 
 Contextual override shape used to infer a selected fork or child-scope graph.
 
