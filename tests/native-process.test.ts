@@ -22,7 +22,7 @@ async function waitForExit(pid: number): Promise<void> {
   throw new Error(`Child ${pid} was not reaped`);
 }
 
-for (const failure of ['EIO', 'ENOENT', 'ESRCH', 'missing VmRSS'] as const) {
+for (const failure of ['EIO', 'EACCES', 'ENOENT', 'ESRCH', 'missing VmRSS', 'malformed VmRSS'] as const) {
   test(`supervisor terminates and reaps a live child on monitor ${failure}`, async () => {
     let pid = 0, samples = 0;
     const result = await supervise(node, ['-e', 'setInterval(() => {}, 1000)'], process.cwd(), limits, async childPid => {
@@ -30,12 +30,13 @@ for (const failure of ['EIO', 'ENOENT', 'ESRCH', 'missing VmRSS'] as const) {
       const status = await readFile(`/proc/${pid}/status`, 'utf8');
       process.kill(pid, 0);
       samples++;
+      if (failure === 'malformed VmRSS') return status.replace(/^VmRSS:.*$/m, 'VmRSS: invalid kB');
       if (failure === 'missing VmRSS') return status.replace(/^VmRSS:.*\n/m, '');
       throw Object.assign(new Error(`status read ${failure}`), { code: failure });
     });
     expect(result).toMatchObject({ terminationReason: 'monitor', status: null, signal: 'SIGKILL', stdout: '', stderr: '' });
-    expect(result.error).toContain(failure === 'missing VmRSS' ? 'VmRSS is missing' : failure);
-    expect(samples).toBe(failure === 'missing VmRSS' ? 2 : 1);
+    expect(result.error).toContain(failure.endsWith('VmRSS') ? 'VmRSS is missing' : failure);
+    expect(samples).toBe(failure.endsWith('VmRSS') ? 2 : 1);
     expect(pid).toBeGreaterThan(0);
     expect(() => process.kill(pid, 0)).toThrow();
     expect(result.milliseconds).toBeLessThan(limits.timeoutMilliseconds);
@@ -62,6 +63,41 @@ for (const failure of ['ENOENT', 'ESRCH'] as const) {
     });
     expect(zombiePid).toBeGreaterThan(0);
     expect(result).toMatchObject({ status: 0, signal: null, stdout: 'out\n', stderr: 'err\n' });
+    expect(result.terminationReason).toBeUndefined();
+    expect(result.error).toBeUndefined();
+    expect(() => process.kill(zombiePid, 0)).toThrow();
+  });
+}
+
+for (const exitCode of [0, 2]) {
+  test(`supervisor confirms exit ${exitCode} after stale non-zombie status loses VmRSS`, async () => {
+    let zombiePid = 0, samples = 0;
+    const delay = new Int32Array(new SharedArrayBuffer(4));
+    const source = `setTimeout(() => { console.log('out'); console.error('err'); process.exitCode = ${exitCode}; }, 150)`;
+    const result = await supervise(node, ['-e', source], process.cwd(), limits, async pid => {
+      if (samples >= 2) return readFile(`/proc/${pid}/status`, 'utf8');
+      // Model two missing-RSS reads; the second async snapshot is stale by the
+      // time its promise resumes. Keep the real child, exit state and pipes.
+      const status = await readFile(`/proc/${pid}/status`, 'utf8');
+      if (/^State:\s+[ZX]/m.test(status)) throw new Error('Expected a live snapshot');
+      samples++;
+      if (samples === 2) {
+        const deadline = Date.now() + 2000;
+        while (Date.now() < deadline) {
+          if (/^State:\s+Z/m.test(readFileSync(`/proc/${pid}/status`, 'utf8'))) {
+            process.kill(pid, 0);
+            zombiePid = pid;
+            break;
+          }
+          Atomics.wait(delay, 0, 0, 1);
+        }
+        if (!zombiePid) throw new Error('Child did not become a zombie before exit notification');
+      }
+      return status.replace(/^VmRSS:.*\n/m, '');
+    });
+    expect(zombiePid).toBeGreaterThan(0);
+    expect(samples).toBe(2);
+    expect(result).toMatchObject({ status: exitCode, signal: null, stdout: 'out\n', stderr: 'err\n' });
     expect(result.terminationReason).toBeUndefined();
     expect(result.error).toBeUndefined();
     expect(() => process.kill(zombiePid, 0)).toThrow();

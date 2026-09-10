@@ -1,0 +1,35 @@
+bun test v1.4.2 (744846f84)
+
+tests/native-process.test.ts:
+94 |       return status.replace(/^VmRSS:.*\n/m, '');
+95 |     });
+96 |     expect(zombiePid).toBeGreaterThan(0);
+97 |     expect(samples).toBe(2);
+98 |     expect(result).toMatchObject({ status: exitCode, signal: null, stdout: 'out\n', stderr: 'err\n' });
+99 |     expect(result.terminationReason).toBeUndefined();
+                                          ^
+error: expect(received).toBeUndefined()
+
+Received: "monitor"
+
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/native-process.test.ts:99:38)
+(fail) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [179.01ms]
+94 |       return status.replace(/^VmRSS:.*\n/m, '');
+95 |     });
+96 |     expect(zombiePid).toBeGreaterThan(0);
+97 |     expect(samples).toBe(2);
+98 |     expect(result).toMatchObject({ status: exitCode, signal: null, stdout: 'out\n', stderr: 'err\n' });
+99 |     expect(result.terminationReason).toBeUndefined();
+                                          ^
+error: expect(received).toBeUndefined()
+
+Received: "monitor"
+
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/native-process.test.ts:99:38)
+(fail) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [180.75ms]
+
+ 0 pass
+ 18 filtered out
+ 2 fail
+ 8 expect() calls
+Ran 2 tests across 1 file. [400.00ms]

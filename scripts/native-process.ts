@@ -42,6 +42,23 @@ export async function supervise(executable: string, args: readonly string[], cwd
     child.once('error', error => stop('spawn', error.message));
     child.once('exit', () => { exited = true; });
     const timeout = setTimeout(() => stop('timeout'), limits.timeoutMilliseconds);
+    const hasExited = (pid: number): boolean => {
+      if (exited) return true;
+      // Async status evidence may predate exit. Zombies still answer kill(0),
+      // so inspect fresh kernel state before classifying a monitor failure.
+      try {
+        process.kill(pid, 0);
+        try { return /^State:\s+[ZX]/m.test(readFileSync(`/proc/${pid}/status`, 'utf8')); }
+        catch {
+          // The fresh path can disappear too. Only ESRCH from the PID probe
+          // proves departure; any other failure remains fail-closed.
+          process.kill(pid, 0);
+          return false;
+        }
+      } catch (probe) {
+        return (probe as NodeJS.ErrnoException).code === 'ESRCH';
+      }
+    };
     const sample = async () => {
       if (monitoring || exited || !child.pid || result.terminationReason) return;
       monitoring = true;
@@ -51,7 +68,7 @@ export async function supervise(executable: string, args: readonly string[], cwd
         if (!rss) {
           // During exit /proc may retain the process header after releasing its memory map.
           // A still-live process without VmRSS on the next sample is a monitor failure.
-          if (missingRss && !/^State:\s+[ZX]/m.test(status) && !exited) stop('monitor', 'VmRSS is missing');
+          if (missingRss && !hasExited(child.pid)) stop('monitor', 'VmRSS is missing');
           missingRss = true;
         } else {
           missingRss = false;
@@ -60,23 +77,10 @@ export async function supervise(executable: string, args: readonly string[], cwd
         }
       } catch (error) {
         // A disappearing /proc path reports ENOENT; an already-open descriptor
-        // can report ESRCH before the exit callback. Zombies still answer kill(0),
-        // so confirm their state with a fresh read, independent of the failed read.
+        // can report ESRCH before the exit callback.
         const code = (error as NodeJS.ErrnoException).code;
         if (code === 'ENOENT' || code === 'ESRCH') {
-          try {
-            process.kill(child.pid, 0);
-            let stopped = false;
-            try { stopped = /^State:\s+[ZX]/m.test(readFileSync(`/proc/${child.pid}/status`, 'utf8')); }
-            catch {
-              // The fresh path can disappear too. Only ESRCH from the PID probe
-              // proves departure; any other failure remains fail-closed.
-              process.kill(child.pid, 0);
-            }
-            if (!stopped && !exited) stop('monitor', String(error));
-          } catch (probe) {
-            if ((probe as NodeJS.ErrnoException).code !== 'ESRCH' && !exited) stop('monitor', String(error));
-          }
+          if (!hasExited(child.pid)) stop('monitor', String(error));
         } else if (!exited) stop('monitor', String(error));
       } finally { monitoring = false; }
     };
