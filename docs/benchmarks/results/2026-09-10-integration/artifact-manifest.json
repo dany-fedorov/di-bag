@@ -158,6 +158,7 @@
     "docs/benchmarks/results/2026-09-10-integration/gates-rerun/node-classic.time.log": "1ff2619bf1ef31c1a60b20ecb6504c3e98cc15b1c0e5ef10480f02a5f07914a4",
     "docs/benchmarks/results/2026-09-10-integration/gates-rerun/recorder.py": "bc427f92eea1c5033e4b7ac62bdf7d37796ee6b322357564588d98483ef9ce14",
     "docs/benchmarks/results/2026-09-10-integration/reviews/controller-rulings.md": "abb7e58597f5c921e8c5a3f3592a95b5629adae80c90a2ee99746b2eadcf8acb",
+    "docs/benchmarks/results/2026-09-10-integration/reviews/final-review.md": "209dbb66ec23610772fc4a523141b9268a29de8c53253e3ae798eeef14281cb8",
     "docs/benchmarks/results/2026-09-10-integration/reviews/task-1-report.md": "601473c26a2e444f7861199321a54ab55ccf5b35681d847c6f4bf8af07a10420",
     "docs/benchmarks/results/2026-09-10-integration/reviews/task-1-review.md": "7fbc6d91b86f316bce6b1f089586f7100f707e3911d5e0d5e3af96d856802861",
     "docs/benchmarks/results/2026-09-10-integration/reviews/task-2-report.md": "cd0d5449373e653d287343b8e611d36fd0a7392d0bdd01322ddda6630b391d24",
@@ -369,7 +370,7 @@
     "docs/benchmarks/results/2026-09-10-integration/runtime/summary.json": "6d6f1319734fdbb134dc9431257d22287aa63df35c6b59fed9d793b31b15c4e8",
     "docs/benchmarks/results/2026-09-10-integration/task-3-controller-baseline-build-crosscheck.json": "e64b25a5f0f9f3b92cbcd3dcb9762851e87a105de0148c4947f0656070edc101",
     "docs/benchmarks/results/2026-09-10-integration/update-artifact-manifest.py": "dbdd90c51367695b3a558a108aa23b3c512869498beccbd9c2826c887f90eb2e",
-    "docs/reports/2026-09-10-performance-completion.md": "929260b339917fff8d76c1c4c6227f48a34f0022563d440568bdd14c36f4e63c",
-    "docs/superpowers/plans/2026-09-10-performance-completion.md": "c30d79c2cda4c30c43a62c1580d555cd43fab4265d2d2851150d75e3900773b8"
+    "docs/reports/2026-09-10-performance-completion.md": "ecb35ec358d347eb038bc3ab914a6a854651e3187ca392815a8e058807b54adb",
+    "docs/superpowers/plans/2026-09-10-performance-completion.md": "635bc0f6e4255df26ff23ea214f73ff8be57b7bcf227f07f4ced6eac77593eb7"
   }
 }

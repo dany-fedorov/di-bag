@@ -156,7 +156,7 @@ workload tests, docs and final evidence ledger.
 - [x] Implement and test explicit bounded mechanisms as needed without silently
   dropping ownership obligations or breaking default API contracts.
 - [x] Re-run every audit finding's before/after probes against the integrated build.
-- [ ] Run full checks and an independent whole-branch review; fix blocking findings.
+- [x] Run full checks and an independent whole-branch review; fix blocking findings.
 - [ ] Push and merge follow-up changes, verify remote state and exact merged checks.
 - [x] Produce a requirement-by-requirement completion audit. Leave the goal active
   if any original finding lacks a demonstrated improvement or required merge proof.

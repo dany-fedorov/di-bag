@@ -227,12 +227,15 @@ They describe the compiler-heavy test process, not library runtime payload memor
 Current hosted CI capacity and results remain to be verified after publication.
 
 All task-scoped reviews passed, including the contribution-snapshot and diagnostic
-inventory fixes. The final whole-branch review is pending at this report revision.
+inventory fixes. The [final whole-branch review](../benchmarks/results/2026-09-10-integration/reviews/final-review.md)
+approved `10d7ac7..611bfef` with no Critical, Important or new actionable Minor
+finding. No further source change was requested. It explicitly preserves the
+historical baseline-snapshot qualification and unresolved scale limitations.
 Publication is still pending: automatic approval
 review rejected creating the follow-up PR twice because it would not accept a
 tool-recorded goal as authorization to disclose the branch and benchmark artifacts
 on GitHub. No PR or merge for these follow-ups is claimed.
 
-The user goal remains active until the required review, follow-up publication,
-CI and merge proof are complete. The retained compiler/runtime depth failures,
+The user goal remains active: follow-up publication, hosted CI and merge proof
+are pending. The retained compiler/runtime depth failures,
 observer backlog and uncooperative cleanup limits remain explicit contract limits.
