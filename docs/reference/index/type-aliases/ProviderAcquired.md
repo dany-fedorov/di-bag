@@ -8,7 +8,7 @@
 type ProviderAcquired<R extends Registration> = ProviderBase extends R ? unknown : R extends infer T & {} ? AcquiredOf<T> : unknown;
 ```
 
-Defined in: [provider.ts:59](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L59)
+Defined in: [provider.ts:62](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L62)
 
 Extract the fulfilled or raw value passed to the registration's outer disposer.
 

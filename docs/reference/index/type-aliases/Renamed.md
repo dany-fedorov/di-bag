@@ -10,7 +10,7 @@ type Renamed<P extends object, Old extends string, New extends string> = {
 };
 ```
 
-Defined in: [module-types.ts:103](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L103)
+Defined in: [module-types.ts:106](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L106)
 
 Rename one string key in an object contract.
 

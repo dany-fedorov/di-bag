@@ -10,7 +10,7 @@ type ProviderAllTokenNeeds<R> = ProviderGraph<R> extends infer G ? G extends {
 } ? T[number] : never : never;
 ```
 
-Defined in: [provider.ts:87](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L87)
+Defined in: [provider.ts:90](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L90)
 
 Extract token collection requirements from a registration.
 

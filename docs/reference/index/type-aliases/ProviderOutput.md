@@ -8,7 +8,7 @@
 type ProviderOutput<R extends Registration> = ProviderBase extends R ? unknown : ReturnType<ProviderFactory<R>>;
 ```
 
-Defined in: [provider.ts:57](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L57)
+Defined in: [provider.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L60)
 
 Extract the exact service value exposed by a registration, including Promise identity.
 
