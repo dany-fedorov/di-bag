@@ -10,6 +10,10 @@ const node = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8'
 const child = (source: string, changes = {}) => supervise(node, ['-e', source], process.cwd(), { ...limits, ...changes });
 
 const pause = () => new Promise(resolve => setTimeout(resolve, 5));
+// A Node leader can be Z while SignalInspector still runs. Wait for every
+// other thread to leave before injecting an error that represents process exit.
+const isOnlyZombieThread = (status: string): boolean =>
+  /^State:\s+Z/m.test(status) && /^Threads:\s+1$/m.test(status);
 async function waitForExit(pid: number): Promise<void> {
   const deadline = Date.now() + limits.timeoutMilliseconds;
   while (Date.now() < deadline) {
@@ -50,17 +54,17 @@ for (const failure of ['ENOENT', 'ESRCH'] as const) {
     const delay = new Int32Array(new SharedArrayBuffer(4));
     const result = await supervise(node, ['-e', "setTimeout(() => { console.log('out'); console.error('err'); }, 50)"], process.cwd(), limits, async pid => {
       // Block JS exit notification while the real child exits. kill(pid, 0)
-      // still succeeds for this zombie; only its process state proves exit.
+      // still succeeds for this zombie; no other thread may remain alive.
       const deadline = Date.now() + 2000;
       while (Date.now() < deadline) {
-        if (/^State:\s+Z/m.test(readFileSync(`/proc/${pid}/status`, 'utf8'))) {
+        if (isOnlyZombieThread(readFileSync(`/proc/${pid}/status`, 'utf8'))) {
           process.kill(pid, 0);
           zombiePid = pid;
           throw Object.assign(new Error(`status read ${failure} during zombie exit`), { code: failure });
         }
         Atomics.wait(delay, 0, 0, 1);
       }
-      throw new Error('Child did not reach zombie state before exit notification');
+      throw new Error('Child did not reach a sole zombie thread before exit notification');
     });
     expect(zombiePid).toBeGreaterThan(0);
     expect(result).toMatchObject({ status: 0, signal: null, stdout: 'out\n', stderr: 'err\n' });
@@ -85,14 +89,14 @@ for (const exitCode of [0, 2]) {
       if (samples === 2) {
         const deadline = Date.now() + 2000;
         while (Date.now() < deadline) {
-          if (/^State:\s+Z/m.test(readFileSync(`/proc/${pid}/status`, 'utf8'))) {
+          if (isOnlyZombieThread(readFileSync(`/proc/${pid}/status`, 'utf8'))) {
             process.kill(pid, 0);
             zombiePid = pid;
             break;
           }
           Atomics.wait(delay, 0, 0, 1);
         }
-        if (!zombiePid) throw new Error('Child did not become a zombie before exit notification');
+        if (!zombiePid) throw new Error('Child did not reach a sole zombie thread before exit notification');
       }
       return status.replace(/^VmRSS:.*\n/m, '');
     });

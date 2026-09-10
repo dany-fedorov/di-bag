@@ -1,0 +1,607 @@
+bun test v1.4.0 (34cbb9a40)
+
+tests/native-process.test.ts: (run #1)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [83.94ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [79.66ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [179.83ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [182.78ms]
+
+tests/native-process.test.ts: (run #2)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.65ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [88.51ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [191.93ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [194.26ms]
+
+tests/native-process.test.ts: (run #3)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [82.99ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [90.52ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [185.50ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [183.12ms]
+
+tests/native-process.test.ts: (run #4)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [77.19ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [81.92ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [190.05ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [196.02ms]
+
+tests/native-process.test.ts: (run #5)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [82.43ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [84.40ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [180.74ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [178.45ms]
+
+tests/native-process.test.ts: (run #6)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [84.80ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [74.57ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [175.23ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [191.11ms]
+
+tests/native-process.test.ts: (run #7)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [83.07ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [90.29ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [181.08ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [181.10ms]
+
+tests/native-process.test.ts: (run #8)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [80.40ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [86.66ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [178.94ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [190.45ms]
+
+tests/native-process.test.ts: (run #9)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [84.70ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [92.73ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [187.02ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [186.22ms]
+
+tests/native-process.test.ts: (run #10)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [83.48ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [86.38ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [185.66ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [190.15ms]
+
+tests/native-process.test.ts: (run #11)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [76.39ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [80.90ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [186.22ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [181.43ms]
+
+tests/native-process.test.ts: (run #12)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [88.70ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [90.70ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [191.01ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [184.99ms]
+
+tests/native-process.test.ts: (run #13)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [79.10ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [80.54ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [184.49ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [183.48ms]
+
+tests/native-process.test.ts: (run #14)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [84.40ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [93.75ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [181.01ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [184.49ms]
+
+tests/native-process.test.ts: (run #15)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [74.67ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [76.65ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [176.77ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [183.74ms]
+
+tests/native-process.test.ts: (run #16)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [81.55ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [76.35ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [176.16ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [186.01ms]
+
+tests/native-process.test.ts: (run #17)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [77.37ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [77.62ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [182.99ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [187.14ms]
+
+tests/native-process.test.ts: (run #18)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [77.17ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [87.22ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [178.82ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [183.62ms]
+
+tests/native-process.test.ts: (run #19)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.77ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [80.23ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [179.00ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [192.81ms]
+
+tests/native-process.test.ts: (run #20)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [96.46ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [88.08ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [199.74ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [188.11ms]
+
+tests/native-process.test.ts: (run #21)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [84.41ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [95.86ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [189.19ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [188.47ms]
+
+tests/native-process.test.ts: (run #22)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [80.35ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [85.38ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [186.50ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [185.11ms]
+
+tests/native-process.test.ts: (run #23)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [88.60ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [91.38ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [182.09ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [184.88ms]
+
+tests/native-process.test.ts: (run #24)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [84.40ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [89.73ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [186.29ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [178.37ms]
+
+tests/native-process.test.ts: (run #25)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [80.86ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [85.70ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [186.24ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [191.46ms]
+
+tests/native-process.test.ts: (run #26)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.65ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [86.73ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [197.51ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [192.59ms]
+
+tests/native-process.test.ts: (run #27)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [84.15ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [90.73ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [184.46ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [183.52ms]
+
+tests/native-process.test.ts: (run #28)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [81.54ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [90.14ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [182.91ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [185.57ms]
+
+tests/native-process.test.ts: (run #29)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [86.95ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [78.51ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [178.09ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [194.96ms]
+
+tests/native-process.test.ts: (run #30)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [75.14ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [82.57ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [181.83ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [186.52ms]
+
+tests/native-process.test.ts: (run #31)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.61ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [79.04ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [189.01ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [187.52ms]
+
+tests/native-process.test.ts: (run #32)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [86.16ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [92.78ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [187.27ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [183.82ms]
+
+tests/native-process.test.ts: (run #33)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [79.87ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [81.89ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [185.93ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [191.75ms]
+
+tests/native-process.test.ts: (run #34)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [86.43ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [89.18ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [187.14ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [189.13ms]
+
+tests/native-process.test.ts: (run #35)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [90.61ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [85.63ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [189.53ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [183.59ms]
+
+tests/native-process.test.ts: (run #36)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [94.29ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [86.83ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [180.89ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [184.73ms]
+
+tests/native-process.test.ts: (run #37)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [79.94ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [84.07ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [186.35ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [183.72ms]
+
+tests/native-process.test.ts: (run #38)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [89.76ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [95.84ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [189.12ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [192.62ms]
+
+tests/native-process.test.ts: (run #39)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [86.71ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [81.46ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [182.52ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [180.97ms]
+
+tests/native-process.test.ts: (run #40)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [77.11ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [84.85ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [190.23ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [189.22ms]
+
+tests/native-process.test.ts: (run #41)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [85.72ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [75.75ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [188.36ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [187.97ms]
+
+tests/native-process.test.ts: (run #42)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.03ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [80.64ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [198.21ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [187.52ms]
+
+tests/native-process.test.ts: (run #43)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.87ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [73.31ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [179.06ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [185.24ms]
+
+tests/native-process.test.ts: (run #44)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [86.35ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [86.05ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [180.58ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [182.19ms]
+
+tests/native-process.test.ts: (run #45)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [77.61ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [84.64ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [178.73ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [184.14ms]
+
+tests/native-process.test.ts: (run #46)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [74.19ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [80.05ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [179.59ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [186.56ms]
+
+tests/native-process.test.ts: (run #47)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.48ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [77.59ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [176.66ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [187.61ms]
+
+tests/native-process.test.ts: (run #48)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [76.32ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [84.90ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [179.25ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [177.72ms]
+
+tests/native-process.test.ts: (run #49)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [79.42ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [78.04ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [176.62ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [174.67ms]
+
+tests/native-process.test.ts: (run #50)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.31ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [75.24ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [178.01ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [177.88ms]
+
+tests/native-process.test.ts: (run #51)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [75.28ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [73.76ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [174.82ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [177.78ms]
+
+tests/native-process.test.ts: (run #52)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [76.50ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [75.39ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [181.36ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [179.02ms]
+
+tests/native-process.test.ts: (run #53)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [82.50ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [75.73ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [176.33ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [176.29ms]
+
+tests/native-process.test.ts: (run #54)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [76.40ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [82.37ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [176.36ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [180.14ms]
+
+tests/native-process.test.ts: (run #55)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [79.55ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [80.20ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [180.50ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [186.94ms]
+
+tests/native-process.test.ts: (run #56)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [81.34ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [76.58ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [186.02ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [186.02ms]
+
+tests/native-process.test.ts: (run #57)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [79.69ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [87.03ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [180.80ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [179.80ms]
+
+tests/native-process.test.ts: (run #58)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [79.42ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [85.93ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [191.08ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [189.39ms]
+
+tests/native-process.test.ts: (run #59)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [80.97ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [80.00ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [180.39ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [180.05ms]
+
+tests/native-process.test.ts: (run #60)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [76.88ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [80.08ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [193.37ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [196.22ms]
+
+tests/native-process.test.ts: (run #61)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [76.53ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [81.19ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [179.35ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [187.85ms]
+
+tests/native-process.test.ts: (run #62)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [77.47ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [81.01ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [188.18ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [179.47ms]
+
+tests/native-process.test.ts: (run #63)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [86.09ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [85.49ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [190.72ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [188.22ms]
+
+tests/native-process.test.ts: (run #64)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [83.73ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [78.20ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [179.77ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [186.30ms]
+
+tests/native-process.test.ts: (run #65)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [80.08ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [82.08ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [179.44ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [177.34ms]
+
+tests/native-process.test.ts: (run #66)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [80.61ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [77.42ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [187.49ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [192.59ms]
+
+tests/native-process.test.ts: (run #67)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [84.68ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [84.62ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [186.51ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [181.78ms]
+
+tests/native-process.test.ts: (run #68)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.20ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [83.43ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [183.66ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [194.85ms]
+
+tests/native-process.test.ts: (run #69)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [76.87ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [85.09ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [184.91ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [186.56ms]
+
+tests/native-process.test.ts: (run #70)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [84.19ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [90.49ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [183.37ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [185.00ms]
+
+tests/native-process.test.ts: (run #71)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [86.67ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [88.55ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [186.79ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [180.27ms]
+
+tests/native-process.test.ts: (run #72)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [85.61ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [78.63ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [180.74ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [191.23ms]
+
+tests/native-process.test.ts: (run #73)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [92.02ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [92.10ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [188.83ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [185.49ms]
+
+tests/native-process.test.ts: (run #74)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [87.48ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [92.69ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [196.56ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [195.65ms]
+
+tests/native-process.test.ts: (run #75)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [79.11ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [85.80ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [176.31ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [180.86ms]
+
+tests/native-process.test.ts: (run #76)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [83.49ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [85.71ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [190.40ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [196.66ms]
+
+tests/native-process.test.ts: (run #77)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [87.44ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [82.98ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [184.16ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [181.46ms]
+
+tests/native-process.test.ts: (run #78)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [86.04ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [81.85ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [180.75ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [180.52ms]
+
+tests/native-process.test.ts: (run #79)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [77.39ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [78.03ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [191.20ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [181.45ms]
+
+tests/native-process.test.ts: (run #80)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.44ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [78.57ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [181.26ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [187.50ms]
+
+tests/native-process.test.ts: (run #81)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [83.73ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [98.37ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [186.98ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [195.82ms]
+
+tests/native-process.test.ts: (run #82)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [83.58ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [89.06ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [188.91ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [189.90ms]
+
+tests/native-process.test.ts: (run #83)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [82.09ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [93.28ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [178.46ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [188.23ms]
+
+tests/native-process.test.ts: (run #84)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [90.18ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [82.55ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [183.14ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [182.97ms]
+
+tests/native-process.test.ts: (run #85)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [85.21ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [79.75ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [188.61ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [188.79ms]
+
+tests/native-process.test.ts: (run #86)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [84.83ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [95.79ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [179.80ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [189.78ms]
+
+tests/native-process.test.ts: (run #87)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [89.18ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [91.01ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [191.29ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [192.05ms]
+
+tests/native-process.test.ts: (run #88)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [83.91ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [91.53ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [197.07ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [184.78ms]
+
+tests/native-process.test.ts: (run #89)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [81.26ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [91.28ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [181.49ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [194.16ms]
+
+tests/native-process.test.ts: (run #90)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.98ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [77.69ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [176.73ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [179.76ms]
+
+tests/native-process.test.ts: (run #91)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [86.95ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [88.66ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [186.38ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [186.44ms]
+
+tests/native-process.test.ts: (run #92)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [83.92ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [83.01ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [180.34ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [180.63ms]
+
+tests/native-process.test.ts: (run #93)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [78.52ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [82.20ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [184.12ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [178.91ms]
+
+tests/native-process.test.ts: (run #94)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [83.86ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [83.08ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [176.95ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [183.82ms]
+
+tests/native-process.test.ts: (run #95)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [75.67ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [82.14ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [196.50ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [192.53ms]
+
+tests/native-process.test.ts: (run #96)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [79.22ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [82.55ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [192.46ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [179.77ms]
+
+tests/native-process.test.ts: (run #97)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [91.85ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [87.99ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [193.97ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [194.79ms]
+
+tests/native-process.test.ts: (run #98)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [76.11ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [82.83ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [189.18ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [197.24ms]
+
+tests/native-process.test.ts: (run #99)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [81.84ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [90.48ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [179.83ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [185.04ms]
+
+tests/native-process.test.ts: (run #100)
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [81.34ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [94.93ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [189.34ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [182.32ms]
+
+ 400 pass
+ 2900 filtered out
+ 0 fail
+ 2200 expect() calls
+Ran 400 tests across 1 file. [57.10s]
