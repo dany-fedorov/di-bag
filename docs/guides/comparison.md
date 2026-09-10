@@ -5,13 +5,23 @@
 DI Bag is a good fit when you want ordinary TypeScript factories, checked
 composition, and explicit ownership of resources across requests, jobs, or tests.
 Its useful combination is named object dependencies, checked replacements and
-module boundaries, lazy creation, tracked child scopes, and startup with rollback.
-See the [tutorial](tutorial.md) for the corresponding APIs.
+module boundaries, inspectable metadata, configurable provider policies, lazy
+creation, tracked child scopes, and startup with rollback. See the
+[worked examples](../../README.md#why-di-bag) and [tutorial](tutorial.md).
 
 These are reasons to consider it, not exclusive features. Other libraries also
 support decorator-free composition, compile-time dependency checks, async
 factories, and cleanup. The choice depends on which contracts and programming
 style your application needs.
+
+The README's “radical modularity” describes an application architecture: small
+features with explicit contracts that can be composed and tested independently.
+DI Bag supports that approach; it does not own the idea. The
+[modularity examples](examples-modularity.md) show why it can suit work divided
+among coding agents. There is no measured agent-productivity advantage here, and
+module boundaries do not validate generated business logic or replace integration
+tests. Likewise, metadata inspection is an explicit application-facing surface,
+not reflection over erased TypeScript types.
 
 This guide reviews selected alternatives against their official documentation and
 public source on **2026-09-10**. Effect links explicitly target its v3 guides.

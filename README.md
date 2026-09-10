@@ -16,13 +16,27 @@ one access to the services it needs.
 
 [Documentation](https://dany-fedorov.github.io/di-bag/) · [Quickstart](#quickstart) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
 
-## When DI Bag fits
+## Why DI Bag?
 
-DI Bag is useful when a growing service graph needs checked wiring, isolated
-requests or tests, and a clear owner for resource cleanup. It combines ordinary
-function factories with compile-time dependency checks, lazy creation, explicit
-lifetimes, and cleanup in dependency order. No decorators or reflection metadata
-are required.
+- **[Radical modularity for agentic development](docs/guides/examples-modularity.md).**
+  Compose small features with private internals and explicit contracts. Give
+  humans and coding agents focused units to implement, replace, and test
+  independently, then check their composition together.
+- **[TypeScript-first composition](docs/guides/examples-type-checking.md).**
+  Catch missing dependencies, incompatible service contracts, and invalid
+  replacements at compile time—not just incorrect arguments at the call site.
+- **[Rich metadata and extensibility](docs/guides/examples-extensibility.md).**
+  Inspect registrations and acquisitions, attach your own metadata, and build
+  metadata-driven tools and actions. Extend providers with composable wrappers
+  and configure lifecycle observers without changing your services.
+- **[Inject anything with plain JavaScript](docs/guides/examples-plain-services.md).**
+  Functions, class instances, configuration, clients, or promises: a service is
+  just a value. No decorators, reflection metadata, or special base classes.
+  Add TypeScript for compile-time composition checks.
+
+Each guide above contains three complete application examples. Lazy creation,
+configurable lifetimes, scopes, and dependency-ordered cleanup support these
+patterns; the [tutorial](docs/guides/tutorial.md) explains how.
 
 For a small graph, passing dependencies directly is often simpler. Other DI
 libraries also offer typed composition and resource management; the

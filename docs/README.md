@@ -16,11 +16,23 @@ The guides below describe the current public API.
 | [Generated reference](reference/index.md) | Read exact signatures and source comments for both package entries. |
 | [Runnable examples](../examples) | Execute focused examples from the repository. |
 
+## Why DI Bag? In practice
+
+Each guide contains three complete, independently runnable application examples.
+
+| Guide | Scenarios |
+| --- | --- |
+| [Radical modularity](guides/examples-modularity.md) | Independent features, isolated automated tests, and contributed tools. |
+| [TypeScript-first composition](guides/examples-type-checking.md) | Missing dependencies, incompatible contracts, and checked replacements. |
+| [Metadata and extensibility](guides/examples-extensibility.md) | Metadata-driven actions, acquisition diagnostics, and custom instrumentation. |
+| [Plain JavaScript services](guides/examples-plain-services.md) | Existing functions, undecorated classes, and arbitrary service values. |
+
 ## Upgrade and contribute
 
 | Document | Purpose |
 | --- | --- |
-| [API migration](migrations/api-renaming.md) | Update the most recent breaking method, option, and type renames. |
+| [Single builder migration](migrations/single-builder.md) | Replace the former builder types and learn nested module composition. |
+| [API renaming](migrations/api-renaming.md) | Update the earlier breaking method, option, and type renames. |
 | [Earlier migrations](migrations/0.1-to-enterprise.md) | Understand changes from older pre-1.0 checkouts. The filename is an internal milestone, not a released version range. |
 | [Changelog](../CHANGELOG.md) | Review the release candidate's changes. |
 | [Development](guides/development.md) | Run source, package, compiler, and platform checks. |

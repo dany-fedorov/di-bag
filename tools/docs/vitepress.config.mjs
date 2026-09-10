@@ -7,14 +7,21 @@ const api = generated.map(group => ({ ...group, text: labels[group.text] ?? grou
 const guide = [
   { text: 'Start here', items: [
     { text: 'Introduction', link: '/' },
+    { text: 'Comparison with alternatives', link: '/guides/comparison' },
     { text: 'Complete tutorial', link: '/guides/tutorial' },
     { text: 'Server recipes', link: '/guides/server-integration' },
     { text: 'Integration patterns', link: '/guides/enterprise-integration' },
   ] },
+  { text: 'Why DI Bag? · Worked examples', items: [
+    { text: 'Radical modularity', link: '/guides/examples-modularity' },
+    { text: 'TypeScript-first composition', link: '/guides/examples-type-checking' },
+    { text: 'Metadata and extensibility', link: '/guides/examples-extensibility' },
+    { text: 'Plain JavaScript services', link: '/guides/examples-plain-services' },
+  ] },
   { text: 'Reference', items: [
     { text: 'API overview', link: '/guides/api-reference' },
     { text: 'DiBag facade', link: '/reference/index/interfaces/DiBagApi' },
-    { text: 'BagBuilder', link: '/reference/index/interfaces/BagBuilder' },
+    { text: 'Builder', link: '/reference/index/interfaces/Builder' },
     { text: 'Bag', link: '/reference/index/interfaces/Bag' },
     { text: 'All generated APIs', link: '/reference/' },
   ] },
