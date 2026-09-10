@@ -1,0 +1,30 @@
+{
+  "classic-baseline": {
+    "files": 13,
+    "expected": 170,
+    "matched": 170,
+    "unexpected": 0,
+    "missing": 0
+  },
+  "classic-candidate": {
+    "files": 13,
+    "expected": 170,
+    "matched": 170,
+    "unexpected": 0,
+    "missing": 0
+  },
+  "native-baseline": {
+    "files": 13,
+    "expected": 170,
+    "matched": 170,
+    "unexpected": 0,
+    "missing": 0
+  },
+  "native-candidate": {
+    "files": 13,
+    "expected": 170,
+    "matched": 170,
+    "unexpected": 0,
+    "missing": 0
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "base": "3360a96516daa7483c490a1bcacaa1ed16ec7ce1",
+  "sourceFiles": 35,
+  "candidateTypesSha256": "989496869408ae077e50d585feb1a5bf350061ac34a2abee1ee7217dd8992686",
+  "pairedConcreteEqualities": 600,
+  "directOutputAssertions": 8,
+  "openGenericProbes": 167,
+  "acceptedOpenGenericEqualityAssertions": 1,
+  "acceptedOpenGenericReciprocalAssignments": 44,
+  "compilers": {
+    "classic": {
+      "version": "6.0.3",
+      "semantic": {
+        "diagnosticsEach": 57,
+        "sameDiagnosticCodesAndLocations": true,
+        "diagnosticTextDifferences": 0,
+        "identicalInferredDeclarations": 201
+      },
+      "open": {
+        "diagnosticsEach": 122,
+        "sameDiagnosticCodesAndLocations": true,
+        "diagnosticTextDifferences": 2,
+        "identicalInferredDeclarations": 88
+      },
+      "inference": {
+        "diagnosticsEach": 0,
+        "sameDiagnosticCodesAndLocations": true,
+        "diagnosticTextDifferences": 0,
+        "identicalInferredDeclarations": 18
+      },
+      "declarations": {
+        "diagnosticsEach": 0,
+        "sameDiagnosticCodesAndLocations": true,
+        "diagnosticTextDifferences": 0,
+        "identicalInferredDeclarations": 147
+      },
+      "consumer": {
+        "diagnosticsEach": 0,
+        "sameDiagnosticCodesAndLocations": true,
+        "diagnosticTextDifferences": 0,
+        "identicalInferredDeclarations": 7
+      },
+      "emittedFiles": 43,
+      "changedEmittedFiles": [
+        "src/types.d.ts"
+      ]
+    },
+    "native": {
+      "version": "7.0.2",
+      "semantic": {
+        "diagnosticsEach": 57,
+        "sameDiagnosticCodesAndLocations": true,
+        "diagnosticTextDifferences": 0
+      },
+      "open": {
+        "diagnosticsEach": 122,
+        "sameDiagnosticCodesAndLocations": true,
+        "diagnosticTextDifferences": 2
+      },
+      "inference": {
+        "diagnosticsEach": 0,
+        "sameDiagnosticCodesAndLocations": true,
+        "diagnosticTextDifferences": 0
+      },
+      "declarations": {
+        "diagnosticsEach": 0,
+        "sameDiagnosticCodesAndLocations": true,
+        "diagnosticTextDifferences": 0
+      },
+      "consumer": {
+        "diagnosticsEach": 0,
+        "sameDiagnosticCodesAndLocations": true,
+        "diagnosticTextDifferences": 0
+      },
+      "emittedFiles": 43,
+      "changedEmittedFiles": [
+        "src/types.d.ts"
+      ]
+    }
+  }
+}

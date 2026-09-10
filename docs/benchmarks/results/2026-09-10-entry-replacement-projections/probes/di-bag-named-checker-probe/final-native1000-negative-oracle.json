@@ -1,0 +1,58 @@
+[
+  {
+    "form": "chained",
+    "scenario": "missing",
+    "accepted": true,
+    "boundary": 3,
+    "diagnostics": [
+      {
+        "code": 2684,
+        "line": 3
+      }
+    ],
+    "milliseconds": 17267,
+    "rssMiB": 1721.5703125
+  },
+  {
+    "form": "chained",
+    "scenario": "wrong-shape",
+    "accepted": true,
+    "boundary": 503,
+    "diagnostics": [
+      {
+        "code": 2345,
+        "line": 503
+      }
+    ],
+    "milliseconds": 17215,
+    "rssMiB": 1751.02734375
+  },
+  {
+    "form": "replacement",
+    "scenario": "missing",
+    "accepted": true,
+    "boundary": 3,
+    "diagnostics": [
+      {
+        "code": 2684,
+        "line": 3
+      }
+    ],
+    "milliseconds": 23725,
+    "rssMiB": 2359.97265625
+  },
+  {
+    "form": "replacement",
+    "scenario": "wrong-shape",
+    "accepted": true,
+    "boundary": 1502,
+    "diagnostics": [
+      {
+        "code": 2769,
+        "line": 1502
+      }
+    ],
+    "milliseconds": 24395,
+    "rssMiB": 2507.94140625
+  }
+]

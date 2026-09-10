@@ -1,0 +1,36 @@
+--- baseline/review/generic-entries-positive.d.ts
++++ candidate/review/generic-entries-positive.d.ts
+@@ -41,13 +41,13 @@
+     }) => number;
+ }>, never>;
+ export declare const each: Builder<{
+-    key: "value";
+-    registration: () => number;
+-} | {
+     key: "use";
+     registration: ({ value }: {
+         value: number;
+     }) => number;
++} | {
++    key: "value";
++    registration: () => number;
+ }, never>;
+ export declare const moduleAll: ModuleBuilder<Entries<{
+     value: () => number;
+@@ -56,13 +56,13 @@
+     }) => number;
+ }>, never>;
+ export declare const moduleEach: ModuleBuilder<{
+-    key: "value";
+-    registration: () => number;
+-} | {
+     key: "use";
+     registration: ({ value }: {
+         value: number;
+     }) => number;
++} | {
++    key: "value";
++    registration: () => number;
+ }, never>;
+ export type ConcreteWrappers = [Assert<Equal<typeof all, typeof each>>, Assert<Equal<typeof moduleAll, typeof moduleEach>>];
+ export {};

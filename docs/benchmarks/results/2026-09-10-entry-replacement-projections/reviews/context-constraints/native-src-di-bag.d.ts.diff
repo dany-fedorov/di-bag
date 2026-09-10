@@ -1,0 +1,19 @@
+--- baseline/src/di-bag.d.ts
++++ candidate/src/di-bag.d.ts
+@@ -25,6 +25,7 @@
+ import type { Binding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey, ReboundSelection } from './token-types';
+ import type { BuilderReplacementRegistration, ReplacementAdmission, ReplacedEntries, ZeroDependencyAdmission } from './replacement-types';
+ import type { Checked, Complete, Entries, Entry, EntryKeys, ForkContext, From, IncrementalChecked, Introduces, IntroducesKeys, Merge, Overrides, Provided, ReplacementKeyOf, ReplacementOutput, Selected, Selection, NamedAdmission } from './types';
++type ReplacementFactory<O> = (this: void) => O;
+ declare const constraintInvariant: unique symbol;
+ /**
+  * A resolving container with lazy acquisition, caching, and independent resource ownership.
+@@ -158,7 +159,7 @@
+      * @returns A new builder with the replacement.
+      * @typeParam V - The exact replacement factory or disposable-factory type.
+      */
+-    replace<const K extends string, V extends ((this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>>>(key: K & ReplacementKeyOf<EntryKeys<E>, K>, registration: V & (Factory | DisposableFactory<Factory>) & ZeroDependencyAdmission<NoInfer<V>> & CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>): Builder<Exclude<E, {
++    replace<const K extends string, V extends (ReplacementFactory<ReplacementOutput<NoInfer<From<E>>, K, C>>) | DisposableFactory<ReplacementFactory<ReplacementOutput<NoInfer<From<E>>, K, C>>>>(key: K & ReplacementKeyOf<EntryKeys<E>, K>, registration: V & (Factory | DisposableFactory<Factory>) & ZeroDependencyAdmission<NoInfer<V>> & CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>): Builder<Exclude<E, {
+         key: K;
+     }> | {
+         key: K;
