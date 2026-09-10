@@ -4,7 +4,7 @@
 
 # Interface: Facade
 
-Defined in: [di-bag.ts:392](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L392)
+Defined in: [di-bag.ts:393](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L393)
 
 The immutable public entry surface used by [DiBag](../variables/DiBag.md) and derived facades.
 
@@ -16,7 +16,7 @@ The immutable public entry surface used by [DiBag](../variables/DiBag.md) and de
 all: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => AllReference<T>;
 ```
 
-Defined in: [di-bag.ts:406](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L406)
+Defined in: [di-bag.ts:407](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L407)
 
 Create an ordered-collection positional dependency reference.
 
@@ -47,7 +47,7 @@ An immutable reference that supplies a fresh frozen array, including when empty.
 begin: () => Builder<never>;
 ```
 
-Defined in: [di-bag.ts:416](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L416)
+Defined in: [di-bag.ts:417](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L417)
 
 Begin an empty immutable application graph.
 
@@ -59,7 +59,7 @@ Begin an empty immutable application graph.
 configure: (options: RuntimeOptions) => Facade;
 ```
 
-Defined in: [di-bag.ts:396](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L396)
+Defined in: [di-bag.ts:397](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L397)
 
 Return a facade using the supplied trusted native-Promise predicate for `auto` stages.
 
@@ -79,7 +79,7 @@ factory: <F extends Factory, M extends AcquisitionMode>(create: F, options: {
 } & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>) => Provider<F, Readonly<{}>, readonly [], TokenGraph, Acquired<ReturnType<F>, M>>;
 ```
 
-Defined in: [di-bag.ts:398](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L398)
+Defined in: [di-bag.ts:399](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L399)
 
 Describe a factory with an explicit acquisition mode.
 
@@ -117,7 +117,7 @@ If the factory or acquisition option is invalid.
 fromClass: <const T extends readonly Dependency[], C extends new (...args: TokenArguments<NoInfer<T>>) => unknown, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>>, ...modeOptions: StageOptions<M>) => Provider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>>;
 ```
 
-Defined in: [di-bag.ts:414](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L414)
+Defined in: [di-bag.ts:415](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L415)
 
 Adapt an existing concrete constructor as a provider.
 
@@ -158,7 +158,7 @@ fromFunction: {
 };
 ```
 
-Defined in: [di-bag.ts:412](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L412)
+Defined in: [di-bag.ts:413](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L413)
 
 Adapt an existing positional function as a provider.
 
@@ -226,7 +226,7 @@ A reusable provider; no dependency or result is implicitly awaited.
 fromPlugin: <const T extends readonly Dependency[], V, M extends PluginAcquisition>(dependencies: T & DependencyTupleAdmission<T>, plugin: unknown, options: PluginOptions<M, V>) => PluginResult<T, V, M>;
 ```
 
-Defined in: [di-bag.ts:410](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L410)
+Defined in: [di-bag.ts:411](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L411)
 
 Validate an unknown plugin descriptor and its acquired output.
 
@@ -269,7 +269,7 @@ fromTokens: {
 };
 ```
 
-Defined in: [di-bag.ts:408](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L408)
+Defined in: [di-bag.ts:409](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L409)
 
 Create a provider that injects token references into a callback.
 
@@ -339,7 +339,7 @@ A reusable provider that retains the declared token requirements.
 lazy: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => LazyReference<T>;
 ```
 
-Defined in: [di-bag.ts:404](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L404)
+Defined in: [di-bag.ts:405](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L405)
 
 Create a lazy positional dependency reference.
 
@@ -371,7 +371,7 @@ An immutable lazy reference accepted by positional provider adapters.
 mapAsync: <R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, project: P) => Provider<MappedFactory<R, Promise<Awaited<ReturnType<P>>>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>>;
 ```
 
-Defined in: [di-bag.ts:434](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L434)
+Defined in: [di-bag.ts:435](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L435)
 
 Await and project a registration through a native Promise boundary.
 
@@ -404,7 +404,7 @@ A provider exposing a native Promise of the awaited projection.
 mapSync: <R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, project: P, ...modeOptions: StageOptions<M>) => Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>, Acquired<ReturnType<P>, M>>;
 ```
 
-Defined in: [di-bag.ts:432](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L432)
+Defined in: [di-bag.ts:433](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L433)
 
 Project a registration's exact source value synchronously.
 
@@ -440,7 +440,7 @@ A reusable provider exposing the projector's exact return value.
 module: () => ModuleBuilder<never>;
 ```
 
-Defined in: [di-bag.ts:418](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L418)
+Defined in: [di-bag.ts:419](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L419)
 
 Begin an empty immutable module graph.
 
@@ -454,7 +454,7 @@ Begin an empty immutable module graph.
 observe: (options: ObserverOptions) => Facade;
 ```
 
-Defined in: [di-bag.ts:394](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L394)
+Defined in: [di-bag.ts:395](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L395)
 
 Return a facade with one additional asynchronous lifecycle observer.
 
@@ -472,7 +472,7 @@ Return a facade with one additional asynchronous lifecycle observer.
 optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalReference<T>;
 ```
 
-Defined in: [di-bag.ts:402](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L402)
+Defined in: [di-bag.ts:403](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L403)
 
 Create an optional positional dependency reference.
 
@@ -506,7 +506,7 @@ token: <const K extends symbol>(key: K & TokenKeyAdmission<K>, ...invalid: [K] e
 };
 ```
 
-Defined in: [di-bag.ts:400](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L400)
+Defined in: [di-bag.ts:401](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L401)
 
 Create a typed token factory from a canonical unique symbol.
 
@@ -546,7 +546,7 @@ const clock = DiBag.token(clockKey).of<{ now(): number }>();
 withAcquisitionMetadata: <R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object>(registration: R & Registration, describe: P & AcquisitionMetadataAdmission<ReturnType<P>>) => Provider<ProviderFactory<R>, RetainedMetadata<R>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraph<R>, ProviderAcquired<R>>;
 ```
 
-Defined in: [di-bag.ts:428](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L428)
+Defined in: [di-bag.ts:429](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L429)
 
 Describe the exact source output with synchronous acquisition metadata.
 
@@ -583,7 +583,7 @@ If the callback or its returned record is invalid, or annotation fails.
 withAcquisitionMetadataAsync: <R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object>(registration: R & Registration, describe: P & AcquisitionMetadataAdmission<ReturnType<P>>) => Provider<MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, RetainedMetadata<R>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraph<R>, Awaited<ProviderOutput<R>>>;
 ```
 
-Defined in: [di-bag.ts:430](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L430)
+Defined in: [di-bag.ts:431](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L431)
 
 Await the source and describe its value with synchronous acquisition metadata.
 
@@ -620,7 +620,7 @@ If the callback is invalid; source and annotation failures reject asynchronously
 withContext: <F extends (this: void, deps: never, context: AcquisitionContext) => ('native' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(callback: F, ...modeOptions: StageOptions<M>) => Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenGraph, Acquired<ReturnType<F>, M>>;
 ```
 
-Defined in: [di-bag.ts:424](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L424)
+Defined in: [di-bag.ts:425](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L425)
 
 Adapt a factory to receive its acquisition cancellation context.
 
@@ -655,7 +655,7 @@ withDisposal: {
 };
 ```
 
-Defined in: [di-bag.ts:420](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L420)
+Defined in: [di-bag.ts:421](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L421)
 
 Attach owned-value cleanup to a registration.
 
@@ -722,7 +722,7 @@ withLifetime: {
 };
 ```
 
-Defined in: [di-bag.ts:422](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L422)
+Defined in: [di-bag.ts:423](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L423)
 
 Select root, scoped, or transient acquisition caching.
 
@@ -790,7 +790,7 @@ A provider preserving factory, output, metadata, frames, and ownership stages.
 withMetadata: <R extends Registration, M extends object>(registration: R & Registration, metadata: M & MetadataKeys<NoInfer<R>, M>) => Provider<ProviderFactory<R>, Readonly<ProviderMetadata<R> & M>, ProviderAcquisitionMetadata<R>, ProviderGraph<R>, ProviderAcquired<R>>;
 ```
 
-Defined in: [di-bag.ts:426](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L426)
+Defined in: [di-bag.ts:427](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L427)
 
 Attach static inspection and observer metadata.
 

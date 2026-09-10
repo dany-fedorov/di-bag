@@ -315,7 +315,6 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   // every surviving consumer requirement. Repeating
   // IncrementalChecked here only rescans accepted history. The general overload
   // retains full checks for parameters, mixed registrations and explicit K,V.
-  // Keep the fixed history out of replacement-factory inference with NoInfer.
   /**
    * Replace an existing string-named registration with a dependency-free factory.
    * @param key - One existing string-literal service name.

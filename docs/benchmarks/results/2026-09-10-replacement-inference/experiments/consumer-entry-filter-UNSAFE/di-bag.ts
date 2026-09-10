@@ -45,6 +45,7 @@ import type {
   Provided,
   ReplacementKey,
   ReplacementOutput,
+  NamedConsumerEntries,
   Selected,
   Selection,
   NamedAdmission,
@@ -315,7 +316,6 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   // every surviving consumer requirement. Repeating
   // IncrementalChecked here only rescans accepted history. The general overload
   // retains full checks for parameters, mixed registrations and explicit K,V.
-  // Keep the fixed history out of replacement-factory inference with NoInfer.
   /**
    * Replace an existing string-named registration with a dependency-free factory.
    * @param key - One existing string-literal service name.
@@ -323,7 +323,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * @returns A new builder with the replacement.
    * @typeParam V - The exact replacement factory or disposable-factory type.
    */
-  replace<const K extends string, V extends ((this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>>>(
+  replace<const K extends string, V extends ((this: void) => ReplacementOutput<From<NamedConsumerEntries<E>>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<From<NamedConsumerEntries<E>>, K, C>>>(
     key: K & ReplacementKey<From<E>, K>,
     registration: V & (Factory | DisposableFactory<Factory>) & ZeroDependencyAdmission<NoInfer<V>> &
       CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>,

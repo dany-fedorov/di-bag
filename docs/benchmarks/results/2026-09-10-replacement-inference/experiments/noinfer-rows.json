@@ -1,0 +1,60 @@
+[
+  {
+    "variant": "noinfer-key-PROTOTYPE",
+    "status": 0,
+    "seconds": 1.807313016965054,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/benchmark-types.ts",
+      "--worker",
+      "100",
+      "replacement",
+      "valid"
+    ],
+    "result": {
+      "count": 100,
+      "form": "replacement",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "milliseconds": 1535,
+      "maxRssMiB": 413,
+      "diagnostics": [],
+      "diagnosticCount": 0,
+      "codes": [],
+      "instantiations": 1404272
+    }
+  },
+  {
+    "variant": "noinfer-history-PROTOTYPE",
+    "status": 0,
+    "seconds": 1.7996103779878467,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/benchmark-types.ts",
+      "--worker",
+      "100",
+      "replacement",
+      "valid"
+    ],
+    "result": {
+      "count": 100,
+      "form": "replacement",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "milliseconds": 1524,
+      "maxRssMiB": 411,
+      "diagnostics": [],
+      "diagnosticCount": 0,
+      "codes": [],
+      "instantiations": 1364951
+    }
+  }
+]

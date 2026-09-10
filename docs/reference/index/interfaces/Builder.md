@@ -150,7 +150,7 @@ A new builder retaining the provider's metadata, lifetime, dependencies, and own
 end(this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, From<E>> & CheckedLifetimes<From<E>, C>): Bag<From<E>, C>;
 ```
 
-Defined in: [di-bag.ts:367](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L367)
+Defined in: [di-bag.ts:368](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L368)
 
 Finish a complete graph as a lazy bag.
 
@@ -176,7 +176,7 @@ At runtime if automatic acquisition is used without a configured Promise classif
 install<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(module: Module<P, R, MC, D> & Introduces<From<E>, D> & IncrementalChecked<E, D> & IncrementalConstraints<C, MC, From<E>, D>): Builder<E | Entries<D>, C | MC>;
 ```
 
-Defined in: [di-bag.ts:354](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L354)
+Defined in: [di-bag.ts:355](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L355)
 
 Install a sealed module, allocating fresh private bindings for this installation.
 
@@ -206,7 +206,7 @@ A new builder exposing only the module's selected exports.
 #### Call Signature
 
 ```ts
-replace<const K extends string, V extends ((this: void) => ReplacementOutput<From<E>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<From<E>, K, C>>>(key: K & ReplacementKey<From<E>, K>, registration: V & (Factory | DisposableFactory<Factory>) & ZeroDependencyAdmission<NoInfer<V>> & CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>): Builder<Exclude<E, {
+replace<const K extends string, V extends ((this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>) | DisposableFactory<(this: void) => ReplacementOutput<NoInfer<From<E>>, K, C>>>(key: K & ReplacementKey<From<E>, K>, registration: V & (Factory | DisposableFactory<Factory>) & ZeroDependencyAdmission<NoInfer<V>> & CheckedConstraints<C, Merge<From<E>, Record<K, NoInfer<V>>>>): Builder<Exclude<E, {
     key: K;
 }> | {
     key: K;
@@ -214,7 +214,7 @@ replace<const K extends string, V extends ((this: void) => ReplacementOutput<Fro
 }, C>;
 ```
 
-Defined in: [di-bag.ts:325](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L325)
+Defined in: [di-bag.ts:326](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L326)
 
 Replace an existing string-named registration with a dependency-free factory.
 
@@ -242,7 +242,7 @@ A new builder with the replacement.
 replace<const K extends string | TokenBase, V extends Registration>(key: K & NoInfer<ReplacementAdmission<From<E>, K>>, registration: V & Registration & BuilderReplacementRegistration<E, C, NoInfer<K>, V>): Builder<ReplacedEntries<E, K, V>, C>;
 ```
 
-Defined in: [di-bag.ts:336](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L336)
+Defined in: [di-bag.ts:337](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L337)
 
 Replace an existing named or typed-token registration.
 
@@ -272,7 +272,7 @@ A new builder with the replacement and its inferred service type.
 start<const K extends readonly unknown[]>(this: Builder<E, C> & Complete<From<E>> & CompleteConstraints<C, From<E>> & CheckedLifetimes<From<E>, C>, keys: K & Selection<From<E>, K, 'start'>, options?: StartupOptions): Promise<Bag<From<E>, C>>;
 ```
 
-Defined in: [di-bag.ts:379](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L379)
+Defined in: [di-bag.ts:380](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L380)
 
 Create a fresh bag and acquire selected services before returning it.
 

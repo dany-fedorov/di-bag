@@ -1,0 +1,118 @@
+[
+  {
+    "variant": "baseline",
+    "status": 0,
+    "seconds": 1.8135422898922116,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/benchmark-types.ts",
+      "--worker",
+      "100",
+      "replacement",
+      "valid"
+    ],
+    "result": {
+      "count": 100,
+      "form": "replacement",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "milliseconds": 1541,
+      "maxRssMiB": 415,
+      "diagnostics": [],
+      "diagnosticCount": 0,
+      "codes": [],
+      "instantiations": 1404036
+    }
+  },
+  {
+    "variant": "output-check-removed-UNSAFE",
+    "status": 0,
+    "seconds": 1.5889611809980124,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/benchmark-types.ts",
+      "--worker",
+      "100",
+      "replacement",
+      "valid"
+    ],
+    "result": {
+      "count": 100,
+      "form": "replacement",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "milliseconds": 1321,
+      "maxRssMiB": 406,
+      "diagnostics": [],
+      "diagnosticCount": 0,
+      "codes": [],
+      "instantiations": 754809
+    }
+  },
+  {
+    "variant": "entry-distribution-UNSAFE",
+    "status": 0,
+    "seconds": 1.8190541360527277,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/benchmark-types.ts",
+      "--worker",
+      "100",
+      "replacement",
+      "valid"
+    ],
+    "result": {
+      "count": 100,
+      "form": "replacement",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "milliseconds": 1540,
+      "maxRssMiB": 420,
+      "diagnostics": [],
+      "diagnosticCount": 0,
+      "codes": [],
+      "instantiations": 1337544
+    }
+  },
+  {
+    "variant": "cached-needs-UNSAFE",
+    "status": 0,
+    "seconds": 1.8514250220032409,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "scripts/benchmark-types.ts",
+      "--worker",
+      "100",
+      "replacement",
+      "valid"
+    ],
+    "result": {
+      "count": 100,
+      "form": "replacement",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "milliseconds": 1568,
+      "maxRssMiB": 422,
+      "diagnostics": [],
+      "diagnosticCount": 0,
+      "codes": [],
+      "instantiations": 1309578
+    }
+  }
+]
