@@ -1,0 +1,70 @@
+[
+  {
+    "nanoseconds": 7880000000,
+    "stack": [
+      "github.com/microsoft/typescript-go/internal/ast.GetSourceFileOfNode",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).compareNodes",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).compareSymbolsWorker",
+      "github.com/microsoft/typescript-go/internal/checker.CompareTypes",
+      "github.com/microsoft/typescript-go/internal/checker.compareTypeLists",
+      "github.com/microsoft/typescript-go/internal/checker.compareTypeMappers",
+      "github.com/microsoft/typescript-go/internal/checker.CompareTypes",
+      "github.com/microsoft/typescript-go/internal/checker.compareTypeLists",
+      "github.com/microsoft/typescript-go/internal/checker.compareTypeMappers",
+      "github.com/microsoft/typescript-go/internal/checker.CompareTypes",
+      "slices.BinarySearchFunc[go.shape.[]*github.com/microsoft/typescript-go/internal/checker.Type,go.shape.*uint8,go.shape.*uint8]",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).addTypeToUnion"
+    ]
+  },
+  {
+    "nanoseconds": 4010000000,
+    "stack": [
+      "github.com/microsoft/typescript-go/internal/ast.GetSourceFileOfNode",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).compareNodes",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).compareSymbolsWorker",
+      "github.com/microsoft/typescript-go/internal/checker.CompareTypes",
+      "github.com/microsoft/typescript-go/internal/checker.compareTypeLists",
+      "github.com/microsoft/typescript-go/internal/checker.compareTypeMappers",
+      "github.com/microsoft/typescript-go/internal/checker.CompareTypes",
+      "slices.BinarySearchFunc[go.shape.[]*github.com/microsoft/typescript-go/internal/checker.Type,go.shape.*uint8,go.shape.*uint8]",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).addTypeToUnion",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).addTypesToUnion",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).getUnionTypeWorker",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).getUnionTypeEx"
+    ]
+  },
+  {
+    "nanoseconds": 3910000000,
+    "stack": [
+      "github.com/microsoft/typescript-go/internal/ast.GetSourceFileOfNode",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).compareNodes",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).compareSymbolsWorker",
+      "github.com/microsoft/typescript-go/internal/checker.CompareTypes",
+      "github.com/microsoft/typescript-go/internal/checker.compareTypeLists",
+      "github.com/microsoft/typescript-go/internal/checker.compareTypeMappers",
+      "github.com/microsoft/typescript-go/internal/checker.CompareTypes",
+      "slices.BinarySearchFunc[go.shape.[]*github.com/microsoft/typescript-go/internal/checker.Type,go.shape.*uint8,go.shape.*uint8]",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).addTypeToUnion",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).addTypesToUnion",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).addTypesToUnion",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).getUnionTypeWorker"
+    ]
+  },
+  {
+    "nanoseconds": 10000000,
+    "stack": [
+      "github.com/microsoft/typescript-go/internal/ast.GetSourceFileOfNode",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).checkPropertyNotUsedBeforeDeclaration",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).checkPropertyAccessExpressionOrQualifiedName",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).checkPropertyAccessExpression",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).checkExpressionWorker",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).checkExpressionEx",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).checkExpression",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).resolveCallExpression",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).resolveSignature",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).getResolvedSignature",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).checkCallExpression",
+      "github.com/microsoft/typescript-go/internal/checker.(*Checker).checkExpressionWorker"
+    ]
+  }
+]

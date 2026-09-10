@@ -6,14 +6,11 @@
 
 ```ts
 type RegistrationEntries<R extends Registrations> = {
-    [K in keyof R & (string | symbol)]: {
-        key: K;
-        registration: R[K];
-    };
+    [K in keyof R & (string | symbol)]: RegistrationEntry<K, R[K]>;
 }[keyof R & (string | symbol)];
 ```
 
-Defined in: [types.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L20)
+Defined in: [types.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L23)
 
 Convert a registration map to the union of entries retained by a builder.
 

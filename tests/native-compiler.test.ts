@@ -80,3 +80,25 @@ test('native compiler resolves the final service from 1000 dependent token modul
   });
   expect(row.peakObservedRssMiB).toBeGreaterThan(0);
 }, 65000);
+
+test('native compiler completes 1000 named replacements within the original limits', async () => {
+  const row = await nativeScale(process.cwd(), await resolveNative(process.cwd()), {
+    count: 1000, form: 'replacement', scenario: 'valid',
+  });
+  expect(row).toMatchObject({
+    count: 1000, form: 'replacement', scenario: 'valid', typescript: '7.0.2',
+    checked: true, accepted: true, status: 0, diagnostics: [],
+  });
+  expect(row.peakObservedRssMiB).toBeGreaterThan(0);
+}, 65000);
+
+test('native compiler completes 1000 dependent named additions within the original limits', async () => {
+  const row = await nativeScale(process.cwd(), await resolveNative(process.cwd()), {
+    count: 1000, form: 'chained', scenario: 'valid',
+  });
+  expect(row).toMatchObject({
+    count: 1000, form: 'chained', scenario: 'valid', typescript: '7.0.2',
+    checked: true, accepted: true, status: 0, diagnostics: [],
+  });
+  expect(row.peakObservedRssMiB).toBeGreaterThan(0);
+}, 65000);

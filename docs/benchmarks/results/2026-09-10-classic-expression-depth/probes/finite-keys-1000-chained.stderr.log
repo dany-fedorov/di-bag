@@ -1,0 +1,17 @@
+/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:68310
+  function instantiateType(type, mapper) {
+                          ^
+
+RangeError: Maximum call stack size exceeded
+    at instantiateType (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:68310:27)
+    at instantiateTypeWorker (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:68384:27)
+    at instantiateTypeWithAlias (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:68343:20)
+    at instantiateType (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:68311:29)
+    at getMappedType (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:67991:67)
+    at /tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:68296:66
+    at map (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:2495:19)
+    at getConditionalTypeInstantiation (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:68296:29)
+    at instantiateTypeWorker (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:68406:14)
+    at instantiateTypeWithAlias (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:68343:20)
+
+Node.js v24.20.0

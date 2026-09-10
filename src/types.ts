@@ -16,9 +16,12 @@ export type ServicesOf<R extends Registrations> = {
 // Keep builder history flat; reconstruct a map only at graph-check boundaries.
 export type Entry = { key: string | symbol; registration: Registration };
 
+// Compare distinct keys before the registration types retained by an entry union.
+type RegistrationEntry<K extends string | symbol, V extends Registration> = { key: K; registration: V };
+
 /** Convert a registration map to the union of entries retained by a builder. */
 export type RegistrationEntries<R extends Registrations> = {
-  [K in keyof R & (string | symbol)]: { key: K; registration: R[K] };
+  [K in keyof R & (string | symbol)]: RegistrationEntry<K, R[K]>;
 }[keyof R & (string | symbol)];
 
 /** Reconstruct a registration map from a builder's retained entry union. */
@@ -224,11 +227,12 @@ export type ReplacementKeyOf<Keys extends PropertyKey, K extends string> =
 // must remain a union. The replaced factory's own old requirements disappear.
 type ReplacementRequirement<N, K extends PropertyKey> = K extends keyof N
   ? (value: N[K]) => void : never;
-type LocalReplacementRequirements<R extends Registrations, K extends PropertyKey> = {
-  // Available slots are present: remove implicit optionality as CheckDependencyCompatibility does,
-  // while retaining explicitly declared undefined under exactOptionalPropertyTypes.
-  [P in Exclude<keyof R, K>]: ReplacementRequirement<Required<Needs<R[P]>>, K>;
-}[Exclude<keyof R, K>];
+// Distribute keys without allocating properties for absent requirements. Keep
+// union-valued registrations grouped, removing only implicit needs optionality.
+type LocalReplacementRequirement<R extends Registrations, K extends PropertyKey, P extends keyof R> =
+  P extends unknown ? ReplacementRequirement<Required<Needs<R[P]>>, K> : never;
+type LocalReplacementRequirements<R extends Registrations, K extends PropertyKey> =
+  LocalReplacementRequirement<R, K, Exclude<keyof R, K>>;
 type RetainedReplacementRequirements<C, K extends PropertyKey> = C extends { readonly needs: infer N }
   // Retained module checks compare indexed values directly. Consumer labels
   // are not binding identities and cannot justify dropping a constraint.

@@ -6,7 +6,7 @@ import {
 } from '../../src';
 import type { ProviderGraphContract } from '../../src/provider';
 import type { Assert, Equal } from './assert';
-import type { IncrementalChecked, Entry, Unsatisfied } from '../../src/types';
+import type { IncrementalChecked, Entry, RegistrationEntries, ReplacementOutput, Unsatisfied } from '../../src/types';
 import type { BagBuilder, Registration } from '../../src';
 
 const forward = DiBag.createBuilder().register({ read: ({ value }: { value: number }) => value }).register({ value: () => 1 }).build();
@@ -69,3 +69,24 @@ export type RetainedTokenShortcutContracts = [
 function bindFromNeverHistory<R extends Registration>(builder: BagBuilder<{ key: never; registration: R }>) {
   return builder.register(token, () => ({ value: 1 }));
 }
+
+// Generic entry construction must remain available for either kind of key.
+function entryFromValues<K extends string | symbol, V extends Registration>(
+  key: K, registration: V,
+): RegistrationEntries<Record<K, V>> {
+  return { key, registration };
+}
+
+// A registration union belongs to one consumer; distinct consumers intersect.
+// Available optional slots exclude only implicitly introduced undefined.
+export type ReplacementRequirementContracts = [
+  Assert<Equal<ReplacementOutput<{
+    consumer: ((deps: { value: number }) => void) | ((deps: { value: string }) => void);
+  }, 'value'>, number | string>>,
+  Assert<Equal<ReplacementOutput<{
+    numeric: (deps: { value: number }) => void;
+    textual: (deps: { value: string }) => void;
+  }, 'value'>, never>>,
+  Assert<Equal<ReplacementOutput<{ consumer: (deps: { value?: number }) => void }, 'value'>, number>>,
+  Assert<Equal<ReplacementOutput<{ consumer: (deps: { value?: number | undefined }) => void }, 'value'>, number | undefined>>,
+];

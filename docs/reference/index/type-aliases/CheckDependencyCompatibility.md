@@ -19,7 +19,7 @@ type CheckDependencyCompatibility<R extends Registrations> = [
 }>;
 ```
 
-Defined in: [types.ts:92](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L92)
+Defined in: [types.ts:95](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L95)
 
 Compile-time admission for finite dependency objects and compatible known services.
 

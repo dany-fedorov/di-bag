@@ -60,6 +60,12 @@ compiler ceilings and run the Node garbage-collection retention suites after
 both compiler builds. Historical benchmark sources and logs keep the API names
 that were measured; record combined-source verification separately.
 
+Before publication, integrate main through `09632f5` as well. Preserve its entry
+key caching, replacement output/constraint projections, stricter replacement
+ceiling, and native 1,000-operation named/replacement regressions. These source
+changes affect compiler types; prior runtime measurements retain their original
+source identity. Record the subsequent validation as a separate checkpoint.
+
 ## Verification
 
 Runtime tests cover both metadata modes and transformation result policies,

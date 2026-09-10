@@ -1,0 +1,12 @@
+
+> di-bag@0.1.0 platform:pin
+> node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/pin-platform-tools.ts
+
+node: 24.20.0
+npm: 11.19.0
+classic6: 6.0.3
+bun: 1.4.0
+deno: not-provisioned
+esbuild: not-provisioned
+playwright: not-provisioned
+chromium: not-provisioned

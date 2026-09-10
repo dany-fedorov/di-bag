@@ -15,14 +15,14 @@ export type NeedConstraint =
   | { readonly kind: 'token-export' | 'token-external' | 'optional-token-export' | 'optional-token-external'; readonly consumer: string | symbol; readonly token: TokenBase }
   | { readonly kind: 'opaque' };
 
-type WrongConstraint<C extends NeedConstraint, Available extends object> =
+type WrongConstraint<C extends NeedConstraint, A extends Registrations> =
   C extends { readonly needs: object; readonly consumer: string | symbol }
     // Public registration maps have required slots. Compare each overlapping
     // value directly to avoid rebuilding a large Pick<Available> per consumer.
     ? {
-        [K in keyof C['needs'] & keyof Available]:
-          Available[K] extends C['needs'][K] ? never : C['consumer'];
-      }[keyof C['needs'] & keyof Available]
+        [K in keyof C['needs'] & keyof ServicesOf<A>]:
+          ServicesOf<A>[K] extends C['needs'][K] ? never : C['consumer'];
+      }[keyof C['needs'] & keyof ServicesOf<A>]
     : never;
 type MissingConstraint<C extends NeedConstraint, Available extends object> =
   C extends { readonly needs: object } ? Exclude<keyof C['needs'], keyof Available> : never;
@@ -40,8 +40,8 @@ type MissingConstraintRelationships<C, A extends object> = C extends { readonly 
   : never;
 
 export type CheckedConstraints<C extends NeedConstraint, A extends Registrations> =
-  [WrongConstraint<C, ServicesOf<A>> | WrongTokenConstraint<C, A>] extends [never] ? CheckedContributions<C, A>
-    : Unsatisfied<'provided service does not satisfy its consumer dependency', { tokens: WrongConstraint<C, ServicesOf<A>> | WrongTokenConstraint<C, A>; relationships: ConstraintRelationships<C, ServicesOf<A>> }>;
+  [WrongConstraint<C, A> | WrongTokenConstraint<C, A>] extends [never] ? CheckedContributions<C, A>
+    : Unsatisfied<'provided service does not satisfy its consumer dependency', { tokens: WrongConstraint<C, A> | WrongTokenConstraint<C, A>; relationships: ConstraintRelationships<C, ServicesOf<A>> }>;
 export type IncrementalConstraints<
   C extends NeedConstraint,
   MC extends NeedConstraint,

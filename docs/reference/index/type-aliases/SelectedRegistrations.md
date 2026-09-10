@@ -10,7 +10,7 @@ type SelectedRegistrations<K extends readonly unknown[], O> = {
 };
 ```
 
-Defined in: [types.ts:272](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L272)
+Defined in: [types.ts:276](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L276)
 
 Select registration-valued own fields corresponding to a checked key tuple.
 

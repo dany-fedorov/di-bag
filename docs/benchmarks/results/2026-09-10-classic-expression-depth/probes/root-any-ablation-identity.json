@@ -1,0 +1,10 @@
+{
+  "baselineSource": "59d10c6c8ac13d63171f9f39c170da048d7e208c",
+  "diBagSha256": "3775b2ec2bc7f7b9dd238b8446d094e5c7a37622ec9fa819c128d4298bfb08b6",
+  "singleReplacement": {
+    "before": "export const DiBag: Facade = facade(unconfigured);",
+    "after": "export const DiBag: any = facade(unconfigured);"
+  },
+  "diagnosticOnly": true,
+  "purpose": "Retain full actual source graph and original generated expression but erase all type checking through the exported facade. Any outcome is diagnostic only and cannot satisfy original type-contract acceptance."
+}

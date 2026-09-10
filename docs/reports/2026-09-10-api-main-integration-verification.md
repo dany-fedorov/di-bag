@@ -1,5 +1,8 @@
 # API refactor and main integration verification
 
+> The initial measurements below describe the `3292abe` checkpoint. The later
+> publication sync with main is recorded in the final section.
+
 This integration combines the complete API refactor at `b911776` with main at
 `fb5fe6c736fc0c21b32b93dfc9e170c955209bb9`. The original dirty checkout remains
 preserved. The [migration guide](../migrations/api-renaming.md) describes the
@@ -99,3 +102,24 @@ results. Earlier benchmark evidence remains attributed to its original source.
 This report verifies the local integration. Push, pull-request creation, merge to
 remote main, and remote CI are not recorded as completed. Registry publication
 and version selection remain separate release work.
+
+## Publication sync with main
+
+Before publication, main advanced to `09632f57065a65b0680e38dcf43b6f6c106384df`.
+The branch also integrates its replacement factory/constraint projections, entry
+key cache, and distributed replacement requirement keys. These changes affect
+compiler types; earlier runtime/platform measurements retain their original
+source identity and are not relabeled as new measurements.
+
+The resulting compiler-control source SHA-256 is
+`d822c72e806fa11e069aa90bb3ef6207db8eb39c46c7cc69ef302a43e4a1c9e4`,
+using the same paths-relative-to-src protocol. Independent review approved the
+merge while preserving the renamed API, richer diagnostics, explicit-interface
+registration, and overload reflection.
+
+Both full source typechecks passed. The focused source, negative diagnostic,
+installed declaration-consumer, and scale suites passed **140 tests with zero
+failures**, including all four native 1,000-operation forms and the stricter
+1,030,000-instantiation replacement ceiling. The classic build, generated
+reference, 12 documentation tests, and rendered-site validation also passed.
+The pull request records hosted CI and publication results for this checkpoint.

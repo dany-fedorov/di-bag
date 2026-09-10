@@ -1,0 +1,462 @@
+{
+  "base": "fb5fe6c736fc0c21b32b93dfc9e170c955209bb9",
+  "head": "59d10c6c8ac13d63171f9f39c170da048d7e208c",
+  "clean": true,
+  "sourceFiles": {
+    "acquisition-context.ts": {
+      "baseline": "375aff86dce5af3066faf7d37e824e20ebe8428558e1e76be255e7eb2a32ee60",
+      "candidate": "375aff86dce5af3066faf7d37e824e20ebe8428558e1e76be255e7eb2a32ee60"
+    },
+    "acquisition-family.ts": {
+      "baseline": "30041c4bde9b55c84e5fd9cedba8d0c6debffd4def115e936097ce8324f155a9",
+      "candidate": "30041c4bde9b55c84e5fd9cedba8d0c6debffd4def115e936097ce8324f155a9"
+    },
+    "acquisition-mode.ts": {
+      "baseline": "01089656a4f44b1cc70eaf8a068ef17c86fc8684e0fbd5f7b7671066cb4e3656",
+      "candidate": "01089656a4f44b1cc70eaf8a068ef17c86fc8684e0fbd5f7b7671066cb4e3656"
+    },
+    "acquisition.ts": {
+      "baseline": "df9c237ac048c40c875193aa3af036d1dd0d889bc798ac079384b33d279f6605",
+      "candidate": "df9c237ac048c40c875193aa3af036d1dd0d889bc798ac079384b33d279f6605"
+    },
+    "alias-types.ts": {
+      "baseline": "bfea35ac987cd9aea49d97f1816311fbe9469bb070bcb7a3faecdf1f662075e9",
+      "candidate": "bfea35ac987cd9aea49d97f1816311fbe9469bb070bcb7a3faecdf1f662075e9"
+    },
+    "aliases.ts": {
+      "baseline": "bfd2b9dff7017c2735390fb1a3d281ba784849c4405dae85c8d4827f82398a16",
+      "candidate": "bfd2b9dff7017c2735390fb1a3d281ba784849c4405dae85c8d4827f82398a16"
+    },
+    "composition.ts": {
+      "baseline": "7f83b9fdb71d6c87f47c9315c0c7388b7920a6f9d6c9aa578dfa8dfb7d71af7a",
+      "candidate": "7f83b9fdb71d6c87f47c9315c0c7388b7920a6f9d6c9aa578dfa8dfb7d71af7a"
+    },
+    "contribution-types.ts": {
+      "baseline": "350592d07a3bbc4ff2ac68329f0a9eeb1a0c7a03f5870155caf35d2d92145749",
+      "candidate": "350592d07a3bbc4ff2ac68329f0a9eeb1a0c7a03f5870155caf35d2d92145749"
+    },
+    "contributions.ts": {
+      "baseline": "d4255ddf3738216dbc931521d43d581348d6deafef389e0879bf9b46ae72c11b",
+      "candidate": "d4255ddf3738216dbc931521d43d581348d6deafef389e0879bf9b46ae72c11b"
+    },
+    "dependency-references.ts": {
+      "baseline": "c568d439bd8a895d8f1a1d92982d897d163b38c858eb0c9a2c0051a1de4e1219",
+      "candidate": "c568d439bd8a895d8f1a1d92982d897d163b38c858eb0c9a2c0051a1de4e1219"
+    },
+    "di-bag.ts": {
+      "baseline": "fd77bf44c6f78c709e1402eaaa9d745d6961279c51b985f8030c5f045c505b5a",
+      "candidate": "cc2f7d4e835925acc36e84b1c54df62468d8076f2472fbac4e71df5239425085"
+    },
+    "errors.ts": {
+      "baseline": "e8ecd24931affcba6937ebab71486f83be040464f3db8d8e419510c9b27b4c39",
+      "candidate": "e8ecd24931affcba6937ebab71486f83be040464f3db8d8e419510c9b27b4c39"
+    },
+    "index.ts": {
+      "baseline": "61e12ae408ce2322ff70f42a9d1ad9173fd4e850ffd45e9a2daff81782a2fc52",
+      "candidate": "61e12ae408ce2322ff70f42a9d1ad9173fd4e850ffd45e9a2daff81782a2fc52"
+    },
+    "inspection.ts": {
+      "baseline": "ef23622e6d6206bfb9358b94b5a7fd600cf5ac457052a3413887f158aa8ebf00",
+      "candidate": "ef23622e6d6206bfb9358b94b5a7fd600cf5ac457052a3413887f158aa8ebf00"
+    },
+    "lifetime-types.ts": {
+      "baseline": "924f11a6923a1be364b8598bebc73a5c3f87d6c24cacfd6bd29428bc21668232",
+      "candidate": "924f11a6923a1be364b8598bebc73a5c3f87d6c24cacfd6bd29428bc21668232"
+    },
+    "lifetime.ts": {
+      "baseline": "5862fe0cf1edd0f405a1a918392a30e7ed1899a214de990b7f373f9c6a483b6d",
+      "candidate": "5862fe0cf1edd0f405a1a918392a30e7ed1899a214de990b7f373f9c6a483b6d"
+    },
+    "module-types.ts": {
+      "baseline": "3253f174e8576be71145089891b223e05082709ac3c7f64219ae7a95fa155a6a",
+      "candidate": "8c1c4de6d8a49e56b6a14683e195a948398f751130ce6d89a87eebeb3fa89ed5"
+    },
+    "module.ts": {
+      "baseline": "a7ef0b8a62c145614e1bbb9da06a17ca108c3a41aa1f03a6042ab5fb53734d2f",
+      "candidate": "a7ef0b8a62c145614e1bbb9da06a17ca108c3a41aa1f03a6042ab5fb53734d2f"
+    },
+    "node.ts": {
+      "baseline": "8d7423be9709a90734b5f69facc05a98c001db7d1f5ef0f101d4a617adf8b432",
+      "candidate": "8d7423be9709a90734b5f69facc05a98c001db7d1f5ef0f101d4a617adf8b432"
+    },
+    "observers.ts": {
+      "baseline": "3131ec72a06729acdcb4929783962e66f927584f83fcd63efb4d32637d93004b",
+      "candidate": "3131ec72a06729acdcb4929783962e66f927584f83fcd63efb4d32637d93004b"
+    },
+    "persistent-map.ts": {
+      "baseline": "f109a7195a9871bcd611e802538c1faa05e2d37a104497e2a4cbb2527b0cbe7c",
+      "candidate": "f109a7195a9871bcd611e802538c1faa05e2d37a104497e2a4cbb2527b0cbe7c"
+    },
+    "persistent-sequence.ts": {
+      "baseline": "a56cd6979d944eb1d70904413a7c2bc44076897b48a3e254152821b5ae5f295b",
+      "candidate": "a56cd6979d944eb1d70904413a7c2bc44076897b48a3e254152821b5ae5f295b"
+    },
+    "plugins.ts": {
+      "baseline": "7aa82cfd6d3f58e916740ea9d1011f309d4b7e4d86e64f0acf7261fe33495765",
+      "candidate": "7aa82cfd6d3f58e916740ea9d1011f309d4b7e4d86e64f0acf7261fe33495765"
+    },
+    "provider-execution.ts": {
+      "baseline": "b2db970b3c55fb4cc920c5c349e6810bba075f0086a582a04fd5d42825677d70",
+      "candidate": "b2db970b3c55fb4cc920c5c349e6810bba075f0086a582a04fd5d42825677d70"
+    },
+    "provider-operations.ts": {
+      "baseline": "36370ef919bf62574b077fee22178051b58c1ab2d94e308655867a515e9ce374",
+      "candidate": "36370ef919bf62574b077fee22178051b58c1ab2d94e308655867a515e9ce374"
+    },
+    "provider.ts": {
+      "baseline": "b990860628cb43ba825f193cb5fae052724e666037028b9af56a229039fdc332",
+      "candidate": "b990860628cb43ba825f193cb5fae052724e666037028b9af56a229039fdc332"
+    },
+    "registration.ts": {
+      "baseline": "836bfbad115dbe0de513ad3224ff6ca98ae346b4cd225e5c2d87ec3351865559",
+      "candidate": "836bfbad115dbe0de513ad3224ff6ca98ae346b4cd225e5c2d87ec3351865559"
+    },
+    "replacement-types.ts": {
+      "baseline": "20f2d3827d437e9fb25164351519629ac49b652a96173c8f79eb9db03120f8ab",
+      "candidate": "20f2d3827d437e9fb25164351519629ac49b652a96173c8f79eb9db03120f8ab"
+    },
+    "runtime.ts": {
+      "baseline": "01b7da1ebb2bed5a5bb7eb74305504be26e1f4d9724a1522a4a01f3284caa455",
+      "candidate": "01b7da1ebb2bed5a5bb7eb74305504be26e1f4d9724a1522a4a01f3284caa455"
+    },
+    "scope-selection.ts": {
+      "baseline": "f3d1a3420d44268a9a71e4755e1764fa6c56e2fa267c4f031510c19bb6ba36bb",
+      "candidate": "f3d1a3420d44268a9a71e4755e1764fa6c56e2fa267c4f031510c19bb6ba36bb"
+    },
+    "scope-types.ts": {
+      "baseline": "a7cb68fa2b626e046e55961fc835937806c1a3fc924897d382b010fa082ef64b",
+      "candidate": "a7cb68fa2b626e046e55961fc835937806c1a3fc924897d382b010fa082ef64b"
+    },
+    "startup.ts": {
+      "baseline": "7ec0b96dc9247ad93223a1733829cb2f07804ab464ddb16d91b314d717a0b5e1",
+      "candidate": "7ec0b96dc9247ad93223a1733829cb2f07804ab464ddb16d91b314d717a0b5e1"
+    },
+    "token-types.ts": {
+      "baseline": "2c52ff707a049ea2b20cd98f2d4c49fe1cc977be48b64741bc2c5ebf8fac8be9",
+      "candidate": "2c52ff707a049ea2b20cd98f2d4c49fe1cc977be48b64741bc2c5ebf8fac8be9"
+    },
+    "tokens.ts": {
+      "baseline": "001c67b6f42f998e7b0f715676478e0b704079a51cd3636f8cee20efd352926a",
+      "candidate": "001c67b6f42f998e7b0f715676478e0b704079a51cd3636f8cee20efd352926a"
+    },
+    "types.ts": {
+      "baseline": "e41819567885a7853d8ce63bac81521cc5279f6858f7e6874021ba75d4818ce6",
+      "candidate": "99018c35fa2432b13efdf689de4afe45163cf56602a7b42b147840f803af59e9"
+    }
+  },
+  "unchangedCompilerInputs": {
+    "tests/compiler.ts": "4219b0ca5f468c1fdf4ae85ce99e5cae0ca993c8df9fd8807a92b4232c9ec725",
+    "scripts/compiler-case.ts": "13d5be0f5fd062050b3e2fcb9c74d4dea3185a27ec1b7624364b44aa4aa904f5",
+    "scripts/check-compiler-case.ts": "06b24bf13a8bfacd1653528f8e1bbfd5ac4729c41580de1aaaca41651014f04e",
+    "scripts/native-scale.ts": "b6054dab0f9d34405f3a7772a6715292e34d9e9596cf1d9138f9d6639081864c",
+    "scripts/native-compiler.ts": "e21feb952e8bbb79933245ddf7ff3b9204e6a1fa3bd51cda898b455978b1ea99",
+    "scripts/native-process.ts": "84a7dec43ac3d6cc92f5d8f1a069b5543c95230852f8a79962959e9a075d41b9",
+    "package.json": "4d251a291138e8564dbfe774774c0cfa4281bdc144c60000744cee4b54958f71",
+    "package-lock.json": "a68e095582633c5b4d58b6fd01a26d982b9e932c4072db94473210dfc89fc4eb"
+  },
+  "reviews": {
+    "context-constraints": {
+      "base": "3a42173d9faacc63ad7728545580a63389d56de2",
+      "sourceFiles": 35,
+      "summary": {
+        "base": "3a42173d9faacc63ad7728545580a63389d56de2",
+        "sourceFiles": 35,
+        "concreteEqualityAssertions": 352,
+        "acceptedDeferredEqualityAssertions": 15,
+        "acceptedDeferredReciprocalAssignments": 36,
+        "compilers": {
+          "classic": {
+            "version": "6.0.3",
+            "semantic": {
+              "diagnosticsEach": 172,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 14,
+              "inferredDeclarations": 253,
+              "inferredRenderingDifferences": 1
+            },
+            "open": {
+              "diagnosticsEach": 63,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 20,
+              "inferredDeclarations": 77,
+              "inferredRenderingDifferences": 0
+            },
+            "declarations": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0,
+              "inferredDeclarations": 120,
+              "inferredRenderingDifferences": 1
+            },
+            "consumer": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0,
+              "inferredDeclarations": 7,
+              "inferredRenderingDifferences": 0
+            },
+            "emittedFiles": 42,
+            "changedEmittedFiles": [
+              "src/module-types.d.ts",
+              "src/di-bag.d.ts",
+              "review/replacement.d.ts"
+            ]
+          },
+          "native": {
+            "version": "7.0.2",
+            "semantic": {
+              "diagnosticsEach": 172,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 3
+            },
+            "open": {
+              "diagnosticsEach": 63,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 20
+            },
+            "declarations": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0
+            },
+            "consumer": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0
+            },
+            "emittedFiles": 42,
+            "changedEmittedFiles": [
+              "src/module-types.d.ts",
+              "src/di-bag.d.ts"
+            ]
+          }
+        }
+      },
+      "reportSha256": "5adcd6dcf81535fe16dbdf8a823fd378e56066507ab3e1aaecb4a21706dbb148"
+    },
+    "replacement-keys": {
+      "base": "3360a96516daa7483c490a1bcacaa1ed16ec7ce1",
+      "sourceFiles": 35,
+      "summary": {
+        "base": "3360a96516daa7483c490a1bcacaa1ed16ec7ce1",
+        "sourceFiles": 35,
+        "candidateTypesSha256": "989496869408ae077e50d585feb1a5bf350061ac34a2abee1ee7217dd8992686",
+        "pairedConcreteEqualities": 600,
+        "directOutputAssertions": 8,
+        "openGenericProbes": 167,
+        "acceptedOpenGenericEqualityAssertions": 1,
+        "acceptedOpenGenericReciprocalAssignments": 44,
+        "compilers": {
+          "classic": {
+            "version": "6.0.3",
+            "semantic": {
+              "diagnosticsEach": 57,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0,
+              "identicalInferredDeclarations": 201
+            },
+            "open": {
+              "diagnosticsEach": 122,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 2,
+              "identicalInferredDeclarations": 88
+            },
+            "inference": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0,
+              "identicalInferredDeclarations": 18
+            },
+            "declarations": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0,
+              "identicalInferredDeclarations": 147
+            },
+            "consumer": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0,
+              "identicalInferredDeclarations": 7
+            },
+            "emittedFiles": 43,
+            "changedEmittedFiles": [
+              "src/types.d.ts"
+            ]
+          },
+          "native": {
+            "version": "7.0.2",
+            "semantic": {
+              "diagnosticsEach": 57,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0
+            },
+            "open": {
+              "diagnosticsEach": 122,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 2
+            },
+            "inference": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0
+            },
+            "declarations": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0
+            },
+            "consumer": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0
+            },
+            "emittedFiles": 43,
+            "changedEmittedFiles": [
+              "src/types.d.ts"
+            ]
+          }
+        }
+      },
+      "reportSha256": "e837af1538dcaaa6cc9aa449d44fefa8814ee3449116aaa2cea07b1c393cdacf"
+    },
+    "combined": {
+      "base": "3360a96516daa7483c490a1bcacaa1ed16ec7ce1",
+      "sourceFiles": 35,
+      "summary": {
+        "base": "3360a96516daa7483c490a1bcacaa1ed16ec7ce1",
+        "sourceFiles": 35,
+        "candidateTypesSha256": "99018c35fa2432b13efdf689de4afe45163cf56602a7b42b147840f803af59e9",
+        "targetedReplacementEqualities": 35,
+        "directReplacementOutputAssertions": 8,
+        "legacyEntriesAssertions": 19,
+        "compilers": {
+          "classic": {
+            "version": "6.0.3",
+            "semantic": {
+              "diagnosticsEach": 57,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 16,
+              "identicalInferredDeclarations": 242
+            },
+            "open": {
+              "diagnosticsEach": 24,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 11,
+              "identicalInferredDeclarations": 61
+            },
+            "declarations": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0,
+              "identicalInferredDeclarations": 188
+            },
+            "consumer": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0,
+              "identicalInferredDeclarations": 29
+            },
+            "emittedFiles": 48,
+            "changedEmittedFiles": [
+              "src/types.d.ts"
+            ]
+          },
+          "native": {
+            "version": "7.0.2",
+            "semantic": {
+              "diagnosticsEach": 57,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 11
+            },
+            "open": {
+              "diagnosticsEach": 24,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 19
+            },
+            "declarations": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0
+            },
+            "consumer": {
+              "diagnosticsEach": 0,
+              "sameDiagnosticCodesAndLocations": true,
+              "diagnosticTextDifferences": 0
+            },
+            "emittedFiles": 48,
+            "changedEmittedFiles": [
+              "src/types.d.ts",
+              "review/generic-entries-positive.d.ts"
+            ]
+          }
+        }
+      },
+      "reportSha256": "1189b0f5d53770e59f264f8de4ddb3b64fbf4e93eeecdba108975a56d7d53500"
+    }
+  },
+  "archives": [
+    {
+      "archive": "intermediate/complete-evidence.tar.gz",
+      "members": 502,
+      "uncompressedBytes": 4636643,
+      "manifestChecks": [
+        {
+          "path": "artifact-manifest.json",
+          "verifiedFiles": 501
+        }
+      ]
+    },
+    {
+      "archive": "probes/di-bag-named-checker-probe/complete-probes.tar.gz",
+      "members": 375,
+      "uncompressedBytes": 2999886,
+      "manifestChecks": []
+    },
+    {
+      "archive": "probes/di-bag-replacement-key-probe/complete-probes.tar.gz",
+      "members": 49,
+      "uncompressedBytes": 391074,
+      "manifestChecks": []
+    },
+    {
+      "archive": "reviews/combined/complete-review.tar.gz",
+      "members": 611,
+      "uncompressedBytes": 3137441,
+      "manifestChecks": []
+    },
+    {
+      "archive": "reviews/context-constraints/complete-review.tar.gz",
+      "members": 558,
+      "uncompressedBytes": 4016108,
+      "manifestChecks": []
+    },
+    {
+      "archive": "reviews/replacement-keys/complete-review.tar.gz",
+      "members": 559,
+      "uncompressedBytes": 3264273,
+      "manifestChecks": []
+    }
+  ],
+  "gates": {
+    "passed": 18,
+    "tests": 943,
+    "assertions": 18899,
+    "nodeTestsPerCompiler": 31,
+    "nativeAudit": {
+      "files": 124,
+      "status": "accepted",
+      "expected": 639,
+      "matched": 639,
+      "primaryExpected": 627,
+      "primaryMatched": 627,
+      "knownNativeRejections": 0,
+      "supplementalExpected": 12,
+      "supplementalMatched": 12,
+      "unexpected": 0,
+      "failures": 0
+    }
+  },
+  "finalArtifactManifestPresent": false,
+  "finalMeasurementsPresent": false
+}

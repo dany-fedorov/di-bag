@@ -54,6 +54,8 @@ import type {
   NamedAdmission,
 } from './types';
 
+type ReplacementFactory<O> = (this: void) => O;
+
 // A public member under an unexported symbol retains its type in .d.ts output;
 // TypeScript strips the types of ordinary private fields during declaration emit.
 declare const constraintInvariant: unique symbol;
@@ -333,7 +335,7 @@ class BagBuilder<E extends Entry, C extends NeedConstraint = never> {
    * @returns A new builder with the replacement.
    * @typeParam V - The exact replacement factory or disposable-factory type.
    */
-  replace<const K extends string, V extends ((this: void) => ReplacementOutput<NoInfer<RegistrationsFromEntries<E>>, K, C>) | FactoryWithDisposal<(this: void) => ReplacementOutput<NoInfer<RegistrationsFromEntries<E>>, K, C>>>(
+  replace<const K extends string, V extends (ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<E>>, K, C>>) | FactoryWithDisposal<ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<E>>, K, C>>>>(
     key: K & ReplacementKeyOf<EntryKeys<E>, K>,
     registration: V & (Factory | FactoryWithDisposal<Factory>) & ZeroDependencyAdmission<NoInfer<V>> &
       CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<K, NoInfer<V>>>>,
