@@ -1,0 +1,24 @@
+{
+  "args": [
+    "node",
+    "--max-old-space-size=3072",
+    "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+    "/tmp/di-bag-synthetic-factory-probe/classic-worker.mjs",
+    "candidate",
+    "1000",
+    "modules"
+  ],
+  "status": 0,
+  "seconds": 53.31153096398339,
+  "evidence": {
+    "variant": "candidate",
+    "count": 1000,
+    "form": "modules",
+    "typescript": "6.0.3",
+    "node": "v24.20.0",
+    "diagnostics": [],
+    "instantiations": 73711017,
+    "milliseconds": 52862,
+    "maxRssMiB": 3020.64453125
+  }
+}

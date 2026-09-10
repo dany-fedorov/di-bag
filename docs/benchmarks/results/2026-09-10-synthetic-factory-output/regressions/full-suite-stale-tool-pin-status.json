@@ -1,0 +1,13 @@
+[
+  {
+    "step": "check",
+    "argv": [
+      "npm",
+      "run",
+      "check"
+    ],
+    "status": 1,
+    "seconds": 474.13020327501,
+    "log": "/tmp/di-bag-synthetic-factory-final-check.log"
+  }
+]

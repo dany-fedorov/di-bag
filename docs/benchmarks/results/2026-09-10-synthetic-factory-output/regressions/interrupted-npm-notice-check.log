@@ -1,0 +1,340 @@
+
+> di-bag@0.1.0 check
+> npm run typecheck && npm test && npm run build
+
+
+> di-bag@0.1.0 typecheck
+> tsc6 -p tsconfig.json
+
+
+> di-bag@0.1.0 test
+> bun test tests
+
+bun test v1.4.0 (34cbb9a40)
+
+tests/observers.test.ts:
+(pass) observers preserve raw identity and explicit ownership [4.18ms]
+(pass) ready follows the final native stage while retaining exposed identity [0.50ms]
+(pass) observer failure monitoring handles throws, rejection and throwing then without gating shutdown [0.41ms]
+(pass) configuration snapshots callbacks, appends in order and retains classification [0.52ms]
+(pass) reentrant observer resolution runs outside factory ancestry and respects published close [0.26ms]
+(pass) canonical owners distinguish shared roots, independent forks, contributions and transients [1.39ms]
+(pass) failed final projections retire accepted ownership once and preserve cleanup errors [0.77ms]
+(pass) intermediate native failure bypassed by raw projection is not final failure [0.22ms]
+(pass) private module frames are immutable snapshots without freezing application metadata [1.18ms]
+(pass) startup rollback observes accepted cleanup while preserving the startup cause [0.95ms]
+(pass) cancellation observes late accepted resources and final failure without awaiting telemetry [0.69ms]
+(pass) throwing-then error sink results are consumed and appending duplicates keeps every callback [0.16ms]
+(pass) delivery keeps emission order across immutable appended facade configurations [0.21ms]
+
+tests/acquisition-mode.test.ts:
+(pass) close waits for a native acquisition with shadowed then at source [0.32ms]
+(pass) close waits for a native acquisition with shadowed then at projection [0.13ms]
+(pass) close waits for a native acquisition with shadowed then at metadata [0.11ms]
+(pass) unconfigured core preflights every stage and private module before any factory effects [0.32ms]
+(pass) facades snapshot and isolate their predicate, carrying it through builders and forks [0.68ms]
+(pass) invalid configuration, modes and classifier results fail explicitly [0.23ms]
+(pass) automatic ordinary values preserve the then-presence guard [0.13ms]
+(pass) raw Promise and then-getter values retain exact ownership without observation or waiting [0.30ms]
+(pass) explicit native and async projections work without a classifier and preserve previous owners [0.33ms]
+(pass) auto observes local native state with non-callable then [0.19ms]
+(pass) native observes local native state with non-callable then [0.12ms]
+(pass) auto observes foreign native state with non-callable then [0.46ms]
+(pass) native observes foreign native state with non-callable then [0.31ms]
+(pass) native metadata preserves raw presence records and explicit payload projection [0.34ms]
+(pass) async metadata retains a native output contract without a portable classifier [0.26ms]
+
+tests/release-artifacts.test.ts:
+(pass) release documentation contract > adversarial release gates are separately supervised file commands [0.23ms]
+(pass) release documentation contract > release documents match the frozen package and gate every online command [0.22ms]
+(pass) release documentation contract > the publication boundary rejects stale, missing, duplicated, and misplaced commands [0.25ms]
+(pass) release documentation contract > public docs state entry-point, adapter, acquisition, ownership, and release limits [0.39ms]
+(pass) release artifact scripts > reject unsafe and unsupported manifest arguments [0.15ms]
+(pass) release artifact scripts > expose guarded parsers and archive inspection [0.02ms]
+(pass) archive verifier TDD boundary > exports a read-only verifier and strict CLI parser
+(pass) safe npm archive parser > returns sorted regular entries and exact package metadata bytes [3.33ms]
+(pass) safe npm archive parser > rejects absolute name [0.41ms]
+(pass) safe npm archive parser > rejects traversal [0.49ms]
+(pass) safe npm archive parser > rejects backslash [0.30ms]
+(pass) safe npm archive parser > rejects outside package [0.92ms]
+(pass) safe npm archive parser > rejects duplicate [0.50ms]
+(pass) safe npm archive parser > rejects prefix collision [4.12ms]
+(pass) safe npm archive parser > rejects symlink [0.39ms]
+(pass) safe npm archive parser > rejects hardlink [0.27ms]
+(pass) safe npm archive parser > rejects fifo [0.24ms]
+(pass) safe npm archive parser > rejects device [0.26ms]
+(pass) safe npm archive parser > rejects unknown type [0.27ms]
+(pass) safe npm archive parser > rejects NUL ambiguity [0.34ms]
+(pass) safe npm archive parser > rejects entry size ceiling [0.26ms]
+(pass) safe npm archive parser > rejects checksum [0.27ms]
+(pass) safe npm archive parser > rejects magic [0.23ms]
+(pass) safe npm archive parser > rejects numeric NUL suffix [0.27ms]
+(pass) safe npm archive parser > rejects nonzero padding [0.43ms]
+(pass) safe npm archive parser > rejects terminator [0.33ms]
+(pass) safe npm archive parser > rejects trailing junk [0.26ms]
+(pass) safe npm archive parser > rejects truncated entry [0.25ms]
+(pass) safe npm archive parser > rejects missing metadata [0.21ms]
+(pass) safe npm archive parser > rejects invalid and empty gzip bytes [0.89ms]
+(pass) command evidence runner > parses canonical sorted inputs and preserves argv spaces [0.62ms]
+(pass) command evidence runner > rejects unsafe argv: bash -c echo hi [0.02ms]
+(pass) command evidence runner > rejects unsafe argv: npm view di-bag [0.02ms]
+(pass) command evidence runner > rejects unsafe argv: npm login
+(pass) command evidence runner > rejects unsafe argv: npm publish a.tgz
+(pass) command evidence runner > rejects unsafe argv: npm dist-tag add
+(pass) command evidence runner > rejects unsafe argv: git push [0.01ms]
+(pass) command evidence runner > rejects unsafe argv: git tag v1
+(pass) command evidence runner > rejects unsafe argv: node --registry x
+(pass) command evidence runner > rejects unsafe argv: node https://registry.npmjs.org
+(pass) command evidence runner > rejects unsafe argv: node &&
+(pass) command evidence runner > rejects unsafe argv: node -e thing
+(pass) command evidence runner > rejects unsafe argv: env npm publish x.tgz
+(pass) command evidence runner > rejects unsafe argv: env git push
+(pass) command evidence runner > rejects unsafe argv: npx npm view di-bag
+(pass) command evidence runner > rejects unsafe argv: bunx tool
+(pass) command evidence runner > rejects unsafe argv: corepack npm login
+(pass) command evidence runner > rejects relative, escaping, symlinked, duplicate, and unsupported arguments [0.11ms]
+(pass) command evidence runner > records stdout, stderr, input hashes, normalized success and record-last evidence [12.41ms]
+(pass) command evidence runner > rejects timeout, output overflow, nonzero status, and spawn failure without publishing a record [53.21ms]
+(pass) command evidence runner > rejects injected memory, monitor, signal and spawn outcomes [0.76ms]
+(pass) command evidence runner > failed reruns and thrown supervisors erase stale success evidence [36.34ms]
+(pass) command evidence runner > hashes inputs before execution and rolls back orphan logs if record publication fails [47.42ms]
+(pass) native gap inventory > freezes the exact current zero-gap source authority [1.06ms]
+(pass) native gap inventory > accepts empty and reviewed fresh inventory while an empty authority rejects a new gap [0.93ms]
+(pass) native gap inventory > parses the documented relative reviewed root and exact absolute outputs [1.16ms]
+(pass) release tree hashing > hashes sorted regular paths deterministically [0.45ms]
+(pass) release tree hashing > rejects empty, symlink, special and unsafe argument layouts [2.45ms]
+(pass) release tree hashing > detects byte mutations through changed digest [0.15ms]
+(pass) manifest validation and deterministic projection > manifest fixtures leave root candidate archive existence and bytes unchanged [1.25ms]
+(pass) manifest validation and deterministic projection > derives immutable archive facts and is deterministic across caller ordering [4.86ms]
+(pass) manifest validation and deterministic projection > public evidence has no absolute paths and is invariant to final commit and approved observed diff [3.76ms]
+(pass) manifest validation and deterministic projection > allows canonical SHA-512 SRI only in package integrity fields [2.41ms]
+(pass) manifest validation and deterministic projection > rejects duplicate/missing packages, bad versions, metadata, pack facts and handoff paths [10.24ms]
+(pass) manifest validation and deterministic projection > accepts zero reviewed and fresh native gaps and rejects every unexpected fresh occurrence [2.62ms]
+(pass) manifest validation and deterministic projection > retains nonempty-authority manifest validation for historical candidates [2.44ms]
+(pass) manifest validation and deterministic projection > rejects failed, malformed-time, duplicate-input and mutated-log command evidence [3.80ms]
+(pass) manifest validation and deterministic projection > rejects archive containment, symlink escape, absence and replacement facts [0.96ms]
+(pass) manifest validation and deterministic projection > manifest CLI rejects every non-fixed public target form [0.25ms]
+(pass) manifest validation and deterministic projection > public projection rejects absolute argv and input paths outside known roots [11.09ms]
+(pass) archive verifier > independently accepts exact archive, pack, metadata, export, dependency, and public facts [20.79ms]
+(pass) archive verifier > rejects every archive digest and file-list mismatch [98.84ms]
+(pass) archive verifier > rejects altered, duplicate, stale, divergent, extra-field, and filename pack JSON [133.20ms]
+(pass) archive verifier > enforces exact package metadata, exports, and empty dependencies [131.77ms]
+(pass) archive verifier > rejects malformed dependency, files, and bundled dependency metadata shapes [209.12ms]
+(pass) archive verifier > rejects forbidden source, test, fixture, dependency, credential, and tarball content [540.29ms]
+(pass) archive verifier > rejects missing public export pairs and removed adapter entries from archive bytes [229.64ms]
+(pass) archive verifier > requires byte-identical stable public evidence and rejects missing, stale, malformed, and extra bytes [73.54ms]
+(pass) archive verifier > rejects malicious archives before creating or running a consumer workdir [16.01ms]
+(pass) archive verifier > uses one fixed explicit offline install argv with no fallback [0.07ms]
+(pass) archive verifier > core import tracing rejects bare, self, node builtin, and unresolved relative specifiers [3.57ms]
+(pass) archive verifier > CLI accepts only canonical contained manifest and empty work directory paths [510.26ms]
+(pass) archive verifier > direct verifier API rejects outside, relative, aliased, and nonempty work paths before mutation [0.91ms]
+(pass) archive verifier > binds both declaration compilers to the exact manifest versions before emitting [721.81ms]
+(pass) archive verifier > matches both I14 diagnostics to their marked regions and expected message fragments [1.15ms]
+(pass) archive verifier > installs owned verified bytes and passes real Node/Bun, CJS/ESM, core-only, and declaration oracles [13159.67ms]
+(pass) final release audit > validates exactly five roles and produces deterministic non-self-attestation [3.13ms]
+(pass) final release audit > rejects missing, duplicate, failed, mutated, stale-input and wrong-Git evidence [4.62ms]
+(pass) final release audit > rejects every invalid retained command field and fixed limit violation [50.03ms]
+(pass) final release audit > audit CLI rejects wrong output, public location, OIDs, duplicate and extra options [0.35ms]
+
+tests/startup.test.ts:
+(pass) contexts follow acquisition owners through child-first roots and independent forks [1.18ms]
+(pass) abort listeners cannot reenter any closing scope admission gate [0.30ms]
+(pass) startup waits for selected native acquisition while leaving unrelated providers lazy [0.34ms]
+(pass) startup uses native observation with shadowed then and treats raw promises as ready [0.43ms]
+(pass) a ready native projection starts while its source remains pending until shutdown [0.32ms]
+(pass) failed native projection aborts a cooperative pending source before cleanup [0.32ms]
+(pass) sequential startup waits before invoking the next selection [0.40ms]
+(pass) startup selects genuine tokens and keeps separate owned transient attempts [0.31ms]
+(pass) late contextual dependencies receive an already aborted owner signal [0.24ms]
+(pass) startup removes its abort listener on success [0.26ms]
+(pass) startup removes its abort listener on failure [0.11ms]
+(pass) startup removes its abort listener on aborted [0.09ms]
+(pass) startup removes its abort listener on timeout [5.37ms]
+(pass) startup snapshots option getters once after snapshotting all selected keys [0.22ms]
+(pass) sequential startup stops after failure and waits for cleanup with original causes [0.45ms]
+(pass) parallel startup starts later selections after synchronous failure and cleans pending ownership [0.23ms]
+(pass) aborted rejects before late ownership and exposes eventual cleanup failure [0.43ms]
+(pass) timeout rejects before late ownership and exposes eventual cleanup failure [5.66ms]
+(pass) already aborted startup does not invoke any factories [0.19ms]
+(pass) cancellation can interrupt cleanup after ordinary startup failure [0.28ms]
+(pass) successful startup removes external cancellation and snapshots indexed selections [0.20ms]
+(pass) invalid startup inputs reject before factory or unsupported option getter effects [0.35ms]
+(pass) numeric startup 1 bounds selected readiness and preserves promise identity [0.36ms]
+(pass) numeric startup 2 bounds selected readiness and preserves promise identity [0.15ms]
+(pass) numeric startup 20 bounds selected readiness and preserves promise identity [0.12ms]
+(pass) numeric startup 1 snapshots options and retains duplicate selected lifetimes [0.31ms]
+(pass) numeric startup 2 snapshots options and retains duplicate selected lifetimes [0.11ms]
+(pass) numeric startup uses final raw readiness while owned sources remain pending [0.30ms]
+(pass) bounded startup stops dequeuing after failure and cleans started work [0.44ms]
+(pass) bounded startup stops dequeuing after aborted and cleans started work [0.18ms]
+(pass) bounded startup stops dequeuing after timeout and cleans started work [5.71ms]
+(pass) numeric startup rejects invalid bounds before factories [0.36ms]
+(pass) numeric startup stops initial worker admission when a factory aborts synchronously [0.30ms]
+
+tests/platform-deno.test.ts:
+(pass) portable root contract has host-independent semantics [0.90ms]
+(pass) portable inspection proof rejects nonobjects and inexact or unfrozen metadata [0.10ms]
+(pass) Deno child validation requires canonical output from the local installed archive [0.73ms]
+(pass) Deno child validation fails closed when the expected installation is absent [0.14ms]
+(pass) an unprovisioned Deno pin yields an explicit unavailable row without touching the archive [11.53ms]
+
+tests/final-adversarial-integration.test.ts:
+(pass) I1 preserves its deterministic adversarial source oracle [14.28ms]
+(pass) I2 preserves its deterministic adversarial source oracle [8.16ms]
+(pass) I3 preserves its deterministic adversarial source oracle [8.40ms]
+(pass) I4 preserves its deterministic adversarial source oracle [10.03ms]
+(pass) I5 preserves its deterministic adversarial source oracle [7.37ms]
+(pass) I6 preserves its deterministic adversarial source oracle [7.57ms]
+(pass) I7 preserves its deterministic adversarial source oracle [7.87ms]
+(pass) I8 preserves its deterministic adversarial source oracle [8.06ms]
+(pass) I9 preserves its deterministic adversarial source oracle [9.34ms]
+(pass) I10 preserves its deterministic adversarial source oracle [9.87ms]
+(pass) I11 preserves its deterministic adversarial source oracle [9.32ms]
+(pass) I13 preserves its deterministic adversarial source oracle [10.04ms]
+(pass) I12 disposes accepted late ownership before independent immediate ownership [9.84ms]
+
+tests/compiler-case.test.ts:
+(pass) selected compiler case admits only original matrix identities [0.33ms]
+(pass) a claimed accepted result cannot hide an original-boundary failure [0.63ms]
+(pass) direct selected-case calls reject invalid lane and matrix identities before dispatch [0.48ms]
+(pass) recomputed boundary rejects self-consistent worker evidence at the wrong boundary [0.24ms]
+(pass) selected evidence rejects sourceCommit drift while compilation runs [0.09ms]
+(pass) selected evidence rejects sourceStatus drift while compilation runs [0.01ms]
+(pass) selected evidence rejects sourceSha256 drift while compilation runs
+(pass) selected evidence rejects generatedSha256 drift while compilation runs
+(pass) native selected evidence preserves the hash of the compiled snapshot [0.08ms]
+(pass) compiler CLI deterministically selects exit status from simulated evidence [0.10ms]
+(pass) classic process failures retain compiler identity and complete provenance [0.06ms]
+(pass) classic selected 100 bulk valid returns verified evidence [1286.90ms]
+(pass) classic selected 100 bulk missing returns verified evidence [1346.53ms]
+(pass) native selected 100 bulk valid returns verified evidence [180.38ms]
+(pass) native selected 100 bulk missing returns verified evidence [153.88ms]
+(pass) selected compiler CLI rejects an invalid identity without JSON success [239.47ms]
+
+tests/lifetimes.test.ts:
+(pass) root, scoped and transient identity have distinct ownership [0.59ms]
+(pass) child-first roots capture dependencies in the root owner through grandchildren and forks [0.37ms]
+(pass) same-object transients own separate attempts and preserve every cleanup cause [0.33ms]
+(pass) raw and native lifetimes retain original pending promises and classification [0.31ms]
+(pass) failed root cache entries retry across children with new acquisition identities [0.23ms]
+(pass) public synchronous transient reentrancy is rejected before a second factory invocation [0.17ms]
+(pass) pure transient post-await ancestry rejects repeated construction [0.25ms]
+(pass) mixed cached and transient post-await cycles preserve acquisition graph detection [0.29ms]
+(pass) independent pending transient calls are distinct nonrecursive acquisitions [0.14ms]
+(pass) a ready transient proxy may create a fresh instance on each later method call [0.12ms]
+(pass) pending child work acquires roots during parent close and root cleanup follows child cleanup [0.25ms]
+(pass) strict roots reject new scoped reads directly [0.20ms]
+(pass) strict roots reject new scoped reads through a transient [0.10ms]
+(pass) strict roots reject cached scoped reads directly [0.04ms]
+(pass) strict roots reject cached scoped reads through a transient [0.04ms]
+(pass) strict capture boundaries survive await and ready transient methods [0.28ms]
+(pass) strict roots can consume capturing roots without inheriting their permission [0.21ms]
+(pass) token captive reads reject at the observed edge before scoped creation [0.16ms]
+(pass) renamed module exports retain private root and transient ownership despite public collisions [0.40ms]
+(pass) private module scoped capture rejects despite an identically named public root [0.25ms]
+(pass) failed root rollback and retry retain distinct ownership across child consumers [0.49ms]
+(pass) child close releases its attempts while a child-first root remains pending [0.23ms]
+(pass) completed child and retired proxies cannot borrow another attempt closing permission for root reads [0.20ms]
+(pass) pending source permission survives a ready projection when routing late roots [0.24ms]
+(pass) family retirement removes cross-owner incoming edges but preserves outgoing rollback dependencies [0.19ms]
+(pass) retired transient ancestry does not block a retained proxy from retrying its binding [0.17ms]
+(pass) token roots retain family ownership through a transient token consumer and independent override [0.26ms]
+(pass) pending source permission survives failed projection rollback for late root reads [0.24ms]
+
+tests/selected-scope-runtime.test.ts:
+(pass) selected service borrows parent configuration and ownership while child config is overridden [0.32ms]
+(pass) scoped sharing selects the immediate parent and must be selected again by grandchildren [0.15ms]
+(pass) child-defined roots anchor their graph while inherited roots construct in the original graph [0.29ms]
+(pass) shared pending promises deduplicate and failed acquisitions retry at the owner [0.22ms]
+(pass) closing a borrower leaves the pending owner context and finalizer intact [0.25ms]
+(pass) pending child sources discover shared parent dependencies during tree close [0.26ms]
+(pass) strict child roots reject shared scoped dependencies before reading a cached owner [0.14ms]
+(pass) shared dependency edges detect cycles through retained owner proxies [0.15ms]
+(pass) shared module bindings preserve lexical private dependencies despite child public replacements [0.23ms]
+(pass) synchronous shared owner reentry detects a cycle across acquisition owners [0.23ms]
+(pass) a ready projection retains source permission for late shared reads [0.23ms]
+(pass) a failed projection retains source permission for late shared reads [0.08ms]
+(pass) completed and retired child proxies cannot borrow another source closing permission for shared reads [0.19ms]
+
+tests/platform-tools.test.ts:
+(pass) tool capture binds the actual artifact and exact observed version output [18.43ms]
+(pass) tool capture rejects wrong versions, substring matches and unsuccessful probes [100.00ms]
+
+tests/wbs-scope.test.ts:
+(pass) WBS scopes borrow infrastructure and recreate stores, collectors and services [2.09ms]
+(pass) an explicitly shared WBS service keeps its original stores and broadcaster [0.74ms]
+(pass) closing the root disposes its resources but leaves the startup-owned source usable [0.44ms]
+(pass) startup cleans every owner and discards held announcements when batch work fails [0.68ms]
+(pass) startup still closes later bags and its source when multiple disposers fail [1.01ms]
+(pass) a factory cleans partial acquisition before throwing; the bag does not dispose it twice [0.55ms]
+(pass) the runnable example reports published work and complete shutdown [0.71ms]
+
+tests/native-process.test.ts:
+(pass) supervisor terminates and reaps a live child on monitor EIO [1.37ms]
+(pass) supervisor terminates and reaps a live child on monitor EACCES [0.77ms]
+(pass) supervisor terminates and reaps a live child on monitor ENOENT [0.80ms]
+(pass) supervisor terminates and reaps a live child on monitor ESRCH [0.56ms]
+(pass) supervisor terminates and reaps a live child on monitor missing VmRSS [21.06ms]
+(pass) supervisor terminates and reaps a live child on monitor malformed VmRSS [21.26ms]
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [81.41ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [92.49ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [194.34ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [189.03ms]
+(pass) supervisor preserves exit 0 with pre-zombie kernel exit evidence [23.30ms]
+(pass) supervisor preserves exit 2 with pre-zombie kernel exit evidence [23.24ms]
+(pass) supervisor fails closed when the thread leader exits but a worker still runs [44.68ms]
+(pass) supervisor confirms ESRCH process disappearance before its exit callback runs [90.92ms]
+(pass) supervisor drains streams and awaits pending sample cleanup for missing VmRSS during exit [95.20ms]
+(pass) supervisor drains streams and awaits pending sample cleanup for ENOENT after exit [101.67ms]
+(pass) supervisor drains streams and awaits pending sample cleanup for ESRCH after exit [105.67ms]
+(pass) monitor termination waits for inherited stdout and stderr to close [80.43ms]
+(pass) supervisor retains clean child streams and exit status [77.99ms]
+(pass) failed spawn is explicit evidence [0.82ms]
+(pass) supervisor terminates and reaps timeout child [21.17ms]
+(pass) supervisor terminates and reaps memory child [21.07ms]
+(pass) supervisor terminates and reaps output child [19.21ms]
+(pass) invalid limits and unsupported platforms fail before spawning [0.20ms]
+(pass) output overflow remains byte bounded when UTF8 is cut within a character [21.32ms]
+(pass) kernel exit proof parses complete stat records with unescaped task names and strict flags [0.19ms]
+(pass) supervisor checks empty initial group in task-group exit evidence [21.70ms]
+(pass) supervisor checks empty final group in task-group exit evidence [21.64ms]
+(pass) supervisor checks unproven final thread in task-group exit evidence [21.29ms]
+(pass) supervisor checks permission failure in task-group exit evidence [22.59ms]
+(pass) supervisor checks malformed stat in task-group exit evidence [21.32ms]
+(pass) supervisor checks departed thread ENOENT in task-group exit evidence [76.61ms]
+(pass) supervisor checks departed thread ESRCH in task-group exit evidence [77.02ms]
+
+tests/package.test.ts:
+23 | let packageArchiveFiles: readonly string[] = [];
+24 | 
+25 | async function run(command: string[], cwd = root) {
+26 |   const { exitCode, stdout, stderr, signal, terminationReason } = await execute(command, cwd);
+27 |   expect({ exitCode, stderr, signal, terminationReason })
+28 |     .toEqual({ exitCode: 0, stderr: '', signal: null, terminationReason: undefined });
+          ^
+error: expect(received).toEqual(expected)
+
+  {
+    "exitCode": 0,
+    "signal": null,
+-   "stderr": "",
++   "stderr": 
++ "npm notice
++ npm notice New major version of npm available! 11.19.0 -> 12.0.2
++ npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
++ npm notice To update run: npm install -g npm@12.0.2
++ npm notice
++ "
++ ,
+    "terminationReason": undefined,
+  }
+
+- Expected  - 1
++ Received  + 8
+
+      at run (/tmp/di-bag-replacement-spike/tests/package.test.ts:28:6)
+      at async <anonymous> (/tmp/di-bag-replacement-spike/tests/package.test.ts:41:9)
+(fail) (unnamed) [1174.47ms]
+
+tests/native-package.test.ts:
+(pass) native installed contracts and physical downstream declarations from classic6 [59044.01ms]
