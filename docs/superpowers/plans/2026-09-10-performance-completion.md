@@ -24,26 +24,26 @@ ancestry work, then optimize compiler checks against unchanged generators.
 ## Task 0 — publish the first fixes
 
 Files: existing first-fix source/tests/evidence and CI changes only.
-- [ ] Install isolated locked dependencies and run complete checks.
-- [ ] Commit only performance-related files, push, create PR against verified main.
-- [ ] Check remote reviews/checks, merge, and verify the merge on origin/main.
+- [x] Install isolated locked dependencies and run complete checks.
+- [x] Commit only performance-related files, push, create PR against verified main.
+- [x] Check remote reviews/checks, merge, and verify the merge on origin/main.
 
 ## Task 1 — transient payload retention and cold acquisition
 
 Files: src/acquisition.ts, src/acquisition-family.ts, src/provider-execution.ts;
 new focused runtime/Node tests and audit probes.
-- [ ] Write failing GC/retention probes for discarded borrowed transient arrays,
+- [x] Write failing GC/retention probes for discarded borrowed transient arrays,
   native promises and mapped outputs; retain independent disposal/metadata oracles.
-- [ ] Add the original 1,000 raw-provider cold chain to Node regression coverage;
+- [x] Add the original 1,000 raw-provider cold chain to Node regression coverage;
   assert final value 1000, exactly one invocation per factory, and preserved cycles.
-- [ ] Separate returned transient values from retained acquisition state, clear
+- [x] Separate returned transient values from retained acquisition state, clear
   unnecessary fulfilled-stage references, and compact completed borrowed records
   where existing inspection and retained-proxy behavior can be preserved.
-- [ ] Specialize operation-free raw evaluation to remove wrapper frames, and
+- [x] Specialize operation-free raw evaluation to remove wrapper frames, and
   replace copied ancestry with shared history plus effective active-cycle checks.
-- [ ] Run ownership, retry, metadata, lifetime and promise tests; record before/after
+- [x] Run ownership, retry, metadata, lifetime and promise tests; record before/after
   heap and 100/500/1000/deeper cold-chain outcomes in fresh Node workers.
-- [ ] Commit the tested task, produce a report and obtain a scoped review.
+- [x] Commit the tested task, produce a report and obtain a scoped review.
 
 Task 1 implementation notes and verification contract:
 - Current payload references exist in Acquisition.exposed and ProviderExecution's
@@ -91,17 +91,17 @@ Files: src/runtime.ts, src/module.ts runtime storage, new private persistent sto
 helpers, storage/runtime tests.
 Consumes: unchanged BindingGraph public internal methods. Produces: the same methods
 with structural sharing, collision-safe string/symbol lookup and safe pruning.
-- [ ] Add regressions for earlier builder immutability, colliding keys, token identity,
+- [x] Add regressions for earlier builder immutability, colliding keys, token identity,
   private references, shared roots and contribution order during repeated updates.
-- [ ] Record 100/1,000/5,000 incremental/bulk/replacement/scope/contribution baselines.
-- [ ] Implement persistent lookup storage with bounded-depth iterative lookup and
+- [x] Record 100/1,000/5,000 incremental/bulk/replacement/scope/contribution baselines.
+- [x] Implement persistent lookup storage with bounded-depth iterative lookup and
   path copying; avoid full-table cloning or retaining ancestor wrapper objects.
-- [ ] Store contributions with cheap persistent append and lazy ordered materialization.
-- [ ] Track public/private reachability needed to prune obsolete replaced bindings
+- [x] Store contributions with cheap persistent append and lazy ordered materialization.
+- [x] Track public/private reachability needed to prune obsolete replaced bindings
   without deleting lexical private targets or changing parent-owned root behavior.
-- [ ] Run graph/module/scope/token/contribution/alias and emitted runtime tests;
+- [x] Run graph/module/scope/token/contribution/alias and emitted runtime tests;
   prove construction and retained-memory improvements on original workloads.
-- [ ] Commit the tested task, produce a report and obtain a scoped review.
+- [x] Commit the tested task, produce a report and obtain a scoped review.
 
 Task 2 compatibility and measurement notes:
 - The public builder and runtime use symbol identity, including distinct tokens
@@ -138,27 +138,27 @@ Task 2 compatibility and measurement notes:
 
 Files: type-only helpers and narrowly justified builder signatures; compiler probes,
 scale gates and documentation. Do not modify runtime task files.
-- [ ] Reproduce named/token/module 100/500/1000 costs with bounded original workers.
-- [ ] Trace excessive instantiations against existing prior experiments and type helpers.
-- [ ] Test one semantic-preserving optimization at a time; preserve inference and
+- [x] Reproduce named/token/module 100/500/1000 costs with bounded original workers.
+- [x] Trace excessive instantiations against existing prior experiments and type helpers.
+- [x] Test one semantic-preserving optimization at a time; preserve inference and
   all intended negative boundaries. Do not count an incidental diagnostic as success.
-- [ ] Isolate remaining stack/parser limits with library-free controls; preserve both
+- [x] Isolate remaining stack/parser limits with library-free controls; preserve both
   original failures and supported controls in the report.
-- [ ] Run complete positive/negative source and emitted declaration checks on both
+- [x] Run complete positive/negative source and emitted declaration checks on both
   compilers, retain fresh instantiation/time/RSS evidence, then commit and review.
 
 ## Task 4 — remaining workload risks and integrated completion
 
 Files: observers/startup/close only where measurements establish a justified change;
 workload tests, docs and final evidence ledger.
-- [ ] Measure slow-observer producer load, bounded selected startup and uncooperative
+- [x] Measure slow-observer producer load, bounded selected startup and uncooperative
   acquisition/cleanup waits. Record contract limits and application work separately.
-- [ ] Implement and test explicit bounded mechanisms as needed without silently
+- [x] Implement and test explicit bounded mechanisms as needed without silently
   dropping ownership obligations or breaking default API contracts.
-- [ ] Re-run every audit finding's before/after probes against the integrated build.
+- [x] Re-run every audit finding's before/after probes against the integrated build.
 - [ ] Run full checks and an independent whole-branch review; fix blocking findings.
 - [ ] Push and merge follow-up changes, verify remote state and exact merged checks.
-- [ ] Produce a requirement-by-requirement completion audit. Leave the goal active
+- [x] Produce a requirement-by-requirement completion audit. Leave the goal active
   if any original finding lacks a demonstrated improvement or required merge proof.
 
 ## Task 5 — repair archive checksum path false positive (merge prerequisite)
@@ -191,20 +191,20 @@ Files: scripts/native-process.ts, tests/native-process.test.ts, narrowly scoped
 native-package test organization, focused verification/evidence documentation.
 Runs after Task 2 review and before Task 3 compiler optimization.
 
-- [ ] Reproduce the process-monitor false failure with a deterministic real-child
+- [x] Reproduce the process-monitor false failure with a deterministic real-child
   exit-order control. Acquisition CI 34420434125 rejected a successful classic
   declaration build with status 0, signal null and terminationReason monitor.
   Preserve the exact failure and investigate the exit/error ordering before edits.
-- [ ] Distinguish a running child from an exited zombie when Linux status reads
+- [x] Distinguish a running child from an exited zombie when Linux status reads
   race child-exit notification. Preserve fail-closed monitoring for live children,
   unchanged per-worker time/RSS/output limits, stream drainage and child reaping.
-- [ ] Reproduce and diagnose the aggregate native-package test deadline failures.
+- [x] Reproduce and diagnose the aggregate native-package test deadline failures.
   Each emitter test currently runs both CJS/ESM consumers and many independent
   source/emitted-declaration checks under one 120-second test deadline. Preserve
   every contract, both emitters, both consumers and deleted-producer assertions.
   Prefer removing repeated work; splitting independent format cases is permitted
   if needed to make the test deadline cover a meaningful unit. Do not increase
   compiler worker limits or change original scale generators/acceptance rules.
-- [ ] Run focused process-supervisor tests, full release-artifact and native-package
+- [x] Run focused process-supervisor tests, full release-artifact and native-package
   checks, both typechecks, retain exact results, commit and obtain scoped review.
   Full integrated checks remain the controller's responsibility after Task 3/4.

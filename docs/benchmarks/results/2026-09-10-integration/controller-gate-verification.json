@@ -1,0 +1,102 @@
+{
+  "sourceAndApplicableBuildIdentitiesVerified": true,
+  "gateLogsAndRssFilesVerified": true,
+  "spotcheckFilesAndOutcomesVerified": true,
+  "phases": [
+    {
+      "name": "check-classic",
+      "status": 1,
+      "elapsedSeconds": 487.59653543203603
+    },
+    {
+      "name": "node-classic",
+      "status": null,
+      "skipped": "check-classic did not pass; emitted identity unverified"
+    },
+    {
+      "name": "typecheck-native",
+      "status": 0,
+      "elapsedSeconds": 0.8670008570188656
+    },
+    {
+      "name": "build-native",
+      "status": 0,
+      "elapsedSeconds": 0.2652440720703453
+    },
+    {
+      "name": "node-native",
+      "status": 0,
+      "elapsedSeconds": 0.6669830370228738
+    },
+    {
+      "name": "native-audit",
+      "status": 0,
+      "elapsedSeconds": 17.9286582240602
+    },
+    {
+      "name": "docs-check",
+      "status": 0,
+      "elapsedSeconds": 4.678837329032831
+    },
+    {
+      "name": "platform-required",
+      "status": 0,
+      "elapsedSeconds": 4.2792758389841765
+    },
+    {
+      "name": "example-box-adapters",
+      "status": 0,
+      "elapsedSeconds": 0.06514058797620237
+    },
+    {
+      "name": "example-composition",
+      "status": 0,
+      "elapsedSeconds": 0.06541377399116755
+    },
+    {
+      "name": "example-contributions",
+      "status": 0,
+      "elapsedSeconds": 0.03287330595776439
+    },
+    {
+      "name": "example-modules",
+      "status": 0,
+      "elapsedSeconds": 0.032121585914865136
+    },
+    {
+      "name": "example-observers",
+      "status": 0,
+      "elapsedSeconds": 0.03282619605306536
+    },
+    {
+      "name": "example-plugins",
+      "status": 0,
+      "elapsedSeconds": 0.03234343801159412
+    },
+    {
+      "name": "example-scopes",
+      "status": 0,
+      "elapsedSeconds": 0.03318607097025961
+    },
+    {
+      "name": "example-tokens",
+      "status": 0,
+      "elapsedSeconds": 0.06478319095913321
+    },
+    {
+      "name": "example-wbs-scope",
+      "status": 0,
+      "elapsedSeconds": 0.06546082405839115
+    },
+    {
+      "name": "check-classic",
+      "status": 0,
+      "elapsedSeconds": 485.80525961797684
+    },
+    {
+      "name": "node-classic",
+      "status": 0,
+      "elapsedSeconds": 0.6667186539852992
+    }
+  ]
+}
