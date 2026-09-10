@@ -15,14 +15,14 @@ export type NeedConstraint =
   | { readonly kind: 'token-export' | 'token-external' | 'optional-token-export' | 'optional-token-external'; readonly consumer: string | symbol; readonly token: TokenBase }
   | { readonly kind: 'opaque' };
 
-type WrongConstraint<C extends NeedConstraint, Available extends object> =
+type WrongConstraint<C extends NeedConstraint, A extends Registrations> =
   C extends { readonly needs: object; readonly consumer: string | symbol }
     // Public registration maps have required slots. Compare each overlapping
     // value directly to avoid rebuilding a large Pick<Available> per consumer.
     ? {
-        [K in keyof C['needs'] & keyof Available]:
-          Available[K] extends C['needs'][K] ? never : C['consumer'];
-      }[keyof C['needs'] & keyof Available]
+        [K in keyof C['needs'] & keyof Provided<A>]:
+          Provided<A>[K] extends C['needs'][K] ? never : C['consumer'];
+      }[keyof C['needs'] & keyof Provided<A>]
     : never;
 type MissingConstraint<C extends NeedConstraint, Available extends object> =
   C extends { readonly needs: object } ? Exclude<keyof C['needs'], keyof Available> : never;
@@ -33,8 +33,8 @@ type MissingTokenConstraint<C, A extends Registrations> = C extends { kind: 'con
   : C extends { kind: 'opaque' } ? 'opaque' : never;
 
 export type CheckedConstraints<C extends NeedConstraint, A extends Registrations> =
-  [WrongConstraint<C, Provided<A>> | WrongTokenConstraint<C, A>] extends [never] ? CheckedContributions<C, A>
-    : Unsatisfied<'a dependency has the wrong shape', { tokens: WrongConstraint<C, Provided<A>> | WrongTokenConstraint<C, A> }>;
+  [WrongConstraint<C, A> | WrongTokenConstraint<C, A>] extends [never] ? CheckedContributions<C, A>
+    : Unsatisfied<'a dependency has the wrong shape', { tokens: WrongConstraint<C, A> | WrongTokenConstraint<C, A> }>;
 export type IncrementalConstraints<
   C extends NeedConstraint,
   MC extends NeedConstraint,
