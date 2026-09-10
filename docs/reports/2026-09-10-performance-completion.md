@@ -1,5 +1,7 @@
 # Performance improvements and remaining limits — 2026-09-10
 
+> Historical report: the measurements and checks below belong to source `079b001`, before native-provider metadata was integrated. The follow-ups are now published in [PR 3](https://github.com/dany-fedorov/di-bag/pull/3). See [current integration evidence](../benchmarks/results/2026-09-10-published-integration/README.md) for the combined source and [the subsequent CI monitor repair](../benchmarks/results/2026-09-10-supervisor-rss-fix/task-8-report.md). Historical publication statements below describe that earlier revision.
+
 All seven runtime findings have a measured improvement. The integrated source
 passes 1,043 tests, both compiler builds and 31 emitted Node regressions per
 build. This is local verification, not publication or final CI proof. The first

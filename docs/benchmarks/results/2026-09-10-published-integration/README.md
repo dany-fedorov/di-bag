@@ -94,5 +94,12 @@ from their explicit records, not inferred from this directory name.
 The [independent integration review](integration-review.md) found no Critical,
 Important or actionable Minor issue and required no production repair. The
 original full-branch review remains in the historical integration directory.
-All code changes are now frozen; subsequent evidence-only commits leave the
-measured source, tests, compiler helpers, dependencies and workflows unchanged.
+The evidence commit `2dbcc30` leaves the measured source, tests, compiler helpers,
+dependencies and workflows unchanged from `04818af`. Subsequent hosted CI exposed
+a second process-monitor exit race: correct compiler exit statuses 0 and 2 were
+rejected after repeated missing-RSS samples. The [narrow repair and regression
+evidence](../2026-09-10-supervisor-rss-fix/task-8-report.md) at `21b137f` changes only
+the supervisor and its tests. Production source, workload generators, worker
+limits, dependencies and workflows remain identical to the measured candidate.
+These measurements retain their original harness revision; hosted CI on the
+repaired candidate remains the merge gate.
