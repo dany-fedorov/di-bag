@@ -5,8 +5,8 @@
 DI Bag supplies the ownership and composition primitives needed at a request,
 job, message or UI environment boundary. The application decides when that
 boundary begins and when all its work has finished. The
-[parity comparison](../research/2026-09-09-enterprise-parity.md) maps these
-capabilities to NestJS, Angular and standalone containers.
+[comparison guide](comparison.md) explains how these capabilities differ from
+NestJS, Angular, and standalone containers.
 
 ## One owned scope per operation
 
@@ -16,7 +16,9 @@ closes the acquired scope exactly once, and returns `Promise<Awaited<R>>` to
 model its explicit awaiting of work, including structural thenables. If work
 and cleanup both fail, its `AggregateError.errors` contains the original work
 failure followed by the cleanup failure. A lone failure retains its identity,
-including JavaScript's valid `throw undefined` case.
+including JavaScript's valid `throw undefined` case. The following snippet assumes
+you have imported that helper and have an application `root` with `request` and
+`handler` providers, plus the current operation's `requestId`.
 
 ```ts
 const result = await withOwnedScope(
@@ -66,7 +68,9 @@ cleanup before root cleanup, and retention of both handler and cleanup errors.
 
 ## Checked test substitutions
 
-Tests use the same checked builder and scope APIs as applications:
+Tests use the same checked builder and scope APIs as applications. Given a
+`builder` whose `result` service calls `clock.now()`, the imported `withOwnedScope`
+helper, and Node's `assert`:
 
 ```ts
 await withOwnedScope(

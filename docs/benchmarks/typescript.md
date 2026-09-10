@@ -1,5 +1,33 @@
 # TypeScript compiler scale
 
+## Latest recorded results
+
+The latest [entry and replacement follow-up](results/2026-09-10-entry-replacement-projections/README.md)
+records 34 accepted rows and six failures in its 40-row collection. It reruns the
+24 original 1,000-operation cases for named registration, replacement, token
+binding, and token modules, alongside 16 paired 500-operation measurements.
+
+| 1,000-operation form | Classic TypeScript 6.0.3 | Native TypeScript 7.0.2 |
+| --- | --- | --- |
+| One fluent expression of named registrations | Stack overflow | Accepted |
+| One fluent expression of replacements | Stack overflow | Accepted |
+| Typed-token bindings | Accepted | Accepted |
+| Token modules | Accepted | Accepted |
+
+Each entry covers a valid graph and both intended error cases. Accepted error
+cases mean the compiler rejected the invalid graph at the expected boundary;
+crashes and excessive-instantiation errors never count as successful rejection.
+The [expression-depth investigation](results/2026-09-10-classic-expression-depth/README.md)
+retains the six classic failures and evidence about recursive compiler stack use.
+
+For large applications, prefer bulk registration, reusable registration groups,
+or modules over one long expression. Passing these synthetic cases does not
+guarantee a particular editor latency, memory use, or arbitrary graph size.
+Results are tied to the recorded source and toolchain; the later collection is
+not a rerun of the entire historical 108-row matrix below.
+
+## Run the benchmarks
+
 Run from the repository root with Node 24 or later:
 
 ```sh
@@ -46,7 +74,7 @@ tests bound deterministic compiler instantiation counts.
 The `--native` variants retain these same cases but supervise the native
 executable directly; their separate measurements and Linux limits appear below.
 
-## Environment and baseline
+## Historical environment and baseline
 
 Recorded on 2026-09-06, Linux, TypeScript 5.9.3, Node v24.20.0, Bun 1.4.0.
 The pre-change source was commit `9820e21`. All table measurements use separate
@@ -464,6 +492,10 @@ from being mistaken for accepted checks.
 
 
 ## Fresh compiler-work follow-up (2026-09-10)
+
+This earlier September 10 collection predates the entry/replacement and token
+optimizations summarized [above](#latest-recorded-results). Its counts and
+remaining limitations describe that measured revision.
 
 Caching the opaque-token check for incoming registrations without symbol keys
 reduces instantiations on the original generators. The paired 500-operation valid

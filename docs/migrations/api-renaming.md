@@ -1,5 +1,7 @@
 # Migrating to the consolidated API
 
+[README](../../README.md) · [Tutorial](../guides/tutorial.md) · [Earlier migrations](0.1-to-enterprise.md)
+
 This is a breaking pre-1.0 API change. Update all callers together: deprecated
 aliases are not retained. The package still exposes `di-bag` and `di-bag/node`,
 with no runtime dependencies. The underlying dependency graph, lifetime,
@@ -92,7 +94,7 @@ DiBag.transformService(provider, { mode: 'awaited', transform: callback });
 ```
 
 Direct mode passes the exact source output and exposes the exact callback result;
-either may be a Promise. Its independent `acquisitionMode` controls readiness and
+either can be a Promise. Its independent `acquisitionMode` controls readiness and
 the value received by a newly attached disposer. Awaited mode awaits the source
 and adopts the result into a native Promise; it rejects an acquisition override.
 Both retain dependencies, lifetime, metadata, and existing cleanup stages. Neither

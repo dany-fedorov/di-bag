@@ -8,8 +8,9 @@ creates services when they are first requested, and releases the resources that
 an application explicitly gives it. This guide starts with a small application
 and then introduces the APIs in the order in which most applications need them.
 
-Examples use `DiBag` from `di-bag/node`, the Node and Bun entry point. Unless a
-note says that a snippet continues an earlier example, each snippet stands alone.
+Examples use `DiBag` from `di-bag/node`, the Node and Bun entry point. Complete
+examples are labeled **Standalone**. Shorter snippets illustrate individual
+operations or build on the declarations in their surrounding section.
 Run repository examples from the repository root with `bun run examples/<name>.ts`.
 
 ## Learning path
@@ -58,7 +59,7 @@ new named registrations, and `build()` checks the complete graph and returns a
 matter, so a dependency may be added after its consumer. Duplicate names fail;
 use `replace()` when changing an existing registration is intentional.
 
-**Continuation of the preceding composition example:**
+**Using the same `DiBag` import:**
 
 ```ts
 const initial = DiBag.createBuilder().register({ clock: () => 42 });
@@ -909,7 +910,7 @@ close, static metadata remains available and acquisition lists are empty.
 
 `inspectAll(token)` does the same for each contribution in declaration order.
 Aliases expose their direct target description and canonical acquisition state.
-Native metadata decorators add frames as described under
+Metadata wrappers add frames as described under
 [acquisition values and metadata](#represent-acquisition-values-and-metadata-natively).
 
 ## Observe lifecycle transitions
@@ -1136,19 +1137,19 @@ const value = DiBag.transformService(located, {
 });
 ```
 
-Each decorator reserves an absent frame before its source runs. The immediate
-form fills that frame as soon as the source returns and `describe` succeeds,
-even when the exact source output is a still-pending Promise. The asynchronous
-form leaves its frame absent until the source fulfills and `describe` succeeds.
-Frames from repeated decorators remain in declaration order. Inspection itself
+Each metadata wrapper reserves an absent frame before its source runs. The
+`direct` mode fills that frame as soon as the source returns and `describe`
+succeeds, even when the source output is a still-pending Promise. The `awaited`
+mode leaves its frame absent until the source fulfills and `describe` succeeds.
+Frames from repeated wrappers remain in declaration order. Inspection itself
 never starts an acquisition.
 
 Each captured metadata frame is a shallow, frozen copy of the returned record.
 Nested objects and service payloads keep their identities and are not
 deep-frozen. Invalid records, asynchronous metadata callbacks, and callback
-errors fail the acquisition through the decorator's selected mode.
+errors fail the acquisition through the wrapper's selected mode.
 
-Metadata decorators and projections add no ownership. Existing ownership from
+Metadata wrappers and projections add no ownership. Existing ownership from
 `withDisposal` is retained through them; add a new `withDisposal` only when the
 bag should own the projected value too. Ordinary factories remain borrowed even
 when their values have `close()` or `dispose()` methods. Run

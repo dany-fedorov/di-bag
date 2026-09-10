@@ -1,5 +1,9 @@
 # Research: TypeScript DI landscape for `di-bag`
 
+> Historical investigation of an earlier design. Findings about missing features
+> and type-safety gaps describe that revision. Use the
+> [current comparison guide](../guides/comparison.md) for library-selection advice.
+
 **Date:** 2026-09-06
 
 **Status:** Research only; not approved architecture.
