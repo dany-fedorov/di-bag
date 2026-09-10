@@ -137,15 +137,19 @@ type RequiredOf<R extends Registrations> = {
   [K in keyof R]: keyof Needs<R[K]>;
 }[keyof R];
 
+// Cache the key union once for token graph checks. Remapped builder histories
+// otherwise repeat their key projection for every required token.
+type CompletionMap<R extends Registrations> = { [K in keyof R]: R[K] };
+
 /** Compile-time admission requiring every named and typed-token dependency to be bound. */
 export type Complete<R extends Registrations> = [
-  Exclude<RequiredOf<R>, keyof R> | MissingTokens<R>,
+  Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>,
 ] extends [never]
-  ? [InvalidGraphs<R>] extends [never] ? unknown
-    : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<R> }>
+  ? [InvalidGraphs<CompletionMap<R>>] extends [never] ? unknown
+    : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<CompletionMap<R>> }>
   : Unsatisfied<
       'missing factories',
-      { missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<R> }
+      { missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>> }
     >;
 
 type BadOverrides<F extends Registrations, O extends Registrations> = {

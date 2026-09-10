@@ -1,0 +1,111 @@
+bun test v1.4.0 (34cbb9a40)
+
+tests/native-compiler.test.ts:
+62 | 
+63 | test('native compiler completes 1000 dependent token bindings within the original limits', async () => {
+64 |   const row = await nativeScale(process.cwd(), await resolveNative(process.cwd()), {
+65 |     count: 1000, form: 'bindings', scenario: 'valid',
+66 |   });
+67 |   expect(row).toMatchObject({
+                   ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "accepted": true,
++   "accepted": false,
++   "boundaryLine": undefined,
+    "checked": true,
++   "compiler": {
++     "executable": "/tmp/di-bag-performance-integration/node_modules/@typescript/typescript-linux-x64/lib/tsc",
++     "platformPackage": "/tmp/di-bag-performance-integration/node_modules/@typescript/typescript-linux-x64/package.json",
++     "version": "7.0.2",
++     "wrapperVersion": "7.0.2",
++   },
+    "count": 1000,
+-   "diagnostics": [],
++   "diagnostics": [
++     {
++       "code": 2589,
++       "column": 15,
++       "file": "/tmp/di-bag-native-scale-Em5FsE/tests/generated-token-scale.ts",
++       "line": 2002,
++       "message": "Type instantiation is excessively deep and possibly infinite.",
++     },
++   ],
++   "failureReason": "native diagnostics did not satisfy original boundary contract",
+    "form": "bindings",
++   "generatedSha256": "a14c4f557e6c0ba7d6585fd2b23a45c53f3c2acf70972e9ee3aae92468ca10c2",
++   "metrics": {
++     "Bind time": 0.012,
++     "Check time": 26.698,
++     "Config time": 0,
++     "Emit time": 0,
++     "Files": 98,
++     "Identifiers": 74588,
++     "Instantiations": 86664305,
++     "Lines": 63471,
++     "Memory allocs": 91115112,
++     "Memory used": 1517960,
++     "Parse time": 0.057,
++     "Symbols": 1727747,
++     "Total time": 26.768,
++     "Types": 3008867,
++   },
++   "milliseconds": 27316,
++   "nativeMetrics": {
++     "Bind time": 0.012,
++     "Check time": 26.698,
++     "Config time": 0,
++     "Emit time": 0,
++     "Files": 98,
++     "Identifiers": 74588,
++     "Instantiations": 86664305,
++     "Lines": 63471,
++     "Memory allocs": 91115112,
++     "Memory used": 1517960,
++     "Parse time": 0.057,
++     "Symbols": 1727747,
++     "Total time": 26.768,
++     "Types": 3008867,
++   },
++   "peakObservedRssMiB": 2389.78515625,
+    "scenario": "valid",
+-   "status": 0,
++   "signal": null,
++   "sourceCommit": "e3cc8869dbc9c11a56c0cf777b2e73d0d7b8f666",
++   "sourceSha256": "8cfea87bb4abaa5403e7985fc4d303e9352c01002d1a9cae0b28a49321761df4",
++   "status": 1,
++   "stderr": "",
++   "stdout": 
++ "tests/generated-token-scale.ts(2002,15): error TS2589: Type instantiation is excessively deep and possibly infinite.
++ Files:                98
++ Lines:             63471
++ Identifiers:       74588
++ Symbols:         1727747
++ Types:           3008867
++ Instantiations: 86664305
++ Memory used:    1517960K
++ Memory allocs:  91115112
++ Config time:      0.000s
++ Parse time:       0.057s
++ Bind time:        0.012s
++ Check time:      26.698s
++ Emit time:        0.000s
++ Total time:      26.768s
++ "
++ ,
+    "typescript": "7.0.2",
++   "unparsed": [],
+  }
+
+- Expected  - 3
++ Received  + 77
+
+      at <anonymous> (/tmp/di-bag-replacement-spike/tests/native-compiler.test.ts:67:15)
+(fail) native compiler completes 1000 dependent token bindings within the original limits [27347.50ms]
+
+ 0 pass
+ 8 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [27.52s]

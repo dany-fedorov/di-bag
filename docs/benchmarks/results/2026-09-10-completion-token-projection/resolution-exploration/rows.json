@@ -1,0 +1,202 @@
+[
+  {
+    "variant": "baseline",
+    "form": "bindings",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-resolution-inference-probe/worker.mjs",
+      "baseline",
+      "100",
+      "bindings"
+    ],
+    "result": {
+      "variant": "baseline",
+      "count": 100,
+      "form": "bindings",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1289021,
+      "milliseconds": 1813,
+      "maxRssMiB": 456.1875
+    }
+  },
+  {
+    "variant": "baseline",
+    "form": "modules",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-resolution-inference-probe/worker.mjs",
+      "baseline",
+      "100",
+      "modules"
+    ],
+    "result": {
+      "variant": "baseline",
+      "count": 100,
+      "form": "modules",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1884698,
+      "milliseconds": 2323,
+      "maxRssMiB": 490.6875
+    }
+  },
+  {
+    "variant": "fixed-map",
+    "form": "bindings",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-resolution-inference-probe/worker.mjs",
+      "fixed-map",
+      "100",
+      "bindings"
+    ],
+    "result": {
+      "variant": "fixed-map",
+      "count": 100,
+      "form": "bindings",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1289023,
+      "milliseconds": 1817,
+      "maxRssMiB": 439.1875
+    }
+  },
+  {
+    "variant": "fixed-map",
+    "form": "modules",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-resolution-inference-probe/worker.mjs",
+      "fixed-map",
+      "100",
+      "modules"
+    ],
+    "result": {
+      "variant": "fixed-map",
+      "count": 100,
+      "form": "modules",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1884700,
+      "milliseconds": 2272,
+      "maxRssMiB": 464.15625
+    }
+  },
+  {
+    "variant": "fixed-token",
+    "form": "bindings",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-resolution-inference-probe/worker.mjs",
+      "fixed-token",
+      "100",
+      "bindings"
+    ],
+    "result": {
+      "variant": "fixed-token",
+      "count": 100,
+      "form": "bindings",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1289031,
+      "milliseconds": 1808,
+      "maxRssMiB": 439.92578125
+    }
+  },
+  {
+    "variant": "fixed-token",
+    "form": "modules",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-resolution-inference-probe/worker.mjs",
+      "fixed-token",
+      "100",
+      "modules"
+    ],
+    "result": {
+      "variant": "fixed-token",
+      "count": 100,
+      "form": "modules",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1884718,
+      "milliseconds": 2271,
+      "maxRssMiB": 460.390625
+    }
+  },
+  {
+    "variant": "fixed-both",
+    "form": "bindings",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-resolution-inference-probe/worker.mjs",
+      "fixed-both",
+      "100",
+      "bindings"
+    ],
+    "result": {
+      "variant": "fixed-both",
+      "count": 100,
+      "form": "bindings",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1289033,
+      "milliseconds": 1785,
+      "maxRssMiB": 426.96875
+    }
+  },
+  {
+    "variant": "fixed-both",
+    "form": "modules",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-resolution-inference-probe/worker.mjs",
+      "fixed-both",
+      "100",
+      "modules"
+    ],
+    "result": {
+      "variant": "fixed-both",
+      "count": 100,
+      "form": "modules",
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1884720,
+      "milliseconds": 2393,
+      "maxRssMiB": 580.0234375
+    }
+  }
+]

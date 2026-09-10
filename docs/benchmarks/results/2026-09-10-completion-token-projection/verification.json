@@ -1,0 +1,70 @@
+[
+  {
+    "step": "package-green",
+    "argv": [
+      "/tmp/di-bag-bun-1.4.0/bun-linux-x64/bun",
+      "test",
+      "tests/package.test.ts",
+      "tests/token-package.test.ts",
+      "tests/native-package.test.ts"
+    ],
+    "status": 0,
+    "seconds": 172.26100501895417,
+    "log": "/tmp/di-bag-completion-projection-package-green.log"
+  },
+  {
+    "step": "classic-typecheck",
+    "argv": [
+      "npm",
+      "run",
+      "typecheck"
+    ],
+    "status": 0,
+    "seconds": 6.172786711947992,
+    "log": "/tmp/di-bag-completion-projection-classic-typecheck.log"
+  },
+  {
+    "step": "native-typecheck",
+    "argv": [
+      "npm",
+      "run",
+      "typecheck:native"
+    ],
+    "status": 0,
+    "seconds": 0.8382193560246378,
+    "log": "/tmp/di-bag-completion-projection-native-typecheck.log"
+  },
+  {
+    "step": "native-audit",
+    "argv": [
+      "npm",
+      "run",
+      "check:native"
+    ],
+    "status": 0,
+    "seconds": 17.48722184903454,
+    "log": "/tmp/di-bag-completion-projection-native-audit.log"
+  },
+  {
+    "step": "docs-generate",
+    "argv": [
+      "npm",
+      "run",
+      "docs:generate"
+    ],
+    "status": 0,
+    "seconds": 1.7590296060079709,
+    "log": "/tmp/di-bag-completion-projection-docs-generate.log"
+  },
+  {
+    "step": "docs-check",
+    "argv": [
+      "npm",
+      "run",
+      "docs:check"
+    ],
+    "status": 0,
+    "seconds": 4.569563218043186,
+    "log": "/tmp/di-bag-completion-projection-docs-check.log"
+  }
+]

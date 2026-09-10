@@ -1,0 +1,422 @@
+{
+  "variant": "token-projection",
+  "mode": "emit",
+  "typescript": "6.0.3",
+  "diagnostics": [],
+  "declarations": [
+    {
+      "name": "{ withLifetime }",
+      "properties": [
+        {
+          "name": "observe",
+          "type": "(options: import(\"../src\").ObserverOptions) => import(\"../src\").Facade",
+          "properties": []
+        },
+        {
+          "name": "configure",
+          "type": "(options: import(\"../src\").RuntimeOptions) => import(\"../src\").Facade",
+          "properties": []
+        },
+        {
+          "name": "factory",
+          "type": "<F extends import(\"../src/registration\").Factory, M extends import(\"../src\").AcquisitionMode>(create: F, options: { readonly acquisition: M; } & import(\"../src/acquisition-mode\").NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>) => import(\"../src\").Provider<F, Readonly<{}>, readonly [], import(\"../src\").TokenGraph, import(\"../src/acquisition-mode\").Acquired<ReturnType<F>, M>>",
+          "properties": []
+        },
+        {
+          "name": "token",
+          "type": "<const K extends symbol>(key: K & import(\"../src/token-types\").TokenKeyAdmission<K>, ...invalid: [K] extends [never] ? [import(\"../src/token-types\").TokenKeyAdmission<K>] : []) => { readonly of: <S>() => import(\"../src\").Token<K, S>; }",
+          "properties": []
+        },
+        {
+          "name": "optional",
+          "type": "<T extends import(\"../src\").TokenBase>(token: T & import(\"../src/token-types\").TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [import(\"../src/token-types\").TokenTupleAdmission<readonly [T]>] : []) => import(\"../src\").OptionalReference<T>",
+          "properties": []
+        },
+        {
+          "name": "lazy",
+          "type": "<T extends import(\"../src\").TokenBase>(token: T & import(\"../src/token-types\").TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [import(\"../src/token-types\").TokenTupleAdmission<readonly [T]>] : []) => import(\"../src\").LazyReference<T>",
+          "properties": []
+        },
+        {
+          "name": "all",
+          "type": "<T extends import(\"../src\").TokenBase>(token: T & import(\"../src/token-types\").TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [import(\"../src/token-types\").TokenTupleAdmission<readonly [T]>] : []) => import(\"../src\").AllReference<T>",
+          "properties": []
+        },
+        {
+          "name": "fromTokens",
+          "type": "{ <const T extends readonly import(\"../src\").Dependency[], F extends (this: void, ...args: import(\"../src/token-types\").TokenArguments<NoInfer<T>>) => (\"native\" extends M ? Promise<unknown> : unknown), M extends import(\"../src\").AcquisitionMode = \"auto\">(tokens: T & import(\"../src/token-types\").DependencyTupleAdmission<T>, callback: F, ...modeOptions: import(\"../src/acquisition-mode\").StageOptions<M>): import(\"../src\").Provider<() => ReturnType<F>, Readonly<{}>, readonly [], import(\"../src/token-types\").ReferenceGraph<T>, import(\"../src/acquisition-mode\").Acquired<ReturnType<F>, M>>; <const T extends readonly import(\"../src\").TokenBase[], F extends (this: void, ...args: import(\"../src/token-types\").TokenArguments<NoInfer<T>>) => (\"native\" extends M ? Promise<unknown> : unknown), M extends import(\"../src\").AcquisitionMode = \"auto\">(tokens: T & import(\"../src/token-types\").TokenTupleAdmission<T>, callback: F, ...modeOptions: import(\"../src/acquisition-mode\").StageOptions<M>): import(\"../src\").Provider<() => ReturnType<F>, Readonly<{}>, readonly [], import(\"../src\").TokenGraph<T>, import(\"../src/acquisition-mode\").Acquired<ReturnType<F>, M>>; }",
+          "properties": []
+        },
+        {
+          "name": "fromPlugin",
+          "type": "<const T extends readonly import(\"../src\").Dependency[], V, M extends import(\"../src\").PluginAcquisition>(dependencies: T & import(\"../src/token-types\").DependencyTupleAdmission<T>, plugin: unknown, options: import(\"../src\").PluginOptions<M, V>) => import(\"../src\").PluginResult<T, V, M>",
+          "properties": []
+        },
+        {
+          "name": "fromFunction",
+          "type": "{ <const T extends readonly import(\"../src\").Dependency[], F extends import(\"../src\").CompositionFunction<NoInfer<T>, \"native\" extends M ? Promise<unknown> : unknown>, M extends import(\"../src\").AcquisitionMode = \"auto\">(tokens: T & import(\"../src/token-types\").DependencyTupleAdmission<T>, callback: F & import(\"../src\").CompositionArguments<import(\"../src/token-types\").TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & import(\"../src/acquisition-mode\").NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: import(\"../src/acquisition-mode\").StageOptions<M>): import(\"../src\").Provider<() => ReturnType<F>, Readonly<{}>, readonly [], import(\"../src/token-types\").ReferenceGraph<T>, import(\"../src/acquisition-mode\").Acquired<ReturnType<F>, M>>; <const T extends readonly import(\"../src\").Dependency[], F extends import(\"../src\").CompositionFunction<NoInfer<T>>, M extends import(\"../src\").AcquisitionMode = \"auto\">(tokens: T & import(\"../src/token-types\").DependencyTupleAdmission<T>, callback: F & import(\"../src\").CompositionArguments<import(\"../src/token-types\").TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & import(\"../src/acquisition-mode\").NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: import(\"../src/acquisition-mode\").StageOptions<M>): import(\"../src\").Provider<() => ReturnType<F>, Readonly<{}>, readonly [], import(\"../src/token-types\").ReferenceGraph<T>, import(\"../src/acquisition-mode\").Acquired<ReturnType<F>, M>>; }",
+          "properties": []
+        },
+        {
+          "name": "fromClass",
+          "type": "<const T extends readonly import(\"../src\").Dependency[], C extends new (...args: import(\"../src/token-types\").TokenArguments<NoInfer<T>>) => unknown, M extends import(\"../src\").AcquisitionMode = \"auto\">(tokens: T & import(\"../src/token-types\").DependencyTupleAdmission<T>, constructor: C & import(\"../src\").CompositionArguments<import(\"../src/token-types\").TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & import(\"../src/acquisition-mode\").NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>>, ...modeOptions: import(\"../src/acquisition-mode\").StageOptions<M>) => import(\"../src\").Provider<() => InstanceType<C>, Readonly<{}>, readonly [], import(\"../src/token-types\").ReferenceGraph<T>, import(\"../src/acquisition-mode\").Acquired<InstanceType<C>, M>>",
+          "properties": []
+        },
+        {
+          "name": "begin",
+          "type": "() => import(\"../src\").Builder<never>",
+          "properties": []
+        },
+        {
+          "name": "module",
+          "type": "() => import(\"../src\").ModuleBuilder<never>",
+          "properties": []
+        },
+        {
+          "name": "withDisposal",
+          "type": "{ <F extends import(\"../src/registration\").Factory>(create: F, dispose: (this: void, value: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>): import(\"../src\").DisposableFactory<F>; <R extends import(\"../src\").Registration>(provider: R & import(\"../src\").Registration, dispose: (this: void, value: import(\"../src\").ProviderAcquired<NoInfer<R>>) => void | Promise<void>): import(\"../src\").Provider<import(\"../src\").ProviderFactory<R>, import(\"../src/provider\").RetainedMetadata<R>, import(\"../src\").ProviderAcquisitionMetadata<R>, import(\"../src\").ProviderGraph<R>, import(\"../src\").ProviderAcquired<R>>; }",
+          "properties": []
+        },
+        {
+          "name": "withLifetime",
+          "type": "{ <R extends import(\"../src\").Registration, const L extends import(\"../src\").Lifetime>(registration: R & import(\"../src\").Registration, lifetime: L & (import(\"../src/types\").Singleton<L> extends true ? unknown : { readonly [errorBrand]: \"lifetime requires an individually known policy literal\"; })): import(\"../src\").Provider<import(\"../src\").ProviderFactory<R>, import(\"../src/provider\").RetainedMetadata<R>, import(\"../src\").ProviderAcquisitionMetadata<R>, import(\"../src/lifetime\").LifetimeGraph<import(\"../src\").ProviderGraph<R>, L, undefined>, import(\"../src\").ProviderAcquired<R>>; <R extends import(\"../src\").Registration, const L extends import(\"../src\").Lifetime, const O extends object | undefined>(registration: R & import(\"../src\").Registration, lifetime: L & (import(\"../src/types\").Singleton<L> extends true ? unknown : { readonly [errorBrand]: \"lifetime requires an individually known policy literal\"; }), options: O & ([NoInfer<O> extends infer T & {} ? T extends unknown ? Exclude<keyof T, \"captureScoped\"> extends never ? NoInfer<L> extends \"root\" ? T extends { readonly captureScoped?: boolean; } ? never : true : \"captureScoped\" extends keyof T ? true : never : true : never : never] extends [never] ? unknown : { readonly [errorBrand]: \"lifetime capture options require root and a boolean value\"; })): import(\"../src\").Provider<import(\"../src\").ProviderFactory<R>, import(\"../src/provider\").RetainedMetadata<R>, import(\"../src\").ProviderAcquisitionMetadata<R>, import(\"../src/lifetime\").LifetimeGraph<import(\"../src\").ProviderGraph<R>, L, O>, import(\"../src\").ProviderAcquired<R>>; }",
+          "properties": []
+        },
+        {
+          "name": "withContext",
+          "type": "<F extends (this: void, deps: never, context: import(\"../src\").AcquisitionContext) => (\"native\" extends M ? Promise<unknown> : unknown), M extends import(\"../src\").AcquisitionMode = \"auto\">(callback: F, ...modeOptions: import(\"../src/acquisition-mode\").StageOptions<M>) => import(\"../src\").Provider<import(\"../src\").ContextualFactory<F>, Readonly<{}>, readonly [], import(\"../src\").TokenGraph, import(\"../src/acquisition-mode\").Acquired<ReturnType<F>, M>>",
+          "properties": []
+        },
+        {
+          "name": "withMetadata",
+          "type": "<R extends import(\"../src\").Registration, M extends object>(registration: R & import(\"../src\").Registration, metadata: M & ([(M extends unknown ? { [K in keyof M]-?: Record<never, never> extends Record<K, never> ? K : never; }[keyof M] : never) | Extract<import(\"../src/provider\").MetadataKeyUnion<M>, number>] extends [never] ? [import(\"../src/provider\").MetadataKeyUnion<M> & import(\"../src/provider\").MetadataKeyUnion<import(\"../src\").ProviderMetadata<NoInfer<R>>>] extends [never] ? unknown : import(\"../src/types\").Unsatisfied<\"duplicate metadata keys\", { duplicates: import(\"../src/provider\").MetadataKeyUnion<M> & import(\"../src/provider\").MetadataKeyUnion<import(\"../src\").ProviderMetadata<NoInfer<R>>>; }> : { readonly [errorBrand]: \"metadata keys must be finite string or unique-symbol keys\"; })) => import(\"../src\").Provider<import(\"../src\").ProviderFactory<R>, Readonly<import(\"../src\").ProviderMetadata<R> & M>, import(\"../src\").ProviderAcquisitionMetadata<R>, import(\"../src\").ProviderGraph<R>, import(\"../src\").ProviderAcquired<R>>",
+          "properties": []
+        },
+        {
+          "name": "withAcquisitionMetadata",
+          "type": "<R extends import(\"../src\").Registration, P extends (this: void, value: import(\"../src\").ProviderOutput<NoInfer<R>>) => object>(registration: R & import(\"../src\").Registration, describe: P & ([ReturnType<P> extends unknown ? ReturnType<P> extends readonly unknown[] | ((...args: never[]) => unknown) ? true : \"then\" extends keyof ReturnType<P> ? unknown extends ReturnType<P>[keyof ReturnType<P> & \"then\"] ? true : Extract<ReturnType<P>[keyof ReturnType<P> & \"then\"], (...args: never[]) => unknown> extends never ? never : true : never : never] extends [never] ? unknown : { readonly [errorBrand]: \"acquisition metadata must be a synchronous object record\"; })) => import(\"../src\").Provider<import(\"../src\").ProviderFactory<R>, import(\"../src/provider\").RetainedMetadata<R>, readonly [...import(\"../src\").ProviderAcquisitionMetadata<R>, Readonly<ReturnType<P>>], import(\"../src\").ProviderGraph<R>, import(\"../src\").ProviderAcquired<R>>",
+          "properties": []
+        },
+        {
+          "name": "withAcquisitionMetadataAsync",
+          "type": "<R extends import(\"../src\").Registration, P extends (this: void, value: Awaited<import(\"../src\").ProviderOutput<NoInfer<R>>>) => object>(registration: R & import(\"../src\").Registration, describe: P & ([ReturnType<P> extends unknown ? ReturnType<P> extends readonly unknown[] | ((...args: never[]) => unknown) ? true : \"then\" extends keyof ReturnType<P> ? unknown extends ReturnType<P>[keyof ReturnType<P> & \"then\"] ? true : Extract<ReturnType<P>[keyof ReturnType<P> & \"then\"], (...args: never[]) => unknown> extends never ? never : true : never : never] extends [never] ? unknown : { readonly [errorBrand]: \"acquisition metadata must be a synchronous object record\"; })) => import(\"../src\").Provider<(this: void, deps: import(\"../src\").ProviderNeeds<R>) => Promise<Awaited<import(\"../src\").ProviderOutput<R>>>, import(\"../src/provider\").RetainedMetadata<R>, readonly [...import(\"../src\").ProviderAcquisitionMetadata<R>, Readonly<ReturnType<P>>], import(\"../src\").ProviderGraph<R>, Awaited<import(\"../src\").ProviderOutput<R>>>",
+          "properties": []
+        },
+        {
+          "name": "mapSync",
+          "type": "<R extends import(\"../src\").Registration, P extends (this: void, value: import(\"../src\").ProviderOutput<NoInfer<R>>) => (\"native\" extends M ? Promise<unknown> : unknown), M extends import(\"../src\").AcquisitionMode = \"auto\">(registration: R & import(\"../src\").Registration, project: P, ...modeOptions: import(\"../src/acquisition-mode\").StageOptions<M>) => import(\"../src\").Provider<(this: void, deps: import(\"../src\").ProviderNeeds<R>) => ReturnType<P>, import(\"../src/provider\").RetainedMetadata<R>, import(\"../src\").ProviderAcquisitionMetadata<R>, import(\"../src\").ProviderGraph<R>, import(\"../src/acquisition-mode\").Acquired<ReturnType<P>, M>>",
+          "properties": []
+        },
+        {
+          "name": "mapAsync",
+          "type": "<R extends import(\"../src\").Registration, P extends (this: void, value: Awaited<import(\"../src\").ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & import(\"../src\").Registration, project: P) => import(\"../src\").Provider<(this: void, deps: import(\"../src\").ProviderNeeds<R>) => Promise<Awaited<ReturnType<P>>>, import(\"../src/provider\").RetainedMetadata<R>, import(\"../src\").ProviderAcquisitionMetadata<R>, import(\"../src\").ProviderGraph<R>>",
+          "properties": []
+        }
+      ]
+    },
+    {
+      "name": "graph",
+      "properties": [
+        {
+          "name": "#graph",
+          "type": "import(\"../src/runtime\").BindingGraph",
+          "properties": [
+            {
+              "name": "#bindings",
+              "type": "import(\"../src/persistent-map\").PersistentMap<{ readonly description: import(\"../src/runtime\").BindingDescription; readonly normalized: Readonly<{ lifetime: import(\"../src/lifetime\").LifetimePolicy; alias?: string | symbol; create: import(\"../src/registration\").Factory; acquisition: import(\"../src\").AcquisitionMode; tokenKeys: readonly symbol[]; references: readonly import(\"../src/dependency-references\").ArgumentReference[]; contextual: boolean; dispose?: (value: never) => void | Promise<void>; metadata: Readonly<object>; operations: readonly import(\"../src/provider-operations\").ProviderOperation[]; }>; readonly lexical?: { readonly id: symbol; readonly names: ReadonlyMap<import(\"../src/runtime\").BindingKey, import(\"../src/runtime\").BindingRef>; readonly privateIds: readonly import(\"../src/runtime\").BindingId[]; }; }>"
+            },
+            {
+              "name": "#publicSlots",
+              "type": "import(\"../src/persistent-map\").PersistentMap<symbol>"
+            },
+            {
+              "name": "#publicReferences",
+              "type": "import(\"../src/persistent-map\").PersistentMap<number>"
+            },
+            {
+              "name": "#lexicalUsers",
+              "type": "import(\"../src/persistent-map\").PersistentMap<number>"
+            },
+            {
+              "name": "#privateReferences",
+              "type": "import(\"../src/persistent-map\").PersistentMap<number>"
+            },
+            {
+              "name": "#contributed",
+              "type": "import(\"../src/persistent-map\").PersistentMap<true>"
+            },
+            {
+              "name": "#obsolete",
+              "type": "import(\"../src/persistent-map\").PersistentMap<true>"
+            },
+            {
+              "name": "#contributions",
+              "type": "import(\"../src/persistent-map\").PersistentMap<import(\"../src/persistent-sequence\").Sequence<symbol>>"
+            },
+            {
+              "name": "#bindingCache",
+              "type": "Map<symbol, import(\"../src/runtime\").BindingDescription>"
+            },
+            {
+              "name": "#registrationCache",
+              "type": "Map<symbol, Readonly<{ lifetime: import(\"../src/lifetime\").LifetimePolicy; alias?: string | symbol; create: import(\"../src/registration\").Factory; acquisition: import(\"../src\").AcquisitionMode; tokenKeys: readonly symbol[]; references: readonly import(\"../src/dependency-references\").ArgumentReference[]; contextual: boolean; dispose?: (value: never) => void | Promise<void>; metadata: Readonly<object>; operations: readonly import(\"../src/provider-operations\").ProviderOperation[]; }>>"
+            },
+            {
+              "name": "#publicCache",
+              "type": "Map<import(\"../src/runtime\").BindingKey, symbol>"
+            },
+            {
+              "name": "#contributionCache",
+              "type": "Map<symbol, readonly symbol[]>"
+            },
+            {
+              "name": "#explicitlyClassified",
+              "type": "boolean"
+            },
+            {
+              "name": "copy",
+              "type": "() => import(\"../src/runtime\").BindingGraph"
+            },
+            {
+              "name": "entry",
+              "type": "(id: import(\"../src/runtime\").BindingId) => { readonly description: import(\"../src/runtime\").BindingDescription; readonly normalized: Readonly<{ lifetime: import(\"../src/lifetime\").LifetimePolicy; alias?: string | symbol; create: import(\"../src/registration\").Factory; acquisition: import(\"../src\").AcquisitionMode; tokenKeys: readonly symbol[]; references: readonly import(\"../src/dependency-references\").ArgumentReference[]; contextual: boolean; dispose?: (value: never) => void | Promise<void>; metadata: Readonly<object>; operations: readonly import(\"../src/provider-operations\").ProviderOperation[]; }>; readonly lexical?: { readonly id: symbol; readonly names: ReadonlyMap<import(\"../src/runtime\").BindingKey, import(\"../src/runtime\").BindingRef>; readonly privateIds: readonly import(\"../src/runtime\").BindingId[]; }; } | undefined"
+            },
+            {
+              "name": "slot",
+              "type": "(key: import(\"../src/runtime\").BindingKey) => import(\"../src/runtime\").BindingId | undefined"
+            },
+            {
+              "name": "addBinding",
+              "type": "(label: string, registration: import(\"../src\").Registration) => import(\"../src/runtime\").BindingId"
+            },
+            {
+              "name": "contributionBindings",
+              "type": "(key: symbol) => readonly import(\"../src/runtime\").BindingId[]"
+            },
+            {
+              "name": "withContribution",
+              "type": "(key: symbol, registration: import(\"../src\").Registration) => import(\"../src/runtime\").BindingGraph"
+            },
+            {
+              "name": "hasPublic",
+              "type": "(key: import(\"../src/runtime\").BindingKey) => boolean"
+            },
+            {
+              "name": "hasBinding",
+              "type": "(id: import(\"../src/runtime\").BindingId) => boolean"
+            },
+            {
+              "name": "preflight",
+              "type": "(context: import(\"../src/acquisition-mode\").RuntimeContext) => void"
+            },
+            {
+              "name": "publicBinding",
+              "type": "(key: import(\"../src/runtime\").BindingKey) => import(\"../src/runtime\").BindingId"
+            },
+            {
+              "name": "requirePublicBinding",
+              "type": "(key: import(\"../src/runtime\").BindingKey) => import(\"../src/runtime\").BindingId"
+            },
+            {
+              "name": "findDependency",
+              "type": "(from: import(\"../src/runtime\").BindingId, localName: import(\"../src/runtime\").BindingKey) => import(\"../src/runtime\").BindingId | undefined"
+            },
+            {
+              "name": "dependency",
+              "type": "(from: import(\"../src/runtime\").BindingId, localName: import(\"../src/runtime\").BindingKey) => import(\"../src/runtime\").BindingId"
+            },
+            {
+              "name": "registration",
+              "type": "(id: import(\"../src/runtime\").BindingId) => Readonly<{ lifetime: import(\"../src/lifetime\").LifetimePolicy; alias?: string | symbol; create: import(\"../src/registration\").Factory; acquisition: import(\"../src\").AcquisitionMode; tokenKeys: readonly symbol[]; references: readonly import(\"../src/dependency-references\").ArgumentReference[]; contextual: boolean; dispose?: (value: never) => void | Promise<void>; metadata: Readonly<object>; operations: readonly import(\"../src/provider-operations\").ProviderOperation[]; }>"
+            },
+            {
+              "name": "requireRegistration",
+              "type": "(id: import(\"../src/runtime\").BindingId) => Readonly<{ lifetime: import(\"../src/lifetime\").LifetimePolicy; alias?: string | symbol; create: import(\"../src/registration\").Factory; acquisition: import(\"../src\").AcquisitionMode; tokenKeys: readonly symbol[]; references: readonly import(\"../src/dependency-references\").ArgumentReference[]; contextual: boolean; dispose?: (value: never) => void | Promise<void>; metadata: Readonly<object>; operations: readonly import(\"../src/provider-operations\").ProviderOperation[]; }>"
+            },
+            {
+              "name": "label",
+              "type": "(id: import(\"../src/runtime\").BindingId) => string"
+            },
+            {
+              "name": "withPublicRegistrations",
+              "type": "(registrations: import(\"../src/registration\").Registrations) => import(\"../src/runtime\").BindingGraph"
+            },
+            {
+              "name": "withPublicBindings",
+              "type": "(entries: readonly (readonly [import(\"../src/runtime\").BindingKey, import(\"../src\").Registration])[]) => import(\"../src/runtime\").BindingGraph"
+            },
+            {
+              "name": "withPublicBinding",
+              "type": "(key: import(\"../src/runtime\").BindingKey, registration: import(\"../src\").Registration) => import(\"../src/runtime\").BindingGraph"
+            },
+            {
+              "name": "releaseLexical",
+              "type": "(entry: { readonly description: import(\"../src/runtime\").BindingDescription; readonly normalized: Readonly<{ lifetime: import(\"../src/lifetime\").LifetimePolicy; alias?: string | symbol; create: import(\"../src/registration\").Factory; acquisition: import(\"../src\").AcquisitionMode; tokenKeys: readonly symbol[]; references: readonly import(\"../src/dependency-references\").ArgumentReference[]; contextual: boolean; dispose?: (value: never) => void | Promise<void>; metadata: Readonly<object>; operations: readonly import(\"../src/provider-operations\").ProviderOperation[]; }>; readonly lexical?: { readonly id: symbol; readonly names: ReadonlyMap<import(\"../src/runtime\").BindingKey, import(\"../src/runtime\").BindingRef>; readonly privateIds: readonly import(\"../src/runtime\").BindingId[]; }; }, pending: import(\"../src/runtime\").BindingId[]) => void"
+            },
+            {
+              "name": "prune",
+              "type": "(pending: import(\"../src/runtime\").BindingId[]) => void"
+            },
+            {
+              "name": "withInstallation",
+              "type": "(description: import(\"../src/runtime\").GraphDescription) => import(\"../src/runtime\").BindingGraph"
+            }
+          ]
+        },
+        {
+          "name": "#runtime",
+          "type": "import(\"../src/runtime\").Runtime",
+          "properties": [
+            {
+              "name": "acquisitions",
+              "type": "import(\"../src/acquisition\").Acquisitions"
+            },
+            {
+              "name": "children",
+              "type": "Set<import(\"../src/runtime\").Runtime>"
+            },
+            {
+              "name": "closing",
+              "type": "Promise<void> | undefined"
+            },
+            {
+              "name": "graph",
+              "type": "import(\"../src/runtime\").BindingGraph"
+            },
+            {
+              "name": "context",
+              "type": "import(\"../src/acquisition-mode\").RuntimeContext"
+            },
+            {
+              "name": "detach",
+              "type": "(() => void) | undefined"
+            },
+            {
+              "name": "parentAcquisitions",
+              "type": "import(\"../src/acquisition\").Acquisitions | undefined"
+            },
+            {
+              "name": "resolve",
+              "type": "(key: import(\"../src/runtime\").BindingKey) => unknown"
+            },
+            {
+              "name": "resolveAll",
+              "type": "(key: symbol) => readonly unknown[]"
+            },
+            {
+              "name": "inspectAll",
+              "type": "(key: symbol) => readonly import(\"../src\").InspectionSnapshot<object, readonly unknown[]>[]"
+            },
+            {
+              "name": "acquire",
+              "type": "(key: import(\"../src/runtime\").BindingKey) => Promise<void>"
+            },
+            {
+              "name": "isTransient",
+              "type": "(key: import(\"../src/runtime\").BindingKey) => boolean"
+            },
+            {
+              "name": "inspect",
+              "type": "(key: import(\"../src/runtime\").BindingKey) => import(\"../src\").InspectionSnapshot<object, readonly unknown[]>"
+            },
+            {
+              "name": "inspectBinding",
+              "type": "(bindingId: import(\"../src/runtime\").BindingId) => import(\"../src\").InspectionSnapshot<object, readonly unknown[]>"
+            },
+            {
+              "name": "assertOpen",
+              "type": "() => void"
+            },
+            {
+              "name": "scope",
+              "type": "(graph?: import(\"../src/runtime\").BindingGraph, shared?: readonly import(\"../src/runtime\").BindingId[]) => import(\"../src/runtime\").Runtime"
+            },
+            {
+              "name": "close",
+              "type": "(cause?: unknown) => Promise<void>"
+            },
+            {
+              "name": "observeScope",
+              "type": "(kind: \"scope-opened\" | \"scope-closing\" | \"scope-closed\" | \"scope-close-failed\", error?: unknown) => void"
+            },
+            {
+              "name": "finishClose",
+              "type": "(childResults: Promise<PromiseSettledResult<void>[]>, localClosing: Promise<void>) => Promise<void>"
+            }
+          ]
+        },
+        {
+          "name": "context",
+          "type": "import(\"../src/acquisition-mode\").RuntimeContext",
+          "properties": [
+            {
+              "name": "isNativePromise",
+              "type": "(this: void, value: unknown) => boolean"
+            },
+            {
+              "name": "observers",
+              "type": "import(\"../src/observers\").Observers"
+            }
+          ]
+        },
+        {
+          "name": "resolve",
+          "type": "<K extends import(\"../src\").TokenBase | \"db\" | \"repo\">(token: K & ([K] extends [string] ? unknown : import(\"../src\").TokenMember<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, K>)) => import(\"../src\").Provided<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>>[import(\"../src\").SelectionKey<K> & (\"db\" | \"repo\")]",
+          "properties": []
+        },
+        {
+          "name": "resolveAll",
+          "type": "<T extends import(\"../src\").TokenBase>(token: T & ([import(\"../src/token-types\").ValidToken<T> extends true ? never : \"0\"] extends [never] ? unknown : { readonly [errorBrand]: \"tokens require a finite tuple of individually known token handles\"; }) & import(\"../src/contribution-types\").CollectionMember<T, never>, ...invalid: [T] extends [never] ? [never] : []) => readonly import(\"../src\").TokenService<T>[]",
+          "properties": []
+        },
+        {
+          "name": "inspectAll",
+          "type": "<T extends import(\"../src\").TokenBase>(token: T & ([import(\"../src/token-types\").ValidToken<T> extends true ? never : \"0\"] extends [never] ? unknown : { readonly [errorBrand]: \"tokens require a finite tuple of individually known token handles\"; }) & import(\"../src/contribution-types\").CollectionMember<T, never>, ...invalid: [T] extends [never] ? [never] : []) => readonly import(\"../src\").InspectionSnapshot<object, readonly unknown[]>[]",
+          "properties": []
+        },
+        {
+          "name": "inspect",
+          "type": "<K extends import(\"../src\").TokenBase | \"db\" | \"repo\">(token: K & ([K] extends [string] ? unknown : import(\"../src\").TokenMember<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, K>)) => import(\"../src\").InspectionSnapshot<import(\"../src\").ProviderMetadata<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>[import(\"../src\").SelectionKey<K> & (\"db\" | \"repo\")]>, import(\"../src\").ProviderAcquisitionMetadata<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>[import(\"../src\").SelectionKey<K> & (\"db\" | \"repo\")]>>",
+          "properties": []
+        },
+        {
+          "name": "scope",
+          "type": "{ <const S extends readonly unknown[]>(options: import(\"../src\").ScopeOptions<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, S>): import(\"../src\").Bag<import(\"../src\").SharedAliasProviders<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, S>, never>; <const K extends readonly unknown[], O extends import(\"../src\").ForkContext<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, K, O>, const S extends readonly unknown[] = readonly []>(keys: K & import(\"../src\").Selection<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, K, \"scope\">, overrides: O & object & Record<import(\"../src\").SelectionKey<K[number]>, import(\"../src\").Registration> & import(\"../src\").Overrides<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").Selected<K, O>> & import(\"../src\").Checked<import(\"../src\").Merge<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").ReboundSelection<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").Selected<K, O>>>> & import(\"../src\").Complete<import(\"../src\").Merge<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").ReboundSelection<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").Selected<K, O>>>> & import(\"../src\").CheckedScopeLifetimes<NoInfer<import(\"../src\").SharedAliasProviders<import(\"../src\").UnsharedAliases<import(\"../src\").Merge<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").ReboundSelection<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").Selected<K, O>>>>, import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, S>>, NoInfer<import(\"../src\").Selected<K, O>>, never>, options?: (import(\"../src\").ScopeOptions<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, S> & import(\"../src\").DisjointScopeSelection<K, S>) | undefined): import(\"../src\").Bag<import(\"../src\").SharedAliasProviders<import(\"../src\").UnsharedAliases<import(\"../src\").Merge<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").ReboundSelection<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").Selected<K, O>>>>, import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, S>, never>; (): import(\"../src\").Bag<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, never>; }",
+          "properties": []
+        },
+        {
+          "name": "fork",
+          "type": "{ (this: import(\"../src\").Bag<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, never>): import(\"../src\").Bag<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, never>; <const K extends readonly unknown[], O extends import(\"../src\").ForkContext<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, K, O>>(keys: K & import(\"../src\").Selection<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, K, \"fork\">, overrides: O & object & Record<import(\"../src\").SelectionKey<K[number]>, import(\"../src\").Registration> & import(\"../src\").Overrides<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").Selected<K, O>> & import(\"../src\").Checked<import(\"../src\").Merge<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").ReboundSelection<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").Selected<K, O>>>> & import(\"../src\").Complete<import(\"../src\").Merge<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").ReboundSelection<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").Selected<K, O>>>> & import(\"../src\").CheckedLifetimes<import(\"../src\").UnsharedAliases<import(\"../src\").Merge<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").ReboundSelection<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").Selected<K, O>>>>, never>): import(\"../src\").Bag<import(\"../src\").UnsharedAliases<import(\"../src\").Merge<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").ReboundSelection<import(\"../src\").From<import(\"../src\").Entries<{ db: import(\"../src\").Provider<() => { query: () => number; }, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, { query: () => number; }>; repo: import(\"../src\").Provider<({ db }: { db: { query(): number; }; }) => number, Readonly<{}>, readonly [], Omit<import(\"../src\").TokenGraph, \"lifetime\"> & { readonly lifetime: { readonly kind: \"root\"; readonly captureScoped: false; }; }, number>; }>>, import(\"../src\").Selected<K, O>>>>, never>; }",
+          "properties": []
+        },
+        {
+          "name": "close",
+          "type": "() => Promise<void>",
+          "properties": []
+        },
+        {
+          "name": "__@constraintInvariant@5313",
+          "type": "(value: never) => never",
+          "properties": []
+        }
+      ]
+    },
+    {
+      "name": "reflectedScope",
+      "properties": []
+    },
+    {
+      "name": "reflectedFork",
+      "properties": []
+    },
+    {
+      "name": "reflectedEnd",
+      "properties": []
+    },
+    {
+      "name": "reflectedStart",
+      "properties": []
+    }
+  ],
+  "instantiations": 85831
+}

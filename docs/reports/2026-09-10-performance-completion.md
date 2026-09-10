@@ -1,5 +1,7 @@
 # Performance improvements and remaining limits — 2026-09-10
 
+> Later compiler follow-up: [completion token projection evidence](../benchmarks/results/2026-09-10-completion-token-projection/README.md) records successful original 1,000-binding valid, missing-token and incompatible-token cases on both compilers. It also records about 9.5% fewer type instantiations at 500 bindings. The separate 1,000-call named, replacement and module limits remain open; the historical measurements below retain their original source identities.
+
 > Historical report: the measurements and checks below belong to source `079b001`, before native-provider metadata was integrated. The follow-ups are now published in [PR 3](https://github.com/dany-fedorov/di-bag/pull/3). See [current integration evidence](../benchmarks/results/2026-09-10-published-integration/README.md) for the combined source and [the subsequent CI monitor repair](../benchmarks/results/2026-09-10-supervisor-rss-fix/task-8-report.md). Historical publication statements below describe that earlier revision.
 
 All seven runtime findings have a measured improvement. The integrated source
