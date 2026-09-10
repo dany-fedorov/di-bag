@@ -14,7 +14,7 @@ type Complete<R extends Registrations> = [
 }>;
 ```
 
-Defined in: [types.ts:135](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L135)
+Defined in: [types.ts:141](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L141)
 
 Compile-time admission requiring every named and typed-token dependency to be bound.
 

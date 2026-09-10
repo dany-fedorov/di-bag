@@ -96,8 +96,9 @@ export type Checked<R extends Registrations> = [
 // Builder history has already passed Checked, so only relationships crossing
 // the accepted-history/incoming-registration boundary need validating again.
 type NewWrong<E extends Entry, N extends Registrations> = {
-  [K in keyof N]: Pick<Provided<From<E>>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> extends
-    Pick<Needs<N[K]>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> ? never : K
+  [K in keyof N]: [Exclude<keyof Needs<N[K]>, keyof N> & E['key']] extends [never] ? never
+    : Pick<Provided<From<E>>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> extends
+      Pick<Needs<N[K]>, Exclude<keyof Needs<N[K]>, keyof N> & E['key']> ? never : K
 }[keyof N];
 type OldWrong<E extends Entry, N extends Registrations> = E extends Entry
   ? E['key'] extends keyof N ? never
@@ -105,16 +106,21 @@ type OldWrong<E extends Entry, N extends Registrations> = E extends Entry
       Pick<Needs<E['registration']>, keyof Needs<E['registration']> & keyof N> ? never : E['key']
   : never;
 type NewTokenWrong<E extends Entry, N extends Registrations> = {
-  [K in keyof N]: WrongToken<ProviderTokenNeeds<N[K]> | ProviderOptionalTokenNeeds<N[K]>, From<Exclude<E, { key: keyof N }>>>
+  [K in keyof N]: WrongToken<ProviderTokenNeeds<N[K]> | ProviderOptionalTokenNeeds<N[K]>, From<[E['key'] & keyof N] extends [never] ? E : Exclude<E, { key: keyof N }>>>
 }[keyof N];
 // Without incoming symbol keys, only opaque token needs can fail. Cache that
 // check per retained entry while preserving removal of replaced registrations.
 type OpaqueTokenNeeds<E extends Entry> = E extends Entry
   ? E['key'] extends never ? never : WrongToken<ProviderTokenNeeds<E['registration']> | ProviderOptionalTokenNeeds<E['registration']>, {}> : never;
+// Cache extraction per retained entry before comparing incoming token bindings.
+type RetainedTokenNeeds<E extends Entry> = E extends Entry
+  ? E['key'] extends never ? never : ProviderTokenNeeds<E['registration']> | ProviderOptionalTokenNeeds<E['registration']> : never;
+// Broad histories preserve conditional any-key behavior; empty keys must reduce
+// before a generic registration can defer the cached comparison.
 type OldTokenWrong<E extends Entry, N extends Registrations> = [Extract<keyof N, symbol>] extends [never]
-  ? OpaqueTokenNeeds<[E['key'] & keyof N] extends [never] ? E : Exclude<E, { key: keyof N }>> : E extends Entry
-  ? E['key'] extends keyof N ? never : WrongToken<ProviderTokenNeeds<E['registration']> | ProviderOptionalTokenNeeds<E['registration']>, N>
-  : never;
+  ? OpaqueTokenNeeds<[E['key'] & keyof N] extends [never] ? E : Exclude<E, { key: keyof N }>> : string extends E['key'] ? E extends Entry
+    ? E['key'] extends keyof N ? never : WrongToken<ProviderTokenNeeds<E['registration']> | ProviderOptionalTokenNeeds<E['registration']>, N> : never
+    : [E['key']] extends [never] ? never : WrongToken<RetainedTokenNeeds<[E['key'] & keyof N] extends [never] ? E : Exclude<E, { key: keyof N }>>, N>;
 // Preserve Checked's incoming-first precedence before inspecting cross-boundary
 // relationships, then prefer token-contract errors over named shape errors.
 export type IncrementalChecked<E extends Entry, N extends Registrations> = unknown extends Checked<N>

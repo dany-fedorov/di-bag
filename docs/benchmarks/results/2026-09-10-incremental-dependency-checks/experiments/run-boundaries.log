@@ -1,0 +1,3 @@
+{"variant": "baseline", "histories": 29, "incoming": 15, "diagnostics": 0, "declarations": 435, "sameDiagnostics": true, "sameDeclarations": true}
+{"variant": "new-and-disjoint", "histories": 29, "incoming": 15, "diagnostics": 0, "declarations": 435, "sameDiagnostics": true, "sameDeclarations": true}
+{"variant": "cached-with-new-shortcuts", "histories": 29, "incoming": 15, "diagnostics": 0, "declarations": 435, "sameDiagnostics": true, "sameDeclarations": false}

@@ -1,0 +1,2 @@
+{"variant": "baseline", "histories": 29, "incoming": 15, "diagnostics": 0, "declarations": 435, "sameDiagnostics": true, "sameDeclarations": true}
+{"variant": "cached-safe-any", "histories": 29, "incoming": 15, "diagnostics": 0, "declarations": 435, "sameDiagnostics": true, "sameDeclarations": false}

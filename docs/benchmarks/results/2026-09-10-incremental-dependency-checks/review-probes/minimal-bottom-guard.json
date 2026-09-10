@@ -1,0 +1,6 @@
+{
+  "variant": "cached-finite-bottom-guard",
+  "version": "6.0.3",
+  "diagnostics": [],
+  "source": "import { DiBag, type Builder, type Registration } from '../src';\n\nconst key = Symbol('service');\nconst token = DiBag.token(key).of<number>();\n\nexport function bindAfterBottomKey<R extends Registration>(\n  builder: Builder<{ key: never; registration: R }>,\n) {\n  return builder.bind(token, () => 1);\n}\n"
+}
