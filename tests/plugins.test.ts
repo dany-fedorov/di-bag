@@ -250,7 +250,7 @@ test('plugin composition retains module privacy, aliases, contributions and sele
     apiVersion: 1,
     create: (id: number) => ({ id, sequence: ++created }),
   }, { acquisitionMode: 'raw', validate: (value): value is { id: number; sequence: number } => typeof value === 'object' && value !== null });
-  const feature = DiBag.createModuleBuilder().register({ plugin }).alias('copy', 'plugin').contribute(collection, plugin).buildModule(['plugin', 'copy']);
+  const feature = DiBag.createBuilder().register({ plugin }).alias('copy', 'plugin').contribute(collection, plugin).buildModule(['plugin', 'copy']);
   const bag = DiBag.createBuilder().register(dependency, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).installModule(feature).build();
   const parent = bag.resolve('plugin');
   expect(bag.resolve('copy')).toBe(parent);
@@ -263,7 +263,7 @@ test('plugin composition retains module privacy, aliases, contributions and sele
   const privatePlugin = DiBag.fromPlugin([privateDependency], {
     apiVersion: 1, create: (id: number) => ({ id }),
   }, { acquisitionMode: 'raw', validate: (value): value is { id: number } => typeof value === 'object' && value !== null });
-  const privateFeature = DiBag.createModuleBuilder().register(privateDependency, DiBag.fromFactory(() => 9, { acquisitionMode: 'raw' })).register({ privatePlugin }).buildModule(['privatePlugin']);
+  const privateFeature = DiBag.createBuilder().register(privateDependency, DiBag.fromFactory(() => 9, { acquisitionMode: 'raw' })).register({ privatePlugin }).buildModule(['privatePlugin']);
   const privateBag = DiBag.createBuilder().installModule(privateFeature).build();
   expect(privateBag.resolve('privatePlugin').id).toBe(9);
   await privateBag.close();

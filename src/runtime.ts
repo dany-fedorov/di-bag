@@ -57,6 +57,9 @@ export class BindingGraph {
   // registrations remain available to whole-graph preflight.
   #obsolete = new PersistentMap<true>();
   #contributions = new PersistentMap<Sequence<BindingId>>();
+  // First public registration order by key, for module snapshots. Keys are
+  // never unregistered, so this retains nothing a graph would otherwise drop.
+  #publicOrder: Sequence<BindingKey> | undefined;
   readonly #bindingCache = new Map<BindingId, BindingDescription>();
   readonly #registrationCache = new Map<BindingId, Normalized>();
   readonly #publicCache = new Map<BindingKey, BindingId>();
@@ -87,6 +90,7 @@ export class BindingGraph {
       });
     }
     for (const [key, id] of description.publicSlots) {
+      this.#publicOrder = append(this.#publicOrder, { values: [key] });
       this.#publicSlots = this.#publicSlots.set(key, id);
       this.#publicReferences = this.#publicReferences.set(id, (this.#publicReferences.get(id) ?? 0) + 1);
     }
@@ -108,6 +112,7 @@ export class BindingGraph {
     graph.#contributed = this.#contributed;
     graph.#obsolete = this.#obsolete;
     graph.#contributions = this.#contributions;
+    graph.#publicOrder = this.#publicOrder;
     return graph;
   }
 
@@ -212,6 +217,7 @@ export class BindingGraph {
     const graph = this.copy();
     for (const [key, registration] of entries) {
       const previous = graph.#publicSlots.get(key);
+      if (previous === undefined) graph.#publicOrder = append(graph.#publicOrder, { values: [key] });
       const id = graph.addBinding(String(key), registration);
       graph.#publicSlots = graph.#publicSlots.set(key, id);
       graph.#publicReferences = graph.#publicReferences.set(id, 1);
@@ -257,6 +263,38 @@ export class BindingGraph {
     }
   }
 
+  /**
+   * Snapshot every retained binding for sealing into a module. Public bindings
+   * come first in declaration order, then contributions in their group order,
+   * then any privately retained binding. Nothing beyond the graph's own storage
+   * is kept to produce this order.
+   */
+  describe(): GraphDescription {
+    const bindings = new Map<BindingId, BindingDescription>();
+    const seen = new Set<BindingKey>();
+    const take = (id: BindingId) => {
+      if (bindings.has(id)) return;
+      const entry = this.#bindings.get(id);
+      if (entry) bindings.set(id, entry.description);
+    };
+    if (this.#publicOrder) for (const key of materialize(this.#publicOrder)) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const id = this.#publicSlots.get(key);
+      if (id !== undefined) take(id);
+    }
+    const contributions = new Map<symbol, readonly BindingId[]>();
+    for (const [key, sequence] of this.#contributions) {
+      const ids = materialize(sequence);
+      contributions.set(key as symbol, ids);
+      for (const id of ids) take(id);
+    }
+    for (const [id] of this.#bindings) take(id as BindingId);
+    const publicSlots = new Map<BindingKey, BindingId>();
+    for (const [key, id] of this.#publicSlots) publicSlots.set(key, id);
+    return { bindings, publicSlots, contributions };
+  }
+
   /** Install disjoint public slots atomically, retaining lexical private refs. */
   withInstallation(description: GraphDescription): BindingGraph {
     for (const key of description.publicSlots.keys()) {
@@ -269,7 +307,7 @@ export class BindingGraph {
     for (const [id, count] of installation.#lexicalUsers) graph.#lexicalUsers = graph.#lexicalUsers.set(id, count);
     for (const [id, count] of installation.#privateReferences) graph.#privateReferences = graph.#privateReferences.set(id, (graph.#privateReferences.get(id) ?? 0) + count);
     for (const [id] of installation.#contributed) graph.#contributed = graph.#contributed.set(id, true);
-    for (const [key, id] of installation.#publicSlots) graph.#publicSlots = graph.#publicSlots.set(key, id);
+    for (const [key, id] of installation.#publicSlots) { graph.#publicOrder = append(graph.#publicOrder, { values: [key] }); graph.#publicSlots = graph.#publicSlots.set(key, id); }
     for (const [id, count] of installation.#publicReferences) graph.#publicReferences = graph.#publicReferences.set(id, (graph.#publicReferences.get(id) ?? 0) + count);
     for (const [id, entry] of installation.#bindings) {
       const previous = graph.#bindings.get(id);

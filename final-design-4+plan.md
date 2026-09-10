@@ -1,9 +1,8 @@
 # di-bag v14 — findings and plan (2026-09-06)
 
-> Historical findings. The v14 source is now preserved in `docs/history/src/v14/`.
-> The implemented v0.1 design and verification record are in
-> `docs/superpowers/specs/2026-09-06-v0.1-design.md` and
-> `docs/superpowers/plans/2026-09-06-v0.1.md`.
+> Historical findings. The v14 source is preserved in [docs/history/src/v14](docs/history/src/v14).
+> Use the [README](README.md) for the current API or the
+> [history index](docs/history/README.md) to explore earlier designs.
 
 ## Intention
 

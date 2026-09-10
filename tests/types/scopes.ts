@@ -8,7 +8,7 @@ const rawOwned = DiBag.withDisposal(
   value => { const exact: Promise<{ id: 'raw' }> = value; void exact; },
 );
 const decoratedRaw = DiBag.withMetadata(rawOwned, { static: { owner: 'scope' as const } });
-const feature = DiBag.createModuleBuilder().register({
+const feature = DiBag.createBuilder().register({
   hidden: ({ external }: { external: { readonly exact: true } }) => external.exact,
   publicValue: ({ hidden }: { hidden: true }) => ({ hidden }),
 }).buildModule(['publicValue']).renameExport('publicValue', 'renamed');

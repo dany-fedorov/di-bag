@@ -85,7 +85,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         let privateIds = 0;
         const read = first.DiBag.fromFunction([publicToken, privateToken], (value, local) => ({ value: value.answer, privateId: local.id }));
         const promiseValue = first.DiBag.fromFunction([promiseToken], value => value);
-        const feature = second.DiBag.createModuleBuilder().register(privateToken, () => ({ id: ++privateIds })).register({ read, promiseValue }).buildModule(['read', 'promiseValue']);
+        const feature = second.DiBag.createBuilder().register(privateToken, () => ({ id: ++privateIds })).register({ read, promiseValue }).buildModule(['read', 'promiseValue']);
         const firstFeature = feature.renameExport('read', 'firstRead').renameExport('promiseValue', 'firstPromise');
         const secondFeature = feature.renameExport('read', 'secondRead').renameExport('promiseValue', 'secondPromise');
         const publicValue = { answer: 42 };

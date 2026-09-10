@@ -1,11 +1,11 @@
-import type { ContributionConstraint, CheckedContributions, CompleteContributions, RenamedContribution } from './contribution-types';
+import type { ContributionConstraint, CheckedContributions, CompleteContributions, RenamedContribution, ModuleContributionConstraints } from './contribution-types';
 import type { Module } from './module';
 import type { Registrations } from './registration';
-import type { Needs, ServicesOf, Singleton, Unsatisfied } from './types';
+import type { Entry, Needs, RegistrationsFromEntries, ServicesOf, Singleton, Unsatisfied } from './types';
 import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens, BoundToken } from './provider';
 import type { TokenDependencyContract, WrongToken, MissingToken } from './token-types';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
-import type { LifetimeObligation, PrivateLifetimes, LexicalProvider, RenamedLifetimeObligation } from './lifetime-types';
+import type { LifetimeObligation, PrivateLifetimes, LexicalProvider, RenamedLifetimeObligation, EnclosedLifetimeObligation } from './lifetime-types';
 
 export type NeedConstraint =
   | LifetimeObligation
@@ -122,6 +122,26 @@ export type RenameKeys<P, Old extends string, New extends string> =
     ? Old extends keyof P ? New extends Exclude<keyof P, Old> ? InvalidRename : unknown
       : InvalidRename : InvalidRename : InvalidRename;
 type InvalidRename = Unsatisfied<'renameExport requires an existing export and a noncolliding singleton string-literal name', {}>;
+
+/**
+ * Re-scope every constraint a builder retained from installed modules and
+ * contributions when that builder seals into a module with exports `P`.
+ * Needs on an export stay checkable by the host; needs satisfied privately are
+ * final and drop; unsatisfied needs remain external requirements of the module.
+ */
+export type SealedConstraints<C extends NeedConstraint, R extends Registrations, P extends keyof R> = C extends ContributionConstraint
+  ? ModuleContributionConstraints<C, R, P>
+  : C extends LifetimeObligation ? EnclosedLifetimeObligation<C, R, P>
+  : C extends { readonly kind: 'export' | 'external'; readonly consumer: infer K extends string | symbol; readonly needs: infer N extends object }
+    ? Constraint<K, N, Extract<keyof N, P>, 'export'> | Constraint<K, N, Exclude<keyof N, keyof R>, 'external'>
+  : C extends { readonly kind: 'token-export' | 'token-external'; readonly consumer: infer K extends string | symbol; readonly token: infer T }
+    ? TokenConstraint<K, T, R, P>
+  : C extends { readonly kind: 'optional-token-export' | 'optional-token-external'; readonly consumer: infer K extends string | symbol; readonly token: infer T }
+    ? TokenConstraint<K, T, R, P, true>
+  : C;
+/** Every constraint a sealed module carries: its own registrations' needs plus re-scoped retained constraints. */
+export type ModuleSealedConstraints<E extends Entry, C extends NeedConstraint, P extends keyof RegistrationsFromEntries<E>> =
+  ModuleConstraints<RegistrationsFromEntries<E>, P> | SealedConstraints<C, RegistrationsFromEntries<E>, P>;
 
 /** Extract a readonly map of services publicly exposed by a module. */
 export type ModuleExportedServices<M> = M extends Module<infer P, infer _R, infer _C, infer _D> ? Readonly<P> : never;

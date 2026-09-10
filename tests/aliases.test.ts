@@ -52,7 +52,7 @@ test('transient aliases add no ownership and record actual target disposal edges
 });
 
 test('module aliases retain private targets and export renames under host collisions', async () => {
-  const module = DiBag.createModuleBuilder().register({ value: () => ({ id: 'private' }) }).alias('copy', 'value').buildModule(['copy']).renameExport('copy', 'public');
+  const module = DiBag.createBuilder().register({ value: () => ({ id: 'private' }) }).alias('copy', 'value').buildModule(['copy']).renameExport('copy', 'public');
   const bag = DiBag.createBuilder().register({ value: () => ({ id: 'host' }) }).installModule(module).build();
   expect(bag.resolve('public')).toEqual({ id: 'private' });
   expect(bag.resolve('value')).toEqual({ id: 'host' });
@@ -175,18 +175,18 @@ test('in-flight sources may read aliases while closing and retained reads close 
 
 test('module token aliases preserve private identity and external host requirements', async () => {
   const key = Symbol('private'); const token = DiBag.token(key).of<{ id: number }>();
-  const privateModule = DiBag.createModuleBuilder().register(token, () => ({ id: 1 })).alias('copy', token).buildModule(['copy']);
+  const privateModule = DiBag.createBuilder().register(token, () => ({ id: 1 })).alias('copy', token).buildModule(['copy']);
   const bag = DiBag.createBuilder().register(token, () => ({ id: 2 })).installModule(privateModule).build();
   expect(bag.resolve('copy').id).toBe(1);
   expect(bag.resolve(token).id).toBe(2);
-  const externalModule = DiBag.createModuleBuilder().alias('external', token).buildModule(['external']);
+  const externalModule = DiBag.createBuilder().alias('external', token).buildModule(['external']);
   const external = DiBag.createBuilder().installModule(externalModule).register(token, () => ({ id: 3 })).build();
   expect(external.resolve('external')).toBe(external.resolve(token));
   await bag.close(); await external.close();
 });
 
 test('exported target replacements and renames remain visible through module aliases', async () => {
-  const module = DiBag.createModuleBuilder().register({ value: () => ({ id: 1 }) }).alias('copy', 'value').buildModule(['value', 'copy']).renameExport('value', 'renamed');
+  const module = DiBag.createBuilder().register({ value: () => ({ id: 1 }) }).alias('copy', 'value').buildModule(['value', 'copy']).renameExport('value', 'renamed');
   const bag = DiBag.createBuilder().installModule(module).replace('renamed', () => ({ id: 2 })).build();
   expect(bag.resolve('copy')).toBe(bag.resolve('renamed'));
   expect(bag.resolve('copy').id).toBe(2);

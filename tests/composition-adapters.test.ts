@@ -147,7 +147,7 @@ test('automatic adapters require runtime classification before acquisition', () 
 
 test('module token graphs and selected sharing keep ownership and parent dependencies', async () => {
   const disposed: unknown[] = [];
-  const feature = DiBag.createModuleBuilder().register({ source: DiBag.withDisposal(DiBag.fromClass([port], Client), value => { disposed.push(value); }) }).buildModule(['source']);
+  const feature = DiBag.createBuilder().register({ source: DiBag.withDisposal(DiBag.fromClass([port], Client), value => { disposed.push(value); }) }).buildModule(['source']);
   const bag = DiBag.createBuilder().register(port, () => 80).installModule(feature).build();
   const child = bag.createScope([port], { [portKey]: () => 90 }, { share: ['source'] });
   const shared = child.resolve('source'); expect(shared.port).toBe(80); expect(shared).toBe(bag.resolve('source'));

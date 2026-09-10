@@ -54,7 +54,7 @@ const erased: Provider<() => number> = provider;
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().register({ provider }).build();
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().installModule(DiBag.createModuleBuilder().register({ provider }).buildModule(['provider'])).build();
+DiBag.createBuilder().installModule(DiBag.createBuilder().register({ provider }).buildModule(['provider'])).build();
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().register({ value: () => 1 }).replace('value', provider).build();
 // diagnostic: not assignable

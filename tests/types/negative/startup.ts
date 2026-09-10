@@ -30,7 +30,7 @@ const captive = DiBag.createBuilder().register({
 });
 // diagnostic: root lifetime cannot capture scoped dependency
 captive.buildAndStart(['root']);
-const exportless = DiBag.createModuleBuilder().register({ hidden: (deps: { missing: number }) => deps.missing }).buildModule([]);
+const exportless = DiBag.createBuilder().register({ hidden: (deps: { missing: number }) => deps.missing }).buildModule([]);
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().installModule(exportless).buildAndStart([]);
 const key: unique symbol = Symbol('token');

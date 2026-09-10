@@ -1,5 +1,8 @@
 # 1. Simplest declaration pattern - no type safety, no deps declaration
 
+> Historical design sketch; the APIs below are not the current API. Start with
+> the [README](README.md) or see the [history index](docs/history/README.md).
+
 ```typescript
 const bag = DiBag.begin({
   alias: 'Hey',

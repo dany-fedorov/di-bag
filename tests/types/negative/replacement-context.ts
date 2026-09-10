@@ -5,7 +5,7 @@ const consumers = {
   second: ({ clock }: { clock: { zone(): string } }) => clock.zone(),
 };
 const builder = DiBag.createBuilder().register(consumers);
-const module = DiBag.createModuleBuilder().register(consumers);
+const module = DiBag.createBuilder().register(consumers);
 // diagnostic: provided service does not satisfy its consumer dependency
 builder.replace('clock', () => ({ now() { return 2; } }));
 // diagnostic: provided service does not satisfy its consumer dependency
@@ -14,18 +14,18 @@ builder.replace('clock', () => ({ zone() { return 'new'; } }));
 module.replace('clock', () => ({ now() { return 2; } }));
 // diagnostic: provided service does not satisfy its consumer dependency
 module.replace('clock', () => ({ zone() { return 'new'; } }));
-const privateModule = DiBag.createModuleBuilder().register({ hidden: ({ clock }: { clock: { now(): number } }) => clock.now() }).buildModule([]);
+const privateModule = DiBag.createBuilder().register({ hidden: ({ clock }: { clock: { now(): number } }) => clock.now() }).buildModule([]);
 const host = DiBag.createBuilder().installModule(privateModule).register({ clock: () => ({ now: () => 1 }) });
 // diagnostic: provided service does not satisfy its consumer dependency
 host.replace('clock', () => ({ other() { return true; } }));
-const sameLabel = DiBag.createModuleBuilder().register({ clock: ({ clock }: { clock: { now(): number } }) => ({ now: () => clock.now() }) }).buildModule(['clock']);
+const sameLabel = DiBag.createBuilder().register({ clock: ({ clock }: { clock: { now(): number } }) => ({ now: () => clock.now() }) }).buildModule(['clock']);
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().installModule(sameLabel).replace('clock', () => ({ other() { return true; } }));
 const optional = { value: () => ({ read: () => 1 }), consumer: ({ value }: { value?: { read(): number } }) => value?.read() };
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().register(optional).replace('value', () => undefined);
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createModuleBuilder().register(optional).replace('value', () => undefined);
+DiBag.createBuilder().register(optional).replace('value', () => undefined);
 type Registration = Parameters<typeof DiBag.withMetadata>[0];
 type Opaque = Exclude<Registration, ((...args: never[]) => unknown) | { create: unknown }>;
 declare const opaque: Opaque;
@@ -45,7 +45,7 @@ builder.replace<'clock', unknown>('clock', () => ({ now: () => 1, zone: () => 'u
 module.replace<'clock', unknown>('clock', () => ({ now: () => 1, zone: () => 'utc' }));
 
 const needsBuilder = DiBag.createBuilder().register({ value: () => 0 });
-const needsModule = DiBag.createModuleBuilder().register({ value: () => 0 });
+const needsModule = DiBag.createBuilder().register({ value: () => 0 });
 // diagnostic: required service registrations are missing
 needsBuilder.replace('value', ({ missing }: { missing: number }) => ({ read() { return missing; } })).build();
 // diagnostic: required service registrations are missing
@@ -60,7 +60,7 @@ DiBag.createBuilder().installModule(needsModule.replace('value', (deps?: { missi
 DiBag.createBuilder().installModule(needsModule.replace('value', ({ missing }: { missing: number } = { missing: 0 }) => ({ read() { return missing; } })).buildModule(['value'])).build();
 
 const wrongOptionalBuilder = DiBag.createBuilder().register({ dep: () => 1, service: () => 0 });
-const wrongOptionalModule = DiBag.createModuleBuilder().register({ dep: () => 1, service: () => 0 });
+const wrongOptionalModule = DiBag.createBuilder().register({ dep: () => 1, service: () => 0 });
 type WrongOptionalFactory = (deps?: { dep: string }) => number;
 // diagnostic: provided service does not satisfy its consumer dependency
 wrongOptionalBuilder.replace('service', (deps?: { dep: string }) => deps?.dep.length ?? 0);

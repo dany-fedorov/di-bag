@@ -140,7 +140,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         ${pluginRuntimeAssertions}
         let disposed;
         const mappedDisposal = [];
-        const feature = DiBag.createModuleBuilder().register({
+        const feature = DiBag.createBuilder().register({
           answer: DiBag.withMetadata(DiBag.withDisposal(() => 42, value => { disposed = value; }), { static: { owner: 'package' } }),
           privateValue: () => 7,
         }).buildModule(['answer']);
@@ -164,7 +164,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         const esm = await import('di-bag');
         const tokenKey = Symbol('package');
         const selected = cjs.DiBag.token(tokenKey).of();
-        const tokenFeature = esm.DiBag.createModuleBuilder().register(selected, () => raw).register({ value: esm.DiBag.transformService(esm.DiBag.fromFunction([selected], value => value), { mode: 'direct', transform: value => value }) }).buildModule([selected, 'value']);
+        const tokenFeature = esm.DiBag.createBuilder().register(selected, () => raw).register({ value: esm.DiBag.transformService(esm.DiBag.fromFunction([selected], value => value), { mode: 'direct', transform: value => value }) }).buildModule([selected, 'value']);
         const tokenRuntime = DiBag.createBuilder().installModule(tokenFeature).build();
         const tokenIdentity = tokenRuntime.resolve('value') === raw;
         await tokenRuntime.close();
@@ -319,7 +319,7 @@ for (const mode of ['commonjs', 'module'] as const) {
       type Clock = Assert<Equal<typeof clock, { now(): number }>>;
       const fresh: typeof bag = bag.fork();
       const typed: Bag<{ clock: () => { now(): number } }> = replaced;
-      const feature = DiBag.createModuleBuilder().register({
+      const feature = DiBag.createBuilder().register({
         clock: () => ({ now() { return Number(42); }, extra() { return true; } }),
         privateReader: ({ clock, logger }: { clock: { extra(): boolean }; logger: { log(message: string): void } }) => clock.extra(),
         read: ({ privateReader }: { privateReader: boolean }) => ({ read() { return privateReader; } }),
@@ -359,15 +359,15 @@ for (const mode of ['commonjs', 'module'] as const) {
         promised: async () => 7,
         logger: (): Required['logger'] => ({ log(_message: string) {} }),
       });
-      // @ts-expect-error BagBuilder annotation cannot erase installed constraints.
+      // @ts-expect-error Builder annotation cannot erase installed constraints.
       const erasedBuilder: typeof plainBuilder = installed;
-      const selfContained = DiBag.createModuleBuilder().register({ a: () => 1, b: () => 2 }).buildModule(['a', 'b']);
+      const selfContained = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).buildModule(['a', 'b']);
       // @ts-expect-error The provided contract is invariant even without retained requirements.
       const fewerProvides: Module<{ a: number }, {}> = selfContained;
       // @ts-expect-error Structural copies lose module identity.
       DiBag.createBuilder().installModule({ ...feature });
       // @ts-expect-error Export selections require a finite tuple.
-      DiBag.createModuleBuilder().register({ value: () => 1 }).buildModule(['value'] as string[]);
+      DiBag.createBuilder().register({ value: () => 1 }).buildModule(['value'] as string[]);
       // @ts-expect-error Renames cannot hide another exported slot.
       feature.renameExport('clock', 'read');
       const renamed = DiBag.createBuilder().installModule(feature.renameExport('clock', 'other')).register({ logger: () => ({ log(_message: string) {} }) });

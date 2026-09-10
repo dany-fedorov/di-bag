@@ -6,7 +6,7 @@ import { moduleGraph } from '../src/module';
 // incremental update. The original iterator remains responsible for all values.
 test('one module update does not revisit its existing registration table', () => {
   const registrations = Object.fromEntries(Array.from({ length: 1000 }, (_, i) => [`p${i}`, () => i]));
-  const builder = DiBag.createModuleBuilder().register(registrations as { p0: () => number });
+  const builder = DiBag.createBuilder().register(registrations as { p0: () => number });
   const original = Map.prototype[Symbol.iterator];
   let visited = 0;
   Map.prototype[Symbol.iterator] = function* (): ReturnType<typeof original> {
@@ -23,7 +23,7 @@ test('module updates preserve declaration positions, earlier builders and rename
   const key = Symbol('same'), token = DiBag.token(key).of<number>();
   const groupKey = Symbol('group');
   const group = DiBag.token(groupKey).of<number>();
-  const original = DiBag.createModuleBuilder().register({ zebra: () => 1, apple: () => 2 }).register(token, () => 3)
+  const original = DiBag.createBuilder().register({ zebra: () => 1, apple: () => 2 }).register(token, () => 3)
     .contribute(group, ({ zebra }: { zebra: number }) => zebra);
   const updated = original.replace('zebra', () => 4).alias('alias', 'apple').contribute(group, () => 5);
   const module = updated.buildModule(['zebra', 'apple', token, 'alias']).renameExport('zebra', 'renamed');

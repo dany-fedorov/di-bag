@@ -168,6 +168,11 @@ test('typed provider metadata survives checked composition and inspection', () =
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('nested modules forward requirements and lexical lifetimes across levels', () => {
+  expect(diagnostics(resolve(__dirname, 'types/nested-modules.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('named modules preserve contracts across a file boundary', () => {
   expect(diagnostics(resolve(__dirname, 'types/modules/consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

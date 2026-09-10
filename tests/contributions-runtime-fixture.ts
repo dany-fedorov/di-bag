@@ -12,7 +12,7 @@ export const contributionRuntimeAssertions = `
 
     let privateCalls = 0;
     const privateCleanup = [];
-    const feature = DiBag.createModuleBuilder().register({
+    const feature = DiBag.createBuilder().register({
       privateHelper: DiBag.withDisposal(() => ({ id: ++privateCalls }), value => { privateCleanup.push(value.id); }),
     }).contribute(item, ({ privateHelper }) => privateHelper).buildModule([]);
     const ordered = DiBag.createBuilder().contribute(item, () => ({ id: 'first' })).installModule(feature).contribute(item, () => ({ id: 'middle' })).installModule(feature).register(item, () => ({ id: 'singular' })).build();

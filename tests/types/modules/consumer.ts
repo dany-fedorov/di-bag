@@ -30,7 +30,7 @@ const asyncOverrides = {
 const asyncRicher = root.fork(['service', 'promised'], asyncOverrides);
 const asyncRicherPromise = asyncRicher.resolve('promised');
 type AsyncRicher = Assert<Equal<typeof asyncRicherPromise, Promise<number>>>;
-const owned = DiBag.createModuleBuilder().register({
+const owned = DiBag.createBuilder().register({
   resource: DiBag.withDisposal(async () => ({ read() { return Number(7); } }), resource => {
     const value: number = resource.read(); void value;
   }),
@@ -38,9 +38,9 @@ const owned = DiBag.createModuleBuilder().register({
 const ownedResult = DiBag.createBuilder().installModule(owned).build().resolve('resource');
 type FactoryWithDisposal = Assert<Equal<typeof ownedResult, Promise<{ read(): number }>>>;
 const bagAnnotated: typeof root = root.fork();
-const moduleBuilder = DiBag.createModuleBuilder().register({ value: () => 1 }).replace('value', () => ({ read() { return 2; } }));
+const moduleBuilder = DiBag.createBuilder().register({ value: () => 1 }).replace('value', () => ({ read() { return 2; } }));
 const replaced = DiBag.createBuilder().installModule(moduleBuilder.buildModule(['value'])).build().resolve('value');
 type Replaced = Assert<Equal<typeof replaced, { read(): number }>>;
-const empty = DiBag.createModuleBuilder().register({ privateValue: ({ later }: { later: number }) => later }).buildModule([]);
+const empty = DiBag.createBuilder().register({ privateValue: ({ later }: { later: number }) => later }).buildModule([]);
 DiBag.createBuilder().installModule(empty).register({ later: () => 1 }).build();
 void [annotated, bagAnnotated, reinstalled, renamedResult, richerResult, overriddenPromise];

@@ -1,4 +1,4 @@
-import { DiBag, type BagBuilder, type ProviderGraphContract, type TokenDependencyContract } from '../../src';
+import { DiBag, type Builder, type ProviderGraphContract, type TokenDependencyContract } from '../../src';
 import type { Assert, Equal } from './assert';
 import type { Entry, RegistrationsFromEntries, ServicesOf } from '../../src/types';
 
@@ -12,7 +12,7 @@ const finalized = changed.build();
 export const synchronous = finalized.resolve('value');
 export const changedRead = finalized.resolve('read');
 
-type BuilderEntries<B> = B extends BagBuilder<infer E extends Entry, infer _C> ? E : never;
+type BuilderEntries<B> = B extends Builder<infer E extends Entry, infer _C> ? E : never;
 type ChangedRegistrations = RegistrationsFromEntries<BuilderEntries<typeof changed>>;
 export type ProjectionCompatibility = [
   Assert<Equal<typeof synchronous, string>>,

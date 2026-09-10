@@ -81,13 +81,13 @@ test('all adapters snapshot mixed references by index and authenticate every han
 });
 
 test('lazy reads preserve lexical private tokens, export renames and external optional absence', async () => {
-  const feature = DiBag.createModuleBuilder().register(number, () => 3).register({
+  const feature = DiBag.createBuilder().register(number, () => 3).register({
     client: DiBag.fromFunction([DiBag.optional(number), DiBag.lazy(number)], (value, get) => ({ value, get })),
     forwarding: ({ client }: { client: { value: number | undefined; get: () => number } }) => client,
   }).buildModule(['client', 'forwarding']).renameExport('client', 'renamed');
   const bag = DiBag.createBuilder().register(number, () => 100).installModule(feature).build();
   expect(bag.resolve('renamed').value).toBe(3); expect(bag.resolve('forwarding').get()).toBe(3);
-  const external = DiBag.createModuleBuilder().register({ optional: DiBag.fromFunction([DiBag.optional(number)], value => value) }).buildModule(['optional']);
+  const external = DiBag.createBuilder().register({ optional: DiBag.fromFunction([DiBag.optional(number)], value => value) }).buildModule(['optional']);
   const absent = DiBag.createBuilder().installModule(external).build(); expect(absent.resolve('optional')).toBeUndefined();
   await absent.close(); await bag.close();
 });

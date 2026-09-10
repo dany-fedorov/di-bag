@@ -4,7 +4,7 @@ const key: unique symbol = Symbol('token');
 const missingKey: unique symbol = Symbol('token');
 const token = DiBag.token(key).of<{ id: number }>();
 const missingToken = DiBag.token(missingKey).of<{ id: number }>();
-const feature = DiBag.createModuleBuilder().register({
+const feature = DiBag.createBuilder().register({
   hidden: ({ config }: { config: { id: string } }) => config.id,
   service: ({ hidden }: { hidden: string }) => hidden,
 }).buildModule(['service']);

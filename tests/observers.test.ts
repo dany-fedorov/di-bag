@@ -181,7 +181,7 @@ test('private module frames are immutable snapshots without freezing application
   const { events, observed } = recording();
   const payload = { owner: 'application' };
   const wrapped = observed.withMetadata(observed.withMetadata(observed.fromFactory(() => 7, { acquisitionMode: 'raw' }), { static: { payload } }), { dynamic: { mode: 'direct', describe: () => ({ payload }) } });
-  const feature = observed.createModuleBuilder().register({ secret: wrapped, publicValue: observed.fromFactory(({ secret }: { secret: number }) => secret, { acquisitionMode: 'raw' }) }).buildModule(['publicValue']);
+  const feature = observed.createBuilder().register({ secret: wrapped, publicValue: observed.fromFactory(({ secret }: { secret: number }) => secret, { acquisitionMode: 'raw' }) }).buildModule(['publicValue']);
   const bag = observed.createBuilder().installModule(feature).build();
   expect(bag.resolve('publicValue')).toBe(7);
   await flush();

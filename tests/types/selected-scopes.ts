@@ -2,7 +2,7 @@ import { DiBag } from '../../src';
 
 const key: unique symbol = Symbol('service');
 export const serviceToken = DiBag.token(key).of<{ read(): number }>();
-const feature = DiBag.createModuleBuilder().register({
+const feature = DiBag.createBuilder().register({
   privateValue: ({ config }: { config: { id: string } }) => config.id,
   service: ({ privateValue }: { privateValue: string }) => ({ id: privateValue }),
 }).buildModule(['service']).renameExport('service', 'exported');

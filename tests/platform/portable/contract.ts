@@ -16,7 +16,7 @@ type PortableToken<T> = { readonly key: symbol; readonly __service?: T };
 export type PortableDiBag = {
   createBuilder(): any;
   fromFactory(factory: (...dependencies: any[]) => unknown, options: { acquisitionMode: 'raw' }): any;
-  createModuleBuilder(): any;
+  createBuilder(): any;
   token(key: symbol): { of<T>(): PortableToken<T> };
   withDisposal(factory: any, dispose: (value: any) => void | Promise<void>): any;
   withLifetime(factory: any, lifetime: 'root' | 'scoped' | 'transient'): any;
@@ -53,7 +53,7 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   const cleanupLog: string[] = [];
   const privateHelper = Object.freeze({ source: 'private-module-helper' });
   const exported = DiBag.token(Symbol('portable-export')).of<typeof privateHelper>();
-  const feature = DiBag.createModuleBuilder().register({ helper: DiBag.fromFactory(() => privateHelper, { acquisitionMode: 'raw' }) }).register(exported, DiBag.fromFactory(({ helper }: { helper: typeof privateHelper }) => helper, { acquisitionMode: 'raw' })).buildModule([exported]);
+  const feature = DiBag.createBuilder().register({ helper: DiBag.fromFactory(() => privateHelper, { acquisitionMode: 'raw' }) }).register(exported, DiBag.fromFactory(({ helper }: { helper: typeof privateHelper }) => helper, { acquisitionMode: 'raw' })).buildModule([exported]);
 
   let rootCalls = 0;
   let scopedCalls = 0;
