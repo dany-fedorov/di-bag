@@ -12,7 +12,7 @@ type ModuleContributionConstraints<C, R extends Registrations, P extends keyof R
 }> | RegistrationConstraints<C['registration'], R, P> : never;
 ```
 
-Defined in: [contribution-types.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L39)
+Defined in: [contribution-types.ts:43](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L43)
 
 Retain a module contribution's provider checks and lexical private-service context.
 

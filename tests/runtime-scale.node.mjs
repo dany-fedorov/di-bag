@@ -12,13 +12,13 @@ const count = 12_000;
 
 function chain(dispose) {
   const registrations = Object.fromEntries(Array.from({ length: count }, (_, index) => {
-    const provider = DiBag.factory(deps => ({
+    const provider = DiBag.fromFactory(deps => ({
       index, link: () => index + 1 < count ? deps[`p${index + 1}`] : deps.reader,
-    }), { acquisition: 'raw' });
+    }), { acquisitionMode: 'raw' });
     return [`p${index}`, dispose ? DiBag.withDisposal(provider, dispose) : provider];
   }));
-  registrations.reader = DiBag.factory(deps => () => deps.p0, { acquisition: 'raw' });
-  const bag = DiBag.begin().add(registrations).end();
+  registrations.reader = DiBag.fromFactory(deps => () => deps.p0, { acquisitionMode: 'raw' });
+  const bag = DiBag.createBuilder().register(registrations).build();
   const nodes = Array.from({ length: count }, (_, index) => bag.resolve(`p${index}`));
   for (let index = 0; index < count - 1; index++) nodes[index].link();
   return { bag, nodes };
@@ -58,9 +58,9 @@ for (const mode of ['raw', 'auto']) test(`Node cold-resolves 1,000 ${mode} named
         calls[index]++;
         return index === 0 ? 1 : deps[`p${index - 1}`] + 1;
       };
-      return [`p${index}`, mode === 'raw' ? DiBag.factory(create, { acquisition: 'raw' }) : create];
+      return [`p${index}`, mode === 'raw' ? DiBag.fromFactory(create, { acquisitionMode: 'raw' }) : create];
     }));
-    const bag = DiBag.begin().add(registrations).end();
+    const bag = DiBag.createBuilder().register(registrations).build();
     try {
       assert.equal(bag.resolve('p999'), 1000);
       assert.equal(bag.resolve('p999'), 1000);
@@ -76,10 +76,10 @@ test('raw fast acquisition preserves unobserved thenable and promise identity an
   let reads = 0;
   const thenable = { get then() { reads++; throw new Error('must not inspect raw then'); } };
   const promise = Promise.resolve(42);
-  const bag = DiBag.begin().add({
-    thenable: DiBag.factory(function () { assert.equal(this, undefined); return thenable; }, { acquisition: 'raw' }),
-    promise: DiBag.factory(() => promise, { acquisition: 'raw' }),
-  }).end();
+  const bag = DiBag.createBuilder().register({
+    thenable: DiBag.fromFactory(function () { assert.equal(this, undefined); return thenable; }, { acquisitionMode: 'raw' }),
+    promise: DiBag.fromFactory(() => promise, { acquisitionMode: 'raw' }),
+  }).build();
   assert.equal(bag.resolve('thenable'), thenable);
   assert.equal(bag.resolve('promise'), promise);
   assert.equal(bag.resolve('promise'), promise);
@@ -90,9 +90,9 @@ test('raw fast acquisition preserves unobserved thenable and promise identity an
 for (const lifetime of ['scoped', 'transient']) {
   test(`raw ${lifetime} public reentrant creating cycles invoke the factory once`, async () => {
     let calls = 0;
-    const bag = DiBag.begin().add({
-      value: DiBag.withLifetime(DiBag.factory(() => { calls++; return bag.resolve('value'); }, { acquisition: 'raw' }), lifetime),
-    }).end();
+    const bag = DiBag.createBuilder().register({
+      value: DiBag.withLifetime(DiBag.fromFactory(() => { calls++; return bag.resolve('value'); }, { acquisitionMode: 'raw' }), lifetime),
+    }).build();
     assert.throws(() => bag.resolve('value'), /^Error: cycle: value -> value$/);
     assert.equal(calls, 1);
     await bag.close();
@@ -101,27 +101,27 @@ for (const lifetime of ['scoped', 'transient']) {
 
 test('native transient ancestry rejects after-await cycles with the original label order', async () => {
   let calls = 0;
-  const transient = create => DiBag.withLifetime(DiBag.factory(create, { acquisition: 'native' }), 'transient');
-  const bag = DiBag.begin().add({
+  const transient = create => DiBag.withLifetime(DiBag.fromFactory(create, { acquisitionMode: 'nativePromise' }), 'transient');
+  const bag = DiBag.createBuilder().register({
     a: transient(async deps => { calls++; await Promise.resolve(); return deps.b; }),
     b: transient(async deps => { await Promise.resolve(); return deps.a; }),
-  }).end();
+  }).build();
   await assert.rejects(bag.resolve('a'), /^Error: cycle: a -> b -> a$/);
   assert.equal(calls, 1);
   await bag.close();
 });
 
 test('ready borrowed transient proxies keep late cycle and root capture checks', async () => {
-  const raw = create => DiBag.factory(create, { acquisition: 'raw' });
+  const raw = create => DiBag.fromFactory(create, { acquisitionMode: 'raw' });
   const transient = create => DiBag.withLifetime(raw(create), 'transient');
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     scoped: raw(() => 42),
     root: DiBag.withLifetime(raw(deps => deps.bridge), 'root'),
     bridge: transient(deps => ({ read: () => deps.scoped })),
     reader: raw(deps => ({ next: () => deps.link })),
     link: transient(deps => ({ next: () => deps.reader })),
-  }).end();
-  const child = bag.scope();
+  }).build();
+  const child = bag.createScope();
   const bridge = child.resolve('root');
   assert.throws(bridge.read, /root lifetime cannot capture scoped dependency: root -> scoped/);
   const reader = bag.resolve('reader');
@@ -134,10 +134,10 @@ for (const mode of ['raw', 'auto']) test(`failed direct ${mode} sources cannot u
   let read;
   const cause = new Error('source failed');
   const create = deps => { read = () => deps.value; throw cause; };
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     value: () => 42,
-    failed: mode === 'raw' ? DiBag.factory(create, { acquisition: 'raw' }) : create,
-  }).end();
+    failed: mode === 'raw' ? DiBag.fromFactory(create, { acquisitionMode: 'raw' }) : create,
+  }).build();
   assert.throws(() => bag.resolve('failed'), error => error === cause);
   assert.equal(read(), 42);
   const closing = bag.close();
@@ -153,15 +153,14 @@ function gate() {
 }
 const turn = () => new Promise(resolve => setImmediate(resolve));
 
-for (const concurrency of [1, 2]) test(`Node numeric startup ${concurrency} bounds selected readiness without awaiting raw outputs`, async () => {
+for (const startupOrder of [1, 2]) test(`Node numeric startup ${startupOrder} bounds selected readiness without awaiting raw outputs`, async () => {
   const gates = [gate(), gate(), gate()];
   const calls = [], disposed = [];
   const provider = index => DiBag.withDisposal(() => { calls.push(index); return gates[index].promise; }, value => { disposed.push(value); });
-  const starting = DiBag.begin().add({ a: provider(0), b: provider(1), c: provider(2) })
-    .start(['a', 'b', 'c'], { concurrency });
-  assert.deepEqual(calls, concurrency === 1 ? [0] : [0, 1]);
+  const starting = DiBag.createBuilder().register({ a: provider(0), b: provider(1), c: provider(2) }).buildAndStart(['a', 'b', 'c'], { startupOrder });
+  assert.deepEqual(calls, startupOrder === 1 ? [0] : [0, 1]);
   gates[0].resolve(10); await turn();
-  assert.deepEqual(calls, concurrency === 1 ? [0, 1] : [0, 1, 2]);
+  assert.deepEqual(calls, startupOrder === 1 ? [0, 1] : [0, 1, 2]);
   gates[1].resolve(11); gates[2].resolve(12);
   const bag = await starting;
   assert.equal(bag.resolve('a'), gates[0].promise);
@@ -169,20 +168,19 @@ for (const concurrency of [1, 2]) test(`Node numeric startup ${concurrency} boun
 
   let reads = 0, later = 0;
   const raw = { get then() { reads++; throw new Error('raw then'); } };
-  const ready = await DiBag.begin().add({
-    raw: DiBag.factory(() => raw, { acquisition: 'raw' }), later: () => ++later,
-  }).start(['raw', 'later'], { concurrency });
+  const ready = await DiBag.createBuilder().register({
+    raw: DiBag.fromFactory(() => raw, { acquisitionMode: 'raw' }), later: () => ++later,
+  }).buildAndStart(['raw', 'later'], { startupOrder });
   assert.equal(ready.resolve('raw'), raw); assert.equal(reads, 0); assert.equal(later, 1);
   await ready.close();
 });
 
 test('Node observer burst drains in transition and registration order while external callback gates remain pending', async () => {
   const pending = [], events = [], failures = [];
-  const bag = DiBag.observe({
+  const bag = DiBag.withConfiguration({ observers: [{
     onEvent(event) { const wait = gate(); pending.push(wait); events.push(`first:${event.kind}`); return wait.promise; },
     onError({ error }) { failures.push(error); },
-  }).observe({ onEvent(event) { events.push(`second:${event.kind}`); }, onError() { assert.fail('fast observer failed'); } })
-    .begin().add({ value: DiBag.withLifetime(DiBag.factory(() => 1, { acquisition: 'raw' }), 'transient') }).end();
+  }] }).withConfiguration({ observers: [{ onEvent(event) { events.push(`second:${event.kind}`); }, onError() { assert.fail('fast observer failed'); } }] }).createBuilder().register({ value: DiBag.withLifetime(DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' }), 'transient') }).build();
   await turn(); pending.shift().resolve(); events.length = 0;
   for (let i = 0; i < 100; i++) assert.equal(bag.resolve('value'), 1);
   assert.equal(events.length, 0); await turn();
@@ -199,9 +197,9 @@ test('Node application wait deadlines preserve memoized pending source and dispo
   const source = gate(), disposer = gate(), entered = gate();
   const error = new Error('dispose failed');
   let count = 0, settled = false;
-  const bag = DiBag.begin().add({ value: DiBag.withDisposal(() => source.promise, async value => {
+  const bag = DiBag.createBuilder().register({ value: DiBag.withDisposal(() => source.promise, async value => {
     assert.equal(value, 42); count++; entered.resolve(); await disposer.promise; throw error;
-  }) }).end();
+  }) }).build();
   bag.resolve('value');
   const closing = bag.close();
   const outcome = closing.catch(error => error).then(value => { settled = true; return value; });

@@ -1,38 +1,43 @@
 import { DiBag } from '../../../src';
 // diagnostic: not assignable
-DiBag.withAcquisitionMetadata(() => 1, () => 2);
+DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => 2 } });
 // diagnostic: not assignable
-DiBag.withAcquisitionMetadata(() => 1, () => null);
+DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => null } });
 // diagnostic: acquisition metadata must be a synchronous object record
-DiBag.withAcquisitionMetadata(() => 1, async () => ({ origin: 'async' }));
+// diagnostic-also: TS2769 Type '"direct"' is not assignable to type '"awaited"'.
+DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: async () => ({ origin: 'async' }) } });
 // diagnostic: acquisition metadata must be a synchronous object record
-DiBag.withAcquisitionMetadataAsync(() => 1, async () => ({ origin: 'async' }));
+DiBag.withMetadata(() => 1, { dynamic: { mode: 'awaited', describe: async () => ({ origin: 'async' }) } });
 // diagnostic: acquisition metadata must be a synchronous object record
-DiBag.withAcquisitionMetadata(() => 1, () => []);
+// diagnostic-also: TS2769 Type '"direct"' is not assignable to type '"awaited"'.
+DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => [] } });
 // diagnostic: acquisition metadata must be a synchronous object record
-DiBag.withAcquisitionMetadata(() => 1, () => () => 1);
+// diagnostic-also: TS2769 Type '"direct"' is not assignable to type '"awaited"'.
+DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => () => 1 } });
 // diagnostic: acquisition metadata must be a synchronous object record
-DiBag.withAcquisitionMetadata(() => 1, () => ({ then() {} }));
+// diagnostic-also: TS2769 Type '"direct"' is not assignable to type '"awaited"'.
+DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => ({ then() {} }) } });
 declare const unionMetadata: { origin: string } | Promise<{ origin: string }>;
 // diagnostic: acquisition metadata must be a synchronous object record
-DiBag.withAcquisitionMetadata(() => 1, () => unionMetadata);
+// diagnostic-also: TS2769 Type '"direct"' is not assignable to type '"awaited"'.
+DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => unionMetadata } });
 // diagnostic: not assignable
-DiBag.withAcquisitionMetadata(() => Promise.resolve(1), (value: number) => ({ value }));
+DiBag.withMetadata(() => Promise.resolve(1), { dynamic: { mode: 'direct', describe: (value: number) => ({ value }) } });
 // diagnostic: not assignable
-DiBag.withAcquisitionMetadataAsync(() => Promise.resolve(1), (value: Promise<number>) => ({ value }));
+DiBag.withMetadata(() => Promise.resolve(1), { dynamic: { mode: 'awaited', describe: (value: Promise<number>) => ({ value }) } });
 // diagnostic: not assignable
-DiBag.withAcquisitionMetadata(() => 1, function (this: { origin: string }, value) { return { origin: this.origin, value }; });
+DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: function (this: { origin: string }, value) { return { origin: this.origin, value }; } } });
 type OpaqueRegistration = Exclude<Parameters<typeof DiBag.withMetadata>[0], ((...args: never[]) => unknown) | { create: unknown }>;
 declare const opaque: OpaqueRegistration;
 // diagnostic: not assignable
-DiBag.withAcquisitionMetadata(opaque, (value: number) => ({ value }));
+DiBag.withMetadata(opaque, { dynamic: { mode: 'direct', describe: (value: number) => ({ value }) } });
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 missing factories
-DiBag.begin().add({ value: DiBag.withAcquisitionMetadata(opaque, value => ({ value })) }).end();
-const annotated = DiBag.withAcquisitionMetadata(({ dep }: { dep: number }) => dep, value => ({ value }));
-// diagnostic: missing factories
-DiBag.begin().add({ annotated }).end();
-// diagnostic: wrong shape
-DiBag.begin().add({ annotated, dep: () => 'wrong' });
+// diagnostic-also: TS2684 required service registrations are missing
+DiBag.createBuilder().register({ value: DiBag.withMetadata(opaque, { dynamic: { mode: 'direct', describe: value => ({ value }) } }) }).build();
+const annotated = DiBag.withMetadata(({ dep }: { dep: number }) => dep, { dynamic: { mode: 'direct', describe: value => ({ value }) } });
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().register({ annotated }).build();
+// diagnostic: consumer dependency
+DiBag.createBuilder().register({ annotated, dep: () => 'wrong' });
 // diagnostic: read-only
-DiBag.begin().add({ value: DiBag.withAcquisitionMetadata(() => 1, value => ({ value })) }).end().inspect('value').acquisitions[0]!.metadata[0] = { present: false };
+DiBag.createBuilder().register({ value: DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: value => ({ value }) } }) }).build().inspect('value').acquisitions[0]!.acquisitionMetadata[0] = { present: false };

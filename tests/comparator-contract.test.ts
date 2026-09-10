@@ -87,10 +87,8 @@ test('comparator cannot enter the table with incomplete or forged metadata', asy
 });
 
 test('rejects asynchronous construction or resolution from the synchronous common subset', async () => {
-  await expect(validateComparator(validAdapter({ buildGraph: (() => Promise.resolve({})) as never })))
-    .resolves.toMatchObject({ status: 'not-comparable', reason: 'buildGraph must be synchronous' });
-  await expect(validateComparator(validAdapter({ resolve: (() => Promise.resolve({})) as never })))
-    .resolves.toMatchObject({ status: 'not-comparable', reason: 'resolve must be synchronous' });
+  await expect(validateComparator(validAdapter({ buildGraph: (() => Promise.resolve({})) as never }))).resolves.toMatchObject({ status: 'not-comparable', reason: 'buildGraph must be synchronous' });
+  await expect(validateComparator(validAdapter({ resolve: (() => Promise.resolve({})) as never }))).resolves.toMatchObject({ status: 'not-comparable', reason: 'resolve must be synchronous' });
 });
 
 test('forbidden rejected async results are consumed before the child exits', () => {
@@ -130,14 +128,12 @@ test('forbidden rejected async results are consumed before the child exits', () 
 });
 
 test('rejects a changed named workload, singleton caching or transient freshness', async () => {
-  await expect(validateComparator(validAdapter({ resolve: () => ({ wrong: true }) })))
-    .resolves.toMatchObject({ status: 'not-comparable', reason: 'linear named graph result mismatch' });
+  await expect(validateComparator(validAdapter({ resolve: () => ({ wrong: true }) }))).resolves.toMatchObject({ status: 'not-comparable', reason: 'linear named graph result mismatch' });
 
   const shared: Probe = {
     contract: 'di-bag-comparator-v1', lifetime: 'singleton', serial: 1, disposed: false,
   };
-  await expect(validateComparator(validAdapter({ resolve: (_graph, name) => name === 'transient' ? shared : shared })))
-    .resolves.toMatchObject({ status: 'not-comparable' });
+  await expect(validateComparator(validAdapter({ resolve: (_graph, name) => name === 'transient' ? shared : shared }))).resolves.toMatchObject({ status: 'not-comparable' });
 
   const base = validAdapter();
   await expect(validateComparator(validAdapter({
@@ -149,12 +145,9 @@ test('rejects a changed named workload, singleton caching or transient freshness
 });
 
 test('rejects missing, partial and failing explicit disposal', async () => {
-  await expect(validateComparator(validAdapter({ dispose: async () => {} })))
-    .resolves.toMatchObject({ status: 'not-comparable', reason: 'explicit lifecycle did not dispose every resolved value' });
-  await expect(validateComparator(validAdapter({ dispose: (() => undefined) as never })))
-    .resolves.toMatchObject({ status: 'not-comparable', reason: 'dispose must return a Promise' });
-  await expect(validateComparator(validAdapter({ dispose: async () => { throw new Error('close failed'); } })))
-    .resolves.toMatchObject({ status: 'not-comparable', reason: 'dispose failed: close failed' });
+  await expect(validateComparator(validAdapter({ dispose: async () => {} }))).resolves.toMatchObject({ status: 'not-comparable', reason: 'explicit lifecycle did not dispose every resolved value' });
+  await expect(validateComparator(validAdapter({ dispose: (() => undefined) as never }))).resolves.toMatchObject({ status: 'not-comparable', reason: 'dispose must return a Promise' });
+  await expect(validateComparator(validAdapter({ dispose: async () => { throw new Error('close failed'); } }))).resolves.toMatchObject({ status: 'not-comparable', reason: 'dispose failed: close failed' });
 });
 
 test('reports absent optional packages as unavailable without inventing adapter rows', async () => {
@@ -187,8 +180,7 @@ test('distinguishes unavailable installation from an unreviewed or semantically 
     expect((await inspectOptionalComparators(root))[0]).toMatchObject({
       name: 'typed-inject', status: 'not-comparable', reason: 'adapter-not-reviewed', version: '1.2.3',
     });
-    expect((await inspectOptionalComparators(root, { 'typed-inject': validAdapter({ name: 'typed-inject' }) }))[0])
-      .toMatchObject({ name: 'typed-inject', status: 'eligible', semantics: 'restricted-common-subset' });
+    expect((await inspectOptionalComparators(root, { 'typed-inject': validAdapter({ name: 'typed-inject' }) }))[0]).toMatchObject({ name: 'typed-inject', status: 'eligible', semantics: 'restricted-common-subset' });
     expect((await inspectOptionalComparators(root, {
       'typed-inject': validAdapter({ name: 'typed-inject', dispose: async () => {} }),
     }))[0]).toMatchObject({ name: 'typed-inject', status: 'not-comparable' });
@@ -206,14 +198,11 @@ test('rejects package and adapter identity drift before semantic admission', asy
       lockfileVersion: 3, packages: { '': {}, 'node_modules/awilix': { version: '9.0.0', integrity: 'sha512-fixture' } },
     }));
     writeFileSync(join(installed, 'package.json'), JSON.stringify({ name: 'awilix', version: '8.0.0' }));
-    expect((await inspectOptionalComparators(root, { awilix: validAdapter({ name: 'awilix', version: '9.0.0' }) }))[1])
-      .toMatchObject({ status: 'unavailable', reason: 'installed-version-mismatch' });
+    expect((await inspectOptionalComparators(root, { awilix: validAdapter({ name: 'awilix', version: '9.0.0' }) }))[1]).toMatchObject({ status: 'unavailable', reason: 'installed-version-mismatch' });
     writeFileSync(join(installed, 'package.json'), JSON.stringify({ name: 'awilix', version: '9.0.0' }));
-    expect((await inspectOptionalComparators(root, { awilix: validAdapter({ name: 'wrong-name', version: '9.0.0' }) }))[1])
-      .toMatchObject({ status: 'not-comparable', reason: 'adapter-package-identity-mismatch' });
+    expect((await inspectOptionalComparators(root, { awilix: validAdapter({ name: 'wrong-name', version: '9.0.0' }) }))[1]).toMatchObject({ status: 'not-comparable', reason: 'adapter-package-identity-mismatch' });
     writeFileSync(join(installed, 'package.json'), JSON.stringify({ name: 'lookalike', version: '9.0.0' }));
-    expect((await inspectOptionalComparators(root, { awilix: validAdapter({ name: 'awilix', version: '9.0.0' }) }))[1])
-      .toMatchObject({ status: 'unavailable', reason: 'installed-package-name-mismatch' });
+    expect((await inspectOptionalComparators(root, { awilix: validAdapter({ name: 'awilix', version: '9.0.0' }) }))[1]).toMatchObject({ status: 'unavailable', reason: 'installed-package-name-mismatch' });
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

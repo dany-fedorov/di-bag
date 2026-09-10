@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { BindingGraph } from '../src/runtime';
 import type { BindingDescription, BindingRef } from '../src/runtime';
-import { Runtime } from './runtime-context';
+import { BagRuntime } from './runtime-context';
 import { DiBag } from '../src/node';
 
 const binding = (id: symbol, value: number, localNames: ReadonlyMap<string | symbol, BindingRef> = new Map()): BindingDescription =>
@@ -43,7 +43,7 @@ test('private aliases protect replaced IDs but public aliases follow current slo
   const original = new BindingGraph({ bindings: new Map([[id, binding(id, 1)], [privateAlias, makeAlias(privateAlias, 'private')], [publicAlias, makeAlias(publicAlias, 'public')]]), publicSlots: new Map([['target', id], ['private', privateAlias], ['public', publicAlias]]) });
   const updated = original.withPublicBinding('target', () => 2);
   expect(updated.hasBinding(id)).toBe(true);
-  const runtime = new Runtime(updated);
+  const runtime = new BagRuntime(updated);
   expect(runtime.resolve('private')).toBe(1);
   expect(runtime.resolve('public')).toBe(2);
   await runtime.close();
@@ -103,7 +103,7 @@ test('materialized contributions retain order through append and installation wi
 test('root lifetime stays parent-owned after a child overrides one shared public slot', async () => {
   const id = Symbol('root'); let creates = 0;
   const original = new BindingGraph({ bindings: new Map([[id, { ...binding(id, 1), registration: DiBag.withLifetime(() => ++creates, 'root') }]]), publicSlots: new Map([['a', id], ['b', id]]) });
-  const parent = new Runtime(original);
+  const parent = new BagRuntime(original);
   const child = parent.scope(original.withPublicBinding('a', () => 9));
   expect(child.resolve('b')).toBe(1);
   expect(parent.resolve('a')).toBe(1);
@@ -146,7 +146,7 @@ test('contribution protection uses the once-read input snapshot through public r
   const updated = original.withPublicBinding('item', () => 2);
   expect({ reads, ids: updated.contributionBindings(group), hasTarget: updated.hasBinding(target) })
     .toEqual({ reads: 1, ids: [target], hasTarget: true });
-  const runtime = new Runtime(updated);
+  const runtime = new BagRuntime(updated);
   expect(runtime.resolve('item')).toBe(2);
   expect(runtime.resolveAll(group)).toEqual([1]);
   await runtime.close();

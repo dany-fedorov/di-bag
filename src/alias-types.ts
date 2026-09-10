@@ -1,7 +1,7 @@
 import type { Provider, ProviderOutput } from './provider';
 import type { Registrations } from './registration';
 import type { TokenBase, TokenService } from './tokens';
-import type { SelectionKey, TokenGraph, ValidToken, WrongToken } from './token-types';
+import type { SelectionKey, TokenDependencyContract, ValidToken, WrongToken } from './token-types';
 import type { Singleton, Unsatisfied } from './types';
 
 export type AliasSelection = string | TokenBase;
@@ -22,7 +22,7 @@ export type AliasDestination<R extends Registrations, D, T> = D extends TokenBas
 export type AliasRegistration<R extends Registrations, D, T> = Provider<
   (this: void, deps: T extends string ? Record<T, AliasOutput<R, T>> : Record<never, never>) => AliasOutput<R, T>,
   Readonly<object>, readonly unknown[],
-  TokenGraph<T extends TokenBase ? readonly [T] : readonly [], D extends TokenBase ? D : never> & {
+  TokenDependencyContract<T extends TokenBase ? readonly [T] : readonly [], D extends TokenBase ? D : never> & {
     readonly alias: SelectionKey<T>;
   }, unknown
 >;

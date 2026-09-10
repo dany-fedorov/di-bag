@@ -4,7 +4,7 @@ const providers = {
   service: () => ({ read() { return Number(1); }, extra() { return true; } }),
   promised: async () => 7,
 };
-const root = DiBag.begin().add(providers).end();
+const root = DiBag.createBuilder().register(providers).build();
 
 // diagnostic: not assignable
 root.fork(['service', 'promised'], {
@@ -13,6 +13,6 @@ root.fork(['service', 'promised'], {
 });
 
 // diagnostic: not assignable
-DiBag.withAcquisitionMetadata(() => 1, (value: string) => ({ length: value.length }));
+DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: (value: string) => ({ length: value.length }) } });
 // diagnostic: not assignable
-DiBag.withAcquisitionMetadata(() => 1, function (this: { missing: true }) { return { value: this.missing }; });
+DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: function (this: { missing: true }) { return { value: this.missing }; } } });

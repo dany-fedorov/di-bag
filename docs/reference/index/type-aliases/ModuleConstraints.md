@@ -10,7 +10,7 @@ type ModuleConstraints<R extends Registrations, Public extends keyof R> = {
 }[keyof R & (string | symbol)] | PrivateLifetimes<R, Public>;
 ```
 
-Defined in: [module-types.ts:65](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L65)
+Defined in: [module-types.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L72)
 
 Retained requirements of a module's public and private registrations.
 

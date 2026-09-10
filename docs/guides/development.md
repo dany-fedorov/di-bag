@@ -14,7 +14,7 @@ projections, presence values, and provider metadata cover acquisition boundaries
 without a companion package.
 
 Choose `raw` when the exact value, Promise, or thenable is the service. Choose
-`native` only for a genuine native Promise whose fulfillment is the service. Use
+`nativePromise` only for a genuine native Promise whose fulfillment is the service. Use
 selected scopes to make sharing and overrides explicit. Lifecycle callbacks are
 non-blocking observers, so applications separately await telemetry when needed.
 Plugin loading remains application-owned: validation admits the output while an
@@ -56,7 +56,7 @@ npm run check:platform
 ```
 
 On Linux hosts missing browser system libraries, use Playwright's
-[`install --with-deps chromium`](https://playwright.dev/docs/browsers#install-system-dependencies).
+[`installModule --with-deps chromium`](https://playwright.dev/docs/browsers#install-system-dependencies).
 `platform:pin` without `--all` captures only the foundation tools. Pinning never
 downloads tools: it validates installed versions and writes version-probe entry hashes
 to ignored `tools/platform-versions.local.json`. A local manifest takes precedence

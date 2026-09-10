@@ -1,6 +1,8 @@
 import { DiBag } from '../src/node';
 
-interface Handler { handle(text: string): string }
+interface Handler {
+  handle(text: string): string;
+}
 
 async function main() {
   const handlerKey = Symbol('handler');
@@ -17,13 +19,17 @@ async function main() {
   };
   let disposals = 0;
   const provider = DiBag.fromPlugin([], selected, {
-    acquisition: 'raw',
+    acquisitionMode: 'raw',
     validate: (value: unknown): value is Handler =>
-      typeof value === 'object' && value !== null && 'handle' in value
-      && typeof value.handle === 'function',
+      typeof value === 'object' &&
+      value !== null &&
+      'handle' in value &&
+      typeof value.handle === 'function',
   });
-  const feature = DiBag.module().bind(handler, provider).exports([handler]);
-  const bag = DiBag.begin().install(feature).end();
+  const feature = DiBag.createModuleBuilder()
+    .register(handler, provider)
+    .buildModule([handler]);
+  const bag = DiBag.createBuilder().installModule(feature).build();
 
   try {
     const result = bag.resolve(handler).handle('hello');
@@ -35,4 +41,7 @@ async function main() {
   if (disposals !== 1) throw new Error('Plugin cleanup must run exactly once');
 }
 
-void main().catch(error => { console.error(error); process.exitCode = 1; });
+void main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

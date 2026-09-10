@@ -4,7 +4,7 @@
 
 # Class: DiBagStartupCancelledError
 
-Defined in: [errors.ts:53](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L53)
+Defined in: [errors.ts:84](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L84)
 
 Prompt cancellation; cleanup remains awaitable for uncooperative factories.
 
@@ -17,10 +17,10 @@ Prompt cancellation; cleanup remains awaitable for uncooperative factories.
 ### Constructor
 
 ```ts
-new (reason: "aborted" | "timeout", cause: unknown, cleanup: Promise<void>): DiBagStartupCancelledError;
+new (reason: "aborted" | "timeout", cause: unknown, cleanupPromise: Promise<void>): DiBagStartupCancelledError;
 ```
 
-Defined in: [errors.ts:59](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L59)
+Defined in: [errors.ts:92](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L92)
 
 #### Parameters
 
@@ -28,7 +28,7 @@ Defined in: [errors.ts:59](https://github.com/dany-fedorov/di-bag/blob/main/src/
 | ------ | ------ |
 | `reason` | Whether an external abort or startup timeout cancelled the wait. |
 | `cause` | The abort reason or generated timeout error. |
-| `cleanup` | Eventual shutdown of the partially started bag; cancellation does not await it. |
+| `cleanupPromise` | Eventual shutdown of the partially started bag; cancellation does not await it. |
 
 #### Overrides
 
@@ -38,15 +38,35 @@ Error.constructor
 
 ## Properties
 
-### cleanup
+### cleanupPromise
 
 ```ts
-readonly cleanup: Promise<void>;
+readonly cleanupPromise: Promise<void>;
 ```
 
-Defined in: [errors.ts:62](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L62)
+Defined in: [errors.ts:95](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L95)
 
 Eventual shutdown of the partially started bag; cancellation does not await it.
+
+***
+
+### code
+
+```ts
+declare readonly code: 'DI_BAG_STARTUP_CANCELLED';
+```
+
+Defined in: [errors.ts:85](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L85)
+
+***
+
+### details
+
+```ts
+declare readonly details: Readonly<Record<string, unknown>>;
+```
+
+Defined in: [errors.ts:86](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L86)
 
 ***
 
@@ -56,6 +76,6 @@ Eventual shutdown of the partially started bag; cancellation does not await it.
 readonly reason: 'aborted' | 'timeout';
 ```
 
-Defined in: [errors.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L60)
+Defined in: [errors.ts:93](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L93)
 
 Whether an external abort or startup timeout cancelled the wait.

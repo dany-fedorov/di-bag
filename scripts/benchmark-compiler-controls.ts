@@ -84,7 +84,7 @@ const named = (
   scenario,
   generatedPath: 'tests/generated-type-scale.ts',
   ...(scenario === 'valid' ? {} : {
-    expectedMarker: scenario === 'missing' ? 'missing factories' : 'a dependency has the wrong shape',
+    expectedMarker: scenario === 'missing' ? 'required service registrations are missing' : 'provided service does not satisfy its consumer dependency',
   }),
 });
 
@@ -98,7 +98,7 @@ const token = (
   generatedPath: 'tests/generated-token-scale.ts',
   ...(scenario === 'valid' ? {} : {
     expectedMarker: scenario === 'missing-final-token'
-      ? 'missing factories'
+      ? 'required service registrations are missing'
       : 'token dependency has an incompatible or opaque contract',
   }),
 });

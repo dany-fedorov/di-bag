@@ -46,7 +46,7 @@ npm run docs:preview
 Keep `docs/reference/` generated. Its Markdown is committed so it can be reviewed
 in pull requests and read directly on GitHub. Edit source comments instead of
 patching generated pages. Use `import type` for type-only API exports; the
-reference must never suggest that `Bag`, `Builder`, or `Provider` are public
+reference must never suggest that `Bag`, `BagBuilder`, or `Provider` are public
 runtime constructors.
 
 Write examples with enough context to reproduce them. State whether a snippet

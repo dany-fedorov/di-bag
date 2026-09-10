@@ -1,3 +1,4 @@
+import { libraryError } from './errors';
 import type { TokenKeyAdmission } from './token-types';
 
 declare const tokenInvariant: unique symbol;
@@ -49,7 +50,7 @@ export function token<const K extends symbol>(
    */
   readonly of: <S>() => Token<K, S>
 } {
-  if (typeof key !== 'symbol') throw new Error('token key must be a symbol');
+  if (typeof key !== 'symbol') throw libraryError('DI_BAG_INVALID_TOKEN', 'token key must be a symbol', { operation: 'token' });
   return Object.freeze({ of: <S>(): Token<K, S> => {
     const handle = new Token<K, S>(key);
     keys.set(handle, key);
@@ -60,14 +61,14 @@ export function token<const K extends symbol>(
 
 /** A copied, proxied or fabricated shape cannot authenticate a token. */
 export function readTokenKey(value: unknown): symbol {
-  if (typeof value !== 'object' || value === null) throw new Error('invalid token');
+  if (typeof value !== 'object' || value === null) throw libraryError('DI_BAG_INVALID_TOKEN', 'invalid token', { expected: 'genuine typed token' });
   const key = keys.get(value as TokenBase);
-  if (key === undefined) throw new Error('invalid token');
+  if (key === undefined) throw libraryError('DI_BAG_INVALID_TOKEN', 'invalid token', { expected: 'genuine typed token' });
   return key;
 }
 
 export function snapshotTokens(value: unknown): readonly TokenBase[] {
-  if (!Array.isArray(value)) throw new Error('tokens must be a tuple');
+  if (!Array.isArray(value)) throw libraryError('DI_BAG_INVALID_TOKEN', 'tokens must be a tuple', { expected: 'finite token tuple' });
   const selected: TokenBase[] = [];
   const length = value.length;
   for (let index = 0; index < length; index++) selected[index] = value[index];

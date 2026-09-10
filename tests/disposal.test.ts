@@ -9,7 +9,7 @@ test('disposal callbacks receive the owned value without a receiver', async () =
     expect(this).toBeUndefined();
     disposed.push(value);
   }
-  const bag = DiBag.begin().add({ resource: DiBag.withDisposal(() => 42, dispose) }).end();
+  const bag = DiBag.createBuilder().register({ resource: DiBag.withDisposal(() => 42, dispose) }).build();
   bag.resolve('resource');
   await bag.close();
   expect(disposed).toEqual([42]);
@@ -17,16 +17,14 @@ test('disposal callbacks receive the owned value without a receiver', async () =
 
 test('withDisposal exposes the value and closes each resolved instance once', async () => {
   const closed: number[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       resource: DiBag.withDisposal(
         () => 42,
         (value) => {
           closed.push(value);
         },
       ),
-    })
-    .end();
+    }).build();
   expect(bag.resolve('resource')).toBe(42);
   expect(bag.resolve('resource')).toBe(42);
   const closing = bag.close();
@@ -44,9 +42,7 @@ test('ordinary values are borrowed even when they expose disposal methods', asyn
       closed++;
     },
   };
-  const bag = DiBag.begin()
-    .add({ value: () => value })
-    .end();
+  const bag = DiBag.createBuilder().register({ value: () => value }).build();
   expect(bag.resolve('value')).toBe(value);
   await bag.close();
   expect(closed).toBe(0);
@@ -54,8 +50,7 @@ test('ordinary values are borrowed even when they expose disposal methods', asyn
 
 test('unresolved and failed factories have no disposal', async () => {
   const disposed: string[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       unused: DiBag.withDisposal(
         () => 'unused',
         (value) => {
@@ -70,8 +65,7 @@ test('unresolved and failed factories have no disposal', async () => {
           disposed.push(value);
         },
       ),
-    })
-    .end();
+    }).build();
   expect(() => bag.resolve('failed')).toThrow('acquire');
   await bag.close();
   expect(disposed).toEqual([]);
@@ -81,8 +75,7 @@ test('throwing then inspection rejects each acquisition until a synchronous retr
   const failure = new Error('then getter');
   let created = 0;
   const disposed: number[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       resource: DiBag.withDisposal(
         () => {
           const id = ++created;
@@ -98,8 +91,7 @@ test('throwing then inspection rejects each acquisition until a synchronous retr
           disposed.push(resource.id);
         },
       ),
-    })
-    .end();
+    }).build();
   for (let attempt = 0; attempt < 2; attempt++) {
     let caught: unknown;
     try {
@@ -128,8 +120,7 @@ test('a PromiseLike with a throwing then getter never reaches the fulfilled-valu
   }
   let created = 0;
   const disposed: number[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       resource: DiBag.withDisposal(
         () => {
           created++;
@@ -139,8 +130,7 @@ test('a PromiseLike with a throwing then getter never reaches the fulfilled-valu
           disposed.push(resource.id);
         },
       ),
-    })
-    .end();
+    }).build();
   for (let attempt = 0; attempt < 2; attempt++) {
     let caught: unknown;
     try {
@@ -167,16 +157,14 @@ test('native Promise observer setup failures allow retry and preserve accepted P
   const accepted = Promise.resolve(resource);
   let created = 0;
   const disposed: { id: number }[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       resource: DiBag.withDisposal(
         () => (++created < 3 ? unobservable : accepted),
         (value) => {
           disposed.push(value);
         },
       ),
-    })
-    .end();
+    }).build();
   for (let attempt = 0; attempt < 2; attempt++) {
     let caught: unknown;
     try {
@@ -205,9 +193,9 @@ test('native Promise ownership observation ignores an own then override', async 
     fulfilled?.({ id: 'not-the-fulfilled-resource' });
     throw new Error('custom then');
   };
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
-  }).end();
+  }).build();
   expect(bag.resolve('resource')).toBe(original);
   await bag.close();
   expect(customThenCalled).toBe(false);
@@ -227,9 +215,9 @@ test('native Promise subclass ownership ignores an own then override', async () 
     fulfilled?.(substituted);
     throw new Error('custom then');
   };
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
-  }).end();
+  }).build();
   expect(bag.resolve('resource')).toBe(original);
   await bag.close();
   expect(customThenCalls).toBe(0);
@@ -250,10 +238,10 @@ for (const stage of ['constructor', 'species'] as const) {
     const accepted = Promise.resolve(resource);
     let created = 0;
     const disposed: typeof resource[] = [];
-    const bag = DiBag.begin().add({
+    const bag = DiBag.createBuilder().register({
       resource: DiBag.withDisposal(() => ++created < 3 ? unobservable : accepted,
         value => { disposed.push(value); }),
-    }).end();
+    }).build();
     for (let attempt = 0; attempt < 2; attempt++) {
       let caught: unknown;
       try { bag.resolve('resource'); } catch (error) { caught = error; }
@@ -285,9 +273,9 @@ test('pending close observes native settlement without assimilating its species 
   original.then = () => { originalThenCalls++; throw new Error('original then'); };
   Object.defineProperty(original, 'constructor', { value: { [Symbol.species]: ObserverPromise } });
   const disposed: typeof resource[] = [];
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
-  }).end();
+  }).build();
   expect(bag.resolve('resource')).toBe(original);
   const closing = bag.close();
   let closed = false;
@@ -315,10 +303,10 @@ test('direct structural thenables reject without invoking then or accepting owne
   };
   let created = 0;
   const disposed: typeof resource[] = [];
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     resource: DiBag.withDisposal(() => { created++; return raw; },
       value => { disposed.push(value); }),
-  }).end();
+  }).build();
   expect(() => bag.resolve('resource')).toThrow(TypeError);
   expect(() => bag.resolve('resource')).toThrow(TypeError);
   await bag.close();
@@ -337,12 +325,12 @@ test('explicit structural conversion accepts fulfillment before a subsequent thr
   };
   const disposed: typeof resource[] = [];
   let converted: Promise<typeof resource> | undefined;
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     resource: DiBag.withDisposal(() => {
       converted = Promise.resolve(original);
       return converted;
     }, value => { disposed.push(value); }),
-  }).end();
+  }).build();
   const exposed = bag.resolve('resource');
   expect(converted).toBe(exposed);
   expect(bag.resolve('resource')).toBe(exposed);
@@ -359,8 +347,7 @@ test('explicit structural conversion retries rejection and disposes only the ful
   let created = 0;
   let converted: Promise<number> | undefined;
   const disposed: number[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       resource: DiBag.withDisposal(
         () => {
           converted = Promise.resolve(++created === 1 ? rejected : accepted);
@@ -370,8 +357,7 @@ test('explicit structural conversion retries rejection and disposes only the ful
           disposed.push(value);
         },
       ),
-    })
-    .end();
+    }).build();
   const exposed = bag.resolve('resource');
   expect(converted).toBe(exposed);
   await expect(exposed).rejects.toBe(failure);
@@ -383,8 +369,7 @@ test('explicit structural conversion retries rejection and disposes only the ful
 
 test('cleanup runs in reverse acquisition order through unmanaged intermediates', async () => {
   const disposed: string[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       db: DiBag.withDisposal(
         () => 'db',
         (value) => {
@@ -404,8 +389,7 @@ test('cleanup runs in reverse acquisition order through unmanaged intermediates'
           disposed.push(value);
         },
       ),
-    })
-    .end();
+    }).build();
   bag.resolve('server');
   bag.resolve('independent');
   await bag.close();
@@ -415,8 +399,7 @@ test('cleanup runs in reverse acquisition order through unmanaged intermediates'
 test('async disposers are awaited sequentially and receive fulfilled values', async () => {
   const gate = deferred<void>();
   const disposed: string[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       first: DiBag.withDisposal(
         async () => 'first',
         (value) => {
@@ -431,8 +414,7 @@ test('async disposers are awaited sequentially and receive fulfilled values', as
           disposed.push(`${value}:end`);
         },
       ),
-    })
-    .end();
+    }).build();
   await bag.resolve('first');
   bag.resolve('second');
   const closing = bag.close();
@@ -446,8 +428,7 @@ test('async disposers are awaited sequentially and receive fulfilled values', as
 test('dependency ordering wins over async completion order', async () => {
   const gate = deferred<string>();
   const disposed: string[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       db: DiBag.withDisposal(
         () => gate.promise,
         (value) => {
@@ -460,8 +441,7 @@ test('dependency ordering wins over async completion order', async () => {
           disposed.push('server');
         },
       ),
-    })
-    .end();
+    }).build();
   const server = bag.resolve('server');
   gate.resolve('db');
   await server.db;
@@ -472,8 +452,7 @@ test('dependency ordering wins over async completion order', async () => {
 test('close drains pending factories and dependencies discovered after await', async () => {
   const gate = deferred<void>();
   const disposed: string[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       db: DiBag.withDisposal(
         async () => 21,
         () => {
@@ -489,8 +468,7 @@ test('close drains pending factories and dependencies discovered after await', a
           disposed.push('service');
         },
       ),
-    })
-    .end();
+    }).build();
   const value = bag.resolve('service');
   const closing = bag.close();
   expect(() => bag.resolve('db')).toThrow(/clos/);
@@ -504,8 +482,7 @@ test('close drains pending factories and dependencies discovered after await', a
 test('pending acquisition failure does not stop cleanup of other resources', async () => {
   const gate = deferred<string>();
   const disposed: string[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       good: DiBag.withDisposal(
         () => 'good',
         (value) => {
@@ -518,8 +495,7 @@ test('pending acquisition failure does not stop cleanup of other resources', asy
           disposed.push(value);
         },
       ),
-    })
-    .end();
+    }).build();
   bag.resolve('good');
   const bad = bag.resolve('bad');
   const closing = bag.close();
@@ -533,8 +509,7 @@ test('every disposer runs and close aggregates the original cleanup failures', a
   const disposed: string[] = [];
   const firstError = new Error('first cleanup failure');
   const laterError = new Error('later');
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       a: DiBag.withDisposal(
         () => 'a',
         (value) => {
@@ -555,8 +530,7 @@ test('every disposer runs and close aggregates the original cleanup failures', a
           disposed.push(value);
         },
       ),
-    })
-    .end();
+    }).build();
   bag.resolve('a');
   bag.resolve('b');
   bag.resolve('c');
@@ -574,8 +548,7 @@ test('every disposer runs and close aggregates the original cleanup failures', a
 
 test('throwing undefined still rejects close and does not skip other disposers', async () => {
   let cleaned = false;
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       a: DiBag.withDisposal(
         () => 1,
         () => {
@@ -588,8 +561,7 @@ test('throwing undefined still rejects close and does not skip other disposers',
           throw undefined;
         },
       ),
-    })
-    .end();
+    }).build();
   bag.resolve('a');
   bag.resolve('b');
   let rejected = false;
@@ -609,13 +581,13 @@ test('reentrant close observes the same barrier even when its disposer rejects',
   const failure = new Error('cleanup');
   const events: string[] = [];
   let reentrant: Promise<void> | undefined;
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     resource: DiBag.withDisposal(() => 42, () => {
       events.push('resource');
       reentrant = bag.close();
       throw failure;
     }),
-  }).end();
+  }).build();
   bag.resolve('resource');
   const closing = bag.close();
   const error: unknown = await closing.catch(error => error);
@@ -631,16 +603,14 @@ test('reentrant close observes the same barrier even when its disposer rejects',
 test('parent and forks own independent instances and borrowed overrides stay borrowed', async () => {
   let id = 0;
   const disposed: number[] = [];
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       value: DiBag.withDisposal(
         () => ({ id: ++id }),
         (value) => {
           disposed.push(value.id);
         },
       ),
-    })
-    .end();
+    }).build();
   const fork = bag.fork();
   const borrowed = bag.fork(['value'], { value: () => ({ id: 99 }) });
   expect(bag.resolve('value').id).toBe(1);
@@ -655,9 +625,7 @@ test('parent and forks own independent instances and borrowed overrides stay bor
 
 test('an owned override can replace an ordinary factory', async () => {
   let disposed = 0;
-  const bag = DiBag.begin()
-    .add({ value: () => 1 })
-    .end();
+  const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
   const fork = bag.fork(['value'], {
     value: DiBag.withDisposal(
       () => 7,
@@ -674,16 +642,14 @@ test('an owned override can replace an ordinary factory', async () => {
 
 test('pending factories can create a chain of synchronous dependencies during close', async () => {
   const gate = deferred<void>();
-  const bag = DiBag.begin()
-    .add({
+  const bag = DiBag.createBuilder().register({
       base: () => 21,
       middle: ({ base }: { base: number }) => base * 2,
       result: async (deps: { middle: number }) => {
         await gate.promise;
         return deps.middle;
       },
-    })
-    .end();
+    }).build();
   const result = bag.resolve('result');
   const closing = bag.close();
   gate.resolve();

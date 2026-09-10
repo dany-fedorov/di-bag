@@ -1,5 +1,6 @@
+import { libraryError, libraryTypeError } from './errors';
 import type { normalize } from './provider-operations';
-import type { FramePresenceTuple, Presence } from './inspection';
+import type { AcquisitionMetadataPresence, Presence } from './inspection';
 import type { AcquisitionMode, RuntimeContext } from './acquisition-mode';
 import type { AcquisitionContext } from './acquisition-context';
 
@@ -32,7 +33,7 @@ interface ExecutionEvents {
 
 const observePromise = Promise.prototype.then<void, void>;
 
-const emptyFrames: FramePresenceTuple<readonly unknown[]> = Object.freeze([]);
+const emptyFrames: AcquisitionMetadataPresence<readonly unknown[]> = Object.freeze([]);
 const emptyWork: readonly Promise<void>[] = Object.freeze([]);
 
 /** Fully drained borrowed attempts keep frames, but no execution closures or payloads. */
@@ -42,8 +43,8 @@ export class CompletedExecution {
   readonly hasOwnership = false;
   readonly error = undefined;
   readonly work = emptyWork;
-  constructor(private frames: FramePresenceTuple<readonly unknown[]>) {}
-  inspectFrames(): FramePresenceTuple<readonly unknown[]> { return Object.freeze([...this.frames]); }
+  constructor(private frames: AcquisitionMetadataPresence<readonly unknown[]>) {}
+  inspectFrames(): AcquisitionMetadataPresence<readonly unknown[]> { return Object.freeze([...this.frames]); }
   async ready(): Promise<void> {}
   async dispose(): Promise<void> {}
   release(): void {
@@ -70,7 +71,7 @@ export class ProviderExecution {
       .map(() => Object.freeze({ present: false as const }));
   }
 
-  inspectFrames(): FramePresenceTuple<readonly unknown[]> { return Object.freeze([...this.frames]); }
+  inspectFrames(): AcquisitionMetadataPresence<readonly unknown[]> { return Object.freeze([...this.frames]); }
 
   get state(): 'pending' | 'ready' | 'failed' { return this.result?.state ?? 'failed'; }
   get error(): unknown { return this.result?.error; }
@@ -80,7 +81,7 @@ export class ProviderExecution {
   /** Observe the selected stage, retaining its failure even after retirement. */
   async ready(): Promise<void> {
     const result = this.result;
-    if (!result) throw new Error('acquisition has no result');
+    if (!result) throw libraryError('DI_BAG_INTERNAL_STATE', 'acquisition has no result', {});
     if (result.state === 'pending') await result.settled;
     if (result.state === 'failed') throw result.error;
   }
@@ -92,13 +93,13 @@ export class ProviderExecution {
 
   /** Classify/own only after the direct operation-free source call has returned. */
   publishSource(value: unknown, description: RegistrationDescription): void {
-    if (description.acquisition === 'raw') {
+    if (description.acquisitionMode === 'raw') {
       this.sourceInFlight = false;
       this.result = { exposed: undefined, consumed: true, state: 'ready', value: undefined, error: undefined, owners: [] };
       if (description.dispose) this.accept(0, value, description.dispose);
       return;
     }
-    const stage = this.capture(() => value, true, description.acquisition);
+    const stage = this.capture(() => value, true, description.acquisitionMode);
     if (description.dispose) this.own(stage, 0, description.dispose);
     this.result = stage;
     this.consume(stage);
@@ -109,7 +110,7 @@ export class ProviderExecution {
     const { create, dispose } = description;
     let current = this.capture(() => description.contextual
       ? Reflect.apply(create, undefined, [deps, acquisitionContext()])
-      : create(deps as never), true, description.acquisition);
+      : create(deps as never), true, description.acquisitionMode);
     let nextFrame = 0;
     if (dispose) this.own(current, 0, dispose);
     description.operations.forEach((operation, offset) => {
@@ -121,7 +122,7 @@ export class ProviderExecution {
         if (current.state !== 'failed') {
           const input = current.exposed;
           const { project } = operation;
-          current = this.capture(() => project(input as never), false, operation.acquisition);
+          current = this.capture(() => project(input as never), false, operation.acquisitionMode);
         }
       } else if (operation.kind === 'map-async') {
         const input = current;
@@ -129,7 +130,7 @@ export class ProviderExecution {
         current = this.capture(async () => {
           if (input.state === 'failed') throw input.error;
           return project(await input.exposed as never);
-        }, false, 'native');
+        }, false, 'nativePromise');
       } else if (operation.kind === 'frame-sync' || operation.kind === 'frame-async') {
         const frameIndex = nextFrame++;
         const input = current;
@@ -143,9 +144,9 @@ export class ProviderExecution {
           current = this.capture(async () => {
             if (input.state === 'failed') throw input.error;
             return apply(await input.exposed);
-          }, false, 'native');
+          }, false, 'nativePromise');
         } else if (input.state !== 'failed') {
-          current = this.capture(() => apply(input.exposed), false, operation.acquisition);
+          current = this.capture(() => apply(input.exposed), false, operation.acquisitionMode);
         }
       }
       if (current !== inputStage) this.consume(inputStage);
@@ -169,18 +170,18 @@ export class ProviderExecution {
     try {
       const exposed = create();
       const stage: ValueStage = { exposed, consumed: false, state: 'ready', value: exposed, error: undefined, owners: [] };
-      let native = mode === 'native';
+      let native = mode === 'nativePromise';
       if (mode === 'auto') {
         const { isNativePromise } = this.context;
         // Whole-graph preflight establishes capability before invoking this factory.
         const classified = isNativePromise!(exposed);
-        if (typeof classified !== 'boolean') throw new Error('isNativePromise must return a boolean');
+        if (typeof classified !== 'boolean') throw libraryError('DI_BAG_INVALID_CLASSIFIER_RESULT', 'isNativePromise must return a boolean', { option: 'isNativePromise', provided: classified });
         native = classified;
       }
       if (mode !== 'raw' && exposed !== null && (typeof exposed === 'object' || typeof exposed === 'function') && 'then' in exposed) {
         // Preserve original getter failures, but never use callability as native branding.
         const then = Reflect.get(exposed, 'then');
-        if (!native && typeof then === 'function') throw new TypeError('Structural thenables require explicit native conversion or raw acquisition');
+        if (!native && typeof then === 'function') throw libraryTypeError('DI_BAG_STRUCTURAL_THENABLE', 'Structural thenables require explicit native Promise conversion or raw acquisitionMode', { acquisitionMode: mode });
       }
       if (native) {
         let settled!: () => void;

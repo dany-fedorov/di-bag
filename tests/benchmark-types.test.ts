@@ -14,7 +14,7 @@ import { evaluateWorker, type MatrixCase, type WorkerEvidence } from '../scripts
 
 test('parent evaluator validates untrusted worker evidence and preserves requested identities', () => {
   const item: MatrixCase = { count: 100, form: 'bulk', scenario: 'missing' };
-  const diagnostic = { file: scalePath, line: 7, code: 2345, message: 'missing factories' };
+  const diagnostic = { file: scalePath, line: 7, code: 2345, message: 'required service registrations are missing' };
   const result = { ...item, accepted: false, boundaryLine: 7, diagnostics: [diagnostic] };
   const evidence: WorkerEvidence = { status: 0, signal: null, stdout: JSON.stringify(result), stderr: '' };
   const good = evaluateWorker(item, evidence, scalePath);
@@ -27,8 +27,7 @@ test('parent evaluator validates untrusted worker evidence and preserves request
       { diagnostics: [{ ...diagnostic, line: 8 }] }, { diagnostics: [{ ...diagnostic, message: 'wrong' }] },
       { diagnostics: [{ ...diagnostic, code: 2589 }] }, { diagnostics: [diagnostic, diagnostic] },
     ].map(change => ({ ...evidence, stdout: JSON.stringify({ ...result, ...change, accepted: true }) })),
-    ...[{ stderr: 'warning' }, { status: 3 }, { signal: 'SIGKILL' }, { error: 'spawn failed' }]
-      .map(change => ({ ...evidence, ...change })),
+    ...[{ stderr: 'warning' }, { status: 3 }, { signal: 'SIGKILL' }, { error: 'spawn failed' }].map(change => ({ ...evidence, ...change })),
   ];
   const rows = failures.map(bad => {
     const row = evaluateWorker(item, bad, scalePath);
@@ -71,7 +70,7 @@ for (const form of forms) {
         return;
       }
 
-      const intended = scenario === 'missing' ? 'missing factories' : 'a dependency has the wrong shape';
+      const intended = scenario === 'missing' ? 'required service registrations are missing' : 'provided service does not satisfy its consumer dependency';
       expect(boundaryLine).toBeDefined();
       expect(errors.every(error => error.file === scalePath)).toBe(true);
       expect(errors.some(error => error.code === 2589)).toBe(false);
@@ -91,8 +90,7 @@ test('named benchmark worker retains complete boundary diagnostics', () => {
     namedWorker, '--worker', '100', 'chained', 'wrong-shape',
   ], { encoding: 'utf8', timeout: 60_000, maxBuffer: 4 * 1024 * 1024 });
 
-  expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr })
-    .toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
+  expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr }).toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
   expect(child.stdout.trim().length).toBeGreaterThan(0);
   const result = JSON.parse(child.stdout);
   expect(result).toMatchObject({ count: 100, form: 'chained', scenario: 'wrong-shape' });
@@ -100,7 +98,7 @@ test('named benchmark worker retains complete boundary diagnostics', () => {
   expect(result.diagnostics.filter((error: { file?: string; line?: number; message: string }) =>
     error.file === scalePath
       && error.line === result.boundaryLine
-      && error.message.includes('a dependency has the wrong shape'),
+      && error.message.includes('provided service does not satisfy its consumer dependency'),
   )).toHaveLength(1);
 }, 65_000);
 
@@ -109,8 +107,7 @@ test('token worker defaults a valid invocation to 100 services', () => {
     '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', tokenWorker, 'bindings', 'valid',
   ], { encoding: 'utf8', timeout: 60_000, maxBuffer: 4 * 1024 * 1024 });
 
-  expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr })
-    .toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
+  expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr }).toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
   expect(child.stdout.trim().length).toBeGreaterThan(0);
   expect(JSON.parse(child.stdout)).toMatchObject({ count: 100, form: 'bindings', scenario: 'valid' });
 }, 65_000);
@@ -120,8 +117,7 @@ test('token worker accepts an explicit supported count', () => {
     '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', tokenWorker, 'bindings', 'valid', '100',
   ], { encoding: 'utf8', timeout: 60_000, maxBuffer: 4 * 1024 * 1024 });
 
-  expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr })
-    .toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
+  expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr }).toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
   expect(child.stdout.trim().length).toBeGreaterThan(0);
   expect(JSON.parse(child.stdout)).toMatchObject({ count: 100, form: 'bindings', scenario: 'valid' });
 }, 65_000);

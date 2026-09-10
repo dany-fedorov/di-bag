@@ -22,11 +22,9 @@ for (const form of ['bindings', 'modules'] satisfies TokenScaleForm[]) {
       const child = spawnSync('node', [
         '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', worker, form, scenario,
       ], { encoding: 'utf8', timeout: 60_000, maxBuffer: 1024 * 1024 });
-      expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr })
-        .toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
+      expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr }).toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
       const result = JSON.parse(child.stdout.toString()) as WorkerResult;
-      expect({ count: result.count, form: result.form, scenario: result.scenario })
-        .toEqual({ count: 100, form, scenario });
+      expect({ count: result.count, form: result.form, scenario: result.scenario }).toEqual({ count: 100, form, scenario });
       if (scenario === 'valid') {
         expect(result.diagnostics).toEqual([]);
         expect(result.boundaryLine).toBeUndefined();
@@ -36,9 +34,9 @@ for (const form of ['bindings', 'modules'] satisfies TokenScaleForm[]) {
       expect(result.diagnostics.length).toBeGreaterThan(0);
       expect(result.diagnostics.every(error => error.file === generated && error.line !== undefined && error.column !== undefined)).toBe(true);
       expect(result.diagnostics.some(error => error.code === 2589)).toBe(false);
-      const intended = scenario === 'missing-final-token' ? 'missing factories'
+      const intended = scenario === 'missing-final-token' ? 'required service registrations are missing'
         : form === 'bindings' ? 'token dependency has an incompatible or opaque contract'
-          : 'a dependency has the wrong shape';
+          : 'provided service does not satisfy its consumer dependency';
       expect(result.diagnostics.some(error =>
         error.line === result.boundaryLine && error.message.includes(intended),
       )).toBe(true);

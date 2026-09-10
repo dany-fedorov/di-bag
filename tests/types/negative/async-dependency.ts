@@ -1,5 +1,3 @@
 import { DiBag } from '../../../src/di-bag';
-// diagnostic: wrong shape
-DiBag.begin()
-  .add({ clock: async () => 1 })
-  .add({ service: ({ clock }: { clock: number }) => clock });
+// diagnostic: consumer dependency
+DiBag.createBuilder().register({ clock: async () => 1 }).register({ service: ({ clock }: { clock: number }) => clock });

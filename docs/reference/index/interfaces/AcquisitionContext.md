@@ -4,7 +4,7 @@
 
 # Interface: AcquisitionContext
 
-Defined in: [acquisition-context.ts:9](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L9)
+Defined in: [acquisition-context.ts:11](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L11)
 
 Cooperative cancellation information supplied to a context-aware acquisition.
 
@@ -16,6 +16,6 @@ Cooperative cancellation information supplied to a context-aware acquisition.
 readonly signal: AbortSignal;
 ```
 
-Defined in: [acquisition-context.ts:11](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L11)
+Defined in: [acquisition-context.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L13)
 
-The signal aborted when the acquisition's owning scope begins closing.
+Aborted when the acquisition's owning scope begins closing.

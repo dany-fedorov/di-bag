@@ -6,20 +6,28 @@ async function main() {
   const steps = DiBag.token(stepKey).of<Step>();
 
   // An exportless module can contribute a service using a private helper.
-  const prefixFeature = DiBag.module()
-    .add({ prefix: () => 'Hello, ' })
-    .contribute(steps, ({ prefix }: { prefix: string }): Step => text => prefix + text)
-    .exports([]);
+  const prefixFeature = DiBag.createModuleBuilder()
+    .register({ prefix: () => 'Hello, ' })
+    .contribute(
+      steps,
+      ({ prefix }: { prefix: string }): Step =>
+        (text) =>
+          prefix + text,
+    )
+    .buildModule([]);
 
-  const bag = DiBag.begin()
-    .contribute(steps, (): Step => text => text.trim())
-    .install(prefixFeature)
-    .contribute(steps, (): Step => text => text + '!')
-    .add({
-      pipeline: DiBag.fromFunction([DiBag.all(steps)], operations =>
-        (text: string) => operations.reduce((value, step) => step(value), text)),
+  const bag = DiBag.createBuilder()
+    .contribute(steps, (): Step => (text) => text.trim())
+    .installModule(prefixFeature)
+    .contribute(steps, (): Step => (text) => text + '!')
+    .register({
+      pipeline: DiBag.fromFunction(
+        [DiBag.all(steps)],
+        (operations) => (text: string) =>
+          operations.reduce((value, step) => step(value), text),
+      ),
     })
-    .end();
+    .build();
 
   try {
     const result = bag.resolve('pipeline')('  DI  ');
@@ -34,4 +42,7 @@ async function main() {
   }
 }
 
-void main().catch(error => { console.error(error); process.exitCode = 1; });
+void main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

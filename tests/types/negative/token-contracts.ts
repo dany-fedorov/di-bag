@@ -1,5 +1,6 @@
+import { fromFunction } from '../../../src/composition';
 import { DiBag, type Token, type Provider } from '../../../src';
-import { fromTokens, withTokenBinding, type ProviderBase } from '../../../src/provider';
+import { withTokenBinding, type ProviderBase } from '../../../src/provider';
 import type { TokenBase } from '../../../src/tokens';
 const key = Symbol('same'); const otherKey = Symbol('same');
 const token = DiBag.token(key).of<{ value: number }>();
@@ -28,54 +29,54 @@ const returnedSymbol = () => Symbol('returned');
 DiBag.token(returnedSymbol());
 // diagnostic: not assignable
 const widenedIdentity: Token<symbol, { value: number }> = token;
-// diagnostic: Property 'nominal' is missing
-fromTokens([{ ...token }], value => value);
+// diagnostic: not assignable to type 'DependencyReference'
+fromFunction([{ ...token }], value => value);
 declare const opaque: TokenBase;
 // diagnostic: finite tuple
-fromTokens([opaque], () => 1);
+fromFunction([opaque], () => 1);
 // diagnostic: finite tuple
-fromTokens([token] as (typeof token)[], () => 1);
+fromFunction([token] as (typeof token)[], () => 1);
 declare const optional: readonly [typeof token?];
 // diagnostic: finite tuple
-fromTokens(optional, () => 1);
+fromFunction(optional, () => 1);
 declare const tupleUnion: readonly [typeof token] | readonly [typeof other];
 // diagnostic: finite tuple
-fromTokens(tupleUnion, () => 1);
+fromFunction(tupleUnion, () => 1);
 // diagnostic: finite tuple
-fromTokens([union === key ? token : other], () => 1);
+fromFunction([union === key ? token : other], () => 1);
 // diagnostic: not assignable
-fromTokens([token], function (this: { value: number }, value) { return this.value; });
+fromFunction([token], function (this: { value: number }, value) { return this.value; });
 // diagnostic: not assignable
-fromTokens([token], (one, two: number) => two);
-const provider = fromTokens([token], value => value.value);
+fromFunction([token], (one: { value: number }, two: number) => two);
+const provider = fromFunction([token], value => value.value);
 // diagnostic: not assignable
 const erased: Provider<() => number> = provider;
-// diagnostic: missing factories
-DiBag.begin().add({ provider }).end();
-// diagnostic: missing factories
-DiBag.begin().install(DiBag.module().add({ provider }).exports(['provider'])).end();
-// diagnostic: missing factories
-DiBag.begin().add({ value: () => 1 }).replace('value', provider).end();
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().register({ provider }).build();
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().installModule(DiBag.createModuleBuilder().register({ provider }).buildModule(['provider'])).build();
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().register({ value: () => 1 }).replace('value', provider).build();
 // diagnostic: not assignable
 withTokenBinding(token, () => 'wrong');
 declare const erasedProvider: ProviderBase;
 // diagnostic: factory dependencies must be finite
-DiBag.begin().add({ erasedProvider });
+DiBag.createBuilder().register({ erasedProvider });
 // diagnostic: finite tuple
-DiBag.fromTokens([token] as typeof token[], () => 1);
+DiBag.fromFunction([token] as typeof token[], () => 1);
 // diagnostic: finite tuple
-fromTokens<readonly TokenBase[], () => number>([token], () => 1);
+fromFunction<readonly TokenBase[], () => number>([token], () => 1);
 declare const graphErased: Provider<() => number, {}, readonly [], import('../../../src/token-types').OpaqueGraph>;
 // diagnostic: incompatible or opaque
-DiBag.begin().add({ graphErased });
+DiBag.createBuilder().register({ graphErased });
 // diagnostic: not assignable
-DiBag.begin().add({ value: () => 1 }).end().fork(['value'], { value: provider });
+DiBag.createBuilder().register({ value: () => 1 }).build().fork(['value'], { value: provider });
 const bound = withTokenBinding(token, () => ({ value: 1 }));
 // diagnostic: duplicates
-DiBag.begin().bind(token, bound).bind(token, bound);
+DiBag.createBuilder().register(token, bound).register(token, bound);
 // diagnostic: not assignable
-fromTokens([token], (value: string) => value);
+fromFunction([token], (value: string) => value);
 // diagnostic: not assignable
-withTokenBinding(token, DiBag.mapSync(() => 1, () => 'wrong'));
+withTokenBinding(token, DiBag.transformService(() => 1, { mode: 'direct', transform: () => 'wrong' }));
 // diagnostic: cannot be used as a value
 new Token(key);

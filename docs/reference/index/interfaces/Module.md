@@ -4,10 +4,10 @@
 
 # Interface: Module\<P *extends* `object`, R *extends* `object`, C *extends* `NeedConstraint` = `never`, D *extends* `Registrations` = `PublicRegistrations`\<`P`\>\>
 
-Defined in: [module.ts:36](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L36)
+Defined in: [module.ts:37](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L37)
 
 A sealed, non-resolving module with private registrations and selected public exports.
-Create modules through [Facade.module](Facade.md#module) and [ModuleBuilder.exports](ModuleBuilder.md#exports); this
+Create modules through [DiBagApi.createModuleBuilder](DiBagApi.md#createmodulebuilder) and [ModuleBuilder.buildModule](ModuleBuilder.md#buildmodule); this
 type-only class has no public constructor.
 
 ## Type Parameters
@@ -21,13 +21,13 @@ type-only class has no public constructor.
 
 ## Methods
 
-### rename()
+### renameExport()
 
 ```ts
-rename<const Old extends string, const New extends string>(oldKey: Old & RenameKeys<P, Old, New>, newKey: New & RenameKeys<P, Old, New>): Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedLifetimeProviders<D, Old, New>>;
+renameExport<const Old extends string, const New extends string>(oldKey: Old & RenameKeys<P, Old, New>, newKey: New & RenameKeys<P, Old, New>): Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedLifetimeProviders<D, Old, New>>;
 ```
 
-Defined in: [module.ts:55](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L55)
+Defined in: [module.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L56)
 
 Return a module view with one string-named export renamed.
 Factory dependency names and private identities remain unchanged.

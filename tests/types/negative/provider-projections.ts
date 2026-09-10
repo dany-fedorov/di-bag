@@ -1,56 +1,56 @@
 import { DiBag, type Provider } from '../../../src';
-const source = DiBag.withMetadata(({ clock }: { clock: number }) => ({ value: clock }), { owner: 'team' });
+const source = DiBag.withMetadata(({ clock }: { clock: number }) => ({ value: clock }), { static: { owner: 'team' } });
 // diagnostic: not assignable
-DiBag.mapSync(source, (value: { value: string }) => value);
+DiBag.transformService(source, { mode: 'direct', transform: (value: { value: string }) => value });
 // diagnostic: not assignable
-DiBag.mapAsync(source, (value: { value: string }) => value);
+DiBag.transformService(source, { mode: 'awaited', transform: (value: { value: string }) => value });
 // diagnostic: not assignable
-DiBag.mapSync(() => Promise.resolve(1), (value: number) => value);
+DiBag.transformService(() => Promise.resolve(1), { mode: 'direct', transform: (value: number) => value });
 // diagnostic: not assignable
-DiBag.mapSync(source, function (this: { prefix: string }, value) { return this.prefix + value.value; });
+DiBag.transformService(source, { mode: 'direct', transform: function (this: { prefix: string }, value) { return this.prefix + value.value; } });
 // diagnostic: not assignable
-DiBag.mapAsync(source, function (this: { prefix: string }, value) { return this.prefix + value.value; });
-const mapped = DiBag.mapSync(source, value => value.value);
-// diagnostic: missing factories
-DiBag.begin().add({ mapped }).end();
-// diagnostic: wrong shape
-DiBag.begin().add({ mapped, clock: () => 'wrong' });
+DiBag.transformService(source, { mode: 'awaited', transform: function (this: { prefix: string }, value) { return this.prefix + value.value; } });
+const mapped = DiBag.transformService(source, { mode: 'direct', transform: value => value.value });
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().register({ mapped }).build();
+// diagnostic: consumer dependency
+DiBag.createBuilder().register({ mapped, clock: () => 'wrong' });
 // diagnostic: not assignable
 DiBag.withDisposal(mapped, (value: string) => {});
 // diagnostic: not assignable
-DiBag.mapSync({ ...mapped }, value => value);
+DiBag.transformService({ ...mapped }, { mode: 'direct', transform: value => value });
 // diagnostic: not assignable
 const erased: Provider<() => number, {}, readonly []> = mapped;
 type Registration = Parameters<typeof DiBag.withMetadata>[0];
 declare const opaque: Exclude<Registration, ((...args: never[]) => unknown) | { create: unknown }>;
 // diagnostic: not assignable
-DiBag.mapSync(opaque, (value: number) => value);
+DiBag.transformService(opaque, { mode: 'direct', transform: (value: number) => value });
 // diagnostic: not assignable
-DiBag.mapAsync(opaque, (value: number) => value);
+DiBag.transformService(opaque, { mode: 'awaited', transform: (value: number) => value });
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 missing factories
-DiBag.begin().add({ mapped: DiBag.mapSync(opaque, () => 1) }).end();
+// diagnostic-also: TS2684 required service registrations are missing
+DiBag.createBuilder().register({ mapped: DiBag.transformService(opaque, { mode: 'direct', transform: () => 1 }) }).build();
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 missing factories
-DiBag.begin().add({ mapped: DiBag.mapAsync(opaque, () => 1) }).end();
+// diagnostic-also: TS2684 required service registrations are missing
+DiBag.createBuilder().register({ mapped: DiBag.transformService(opaque, { mode: 'awaited', transform: () => 1 }) }).build();
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 missing factories
-DiBag.begin().add({ mapped: DiBag.withDisposal(DiBag.mapSync(opaque, () => 1), () => {}) }).end();
+// diagnostic-also: TS2684 required service registrations are missing
+DiBag.createBuilder().register({ mapped: DiBag.withDisposal(DiBag.transformService(opaque, { mode: 'direct', transform: () => 1 }), () => {}) }).build();
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 missing factories
-DiBag.begin().add({ mapped: DiBag.mapAsync(DiBag.withDisposal(opaque, () => {}), () => 1) }).end();
+// diagnostic-also: TS2684 required service registrations are missing
+DiBag.createBuilder().register({ mapped: DiBag.transformService(DiBag.withDisposal(opaque, () => {}), { mode: 'awaited', transform: () => 1 }) }).build();
 declare const wrapped: NoInfer<Registration>;
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 missing factories
-DiBag.begin().add({ mapped: DiBag.mapSync(wrapped, () => 1) }).end();
+// diagnostic-also: TS2684 required service registrations are missing
+DiBag.createBuilder().register({ mapped: DiBag.transformService(wrapped, { mode: 'direct', transform: () => 1 }) }).build();
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 missing factories
-DiBag.begin().add({ mapped: DiBag.mapAsync(wrapped, () => 1) }).end();
+// diagnostic-also: TS2684 required service registrations are missing
+DiBag.createBuilder().register({ mapped: DiBag.transformService(wrapped, { mode: 'awaited', transform: () => 1 }) }).build();
 // diagnostic: factory dependencies must be finite
-// diagnostic-also: TS2684 missing factories
-DiBag.begin().add({ mapped: DiBag.withDisposal(wrapped, () => {}) }).end();
+// diagnostic-also: TS2684 required service registrations are missing
+DiBag.createBuilder().register({ mapped: DiBag.withDisposal(wrapped, () => {}) }).build();
 // diagnostic: factory dependencies must be finite
-DiBag.module().add({ mapped: DiBag.withDisposal(DiBag.mapAsync(wrapped, () => 1), () => {}) }).exports(['mapped']);
+DiBag.createModuleBuilder().register({ mapped: DiBag.withDisposal(DiBag.transformService(wrapped, { mode: 'awaited', transform: () => 1 }), () => {}) }).buildModule(['mapped']);
 // diagnostic: read-only
 DiBag.withDisposal(() => 1, () => {}).create = () => 2;
 // diagnostic: not assignable

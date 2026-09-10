@@ -14,9 +14,9 @@ type PortableToken<T> = { readonly key: symbol; readonly __service?: T };
 
 /** The smallest structural slice of the public root API used by this fixture. */
 export type PortableDiBag = {
-  begin(): any;
-  factory(factory: (...dependencies: any[]) => unknown, options: { acquisition: 'raw' }): any;
-  module(): any;
+  createBuilder(): any;
+  fromFactory(factory: (...dependencies: any[]) => unknown, options: { acquisitionMode: 'raw' }): any;
+  createModuleBuilder(): any;
   token(key: symbol): { of<T>(): PortableToken<T> };
   withDisposal(factory: any, dispose: (value: any) => void | Promise<void>): any;
   withLifetime(factory: any, lifetime: 'root' | 'scoped' | 'transient'): any;
@@ -31,7 +31,7 @@ export function validatePortableInspection(inspection: unknown): {
     return { inspectionFrozen: false, metadataFrozen: false };
   }
   try {
-    const metadata = (inspection as { metadata?: unknown }).metadata;
+    const metadata = (inspection as { registrationMetadata?: unknown }).registrationMetadata;
     if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) {
       return { inspectionFrozen: false, metadataFrozen: false };
     }
@@ -53,35 +53,32 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   const cleanupLog: string[] = [];
   const privateHelper = Object.freeze({ source: 'private-module-helper' });
   const exported = DiBag.token(Symbol('portable-export')).of<typeof privateHelper>();
-  const feature = DiBag.module()
-    .add({ helper: DiBag.factory(() => privateHelper, { acquisition: 'raw' }) })
-    .bind(exported, DiBag.factory(({ helper }: { helper: typeof privateHelper }) => helper, { acquisition: 'raw' }))
-    .exports([exported]);
+  const feature = DiBag.createModuleBuilder().register({ helper: DiBag.fromFactory(() => privateHelper, { acquisitionMode: 'raw' }) }).register(exported, DiBag.fromFactory(({ helper }: { helper: typeof privateHelper }) => helper, { acquisitionMode: 'raw' })).buildModule([exported]);
 
   let rootCalls = 0;
   let scopedCalls = 0;
   let transientCalls = 0;
   const rawPromise = Promise.resolve({ value: 'raw' });
   let rawDisposed: unknown;
-  const root = DiBag.begin().install(feature).add({
+  const root = DiBag.createBuilder().installModule(feature).register({
     root: DiBag.withMetadata(DiBag.withLifetime(DiBag.withDisposal(
-      DiBag.factory(() => ({ id: ++rootCalls }), { acquisition: 'raw' }),
+      DiBag.fromFactory(() => ({ id: ++rootCalls }), { acquisitionMode: 'raw' }),
       () => { cleanupLog.push('root'); },
-    ), 'root'), { portable: true }),
+    ), 'root'), { static: { portable: true } }),
     scoped: DiBag.withDisposal(
-      DiBag.factory(() => ({ id: ++scopedCalls }), { acquisition: 'raw' }),
+      DiBag.fromFactory(() => ({ id: ++scopedCalls }), { acquisitionMode: 'raw' }),
       () => { cleanupLog.push('scoped'); },
     ),
     transient: DiBag.withLifetime(DiBag.withDisposal(
-      DiBag.factory(() => ({ id: ++transientCalls }), { acquisition: 'raw' }),
+      DiBag.fromFactory(() => ({ id: ++transientCalls }), { acquisitionMode: 'raw' }),
       value => { cleanupLog.push(`transient-${value.id}`); },
     ), 'transient'),
     raw: DiBag.withDisposal(
-      DiBag.factory(() => rawPromise, { acquisition: 'raw' }),
+      DiBag.fromFactory(() => rawPromise, { acquisitionMode: 'raw' }),
       value => { rawDisposed = value; },
     ),
-  }).alias('rootAlias', 'root').end();
-  const child = root.scope();
+  }).alias('rootAlias', 'root').build();
+  const child = root.createScope();
 
   const rootValue = child.resolve('root');
   const aliasCanonical = child.resolve('rootAlias') === rootValue

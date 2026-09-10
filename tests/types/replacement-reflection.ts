@@ -1,11 +1,11 @@
 import { DiBag } from '../../src';
 import type { Assert, Equal } from './assert';
 
-export const builder = DiBag.begin().add({
+export const builder = DiBag.createBuilder().register({
   value: () => 1,
   consumer: ({ value }: { value: number }) => value + 1,
 });
-export const moduleBuilder = DiBag.module().add({
+export const moduleBuilder = DiBag.createModuleBuilder().register({
   value: () => 1,
   consumer: ({ value }: { value: number }) => value + 1,
 });
@@ -22,8 +22,8 @@ type Utilities = [
 
 export type ModuleView = ReturnType<typeof moduleBuilder.replace>;
 export const moduleView: ModuleView = moduleBuilder;
-export const feature = moduleView.exports(['value', 'consumer']);
-export const result = DiBag.begin().install(feature).end().resolve('consumer');
+export const feature = moduleView.buildModule(['value', 'consumer']);
+export const result = DiBag.createBuilder().installModule(feature).build().resolve('consumer');
 type Exact = Assert<Equal<typeof result, number>>;
 
 export const forward = (factory: () => number) => builder.replace('value', factory);

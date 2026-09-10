@@ -6,7 +6,7 @@ test('a module private retry keeps the caught failed attempt separate', async ()
   const valueA = { id: 'a' };
   const valueB = { id: 'b' };
   const events: string[] = [];
-  const feature = DiBag.module().add({
+  const feature = DiBag.createModuleBuilder().register({
     a: DiBag.withDisposal((deps: { b: typeof valueB }) => {
       try { void deps.b; } catch {}
       return valueA;
@@ -17,8 +17,8 @@ test('a module private retry keeps the caught failed attempt separate', async ()
       return valueB;
     }, value => { events.push(value.id); }),
     retry: (deps: { b: typeof valueB }) => () => deps.b,
-  }).exports(['a', 'retry']);
-  const bag = DiBag.begin().install(feature).end();
+  }).buildModule(['a', 'retry']);
+  const bag = DiBag.createBuilder().installModule(feature).build();
   expect(bag.resolve('a')).toBe(valueA);
   const retry = bag.resolve('retry');
   expect(retry()).toBe(valueB);
@@ -30,22 +30,22 @@ test('a module private retry keeps the caught failed attempt separate', async ()
 
 test('module private dependencies follow exported replacements and fresh forks', async () => {
   const events: string[] = [];
-  const feature = DiBag.module().add({
+  const feature = DiBag.createModuleBuilder().register({
     connection: DiBag.withDisposal(() => ({ open: true }), () => { events.push('connection'); }),
     service: ({ connection, logger }: { connection: { open: boolean }; logger: { log(message: string): void } }) =>
       ({ read() { logger.log('read'); return connection.open; }, extra() { return 7; } }),
     privateReader: ({ service }: { service: { read(): boolean; extra(): number } }) => () => service.read(),
     handler: DiBag.withDisposal(({ privateReader }: { privateReader(): boolean }) => privateReader,
       () => { events.push('handler'); }),
-  }).exports(['service', 'handler']);
-  const builder = DiBag.begin().install(feature).add({
+  }).buildModule(['service', 'handler']);
+  const builder = DiBag.createBuilder().installModule(feature).register({
     logger: DiBag.withDisposal(() => ({ log(message: string) { events.push(message); } }), () => { events.push('logger'); }),
   });
-  const root = builder.end();
+  const root = builder.build();
   const child = root.fork(['service'], { service: () => ({ read() { return false; }, extra() { return 8; } }) });
   expect(root.resolve('handler')()).toBe(true);
   expect(child.resolve('handler')()).toBe(false);
-  const replaced = builder.replace('service', () => ({ read() { return false; }, extra() { return 9; }, added: true })).end();
+  const replaced = builder.replace('service', () => ({ read() { return false; }, extra() { return 9; }, added: true })).build();
   expect(replaced.resolve('service').added).toBe(true);
   expect(replaced.resolve('handler')()).toBe(false);
   await child.close();
@@ -57,11 +57,11 @@ test('module private dependencies follow exported replacements and fresh forks',
 test('renamed repeated installations isolate private instances and cleanup', async () => {
   const events: number[] = [];
   let next = 0;
-  const module = DiBag.module().add({
+  const module = DiBag.createModuleBuilder().register({
     state: DiBag.withDisposal(() => ({ id: ++next }), state => { events.push(state.id); }),
     read: ({ state }: { state: { id: number } }) => state,
-  }).exports(['read']);
-  const root = DiBag.begin().install(module.rename('read', 'left')).install(module.rename('read', 'right')).end();
+  }).buildModule(['read']);
+  const root = DiBag.createBuilder().installModule(module.renameExport('read', 'left')).installModule(module.renameExport('read', 'right')).build();
   expect(root.resolve('left')).toEqual({ id: 1 });
   expect(root.resolve('right')).toEqual({ id: 2 });
   expect(root.resolve('left')).not.toBe(root.resolve('right'));
@@ -74,14 +74,14 @@ test('renamed repeated installations isolate private instances and cleanup', asy
 });
 
 test('rename preserves original parameter names even when an export takes a private name', async () => {
-  const module = DiBag.module().add({
+  const module = DiBag.createModuleBuilder().register({
     privateValue: () => 3,
     publicValue: () => 5,
     read: ({ privateValue, publicValue, external }: { privateValue: number; publicValue: number; external: number }) =>
       [privateValue, publicValue, external],
-  }).exports(['publicValue', 'read']).rename('publicValue', 'privateValue');
-  expect(module.rename('read', 'read')).toBe(module);
-  const root = DiBag.begin().install(module).add({ external: () => 7 }).end();
+  }).buildModule(['publicValue', 'read']).renameExport('publicValue', 'privateValue');
+  expect(module.renameExport('read', 'read')).toBe(module);
+  const root = DiBag.createBuilder().installModule(module).register({ external: () => 7 }).build();
   const child = root.fork(['privateValue'], { privateValue: () => 11 });
   expect(root.resolve('read')).toEqual([3, 5, 7]);
   expect(child.resolve('read')).toEqual([3, 11, 7]);
@@ -89,13 +89,13 @@ test('rename preserves original parameter names even when an export takes a priv
 });
 
 test('invalid installations and export views fail atomically and reject forged modules', async () => {
-  const module = DiBag.module().add({ a: () => 1, b: () => 2 }).exports(['a', 'b']);
-  const builder = DiBag.begin().add({ b: () => 9 });
-  expect(() => (builder.install as Function)(module)).toThrow('duplicate registration: b');
-  expect(() => (DiBag.begin().install as Function)({ ...module })).toThrow('module');
-  expect(() => (module.rename as Function)('a', 'b')).toThrow('duplicate export');
-  expect(() => (module.rename as Function)('absent', 'x')).toThrow('existing export');
-  const root = builder.install(module.rename('b', 'c')).end();
+  const module = DiBag.createModuleBuilder().register({ a: () => 1, b: () => 2 }).buildModule(['a', 'b']);
+  const builder = DiBag.createBuilder().register({ b: () => 9 });
+  expect(() => (builder.installModule as Function)(module)).toThrow('duplicate registration: b');
+  expect(() => (DiBag.createBuilder().installModule as Function)({ ...module })).toThrow('module');
+  expect(() => (module.renameExport as Function)('a', 'b')).toThrow('duplicate export');
+  expect(() => (module.renameExport as Function)('absent', 'x')).toThrow('existing export');
+  const root = builder.installModule(module.renameExport('b', 'c')).build();
   expect(root.resolve('a')).toBe(1);
   expect(root.resolve('b')).toBe(9);
   expect(root.resolve('c')).toBe(2);
@@ -105,27 +105,27 @@ test('invalid installations and export views fail atomically and reject forged m
 test('exports use indexed tuple snapshots and preserve hidden local registrations', async () => {
   const all = { publicValue: () => 4, hidden: () => 8 };
   const visible: { publicValue: () => number } = all;
-  const builder = DiBag.module().add(visible);
-  expect(() => (builder.add as Function)({ hidden: () => 9 })).toThrow('duplicate registration');
+  const builder = DiBag.createModuleBuilder().register(visible);
+  expect(() => (builder.register as Function)({ hidden: () => 9 })).toThrow('duplicate registration');
   const keys = ['publicValue'] as const;
   Object.defineProperty(keys, Symbol.iterator, { value: function* () { yield 'hidden'; } });
-  const root = DiBag.begin().install(builder.exports(keys)).end();
+  const root = DiBag.createBuilder().installModule(builder.buildModule(keys)).build();
   expect(root.resolve('publicValue')).toBe(4);
-  expect(() => (root.resolve as Function)('hidden')).toThrow('no factory');
-  expect(() => (builder.exports as Function)(['missing'])).toThrow('existing');
+  expect(() => (root.resolve as Function)('hidden')).toThrow('is not registered');
+  expect(() => (builder.buildModule as Function)(['missing'])).toThrow('existing');
   await root.close();
 });
 
 test('module promise identity, retry and post-await cycle diagnostics use the host runtime', async () => {
   let attempts = 0;
   const original = Promise.resolve(42);
-  const module = DiBag.module().add({
+  const module = DiBag.createModuleBuilder().register({
     identity: () => original,
     retry: async () => { if (++attempts === 1) throw new Error('retry me'); return 7; },
     a: async (deps: { b: Promise<number> }): Promise<number> => { await Promise.resolve(); return deps.b; },
     b: async (deps: { a: Promise<number> }): Promise<number> => { await Promise.resolve(); return deps.a; },
-  }).exports(['identity', 'retry', 'a']);
-  const root = DiBag.begin().install(module).end();
+  }).buildModule(['identity', 'retry', 'a']);
+  const root = DiBag.createBuilder().installModule(module).build();
   expect(root.resolve('identity')).toBe(original);
   await expect(root.resolve('retry')).rejects.toThrow('retry me');
   expect(await root.resolve('retry')).toBe(7);
@@ -134,20 +134,20 @@ test('module promise identity, retry and post-await cycle diagnostics use the ho
 });
 
 test('renaming an export leaves an unrelated external requirement at its original slot', async () => {
-  const module = DiBag.module().add({
+  const module = DiBag.createModuleBuilder().register({
     value: () => 1,
     read: ({ value, external }: { value: number; external: number }) => [value, external],
-  }).exports(['value', 'read']).rename('value', 'external').rename('external', 'renamed');
-  const root = DiBag.begin().install(module).add({ external: () => 7 }).end();
+  }).buildModule(['value', 'read']).renameExport('value', 'external').renameExport('external', 'renamed');
+  const root = DiBag.createBuilder().installModule(module).register({ external: () => 7 }).build();
   expect(root.resolve('read')).toEqual([1, 7]);
   await root.close();
 });
 
 test('module providers can be replaced before sealing without mutating earlier views', async () => {
-  const builder = DiBag.module().add({ value: () => 1 });
-  const original = builder.exports(['value']);
-  const changed = builder.replace('value', () => 'changed').exports(['value']).rename('value', 'changed');
-  const root = DiBag.begin().install(original).install(changed).end();
+  const builder = DiBag.createModuleBuilder().register({ value: () => 1 });
+  const original = builder.buildModule(['value']);
+  const changed = builder.replace('value', () => 'changed').buildModule(['value']).renameExport('value', 'changed');
+  const root = DiBag.createBuilder().installModule(original).installModule(changed).build();
   expect(root.resolve('value')).toBe(1);
   expect(root.resolve('changed')).toBe('changed');
   await root.close();
@@ -155,7 +155,7 @@ test('module providers can be replaced before sealing without mutating earlier v
 
 test('close drains module acquisitions that discover private and host dependencies after await', async () => {
   const events: string[] = [];
-  const feature = DiBag.module().add({
+  const feature = DiBag.createModuleBuilder().register({
     privateResource: DiBag.withDisposal(async (deps: { external: Promise<number> }) => {
       await Promise.resolve();
       return await deps.external;
@@ -164,10 +164,10 @@ test('close drains module acquisitions that discover private and host dependenci
       await Promise.resolve();
       return await deps.privateResource;
     }, () => { events.push('public'); }),
-  }).exports(['publicResource']);
-  const root = DiBag.begin().install(feature).add({
+  }).buildModule(['publicResource']);
+  const root = DiBag.createBuilder().installModule(feature).register({
     external: DiBag.withDisposal(async () => 42, () => { events.push('external'); }),
-  }).end();
+  }).build();
   const acquired = root.resolve('publicResource');
   const closing = root.close();
   expect(await acquired).toBe(42);

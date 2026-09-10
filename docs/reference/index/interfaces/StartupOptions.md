@@ -4,23 +4,11 @@
 
 # Interface: StartupOptions
 
-Defined in: [startup.ts:8](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L8)
+Defined in: [startup.ts:9](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L9)
 
-Controls eager acquisition performed by [Builder.start](Builder.md#start).
+Controls eager acquisition performed by [BagBuilder.buildAndStart](BagBuilder.md#buildandstart).
 
 ## Properties
-
-### concurrency?
-
-```ts
-readonly concurrency?: 'parallel' | 'sequential' | number;
-```
-
-Defined in: [startup.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L14)
-
-Start together (`parallel`, default), in tuple order (`sequential`), or with a positive safe integer bound on selected readiness waits. Dependency fanout is not bounded.
-
-***
 
 ### signal?
 
@@ -28,9 +16,21 @@ Start together (`parallel`, default), in tuple order (`sequential`), or with a p
 readonly signal?: AbortSignal;
 ```
 
-Defined in: [startup.ts:10](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L10)
+Defined in: [startup.ts:11](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L11)
 
 An external signal that promptly cancels the startup wait and begins cleanup.
+
+***
+
+### startupOrder?
+
+```ts
+readonly startupOrder?: 'parallel' | 'sequential' | number;
+```
+
+Defined in: [startup.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L15)
+
+Start together (`parallel`, default), in tuple order (`sequential`), or with a positive safe integer bound on selected readiness waits. Dependency fanout is not bounded.
 
 ***
 
@@ -40,6 +40,6 @@ An external signal that promptly cancels the startup wait and begins cleanup.
 readonly timeoutMs?: number;
 ```
 
-Defined in: [startup.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L12)
+Defined in: [startup.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L13)
 
 A finite positive deadline in milliseconds.

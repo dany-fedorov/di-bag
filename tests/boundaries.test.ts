@@ -6,7 +6,7 @@ import { runInNewContext } from 'node:vm';
 import { normalize } from '../src/registration';
 
 test('fork changes only the selected key hidden behind a narrowed override map', () => {
-  const root = DiBag.begin().add({ a: () => 1, b: () => 2 }).end();
+  const root = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).build();
   const actual = { a: () => 3, b: () => 'wrong' };
   const narrowed: { a: () => number } = actual;
   const child = root.fork(['a'], narrowed);
@@ -17,7 +17,7 @@ test('fork changes only the selected key hidden behind a narrowed override map',
 });
 
 test('unselected override values and getters never participate', () => {
-  const root = DiBag.begin().add({ a: () => 1, b: () => 2 }).end();
+  const root = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).build();
   const child = root.fork(['a'], {
     a: () => 3,
     b: 'not a factory',
@@ -28,47 +28,47 @@ test('unselected override values and getters never participate', () => {
 });
 
 test('hidden duplicate additions throw atomically and leave builders reusable', () => {
-  const builder = DiBag.begin().add({ b: () => 2 });
+  const builder = DiBag.createBuilder().register({ b: () => 2 });
   const actual = { a: () => 3, b: () => 'wrong' };
   const narrowed: { a: () => number } = actual;
-  expect(() => builder.add(narrowed)).toThrow(/duplicate.*b/);
-  expect(builder.end().resolve('b')).toBe(2);
-  expect(builder.add({ a: () => 4 }).end().resolve('a')).toBe(4);
+  expect(() => builder.register(narrowed)).toThrow(/duplicate.*b/);
+  expect(builder.build().resolve('b')).toBe(2);
+  expect(builder.register({ a: () => 4 }).build().resolve('a')).toBe(4);
 });
 
 test('hidden new keys cannot later silently replace visible registrations', () => {
   const actual = { a: () => 1, hidden: () => 'hidden' };
   const narrowed: { a: () => number } = actual;
-  const builder = DiBag.begin().add(narrowed);
-  expect(() => builder.add({ hidden: () => 2 })).toThrow(/duplicate.*hidden/);
-  expect(builder.end().resolve('a')).toBe(1);
+  const builder = DiBag.createBuilder().register(narrowed);
+  expect(() => builder.register({ hidden: () => 2 })).toThrow(/duplicate.*hidden/);
+  expect(builder.build().resolve('a')).toBe(1);
 });
 
 test('add snapshots every own entry and validates before producing a builder', () => {
-  const builder = DiBag.begin().add({ a: () => 1 });
+  const builder = DiBag.createBuilder().register({ a: () => 1 });
   const hiddenDuplicate = Object.defineProperty({ b: () => 2 }, 'a', { value: () => 3 });
-  expect(() => builder.add(hiddenDuplicate)).toThrow(/duplicate.*a/);
+  expect(() => builder.register(hiddenDuplicate)).toThrow(/duplicate.*a/);
   const invalid = { b: () => 2, hidden: 42 };
   const narrowed: { b: () => number } = invalid;
-  expect(() => builder.add(narrowed)).toThrow(/invalid.*registration/);
-  expect(builder.add({ b: () => 3 }).end().resolve('b')).toBe(3);
+  expect(() => builder.register(narrowed)).toThrow(/invalid.*registration/);
+  expect(builder.register({ b: () => 3 }).build().resolve('b')).toBe(3);
   let reads = 0;
-  const snapshot = builder.add({ get b() { reads++; return () => reads; } });
+  const snapshot = builder.register({ get b() { reads++; return () => reads; } });
   expect(reads).toBe(1);
-  expect(snapshot.end().resolve('b')).toBe(1);
+  expect(snapshot.build().resolve('b')).toBe(1);
 });
 
 test('replacement writes its explicit key and preserves earlier builders', () => {
-  const builder = DiBag.begin().add({ a: () => 1, b: () => 2 });
-  const changed = builder.replace('a', () => 'new').end();
+  const builder = DiBag.createBuilder().register({ a: () => 1, b: () => 2 });
+  const changed = builder.replace('a', () => 'new').build();
   expect(changed.resolve('a')).toBe('new');
   expect(changed.resolve('b')).toBe(2);
-  expect(builder.end().resolve('a')).toBe(1);
+  expect(builder.build().resolve('a')).toBe(1);
   expect(() => Reflect.apply(builder.replace, builder, ['missing', () => 3])).toThrow(/existing.*missing/);
 });
 
 test('fork requires selected own entries before reading any selected getter', () => {
-  const root = DiBag.begin().add({ a: () => 1, b: () => 2 }).end();
+  const root = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).build();
   let reads = 0;
   const overrides = { get a() { reads++; return () => 3; } };
   expect(() => Reflect.apply(root.fork, root, [['a', 'b'], overrides])).toThrow(/missing override.*b/);
@@ -79,7 +79,7 @@ test('fork requires selected own entries before reading any selected getter', ()
 });
 
 test('fork snapshots selection before an override getter mutates the caller tuple', () => {
-  const root = DiBag.begin().add({ a: () => 1, b: () => 2 }).end();
+  const root = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).build();
   const keys: ['a', 'b'] = ['a', 'b'];
   const child = root.fork(keys, {
     get a() { keys.splice(1); return () => 3; },
@@ -90,7 +90,7 @@ test('fork snapshots selection before an override getter mutates the caller tupl
 });
 
 test('fork selects indexed tuple entries even when its iterator omits a key', () => {
-  const root = DiBag.begin().add({ a: () => 1, b: () => 2 }).end();
+  const root = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).build();
   const keys: ['a', 'b'] = ['a', 'b'];
   keys[Symbol.iterator] = function* () {
     yield keys[0];
@@ -102,7 +102,7 @@ test('fork selects indexed tuple entries even when its iterator omits a key', ()
 });
 
 test('fork batches selected replacements without using the single-binding graph path', () => {
-  const root = DiBag.begin().add({ a: () => 1, b: () => 2 }).end();
+  const root = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).build();
   const original = BindingGraph.prototype.withPublicBinding;
   const originalBatch = BindingGraph.prototype.withPublicBindings;
   let singleReplacements = 0;
@@ -130,9 +130,9 @@ test('fork batches selected replacements without using the single-binding graph 
 test('empty forks reuse the graph without reading unselected values and retain fresh ownership', async () => {
   let next = 0;
   const disposed: number[] = [];
-  const root = DiBag.begin().add({
+  const root = DiBag.createBuilder().register({
     value: DiBag.withDisposal(() => ++next, value => { disposed.push(value); }),
-  }).end();
+  }).build();
   const keys: [] = [];
   keys[Symbol.iterator] = function* () { throw new Error('iterator invoked'); };
   const overrides = new Proxy({}, { get() { throw new Error('override read'); } });
@@ -157,10 +157,10 @@ test('empty forks reuse the graph without reading unselected values and retain f
 });
 
 test('selected overrides can depend on richer capabilities of other selected services', () => {
-  const root = DiBag.begin().add({
+  const root = DiBag.createBuilder().register({
     clock: () => ({ now: () => 42 }),
     service: ({ clock }: { clock: { now(): number } }) => ({ stamp: () => clock.now() }),
-  }).end();
+  }).build();
   const child = root.fork(['clock', 'service'], {
     clock: () => ({ now() { return 7; }, zone() { return 'utc' as const; } }),
     service: ({ clock }: { clock: { now(): number; zone(): 'utc' } }) => ({
@@ -176,18 +176,18 @@ test('selected overrides can depend on richer capabilities of other selected ser
 test('runtime registration validation rejects cloned and forged owned handles', () => {
   const owned = DiBag.withDisposal(() => 1, value => { value.toFixed(); });
   expect(Object.isFrozen(owned)).toBe(true);
-  const builder = DiBag.begin();
+  const builder = DiBag.createBuilder();
   for (const value of [{ ...owned }, { ...owned, create: () => 'wrong' }, Object.create(owned)]) {
-    expect(() => Reflect.apply(builder.add, builder, [{ value }])).toThrow(/invalid.*registration/);
+    expect(() => Reflect.apply(builder.register, builder, [{ value }])).toThrow(/invalid.*registration/);
   }
-  expect(builder.add({ value: owned }).end().resolve('value')).toBe(1);
+  expect(builder.register({ value: owned }).build().resolve('value')).toBe(1);
 });
 
 test('normalization does not expose mutable ownership registry metadata', async () => {
   let disposed: number | undefined;
   const owned = DiBag.withDisposal(() => 1, value => { disposed = value; });
   normalize(owned).create = () => 'wrong';
-  const bag = DiBag.begin().add({ value: owned }).end();
+  const bag = DiBag.createBuilder().register({ value: owned }).build();
   expect(bag.resolve('value')).toBe(1);
   await bag.close();
   expect(disposed).toBe(1);
@@ -198,8 +198,8 @@ test('unchecked source Bag construction is not exported', () => {
 });
 
 test('plain registration maps from another realm retain their own factories', () => {
-  const builder = DiBag.begin();
+  const builder = DiBag.createBuilder();
   const foreign = runInNewContext('({ value: () => 42 })');
-  const bag = Reflect.apply(builder.add, builder, [foreign]).end();
+  const bag = Reflect.apply(builder.register, builder, [foreign]).build();
   expect(bag.resolve('value')).toBe(42);
 });

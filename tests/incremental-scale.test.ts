@@ -15,8 +15,7 @@ for (const item of cases) {
     const child = spawnSync('node', [
       '--max-old-space-size=3072', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', ...item.args,
     ], { cwd: resolve(__dirname, '..'), encoding: 'utf8', timeout: 60_000, maxBuffer: 1024 * 1024 });
-    expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr })
-      .toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
+    expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr }).toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
     expect(child.stdout.trim().length).toBeGreaterThan(0);
     const result = JSON.parse(child.stdout);
     expect(result.count).toBe(100);

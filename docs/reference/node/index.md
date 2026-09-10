@@ -4,10 +4,6 @@
 
 # node
 
-## Type Aliases
-
-- [fromPlugin](type-aliases/fromPlugin.md)
-
 ## Variables
 
 - [DiBag](variables/DiBag.md)
@@ -23,6 +19,12 @@ Re-exports [AcquisitionContext](../index/interfaces/AcquisitionContext.md)
 ### AcquisitionEventFields
 
 Re-exports [AcquisitionEventFields](../index/interfaces/AcquisitionEventFields.md)
+
+***
+
+### AcquisitionMetadataPresence
+
+Re-exports [AcquisitionMetadataPresence](../index/type-aliases/AcquisitionMetadataPresence.md)
 
 ***
 
@@ -56,27 +58,15 @@ Re-exports [AliasRegistration](../index/type-aliases/AliasRegistration.md)
 
 ***
 
-### AllReference
-
-Re-exports [AllReference](../index/type-aliases/AllReference.md)
-
-***
-
 ### Bag
 
 Re-exports [Bag](../index/interfaces/Bag.md)
 
 ***
 
-### Binding
+### BagBuilder
 
-Re-exports [Binding](../index/type-aliases/Binding.md)
-
-***
-
-### Builder
-
-Re-exports [Builder](../index/interfaces/Builder.md)
+Re-exports [BagBuilder](../index/interfaces/BagBuilder.md)
 
 ***
 
@@ -86,9 +76,15 @@ Re-exports [BuilderContribute](../index/type-aliases/BuilderContribute.md)
 
 ***
 
-### Checked
+### CheckDependencyCompatibility
 
-Re-exports [Checked](../index/type-aliases/Checked.md)
+Re-exports [CheckDependencyCompatibility](../index/type-aliases/CheckDependencyCompatibility.md)
+
+***
+
+### CheckDependencyCompleteness
+
+Re-exports [CheckDependencyCompleteness](../index/type-aliases/CheckDependencyCompleteness.md)
 
 ***
 
@@ -110,9 +106,9 @@ Re-exports [CleanupFailure](../index/interfaces/CleanupFailure.md)
 
 ***
 
-### Complete
+### CollectionDependency
 
-Re-exports [Complete](../index/type-aliases/Complete.md)
+Re-exports [CollectionDependency](../index/type-aliases/CollectionDependency.md)
 
 ***
 
@@ -125,6 +121,12 @@ Re-exports [CompositionArguments](../index/type-aliases/CompositionArguments.md)
 ### CompositionFunction
 
 Re-exports [CompositionFunction](../index/type-aliases/CompositionFunction.md)
+
+***
+
+### ConfigurationOptions
+
+Re-exports [ConfigurationOptions](../index/interfaces/ConfigurationOptions.md)
 
 ***
 
@@ -146,9 +148,15 @@ Re-exports [ContributionConstraint](../index/type-aliases/ContributionConstraint
 
 ***
 
-### Dependency
+### DependencyReference
 
-Re-exports [Dependency](../index/type-aliases/Dependency.md)
+Re-exports [DependencyReference](../index/type-aliases/DependencyReference.md)
+
+***
+
+### DiBagApi
+
+Re-exports [DiBagApi](../index/interfaces/DiBagApi.md)
 
 ***
 
@@ -158,9 +166,21 @@ Re-exports [DiBagCleanupError](../index/classes/DiBagCleanupError.md)
 
 ***
 
-### DiBagPluginError
+### DiBagDiagnostic
 
-Re-exports [DiBagPluginError](../index/classes/DiBagPluginError.md)
+Re-exports [DiBagDiagnostic](../index/interfaces/DiBagDiagnostic.md)
+
+***
+
+### DiBagErrorCode
+
+Re-exports [DiBagErrorCode](../index/type-aliases/DiBagErrorCode.md)
+
+***
+
+### DiBagPluginValidationError
+
+Re-exports [DiBagPluginValidationError](../index/classes/DiBagPluginValidationError.md)
 
 ***
 
@@ -182,51 +202,15 @@ Re-exports [DisjointScopeSelection](../index/type-aliases/DisjointScopeSelection
 
 ***
 
-### DisposableFactory
+### FactoryWithDisposal
 
-Re-exports [DisposableFactory](../index/type-aliases/DisposableFactory.md)
-
-***
-
-### Entries
-
-Re-exports [Entries](../index/type-aliases/Entries.md)
+Re-exports [FactoryWithDisposal](../index/interfaces/FactoryWithDisposal.md)
 
 ***
 
-### Facade
+### LazyDependency
 
-Re-exports [Facade](../index/interfaces/Facade.md)
-
-***
-
-### ForkContext
-
-Re-exports [ForkContext](../index/type-aliases/ForkContext.md)
-
-***
-
-### FramePresenceTuple
-
-Re-exports [FramePresenceTuple](../index/type-aliases/FramePresenceTuple.md)
-
-***
-
-### From
-
-Re-exports [From](../index/type-aliases/From.md)
-
-***
-
-### InspectionSnapshot
-
-Re-exports [InspectionSnapshot](../index/interfaces/InspectionSnapshot.md)
-
-***
-
-### LazyReference
-
-Re-exports [LazyReference](../index/type-aliases/LazyReference.md)
+Re-exports [LazyDependency](../index/type-aliases/LazyDependency.md)
 
 ***
 
@@ -245,12 +229,6 @@ Re-exports [LifecycleEvent](../index/type-aliases/LifecycleEvent.md)
 ### Lifetime
 
 Re-exports [Lifetime](../index/type-aliases/Lifetime.md)
-
-***
-
-### Merge
-
-Re-exports [Merge](../index/type-aliases/Merge.md)
 
 ***
 
@@ -290,9 +268,9 @@ Re-exports [ModuleContributions](../index/type-aliases/ModuleContributions.md)
 
 ***
 
-### ModuleProvides
+### ModuleExportedServices
 
-Re-exports [ModuleProvides](../index/type-aliases/ModuleProvides.md)
+Re-exports [ModuleExportedServices](../index/type-aliases/ModuleExportedServices.md)
 
 ***
 
@@ -302,9 +280,9 @@ Re-exports [ModulePublicProviders](../index/type-aliases/ModulePublicProviders.m
 
 ***
 
-### ModuleRequires
+### ModuleRequiredServices
 
-Re-exports [ModuleRequires](../index/type-aliases/ModuleRequires.md)
+Re-exports [ModuleRequiredServices](../index/type-aliases/ModuleRequiredServices.md)
 
 ***
 
@@ -332,9 +310,21 @@ Re-exports [ObserverOptions](../index/interfaces/ObserverOptions.md)
 
 ***
 
-### OptionalReference
+### OptionalDependency
 
-Re-exports [OptionalReference](../index/type-aliases/OptionalReference.md)
+Re-exports [OptionalDependency](../index/type-aliases/OptionalDependency.md)
+
+***
+
+### OverrideFactoryContext
+
+Re-exports [OverrideFactoryContext](../index/type-aliases/OverrideFactoryContext.md)
+
+***
+
+### OverrideRegistrations
+
+Re-exports [OverrideRegistrations](../index/type-aliases/OverrideRegistrations.md)
 
 ***
 
@@ -344,9 +334,9 @@ Re-exports [Overrides](../index/type-aliases/Overrides.md)
 
 ***
 
-### PluginAcquisition
+### PluginAcquisitionMode
 
-Re-exports [PluginAcquisition](../index/type-aliases/PluginAcquisition.md)
+Re-exports [PluginAcquisitionMode](../index/type-aliases/PluginAcquisitionMode.md)
 
 ***
 
@@ -356,15 +346,21 @@ Re-exports [PluginOptions](../index/interfaces/PluginOptions.md)
 
 ***
 
-### PluginPredicate
+### PluginOutputValidator
 
-Re-exports [PluginPredicate](../index/type-aliases/PluginPredicate.md)
+Re-exports [PluginOutputValidator](../index/type-aliases/PluginOutputValidator.md)
 
 ***
 
-### PluginResult
+### PluginProvider
 
-Re-exports [PluginResult](../index/type-aliases/PluginResult.md)
+Re-exports [PluginProvider](../index/type-aliases/PluginProvider.md)
+
+***
+
+### PluginProviderFactory
+
+Re-exports [PluginProviderFactory](../index/type-aliases/PluginProviderFactory.md)
 
 ***
 
@@ -374,21 +370,15 @@ Re-exports [Presence](../index/type-aliases/Presence.md)
 
 ***
 
-### Provided
-
-Re-exports [Provided](../index/type-aliases/Provided.md)
-
-***
-
 ### Provider
 
 Re-exports [Provider](../index/interfaces/Provider.md)
 
 ***
 
-### ProviderAcquired
+### ProviderAcquiredValue
 
-Re-exports [ProviderAcquired](../index/type-aliases/ProviderAcquired.md)
+Re-exports [ProviderAcquiredValue](../index/type-aliases/ProviderAcquiredValue.md)
 
 ***
 
@@ -398,9 +388,9 @@ Re-exports [ProviderAcquisitionMetadata](../index/type-aliases/ProviderAcquisiti
 
 ***
 
-### ProviderAllTokenNeeds
+### ProviderCollectionTokens
 
-Re-exports [ProviderAllTokenNeeds](../index/type-aliases/ProviderAllTokenNeeds.md)
+Re-exports [ProviderCollectionTokens](../index/type-aliases/ProviderCollectionTokens.md)
 
 ***
 
@@ -410,27 +400,21 @@ Re-exports [ProviderFactory](../index/type-aliases/ProviderFactory.md)
 
 ***
 
-### ProviderGraph
+### ProviderGraphContract
 
-Re-exports [ProviderGraph](../index/type-aliases/ProviderGraph.md)
-
-***
-
-### ProviderMetadata
-
-Re-exports [ProviderMetadata](../index/type-aliases/ProviderMetadata.md)
+Re-exports [ProviderGraphContract](../index/type-aliases/ProviderGraphContract.md)
 
 ***
 
-### ProviderNeeds
+### ProviderNamedDependencies
 
-Re-exports [ProviderNeeds](../index/type-aliases/ProviderNeeds.md)
+Re-exports [ProviderNamedDependencies](../index/type-aliases/ProviderNamedDependencies.md)
 
 ***
 
-### ProviderOptionalTokenNeeds
+### ProviderOptionalTokens
 
-Re-exports [ProviderOptionalTokenNeeds](../index/type-aliases/ProviderOptionalTokenNeeds.md)
+Re-exports [ProviderOptionalTokens](../index/type-aliases/ProviderOptionalTokens.md)
 
 ***
 
@@ -440,9 +424,15 @@ Re-exports [ProviderOutput](../index/type-aliases/ProviderOutput.md)
 
 ***
 
-### ProviderTokenNeeds
+### ProviderRegistrationMetadata
 
-Re-exports [ProviderTokenNeeds](../index/type-aliases/ProviderTokenNeeds.md)
+Re-exports [ProviderRegistrationMetadata](../index/type-aliases/ProviderRegistrationMetadata.md)
+
+***
+
+### ProviderRequiredTokens
+
+Re-exports [ProviderRequiredTokens](../index/type-aliases/ProviderRequiredTokens.md)
 
 ***
 
@@ -467,6 +457,24 @@ Re-exports [ReboundSelection](../index/type-aliases/ReboundSelection.md)
 ### Registration
 
 Re-exports [Registration](../index/type-aliases/Registration.md)
+
+***
+
+### RegistrationEntries
+
+Re-exports [RegistrationEntries](../index/type-aliases/RegistrationEntries.md)
+
+***
+
+### RegistrationsFromEntries
+
+Re-exports [RegistrationsFromEntries](../index/type-aliases/RegistrationsFromEntries.md)
+
+***
+
+### RegistrationSnapshot
+
+Re-exports [RegistrationSnapshot](../index/interfaces/RegistrationSnapshot.md)
 
 ***
 
@@ -512,9 +520,9 @@ Re-exports [ScopeOptions](../index/type-aliases/ScopeOptions.md)
 
 ***
 
-### Selected
+### SelectedRegistrations
 
-Re-exports [Selected](../index/type-aliases/Selected.md)
+Re-exports [SelectedRegistrations](../index/type-aliases/SelectedRegistrations.md)
 
 ***
 
@@ -527,6 +535,12 @@ Re-exports [Selection](../index/type-aliases/Selection.md)
 ### SelectionKey
 
 Re-exports [SelectionKey](../index/type-aliases/SelectionKey.md)
+
+***
+
+### ServicesOf
+
+Re-exports [ServicesOf](../index/type-aliases/ServicesOf.md)
 
 ***
 
@@ -554,9 +568,15 @@ Re-exports [TokenBase](../index/interfaces/TokenBase.md)
 
 ***
 
-### TokenGraph
+### TokenBinding
 
-Re-exports [TokenGraph](../index/type-aliases/TokenGraph.md)
+Re-exports [TokenBinding](../index/type-aliases/TokenBinding.md)
+
+***
+
+### TokenDependencyContract
+
+Re-exports [TokenDependencyContract](../index/type-aliases/TokenDependencyContract.md)
 
 ***
 

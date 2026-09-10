@@ -4,7 +4,7 @@
 
 # Interface: AcquisitionEventFields
 
-Defined in: [observers.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L12)
+Defined in: [observers.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L13)
 
 Copied binding and acquisition details carried by acquisition and cleanup events.
 
@@ -16,7 +16,17 @@ Copied binding and acquisition details carried by acquisition and cleanup events
 readonly acquisitionId: symbol;
 ```
 
-Defined in: [observers.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L15)
+Defined in: [observers.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L16)
+
+***
+
+### acquisitionMetadata
+
+```ts
+readonly acquisitionMetadata: AcquisitionMetadataPresence<readonly unknown[]>;
+```
+
+Defined in: [observers.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L20)
 
 ***
 
@@ -26,17 +36,7 @@ Defined in: [observers.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/s
 readonly bindingId: symbol;
 ```
 
-Defined in: [observers.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L14)
-
-***
-
-### frames
-
-```ts
-readonly frames: FramePresenceTuple<readonly unknown[]>;
-```
-
-Defined in: [observers.ts:19](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L19)
+Defined in: [observers.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L15)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [observers.ts:19](https://github.com/dany-fedorov/di-bag/blob/main/s
 readonly label: string;
 ```
 
-Defined in: [observers.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L16)
+Defined in: [observers.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L17)
 
 ***
 
@@ -56,17 +56,17 @@ Defined in: [observers.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/s
 readonly lifetime: Lifetime;
 ```
 
-Defined in: [observers.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L17)
+Defined in: [observers.ts:18](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L18)
 
 ***
 
-### metadata
+### registrationMetadata
 
 ```ts
-readonly metadata: Readonly<object>;
+readonly registrationMetadata: Readonly<object>;
 ```
 
-Defined in: [observers.ts:18](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L18)
+Defined in: [observers.ts:19](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L19)
 
 ***
 
@@ -76,4 +76,4 @@ Defined in: [observers.ts:18](https://github.com/dany-fedorov/di-bag/blob/main/s
 readonly scopeId: symbol;
 ```
 
-Defined in: [observers.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L13)
+Defined in: [observers.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L14)

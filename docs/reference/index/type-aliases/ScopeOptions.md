@@ -6,9 +6,9 @@
 
 ```ts
 type ScopeOptions<R extends Registrations, S extends readonly unknown[]> = {
-    readonly share: S & Selection<R, S, 'scope share'> & ([
+    readonly share: S & Selection<R, S, 'createScope share'> & ([
         Transients<R, S>
-    ] extends [never] ? unknown : Unsatisfied<'scope cannot share transient providers', {
+    ] extends [never] ? unknown : Unsatisfied<'createScope cannot share transient providers', {
         tokens: Transients<R, S>;
     }>);
 };
@@ -16,7 +16,7 @@ type ScopeOptions<R extends Registrations, S extends readonly unknown[]> = {
 
 Defined in: [scope-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L12)
 
-Checked options for borrowing selected non-transient parent acquisitions in a child scope.
+CheckDependencyCompatibility options for borrowing selected non-transient parent acquisitions in a child scope.
 
 ## Type Parameters
 
@@ -30,9 +30,9 @@ Checked options for borrowing selected non-transient parent acquisitions in a ch
 ### share
 
 ```ts
-readonly share: S & Selection<R, S, 'scope share'> & ([
+readonly share: S & Selection<R, S, 'createScope share'> & ([
     Transients<R, S>
-] extends [never] ? unknown : Unsatisfied<'scope cannot share transient providers', {
+] extends [never] ? unknown : Unsatisfied<'createScope cannot share transient providers', {
     tokens: Transients<R, S>;
 }>);
 ```

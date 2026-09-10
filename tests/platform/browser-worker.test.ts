@@ -121,8 +121,7 @@ test('browser metafile accepts only the installed root export and package-local 
   disguisedNestedForeign.inputs['portable/foreign-link.js'] = {};
   expect(() => assertBrowserMetafile(disguisedNestedForeign, consumer)).toThrow('outside the installed di-bag archive');
 
-  expect(() => assertBrowserMetafile({ ...cleanMetafile(consumer), outputs: {} }, consumer))
-    .toThrow('exactly one browser output');
+  expect(() => assertBrowserMetafile({ ...cleanMetafile(consumer), outputs: {} }, consumer)).toThrow('exactly one browser output');
 
   const alias = join(consumer, 'node_modules/di-bag/dist/root-alias.js');
   symlinkSync('index.js', alias);
@@ -150,8 +149,7 @@ test('browser bundle validation rejects stale bytes, sizes, gzip size, metafile 
 
   const empty = browserBundle();
   writeFileSync(empty.path, '');
-  expect(() => validateBrowserBundle({ ...empty, sha256: sha256(''), bytes: 0, gzipBytes: gzipSync('').length, gzipSha256: sha256(Uint8Array.from(gzipSync(''))) }))
-    .toThrow('browser bundle is empty');
+  expect(() => validateBrowserBundle({ ...empty, sha256: sha256(''), bytes: 0, gzipBytes: gzipSync('').length, gzipSha256: sha256(Uint8Array.from(gzipSync(''))) })).toThrow('browser bundle is empty');
   const missingMetafile = browserBundle();
   rmSync(missingMetafile.metafilePath);
   expect(() => validateBrowserBundle(missingMetafile)).toThrow('browser metafile does not exist');

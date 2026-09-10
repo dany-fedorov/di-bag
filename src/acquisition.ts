@@ -1,8 +1,9 @@
+import { libraryError } from './errors';
 import type { AcquisitionEventFields, LifecycleEvent } from './observers';
 import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import type { BindingGraph, BindingId, BindingKey } from './runtime';
-import type { InspectionSnapshot, AcquisitionSnapshot } from './inspection';
+import type { RegistrationSnapshot, AcquisitionSnapshot } from './inspection';
 import { ProviderExecution, type CompletedExecution } from './provider-execution';
 import type { RuntimeContext } from './acquisition-mode';
 import { AcquisitionFamily } from './acquisition-family';
@@ -17,7 +18,7 @@ interface Acquisition extends AttemptIdentity {
 }
 
 /** Mutable, runtime-local attempts. Binding descriptions never carry ownership. */
-export class Acquisitions {
+export class ScopeAcquisitions {
   readonly ownerId = Symbol('owner');
   private readonly cache = new Map<BindingId, Acquisition>();
   private readonly attempts = new Map<AcquisitionId, Acquisition>();
@@ -39,19 +40,19 @@ export class Acquisitions {
   constructor(
     private readonly graph: BindingGraph,
     private readonly context: RuntimeContext,
-    private readonly parent?: Acquisitions,
+    private readonly parent?: ScopeAcquisitions,
     shared: readonly BindingId[] = [],
   ) {
     this.shared = new Set(shared);
     this.family = parent?.family ?? new AcquisitionFamily();
   }
 
-  private owner(bindingId: BindingId): Acquisitions {
+  private owner(bindingId: BindingId): ScopeAcquisitions {
     if (this.parent && this.shared.has(bindingId)) return this.parent;
     if (this.graph.registration(bindingId).lifetime.kind !== 'root') return this;
     // A child override introduces a new identity absent from older graphs.
     // Inherited identities retain the earliest graph and its dependency context.
-    let owner: Acquisitions = this;
+    let owner: ScopeAcquisitions = this;
     for (let ancestor = this.parent; ancestor; ancestor = ancestor.parent) {
       if (ancestor.graph.hasBinding(bindingId)) owner = ancestor;
     }
@@ -101,7 +102,7 @@ export class Acquisitions {
       snapshots.push(Object.freeze({
         acquisitionId: attempt.id,
         state: attempt.state,
-        metadata: attempt.execution.inspectFrames(),
+        acquisitionMetadata: attempt.execution.inspectFrames(),
       }));
     }
     return Object.freeze(snapshots);
@@ -116,23 +117,23 @@ export class Acquisitions {
   }
 
   /** Relationship uses the effective owner graph; frames use canonical attempts. */
-  inspectDescription(bindingId: BindingId): Pick<InspectionSnapshot<object, readonly unknown[]>, 'metadata' | 'alias'> {
+  inspectDescription(bindingId: BindingId): Pick<RegistrationSnapshot<object, readonly unknown[]>, 'registrationMetadata' | 'aliasTarget'> {
     if (this.parent && this.shared.has(bindingId)) return this.parent.inspectDescription(bindingId);
     const description = this.graph.registration(bindingId);
     if (description.alias !== undefined) {
       const target = this.graph.dependency(bindingId, description.alias);
-      return { metadata: description.metadata, alias: Object.freeze({ bindingId: target, label: this.graph.label(target) }) };
+      return { registrationMetadata: description.metadata, aliasTarget: Object.freeze({ bindingId: target, label: this.graph.label(target) }) };
     }
     const owner = this.owner(bindingId);
-    return owner === this ? { metadata: description.metadata } : owner.inspectDescription(bindingId);
+    return owner === this ? { registrationMetadata: description.metadata } : owner.inspectDescription(bindingId);
   }
 
   private assertAliasPath(bindingId: BindingId, path: readonly BindingId[]): void {
-    if (path.includes(bindingId)) throw new Error(`alias cycle: ${[...path, bindingId].map(id => this.graph.label(id)).join(' -> ')}`);
+    if (path.includes(bindingId)) throw libraryError('DI_BAG_CYCLE', `alias cycle: ${[...path, bindingId].map(id => this.graph.label(id)).join(' -> ')}`, { path: Object.freeze([...path, bindingId].map(id => this.graph.label(id))) });
   }
 
   assertOpen(): void {
-    if (this.state !== 'open') throw new Error(`bag is ${this.state}`);
+    if (this.state !== 'open') throw libraryError(this.state === 'closing' ? 'DI_BAG_CLOSING' : 'DI_BAG_CLOSED', `bag is ${this.state}`, { state: this.state });
   }
 
   close(beforeDispose?: Promise<void>, cause?: unknown): Promise<void> {
@@ -169,7 +170,7 @@ export class Acquisitions {
     const { lifetime } = description;
     // Validate before routing/cache lookup; retained proxies keep their boundary.
     if (lifetime.kind === 'scoped' && from?.strictRoot !== undefined) {
-      throw new Error(`root lifetime cannot capture scoped dependency: ${from.strictRoot} -> ${this.graph.label(bindingId)}`);
+      throw libraryError('DI_BAG_LIFETIME_DEPENDENCY', `root lifetime cannot capture scoped dependency: ${from.strictRoot} -> ${this.graph.label(bindingId)}`, { consumer: from.strictRoot, dependency: this.graph.label(bindingId), lifetime: 'root' });
     }
     const owner = this.owner(bindingId);
     if (owner !== this) return owner.resolveBinding(bindingId, from);
@@ -177,7 +178,7 @@ export class Acquisitions {
     if (cached) {
       if (from) this.family.recordEdge(from, cached);
       // A factory or then getter can reenter through public resolve as well.
-      if (cached.state === 'creating') throw new Error(`cycle: ${cached.label} -> ${cached.label}`);
+      if (cached.state === 'creating') this.family.ancestry(bindingId, this.ownerId, cached.label, from);
       return cached;
     }
     const ancestry = this.family.ancestry(bindingId, this.ownerId, this.graph.label(bindingId), from);
@@ -204,7 +205,7 @@ export class Acquisitions {
       } : {}),
       invoking: () => this.invocationSequence++,
       cleanupFailed: (sequence, error) => {
-        if (this.context.observers) this.context.observers.emit({ ...this.eventFields(attempt), kind: 'cleanup-failed', disposalIndex: sequence, error });
+        if (this.context.observers) this.context.observers.emit({ ...this.eventFields(attempt), kind: 'cleanup-failed', disposalSequence: sequence, error });
         this.failures.push({ sequence, acquisitionId: attempt.id, bindingId: attempt.bindingId, label: attempt.label, error });
       },
     }, description, this.context);
@@ -216,7 +217,7 @@ export class Acquisitions {
       dependencies: new Set(),
       ancestry,
       strictRoot: lifetime.kind === 'root'
-        ? lifetime.captureScoped ? undefined : this.graph.label(bindingId)
+        ? lifetime.allowScopedDependencies ? undefined : this.graph.label(bindingId)
         : from?.strictRoot,
       state: 'creating',
       transient: lifetime.kind === 'transient',
@@ -230,10 +231,14 @@ export class Acquisitions {
     const read = (key: BindingKey, optional = false, all = false): unknown => {
       // Only this attempt's in-flight factory can discover dependencies in close.
       if (this.state === 'closed' || (this.state === 'closing' && !attempt.execution.sourceInFlight)) {
-        throw new Error(`bag is ${this.state}`);
+        throw libraryError(this.state === 'closing' ? 'DI_BAG_CLOSING' : 'DI_BAG_CLOSED', `bag is ${this.state}`, { state: this.state });
       }
       if (all) return this.resolveCollection(key as symbol, attempt);
-      const target = optional ? this.graph.findDependency(bindingId, key) : this.graph.dependency(bindingId, key);
+      const target = this.graph.findDependency(bindingId, key);
+      if (target === undefined && !optional) {
+        const path = this.family.dependencyPath(attempt, String(key));
+        throw libraryError('DI_BAG_MISSING_DEPENDENCY', `Cannot resolve ${JSON.stringify(attempt.label)}: dependency ${JSON.stringify(String(key))} is not registered. Resolution path: ${path.join(' -> ')}.`, { operation: 'resolve', consumer: attempt.label, dependency: key, path });
+      }
       return target === undefined ? undefined : this.takeExposed(this.resolveBinding(target, attempt));
     };
     const references = new Map(description.references.map(reference => [reference.slot, reference]));
@@ -281,7 +286,7 @@ export class Acquisitions {
     return {
       scopeId: this.ownerId, bindingId: attempt.bindingId, acquisitionId: attempt.id,
       label: attempt.label, lifetime: description.lifetime.kind,
-      metadata: Object.freeze({ ...description.metadata }), frames: attempt.execution.inspectFrames(),
+      registrationMetadata: Object.freeze({ ...description.metadata }), acquisitionMetadata: attempt.execution.inspectFrames(),
     };
   }
 

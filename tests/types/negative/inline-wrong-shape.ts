@@ -1,6 +1,6 @@
 import { DiBag } from '../../../src';
-// diagnostic: wrong shape
-DiBag.begin().add({
+// diagnostic: consumer dependency
+DiBag.createBuilder().register({
   clock: () => ({
     now() {
       return 'wrong';

@@ -1,20 +1,20 @@
 import { DiBag } from '../../src';
 import type { Assert, Equal } from './assert';
 const key = Symbol('service'); const token = DiBag.token(key).of<{ value: number }>();
-const named = DiBag.begin().add({ named: () => 1 });
-const tokenBuilder = DiBag.begin().bind(token, () => ({ value: 1 }));
-const namedModule = DiBag.module().add({ named: () => 1 });
-const tokenModule = DiBag.module().bind(token, () => ({ value: 1 }));
+const named = DiBag.createBuilder().register({ named: () => 1 });
+const tokenBuilder = DiBag.createBuilder().register(token, () => ({ value: 1 }));
+const namedModule = DiBag.createModuleBuilder().register({ named: () => 1 });
+const tokenModule = DiBag.createModuleBuilder().register(token, () => ({ value: 1 }));
 type NamedFactory = () => { read(): number; extra: true };
 type TokenFactory = () => { value: number; extra: true };
 const namedFactory: NamedFactory = () => ({ read: () => 1, extra: true });
 const tokenFactory: TokenFactory = () => ({ value: 2, extra: true });
-const namedValue = named.replace<'named', NamedFactory>('named', namedFactory).end().resolve('named');
-const tokenValue = tokenBuilder.replace<typeof token, TokenFactory>(token, tokenFactory).end().resolve(token);
-const namedFeature = namedModule.replace<'named', NamedFactory>('named', namedFactory).exports(['named']);
-const tokenFeature = tokenModule.replace<typeof token, TokenFactory>(token, tokenFactory).exports([token]);
-const namedModuleValue = DiBag.begin().install(namedFeature).end().resolve('named');
-const tokenModuleValue = DiBag.begin().install(tokenFeature).end().resolve(token);
+const namedValue = named.replace<'named', NamedFactory>('named', namedFactory).build().resolve('named');
+const tokenValue = tokenBuilder.replace<typeof token, TokenFactory>(token, tokenFactory).build().resolve(token);
+const namedFeature = namedModule.replace<'named', NamedFactory>('named', namedFactory).buildModule(['named']);
+const tokenFeature = tokenModule.replace<typeof token, TokenFactory>(token, tokenFactory).buildModule([token]);
+const namedModuleValue = DiBag.createBuilder().installModule(namedFeature).build().resolve('named');
+const tokenModuleValue = DiBag.createBuilder().installModule(tokenFeature).build().resolve(token);
 type Exact = [Assert<Equal<typeof namedValue, ReturnType<NamedFactory>>>, Assert<Equal<typeof tokenValue, ReturnType<TokenFactory>>>,
   Assert<Equal<typeof namedModuleValue, ReturnType<NamedFactory>>>, Assert<Equal<typeof tokenModuleValue, ReturnType<TokenFactory>>>];
 export const inferredNamed = () => named.replace('named', namedFactory);
@@ -54,14 +54,14 @@ type ReflectedMethodsStayChecked = [
   Assert<Equal<IsAny<ReturnType<typeof tokenModule.replace>>, false>>,
 ];
 
-const dependentModule = DiBag.module().add({
+const dependentModule = DiBag.createModuleBuilder().register({
   value: () => 1,
   consumer: ({ value }: { value: number }) => value + 1,
 });
 type DependentModuleView = ReturnType<typeof dependentModule.replace>;
 const dependentView: DependentModuleView = dependentModule;
-const reflectedFeature = dependentView.exports(['value', 'consumer']);
-const reflectedBag = DiBag.begin().install(reflectedFeature).end();
+const reflectedFeature = dependentView.buildModule(['value', 'consumer']);
+const reflectedBag = DiBag.createBuilder().installModule(reflectedFeature).build();
 const reflectedValue = reflectedBag.resolve('value');
 const reflectedConsumer = reflectedBag.resolve('consumer');
 type ReflectedModuleKeepsNamedHistory = [

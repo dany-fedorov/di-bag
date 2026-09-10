@@ -11,8 +11,8 @@ const entry = resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/node.js');
 const { DiBag } = require(entry);
 assert.equal(typeof globalThis.gc, 'function', 'this suite requires --expose-gc');
 const transient = provider => DiBag.withLifetime(provider, 'transient');
-const raw = create => DiBag.factory(create, { acquisition: 'raw' });
-const native = create => DiBag.factory(create, { acquisition: 'native' });
+const raw = create => DiBag.fromFactory(create, { acquisitionMode: 'raw' });
+const native = create => DiBag.fromFactory(create, { acquisitionMode: 'nativePromise' });
 
 async function collected(refs) {
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -34,9 +34,9 @@ for (const route of ['resolve', 'alias', 'dependency', 'collection', 'startup'])
       return value;
     }));
     const token = DiBag.token(Symbol('arrays')).of();
-    const builder = route === 'collection' ? DiBag.begin().contribute(token, provider)
-      : DiBag.begin().add({ value: provider, reader: raw(deps => () => deps.value.length) }).alias('copy', 'value');
-    const bag = route === 'startup' ? await builder.start(['copy']) : builder.end();
+    const builder = route === 'collection' ? DiBag.createBuilder().contribute(token, provider)
+      : DiBag.createBuilder().register({ value: provider, reader: raw(deps => () => deps.value.length) }).alias('copy', 'value');
+    const bag = route === 'startup' ? await builder.buildAndStart(['copy']) : builder.build();
     try {
       if (route !== 'startup') for (let index = 0; index < 16; index++) {
         if (route === 'collection') assert.equal(bag.resolveAll(token)[0].length, 256);
@@ -65,14 +65,14 @@ for (const mapped of [false, true]) {
       refs.push(new WeakRef(value), new WeakRef(promise));
       return promise;
     });
-    const provider = mapped ? DiBag.mapAsync(source, value => {
+    const provider = mapped ? DiBag.transformService(source, { mode: 'awaited', transform: value => {
       mapCalls++;
       assert.equal(value[0], 7);
       const output = Array(256).fill(9);
       refs.push(new WeakRef(output));
       return output;
-    }) : source;
-    const bag = DiBag.begin().add({ value: transient(provider) }).end();
+    } }) : source;
+    const bag = DiBag.createBuilder().register({ value: transient(provider) }).build();
     try {
       await (async () => {
         for (let index = 0; index < 16; index++) {
@@ -97,15 +97,15 @@ test('borrowed mapped payloads are collectible while independent inspection fram
     refs.push(new WeakRef(value));
     return { value };
   });
-  const annotated = DiBag.withAcquisitionMetadata(source, () => ({ metadata: frame }));
-  const bag = DiBag.begin().add({ value: transient(DiBag.mapSync(annotated, source => source.value, { acquisition: 'raw' })) }).end();
+  const annotated = DiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: () => ({ metadata: frame }) } });
+  const bag = DiBag.createBuilder().register({ value: transient(DiBag.transformService(annotated, { mode: 'direct', transform: source => source.value, ...{ acquisitionMode: 'raw' } })) }).build();
   try {
     for (let index = 0; index < 16; index++) assert.equal(bag.resolve('value')[0], 11);
     const before = bag.inspect('value');
     await collected(refs);
     assert.deepEqual(bag.inspect('value'), before);
     assert.equal(before.acquisitions.length, 16);
-    assert.equal(before.acquisitions[0].metadata[0].value.metadata, frame);
+    assert.equal(before.acquisitions[0].acquisitionMetadata[0].value.metadata, frame);
   } finally { await bag.close(); }
 });
 
@@ -121,13 +121,13 @@ test('transient owned source and mapped identities survive GC until reverse stag
     refs[0] = new WeakRef(value);
     return Promise.resolve(value);
   }), 0);
-  const mapped = own(DiBag.mapAsync(source, value => {
+  const mapped = own(DiBag.transformService(source, { mode: 'awaited', transform: value => {
     assert.equal(value[0], 1);
     const result = Array(256).fill(2);
     refs[1] = new WeakRef(result);
     return result;
-  }), 1);
-  const bag = DiBag.begin().add({ value: transient(mapped) }).end();
+  } }), 1);
+  const bag = DiBag.createBuilder().register({ value: transient(mapped) }).build();
   await bag.resolve('value');
   await setImmediate();
   globalThis.gc();
@@ -144,10 +144,10 @@ test('closing releases compacted frame payloads even when a dependency proxy is 
     refs.push(new WeakRef(frame));
     return { metadata: frame };
   }
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     other: raw(() => 42),
-    value: transient(DiBag.withAcquisitionMetadata(raw(deps => () => deps.other), describe)),
-  }).end();
+    value: transient(DiBag.withMetadata(raw(deps => () => deps.other), { dynamic: { mode: 'direct', describe: describe } })),
+  }).build();
   const read = bag.resolve('value');
   assert.equal(read(), 42);
   await setImmediate();
@@ -174,14 +174,14 @@ test('a ready borrowed projection drops its payload while pending source ownersh
     assert.equal(value.root, 42);
     disposed.push('source');
   });
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     root: DiBag.withLifetime(DiBag.withDisposal(raw(() => 42), () => { disposed.push('root'); }), 'root'),
-    value: transient(DiBag.mapSync(source, () => {
+    value: transient(DiBag.transformService(source, { mode: 'direct', transform: () => {
       const value = Array(256).fill(3);
       outputs.push(new WeakRef(value));
       return value;
-    }, { acquisition: 'raw' })),
-  }).end();
+    }, ...{ acquisitionMode: 'raw' } })),
+  }).build();
   assert.equal(bag.resolve('value')[0], 3);
   assert.equal(bag.inspect('value').acquisitions[0].state, 'ready');
   try { await collected(outputs); } finally {

@@ -26,14 +26,14 @@ type LifecycleEvent = (ScopeEventFields & {
 }) | (AcquisitionEventFields & {
     readonly kind: 'cleanup-failed';
     readonly error: unknown;
-    readonly disposalIndex: number;
+    readonly disposalSequence: number;
 }) | (AcquisitionEventFields & {
     readonly kind: 'cleanup-completed';
     readonly outcome: 'success' | 'failure';
 });
 ```
 
-Defined in: [observers.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L25)
+Defined in: [observers.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L26)
 
 A frozen discriminated lifecycle transition emitted after the corresponding state change.
 Narrow on `kind` to access failure, cleanup outcome, or disposal-index fields.

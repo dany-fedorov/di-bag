@@ -20,8 +20,7 @@ export async function nativeScale(root: string, compiler: NativeCompiler, item: 
     const file = join(directory, 'tests', tokens ? 'generated-token-scale.ts' : 'generated-type-scale.ts');
     writeFileSync(file, source);
     const hash = createHash('sha256');
-    const sourceFiles = (folder: string): string[] => readdirSync(join(directory, 'src', folder), { withFileTypes: true })
-      .flatMap(entry => entry.isDirectory() ? sourceFiles(join(folder, entry.name)) : [join(folder, entry.name)]);
+    const sourceFiles = (folder: string): string[] => readdirSync(join(directory, 'src', folder), { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? sourceFiles(join(folder, entry.name)) : [join(folder, entry.name)]);
     for (const file of sourceFiles('').filter(file => file.endsWith('.ts')).sort()) {
       hash.update(file); hash.update(new Uint8Array(readFileSync(join(directory, 'src', file))));
     }

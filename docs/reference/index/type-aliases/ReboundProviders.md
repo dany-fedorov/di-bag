@@ -6,7 +6,7 @@
 
 ```ts
 type ReboundProviders<R extends Registrations, O extends Registrations> = {
-    [K in keyof O]: K extends keyof R ? K extends symbol ? Binding<BoundToken<R[K]>, O[K]> : O[K] : O[K];
+    [K in keyof O]: K extends keyof R ? K extends symbol ? TokenBinding<BoundToken<R[K]>, O[K]> : O[K] : O[K];
 };
 ```
 

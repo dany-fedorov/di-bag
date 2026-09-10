@@ -15,14 +15,13 @@ test('parser retains real native multiline diagnostics, positions and metrics', 
   expect(parsed.unparsed).toEqual([]);
 });
 test('parser exposes configuration errors, TS2589 and unknown output', () => {
-  expect(parseNativeDiagnostics("error TS5058: missing config\nx.ts(9,2): error TS2589: excessive\nunknown output\n", '/tmp').diagnostics)
-    .toEqual([{ code: 5058, message: 'missing config' }, { file: '/tmp/x.ts', line: 9, column: 2, code: 2589, message: 'excessive' }]);
+  expect(parseNativeDiagnostics("error TS5058: missing config\nx.ts(9,2): error TS2589: excessive\nunknown output\n", '/tmp').diagnostics).toEqual([{ code: 5058, message: 'missing config' }, { file: '/tmp/x.ts', line: 9, column: 2, code: 2589, message: 'excessive' }]);
   expect(parseNativeDiagnostics('unknown output\n', '/tmp').unparsed).toEqual(['unknown output']);
 });
 test('source marker gate rejects wrong file, region, message, TS2589 and unmatched cascades', () => {
-  const source = '// diagnostic: missing factories\ncall();\n// diagnostic: wrong shape\ncall();';
-  const good = [{ file: '/tmp/source.ts', line: 2, code: 2345, message: 'missing factories' },
-    { file: '/tmp/source.ts', line: 4, code: 2345, message: 'wrong shape' }];
+  const source = '// diagnostic: required service registrations are missing\ncall();\n// diagnostic: consumer dependency\ncall();';
+  const good = [{ file: '/tmp/source.ts', line: 2, code: 2345, message: 'required service registrations are missing' },
+    { file: '/tmp/source.ts', line: 4, code: 2345, message: 'consumer dependency' }];
   expect(matchDiagnosticMarkers(source, '/tmp/source.ts', good)).toMatchObject({ expected: 2, matched: 2, unexpected: [], missing: [] });
   for (const change of [{ file: '/tmp/config.json' }, { line: 4 }, { message: 'other' }, { code: 2589 }]) {
     expect(matchDiagnosticMarkers(source, '/tmp/source.ts', [{ ...good[0]!, ...change }, good[1]!])).toMatchObject({ expected: 2, matched: 1 });

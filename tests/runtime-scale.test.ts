@@ -23,13 +23,13 @@ test('closing a deep graph disposes every dependent before its dependency exactl
   const count = 12_000;
   const disposed: number[] = [];
   const registrations = Object.fromEntries(Array.from({ length: count }, (_, index) => [
-    `p${index}`, DiBag.withDisposal(DiBag.factory((deps: Record<string, unknown>) => ({
+    `p${index}`, DiBag.withDisposal(DiBag.fromFactory((deps: Record<string, unknown>) => ({
       index, link: () => index + 1 < count ? deps[`p${index + 1}`] : undefined,
-    }), { acquisition: 'raw' }), value => { disposed.push(value.index); }),
+    }), { acquisitionMode: 'raw' }), value => { disposed.push(value.index); }),
   ]));
   // The generated JavaScript-shaped graph exercises runtime depth independently
   // of TypeScript's finite-key admission. Every dependency is registered.
-  const bag = Reflect.apply(DiBag.begin().add, DiBag.begin(), [registrations]).end();
+  const bag = Reflect.apply(DiBag.createBuilder().register, DiBag.createBuilder(), [registrations]).build();
   const nodes = Array.from({ length: count }, (_, index) => bag.resolve(`p${index}`));
   for (let index = 0; index < count - 1; index++) nodes[index].link();
   const closing = bag.close();

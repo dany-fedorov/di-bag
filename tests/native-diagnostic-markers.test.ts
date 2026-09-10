@@ -2,21 +2,21 @@ import { expect, test } from 'bun:test';
 import { matchNativeDiagnosticMarkers } from './native-diagnostic-markers';
 
 const message = "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'.";
-const source = '// diagnostic: a dependency has the wrong shape\n// diagnostic-native-gap: last-token-string\nreplace();';
+const source = '// diagnostic: provided service does not satisfy its consumer dependency\n// diagnostic-native-gap: last-token-string\nreplace();';
 const error = { file: '/fixture.ts', line: 3, code: 2769, message };
 test('known native overload rejection retains its unmet useful requirement separately', () => {
   const result = matchNativeDiagnosticMarkers(source, '/fixture.ts', [error]);
   expect(result).toMatchObject({ accepted: true, status: 'accepted-with-diagnostic-gaps', primaryExpected: 1, primaryMatched: 0,
     knownNativeRejections: 1, supplementalExpected: 0, supplementalMatched: 0, unexpected: [], unresolved: [], declarationErrors: [] });
-  expect(result.gaps[0]!.primary.message).toBe('a dependency has the wrong shape');
+  expect(result.gaps[0]!.primary.message).toBe('provided service does not satisfy its consumer dependency');
 });
 for (const [name, changed, errors] of [
   ['unknown declaration', source.replace('last-token-string', 'unknown'), [error]],
   ['malformed declaration', source.replace('gap:', 'gap'), [error]],
   ['duplicate declaration', source.replace('replace();', '// diagnostic-native-gap: last-token-string\nreplace();'), [{ ...error, line: 4 }]],
-  ['misplaced declaration', '// diagnostic-native-gap: last-token-string\n// diagnostic: a dependency has the wrong shape\nreplace();', [error]],
+  ['misplaced declaration', '// diagnostic-native-gap: last-token-string\n// diagnostic: provided service does not satisfy its consumer dependency\nreplace();', [error]],
   ['not adjacent', source.replace('gap:', 'gap:').replace('\n// diagnostic-native', '\n\n// diagnostic-native'), [{ ...error, line: 4 }]],
-  ['stale declaration', source, [{ ...error, message: 'a dependency has the wrong shape' }]],
+  ['stale declaration', source, [{ ...error, message: 'provided service does not satisfy its consumer dependency' }]],
   ['wrong code', source, [{ ...error, code: 2345 }]],
   ['wrong full message', source, [{ ...error, message: message + '\nextra' }]],
   ['wrong file', source, [{ ...error, file: '/config.json' }]],
@@ -30,7 +30,7 @@ for (const [name, changed, errors] of [
   expect(matchNativeDiagnosticMarkers(changed, '/fixture.ts', errors).accepted).toBe(false);
 });
 test('native gap cannot replace a supplemental expectation', () => {
-  const text = source.replace('replace();', '// diagnostic-also: TS2684 missing factories\nreplace();');
+  const text = source.replace('replace();', '// diagnostic-also: TS2684 required service registrations are missing\nreplace();');
   expect(matchNativeDiagnosticMarkers(text, '/fixture.ts', [{ ...error, line: 4 }]).accepted).toBe(false);
 });
 
@@ -47,8 +47,8 @@ test('union and open-template fingerprints require their own exact declarations'
 });
 
 test('native gap cannot satisfy a different primary even when that primary matches its fingerprint', () => {
-  const text = source + '\n// diagnostic: missing factories\nend();';
+  const text = source + '\n// diagnostic: required service registrations are missing\nend();';
   const result = matchNativeDiagnosticMarkers(text, '/fixture.ts', [error]);
   expect(result.accepted).toBe(false);
-  expect(result.unresolved.map(marker => marker.message)).toEqual(['missing factories']);
+  expect(result.unresolved.map(marker => marker.message)).toEqual(['required service registrations are missing']);
 });

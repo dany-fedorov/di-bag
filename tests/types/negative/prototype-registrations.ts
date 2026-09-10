@@ -5,4 +5,4 @@ class Factories {
     return 42;
   }
 }
-DiBag.begin().add(new Factories()).end().resolve('value');
+DiBag.createBuilder().register(new Factories()).build().resolve('value');

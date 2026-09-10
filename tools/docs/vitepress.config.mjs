@@ -13,8 +13,8 @@ const guide = [
   ] },
   { text: 'Reference', items: [
     { text: 'API overview', link: '/guides/api-reference' },
-    { text: 'DiBag facade', link: '/reference/index/interfaces/Facade' },
-    { text: 'Builder', link: '/reference/index/interfaces/Builder' },
+    { text: 'DiBag facade', link: '/reference/index/interfaces/DiBagApi' },
+    { text: 'BagBuilder', link: '/reference/index/interfaces/BagBuilder' },
     { text: 'Bag', link: '/reference/index/interfaces/Bag' },
     { text: 'All generated APIs', link: '/reference/' },
   ] },

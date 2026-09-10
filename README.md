@@ -52,6 +52,8 @@ applications, use the portable root entry described under
 [runtime support](#runtime-support). See [PUBLISHING.md](PUBLISHING.md) for
 release-candidate verification and publication steps.
 
+For an older checkout, follow the [API migration guide](docs/migrations/api-renaming.md).
+
 ## Quickstart
 
 Use `di-bag/node` in Node or Bun. Here, `greeter` needs `config`. Its parameter
@@ -60,8 +62,8 @@ type describes that dependency, and its return value is the service it provides:
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const app = DiBag.begin()
-  .add({
+const app = DiBag.createBuilder()
+  .register({
     config: () => ({ greeting: 'Hello' }),
     greeter: ({ config }: { config: { greeting: string } }) => ({
       greet(name: string) {
@@ -69,18 +71,18 @@ const app = DiBag.begin()
       },
     }),
   })
-  .end();
+  .build();
 
 const greeter = app.resolve('greeter');
 console.log(greeter.greet('Ada')); // Hello, Ada!
 ```
 
-`.add()` registers the factories, `.end()` finishes the bag, and
+`.register()` registers the factories, `.build()` finishes the bag, and
 `resolve('greeter')` creates the greeter and the config it needs. Resolving
 `greeter` again returns the same instance. Registration order does not matter.
 
 TypeScript knows that `greeter` has a `greet(name: string): string` method.
-Removing the `config` factory makes `.end()` a compile-time error. Changing
+Removing the `config` factory makes `.build()` a compile-time error. Changing
 `greeting` to a number also fails the type check because the greeter needs a string.
 
 ## Swap a dependency for a test
@@ -112,13 +114,13 @@ factory and await it where you need the value:
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const app = DiBag.begin()
-  .add({
+const app = DiBag.createBuilder()
+  .register({
     greeting: async () => 'Hello',
     message: async ({ greeting }: { greeting: Promise<string> }) =>
       `${await greeting}, Ada!`,
   })
-  .end();
+  .build();
 
 console.log(await app.resolve('message')); // Hello, Ada!
 ```
@@ -134,14 +136,14 @@ Wrap a factory with `withDisposal` to tell the bag how to release its result:
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const resources = DiBag.begin()
-  .add({
+const resources = DiBag.createBuilder()
+  .register({
     cache: DiBag.withDisposal(
       () => new Map<string, string>(),
-      cache => cache.clear(),
+      (cache) => cache.clear(),
     ),
   })
-  .end();
+  .build();
 
 try {
   resources.resolve('cache').set('answer', '42');
@@ -175,7 +177,7 @@ Start with named factories, then add the features your application needs.
 
 | Operation | What it creates | Who closes it? |
 | --- | --- | --- |
-| `bag.scope()` | A tracked child with fresh scoped services; root services are shared | Close it when its work ends. The parent also closes live children. |
+| `bag.createScope()` | A tracked child with fresh scoped services; root services are shared | Close it when its work ends. The parent also closes live children. |
 | `bag.fork()` | An independent bag with the same registrations and fresh instances | The caller closes it separately. |
 | `bag.fork(keys, overrides)` | An independent bag with selected dependencies replaced | The caller closes it separately. |
 
@@ -195,7 +197,7 @@ The package has **zero runtime dependencies** and two entry points:
 Ordinary synchronous and asynchronous factory functions express acquisition
 capabilities. Use `Presence<T>` records when absent and present `undefined` must
 remain distinct, `withMetadata` for static annotations, and
-`withAcquisitionMetadata` or `withAcquisitionMetadataAsync` for facts learned
+`withMetadata` with direct or awaited dynamic metadata for facts learned
 while producing one value. See [host configuration](docs/guides/tutorial.md#portable-mode)
 and [provider metadata](docs/guides/tutorial.md#attach-metadata-and-inspect-without-resolving)
 for details.

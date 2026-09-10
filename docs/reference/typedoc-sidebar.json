@@ -13,8 +13,8 @@
             "link": "/reference/index/classes/DiBagCleanupError.md"
           },
           {
-            "text": "DiBagPluginError",
-            "link": "/reference/index/classes/DiBagPluginError.md"
+            "text": "DiBagPluginValidationError",
+            "link": "/reference/index/classes/DiBagPluginValidationError.md"
           },
           {
             "text": "DiBagStartupCancelledError",
@@ -47,20 +47,28 @@
             "link": "/reference/index/interfaces/Bag.md"
           },
           {
-            "text": "Builder",
-            "link": "/reference/index/interfaces/Builder.md"
+            "text": "BagBuilder",
+            "link": "/reference/index/interfaces/BagBuilder.md"
           },
           {
             "text": "CleanupFailure",
             "link": "/reference/index/interfaces/CleanupFailure.md"
           },
           {
-            "text": "Facade",
-            "link": "/reference/index/interfaces/Facade.md"
+            "text": "ConfigurationOptions",
+            "link": "/reference/index/interfaces/ConfigurationOptions.md"
           },
           {
-            "text": "InspectionSnapshot",
-            "link": "/reference/index/interfaces/InspectionSnapshot.md"
+            "text": "DiBagApi",
+            "link": "/reference/index/interfaces/DiBagApi.md"
+          },
+          {
+            "text": "DiBagDiagnostic",
+            "link": "/reference/index/interfaces/DiBagDiagnostic.md"
+          },
+          {
+            "text": "FactoryWithDisposal",
+            "link": "/reference/index/interfaces/FactoryWithDisposal.md"
           },
           {
             "text": "Module",
@@ -85,6 +93,10 @@
           {
             "text": "Provider",
             "link": "/reference/index/interfaces/Provider.md"
+          },
+          {
+            "text": "RegistrationSnapshot",
+            "link": "/reference/index/interfaces/RegistrationSnapshot.md"
           },
           {
             "text": "RuntimeOptions",
@@ -113,6 +125,10 @@
         "collapsed": true,
         "items": [
           {
+            "text": "AcquisitionMetadataPresence",
+            "link": "/reference/index/type-aliases/AcquisitionMetadataPresence.md"
+          },
+          {
             "text": "AcquisitionMode",
             "link": "/reference/index/type-aliases/AcquisitionMode.md"
           },
@@ -129,20 +145,16 @@
             "link": "/reference/index/type-aliases/AliasRegistration.md"
           },
           {
-            "text": "AllReference",
-            "link": "/reference/index/type-aliases/AllReference.md"
-          },
-          {
-            "text": "Binding",
-            "link": "/reference/index/type-aliases/Binding.md"
-          },
-          {
             "text": "BuilderContribute",
             "link": "/reference/index/type-aliases/BuilderContribute.md"
           },
           {
-            "text": "Checked",
-            "link": "/reference/index/type-aliases/Checked.md"
+            "text": "CheckDependencyCompatibility",
+            "link": "/reference/index/type-aliases/CheckDependencyCompatibility.md"
+          },
+          {
+            "text": "CheckDependencyCompleteness",
+            "link": "/reference/index/type-aliases/CheckDependencyCompleteness.md"
           },
           {
             "text": "CheckedLifetimes",
@@ -153,8 +165,8 @@
             "link": "/reference/index/type-aliases/CheckedScopeLifetimes.md"
           },
           {
-            "text": "Complete",
-            "link": "/reference/index/type-aliases/Complete.md"
+            "text": "CollectionDependency",
+            "link": "/reference/index/type-aliases/CollectionDependency.md"
           },
           {
             "text": "CompositionArguments",
@@ -177,40 +189,20 @@
             "link": "/reference/index/type-aliases/ContributionConstraint.md"
           },
           {
-            "text": "Dependency",
-            "link": "/reference/index/type-aliases/Dependency.md"
+            "text": "DependencyReference",
+            "link": "/reference/index/type-aliases/DependencyReference.md"
+          },
+          {
+            "text": "DiBagErrorCode",
+            "link": "/reference/index/type-aliases/DiBagErrorCode.md"
           },
           {
             "text": "DisjointScopeSelection",
             "link": "/reference/index/type-aliases/DisjointScopeSelection.md"
           },
           {
-            "text": "DisposableFactory",
-            "link": "/reference/index/type-aliases/DisposableFactory.md"
-          },
-          {
-            "text": "Entries",
-            "link": "/reference/index/type-aliases/Entries.md"
-          },
-          {
-            "text": "ForkContext",
-            "link": "/reference/index/type-aliases/ForkContext.md"
-          },
-          {
-            "text": "FramePresenceTuple",
-            "link": "/reference/index/type-aliases/FramePresenceTuple.md"
-          },
-          {
-            "text": "From",
-            "link": "/reference/index/type-aliases/From.md"
-          },
-          {
-            "text": "fromPlugin",
-            "link": "/reference/index/type-aliases/fromPlugin.md"
-          },
-          {
-            "text": "LazyReference",
-            "link": "/reference/index/type-aliases/LazyReference.md"
+            "text": "LazyDependency",
+            "link": "/reference/index/type-aliases/LazyDependency.md"
           },
           {
             "text": "LexicalContext",
@@ -223,10 +215,6 @@
           {
             "text": "Lifetime",
             "link": "/reference/index/type-aliases/Lifetime.md"
-          },
-          {
-            "text": "Merge",
-            "link": "/reference/index/type-aliases/Merge.md"
           },
           {
             "text": "ModuleConstraints",
@@ -245,16 +233,16 @@
             "link": "/reference/index/type-aliases/ModuleContributions.md"
           },
           {
-            "text": "ModuleProvides",
-            "link": "/reference/index/type-aliases/ModuleProvides.md"
+            "text": "ModuleExportedServices",
+            "link": "/reference/index/type-aliases/ModuleExportedServices.md"
           },
           {
             "text": "ModulePublicProviders",
             "link": "/reference/index/type-aliases/ModulePublicProviders.md"
           },
           {
-            "text": "ModuleRequires",
-            "link": "/reference/index/type-aliases/ModuleRequires.md"
+            "text": "ModuleRequiredServices",
+            "link": "/reference/index/type-aliases/ModuleRequiredServices.md"
           },
           {
             "text": "ObserverCallback",
@@ -265,72 +253,80 @@
             "link": "/reference/index/type-aliases/ObserverErrorCallback.md"
           },
           {
-            "text": "OptionalReference",
-            "link": "/reference/index/type-aliases/OptionalReference.md"
+            "text": "OptionalDependency",
+            "link": "/reference/index/type-aliases/OptionalDependency.md"
+          },
+          {
+            "text": "OverrideFactoryContext",
+            "link": "/reference/index/type-aliases/OverrideFactoryContext.md"
+          },
+          {
+            "text": "OverrideRegistrations",
+            "link": "/reference/index/type-aliases/OverrideRegistrations.md"
           },
           {
             "text": "Overrides",
             "link": "/reference/index/type-aliases/Overrides.md"
           },
           {
-            "text": "PluginAcquisition",
-            "link": "/reference/index/type-aliases/PluginAcquisition.md"
+            "text": "PluginAcquisitionMode",
+            "link": "/reference/index/type-aliases/PluginAcquisitionMode.md"
           },
           {
-            "text": "PluginPredicate",
-            "link": "/reference/index/type-aliases/PluginPredicate.md"
+            "text": "PluginOutputValidator",
+            "link": "/reference/index/type-aliases/PluginOutputValidator.md"
           },
           {
-            "text": "PluginResult",
-            "link": "/reference/index/type-aliases/PluginResult.md"
+            "text": "PluginProvider",
+            "link": "/reference/index/type-aliases/PluginProvider.md"
+          },
+          {
+            "text": "PluginProviderFactory",
+            "link": "/reference/index/type-aliases/PluginProviderFactory.md"
           },
           {
             "text": "Presence",
             "link": "/reference/index/type-aliases/Presence.md"
           },
           {
-            "text": "Provided",
-            "link": "/reference/index/type-aliases/Provided.md"
-          },
-          {
-            "text": "ProviderAcquired",
-            "link": "/reference/index/type-aliases/ProviderAcquired.md"
+            "text": "ProviderAcquiredValue",
+            "link": "/reference/index/type-aliases/ProviderAcquiredValue.md"
           },
           {
             "text": "ProviderAcquisitionMetadata",
             "link": "/reference/index/type-aliases/ProviderAcquisitionMetadata.md"
           },
           {
-            "text": "ProviderAllTokenNeeds",
-            "link": "/reference/index/type-aliases/ProviderAllTokenNeeds.md"
+            "text": "ProviderCollectionTokens",
+            "link": "/reference/index/type-aliases/ProviderCollectionTokens.md"
           },
           {
             "text": "ProviderFactory",
             "link": "/reference/index/type-aliases/ProviderFactory.md"
           },
           {
-            "text": "ProviderGraph",
-            "link": "/reference/index/type-aliases/ProviderGraph.md"
+            "text": "ProviderGraphContract",
+            "link": "/reference/index/type-aliases/ProviderGraphContract.md"
           },
           {
-            "text": "ProviderMetadata",
-            "link": "/reference/index/type-aliases/ProviderMetadata.md"
+            "text": "ProviderNamedDependencies",
+            "link": "/reference/index/type-aliases/ProviderNamedDependencies.md"
           },
           {
-            "text": "ProviderNeeds",
-            "link": "/reference/index/type-aliases/ProviderNeeds.md"
-          },
-          {
-            "text": "ProviderOptionalTokenNeeds",
-            "link": "/reference/index/type-aliases/ProviderOptionalTokenNeeds.md"
+            "text": "ProviderOptionalTokens",
+            "link": "/reference/index/type-aliases/ProviderOptionalTokens.md"
           },
           {
             "text": "ProviderOutput",
             "link": "/reference/index/type-aliases/ProviderOutput.md"
           },
           {
-            "text": "ProviderTokenNeeds",
-            "link": "/reference/index/type-aliases/ProviderTokenNeeds.md"
+            "text": "ProviderRegistrationMetadata",
+            "link": "/reference/index/type-aliases/ProviderRegistrationMetadata.md"
+          },
+          {
+            "text": "ProviderRequiredTokens",
+            "link": "/reference/index/type-aliases/ProviderRequiredTokens.md"
           },
           {
             "text": "PublicProviders",
@@ -347,6 +343,14 @@
           {
             "text": "Registration",
             "link": "/reference/index/type-aliases/Registration.md"
+          },
+          {
+            "text": "RegistrationEntries",
+            "link": "/reference/index/type-aliases/RegistrationEntries.md"
+          },
+          {
+            "text": "RegistrationsFromEntries",
+            "link": "/reference/index/type-aliases/RegistrationsFromEntries.md"
           },
           {
             "text": "Renamed",
@@ -369,8 +373,8 @@
             "link": "/reference/index/type-aliases/ScopeOptions.md"
           },
           {
-            "text": "Selected",
-            "link": "/reference/index/type-aliases/Selected.md"
+            "text": "SelectedRegistrations",
+            "link": "/reference/index/type-aliases/SelectedRegistrations.md"
           },
           {
             "text": "Selection",
@@ -381,12 +385,20 @@
             "link": "/reference/index/type-aliases/SelectionKey.md"
           },
           {
+            "text": "ServicesOf",
+            "link": "/reference/index/type-aliases/ServicesOf.md"
+          },
+          {
             "text": "SharedAliasProviders",
             "link": "/reference/index/type-aliases/SharedAliasProviders.md"
           },
           {
-            "text": "TokenGraph",
-            "link": "/reference/index/type-aliases/TokenGraph.md"
+            "text": "TokenBinding",
+            "link": "/reference/index/type-aliases/TokenBinding.md"
+          },
+          {
+            "text": "TokenDependencyContract",
+            "link": "/reference/index/type-aliases/TokenDependencyContract.md"
           },
           {
             "text": "TokenKey",
@@ -423,16 +435,6 @@
     "link": "/reference/node/",
     "collapsed": true,
     "items": [
-      {
-        "text": "Type Aliases",
-        "collapsed": true,
-        "items": [
-          {
-            "text": "fromPlugin",
-            "link": "/reference/node/type-aliases/fromPlugin.md"
-          }
-        ]
-      },
       {
         "text": "Variables",
         "collapsed": true,

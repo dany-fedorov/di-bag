@@ -8,9 +8,9 @@
 type ContextualFactory<F extends ContextFactory> = (this: void, deps: Parameters<F> extends [] ? {} : Parameters<F>[0]) => ReturnType<F>;
 ```
 
-Defined in: [acquisition-context.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L16)
+Defined in: [acquisition-context.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L17)
 
-The ordinary one-argument factory signature exposed by a context-aware callback.
+The named-dependency factory contract retained by an acquisition-context callback.
 
 ## Type Parameters
 

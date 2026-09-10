@@ -153,6 +153,11 @@ test('modern inline inference retains exact contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('consolidated API preserves exact mode-dependent contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/api-renaming.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('native acquisition metadata preserves exact outputs, requirements and frames', () => {
   expect(diagnostics(resolve(__dirname, 'types/acquisition-metadata.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

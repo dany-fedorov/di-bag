@@ -139,8 +139,7 @@ test('paired collection journals a rejected execution before validation stops th
 
 test('comparison command accepts an exact pinned baseline and unsigned seed only', () => {
   expect(parsePerformanceEvidenceArgs(['--current'])).toEqual({ mode: 'current' });
-  expect(parsePerformanceEvidenceArgs(['--current', '--baseline=739b509', '--seed=17']))
-    .toEqual({ mode: 'comparison', baseline: '739b509', seed: 17 });
+  expect(parsePerformanceEvidenceArgs(['--current', '--baseline=739b509', '--seed=17'])).toEqual({ mode: 'comparison', baseline: '739b509', seed: 17 });
   expect(() => parsePerformanceEvidenceArgs(['--baseline=739b509', '--seed=17'])).toThrow('runtime evidence requires --current');
   expect(() => parsePerformanceEvidenceArgs(['--current', '--baseline=main', '--seed=17'])).toThrow('baseline must be a hexadecimal Git object name');
   expect(() => parsePerformanceEvidenceArgs(['--current', '--baseline=739b509'])).toThrow('comparison requires one --seed');
@@ -179,12 +178,9 @@ test('comparison row validation rejects incomplete, unsafe and unpaired evidence
   expect(() => validateRuntimeComparisonEvidenceRow({ ...row, rawEvidence: '/tmp/raw.jsonl' })).toThrow('clone-safe');
   expect(() => validateRuntimeComparisonEvidenceRow({ ...row, samples: 30 })).toThrow('comparison evidence row mismatch');
   expect(() => validateRuntimeComparisonEvidenceRow({ ...row, verdict: { ...row.verdict, seed: 29 } })).toThrow('comparison verdict mismatch');
-  expect(() => validateRuntimeComparisonEvidenceRow({ ...row, current: { ...row.current, summary: { ...summary, samples: summary.samples.slice(1) } } }))
-    .toThrow('comparison summary mismatch');
-  expect(() => validateRuntimeComparisonEvidenceRow({ ...row, current: { ...row.current, summary: { ...summary, samples: [...summary.samples.slice(0, 30), '-1'] } } }))
-    .toThrow('comparison summary mismatch');
-  expect(() => validateRuntimeComparisonEvidenceRow({ ...row, current: { ...row.current, summary: { ...summary, medianNanoseconds: '-100' } } }))
-    .toThrow('comparison summary mismatch');
+  expect(() => validateRuntimeComparisonEvidenceRow({ ...row, current: { ...row.current, summary: { ...summary, samples: summary.samples.slice(1) } } })).toThrow('comparison summary mismatch');
+  expect(() => validateRuntimeComparisonEvidenceRow({ ...row, current: { ...row.current, summary: { ...summary, samples: [...summary.samples.slice(0, 30), '-1'] } } })).toThrow('comparison summary mismatch');
+  expect(() => validateRuntimeComparisonEvidenceRow({ ...row, current: { ...row.current, summary: { ...summary, medianNanoseconds: '-100' } } })).toThrow('comparison summary mismatch');
   expect(() => validateRuntimeComparisonEvidenceRow({
     ...row, status: 'review', verdict: { ...row.verdict, status: 'review', confirmationRequired: true, controlledRunner: false,
       medianRatio: 1.3, p95Ratio: 1.3, medianRatioCi95: [1.2, 1.3],

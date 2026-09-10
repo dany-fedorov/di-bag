@@ -10,7 +10,7 @@ type ModuleContributions<M> = M extends Module<infer _P, infer _R, infer C, infe
 }> : never;
 ```
 
-Defined in: [contribution-types.ts:46](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L46)
+Defined in: [contribution-types.ts:50](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L50)
 
 Project a module's typed-token collections as readonly service arrays.
 

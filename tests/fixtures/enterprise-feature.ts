@@ -11,15 +11,13 @@ const descriptor: unknown = {
   create: () => (text: string) => text.toUpperCase(),
   dispose: () => { disposals.push('plugin'); },
 };
-export const feature = DiBag.module().bind(plugin, DiBag.fromPlugin([], descriptor, {
-  acquisition: 'raw',
+export const feature = DiBag.createModuleBuilder().register(plugin, DiBag.fromPlugin([], descriptor, {
+  acquisitionMode: 'raw',
   validate: (value: unknown): value is (text: string) => string => typeof value === 'function',
-})).add({
+})).register({
   prefix: DiBag.withDisposal(() => 'private:', () => { disposals.push('private'); }),
-}).contribute(steps, ({ prefix }: { prefix: string }) => (text: string) => prefix + text)
-  .contribute(steps, () => (text: string) => text + '!')
-  .add({
+}).contribute(steps, ({ prefix }: { prefix: string }) => (text: string) => prefix + text).contribute(steps, () => (text: string) => text + '!').register({
     handler: DiBag.withDisposal(DiBag.fromFunction([plugin, DiBag.all(steps)], (transform, operations) =>
       (text: string) => operations.reduce((value, step) => step(value), transform(text))),
     () => { disposals.push('handler'); }),
-  }).exports(['handler']);
+  }).buildModule(['handler']);

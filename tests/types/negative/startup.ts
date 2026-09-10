@@ -1,53 +1,53 @@
 import { DiBag, type AcquisitionContext } from '../../../src';
 
-const builder = DiBag.begin().add({ value: () => 1 });
-// diagnostic: start accepts existing tokens only
-builder.start(['missing']);
+const builder = DiBag.createBuilder().register({ value: () => 1 });
+// diagnostic: buildAndStart accepts existing names or typed tokens only
+builder.buildAndStart(['missing']);
 const widened: string[] = ['value'];
-// diagnostic: start requires a finite tuple
-builder.start(widened);
+// diagnostic: buildAndStart requires a finite tuple
+builder.buildAndStart(widened);
 declare const optional: readonly ['value'?];
-// diagnostic: start requires a finite tuple
-builder.start(optional);
+// diagnostic: buildAndStart requires a finite tuple
+builder.buildAndStart(optional);
 // diagnostic: Expected 1-2 arguments
-builder.start();
+builder.buildAndStart();
 // diagnostic: not assignable
-builder.start(['value'], { concurrency: 'serial' });
+builder.buildAndStart(['value'], { startupOrder: 'serial' });
 // diagnostic: not assignable
-builder.start(['value'], { concurrency: true });
+builder.buildAndStart(['value'], { startupOrder: true });
 // diagnostic: not assignable
-builder.start(['value'], { timeoutMs: '1' });
+builder.buildAndStart(['value'], { timeoutMs: '1' });
 // diagnostic: missing the following properties from type 'AbortSignal'
-builder.start(['value'], { signal: {} });
+builder.buildAndStart(['value'], { signal: {} });
 // diagnostic: does not exist in type 'StartupOptions'
-builder.start(['value'], { extra: true });
-const missing = DiBag.begin().add({ value: DiBag.withContext((deps: { absent: number }, _context) => deps.absent) });
-// diagnostic: missing factories
-missing.start([]);
-const captive = DiBag.begin().add({
+builder.buildAndStart(['value'], { extra: true });
+const missing = DiBag.createBuilder().register({ value: DiBag.fromFactory((deps: { absent: number }, _context) => deps.absent, { context: 'acquisition' }) });
+// diagnostic: required service registrations are missing
+missing.buildAndStart([]);
+const captive = DiBag.createBuilder().register({
   scoped: () => 1,
-  root: DiBag.withLifetime(DiBag.withContext((deps: { scoped: number }, _context) => deps.scoped), 'root'),
+  root: DiBag.withLifetime(DiBag.fromFactory((deps: { scoped: number }, _context) => deps.scoped, { context: 'acquisition' }), 'root'),
 });
 // diagnostic: root lifetime cannot capture scoped dependency
-captive.start(['root']);
-const exportless = DiBag.module().add({ hidden: (deps: { missing: number }) => deps.missing }).exports([]);
-// diagnostic: missing factories
-DiBag.begin().install(exportless).start([]);
+captive.buildAndStart(['root']);
+const exportless = DiBag.createModuleBuilder().register({ hidden: (deps: { missing: number }) => deps.missing }).buildModule([]);
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().installModule(exportless).buildAndStart([]);
 const key: unique symbol = Symbol('token');
 const otherKey: unique symbol = Symbol('token');
 const token = DiBag.token(key).of<number>();
 const other = DiBag.token(otherKey).of<number>();
-// diagnostic: start accepts existing tokens only
-DiBag.begin().bind(token, () => 1).start([other]);
+// diagnostic: buildAndStart accepts existing names or typed tokens only
+DiBag.createBuilder().register(token, () => 1).buildAndStart([other]);
 // diagnostic: not assignable
-DiBag.withContext(function (this: { required: true }, _deps: {}, _context) { return 1; });
+DiBag.fromFactory(function (this: { required: true }, _deps: {}, _context) { return 1; }, { context: 'acquisition' });
 // diagnostic: Target signature provides too few arguments
-DiBag.withContext((_deps: {}, _context: AcquisitionContext, extra: number) => extra);
+DiBag.fromFactory((_deps: {}, _context: AcquisitionContext, extra: number) => extra, { context: 'acquisition' });
 // diagnostic: not assignable
-DiBag.withContext((_deps: {}, _context) => 1, { acquisition: 'native' });
-DiBag.withContext((_deps: {}, context) => {
+DiBag.fromFactory((_deps: {}, _context) => 1, { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } });
+DiBag.fromFactory((_deps: {}, context) => {
   // diagnostic: Cannot assign to 'signal' because it is a read-only property
   context.signal = new AbortController().signal;
   // diagnostic: Property 'abort' does not exist on type 'AcquisitionContext'
   context.abort();
-});
+}, { context: 'acquisition' });

@@ -5,10 +5,10 @@
 # Type Alias: AcquisitionMode
 
 ```ts
-type AcquisitionMode = 'auto' | 'raw' | 'native';
+type AcquisitionMode = 'auto' | 'raw' | 'nativePromise';
 ```
 
-Defined in: [acquisition-mode.ts:8](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-mode.ts#L8)
+Defined in: [acquisition-mode.ts:9](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-mode.ts#L9)
 
 How an acquisition stage treats its returned value: configured classification,
 the exact raw value, or an observed native Promise fulfillment.

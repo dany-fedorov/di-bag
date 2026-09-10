@@ -74,8 +74,7 @@ function generatedCase(item: MatrixCase) {
 
 function sourceHash(root: string) {
   const sourceRoot = resolve(root, 'src');
-  const sourceFiles = (folder: string): string[] => readdirSync(resolve(sourceRoot, folder), { withFileTypes: true })
-    .flatMap(entry => entry.isDirectory()
+  const sourceFiles = (folder: string): string[] => readdirSync(resolve(sourceRoot, folder), { withFileTypes: true }).flatMap(entry => entry.isDirectory()
       ? sourceFiles(join(folder, entry.name))
       : [join(folder, entry.name)]);
   const hash = createHash('sha256');

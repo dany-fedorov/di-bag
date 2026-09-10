@@ -1,3 +1,3 @@
 import { DiBag } from '../../../src';
-// diagnostic: add introduces new tokens only
-DiBag.begin().add({ a: () => 1 }).add({ a: () => 2 });
+// diagnostic: register introduces new names or typed tokens only
+DiBag.createBuilder().register({ a: () => 1 }).register({ a: () => 2 });

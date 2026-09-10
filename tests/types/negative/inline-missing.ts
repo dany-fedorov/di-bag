@@ -1,11 +1,9 @@
 import { DiBag } from '../../../src';
-// diagnostic: missing factories
-DiBag.begin()
-  .add({
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().register({
     service: ({ clock }: { clock: { now(): number } }) => ({
       stamp() {
         return clock.now();
       },
     }),
-  })
-  .end();
+  }).build();

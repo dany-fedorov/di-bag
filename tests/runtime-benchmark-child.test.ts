@@ -25,8 +25,7 @@ for (const providers of [10, 100] as const) {
   test(`warm-root-resolve excludes priming and observes one cached terminal value at ${providers}`, async () => {
     const prepared = await prepareScenario('warm-root-resolve', providers, DiBag);
     expect(prepared.factories).toBe(providers);
-    expect(verifyScenario(prepared, await runTimed(prepared)))
-      .toEqual({ checksum: `warm-${providers}`, factories: providers, disposers: 0, cleanupLog: [] });
+    expect(verifyScenario(prepared, await runTimed(prepared))).toEqual({ checksum: `warm-${providers}`, factories: providers, disposers: 0, cleanupLog: [] });
     expect(prepared.factories).toBe(providers);
   });
 

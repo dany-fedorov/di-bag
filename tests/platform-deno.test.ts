@@ -22,7 +22,7 @@ test('portable root contract has host-independent semantics', async () => {
 
 test('portable inspection proof rejects nonobjects and inexact or unfrozen metadata', () => {
   const validMetadata = Object.freeze({ portable: true });
-  expect(validatePortableInspection(Object.freeze({ metadata: validMetadata }))).toEqual({
+  expect(validatePortableInspection(Object.freeze({ registrationMetadata: validMetadata }))).toEqual({
     inspectionFrozen: true,
     metadataFrozen: true,
   });
@@ -30,18 +30,17 @@ test('portable inspection proof rejects nonobjects and inexact or unfrozen metad
     expect(validatePortableInspection(inspection)).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
   }
   for (const metadata of [undefined, null, true, 1, 'metadata', {}, { portable: false }, { portable: true, extra: true }]) {
-    expect(validatePortableInspection(Object.freeze({ metadata }))).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
+    expect(validatePortableInspection(Object.freeze({ registrationMetadata: metadata }))).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
   }
   const symbolMetadata = Object.freeze({ portable: true, [Symbol('extra')]: true });
   const hiddenMetadata = { portable: true };
   Object.defineProperty(hiddenMetadata, 'extra', { value: true });
   Object.freeze(hiddenMetadata);
   for (const metadata of [symbolMetadata, hiddenMetadata]) {
-    expect(validatePortableInspection(Object.freeze({ metadata }))).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
+    expect(validatePortableInspection(Object.freeze({ registrationMetadata: metadata }))).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
   }
-  expect(validatePortableInspection({ metadata: validMetadata })).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
-  expect(validatePortableInspection(Object.freeze({ metadata: { portable: true } })))
-    .not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
+  expect(validatePortableInspection({ registrationMetadata: validMetadata })).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
+  expect(validatePortableInspection(Object.freeze({ registrationMetadata: { portable: true } }))).not.toEqual({ inspectionFrozen: true, metadataFrozen: true });
 });
 
 const portableResult = {
@@ -65,22 +64,14 @@ test('Deno child validation requires canonical output from the local installed a
   const expected = { lane: 'deno-root', resolvedDiBag: local, result: portableResult };
   const stdout = `${JSON.stringify(expected)}\n`;
 
-  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout }))
-    .toEqual({ status: 'pass' });
-  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${stdout}noise` }))
-    .toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
-  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${JSON.stringify({ ...expected, resolvedDiBag: 'file:///tmp/foreign/dist/index.js' })}\n` }))
-    .toEqual({ status: 'fail', reason: 'Deno resolved di-bag outside the local archive install' });
-  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: 'warning', stdout }))
-    .toEqual({ status: 'fail', reason: 'child stderr is not empty' });
-  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${JSON.stringify({ ...expected, result: { ...portableResult, rootOnce: false } })}\n` }))
-    .toEqual({ status: 'fail', reason: 'child result mismatch' });
-  expect(evaluateDenoChild(installed, { status: 9, signal: null, stderr: '', stdout }))
-    .toEqual({ status: 'fail', reason: 'child exited with status 9' });
-  expect(evaluateDenoChild(installed, { status: null, signal: 'SIGTERM', stderr: '', stdout }))
-    .toEqual({ status: 'fail', reason: 'child terminated by SIGTERM' });
-  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${JSON.stringify({ ...expected, lane: 'other' })}\n` }))
-    .toEqual({ status: 'fail', reason: 'child lane mismatch' });
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout })).toEqual({ status: 'pass' });
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${stdout}noise` })).toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${JSON.stringify({ ...expected, resolvedDiBag: 'file:///tmp/foreign/dist/index.js' })}\n` })).toEqual({ status: 'fail', reason: 'Deno resolved di-bag outside the local archive install' });
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: 'warning', stdout })).toEqual({ status: 'fail', reason: 'child stderr is not empty' });
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${JSON.stringify({ ...expected, result: { ...portableResult, rootOnce: false } })}\n` })).toEqual({ status: 'fail', reason: 'child result mismatch' });
+  expect(evaluateDenoChild(installed, { status: 9, signal: null, stderr: '', stdout })).toEqual({ status: 'fail', reason: 'child exited with status 9' });
+  expect(evaluateDenoChild(installed, { status: null, signal: 'SIGTERM', stderr: '', stdout })).toEqual({ status: 'fail', reason: 'child terminated by SIGTERM' });
+  expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout: `${JSON.stringify({ ...expected, lane: 'other' })}\n` })).toEqual({ status: 'fail', reason: 'child lane mismatch' });
   rmSync(consumer, { recursive: true, force: true });
 });
 

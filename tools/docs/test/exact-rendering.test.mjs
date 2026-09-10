@@ -28,9 +28,9 @@ try {
   assert(project);
   await app.generateOutputs(project);
 
-  facade = readFileSync(join(output, 'index/interfaces/Facade.md'), 'utf8');
+  facade = readFileSync(join(output, 'index/interfaces/DiBagApi.md'), 'utf8');
   bag = readFileSync(join(output, 'index/interfaces/Bag.md'), 'utf8');
-  fromPlugin = readFileSync(join(output, 'index/type-aliases/fromPlugin.md'), 'utf8');
+  fromPlugin = readFileSync(join(output, 'index/type-aliases/PluginProviderFactory.md'), 'utf8');
   tokenKey = readFileSync(join(output, 'index/type-aliases/TokenKey.md'), 'utf8');
   runtimeOptions = readFileSync(join(output, 'index/interfaces/RuntimeOptions.md'), 'utf8');
   startupError = readFileSync(join(output, 'index/classes/DiBagStartupError.md'), 'utf8');
@@ -48,18 +48,18 @@ test('compiler declarations retain syntax that TypeDoc reflections cannot repres
   const facadeText = compact(facade);
   const bagText = compact(bag);
 
-  assert.match(facadeText, /fromClass: <const T extends readonly Dependency\[\], C extends new \(/);
+  assert.match(facadeText, /fromClass: <const T extends readonly DependencyReference\[\], C extends new \(/);
   assert.match(facadeText, /M extends AcquisitionMode = 'auto'>/);
-  assert.match(facadeText, /options: \{ readonly acquisition: M; \} & NativeOutput/);
+  assert.match(facadeText, /callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, \.\.\.options: FactoryOptions<M>/);
   assert.match(bagText, /inspect<K extends \(keyof R & string\) \| TokenBase>\(token: K & \(\[K\] extends \[string\] \? unknown : TokenMember<R, K>\)\)/);
-  assert.match(bagText, /scope<const S extends readonly unknown\[\]>/);
+  assert.match(bagText, /createScope<const S extends readonly unknown\[\]>/);
 });
 
 test('canonical signatures are followed by comment-only parameter details', () => {
   assert.match(bag, /\| Parameter \| Description \|/);
   assert.doesNotMatch(bag, /\| Parameter \| Type \|/);
   assert.match(bag, /\| Type Parameter \| Description \|/);
-  assert.match(facade, /\| `create` \| A receiver-free service factory\. \|/);
+  assert.match(facade, /\| `create` \| The receiver-free service factory\. \|/);
 });
 
 test('source declarations preserve aliases and property modifiers exactly', () => {
@@ -70,17 +70,11 @@ test('source declarations preserve aliases and property modifiers exactly', () =
   const builderContribute = readFileSync(join(output, 'index/type-aliases/BuilderContribute.md'), 'utf8');
   const moduleContribute = readFileSync(join(output, 'index/type-aliases/ModuleContribute.md'), 'utf8');
   assert.match(compact(builderContribute), /<T extends TokenBase, V extends Registration>/);
-  assert.match(compact(builderContribute), /Builder<E, C \| Contribution<T, V>>;/);
+  assert.match(compact(builderContribute), /BagBuilder<E, C \| Contribution<T, V>>;/);
   assert.match(compact(moduleContribute), /ModuleBuilder<E, C \| Contribution<T, V>>;/);
 });
 
-test('type-only function exports are described without inventing a type alias', () => {
-  const page = compact(fromPlugin);
-
-  assert.match(fromPlugin, /^# Type-Only Function: fromPlugin$/m);
-  assert.match(page, /declare function fromPlugin<const T extends readonly Dependency\[\], V, M extends PluginAcquisition>/);
-  assert.match(fromPlugin, /import type \{ fromPlugin \} from 'di-bag'/);
-  assert.match(fromPlugin, /typeof fromPlugin/);
-  assert.match(fromPlugin, /DiBag\.fromPlugin/);
-  assert.doesNotMatch(fromPlugin, /type fromPlugin =/);
+test('plugin factory is a callable type alias rather than a type-only function export', () => {
+  assert.match(fromPlugin, /^# Type Alias: PluginProviderFactory$/m);
+  assert.match(compact(fromPlugin), /type PluginProviderFactory = <const T extends readonly DependencyReference\[\], V, M extends PluginAcquisitionMode>/);
 });

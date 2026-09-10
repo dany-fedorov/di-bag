@@ -122,42 +122,27 @@ const cleanChild: PlatformEnvironment = {
 
 test('child evidence rejects noncanonical output, stderr, process failures and the wrong lane', () => {
   expect(evaluatePlatformChild(expected, cleanChild)).toEqual({ status: 'pass' });
-  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: `${JSON.stringify(expected)}\nnoise` }))
-    .toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
-  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: ` ${JSON.stringify(expected)}\n` }))
-    .toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
-  expect(evaluatePlatformChild(expected, { ...cleanChild, stderr: 'warning\n' }))
-    .toEqual({ status: 'fail', reason: 'child stderr is not empty' });
-  expect(evaluatePlatformChild(expected, { ...cleanChild, status: 3 }))
-    .toEqual({ status: 'fail', reason: 'child exited with status 3' });
-  expect(evaluatePlatformChild(expected, { ...cleanChild, status: null, signal: 'SIGKILL' }))
-    .toEqual({ status: 'fail', reason: 'child terminated by SIGKILL' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: `${JSON.stringify(expected)}\nnoise` })).toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: ` ${JSON.stringify(expected)}\n` })).toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild, stderr: 'warning\n' })).toEqual({ status: 'fail', reason: 'child stderr is not empty' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild, status: 3 })).toEqual({ status: 'fail', reason: 'child exited with status 3' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild, status: null, signal: 'SIGKILL' })).toEqual({ status: 'fail', reason: 'child terminated by SIGKILL' });
   expect(evaluatePlatformChild(expected, { ...cleanChild,
-    stdout: `${JSON.stringify({ lane: 'browser-worker-minified', result: { ok: true } })}\n` }))
-    .toEqual({ status: 'fail', reason: 'child lane mismatch' });
-  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: '{broken}\n' }))
-    .toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
-  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: `${JSON.stringify([expected])}\n` }))
-    .toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
-  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: JSON.stringify(expected) }))
-    .toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
-  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: `${JSON.stringify({ ...expected, result: { ok: false } })}\n` }))
-    .toEqual({ status: 'fail', reason: 'child result mismatch' });
-  expect(evaluatePlatformChild(expected, { ...cleanChild, status: null }))
-    .toEqual({ status: 'fail', reason: 'child exited with status null' });
+    stdout: `${JSON.stringify({ lane: 'browser-worker-minified', result: { ok: true } })}\n` })).toEqual({ status: 'fail', reason: 'child lane mismatch' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: '{broken}\n' })).toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: `${JSON.stringify([expected])}\n` })).toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: JSON.stringify(expected) })).toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild, stdout: `${JSON.stringify({ ...expected, result: { ok: false } })}\n` })).toEqual({ status: 'fail', reason: 'child result mismatch' });
+  expect(evaluatePlatformChild(expected, { ...cleanChild, status: null })).toEqual({ status: 'fail', reason: 'child exited with status null' });
   expect(evaluatePlatformChild(expected, { ...cleanChild,
-    stdout: '{"__proto__":{"hostile":true},"lane":"deno-root","result":{"ok":true}}\n' }))
-    .toEqual({ status: 'fail', reason: 'child result mismatch' });
+    stdout: '{"__proto__":{"hostile":true},"lane":"deno-root","result":{"ok":true}}\n' })).toEqual({ status: 'fail', reason: 'child result mismatch' });
   expect(evaluatePlatformChild(expected, { ...cleanChild,
-    stdout: '{"lane":"deno-root","result":{"__proto__":{"hostile":true},"ok":true}}\n' }))
-    .toEqual({ status: 'fail', reason: 'child result mismatch' });
+    stdout: '{"lane":"deno-root","result":{"__proto__":{"hostile":true},"ok":true}}\n' })).toEqual({ status: 'fail', reason: 'child result mismatch' });
   expect(evaluatePlatformChild(expected, { ...cleanChild,
-    stdout: '{"result":{"ok":true},"lane":"deno-root"}\n' }))
-    .toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
+    stdout: '{"result":{"ok":true},"lane":"deno-root"}\n' })).toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
   const nestedExpected = { lane: 'deno-root', result: { a: true, z: true } };
   expect(evaluatePlatformChild(nestedExpected, { ...cleanChild,
-    stdout: '{"lane":"deno-root","result":{"z":true,"a":true}}\n' }))
-    .toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
+    stdout: '{"lane":"deno-root","result":{"z":true,"a":true}}\n' })).toEqual({ status: 'fail', reason: 'child stdout is not one canonical JSON object' });
 });
 
 test('tool verification rejects explicit unavailability, version drift and hash drift', async () => {
@@ -267,14 +252,11 @@ function packedContents(packageTree: string): Record<string, string> {
 test('pack output requires exactly one archive and empty stderr', () => {
   const fixture = archiveFixture();
   expect(validatePackOutput(fixture.packageTree, fixture.stdout)).toEqual(fixture.result);
-  expect(() => validatePackOutput(fixture.packageTree, JSON.stringify([fixture.result, fixture.result])))
-    .toThrow('exactly one archive');
-  expect(() => validatePackOutput(fixture.packageTree, fixture.stdout, 'npm warning\n'))
-    .toThrow('stderr is not empty');
+  expect(() => validatePackOutput(fixture.packageTree, JSON.stringify([fixture.result, fixture.result]))).toThrow('exactly one archive');
+  expect(() => validatePackOutput(fixture.packageTree, fixture.stdout, 'npm warning\n')).toThrow('stderr is not empty');
   expect(() => validatePackOutput(fixture.packageTree, 'not JSON')).toThrow('not JSON');
   expect(() => validatePackOutput(fixture.packageTree, JSON.stringify([{}]))).toThrow('incomplete');
-  expect(() => validatePackOutput(fixture.packageTree, JSON.stringify([{ ...fixture.result, filename: '../outside.tgz' }])))
-    .toThrow('unsafe archive filename');
+  expect(() => validatePackOutput(fixture.packageTree, JSON.stringify([{ ...fixture.result, filename: '../outside.tgz' }]))).toThrow('unsafe archive filename');
 });
 
 test('pack output rejects every missing declared export and package document', () => {
@@ -299,15 +281,13 @@ test('packed archive validation catches a missing archive, changed bytes and sta
   expect(() => validatePackedArchive(archive)).toThrow('SHA-256 mismatch');
   expect(() => validatePackedArchive({ ...archive, path: join(fixture.packageTree, 'missing.tgz') })).toThrow('does not exist');
   writeFileSync(archivePath, archiveBytes);
-  expect(() => validatePackedArchive({ ...archive, files: packedFiles.filter(path => path !== 'dist/index.js') }))
-    .toThrow('missing dist/index.js');
+  expect(() => validatePackedArchive({ ...archive, files: packedFiles.filter(path => path !== 'dist/index.js') })).toThrow('missing dist/index.js');
   writeFileSync(archivePath, 'not an archive');
   const fake = { ...archive, sha256: hash('not an archive') };
   expect(() => validatePackedArchive(fake)).toThrow('not a gzip tar archive');
   const missingActual = tarArchive(Object.fromEntries(Object.entries(contents).filter(([path]) => path !== 'dist/node.js')));
   writeFileSync(archivePath, missingActual);
-  expect(() => validatePackedArchive({ ...archive, sha256: createHash('sha256').update(missingActual).digest('hex') }))
-    .toThrow('archive bytes are missing dist/node.js');
+  expect(() => validatePackedArchive({ ...archive, sha256: createHash('sha256').update(missingActual).digest('hex') })).toThrow('archive bytes are missing dist/node.js');
   const paxOverride = tarArchiveEntries([
     ...Object.entries(contents).filter(([path]) => path !== 'dist/index.js').map(([path, entryContents]) => ({
       path, contents: entryContents,
@@ -316,8 +296,7 @@ test('packed archive validation catches a missing archive, changed bytes and sta
     { path: 'dist/index.js', contents: 'misleading raw header' },
   ]);
   writeFileSync(archivePath, paxOverride);
-  expect(() => validatePackedArchive({ ...archive, sha256: createHash('sha256').update(paxOverride).digest('hex') }))
-    .toThrow('unsupported tar entry type');
+  expect(() => validatePackedArchive({ ...archive, sha256: createHash('sha256').update(paxOverride).digest('hex') })).toThrow('unsupported tar entry type');
 });
 
 test('archive inventory is an exact allowlist and package documents match isolated inputs byte-for-byte', () => {
@@ -334,25 +313,19 @@ test('archive inventory is an exact allowlist and package documents match isolat
   };
 
   expect(() => validatePackedArchive(writeArchive(contents))).not.toThrow();
-  expect(() => validatePackedArchive(writeArchive(contents, packedFiles.filter(path => path !== 'dist/internal.js'))))
-    .toThrow('claimed inventory is missing dist/internal.js');
+  expect(() => validatePackedArchive(writeArchive(contents, packedFiles.filter(path => path !== 'dist/internal.js')))).toThrow('claimed inventory is missing dist/internal.js');
   const withoutInternal = Object.fromEntries(Object.entries(contents).filter(([path]) => path !== 'dist/internal.js'));
-  expect(() => validatePackedArchive(writeArchive(withoutInternal, packedFiles)))
-    .toThrow('archive bytes are missing dist/internal.js');
+  expect(() => validatePackedArchive(writeArchive(withoutInternal, packedFiles))).toThrow('archive bytes are missing dist/internal.js');
 
   for (const unexpected of ['src/index.ts', 'tests/secret.ts', '.npmrc', '.env']) {
-    expect(() => validatePackedArchive(writeArchive({ ...contents, [unexpected]: 'secret' }, [...packedFiles, unexpected])))
-      .toThrow(`unexpected file ${unexpected}`);
+    expect(() => validatePackedArchive(writeArchive({ ...contents, [unexpected]: 'secret' }, [...packedFiles, unexpected]))).toThrow(`unexpected file ${unexpected}`);
   }
   for (const document of ['package.json', 'README.md', 'LICENSE']) {
     const changed = document === 'package.json' ? JSON.stringify({ ...packageDocument, name: 'wrong-package' }) : `${contents[document]} mutated`;
-    expect(() => validatePackedArchive(writeArchive({ ...contents, [document]: changed })))
-      .toThrow(`content mismatch for ${document}`);
+    expect(() => validatePackedArchive(writeArchive({ ...contents, [document]: changed }))).toThrow(`content mismatch for ${document}`);
   }
-  expect(() => validatePackedArchive(writeArchive({ ...contents, 'package.json': '{broken' })))
-    .toThrow('invalid package.json');
-  expect(() => validatePackedArchive(writeArchive(contents, packedFiles, Uint8Array.of(1))))
-    .toThrow('nonzero data after tar terminator');
+  expect(() => validatePackedArchive(writeArchive({ ...contents, 'package.json': '{broken' }))).toThrow('invalid package.json');
+  expect(() => validatePackedArchive(writeArchive(contents, packedFiles, Uint8Array.of(1)))).toThrow('nonzero data after tar terminator');
 });
 
 test('repository manifest verifies every provisioned identity and retains absent tools as unavailable', async () => {
@@ -464,8 +437,7 @@ test('platform evidence module imports under the pinned Node ESM loader', async 
     '--eval',
     `import(${JSON.stringify(pathToFileURL(join(root, 'scripts/platform-evidence.ts')).href)})`,
   ], { cwd: root, encoding: 'utf8' });
-  expect({ status: imported.status, signal: imported.signal, stdout: imported.stdout, stderr: imported.stderr })
-    .toEqual({ status: 0, signal: null, stdout: '', stderr: '' });
+  expect({ status: imported.status, signal: imported.signal, stdout: imported.stdout, stderr: imported.stderr }).toEqual({ status: 0, signal: null, stdout: '', stderr: '' });
 });
 
 test('platform command retains archive failure rows and makes required failures nonzero', async () => {

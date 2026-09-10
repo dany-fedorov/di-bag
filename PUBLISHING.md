@@ -12,6 +12,11 @@ Freeze its package name and version, source commit, branch, package metadata,
 tool versions, native diagnostic inventory, build output, dry-run and actual pack
 JSON, archive bytes and hashes, and every supervised command record.
 
+The current candidate includes the breaking [API renaming migration](docs/migrations/api-renaming.md).
+Verify the consolidated API and inferred consumer declarations in the packed
+archive. Compatibility aliases are intentionally absent; the documented local
+version remains `0.1.0` pending separate release-version selection.
+
 Use the absolute, ignored directory `/tmp/di-bag-release-candidate` for archives,
 detailed manifests, logs, and isolated consumers. Durable evidence committed to
 the repository must omit absolute checkout, archive, and log paths.

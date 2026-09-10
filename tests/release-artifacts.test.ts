@@ -121,20 +121,13 @@ describe('release documentation contract', () => {
   test('the publication boundary rejects stale, missing, duplicated, and misplaced commands', () => {
     const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
     const command = onlineCommands(packageManifest.version)[0]!;
-    expect(validatePublishingDocument(publishing.replaceAll(packageManifest.version, '9.9.9'), packageManifest.version))
-      .toContain(`expected command exactly once: ${command}`);
-    expect(validatePublishingDocument(publishing.replace(command, ''), packageManifest.version))
-      .toContain(`expected command exactly once: ${command}`);
-    expect(validatePublishingDocument(`${command}\n${publishing}`, packageManifest.version))
-      .toContain(`online command precedes authorization heading: ${command}`);
-    expect(validatePublishingDocument(`${publishing}\n${command}`, packageManifest.version))
-      .toContain(`expected command exactly once: ${command}`);
-    expect(validatePublishingDocument(publishing.replace(authorizationHeading, ''), packageManifest.version))
-      .toContain('missing authorization heading');
-    expect(validatePublishingDocument(publishing.replace(authorizationHeading, `${authorizationHeading}\n${authorizationHeading}`), packageManifest.version))
-      .toContain('authorization heading must occur exactly once');
-    expect(validatePublishingDocument(publishing.replaceAll('/tmp/di-bag-release-candidate', '/tmp/other'), packageManifest.version))
-      .toContain('missing local workflow fact: /tmp/di-bag-release-candidate');
+    expect(validatePublishingDocument(publishing.replaceAll(packageManifest.version, '9.9.9'), packageManifest.version)).toContain(`expected command exactly once: ${command}`);
+    expect(validatePublishingDocument(publishing.replace(command, ''), packageManifest.version)).toContain(`expected command exactly once: ${command}`);
+    expect(validatePublishingDocument(`${command}\n${publishing}`, packageManifest.version)).toContain(`online command precedes authorization heading: ${command}`);
+    expect(validatePublishingDocument(`${publishing}\n${command}`, packageManifest.version)).toContain(`expected command exactly once: ${command}`);
+    expect(validatePublishingDocument(publishing.replace(authorizationHeading, ''), packageManifest.version)).toContain('missing authorization heading');
+    expect(validatePublishingDocument(publishing.replace(authorizationHeading, `${authorizationHeading}\n${authorizationHeading}`), packageManifest.version)).toContain('authorization heading must occur exactly once');
+    expect(validatePublishingDocument(publishing.replaceAll('/tmp/di-bag-release-candidate', '/tmp/other'), packageManifest.version)).toContain('missing local workflow fact: /tmp/di-bag-release-candidate');
     for (const [prohibited, token] of [
       ['npm whoami --registry=https://registry.npmjs.org', 'npm whoami'],
       ['npm token list', 'npm token'],
@@ -144,8 +137,7 @@ describe('release documentation contract', () => {
       ['npm audit signatures --provenance', 'npm audit'],
       ['printf secret > ~/.npmrc', '.npmrc'],
     ]) {
-      expect(validatePublishingDocument(`${prohibited}\n${publishing}`, packageManifest.version))
-        .toContain(`online token precedes authorization heading: ${token}`);
+      expect(validatePublishingDocument(`${prohibited}\n${publishing}`, packageManifest.version)).toContain(`online token precedes authorization heading: ${token}`);
     }
   });
 
@@ -173,7 +165,7 @@ describe('release documentation contract', () => {
     // The landing page links to the detailed contracts and verification evidence.
     expect(readme).toContain('(docs/guides/api-reference.md)');
     expect(readme).toContain('(docs/guides/tutorial.md)');
-    expect(reference).toContain('../reference/index/interfaces/Facade.md');
+    expect(reference).toContain('../reference/index/interfaces/DiBagApi.md');
     expect(readme).toContain('(docs/guides/development.md)');
     for (const text of [`${tutorial}\n${development}`, migration]) {
       for (const fact of ['provider metadata', 'raw', 'native', 'selected scopes', 'non-blocking observers', 'original acquired value'])
@@ -194,10 +186,8 @@ describe('release documentation contract', () => {
 
 describe('release artifact scripts', () => {
   test('reject unsafe and unsupported manifest arguments', () => {
-    expect(() => parseManifestArgs(['--input', 'relative', '--out', '/tmp/candidate.json']))
-      .toThrow('evidence input must be absolute');
-    expect(() => parseManifestArgs(['--input', '/tmp/input.json', '--out', '/tmp/candidate.json', '--package', 'x']))
-      .toThrow('unsupported option: --package');
+    expect(() => parseManifestArgs(['--input', 'relative', '--out', '/tmp/candidate.json'])).toThrow('evidence input must be absolute');
+    expect(() => parseManifestArgs(['--input', '/tmp/input.json', '--out', '/tmp/candidate.json', '--package', 'x'])).toThrow('unsupported option: --package');
   });
 
   test('expose guarded parsers and archive inspection', () => {

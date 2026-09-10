@@ -9,12 +9,12 @@ type Overrides<F extends Registrations, O extends Registrations> = [
     Exclude<keyof O, keyof F>
 ] extends [never] ? [BadOverrides<F, O>] extends [never] ? unknown : Unsatisfied<'override value is not assignable to the original token', {
     tokens: BadOverrides<F, O>;
-}> : Unsatisfied<'fork accepts existing tokens only', {
+}> : Unsatisfied<'fork accepts existing names or typed tokens only', {
     extra: Exclude<keyof O, keyof F>;
 }>;
 ```
 
-Defined in: [types.ts:163](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L163)
+Defined in: [types.ts:170](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L170)
 
 Admit overrides only for existing keys whose service values remain assignable.
 

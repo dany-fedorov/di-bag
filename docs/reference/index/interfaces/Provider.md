@@ -2,14 +2,14 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / Provider
 
-# Interface: Provider\<F *extends* `Factory`, M *extends* `object` = `Readonly`\<\{ \}\>, A *extends* readonly `unknown`[] = readonly \[\], G *extends* `GraphContract` = [`TokenGraph`](../type-aliases/TokenGraph.md), V = `Awaited`\<`ReturnType`\<`F`\>\>\>
+# Interface: Provider\<F *extends* `Factory`, M *extends* `object` = `Readonly`\<\{ \}\>, A *extends* readonly `unknown`[] = readonly \[\], G *extends* `GraphContract` = [`TokenDependencyContract`](../type-aliases/TokenDependencyContract.md), V = `Awaited`\<`ReturnType`\<`F`\>\>\>
 
-Defined in: [provider.ts:31](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L31)
+Defined in: [provider.ts:32](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L32)
 
 An immutable provider description retaining factory, metadata, inspection-frame,
 dependency-graph, and acquired-value contracts.
 
-Create providers through [Facade.factory](Facade.md#factory), composition adapters, or provider
+Create providers through [DiBagApi.fromFactory](DiBagApi.md#fromfactory), composition adapters, or provider
 decorators. This type-only class has no public constructor.
 
 ## Extends
@@ -20,8 +20,8 @@ decorators. This type-only class has no public constructor.
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `F` | - |
-| `M` | - |
-| `A` | - |
-| `G` | - |
-| `V` | - |
+| `F` | The exact exposed factory signature, including named dependencies. |
+| `M` | Static registration metadata available before resolution. |
+| `A` | The ordered tuple of acquisition metadata frame payloads. |
+| `G` | The retained token, lifetime, and graph compatibility contract. |
+| `V` | The raw or fulfilled value supplied to an outer disposal stage. |

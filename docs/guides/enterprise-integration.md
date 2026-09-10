@@ -20,10 +20,11 @@ including JavaScript's valid `throw undefined` case.
 
 ```ts
 const result = await withOwnedScope(
-  () => root.scope(['request'], {
-    request: () => ({ id: requestId }),
-  }),
-  async scope => {
+  () =>
+    root.createScope(['request'], {
+      request: () => ({ id: requestId }),
+    }),
+  async (scope) => {
     const handler = scope.resolve('handler');
     return await handler.run();
   },
@@ -37,7 +38,7 @@ and are released by the root. Scoped and transient resources belong to the
 operation that acquired them. Copy this small recipe into application code; it
 is not an extra package export.
 
-Use `DiBag.withContext` for cooperative work that needs the acquisition owner's
+Use `DiBag.fromFactory` for cooperative work that needs the acquisition owner's
 `AbortSignal`. Closing the scope aborts its signal and drains owned acquisitions.
 For transport cancellation of an active service method, abort an
 application-controlled signal, coordinate completion of that work, and then
@@ -53,9 +54,9 @@ ownership too soon.
 
 Never pass an existing shared application root as `acquire()` unless the operation
 intentionally owns shutting down the entire application. If acquisition itself
-fails, it must clean its partial acquisitions. `Builder.start()` supplies startup
+fails, it must clean its partial acquisitions. `BagBuilder.buildAndStart()` supplies startup
 rollback. A cancelled startup exposes eventual cleanup on
-`DiBagStartupCancelledError.cleanup`; a host needing fully drained cancellation
+`DiBagStartupCancelledError.cleanupPromise`; a host needing fully drained cancellation
 must await that promise explicitly.
 
 The [integration tests](../../tests/enterprise-integration.test.ts) run overlapping
@@ -69,8 +70,8 @@ Tests use the same checked builder and scope APIs as applications:
 
 ```ts
 await withOwnedScope(
-  () => builder.replace('clock', () => ({ now: () => 7 })).end(),
-  scope => {
+  () => builder.replace('clock', () => ({ now: () => 7 })).build(),
+  (scope) => {
     const value: number = scope.resolve('result');
     assert.equal(value, 7);
   },
@@ -101,7 +102,7 @@ dynamic import -> validate plugin descriptor -> install typed module
 through an actual `import()` in the integration suite. It validates an unknown
 plugin descriptor with `fromPlugin`, binds the result to a private typed token,
 uses a private owned provider in an ordered contribution, and exports a handler.
-The host installs the returned module before `start(['handler'])`. On completion,
+The host installs the returned module before `buildAndStart(['handler'])`. On completion,
 the handler, private provider and plugin are each disposed exactly once.
 
 A statically known dynamic-import path retains its module's TypeScript contract.

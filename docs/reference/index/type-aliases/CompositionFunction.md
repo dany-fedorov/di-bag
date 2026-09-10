@@ -2,13 +2,13 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / CompositionFunction
 
-# Type Alias: CompositionFunction\<T *extends* readonly [`Dependency`](Dependency.md)[], O = `unknown`\>
+# Type Alias: CompositionFunction\<T *extends* readonly [`DependencyReference`](DependencyReference.md)[], O = `unknown`\>
 
 ```ts
-type CompositionFunction<T extends readonly Dependency[], O = unknown> = TokenArguments<T> extends [...infer A] ? (this: void, ...args: A) => O : never;
+type CompositionFunction<T extends readonly DependencyReference[], O = unknown> = TokenArguments<T> extends [...infer A] ? (this: void, ...args: A) => O : never;
 ```
 
-Defined in: [composition.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/composition.ts#L20)
+Defined in: [composition.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/composition.ts#L24)
 
 A receiver-free positional callback matching the values supplied by a dependency tuple.
 

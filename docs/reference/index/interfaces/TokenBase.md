@@ -4,7 +4,7 @@
 
 # Interface: TokenBase
 
-Defined in: [tokens.ts:8](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L8)
+Defined in: [tokens.ts:9](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L9)
 
 The common type-only base for genuine typed-token handles.
 Create tokens through `DiBag.token`; fabricated structural values are not authenticated.

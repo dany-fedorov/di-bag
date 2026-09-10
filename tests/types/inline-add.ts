@@ -2,8 +2,7 @@ import { DiBag } from '../../src';
 import type { Assert, Equal } from './assert';
 
 // Forward dependencies and nested methods must not widen the registration map.
-const bag = DiBag.begin()
-  .add({
+const bag = DiBag.createBuilder().register({
     service: ({ clock }: { clock: { now(): number } }) => ({
       stamp() {
         return clock.now();
@@ -12,15 +11,13 @@ const bag = DiBag.begin()
         return 'ready' as const;
       },
     }),
-  })
-  .add({
+  }).register({
     clock: () => ({
       now() {
         return 42;
       },
     }),
-  })
-  .end();
+  }).build();
 
 const service = bag.resolve('service');
 const clock = bag.resolve('clock');
@@ -36,8 +33,7 @@ type Service = Assert<
 type Clock = Assert<Equal<typeof clock, { now(): number }>>;
 
 // Factories declared as methods and returned methods using `this` also work.
-const stateful = DiBag.begin()
-  .add({
+const stateful = DiBag.createBuilder().register({
     counter() {
       return {
         value: 0,
@@ -46,9 +42,7 @@ const stateful = DiBag.begin()
         },
       };
     },
-  })
-  .end()
-  .resolve('counter');
+  }).build().resolve('counter');
 type Counter = Assert<
   Equal<
     typeof stateful,

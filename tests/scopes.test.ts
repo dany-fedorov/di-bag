@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { isPromise } from 'node:util/types';
 import { DiBag, DiBagCleanupError } from '../src/node';
 import { DiBag as Core } from '../src';
-import { BindingGraph, Runtime } from '../src/runtime';
+import { BindingGraph, BagRuntime } from '../src/runtime';
 import type { BindingDescription } from '../src/runtime';
 import { deferred } from './helpers';
 
@@ -16,11 +16,11 @@ function graph(bindings: BindingDescription[], slots: [string | symbol, symbol][
 test('children own fresh acquisitions while independent forks outlive their source', async () => {
   let next = 0;
   const disposed: number[] = [];
-  const root = DiBag.begin().add({
+  const root = DiBag.createBuilder().register({
     service: DiBag.withDisposal(() => ++next, value => { disposed.push(value); }),
-  }).end();
-  const child = root.scope();
-  const sibling = root.scope();
+  }).build();
+  const child = root.createScope();
+  const sibling = root.createScope();
   const fork = child.fork();
   expect(next).toBe(0);
   expect(root.resolve('service')).toBe(1);
@@ -42,17 +42,17 @@ test('parent close synchronously closes every descendant admission gate and wait
   const started = new Map<number, ReturnType<typeof deferred<void>>>();
   const disposed: number[] = [];
   let next = 0;
-  const root = DiBag.begin().add({
+  const root = DiBag.createBuilder().register({
     resource: DiBag.withDisposal(() => ++next, async value => {
       started.get(value)?.resolve();
       if (value === 3) await releaseGrandchild.promise;
       disposed.push(value);
     }),
-  }).end();
+  }).build();
   for (let id = 1; id <= 4; id++) started.set(id, deferred<void>());
-  const child = root.scope();
-  const grandchild = child.scope();
-  const sibling = root.scope();
+  const child = root.createScope();
+  const grandchild = child.createScope();
+  const sibling = root.createScope();
   root.resolve('resource');
   child.resolve('resource');
   grandchild.resolve('resource');
@@ -63,7 +63,7 @@ test('parent close synchronously closes every descendant admission gate and wait
   for (const bag of [root, child, grandchild, sibling]) {
     expect(() => bag.resolve('resource')).toThrow(/clos/);
     expect(() => bag.fork()).toThrow(/clos/);
-    expect(() => bag.scope()).toThrow(/clos/);
+    expect(() => bag.createScope()).toThrow(/clos/);
   }
   await Promise.all([started.get(3)!.promise, started.get(4)!.promise]);
   expect(disposed).toContain(4);
@@ -78,14 +78,14 @@ test('parent close synchronously closes every descendant admission gate and wait
 test('pending child sources may acquire dependencies after parent close starts', async () => {
   const gate = deferred<void>();
   const disposed: string[] = [];
-  const root = DiBag.begin().add({
+  const root = DiBag.createBuilder().register({
     base: DiBag.withDisposal(() => 21, () => { disposed.push('base'); }),
     result: DiBag.withDisposal(async (deps: { base: number }) => {
       await gate.promise;
       return deps.base * 2;
     }, () => { disposed.push('result'); }),
-  }).end();
-  const child = root.scope();
+  }).build();
+  const child = root.createScope();
   const result = child.resolve('result');
   const closing = root.close();
   gate.resolve();
@@ -97,8 +97,8 @@ test('pending child sources may acquire dependencies after parent close starts',
 test('pending acquisition promises deduplicate only within one scope', async () => {
   const gates = [deferred<number>(), deferred<number>()];
   let next = 0;
-  const root = DiBag.begin().add({ value: () => gates[next++]!.promise }).end();
-  const child = root.scope();
+  const root = DiBag.createBuilder().register({ value: () => gates[next++]!.promise }).build();
+  const child = root.createScope();
   const rootValue = root.resolve('value');
   const childValue = child.resolve('value');
   expect(root.resolve('value')).toBe(rootValue);
@@ -117,17 +117,17 @@ test('nested cleanup failures flatten by registration order despite reversed com
   const siblingError = new Error('sibling');
   const rootError = new Error('root');
   let next = 0;
-  const root = DiBag.begin().add({
+  const root = DiBag.createBuilder().register({
     resource: DiBag.withDisposal(() => ++next, async value => {
       if (value === 3) { await delayed.promise; throw undefined; }
       if (value === 2) throw childError;
       if (value === 4) throw siblingError;
       throw rootError;
     }),
-  }).end();
-  const child = root.scope();
-  const grandchild = child.scope();
-  const sibling = root.scope();
+  }).build();
+  const child = root.createScope();
+  const grandchild = child.createScope();
+  const sibling = root.createScope();
   const bags = [root, child, grandchild, sibling] as const;
   for (const bag of bags) bag.resolve('resource');
   const snapshots = bags.map(bag => bag.inspect('resource'));
@@ -155,7 +155,7 @@ test('independently settled children detach on success and failure without repla
   const id = Symbol('resource');
   const failure = new Error('cleanup');
   let next = 0;
-  const parent = new Runtime(graph([{
+  const parent = new BagRuntime(graph([{
     id,
     label: 'resource',
     registration: DiBag.withDisposal(() => ++next, value => { if (value === 2) throw failure; }),
@@ -183,10 +183,10 @@ test('independently settled children detach on success and failure without repla
 test('parent close includes a child already closing until its failure settles', async () => {
   const gate = deferred<void>();
   const failure = new Error('closing child');
-  const root = DiBag.begin().add({
+  const root = DiBag.createBuilder().register({
     resource: DiBag.withDisposal(() => 1, async () => { await gate.promise; throw failure; }),
-  }).end();
-  const child = root.scope();
+  }).build();
+  const child = root.createScope();
   child.resolve('resource');
   const childClosing = child.close();
   const parentClosing = root.close();
@@ -205,7 +205,7 @@ test('unexpected child close rejection is retained after parent cleanup', async 
   const failure = new Error('internal child close');
   const disposed: string[] = [];
   const id = Symbol('resource');
-  const parent = new Runtime(graph([{
+  const parent = new BagRuntime(graph([{
     id,
     label: 'resource',
     registration: DiBag.withDisposal(() => 'parent', value => { disposed.push(value); }),
@@ -226,12 +226,12 @@ test('scope preserves native shadowed-then and raw Promise ownership in configur
   Object.defineProperty(nativeGate.promise, 'then', { value: undefined });
   const raw = new Promise<{ id: 'raw' }>(() => {});
   const disposed: unknown[] = [];
-  const configured = Core.configure({ isNativePromise: isPromise });
-  const root = configured.begin().add({
-    native: configured.withDisposal(configured.factory(() => nativeGate.promise, { acquisition: 'native' }), value => { disposed.push(value); }),
-    raw: configured.withDisposal(configured.factory(() => raw, { acquisition: 'raw' }), value => { disposed.push(value); }),
-  }).end();
-  const child = root.scope();
+  const configured = Core.withConfiguration({ runtime: { isNativePromise: isPromise } });
+  const root = configured.createBuilder().register({
+    native: configured.withDisposal(configured.fromFactory(() => nativeGate.promise, { acquisitionMode: 'nativePromise' }), value => { disposed.push(value); }),
+    raw: configured.withDisposal(configured.fromFactory(() => raw, { acquisitionMode: 'raw' }), value => { disposed.push(value); }),
+  }).build();
+  const child = root.createScope();
   expect(child.resolve('native')).toBe(nativeGate.promise);
   expect(child.resolve('raw')).toBe(raw);
   const closing = root.close();
@@ -251,12 +251,12 @@ test('child projection rollback finishes before a parent-owned finalizer', async
     await rollback.promise;
     events.push('rollback');
   });
-  const root = DiBag.begin().add({
+  const root = DiBag.createBuilder().register({
     parent: DiBag.withDisposal(() => 'parent', () => { events.push('parent'); }),
-    projected: DiBag.mapSync(source, () => { throw new Error('projection'); }),
-  }).end();
+    projected: DiBag.transformService(source, { mode: 'direct', transform: () => { throw new Error('projection'); } }),
+  }).build();
   root.resolve('parent');
-  const child = root.scope();
+  const child = root.createScope();
   expect(() => child.resolve('projected')).toThrow('projection');
   await started.promise;
   const closing = root.close();
@@ -269,15 +269,15 @@ test('child projection rollback finishes before a parent-owned finalizer', async
 
 test('scopes retain module-private identities and unchanged public binding metadata', async () => {
   let next = 0;
-  const feature = DiBag.module().add({
+  const feature = DiBag.createModuleBuilder().register({
     hidden: () => ({ id: ++next }),
     publicValue: DiBag.withMetadata(({ hidden, external }: { hidden: { id: number }; external: number }) =>
-      ({ hidden, external }), { owner: 'module' as const }),
-  }).exports(['publicValue']).rename('publicValue', 'service');
-  const root = DiBag.begin().install(feature).add({ external: () => 7 }).end();
-  const child = root.scope();
+      ({ hidden, external }), { static: { owner: 'module' as const } }),
+  }).buildModule(['publicValue']).renameExport('publicValue', 'service');
+  const root = DiBag.createBuilder().installModule(feature).register({ external: () => 7 }).build();
+  const child = root.createScope();
   expect(root.inspect('service').bindingId).toBe(child.inspect('service').bindingId);
-  expect(child.inspect('service').metadata.owner).toBe('module');
+  expect(child.inspect('service').registrationMetadata.owner).toBe('module');
   expect(root.inspect('service').acquisitions).toEqual([]);
   expect(child.inspect('service').acquisitions).toEqual([]);
   expect(child.resolve('service')).toEqual({ hidden: { id: 1 }, external: 7 });
@@ -288,21 +288,21 @@ test('scopes retain module-private identities and unchanged public binding metad
 
 test('unchecked scope arguments reject before creating or acquiring a child', async () => {
   let created = 0;
-  const root = DiBag.begin().add({ value: () => ++created }).end();
-  const originalScope = Runtime.prototype.scope;
+  const root = DiBag.createBuilder().register({ value: () => ++created }).build();
+  const originalScope = BagRuntime.prototype.scope;
   let runtimeScopes = 0;
-  Runtime.prototype.scope = function () { runtimeScopes++; return originalScope.call(this); };
+  BagRuntime.prototype.scope = function () { runtimeScopes++; return originalScope.call(this); };
   try {
     for (const args of [[undefined], [{ share: ['missing'] }], [{ value: () => 2 }]]) {
-      expect(() => Reflect.apply(root.scope, root, args)).toThrow('scope');
+      expect(() => Reflect.apply(root.createScope, root, args)).toThrow('createScope');
     }
     expect(runtimeScopes).toBe(0);
     expect(created).toBe(0);
-    const child = root.scope();
+    const child = root.createScope();
     expect(runtimeScopes).toBe(1);
     expect(child.resolve('value')).toBe(1);
     await root.close();
   } finally {
-    Runtime.prototype.scope = originalScope;
+    BagRuntime.prototype.scope = originalScope;
   }
 });
