@@ -3,9 +3,9 @@ import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 const cases = [
-  { name: '100 named additions', args: ['scripts/benchmark-types.ts', '--worker', '100', 'chained', 'valid'], form: 'chained', ceiling: 850_000, baselineInstantiations: 883_806 },
-  { name: '100 named replacements', args: ['scripts/benchmark-types.ts', '--worker', '100', 'replacement', 'valid'], form: 'replacement', ceiling: 1_380_000, baselineInstantiations: 3_045_479 },
-  { name: '100 token bindings', args: ['scripts/check-token-scale.ts', 'bindings', 'valid'], form: 'bindings', ceiling: 1_450_000, baselineInstantiations: 1_461_065 },
+  { name: '100 named additions', args: ['scripts/benchmark-types.ts', '--worker', '100', 'chained', 'valid'], form: 'chained', ceiling: 810_000, baselineInstantiations: 883_806 },
+  { name: '100 named replacements', args: ['scripts/benchmark-types.ts', '--worker', '100', 'replacement', 'valid'], form: 'replacement', ceiling: 1_300_000, baselineInstantiations: 3_045_479 },
+  { name: '100 token bindings', args: ['scripts/check-token-scale.ts', 'bindings', 'valid'], form: 'bindings', ceiling: 1_410_000, baselineInstantiations: 1_461_065 },
 ] as const;
 const requireProjectionReduction = process.env.DI_BAG_REQUIRE_PROJECTION_REDUCTION === '1';
 

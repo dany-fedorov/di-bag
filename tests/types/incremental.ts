@@ -7,7 +7,7 @@ import {
 import type { ProviderGraph } from '../../src/provider';
 import type { Assert, Equal } from './assert';
 import type { IncrementalChecked, Entry, Unsatisfied } from '../../src/types';
-import type { Registration } from '../../src';
+import type { Builder, Registration } from '../../src';
 
 const forward = DiBag.begin().add({ read: ({ value }: { value: number }) => value })
   .add({ value: () => 1 }).end();
@@ -57,3 +57,9 @@ export type CachedTokenBoundaryContracts = [
   Assert<Equal<Incremental<BoundEntry, { read: ReadWider }>, Failure<typeof key>>>,
   Assert<Equal<Incremental<{ key: 'read'; registration: ReadWider }, { [key]: Bound }>, Failure<typeof key>>>,
 ];
+
+// A string index in a manually annotated history also covers numeric keys.
+// Keep the duplicate-key rejection alongside the named-key admission failure.
+declare const broadKeys: Builder<{ key: string; registration: () => number }>;
+type NumericDuplicateParameter = Parameters<typeof broadKeys.add<{ 1: () => number }>>[0];
+type BroadHistoryDuplicate = Assert<Equal<NumericDuplicateParameter, never>>;
