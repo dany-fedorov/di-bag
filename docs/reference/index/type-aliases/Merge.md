@@ -8,7 +8,7 @@
 type Merge<F extends Registrations, N extends Registrations> = Omit<F, keyof N> & N;
 ```
 
-Defined in: [types.ts:30](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L30)
+Defined in: [types.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L33)
 
 Replace overlapping registrations in `F` with registrations from `N`.
 

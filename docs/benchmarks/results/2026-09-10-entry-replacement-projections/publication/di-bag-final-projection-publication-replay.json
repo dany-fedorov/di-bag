@@ -1,0 +1,402 @@
+[
+  {
+    "stage": "baseline",
+    "lane": "classic",
+    "count": 500,
+    "form": "chained",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "6b9e7b5765bdd24a46cf79751eb0bf0e410a7ffae701f79ae313b0edf15747af"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 500,
+    "form": "chained",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "6b9e7b5765bdd24a46cf79751eb0bf0e410a7ffae701f79ae313b0edf15747af"
+  },
+  {
+    "stage": "baseline",
+    "lane": "native",
+    "count": 500,
+    "form": "chained",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "6b9e7b5765bdd24a46cf79751eb0bf0e410a7ffae701f79ae313b0edf15747af"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 500,
+    "form": "chained",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "6b9e7b5765bdd24a46cf79751eb0bf0e410a7ffae701f79ae313b0edf15747af"
+  },
+  {
+    "stage": "baseline",
+    "lane": "classic",
+    "count": 500,
+    "form": "replacement",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "bf78bb6f5b0eb623ccf805228af3a759ca82dea170b25fe4499a591b66808375"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 500,
+    "form": "replacement",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "bf78bb6f5b0eb623ccf805228af3a759ca82dea170b25fe4499a591b66808375"
+  },
+  {
+    "stage": "baseline",
+    "lane": "native",
+    "count": 500,
+    "form": "replacement",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "bf78bb6f5b0eb623ccf805228af3a759ca82dea170b25fe4499a591b66808375"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 500,
+    "form": "replacement",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "bf78bb6f5b0eb623ccf805228af3a759ca82dea170b25fe4499a591b66808375"
+  },
+  {
+    "stage": "baseline",
+    "lane": "classic",
+    "count": 500,
+    "form": "bindings",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "dad13aefe7b63c721e9cea1e57758d8c2ca7607a6fd64e641c02a4d015325730"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 500,
+    "form": "bindings",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "dad13aefe7b63c721e9cea1e57758d8c2ca7607a6fd64e641c02a4d015325730"
+  },
+  {
+    "stage": "baseline",
+    "lane": "native",
+    "count": 500,
+    "form": "bindings",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "dad13aefe7b63c721e9cea1e57758d8c2ca7607a6fd64e641c02a4d015325730"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 500,
+    "form": "bindings",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "dad13aefe7b63c721e9cea1e57758d8c2ca7607a6fd64e641c02a4d015325730"
+  },
+  {
+    "stage": "baseline",
+    "lane": "classic",
+    "count": 500,
+    "form": "modules",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "05732a9a9b1404d3c91ce4585a626b2286e43c323c6ca707a8acce25eed2ba75"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 500,
+    "form": "modules",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "05732a9a9b1404d3c91ce4585a626b2286e43c323c6ca707a8acce25eed2ba75"
+  },
+  {
+    "stage": "baseline",
+    "lane": "native",
+    "count": 500,
+    "form": "modules",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "05732a9a9b1404d3c91ce4585a626b2286e43c323c6ca707a8acce25eed2ba75"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 500,
+    "form": "modules",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "05732a9a9b1404d3c91ce4585a626b2286e43c323c6ca707a8acce25eed2ba75"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "chained",
+    "scenario": "valid",
+    "accepted": false,
+    "boundary": null,
+    "generatedSha256": "271ac373fdde8e636a7a270884b8f93645d521136292318d1cbbc075e089d6e0"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "chained",
+    "scenario": "missing",
+    "accepted": false,
+    "boundary": 3,
+    "generatedSha256": "f4c57224240cd42250d3c16d4338c19c1becc3c9ecc7ccb027b18e0a2d459056"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "chained",
+    "scenario": "wrong-shape",
+    "accepted": false,
+    "boundary": 503,
+    "generatedSha256": "3bc97644306c97a54c1d958a707347eefb01330519c413b974836b4b7e691415"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "chained",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "271ac373fdde8e636a7a270884b8f93645d521136292318d1cbbc075e089d6e0"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "chained",
+    "scenario": "missing",
+    "accepted": true,
+    "boundary": 3,
+    "generatedSha256": "f4c57224240cd42250d3c16d4338c19c1becc3c9ecc7ccb027b18e0a2d459056"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "chained",
+    "scenario": "wrong-shape",
+    "accepted": true,
+    "boundary": 503,
+    "generatedSha256": "3bc97644306c97a54c1d958a707347eefb01330519c413b974836b4b7e691415"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "replacement",
+    "scenario": "valid",
+    "accepted": false,
+    "boundary": null,
+    "generatedSha256": "53b30ecdbf2b74889fb097a26a42f3b5b43710913f7b08c3b686764bb90c1c4c"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "replacement",
+    "scenario": "missing",
+    "accepted": false,
+    "boundary": 3,
+    "generatedSha256": "cb3a3c757ac35787aba544a08eb7c95f33f4e605e53f1739ac54024cfd8f48bd"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "replacement",
+    "scenario": "wrong-shape",
+    "accepted": false,
+    "boundary": 1502,
+    "generatedSha256": "85b61c9fedd84d725bf54a2e65337d2dbdcf29f96383419e23f5db328ff3d186"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "replacement",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "53b30ecdbf2b74889fb097a26a42f3b5b43710913f7b08c3b686764bb90c1c4c"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "replacement",
+    "scenario": "missing",
+    "accepted": true,
+    "boundary": 3,
+    "generatedSha256": "cb3a3c757ac35787aba544a08eb7c95f33f4e605e53f1739ac54024cfd8f48bd"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "replacement",
+    "scenario": "wrong-shape",
+    "accepted": true,
+    "boundary": 1502,
+    "generatedSha256": "85b61c9fedd84d725bf54a2e65337d2dbdcf29f96383419e23f5db328ff3d186"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "bindings",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "a14c4f557e6c0ba7d6585fd2b23a45c53f3c2acf70972e9ee3aae92468ca10c2"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "bindings",
+    "scenario": "missing-final-token",
+    "accepted": true,
+    "boundary": 2004,
+    "generatedSha256": "f61e561b0ee9e084c3655a125153c832fec1f76761eed9125103b6efb76cee34"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "bindings",
+    "scenario": "mismatched-invariant-service",
+    "accepted": true,
+    "boundary": 3003,
+    "generatedSha256": "61616a35cd69a380a62c09b8bbda025bf6920f535d9a0a88a1e9222cf0b92798"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "bindings",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "a14c4f557e6c0ba7d6585fd2b23a45c53f3c2acf70972e9ee3aae92468ca10c2"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "bindings",
+    "scenario": "missing-final-token",
+    "accepted": true,
+    "boundary": 2004,
+    "generatedSha256": "f61e561b0ee9e084c3655a125153c832fec1f76761eed9125103b6efb76cee34"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "bindings",
+    "scenario": "mismatched-invariant-service",
+    "accepted": true,
+    "boundary": 3003,
+    "generatedSha256": "61616a35cd69a380a62c09b8bbda025bf6920f535d9a0a88a1e9222cf0b92798"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "modules",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "a77ff4fe7c8cc8cad3e751b94d977b78ac894a96bba9b2570c53af2413d16953"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "modules",
+    "scenario": "missing-final-token",
+    "accepted": true,
+    "boundary": 3004,
+    "generatedSha256": "85348de85570d48fc71aedcd9fe83718c9933eb36623a8be1b82b001f2403b2c"
+  },
+  {
+    "stage": "candidate",
+    "lane": "classic",
+    "count": 1000,
+    "form": "modules",
+    "scenario": "mismatched-invariant-service",
+    "accepted": true,
+    "boundary": 4003,
+    "generatedSha256": "a8363f2a6a008132227a150eadf0f3c1c05139e422756a18bed36390377f0cb3"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "modules",
+    "scenario": "valid",
+    "accepted": true,
+    "boundary": null,
+    "generatedSha256": "a77ff4fe7c8cc8cad3e751b94d977b78ac894a96bba9b2570c53af2413d16953"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "modules",
+    "scenario": "missing-final-token",
+    "accepted": true,
+    "boundary": 3004,
+    "generatedSha256": "85348de85570d48fc71aedcd9fe83718c9933eb36623a8be1b82b001f2403b2c"
+  },
+  {
+    "stage": "candidate",
+    "lane": "native",
+    "count": 1000,
+    "form": "modules",
+    "scenario": "mismatched-invariant-service",
+    "accepted": true,
+    "boundary": 4003,
+    "generatedSha256": "a8363f2a6a008132227a150eadf0f3c1c05139e422756a18bed36390377f0cb3"
+  }
+]

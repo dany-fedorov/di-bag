@@ -1,0 +1,1 @@
+scope-opened -> acquisition-started -> acquisition-ready -> scope-closing -> cleanup-started -> cleanup-completed -> scope-closed

@@ -14,7 +14,7 @@ type Overrides<F extends Registrations, O extends Registrations> = [
 }>;
 ```
 
-Defined in: [types.ts:160](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L160)
+Defined in: [types.ts:163](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L163)
 
 Admit overrides only for existing keys whose service values remain assignable.
 
