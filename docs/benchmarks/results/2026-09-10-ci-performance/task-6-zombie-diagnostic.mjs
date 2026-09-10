@@ -1,4 +1,4 @@
-import { supervise } from '../../../scripts/native-process.ts';
+import { supervise } from '../../../../scripts/native-process.ts';
 import { readFileSync, writeFileSync } from 'node:fs';
 const delay = new Int32Array(new SharedArrayBuffer(4));
 let observation;

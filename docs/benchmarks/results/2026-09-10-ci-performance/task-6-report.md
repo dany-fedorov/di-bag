@@ -7,7 +7,7 @@ Status: scoped implementation and required verification complete; ready for inde
 - Checkout: `/tmp/di-bag-performance-integration`; branch `fix/persistent-graph-performance`.
 - BASE: `e5e4b927e7b23279397e9fedbf416fa35ae2d13c` (clean dispatch tree including reviewed Task 2 runtime changes).
 - Owned code: `scripts/native-process.ts`, `tests/native-process.test.ts`, `tests/native-package.test.ts` only. No runtime/public-type/compiler-limit/scale-generator/acceptance changes.
-- Evidence lives beside this report. Controller owns plan and ledger.
+- Durable evidence: `docs/benchmarks/results/2026-09-10-ci-performance/`. Local ignored SDD copies are retained for the controller workflow. Controller owns plan and ledger.
 
 ## Diagnosis and preserved failures
 
@@ -21,13 +21,13 @@ command failed: {"argv":["/tmp/di-bag-release-candidate/task3-test-2511/checkout
   ^ this test timed out after 120000ms.
 ```
 
-Same package deadline categories recur in `/tmp/di-bag-merged-main-ci-failure.log`, run 34418728341. Original logs and original `zombie-supervisor-{bun,node}.json` are untouched. Truncated older CI diagnostics do not reveal the exact underlying status-read error; the regression proves a concrete exit-order bug consistent with the observed outcome, not that every historical failure had precisely this cause.
+Same package deadline categories recur in `/tmp/di-bag-merged-main-ci-failure.log`, run 34418728341. Original logs and original `.superpowers/sdd/2026-09-10-performance-completion/zombie-supervisor-{bun,node}.json` are untouched local controller evidence. Truncated older CI diagnostics do not reveal the exact underlying status-read error; the regression proves a concrete exit-order bug consistent with the observed outcome, not that every historical failure had precisely this cause.
 
 `kill(pid, 0)` confirms existence, not execution: a real Linux zombie answers it before JavaScript receives the child's exit event. The tests block JS event processing until a real child reaches State Z, then inject ENOENT/ESRCH at the status-read boundary. Before the fix both return status 0 and correct stdout/stderr but terminationReason monitor.
 
 ## RED/GREEN command ledger
 
-All commands below run in the checkout above; log paths are relative to this report's directory. Actual host process commands use scoped escalation because the sandbox suppresses `execFileSync('node', ['-p', 'process.execPath'])` output.
+Commands below preserve the exact historical invocations from the checkout above, including their original SDD output paths. Each named log is now committed beside this report under the same basename; bare log filenames refer to this durable directory. Actual host process commands use scoped escalation because the sandbox suppresses `execFileSync('node', ['-p', 'process.execPath'])` output.
 
 1. Initial sandbox attempt, exit 1 (environmental failure, not valid RED):
    `bun test tests/native-process.test.ts -t 'supervisor drains and reaps a zombie' > .superpowers/sdd/2026-09-10-performance-completion/task-6-supervisor-red-sandbox.log 2>&1`
@@ -136,4 +136,12 @@ Preserved CI log SHA-256:
 - `/tmp/di-bag-acquisition-ci-failure.log`: `6ca4d680542a5834fbf52679d4750f5f946e22d7788b8965ab2a7d06a511cda1`
 - `/tmp/di-bag-merged-main-ci-failure.log`: `dc1632010588685dac35202735aeab5015e57f2cf5c20a124675c36c0d08e6c2`
 
-This report, all task-6 command logs, and the adapted Node diagnostic are explicitly committed as focused task-owned evidence despite the SDD directory ignore rule. The three code/test files listed above are the only executable project changes. No plan/ledger artifacts or unrelated files are staged. Original controller diagnostics and CI logs remain untouched; exact CI failure excerpts and full-file hashes are preserved above. The Git commit containing this report records the tested source; hashes avoid a self-referential commit field.
+The tested implementation is commit `e2102aac0b97a065218bb4759b130e2f0f1f72ac`. This artifact-only follow-up moves the report, nine complete command logs, and diagnostic into `docs/benchmarks/results/2026-09-10-ci-performance/`; SDD copies remain locally available but are untracked and ignored. Log bytes and the three tested source hashes are unchanged. The durable diagnostic adjusts only its relative import for the new directory depth. No tests were rerun for this location correction. No plan/ledger artifacts or unrelated files are tracked. Original controller diagnostics and CI logs remain untouched; exact CI failure excerpts and full-file hashes are preserved above.
+
+To rerun the relocated standalone diagnostic from the repository root:
+
+```sh
+node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON docs/benchmarks/results/2026-09-10-ci-performance/task-6-zombie-diagnostic.mjs
+```
+
+For other historical commands, redirect new logs to the durable directory above if desired. Existing committed logs describe the original execution, not an execution after relocation.
