@@ -1,3 +1,4 @@
+import { libraryError } from './errors';
 import type { BindingId } from './runtime';
 
 export type AcquisitionId = symbol;
@@ -39,8 +40,12 @@ export class AcquisitionFamily {
       .map(id => this.attempts.get(id))
       .filter((attempt): attempt is AttemptIdentity => !!attempt && (attempt.state === 'creating' || attempt.state === 'pending'));
     const repeated = active.findIndex(attempt => attempt.bindingId === bindingId && attempt.ownerId === ownerId);
-    if (repeated !== -1) throw new Error(`cycle: ${[...active.slice(repeated).map(attempt => attempt.label), label].join(' -> ')}`);
+    if (repeated !== -1) throw libraryError('DI_BAG_CYCLE', `cycle: ${[...active.slice(repeated).map(attempt => attempt.label), label].join(' -> ')}`, { path: Object.freeze([...active.slice(repeated).map(attempt => attempt.label), label]) });
     return ancestry;
+  }
+
+  dependencyPath(from: AttemptIdentity, dependency: string): readonly string[] {
+    return Object.freeze([...from.ancestry.map(id => this.attempts.get(id)?.label).filter((label): label is string => label !== undefined), from.label, dependency]);
   }
 
   retireIncoming(attempt: AttemptIdentity): void {
@@ -58,7 +63,7 @@ export class AcquisitionFamily {
     const path = this.path(to.id, from.id);
     if (path) {
       const labels = [...path, to.id].map(id => this.attempts.get(id)!.label);
-      throw new Error(`cycle: ${labels.join(' -> ')}`);
+      throw libraryError('DI_BAG_CYCLE', `cycle: ${labels.join(' -> ')}`, { path: Object.freeze(labels) });
     }
     from.dependencies.add(to.id);
     const consumers = this.incoming.get(to.id) ?? new Set<AcquisitionId>();

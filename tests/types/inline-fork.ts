@@ -1,14 +1,12 @@
 import { DiBag } from '../../src';
 import type { Assert, Equal } from './assert';
 
-const root = DiBag.begin()
-  .add({
+const root = DiBag.createBuilder().register({
     clock: () => ({ now: () => 42 }),
     service: ({ clock }: { clock: { now(): number } }) => ({
       stamp: () => clock.now(),
     }),
-  })
-  .end();
+  }).build();
 
 const scoped = root.fork(['clock', 'service'], {
   clock: () => ({
@@ -39,8 +37,7 @@ type Service = Assert<
 >;
 type Clock = Assert<Equal<typeof clock, { now(): number }>>;
 
-const nested = scoped
-  .fork(['clock'], {
+const nested = scoped.fork(['clock'], {
     clock() {
       return {
         now() {
@@ -48,6 +45,5 @@ const nested = scoped
         },
       };
     },
-  })
-  .resolve('service');
+  }).resolve('service');
 type Nested = Assert<Equal<typeof nested, typeof service>>;

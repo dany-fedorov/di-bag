@@ -813,8 +813,7 @@ function sourceTreeSha256(root: string): string {
       const path = join(directory, entry.name);
       if (entry.isDirectory()) visit(path);
       else if (entry.isFile() && !entry.isSymbolicLink()) {
-        digest.update(relative(root, path).split(sep).join('/')).update('\0')
-          .update(Uint8Array.from(readFileSync(path))).update('\0');
+        digest.update(relative(root, path).split(sep).join('/')).update('\0').update(Uint8Array.from(readFileSync(path))).update('\0');
       } else throw new Error(`unsupported source tree entry ${relative(root, path)}`);
     }
   };
@@ -872,8 +871,7 @@ function writePlatformMatrix(root: string, rows: readonly PlatformRow[]): { json
 
 export async function runPlatformEvidence(root = platformRoot, outputRoot = root): Promise<PlatformEvidenceResult> {
   const tools = Object.fromEntries(await Promise.all(
-    (['node', 'npm', 'classic6', 'bun', 'deno', 'esbuild', 'playwright', 'chromium'] as const)
-      .map(async name => [name, await verifyTool(root, name)] as const),
+    (['node', 'npm', 'classic6', 'bun', 'deno', 'esbuild', 'playwright', 'chromium'] as const).map(async name => [name, await verifyTool(root, name)] as const),
   )) as Record<PlatformTool, VerifiedTool | { status: 'unavailable'; reason: ToolUnavailableReason }>;
   const git = platformGit();
   const utc = new Date().toISOString();

@@ -1,8 +1,7 @@
 import { DiBag } from '../../src';
 import type { Assert, Equal } from './assert';
 
-const bag = DiBag.begin()
-  .add({
+const bag = DiBag.createBuilder().register({
     clock: () => ({
       now() {
         return 42;
@@ -28,8 +27,7 @@ const bag = DiBag.begin()
         resource.close();
       },
     ),
-  })
-  .end();
+  }).build();
 
 const resource = bag.resolve('resource');
 type Resource = Assert<
@@ -42,14 +40,12 @@ type Resource = Assert<
   >
 >;
 
-const borrowed = bag
-  .fork(['resource'], {
+const borrowed = bag.fork(['resource'], {
     resource: async () => ({
       stamp() {
         return 7;
       },
       close() {},
     }),
-  })
-  .resolve('resource');
+  }).resolve('resource');
 type Borrowed = Assert<Equal<typeof borrowed, typeof resource>>;

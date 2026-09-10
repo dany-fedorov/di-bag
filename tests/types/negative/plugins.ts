@@ -5,32 +5,32 @@ import type { ProviderBase } from '../../../src/provider';
 declare const unknownPlugin: unknown;
 const valid = (value: unknown): value is { run(): number } => typeof value === 'object' && value !== null;
 // diagnostic: not assignable
-DiBag.fromPlugin([], unknownPlugin, { acquisition: 'auto', validate: valid });
-// diagnostic: Property 'acquisition' is missing
+DiBag.fromPlugin([], unknownPlugin, { acquisitionMode: 'auto', validate: valid });
+// diagnostic: Property 'acquisitionMode' is missing
 DiBag.fromPlugin([], unknownPlugin, { validate: valid });
 // diagnostic: not assignable
-DiBag.fromPlugin([], unknownPlugin, { acquisition: 'raw', validate: (value: unknown): boolean => typeof value === 'object' });
+DiBag.fromPlugin([], unknownPlugin, { acquisitionMode: 'raw', validate: (value: unknown): boolean => typeof value === 'object' });
 // diagnostic: not assignable
-DiBag.fromPlugin([], unknownPlugin, { acquisition: 'raw', validate: function(this: { id: number }, value: unknown): value is { run(): number } { return this.id > 0 && typeof value === 'object'; } });
+DiBag.fromPlugin([], unknownPlugin, { acquisitionMode: 'raw', validate: function(this: { id: number }, value: unknown): value is { run(): number } { return this.id > 0 && typeof value === 'object'; } });
 const key = Symbol('number'); const number = DiBag.token(key).of<number>();
 declare const broad: readonly [typeof number, ...typeof number[]];
 // diagnostic: finite tuple
-DiBag.fromPlugin(broad, unknownPlugin, { acquisition: 'raw', validate: valid });
-const requiredPlugin = DiBag.fromPlugin([number], unknownPlugin, { acquisition: 'raw', validate: valid });
-// diagnostic: missing factories
-DiBag.begin().add({ requiredPlugin }).end();
+DiBag.fromPlugin(broad, unknownPlugin, { acquisitionMode: 'raw', validate: valid });
+const requiredPlugin = DiBag.fromPlugin([number], unknownPlugin, { acquisitionMode: 'raw', validate: valid });
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().register({ requiredPlugin }).build();
 const rootPlugin = DiBag.withLifetime(requiredPlugin, 'root');
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.begin().bind(number, () => 1).add({ rootPlugin }).end();
-const raw = DiBag.fromPlugin([], unknownPlugin, { acquisition: 'raw', validate: valid });
-const native = DiBag.fromPlugin([], unknownPlugin, { acquisition: 'native', validate: valid });
+DiBag.createBuilder().register(number, () => 1).register({ rootPlugin }).build();
+const raw = DiBag.fromPlugin([], unknownPlugin, { acquisitionMode: 'raw', validate: valid });
+const native = DiBag.fromPlugin([], unknownPlugin, { acquisitionMode: 'nativePromise', validate: valid });
 // diagnostic: No overload matches
 DiBag.withDisposal(raw, (value: Promise<{ run(): number }>) => { void value; });
 // diagnostic: No overload matches
 DiBag.withDisposal(native, (value: Promise<{ run(): number }>) => { void value; });
-const privateFeature = DiBag.module().bind(number, () => 1).add({ privatePlugin: requiredPlugin }).exports(['privatePlugin']);
+const privateFeature = DiBag.createModuleBuilder().register(number, () => 1).register({ privatePlugin: requiredPlugin }).buildModule(['privatePlugin']);
 // diagnostic: not assignable
-DiBag.begin().install(privateFeature).end().resolve(number);
+DiBag.createBuilder().installModule(privateFeature).build().resolve(number);
 declare const erased: ProviderBase;
 declare const erasedOutput: ProviderOutput<typeof erased>;
 // diagnostic: not assignable

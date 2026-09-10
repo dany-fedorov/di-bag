@@ -5,9 +5,9 @@
 # Variable: DiBag
 
 ```ts
-const DiBag: Facade;
+const DiBag: DiBagApi;
 ```
 
-Defined in: [di-bag.ts:460](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L460)
+Defined in: [di-bag.ts:451](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L451)
 
 The portable, immutable DI Bag facade. Configure `auto` acquisition or use explicit modes.

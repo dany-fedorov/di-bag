@@ -5,9 +5,9 @@
 # Type Alias: Registration
 
 ```ts
-type Registration = Factory | Owned<Factory> | ProviderBase;
+type Registration = Factory | FactoryWithDisposal<Factory> | ProviderBase;
 ```
 
-Defined in: [registration.ts:19](https://github.com/dany-fedorov/di-bag/blob/main/src/registration.ts#L19)
+Defined in: [registration.ts:21](https://github.com/dany-fedorov/di-bag/blob/main/src/registration.ts#L21)
 
 A factory, disposable factory, or immutable provider accepted by builders and decorators.

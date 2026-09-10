@@ -1,7 +1,4 @@
 import { DiBag } from '../../../src/di-bag';
-// diagnostic: existing tokens
+// diagnostic: existing names or typed tokens
 const overrides = { clock: () => 1, extra: () => 2 };
-DiBag.begin()
-  .add({ clock: () => 1 })
-  .end()
-  .fork(['clock', 'extra'], overrides);
+DiBag.createBuilder().register({ clock: () => 1 }).build().fork(['clock', 'extra'], overrides);

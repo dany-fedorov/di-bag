@@ -1,9 +1,9 @@
 import type {
-  ModuleProvides,
-  ProviderAcquired,
+  ModuleExportedServices,
+  ProviderAcquiredValue,
   ProviderAcquisitionMetadata,
   ProviderOutput,
-  ProviderTokenNeeds,
+  ProviderRequiredTokens,
 } from '../../src';
 import {
   Client,
@@ -32,10 +32,10 @@ export type FinalAdversarialConsumerContracts = [
   Assert<Equal<typeof selectedPlugin, { plugin: true; port: number; selected: true }>>,
   Assert<Equal<typeof sharedAnnotated, { annotated: true; port: number }>>,
   Assert<Equal<ProviderOutput<typeof client>, Client>>,
-  Assert<Equal<ProviderTokenNeeds<typeof client>, typeof port>>,
-  Assert<Equal<ProviderAcquired<typeof plugin>, { readonly plugin: true; readonly port: number }>>,
+  Assert<Equal<ProviderRequiredTokens<typeof client>, typeof port>>,
+  Assert<Equal<ProviderAcquiredValue<typeof plugin>, { readonly plugin: true; readonly port: number }>>,
   Assert<Equal<ProviderOutput<typeof annotated>, { annotated: true; port: number }>>,
-  Assert<Equal<ProviderTokenNeeds<typeof annotated>, typeof port>>,
+  Assert<Equal<ProviderRequiredTokens<typeof annotated>, typeof port>>,
   Assert<Equal<ProviderAcquisitionMetadata<typeof annotated>, readonly [Readonly<{ origin: 'final-adversarial' }>]>>,
-  Assert<Equal<ModuleProvides<typeof finalAdversarialFeature>['clientAlias'], Client>>,
+  Assert<Equal<ModuleExportedServices<typeof finalAdversarialFeature>['clientAlias'], Client>>,
 ];

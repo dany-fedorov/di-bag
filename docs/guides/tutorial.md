@@ -29,16 +29,16 @@ use each operation and what it means for the graph.
 
 ## Compose services
 
-Start with `DiBag.begin()`, add named factories, and finish the graph with
-`.end()`. A factory's object parameter declares its dependencies.
+Start with `DiBag.createBuilder()`, add named factories, and finish the graph with
+`.build()`. A factory's object parameter declares its dependencies.
 
 **Standalone example:**
 
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const app = DiBag.begin()
-  .add({
+const app = DiBag.createBuilder()
+  .register({
     config: () => ({ greeting: 'Hello' }),
     greeter: ({ config }: { config: { greeting: string } }) => ({
       greet(name: string) {
@@ -46,14 +46,14 @@ const app = DiBag.begin()
       },
     }),
   })
-  .end();
+  .build();
 
 console.log(app.resolve('greeter').greet('Ada')); // Hello, Ada!
 await app.close();
 ```
 
-`begin()` returns an immutable `Builder`. `add()` returns another builder with
-new named registrations, and `end()` checks the complete graph and returns a
+`createBuilder()` returns an immutable `BagBuilder`. `register()` returns another builder with
+new named registrations, and `build()` checks the complete graph and returns a
 `Bag`. Keep the returned builder or chain the call. Registration order does not
 matter, so a dependency may be added after its consumer. Duplicate names fail;
 use `replace()` when changing an existing registration is intentional.
@@ -61,8 +61,8 @@ use `replace()` when changing an existing registration is intentional.
 **Continuation of the preceding composition example:**
 
 ```ts
-const initial = DiBag.begin().add({ clock: () => 42 });
-const changed = initial.replace('clock', () => 'ready').end();
+const initial = DiBag.createBuilder().register({ clock: () => 42 });
+const changed = initial.replace('clock', () => 'ready').build();
 
 changed.resolve('clock'); // inferred as string
 ```
@@ -70,7 +70,7 @@ changed.resolve('clock'); // inferred as string
 `replace(nameOrToken, registration)` checks the replacement against known
 consumers and, for a token, against its service contract. It may change a named
 service's type only while every surviving consumer remains valid. Missing forward
-dependencies remain allowed until `end()`.
+dependencies remain allowed until `build()`.
 
 Factories are called without a `this` receiver. `resolve(nameOrToken)` lazily
 creates the selected service and its dependencies. Scoped services are cached,
@@ -78,7 +78,7 @@ including `undefined` and an in-flight Promise, so repeated resolutions in one
 bag return the same value. A factory is still borrowed by default even if its
 result has a method called `close` or `dispose`.
 
-`DiBag.factory(create, { acquisition })` describes the output stage explicitly.
+`DiBag.fromFactory(create, { acquisitionMode })` describes the output stage explicitly.
 It is useful for deliberate raw Promise-like values and is required by one of the
 portable-runtime strategies described under [portable mode](#portable-mode). It
 does not run the factory or transfer cleanup ownership.
@@ -93,14 +93,13 @@ dependency type and decides where to await it.
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const app = DiBag.begin()
-  .add({
+const app = DiBag.createBuilder()
+  .register({
     number: async () => 21,
-    answer: async ({ number }: { number: Promise<number> }) =>
-      (await number) * 2,
+    answer: async ({ number }: { number: Promise<number> }) => (await number) * 2,
     synchronous: () => 'ready',
   })
-  .end();
+  .build();
 
 const answer: Promise<number> = app.resolve('answer');
 console.log(await answer); // 42
@@ -120,7 +119,7 @@ they do not redirect their dependency edges to a later retry.
 
 ### Start selected services and cancel cooperatively
 
-Use `builder.start(keys, options?)` when selected services must be ready before
+Use `builder.buildAndStart(keys, options?)` when selected services must be ready before
 the application accepts work. It creates a fresh bag, eagerly acquires only the
 selection and dependencies, and leaves everything else lazy.
 
@@ -129,20 +128,21 @@ selection and dependencies, and leaves everything else lazy.
 ```ts
 import { DiBag, DiBagStartupCancelledError } from 'di-bag/node';
 
-const builder = DiBag.begin().add({
+const builder = DiBag.createBuilder().register({
   url: () => 'https://example.com/settings.json',
-  settings: DiBag.withContext(
+  settings: DiBag.fromFactory(
     async ({ url }: { url: string }, { signal }) => {
       const response = await fetch(url, { signal });
       return response.text();
     },
+    { context: 'acquisition' },
   ),
 });
 
 try {
-  const app = await builder.start(['settings'], {
+  const app = await builder.buildAndStart(['settings'], {
     timeoutMs: 5_000,
-    concurrency: 'parallel',
+    startupOrder: 'parallel',
   });
   try {
     console.log(await app.resolve('settings'));
@@ -151,21 +151,21 @@ try {
   }
 } catch (error) {
   if (error instanceof DiBagStartupCancelledError) {
-    await error.cleanup;
+    await error.cleanupPromise;
   }
   throw error;
 }
 ```
 
 The selection may contain existing names and typed tokens. Parallel startup is
-the default; `concurrency: 'sequential'` waits in tuple order and does not start
+the default; `startupOrder: 'sequential'` waits in tuple order and does not start
 later selections after a failure. An empty selection is valid. Options also
 accept a genuine external `AbortSignal` and a finite positive `timeoutMs`.
 Invalid options and an already-aborted signal start no factories. Once startup
 succeeds, the timer and external listener are removed; a later abort of that
 external signal does not close the bag.
 
-`DiBag.withContext(factory, options?)` passes a frozen acquisition context as the
+`DiBag.fromFactory(factory, { context: 'acquisition' })` passes a frozen acquisition context as the
 factory's second argument. Its `signal` belongs to the bag that owns the attempt.
 Root services use the family root signal even when a child first asks for them.
 Closing a scope aborts its signal before draining pending work. Cancellation is
@@ -175,7 +175,7 @@ Startup waits according to the selected service's final acquisition mode. A raw
 Promise or thenable is already a ready value; a native Promise waits for
 settlement without changing its identity. On acquisition failure, startup closes
 the new bag and rejects with `DiBagStartupError`. Abort or timeout rejects promptly
-with `DiBagStartupCancelledError`; its `cleanup` Promise lets the application wait
+with `DiBagStartupCancelledError`; its `cleanupPromise` Promise lets the application wait
 for eventual shutdown, including resources acquired after cancellation.
 
 ## Attach cleanup with `withDisposal`
@@ -188,14 +188,14 @@ successfully acquired by a registration.
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const app = DiBag.begin()
-  .add({
+const app = DiBag.createBuilder()
+  .register({
     cache: DiBag.withDisposal(
       () => new Map<string, string>(),
-      cache => cache.clear(),
+      (cache) => cache.clear(),
     ),
   })
-  .end();
+  .build();
 
 try {
   app.resolve('cache').set('answer', '42');
@@ -232,13 +232,13 @@ resource's `close` method are application values.
 
 ```ts
 const rawOwned = DiBag.withDisposal(
-  DiBag.factory(() => pendingPromise, { acquisition: 'raw' }),
-  promise => releasePromiseHandle(promise),
+  DiBag.fromFactory(() => pendingPromise, { acquisitionMode: 'raw' }),
+  (promise) => releasePromiseHandle(promise),
 );
 
 const fulfilledOwned = DiBag.withDisposal(
-  DiBag.factory(() => pendingPromise, { acquisition: 'native' }),
-  resource => resource.close(),
+  DiBag.fromFactory(() => pendingPromise, { acquisitionMode: 'nativePromise' }),
+  (resource) => resource.close(),
 );
 ```
 
@@ -248,16 +248,16 @@ must release anything it acquires before it successfully returns an owned value.
 
 ## Errors and recovery
 
-Factory and projection failures keep their original identity. The four DI Bag
-error classes cover cleanup, startup, and plugin boundaries; invalid API inputs
-may still throw ordinary `Error` or `TypeError`.
+Factory and projection failures keep their original identity. DI Bag errors expose a stable `code` and frozen `details` for recovery and
+telemetry. Cleanup, startup, and plugin failures also have specialized classes.
+Application exceptions keep their identity and are never relabeled as library errors.
 
 | Error | Recovery information |
 | --- | --- |
 | `DiBagCleanupError` | `close()` attempted all finalizers. `errors` holds their original errors, while `failures` adds `acquisitionId`, `bindingId`, `label`, and `error`. |
 | `DiBagStartupError` | Startup acquisition failed and rollback finished. Read `cause`, `cleanupFailures`, and optional `cleanupError`. |
-| `DiBagStartupCancelledError` | Startup was aborted or timed out. Read `reason`, `cause`, and await `cleanup` if shutdown completion matters. |
-| `DiBagPluginError` | A plugin descriptor or output failed validation. `phase` is `'descriptor'` or `'output'`, and `reason` explains the rejection. |
+| `DiBagStartupCancelledError` | Startup was aborted or timed out. Read `reason`, `cause`, and await `cleanupPromise` if shutdown completion matters. |
+| `DiBagPluginValidationError` | A plugin descriptor or output failed validation. `phase` is `'descriptor'` or `'output'`, and `reason` explains the rejection. |
 
 **Continuation of the cache ownership example:**
 
@@ -293,22 +293,24 @@ family-root services according to their lifetime.
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const root = DiBag.begin().add({
-  requestId: () => crypto.randomUUID(),
-}).end();
+const root = DiBag.createBuilder()
+  .register({
+    requestId: () => crypto.randomUUID(),
+  })
+  .build();
 
-const child = root.scope();
+const child = root.createScope();
 root.resolve('requestId');
 child.resolve('requestId'); // a different value, cached by child
 
 await root.close(); // closes the live child first
 ```
 
-There are three `scope` forms:
+There are three `createScope` forms:
 
-- `scope()` creates a tracked child with the same graph.
-- `scope({ share: keys })` also borrows selected parent acquisitions.
-- `scope(keys, overrides, { share: otherKeys }?)` replaces selected bindings in
+- `createScope()` creates a tracked child with the same graph.
+- `createScope({ share: keys })` also borrows selected parent acquisitions.
+- `createScope(keys, overrides, { share: otherKeys }?)` replaces selected bindings in
   the child and may borrow a disjoint selection from the parent.
 
 **Standalone example:**
@@ -316,19 +318,24 @@ There are three `scope` forms:
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const parent = DiBag.begin().add({
-  config: () => ({ region: 'eu' }),
-  client: ({ config }: { config: { region: string } }) =>
-    ({ region: config.region }),
-}).end();
+const parent = DiBag.createBuilder()
+  .register({
+    config: () => ({ region: 'eu' }),
+    client: ({ config }: { config: { region: string } }) => ({ region: config.region }),
+  })
+  .build();
 
-const child = parent.scope(['config'], {
-  config: () => ({ region: 'us' }),
-}, { share: ['client'] });
+const child = parent.createScope(
+  ['config'],
+  {
+    config: () => ({ region: 'us' }),
+  },
+  { share: ['client'] },
+);
 
 child.resolve('config').region; // us
 child.resolve('client') === parent.resolve('client'); // true; client keeps eu
-const grandchild = child.scope({ share: ['client'] });
+const grandchild = child.createScope({ share: ['client'] });
 await parent.close();
 ```
 
@@ -364,10 +371,12 @@ shutdown. `fork()` keeps the graph and creates all instances afresh.
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const app = DiBag.begin().add({
-  clock: () => ({ now: () => 42 }),
-  stamp: ({ clock }: { clock: { now(): number } }) => clock.now(),
-}).end();
+const app = DiBag.createBuilder()
+  .register({
+    clock: () => ({ now: () => 42 }),
+    stamp: ({ clock }: { clock: { now(): number } }) => clock.now(),
+  })
+  .build();
 
 const testApp = app.fork(['clock'], {
   clock: () => ({ now: () => 7 }),
@@ -398,19 +407,13 @@ conceptual excerpt; `scope`, `openCollector`, and the root services are applicat
 values defined in that example:
 
 ```ts
-const batch = root.fork(
-  ['source', 'clock', 'replayBuffer', 'stores', 'broadcast'],
-  {
-    source: () => root.resolve('source'),
-    clock: () => root.resolve('clock'),
-    replayBuffer: () => root.resolve('replayBuffer'),
-    stores: () => scope.stores,
-    broadcast: DiBag.withDisposal(
-      openCollector,
-      collector => collector.close(),
-    ),
-  },
-);
+const batch = root.fork(['source', 'clock', 'replayBuffer', 'stores', 'broadcast'], {
+  source: () => root.resolve('source'),
+  clock: () => root.resolve('clock'),
+  replayBuffer: () => root.resolve('replayBuffer'),
+  stores: () => scope.stores,
+  broadcast: DiBag.withDisposal(openCollector, (collector) => collector.close()),
+});
 ```
 
 Borrowed values use ordinary factories; the batch owns only its collector. The
@@ -432,13 +435,15 @@ every read.
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const root = DiBag.begin().add({
-  config: DiBag.withLifetime(() => ({ region: 'eu' }), 'root'),
-  request: () => ({ id: crypto.randomUUID() }),
-  nonce: DiBag.withLifetime(() => ({ value: Math.random() }), 'transient'),
-}).end();
+const root = DiBag.createBuilder()
+  .register({
+    config: DiBag.withLifetime(() => ({ region: 'eu' }), 'root'),
+    request: () => ({ id: crypto.randomUUID() }),
+    nonce: DiBag.withLifetime(() => ({ value: Math.random() }), 'transient'),
+  })
+  .build();
 
-const child = root.scope();
+const child = root.createScope();
 child.resolve('config') === root.resolve('config'); // true
 child.resolve('request') === child.resolve('request'); // true
 child.resolve('nonce') === child.resolve('nonce'); // false
@@ -452,7 +457,7 @@ that child. Scoped and transient attempts belong to the resolving scope or to th
 owner of the acquisition that requests them. A fork starts a new root family.
 
 A root provider cannot depend on a scoped provider by default because that would
-capture one scope's value. Use `{ captureScoped: true }` only for a deliberate
+capture one scope's value. Use `{ allowScopedDependencies: true }` only for a deliberate
 root-context capture:
 
 **Standalone example:**
@@ -460,15 +465,18 @@ root-context capture:
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const app = DiBag.begin().add({
-  rootContext: () => ({ region: 'eu' }),
-  client: DiBag.withLifetime(
-    ({ rootContext }: { rootContext: { region: string } }) =>
-      ({ region: rootContext.region }),
-    'root',
-    { captureScoped: true },
-  ),
-}).end();
+const app = DiBag.createBuilder()
+  .register({
+    rootContext: () => ({ region: 'eu' }),
+    client: DiBag.withLifetime(
+      ({ rootContext }: { rootContext: { region: string } }) => ({
+        region: rootContext.region,
+      }),
+      'root',
+      { allowScopedDependencies: true },
+    ),
+  })
+  .build();
 ```
 
 Capture always builds through the root context; it does not borrow a child-owned
@@ -480,17 +488,20 @@ recheck captive dependencies.
 ## Reuse named modules
 
 Modules group a feature's private services and publish only the entry points an
-application needs. `DiBag.module()` returns an immutable `ModuleBuilder`.
+application needs. `DiBag.createModuleBuilder()` returns an immutable `ModuleBuilder`.
 
 **Standalone example:**
 
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const reports = DiBag.module()
-  .add({
+const reports = DiBag.createModuleBuilder()
+  .register({
     connection: () => ({ open: true }),
-    service: ({ connection, logger }: {
+    service: ({
+      connection,
+      logger,
+    }: {
       connection: { open: boolean };
       logger: { log(message: string): void };
     }) => ({
@@ -500,30 +511,30 @@ const reports = DiBag.module()
       },
     }),
   })
-  .exports(['service']);
+  .buildModule(['service']);
 
-const app = DiBag.begin()
-  .install(reports)
-  .add({ logger: () => ({ log: console.log }) })
-  .end();
+const app = DiBag.createBuilder()
+  .installModule(reports)
+  .register({ logger: () => ({ log: console.log }) })
+  .build();
 
 app.resolve('service').read();
 await app.close();
 ```
 
-`ModuleBuilder.add`, `bind`, `replace`, `alias`, and `contribute` have the same
-roles as their application-builder counterparts. `exports(keys)` seals the
+`ModuleBuilder.register`, `replace`, `alias`, and `contribute` have the same
+roles as their application-builder counterparts. `buildModule(keys)` seals the
 module and chooses its public string names and typed tokens. An empty export
 tuple is valid; contributions are still installed. A module builder cannot
 install, resolve, start, or close anything. The application builder's
-`install(module)` gives module acquisitions an owning bag.
+`installModule(module)` gives module acquisitions an owning bag.
 
 Private providers keep their external requirements, including requirements from
 providers that are not currently reachable from an export. The host may satisfy
-them later with `add`, another installation, or a forward registration before
-`end()`. Each installation gets fresh private binding identities and ownership.
+them later with `register`, another installation, or a forward registration before
+`build()`. Each installation gets fresh private binding identities and ownership.
 
-`module.rename(oldName, newName)` returns a new export view. It changes a public
+`module.renameExport(oldName, newName)` returns a new export view. It changes a public
 string lookup name without changing the name used inside factory dependency
 parameters. Typed-token exports retain their symbol identity and cannot be
 renamed. Renaming every string export lets an application install the same module
@@ -532,14 +543,14 @@ twice under distinct public names.
 **Continuation of the preceding module example:**
 
 ```ts
-const eastReports = reports.rename('service', 'eastReports');
-const westReports = reports.rename('service', 'westReports');
+const eastReports = reports.renameExport('service', 'eastReports');
+const westReports = reports.renameExport('service', 'westReports');
 
-const regionalApp = DiBag.begin()
-  .install(eastReports)
-  .install(westReports)
-  .add({ logger: () => ({ log: console.log }) })
-  .end();
+const regionalApp = DiBag.createBuilder()
+  .installModule(eastReports)
+  .installModule(westReports)
+  .register({ logger: () => ({ log: console.log }) })
+  .build();
 ```
 
 Host `replace` and selected bag overrides are visible to consumers inside the
@@ -564,12 +575,12 @@ import { DiBag } from 'di-bag/node';
 const clockKey = Symbol('clock');
 const clock = DiBag.token(clockKey).of<{ now(): number }>();
 
-const stamp = DiBag.fromTokens([clock], selectedClock => selectedClock.now());
+const stamp = DiBag.fromFunction([clock], (selectedClock) => selectedClock.now());
 
-const app = DiBag.begin()
-  .bind(clock, () => ({ now: () => 42 }))
-  .add({ stamp })
-  .end();
+const app = DiBag.createBuilder()
+  .register(clock, () => ({ now: () => 42 }))
+  .register({ stamp })
+  .build();
 
 app.resolve(clock).now(); // 42
 app.resolve('stamp'); // 42
@@ -583,11 +594,11 @@ fabricated shapes are rejected. Keep both the symbol and token canonical. Do not
 pass a temporary inline `Symbol()` call to `token`; it cannot establish the stable
 unique-symbol identity required by type admission.
 
-`bind(token, registration)` adds a singular service and verifies that the
+`register(token, registration)` adds a singular service and verifies that the
 provider output satisfies the token's service type. The same token can identify
 contributions as a separate channel, but one channel does not satisfy the other.
 
-`DiBag.fromTokens(dependencies, callback, options?)` resolves a tuple of tokens
+`DiBag.fromFunction(dependencies, callback, options?)` resolves a tuple of tokens
 and dependency references and calls the callback with values in tuple order. The
 tuple is captured when the provider is created, callbacks run without a receiver,
 and no work happens before resolution. The optional acquisition option describes
@@ -605,7 +616,9 @@ import { DiBag } from 'di-bag/node';
 
 class Client {
   constructor(private readonly port: number) {}
-  address() { return `localhost:${this.port}`; }
+  address() {
+    return `localhost:${this.port}`;
+  }
 }
 
 function endpoint(client: Client, path: string) {
@@ -619,12 +632,12 @@ const port = DiBag.token(portKey).of<number>();
 const client = DiBag.token(clientKey).of<Client>();
 const path = DiBag.token(pathKey).of<string>();
 
-const app = DiBag.begin()
-  .bind(port, () => 8080)
-  .bind(client, DiBag.fromClass([port], Client))
-  .bind(path, () => 'health')
-  .add({ endpoint: DiBag.fromFunction([client, path], endpoint) })
-  .end();
+const app = DiBag.createBuilder()
+  .register(port, () => 8080)
+  .register(client, DiBag.fromClass([port], Client))
+  .register(path, () => 'health')
+  .register({ endpoint: DiBag.fromFunction([client, path], endpoint) })
+  .build();
 
 console.log(app.resolve('endpoint')); // http://localhost:8080/health
 await app.close();
@@ -636,7 +649,7 @@ Their tuples accept tokens plus `optional`, `lazy`, and `all` references. Argume
 and returned Promise identity are preserved. Bind a method first if it needs its
 receiver, for example `settings.format.bind(settings)`.
 
-The optional `{ acquisition: 'auto' | 'raw' | 'native' }` selects the adapter's
+The optional `{ acquisitionMode: 'auto' | 'raw' | 'nativePromise' }` selects the adapter's
 output stage. A class with a `close` method remains borrowed until explicitly
 wrapped with `withDisposal`. [`examples/composition.ts`](../../examples/composition.ts)
 combines tokens, classes, functions, references, and aliases.
@@ -644,7 +657,7 @@ combines tokens, classes, functions, references, and aliases.
 ## Declare optional and lazy dependencies
 
 Dependency references work only inside the positional dependency tuples accepted
-by `fromTokens`, `fromFunction`, `fromClass`, and `fromPlugin`.
+by `fromFunction`, `fromClass`, and `fromPlugin`.
 
 **Standalone example:**
 
@@ -661,14 +674,16 @@ class Reporter {
     private readonly getPort: () => number,
     private readonly host: string | undefined,
   ) {}
-  address() { return `${this.host ?? 'localhost'}:${this.getPort()}`; }
+  address() {
+    return `${this.host ?? 'localhost'}:${this.getPort()}`;
+  }
 }
 
-const reporter = DiBag.fromClass(
-  [DiBag.lazy(port), DiBag.optional(host)],
-  Reporter,
-);
-const app = DiBag.begin().bind(port, () => 8080).add({ reporter }).end();
+const reporter = DiBag.fromClass([DiBag.lazy(port), DiBag.optional(host)], Reporter);
+const app = DiBag.createBuilder()
+  .register(port, () => 8080)
+  .register({ reporter })
+  .build();
 
 app.resolve('reporter').address(); // localhost:8080
 await app.close();
@@ -703,11 +718,11 @@ import { DiBag } from 'di-bag/node';
 const clientKey = Symbol('client');
 const client = DiBag.token(clientKey).of<{ port: number }>();
 
-const app = DiBag.begin()
-  .add({ service: () => ({ port: 8080 }) })
+const app = DiBag.createBuilder()
+  .register({ service: () => ({ port: 8080 }) })
   .alias('primary', 'service')
   .alias(client, 'primary')
-  .end();
+  .build();
 
 app.resolve(client) === app.resolve('service'); // true
 await app.close();
@@ -725,7 +740,7 @@ that destination. A shared alias borrows the parent's target and context even if
 the child overrides that target. Transient targets cannot be shared through an
 alias, and root captive checks follow alias chains.
 
-`inspect(alias).alias` reports its direct target, while acquisition snapshots
+`inspect(alias).aliasTarget` reports its direct target, while acquisition snapshots
 come from the canonical service. Use an ordinary provider when the new lookup
 must transform a value or add separate ownership.
 
@@ -743,24 +758,28 @@ type Step = (text: string) => string;
 const stepKey = Symbol('pipeline step');
 const step = DiBag.token(stepKey).of<Step>();
 
-const prefixFeature = DiBag.module()
-  .add({ prefix: () => 'Hello, ' })
-  .contribute(step, ({ prefix }: { prefix: string }): Step =>
-    text => prefix + text)
-  .exports([]);
+const prefixFeature = DiBag.createModuleBuilder()
+  .register({ prefix: () => 'Hello, ' })
+  .contribute(
+    step,
+    ({ prefix }: { prefix: string }): Step =>
+      (text) =>
+        prefix + text,
+  )
+  .buildModule([]);
 
-const app = DiBag.begin()
-  .contribute(step, (): Step => text => text.trim())
-  .install(prefixFeature)
-  .contribute(step, (): Step => text => `${text}!`)
-  .add({
-    pipeline: DiBag.fromFunction([DiBag.all(step)], operations =>
-      (text: string) => operations.reduce(
-        (value, operation) => operation(value),
-        text,
-      )),
+const app = DiBag.createBuilder()
+  .contribute(step, (): Step => (text) => text.trim())
+  .installModule(prefixFeature)
+  .contribute(step, (): Step => (text) => `${text}!`)
+  .register({
+    pipeline: DiBag.fromFunction(
+      [DiBag.all(step)],
+      (operations) => (text: string) =>
+        operations.reduce((value, operation) => operation(value), text),
+    ),
   })
-  .end();
+  .build();
 
 app.resolve('pipeline')('  DI  '); // Hello, DI!
 app.resolveAll(step); // readonly Step[]
@@ -774,14 +793,14 @@ mutability. An empty collection is valid. Repeated providers or module installs
 create distinct contribution bindings; there is no deduplication.
 
 `all(token)` supplies the collection to a positional adapter and does not require
-a singular binding. Singular `bind` and collection `contribute` remain separate
+a singular binding. Singular `register` and collection `contribute` remain separate
 lookup channels. Each contribution keeps its own dependencies, lifetime,
 acquisition mode, attempt, and cleanup ownership. Collection reads do not await
 items or create an aggregate owner. A partial failure propagates the original
 error while accepted items remain owned until normal shutdown; a retry can reuse
 them.
 
-A module contribution is installed even from a module with `exports([])` and may
+A module contribution is installed even from a module with `buildModule([])` and may
 use private helpers. `inspectAll(token)` returns ordered frozen inspection
 snapshots without acquiring the items. To share a computed collection with a
 child, share an ordinary aggregate provider such as `pipeline`; direct child
@@ -789,33 +808,34 @@ collection reads follow the child's graph and lifetime routing.
 
 ## Project services explicitly
 
-Use `mapSync` when a projection must receive the exact source value immediately.
-Use `mapAsync` when it must await the source and its projector result.
+Use `transformService` with `mode: 'direct'` to pass the exact source value to
+the transformation, or `mode: 'awaited'` to await the source and adopt the result
+into a native Promise.
 
 **Conceptual example:** `openConnection` and `makeClient` are application
 functions, and both returned objects provide the shown `close` method.
 
 ```ts
-const connection = DiBag.withDisposal(
-  openConnection,
-  value => value.close(),
-);
+const connection = DiBag.withDisposal(openConnection, (value) => value.close());
 const client = DiBag.withDisposal(
-  DiBag.mapAsync(connection, value => makeClient(value)),
-  value => value.close(),
+  DiBag.transformService(connection, {
+    mode: 'awaited',
+    transform: (value) => makeClient(value),
+  }),
+  (value) => value.close(),
 );
 
-const app = DiBag.begin().add({ client }).end();
+const app = DiBag.createBuilder().register({ client }).build();
 const readyClient = await app.resolve('client');
 await app.close(); // client, then its source connection
 ```
 
-`mapSync(registration, project, options?)` passes the source exactly as exposed.
+`transformService(registration, { mode: 'direct', transform, acquisitionMode? })` passes the source exactly as exposed.
 If that value is a Promise, the projector receives the Promise with its identity
 unchanged. The projector's exact return value is exposed and its output stage may
-select `auto`, `raw`, or `native` acquisition.
+select `auto`, `raw`, or `nativePromise` acquisition.
 
-`mapAsync(registration, project)` awaits the source and projector result, always
+`transformService(registration, { mode: 'awaited', transform })` awaits the source and projector result, always
 exposing a native `Promise<Awaited<Result>>`. Both helpers call the source once
 per attempt and retain dependencies and static metadata. Mapping alone adds no
 ownership. Projectors run without a receiver.
@@ -836,18 +856,19 @@ that description with a copied view of current acquisition attempts.
 import { DiBag } from 'di-bag/node';
 
 const service = DiBag.withMetadata(
-  ({ clock }: { clock: { now(): number } }) =>
-    ({ read: () => clock.now() }),
-  { 'app:owner': { team: 'platform' } },
+  ({ clock }: { clock: { now(): number } }) => ({ read: () => clock.now() }),
+  { static: { 'app:owner': { team: 'platform' } } },
 );
-const feature = DiBag.module().add({ service }).exports(['service']);
-const app = DiBag.begin()
-  .install(feature.rename('service', 'client'))
-  .add({ clock: () => ({ now: () => 42 }) })
-  .end();
+const feature = DiBag.createModuleBuilder()
+  .register({ service })
+  .buildModule(['service']);
+const app = DiBag.createBuilder()
+  .installModule(feature.renameExport('service', 'client'))
+  .register({ clock: () => ({ now: () => 42 }) })
+  .build();
 
 const before = app.inspect('client'); // no factory runs
-before.metadata['app:owner'].team; // platform
+before.registrationMetadata['app:owner'].team; // platform
 before.acquisitions; // []
 app.resolve('client').read(); // 42
 app.inspect('client').acquisitions[0]?.state; // ready
@@ -855,17 +876,17 @@ await app.close();
 app.inspect('client').acquisitions; // []
 ```
 
-`withMetadata(registration, metadata)` preserves the provider's output,
+`withMetadata(registration, { static: metadata })` preserves the provider's output,
 dependencies, acquisition mode, and ownership. It copies and freezes all own
 string and symbol entries, including non-enumerable keys; payload objects keep
 their identity. Repeated metadata wrappers may add keys but cannot collide.
 
-Use `withAcquisitionMetadata(registration, describe)` when the metadata is known
+Use `withMetadata(registration, { dynamic: { mode: 'direct', describe } })` when the metadata is known
 only after a value is produced. `describe` synchronously receives the exact
 source output, including a raw or native Promise itself, and its record becomes
 the next typed acquisition frame. The provider still exposes the exact source
 value with the same acquisition mode. Use
-`withAcquisitionMetadataAsync(registration, describe)` to await the source,
+`withMetadata(registration, { dynamic: { mode: 'awaited', describe } })` to await the source,
 describe its fulfilled value, and expose a native
 `Promise<Awaited<SourceOutput>>`. Both callbacks must synchronously return a
 plain object record with the current realm's `Object.prototype` or `null` as its
@@ -873,8 +894,8 @@ prototype. Arrays, functions, class instances, dates, Promises, and thenable
 records are rejected.
 
 `inspect(nameOrToken)` returns a frozen snapshot with `bindingId`, `label`,
-`metadata`, and `acquisitions`. Each acquisition has `acquisitionId`, `state`, and
-an ordered tuple of acquisition metadata frames. It contains no service values
+`registrationMetadata`, and `acquisitions`. Each acquisition has `acquisitionId`, `state`, and
+an ordered `acquisitionMetadata` tuple of presence records. It contains no service values
 or live mutable runtime collections. A snapshot does not update after it is
 returned. Failed attempts are evicted rather than retained as history. After
 close, static metadata remains available and acquisition lists are empty.
@@ -893,28 +914,36 @@ Observers send telemetry without joining the service or cleanup control flow.
 ```ts
 import { DiBag } from 'di-bag/node';
 
-const observed = DiBag.observe({
-  onEvent(event) {
-    console.log(event.kind, event.scopeId);
-  },
-  onError({ event, error }) {
-    console.error('Telemetry failed', event.kind, error);
-  },
+const observed = DiBag.withConfiguration({
+  observers: [
+    {
+      onEvent(event) {
+        console.log(event.kind, event.scopeId);
+      },
+      onError({ event, error }) {
+        console.error('Telemetry failed', event.kind, error);
+      },
+    },
+  ],
 });
 
-const app = observed.begin().add({ answer: () => 42 }).end();
+const app = observed
+  .createBuilder()
+  .register({ answer: () => 42 })
+  .build();
 app.resolve('answer');
 await app.close();
 ```
 
-Both callbacks are required. `observe()` returns a new `Facade`; repeated calls
-append observers. `configure()` preserves them. Existing facades, builders, and
+Both callbacks are required for every observer. `withConfiguration({ observers })`
+returns a new `DiBagApi` and appends that array in order after inherited observers.
+An omitted `runtime` preserves the current native-Promise classifier. Existing facades, builders, and
 bags keep the configuration with which they were created.
 
 Events cover scope opening/closing, acquisition start/readiness/failure, and
 cleanup start/failure/completion. They carry stable scope and attempt identities,
-canonical binding information, lifetime, static metadata, and copied acquisition
-frames where applicable. Shared attempts report their actual owner. A raw Promise
+canonical binding information, lifetime, `registrationMetadata`, and copied
+`acquisitionMetadata` where applicable. Shared attempts report their actual owner. A raw Promise
 is ready as a value; a native stage reports readiness after settlement.
 
 Callbacks run in emission and registration order on a microtask queue, outside
@@ -934,7 +963,9 @@ application code. DI Bag does not load a path or choose an export.
 ```ts
 import { DiBag } from 'di-bag/node';
 
-interface Handler { handle(text: string): string }
+interface Handler {
+  handle(text: string): string;
+}
 const handlerKey = Symbol('handler');
 const handler = DiBag.token(handlerKey).of<Handler>();
 
@@ -944,28 +975,32 @@ const selected: unknown = {
 };
 
 const provider = DiBag.fromPlugin([], selected, {
-  acquisition: 'raw',
+  acquisitionMode: 'raw',
   validate: (value: unknown): value is Handler =>
-    typeof value === 'object' && value !== null &&
-    'handle' in value && typeof value.handle === 'function',
+    typeof value === 'object' &&
+    value !== null &&
+    'handle' in value &&
+    typeof value.handle === 'function',
 });
 
-const feature = DiBag.module().bind(handler, provider).exports([handler]);
-const app = DiBag.begin().install(feature).end();
+const feature = DiBag.createModuleBuilder()
+  .register(handler, provider)
+  .buildModule([handler]);
+const app = DiBag.createBuilder().installModule(feature).build();
 console.log(app.resolve(handler).handle('hello')); // HELLO
 await app.close();
 ```
 
 A descriptor requires own `apiVersion: 1` and callable `create` properties; an
 own `dispose` is optional and must be callable. `fromPlugin(dependencies,
-descriptor, options)` requires both `validate` and `acquisition: 'raw' | 'native'`.
+descriptor, options)` requires both `validate` and `acquisitionMode: 'raw' | 'nativePromise'`.
 Dependencies may be tokens or required/optional/lazy/all references and arrive in
 tuple order. The tuple, callbacks, and descriptor fields are captured immediately.
 
 Raw mode validates the exact returned value synchronously. Native mode requires
 a genuine native source Promise and exposes one stable Promise whose fulfilled
 value is validated. The predicate must synchronously return exactly `true`.
-Descriptor failures use `DiBagPluginError` phase `'descriptor'`; invalid output
+Descriptor failures use `DiBagPluginValidationError` phase `'descriptor'`; invalid output
 uses phase `'output'`.
 
 When a descriptor has a disposer, the source value becomes owned before output
@@ -987,13 +1022,15 @@ trusted native-Promise predicate:
 ```ts
 import { DiBag as CoreDiBag } from 'di-bag';
 
-const DiBag = CoreDiBag.configure({
-  isNativePromise: trustedHostPredicate,
+const DiBag = CoreDiBag.withConfiguration({
+  runtime: {
+    isNativePromise: trustedHostPredicate,
+  },
 });
 ```
 
 It must identify native Promises without using a structural thenable test or a
-plain `instanceof` test. `configure()` returns a new facade; it does not mutate
+plain `instanceof` test. `withConfiguration()` returns a new facade; it does not mutate
 global state. Its context follows builders, bags, scopes, and forks.
 
 Alternatively, make every reachable automatic stage explicit:
@@ -1003,11 +1040,8 @@ Alternatively, make every reachable automatic stage explicit:
 ```ts
 import { DiBag } from 'di-bag';
 
-const resource = DiBag.factory(
-  () => ({ id: 7 }),
-  { acquisition: 'raw' },
-);
-const app = DiBag.begin().add({ resource }).end();
+const resource = DiBag.fromFactory(() => ({ id: 7 }), { acquisitionMode: 'raw' });
+const app = DiBag.createBuilder().register({ resource }).build();
 ```
 
 Without a configured predicate, graph completion checks the entire graph,
@@ -1017,17 +1051,18 @@ run. Any stage still using `auto` is rejected.
 The stage rules are precise:
 
 - `raw` exposes the exact return value without reading `then`.
-- `native` requires a Promise-shaped TypeScript output, observes native
+- `nativePromise` requires a Promise-shaped TypeScript output, observes native
   fulfillment, and still exposes the exact source Promise.
 - `auto` asks the configured predicate. The Node/Bun facade supplies its own
   classifier.
-- `factory`, `fromTokens`, `fromFunction`, `fromClass`, `withContext`, and
-  `mapSync` select the acquisition mode of the stage they add. Omitting their
-  optional mode uses `auto`; `factory` always requires an explicit mode.
-- `mapAsync` and `withAcquisitionMetadataAsync` always add a native stage.
-- `withDisposal`, `withLifetime`, `withMetadata`,
-  `withAcquisitionMetadata`, token binding, aliases, and module installation
-  retain the modes already described by their sources.
+- `fromFactory`, `fromFunction`, and `fromClass` select their result stage's
+  `acquisitionMode`; omission defaults to `auto`.
+- `transformService` in `direct` mode independently selects its output acquisition
+  mode, defaulting to `auto`. It can use `raw` to own a returned Promise itself.
+- `transformService` and dynamic `withMetadata` in `awaited` mode introduce a
+  native Promise stage. They expose a Promise even for a synchronous source.
+- `withDisposal`, `withLifetime`, static-only metadata, direct dynamic metadata,
+  token binding, aliases, and module installation retain source acquisition modes.
 
 Automatic or native observation tracks fulfillment for ownership and readiness
 without replacing the exposed Promise. A raw Promise is an immediate value. See
@@ -1037,7 +1072,7 @@ for a full portable-host composition.
 ## Represent acquisition values and metadata natively
 
 Use ordinary factory return values to carry a payload and facts learned while
-producing it. Then use `mapSync` or `mapAsync` to project the part consumers need.
+producing it. Then use `transformService` to project the part consumers need.
 `Presence<T>` preserves the difference between an absent value and a present
 value whose payload is `undefined`.
 
@@ -1051,37 +1086,42 @@ type Located<T> = {
   readonly origin: string;
 };
 
-const located = DiBag.withAcquisitionMetadata(
+const located = DiBag.withMetadata(
   (): Located<number | undefined> => ({
     value: { present: true, value: undefined },
     origin: 'environment',
   }),
-  result => ({ origin: result.origin }),
+  { dynamic: { mode: 'direct', describe: (result) => ({ origin: result.origin }) } },
 );
-const value = DiBag.mapSync(located, result => result.value);
+const value = DiBag.transformService(located, {
+  mode: 'direct',
+  transform: (result) => result.value,
+});
 
-const app = DiBag.begin().add({ value }).end();
+const app = DiBag.createBuilder().register({ value }).build();
 const acquired = app.resolve('value');
 console.log(acquired.present); // true
 console.log(acquired.present && acquired.value); // undefined
-console.log(app.inspect('value').acquisitions[0]?.metadata[0]);
+console.log(app.inspect('value').acquisitions[0]?.acquisitionMetadata[0]);
 await app.close();
 ```
 
-The immediate decorator calls its synchronous `describe` callback with the
+The `direct` metadata mode calls its synchronous `describe` callback with the
 exact source output and preserves that output's identity and acquisition policy.
 This matters when a raw stage intentionally exposes a Promise as an ordinary
 value: the callback and consumer see the same Promise object.
 
-The asynchronous decorator awaits the source before calling `describe` and
+The `awaited` metadata mode awaits the source before calling `describe` and
 always exposes a native Promise of the source's awaited value:
 
 ```ts
-const located = DiBag.withAcquisitionMetadataAsync(
-  async () => ({ value: 42, origin: 'remote-config' }),
-  result => ({ origin: result.origin }),
-);
-const value = DiBag.mapAsync(located, result => result.value);
+const located = DiBag.withMetadata(async () => ({ value: 42, origin: 'remote-config' }), {
+  dynamic: { mode: 'awaited', describe: (result) => ({ origin: result.origin }) },
+});
+const value = DiBag.transformService(located, {
+  mode: 'awaited',
+  transform: (result) => result.value,
+});
 ```
 
 Each decorator reserves an absent frame before its source runs. The immediate
@@ -1121,8 +1161,8 @@ type Stamp = ProviderOutput<typeof stamp>;
 type Application = typeof app;
 ```
 
-`TokenKey`, `TokenService`, `ProviderOutput`, `ProviderNeeds`,
-`ProviderMetadata`, `ProviderAcquired`, `ModuleProvides`, `ModuleRequires`, and
+`TokenKey`, `TokenService`, `ProviderOutput`, `ProviderNamedDependencies`,
+`ProviderRegistrationMetadata`, `ProviderAcquiredValue`, `ModuleExportedServices`, `ModuleRequiredServices`, and
 the remaining public types are catalogued in the [API reference](api-reference.md#exported-typescript-types).
 
 ## Boundaries

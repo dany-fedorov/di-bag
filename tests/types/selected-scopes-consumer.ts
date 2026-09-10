@@ -4,7 +4,7 @@ import type { Assert, Equal } from './assert';
 const config = child.resolve('config');
 const token = grandchild.resolve(serviceToken);
 const promise = child.resolve('asyncValue');
-const metadata = child.inspect('raw').metadata;
+const metadata = child.inspect('raw').registrationMetadata;
 type Contracts = [
   Assert<Equal<typeof config, { id: string; added: true }>>,
   Assert<Equal<typeof token, { read: () => number; tokenExtra: 'exact' }>>,

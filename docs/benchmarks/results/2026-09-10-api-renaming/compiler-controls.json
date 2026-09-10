@@ -1,0 +1,392 @@
+{
+  "schema": 1,
+  "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+  "sourceWasUncommitted": true,
+  "baseCommit": "35c05f372f8b6c5d4141c9f351fbbed5079db04f",
+  "cases": 18,
+  "accepted": 18,
+  "protocol": "One fresh supervised process per supported control; serial, without warmups or retained repetitions. Not the exhaustive 108-case matrix.",
+  "rawJournalSha256": "27ee725c5eb7d5dc9e22c3cae3f6f19ca6eae10e751dd56835078d0ab3988630",
+  "results": [
+    {
+      "lane": "classic",
+      "count": 100,
+      "form": "chained",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "4369b82380c89d657cd717ade77468fa3594d3ff9cdeb27f3f443a70ad0cfdc3",
+      "compileMilliseconds": 1470,
+      "processMilliseconds": 1758,
+      "peakRssMiB": 405,
+      "instantiations": 903692,
+      "diagnostics": []
+    },
+    {
+      "lane": "classic",
+      "count": 100,
+      "form": "chained",
+      "scenario": "missing",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "83a1dff6f392676962057b6ebbef426fe33a32c59ec44097eaba1f25e9962690",
+      "compileMilliseconds": 1516,
+      "processMilliseconds": 1805,
+      "peakRssMiB": 402,
+      "instantiations": 899851,
+      "diagnostics": [
+        {
+          "code": 2684,
+          "line": 3,
+          "column": 13,
+          "file": "generated-type-scale.ts",
+          "message": "The 'this' context of type 'BagBuilder<{ key: \"svc0\"; registration: () => number; } | { key: \"svc1\"; registration: ({ svc0 }: { svc0: number; }) => number; } | { key: \"svc2\"; registration: ({ svc1 }: { svc1: number; }) => number; } | { key: \"svc3\"; registration: ({ svc2 }: { ...; }) => number; } | ... 95 more ... | { ...; }, never>' is not assignable to method's 'this' of type 'BagBuilder<{ key: \"svc0\"; registration: () => number; } | { key: \"svc1\"; registration: ({ svc0 }: { svc0: number; }) => number; } | { key: \"svc2\"; registration: ({ svc1 }: { svc1: number; }) => number; } | { key: \"svc3\"; registration: ({ svc2 }: { ...; }) => number; } | ... 95 more ... | { ...; }, never> & { ...; } ...'.\n  Property '[diBagTypeError]' is missing in type 'BagBuilder<{ key: \"svc0\"; registration: () => number; } | { key: \"svc1\"; registration: ({ svc0 }: { svc0: number; }) => number; } | { key: \"svc2\"; registration: ({ svc1 }: { svc1: number; }) => number; } | { key: \"svc3\"; registration: ({ svc2 }: { ...; }) => number; } | ... 95 more ... | { ...; }, never>' but required in type '{ readonly [diBagTypeError]: \"required service registrations are missing\"; }'."
+        }
+      ]
+    },
+    {
+      "lane": "classic",
+      "count": 100,
+      "form": "chained",
+      "scenario": "wrong-shape",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "3eb71d2211dedc73777d09d067f4f42093651e051e53de0ed3ff3a3af510e947",
+      "compileMilliseconds": 1478,
+      "processMilliseconds": 1761,
+      "peakRssMiB": 404,
+      "instantiations": 911935,
+      "diagnostics": [
+        {
+          "code": 2345,
+          "line": 53,
+          "column": 11,
+          "file": "generated-type-scale.ts",
+          "message": "Argument of type '{ svc50: ({ svc49 }: { svc49: string; }) => number; }' is not assignable to parameter of type '{ svc50: ({ svc49 }: { svc49: string; }) => number; } & Registrations & { readonly [diBagTypeError]: \"provided service does not satisfy its consumer dependency\"; } & { ...; }'.\n  Property '[diBagTypeError]' is missing in type '{ svc50: ({ svc49 }: { svc49: string; }) => number; }' but required in type '{ readonly [diBagTypeError]: \"provided service does not satisfy its consumer dependency\"; }'."
+        }
+      ]
+    },
+    {
+      "lane": "classic",
+      "count": 1000,
+      "form": "grouped",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "9569aca20129297fe25189ee8083a2fd481bdb7988385c3dffb08b1d9a8c5550",
+      "compileMilliseconds": 3374,
+      "processMilliseconds": 3688,
+      "peakRssMiB": 653,
+      "instantiations": 2701039,
+      "diagnostics": []
+    },
+    {
+      "lane": "classic",
+      "count": 1000,
+      "form": "grouped",
+      "scenario": "missing",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "4bd25abfc9891cab49982ae3290f93a6ceafdd3440bda30d552b6afe4786a6f2",
+      "compileMilliseconds": 3354,
+      "processMilliseconds": 3664,
+      "peakRssMiB": 652,
+      "instantiations": 2665877,
+      "diagnostics": [
+        {
+          "code": 2684,
+          "line": 1002,
+          "column": 13,
+          "file": "generated-type-scale.ts",
+          "message": "The 'this' context of type 'import(\"<case>/src/di-bag\").BagBuilder<import(\"<case>/src/types\").RegistrationEntries<{ svc0: () => number; svc1: ({ svc0 }: { svc0: number; }) => number; svc2: ({ svc1 }: { svc1: number; }) => number; svc3: ({ svc2 }: { svc2: number; }) => number; svc4: ({ svc3 }: { svc3: number;...' is not assignable to method's 'this' of type 'import(\"<case>/src/di-bag\").BagBuilder<import(\"<case>/src/types\").RegistrationEntries<{ svc0: () => number; svc1: ({ svc0 }: { svc0: number; }) => number; svc2: ({ svc1 }: { svc1: number; }) => number; svc3: ({ svc2 }: { svc2: number; }) => number; svc4: ({ svc3 }: { svc3: number;...'.\n  Property '[diBagTypeError]' is missing in type 'BagBuilder<RegistrationEntries<{ svc0: () => number; svc1: ({ svc0 }: { svc0: number; }) => number; svc2: ({ svc1 }: { svc1: number; }) => number; svc3: ({ svc2 }: { svc2: number; }) => number; svc4: ({ svc3 }: { svc3: number; }) => number; svc5: ({ svc4 }: { svc4: number; }) => number; ... 43 more ...; svc49: ({ sv...' but required in type '{ readonly [diBagTypeError]: \"required service registrations are missing\"; }'."
+        }
+      ]
+    },
+    {
+      "lane": "classic",
+      "count": 1000,
+      "form": "grouped",
+      "scenario": "wrong-shape",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "b7c3d93cc74d1b982e88c523a477011618a2a7ef6d0934ba4e9d68b416aaca5f",
+      "compileMilliseconds": 3334,
+      "processMilliseconds": 3645,
+      "peakRssMiB": 703,
+      "instantiations": 2712813,
+      "diagnostics": [
+        {
+          "code": 2345,
+          "line": 1012,
+          "column": 11,
+          "file": "generated-type-scale.ts",
+          "message": "Argument of type '{ svc500: ({ svc499 }: { svc499: string; }) => number; svc501: ({ svc500 }: { svc500: number; }) => number; svc502: ({ svc501 }: { svc501: number; }) => number; svc503: ({ svc502 }: { svc502: number; }) => number; svc504: ({ svc503 }: { svc503: number; }) => number; ... 44 more ...; svc549: ({ svc548 }: { svc548: nu...' is not assignable to parameter of type '{ svc500: ({ svc499 }: { svc499: string; }) => number; svc501: ({ svc500 }: { svc500: number; }) => number; svc502: ({ svc501 }: { svc501: number; }) => number; svc503: ({ svc502 }: { svc502: number; }) => number; svc504: ({ svc503 }: { svc503: number; }) => number; ... 44 more ...; svc549: ({ svc548 }: { ...; }) =>...'.\n  Property '[diBagTypeError]' is missing in type '{ svc500: ({ svc499 }: { svc499: string; }) => number; svc501: ({ svc500 }: { svc500: number; }) => number; svc502: ({ svc501 }: { svc501: number; }) => number; svc503: ({ svc502 }: { svc502: number; }) => number; svc504: ({ svc503 }: { svc503: number; }) => number; ... 44 more ...; svc549: ({ svc548 }: { svc548: nu...' but required in type '{ readonly [diBagTypeError]: \"provided service does not satisfy its consumer dependency\"; }'."
+        }
+      ]
+    },
+    {
+      "lane": "classic",
+      "count": 100,
+      "form": "bindings",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "e9935bbb9ba33bb3f098083b638c2c82efc6761eaacfad95fe228a67d4ec8cde",
+      "compileMilliseconds": 2194,
+      "processMilliseconds": 2471,
+      "peakRssMiB": 514,
+      "instantiations": 1668125,
+      "diagnostics": []
+    },
+    {
+      "lane": "classic",
+      "count": 100,
+      "form": "bindings",
+      "scenario": "missing-final-token",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "423cdc327b053dcf9b45cc6c15df5ab41e4ac7ec15a19ad64f919398441045f4",
+      "compileMilliseconds": 2130,
+      "processMilliseconds": 2414,
+      "peakRssMiB": 494,
+      "instantiations": 1601059,
+      "diagnostics": [
+        {
+          "code": 2684,
+          "line": 204,
+          "column": 15,
+          "file": "generated-token-scale.ts",
+          "message": "The 'this' context of type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never>' is not assignable to method's 'this' of type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never> & { ...; } & { ...; }'.\n  Property '[diBagTypeError]' is missing in type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never>' but required in type '{ readonly [diBagTypeError]: \"required service registrations are missing\"; }'."
+        }
+      ]
+    },
+    {
+      "lane": "classic",
+      "count": 100,
+      "form": "bindings",
+      "scenario": "mismatched-invariant-service",
+      "accepted": true,
+      "typescript": "6.0.3",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "223e1239347b28b6c3a99eb04ba3386f1c148b6bb112a7f71d53969e07fb2b58",
+      "compileMilliseconds": 2134,
+      "processMilliseconds": 2419,
+      "peakRssMiB": 511,
+      "instantiations": 1663687,
+      "diagnostics": [
+        {
+          "code": 2684,
+          "line": 203,
+          "column": 15,
+          "file": "generated-token-scale.ts",
+          "message": "The 'this' context of type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never>' is not assignable to method's 'this' of type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never> & { ...; } & { ...; }'.\n  Property '[diBagTypeError]' is missing in type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never>' but required in type '{ readonly [diBagTypeError]: \"token dependency has an incompatible or opaque contract\"; }'."
+        },
+        {
+          "code": 2345,
+          "line": 303,
+          "column": 22,
+          "file": "generated-token-scale.ts",
+          "message": "Argument of type 'Provider<() => number, Readonly<{}>, readonly [], TokenDependencyContract<readonly [Token<unique symbol, string | number>], never, readonly []>, number>' is not assignable to parameter of type '(Provider<() => number, Readonly<{}>, readonly [], TokenDependencyContract<readonly [Token<unique symbol, string | number>], never, readonly []>, number> & Factory & { ...; } & { ...; }) | (Provider<...> & ... 2 more ... & { ...; })'.\n  Type 'Provider<() => number, Readonly<{}>, readonly [], TokenDependencyContract<readonly [Token<unique symbol, string | number>], never, readonly []>, number>' is not assignable to type 'Provider<() => number, Readonly<{}>, readonly [], TokenDependencyContract<readonly [Token<unique symbol, string | number>], never, readonly []>, number> & ProviderBase & { ...; } & { ...; }'.\n    Property '[diBagTypeError]' is missing in type 'Provider<() => number, Readonly<{}>, readonly [], TokenDependencyContract<readonly [Token<unique symbol, string | number>], never, readonly []>, number>' but required in type '{ readonly [diBagTypeError]: \"token dependency has an incompatible or opaque contract\"; }'."
+        }
+      ]
+    },
+    {
+      "lane": "native",
+      "count": 100,
+      "form": "chained",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "7.0.2",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "4369b82380c89d657cd717ade77468fa3594d3ff9cdeb27f3f443a70ad0cfdc3",
+      "compileMilliseconds": 386,
+      "processMilliseconds": 452,
+      "peakRssMiB": 126.49,
+      "instantiations": 885104,
+      "diagnostics": []
+    },
+    {
+      "lane": "native",
+      "count": 100,
+      "form": "chained",
+      "scenario": "missing",
+      "accepted": true,
+      "typescript": "7.0.2",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "83a1dff6f392676962057b6ebbef426fe33a32c59ec44097eaba1f25e9962690",
+      "compileMilliseconds": 385,
+      "processMilliseconds": 453,
+      "peakRssMiB": 126.45,
+      "instantiations": 881260,
+      "diagnostics": [
+        {
+          "code": 2684,
+          "line": 3,
+          "column": 13,
+          "file": "generated-type-scale.ts",
+          "message": "The 'this' context of type 'BagBuilder<{ key: \"svc0\"; registration: () => number; } | { key: \"svc1\"; registration: ({ svc0 }: { svc0: number; }) => number; } | { key: \"svc2\"; registration: ({ svc1 }: { svc1: number; }) => number; } | { key: \"svc3\"; registration: ({ svc2 }: { ...; }) => number; } | ... 95 more ... | { ...; }, never>' is not assignable to method's 'this' of type 'BagBuilder<{ key: \"svc0\"; registration: () => number; } | { key: \"svc1\"; registration: ({ svc0 }: { svc0: number; }) => number; } | { key: \"svc2\"; registration: ({ svc1 }: { svc1: number; }) => number; } | { key: \"svc3\"; registration: ({ svc2 }: { ...; }) => number; } | ... 95 more ... | { ...; }, never> & { ...; } ...'.\n  Property '[diBagTypeError]' is missing in type 'BagBuilder<{ key: \"svc0\"; registration: () => number; } | { key: \"svc1\"; registration: ({ svc0 }: { svc0: number; }) => number; } | { key: \"svc2\"; registration: ({ svc1 }: { svc1: number; }) => number; } | { key: \"svc3\"; registration: ({ svc2 }: { ...; }) => number; } | ... 95 more ... | { ...; }, never>' but required in type '{ readonly [diBagTypeError]: \"required service registrations are missing\"; }'."
+        }
+      ]
+    },
+    {
+      "lane": "native",
+      "count": 100,
+      "form": "chained",
+      "scenario": "wrong-shape",
+      "accepted": true,
+      "typescript": "7.0.2",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "3eb71d2211dedc73777d09d067f4f42093651e051e53de0ed3ff3a3af510e947",
+      "compileMilliseconds": 385,
+      "processMilliseconds": 452,
+      "peakRssMiB": 124.59,
+      "instantiations": 893773,
+      "diagnostics": [
+        {
+          "code": 2345,
+          "line": 53,
+          "column": 11,
+          "file": "generated-type-scale.ts",
+          "message": "Argument of type '{ svc50: ({ svc49 }: { svc49: string; }) => number; }' is not assignable to parameter of type '{ svc50: ({ svc49 }: { svc49: string; }) => number; } & Registrations & { readonly [diBagTypeError]: \"provided service does not satisfy its consumer dependency\"; } & { ...; }'.\n  Property '[diBagTypeError]' is missing in type '{ svc50: ({ svc49 }: { svc49: string; }) => number; }' but required in type '{ readonly [diBagTypeError]: \"provided service does not satisfy its consumer dependency\"; }'."
+        }
+      ]
+    },
+    {
+      "lane": "native",
+      "count": 1000,
+      "form": "grouped",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "7.0.2",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "9569aca20129297fe25189ee8083a2fd481bdb7988385c3dffb08b1d9a8c5550",
+      "compileMilliseconds": 1269,
+      "processMilliseconds": 1349,
+      "peakRssMiB": 228.0,
+      "instantiations": 2682371,
+      "diagnostics": []
+    },
+    {
+      "lane": "native",
+      "count": 1000,
+      "form": "grouped",
+      "scenario": "missing",
+      "accepted": true,
+      "typescript": "7.0.2",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "4bd25abfc9891cab49982ae3290f93a6ceafdd3440bda30d552b6afe4786a6f2",
+      "compileMilliseconds": 1259,
+      "processMilliseconds": 1346,
+      "peakRssMiB": 258.29,
+      "instantiations": 2647206,
+      "diagnostics": [
+        {
+          "code": 2684,
+          "line": 1002,
+          "column": 13,
+          "file": "generated-type-scale.ts",
+          "message": "The 'this' context of type 'BagBuilder<RegistrationEntries<{ svc0: () => number; svc1: ({ svc0 }: { svc0: number; }) => number; svc2: ({ svc1 }: { svc1: number; }) => number; svc3: ({ svc2 }: { svc2: number; }) => number; svc4: ({ svc3 }: { svc3: number; }) => number; svc5: ({ svc4 }: { svc4: number; }) => number; ... 43 more ...; svc49: ({ sv...' is not assignable to method's 'this' of type 'BagBuilder<RegistrationEntries<{ svc0: () => number; svc1: ({ svc0 }: { svc0: number; }) => number; svc2: ({ svc1 }: { svc1: number; }) => number; svc3: ({ svc2 }: { svc2: number; }) => number; svc4: ({ svc3 }: { svc3: number; }) => number; svc5: ({ svc4 }: { ...; }) => number; ... 43 more ...; svc49: ({ svc48 }: { ...'.\n  Property '[diBagTypeError]' is missing in type 'BagBuilder<RegistrationEntries<{ svc0: () => number; svc1: ({ svc0 }: { svc0: number; }) => number; svc2: ({ svc1 }: { svc1: number; }) => number; svc3: ({ svc2 }: { svc2: number; }) => number; svc4: ({ svc3 }: { svc3: number; }) => number; svc5: ({ svc4 }: { svc4: number; }) => number; ... 43 more ...; svc49: ({ sv...' but required in type '{ readonly [diBagTypeError]: \"required service registrations are missing\"; }'."
+        }
+      ]
+    },
+    {
+      "lane": "native",
+      "count": 1000,
+      "form": "grouped",
+      "scenario": "wrong-shape",
+      "accepted": true,
+      "typescript": "7.0.2",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "b7c3d93cc74d1b982e88c523a477011618a2a7ef6d0934ba4e9d68b416aaca5f",
+      "compileMilliseconds": 1275,
+      "processMilliseconds": 1358,
+      "peakRssMiB": 256.54,
+      "instantiations": 2694571,
+      "diagnostics": [
+        {
+          "code": 2345,
+          "line": 1012,
+          "column": 11,
+          "file": "generated-type-scale.ts",
+          "message": "Argument of type '{ svc500: ({ svc499 }: { svc499: string; }) => number; svc501: ({ svc500 }: { svc500: number; }) => number; svc502: ({ svc501 }: { svc501: number; }) => number; svc503: ({ svc502 }: { svc502: number; }) => number; svc504: ({ svc503 }: { svc503: number; }) => number; svc505: ({ svc504 }: { svc504: number; }) => numbe...' is not assignable to parameter of type '{ svc500: ({ svc499 }: { svc499: string; }) => number; svc501: ({ svc500 }: { svc500: number; }) => number; svc502: ({ svc501 }: { svc501: number; }) => number; svc503: ({ svc502 }: { svc502: number; }) => number; svc504: ({ svc503 }: { svc503: number; }) => number; ... 44 more ...; svc549: ({ svc548 }: { ...; }) =>...'.\n  Property '[diBagTypeError]' is missing in type '{ svc500: ({ svc499 }: { svc499: string; }) => number; svc501: ({ svc500 }: { svc500: number; }) => number; svc502: ({ svc501 }: { svc501: number; }) => number; svc503: ({ svc502 }: { svc502: number; }) => number; svc504: ({ svc503 }: { svc503: number; }) => number; svc505: ({ svc504 }: { svc504: number; }) => numbe...' but required in type '{ readonly [diBagTypeError]: \"provided service does not satisfy its consumer dependency\"; }'."
+        }
+      ]
+    },
+    {
+      "lane": "native",
+      "count": 100,
+      "form": "bindings",
+      "scenario": "valid",
+      "accepted": true,
+      "typescript": "7.0.2",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "e9935bbb9ba33bb3f098083b638c2c82efc6761eaacfad95fe228a67d4ec8cde",
+      "compileMilliseconds": 611,
+      "processMilliseconds": 670,
+      "peakRssMiB": 169.15,
+      "instantiations": 1642687,
+      "diagnostics": []
+    },
+    {
+      "lane": "native",
+      "count": 100,
+      "form": "bindings",
+      "scenario": "missing-final-token",
+      "accepted": true,
+      "typescript": "7.0.2",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "423cdc327b053dcf9b45cc6c15df5ab41e4ac7ec15a19ad64f919398441045f4",
+      "compileMilliseconds": 602,
+      "processMilliseconds": 668,
+      "peakRssMiB": 168.77,
+      "instantiations": 1575607,
+      "diagnostics": [
+        {
+          "code": 2684,
+          "line": 204,
+          "column": 15,
+          "file": "generated-token-scale.ts",
+          "message": "The 'this' context of type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never>' is not assignable to method's 'this' of type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never> & { ...; } & { ...; }'.\n  Property '[diBagTypeError]' is missing in type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never>' but required in type '{ readonly [diBagTypeError]: \"required service registrations are missing\"; }'."
+        }
+      ]
+    },
+    {
+      "lane": "native",
+      "count": 100,
+      "form": "bindings",
+      "scenario": "mismatched-invariant-service",
+      "accepted": true,
+      "typescript": "7.0.2",
+      "sourceSha256": "8abf161347df79efba6ac638de0236ce2bcb680aeaa5d7f1a6524c09c0f6bd53",
+      "generatedSha256": "223e1239347b28b6c3a99eb04ba3386f1c148b6bb112a7f71d53969e07fb2b58",
+      "compileMilliseconds": 618,
+      "processMilliseconds": 683,
+      "peakRssMiB": 164.98,
+      "instantiations": 1638253,
+      "diagnostics": [
+        {
+          "code": 2684,
+          "line": 203,
+          "column": 15,
+          "file": "generated-token-scale.ts",
+          "message": "The 'this' context of type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never>' is not assignable to method's 'this' of type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never> & { ...; } & { ...; }'.\n  Property '[diBagTypeError]' is missing in type 'BagBuilder<{ key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, () => number>; } | { key: unique symbol; registration: TokenBinding<Token<unique symbol, number>, Provider<...>>; } | ... 97 more ... | { ...; }, never>' but required in type '{ readonly [diBagTypeError]: \"token dependency has an incompatible or opaque contract\"; }'."
+        },
+        {
+          "code": 2345,
+          "line": 303,
+          "column": 22,
+          "file": "generated-token-scale.ts",
+          "message": "Argument of type 'Provider<() => number, Readonly<{}>, readonly [], TokenDependencyContract<readonly [Token<unique symbol, string | number>], never, readonly []>, number>' is not assignable to parameter of type '(Provider<() => number, Readonly<{}>, readonly [], TokenDependencyContract<readonly [Token<unique symbol, string | number>], never, readonly []>, number> & Factory & { ...; } & { ...; }) | (Provider<...> & ... 2 more ... & { ...; })'.\n  Type 'Provider<() => number, Readonly<{}>, readonly [], TokenDependencyContract<readonly [Token<unique symbol, string | number>], never, readonly []>, number>' is not assignable to type 'Provider<() => number, Readonly<{}>, readonly [], TokenDependencyContract<readonly [Token<unique symbol, string | number>], never, readonly []>, number> & ProviderBase & { ...; } & { ...; }'.\n    Property '[diBagTypeError]' is missing in type 'Provider<() => number, Readonly<{}>, readonly [], TokenDependencyContract<readonly [Token<unique symbol, string | number>], never, readonly []>, number>' but required in type '{ readonly [diBagTypeError]: \"token dependency has an incompatible or opaque contract\"; }'."
+        }
+      ]
+    }
+  ]
+}

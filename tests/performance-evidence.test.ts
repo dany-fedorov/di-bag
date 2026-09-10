@@ -67,8 +67,7 @@ test('validates one canonical runtime sample and preserves its provenance', () =
 }));
 
 test('rejects a correct duration with an incorrect workload checksum', () => withFixture(({ request, output }) => {
-  expect(() => validateRuntimeSample(request, { ...output, checksum: 'wrong' }))
-    .toThrow('runtime checksum mismatch');
+  expect(() => validateRuntimeSample(request, { ...output, checksum: 'wrong' })).toThrow('runtime checksum mismatch');
 }));
 
 test('rejects every semantic control mismatch', () => withFixture(({ request, output }) => {
@@ -124,11 +123,9 @@ test('rejects noncanonical package and entry paths even when they resolve inside
 
 test('parses only one canonical JSON object from a clean successful child', () => withFixture(({ request, output }) => {
   const canonical = `${JSON.stringify(output)}\n`;
-  expect(parseRuntimeChild(request, { status: 0, signal: null, timedOut: false, stdout: canonical, stderr: '' }))
-    .toMatchObject({ elapsedNanoseconds: '101', orderSlot: 3 });
+  expect(parseRuntimeChild(request, { status: 0, signal: null, timedOut: false, stdout: canonical, stderr: '' })).toMatchObject({ elapsedNanoseconds: '101', orderSlot: 3 });
   for (const stdout of [JSON.stringify(output), ` ${canonical}`, `${canonical}noise`, '{broken}\n', `${JSON.stringify([output])}\n`]) {
-    expect(() => parseRuntimeChild(request, { status: 0, signal: null, timedOut: false, stdout, stderr: '' }))
-      .toThrow('child stdout is not one canonical JSON object');
+    expect(() => parseRuntimeChild(request, { status: 0, signal: null, timedOut: false, stdout, stderr: '' })).toThrow('child stdout is not one canonical JSON object');
   }
 }));
 
@@ -139,8 +136,7 @@ test('rejects child timeout, signal, status, stderr and unexpected schema keys',
   expect(() => parseRuntimeChild(request, { ...clean, status: 2 })).toThrow('runtime child exited with status 2');
   expect(() => parseRuntimeChild(request, { ...clean, status: null })).toThrow('runtime child exited with status null');
   expect(() => parseRuntimeChild(request, { ...clean, stderr: 'warning\n' })).toThrow('runtime child stderr is not empty');
-  expect(() => parseRuntimeChild(request, { ...clean, stdout: `${JSON.stringify({ ...output, extra: true })}\n` }))
-    .toThrow('runtime child schema mismatch');
+  expect(() => parseRuntimeChild(request, { ...clean, stdout: `${JSON.stringify({ ...output, extra: true })}\n` })).toThrow('runtime child schema mismatch');
 }));
 
 test('runtime runner validates the execution returned for the exact request', async () => withAsyncFixture(async ({ request, output }) => {
@@ -319,10 +315,8 @@ test('current evidence validation requires reproducible environment, tools, fixt
     },
   } as const;
   expect(validateCurrentRuntimeEvidenceRow(row)).toBe(row);
-  expect(() => validateCurrentRuntimeEvidenceRow({ ...row, provenance: { ...row.provenance, source: undefined } }))
-    .toThrow('runtime evidence provenance mismatch');
-  expect(() => validateCurrentRuntimeEvidenceRow({ ...row, resolvedDiBag: '/tmp/consumer/node_modules/di-bag/dist/index.js' }))
-    .toThrow('runtime evidence entry must be clone-safe');
+  expect(() => validateCurrentRuntimeEvidenceRow({ ...row, provenance: { ...row.provenance, source: undefined } })).toThrow('runtime evidence provenance mismatch');
+  expect(() => validateCurrentRuntimeEvidenceRow({ ...row, resolvedDiBag: '/tmp/consumer/node_modules/di-bag/dist/index.js' })).toThrow('runtime evidence entry must be clone-safe');
 });
 
 test('runtime journals use exclusive per-invocation paths and never truncate prior evidence', () => {

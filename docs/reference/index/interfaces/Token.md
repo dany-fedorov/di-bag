@@ -4,7 +4,7 @@
 
 # Interface: Token\<K *extends* `symbol`, S\>
 
-Defined in: [tokens.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L15)
+Defined in: [tokens.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L16)
 
 An immutable typed-token handle pairing a canonical symbol with an invariant service contract.
 Create one with `DiBag.token(key).of<Service>()`.
@@ -28,4 +28,4 @@ Create one with `DiBag.token(key).of<Service>()`.
 readonly key: K;
 ```
 
-Defined in: [tokens.ts:18](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L18)
+Defined in: [tokens.ts:19](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L19)

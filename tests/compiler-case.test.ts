@@ -33,7 +33,7 @@ test('a claimed accepted result cannot hide an original-boundary failure', () =>
   const item = { count: 100, form: 'replacement', scenario: 'wrong-shape' } as const;
   const diagnostic = {
     file: '/tmp/graph.ts', line: 152, column: 10,
-    code: 2345, message: 'a dependency has the wrong shape',
+    code: 2345, message: 'provided service does not satisfy its consumer dependency',
   };
   const row = { ...item, accepted: true, boundaryLine: 152, diagnostics: [diagnostic] };
   const child = { status: 0, signal: null, stderr: '', stdout: JSON.stringify(row) };
@@ -84,8 +84,7 @@ test('direct selected-case calls reject invalid lane and matrix identities befor
     ['native', { count: 100, form: 'modules', scenario: 'wrong-shape' }],
     ['classic', { count: 500, form: 'chained', scenario: 'missing-final-token' }],
   ] as const) {
-    await expect(runCompilerCase(process.cwd(), lane as CompilerLane, item as never))
-      .rejects.toThrow('expected lane count form scenario from the original matrix');
+    await expect(runCompilerCase(process.cwd(), lane as CompilerLane, item as never)).rejects.toThrow('expected lane count form scenario from the original matrix');
   }
 });
 
@@ -99,7 +98,7 @@ test('recomputed boundary rejects self-consistent worker evidence at the wrong b
       file: resolve(process.cwd(), 'tests/generated-type-scale.ts'),
       line: 151,
       code: 2345,
-      message: 'a dependency has the wrong shape',
+      message: 'provided service does not satisfy its consumer dependency',
     }],
   }, 152);
 
@@ -202,7 +201,7 @@ for (const lane of ['classic', 'native'] as const) {
         expect((row.diagnostics as Array<{ line: number; message: string }>)[0]).toMatchObject({
           line: row.boundaryLine,
         });
-        expect((row.diagnostics as Array<{ message: string }>)[0]!.message).toContain('missing factories');
+        expect((row.diagnostics as Array<{ message: string }>)[0]!.message).toContain('required service registrations are missing');
       }
     }, 65_000);
   }

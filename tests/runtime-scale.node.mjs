@@ -11,13 +11,13 @@ const count = 12_000;
 
 function chain(dispose) {
   const registrations = Object.fromEntries(Array.from({ length: count }, (_, index) => {
-    const provider = DiBag.factory(deps => ({
+    const provider = DiBag.fromFactory(deps => ({
       index, link: () => index + 1 < count ? deps[`p${index + 1}`] : deps.reader,
-    }), { acquisition: 'raw' });
+    }), { acquisitionMode: 'raw' });
     return [`p${index}`, dispose ? DiBag.withDisposal(provider, dispose) : provider];
   }));
-  registrations.reader = DiBag.factory(deps => () => deps.p0, { acquisition: 'raw' });
-  const bag = DiBag.begin().add(registrations).end();
+  registrations.reader = DiBag.fromFactory(deps => () => deps.p0, { acquisitionMode: 'raw' });
+  const bag = DiBag.createBuilder().register(registrations).build();
   const nodes = Array.from({ length: count }, (_, index) => bag.resolve(`p${index}`));
   for (let index = 0; index < count - 1; index++) nodes[index].link();
   return { bag, nodes };

@@ -8,7 +8,7 @@
 type ObserverErrorCallback = (this: void, failure: ObserverFailure) => unknown;
 ```
 
-Defined in: [observers.ts:44](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L44)
+Defined in: [observers.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L45)
 
 Reports failures from one observer's event callback; its own failures are consumed.
 

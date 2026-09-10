@@ -24,21 +24,21 @@ const bun = process.execPath;
 const npmCli = realpathSync(join(dirname(node), 'npm'));
 const replacementNativeGapCounts: Readonly<Record<string, number>> = {};
 const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
-  ? "const { DiBag, DiBagPluginError } = require('di-bag/node'); const assert = require('node:assert/strict');"
-  : "import { DiBag, DiBagPluginError } from 'di-bag/node'; import assert from 'node:assert/strict';"}
+  ? "const { DiBag, DiBagPluginValidationError } = require('di-bag/node'); const assert = require('node:assert/strict');"
+  : "import { DiBag, DiBagPluginValidationError } from 'di-bag/node'; import assert from 'node:assert/strict';"}
 (async () => {
   const log = [];
   let id = 0;
   let rootDisposed = 0;
   let scopedDisposed = 0;
   let transientsDisposed = 0;
-  const parent = DiBag.begin().add({
+  const parent = DiBag.createBuilder().register({
     service: DiBag.withDisposal(() => ++id, value => { log.push(value); }),
     root: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'root' }), () => { rootDisposed++; }), 'root'),
     scoped: DiBag.withDisposal(() => ({ owner: 'scope' }), () => { scopedDisposed++; }),
     transient: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'call' }), () => { transientsDisposed++; }), 'transient'),
-  }).end();
-  const child = parent.scope();
+  }).build();
+  const child = parent.createScope();
   const independent = child.fork();
   const childRoot = child.resolve('root');
   child.resolve('scoped');
@@ -119,8 +119,7 @@ for (const emitter of ['classic6', 'native7']) {
           }
         }
         const replacementModuleFeature = join(consumer, 'replacement-module-feature.ts');
-        writeFileSync(replacementModuleFeature, readFileSync(join(root, 'tests/types/modules/feature.ts'), 'utf8')
-          .replace(/from '(?:\.\.\/)+src'/g, "from 'di-bag'"));
+        writeFileSync(replacementModuleFeature, readFileSync(join(root, 'tests/types/modules/feature.ts'), 'utf8').replace(/from '(?:\.\.\/)+src'/g, "from 'di-bag'"));
         const support = await compileNative(compiler, consumer, [replacementModuleFeature]);
         expect({ checked: support.checked, diagnostics: support.diagnostics }).toEqual({ checked: true, diagnostics: [] });
         for (const fixture of providerContractFixtures) {
@@ -144,10 +143,7 @@ for (const emitter of ['classic6', 'native7']) {
           const sourceDir = join(consumer, `${feature}-source`), outputDir = join(consumer, `${feature}-output`);
           mkdirSync(sourceDir); mkdirSync(outputDir);
           const assertions = "type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;";
-          const route = (text: string, nested = false) => text
-            .replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types|module-types)'/g, `from '${nested ? '..' : '.'}/node_modules/di-bag/dist/$1.js'`)
-            .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)
-            .replace(/import type \{ Assert, Equal \} from '\.\.?\/assert';/, assertions);
+          const route = (text: string, nested = false) => text.replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types|module-types)'/g, `from '${nested ? '..' : '.'}/node_modules/di-bag/dist/$1.js'`).replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`).replace(/import type \{ Assert, Equal \} from '\.\.?\/assert';/, assertions);
           const fixture = feature === 'token-modules' ? 'token-modules/feature.ts' : `${feature}.ts`;
           const producer = join(sourceDir, `feature.${extension}`);
           writeFileSync(producer, route(readFileSync(join(root, 'tests/types', fixture), 'utf8'), true));
@@ -166,9 +162,7 @@ for (const emitter of ['classic6', 'native7']) {
           expect(existsSync(producer)).toBe(false);
           const downstream = join(consumer, `${feature}-consumer.${extension}`);
           const consumerFixture = feature === 'token-modules' ? 'token-modules/consumer.ts' : `${feature}-consumer.ts`;
-          const text = route(readFileSync(join(root, 'tests/types', consumerFixture), 'utf8'))
-            .replace(/from '\.\/(modern-inline|feature|incremental-modules|acquisition-mode|scopes|lifetimes|startup|selected-scopes|composition-adapters|dependency-references|aliases|contributions|observers|plugins|final-adversarial-integration|replacement-reflection)'/g, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`)
-            .replace(/import\('\.\/plugins'\)/g, `import('./${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}')`);
+          const text = route(readFileSync(join(root, 'tests/types', consumerFixture), 'utf8')).replace(/from '\.\/(modern-inline|feature|incremental-modules|acquisition-mode|scopes|lifetimes|startup|selected-scopes|composition-adapters|dependency-references|aliases|contributions|observers|plugins|final-adversarial-integration|replacement-reflection)'/g, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`).replace(/import\('\.\/plugins'\)/g, `import('./${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}')`);
           writeFileSync(downstream, text);
           const consumed = await compileNative(compiler, consumer, [downstream]);
           expect({ checked: consumed.checked, diagnostics: consumed.diagnostics }).toEqual({ checked: true, diagnostics: [] });

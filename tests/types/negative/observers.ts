@@ -1,18 +1,18 @@
 import { DiBag, type LifecycleEvent, type ObserverFailure } from '../../../src';
 // diagnostic: onError
-DiBag.observe({ onEvent(event) {} });
+DiBag.withConfiguration({ observers: [{ onEvent(event) {} }] });
 // diagnostic: onEvent
-DiBag.observe({ onError(failure) {} });
+DiBag.withConfiguration({ observers: [{ onError(failure) {} }] });
 // diagnostic: not assignable
-DiBag.observe({ onEvent: 1, onError(failure) {} });
+DiBag.withConfiguration({ observers: [{ onEvent: 1, onError(failure) {} }] });
 // diagnostic: not assignable
-DiBag.observe({ onEvent(event) {}, onError: null });
+DiBag.withConfiguration({ observers: [{ onEvent(event) {}, onError: null }] });
 // diagnostic: not assignable
-DiBag.observe({ onEvent(this: { owner: string }, event: LifecycleEvent) {}, onError(failure) {} });
+DiBag.withConfiguration({ observers: [{ onEvent(this: { owner: string }, event: LifecycleEvent) {}, onError(failure) {} }] });
 // diagnostic: not assignable
-DiBag.observe({ onEvent(event) {}, onError(this: { owner: string }, failure: ObserverFailure) {} });
+DiBag.withConfiguration({ observers: [{ onEvent(event) {}, onError(this: { owner: string }, failure: ObserverFailure) {} }] });
 // diagnostic: not assignable
-DiBag.observe({ onEvent(event: { kind: 'scope-opened' }) {}, onError(failure) {} });
+DiBag.withConfiguration({ observers: [{ onEvent(event: { kind: 'scope-opened' }) {}, onError(failure) {} }] });
 declare const event: LifecycleEvent;
 if (event.kind === 'scope-opened') {
   // diagnostic: does not exist
@@ -22,8 +22,8 @@ if (event.kind === 'acquisition-ready') {
   // diagnostic: does not exist
   event.error;
   // diagnostic: does not exist
-  event.metadata.team;
-  const frame = event.frames[0];
+  event.registrationMetadata.team;
+  const frame = event.acquisitionMetadata[0];
   if (frame?.present) {
     // diagnostic: unknown
     frame.value.owner;

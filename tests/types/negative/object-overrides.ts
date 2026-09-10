@@ -1,7 +1,4 @@
 import { DiBag } from '../../../src';
 // diagnostic: not assignable
 const overrides: object = { clock: 42, extra: () => 1 };
-DiBag.begin()
-  .add({ clock: () => 1 })
-  .end()
-  .fork(['clock'], overrides);
+DiBag.createBuilder().register({ clock: () => 1 }).build().fork(['clock'], overrides);

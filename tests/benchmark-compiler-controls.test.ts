@@ -32,7 +32,7 @@ function completedSample(overrides: Partial<CompilerControlSample> = {}): Compil
       file: '/repo/tests/generated-type-scale.ts',
       line: 102,
       code: 2684,
-      message: 'This context is missing factories for missingFinal',
+      message: 'This context is required service registrations are missing for missingFinal',
     }],
     boundaryLine: 102,
     accepted: true,
@@ -76,10 +76,8 @@ test('valid controls reject diagnostics and case identity substitution', () => {
     boundaryLine: undefined,
   });
   expect(validateCompilerControl(validCase, valid)).toMatchObject({ accepted: true });
-  expect(validateCompilerControl(validCase, { ...valid, diagnostics: completedSample().diagnostics }))
-    .toMatchObject({ accepted: false, reason: 'valid control returned diagnostics' });
-  expect(validateCompilerControl(validCase, { ...valid, count: 1000 }))
-    .toMatchObject({ accepted: false, reason: 'control identity mismatch' });
+  expect(validateCompilerControl(validCase, { ...valid, diagnostics: completedSample().diagnostics })).toMatchObject({ accepted: false, reason: 'valid control returned diagnostics' });
+  expect(validateCompilerControl(validCase, { ...valid, count: 1000 })).toMatchObject({ accepted: false, reason: 'control identity mismatch' });
 });
 
 test('controls reject invalid work metrics and source provenance drift', () => {
@@ -90,18 +88,14 @@ test('controls reject invalid work metrics and source provenance drift', () => {
     completedSample({ instantiations: -1 }),
     completedSample({ instantiations: 0 }),
   ]) {
-    expect(validateCompilerControl(negativeCase, sample))
-      .toMatchObject({ accepted: false, reason: 'invalid compiler work metrics' });
+    expect(validateCompilerControl(negativeCase, sample)).toMatchObject({ accepted: false, reason: 'invalid compiler work metrics' });
   }
-  expect(validateCompilerControl(negativeCase, completedSample({ sourceCommitAfter: 'def456' })))
-    .toMatchObject({ accepted: false, reason: 'compiler provenance changed' });
-  expect(validateCompilerControl(negativeCase, completedSample({ generatedSha256After: 'other-fixture' })))
-    .toMatchObject({ accepted: false, reason: 'compiler provenance changed' });
+  expect(validateCompilerControl(negativeCase, completedSample({ sourceCommitAfter: 'def456' }))).toMatchObject({ accepted: false, reason: 'compiler provenance changed' });
+  expect(validateCompilerControl(negativeCase, completedSample({ generatedSha256After: 'other-fixture' }))).toMatchObject({ accepted: false, reason: 'compiler provenance changed' });
   expect(validateCompilerControl(negativeCase, completedSample({
     sourceStatusBefore: ' M src/index.ts',
     sourceStatusAfter: ' M src/index.ts',
-  })))
-    .toMatchObject({ accepted: false, reason: 'source tree is dirty' });
+  }))).toMatchObject({ accepted: false, reason: 'source tree is dirty' });
 });
 
 test('normalizer validates classic work and canonicalizes diagnostic paths', () => {

@@ -1,16 +1,16 @@
 import { DiBag } from '../../../src';
-const module = DiBag.module().add({ hidden: ({ external }: { external: number }) => external }).exports([]);
-// diagnostic: missing factories
-DiBag.begin().install(module).end();
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().install(module).add({ external: () => 'wrong' });
-const left = DiBag.module().add({ hidden: ({ external }: { external: { mode: true } }) => external }).exports([]);
-const right = DiBag.module().add({ hidden: ({ external }: { external: { mode: false } }) => external }).exports([]);
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().install(left).install(right).add({ external: () => ({ mode: true as const }) });
-const open = DiBag.module().add({
+const module = DiBag.createModuleBuilder().register({ hidden: ({ external }: { external: number }) => external }).buildModule([]);
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().installModule(module).build();
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().installModule(module).register({ external: () => 'wrong' });
+const left = DiBag.createModuleBuilder().register({ hidden: ({ external }: { external: { mode: true } }) => external }).buildModule([]);
+const right = DiBag.createModuleBuilder().register({ hidden: ({ external }: { external: { mode: false } }) => external }).buildModule([]);
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().installModule(left).installModule(right).register({ external: () => ({ mode: true as const }) });
+const open = DiBag.createModuleBuilder().register({
   service: () => ({ read() { return 1; }, extra() { return true; } }),
   hidden: ({ service }: { service: { extra(): boolean } }) => service.extra(),
 });
-// diagnostic: a dependency has the wrong shape
+// diagnostic: provided service does not satisfy its consumer dependency
 open.replace('service', () => ({ read() { return 2; } }));

@@ -4,7 +4,7 @@
 
 # Class: DiBagCleanupError
 
-Defined in: [errors.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L22)
+Defined in: [errors.ts:47](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L47)
 
 Original cleanup causes and detached acquisition diagnostics, in attempt order.
 
@@ -20,7 +20,7 @@ Original cleanup causes and detached acquisition diagnostics, in attempt order.
 new (failures: readonly CleanupFailure[]): DiBagCleanupError;
 ```
 
-Defined in: [errors.ts:27](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L27)
+Defined in: [errors.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L54)
 
 #### Parameters
 
@@ -36,12 +36,32 @@ AggregateError.constructor
 
 ## Properties
 
+### code
+
+```ts
+declare readonly code: 'DI_BAG_CLEANUP_FAILED';
+```
+
+Defined in: [errors.ts:48](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L48)
+
+***
+
+### details
+
+```ts
+declare readonly details: Readonly<Record<string, unknown>>;
+```
+
+Defined in: [errors.ts:49](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L49)
+
+***
+
 ### failures
 
 ```ts
 readonly failures: readonly CleanupFailure[];
 ```
 
-Defined in: [errors.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L24)
+Defined in: [errors.ts:51](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L51)
 
 Frozen cleanup failures in finalizer invocation order.

@@ -1,10 +1,7 @@
 import { DiBag } from '../../../src/di-bag';
 // diagnostic: finite
-// diagnostic-also: TS2345 add introduces new tokens only
+// diagnostic-also: TS2345 register introduces new names or typed tokens only
 const factories: Record<string, () => number> = {};
-DiBag.begin()
-  .add(factories)
-  .add({
+DiBag.createBuilder().register(factories).register({
     service: ({ missing }: { missing: number }) => missing,
-  })
-  .end();
+  }).build();

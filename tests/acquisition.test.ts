@@ -6,7 +6,7 @@ test('a retry does not inherit the identity of a caught failed attempt', async (
   let first = true;
   const valueA = { id: 'a' };
   const valueB = { id: 'b' };
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     a: (deps: { b: typeof valueB }) => {
       try { void deps.b; } catch {}
       return valueA;
@@ -16,7 +16,7 @@ test('a retry does not inherit the identity of a caught failed attempt', async (
       expect(deps.a).toBe(valueA);
       return valueB;
     },
-  }).end();
+  }).build();
   expect(bag.resolve('a')).toBe(valueA);
   expect(bag.resolve('b')).toBe(valueB);
   expect(bag.resolve('a')).toBe(valueA);
@@ -31,7 +31,7 @@ test('a caught rejected attempt does not retarget its incoming edge to the retry
   const events: string[] = [];
   let originalA: Promise<typeof valueA> | undefined;
   let originalB: Promise<typeof valueB> | undefined;
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     a: DiBag.withDisposal((deps: { b: Promise<typeof valueB> }) => {
       originalA = (async () => {
         try { await deps.b; } catch {}
@@ -47,7 +47,7 @@ test('a caught rejected attempt does not retarget its incoming edge to the retry
       })();
       return originalB;
     }, value => { events.push(value.id); }),
-  }).end();
+  }).build();
   const a = bag.resolve('a');
   expect(originalA).toBe(a);
   expect(bag.resolve('b')).toBe(rejected);
@@ -64,14 +64,14 @@ test('a caught rejected attempt does not retarget its incoming edge to the retry
 test('shutdown preserves every cleanup cause and its acquisition identity', async () => {
   const first = new Error('first cleanup');
   const events: string[] = [];
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     a: DiBag.withDisposal(() => 'a', () => { events.push('a'); throw first; }),
     b: DiBag.withDisposal(({ a }: { a: string }) => a + 'b', async () => {
       events.push('b');
       throw undefined;
     }),
     c: DiBag.withDisposal(() => 'c', () => { events.push('c'); }),
-  }).end();
+  }).build();
   bag.resolve('b');
   bag.resolve('c');
   const closing = bag.close();
@@ -118,7 +118,7 @@ test('a failed attempt cannot borrow its pending retry permission to acquire dur
   let first = true;
   let lateRead = () => 0;
   const events: string[] = [];
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     resource: DiBag.withDisposal(() => { events.push('resource:open'); return 42; },
       () => { events.push('resource:close'); }),
     holder: DiBag.withDisposal((deps: { resource: number }) => {
@@ -129,7 +129,7 @@ test('a failed attempt cannot borrow its pending retry permission to acquire dur
       }
       return gate.promise;
     }, () => { events.push('holder:close'); }),
-  }).end();
+  }).build();
   expect(() => bag.resolve('holder')).toThrow(failure);
   expect(bag.resolve('holder')).toBe(gate.promise);
   const closing = bag.close();
@@ -143,11 +143,11 @@ test('a failed attempt cannot borrow its pending retry permission to acquire dur
 test('a completed factory cannot start late acquisitions while another factory drains', async () => {
   const gate = deferred<number>();
   const events: string[] = [];
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     resource: () => { events.push('resource:open'); return 42; },
     reader: (deps: { resource: number }) => () => deps.resource,
     pending: DiBag.withDisposal(() => gate.promise, () => { events.push('pending:close'); }),
-  }).end();
+  }).build();
   const read = bag.resolve('reader');
   expect(bag.resolve('pending')).toBe(gate.promise);
   const closing = bag.close();
@@ -159,7 +159,7 @@ test('a completed factory cannot start late acquisitions while another factory d
 
 test('a retained failed proxy follows live dependencies without traversing removed attempts', async () => {
   let readA = () => 0;
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     a: (deps: { b: number }) => {
       try { void deps.b; } catch {}
       return 42;
@@ -168,7 +168,7 @@ test('a retained failed proxy follows live dependencies without traversing remov
       readA = () => deps.a;
       throw new Error('failed');
     },
-  }).end();
+  }).build();
   expect(bag.resolve('a')).toBe(42);
   expect(readA()).toBe(42);
   await bag.close();

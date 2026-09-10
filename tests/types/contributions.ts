@@ -2,42 +2,42 @@ import { DiBag, type ModuleContributions } from '../../src';
 import type { Assert, Equal } from './assert';
 export const key = Symbol('numbers');
 export const numbers = DiBag.token(key).of<number>();
-export const builder = DiBag.begin().contribute(numbers, () => 1).contribute(numbers, () => 2);
-export const feature = DiBag.module().contribute(numbers, () => 3).exports([]);
-export const bag = builder.install(feature).end();
+export const builder = DiBag.createBuilder().contribute(numbers, () => 1).contribute(numbers, () => 2);
+export const feature = DiBag.createModuleBuilder().contribute(numbers, () => 3).buildModule([]);
+export const bag = builder.installModule(feature).build();
 export const values = bag.resolveAll(numbers);
 export const contribute = builder.contribute;
 export type ReflectedContribution = ReturnType<typeof contribute>;
 export type Exact = [Assert<Equal<typeof values, ReadonlyArray<number>>>,
   Assert<Equal<ModuleContributions<typeof feature>, Readonly<{ [key]: ReadonlyArray<number> }>>>];
-const empty = DiBag.begin().end().resolveAll(numbers);
+const empty = DiBag.createBuilder().build().resolveAll(numbers);
 export type Empty = Assert<Equal<typeof empty, ReadonlyArray<number>>>;
 export const all = DiBag.all(numbers);
-export const allProvider = DiBag.fromTokens([all], values => values);
-export const aggregate = DiBag.begin().add({ values: allProvider });
-export const aggregateBag = aggregate.contribute(numbers, () => 1).end();
-export const moduleBuilder = DiBag.module().contribute(numbers, ({ helper }: { helper: number }) => helper);
+export const allProvider = DiBag.fromFunction([all], values => values);
+export const aggregate = DiBag.createBuilder().register({ values: allProvider });
+export const aggregateBag = aggregate.contribute(numbers, () => 1).build();
+export const moduleBuilder = DiBag.createModuleBuilder().contribute(numbers, ({ helper }: { helper: number }) => helper);
 export const moduleContribute = moduleBuilder.contribute;
-export const privateFeature = moduleBuilder.add({ helper: () => 1 }).exports([]);
-export const privateHost = DiBag.begin().install(privateFeature).end();
-export const needsFeature = moduleBuilder.exports([]);
-export const needsHost = DiBag.begin().install(needsFeature);
-export const renamedFeature = moduleBuilder.add({ helper: () => 1 }).exports(['helper']).rename('helper', 'renamed');
-export const renamedHost = DiBag.begin().install(renamedFeature).end();
+export const privateFeature = moduleBuilder.register({ helper: () => 1 }).buildModule([]);
+export const privateHost = DiBag.createBuilder().installModule(privateFeature).build();
+export const needsFeature = moduleBuilder.buildModule([]);
+export const needsHost = DiBag.createBuilder().installModule(needsFeature);
+export const renamedFeature = moduleBuilder.register({ helper: () => 1 }).buildModule(['helper']).renameExport('helper', 'renamed');
+export const renamedHost = DiBag.createBuilder().installModule(renamedFeature).build();
 const rooted = DiBag.withLifetime(() => 1, 'root');
 const rootAll = DiBag.withLifetime(allProvider, 'root');
-export const emptyRoot = DiBag.begin().add({ rootAll }).end();
-export const rootBag = DiBag.begin().contribute(numbers, rooted).add({ rootAll }).end();
-export const privateRootFeature = DiBag.module().add({ helper: rooted }).contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'transient')).exports([]);
-export const privateRootHost = DiBag.begin().install(privateRootFeature).add({ rootAll }).end();
-export const rootContribution = DiBag.module().add({ helper: rooted }).contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'root')).exports([]);
-DiBag.begin().install(rootContribution).end();
+export const emptyRoot = DiBag.createBuilder().register({ rootAll }).build();
+export const rootBag = DiBag.createBuilder().contribute(numbers, rooted).register({ rootAll }).build();
+export const privateRootFeature = DiBag.createModuleBuilder().register({ helper: rooted }).contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'transient')).buildModule([]);
+export const privateRootHost = DiBag.createBuilder().installModule(privateRootFeature).register({ rootAll }).build();
+export const rootContribution = DiBag.createModuleBuilder().register({ helper: rooted }).contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'root')).buildModule([]);
+DiBag.createBuilder().installModule(rootContribution).build();
 class Collection { constructor(readonly values: readonly number[]) {} }
 const classProvider = DiBag.fromClass([all], Collection);
 const functionProvider = DiBag.fromFunction([all], values => values);
-export const adapters = DiBag.begin().add({ classProvider, functionProvider }).end();
+export const adapters = DiBag.createBuilder().register({ classProvider, functionProvider }).build();
 export type MoreExact = [Assert<Equal<ReturnType<typeof bag.resolveAll<typeof numbers>>, readonly number[]>>,
-  Assert<Equal<ModuleContributions<ReturnType<ReturnType<typeof DiBag.module>['exports']>>, Readonly<{}>>>,
+  Assert<Equal<ModuleContributions<ReturnType<ReturnType<typeof DiBag.createModuleBuilder>['buildModule']>>, Readonly<{}>>>,
   Assert<Equal<ReturnType<typeof aggregateBag.resolve<'values'>>, readonly number[]>>];
 export function inferredContribution() { return builder.contribute(numbers, () => 4); }
 export function explicitContribution() { return builder.contribute<typeof numbers, () => number>(numbers, () => 4); }
@@ -46,23 +46,16 @@ export type ReflectedExact = [Assert<Equal<IsAny<ReturnType<typeof contribute>>,
   Assert<Equal<IsAny<Parameters<typeof contribute>[1]>, false>>,
   Assert<Equal<ReturnType<typeof inferredContribution>, ReturnType<typeof explicitContribution>>>];
 export const promisedKey = Symbol('promise'); export const promised = DiBag.token(promisedKey).of<Promise<number>>();
-export const promiseBag = DiBag.begin().contribute(promised, DiBag.factory(() => Promise.resolve(1), { acquisition: 'raw' })).end();
+export const promiseBag = DiBag.createBuilder().contribute(promised, DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' })).build();
 const promisedValues = promiseBag.resolveAll(promised);
 export type PromiseExact = Assert<Equal<typeof promisedValues, readonly Promise<number>[]>>;
-const rootAliasFeature = DiBag.module().add({ helper: rooted }).alias('copy', 'helper')
-  .contribute(numbers, DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient')).exports([]);
-DiBag.begin().install(rootAliasFeature).add({ rootAll }).end();
-export const scopedAggregate = rootBag.scope();
-export const rootedHelper = DiBag.begin().add({ helper: rooted, rootAll: allProvider })
-  .contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'transient')).end();
-rootedHelper.scope(['rootAll'], { rootAll: DiBag.withLifetime(allProvider, 'root') });
-export const replacementContext = DiBag.begin().add({ clock: () => ({ now: () => 1, unused: () => true }) })
-  .contribute(numbers, ({ clock }: { clock: { now(): number } }) => clock.now())
-  .replace('clock', () => ({ now() { return 2; }, extra() { return true; } })).end();
-export const moduleReplacementContext = DiBag.module().add({ clock: () => ({ now: () => 1, unused: () => true }) })
-  .contribute(numbers, ({ clock }: { clock: { now(): number } }) => clock.now())
-  .replace('clock', () => ({ now() { return 2; }, extra() { return true; } })).exports([]);
+const rootAliasFeature = DiBag.createModuleBuilder().register({ helper: rooted }).alias('copy', 'helper').contribute(numbers, DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient')).buildModule([]);
+DiBag.createBuilder().installModule(rootAliasFeature).register({ rootAll }).build();
+export const scopedAggregate = rootBag.createScope();
+export const rootedHelper = DiBag.createBuilder().register({ helper: rooted, rootAll: allProvider }).contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'transient')).build();
+rootedHelper.createScope(['rootAll'], { rootAll: DiBag.withLifetime(allProvider, 'root') });
+export const replacementContext = DiBag.createBuilder().register({ clock: () => ({ now: () => 1, unused: () => true }) }).contribute(numbers, ({ clock }: { clock: { now(): number } }) => clock.now()).replace('clock', () => ({ now() { return 2; }, extra() { return true; } })).build();
+export const moduleReplacementContext = DiBag.createModuleBuilder().register({ clock: () => ({ now: () => 1, unused: () => true }) }).contribute(numbers, ({ clock }: { clock: { now(): number } }) => clock.now()).replace('clock', () => ({ now() { return 2; }, extra() { return true; } })).buildModule([]);
 export type ReplacementExact = Assert<Equal<ReturnType<typeof replacementContext.resolve<'clock'>>, { now(): number; extra(): boolean }>>;
-export const sharedAliasBase = DiBag.begin().add({ helper: rooted, consumer: allProvider }).alias('copy', 'helper')
-  .contribute(numbers, DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient')).end();
-export const sharedAliasRoot = sharedAliasBase.scope(['helper', 'consumer'], { helper: () => 2, consumer: rootAll }, { share: ['copy'] });
+export const sharedAliasBase = DiBag.createBuilder().register({ helper: rooted, consumer: allProvider }).alias('copy', 'helper').contribute(numbers, DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient')).build();
+export const sharedAliasRoot = sharedAliasBase.createScope(['helper', 'consumer'], { helper: () => 2, consumer: rootAll }, { share: ['copy'] });

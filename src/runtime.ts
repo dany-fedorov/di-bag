@@ -1,9 +1,10 @@
-import { Acquisitions } from './acquisition';
+import { diagnostic, libraryError } from './errors';
+import { ScopeAcquisitions } from './acquisition';
 import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import { normalize } from './registration';
 import type { Registration, Registrations } from './registration';
-import type { InspectionSnapshot } from './inspection';
+import type { RegistrationSnapshot } from './inspection';
 import { requireClassificationCapability } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
 
@@ -96,15 +97,15 @@ export class BindingGraph {
   preflight(context: RuntimeContext): void {
     if (context.isNativePromise || this.#explicitlyClassified) return;
     for (const description of this.#registrations.values()) {
-      requireClassificationCapability([description.acquisition, ...description.operations.flatMap(operation =>
-        'acquisition' in operation ? [operation.acquisition] : [])], context);
+      requireClassificationCapability([description.acquisitionMode, ...description.operations.flatMap(operation =>
+        'acquisitionMode' in operation ? [operation.acquisitionMode] : [])], context);
     }
     this.#explicitlyClassified = true;
   }
 
   publicBinding(key: BindingKey): BindingId {
     const id = this.#publicSlots.get(key);
-    if (id === undefined) throw new Error(`no factory for ${String(key)}`);
+    if (id === undefined) throw libraryError('DI_BAG_MISSING_REGISTRATION', `Service ${JSON.stringify(String(key))} is not registered.`, { operation: 'resolve', key });
     return id;
   }
 
@@ -114,13 +115,14 @@ export class BindingGraph {
   }
 
   dependency(from: BindingId, localName: BindingKey): BindingId {
-    const ref = this.#bindings.get(from)?.localNames.get(localName);
-    return ref?.kind === 'private' ? ref.id : this.publicBinding(ref?.key ?? localName);
+    const target = this.findDependency(from, localName);
+    if (target === undefined) throw libraryError('DI_BAG_MISSING_DEPENDENCY', `Cannot resolve ${JSON.stringify(this.label(from))}: dependency ${JSON.stringify(String(localName))} is not registered.`, { operation: 'resolve', consumer: this.label(from), dependency: localName, path: Object.freeze([this.label(from), String(localName)]) });
+    return target;
   }
 
   registration(id: BindingId): Normalized {
     const registration = this.#registrations.get(id);
-    if (!registration) throw new Error(`no factory for ${this.label(id)}`);
+    if (!registration) throw libraryError('DI_BAG_MISSING_REGISTRATION', `Service ${JSON.stringify(this.label(id))} is not registered.`, { bindingId: id });
     return registration;
   }
 
@@ -152,7 +154,7 @@ export class BindingGraph {
   /** Install disjoint public slots atomically, retaining lexical private refs. */
   withInstallation(description: GraphDescription): BindingGraph {
     for (const key of description.publicSlots.keys()) {
-      if (this.#publicSlots.has(key)) throw new Error(`duplicate registration: ${String(key)}`);
+      if (this.#publicSlots.has(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'installModule', key });
     }
     const installation = new BindingGraph(description);
     const graph = this.copy();
@@ -167,20 +169,21 @@ export class BindingGraph {
 }
 
 /** Each runtime owns its acquisitions; immutable descriptions remain reusable. */
-export class Runtime {
-  private readonly acquisitions: Acquisitions;
-  private readonly children = new Set<Runtime>();
+export class BagRuntime {
+  private readonly acquisitions: ScopeAcquisitions;
+  private readonly children = new Set<BagRuntime>();
   private closing: Promise<void> | undefined;
+  private state: 'open' | 'closing' | 'closed' = 'open';
 
   constructor(
     private readonly graph: BindingGraph,
     private readonly context: RuntimeContext,
     private detach: (() => void) | undefined = undefined,
-    private readonly parentAcquisitions?: Acquisitions,
+    private readonly parentAcquisitions?: ScopeAcquisitions,
     shared: readonly BindingId[] = [],
   ) {
     graph.preflight(context);
-    this.acquisitions = new Acquisitions(graph, context, parentAcquisitions, shared);
+    this.acquisitions = new ScopeAcquisitions(graph, context, parentAcquisitions, shared);
     this.observeScope('scope-opened');
   }
 
@@ -190,7 +193,7 @@ export class Runtime {
 
   resolveAll(key: symbol): readonly unknown[] { return this.acquisitions.resolveAll(key); }
 
-  inspectAll(key: symbol): readonly InspectionSnapshot<object, readonly unknown[]>[] {
+  inspectAll(key: symbol): readonly RegistrationSnapshot<object, readonly unknown[]>[] {
     return Object.freeze(this.graph.contributionBindings(key).map(bindingId => this.inspectBinding(bindingId)));
   }
 
@@ -202,11 +205,11 @@ export class Runtime {
     return this.acquisitions.isTransient(this.graph.publicBinding(key));
   }
 
-  inspect(key: BindingKey): InspectionSnapshot<object, readonly unknown[]> {
+  inspect(key: BindingKey): RegistrationSnapshot<object, readonly unknown[]> {
     return this.inspectBinding(this.graph.publicBinding(key));
   }
 
-  private inspectBinding(bindingId: BindingId): InspectionSnapshot<object, readonly unknown[]> {
+  private inspectBinding(bindingId: BindingId): RegistrationSnapshot<object, readonly unknown[]> {
     return Object.freeze({
       bindingId,
       label: this.graph.label(bindingId),
@@ -216,14 +219,14 @@ export class Runtime {
   }
 
   assertOpen(): void {
-    if (this.closing) throw new Error('bag is closing');
+    if (this.state !== 'open') throw libraryError(this.state === 'closing' ? 'DI_BAG_CLOSING' : 'DI_BAG_CLOSED', `bag is ${this.state}`, { state: this.state });
     this.acquisitions.assertOpen();
   }
 
-  scope(graph: BindingGraph = this.graph, shared: readonly BindingId[] = []): Runtime {
+  scope(graph: BindingGraph = this.graph, shared: readonly BindingId[] = []): BagRuntime {
     this.assertOpen();
-    let child!: Runtime;
-    child = new Runtime(graph, this.context, () => { this.children.delete(child); }, this.acquisitions, shared);
+    let child!: BagRuntime;
+    child = new BagRuntime(graph, this.context, () => { this.children.delete(child); }, this.acquisitions, shared);
     this.children.add(child);
     return child;
   }
@@ -235,6 +238,7 @@ export class Runtime {
     const closing = new Promise<void>((resolve, fail) => { fulfill = resolve; reject = fail; });
     // Publish before recursively closing children or starting local cleanup.
     this.closing = closing;
+    this.state = 'closing';
     this.observeScope('scope-closing');
 
     const childClosing = [...this.children].map(child => {
@@ -251,8 +255,8 @@ export class Runtime {
     }
     catch (error) { localClosing = Promise.reject(error); }
     void this.finishClose(childResults, localClosing).then(
-      () => { fulfill(); this.observeScope('scope-closed'); },
-      error => { reject(error); this.observeScope('scope-close-failed', error); },
+      () => { this.state = 'closed'; fulfill(); this.observeScope('scope-closed'); },
+      error => { this.state = 'closed'; reject(error); this.observeScope('scope-close-failed', error); },
     );
 
     const detach = this.detach;
@@ -295,7 +299,7 @@ export class Runtime {
       const errors = failures.length > 0
         ? [new DiBagCleanupError(failures), ...unexpected]
         : unexpected;
-      throw new AggregateError(errors, `Failed to close ${errors.length} runtime operation(s)`);
+      throw diagnostic(new AggregateError(errors, `Failed to close ${errors.length} runtime operation(s)`), 'DI_BAG_CLOSE_FAILED', { operation: 'close', failedOperations: errors.length });
     }
     if (failures.length > 0) throw new DiBagCleanupError(failures);
   }

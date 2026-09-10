@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { DiBag } from '../src/node';
 import { BindingGraph } from '../src/runtime';
-import { Runtime } from './runtime-context';
+import { BagRuntime } from './runtime-context';
 import type { BindingDescription } from '../src/runtime';
 import { deferred } from './helpers';
 
@@ -23,7 +23,7 @@ test('private bindings with the same label have distinct memoized identities', a
   let leftCreated = 0;
   let rightCreated = 0;
   let serviceCreated = 0;
-  const runtime = new Runtime(graph([
+  const runtime = new BagRuntime(graph([
     { id: leftId, label: 'connection', registration: () => {
       leftCreated++;
       return leftConnection;
@@ -47,7 +47,7 @@ test('private bindings with the same label have distinct memoized identities', a
   expect(runtime.resolve('left')).toBe(runtime.resolve('left'));
   expect(runtime.resolve('alias')).toBe(runtime.resolve('left'));
   expect([leftCreated, rightCreated, serviceCreated]).toEqual([1, 1, 1]);
-  expect(() => runtime.resolve('connection')).toThrow('no factory');
+  expect(() => runtime.resolve('connection')).toThrow('is not registered');
   await runtime.close();
 });
 
@@ -55,7 +55,7 @@ test('an owned private dependency closes after its public dependent', async () =
   const connection = Symbol('connection');
   const dependent = Symbol('dependent');
   const disposed: string[] = [];
-  const runtime = new Runtime(graph([
+  const runtime = new BagRuntime(graph([
     { id: connection, label: 'connection', registration: DiBag.withDisposal(() => 'private', value => { disposed.push(value); }), localNames: new Map() },
     { id: dependent, label: 'dependent', registration: DiBag.withDisposal(
       ({ connection }: { connection: string }) => {
@@ -73,7 +73,7 @@ test('private Promise-valued bindings preserve their original exposed identity',
   const resource = Symbol('resource');
   const dependent = Symbol('dependent');
   const original = Promise.resolve({ id: 'real' });
-  const runtime = new Runtime(graph([
+  const runtime = new BagRuntime(graph([
     { id: resource, label: 'resource', registration: () => original, localNames: new Map() },
     { id: dependent, label: 'dependent', registration: ({ resource }: { resource: typeof original }) => resource,
       localNames: new Map([['resource', { kind: 'private', id: resource }]]) },
@@ -103,8 +103,8 @@ test('graph snapshots preserve lexical private refs while forks use replaced pub
     }) => ({ private: deps.privateConnection, public: deps.connection }), localNames },
   ], [['connection', publicId], ['service', service]]);
   localNames.set('privateConnection', { kind: 'private', id: publicId });
-  const parent = new Runtime(description);
-  const fork = new Runtime(description.withPublicRegistrations({ connection: () => ({ scope: 'fork' }) }));
+  const parent = new BagRuntime(description);
+  const fork = new BagRuntime(description.withPublicRegistrations({ connection: () => ({ scope: 'fork' }) }));
   expect(parent.resolve('service')).toEqual({ private: { scope: 'private' }, public: { scope: 'parent' } });
   expect(fork.resolve('service')).toEqual({ private: { scope: 'private' }, public: { scope: 'fork' } });
   expect(parent.resolve('service')).not.toBe(fork.resolve('service'));
@@ -135,8 +135,8 @@ test('batch public bindings preserve ordered duplicates and retained private ide
     ['named', () => 'named'],
     [publicKey, () => 'final'],
   ]);
-  const parent = new Runtime(original);
-  const child = new Runtime(batch);
+  const parent = new BagRuntime(original);
+  const child = new BagRuntime(batch);
   expect(parent.resolve(publicKey)).toBe('parent');
   expect(child.resolve(publicKey)).toBe('final');
   expect(child.resolve('named')).toBe('named');
@@ -158,7 +158,7 @@ test('mutating graph input maps cannot change public lookup or binding descripti
   bindings.clear();
   publicSlots.clear();
   description.registration = () => 0;
-  const runtime = new Runtime(immutable);
+  const runtime = new BagRuntime(immutable);
   expect(runtime.resolve('value')).toBe(42);
   await runtime.close();
 });
@@ -167,7 +167,7 @@ test('cycles through private aliases discovered after await show binding labels'
   const a = Symbol();
   const b = Symbol();
   const gate = deferred<void>();
-  const runtime = new Runtime(graph([
+  const runtime = new BagRuntime(graph([
     { id: a, label: 'left', registration: async (deps: { next: Promise<unknown> }) => {
       await gate.promise;
       return deps.next;

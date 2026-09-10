@@ -1,26 +1,26 @@
 import { DiBag } from '../../../src';
 
-const needed = DiBag.module().add({
+const needed = DiBag.createModuleBuilder().register({
   hidden: ({ value }: { value: number }) => value,
-}).exports([]);
-const wrong = DiBag.module().add({ value: () => 'wrong' }).exports(['value']);
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().install(needed).install(wrong);
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().install(wrong).install(needed);
-// diagnostic: missing factories
-DiBag.begin().install(needed).end();
+}).buildModule([]);
+const wrong = DiBag.createModuleBuilder().register({ value: () => 'wrong' }).buildModule(['value']);
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().installModule(needed).installModule(wrong);
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().installModule(wrong).installModule(needed);
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().installModule(needed).build();
 
 const key = Symbol('value');
 const narrow = DiBag.token(key).of<number>();
 const wide = DiBag.token(key).of<number | string>();
-const needsWide = DiBag.module().add({
-  hidden: DiBag.fromTokens([wide], value => value),
-}).exports([]);
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().bind(narrow, () => 1).install(needsWide);
-const optionallyNeedsWide = DiBag.module().add({
-  hidden: DiBag.fromTokens([DiBag.optional(wide)], value => value ?? 0),
-}).exports([]);
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().bind(narrow, () => 1).install(optionallyNeedsWide);
+const needsWide = DiBag.createModuleBuilder().register({
+  hidden: DiBag.fromFunction([wide], value => value),
+}).buildModule([]);
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().register(narrow, () => 1).installModule(needsWide);
+const optionallyNeedsWide = DiBag.createModuleBuilder().register({
+  hidden: DiBag.fromFunction([DiBag.optional(wide)], value => value ?? 0),
+}).buildModule([]);
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().register(narrow, () => 1).installModule(optionallyNeedsWide);

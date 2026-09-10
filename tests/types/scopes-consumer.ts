@@ -10,6 +10,6 @@ const named: Promise<number> = child.resolve('asyncNamed');
 const token: { readonly id: 'token'; read(): number } = grandchild.resolve(exactToken);
 const raw: Promise<{ id: 'raw' }> = child.resolve('rawOwned');
 const renamed: { hidden: true } = child.resolve('renamed');
-const owner: 'scope' = grandchild.inspect('rawOwned').metadata.owner;
+const owner: 'scope' = grandchild.inspect('rawOwned').registrationMetadata.owner;
 void [root, named, token, raw, renamed, owner];
 export type Checks = [SameChild, SameGrandchild, ChildIsNotAny];

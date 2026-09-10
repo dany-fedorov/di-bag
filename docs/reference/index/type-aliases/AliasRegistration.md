@@ -5,7 +5,7 @@
 # Type Alias: AliasRegistration\<R *extends* `Registrations`, D, T\>
 
 ```ts
-type AliasRegistration<R extends Registrations, D, T> = Provider<(this: void, deps: T extends string ? Record<T, AliasOutput<R, T>> : Record<never, never>) => AliasOutput<R, T>, Readonly<object>, readonly unknown[], TokenGraph<T extends TokenBase ? readonly [T] : readonly [], D extends TokenBase ? D : never> & {
+type AliasRegistration<R extends Registrations, D, T> = Provider<(this: void, deps: T extends string ? Record<T, AliasOutput<R, T>> : Record<never, never>) => AliasOutput<R, T>, Readonly<object>, readonly unknown[], TokenDependencyContract<T extends TokenBase ? readonly [T] : readonly [], D extends TokenBase ? D : never> & {
     readonly alias: SelectionKey<T>;
 }, unknown>;
 ```

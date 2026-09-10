@@ -1,9 +1,9 @@
 import { DiBag } from '../../../src';
-const module = DiBag.module().add({ value: ({ external }: { external: number }) => external }).exports(['value']);
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().install(module).add({ external: () => 'wrong' });
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().add({ external: () => 'wrong' }).install(module);
-const other = DiBag.module().add({ value2: ({ external }: { external: string }) => external }).exports(['value2']);
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().install(module).install(other).add({ external: () => 1 });
+const module = DiBag.createModuleBuilder().register({ value: ({ external }: { external: number }) => external }).buildModule(['value']);
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().installModule(module).register({ external: () => 'wrong' });
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().register({ external: () => 'wrong' }).installModule(module);
+const other = DiBag.createModuleBuilder().register({ value2: ({ external }: { external: string }) => external }).buildModule(['value2']);
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().installModule(module).installModule(other).register({ external: () => 1 });

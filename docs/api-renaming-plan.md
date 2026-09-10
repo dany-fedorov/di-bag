@@ -1,9 +1,12 @@
 # API renaming and consolidation plan
 
 Recorded on 2026-09-10 from the API review and subsequent naming discussion.
-This document is the entry point for the proposed API changes. It records
-accepted choices and remaining recommendations; the API changes have not been
-implemented.
+The changes are implemented with the consolidated forms selected below. See the
+[final decisions and assumptions](superpowers/specs/2026-09-10-api-renaming-design.md)
+and [migration guide](migrations/api-renaming.md) for the current API. The
+[implementation verification report](reports/2026-09-10-api-renaming-verification.md)
+records the final checks. The original
+review inventory below retains the alternatives considered during planning.
 
 Supporting reviews contain source links, reproduced diagnostics, and the full
 inventory:
@@ -23,10 +26,10 @@ resource ownership.
 | Area | Status |
 | --- | --- |
 | Combined `withMetadata(provider, { static, dynamic })` | Accepted, including mode-dependent callback and output types. |
-| `transformServiceDirect` / `transformServiceAwaited` | Accepted long names for the existing transformation pair. |
-| Single `transformService(provider, { mode, transform })` | Subsequent consolidation recommendation; would replace that pair if selected. |
-| More descriptive builder, type, and diagnostic names | Direction supported; specific alternatives below remain recommendations where no spelling was selected. |
-| Consolidating adapters, registration, factory context, and facade configuration | Recommendations from the latest review. |
+| `transformServiceDirect` / `transformServiceAwaited` | Superseded by the single mode-based method. |
+| Single `transformService(provider, { mode, transform })` | Selected and implemented; direct output acquisition remains independently configurable. |
+| More descriptive builder, type, and diagnostic names | Preferred names below implemented, including `installModule` and plugin validation error naming. |
+| Consolidating adapters, registration, factory context, and facade configuration | All implemented; `fromFactory` defaults to `auto`, with context explicitly opt-in. |
 
 **Accepted metadata API.**
 
@@ -93,15 +96,14 @@ This options shape needs an explicit migration from today's
 
 **Service transformation.**
 
-The accepted method renames are:
+The earlier accepted pair was:
 
 | Current | Accepted name |
 | --- | --- |
 | `mapSync` | `transformServiceDirect` |
 | `mapAsync` | `transformServiceAwaited` |
 
-The latest recommendation is to combine them using the same mode convention
-as metadata:
+The implemented API combines them using the same mode convention as metadata:
 
 ```ts
 DiBag.transformService(connectionProvider, {
@@ -127,8 +129,7 @@ Unlike metadata callbacks, transformation callbacks may return Promises.
 Preserve the direct variant's separate output acquisition policy for readiness
 and disposal; `mode: 'direct'` must not erase explicit raw-Promise support.
 
-Choose the pair or the consolidated method before migration. Do not introduce
-both as equally preferred APIs.
+The consolidated method is the only public form; no aliases are retained.
 
 **Further consolidation recommendations.**
 
@@ -163,9 +164,8 @@ alias without deciding which acceptance rules survive.
 
 For `fromFactory`, an explicit option such as `context: 'acquisition'` should
 select the two-argument callback and keep context allocation opt-in. Do not
-infer context use from function arity. The merged method's acquisition default
-still needs a decision: today's `factory` requires a mode, while `withContext`
-defaults to `auto`.
+infer context use from function arity. The merged method defaults to `auto`; the migration guide explains explicit raw
+and native Promise policies.
 
 **Other method and field renames.**
 
@@ -283,7 +283,6 @@ Retain deprecated aliases only when compatibility requires them; show one
 preferred form in documentation. Preserve static/dynamic metadata separation,
 raw versus fulfilled acquisition semantics, and ordered disposal throughout.
 
-Earlier reviews verified current behavior with targeted runtime tests and
-compiler probes. Those results support the findings; they do not validate the
-future combined signatures, which require their own compiler and runtime
-validation.
+The original reviews used targeted runtime tests and compiler probes to establish
+the pre-migration findings. Verification of the implemented combined signatures
+is recorded separately in the implementation verification report.

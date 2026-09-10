@@ -47,18 +47,18 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
         Object.defineProperty(pending, 'then', { value: undefined });
         const key = Symbol('shared'); const token = Core.token(key).of();
         const disposed = [];
-        const source = Core.withAcquisitionMetadata(() => pending, value => ({ samePromise: value === pending }));
+        const source = Core.withMetadata(() => pending, { dynamic: { mode: 'direct', describe: value => ({ samePromise: value === pending }) } });
         const owned = Core.withDisposal(source, value => { disposed.push(value === resource ? 'resource' : 'wrong'); });
-        const bag = DiBag.begin().bind(token, owned).end();
+        const bag = DiBag.createBuilder().register(token, owned).build();
         const acquired = bag.resolve(token);
         const identity = acquired === pending;
         const nativePromise = acquired instanceof Promise;
-        const metadata = bag.inspect(token).acquisitions[0].metadata;
+        const metadata = bag.inspect(token).acquisitions[0].acquisitionMetadata;
         const closing = bag.close(); await Promise.resolve(); await Promise.resolve();
         const before = [...disposed]; release(resource); await closing;
-        let preflight = false; try { Core.begin().add({ value: () => 1 }).end(); } catch { preflight = true; }
+        let preflight = false; try { Core.createBuilder().register({ value: () => 1 }).build(); } catch { preflight = true; }
         const rawDisposed = [];
-        const raw = Core.begin().add({ value: Core.withDisposal(Core.factory(() => pending, { acquisition: 'raw' }), value => { rawDisposed.push(value === pending); }) }).end();
+        const raw = Core.createBuilder().register({ value: Core.withDisposal(Core.fromFactory(() => pending, { acquisitionMode: 'raw' }), value => { rawDisposed.push(value === pending); }) }).build();
         raw.resolve('value'); await raw.close();
         console.log(JSON.stringify({ identity, nativePromise, metadata, before, disposed, preflight, rawDisposed }));
       })().catch(error => { console.error(error); process.exitCode = 1; });`);
@@ -83,15 +83,13 @@ for (const mode of ['commonjs', 'module'] as const) {
         const privateToken = first.DiBag.token(privateKey).of();
         const raw = Promise.resolve(7);
         let privateIds = 0;
-        const read = first.DiBag.fromTokens([publicToken, privateToken], (value, local) => ({ value: value.answer, privateId: local.id }));
-        const promiseValue = first.DiBag.fromTokens([promiseToken], value => value);
-        const feature = second.DiBag.module().bind(privateToken, () => ({ id: ++privateIds }))
-          .add({ read, promiseValue }).exports(['read', 'promiseValue']);
-        const firstFeature = feature.rename('read', 'firstRead').rename('promiseValue', 'firstPromise');
-        const secondFeature = feature.rename('read', 'secondRead').rename('promiseValue', 'secondPromise');
+        const read = first.DiBag.fromFunction([publicToken, privateToken], (value, local) => ({ value: value.answer, privateId: local.id }));
+        const promiseValue = first.DiBag.fromFunction([promiseToken], value => value);
+        const feature = second.DiBag.createModuleBuilder().register(privateToken, () => ({ id: ++privateIds })).register({ read, promiseValue }).buildModule(['read', 'promiseValue']);
+        const firstFeature = feature.renameExport('read', 'firstRead').renameExport('promiseValue', 'firstPromise');
+        const secondFeature = feature.renameExport('read', 'secondRead').renameExport('promiseValue', 'secondPromise');
         const publicValue = { answer: 42 };
-        const root = second.DiBag.begin().install(firstFeature).install(secondFeature)
-          .bind(publicToken, () => publicValue).bind(promiseToken, () => raw).end();
+        const root = second.DiBag.createBuilder().installModule(firstFeature).installModule(secondFeature).register(publicToken, () => publicValue).register(promiseToken, () => raw).build();
         const rootPublic = root.resolve(samePublicToken);
         const rootFirst = root.resolve('firstRead');
         const rootSecond = root.resolve('secondRead');
@@ -139,10 +137,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     const consumerFixture = feature === 'token-modules' ? 'types/token-modules/consumer.ts'
       : feature === 'incremental-modules' ? 'types/incremental-modules-consumer.ts'
         : 'types/replacement-reflection-consumer.ts';
-    const source = readFileSync(resolve(__dirname, producerFixture), 'utf8')
-      .replace("import type { Assert, Equal } from './assert';", "type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;")
-      .replace(/from '(?:\.\.\/)+src\/(module-types)'/g, "from './node_modules/di-bag/dist/$1.js'")
-      .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`);
+    const source = readFileSync(resolve(__dirname, producerFixture), 'utf8').replace("import type { Assert, Equal } from './assert';", "type Assert<T extends true> = T; type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;").replace(/from '(?:\.\.\/)+src\/(module-types)'/g, "from './node_modules/di-bag/dist/$1.js'").replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`);
     writeFileSync(featurePath, source);
     expect(existsSync(featurePath)).toBe(true);
     const options: ts.CompilerOptions = {
@@ -174,9 +169,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     expect(existsSync(declarationPath)).toBe(true);
     rmSync(featurePath);
     expect(existsSync(featurePath)).toBe(false);
-    const consumerSource = readFileSync(resolve(__dirname, consumerFixture), 'utf8')
-      .replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`)
-      .replace(feature === 'token-modules' ? "from './feature'"
+    const consumerSource = readFileSync(resolve(__dirname, consumerFixture), 'utf8').replace(/from '(?:\.\.\/)+src(\/[^']+)?'/g, (_match, subpath: string | undefined) => `from 'di-bag${subpath ?? ''}'`).replace(feature === 'token-modules' ? "from './feature'"
         : feature === 'incremental-modules' ? "from './incremental-modules'"
           : "from './replacement-reflection'", `from './${feature}-feature.${runtimeExtension}'`);
     const { rootDir: _rootDir, outDir: _outDir, ...sharedConsumerOptions } = options;

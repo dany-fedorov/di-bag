@@ -4,20 +4,20 @@ import { deferred } from './helpers';
 import { AcquisitionFamily } from '../src/acquisition-family';
 import type { AttemptIdentity } from '../src/acquisition-family';
 
-// Deliberate JS boundary: only invalid captive fixtures bypass Builder.end checks.
-function uncheckedRuntimeGraph(builder: { end: Function }) { return builder.end(); }
+// Deliberate JS boundary: only invalid captive fixtures bypass BagBuilder.build checks.
+function uncheckedRuntimeGraph(builder: { build: Function }) { return builder.build(); }
 
 test('root, scoped and transient identity have distinct ownership', async () => {
   const log: string[] = [];
   const registration = (label: string) => DiBag.withDisposal(
     () => ({ label }), value => { log.push(value.label); },
   );
-  const parent = DiBag.begin().add({
+  const parent = DiBag.createBuilder().register({
     root: DiBag.withLifetime(registration('root'), 'root'),
     scoped: registration('scoped'),
     transient: DiBag.withLifetime(registration('transient'), 'transient'),
-  }).end();
-  const child = parent.scope();
+  }).build();
+  const child = parent.createScope();
   expect(child.inspect('root').acquisitions).toHaveLength(0);
   expect(parent.inspect('root').acquisitions).toHaveLength(0);
   const shared = child.resolve('root');
@@ -37,14 +37,14 @@ test('root, scoped and transient identity have distinct ownership', async () => 
 
 test('child-first roots capture dependencies in the root owner through grandchildren and forks', async () => {
   const events: string[] = [];
-  const parent = DiBag.begin().add({
+  const parent = DiBag.createBuilder().register({
     scoped: DiBag.withDisposal(() => ({}), () => { events.push('scoped'); }),
     transient: DiBag.withLifetime(DiBag.withDisposal(() => ({}), () => { events.push('transient'); }), 'transient'),
     root: DiBag.withLifetime(DiBag.withDisposal((deps: { scoped: object; transient: object }) =>
-      ({ scoped: deps.scoped, transient: deps.transient }), () => { events.push('root'); }), 'root', { captureScoped: true }),
-  }).end();
-  const child = parent.scope();
-  const grandchild = child.scope();
+      ({ scoped: deps.scoped, transient: deps.transient }), () => { events.push('root'); }), 'root', { allowScopedDependencies: true }),
+  }).build();
+  const child = parent.createScope();
+  const grandchild = child.createScope();
   const fork = child.fork();
   const acquired = grandchild.resolve('root');
   expect(acquired).toBe(child.resolve('root'));
@@ -64,9 +64,9 @@ test('child-first roots capture dependencies in the root owner through grandchil
 test('same-object transients own separate attempts and preserve every cleanup cause', async () => {
   const value = {};
   const cause = new Error('cleanup');
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     value: DiBag.withLifetime(DiBag.withDisposal(() => value, () => { throw cause; }), 'transient'),
-  }).end();
+  }).build();
   expect(bag.resolve('value')).toBe(value);
   expect(bag.resolve('value')).toBe(value);
   const ids = bag.inspect('value').acquisitions.map(item => item.acquisitionId);
@@ -85,11 +85,11 @@ test('raw and native lifetimes retain original pending promises and classificati
   const gate = deferred<object>();
   const rawDisposed: Promise<object>[] = [];
   const nativeDisposed: object[] = [];
-  const bag = DiBag.begin().add({
-    raw: DiBag.withLifetime(DiBag.withDisposal(DiBag.factory(() => gate.promise, { acquisition: 'raw' }), value => { rawDisposed.push(value); }), 'root'),
-    native: DiBag.withLifetime(DiBag.withDisposal(DiBag.factory(() => gate.promise, { acquisition: 'native' }), value => { nativeDisposed.push(value); }), 'transient'),
-  }).end();
-  const child = bag.scope();
+  const bag = DiBag.createBuilder().register({
+    raw: DiBag.withLifetime(DiBag.withDisposal(DiBag.fromFactory(() => gate.promise, { acquisitionMode: 'raw' }), value => { rawDisposed.push(value); }), 'root'),
+    native: DiBag.withLifetime(DiBag.withDisposal(DiBag.fromFactory(() => gate.promise, { acquisitionMode: 'nativePromise' }), value => { nativeDisposed.push(value); }), 'transient'),
+  }).build();
+  const child = bag.createScope();
   expect(child.resolve('raw')).toBe(gate.promise);
   expect(bag.resolve('raw')).toBe(gate.promise);
   expect(child.inspect('raw').acquisitions.map(item => item.state)).toEqual(['ready']);
@@ -109,8 +109,8 @@ test('raw and native lifetimes retain original pending promises and classificati
 test('failed root cache entries retry across children with new acquisition identities', async () => {
   const gate = deferred<number>();
   let calls = 0;
-  const bag = DiBag.begin().add({ root: DiBag.withLifetime(() => ++calls === 1 ? gate.promise : Promise.resolve(42), 'root') }).end();
-  const child = bag.scope();
+  const bag = DiBag.createBuilder().register({ root: DiBag.withLifetime(() => ++calls === 1 ? gate.promise : Promise.resolve(42), 'root') }).build();
+  const child = bag.createScope();
   expect(child.resolve('root')).toBe(gate.promise);
   expect(bag.resolve('root')).toBe(gate.promise);
   const first = bag.inspect('root').acquisitions[0]!.acquisitionId;
@@ -127,7 +127,7 @@ test('failed root cache entries retry across children with new acquisition ident
 test('public synchronous transient reentrancy is rejected before a second factory invocation', async () => {
   let calls = 0;
   let reenter = (): object => ({});
-  const bag = DiBag.begin().add({ value: DiBag.withLifetime(() => { calls++; return reenter(); }, 'transient') }).end();
+  const bag = DiBag.createBuilder().register({ value: DiBag.withLifetime(() => { calls++; return reenter(); }, 'transient') }).build();
   reenter = () => bag.resolve('value');
   expect(reenter).toThrow('cycle: value -> value');
   expect(calls).toBe(1);
@@ -137,10 +137,10 @@ test('public synchronous transient reentrancy is rejected before a second factor
 test('pure transient post-await ancestry rejects repeated construction', async () => {
   const gate = deferred<void>();
   let calls = 0;
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     a: DiBag.withLifetime(async (deps: { b: Promise<number> }): Promise<number> => { calls++; await gate.promise; return deps.b; }, 'transient'),
     b: DiBag.withLifetime(async (deps: { a: Promise<number> }): Promise<number> => { await gate.promise; return deps.a; }, 'transient'),
-  }).end();
+  }).build();
   const a = bag.resolve('a');
   gate.resolve();
   await expect(a).rejects.toThrow('cycle: a -> b -> a');
@@ -150,10 +150,10 @@ test('pure transient post-await ancestry rejects repeated construction', async (
 
 test('mixed cached and transient post-await cycles preserve acquisition graph detection', async () => {
   const gate = deferred<void>();
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     a: async (deps: { b: Promise<number> }): Promise<number> => { await gate.promise; return deps.b; },
     b: DiBag.withLifetime(async (deps: { a: Promise<number> }): Promise<number> => { await gate.promise; return deps.a; }, 'transient'),
-  }).end();
+  }).build();
   const a = bag.resolve('a');
   const b = bag.resolve('b');
   gate.resolve();
@@ -165,7 +165,7 @@ test('mixed cached and transient post-await cycles preserve acquisition graph de
 test('independent pending transient calls are distinct nonrecursive acquisitions', async () => {
   const gates = [deferred<number>(), deferred<number>()];
   let calls = 0;
-  const bag = DiBag.begin().add({ value: DiBag.withLifetime(() => gates[calls++]!.promise, 'transient') }).end();
+  const bag = DiBag.createBuilder().register({ value: DiBag.withLifetime(() => gates[calls++]!.promise, 'transient') }).build();
   const a = bag.resolve('value');
   const b = bag.resolve('value');
   expect(a).toBe(gates[0]!.promise);
@@ -179,9 +179,9 @@ test('independent pending transient calls are distinct nonrecursive acquisitions
 test('a ready transient proxy may create a fresh instance on each later method call', async () => {
   type Value = { next(): Value };
   let calls = 0;
-  const bag = DiBag.begin().add({ value: DiBag.withLifetime((deps: { value: Value }): Value => {
+  const bag = DiBag.createBuilder().register({ value: DiBag.withLifetime((deps: { value: Value }): Value => {
     calls++; return { next: () => deps.value };
-  }, 'transient') }).end();
+  }, 'transient') }).build();
   const first = bag.resolve('value');
   const second = first.next();
   expect(second).not.toBe(first);
@@ -194,11 +194,11 @@ test('a ready transient proxy may create a fresh instance on each later method c
 test('pending child work acquires roots during parent close and root cleanup follows child cleanup', async () => {
   const gate = deferred<void>();
   const events: string[] = [];
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     root: DiBag.withLifetime(DiBag.withDisposal(() => { events.push('root:open'); return {}; }, () => { events.push('root:close'); }), 'root'),
     child: DiBag.withDisposal(async (deps: { root: object }) => { await gate.promise; return deps.root; }, () => { events.push('child:close'); }),
-  }).end();
-  const child = bag.scope();
+  }).build();
+  const child = bag.createScope();
   const pending = child.resolve('child');
   const closing = bag.close();
   expect(() => child.resolve('root')).toThrow('bag is closing');
@@ -213,7 +213,7 @@ for (const cached of [false, true]) for (const intermediate of [false, true]) {
   test(`strict roots reject ${cached ? 'cached' : 'new'} scoped reads ${intermediate ? 'through a transient' : 'directly'}`, async () => {
     let factories = 0;
     let returned = 0;
-    const bag = uncheckedRuntimeGraph(DiBag.begin().add({
+    const bag = uncheckedRuntimeGraph(DiBag.createBuilder().register({
       scoped: () => { factories++; return {}; },
       bridge: DiBag.withLifetime((deps: { scoped: object }) => { const result = deps.scoped; returned++; return result; }, 'transient'),
       root: DiBag.withLifetime((deps: { scoped: object; bridge: object }) => {
@@ -221,7 +221,7 @@ for (const cached of [false, true]) for (const intermediate of [false, true]) {
       }, 'root'),
     }));
     if (cached) bag.resolve('scoped');
-    expect(() => bag.scope().resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
+    expect(() => bag.createScope().resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
     expect(factories).toBe(cached ? 1 : 0);
     expect(returned).toBe(0);
     await bag.close();
@@ -232,13 +232,13 @@ test('strict capture boundaries survive await and ready transient methods', asyn
   const gate = deferred<void>();
   let factories = 0;
   type Bridge = { read(): number; next(): Bridge };
-  const bag = uncheckedRuntimeGraph(DiBag.begin().add({
+  const bag = uncheckedRuntimeGraph(DiBag.createBuilder().register({
     scoped: () => { factories++; return 42; },
     bridge: DiBag.withLifetime((deps: { scoped: number; bridge: Bridge }): Bridge => ({ read: () => deps.scoped, next: () => deps.bridge }), 'transient'),
     root: DiBag.withLifetime(async (deps: { bridge: Bridge }) => { await gate.promise; return deps.bridge; }, 'root'),
     direct: DiBag.withLifetime(async (deps: { scoped: number }) => { await gate.promise; return deps.scoped; }, 'root'),
   }));
-  const pending: Promise<Bridge> = bag.scope().resolve('root');
+  const pending: Promise<Bridge> = bag.createScope().resolve('root');
   const direct: Promise<number> = bag.resolve('direct');
   gate.resolve();
   await expect(direct).rejects.toThrow('root lifetime cannot capture scoped dependency');
@@ -252,13 +252,13 @@ test('strict capture boundaries survive await and ready transient methods', asyn
 });
 
 test('strict roots can consume capturing roots without inheriting their permission', async () => {
-  const bag = uncheckedRuntimeGraph(DiBag.begin().add({
+  const bag = uncheckedRuntimeGraph(DiBag.createBuilder().register({
     scoped: () => ({}),
-    capturing: DiBag.withLifetime((deps: { scoped: object }) => deps.scoped, 'root', { captureScoped: true }),
+    capturing: DiBag.withLifetime((deps: { scoped: object }) => deps.scoped, 'root', { allowScopedDependencies: true }),
     strict: DiBag.withLifetime((deps: { capturing: object }) => deps.capturing, 'root'),
     other: DiBag.withLifetime((deps: { capturing: object; scoped: object }) => { void deps.capturing; return deps.scoped; }, 'root'),
   }));
-  const child = bag.scope();
+  const child = bag.createScope();
   expect(child.resolve('strict')).toBe(bag.resolve('scoped'));
   expect(child.resolve('strict')).not.toBe(child.resolve('scoped'));
   expect(() => child.resolve('other')).toThrow('root lifetime cannot capture scoped dependency');
@@ -269,10 +269,10 @@ test('token captive reads reject at the observed edge before scoped creation', a
   const key = Symbol('scoped');
   const token = DiBag.token(key).of<number>();
   let factories = 0;
-  const bag = uncheckedRuntimeGraph(DiBag.begin().bind(token, () => { factories++; return 42; }).add({
-    root: DiBag.withLifetime(DiBag.fromTokens([token], value => value), 'root'),
+  const bag = uncheckedRuntimeGraph(DiBag.createBuilder().register(token, () => { factories++; return 42; }).register({
+    root: DiBag.withLifetime(DiBag.fromFunction([token], value => value), 'root'),
   }));
-  expect(() => bag.scope().resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
+  expect(() => bag.createScope().resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
   expect(factories).toBe(0);
   await bag.close();
 });
@@ -280,13 +280,13 @@ test('token captive reads reject at the observed edge before scoped creation', a
 test('renamed module exports retain private root and transient ownership despite public collisions', async () => {
   let sequence = 0;
   const events: number[] = [];
-  const feature = DiBag.module().add({
+  const feature = DiBag.createModuleBuilder().register({
     privateRoot: DiBag.withLifetime(DiBag.withDisposal(() => ({ id: ++sequence }), value => { events.push(value.id); }), 'root'),
     bridge: DiBag.withLifetime(DiBag.withDisposal((deps: { privateRoot: { id: number } }) => ({ root: deps.privateRoot, id: ++sequence }), value => { events.push(value.id); }), 'transient'),
     read: (deps: { bridge: { root: { id: number }; id: number } }) => () => deps.bridge,
-  }).exports(['read', 'bridge']).rename('bridge', 'privateRoot');
-  const parent = DiBag.begin().install(feature).end();
-  const child = parent.scope();
+  }).buildModule(['read', 'bridge']).renameExport('bridge', 'privateRoot');
+  const parent = DiBag.createBuilder().installModule(feature).build();
+  const child = parent.createScope();
   const first = child.resolve('read')();
   const second = child.resolve('privateRoot');
   expect(first.id).toBe(2);
@@ -302,15 +302,15 @@ test('renamed module exports retain private root and transient ownership despite
 
 test('private module scoped capture rejects despite an identically named public root', async () => {
   let calls = 0;
-  const feature = DiBag.module().add({
+  const feature = DiBag.createModuleBuilder().register({
     scoped: () => { calls++; return 1; },
     bridge: DiBag.withLifetime((deps: { scoped: number }) => deps.scoped, 'transient'),
-  }).exports(['bridge']).rename('bridge', 'exported');
-  const bag = uncheckedRuntimeGraph(DiBag.begin().install(feature).add({
+  }).buildModule(['bridge']).renameExport('bridge', 'exported');
+  const bag = uncheckedRuntimeGraph(DiBag.createBuilder().installModule(feature).register({
     scoped: DiBag.withLifetime(() => 2, 'root'),
     root: DiBag.withLifetime((deps: { exported: number }) => deps.exported, 'root'),
   }));
-  expect(() => bag.scope().resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
+  expect(() => bag.createScope().resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
   expect(calls).toBe(0);
   await bag.close();
 });
@@ -325,15 +325,15 @@ test('failed root rollback and retry retain distinct ownership across child cons
     events.push(`root:${value.id}:start`);
     if (value.id === 1) { await rollback.promise; events.push('root:1:end'); throw cleanupFailure; }
   });
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     dependency: DiBag.withLifetime(DiBag.withDisposal(() => ({}), () => { events.push('dependency'); }), 'root'),
-    root: DiBag.withLifetime(DiBag.mapSync(source, value => { if (value.id === 1) throw failure; return value; }), 'root'),
+    root: DiBag.withLifetime(DiBag.transformService(source, { mode: 'direct', transform: value => { if (value.id === 1) throw failure; return value; } }), 'root'),
     child: DiBag.withDisposal((deps: { root: { dependency: object; id: number } }) => {
       try { void deps.root; } catch {}
       return () => deps.root;
     }, () => { events.push('child'); }),
-  }).end();
-  const child = bag.scope();
+  }).build();
+  const child = bag.createScope();
   const retry = child.resolve('child');
   const first = bag.inspect('root').acquisitions[0]!;
   expect(first.state).toBe('failed');
@@ -354,12 +354,12 @@ test('failed root rollback and retry retain distinct ownership across child cons
 
 test('child close releases its attempts while a child-first root remains pending', async () => {
   const gate = deferred<void>();
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     dependency: DiBag.withLifetime(() => ({}), 'root'),
     root: DiBag.withLifetime(async (deps: { dependency: object }) => { await gate.promise; return deps.dependency; }, 'root'),
     child: (deps: { root: Promise<object> }) => ({ root: deps.root }),
-  }).end();
-  const child = bag.scope();
+  }).build();
+  const child = bag.createScope();
   const pending = child.resolve('child').root;
   await child.close();
   expect(child.inspect('child').acquisitions).toHaveLength(0);
@@ -375,15 +375,15 @@ test('completed child and retired proxies cannot borrow another attempt closing 
   let first = true;
   let stale = () => 0;
   let rootCalls = 0;
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     root: DiBag.withLifetime(() => { rootCalls++; return 42; }, 'root'),
     read: (deps: { root: number }) => () => deps.root,
     retry: (deps: { root: number }) => {
       if (first) { first = false; stale = () => deps.root; throw new Error('failed'); }
       return gate.promise;
     },
-  }).end();
-  const child = bag.scope();
+  }).build();
+  const child = bag.createScope();
   const read = child.resolve('read');
   expect(() => child.resolve('retry')).toThrow('failed');
   expect(child.resolve('retry')).toBe(gate.promise);
@@ -399,11 +399,11 @@ test('completed child and retired proxies cannot borrow another attempt closing 
 test('pending source permission survives a ready projection when routing late roots', async () => {
   const gate = deferred<void>();
   const events: string[] = [];
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     root: DiBag.withLifetime(DiBag.withDisposal(() => 42, () => { events.push('root'); }), 'root'),
-    child: DiBag.mapSync(DiBag.withDisposal(async (deps: { root: number }) => { await gate.promise; return deps.root; }, () => { events.push('child'); }), () => 7),
-  }).end();
-  const child = bag.scope();
+    child: DiBag.transformService(DiBag.withDisposal(async (deps: { root: number }) => { await gate.promise; return deps.root; }, () => { events.push('child'); }), { mode: 'direct', transform: () => 7 }),
+  }).build();
+  const child = bag.createScope();
   expect(child.resolve('child')).toBe(7);
   expect(child.inspect('child').acquisitions.map(item => item.state)).toEqual(['ready']);
   const closing = bag.close();
@@ -439,10 +439,10 @@ test('family retirement removes cross-owner incoming edges but preserves outgoin
 test('retired transient ancestry does not block a retained proxy from retrying its binding', async () => {
   let calls = 0;
   let retry = () => 0;
-  const bag = DiBag.begin().add({ value: DiBag.withLifetime((deps: { value: number }): number => {
+  const bag = DiBag.createBuilder().register({ value: DiBag.withLifetime((deps: { value: number }): number => {
     if (++calls === 1) { retry = () => deps.value; throw new Error('failed'); }
     return calls;
-  }, 'transient') }).end();
+  }, 'transient') }).build();
   expect(() => bag.resolve('value')).toThrow('failed');
   expect(retry()).toBe(2);
   expect(retry()).toBe(3);
@@ -454,10 +454,10 @@ test('token roots retain family ownership through a transient token consumer and
   const key = Symbol('root');
   const token = DiBag.token(key).of<object>();
   let closed = 0;
-  const bag = DiBag.begin().bind(token, DiBag.withLifetime(DiBag.withDisposal(() => ({}), () => { closed++; }), 'root')).add({
-    bridge: DiBag.withLifetime(DiBag.fromTokens([token], root => ({ root })), 'transient'),
-  }).end();
-  const child = bag.scope();
+  const bag = DiBag.createBuilder().register(token, DiBag.withLifetime(DiBag.withDisposal(() => ({}), () => { closed++; }), 'root')).register({
+    bridge: DiBag.withLifetime(DiBag.fromFunction([token], root => ({ root })), 'transient'),
+  }).build();
+  const child = bag.createScope();
   expect(child.resolve('bridge').root).toBe(bag.resolve(token));
   const replacement = {};
   const fork = bag.fork([token], { [key]: DiBag.withLifetime(() => replacement, 'root') });
@@ -472,11 +472,11 @@ test('token roots retain family ownership through a transient token consumer and
 test('pending source permission survives failed projection rollback for late root reads', async () => {
   const gate = deferred<void>();
   const events: string[] = [];
-  const bag = DiBag.begin().add({
+  const bag = DiBag.createBuilder().register({
     root: DiBag.withLifetime(DiBag.withDisposal(() => 42, () => { events.push('root'); }), 'root'),
-    child: DiBag.mapSync(DiBag.withDisposal(async (deps: { root: number }) => { await gate.promise; return deps.root; }, () => { events.push('child'); }), (): number => { throw new Error('projection'); }),
-  }).end();
-  const child = bag.scope();
+    child: DiBag.transformService(DiBag.withDisposal(async (deps: { root: number }) => { await gate.promise; return deps.root; }, () => { events.push('child'); }), { mode: 'direct', transform: (): number => { throw new Error('projection'); } }),
+  }).build();
+  const child = bag.createScope();
   expect(() => child.resolve('child')).toThrow('projection');
   expect(child.inspect('child').acquisitions.map(item => item.state)).toEqual(['failed']);
   const closing = bag.close();

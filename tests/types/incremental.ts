@@ -1,39 +1,36 @@
 import {
   DiBag,
   type ProviderAcquisitionMetadata,
-  type ProviderMetadata,
-  type TokenGraph,
+  type ProviderRegistrationMetadata,
+  type TokenDependencyContract,
 } from '../../src';
-import type { ProviderGraph } from '../../src/provider';
+import type { ProviderGraphContract } from '../../src/provider';
 import type { Assert, Equal } from './assert';
 
-const forward = DiBag.begin().add({ read: ({ value }: { value: number }) => value })
-  .add({ value: () => 1 }).end();
+const forward = DiBag.createBuilder().register({ read: ({ value }: { value: number }) => value }).register({ value: () => 1 }).build();
 const forwardValue = forward.resolve('read');
 type Forward = Assert<Equal<typeof forwardValue, number>>;
 
 const key = Symbol('service');
 const token = DiBag.token(key).of<{ value: number }>();
 const same = DiBag.token(key).of<{ value: number }>();
-const initial = DiBag.begin().add({ read: DiBag.fromTokens([same], value => value.value) })
-  .bind(token, () => ({ value: 1, original: true as const }));
-const replaced = initial.replace(token, () => ({ value: 2, richer: true as const })).end();
+const initial = DiBag.createBuilder().register({ read: DiBag.fromFunction([same], value => value.value) }).register(token, () => ({ value: 1, original: true as const }));
+const replaced = initial.replace(token, () => ({ value: 2, richer: true as const })).build();
 const actual = replaced.resolve(token);
 type Rich = Assert<Equal<typeof actual, { value: number; richer: true }>>;
 
-const feature = DiBag.module().add({ hidden: ({ external }: { external: number }) => external }).exports([]);
-DiBag.begin().install(feature).add({ external: () => 1 }).replace('external', () => 2).end();
+const feature = DiBag.createModuleBuilder().register({ hidden: ({ external }: { external: number }) => external }).buildModule([]);
+DiBag.createBuilder().installModule(feature).register({ external: () => 1 }).replace('external', () => 2).build();
 
-const frameSource = DiBag.withMetadata(DiBag.fromTokens([token], value => Promise.resolve(value.value)), { owner: 'fixture' as const });
-const framed = DiBag.withAcquisitionMetadata(frameSource, () => ({ stage: 'framed' as const }));
-const framedBag = DiBag.begin().add({ framed }).bind(token, () => ({ value: 1 }))
-  .replace('framed', framed).end();
+const frameSource = DiBag.withMetadata(DiBag.fromFunction([token], value => Promise.resolve(value.value)), { static: { owner: 'fixture' as const } });
+const framed = DiBag.withMetadata(frameSource, { dynamic: { mode: 'direct', describe: () => ({ stage: 'framed' as const }) } });
+const framedBag = DiBag.createBuilder().register({ framed }).register(token, () => ({ value: 1 })).replace('framed', framed).build();
 const framedValue = framedBag.resolve('framed');
 const inspection = framedBag.inspect('framed');
 type Frames = [Assert<Equal<typeof framedValue, Promise<number>>>,
-  Assert<Equal<ProviderGraph<typeof framed>, TokenGraph<readonly [typeof token]>>>,
-  Assert<Equal<typeof inspection.metadata, ProviderMetadata<typeof framed>>>,
+  Assert<Equal<ProviderGraphContract<typeof framed>, TokenDependencyContract<readonly [typeof token]>>>,
+  Assert<Equal<typeof inspection.registrationMetadata, ProviderRegistrationMetadata<typeof framed>>>,
   Assert<Equal<ProviderAcquisitionMetadata<typeof framed>, readonly [Readonly<{ stage: 'framed' }>]>>];
 
 const numberFactory = () => 2;
-DiBag.begin().add({ value: () => 1 }).replace<'value', typeof numberFactory>('value', numberFactory).end();
+DiBag.createBuilder().register({ value: () => 1 }).replace<'value', typeof numberFactory>('value', numberFactory).build();

@@ -22,15 +22,12 @@ export const compositionAdapterRuntimeAssertions = `
       }), 'root');
     const functionProvider = DiBag.fromFunction([portToken], model.multiply.bind(model));
     const rawProvider = DiBag.withDisposal(
-      DiBag.fromFunction([pendingToken], value => value, { acquisition: 'raw' }),
+      DiBag.fromFunction([pendingToken], value => value, { acquisitionMode: 'raw' }),
       value => { assertAdapter(value === pendingValue, 'raw function acquisition changed'); disposed++; },
     );
     assertAdapter(created === 0, 'adapter eagerly constructed service');
-    const adapterRoot = DiBag.begin()
-      .bind(portToken, DiBag.withLifetime(() => 8080, 'root'))
-      .bind(pendingToken, () => pendingValue)
-      .add({ client: classProvider, multiply: functionProvider, raw: rawProvider }).end();
-    const adapterChild = adapterRoot.scope({ share: ['raw'] });
+    const adapterRoot = DiBag.createBuilder().register(portToken, DiBag.withLifetime(() => 8080, 'root')).register(pendingToken, () => pendingValue).register({ client: classProvider, multiply: functionProvider, raw: rawProvider }).build();
+    const adapterChild = adapterRoot.createScope({ share: ['raw'] });
     const client = adapterChild.resolve('client');
     assertAdapter(client instanceof Client && client.constructedAs === Client && client.read() === 8080, 'class semantics changed');
     assertAdapter(adapterRoot.resolve('client') === client && created === 1, 'class root identity changed');

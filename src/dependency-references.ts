@@ -1,3 +1,4 @@
+import { libraryError } from './errors';
 import { readTokenKey } from './tokens';
 import type { TokenBase, TokenService } from './tokens';
 import type { TokenTupleAdmission, ValidToken } from './token-types';
@@ -6,17 +7,17 @@ declare const referenceInvariant: unique symbol;
 class ReferenceBase {
   declare private readonly nominal: void;
 }
-class DependencyReference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'> extends ReferenceBase {
+class DependencyHandle<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'> extends ReferenceBase {
   declare readonly [referenceInvariant]: (value: [T, K]) => [T, K];
 }
 /** A positional dependency that yields the token service or `undefined` when unbound. */
-export type OptionalReference<T extends TokenBase> = DependencyReference<T, 'optional'>;
+export type OptionalDependency<T extends TokenBase> = DependencyHandle<T, 'optional'>;
 /** A positional dependency that yields all contributions for a token as a readonly array. */
-export type AllReference<T extends TokenBase> = DependencyReference<T, 'all'>;
+export type CollectionDependency<T extends TokenBase> = DependencyHandle<T, 'all'>;
 /** A positional dependency that yields a function which resolves the token on demand. */
-export type LazyReference<T extends TokenBase> = DependencyReference<T, 'lazy'>;
+export type LazyDependency<T extends TokenBase> = DependencyHandle<T, 'lazy'>;
 /** A typed token or one of the positional dependency-reference handles. */
-export type Dependency = TokenBase | ReferenceBase;
+export type DependencyReference = TokenBase | ReferenceBase;
 // Extract invariant carriers through a covariant view of their return tuple.
 type ReferenceParts<R> = R extends { readonly [referenceInvariant]: (...args: never[]) => [infer T extends TokenBase, infer K] } ? [T, K] : never;
 export type DependencyToken<R> = R extends TokenBase ? R : ReferenceParts<R>[0];
@@ -34,9 +35,9 @@ export interface ArgumentReference {
 }
 const references = new WeakMap<object, Readonly<{ key: symbol; kind: 'optional' | 'lazy' | 'all' }>>();
 
-function reference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'>(token: T, kind: K): DependencyReference<T, K> {
+function reference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'>(token: T, kind: K): DependencyHandle<T, K> {
   const key = readTokenKey(token);
-  const handle = new DependencyReference<T, K>();
+  const handle = new DependencyHandle<T, K>();
   references.set(handle, Object.freeze({ key, kind }));
   Object.freeze(handle);
   return handle;
@@ -50,7 +51,7 @@ function reference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'>(t
  */
 export function optional<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>,
   ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []
-): OptionalReference<T> { return reference<T, 'optional'>(token, 'optional'); }
+): OptionalDependency<T> { return reference<T, 'optional'>(token, 'optional'); }
 
 /**
  * Describe a positional dependency supplied as an on-demand lookup function.
@@ -60,7 +61,7 @@ export function optional<T extends TokenBase>(token: T & TokenTupleAdmission<rea
  */
 export function lazy<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>,
   ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []
-): LazyReference<T> { return reference<T, 'lazy'>(token, 'lazy'); }
+): LazyDependency<T> { return reference<T, 'lazy'>(token, 'lazy'); }
 
 /**
  * Describe a positional dependency containing every contribution for a token.
@@ -69,11 +70,11 @@ export function lazy<T extends TokenBase>(token: T & TokenTupleAdmission<readonl
  */
 export function all<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>,
   ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []
-): AllReference<T> { return reference<T, 'all'>(token, 'all'); }
+): CollectionDependency<T> { return reference<T, 'all'>(token, 'all'); }
 
 /** Indexed snapshots ignore tuple iterators and retain only authenticated records. */
 export function snapshotReferences(value: unknown): readonly ArgumentReference[] {
-  if (!Array.isArray(value)) throw new Error('tokens must be a tuple');
+  if (!Array.isArray(value)) throw libraryError('DI_BAG_INVALID_TOKEN', 'tokens must be a tuple', { operation: 'token' });
   const selected: unknown[] = [];
   const length = value.length;
   for (let index = 0; index < length; index++) selected[index] = value[index];

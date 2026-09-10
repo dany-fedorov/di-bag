@@ -1,4 +1,4 @@
 import { DiBag } from '../../../src';
-const module = DiBag.module().add({ value: ({ external }: { external: number }) => external }).exports(['value']);
-// diagnostic: missing factories
-DiBag.begin().install(module).end();
+const module = DiBag.createModuleBuilder().register({ value: ({ external }: { external: number }) => external }).buildModule(['value']);
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().installModule(module).build();

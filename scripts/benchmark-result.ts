@@ -3,8 +3,8 @@ export type WorkerEvidence = { status: number | null; signal: string | null; err
 export type Diagnostic = { file?: string | undefined; line?: number | undefined; column?: number | undefined; code: number; message: string };
 
 export function acceptDiagnostics(diagnostics: readonly Diagnostic[], item: MatrixCase, expectedPath: string, boundaryLine: unknown): boolean {
-  const intended = item.scenario === 'missing' || item.scenario === 'missing-final-token' ? 'missing factories'
-    : item.form === 'bindings' ? 'token dependency has an incompatible or opaque contract' : 'a dependency has the wrong shape';
+  const intended = item.scenario === 'missing' || item.scenario === 'missing-final-token' ? 'required service registrations are missing'
+    : item.form === 'bindings' ? 'token dependency has an incompatible or opaque contract' : 'provided service does not satisfy its consumer dependency';
   return diagnostics.every(error => error.file === expectedPath)
     && (item.scenario === 'valid' ? diagnostics.length === 0
       : !diagnostics.some(error => error.code === 2589)

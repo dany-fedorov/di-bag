@@ -45,7 +45,7 @@ independent fork has its own root. Choose `withLifetime` for caching, and
 
 A root service must not capture request state. For example, keep a connection
 pool at the root and create a transaction in the request scope. DI Bag rejects
-root-to-scoped dependencies by default. The deliberate `captureScoped` option
+root-to-scoped dependencies by default. The deliberate `allowScopedDependencies` option
 uses the root's context, so it does not supply the current request's identity.
 See [lifetime rules](tutorial.md#choose-root-scoped-or-transient-caching).
 
@@ -62,17 +62,20 @@ type RequestContext = { id: string };
 type Catalog = Map<string, string>;
 
 export function createApplication() {
-  return DiBag.begin()
-    .add({
+  return DiBag.createBuilder()
+    .register({
       catalog: DiBag.withLifetime(
         DiBag.withDisposal(
           async () => new Map([['book', 'A good book']]),
-          catalog => catalog.clear(),
+          (catalog) => catalog.clear(),
         ),
         'root',
       ),
       request: (): RequestContext => ({ id: 'outside-request' }),
-      handler: ({ catalog, request }: {
+      handler: ({
+        catalog,
+        request,
+      }: {
         catalog: Promise<Catalog>;
         request: RequestContext;
       }) => ({
@@ -84,19 +87,19 @@ export function createApplication() {
         },
       }),
     })
-    .start(['catalog']);
+    .buildAndStart(['catalog']);
 }
 
 export type Application = Awaited<ReturnType<typeof createApplication>>;
 
 export function createRequestScope(app: Application, requestId: string) {
-  return app.scope(['request'], {
+  return app.createScope(['request'], {
     request: () => ({ id: requestId }),
   });
 }
 ```
 
-`start(['catalog'])` creates the application bag and waits for the catalog before
+`buildAndStart(['catalog'])` creates the application bag and waits for the catalog before
 the server starts listening. The catalog still resolves as `Promise<Catalog>`;
 startup does not rewrite its public type. Every request gets a fresh `handler`
 and `request`, while inheriting the root's catalog. Resolving the handler through
@@ -125,7 +128,10 @@ export async function withOwnedScope<S extends { close(): Promise<void> }, R>(
     try {
       await scope.close();
     } catch (cleanupError) {
-      throw new AggregateError([error, cleanupError], 'Work and scope cleanup both failed');
+      throw new AggregateError(
+        [error, cleanupError],
+        'Work and scope cleanup both failed',
+      );
     }
     throw error;
   }
@@ -136,7 +142,7 @@ export async function withOwnedScope<S extends { close(): Promise<void> }, R>(
 
 It waits for application work and cleanup before returning. If both fail, it
 preserves both errors. If acquiring the scope fails, there is no acquired scope
-for this helper to close; `start()` handles its own startup rollback.
+for this helper to close; `buildAndStart()` handles its own startup rollback.
 
 Now save `handle-request.ts`:
 
@@ -147,7 +153,7 @@ import { withOwnedScope } from './owned-scope.ts';
 export function handleRequest(app: Application, requestId: string) {
   return withOwnedScope(
     () => createRequestScope(app, requestId),
-    scope => scope.resolve('handler').list(),
+    (scope) => scope.resolve('handler').list(),
   );
 }
 ```
@@ -167,7 +173,7 @@ export function onShutdown(stop: () => Promise<void>) {
   const beginShutdown = () => {
     if (stopping) return;
     stopping = true;
-    void stop().catch(error => {
+    void stop().catch((error) => {
       console.error('Shutdown failed', error);
       process.exitCode = 1;
     });
@@ -205,7 +211,7 @@ const server = createServer((request, response) => {
     const body = await handleRequest(app, crypto.randomUUID());
     response.writeHead(200, { 'content-type': 'application/json' });
     response.end(JSON.stringify(body));
-  })().catch(error => {
+  })().catch((error) => {
     console.error(error);
     if (!response.headersSent && !response.destroyed) {
       response.writeHead(500).end('Internal server error');
@@ -223,12 +229,15 @@ try {
   throw error;
 }
 
-onShutdown(() => withOwnedScope(
-  () => app,
-  () => new Promise<void>((resolve, reject) => {
-    server.close(error => error ? reject(error) : resolve());
-  }),
-));
+onShutdown(() =>
+  withOwnedScope(
+    () => app,
+    () =>
+      new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      }),
+  ),
+);
 ```
 
 Try `curl http://127.0.0.1:3000/items`. Each response has its own request ID.
@@ -280,12 +289,15 @@ try {
   throw error;
 }
 
-onShutdown(() => withOwnedScope(
-  () => services,
-  () => new Promise<void>((resolve, reject) => {
-    server.close(error => error ? reject(error) : resolve());
-  }),
-));
+onShutdown(() =>
+  withOwnedScope(
+    () => services,
+    () =>
+      new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      }),
+  ),
+);
 ```
 
 Express 5 forwards rejected async route handlers to error middleware. For
@@ -312,7 +324,7 @@ import { onShutdown } from './node-shutdown.ts';
 const services = await createApplication();
 const server = Fastify({ logger: true });
 
-server.get('/items', request => handleRequest(services, request.id));
+server.get('/items', (request) => handleRequest(services, request.id));
 server.addHook('onClose', async () => {
   await services.close();
 });
@@ -372,7 +384,12 @@ const server = await (async () => {
   }
 })();
 
-onShutdown(() => withOwnedScope(() => app, () => server.stop()));
+onShutdown(() =>
+  withOwnedScope(
+    () => app,
+    () => server.stop(),
+  ),
+);
 ```
 
 [`server.stop()`](https://bun.sh/docs/runtime/http/server#server-stop) waits for
@@ -397,53 +414,58 @@ type RequestContext = { id: string };
 type Catalog = Map<string, string>;
 
 export function createApplication() {
-  return DiBag.begin()
-    .add({
+  return DiBag.createBuilder()
+    .register({
       catalog: DiBag.withLifetime(
         DiBag.withDisposal(
-          DiBag.factory(async () => new Map([['book', 'A good book']]), {
-            acquisition: 'native',
+          DiBag.fromFactory(async () => new Map([['book', 'A good book']]), {
+            acquisitionMode: 'nativePromise',
           }),
-          catalog => catalog.clear(),
+          (catalog) => catalog.clear(),
         ),
         'root',
       ),
-      request: DiBag.factory(
-        (): RequestContext => ({ id: 'outside-request' }),
-        { acquisition: 'raw' },
+      request: DiBag.fromFactory((): RequestContext => ({ id: 'outside-request' }), {
+        acquisitionMode: 'raw',
+      }),
+      handler: DiBag.fromFactory(
+        ({
+          catalog,
+          request,
+        }: {
+          catalog: Promise<Catalog>;
+          request: RequestContext;
+        }) => ({
+          async list() {
+            return {
+              requestId: request.id,
+              items: Array.from((await catalog).values()),
+            };
+          },
+        }),
+        { acquisitionMode: 'raw' },
       ),
-      handler: DiBag.factory(({ catalog, request }: {
-        catalog: Promise<Catalog>;
-        request: RequestContext;
-      }) => ({
-        async list() {
-          return {
-            requestId: request.id,
-            items: Array.from((await catalog).values()),
-          };
-        },
-      }), { acquisition: 'raw' }),
     })
-    .start(['catalog']);
+    .buildAndStart(['catalog']);
 }
 
 export type Application = Awaited<ReturnType<typeof createApplication>>;
 
 export function createRequestScope(app: Application, requestId: string) {
-  return app.scope(['request'], {
-    request: DiBag.factory(() => ({ id: requestId }), { acquisition: 'raw' }),
+  return app.createScope(['request'], {
+    request: DiBag.fromFactory(() => ({ id: requestId }), { acquisitionMode: 'raw' }),
   });
 }
 ```
 
 Keep `owned-scope.ts` and `handle-request.ts` from the earlier sections.
 `raw` preserves the exact value without inspecting `then`.
-`native` tracks a genuine native promise and gives its fulfillment to the
-disposer. Wrapping with `withDisposal`, `withLifetime`, `withMetadata`, or
-`withAcquisitionMetadata` preserves the chosen mode. `mapSync` and
+`nativePromise` tracks a genuine native promise and gives its fulfillment to the
+disposer. Wrapping with `withDisposal`, `withLifetime`, static `withMetadata`, or
+direct dynamic `withMetadata` preserves the chosen mode. `transformService` and
 positional adapters may introduce new automatic stages; select explicit modes
-where those APIs accept an acquisition option. `mapAsync` and
-`withAcquisitionMetadataAsync` declare native acquisition. See
+where those APIs accept an acquisition option. `transformService` and dynamic `withMetadata` in `awaited` mode declare native
+acquisition. Direct transformations select their own output `acquisitionMode`. See
 [portable host configuration](tutorial.md#portable-mode).
 
 Save this as `server.ts` and run `deno run --allow-net server.ts`:
@@ -455,7 +477,7 @@ import { handleRequest } from './handle-request.ts';
 const app = await createApplication();
 const server = await (async () => {
   try {
-    return Deno.serve({ port: 3000, hostname: '127.0.0.1' }, async request => {
+    return Deno.serve({ port: 3000, hostname: '127.0.0.1' }, async (request) => {
       if (request.method !== 'GET' || new URL(request.url).pathname !== '/items') {
         return new Response('Not found', { status: 404 });
       }
@@ -496,26 +518,29 @@ lets pending requests finish; `finished` observes server completion. See
 
 ## Startup failures and deadlines
 
-Use `.end()` for a completely lazy bag, or `.start(keys, options)` before
+Use `.build()` for a completely lazy bag, or `.buildAndStart(keys, options)` before
 opening a listener when selected services must be ready. Starting a service
 does not eagerly resolve unrelated registrations.
 
 ```ts
 import { DiBagStartupCancelledError, DiBagStartupError } from 'di-bag/node';
 
-// builder is your completed application builder, before .end() or .start().
+// builder is your completed application builder, before .build() or .buildAndStart().
 try {
-  const app = await builder.start(['catalog'], {
+  const app = await builder.buildAndStart(['catalog'], {
     timeoutMs: 5_000,
-    concurrency: 'parallel',
+    startupOrder: 'parallel',
   });
   // Start the listener, then close app during server shutdown.
 } catch (error) {
   if (error instanceof DiBagStartupCancelledError) {
     try {
-      await error.cleanup;
+      await error.cleanupPromise;
     } catch (cleanupError) {
-      throw new AggregateError([error, cleanupError], 'Startup cancellation and cleanup failed');
+      throw new AggregateError(
+        [error, cleanupError],
+        'Startup cancellation and cleanup failed',
+      );
     }
   } else if (error instanceof DiBagStartupError) {
     console.error(error.cause, error.cleanupFailures);
@@ -525,7 +550,7 @@ try {
 ```
 
 Cancellation rejects promptly, so its cleanup may still be running. A factory
-using `withContext` can forward the supplied signal to a cooperative operation
+using `fromFactory` can forward the supplied signal to a cooperative operation
 such as `fetch`. Cancelling the startup wait cannot terminate arbitrary code.
 The full [startup API](tutorial.md#start-selected-services-and-cancel-cooperatively)
 covers external signals, sequential startup, readiness, and rollback.
@@ -541,7 +566,7 @@ operation ends and observe cleanup rejection.
 Scope closure tracks acquisitions and disposers, not every later method call
 on a service. Directly closing a scope from a disconnect hook is appropriate
 only when no active service method still needs its owned resources. Otherwise,
-that can dispose a connection while a handler is using it. `withContext` lets
+that can dispose a connection while a handler is using it. `fromFactory` lets
 acquisition work cooperate with the scope's signal; it does not automatically
 cancel later method calls. Closing a child cannot abort root-owned shared
 resources. A signal alone does not prove that work has stopped.
@@ -573,7 +598,7 @@ application, handle one job like this:
 ```ts
 const result = await withOwnedScope(
   () => createRequestScope(app, 'job-42'),
-  scope => scope.resolve('handler').list(),
+  (scope) => scope.resolve('handler').list(),
 );
 // Acknowledge the message after work and cleanup succeed.
 console.log(result);
@@ -598,16 +623,17 @@ import { withOwnedScope } from './owned-scope.ts';
 const app = await createApplication();
 try {
   await withOwnedScope(
-    () => app.fork(['catalog'], {
-      catalog: DiBag.withLifetime(
-        DiBag.withDisposal(
-          async () => new Map([['test', 'Test item']]),
-          catalog => catalog.clear(),
+    () =>
+      app.fork(['catalog'], {
+        catalog: DiBag.withLifetime(
+          DiBag.withDisposal(
+            async () => new Map([['test', 'Test item']]),
+            (catalog) => catalog.clear(),
+          ),
+          'root',
         ),
-        'root',
-      ),
-    }),
-    async testApp => {
+      }),
+    async (testApp) => {
       const response = await handleRequest(testApp, 'test-request');
       assert.deepEqual(response, {
         requestId: 'test-request',
@@ -631,14 +657,14 @@ well when validating routing, serialization, disconnects, or streaming.
 
 | Need | API and example |
 | --- | --- |
-| Keep a feature's connection private while exposing its service | [`module`, `exports`, `install`, `rename`](tutorial.md#reuse-named-modules) |
-| Inject a database contract into existing classes | [`token`, `bind`, `fromClass`](tutorial.md#adapt-classes-and-positional-functions) |
+| Keep a feature's connection private while exposing its service | [`createModuleBuilder`, `buildModule`, `installModule`, `renameExport`](tutorial.md#reuse-named-modules) |
+| Inject a database contract into existing classes | [`token`, `register`, `fromClass`](tutorial.md#adapt-classes-and-positional-functions) |
 | Assemble ordered middleware or job handlers | [`contribute`, `all`, `resolveAll`](tutorial.md#compose-an-ordered-collection) |
 | Enable optional telemetry | [`optional`](tutorial.md#declare-optional-and-lazy-dependencies) |
 | Defer an expensive dependency until a method needs it | [`lazy`](tutorial.md#declare-optional-and-lazy-dependencies) |
 | Give one service another public name | [`alias`](tutorial.md#give-a-dependency-another-lookup-name) |
-| Expose a narrow interface while keeping ownership of the original client | [`mapSync`, `mapAsync`, `withDisposal`](tutorial.md#project-services-explicitly) |
-| Label services and report acquisition events | [`withMetadata`, `inspect`, `observe`](tutorial.md#attach-metadata-and-inspect-without-resolving) |
+| Expose a narrow interface while keeping ownership of the original client | [`transformService`, `withDisposal`](tutorial.md#project-services-explicitly) |
+| Label services and report acquisition events | [`withMetadata`, `inspect`, `withConfiguration`](tutorial.md#attach-metadata-and-inspect-without-resolving) |
 | Load and validate an application-selected extension | [`fromPlugin`](tutorial.md#admit-an-application-selected-plugin) |
 
 NestJS and Angular also own controllers, components, and framework-specific
@@ -651,10 +677,10 @@ describes the integration responsibilities.
 | Symptom | What to check |
 | --- | --- |
 | Every request sees the placeholder ID | Resolve the handler from `createRequestScope`, not the root bag. |
-| A client intended to be shared opens once per request | Mark its registration `root`, or explicitly select parent sharing with `scope({ share: [...] })`. |
+| A client intended to be shared opens once per request | Mark its registration `root`, or explicitly select parent sharing with `createScope({ share: [...] })`. |
 | A child override does not affect a shared handler | Sharing borrows the parent's complete acquisition and original dependencies. Keep the handler scoped. |
 | A promise appears where a service was expected | Async factories expose promises. Declare and await that dependency explicitly. |
-| Portable `.end()` rejects before work begins | Check all factory and projection stages, including private modules and overrides, for an undeclared acquisition mode. |
+| Portable `.build()` rejects before work begins | Check all factory and projection stages, including private modules and overrides, for an undeclared acquisition mode. |
 | Cleanup never runs | Attach `withDisposal` and close the owning bag. A method named `close` does not imply ownership. |
 | Shutdown remains pending | Look for unfinished acquisitions, uncooperative disposers, active streams, or server connections. |
 | A dependency object cannot be spread or enumerated | Read declared properties directly; the runtime proxy cannot recover an erased parameter type's keys. |

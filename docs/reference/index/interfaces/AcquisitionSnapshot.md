@@ -28,10 +28,10 @@ Stable identity for this attempt; retries receive a new symbol.
 
 ***
 
-### metadata
+### acquisitionMetadata
 
 ```ts
-readonly metadata: FramePresenceTuple<A>;
+readonly acquisitionMetadata: AcquisitionMetadataPresence<A>;
 ```
 
 Defined in: [inspection.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L16)

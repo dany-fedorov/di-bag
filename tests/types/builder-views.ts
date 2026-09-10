@@ -5,13 +5,12 @@ const registrations = {
   value: () => 1,
   read: ({ value }: { value: number }) => value.toFixed(),
 };
-const original = DiBag.begin().add(registrations);
-const same: typeof original = DiBag.begin().add(registrations);
-const individual: typeof original = DiBag.begin()
-  .add({ value: registrations.value }).add({ read: registrations.read });
+const original = DiBag.createBuilder().register(registrations);
+const same: typeof original = DiBag.createBuilder().register(registrations);
+const individual: typeof original = DiBag.createBuilder().register({ value: registrations.value }).register({ read: registrations.read });
 const identity = <B,>(builder: B): B => builder;
 const retained: typeof original = identity(original);
-const result = retained.add({ extra: async () => true }).end();
+const result = retained.register({ extra: async () => true }).build();
 const text = result.resolve('read');
 const promised = result.resolve('extra');
 type Exact = [

@@ -7,7 +7,7 @@
 ```ts
 type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [
     Captives<R, C>
-] extends [never] ? unknown : unknown extends Checked<R> & Complete<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R> ? Unsatisfied<'root lifetime cannot capture scoped dependency', {
+] extends [never] ? unknown : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R> ? Unsatisfied<'root lifetime cannot capture scoped dependency', {
     readonly captives: Captives<R, C>;
 }> : unknown;
 ```

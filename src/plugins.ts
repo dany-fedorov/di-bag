@@ -1,25 +1,26 @@
+import { libraryError } from './errors';
 import { snapshotReferences } from './dependency-references';
-import type { Dependency } from './dependency-references';
-import { DiBagPluginError } from './errors';
-import { createProvider, mapAsync, mapSync } from './provider';
+import type { DependencyReference } from './dependency-references';
+import { DiBagPluginValidationError } from './errors';
+import { createProvider, transformService } from './provider';
 import type { Provider } from './provider';
 import { retainDescription, sourceDescription } from './provider-operations';
 import type { Factory } from './registration';
 import type { DependencyTupleAdmission, ReferenceGraph } from './token-types';
 
 /** The explicit output boundary used for an application-selected plugin. */
-export type PluginAcquisition = 'raw' | 'native';
+export type PluginAcquisitionMode = 'raw' | 'nativePromise';
 /** A synchronous predicate that admits an unknown plugin output as a service type. */
-export type PluginPredicate<V> = (this: void, value: unknown) => value is V;
-/** Validation and acquisition choices for {@link fromPlugin}. */
-export interface PluginOptions<M extends PluginAcquisition, V> {
-  /** Preserve the exact result with `raw`, or await a genuine native Promise with `native`. */
-  readonly acquisition: M;
+export type PluginOutputValidator<V> = (this: void, value: unknown) => value is V;
+/** Validation and acquisition choices for {@link DiBagApi.fromPlugin}. */
+export interface PluginOptions<M extends PluginAcquisitionMode, V> {
+  /** Preserve the exact result with `raw`, or await a genuine native Promise with `nativePromise`. */
+  readonly acquisitionMode: M;
   /** Must synchronously return exactly `true` for acceptable output values. */
-  readonly validate: PluginPredicate<V>;
+  readonly validate: PluginOutputValidator<V>;
 }
-/** The provider contract produced by {@link fromPlugin}. */
-export type PluginResult<T extends readonly Dependency[], V, M extends PluginAcquisition> = Provider<
+/** The provider contract produced by {@link DiBagApi.fromPlugin}. */
+export type PluginProvider<T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode> = Provider<
   () => M extends 'raw' ? V : Promise<Awaited<V>>,
   Readonly<{}>,
   readonly [],
@@ -33,21 +34,21 @@ type PluginDescriptor = {
   readonly dispose?: (value: unknown) => void | Promise<void>;
 };
 
-function invalidDescriptor(reason: string): DiBagPluginError {
-  return new DiBagPluginError('descriptor', reason);
+function invalidDescriptor(reason: string): DiBagPluginValidationError {
+  return new DiBagPluginValidationError('descriptor', reason);
 }
 
-function validateOptions<V>(value: unknown): { readonly acquisition: PluginAcquisition; readonly validate: PluginPredicate<V> } {
+function validateOptions<V>(value: unknown): { readonly acquisitionMode: PluginAcquisitionMode; readonly validate: PluginOutputValidator<V> } {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new Error('plugin requires acquisition and validate options');
+    throw libraryError('DI_BAG_INVALID_PLUGIN_OPTIONS', 'fromPlugin requires acquisitionMode and validate options', { operation: 'fromPlugin' });
   }
-  if (!Object.hasOwn(value, 'acquisition')) throw new Error('plugin requires an acquisition mode');
-  const acquisition = Reflect.get(value, 'acquisition');
-  if (acquisition !== 'raw' && acquisition !== 'native') throw new Error('invalid plugin acquisition mode');
-  if (!Object.hasOwn(value, 'validate')) throw new Error('plugin requires a validation predicate');
+  if (!Object.hasOwn(value, 'acquisitionMode')) throw libraryError('DI_BAG_INVALID_PLUGIN_OPTIONS', 'fromPlugin requires acquisitionMode', { operation: 'fromPlugin' });
+  const acquisitionMode = Reflect.get(value, 'acquisitionMode');
+  if (acquisitionMode !== 'raw' && acquisitionMode !== 'nativePromise') throw libraryError('DI_BAG_INVALID_PLUGIN_OPTIONS', 'fromPlugin acquisitionMode must be raw or nativePromise', { operation: 'fromPlugin' });
+  if (!Object.hasOwn(value, 'validate')) throw libraryError('DI_BAG_INVALID_PLUGIN_OPTIONS', 'fromPlugin requires a validation predicate', { operation: 'fromPlugin' });
   const validate = Reflect.get(value, 'validate');
-  if (typeof validate !== 'function') throw new Error('plugin validation predicate must be a function');
-  return Object.freeze({ acquisition, validate: validate as PluginPredicate<V> });
+  if (typeof validate !== 'function') throw libraryError('DI_BAG_INVALID_PLUGIN_OPTIONS', 'fromPlugin validate must be a function', { operation: 'fromPlugin' });
+  return Object.freeze({ acquisitionMode, validate: validate as PluginOutputValidator<V> });
 }
 
 function validateDescriptor(value: unknown): PluginDescriptor {
@@ -71,15 +72,15 @@ function validateDescriptor(value: unknown): PluginDescriptor {
  * callable `dispose`. A disposer owns the original acquired value before validation.
  * @param dependencies - Host values supplied to the plugin in positional order.
  * @param plugin - The application-selected unknown descriptor.
- * @param options - Required raw/native acquisition and a synchronous output predicate.
+ * @param options - Required raw/nativePromise acquisition and a synchronous output predicate.
  * @returns A lazy provider that validates its output when acquired.
- * @throws {@link DiBagPluginError} for an invalid descriptor or rejected output.
+ * @throws {@link DiBagPluginValidationError} for an invalid descriptor or rejected output.
  */
-export function fromPlugin<const T extends readonly Dependency[], V, M extends PluginAcquisition>(
+function createPluginProvider<const T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode>(
   dependencies: T & DependencyTupleAdmission<T>,
   plugin: unknown,
   options: PluginOptions<M, V>,
-): PluginResult<T, V, M> {
+): PluginProvider<T, V, M> {
   const references = snapshotReferences(dependencies);
   const selected = validateOptions<V>(options);
   const descriptor = validateDescriptor(plugin);
@@ -92,16 +93,41 @@ export function fromPlugin<const T extends readonly Dependency[], V, M extends P
     Reflect.apply(descriptor.dispose!, undefined, [value]);
   const project = (value: unknown): V => {
     if (Reflect.apply(selected.validate, undefined, [value]) !== true) {
-      throw new DiBagPluginError('output', 'plugin output failed validation');
+      throw new DiBagPluginValidationError('output', 'plugin output failed validation');
     }
     return value as V;
   };
-  if (selected.acquisition === 'raw') {
+  if (selected.acquisitionMode === 'raw') {
     const source = createProvider<Factory, Readonly<{}>, readonly [], ReferenceGraph<T>, unknown>();
     retainDescription(source, sourceDescription(create, dispose, references.map(reference => reference.key), 'raw', false, references));
-    return mapSync(source, project, { acquisition: 'raw' }) as unknown as PluginResult<T, V, M>;
+    return transformService(source, { mode: 'direct', transform: project, acquisitionMode: 'raw' }) as unknown as PluginProvider<T, V, M>;
   }
   const source = createProvider<() => Promise<unknown>, Readonly<{}>, readonly [], ReferenceGraph<T>, unknown>();
-  retainDescription(source, sourceDescription(create, dispose, references.map(reference => reference.key), 'native', false, references));
-  return mapAsync(source, project) as unknown as PluginResult<T, V, M>;
+  retainDescription(source, sourceDescription(create, dispose, references.map(reference => reference.key), 'nativePromise', false, references));
+  return transformService(source, { mode: 'awaited', transform: project }) as unknown as PluginProvider<T, V, M>;
 }
+
+/**
+ * Callable checked plugin adapter exposed by DiBag.fromPlugin.
+ * The descriptor must have own `apiVersion: 1` and callable `create`, with an optional
+ * callable `dispose`. A disposer owns the original acquired value before validation.
+ * The named call signature keeps extracted methods nameable in consumer declarations.
+ * @param dependencies - Host values supplied to the plugin in positional order.
+ * @param plugin - The application-selected unknown descriptor.
+ * @param options - Required raw/nativePromise acquisition and a synchronous output predicate.
+ * @returns A lazy provider that validates its output when acquired.
+ * @throws {@link DiBagPluginValidationError} for an invalid descriptor or rejected output.
+ * @typeParam T - The exact positional dependency-reference tuple.
+ * @typeParam V - The service admitted by the synchronous output validator.
+ * @typeParam M - The raw or nativePromise plugin acquisition policy.
+ */
+export type PluginProviderFactory = <const T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode>(
+  dependencies: T & DependencyTupleAdmission<T>,
+  plugin: unknown,
+  options: PluginOptions<M, V>,
+) => PluginProvider<T, V, M>;
+
+// Both signatures retain the same tuple admission and invariant provider result.
+// Generic assignability otherwise re-infers T as T & DependencyTupleAdmission<T>,
+// applying admission twice. Name the public callable without widening either contract.
+export const fromPlugin: PluginProviderFactory = createPluginProvider as PluginProviderFactory;

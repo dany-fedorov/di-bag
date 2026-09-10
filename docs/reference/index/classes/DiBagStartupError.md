@@ -4,7 +4,7 @@
 
 # Class: DiBagStartupError
 
-Defined in: [errors.ts:36](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L36)
+Defined in: [errors.ts:64](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L64)
 
 Acquisition failure after the new bag has finished releasing its resources.
 
@@ -20,7 +20,7 @@ Acquisition failure after the new bag has finished releasing its resources.
 new (cause: unknown, cleanupFailures: readonly CleanupFailure[], cleanupError?: unknown | undefined): DiBagStartupError;
 ```
 
-Defined in: [errors.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L45)
+Defined in: [errors.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L75)
 
 #### Parameters
 
@@ -44,7 +44,7 @@ Error.constructor
 readonly cleanupError?: unknown;
 ```
 
-Defined in: [errors.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L45)
+Defined in: [errors.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L75)
 
 The complete shutdown error, when rollback itself rejected.
 
@@ -56,6 +56,26 @@ The complete shutdown error, when rollback itself rejected.
 readonly cleanupFailures: readonly CleanupFailure[];
 ```
 
-Defined in: [errors.ts:38](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L38)
+Defined in: [errors.ts:68](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L68)
 
 Frozen rollback disposal failures in invocation order.
+
+***
+
+### code
+
+```ts
+declare readonly code: 'DI_BAG_STARTUP_FAILED';
+```
+
+Defined in: [errors.ts:65](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L65)
+
+***
+
+### details
+
+```ts
+declare readonly details: Readonly<Record<string, unknown>>;
+```
+
+Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L66)

@@ -8,7 +8,7 @@
 type ProviderAcquisitionMetadata<R> = ProviderBase extends R ? readonly unknown[] : R extends infer T & {} ? AcquisitionMetadataOf<T> : readonly unknown[];
 ```
 
-Defined in: [provider.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L72)
+Defined in: [provider.ts:76](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L76)
 
 Extract the ordered acquisition-frame metadata tuple exposed by inspection.
 

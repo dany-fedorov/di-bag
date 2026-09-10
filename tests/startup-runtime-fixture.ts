@@ -4,17 +4,16 @@ export const startupRuntimeAssertions = `{
   const { DiBagStartupError, DiBagStartupCancelledError } = await import('di-bag');
   let lazyCalls = 0;
   const token = DiBag.token(Symbol('startup')).of();
-  const feature = DiBag.module().add({
-    hidden: DiBag.withContext((_deps, context) => context),
+  const feature = DiBag.createModuleBuilder().register({
+    hidden: DiBag.fromFactory((_deps, context) => context, { context: 'acquisition' }),
     service: ({ hidden }) => hidden,
-  }).exports(['service']);
-  const started = await DiBag.begin().install(feature).bind(token, () => 42)
-    .add({ lazy: () => ++lazyCalls }).start(['service', token]);
+  }).buildModule(['service']);
+  const started = await DiBag.createBuilder().installModule(feature).register(token, () => 42).register({ lazy: () => ++lazyCalls }).buildAndStart(['service', token]);
   assert.equal(started.resolve(token), 42);
   assert.equal(lazyCalls, 0);
   const context = started.resolve('service');
   assert.equal(Object.isFrozen(context), true);
-  const child = started.scope();
+  const child = started.createScope();
   const childContext = child.resolve('service');
   await child.close();
   assert.equal(childContext.signal.aborted, true);
@@ -27,10 +26,10 @@ export const startupRuntimeAssertions = `{
   Object.defineProperty(native, 'then', { value: undefined });
   const raw = new Promise(() => {});
   const rawDisposed = [];
-  const starting = DiBag.begin().add({
-    native: DiBag.withContext((_deps, _context) => native, { acquisition: 'native' }),
-    raw: DiBag.withDisposal(DiBag.factory(() => raw, { acquisition: 'raw' }), value => { rawDisposed.push(value); }),
-  }).start(['native', 'raw']);
+  const starting = DiBag.createBuilder().register({
+    native: DiBag.fromFactory((_deps, _context) => native, { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
+    raw: DiBag.withDisposal(DiBag.fromFactory(() => raw, { acquisitionMode: 'raw' }), value => { rawDisposed.push(value); }),
+  }).buildAndStart(['native', 'raw']);
   let ready = false;
   void starting.then(() => { ready = true; });
   await new Promise(resolve => setImmediate(resolve));
@@ -43,10 +42,10 @@ export const startupRuntimeAssertions = `{
 
   const setupError = new Error('setup');
   const cleanupError = new Error('cleanup');
-  const failed = await DiBag.begin().add({
+  const failed = await DiBag.createBuilder().register({
     owned: DiBag.withDisposal(() => 1, () => { throw cleanupError; }),
     fail: () => { throw setupError; },
-  }).start(['owned', 'fail'], { concurrency: 'sequential' }).catch(error => error);
+  }).buildAndStart(['owned', 'fail'], { startupOrder: 'sequential' }).catch(error => error);
   assert.ok(failed instanceof DiBagStartupError);
   assert.equal(failed.cause, setupError);
   assert.equal(failed.cleanupFailures[0].error, cleanupError);
@@ -57,14 +56,14 @@ export const startupRuntimeAssertions = `{
     let signal;
     const gate = new Promise(resolve => { finish = resolve; });
     const cleanup = [];
-    const pending = DiBag.begin().add({
+    const pending = DiBag.createBuilder().register({
       late: () => 17,
-      value: DiBag.withDisposal(DiBag.withContext(async (deps, context) => {
+      value: DiBag.withDisposal(DiBag.fromFactory(async (deps, context) => {
         signal = context.signal;
         await gate;
         return deps.late;
-      }), value => { cleanup.push(value); }),
-    }).start(['value'], reason === 'aborted' ? { signal: controller.signal } : { timeoutMs: 5 });
+      }, { context: 'acquisition' }), value => { cleanup.push(value); }),
+    }).buildAndStart(['value'], reason === 'aborted' ? { signal: controller.signal } : { timeoutMs: 5 });
     const outcome = pending.catch(error => error);
     if (reason === 'aborted') controller.abort('stop');
     const cancelled = await outcome;
@@ -73,7 +72,7 @@ export const startupRuntimeAssertions = `{
     assert.equal(signal.aborted, true);
     assert.deepEqual(cleanup, []);
     finish();
-    await cancelled.cleanup;
+    await cancelled.cleanupPromise;
     assert.deepEqual(cleanup, [17]);
   }
 }`;

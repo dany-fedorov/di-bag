@@ -5,7 +5,7 @@ import { DiBag as NodeDiBag } from '../src/node';
 function recording() {
   const events: LifecycleEvent[] = [];
   const failures: ObserverFailure[] = [];
-  const observed = DiBag.observe({ onEvent(event) { events.push(event); }, onError(failure) { failures.push(failure); } });
+  const observed = DiBag.withConfiguration({ observers: [{ onEvent(event) { events.push(event); }, onError(failure) { failures.push(failure); } }] });
   return { events, failures, observed };
 }
 const flush = () => new Promise<void>(resolve => queueMicrotask(resolve));
@@ -14,10 +14,10 @@ test('observers preserve raw identity and explicit ownership', async () => {
   const { events, failures, observed } = recording();
   const value = Promise.resolve({ id: 1 });
   let disposed = 0;
-  const bag = observed.begin().add({
-    value: observed.withDisposal(observed.factory(() => value, { acquisition: 'raw' }),
+  const bag = observed.createBuilder().register({
+    value: observed.withDisposal(observed.fromFactory(() => value, { acquisitionMode: 'raw' }),
       acquired => { expect(acquired).toBe(value); disposed++; }),
-  }).alias('copy', 'value').end();
+  }).alias('copy', 'value').build();
   expect(bag.resolve('copy')).toBe(value);
   expect(bag.resolve('value')).toBe(value);
   const inspection = bag.inspect('value');
@@ -40,7 +40,7 @@ test('ready follows the final native stage while retaining exposed identity', as
   let finalReady!: (value: number) => void;
   const source = new Promise<number>(resolve => { sourceReady = resolve; });
   const final = new Promise<number>(resolve => { finalReady = resolve; });
-  const bag = observed.begin().add({ value: observed.mapSync(observed.factory(() => source, { acquisition: 'native' }), () => final, { acquisition: 'native' }) }).end();
+  const bag = observed.createBuilder().register({ value: observed.transformService(observed.fromFactory(() => source, { acquisitionMode: 'nativePromise' }), { mode: 'direct', transform: () => final, ...{ acquisitionMode: 'nativePromise' } }) }).build();
   expect(bag.resolve('value')).toBe(final);
   sourceReady(1);
   await flush();
@@ -55,7 +55,7 @@ test('ready follows the final native stage while retaining exposed identity', as
 test('observer failure monitoring handles throws, rejection and throwing then without gating shutdown', async () => {
   const errors = [new Error('throw'), new Error('reject'), new Error('then')];
   const failures: ObserverFailure[] = [];
-  const observed = errors.reduce((facade, error, index) => facade.observe({
+  const observed = errors.reduce((facade, error, index) => facade.withConfiguration({ observers: [{
     onEvent(event) {
       if (event.kind !== 'scope-opened') return;
       if (index === 0) throw error;
@@ -63,8 +63,8 @@ test('observer failure monitoring handles throws, rejection and throwing then wi
       return { get then() { throw error; } };
     },
     onError(failure) { failures.push(failure); if (index === 0) throw new Error('sink'); return Promise.reject(new Error('sink')); },
-  }), DiBag).observe({ onEvent: () => new Promise(() => {}), onError: () => {} });
-  const bag = observed.begin().end();
+  }] }), DiBag).withConfiguration({ observers: [{ onEvent: () => new Promise(() => {}), onError: () => {} }] });
+  const bag = observed.createBuilder().build();
   await bag.close();
   await flush();
   expect(failures).toHaveLength(3);
@@ -77,22 +77,22 @@ test('configuration snapshots callbacks, appends in order and retains classifica
   const seen: string[] = [];
   const callback = function(this: void) { expect(this).toBeUndefined(); seen.push('first'); };
   const options = { onEvent: callback, onError() {} };
-  const base = NodeDiBag.observe(options);
-  const builder = base.begin();
+  const base = NodeDiBag.withConfiguration({ observers: [options] });
+  const builder = base.createBuilder();
   options.onEvent = () => { throw new Error('mutated'); };
-  const appended = base.observe({ onEvent() { seen.push('second'); }, onError() {} }).configure({ isNativePromise: value => value instanceof Promise });
-  const a = builder.add({ value: () => 1 }).end();
-  const b = appended.begin().add({ value: () => Promise.resolve(2) }).end();
+  const appended = base.withConfiguration({ observers: [{ onEvent() { seen.push('second'); }, onError() {} }] }).withConfiguration({ runtime: { isNativePromise: value => value instanceof Promise } });
+  const a = builder.register({ value: () => 1 }).build();
+  const b = appended.createBuilder().register({ value: () => Promise.resolve(2) }).build();
   expect(a.resolve('value')).toBe(1);
   expect(await b.resolve('value')).toBe(2);
   await Promise.all([a.close(), b.close()]);
   expect(seen.slice(0, 5)).toEqual(['first', 'first', 'second', 'first', 'first']);
   expect(Object.isFrozen(base)).toBe(true);
-  expect(() => DiBag.observe({ onEvent() {} } as never)).toThrow();
-  expect(() => DiBag.observe({ onEvent: 1, onError() {} } as never)).toThrow();
-  expect(() => DiBag.observe(null as never)).toThrow();
+  expect(() => DiBag.withConfiguration({ observers: [{ onEvent() {} } as never] })).toThrow();
+  expect(() => DiBag.withConfiguration({ observers: [{ onEvent: 1, onError() {} } as never] })).toThrow();
+  expect(() => DiBag.withConfiguration({ observers: [null as never] })).toThrow();
   const { observed, events } = recording();
-  expect(() => observed.begin().add({ value: () => 1 }).end()).toThrow('classification');
+  expect(() => observed.createBuilder().register({ value: () => 1 }).build()).toThrow('classification');
   await flush();
   expect(events).toEqual([]);
 });
@@ -101,13 +101,13 @@ test('reentrant observer resolution runs outside factory ancestry and respects p
   let bag!: ReturnType<typeof makeBag>;
   const failures: ObserverFailure[] = [];
   let calls = 0;
-  const observed = NodeDiBag.observe({
+  const observed = NodeDiBag.withConfiguration({ observers: [{
     onEvent(event) {
       if (event.kind === 'acquisition-started' && calls === 0) { calls++; expect(bag.resolve('value')).toBe(1); }
       if (event.kind === 'scope-closing') expect(() => bag.resolve('value')).toThrow('closing');
     }, onError(failure) { failures.push(failure); },
-  });
-  function makeBag() { return observed.begin().add({ value: () => 1 }).end(); }
+  }] });
+  function makeBag() { return observed.createBuilder().register({ value: () => 1 }).build(); }
   bag = makeBag();
   bag.resolve('value');
   await flush();
@@ -118,11 +118,10 @@ test('reentrant observer resolution runs outside factory ancestry and respects p
 
 test('canonical owners distinguish shared roots, independent forks, contributions and transients', async () => {
   const { events, observed } = recording();
-  const raw = observed.factory(() => ({}), { acquisition: 'raw' });
+  const raw = observed.fromFactory(() => ({}), { acquisitionMode: 'raw' });
   const key = Symbol('collection'); const token = observed.token(key).of<object>();
-  const bag = observed.begin().add({ root: observed.withLifetime(raw, 'root'), shared: raw, fresh: observed.withLifetime(raw, 'transient') })
-    .alias('copy', 'shared').contribute(token, raw).contribute(token, raw).end();
-  const child = bag.scope({ share: ['copy'] });
+  const bag = observed.createBuilder().register({ root: observed.withLifetime(raw, 'root'), shared: raw, fresh: observed.withLifetime(raw, 'transient') }).alias('copy', 'shared').contribute(token, raw).contribute(token, raw).build();
+  const child = bag.createScope({ share: ['copy'] });
   const fork = bag.fork();
   child.resolve('root'); child.resolve('copy'); child.resolve('fresh'); child.resolve('fresh');
   child.resolveAll(token);
@@ -152,9 +151,9 @@ test('failed final projections retire accepted ownership once and preserve clean
   const { events, observed } = recording();
   const acquisitionError = new Error('projection'); const cleanupError = new Error('dispose');
   const disposed: string[] = [];
-  const source = observed.withDisposal(observed.factory(() => 1, { acquisition: 'raw' }), () => { disposed.push('first'); throw cleanupError; });
+  const source = observed.withDisposal(observed.fromFactory(() => 1, { acquisitionMode: 'raw' }), () => { disposed.push('first'); throw cleanupError; });
   const second = observed.withDisposal(source, () => { disposed.push('second'); });
-  const bag = observed.begin().add({ value: observed.mapSync(second, () => { throw acquisitionError; }, { acquisition: 'raw' }) }).end();
+  const bag = observed.createBuilder().register({ value: observed.transformService(second, { mode: 'direct', transform: () => { throw acquisitionError; }, ...{ acquisitionMode: 'raw' } }) }).build();
   expect(() => bag.resolve('value')).toThrow(acquisitionError);
   let closeError: unknown;
   try { await bag.close(); } catch (error) { closeError = error; }
@@ -164,14 +163,14 @@ test('failed final projections retire accepted ownership once and preserve clean
   expect(events.filter(event => event.kind === 'cleanup-started')).toHaveLength(1);
   expect(events.filter(event => event.kind === 'cleanup-completed').map(event => event.outcome)).toEqual(['failure']);
   const failure = events.find(event => event.kind === 'cleanup-failed')!;
-  expect(failure.error).toBe(cleanupError); expect(failure.disposalIndex).toBe(1);
+  expect(failure.error).toBe(cleanupError); expect(failure.disposalSequence).toBe(1);
   expect(events.find(event => event.kind === 'scope-close-failed')!.error).toBe(closeError);
 });
 
 test('intermediate native failure bypassed by raw projection is not final failure', async () => {
   const { events, observed } = recording();
   const source = Promise.reject(new Error('bypassed'));
-  const bag = observed.begin().add({ value: observed.mapSync(observed.factory(() => source, { acquisition: 'native' }), () => 42, { acquisition: 'raw' }) }).end();
+  const bag = observed.createBuilder().register({ value: observed.transformService(observed.fromFactory(() => source, { acquisitionMode: 'nativePromise' }), { mode: 'direct', transform: () => 42, ...{ acquisitionMode: 'raw' } }) }).build();
   expect(bag.resolve('value')).toBe(42);
   await bag.close();
   expect(events.filter(event => event.kind === 'acquisition-ready')).toHaveLength(1);
@@ -181,38 +180,35 @@ test('intermediate native failure bypassed by raw projection is not final failur
 test('private module frames are immutable snapshots without freezing application metadata', async () => {
   const { events, observed } = recording();
   const payload = { owner: 'application' };
-  const wrapped = observed.withAcquisitionMetadata(
-    observed.withMetadata(observed.factory(() => 7, { acquisition: 'raw' }), { payload }),
-    () => ({ payload }),
-  );
-  const feature = observed.module().add({ secret: wrapped, publicValue: observed.factory(({ secret }: { secret: number }) => secret, { acquisition: 'raw' }) }).exports(['publicValue']);
-  const bag = observed.begin().install(feature).end();
+  const wrapped = observed.withMetadata(observed.withMetadata(observed.fromFactory(() => 7, { acquisitionMode: 'raw' }), { static: { payload } }), { dynamic: { mode: 'direct', describe: () => ({ payload }) } });
+  const feature = observed.createModuleBuilder().register({ secret: wrapped, publicValue: observed.fromFactory(({ secret }: { secret: number }) => secret, { acquisitionMode: 'raw' }) }).buildModule(['publicValue']);
+  const bag = observed.createBuilder().installModule(feature).build();
   expect(bag.resolve('publicValue')).toBe(7);
   await flush();
-  const started = events.find(event => event.kind === 'acquisition-started' && event.frames.length)!;
-  const ready = events.find(event => event.kind === 'acquisition-ready' && event.frames.length)!;
-  if (!('frames' in started) || !('frames' in ready)) throw new Error('missing framed events');
-  expect(started.frames).toEqual([{ present: false }]);
-  expect(ready.frames).toEqual([{ present: true, value: { payload } }]);
-  expect(Object.isFrozen(ready.frames)).toBe(true);
-  expect(Object.isFrozen(ready.frames[0])).toBe(true);
-  expect(Object.isFrozen(ready.metadata)).toBe(true);
-  expect(Reflect.get(ready.metadata, 'payload')).toBe(payload);
+  const started = events.find(event => event.kind === 'acquisition-started' && event.acquisitionMetadata.length)!;
+  const ready = events.find(event => event.kind === 'acquisition-ready' && event.acquisitionMetadata.length)!;
+  if (!('acquisitionMetadata' in started) || !('acquisitionMetadata' in ready)) throw new Error('missing framed events');
+  expect(started.acquisitionMetadata).toEqual([{ present: false }]);
+  expect(ready.acquisitionMetadata).toEqual([{ present: true, value: { payload } }]);
+  expect(Object.isFrozen(ready.acquisitionMetadata)).toBe(true);
+  expect(Object.isFrozen(ready.acquisitionMetadata[0])).toBe(true);
+  expect(Object.isFrozen(ready.registrationMetadata)).toBe(true);
+  expect(Reflect.get(ready.registrationMetadata, 'payload')).toBe(payload);
   expect(Object.isFrozen(payload)).toBe(false);
   await bag.close();
-  expect(ready.frames).toHaveLength(1);
-  expect(started.frames).toEqual([{ present: false }]);
+  expect(ready.acquisitionMetadata).toHaveLength(1);
+  expect(started.acquisitionMetadata).toEqual([{ present: false }]);
 });
 
 test('startup rollback observes accepted cleanup while preserving the startup cause', async () => {
   const { events, observed } = recording();
   const failure = new Error('startup');
-  const builder = observed.begin().add({
-    good: observed.withDisposal(observed.factory(() => 1, { acquisition: 'raw' }), () => {}),
-    bad: observed.factory(() => Promise.reject(failure), { acquisition: 'native' }),
+  const builder = observed.createBuilder().register({
+    good: observed.withDisposal(observed.fromFactory(() => 1, { acquisitionMode: 'raw' }), () => {}),
+    bad: observed.fromFactory(() => Promise.reject(failure), { acquisitionMode: 'nativePromise' }),
   });
   let error: unknown;
-  try { await builder.start(['good', 'bad']); } catch (caught) { error = caught; }
+  try { await builder.buildAndStart(['good', 'bad']); } catch (caught) { error = caught; }
   await flush();
   expect((error as Error).cause).toBe(failure);
   expect(events.filter(event => event.kind === 'acquisition-failed').map(event => event.error)).toEqual([failure]);
@@ -227,18 +223,18 @@ test('cancellation observes late accepted resources and final failure without aw
   let acquired!: (value: number) => void;
   const pending = new Promise<number>(resolve => { acquired = resolve; });
   let disposed = 0;
-  const builder = observed.begin().add({
-    good: observed.withDisposal(observed.factory(() => pending, { acquisition: 'native' }), () => { disposed++; }),
-    bad: observed.withContext((_deps: {}, context) => new Promise<never>((_resolve, reject) => {
+  const builder = observed.createBuilder().register({
+    good: observed.withDisposal(observed.fromFactory(() => pending, { acquisitionMode: 'nativePromise' }), () => { disposed++; }),
+    bad: observed.fromFactory((_deps: {}, context) => new Promise<never>((_resolve, reject) => {
       context.signal.addEventListener('abort', () => reject(failure), { once: true });
-    }), { acquisition: 'native' }),
+    }), { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
   });
-  const startup = builder.start(['good', 'bad'], { signal: abort.signal });
+  const startup = builder.buildAndStart(['good', 'bad'], { signal: abort.signal });
   abort.abort(failure);
   let cancelled!: import('../src').DiBagStartupCancelledError;
   try { await startup; } catch (error) { cancelled = error as typeof cancelled; }
   acquired(1);
-  await cancelled.cleanup;
+  await cancelled.cleanupPromise;
   await flush();
   expect(disposed).toBe(1);
   expect(events.filter(event => event.kind === 'acquisition-failed').map(event => event.error)).toEqual([failure]);
@@ -251,7 +247,7 @@ test('throwing-then error sink results are consumed and appending duplicates kee
   const error = new Error('event'); const sinkError = new Error('sink');
   let seen = 0; let reported = 0;
   const options = { onEvent() { seen++; throw error; }, onError(failure: ObserverFailure) { reported++; expect(failure.error).toBe(error); return { get then() { throw sinkError; } }; } };
-  const bag = DiBag.observe(options).observe(options).begin().end();
+  const bag = DiBag.withConfiguration({ observers: [options] }).withConfiguration({ observers: [options] }).createBuilder().build();
   await bag.close();
   await flush();
   expect(seen).toBe(6); expect(reported).toBe(6);
@@ -259,10 +255,10 @@ test('throwing-then error sink results are consumed and appending duplicates kee
 
 test('delivery keeps emission order across immutable appended facade configurations', async () => {
   const seen: LifecycleEvent[] = [];
-  const base = DiBag.observe({ onEvent(event) { seen.push(event); }, onError() {} });
-  const appended = base.observe({ onEvent() {}, onError() {} });
-  const a = base.begin().add({ value: base.factory(() => 1, { acquisition: 'raw' }) }).end();
-  const b = appended.begin().end();
+  const base = DiBag.withConfiguration({ observers: [{ onEvent(event) { seen.push(event); }, onError() {} }] });
+  const appended = base.withConfiguration({ observers: [{ onEvent() {}, onError() {} }] });
+  const a = base.createBuilder().register({ value: base.fromFactory(() => 1, { acquisitionMode: 'raw' }) }).build();
+  const b = appended.createBuilder().build();
   a.resolve('value');
   await flush();
   expect(seen.map(event => event.kind)).toEqual(['scope-opened', 'scope-opened', 'acquisition-started', 'acquisition-ready']);

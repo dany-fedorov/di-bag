@@ -1,19 +1,19 @@
-import { DiBag, type ProviderOutput, type ProviderNeeds, type ProviderMetadata,
+import { DiBag, type ProviderOutput, type ProviderNamedDependencies, type ProviderRegistrationMetadata,
   type ProviderAcquisitionMetadata } from '../../src';
 import type { ProviderFactory } from '../../src/provider';
 import type { Assert, Equal } from './assert';
 
 export const raw = { value: Promise.resolve(42), metadata: { owner: 'db' } };
 const factory = () => ({ value: raw });
-const predeclared = DiBag.mapSync(DiBag.withAcquisitionMetadata(factory, () => ({})), result => result.value);
-export const inline = DiBag.mapSync(DiBag.withAcquisitionMetadata(() => ({ value: raw }), () => ({})), result => result.value);
-export const twice = DiBag.mapSync(DiBag.withAcquisitionMetadata(inline, result => result.metadata), result => result.value);
-const predeclaredTwice = DiBag.mapSync(DiBag.withAcquisitionMetadata(predeclared, result => result.metadata), result => result.value);
+const predeclared = DiBag.transformService(DiBag.withMetadata(factory, { dynamic: { mode: 'direct', describe: () => ({}) } }), { mode: 'direct', transform: result => result.value });
+export const inline = DiBag.transformService(DiBag.withMetadata(() => ({ value: raw }), { dynamic: { mode: 'direct', describe: () => ({}) } }), { mode: 'direct', transform: result => result.value });
+export const twice = DiBag.transformService(DiBag.withMetadata(inline, { dynamic: { mode: 'direct', describe: result => result.metadata } }), { mode: 'direct', transform: result => result.value });
+const predeclaredTwice = DiBag.transformService(DiBag.withMetadata(predeclared, { dynamic: { mode: 'direct', describe: result => result.metadata } }), { mode: 'direct', transform: result => result.value });
 type SnapshotChecks = [
   Assert<Equal<ProviderOutput<typeof inline>, typeof raw>>,
-  Assert<Equal<ProviderNeeds<typeof inline>, Record<never, never>>>,
+  Assert<Equal<ProviderNamedDependencies<typeof inline>, Record<never, never>>>,
   Assert<Equal<ProviderFactory<typeof inline>, (this: void, deps: Record<never, never>) => typeof raw>>,
-  Assert<Equal<ProviderMetadata<typeof inline>, Readonly<{}>>>,
+  Assert<Equal<ProviderRegistrationMetadata<typeof inline>, Readonly<{}>>>,
   Assert<Equal<ProviderOutput<typeof twice>, Promise<number>>>,
   Assert<Equal<ProviderAcquisitionMetadata<typeof twice>, readonly [Readonly<{}>, Readonly<{owner:string}>]>>,
   Assert<Equal<ProviderOutput<typeof predeclared>, typeof raw>>,
@@ -23,7 +23,7 @@ const providers = {
   service: () => ({ read() { return Number(1); }, extra() { return true; } }),
   promised: async () => 7,
 };
-const root = DiBag.begin().add(providers).end();
+const root = DiBag.createBuilder().register(providers).build();
 const overrides = {
   service: () => ({ read() { return 3; }, extra() { return true; }, richer() { return 9; } }),
   promised: async ({service}: {service: {richer(): number}}) => service.richer(),

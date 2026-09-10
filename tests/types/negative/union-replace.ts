@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-const builder = DiBag.begin().add({ a: () => 1, b: () => 2 });
+const builder = DiBag.createBuilder().register({ a: () => 1, b: () => 2 });
 declare const union: 'a' | 'b';
 declare const widened: string;
 declare const template: `a${string}`;

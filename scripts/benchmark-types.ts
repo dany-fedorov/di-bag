@@ -32,7 +32,7 @@ if (process.argv[2] === '--worker') {
   const errors = ts.getPreEmitDiagnostics(program).map(describeDiagnostic);
   const instantiations = program.getInstantiationCount();
   const codes = [...new Set(errors.map(error => error.code))];
-  const intended = scenario === 'missing' ? 'missing factories' : 'a dependency has the wrong shape';
+  const intended = scenario === 'missing' ? 'required service registrations are missing' : 'provided service does not satisfy its consumer dependency';
   const accepted = scenario === 'valid'
     ? errors.length === 0
     : !codes.includes(2589) && errors.filter(error =>

@@ -1,56 +1,56 @@
-import { DiBag, type Provider, type TokenGraph } from '../../../src';
+import { DiBag, type Provider, type TokenDependencyContract } from '../../../src';
 import type { OpaqueGraph } from '../../../src/token-types';
 import type { TokenBase } from '../../../src/tokens';
 
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().add({ read: ({ value }: { value: number }) => value }).add({ value: () => 'wrong' });
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().add({ value: () => 'wrong' }).add({ read: ({ value }: { value: number }) => value });
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().add({ value: () => 1, read: ({ value }: { value: string }) => value });
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().add({ value: () => 1, read: ({ value }: { value: number }) => value }).replace('value', () => 'wrong');
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().add({ value: () => 1, read: ({ value }: { value: number }) => value }).replace('read', ({ value }: { value: string }) => value);
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().register({ read: ({ value }: { value: number }) => value }).register({ value: () => 'wrong' });
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().register({ value: () => 'wrong' }).register({ read: ({ value }: { value: number }) => value });
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().register({ value: () => 1, read: ({ value }: { value: string }) => value });
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().register({ value: () => 1, read: ({ value }: { value: number }) => value }).replace('value', () => 'wrong');
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().register({ value: () => 1, read: ({ value }: { value: number }) => value }).replace('read', ({ value }: { value: string }) => value);
 
 const key = Symbol('value');
 const token = DiBag.token(key).of<number>();
 const wider = DiBag.token(key).of<number | string>();
 // diagnostic: incompatible or opaque
-DiBag.begin().add({ read: DiBag.fromTokens([wider], value => value) }).bind(token, () => 1);
+DiBag.createBuilder().register({ read: DiBag.fromFunction([wider], value => value) }).register(token, () => 1);
 // diagnostic: incompatible or opaque
-DiBag.begin().bind(token, () => 1).add({ read: DiBag.fromTokens([wider], value => value) });
+DiBag.createBuilder().register(token, () => 1).register({ read: DiBag.fromFunction([wider], value => value) });
 // diagnostic: incompatible or opaque
-DiBag.begin().bind(token, () => 1).add({ read: () => 1 }).replace('read', DiBag.fromTokens([wider], value => value));
+DiBag.createBuilder().register(token, () => 1).register({ read: () => 1 }).replace('read', DiBag.fromFunction([wider], value => value));
 // diagnostic: output is not assignable
-DiBag.begin().bind(token, () => 1).replace(token, () => 'wrong');
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().add({ value: () => 1 }).bind(token, ({ value }: { value: string }) => value.length);
-// diagnostic: missing factories
-DiBag.begin().add({ read: DiBag.fromTokens([token], value => value) }).end();
+DiBag.createBuilder().register(token, () => 1).replace(token, () => 'wrong');
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().register({ value: () => 1 }).register(token, ({ value }: { value: string }) => value.length);
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().register({ read: DiBag.fromFunction([token], value => value) }).build();
 
 declare const opaque: Provider<() => number, {}, readonly [], OpaqueGraph>;
 // diagnostic: incompatible or opaque
-DiBag.begin().add({ opaque });
-declare const opaqueBound: Provider<() => number, {}, readonly [], TokenGraph<readonly [], TokenBase>>;
+DiBag.createBuilder().register({ opaque });
+declare const opaqueBound: Provider<() => number, {}, readonly [], TokenDependencyContract<readonly [], TokenBase>>;
 // diagnostic: incompatible or opaque
-DiBag.begin().add({ opaqueBound });
+DiBag.createBuilder().register({ opaqueBound });
 
-const privateModule = DiBag.module().add({ hidden: ({ external }: { external: number }) => external }).exports([]);
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().install(privateModule).add({ external: () => 'wrong' });
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().install(privateModule).add({ external: () => 1 }).replace('external', () => 'wrong');
-// diagnostic: missing factories
-DiBag.begin().install(privateModule).end();
+const privateModule = DiBag.createModuleBuilder().register({ hidden: ({ external }: { external: number }) => external }).buildModule([]);
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().installModule(privateModule).register({ external: () => 'wrong' });
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().installModule(privateModule).register({ external: () => 1 }).replace('external', () => 'wrong');
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().installModule(privateModule).build();
 
-const privateToken = DiBag.module().add({ hidden: DiBag.fromTokens([wider], value => value) }).exports([]);
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().install(privateToken).bind(token, () => 1);
+const privateToken = DiBag.createModuleBuilder().register({ hidden: DiBag.fromFunction([wider], value => value) }).buildModule([]);
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().installModule(privateToken).register(token, () => 1);
 
 // diagnostic: incompatible or opaque
-DiBag.begin().add({ read: ({ value }: { value: number }) => value }).add({ opaque, value: () => 'wrong' });
-// diagnostic: a dependency has the wrong shape
-DiBag.begin().bind(token, () => 1).add({ local: () => 1,
+DiBag.createBuilder().register({ read: ({ value }: { value: number }) => value }).register({ opaque, value: () => 'wrong' });
+// diagnostic: provided service does not satisfy its consumer dependency
+DiBag.createBuilder().register(token, () => 1).register({ local: () => 1,
   invalidNamed: ({ local }: { local: string }) => local.length,
-  wrongToken: DiBag.fromTokens([wider], value => value) });
+  wrongToken: DiBag.fromFunction([wider], value => value) });

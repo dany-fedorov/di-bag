@@ -73,11 +73,11 @@ export function scaleSource(
       `const group${index} = {${entries.slice(index * 50, (index + 1) * 50).join(',\n')}};`,
     );
     declarations = groups.join('\n');
-    calls = groups.map((_, index) => `.add(group${index})`).join('\n');
+    calls = groups.map((_, index) => `.register(group${index})`).join('\n');
   } else if (form === 'chained') {
-    calls = entries.map(entry => `.add({${entry}})`).join('\n');
+    calls = entries.map(entry => `.register({${entry}})`).join('\n');
   } else {
-    calls = `.add({${entries.join(',\n')}})`;
+    calls = `.register({${entries.join(',\n')}})`;
     if (form === 'replacement') {
       calls += entries.map((_, index) => {
         const factory = scenario === 'missing' && index === count - 1
@@ -91,7 +91,7 @@ export function scaleSource(
   }
   return `import { DiBag } from '../src';
 ${declarations}
-const bag = DiBag.begin()${calls}.end();
+const bag = DiBag.createBuilder()${calls}.build();
 const first: number = bag.resolve('svc0');
 const middle: number = bag.resolve('svc${Math.floor(count / 2)}');
 const last: number = bag.resolve('svc${count - 1}');
@@ -137,32 +137,32 @@ export function tokenScaleSource(
   const provider = (index: number) => {
     if (index === 0) return '() => 1';
     if (index === count - 1 && scenario === 'missing-final-token') {
-      return 'DiBag.fromTokens([missingFinalToken], value => value + 1)';
+      return 'DiBag.fromFunction([missingFinalToken], value => value + 1)';
     }
     if (index === count - 1 && scenario === 'mismatched-invariant-service') {
-      return "DiBag.fromTokens([incompatibleFinalInput], value => typeof value === 'number' ? value + 1 : value.length)";
+      return "DiBag.fromFunction([incompatibleFinalInput], value => typeof value === 'number' ? value + 1 : value.length)";
     }
-    return `DiBag.fromTokens([token${index - 1}], value => value + 1)`;
+    return `DiBag.fromFunction([token${index - 1}], value => value + 1)`;
   };
   const boundary = '/* token-scale-boundary */';
   let graph: string;
   if (form === 'bindings') {
     const calls = Array.from({ length: count }, (_, index) => {
       const marker = scenario === 'mismatched-invariant-service' && index === count - 1 ? ` ${boundary}` : '';
-      return `  .bind(token${index}, ${provider(index)})${marker}`;
+      return `  .register(token${index}, ${provider(index)})${marker}`;
     });
     const graphMarker = scenario === 'missing-final-token' ? ` ${boundary}` : '';
-    graph = `const graph = DiBag.begin()${graphMarker}\n${calls.join('\n')}\n  .end();`;
+    graph = `const graph = DiBag.createBuilder()${graphMarker}\n${calls.join('\n')}\n  .build();`;
   } else {
     const modules = Array.from({ length: count }, (_, index) =>
-      `const module${index} = DiBag.module().bind(token${index}, ${provider(index)}).exports([token${index}]);`,
+      `const module${index} = DiBag.createModuleBuilder().register(token${index}, ${provider(index)}).buildModule([token${index}]);`,
     );
     const installs = Array.from({ length: count }, (_, index) => {
       const marker = scenario === 'mismatched-invariant-service' && index === count - 1 ? ` ${boundary}` : '';
-      return `  .install(module${index})${marker}`;
+      return `  .installModule(module${index})${marker}`;
     });
     const graphMarker = scenario === 'missing-final-token' ? ` ${boundary}` : '';
-    graph = `${modules.join('\n')}\nconst graph = DiBag.begin()${graphMarker}\n${installs.join('\n')}\n  .end();`;
+    graph = `${modules.join('\n')}\nconst graph = DiBag.createBuilder()${graphMarker}\n${installs.join('\n')}\n.build();`;
   }
   return `import { DiBag } from '../src';
 ${declarations.join('\n')}

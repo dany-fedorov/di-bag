@@ -14,6 +14,7 @@ function signatures(reflection) {
   if (resolved.signatures) return resolved.signatures.length;
   if (resolved.type?.declaration) return signatures(resolved.type.declaration);
   if (resolved.type?.reflection) return signatures(resolved.type.reflection);
+  if (resolved.type?.queryType?.reflection) return signatures(resolved.type.queryType.reflection);
   return 0;
 }
 
@@ -41,7 +42,10 @@ export function verifyApiCoverage(project, root, output) {
       const declaration = resolved.declarations?.[0];
       const reflection = target(module.children.find(child => child.name === symbol.name));
       if (declaration) {
-        const exportedType = checker.getTypeOfSymbolAtLocation(resolved, declaration);
+        const exportedType = ts.isTypeAliasDeclaration(declaration)
+          && (ts.isTypeQueryNode(declaration.type) || ts.isFunctionTypeNode(declaration.type))
+          ? checker.getDeclaredTypeOfSymbol(resolved)
+          : checker.getTypeOfSymbolAtLocation(resolved, declaration);
         const count = checker.getSignaturesOfType(exportedType, ts.SignatureKind.Call).length;
         if (count) {
           assert.equal(signatures(reflection), count, `${name}.${symbol.name}: overload count differs`);
@@ -69,7 +73,15 @@ export function verifyApiCoverage(project, root, output) {
         if (member.name.startsWith('__@') || member.name.startsWith('#')) continue;
         const documented = reflection.children?.find(child => child.name === member.name);
         assert(documented, `${name}.${symbol.name}: missing member ${member.name}`);
-        const count = checker.getSignaturesOfType(checker.getTypeOfSymbolAtLocation(member, decl), ts.SignatureKind.Call).length;
+        const memberType = checker.getTypeOfSymbolAtLocation(member, decl);
+        // A generic property displays its type parameter, not the constraint's
+        // call signatures. Verify that reference without inventing overloads.
+        if (memberType.flags & ts.TypeFlags.TypeParameter) {
+          assert(documented.type?.refersToTypeParameter, `${name}.${symbol.name}.${member.name}: missing type parameter reference`);
+          assert.equal(documented.type.name, memberType.symbol.name, `${name}.${symbol.name}.${member.name}: type parameter differs`);
+          continue;
+        }
+        const count = checker.getSignaturesOfType(memberType, ts.SignatureKind.Call).length;
         assert.equal(signatures(documented), count, `${name}.${symbol.name}.${member.name}: overload count differs`);
         if (count) report.callableOverloads[`${name}.${symbol.name}.${member.name}`] = count;
       }

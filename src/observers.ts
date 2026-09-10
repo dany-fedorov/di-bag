@@ -1,4 +1,5 @@
-import type { FramePresenceTuple } from './inspection';
+import { libraryTypeError } from './errors';
+import type { AcquisitionMetadataPresence } from './inspection';
 import type { Lifetime } from './lifetime';
 
 /** Identity shared by lifecycle events for one owning scope. */
@@ -15,8 +16,8 @@ export interface AcquisitionEventFields {
   readonly acquisitionId: symbol;
   readonly label: string;
   readonly lifetime: Lifetime;
-  readonly metadata: Readonly<object>;
-  readonly frames: FramePresenceTuple<readonly unknown[]>;
+  readonly registrationMetadata: Readonly<object>;
+  readonly acquisitionMetadata: AcquisitionMetadataPresence<readonly unknown[]>;
 }
 /**
  * A frozen discriminated lifecycle transition emitted after the corresponding state change.
@@ -31,7 +32,7 @@ export type LifecycleEvent =
   | (AcquisitionEventFields & { readonly kind: 'acquisition-ready' })
   | (AcquisitionEventFields & { readonly kind: 'cleanup-started' })
   | (AcquisitionEventFields & { readonly kind: 'acquisition-failed'; readonly error: unknown })
-  | (AcquisitionEventFields & { readonly kind: 'cleanup-failed'; readonly error: unknown; readonly disposalIndex: number })
+  | (AcquisitionEventFields & { readonly kind: 'cleanup-failed'; readonly error: unknown; readonly disposalSequence: number })
   | (AcquisitionEventFields & { readonly kind: 'cleanup-completed'; readonly outcome: 'success' | 'failure' });
 /** A failure thrown or rejected by an observer together with its original event. */
 export interface ObserverFailure {
@@ -42,7 +43,7 @@ export interface ObserverFailure {
 export type ObserverCallback = (this: void, event: LifecycleEvent) => unknown;
 /** Reports failures from one observer's event callback; its own failures are consumed. */
 export type ObserverErrorCallback = (this: void, failure: ObserverFailure) => unknown;
-/** Both callbacks required by {@link Facade.observe}. */
+/** Both callbacks required by {@link DiBagApi.withConfiguration}. */
 export interface ObserverOptions {
   /** Receives events in transition and observer-registration order on a microtask queue. */
   readonly onEvent: ObserverCallback;
@@ -60,14 +61,14 @@ function monitor(result: unknown, failed: (error: unknown) => void): void {
 }
 // One lazy queue preserves ordering when a callback observes multiple facades.
 let queue: Array<{ event: LifecycleEvent; callbacks: readonly ObserverOptions[] }> | undefined;
-export class Observers {
+export class LifecycleObservers {
   private constructor(private readonly callbacks: readonly ObserverOptions[]) {}
 
-  static append(previous: Observers | undefined, options: ObserverOptions): Observers {
-    if (typeof options !== 'object' || options === null) throw new TypeError('observe requires onEvent and onError callbacks');
+  static append(previous: LifecycleObservers | undefined, options: ObserverOptions): LifecycleObservers {
+    if (typeof options !== 'object' || options === null) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
     const { onEvent, onError } = options;
-    if (typeof onEvent !== 'function' || typeof onError !== 'function') throw new TypeError('observe requires onEvent and onError callbacks');
-    return new Observers([...(previous?.callbacks ?? []), Object.freeze({ onEvent, onError })]);
+    if (typeof onEvent !== 'function' || typeof onError !== 'function') throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
+    return new LifecycleObservers([...(previous?.callbacks ?? []), Object.freeze({ onEvent, onError })]);
   }
 
   emit(event: LifecycleEvent): void {

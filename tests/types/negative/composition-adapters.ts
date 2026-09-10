@@ -28,14 +28,14 @@ DiBag.fromClass([port], Abstract);
 DiBag.fromClass([], Private);
 // diagnostic: protected
 DiBag.fromClass([], Protected);
-// diagnostic: native acquisition requires a Promise output
-DiBag.fromClass([port], Client, { acquisition: 'native' });
-// diagnostic: native acquisition requires a Promise output
-DiBag.fromFunction([port], value => value, { acquisition: 'native' });
+// diagnostic: nativePromise acquisition requires a Promise output
+DiBag.fromClass([port], Client, { acquisitionMode: 'nativePromise' });
+// diagnostic: nativePromise acquisition requires a Promise output
+DiBag.fromFunction([port], value => value, { acquisitionMode: 'nativePromise' });
 // diagnostic: not assignable
-DiBag.fromFunction([], () => 1, { acquisition: 'invalid' });
+DiBag.fromFunction([], () => 1, { acquisitionMode: 'invalid' });
 // diagnostic: not assignable
-DiBag.fromClass([], class {}, { acquisition: 'invalid' });
+DiBag.fromClass([], class {}, { acquisitionMode: 'invalid' });
 declare const broad: readonly typeof port[];
 declare const optional: readonly [typeof port?];
 declare const union: readonly [] | readonly [typeof port];
@@ -51,13 +51,13 @@ DiBag.fromFunction(union, (value?: number) => value);
 DiBag.fromClass([{ key }], Client);
 // diagnostic: known properties
 DiBag.fromFunction([{ key }], value => value);
-// diagnostic: missing factories
-DiBag.begin().add({ source: DiBag.fromClass([port], Client) }).end();
-// diagnostic: missing factories
-DiBag.begin().add({ source: DiBag.fromFunction([port], value => value) }).end();
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().register({ source: DiBag.fromClass([port], Client) }).build();
+// diagnostic: required service registrations are missing
+DiBag.createBuilder().register({ source: DiBag.fromFunction([port], value => value) }).build();
 const conflict = DiBag.token(key).of<string>();
 // diagnostic: incompatible
-DiBag.begin().bind(conflict, () => 'wrong').add({ source: DiBag.fromClass([port], Client) });
+DiBag.createBuilder().register(conflict, () => 'wrong').register({ source: DiBag.fromClass([port], Client) });
 // diagnostic: not assignable
 DiBag.fromFunction([port], (first: number, ...rest: [number, ...number[]]) => rest);
 // diagnostic: not assignable
@@ -66,8 +66,8 @@ DiBag.fromClass([port], class { constructor(first: number, ...rest: [number, ...
 DiBag.fromFunction([port, port], (first?: number) => first);
 // diagnostic: not assignable
 DiBag.fromClass([port, port], class { constructor(first?: number) {} });
-declare const mode: 'raw' | 'native';
-// diagnostic: native acquisition requires a Promise output
-DiBag.fromFunction([port], value => value, { acquisition: mode });
-// diagnostic: native acquisition requires a Promise output
-DiBag.fromClass([port], Client, { acquisition: mode });
+declare const mode: 'raw' | 'nativePromise';
+// diagnostic: nativePromise acquisition requires a Promise output
+DiBag.fromFunction([port], value => value, { acquisitionMode: mode });
+// diagnostic: nativePromise acquisition requires a Promise output
+DiBag.fromClass([port], Client, { acquisitionMode: mode });

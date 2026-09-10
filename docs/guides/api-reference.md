@@ -11,11 +11,11 @@ return types, and links to source declarations.
 
 | Entry point | What it exposes |
 | --- | --- |
-| [`di-bag`](../reference/index/index.md) | Portable facade, public types, and the four error classes. |
+| [`di-bag`](../reference/index/index.md) | Portable facade, public types, and structured library errors. |
 | [`di-bag/node`](../reference/node/index.md) | The same API with Node/Bun native-Promise detection configured. |
 
-Start with the [`Facade`](../reference/index/interfaces/Facade.md),
-[`Builder`](../reference/index/interfaces/Builder.md), and
+Start with the [`DiBagApi`](../reference/index/interfaces/DiBagApi.md),
+[`BagBuilder`](../reference/index/interfaces/BagBuilder.md), and
 [`Bag`](../reference/index/interfaces/Bag.md). Reusable graph composition uses
 [`ModuleBuilder`](../reference/index/interfaces/ModuleBuilder.md) and
 [`Module`](../reference/index/interfaces/Module.md). The reference represents
@@ -28,73 +28,63 @@ how to regenerate it.
 
 ## API at a glance
 
-Import `DiBag` and the four error classes from `di-bag/node` in Node or Bun,
+Import `DiBag` and the error classes from `di-bag/node` in Node or Bun,
 or from `di-bag` when using explicit portable acquisition modes. Both entries
 expose the same methods and types. Each table links to explanations and examples
 in the tutorial; the [server guide](server-integration.md) puts them into an application.
 
 ### Configure and describe services
 
-These methods are available on `DiBag` and every facade returned by `configure`
-or `observe`. Creating a provider describes work; registration and resolution
-happen separately.
+These methods are available on `DiBag` and every derived facade. A provider
+is a reusable declaration; creating one does not acquire a service.
 
 | Method | Result and purpose |
 | --- | --- |
-| `begin()` | Create an empty immutable [builder](tutorial.md#compose-services). |
-| `module()` | Create an immutable [module builder](tutorial.md#reuse-named-modules). |
-| `configure({ isNativePromise })` | Return a new facade with an application-supplied [native-Promise predicate](tutorial.md#compose-services). |
-| `observe({ onEvent, onError })` | Return a new facade with another [lifecycle observer](tutorial.md#observe-lifecycle-transitions). Both callbacks are required. |
-| `factory(create, { acquisition })` | Describe a factory with explicit `raw`, `native`, or `auto` [acquisition](tutorial.md#compose-services). |
+| `createBuilder()` | Create an empty immutable [application builder](tutorial.md#compose-services). |
+| `createModuleBuilder()` | Create an immutable [module builder](tutorial.md#reuse-named-modules). |
+| `withConfiguration({ runtime?, observers? })` | Return a new facade; inherit omitted runtime options and append the ordered observer array. |
+| `fromFactory(create, options?)` | Describe a named-dependency factory; `acquisitionMode` defaults to `auto`. Add `context: 'acquisition'` to supply the owner's cancellation context. |
 | `token(key).of<Service>()` | Create a [typed token](tutorial.md#use-typed-tokens-for-explicit-positional-injection) from a canonical unique symbol. |
-| `fromTokens(dependencies, create, options?)` | Inject a tuple of [tokens or dependency references](tutorial.md#use-typed-tokens-for-explicit-positional-injection) into a callback in tuple order. |
-| `fromFunction(dependencies, fn, options?)` | Adapt an existing [positional function](tutorial.md#adapt-classes-and-positional-functions). |
+| `fromFunction(dependencies, fn, options?)` | Inject a tuple of tokens/references into a positional callback, checking its actual optional/rest parameter tuple. Write selected but unused parameters explicitly. |
 | `fromClass(dependencies, Constructor, options?)` | Adapt an existing [constructor](tutorial.md#adapt-classes-and-positional-functions). |
-| `optional(token)` | Describe a dependency that supplies `undefined` when [absent](tutorial.md#declare-optional-and-lazy-dependencies). |
-| `lazy(token)` | Describe a dependency supplied as a [lookup function](tutorial.md#declare-optional-and-lazy-dependencies). |
-| `all(token)` | Describe an [ordered collection](tutorial.md#compose-an-ordered-collection) dependency. |
-| `fromPlugin(dependencies, descriptor, options)` | [Validate an application-selected plugin](tutorial.md#admit-an-application-selected-plugin); options require `acquisition: 'raw'` or `'native'` and `validate`. |
-| `withDisposal(registration, dispose)` | Add [ownership and cleanup](tutorial.md#attach-cleanup-with-withdisposal) of the registration's acquired value. |
-| `withLifetime(registration, lifetime, options?)` | Choose [`root`, `scoped`, or `transient`](tutorial.md#choose-root-scoped-or-transient-caching); only `root` accepts `captureScoped`. |
-| `withContext(create, options?)` | Give a factory an [acquisition context](tutorial.md#start-selected-services-and-cancel-cooperatively) as its second argument. |
-| `withMetadata(registration, metadata)` | Attach [static metadata](tutorial.md#attach-metadata-and-inspect-without-resolving). |
-| `withAcquisitionMetadata(registration, describe)` | Append a typed metadata frame after an immediate source produces its [exact output](tutorial.md#represent-acquisition-values-and-metadata-natively). |
-| `withAcquisitionMetadataAsync(registration, describe)` | Await a source, append a typed metadata frame, and expose a native Promise of its [awaited output](tutorial.md#represent-acquisition-values-and-metadata-natively). |
-| `mapSync(registration, project, options?)` | [Project the exposed value](tutorial.md#project-services-explicitly) immediately, preserving raw arguments and results. |
-| `mapAsync(registration, project)` | Await the source and project it through an explicit [async boundary](tutorial.md#project-services-explicitly). |
+| `optional(token)` / `lazy(token)` / `all(token)` | Supply an optional value, lazy lookup, or ordered collection through a positional dependency tuple. |
+| `fromPlugin(dependencies, descriptor, options)` | Validate a selected plugin with explicit `acquisitionMode: 'raw'` or `'nativePromise'` and a synchronous output validator. |
+| `withDisposal(registration, dispose)` | Accept cleanup ownership of that stage's acquired value. |
+| `withLifetime(registration, lifetime, options?)` | Select `root`, `scoped`, or `transient`; only root accepts `allowScopedDependencies`. |
+| `withMetadata(registration, { static?, dynamic? })` | Attach registration metadata, acquisition metadata, or both. Dynamic options require `mode` and synchronous `describe`. |
+| `transformService(registration, { mode, transform, acquisitionMode? })` | Expose a transformed service, retaining earlier ownership; output acquisition options apply only to direct mode. |
 
-The optional options argument on `fromTokens`, `fromFunction`, `fromClass`,
-`withContext`, and `mapSync` selects the new stage's `acquisition` mode. Omitting
-it uses `auto`. `mapAsync` is always an async boundary. Configuration returns a
-new facade; it does not change global state or retrofit existing builders.
+`direct` passes the exact source output and preserves the callback result.
+`awaited` waits for the source and exposes a native Promise. Transformation
+callbacks may return Promises. Metadata callbacks must synchronously return
+plain object records; direct metadata preserves its source acquisition policy.
+Static-only metadata preserves the source output. Each dynamic annotation appends
+one ordered metadata presence frame; no metadata or transformation adds ownership.
 
-Both acquisition metadata callbacks are synchronous and must return a plain
-object record with the current realm's `Object.prototype` or `null` as its
-prototype. The immediate form retains the source output and acquisition policy;
-the async form awaits the source and exposes a native Promise. Neither decorator
-adds ownership.
+See the [migration guide](../migrations/api-renaming.md) for all replaced names,
+mode tables, and before/after examples.
 
 ### Build and reuse a graph
 
-Builder operations return a new builder. Keep the returned value or chain the
+BagBuilder operations return a new builder. Keep the returned value or chain the
 next call; they do not mutate the original.
 
 | Method | Available on | Purpose |
 | --- | --- | --- |
-| `add(registrations)` | Builder, ModuleBuilder | Add new [named factories](tutorial.md#compose-services); duplicate keys reject. |
-| `bind(token, registration)` | Builder, ModuleBuilder | Bind a [typed token](tutorial.md#use-typed-tokens-for-explicit-positional-injection). |
-| `replace(nameOrToken, registration)` | Builder, ModuleBuilder | Replace one existing registration while checking its consumers and token contract. |
-| `alias(destination, target)` | Builder, ModuleBuilder | Add another [name or token lookup](tutorial.md#give-a-dependency-another-lookup-name) for an existing service. |
-| `contribute(token, registration)` | Builder, ModuleBuilder | Append an [ordered contribution](tutorial.md#compose-an-ordered-collection). |
-| `install(module)` | Builder | Install a sealed [module](tutorial.md#reuse-named-modules) with private services and public exports. |
-| `end()` | Builder | Check graph completeness and return a lazy bag. |
-| `start(keys, options?)` | Builder | Return a promise for a fresh bag after [selected services are ready](tutorial.md#start-selected-services-and-cancel-cooperatively). |
-| `exports(keys)` | ModuleBuilder | Seal the module and choose its public names and tokens. |
-| `rename(oldName, newName)` | Sealed Module | Return a module view with one string-named export renamed. |
+| `register(registrations)` | BagBuilder, ModuleBuilder | Add new [named factories](tutorial.md#compose-services); duplicate keys reject. |
+| `register(token, registration)` | BagBuilder, ModuleBuilder | Bind a [typed token](tutorial.md#use-typed-tokens-for-explicit-positional-injection). |
+| `replace(nameOrToken, registration)` | BagBuilder, ModuleBuilder | Replace one existing registration while checking its consumers and token contract. |
+| `alias(destination, target)` | BagBuilder, ModuleBuilder | Add another [name or token lookup](tutorial.md#give-a-dependency-another-lookup-name) for an existing service. |
+| `contribute(token, registration)` | BagBuilder, ModuleBuilder | Append an [ordered contribution](tutorial.md#compose-an-ordered-collection). |
+| `installModule(module)` | BagBuilder | Install a sealed [module](tutorial.md#reuse-named-modules) with private services and public exports. |
+| `build()` | BagBuilder | Check graph completeness and return a lazy bag. |
+| `buildAndStart(keys, options?)` | BagBuilder | Return a promise for a fresh bag after [selected services are ready](tutorial.md#start-selected-services-and-cancel-cooperatively). |
+| `buildModule(keys)` | ModuleBuilder | Seal the module and choose its public names and tokens. |
+| `renameExport(oldName, newName)` | Sealed Module | Return a module view with one string-named export renamed. |
 
 Modules do not resolve services or have a close method. Installing a module
-gives its acquisitions an owning bag. Module builders do not expose `install`,
-`end`, or `start`; compose sealed modules through an application builder.
+gives its acquisitions an owning bag. Module builders do not expose `installModule`,
+`build`, or `buildAndStart`; compose sealed modules through an application builder.
 
 ### Use and close a bag
 
@@ -104,25 +94,25 @@ gives its acquisitions an owning bag. Module builders do not expose `install`,
 | `resolveAll(token)` | Resolve the [ordered contributions](tutorial.md#compose-an-ordered-collection) as a readonly array. |
 | `inspect(nameOrToken)` | Copy [metadata and acquisition state](tutorial.md#attach-metadata-and-inspect-without-resolving) without resolving. |
 | `inspectAll(token)` | Inspect contribution descriptions and attempts without resolving. |
-| `scope()` | Create a tracked [child scope](tutorial.md#create-tracked-child-scopes). |
-| `scope({ share: keys })` | Create a child that explicitly borrows selected parent acquisitions. |
-| `scope(keys, overrides, options?)` | Create a child with checked replacements and optional disjoint `share` selection. |
+| `createScope()` | Create a tracked [child scope](tutorial.md#create-tracked-child-scopes). |
+| `createScope({ share: keys })` | Create a child that explicitly borrows selected parent acquisitions. |
+| `createScope(keys, overrides, options?)` | Create a child with checked replacements and optional disjoint `share` selection. |
 | `fork()` | Create an [independent bag](tutorial.md#fork-for-scopes-and-tests) with fresh instances. |
 | `fork(keys, overrides)` | Create an independent bag with selected replacements. |
 | `close()` | Return the shutdown promise; stop new resolutions, drain work, and dispose owned resources. Repeated calls share the same promise. |
 
 ## Errors and recovery
 
-The four error classes below are runtime exports from both `di-bag` and
+The specialized error classes below are runtime exports from both `di-bag` and
 `di-bag/node`. Each extends the built-in `Error` family and has a corresponding
 `name`. Catch them with `instanceof` when choosing a recovery path.
 
 | Error | When it appears | Public information |
 | --- | --- | --- |
 | [`DiBagCleanupError`](../reference/index/classes/DiBagCleanupError.md) | `close()` finishes attempting cleanup and one or more disposers failed. | Extends `AggregateError`; `errors` contains the original errors, and readonly `failures` associates each with `acquisitionId`, `bindingId`, `label`, and `error`. |
-| [`DiBagPluginError`](../reference/index/classes/DiBagPluginError.md) | A plugin descriptor or acquired output fails the plugin boundary checks. | `phase` is `'descriptor'` or `'output'`; `reason` describes the rejection. |
+| [`DiBagPluginValidationError`](../reference/index/classes/DiBagPluginValidationError.md) | A plugin descriptor or acquired output fails the plugin boundary checks. | `phase` is `'descriptor'` or `'output'`; `reason` describes the rejection. |
 | [`DiBagStartupError`](../reference/index/classes/DiBagStartupError.md) | Selected startup acquisition fails and rollback has completed. | `cause` is the acquisition error; `cleanupFailures` contains disposal failures; `cleanupError` retains the complete cleanup error when present. |
-| [`DiBagStartupCancelledError`](../reference/index/classes/DiBagStartupCancelledError.md) | An external signal or startup deadline interrupts startup. | `reason` is `'aborted'` or `'timeout'`; `cause` retains the cancellation reason; `cleanup` is a `Promise<void>` for eventual shutdown. |
+| [`DiBagStartupCancelledError`](../reference/index/classes/DiBagStartupCancelledError.md) | An external signal or startup deadline interrupts startup. | `reason` is `'aborted'` or `'timeout'`; `cause` retains the cancellation reason; `cleanupPromise` is a `Promise<void>` for eventual shutdown. |
 
 Given an existing application bag named `app`:
 
@@ -142,15 +132,14 @@ try {
 ```
 
 Constructors are `new DiBagCleanupError(failures)`,
-`new DiBagPluginError(phase, reason)`,
+`new DiBagPluginValidationError(phase, reason)`,
 `new DiBagStartupError(cause, cleanupFailures, cleanupError?)`, and
-`new DiBagStartupCancelledError(reason, cause, cleanup)`. Applications usually
+`new DiBagStartupCancelledError(reason, cause, cleanupPromise)`. Applications usually
 catch errors created by the library rather than constructing them.
 
-Factory errors and projection errors retain their original identity on
-resolution. Other invalid runtime inputs can throw ordinary `Error` or
-`TypeError`; these four classes are not an exhaustive classification of every
-possible failure. Observer callback failures are delivered to the observer's
+Factory errors and transformation errors retain their original identity on
+resolution. Library-created failures expose stable `DI_BAG_*` codes and frozen
+structured `details`; inspect those fields instead of parsing message text. Observer callback failures are delivered to the observer's
 `onError` callback and do not become service or shutdown failures.
 
 ## Exported TypeScript types
@@ -178,36 +167,36 @@ retained private-consumer, token, lifetime, or ownership contracts.
 
 | Exports | Purpose |
 | --- | --- |
-| [`Facade`](../reference/index/interfaces/Facade.md) | The complete `DiBag` method surface, including configured and observed facades. |
-| [`Builder`](../reference/index/interfaces/Builder.md), [`Bag`](../reference/index/interfaces/Bag.md) | A checked immutable builder and a resolving/owning bag. |
+| [`DiBagApi`](../reference/index/interfaces/DiBagApi.md) | The complete `DiBag` method surface, including configured and observed facades. |
+| [`BagBuilder`](../reference/index/interfaces/BagBuilder.md), [`Bag`](../reference/index/interfaces/Bag.md) | A checked immutable builder and a resolving/owning bag. |
 | [`ModuleBuilder`](../reference/index/interfaces/ModuleBuilder.md), [`Module`](../reference/index/interfaces/Module.md) | A private composition builder and its sealed export view. |
-| [`Registration`](../reference/index/type-aliases/Registration.md), [`DisposableFactory`](../reference/index/type-aliases/DisposableFactory.md) | Accepted registration shapes and an owned factory description. |
+| [`Registration`](../reference/index/type-aliases/Registration.md), [`FactoryWithDisposal`](../reference/index/interfaces/FactoryWithDisposal.md) | Accepted registration shapes and an owned factory description. |
 | [`Provider`](../reference/index/interfaces/Provider.md) | A provider description retaining its factory, metadata, frames, graph contracts, and acquired-value type. |
 | [`AcquisitionMode`](../reference/index/type-aliases/AcquisitionMode.md), [`RuntimeOptions`](../reference/index/interfaces/RuntimeOptions.md) | Acquisition mode literals and the `isNativePromise` configuration callback. |
 | [`Lifetime`](../reference/index/type-aliases/Lifetime.md) | The `'root'`, `'scoped'`, and `'transient'` caching choices. |
 | [`AcquisitionContext`](../reference/index/interfaces/AcquisitionContext.md), [`ContextualFactory`](../reference/index/type-aliases/ContextualFactory.md) | Factory cancellation context (`signal`) and the adapted contextual factory signature. |
-| [`StartupOptions`](../reference/index/interfaces/StartupOptions.md) | Optional `signal`, `timeoutMs`, and `concurrency` fields for `start`. |
-| [`ScopeOptions`](../reference/index/type-aliases/ScopeOptions.md) | The checked `share` selection accepted by `scope`. |
+| [`StartupOptions`](../reference/index/interfaces/StartupOptions.md) | Optional `signal`, `timeoutMs`, and `startupOrder` fields for `buildAndStart`. |
+| [`ScopeOptions`](../reference/index/type-aliases/ScopeOptions.md) | The checked `share` selection accepted by `createScope`. |
 | [`Token`](../reference/index/interfaces/Token.md), [`TokenBase`](../reference/index/interfaces/TokenBase.md), [`TokenKey`](../reference/index/type-aliases/TokenKey.md), [`TokenService`](../reference/index/type-aliases/TokenService.md) | Typed token identity, its common handle type, and key/service projections. |
-| [`OptionalReference`](../reference/index/type-aliases/OptionalReference.md), [`LazyReference`](../reference/index/type-aliases/LazyReference.md), [`AllReference`](../reference/index/type-aliases/AllReference.md), [`Dependency`](../reference/index/type-aliases/Dependency.md) | The token reference forms accepted in positional dependency tuples. |
+| [`OptionalDependency`](../reference/index/type-aliases/OptionalDependency.md), [`LazyDependency`](../reference/index/type-aliases/LazyDependency.md), [`CollectionDependency`](../reference/index/type-aliases/CollectionDependency.md), [`DependencyReference`](../reference/index/type-aliases/DependencyReference.md) | The token reference forms accepted in positional dependency tuples. |
 | [`CompositionArguments`](../reference/index/type-aliases/CompositionArguments.md), [`CompositionFunction`](../reference/index/type-aliases/CompositionFunction.md) | Positional argument compatibility and callback signatures for function/constructor adaptation. |
 | [`Presence`](../reference/index/type-aliases/Presence.md) | `{ present: false }` or `{ present: true, value }`, including present `undefined`. |
-| [`FramePresenceTuple`](../reference/index/type-aliases/FramePresenceTuple.md), [`AcquisitionSnapshot`](../reference/index/interfaces/AcquisitionSnapshot.md), [`InspectionSnapshot`](../reference/index/interfaces/InspectionSnapshot.md) | Inspection frames, acquisition state, and registration metadata snapshots. |
+| [`AcquisitionMetadataPresence`](../reference/index/type-aliases/AcquisitionMetadataPresence.md), [`AcquisitionSnapshot`](../reference/index/interfaces/AcquisitionSnapshot.md), [`RegistrationSnapshot`](../reference/index/interfaces/RegistrationSnapshot.md) | Inspection frames, acquisition state, and registration metadata snapshots. |
 | [`CleanupFailure`](../reference/index/interfaces/CleanupFailure.md) | The detached acquisition identity, label, and original cleanup error. |
 | [`ObserverOptions`](../reference/index/interfaces/ObserverOptions.md), [`ObserverCallback`](../reference/index/type-aliases/ObserverCallback.md), [`ObserverErrorCallback`](../reference/index/type-aliases/ObserverErrorCallback.md) | Observer configuration and its event/failure callbacks. |
 | [`LifecycleEvent`](../reference/index/type-aliases/LifecycleEvent.md), [`ObserverFailure`](../reference/index/interfaces/ObserverFailure.md), [`ScopeEventFields`](../reference/index/interfaces/ScopeEventFields.md), [`AcquisitionEventFields`](../reference/index/interfaces/AcquisitionEventFields.md) | Discriminated lifecycle events and observer failure context. |
-| [`PluginAcquisition`](../reference/index/type-aliases/PluginAcquisition.md), [`PluginOptions`](../reference/index/interfaces/PluginOptions.md), [`PluginPredicate`](../reference/index/type-aliases/PluginPredicate.md), [`PluginResult`](../reference/index/type-aliases/PluginResult.md) | Plugin mode, validation options, output predicate, and resulting provider. |
-| [`fromPlugin`](../reference/index/type-aliases/fromPlugin.md) | A type-only export of the function declaration, usable with `typeof fromPlugin`; call the runtime API as `DiBag.fromPlugin`. |
+| [`PluginAcquisitionMode`](../reference/index/type-aliases/PluginAcquisitionMode.md), [`PluginOptions`](../reference/index/interfaces/PluginOptions.md), [`PluginOutputValidator`](../reference/index/type-aliases/PluginOutputValidator.md), [`PluginProvider`](../reference/index/type-aliases/PluginProvider.md) | Plugin mode, validation options, output predicate, and resulting provider. |
+| [`PluginProviderFactory`](../reference/index/type-aliases/PluginProviderFactory.md) | The callable type of `DiBag.fromPlugin`; use it directly as a type. |
 
 ### Provider and module projections
 
 | Exports | Purpose |
 | --- | --- |
-| [`ProviderFactory`](../reference/index/type-aliases/ProviderFactory.md), [`ProviderOutput`](../reference/index/type-aliases/ProviderOutput.md), [`ProviderAcquired`](../reference/index/type-aliases/ProviderAcquired.md), [`ProviderNeeds`](../reference/index/type-aliases/ProviderNeeds.md) | Extract the factory, exposed result, acquired value, and named requirements from a registration. Output and acquired value can differ across async boundaries. |
-| [`ProviderMetadata`](../reference/index/type-aliases/ProviderMetadata.md), [`ProviderAcquisitionMetadata`](../reference/index/type-aliases/ProviderAcquisitionMetadata.md) | Extract static metadata and the tuple of acquisition metadata frames. |
-| [`ProviderGraph`](../reference/index/type-aliases/ProviderGraph.md) | Retain a provider's token and other graph obligations. |
-| [`ProviderTokenNeeds`](../reference/index/type-aliases/ProviderTokenNeeds.md), [`ProviderOptionalTokenNeeds`](../reference/index/type-aliases/ProviderOptionalTokenNeeds.md), [`ProviderAllTokenNeeds`](../reference/index/type-aliases/ProviderAllTokenNeeds.md) | Extract required/lazy, optional, and collection token requirements. |
-| [`ModuleProvides`](../reference/index/type-aliases/ModuleProvides.md), [`ModuleRequires`](../reference/index/type-aliases/ModuleRequires.md) | Extract the readonly service exports and external requirements of a sealed module. |
+| [`ProviderFactory`](../reference/index/type-aliases/ProviderFactory.md), [`ProviderOutput`](../reference/index/type-aliases/ProviderOutput.md), [`ProviderAcquiredValue`](../reference/index/type-aliases/ProviderAcquiredValue.md), [`ProviderNamedDependencies`](../reference/index/type-aliases/ProviderNamedDependencies.md) | Extract the factory, exposed result, acquired value, and named requirements from a registration. Output and acquired value can differ across async boundaries. |
+| [`ProviderRegistrationMetadata`](../reference/index/type-aliases/ProviderRegistrationMetadata.md), [`ProviderAcquisitionMetadata`](../reference/index/type-aliases/ProviderAcquisitionMetadata.md) | Extract static metadata and the tuple of acquisition metadata frames. |
+| [`ProviderGraphContract`](../reference/index/type-aliases/ProviderGraphContract.md) | Retain a provider's token and other graph obligations. |
+| [`ProviderRequiredTokens`](../reference/index/type-aliases/ProviderRequiredTokens.md), [`ProviderOptionalTokens`](../reference/index/type-aliases/ProviderOptionalTokens.md), [`ProviderCollectionTokens`](../reference/index/type-aliases/ProviderCollectionTokens.md) | Extract required/lazy, optional, and collection token requirements. |
+| [`ModuleExportedServices`](../reference/index/type-aliases/ModuleExportedServices.md), [`ModuleRequiredServices`](../reference/index/type-aliases/ModuleRequiredServices.md) | Extract the readonly service exports and external requirements of a sealed module. |
 | [`ModuleConstraints`](../reference/index/type-aliases/ModuleConstraints.md) | Compute retained private-consumer and lifetime constraints for a registration map and public selection. |
 | [`PublicProviders`](../reference/index/type-aliases/PublicProviders.md), [`ModulePublicProviders`](../reference/index/type-aliases/ModulePublicProviders.md) | Preserve provider contracts when projecting public module registrations. |
 | [`Renamed`](../reference/index/type-aliases/Renamed.md) | Represent the checked renaming of a module's public view. |
@@ -220,12 +209,12 @@ contracts; they do not perform runtime validation.
 
 | Exports | Purpose |
 | --- | --- |
-| [`Provided`](../reference/index/type-aliases/Provided.md) | Map registrations to their exposed service types. |
-| [`Entries`](../reference/index/type-aliases/Entries.md), [`From`](../reference/index/type-aliases/From.md) | Convert between a registration map and its entry representation. |
-| [`Merge`](../reference/index/type-aliases/Merge.md), [`Selected`](../reference/index/type-aliases/Selected.md) | Model merged registration maps and selected override registrations. |
-| [`Checked`](../reference/index/type-aliases/Checked.md), [`Complete`](../reference/index/type-aliases/Complete.md) | Check dependency shape compatibility and graph completeness. |
-| [`Selection`](../reference/index/type-aliases/Selection.md), [`Overrides`](../reference/index/type-aliases/Overrides.md), [`ForkContext`](../reference/index/type-aliases/ForkContext.md) | Validate selections and replacement compatibility while preserving contextual inference. |
-| [`Binding`](../reference/index/type-aliases/Binding.md), [`TokenMember`](../reference/index/type-aliases/TokenMember.md), [`TokenGraph`](../reference/index/type-aliases/TokenGraph.md) | Retain typed bindings, validate token membership, and represent token obligations. |
+| [`ServicesOf`](../reference/index/type-aliases/ServicesOf.md) | Map registrations to their exposed service types. |
+| [`RegistrationEntries`](../reference/index/type-aliases/RegistrationEntries.md), [`RegistrationsFromEntries`](../reference/index/type-aliases/RegistrationsFromEntries.md) | Convert between a registration map and its entry representation. |
+| [`OverrideRegistrations`](../reference/index/type-aliases/OverrideRegistrations.md), [`SelectedRegistrations`](../reference/index/type-aliases/SelectedRegistrations.md) | Model merged registration maps and selected override registrations. |
+| [`CheckDependencyCompatibility`](../reference/index/type-aliases/CheckDependencyCompatibility.md), [`CheckDependencyCompleteness`](../reference/index/type-aliases/CheckDependencyCompleteness.md) | Check dependency shape compatibility and graph completeness. |
+| [`Selection`](../reference/index/type-aliases/Selection.md), [`Overrides`](../reference/index/type-aliases/Overrides.md), [`OverrideFactoryContext`](../reference/index/type-aliases/OverrideFactoryContext.md) | Validate selections and replacement compatibility while preserving contextual inference. |
+| [`TokenBinding`](../reference/index/type-aliases/TokenBinding.md), [`TokenMember`](../reference/index/type-aliases/TokenMember.md), [`TokenDependencyContract`](../reference/index/type-aliases/TokenDependencyContract.md) | Retain typed bindings, validate token membership, and represent token obligations. |
 | [`ReboundProviders`](../reference/index/type-aliases/ReboundProviders.md), [`ReboundSelection`](../reference/index/type-aliases/ReboundSelection.md), [`SelectionKey`](../reference/index/type-aliases/SelectionKey.md) | Preserve token bindings across replacement and map selections to their string/symbol keys. |
 | [`AliasRegistration`](../reference/index/type-aliases/AliasRegistration.md), [`AliasEntries`](../reference/index/type-aliases/AliasEntries.md), [`AliasOutput`](../reference/index/type-aliases/AliasOutput.md) | Model an alias registration, its graph entries, and its exposed result. |
 | [`Contribution`](../reference/index/type-aliases/Contribution.md), [`ContributionConstraint`](../reference/index/type-aliases/ContributionConstraint.md) | Describe an ordered contribution and its retained requirements. |

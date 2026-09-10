@@ -5,10 +5,10 @@
 # Type Alias: ModuleContribute\<E *extends* `Entry`, C *extends* [`ContributionConstraint`](ContributionConstraint.md)\>
 
 ```ts
-type ModuleContribute<E extends Entry, C extends ContributionConstraint> = <T extends TokenBase, V extends Registration>(token: T & TokenTupleAdmission<readonly [T]>, registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedContributions<C | Contribution<NoInfer<T>, NoInfer<V>>, From<E>>, ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []) => import('./module').ModuleBuilder<E, C | Contribution<T, V>>;
+type ModuleContribute<E extends Entry, C extends ContributionConstraint> = <T extends TokenBase, V extends Registration>(token: T & TokenTupleAdmission<readonly [T]>, registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedContributions<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>, ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []) => import('./module').ModuleBuilder<E, C | Contribution<T, V>>;
 ```
 
-Defined in: [contribution-types.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L56)
+Defined in: [contribution-types.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L60)
 
 The checked generic `contribute` callable exposed by a module builder.
 

@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 
-const source = '// diagnostic: wrong shape\n// diagnostic-also: TS2684 missing factories\ncall();\n// diagnostic: next rejection\ncall();';
-const primary = { file: '/fixture.ts', line: 3, code: 2345, message: 'wrong shape' };
-const supplemental = { file: '/fixture.ts', line: 3, code: 2684, message: 'missing factories' };
+const source = '// diagnostic: consumer dependency\n// diagnostic-also: TS2684 required service registrations are missing\ncall();\n// diagnostic: next rejection\ncall();';
+const primary = { file: '/fixture.ts', line: 3, code: 2345, message: 'consumer dependency' };
+const supplemental = { file: '/fixture.ts', line: 3, code: 2684, message: 'required service registrations are missing' };
 const next = { file: '/fixture.ts', line: 5, code: 2345, message: 'next rejection' };
 test('strict matcher accounts for explicit supplemental diagnostics without splitting regions', () => {
   expect(matchDiagnosticMarkers(source, '/fixture.ts', [primary, supplemental, next])).toMatchObject({

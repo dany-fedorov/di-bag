@@ -5,10 +5,10 @@
 # Type Alias: BuilderContribute\<E *extends* `Entry`, C *extends* `NeedConstraint`\>
 
 ```ts
-type BuilderContribute<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends Registration>(token: T & TokenTupleAdmission<readonly [T]>, registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, From<E>>, ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []) => import('./di-bag').Builder<E, C | Contribution<T, V>>;
+type BuilderContribute<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends Registration>(token: T & TokenTupleAdmission<readonly [T]>, registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>, ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []) => import('./di-bag').BagBuilder<E, C | Contribution<T, V>>;
 ```
 
-Defined in: [contribution-types.ts:50](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L50)
+Defined in: [contribution-types.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L54)
 
 The checked generic `contribute` callable exposed by an application builder.
 

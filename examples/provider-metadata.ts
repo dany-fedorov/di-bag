@@ -7,8 +7,12 @@ type Located<T> = {
 
 const events: string[] = [];
 const connection = {
-  read() { return 42; },
-  close() { events.push('connection'); },
+  read() {
+    return 42;
+  },
+  close() {
+    events.push('connection');
+  },
 };
 
 const locatedConnection = DiBag.withDisposal(
@@ -16,40 +20,45 @@ const locatedConnection = DiBag.withDisposal(
     value: { present: true, value: connection },
     origin: 'DATABASE_URL',
   }),
-  result => {
+  (result) => {
     if (result.value.present) result.value.value.close();
   },
 );
 
-const connectionPresence = DiBag.mapSync(
-  DiBag.withAcquisitionMetadata(
-    locatedConnection,
-    result => ({ origin: result.origin }),
-  ),
-  result => result.value,
+const connectionPresence = DiBag.transformService(
+  DiBag.withMetadata(locatedConnection, {
+    dynamic: { mode: 'direct', describe: (result) => ({ origin: result.origin }) },
+  }),
+  { mode: 'direct', transform: (result) => result.value },
 );
 
-const remoteFlag = DiBag.mapAsync(
-  DiBag.withAcquisitionMetadataAsync(
+const remoteFlag = DiBag.transformService(
+  DiBag.withMetadata(
     async (): Promise<Located<boolean | undefined>> => ({
       value: { present: true, value: undefined },
       origin: 'feature-service',
     }),
-    result => ({ origin: result.origin }),
+    { dynamic: { mode: 'awaited', describe: (result) => ({ origin: result.origin }) } },
   ),
-  result => result.value,
+  { mode: 'awaited', transform: (result) => result.value },
 );
 
 async function main() {
-  const bag = DiBag.begin().add({ connectionPresence, remoteFlag }).end();
+  const bag = DiBag.createBuilder().register({ connectionPresence, remoteFlag }).build();
   try {
     const acquired = bag.resolve('connectionPresence');
     if (acquired.present) console.log('answer:', acquired.value.read());
 
     const flag = await bag.resolve('remoteFlag');
     console.log('flag present:', flag.present);
-    console.log('connection frame:', bag.inspect('connectionPresence').acquisitions[0]!.metadata[0]);
-    console.log('flag frame:', bag.inspect('remoteFlag').acquisitions[0]!.metadata[0]);
+    console.log(
+      'connection frame:',
+      bag.inspect('connectionPresence').acquisitions[0]!.acquisitionMetadata[0],
+    );
+    console.log(
+      'flag frame:',
+      bag.inspect('remoteFlag').acquisitions[0]!.acquisitionMetadata[0],
+    );
   } finally {
     await bag.close();
   }

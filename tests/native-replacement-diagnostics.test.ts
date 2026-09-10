@@ -9,13 +9,13 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const file = '/fixture.ts';
-const source = '// diagnostic: a dependency has the wrong shape\nreplace();';
+const source = '// diagnostic: provided service does not satisfy its consumer dependency\nreplace();';
 const useful = {
   file,
   line: 2,
   column: 1,
   code: 2345,
-  message: 'a dependency has the wrong shape',
+  message: 'provided service does not satisfy its consumer dependency',
 };
 
 test('native replacement diagnostics retain every useful primary and supplemental message', async () => {
@@ -46,13 +46,13 @@ test('strict replacement audit requires useful primary text at its own region', 
 
   expect(evaluateReplacementDiagnostics(source, file, [useful], false).accepted).toBe(false);
 
-  const separated = `${source}\n// diagnostic: missing factories\nend();`;
+  const separated = `${source}\n// diagnostic: required service registrations are missing\nend();`;
   expect(evaluateReplacementDiagnostics(separated, file, [{ ...useful, line: 4 }], true).accepted).toBe(false);
 });
 
 test('strict replacement audit requires exact supplemental code and text', () => {
-  const supplemented = `${source.replace('replace();', '// diagnostic-also: TS2684 missing factories\nreplace();')}`;
-  const supplemental = { ...useful, code: 2684, message: 'missing factories' };
+  const supplemented = `${source.replace('replace();', '// diagnostic-also: TS2684 required service registrations are missing\nreplace();')}`;
+  const supplemental = { ...useful, code: 2684, message: 'required service registrations are missing' };
 
   expect(evaluateReplacementDiagnostics(supplemented, file, [useful, supplemental], true).accepted).toBe(true);
   expect(evaluateReplacementDiagnostics(supplemented, file, [useful], true).accepted).toBe(false);
@@ -65,15 +65,15 @@ test('strict replacement audit requires exact supplemental code and text', () =>
     [useful],
     true,
     {
-      primary: ['a dependency has the wrong shape'],
-      supplemental: [{ code: 2684, message: 'missing factories' }],
+      primary: ['provided service does not satisfy its consumer dependency'],
+      supplemental: [{ code: 2684, message: 'required service registrations are missing' }],
     },
   );
   expect(removedMarker.accepted).toBe(false);
   expect(removedMarker.inventory.supplementalActual).toBe(0);
 
   const weakenedSupplement = supplemented.replace(
-    'TS2684 missing factories',
+    'TS2684 required service registrations are missing',
     'TS2345 No overload matches this call',
   );
   const weakenedSupplementResult = evaluateReplacementDiagnostics(
@@ -82,8 +82,8 @@ test('strict replacement audit requires exact supplemental code and text', () =>
     [useful, { ...supplemental, code: 2345, message: 'No overload matches this call' }],
     true,
     {
-      primary: ['a dependency has the wrong shape'],
-      supplemental: [{ code: 2684, message: 'missing factories' }],
+      primary: ['provided service does not satisfy its consumer dependency'],
+      supplemental: [{ code: 2684, message: 'required service registrations are missing' }],
     },
   );
   expect(weakenedSupplementResult.missing).toEqual([]);
@@ -136,7 +136,7 @@ test('replacement audit rejects a fixture when its marker and invalid expression
   });
 
   const weakened = original.replace(
-    '// diagnostic: wrong shape',
+    '// diagnostic: consumer dependency',
     '// diagnostic: No overload matches this call',
   );
   const weakenedResult = evaluateReplacementDiagnostics(

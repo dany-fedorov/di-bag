@@ -4,9 +4,9 @@
 
 # Interface: ObserverOptions
 
-Defined in: [observers.ts:46](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L46)
+Defined in: [observers.ts:47](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L47)
 
-Both callbacks required by [Facade.observe](Facade.md#observe).
+Both callbacks required by [DiBagApi.withConfiguration](DiBagApi.md#withconfiguration).
 
 ## Properties
 
@@ -16,7 +16,7 @@ Both callbacks required by [Facade.observe](Facade.md#observe).
 readonly onError: ObserverErrorCallback;
 ```
 
-Defined in: [observers.ts:50](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L50)
+Defined in: [observers.ts:51](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L51)
 
 Receives synchronous throws and rejected results from `onEvent`.
 
@@ -28,6 +28,6 @@ Receives synchronous throws and rejected results from `onEvent`.
 readonly onEvent: ObserverCallback;
 ```
 
-Defined in: [observers.ts:48](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L48)
+Defined in: [observers.ts:49](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L49)
 
 Receives events in transition and observer-registration order on a microtask queue.

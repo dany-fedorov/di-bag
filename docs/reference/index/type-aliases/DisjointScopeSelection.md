@@ -7,7 +7,7 @@
 ```ts
 type DisjointScopeSelection<K extends readonly unknown[], S extends readonly unknown[]> = [
     SelectionKey<K[number]> & SelectionKey<S[number]>
-] extends [never] ? unknown : Unsatisfied<'scope cannot share and override the same token', {
+] extends [never] ? unknown : Unsatisfied<'createScope cannot share and override the same token', {
     tokens: SelectionKey<K[number]> & SelectionKey<S[number]>;
 }>;
 ```
