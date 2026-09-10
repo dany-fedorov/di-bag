@@ -139,6 +139,7 @@ for (const emitter of ['classic6', 'native7']) {
             supplementalExpected: markers.supplementalExpected, supplementalMatched: markers.supplementalMatched,
             knownNativeRejections: markers.knownNativeRejections, gaps: markers.gaps }));
         }
+        const downstreamPairs: { producer: string; declaration: string; downstream: string }[] = [];
         for (const feature of ['modern-inline', 'token-modules', 'incremental-modules', 'acquisition-mode', 'scopes', 'lifetimes', 'startup', 'selected-scopes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'replacement-reflection']) {
           const sourceDir = join(consumer, `${feature}-source`), outputDir = join(consumer, `${feature}-output`);
           mkdirSync(sourceDir); mkdirSync(outputDir);
@@ -170,13 +171,22 @@ for (const emitter of ['classic6', 'native7']) {
             .replace(/from '\.\/(modern-inline|feature|incremental-modules|acquisition-mode|scopes|lifetimes|startup|selected-scopes|composition-adapters|dependency-references|aliases|contributions|observers|plugins|final-adversarial-integration|replacement-reflection)'/g, `from './${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}'`)
             .replace(/import\('\.\/plugins'\)/g, `import('./${feature}-output/feature.${extension === 'cts' ? 'cjs' : 'mjs'}')`);
           writeFileSync(downstream, text);
-          const consumed = await compileNative(compiler, consumer, [downstream]);
-          expect({ checked: consumed.checked, diagnostics: consumed.diagnostics }).toEqual({ checked: true, diagnostics: [] });
-          const classic = ts.createProgram([downstream], { strict: true, noEmit: true, noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true,
-            types: [], target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext });
-          expect(classic.getSourceFile(producer)).toBeUndefined(); expect(classic.getSourceFile(declaration)).toBeDefined();
-          expect(ts.getPreEmitDiagnostics(classic).map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+          downstreamPairs.push({ producer, declaration, downstream });
         }
+        // These consumers are independent external modules with the same options.
+        // Check them together to avoid rebuilding the installed dependency graph
+        // for every pair; all producer sources have already been deleted.
+        const downstreamFiles = downstreamPairs.map(pair => pair.downstream);
+        const consumed = await compileNative(compiler, consumer, downstreamFiles);
+        expect({ checked: consumed.checked, diagnostics: consumed.diagnostics }).toEqual({ checked: true, diagnostics: [] });
+        const classic = ts.createProgram(downstreamFiles, { strict: true, noEmit: true, noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true,
+          types: [], target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext });
+        for (const { producer, declaration, downstream } of downstreamPairs) {
+          expect(existsSync(producer)).toBe(false);
+          expect(classic.getSourceFile(downstream)).toBeDefined();
+          expect(classic.getSourceFile(producer)).toBeUndefined(); expect(classic.getSourceFile(declaration)).toBeDefined();
+        }
+        expect(ts.getPreEmitDiagnostics(classic).map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
       }
       expect(failures).toEqual([]);
       expect(runtimeFailures).toEqual([]);

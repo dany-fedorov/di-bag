@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 
 export type ProcessLimits = { timeoutMilliseconds: number; maxRssMiB: number; maxOutputBytes: number; sampleMilliseconds: number };
@@ -59,11 +60,23 @@ export async function supervise(executable: string, args: readonly string[], cwd
         }
       } catch (error) {
         // A disappearing /proc path reports ENOENT; an already-open descriptor
-        // can report ESRCH before the exit callback. Confirm ownership has ended.
+        // can report ESRCH before the exit callback. Zombies still answer kill(0),
+        // so confirm their state with a fresh read, independent of the failed read.
         const code = (error as NodeJS.ErrnoException).code;
         if (code === 'ENOENT' || code === 'ESRCH') {
-          try { process.kill(child.pid, 0); if (!exited) stop('monitor', String(error)); }
-          catch (probe) { if ((probe as NodeJS.ErrnoException).code !== 'ESRCH' && !exited) stop('monitor', String(error)); }
+          try {
+            process.kill(child.pid, 0);
+            let stopped = false;
+            try { stopped = /^State:\s+[ZX]/m.test(readFileSync(`/proc/${child.pid}/status`, 'utf8')); }
+            catch {
+              // The fresh path can disappear too. Only ESRCH from the PID probe
+              // proves departure; any other failure remains fail-closed.
+              process.kill(child.pid, 0);
+            }
+            if (!stopped && !exited) stop('monitor', String(error));
+          } catch (probe) {
+            if ((probe as NodeJS.ErrnoException).code !== 'ESRCH' && !exited) stop('monitor', String(error));
+          }
         } else if (!exited) stop('monitor', String(error));
       } finally { monitoring = false; }
     };

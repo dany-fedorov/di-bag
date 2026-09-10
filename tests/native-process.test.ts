@@ -1,6 +1,7 @@
 import { expect, spyOn, test } from 'bun:test';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { supervise, validateLimits } from '../scripts/native-process.ts';
 
 const limits = { timeoutMilliseconds: 3000, maxRssMiB: 256, maxOutputBytes: 4096, sampleMilliseconds: 20 };
@@ -38,6 +39,32 @@ for (const failure of ['EIO', 'ENOENT', 'ESRCH', 'missing VmRSS'] as const) {
     expect(pid).toBeGreaterThan(0);
     expect(() => process.kill(pid, 0)).toThrow();
     expect(result.milliseconds).toBeLessThan(limits.timeoutMilliseconds);
+  });
+}
+
+for (const failure of ['ENOENT', 'ESRCH'] as const) {
+  test(`supervisor drains and reaps a zombie when status reports ${failure} before the exit callback`, async () => {
+    let zombiePid = 0;
+    const delay = new Int32Array(new SharedArrayBuffer(4));
+    const result = await supervise(node, ['-e', "setTimeout(() => { console.log('out'); console.error('err'); }, 50)"], process.cwd(), limits, async pid => {
+      // Block JS exit notification while the real child exits. kill(pid, 0)
+      // still succeeds for this zombie; only its process state proves exit.
+      const deadline = Date.now() + 2000;
+      while (Date.now() < deadline) {
+        if (/^State:\s+Z/m.test(readFileSync(`/proc/${pid}/status`, 'utf8'))) {
+          process.kill(pid, 0);
+          zombiePid = pid;
+          throw Object.assign(new Error(`status read ${failure} during zombie exit`), { code: failure });
+        }
+        Atomics.wait(delay, 0, 0, 1);
+      }
+      throw new Error('Child did not reach zombie state before exit notification');
+    });
+    expect(zombiePid).toBeGreaterThan(0);
+    expect(result).toMatchObject({ status: 0, signal: null, stdout: 'out\n', stderr: 'err\n' });
+    expect(result.terminationReason).toBeUndefined();
+    expect(result.error).toBeUndefined();
+    expect(() => process.kill(zombiePid, 0)).toThrow();
   });
 }
 
