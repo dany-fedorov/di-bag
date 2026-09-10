@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "cwd": "/tmp/di-bag-performance-integration",
+  "status": 0,
+  "stdout": "\n> di-bag@0.1.0 build\n> node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc6 -p ./tsconfig.build.json\n\n",
+  "stderr": "",
+  "timeout": false,
+  "deadlineSeconds": 120,
+  "elapsedSeconds": 1.1446640510112047
+}
