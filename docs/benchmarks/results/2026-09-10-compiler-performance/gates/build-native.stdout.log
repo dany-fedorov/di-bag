@@ -1,0 +1,4 @@
+
+> di-bag@0.1.0 build:native
+> tsc -p tsconfig.build.json
+
