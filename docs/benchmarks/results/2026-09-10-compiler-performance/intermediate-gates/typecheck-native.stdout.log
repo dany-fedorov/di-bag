@@ -1,0 +1,4 @@
+
+> di-bag@0.1.0 typecheck:native
+> tsc -p tsconfig.json
+

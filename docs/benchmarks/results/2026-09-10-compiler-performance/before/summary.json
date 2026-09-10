@@ -1,0 +1,102 @@
+{
+  "commit": "451a62bfffaf524852ca2b016dcb8eddff0de493",
+  "rows": 24,
+  "accepted": 16,
+  "sourceUnchanged": true,
+  "counts": {
+    "100": {
+      "rows": 8,
+      "accepted": 8
+    },
+    "500": {
+      "rows": 8,
+      "accepted": 8
+    },
+    "1000": {
+      "rows": 8,
+      "accepted": 0
+    }
+  },
+  "failures": [
+    {
+      "lane": "classic",
+      "count": 1000,
+      "form": "chained",
+      "status": 1,
+      "signal": null,
+      "terminationReason": null,
+      "failureReason": "worker did not complete cleanly",
+      "peakObservedRssMiB": null
+    },
+    {
+      "lane": "native",
+      "count": 1000,
+      "form": "chained",
+      "status": null,
+      "signal": "SIGKILL",
+      "terminationReason": "timeout",
+      "failureReason": "native process or output did not pass checked completion",
+      "peakObservedRssMiB": 533.55078125
+    },
+    {
+      "lane": "classic",
+      "count": 1000,
+      "form": "replacement",
+      "status": 1,
+      "signal": null,
+      "terminationReason": null,
+      "failureReason": "worker did not complete cleanly",
+      "peakObservedRssMiB": null
+    },
+    {
+      "lane": "native",
+      "count": 1000,
+      "form": "replacement",
+      "status": null,
+      "signal": "SIGKILL",
+      "terminationReason": "memory",
+      "failureReason": "native process or output did not pass checked completion",
+      "peakObservedRssMiB": 3072.63671875
+    },
+    {
+      "lane": "classic",
+      "count": 1000,
+      "form": "bindings",
+      "status": null,
+      "signal": "SIGTERM",
+      "terminationReason": null,
+      "failureReason": "worker did not complete cleanly",
+      "peakObservedRssMiB": null
+    },
+    {
+      "lane": "native",
+      "count": 1000,
+      "form": "bindings",
+      "status": 1,
+      "signal": null,
+      "terminationReason": null,
+      "failureReason": "native diagnostics did not satisfy original boundary contract",
+      "peakObservedRssMiB": 2820.59765625
+    },
+    {
+      "lane": "classic",
+      "count": 1000,
+      "form": "modules",
+      "status": null,
+      "signal": "SIGTERM",
+      "terminationReason": null,
+      "failureReason": "worker did not complete cleanly",
+      "peakObservedRssMiB": null
+    },
+    {
+      "lane": "native",
+      "count": 1000,
+      "form": "modules",
+      "status": null,
+      "signal": "SIGKILL",
+      "terminationReason": "timeout",
+      "failureReason": "native process or output did not pass checked completion",
+      "peakObservedRssMiB": 2452.41015625
+    }
+  ]
+}

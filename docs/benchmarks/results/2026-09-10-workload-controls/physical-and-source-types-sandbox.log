@@ -1,0 +1,173 @@
+bun test v1.4.2 (744846f84)
+
+tests/package.test.ts:
+22 | const classicPackageArtifacts = mkdtempSync(join(tmpdir(), 'di-bag-classic-package-artifacts-'));
+23 | 
+24 | async function run(command: string[], cwd = root) {
+25 |   const { exitCode, stdout, stderr, signal, terminationReason } = await execute(command, cwd);
+26 |   expect({ exitCode, stderr, signal, terminationReason })
+27 |     .toEqual({ exitCode: 0, stderr: '', signal: null, terminationReason: undefined });
+          ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "exitCode": 0,
++   "exitCode": 226,
+    "signal": null,
+    "stderr": "",
+    "terminationReason": undefined,
+  }
+
+- Expected  - 1
++ Received  + 1
+
+      at run (/tmp/di-bag-performance-integration/tests/package.test.ts:27:6)
+      at async <anonymous> (/tmp/di-bag-performance-integration/tests/package.test.ts:45:35)
+(fail) (unnamed) [1215.45ms]
+
+tests/native-package.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+19 | import { finalAdversarialExpectedResult, finalAdversarialPackageRuntimeSource } from './final-adversarial-runtime-fixture';
+20 | 
+21 | const root = resolve(__dirname, '..');
+22 | const node = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8', timeout: 10000 }).trim();
+23 | const bun = process.execPath;
+24 | const npmCli = realpathSync(join(dirname(node), 'npm'));
+                    ^
+ENOENT: no such file or directory, lstat 'npm'
+    path: "npm",
+ syscall: "lstat",
+   errno: -2,
+    code: "ENOENT"
+
+      at /tmp/di-bag-performance-integration/tests/native-package.test.ts:24:16
+-------------------------------
+
+
+tests/types.test.ts:
+(pass) observers retain exact inferred cross-file contracts [972.01ms]
+(pass) plugins retain exact inferred cross-file contracts [733.72ms]
+(pass) final adversarial integration retains exact inferred cross-file contracts [603.14ms]
+(pass) contributions retain exact inferred cross-file contracts [773.75ms]
+(pass) aliases retain exact inferred cross-file contracts [784.43ms]
+(pass) dependency references retain exact inferred cross-file contracts [624.85ms]
+(pass) composition adapters retain exact inferred cross-file contracts [543.86ms]
+(pass) selected scopes retain exact inferred cross-file contracts [556.11ms]
+(pass) startup and contextual providers retain exact inferred cross-file contracts [539.61ms]
+(pass) lifetime declarations retain exact inferred cross-file contracts [637.17ms]
+(pass) lifetimes inferred exports survive declaration consumption [1331.72ms]
+(pass) composition-adapters inferred exports survive declaration consumption [1129.12ms]
+(pass) dependency-references inferred exports survive declaration consumption [1105.51ms]
+(pass) aliases inferred exports survive declaration consumption [1333.73ms]
+(pass) contributions inferred exports survive declaration consumption [1242.71ms]
+(pass) observers inferred exports survive declaration consumption [1064.14ms]
+(pass) plugins inferred exports survive declaration consumption [1049.31ms]
+(pass) final-adversarial-integration inferred exports survive declaration consumption [1011.56ms]
+(pass) acquisition modes retain exact acquired values across inferred exports [495.63ms]
+(pass) token modules preserve exact cross-file contracts [495.61ms]
+(pass) public token composition preserves exact outputs and frames [550.24ms]
+(pass) token contracts preserve exact identities and provider graphs [489.16ms]
+(pass) replacement context preserves exact contracts from surviving consumers [546.12ms]
+(pass) incremental checks preserve forward, replacement and frame contracts [496.13ms]
+(pass) incremental projection candidates preserve replacement and resolved contracts [487.68ms]
+(pass) incremental module installation preserves private, forward, and token contracts [500.41ms]
+(pass) incremental module declarations retain exact results and token outputs [517.35ms]
+(pass) builder views preserve exact accepted registration histories [448.42ms]
+(pass) supported replacement wrappers and reflected methods stay exact and non-any [508.87ms]
+(pass) replacement reflection preserves utility soundness and module history [480.48ms]
+(pass) modern inline inference retains exact contracts [502.39ms]
+(pass) box adapters preserve exact modes, requirements and frames [519.53ms]
+(pass) typed provider metadata survives checked composition and inspection [572.10ms]
+(pass) named modules preserve contracts across a file boundary [539.95ms]
+(pass) valid composition preserves inferred values and explicit promise edges [485.87ms]
+(pass) registration boundaries preserve selected keys and exact factory types [516.99ms]
+(pass) scope preserves exact inferred contracts across a source boundary [492.34ms]
+(pass) inline method-returning factories preserve exact types: add [449.42ms]
+(pass) inline method-returning factories preserve exact types: fork [470.17ms]
+(pass) inline method-returning factories preserve exact types: disposal [460.63ms]
+(pass) type rejection: provider-boundaries.ts [518.11ms]
+(pass) type rejection: acquisition-mode.ts [482.45ms]
+(pass) type rejection: object-registrations.ts [453.31ms]
+(pass) type rejection: fork-dependency-shape.ts [475.13ms]
+(pass) type rejection: inline-wrong-shape.ts [479.25ms]
+(pass) type rejection: observers.ts [414.65ms]
+(pass) type rejection: wrong-shape.ts [429.01ms]
+(pass) type rejection: tokens.ts [631.74ms]
+(pass) type rejection: primitive-parameter.ts [458.43ms]
+(pass) type rejection: union-replace.ts [463.03ms]
+(pass) type rejection: replacement-wrong-shape.ts [459.44ms]
+(pass) type rejection: missing.ts [470.87ms]
+(pass) type rejection: module-private.ts [455.99ms]
+(pass) type rejection: module-narrowing.ts [583.67ms]
+(pass) type rejection: forward-wrong-shape.ts [441.52ms]
+(pass) type rejection: fork-explicit-generics.ts [463.51ms]
+(pass) type rejection: callable-parameter.ts [438.50ms]
+(pass) type rejection: indexed-registrations.ts [432.06ms]
+(pass) type rejection: incremental.ts [574.56ms]
+(pass) type rejection: aliases.ts [749.80ms]
+(pass) type rejection: incremental-modules.ts [489.54ms]
+(pass) type rejection: selected-scopes.ts [680.05ms]
+(pass) type rejection: object-overrides.ts [438.65ms]
+(pass) type rejection: token-modules.ts [509.54ms]
+(pass) type rejection: provider-unions.ts [515.37ms]
+(pass) type rejection: inline-replacement-wrong-shape.ts [455.72ms]
+(pass) type rejection: prototype-registrations.ts [457.26ms]
+(pass) type rejection: modern-inline.ts [467.75ms]
+(pass) type rejection: fork-missing.ts [454.01ms]
+(pass) type rejection: inline-fork-wrong-shape.ts [466.02ms]
+(pass) type rejection: final-adversarial-integration.ts [484.25ms]
+(pass) type rejection: module-rename.ts [451.54ms]
+(pass) type rejection: token-contracts.ts [509.10ms]
+(pass) type rejection: module-missing.ts [467.53ms]
+(pass) type rejection: module-hidden-private-needs.ts [464.27ms]
+(pass) type rejection: duplicate-add.ts [447.85ms]
+(pass) type rejection: module-exports.ts [458.50ms]
+(pass) type rejection: fork-selection.ts [521.45ms]
+(pass) type rejection: inline-fork-missing.ts [453.22ms]
+(pass) type rejection: optional-parameter.ts [440.21ms]
+(pass) type rejection: plugins.ts [496.65ms]
+(pass) type rejection: incremental-projections.ts [453.12ms]
+(pass) type rejection: replacement-context.ts [550.32ms]
+(pass) type rejection: module-wrong-shape.ts [468.70ms]
+(pass) type rejection: spread-disposal.ts [447.33ms]
+(pass) type rejection: symbol-dependency.ts [432.84ms]
+(pass) type rejection: template-dependencies.ts [445.73ms]
+(pass) type rejection: lifetimes.ts [793.19ms]
+(pass) type rejection: replacement-views.ts [455.83ms]
+(pass) type rejection: boolean-registrations.ts [427.19ms]
+(pass) type rejection: fork-wrong-shape.ts [441.55ms]
+(pass) type rejection: replacement-reflection.ts [487.79ms]
+(pass) type rejection: disposable-missing.ts [438.68ms]
+(pass) type rejection: template-registrations.ts [423.32ms]
+(pass) type rejection: required-this.ts [463.35ms]
+(pass) type rejection: inline-fork-dependency-shape.ts [489.09ms]
+(pass) type rejection: disposer-wrong-shape.ts [418.59ms]
+(pass) type rejection: async-resolve.ts [437.96ms]
+(pass) type rejection: box-adapters.ts [497.08ms]
+(pass) type rejection: provider-projections.ts [504.75ms]
+(pass) type rejection: composition-adapters.ts [493.49ms]
+(pass) type rejection: inline-fork-extra.ts [446.48ms]
+(pass) type rejection: async-dependency.ts [452.65ms]
+(pass) type rejection: scopes.ts [505.69ms]
+(pass) type rejection: disposer-promise.ts [426.73ms]
+(pass) type rejection: inline-forward-wrong-shape.ts [456.08ms]
+(pass) type rejection: union-parameter.ts [455.45ms]
+(pass) type rejection: dependency-references.ts [647.66ms]
+(pass) type rejection: startup.ts [487.03ms]
+(pass) type rejection: invalid-registration.ts [460.83ms]
+(pass) type rejection: provider-module-metadata.ts [497.32ms]
+(pass) type rejection: fork-extra.ts [440.30ms]
+(pass) type rejection: inline-missing.ts [465.63ms]
+(pass) type rejection: builder-views.ts [535.36ms]
+(pass) type rejection: contributions.ts [790.66ms]
+
+2 tests failed:
+(fail) (unnamed) [1215.45ms]
+
+ 115 pass
+ 2 fail
+ 1 error
+ 449 expect() calls
+Ran 117 tests across 3 files. [65.14s]

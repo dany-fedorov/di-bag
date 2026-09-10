@@ -76,4 +76,32 @@ export const startupRuntimeAssertions = `{
     await cancelled.cleanup;
     assert.deepEqual(cleanup, [17]);
   }
+
+  for (const concurrency of [1, 2]) {
+    const gates = Array.from({ length: 3 }, () => {
+      let release;
+      const promise = new Promise(resolve => { release = resolve; });
+      return { promise, release };
+    });
+    const calls = [], disposed = [];
+    const provider = index => DiBag.withDisposal(() => {
+      calls.push(index); return gates[index].promise;
+    }, value => { disposed.push(value); });
+    const pending = DiBag.begin().add({ a: provider(0), b: provider(1), c: provider(2) })
+      .start(['a', 'b', 'c'], { concurrency });
+    assert.deepEqual(calls, concurrency === 1 ? [0] : [0, 1]);
+    gates[0].release(10);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(calls, concurrency === 1 ? [0, 1] : [0, 1, 2]);
+    gates[1].release(11); gates[2].release(12);
+    const bag = await pending;
+    assert.equal(bag.resolve('a'), gates[0].promise);
+    await bag.close(); assert.deepEqual(disposed, [12, 11, 10]);
+  }
+  let invalidCalls = 0;
+  const boundedBuilder = DiBag.begin().add({ item: () => ++invalidCalls });
+  for (const concurrency of [0, -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    await assert.rejects(boundedBuilder.start(['item'], { concurrency }), /invalid startup concurrency/);
+  }
+  assert.equal(invalidCalls, 0);
 }`;

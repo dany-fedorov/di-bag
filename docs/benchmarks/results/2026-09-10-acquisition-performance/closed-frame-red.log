@@ -1,0 +1,38 @@
+✔ discarded raw transient arrays are collectible after resolve (7.625756ms)
+✔ discarded raw transient arrays are collectible after alias (3.184495ms)
+✔ discarded raw transient arrays are collectible after dependency (2.596793ms)
+✔ discarded raw transient arrays are collectible after collection (2.686953ms)
+✔ discarded raw transient arrays are collectible after startup (4.411193ms)
+✔ discarded native transient promises and source arrays are collectible (2.918714ms)
+✔ discarded native transient promises and mapped arrays are collectible (2.849571ms)
+✔ borrowed mapped payloads are collectible while independent inspection frames survive (3.65981ms)
+✔ transient owned source and mapped identities survive GC until reverse stage cleanup (7.437776ms)
+✖ closing releases compacted frame payloads even when a dependency proxy is retained (18.732695ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 73.983119
+
+✖ failing tests:
+
+test at tests/acquisition-retention.node.mjs:140:1
+✖ closing releases compacted frame payloads even when a dependency proxy is retained (18.732695ms)
+  AssertionError [ERR_ASSERTION]: discarded borrowed payloads remain reachable
+
+  1 !== 0
+
+      at collected (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:24:10)
+      at async TestContext.<anonymous> (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:157:3)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

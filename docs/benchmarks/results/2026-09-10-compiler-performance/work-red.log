@@ -1,0 +1,50 @@
+bun test v1.4.2 (744846f84)
+
+tests/incremental-scale.test.ts:
+14 |     const child = spawnSync('node', [
+15 |       '--max-old-space-size=3072', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', ...item.args,
+16 |     ], { cwd: resolve(__dirname, '..'), encoding: 'utf8', timeout: 60_000, maxBuffer: 1024 * 1024 });
+17 |     expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr })
+18 |       .toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
+19 |     expect(child.stdout.trim().length).toBeGreaterThan(0);
+                                            ^
+error: expect(received).toBeGreaterThan(expected)
+
+Expected: > 0
+Received: 0
+
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/incremental-scale.test.ts:19:40)
+(fail) incremental compiler work: 100 named additions [1787.99ms]
+14 |     const child = spawnSync('node', [
+15 |       '--max-old-space-size=3072', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', ...item.args,
+16 |     ], { cwd: resolve(__dirname, '..'), encoding: 'utf8', timeout: 60_000, maxBuffer: 1024 * 1024 });
+17 |     expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr })
+18 |       .toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
+19 |     expect(child.stdout.trim().length).toBeGreaterThan(0);
+                                            ^
+error: expect(received).toBeGreaterThan(expected)
+
+Expected: > 0
+Received: 0
+
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/incremental-scale.test.ts:19:40)
+(fail) incremental compiler work: 100 named replacements [1843.44ms]
+14 |     const child = spawnSync('node', [
+15 |       '--max-old-space-size=3072', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', ...item.args,
+16 |     ], { cwd: resolve(__dirname, '..'), encoding: 'utf8', timeout: 60_000, maxBuffer: 1024 * 1024 });
+17 |     expect({ status: child.status, signal: child.signal, error: child.error?.message, stderr: child.stderr })
+18 |       .toEqual({ status: 0, signal: null, error: undefined, stderr: '' });
+19 |     expect(child.stdout.trim().length).toBeGreaterThan(0);
+                                            ^
+error: expect(received).toBeGreaterThan(expected)
+
+Expected: > 0
+Received: 0
+
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/incremental-scale.test.ts:19:40)
+(fail) incremental compiler work: 100 token bindings [2174.13ms]
+
+ 0 pass
+ 3 fail
+ 6 expect() calls
+Ran 3 tests across 1 file. [5.82s]

@@ -1,0 +1,13 @@
+answer: 42
+frame: {
+  present: true,
+  value: {
+    kind: "val-box",
+    metadata: {
+      present: true,
+      value: [Object ...],
+    },
+    alias: "database",
+  },
+}
+cleanup: raw box, payload owner

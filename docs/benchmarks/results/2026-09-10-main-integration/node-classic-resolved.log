@@ -1,0 +1,39 @@
+✔ discarded raw transient arrays are collectible after resolve (7.074921ms)
+✔ discarded raw transient arrays are collectible after alias (2.715006ms)
+✔ discarded raw transient arrays are collectible after dependency (2.594838ms)
+✔ discarded raw transient arrays are collectible after collection (2.732338ms)
+✔ discarded raw transient arrays are collectible after startup (4.251652ms)
+✔ discarded native transient promises and source arrays are collectible (3.083764ms)
+✔ discarded native transient promises and mapped arrays are collectible (2.89629ms)
+✔ borrowed mapped payloads are collectible while independent inspection frames survive (3.674265ms)
+✔ transient owned source and mapped identities survive GC until reverse stage cleanup (5.139753ms)
+✔ closing releases compacted frame payloads even when a dependency proxy is retained (5.377618ms)
+✔ a ready borrowed projection drops its payload while pending source ownership and close admission survive (2.679087ms)
+✔ current graph releases replaced factories, payloads, IDs and warmed ancestor wrappers (3.308668ms)
+✔ contribution append and installation release earlier cached arrays and graph wrappers (3.9439ms)
+✔ a private lexical reference intentionally retains an overridden factory (2.316483ms)
+✔ symbol lookup remains functional on hosts that reject weak symbol keys (2.586069ms)
+✔ removing the last lexical consumer releases displaced private targets and snapshots (2.371721ms)
+✔ Node disposes a deep ready graph in dependency order and only once (206.614302ms)
+✔ Node admits a late acyclic edge and rejects a late cycle across a deep graph (156.353252ms)
+✔ Node cold-resolves 1,000 raw named factories exactly once without increasing its stack (58.101399ms)
+✔ Node cold-resolves 1,000 auto named factories exactly once without increasing its stack (59.696534ms)
+✔ raw fast acquisition preserves unobserved thenable and promise identity and factory receiver (6.074391ms)
+✔ raw scoped public reentrant creating cycles invoke the factory once (0.385674ms)
+✔ raw transient public reentrant creating cycles invoke the factory once (0.281689ms)
+✔ native transient ancestry rejects after-await cycles with the original label order (0.422035ms)
+✔ ready borrowed transient proxies keep late cycle and root capture checks (0.6972ms)
+✔ failed direct raw sources cannot use retained proxies during close (0.287135ms)
+✔ failed direct auto sources cannot use retained proxies during close (0.145784ms)
+✔ Node numeric startup 1 bounds selected readiness without awaiting raw outputs (0.845323ms)
+✔ Node numeric startup 2 bounds selected readiness without awaiting raw outputs (0.379814ms)
+✔ Node observer burst drains in transition and registration order while external callback gates remain pending (1.603338ms)
+✔ Node application wait deadlines preserve memoized pending source and disposer cleanup (0.453062ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 573.720709

@@ -1,0 +1,23 @@
+{
+  "files": {
+    "docs/benchmarks/results/2026-09-10-graph-performance/graph-probe.mjs": "6eb8129ce066a724cbf3fa559de9b25581b661735c677ef0f183be842b36a856",
+    "docs/benchmarks/results/2026-09-10-graph-performance/module-probe.mjs": "1e47070ec00760e1fff0ee8e1ca41fad23f859035b0015ed4832bca4e153a8fa",
+    "docs/benchmarks/results/2026-09-10-graph-performance/original-probe.mjs": "5959566e060ca72bb9947e0c0898b016abd54f70d3cc9bf1c3cf198aac2071a3",
+    "docs/benchmarks/results/2026-09-10-graph-performance/symbol-weakmap-capabilities.mjs": "75bc54e589895c872307c5ad29f2e866b5877327963432d978e763795dc09972",
+    "docs/benchmarks/results/2026-09-10-graph-performance/hot-probe.mjs": "ef4c434d540bb109b101e5dd5e2f320547c37d7c2927bf40f4ef6d721bffa9f3",
+    "docs/benchmarks/results/2026-09-10-graph-performance/run.py": "9431ff2c225c3ec7357a60def2c5c9e3ef62bfdc071f15da81399945978cb0c8",
+    "docs/benchmarks/results/2026-09-10-graph-performance/run-hot.py": "a713ee7982360200c208780f3c0cc734e32b8f57d2bcfc1858407499b5ae2ba7",
+    "docs/benchmarks/results/2026-09-10-graph-performance/run-module.py": "056b1a0629b347cb9d73eda66e7572d4bf462ff9a5538963acae0e7a54a15628",
+    "docs/benchmarks/results/2026-09-10-graph-performance/run-module-after.py": "09a8d241bba45175c85bc157f0787193a87248b9f922c03d4b2f7af9ab8d374d",
+    ".github/workflows/ci.yml": "5e10bb77040f8083b39efa08af6a807af996fdf01d6677f525407613e894a74a",
+    "tests/persistent-graph.test.ts": "c32811f4600539fe42405047ec3384a300be785965164bb9cd6cbb9e77edd83c",
+    "tests/persistent-map.test.ts": "cd4b6aa413f66a3262476410fea27909484d641be04e6e8a57da6fc59155170a",
+    "tests/persistent-module.test.ts": "6fd96a350ecdcc29fb6dff8b08b6f8b0679e77a88f41f0a6743f7e0c1e7f4c3e",
+    "tests/graph-retention.node.mjs": "29141fb72adbbc9fb29b7baeeaf10936931bbb6e84811bd0163f8837e673935b",
+    "tests/acquisition-retention.node.mjs": "8ff53a7ab72c75c53f7a494d5bb2649d432f678c92dcf28e05164cea9e72ff9c",
+    "tests/runtime-scale.node.mjs": "4f128635d7d0e887484ff42daaf96a4f271b29c2558420084435a94b59fcd7a8"
+  },
+  "finalSourceMatchesManifest": true,
+  "baselineSnapshotMatchesManifest": true,
+  "originalProbeUnchanged": true
+}

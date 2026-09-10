@@ -1,0 +1,1 @@
+{"entry":"/tmp/di-bag-task4-classic-after/node.js","kind":"startup","mode":"8","count":96,"node":"v24.20.0","flags":["--expose-gc","--max-old-space-size=512"],"elapsedMs":72.64161000000001,"before":5011144,"peakHeap":22630608,"after":5216648,"calls":96,"peak":8,"ready":96,"disposed":96,"startupMs":61.409667,"applicationPeakWorkspaceBytes":2097152}

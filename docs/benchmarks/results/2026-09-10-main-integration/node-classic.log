@@ -1,0 +1,50 @@
+✖ tests/acquisition-retention.node.mjs (0.689196ms)
+✔ current graph releases replaced factories, payloads, IDs and warmed ancestor wrappers (6.473554ms)
+✔ contribution append and installation release earlier cached arrays and graph wrappers (5.087677ms)
+✔ a private lexical reference intentionally retains an overridden factory (2.586611ms)
+✔ symbol lookup remains functional on hosts that reject weak symbol keys (3.154779ms)
+✔ removing the last lexical consumer releases displaced private targets and snapshots (3.586769ms)
+✔ Node disposes a deep ready graph in dependency order and only once (223.370733ms)
+✔ Node admits a late acyclic edge and rejects a late cycle across a deep graph (162.336598ms)
+✔ Node cold-resolves 1,000 raw named factories exactly once without increasing its stack (60.66227ms)
+✔ Node cold-resolves 1,000 auto named factories exactly once without increasing its stack (73.766374ms)
+✔ raw fast acquisition preserves unobserved thenable and promise identity and factory receiver (3.487776ms)
+✔ raw scoped public reentrant creating cycles invoke the factory once (0.524729ms)
+✔ raw transient public reentrant creating cycles invoke the factory once (0.325283ms)
+✔ native transient ancestry rejects after-await cycles with the original label order (0.697992ms)
+✔ ready borrowed transient proxies keep late cycle and root capture checks (0.761399ms)
+✔ failed direct raw sources cannot use retained proxies during close (0.328877ms)
+✔ failed direct auto sources cannot use retained proxies during close (0.191719ms)
+✔ Node numeric startup 1 bounds selected readiness without awaiting raw outputs (2.788654ms)
+✔ Node numeric startup 2 bounds selected readiness without awaiting raw outputs (0.349809ms)
+✔ Node observer burst drains in transition and registration order while external callback gates remain pending (1.904706ms)
+✔ Node application wait deadlines preserve memoized pending source and disposer cleanup (0.460344ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 20
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 577.180931
+
+✖ failing tests:
+
+test at tests/acquisition-retention.node.mjs:1:1
+✖ tests/acquisition-retention.node.mjs (0.689196ms)
+  Error: Cannot find module '/tmp/di-bag-performance-integration/dist/val-box.js'
+  Require stack:
+  - /tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs
+      at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+      at wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)
+      at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)
+      at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)
+      at Module._load (node:internal/modules/cjs/loader:1341:5)
+      at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+      at Module.require (node:internal/modules/cjs/loader:1674:12)
+      at require (node:internal/modules/helpers:157:16)
+      at file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:12:24
+      at ModuleJob.run (node:internal/modules/esm/module_job:561:25) {
+    code: 'MODULE_NOT_FOUND',
+    requireStack: [ '/tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs' ]
+  }

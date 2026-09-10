@@ -40,8 +40,8 @@ the first diagnostic.
 Each worker has a 60-second resource limit. Timeouts and compiler crashes are
 reported as failed measurements, never as passing type checks. The command
 finishes with an explicit acceptance/failure summary; its exit status indicates
-report completion, not that every measured form passed. Unit tests have no
-performance threshold.
+report completion, not that every measured form passed. The contract tests do not gate wall-clock latency. Separate incremental-work
+tests bound deterministic compiler instantiation counts.
 
 The `--native` variants retain these same cases but supervise the native
 executable directly; their separate measurements and Linux limits appear below.
@@ -446,11 +446,13 @@ Native replacement diagnostic parity now has zero reviewed gaps, closing the two
 diagnostic-quality failures in the frozen matrix. The complete matrix has not
 been relabelled because its source predates these changes.
 
-The unchanged classic 1000-call AST is outside the supported source shape. A
-zero-generic fluent control passes at 550 calls and overflows the TypeScript 6.0.3
-binder at 575, before library checking. Native 1000 chained, replacement and
-token forms still cross fixed time, memory or instantiation bounds. Soundness and
-declaration-emission probes rejected the remaining type-only shortcuts.
+The classic 1000-call source remains outside the measured supported bounds. The
+earlier zero-generic fluent CLI control passes at 550 calls and overflows the
+TypeScript 6.0.3 binder at 575. That control uses a different entry path from the
+original compiler API worker; the fresh API controls below distinguish its
+binding/flow failure from the original checker overflow. Native 1000 chained,
+replacement and token forms still cross fixed time, memory or instantiation
+bounds. Soundness and declaration-emission probes rejected the earlier shortcuts.
 
 The release contract supports individual operations through the continuously
 tested 100-operation gates and retained 500-operation measurements. At 1,000
@@ -459,3 +461,47 @@ modules of 50. The grouped and named-module valid, missing and wrong-shape cases
 pass on the pinned classic and native compilers. The original 108-row inventory
 remains available to detect compiler changes and to prevent failed fluent rows
 from being mistaken for accepted checks.
+
+
+## Fresh compiler-work follow-up (2026-09-10)
+
+Caching the opaque-token check for incoming registrations without symbol keys
+reduces instantiations on the original generators. The paired 500-operation valid
+rows change as follows:
+
+| Compiler | Form | Before instantiations | After instantiations | Reduction |
+| --- | --- | ---: | ---: | ---: |
+| Classic 6.0.3 | chained | 17,513,384 | 15,908,223 | 9.2% |
+| Native 7.0.2 | chained | 17,497,013 | 15,891,872 | 9.2% |
+| Classic 6.0.3 | bindings | 28,500,443 | 27,268,531 | 4.3% |
+| Native 7.0.2 | bindings | 28,448,266 | 27,216,370 | 4.3% |
+| Classic 6.0.3 | modules | 41,317,025 | 40,084,613 | 3.0% |
+| Native 7.0.2 | modules | 41,302,442 | 40,070,046 | 3.0% |
+
+Replacement work is effectively unchanged (classic 31,198,119 → 31,199,241;
+native 31,184,033 → 31,185,175 at 500). The rounded classic work ceilings are
+850,000 for 100 named additions and 1,450,000 for 100 token bindings. Both fail
+on the paired baseline and pass on final source. Repeated final selected rows
+have identical work and generated-source hashes; wall times remain informational.
+
+The fresh complete original matrix accepts **85/108** rows: all 72 at 100/500,
+all 12 bulk/grouped cases at 1,000, and native 1,000 bindings missing-final-token.
+The other 23 original 1,000 rows still fail: classic chained/replacement checker
+overflow; classic tokens timeouts; native chained timeouts, replacement memory
+caps, bindings TS2589 for valid/mismatched service, and modules time/memory caps.
+TS2589 alongside an intended negative diagnostic remains a failure.
+
+Matching library-free compiler API controls retain both script and external-module
+contexts. Classic 1,000 controls overflow in binding/flow; original DI failures
+occur in checker instantiation. These show distinct limits and do not establish
+binding as the sole cause of the original failure. Native plain fluent syntax
+passes at 1,000, while a minimal growing generic history times out. The original
+30-second/1024-MiB audit spot checks also retain the chained checker failure and
+successful grouped control. No control replaces an original matrix row.
+
+Both compiler source checks, strict native diagnostic audit, physical/deleted
+producer declarations and installed-package contracts pass. Runtime source is
+unchanged, and both emitters produce byte-identical runtime JavaScript before
+and after. See the [full report and raw evidence](results/2026-09-10-compiler-performance/README.md)
+for all failures, exact commands, hashes, work/time/RSS and rejected experiments.
+The earlier historical matrices above retain their original source identities.

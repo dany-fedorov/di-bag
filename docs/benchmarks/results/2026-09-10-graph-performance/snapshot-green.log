@@ -1,0 +1,27 @@
+bun test v1.4.2 (744846f84)
+
+tests/persistent-graph.test.ts:
+(pass) replacement removes obsolete public IDs while earlier versions retain their own values [10.41ms]
+(pass) replacement counts all public slots and contribution references to a binding [0.33ms]
+(pass) private aliases protect replaced IDs but public aliases follow current slots [1.75ms]
+(pass) constructor keeps unused private registrations for explicit preflight and dangling refs for inspection [0.35ms]
+(pass) shared lexical input maps are snapshotted once per installation [4.21ms]
+(pass) string collisions, special own keys and same-description symbols stay distinct across updates [11.04ms]
+(pass) materialized contributions retain order through append and installation without changing old arrays [6.28ms]
+(pass) root lifetime stays parent-owned after a child overrides one shared public slot [0.54ms]
+
+tests/runtime-scale.test.ts:
+(pass) closing a deep graph disposes every dependent before its dependency exactly once [139.04ms]
+(pass) retiring an acquisition touches only its actual incoming consumers [2.34ms]
+(pass) repeated reads of an existing edge do not traverse the downstream graph again [5.24ms]
+(pass) late edges across a deep ready graph find cycles without overflowing the stack [12.97ms]
+(pass) one module lexical map is snapshotted once while external mutations stay isolated [0.51ms]
+
+tests/persistent-map.test.ts:
+(pass) collision replacement and deletion preserve other keys and earlier versions [0.24ms]
+(pass) mixed insert/delete operations agree with an independent native map [9.44ms]
+
+ 15 pass
+ 0 fail
+ 10302 expect() calls
+Ran 15 tests across 3 files. [216.00ms]

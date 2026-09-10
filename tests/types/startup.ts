@@ -22,6 +22,7 @@ export const builder = DiBag.begin().install(feature)
 export const lazy = builder.end();
 export const started = builder.start(['contextual', selectedToken, 'raw', 'renamed']);
 export const sequential = builder.start(['contextual'], { concurrency: 'sequential', signal: new AbortController().signal, timeoutMs: 100 });
+export const bounded = builder.start(['contextual'], { concurrency: 4 });
 export const empty = builder.start([]);
 export const native = DiBag.withContext(async (_deps: {}, context) => ({ signal: context.signal, value: 1 as const }), { acquisition: 'native' });
 export const noDeps = DiBag.withContext(() => 7 as const);
@@ -30,6 +31,7 @@ export type Contracts = [
   Assert<Equal<Awaited<typeof started>, typeof lazy>>,
   Assert<Equal<typeof sequential, typeof started>>,
   Assert<Equal<typeof empty, typeof started>>,
+  Assert<Equal<typeof bounded, typeof started>>,
   Assert<Equal<ReturnType<typeof reflected>, typeof started>>,
   Assert<Equal<ProviderNeeds<typeof contextual>, { input: { readonly label: 'exact' } }>>,
   Assert<Equal<ProviderOutput<typeof contextual>, { read(): 'exact'; signal: AbortSignal }>>,

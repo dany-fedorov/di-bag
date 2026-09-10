@@ -1,0 +1,64 @@
+bun test v1.4.2 (744846f84)
+
+tests/native-process.test.ts:
+126 |       }
+127 |       throw new Error('Child did not expose real pre-zombie memory teardown');
+128 |     });
+129 |     expect(exitingPid).toBeGreaterThan(0);
+130 |     expect(result).toMatchObject({ status: exitCode, signal: null, stdout: 'out\n', stderr: 'err\n' });
+131 |     expect(result.terminationReason).toBeUndefined();
+                                           ^
+error: expect(received).toBeUndefined()
+
+Received: "monitor"
+
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/native-process.test.ts:131:38)
+(fail) supervisor preserves exit 0 while the kernel releases memory before zombie state [72.69ms]
+126 |       }
+127 |       throw new Error('Child did not expose real pre-zombie memory teardown');
+128 |     });
+129 |     expect(exitingPid).toBeGreaterThan(0);
+130 |     expect(result).toMatchObject({ status: exitCode, signal: null, stdout: 'out\n', stderr: 'err\n' });
+131 |     expect(result.terminationReason).toBeUndefined();
+                                           ^
+error: expect(received).toBeUndefined()
+
+Received: "monitor"
+
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/native-process.test.ts:131:38)
+(fail) supervisor preserves exit 2 while the kernel releases memory before zombie state [77.76ms]
+145 |   let leader = 0;
+146 |   const result = await supervise(process.execPath, ['-e', source], process.cwd(), limits, async pid => {
+147 |     leader = pid;
+148 |     return readFile(`/proc/${pid}/status`, 'utf8');
+149 |   });
+150 |   expect(result).toMatchObject({ terminationReason: 'monitor', status: null, signal: 'SIGKILL', stderr: '' });
+                       ^
+error: expect(received).toMatchObject(expected)
+
+  {
++   "milliseconds": 3002,
++   "peakObservedRssMiB": 0.5546875,
+    "signal": "SIGKILL",
+    "status": null,
+    "stderr": "",
+-   "terminationReason": "monitor",
++   "stdout": 
++ "worker alive
++ leader exiting
++ "
++ ,
++   "terminationReason": "timeout",
+  }
+
+- Expected  - 1
++ Received  + 8
+
+      at <anonymous> (/tmp/di-bag-performance-integration/tests/native-process.test.ts:150:18)
+(fail) supervisor fails closed when the thread leader exits but a worker still runs [3002.58ms]
+
+ 0 pass
+ 22 filtered out
+ 3 fail
+ 7 expect() calls
+Ran 3 tests across 1 file. [3.20s]

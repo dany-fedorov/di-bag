@@ -1,0 +1,41 @@
+bun test v1.4.2 (744846f84)
+
+tests/startup.test.ts:
+(pass) contexts follow acquisition owners through child-first roots and independent forks [5.69ms]
+(pass) abort listeners cannot reenter any closing scope admission gate [0.88ms]
+(pass) startup waits for selected native acquisition while leaving unrelated providers lazy [1.83ms]
+(pass) startup uses native observation with shadowed then and treats raw promises as ready [1.85ms]
+(pass) a ready native projection starts while its source remains pending until shutdown [0.74ms]
+(pass) failed native projection aborts a cooperative pending source before cleanup [1.10ms]
+(pass) sequential startup waits before invoking the next selection [0.72ms]
+(pass) startup selects genuine tokens and keeps separate owned transient attempts [0.76ms]
+(pass) late contextual dependencies receive an already aborted owner signal [0.62ms]
+(pass) startup removes its abort listener on success [0.32ms]
+(pass) startup removes its abort listener on failure [0.15ms]
+(pass) startup removes its abort listener on aborted [0.19ms]
+(pass) startup removes its abort listener on timeout [5.45ms]
+(pass) startup snapshots option getters once after snapshotting all selected keys [0.51ms]
+(pass) sequential startup stops after failure and waits for cleanup with original causes [1.20ms]
+(pass) parallel startup starts later selections after synchronous failure and cleans pending ownership [0.44ms]
+(pass) aborted rejects before late ownership and exposes eventual cleanup failure [0.67ms]
+(pass) timeout rejects before late ownership and exposes eventual cleanup failure [5.69ms]
+(pass) already aborted startup does not invoke any factories [0.39ms]
+(pass) cancellation can interrupt cleanup after ordinary startup failure [0.73ms]
+(pass) successful startup removes external cancellation and snapshots indexed selections [0.44ms]
+(pass) invalid startup inputs reject before factory or unsupported option getter effects [0.68ms]
+(pass) numeric startup 1 bounds selected readiness and preserves promise identity [0.74ms]
+(pass) numeric startup 2 bounds selected readiness and preserves promise identity [0.24ms]
+(pass) numeric startup 20 bounds selected readiness and preserves promise identity [0.22ms]
+(pass) numeric startup 1 snapshots options and retains duplicate selected lifetimes [0.47ms]
+(pass) numeric startup 2 snapshots options and retains duplicate selected lifetimes [0.23ms]
+(pass) numeric startup uses final raw readiness while owned sources remain pending [0.50ms]
+(pass) bounded startup stops dequeuing after failure and cleans started work [0.72ms]
+(pass) bounded startup stops dequeuing after aborted and cleans started work [0.22ms]
+(pass) bounded startup stops dequeuing after timeout and cleans started work [5.55ms]
+(pass) numeric startup rejects invalid bounds before factories [0.48ms]
+(pass) numeric startup stops initial worker admission when a factory aborts synchronously [0.54ms]
+
+ 33 pass
+ 0 fail
+ 154 expect() calls
+Ran 33 tests across 1 file. [69.00ms]

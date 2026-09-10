@@ -1,0 +1,1578 @@
+[
+  {
+    "build": "classic-before",
+    "scenario": "transient-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 35553736,
+      "median": 35554080,
+      "max": 35554280
+    },
+    "afterCloseHeapBytes": {
+      "min": 198968,
+      "median": 199312,
+      "max": 199512
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "transient-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 3958776,
+      "median": 3958792,
+      "max": 3959056
+    },
+    "afterCloseHeapBytes": {
+      "min": 165880,
+      "median": 165896,
+      "max": 166232
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "transient-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 35553720,
+      "median": 35554032,
+      "max": 35554088
+    },
+    "afterCloseHeapBytes": {
+      "min": 198952,
+      "median": 199264,
+      "max": 199320
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "transient-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 3958792,
+      "median": 3959744,
+      "max": 3959744
+    },
+    "afterCloseHeapBytes": {
+      "min": 165896,
+      "median": 166920,
+      "max": 166920
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 3.000675000000001,
+      "median": 3.220373000000002,
+      "max": 6.263461999999997
+    },
+    "created": {
+      "min": 100,
+      "median": 100,
+      "max": 100
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.6017490000000052,
+      "median": 1.6036810000000017,
+      "max": 1.6839180000000056
+    },
+    "created": {
+      "min": 100,
+      "median": 100,
+      "max": 100
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 2.953986999999998,
+      "median": 3.023682000000001,
+      "max": 6.473557
+    },
+    "created": {
+      "min": 100,
+      "median": 100,
+      "max": 100
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.5686200000000028,
+      "median": 1.6686639999999997,
+      "max": 3.2071109999999976
+    },
+    "created": {
+      "min": 100,
+      "median": 100,
+      "max": 100
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain",
+    "count": 500,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 23.075207000000006,
+      "median": 26.034805,
+      "max": 28.056577999999995
+    },
+    "created": {
+      "min": 500,
+      "median": 500,
+      "max": 500
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain",
+    "count": 500,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 5.644085000000004,
+      "median": 5.652042000000002,
+      "max": 5.758668
+    },
+    "created": {
+      "min": 500,
+      "median": 500,
+      "max": 500
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain",
+    "count": 500,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 22.446587,
+      "median": 25.364053,
+      "max": 26.163278000000005
+    },
+    "created": {
+      "min": 500,
+      "median": 500,
+      "max": 500
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain",
+    "count": 500,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 5.878642000000006,
+      "median": 5.944516,
+      "max": 9.100155999999998
+    },
+    "created": {
+      "min": 500,
+      "median": 500,
+      "max": 500
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain",
+    "count": 1000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 48.445811000000006,
+      "median": 51.39349,
+      "max": 53.863151
+    },
+    "created": {
+      "min": 758,
+      "median": 758,
+      "max": 758
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 10.583629000000002,
+      "median": 10.980814000000002,
+      "max": 10.999156999999997
+    },
+    "created": {
+      "min": 1000,
+      "median": 1000,
+      "max": 1000
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain",
+    "count": 1000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 48.017662,
+      "median": 50.454682999999996,
+      "max": 54.705420999999994
+    },
+    "created": {
+      "min": 758,
+      "median": 758,
+      "max": 758
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 10.510325000000002,
+      "median": 10.696857000000001,
+      "max": 11.455877000000001
+    },
+    "created": {
+      "min": 1000,
+      "median": 1000,
+      "max": 1000
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain",
+    "count": 1500,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 49.00495899999999,
+      "median": 51.97505,
+      "max": 56.658889
+    },
+    "created": {
+      "min": 758,
+      "median": 758,
+      "max": 758
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain",
+    "count": 1500,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 14.726867000000006,
+      "median": 17.040045999999997,
+      "max": 18.074292
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain",
+    "count": 1500,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 51.179629,
+      "median": 55.570125,
+      "max": 60.70236200000001
+    },
+    "created": {
+      "min": 758,
+      "median": 758,
+      "max": 758
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain",
+    "count": 1500,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 14.210541,
+      "median": 14.944479999999999,
+      "max": 15.512239999999998
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain",
+    "count": 2000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 47.34051900000001,
+      "median": 48.239180999999995,
+      "max": 49.026965000000004
+    },
+    "created": {
+      "min": 758,
+      "median": 758,
+      "max": 758
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain",
+    "count": 2000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 16.913355000000003,
+      "median": 18.398401,
+      "max": 18.60712699999999
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain",
+    "count": 2000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 47.230477,
+      "median": 47.518957,
+      "max": 49.92436299999999
+    },
+    "created": {
+      "min": 758,
+      "median": 758,
+      "max": 758
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain",
+    "count": 2000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 16.46967,
+      "median": 16.570696000000005,
+      "max": 18.153732000000005
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain",
+    "count": 4000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 48.37665,
+      "median": 49.55676,
+      "max": 50.85403399999999
+    },
+    "created": {
+      "min": 758,
+      "median": 758,
+      "max": 758
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain",
+    "count": 4000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 14.868061000000004,
+      "median": 15.986162999999998,
+      "max": 16.082667
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain",
+    "count": 4000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 48.32654699999999,
+      "median": 48.851377,
+      "max": 49.658845
+    },
+    "created": {
+      "min": 758,
+      "median": 758,
+      "max": 758
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain",
+    "count": 4000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 14.565420000000003,
+      "median": 15.414449000000005,
+      "max": 17.14091400000001
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain-auto",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 3.0663259999999966,
+      "median": 3.289708999999995,
+      "max": 6.212015000000001
+    },
+    "created": {
+      "min": 100,
+      "median": 100,
+      "max": 100
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain-auto",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.6996329999999986,
+      "median": 1.7299330000000026,
+      "max": 1.8024069999999952
+    },
+    "created": {
+      "min": 100,
+      "median": 100,
+      "max": 100
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain-auto",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 4.468948000000005,
+      "median": 4.648387,
+      "max": 6.262771000000001
+    },
+    "created": {
+      "min": 100,
+      "median": 100,
+      "max": 100
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain-auto",
+    "count": 100,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.6944429999999997,
+      "median": 1.7318560000000005,
+      "max": 1.7387610000000038
+    },
+    "created": {
+      "min": 100,
+      "median": 100,
+      "max": 100
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain-auto",
+    "count": 500,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 21.714818,
+      "median": 22.933678999999998,
+      "max": 27.217744000000003
+    },
+    "created": {
+      "min": 500,
+      "median": 500,
+      "max": 500
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain-auto",
+    "count": 500,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 5.374282999999998,
+      "median": 5.404294,
+      "max": 5.569181999999998
+    },
+    "created": {
+      "min": 500,
+      "median": 500,
+      "max": 500
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain-auto",
+    "count": 500,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 22.039901,
+      "median": 22.353190999999995,
+      "max": 26.085673
+    },
+    "created": {
+      "min": 500,
+      "median": 500,
+      "max": 500
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain-auto",
+    "count": 500,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 8.822062000000003,
+      "median": 8.969599000000002,
+      "max": 9.062764999999999
+    },
+    "created": {
+      "min": 500,
+      "median": 500,
+      "max": 500
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain-auto",
+    "count": 1000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 47.97922500000001,
+      "median": 54.056624,
+      "max": 70.702755
+    },
+    "created": {
+      "min": 759,
+      "median": 759,
+      "max": 759
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain-auto",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 11.137409999999996,
+      "median": 11.234941999999997,
+      "max": 11.374695000000003
+    },
+    "created": {
+      "min": 1000,
+      "median": 1000,
+      "max": 1000
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain-auto",
+    "count": 1000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 50.960988,
+      "median": 52.871112000000004,
+      "max": 53.503966
+    },
+    "created": {
+      "min": 759,
+      "median": 759,
+      "max": 759
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain-auto",
+    "count": 1000,
+    "samples": 3,
+    "successes": 3,
+    "elapsedMs": {
+      "min": 10.785400000000003,
+      "median": 11.500225999999998,
+      "max": 14.402293
+    },
+    "created": {
+      "min": 1000,
+      "median": 1000,
+      "max": 1000
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain-auto",
+    "count": 1500,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 48.267824,
+      "median": 48.895012,
+      "max": 49.755137999999995
+    },
+    "created": {
+      "min": 759,
+      "median": 759,
+      "max": 759
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain-auto",
+    "count": 1500,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 14.844504,
+      "median": 14.857466000000002,
+      "max": 18.62079
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain-auto",
+    "count": 1500,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 47.47532699999999,
+      "median": 50.280094999999996,
+      "max": 50.98192399999999
+    },
+    "created": {
+      "min": 759,
+      "median": 759,
+      "max": 759
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain-auto",
+    "count": 1500,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 14.574071999999994,
+      "median": 18.518003,
+      "max": 19.240440000000007
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain-auto",
+    "count": 2000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 47.708439999999996,
+      "median": 48.627123000000005,
+      "max": 56.383156
+    },
+    "created": {
+      "min": 759,
+      "median": 759,
+      "max": 759
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain-auto",
+    "count": 2000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 14.406702000000003,
+      "median": 14.972411999999998,
+      "max": 17.444995000000006
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain-auto",
+    "count": 2000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 47.502556999999996,
+      "median": 49.968319,
+      "max": 52.478903
+    },
+    "created": {
+      "min": 759,
+      "median": 759,
+      "max": 759
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain-auto",
+    "count": 2000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 15.529262000000003,
+      "median": 16.060572,
+      "max": 17.993116999999998
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cold-chain-auto",
+    "count": 4000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 49.344604000000004,
+      "median": 50.68852400000001,
+      "max": 51.443310000000004
+    },
+    "created": {
+      "min": 759,
+      "median": 759,
+      "max": 759
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cold-chain-auto",
+    "count": 4000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 15.291473000000003,
+      "median": 16.138803000000003,
+      "max": 20.319100999999996
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cold-chain-auto",
+    "count": 4000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 48.655702,
+      "median": 49.353581,
+      "max": 50.707986000000005
+    },
+    "created": {
+      "min": 759,
+      "median": 759,
+      "max": 759
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cold-chain-auto",
+    "count": 4000,
+    "samples": 3,
+    "successes": 0,
+    "elapsedMs": {
+      "min": 16.008105000000008,
+      "median": 18.001503999999997,
+      "max": 21.198083999999994
+    },
+    "created": {
+      "min": 1148,
+      "median": 1148,
+      "max": 1148
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "transient-history-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 14541648,
+      "median": 14560680,
+      "max": 14561024
+    },
+    "afterCloseHeapBytes": {
+      "min": 144800,
+      "median": 145144,
+      "max": 169992
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "transient-history-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 3890048,
+      "median": 3890112,
+      "max": 3891424
+    },
+    "afterCloseHeapBytes": {
+      "min": 134376,
+      "median": 134488,
+      "max": 135728
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "transient-history-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 14560992,
+      "median": 14561048,
+      "max": 14561072
+    },
+    "afterCloseHeapBytes": {
+      "min": 145112,
+      "median": 145168,
+      "max": 145192
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "transient-history-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 3890312,
+      "median": 3890336,
+      "max": 3890336
+    },
+    "afterCloseHeapBytes": {
+      "min": 134640,
+      "median": 134664,
+      "max": 134664
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "transient-native-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 37735048,
+      "median": 37737632,
+      "max": 37737696
+    },
+    "afterCloseHeapBytes": {
+      "min": 185864,
+      "median": 188064,
+      "max": 188128
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 20000,
+      "median": 20000,
+      "max": 20000
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "transient-native-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 4754712,
+      "median": 4754752,
+      "max": 4755552
+    },
+    "afterCloseHeapBytes": {
+      "min": 164360,
+      "median": 164384,
+      "max": 165224
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "transient-native-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 37735048,
+      "median": 37736184,
+      "max": 37737368
+    },
+    "afterCloseHeapBytes": {
+      "min": 185864,
+      "median": 187000,
+      "max": 187800
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 20000,
+      "median": 20000,
+      "max": 20000
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "transient-native-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 4753792,
+      "median": 4754568,
+      "max": 4754712
+    },
+    "afterCloseHeapBytes": {
+      "min": 163464,
+      "median": 164240,
+      "max": 164384
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "transient-mapped-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 38155192,
+      "median": 38155232,
+      "max": 38155504
+    },
+    "afterCloseHeapBytes": {
+      "min": 200464,
+      "median": 200504,
+      "max": 200776
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "transient-mapped-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 5175280,
+      "median": 5175280,
+      "max": 5175536
+    },
+    "afterCloseHeapBytes": {
+      "min": 179240,
+      "median": 179240,
+      "max": 179496
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "transient-mapped-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 38155160,
+      "median": 38155192,
+      "max": 38155568
+    },
+    "afterCloseHeapBytes": {
+      "min": 200432,
+      "median": 200464,
+      "max": 200840
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "transient-mapped-memory",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 5175224,
+      "median": 5175592,
+      "max": 5175688
+    },
+    "afterCloseHeapBytes": {
+      "min": 179184,
+      "median": 179552,
+      "max": 179648
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "disposed": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    }
+  },
+  {
+    "build": "classic-before",
+    "scenario": "cleanup-control",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 42212552,
+      "median": 42212632,
+      "max": 42214688
+    },
+    "afterCloseHeapBytes": {
+      "min": 206352,
+      "median": 206432,
+      "max": 208624
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 20000,
+      "median": 20000,
+      "max": 20000
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    }
+  },
+  {
+    "build": "classic-after",
+    "scenario": "cleanup-control",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 40317808,
+      "median": 40317832,
+      "max": 40317904
+    },
+    "afterCloseHeapBytes": {
+      "min": 224496,
+      "median": 224520,
+      "max": 224592
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    }
+  },
+  {
+    "build": "native-before",
+    "scenario": "cleanup-control",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 42212608,
+      "median": 42212632,
+      "max": 42214624
+    },
+    "afterCloseHeapBytes": {
+      "min": 206408,
+      "median": 206432,
+      "max": 208512
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 20000,
+      "median": 20000,
+      "max": 20000
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    }
+  },
+  {
+    "build": "native-after",
+    "scenario": "cleanup-control",
+    "count": 10000,
+    "samples": 3,
+    "successes": 3,
+    "retainedHeapBytes": {
+      "min": 40317544,
+      "median": 40317544,
+      "max": 40317856
+    },
+    "afterCloseHeapBytes": {
+      "min": 224232,
+      "median": 224232,
+      "max": 224544
+    },
+    "retainedAcquisitions": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "retainedPayloads": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "created": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    },
+    "projected": {
+      "min": 0,
+      "median": 0,
+      "max": 0
+    },
+    "disposed": {
+      "min": 10000,
+      "median": 10000,
+      "max": 10000
+    }
+  }
+]

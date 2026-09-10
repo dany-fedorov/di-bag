@@ -1,0 +1,76 @@
+bun test v1.4.2 (744846f84)
+
+tests/modules.test.ts:
+(pass) a module private retry keeps the caught failed attempt separate [7.13ms]
+(pass) module private dependencies follow exported replacements and fresh forks [2.57ms]
+(pass) renamed repeated installations isolate private instances and cleanup [0.87ms]
+(pass) rename preserves original parameter names even when an export takes a private name [0.84ms]
+(pass) invalid installations and export views fail atomically and reject forged modules [1.02ms]
+(pass) exports use indexed tuple snapshots and preserve hidden local registrations [0.63ms]
+(pass) module promise identity, retry and post-await cycle diagnostics use the host runtime [1.21ms]
+(pass) renaming an export leaves an unrelated external requirement at its original slot [0.47ms]
+(pass) module providers can be replaced before sealing without mutating earlier views [0.41ms]
+(pass) close drains module acquisitions that discover private and host dependencies after await [0.70ms]
+
+tests/token-modules.test.ts:
+(pass) exported tokens retarget private module consumers in forks [1.30ms]
+(pass) private tokens get independent installations and dependency ordered cleanup [0.93ms]
+(pass) token bindings preserve source reuse, promise identity and public replacement [0.94ms]
+(pass) fork snapshots mixed selection indices and reads only selected own overrides [0.37ms]
+(pass) duplicate mixed overrides keep getter order and route final values through private consumers [1.06ms]
+(pass) invalid token selections preflight before any selected override getter [0.37ms]
+(pass) runtime duplicate symbols reject atomically and leave builders reusable [0.47ms]
+
+tests/contributions.test.ts:
+(pass) contributions preserve order, empty reads and array immutability [0.64ms]
+(pass) host and repeated exportless modules append distinct lexical bindings [1.24ms]
+(pass) all adapters select frozen arrays and retain module export renames [1.25ms]
+(pass) root scoped and transient contributions retain individual ownership [0.81ms]
+(pass) shared aggregate borrows the parent graph while a lazy registry reads its local graph [0.70ms]
+(pass) partial failure retains accepted ownership and retries only failed contributors [0.25ms]
+(pass) pending native and raw promises preserve identity and disposal payloads [0.35ms]
+(pass) self collections participate in ordinary cycle detection [0.20ms]
+(pass) inspection is immutable nonresolving and does not freeze application values [0.22ms]
+(pass) forged tokens references and providers reject before provider effects [0.41ms]
+(pass) cooperative lazy registries admit late collection reads only for their in-flight source [0.49ms]
+(pass) observed strict roots reject cached scoped contributions before owner routing [0.29ms]
+(pass) startup failure rolls back accepted contribution ownership [0.74ms]
+
+tests/persistent-graph.test.ts:
+(pass) replacement removes obsolete public IDs while earlier versions retain their own values [11.00ms]
+(pass) replacement counts all public slots and contribution references to a binding [0.22ms]
+(pass) private aliases protect replaced IDs but public aliases follow current slots [0.37ms]
+(pass) constructor keeps unused private registrations for explicit preflight and dangling refs for inspection [0.20ms]
+(pass) shared lexical input maps are snapshotted once per installation [5.51ms]
+(pass) string collisions, special own keys and same-description symbols stay distinct across updates [11.99ms]
+(pass) materialized contributions retain order through append and installation without changing old arrays [5.50ms]
+(pass) root lifetime stays parent-owned after a child overrides one shared public slot [0.83ms]
+(pass) former public targets are pruned when the last user of a shared lexical snapshot is replaced [0.19ms]
+(pass) pruning cascades iteratively through displaced lexical targets [39.86ms]
+(pass) contribution protection uses the once-read input snapshot through public replacement [0.73ms]
+
+tests/runtime-scale.test.ts:
+(pass) closing a deep graph disposes every dependent before its dependency exactly once [147.88ms]
+(pass) retiring an acquisition touches only its actual incoming consumers [1.41ms]
+(pass) repeated reads of an existing edge do not traverse the downstream graph again [0.71ms]
+(pass) late edges across a deep ready graph find cycles without overflowing the stack [32.98ms]
+(pass) one module lexical map is snapshotted once while external mutations stay isolated [0.53ms]
+
+tests/binding-graph.test.ts:
+(pass) private bindings with the same label have distinct memoized identities [0.44ms]
+(pass) an owned private dependency closes after its public dependent [0.27ms]
+(pass) private Promise-valued bindings preserve their original exposed identity [0.17ms]
+(pass) graph snapshots preserve lexical private refs while forks use replaced public slots [0.27ms]
+(pass) batch public bindings preserve ordered duplicates and retained private identities [0.23ms]
+(pass) an empty public binding batch preserves immutable graph identity [0.02ms]
+(pass) mutating graph input maps cannot change public lookup or binding descriptions [0.09ms]
+(pass) cycles through private aliases discovered after await show binding labels [0.23ms]
+
+tests/persistent-module.test.ts:
+(pass) one module update does not revisit its existing registration table [5.40ms]
+(pass) module updates preserve declaration positions, earlier builders and renamed lexical exports [3.04ms]
+
+ 56 pass
+ 0 fail
+ 9379 expect() calls
+Ran 56 tests across 7 files. [324.00ms]

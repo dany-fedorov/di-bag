@@ -13,12 +13,12 @@ Controls eager acquisition performed by [Builder.start](Builder.md#start).
 ### concurrency?
 
 ```ts
-readonly concurrency?: 'parallel' | 'sequential';
+readonly concurrency?: 'parallel' | 'sequential' | number;
 ```
 
 Defined in: [startup.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L14)
 
-Start all selected services together, or await them in tuple order. Defaults to `parallel`.
+Start together (`parallel`, default), in tuple order (`sequential`), or with a positive safe integer bound on selected readiness waits. Dependency fanout is not bounded.
 
 ***
 

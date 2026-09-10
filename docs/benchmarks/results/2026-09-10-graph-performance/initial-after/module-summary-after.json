@@ -1,0 +1,194 @@
+[
+  {
+    "scenario": "module-local-incremental",
+    "count": 100,
+    "build": "classic-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.370896000000002,
+      "median": 1.3861999999999952,
+      "max": 1.5725130000000007
+    },
+    "retainedHeapBytes": {
+      "min": 94840,
+      "median": 102360,
+      "max": 436928
+    }
+  },
+  {
+    "scenario": "module-local-incremental",
+    "count": 100,
+    "build": "native-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 1.374364,
+      "median": 1.4360300000000024,
+      "max": 1.4687349999999952
+    },
+    "retainedHeapBytes": {
+      "min": 95680,
+      "median": 101184,
+      "max": 358504
+    }
+  },
+  {
+    "scenario": "module-local-incremental",
+    "count": 1000,
+    "build": "classic-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 9.376052000000001,
+      "median": 10.174819,
+      "max": 10.539801999999995
+    },
+    "retainedHeapBytes": {
+      "min": 454656,
+      "median": 480904,
+      "max": 482472
+    }
+  },
+  {
+    "scenario": "module-local-incremental",
+    "count": 1000,
+    "build": "native-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 6.294334999999997,
+      "median": 9.900248000000005,
+      "max": 11.400067999999997
+    },
+    "retainedHeapBytes": {
+      "min": 462272,
+      "median": 464592,
+      "max": 474224
+    }
+  },
+  {
+    "scenario": "module-local-incremental",
+    "count": 5000,
+    "build": "classic-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 22.200580000000002,
+      "median": 22.794925999999997,
+      "max": 24.564363
+    },
+    "retainedHeapBytes": {
+      "min": 1816592,
+      "median": 1840768,
+      "max": 1841152
+    }
+  },
+  {
+    "scenario": "module-local-incremental",
+    "count": 5000,
+    "build": "native-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 20.965934000000004,
+      "median": 21.860507,
+      "max": 23.550627999999996
+    },
+    "retainedHeapBytes": {
+      "min": 1822168,
+      "median": 1846016,
+      "max": 1846264
+    }
+  },
+  {
+    "scenario": "module-local-contribution",
+    "count": 100,
+    "build": "classic-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 0.4937620000000038,
+      "median": 0.5146680000000003,
+      "max": 0.5481750000000005
+    },
+    "retainedHeapBytes": {
+      "min": 47776,
+      "median": 51304,
+      "max": 52088
+    }
+  },
+  {
+    "scenario": "module-local-contribution",
+    "count": 100,
+    "build": "native-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 0.5281480000000016,
+      "median": 0.5334989999999991,
+      "max": 0.7769270000000006
+    },
+    "retainedHeapBytes": {
+      "min": -72808,
+      "median": 57592,
+      "max": 57592
+    }
+  },
+  {
+    "scenario": "module-local-contribution",
+    "count": 1000,
+    "build": "classic-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 2.1497340000000023,
+      "median": 2.315398000000002,
+      "max": 2.913102000000002
+    },
+    "retainedHeapBytes": {
+      "min": 254304,
+      "median": 256584,
+      "max": 266768
+    }
+  },
+  {
+    "scenario": "module-local-contribution",
+    "count": 1000,
+    "build": "native-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 2.064823000000004,
+      "median": 2.2371669999999995,
+      "max": 5.766352999999995
+    },
+    "retainedHeapBytes": {
+      "min": 252624,
+      "median": 256056,
+      "max": 813664
+    }
+  },
+  {
+    "scenario": "module-local-contribution",
+    "count": 5000,
+    "build": "classic-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 5.506658000000002,
+      "median": 7.342303999999999,
+      "max": 9.723870999999995
+    },
+    "retainedHeapBytes": {
+      "min": 1062872,
+      "median": 1066952,
+      "max": 1067008
+    }
+  },
+  {
+    "scenario": "module-local-contribution",
+    "count": 5000,
+    "build": "native-after",
+    "successes": 3,
+    "elapsedMs": {
+      "min": 5.6268519999999995,
+      "median": 5.652051,
+      "max": 5.870975000000001
+    },
+    "retainedHeapBytes": {
+      "min": 1072360,
+      "median": 1072568,
+      "max": 1072720
+    }
+  }
+]

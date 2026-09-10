@@ -1,0 +1,9 @@
+# Linux exit lifecycle: primary-source investigation
+
+This is a supported lifecycle hypothesis, not proof of the exact latest CI scheduler interleaving. Linux v6.8 is a pinned upstream reference; the GitHub runner kernel version has not been established.
+
+- [kernel/exit.c](https://github.com/torvalds/linux/blob/v6.8/kernel/exit.c#L763): do_exit calls exit_signals (sets PF_EXITING), then exit_mm, and later exit_notify. exit_mm clears current->mm before mmput and other exit cleanup. exit_notify sets EXIT_ZOMBIE. Thus mm absence need not imply a Z state at the same instant.
+- [fs/proc/array.c](https://github.com/torvalds/linux/blob/v6.8/fs/proc/array.c#L410): proc_pid_status obtains get_task_mm; memory fields are emitted only for a nonnull mm. do_task_stat emits task->flags at field9 after state, PPID, group, session, tty and tty group. The comm field is not escaped and can contain whitespace or closing parentheses; naive whitespace splitting of the complete stat record is invalid.
+- [include/linux/sched.h](https://github.com/torvalds/linux/blob/v6.8/include/linux/sched.h#L1519) defines PF_EXITING as 0x00000004 and describes shutdown. [kernel/signal.c](https://github.com/torvalds/linux/blob/v6.8/kernel/signal.c#L2792) sets it in exit_signals. It belongs to a task/thread, not a guarantee that every other thread in a process group has exited.
+
+Inference: independent fresh kernel exit evidence could distinguish memory-map teardown from a monitoring fault even before Z. Missing RSS alone remains insufficient. The original CI positive-command wrapper omits the underlying monitor error, so source tracing and actual real-child reproduction are needed. Every genuinely live child must remain fail-closed; thread-leader exit with other live threads needs explicit analysis before adopting PF_EXITING. Timeout/output/drain/reaping behavior remains required. No worker limits or intervals should change.

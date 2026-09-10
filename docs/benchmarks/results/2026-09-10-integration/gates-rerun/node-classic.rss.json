@@ -1,0 +1,34 @@
+{
+  "intervalSeconds": 0.5,
+  "note": "Observed descendant RSS sums, not a guaranteed total-memory maximum. No process limits changed.",
+  "samples": 2,
+  "racedOrUnavailableReads": 0,
+  "largestObservedTreeKiB": 336328,
+  "largestObservedProcess": {
+    "pid": 516465,
+    "name": "MainThread",
+    "rssKiB": 290100
+  },
+  "treeAtObservedPeak": [
+    {
+      "pid": 516461,
+      "name": "time",
+      "rssKiB": 1568
+    },
+    {
+      "pid": 516463,
+      "name": "node",
+      "rssKiB": 4496
+    },
+    {
+      "pid": 516465,
+      "name": "MainThread",
+      "rssKiB": 290100
+    },
+    {
+      "pid": 516472,
+      "name": "MainThread",
+      "rssKiB": 40164
+    }
+  ]
+}

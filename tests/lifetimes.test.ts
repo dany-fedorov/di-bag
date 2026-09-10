@@ -416,7 +416,7 @@ test('family retirement removes cross-owner incoming edges but preserves outgoin
   const family = new AcquisitionFamily();
   const identity = (label: string, ownerId: symbol): AttemptIdentity => ({
     id: Symbol(label), bindingId: Symbol(label), ownerId, label,
-    dependencies: new Set(), ancestry: [], state: 'pending',
+    dependencies: new Set(), ancestry: undefined, state: 'pending',
   });
   const rootOwner = Symbol('root');
   const child = identity('child', Symbol('child'));

@@ -1,0 +1,33 @@
+
+> di-bag@0.1.0 docs:check
+> node --test --test-isolation=none tools/docs/test/*.test.mjs && node tools/docs/generate.mjs --check && node tools/docs/site.mjs check
+
+[info] Loaded plugin typedoc-plugin-markdown
+[info] Loaded plugin typedoc-vitepress-theme
+[info] Loaded plugin typedoc-plugin-markdown
+[info] Loaded plugin typedoc-vitepress-theme
+[info] markdown generated at /tmp/di-bag-exact-rendering-8d9S9j/reference
+✔ coverage includes standalone adapter overloads and type-only callables (155.314718ms)
+✔ coverage rejects a generator that silently drops a public export (150.867826ms)
+✔ coverage rejects missing overloads even when the exported name survives (180.279935ms)
+✔ compiler declarations retain syntax that TypeDoc reflections cannot represent (0.445154ms)
+✔ canonical signatures are followed by comment-only parameter details (0.12269ms)
+✔ source declarations preserve aliases and property modifiers exactly (0.172124ms)
+✔ type-only function exports are described without inventing a type alias (0.17076ms)
+✔ hosted Markdown links stay local, while repository files link to GitHub (0.926576ms)
+✔ generated reference drift detects new, modified, and obsolete files (8.48048ms)
+✔ rendered-site checks catch broken fragments and incorrect Pages asset paths (1.458172ms)
+✔ rendered declarations accept members and reject malformed type syntax (1.956767ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2756.375548
+[info] Loaded plugin typedoc-plugin-markdown
+[info] Loaded plugin typedoc-vitepress-theme
+[info] markdown generated at /tmp/di-bag-api-2lGF3w/reference
+Generated API Markdown is current; all entry points and callable overloads are covered.
+Prepared 115 Markdown pages; repository-only links point to GitHub.

@@ -1,0 +1,10 @@
+bun test v1.4.2 (744846f84)
+
+tests/types.test.ts:
+(pass) token contracts preserve exact identities and provider graphs [969.00ms]
+
+ 1 pass
+ 114 filtered out
+ 0 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [1104.00ms]

@@ -23,8 +23,8 @@ test('native replacement diagnostics retain every useful primary and supplementa
   expect(result).toMatchObject({
     accepted: true,
     missingPrimary: 0,
-    primaryExpected: 103,
-    primaryMatched: 103,
+    primaryExpected: 106,
+    primaryMatched: 106,
     supplementalExpected: 1,
     supplementalMatched: 1,
     unexpected: 0,
@@ -110,7 +110,7 @@ test('replacement audit keeps its ten source fixtures independent of native gap 
       supplemental: total.supplemental + expected.supplemental.length,
     }),
     { primary: 0, supplemental: 0 },
-  )).toEqual({ primary: 103, supplemental: 1 });
+  )).toEqual({ primary: 106, supplemental: 1 });
 });
 
 test('replacement audit rejects a fixture when its marker and invalid expression both disappear', () => {

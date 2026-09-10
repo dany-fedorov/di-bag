@@ -1,0 +1,1 @@
+{"host":"node24.20.0","observation":{"pid":390571,"state":"State:\tZ (zombie)","exists":true},"result":{"status":0,"signal":null,"stdout":"expected output\n","stderr":"","milliseconds":84,"peakObservedRssMiB":0}}

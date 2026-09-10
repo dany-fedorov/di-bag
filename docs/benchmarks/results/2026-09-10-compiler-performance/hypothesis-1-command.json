@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "flock",
+    "/tmp/di-bag-compiler-heavy.lock",
+    "node",
+    "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+    "scripts/check-compiler-case.ts",
+    "classic",
+    "100",
+    "chained",
+    "valid"
+  ],
+  "cwd": "/tmp/di-bag-performance-integration",
+  "status": 0,
+  "stdoutFile": "hypothesis-1-named.json",
+  "stderr": "",
+  "sourceSnapshot": "before/src with hypothesis-1-types.ts.txt replacing types.ts",
+  "sourceSha256": "677e672e507bedb28fa9dbb17aecfed6144be8e51e0c9789d15e55715211c713"
+}

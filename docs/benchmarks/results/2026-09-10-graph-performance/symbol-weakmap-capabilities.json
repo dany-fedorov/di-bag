@@ -1,0 +1,56 @@
+{
+  "probe": "(() => { const a = Symbol('same'), b = Symbol('same'); const map = new WeakMap(); map.set(a, 17); map.set(b, 29); const distinct = map.get(a) === 17 && map.get(b) === 29; const removed = map.delete(a) && !map.has(a) && map.get(b) === 29; let registeredRejected = false; try { map.set(Symbol.for('di-bag-capability-control'), 1); } catch (error) { registeredRejected = error instanceof TypeError; } map.set(Symbol.iterator, 31); return { distinct, removed, registeredRejected, wellKnown: map.get(Symbol.iterator) === 31 }; })()",
+  "rows": [
+    {
+      "host": "node",
+      "version": "24.20.0",
+      "argv": [
+        "/home/df/.volta/tools/image/node/24.20.0/bin/node",
+        "-e",
+        "console.log(JSON.stringify((() => { const a = Symbol('same'), b = Symbol('same'); const map = new WeakMap(); map.set(a, 17); map.set(b, 29); const distinct = map.get(a) === 17 && map.get(b) === 29; const removed = map.delete(a) && !map.has(a) && map.get(b) === 29; let registeredRejected = false; try { map.set(Symbol.for('di-bag-capability-control'), 1); } catch (error) { registeredRejected = error instanceof TypeError; } map.set(Symbol.iterator, 31); return { distinct, removed, registeredRejected, wellKnown: map.get(Symbol.iterator) === 31 }; })()))"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "{\"distinct\":true,\"removed\":true,\"registeredRejected\":true,\"wellKnown\":true}\n",
+      "stderr": ""
+    },
+    {
+      "host": "bun",
+      "version": "1.4.2",
+      "argv": [
+        "/home/df/.bun/bin/bun",
+        "-e",
+        "console.log(JSON.stringify((() => { const a = Symbol('same'), b = Symbol('same'); const map = new WeakMap(); map.set(a, 17); map.set(b, 29); const distinct = map.get(a) === 17 && map.get(b) === 29; const removed = map.delete(a) && !map.has(a) && map.get(b) === 29; let registeredRejected = false; try { map.set(Symbol.for('di-bag-capability-control'), 1); } catch (error) { registeredRejected = error instanceof TypeError; } map.set(Symbol.iterator, 31); return { distinct, removed, registeredRejected, wellKnown: map.get(Symbol.iterator) === 31 }; })()))"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "{\"distinct\":true,\"removed\":true,\"registeredRejected\":true,\"wellKnown\":true}\n",
+      "stderr": ""
+    },
+    {
+      "host": "deno",
+      "version": "2.9.6",
+      "argv": [
+        "/home/df/wd/personal/di-bag/tools/platform/node_modules/deno/deno",
+        "eval",
+        "console.log(JSON.stringify((() => { const a = Symbol('same'), b = Symbol('same'); const map = new WeakMap(); map.set(a, 17); map.set(b, 29); const distinct = map.get(a) === 17 && map.get(b) === 29; const removed = map.delete(a) && !map.has(a) && map.get(b) === 29; let registeredRejected = false; try { map.set(Symbol.for('di-bag-capability-control'), 1); } catch (error) { registeredRejected = error instanceof TypeError; } map.set(Symbol.iterator, 31); return { distinct, removed, registeredRejected, wellKnown: map.get(Symbol.iterator) === 31 }; })()))"
+      ],
+      "status": 0,
+      "signal": null,
+      "stdout": "{\"distinct\":true,\"removed\":true,\"registeredRejected\":true,\"wellKnown\":true}\n",
+      "stderr": ""
+    },
+    {
+      "host": "chromium",
+      "version": "153.0.8010.12",
+      "executable": "/home/df/wd/personal/di-bag/tools/platform/.browsers/chromium-1243/chrome-linux64/chrome",
+      "result": {
+        "distinct": true,
+        "removed": true,
+        "registeredRejected": true,
+        "wellKnown": true
+      },
+      "status": 0
+    }
+  ]
+}

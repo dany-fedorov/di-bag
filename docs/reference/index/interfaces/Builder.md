@@ -288,7 +288,7 @@ Create a fresh bag and acquire selected services before returning it.
 | ------ | ------ |
 | `this` | - |
 | `keys` | A finite tuple of existing names or typed tokens to make ready. |
-| `options?` | Optional cancellation signal, positive timeout, and parallel or sequential scheduling. |
+| `options?` | Optional cancellation signal, positive timeout, and parallel, sequential, or positive safe integer bounded scheduling. |
 
 #### Returns
 

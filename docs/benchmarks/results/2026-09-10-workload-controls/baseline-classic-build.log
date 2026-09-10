@@ -1,0 +1,4 @@
+
+> di-bag@0.1.0 build
+> tsc6 -p ./tsconfig.build.json --outDir /tmp/di-bag-task4-classic-before
+

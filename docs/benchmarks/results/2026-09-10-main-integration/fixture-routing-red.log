@@ -1,0 +1,6 @@
+1 | import { providerContractSource } from "./tests/provider-contract-fixtures"; const source = providerContractSource("incremental.ts"); if (source.includes("from 'di-bag/types'")) throw new Error("incremental characterization incorrectly routed to unexported di-bag/types");
+                                                                                                                                                                                                ^
+error: incremental characterization incorrectly routed to unexported di-bag/types
+      at /tmp/di-bag-performance-integration/[eval]:1:189
+
+Bun v1.4.2 (Linux x64)

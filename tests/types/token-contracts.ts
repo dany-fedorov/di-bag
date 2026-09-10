@@ -76,3 +76,22 @@ const empty = fromTokens([], () => 42); const defaultAnnotation: Provider<() => 
 const ignored = fromTokens([token, other], () => Promise.resolve(42));
 type PromiseOutput = Assert<Equal<ProviderOutput<typeof ignored>, Promise<number>>>;
 void [defaultAnnotation, ignored];
+
+// Provider extraction must keep its branch order for callable/provider
+// intersections and retain all graph and metadata property modifiers.
+type ExtendedGraph = TokenGraph<readonly [typeof token], never, readonly [typeof other]> & {
+  readonly optionalMarker?: 'kept'; mutableMarker: number;
+};
+type Reflected = Provider<() => number, Readonly<{ optionalOwner?: 'team' }>, readonly [{ frame: 'kept' }], ExtendedGraph>;
+type CallableProvider = ((deps: { named: string }) => string) & Reflected;
+export type ExtractionBranchContracts = [
+  Assert<Equal<ProviderGraph<CallableProvider>, ExtendedGraph>>,
+  Assert<Equal<ProviderMetadata<CallableProvider>, Readonly<{ optionalOwner?: 'team' }>>>,
+  Assert<Equal<ProviderAcquisitionMetadata<CallableProvider>, readonly [{ frame: 'kept' }]>>,
+  Assert<Equal<ProviderFactory<CallableProvider>, CallableProvider>>,
+  Assert<Equal<ProviderGraph<NoInfer<Reflected | typeof plain>>, ExtendedGraph | TokenGraph>>,
+  Assert<Equal<ProviderMetadata<NoInfer<Reflected | typeof plain>>, Readonly<{ optionalOwner?: 'team' }> | Readonly<{}>>>,
+  Assert<Equal<ProviderGraph<Provider<() => number, {}, readonly [], TokenGraph | OpaqueGraph>>, TokenGraph | OpaqueGraph>>,
+  Assert<Equal<ProviderMetadata<ProviderBase>, unknown>>,
+  Assert<Equal<ProviderGraph<ProviderBase>, OpaqueGraph>>,
+];

@@ -159,7 +159,14 @@ try {
 
 The selection may contain existing names and typed tokens. Parallel startup is
 the default; `concurrency: 'sequential'` waits in tuple order and does not start
-later selections after a failure. An empty selection is valid. Options also
+later selections after a failure. A positive safe integer, such as
+`concurrency: 8`, limits the number of selected services waiting for readiness at
+once. Number `1` follows sequential readiness. Numeric scheduling stops admitting
+queued selections after a failure or cancellation; started work still belongs to
+the bag and is cleaned up. This bounds selected workers, not dependency fanout
+inside a provider, and does not await raw exposed thenables. Zero, negative,
+fractional, nonfinite, and unsafe integer bounds are rejected before factories.
+An empty selection is valid. Options also
 accept a genuine external `AbortSignal` and a finite positive `timeoutMs`.
 Invalid options and an already-aborted signal start no factories. Once startup
 succeeds, the timer and external listener are removed; a later abort of that
@@ -921,7 +928,12 @@ Callbacks run in emission and registration order on a microtask queue, outside
 synchronous factory execution. Callback throws or rejections go to that
 observer's `onError`; errors in `onError` are consumed. Observer work never gates
 resolution, startup, or close. If delivery completion matters, the application
-must maintain and await its own barrier. [`examples/observers.ts`](../../examples/observers.ts)
+must maintain and await its own barrier. A synchronous burst queues events until
+the microtask drain; pending callback results do not slow the producer or prevent
+later callbacks from starting. An indefinitely slower consumer therefore has no
+finite lossless memory bound. Keep callbacks small and control production or
+explicitly batch work in the application. Externally pending callback work and
+its associated failure-reporting state remain live until that work settles. [`examples/observers.ts`](../../examples/observers.ts)
 shows that pattern.
 
 ## Admit an application-selected plugin

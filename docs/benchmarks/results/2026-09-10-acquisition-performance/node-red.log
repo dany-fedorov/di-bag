@@ -1,0 +1,209 @@
+✖ discarded raw transient arrays are collectible after resolve (26.567999ms)
+✖ discarded raw transient arrays are collectible after alias (17.729995ms)
+✖ discarded raw transient arrays are collectible after dependency (15.731031ms)
+✖ discarded raw transient arrays are collectible after collection (14.927115ms)
+✖ discarded raw transient arrays are collectible after startup (19.298113ms)
+✖ discarded native transient promises and source arrays are collectible (17.84428ms)
+✖ discarded native transient promises and mapped arrays are collectible (17.13592ms)
+✖ borrowed mapped payloads are collectible while independent inspection frames survive (16.930372ms)
+✔ transient owned source and mapped identities survive GC until reverse stage cleanup (5.593146ms)
+✔ Node disposes a deep ready graph in dependency order and only once (169.780142ms)
+✔ Node admits a late acyclic edge and rejects a late cycle across a deep graph (82.831896ms)
+✖ Node cold-resolves 1,000 raw named factories exactly once without increasing its stack (115.290541ms)
+✔ raw fast acquisition preserves unobserved thenable and promise identity and factory receiver (0.456053ms)
+✔ raw scoped public reentrant creating cycles invoke the factory once (0.427665ms)
+✔ raw transient public reentrant creating cycles invoke the factory once (0.296899ms)
+✔ native transient ancestry rejects after-await cycles with the original label order (0.429929ms)
+✔ ready borrowed transient proxies keep late cycle and root capture checks (0.735849ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 8
+ℹ fail 9
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 569.584414
+
+✖ failing tests:
+
+test at tests/acquisition-retention.node.mjs:28:3
+✖ discarded raw transient arrays are collectible after resolve (26.567999ms)
+  AssertionError [ERR_ASSERTION]: discarded borrowed payloads remain reachable
+
+  16 !== 0
+
+      at collected (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:24:10)
+      at async TestContext.<anonymous> (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:48:7)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 16,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/acquisition-retention.node.mjs:28:3
+✖ discarded raw transient arrays are collectible after alias (17.729995ms)
+  AssertionError [ERR_ASSERTION]: discarded borrowed payloads remain reachable
+
+  16 !== 0
+
+      at collected (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:24:10)
+      at async TestContext.<anonymous> (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:48:7)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 16,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/acquisition-retention.node.mjs:28:3
+✖ discarded raw transient arrays are collectible after dependency (15.731031ms)
+  AssertionError [ERR_ASSERTION]: discarded borrowed payloads remain reachable
+
+  16 !== 0
+
+      at collected (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:24:10)
+      at async TestContext.<anonymous> (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:48:7)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 16,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/acquisition-retention.node.mjs:28:3
+✖ discarded raw transient arrays are collectible after collection (14.927115ms)
+  AssertionError [ERR_ASSERTION]: discarded borrowed payloads remain reachable
+
+  16 !== 0
+
+      at collected (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:24:10)
+      at async TestContext.<anonymous> (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:48:7)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 16,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/acquisition-retention.node.mjs:28:3
+✖ discarded raw transient arrays are collectible after startup (19.298113ms)
+  AssertionError [ERR_ASSERTION]: discarded borrowed payloads remain reachable
+
+  1 !== 0
+
+      at collected (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:24:10)
+      at async TestContext.<anonymous> (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:48:7)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/acquisition-retention.node.mjs:58:3
+✖ discarded native transient promises and source arrays are collectible (17.84428ms)
+  AssertionError [ERR_ASSERTION]: discarded borrowed payloads remain reachable
+
+  48 !== 0
+
+      at collected (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:24:10)
+      at async TestContext.<anonymous> (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:85:7)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 48,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/acquisition-retention.node.mjs:58:3
+✖ discarded native transient promises and mapped arrays are collectible (17.13592ms)
+  AssertionError [ERR_ASSERTION]: discarded borrowed payloads remain reachable
+
+  32 !== 0
+
+      at collected (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:24:10)
+      at async TestContext.<anonymous> (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:85:7)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 32,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/acquisition-retention.node.mjs:93:1
+✖ borrowed mapped payloads are collectible while independent inspection frames survive (16.930372ms)
+  AssertionError [ERR_ASSERTION]: discarded borrowed payloads remain reachable
+
+  16 !== 0
+
+      at collected (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:24:10)
+      at async TestContext.<anonymous> (file:///tmp/di-bag-performance-integration/tests/acquisition-retention.node.mjs:105:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 16,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/runtime-scale.node.mjs:49:1
+✖ Node cold-resolves 1,000 raw named factories exactly once without increasing its stack (115.290541ms)
+  AssertionError [ERR_ASSERTION]: /tmp/di-bag-performance-first-fixes-baseline/dist/acquisition.js:248
+              this.family.leave();
+                          ^
+
+  RangeError: Maximum call stack size exceeded
+      at Acquisitions.resolveBinding (/tmp/di-bag-performance-first-fixes-baseline/dist/acquisition.js:248:25)
+      at read (/tmp/di-bag-performance-first-fixes-baseline/dist/acquisition.js:218:60)
+      at Object.get (/tmp/di-bag-performance-first-fixes-baseline/dist/acquisition.js:229:24)
+      at DiBag.factory.acquisition (file:///tmp/di-bag-performance-integration/[eval1]:9:38)
+      at /tmp/di-bag-performance-first-fixes-baseline/dist/provider-execution.js:42:15
+      at ProviderExecution.capture (/tmp/di-bag-performance-first-fixes-baseline/dist/provider-execution.js:95:29)
+      at ProviderExecution.evaluate (/tmp/di-bag-performance-first-fixes-baseline/dist/provider-execution.js:40:28)
+      at Acquisitions.resolveBinding (/tmp/di-bag-performance-first-fixes-baseline/dist/acquisition.js:235:45)
+      at read (/tmp/di-bag-performance-first-fixes-baseline/dist/acquisition.js:218:60)
+      at Object.get (/tmp/di-bag-performance-first-fixes-baseline/dist/acquisition.js:229:24)
+
+  Node.js v24.20.0
+
+
+  1 !== 0
+
+      at TestContext.<anonymous> (file:///tmp/di-bag-performance-integration/tests/runtime-scale.node.mjs:71:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

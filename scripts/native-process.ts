@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import { readFileSync, readdirSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 
 export type ProcessLimits = { timeoutMilliseconds: number; maxRssMiB: number; maxOutputBytes: number; sampleMilliseconds: number };
@@ -9,6 +10,18 @@ export function validateLimits(limits: ProcessLimits, platform: string = process
   for (const value of [limits.timeoutMilliseconds, limits.maxRssMiB, limits.maxOutputBytes, limits.sampleMilliseconds]) {
     if (!Number.isFinite(value) || value <= 0) throw new Error('Process limits must be positive finite numbers');
   }
+}
+
+// /proc stat field 9 exposes PF_EXITING before memory release and State Z.
+// comm is unescaped and can contain spaces, newlines and closing parentheses.
+export function isExitingTask(stat: string, pid: number): boolean {
+  if (!stat.startsWith(`${pid} (`)) return false;
+  const close = stat.lastIndexOf(')');
+  if (close < `${pid} (`.length || stat[close + 1] !== ' ') return false;
+  const fields = stat.slice(close + 2).trim().split(/\s+/);
+  if (fields.length < 50 || !/^[RSDZTtWXxKIP]$/.test(fields[0]!) || !/^(0|[1-9]\d*)$/.test(fields[6]!)) return false;
+  const flags = Number(fields[6]);
+  return Number.isSafeInteger(flags) && flags <= 0xffffffff && (flags & 0x00000004) !== 0;
 }
 
 export async function supervise(executable: string, args: readonly string[], cwd: string, limits: ProcessLimits,
@@ -41,6 +54,40 @@ export async function supervise(executable: string, args: readonly string[], cwd
     child.once('error', error => stop('spawn', error.message));
     child.once('exit', () => { exited = true; });
     const timeout = setTimeout(() => stop('timeout'), limits.timeoutMilliseconds);
+    const hasExited = (pid: number): boolean => {
+      if (exited) return true;
+      // PF_EXITING is irreversible but belongs to one task. Prove shutdown
+      // for every remaining thread, including when the leader is already Z.
+      try {
+        process.kill(pid, 0);
+        try {
+          const directory = `/proc/${pid}/task`;
+          const tasks = readdirSync(directory), proven = new Set<string>();
+          if (!tasks.includes(String(pid))) return false;
+          for (const task of tasks) {
+            if (!/^[1-9]\d*$/.test(task)) return false;
+            try {
+              if (!isExitingTask(readFileSync(`${directory}/${task}/stat`, 'utf8'), Number(task))) return false;
+              proven.add(task);
+            } catch (error) {
+              // A departing thread can disappear between listing and reading.
+              // The final listing must independently confirm its absence.
+              const code = (error as NodeJS.ErrnoException).code;
+              if (code !== 'ENOENT' && code !== 'ESRCH') throw error;
+            }
+          }
+          const remaining = readdirSync(directory);
+          return proven.has(String(pid)) && remaining.includes(String(pid)) && remaining.every(task => proven.has(task));
+        } catch {
+          // An unreadable group is not proof. Only ESRCH from a fresh PID probe
+          // confirms disappearance; permissions and malformed data fail closed.
+          process.kill(pid, 0);
+          return false;
+        }
+      } catch (probe) {
+        return (probe as NodeJS.ErrnoException).code === 'ESRCH';
+      }
+    };
     const sample = async () => {
       if (monitoring || exited || !child.pid || result.terminationReason) return;
       monitoring = true;
@@ -50,7 +97,7 @@ export async function supervise(executable: string, args: readonly string[], cwd
         if (!rss) {
           // During exit /proc may retain the process header after releasing its memory map.
           // A still-live process without VmRSS on the next sample is a monitor failure.
-          if (missingRss && !/^State:\s+[ZX]/m.test(status) && !exited) stop('monitor', 'VmRSS is missing');
+          if (missingRss && !hasExited(child.pid)) stop('monitor', 'VmRSS is missing');
           missingRss = true;
         } else {
           missingRss = false;
@@ -59,11 +106,10 @@ export async function supervise(executable: string, args: readonly string[], cwd
         }
       } catch (error) {
         // A disappearing /proc path reports ENOENT; an already-open descriptor
-        // can report ESRCH before the exit callback. Confirm ownership has ended.
+        // can report ESRCH before the exit callback.
         const code = (error as NodeJS.ErrnoException).code;
         if (code === 'ENOENT' || code === 'ESRCH') {
-          try { process.kill(child.pid, 0); if (!exited) stop('monitor', String(error)); }
-          catch (probe) { if ((probe as NodeJS.ErrnoException).code !== 'ESRCH' && !exited) stop('monitor', String(error)); }
+          if (!hasExited(child.pid)) stop('monitor', String(error));
         } else if (!exited) stop('monitor', String(error));
       } finally { monitoring = false; }
     };

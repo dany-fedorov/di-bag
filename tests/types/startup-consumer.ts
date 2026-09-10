@@ -1,9 +1,10 @@
-import { contextual, started, lazy, selectedToken, raw, native } from './startup';
+import { contextual, started, bounded, lazy, selectedToken, raw, native } from './startup';
 import type { ProviderNeeds, ProviderAcquired, ProviderOutput } from '../../src';
 import type { Assert, Equal } from './assert';
 
 export type Contracts = [
   Assert<Equal<Awaited<typeof started>, typeof lazy>>,
+  Assert<Equal<typeof bounded, typeof started>>,
   Assert<Equal<ProviderNeeds<typeof contextual>, { input: { readonly label: 'exact' } }>>,
   Assert<Equal<ProviderAcquired<typeof raw>, Promise<{ value: 42 }>>>,
   Assert<Equal<ProviderOutput<typeof native>, Promise<{ signal: AbortSignal; value: 1 }>>>,
