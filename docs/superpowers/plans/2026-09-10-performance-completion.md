@@ -61,6 +61,11 @@ Task 1 implementation notes and verification contract:
 - Ancestry may become linked history. Preserve existing cycle label order when a
   cycle is found; an active binding+owner index can skip scans for unrelated
   creating/pending providers. Do not index every ready transient indefinitely.
+- Measure the equivalent ordinary-function cold chain through the Node facade
+  (automatic acquisition) too. If safely possible, improve that source path as
+  well; retain automatic classification, then-getter checks, ownership acceptance
+  and the existing source-throw behavior of asynchronous projection pipelines.
+  The raw control stays mandatory; record any remaining automatic-mode limit.
 - The 1,000-node Node regression must run without increased stack size. Test raw
   named factories exactly once, thenable identity, reentrant creating cycles,
   after-await cycles, retained lazy proxy cycles and root/scoped boundaries.
