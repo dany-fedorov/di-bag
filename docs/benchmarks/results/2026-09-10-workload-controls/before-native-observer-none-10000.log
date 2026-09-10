@@ -1,0 +1,1 @@
+{"entry":"/tmp/di-bag-task4-native-before/node.js","kind":"observer","mode":"none","count":10000,"node":"v24.20.0","flags":["--expose-gc","--max-old-space-size=512"],"elapsedMs":38.110223,"before":4861104,"burst":{"delivered":0,"pending":0,"heap":8813136},"drained":{"delivered":0,"pending":0,"heap":8779224},"released":{"delivered":0,"pending":0,"failures":0,"heap":8806416}}

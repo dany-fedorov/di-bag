@@ -4,7 +4,7 @@
 
 # Interface: ModuleBuilder\<E *extends* `Entry`, C *extends* [`ContributionConstraint`](../type-aliases/ContributionConstraint.md) = `never`\>
 
-Defined in: [module.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L72)
+Defined in: [module.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L75)
 
 An immutable builder for a reusable graph with private services and explicit exports.
 Create one with [Facade.module](Facade.md#module); module builders do not resolve or own services.
@@ -24,7 +24,7 @@ Create one with [Facade.module](Facade.md#module); module builders do not resolv
 readonly contribute: ModuleContribute<E, C>;
 ```
 
-Defined in: [module.ts:120](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L120)
+Defined in: [module.ts:141](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L141)
 
 Append a provider to a typed-token collection contributed by this module.
 Contributions are installed even when the module exports no ordinary services.
@@ -55,7 +55,7 @@ add<N extends {
 }>(more: N & Registrations & NamedAdmission<N> & Introduces<From<E>, N> & Checked<Merge<From<E>, N>> & CheckedContributions<C, Merge<From<E>, N>>): ModuleBuilder<E | Entries<N>, C>;
 ```
 
-Defined in: [module.ts:88](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L88)
+Defined in: [module.ts:105](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L105)
 
 Add new string-named registrations to the module's local graph.
 
@@ -87,7 +87,7 @@ If the input is malformed, contains non-string keys, or duplicates a local name.
 alias<const D extends AliasSelection, const T extends AliasSelection>(destination: D & (unknown extends AliasAdmission<D> ? Introduces<From<E>, AliasEntries<From<E>, D, T>> : AliasAdmission<D>), target: T & AliasAdmission<T> & (unknown extends AliasAdmission<T> ? AliasTarget<From<E>, T> & AliasDestination<From<E>, NoInfer<D>, T> : unknown) & (unknown extends AliasAdmission<D> & AliasAdmission<T> ? Checked<Merge<From<E>, AliasEntries<From<E>, NoInfer<D>, NoInfer<T>>>> & CheckedContributions<C, Merge<From<E>, AliasEntries<From<E>, NoInfer<D>, NoInfer<T>>>> : unknown), ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []): ModuleBuilder<E | AliasEntry<From<E>, D, T>, C>;
 ```
 
-Defined in: [module.ts:101](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L101)
+Defined in: [module.ts:120](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L120)
 
 Add another local name or token for an existing canonical acquisition.
 
@@ -121,7 +121,7 @@ bind<T extends TokenBase, V extends Registration>(token: T & TokenTupleAdmission
 }, C>;
 ```
 
-Defined in: [module.ts:131](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L131)
+Defined in: [module.ts:154](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L154)
 
 Bind a local registration to a typed token.
 
@@ -151,7 +151,7 @@ A new module builder retaining provider behavior and type contracts.
 exports<const K extends readonly unknown[]>(keys: K & Selection<From<E>, K, 'exports'>): Module<Pick<Provided<From<E>>, Extract<SelectionKey<K[number]>, keyof From<E>>>, ExternalRequirements<ModuleConstraints<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>> | ModuleContributionConstraints<C, From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>>, ModuleConstraints<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>> | ModuleContributionConstraints<C, From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>, ModulePublicProviders<From<E>, Extract<SelectionKey<K[number]>, keyof From<E>>>>;
 ```
 
-Defined in: [module.ts:181](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L181)
+Defined in: [module.ts:206](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L206)
 
 Seal the module and select its public names and typed tokens.
 Unselected registrations stay private to each installation.
@@ -191,7 +191,7 @@ replace<const K extends string, V extends ((this: void) => ReplacementOutput<Fro
 }, C>;
 ```
 
-Defined in: [module.ts:151](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L151)
+Defined in: [module.ts:176](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L176)
 
 Replace one existing string-named local registration with a dependency-free factory.
 
@@ -219,7 +219,7 @@ A new module builder with the replacement.
 replace<const K extends string | TokenBase, V extends Registration>(key: K & NoInfer<ReplacementAdmission<From<E>, K>>, registration: V & Registration & ModuleReplacementRegistration<E, C, NoInfer<K>, V>): ModuleBuilder<ReplacedEntries<E, K, V>, C>;
 ```
 
-Defined in: [module.ts:161](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L161)
+Defined in: [module.ts:186](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L186)
 
 Replace one existing local name or token.
 

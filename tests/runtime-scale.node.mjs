@@ -145,3 +145,76 @@ for (const mode of ['raw', 'auto']) test(`failed direct ${mode} sources cannot u
   await closing;
   assert.throws(read, /bag is closed/);
 });
+
+function gate() {
+  let resolve, reject;
+  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+}
+const turn = () => new Promise(resolve => setImmediate(resolve));
+
+for (const concurrency of [1, 2]) test(`Node numeric startup ${concurrency} bounds selected readiness without awaiting raw outputs`, async () => {
+  const gates = [gate(), gate(), gate()];
+  const calls = [], disposed = [];
+  const provider = index => DiBag.withDisposal(() => { calls.push(index); return gates[index].promise; }, value => { disposed.push(value); });
+  const starting = DiBag.begin().add({ a: provider(0), b: provider(1), c: provider(2) })
+    .start(['a', 'b', 'c'], { concurrency });
+  assert.deepEqual(calls, concurrency === 1 ? [0] : [0, 1]);
+  gates[0].resolve(10); await turn();
+  assert.deepEqual(calls, concurrency === 1 ? [0, 1] : [0, 1, 2]);
+  gates[1].resolve(11); gates[2].resolve(12);
+  const bag = await starting;
+  assert.equal(bag.resolve('a'), gates[0].promise);
+  await bag.close(); assert.deepEqual(disposed, [12, 11, 10]);
+
+  let reads = 0, later = 0;
+  const raw = { get then() { reads++; throw new Error('raw then'); } };
+  const ready = await DiBag.begin().add({
+    raw: DiBag.factory(() => raw, { acquisition: 'raw' }), later: () => ++later,
+  }).start(['raw', 'later'], { concurrency });
+  assert.equal(ready.resolve('raw'), raw); assert.equal(reads, 0); assert.equal(later, 1);
+  await ready.close();
+});
+
+test('Node observer burst drains in transition and registration order while external callback gates remain pending', async () => {
+  const pending = [], events = [], failures = [];
+  const bag = DiBag.observe({
+    onEvent(event) { const wait = gate(); pending.push(wait); events.push(`first:${event.kind}`); return wait.promise; },
+    onError({ error }) { failures.push(error); },
+  }).observe({ onEvent(event) { events.push(`second:${event.kind}`); }, onError() { assert.fail('fast observer failed'); } })
+    .begin().add({ value: DiBag.withLifetime(DiBag.factory(() => 1, { acquisition: 'raw' }), 'transient') }).end();
+  await turn(); pending.shift().resolve(); events.length = 0;
+  for (let i = 0; i < 100; i++) assert.equal(bag.resolve('value'), 1);
+  assert.equal(events.length, 0); await turn();
+  assert.equal(pending.length, 200);
+  assert.deepEqual(events, Array.from({ length: 100 }, () => [
+    'first:acquisition-started', 'second:acquisition-started', 'first:acquisition-ready', 'second:acquisition-ready',
+  ]).flat());
+  pending.forEach((wait, index) => index % 2 ? wait.resolve() : wait.reject(index)); pending.length = 0;
+  await turn(); assert.deepEqual(failures, Array.from({ length: 100 }, (_, index) => index * 2));
+  await bag.close(); await turn(); pending.forEach(wait => wait.resolve()); await turn();
+});
+
+test('Node application wait deadlines preserve memoized pending source and disposer cleanup', async () => {
+  const source = gate(), disposer = gate(), entered = gate();
+  const error = new Error('dispose failed');
+  let count = 0, settled = false;
+  const bag = DiBag.begin().add({ value: DiBag.withDisposal(() => source.promise, async value => {
+    assert.equal(value, 42); count++; entered.resolve(); await disposer.promise; throw error;
+  }) }).end();
+  bag.resolve('value');
+  const closing = bag.close();
+  const outcome = closing.catch(error => error).then(value => { settled = true; return value; });
+  for (const stage of ['source', 'disposer']) {
+    // Gate-based CI oracle: the host's deadline event fires without requiring a wall-time threshold.
+    const deadline = gate();
+    const waited = Promise.race([outcome, deadline.promise]);
+    deadline.resolve('deadline'); assert.equal(await waited, 'deadline');
+    assert.equal(settled, false); assert.equal(bag.close(), closing);
+    if (stage === 'source') { assert.equal(count, 0); source.resolve(42); await entered.promise; }
+    else { assert.equal(count, 1); disposer.resolve(); }
+  }
+  const failure = await outcome;
+  assert.equal(failure.failures[0].error, error); assert.equal(failure.failures.length, 1);
+  assert.equal(count, 1); assert.equal(bag.close(), closing);
+});

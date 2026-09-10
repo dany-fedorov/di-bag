@@ -371,7 +371,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   /**
    * Create a fresh bag and acquire selected services before returning it.
    * @param keys - A finite tuple of existing names or typed tokens to make ready.
-   * @param options - Optional cancellation signal, positive timeout, and parallel or sequential scheduling.
+   * @param options - Optional cancellation signal, positive timeout, and parallel, sequential, or positive safe integer bounded scheduling.
    * @returns A promise for the new bag after every selected final stage is ready.
    * @throws {@link DiBagStartupError} after rollback on acquisition failure, or
    * {@link DiBagStartupCancelledError} promptly on abort or timeout.

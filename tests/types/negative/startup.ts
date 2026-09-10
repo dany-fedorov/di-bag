@@ -14,6 +14,8 @@ builder.start();
 // diagnostic: not assignable
 builder.start(['value'], { concurrency: 'serial' });
 // diagnostic: not assignable
+builder.start(['value'], { concurrency: true });
+// diagnostic: not assignable
 builder.start(['value'], { timeoutMs: '1' });
 // diagnostic: missing the following properties from type 'AbortSignal'
 builder.start(['value'], { signal: {} });

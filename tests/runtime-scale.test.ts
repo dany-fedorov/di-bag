@@ -93,3 +93,31 @@ test('one module lexical map is snapshotted once while external mutations stay i
   const derived = graph.withPublicBinding('another', () => 1);
   for (const id of bindings.keys()) expect(derived.dependency(id, 'value')).toBe(privateId);
 });
+
+test('releasing a consumer removes its reverse incoming entries without retiring live peers', () => {
+  const family = new AcquisitionFamily();
+  const target = identity('target'), other = identity('other');
+  const first = identity('first'), peer = identity('peer');
+  for (const attempt of [target, other, first, peer]) family.add(attempt);
+  family.recordEdge(first, target); family.recordEdge(first, other); family.recordEdge(peer, target);
+  // Direct retention/work oracle: forward behavior alone misses stale reverse IDs.
+  const incoming = Reflect.get(family, 'incoming') as Map<symbol, Set<symbol>>;
+  family.release(first);
+  expect(incoming.has(other.id)).toBe(false);
+  expect([...incoming.get(target.id)!]).toEqual([peer.id]);
+  family.retireIncoming(target);
+  expect(peer.dependencies.has(target.id)).toBe(false);
+  expect((first.dependencies as MeasuredDependencies).deletions).toBe(0);
+  expect((peer.dependencies as MeasuredDependencies).deletions).toBe(1);
+  expect(incoming.size).toBe(0);
+});
+
+test('a branching late cycle reports the first dependency-order path and leaves its rejected edge absent', () => {
+  const family = new AcquisitionFamily();
+  const [a, dead, b, c, d] = ['a', 'dead', 'b', 'c', 'd'].map(label => identity(label)) as [AttemptIdentity, AttemptIdentity, AttemptIdentity, AttemptIdentity, AttemptIdentity];
+  for (const attempt of [a, dead, b, c, d]) family.add(attempt);
+  family.recordEdge(a, dead); family.recordEdge(a, b); family.recordEdge(a, c);
+  family.recordEdge(b, d); family.recordEdge(c, d);
+  expect(() => family.recordEdge(d, a)).toThrow(/^cycle: a -> b -> d -> a$/);
+  expect(d.dependencies.size).toBe(0);
+});

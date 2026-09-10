@@ -181,7 +181,32 @@ The recipes stop accepting work, let active handlers finish, and then close the
 application bag. Calling `app.close()` first begins closing its children and
 blocks new resolutions, which can interrupt requests you intended to drain.
 An operational shutdown deadline belongs to the host; DI Bag cannot force an
-uncooperative factory or disposer to settle.
+uncooperative factory or disposer to settle. To stop waiting at a host deadline,
+race the original close promise while continuing to handle its eventual result:
+
+```ts
+const closing = app.close(); // Repeated calls return this same promise.
+const cleanup = closing.then(
+  () => ({ status: 'closed' as const }),
+  error => ({ status: 'failed' as const, error }),
+);
+let timer: ReturnType<typeof setTimeout> | undefined;
+const deadline = new Promise<{ status: 'deadline' }>(resolve => {
+  timer = setTimeout(() => resolve({ status: 'deadline' }), 5_000);
+});
+const outcome = await Promise.race([cleanup, deadline]);
+clearTimeout(timer);
+if (outcome.status === 'deadline') {
+  // Cleanup is still pending; keep observing its eventual success or failure.
+  void cleanup.then(result => console.log('Eventual cleanup:', result));
+} else if (outcome.status === 'failed') {
+  console.error('Cleanup failed:', outcome.error);
+}
+```
+
+The deadline only bounds the application's wait. It does not release pending
+resources or cancel a disposer. The same pattern applies to the `cleanup` promise
+on `DiBagStartupCancelledError`.
 
 ## Node HTTP
 
@@ -529,7 +554,13 @@ Cancellation rejects promptly, so its cleanup may still be running. A factory
 using `withContext` can forward the supplied signal to a cooperative operation
 such as `fetch`. Cancelling the startup wait cannot terminate arbitrary code.
 The full [startup API](tutorial.md#start-selected-services-and-cancel-cooperatively)
-covers external signals, sequential startup, readiness, and rollback.
+covers external signals, sequential or bounded startup, readiness, and rollback.
+When selected providers compete for connections or temporary workspace, use a
+positive safe integer such as `concurrency: 8` to limit simultaneous selected
+readiness waits. The default stays parallel; `1` follows sequential readiness.
+Dependencies started inside each selected provider can still fan out beyond that
+bound. On failure or cancellation, queued selections stay unstarted and ownership
+of already started work is retained through cleanup.
 
 ## Disconnects, streaming, and WebSockets
 

@@ -10,8 +10,8 @@ export interface StartupOptions {
   readonly signal?: AbortSignal;
   /** A finite positive deadline in milliseconds. */
   readonly timeoutMs?: number;
-  /** Start all selected services together, or await them in tuple order. Defaults to `parallel`. */
-  readonly concurrency?: 'parallel' | 'sequential';
+  /** Start together (`parallel`, default), in tuple order (`sequential`), or with a positive safe integer bound on selected readiness waits. Dependency fanout is not bounded. */
+  readonly concurrency?: 'parallel' | 'sequential' | number;
 }
 
 function snapshotOptions(options: StartupOptions | undefined): StartupOptions {
@@ -25,7 +25,8 @@ function snapshotOptions(options: StartupOptions | undefined): StartupOptions {
   if (Object.hasOwn(selected, 'timeoutMs') && (typeof selected.timeoutMs !== 'number' || !Number.isFinite(selected.timeoutMs) || selected.timeoutMs <= 0)) {
     throw new Error('startup timeoutMs must be finite and positive');
   }
-  if (Object.hasOwn(selected, 'concurrency') && selected.concurrency !== 'parallel' && selected.concurrency !== 'sequential') throw new Error('invalid startup concurrency');
+  if (Object.hasOwn(selected, 'concurrency') && selected.concurrency !== 'parallel' && selected.concurrency !== 'sequential' &&
+    !(typeof selected.concurrency === 'number' && Number.isSafeInteger(selected.concurrency) && selected.concurrency > 0)) throw new Error('invalid startup concurrency');
   if (Object.hasOwn(selected, 'signal')) {
     try { Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted')!.get!.call(selected.signal); }
     catch { throw new Error('startup signal must be an AbortSignal'); }
@@ -77,11 +78,22 @@ export function startRuntime(graph: BindingGraph, context: RuntimeContext, keys:
     if (checkCancellation()) return;
     if (timeoutMs !== undefined) schedule();
 
-    const runSequential = async () => {
-      for (const key of selected) {
-        if (checkCancellation()) return;
-        await runtime.acquire(key);
-      }
+    const runBounded = (limit: number) => {
+      let next = 0;
+      let failed = false;
+      const worker = async () => {
+        while (next < selected.length) {
+          if (failed || checkCancellation()) return;
+          const key = selected[next++]!;
+          try { await runtime.acquire(key); }
+          catch (cause) {
+            // Stop other workers before rollback begins, even if cleanup waits.
+            failed = true;
+            throw cause;
+          }
+        }
+      };
+      return Promise.all(Array.from({ length: Math.min(limit, selected.length) }, worker));
     };
     const runParallel = () => {
       const pending: Promise<void>[] = [];
@@ -91,7 +103,7 @@ export function startRuntime(graph: BindingGraph, context: RuntimeContext, keys:
       }
       return Promise.all(pending);
     };
-    const work = concurrency === 'sequential' ? runSequential() : runParallel();
+    const work = concurrency === 'parallel' ? runParallel() : runBounded(concurrency === 'sequential' ? 1 : concurrency);
     void work.then(() => {
       if (checkCancellation()) return;
       settled = true;
