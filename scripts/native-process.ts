@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 
 export type ProcessLimits = { timeoutMilliseconds: number; maxRssMiB: number; maxOutputBytes: number; sampleMilliseconds: number };
@@ -10,6 +10,18 @@ export function validateLimits(limits: ProcessLimits, platform: string = process
   for (const value of [limits.timeoutMilliseconds, limits.maxRssMiB, limits.maxOutputBytes, limits.sampleMilliseconds]) {
     if (!Number.isFinite(value) || value <= 0) throw new Error('Process limits must be positive finite numbers');
   }
+}
+
+// /proc stat field 9 exposes PF_EXITING before memory release and State Z.
+// comm is unescaped and can contain spaces, newlines and closing parentheses.
+export function isExitingTask(stat: string, pid: number): boolean {
+  if (!stat.startsWith(`${pid} (`)) return false;
+  const close = stat.lastIndexOf(')');
+  if (close < `${pid} (`.length || stat[close + 1] !== ' ') return false;
+  const fields = stat.slice(close + 2).trim().split(/\s+/);
+  if (fields.length < 50 || !/^[RSDZTtWXxKIP]$/.test(fields[0]!) || !/^(0|[1-9]\d*)$/.test(fields[6]!)) return false;
+  const flags = Number(fields[6]);
+  return Number.isSafeInteger(flags) && flags <= 0xffffffff && (flags & 0x00000004) !== 0;
 }
 
 export async function supervise(executable: string, args: readonly string[], cwd: string, limits: ProcessLimits,
@@ -44,14 +56,31 @@ export async function supervise(executable: string, args: readonly string[], cwd
     const timeout = setTimeout(() => stop('timeout'), limits.timeoutMilliseconds);
     const hasExited = (pid: number): boolean => {
       if (exited) return true;
-      // Async status evidence may predate exit. Zombies still answer kill(0),
-      // so inspect fresh kernel state before classifying a monitor failure.
+      // PF_EXITING is irreversible but belongs to one task. Prove shutdown
+      // for every remaining thread, including when the leader is already Z.
       try {
         process.kill(pid, 0);
-        try { return /^State:\s+[ZX]/m.test(readFileSync(`/proc/${pid}/status`, 'utf8')); }
-        catch {
-          // The fresh path can disappear too. Only ESRCH from the PID probe
-          // proves departure; any other failure remains fail-closed.
+        try {
+          const directory = `/proc/${pid}/task`;
+          const tasks = readdirSync(directory), proven = new Set<string>();
+          if (!tasks.includes(String(pid))) return false;
+          for (const task of tasks) {
+            if (!/^[1-9]\d*$/.test(task)) return false;
+            try {
+              if (!isExitingTask(readFileSync(`${directory}/${task}/stat`, 'utf8'), Number(task))) return false;
+              proven.add(task);
+            } catch (error) {
+              // A departing thread can disappear between listing and reading.
+              // The final listing must independently confirm its absence.
+              const code = (error as NodeJS.ErrnoException).code;
+              if (code !== 'ENOENT' && code !== 'ESRCH') throw error;
+            }
+          }
+          const remaining = readdirSync(directory);
+          return proven.has(String(pid)) && remaining.includes(String(pid)) && remaining.every(task => proven.has(task));
+        } catch {
+          // An unreadable group is not proof. Only ESRCH from a fresh PID probe
+          // confirms disappearance; permissions and malformed data fail closed.
           process.kill(pid, 0);
           return false;
         }

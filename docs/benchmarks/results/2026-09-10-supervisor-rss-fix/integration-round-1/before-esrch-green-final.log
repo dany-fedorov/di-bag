@@ -1,0 +1,39 @@
+bun test v1.4.2 (744846f84)
+
+tests/native-process.test.ts:
+(pass) supervisor terminates and reaps a live child on monitor EIO [8.05ms]
+(pass) supervisor terminates and reaps a live child on monitor EACCES [0.76ms]
+(pass) supervisor terminates and reaps a live child on monitor ENOENT [0.99ms]
+(pass) supervisor terminates and reaps a live child on monitor ESRCH [0.56ms]
+(pass) supervisor terminates and reaps a live child on monitor missing VmRSS [21.14ms]
+(pass) supervisor terminates and reaps a live child on monitor malformed VmRSS [21.66ms]
+(pass) supervisor drains and reaps a zombie when status reports ENOENT before the exit callback [75.34ms]
+(pass) supervisor drains and reaps a zombie when status reports ESRCH before the exit callback [75.75ms]
+(pass) supervisor confirms exit 0 after stale non-zombie status loses VmRSS [183.35ms]
+(pass) supervisor confirms exit 2 after stale non-zombie status loses VmRSS [188.63ms]
+(pass) supervisor preserves exit 0 while the kernel releases memory before zombie state [68.90ms]
+(pass) supervisor preserves exit 2 while the kernel releases memory before zombie state [74.29ms]
+(pass) supervisor fails closed when the thread leader exits but a worker still runs [43.16ms]
+(pass) supervisor confirms ESRCH process disappearance before its exit callback runs [86.37ms]
+(pass) supervisor drains streams and awaits pending sample cleanup for missing VmRSS during exit [88.89ms]
+(pass) supervisor drains streams and awaits pending sample cleanup for ENOENT after exit [100.18ms]
+(pass) supervisor drains streams and awaits pending sample cleanup for ESRCH after exit [93.90ms]
+(pass) monitor termination waits for inherited stdout and stderr to close [69.06ms]
+(pass) supervisor retains clean child streams and exit status [76.95ms]
+(pass) failed spawn is explicit evidence [0.84ms]
+(pass) supervisor terminates and reaps timeout child [20.98ms]
+(pass) supervisor terminates and reaps memory child [21.28ms]
+(pass) supervisor terminates and reaps output child [25.47ms]
+(pass) invalid limits and unsupported platforms fail before spawning [0.29ms]
+(pass) output overflow remains byte bounded when UTF8 is cut within a character [30.98ms]
+(pass) kernel exit proof parses complete stat records with unescaped task names and strict flags [0.20ms]
+(pass) supervisor rejects empty initial group as task-group exit evidence [21.77ms]
+(pass) supervisor rejects empty final group as task-group exit evidence [21.98ms]
+(pass) supervisor rejects unproven final thread as task-group exit evidence [21.35ms]
+(pass) supervisor rejects permission failure as task-group exit evidence [21.27ms]
+(pass) supervisor rejects malformed stat as task-group exit evidence [21.31ms]
+
+ 31 pass
+ 0 fail
+ 165 expect() calls
+Ran 31 tests across 1 file. [1.54s]

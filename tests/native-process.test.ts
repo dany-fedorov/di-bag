@@ -1,8 +1,9 @@
 import { expect, spyOn, test } from 'bun:test';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import * as fs from 'node:fs';
 import { readFileSync } from 'node:fs';
-import { supervise, validateLimits } from '../scripts/native-process.ts';
+import { isExitingTask, supervise, validateLimits } from '../scripts/native-process.ts';
 
 const limits = { timeoutMilliseconds: 3000, maxRssMiB: 256, maxOutputBytes: 4096, sampleMilliseconds: 20 };
 const node = execFileSync('node', ['-p', 'process.execPath'], { encoding: 'utf8', timeout: 10000 }).trim();
@@ -103,6 +104,57 @@ for (const exitCode of [0, 2]) {
     expect(() => process.kill(zombiePid, 0)).toThrow();
   });
 }
+
+for (const exitCode of [0, 2]) {
+  test(`supervisor preserves exit ${exitCode} while the kernel releases memory before zombie state`, async () => {
+    let samples = 0, exitingPid = 0;
+    const source = `printf -v memory '%67108864s' ''; printf 'out\\n'; printf 'err\\n' >&2; exit ${exitCode}`;
+    const result = await supervise('/bin/bash', ['-c', source], process.cwd(), limits, async pid => {
+      if (samples++ === 0) return (await readFile(`/proc/${pid}/status`, 'utf8')).replace(/^VmRSS:.*\n/m, '');
+      if (exitingPid) return readFile(`/proc/${pid}/status`, 'utf8');
+      // Prime one missing sample, then observe actual kernel teardown. The real
+      // single-threaded shell retains a 64 MiB allocation until native exit.
+      const deadline = Date.now() + 2000;
+      while (Date.now() < deadline) {
+        const status = readFileSync(`/proc/${pid}/status`, 'utf8');
+        const stat = readFileSync(`/proc/${pid}/stat`, 'utf8');
+        const flags = Number(stat.slice(stat.lastIndexOf(')') + 2).split(' ')[6]);
+        if (!/^VmRSS:/m.test(status) && /^State:\s+R/m.test(status) && (flags & 4) !== 0) {
+          process.kill(pid, 0);
+          exitingPid = pid;
+          return status;
+        }
+      }
+      throw new Error('Child did not expose real pre-zombie memory teardown');
+    });
+    expect(exitingPid).toBeGreaterThan(0);
+    expect(result).toMatchObject({ status: exitCode, signal: null, stdout: 'out\n', stderr: 'err\n' });
+    expect(result.terminationReason).toBeUndefined();
+    expect(result.error).toBeUndefined();
+    expect(() => process.kill(exitingPid, 0)).toThrow();
+  });
+}
+
+test('supervisor fails closed when the thread leader exits but a worker still runs', async () => {
+  const source = `
+    const { dlopen } = require('bun:ffi');
+    const { symbols } = dlopen('libc.so.6', { pthread_exit: { args: ['ptr'], returns: 'void' } });
+    const workerSource = "console.log('worker alive'); postMessage('ready'); setInterval(() => { new Uint8Array(1024 * 1024).fill(1); }, 20);";
+    const worker = new Worker(URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' })));
+    worker.onmessage = () => { console.log('leader exiting'); symbols.pthread_exit(null); };
+  `;
+  let leader = 0;
+  const result = await supervise(process.execPath, ['-e', source], process.cwd(), limits, async pid => {
+    leader = pid;
+    return readFile(`/proc/${pid}/status`, 'utf8');
+  });
+  expect(result).toMatchObject({ terminationReason: 'monitor', status: null, signal: 'SIGKILL', stderr: '' });
+  expect(result.stdout).toContain('worker alive\n');
+  expect(result.stdout).toContain('leader exiting\n');
+  expect(result.error).toBe('VmRSS is missing');
+  expect(result.milliseconds).toBeLessThan(limits.timeoutMilliseconds);
+  expect(() => process.kill(leader, 0)).toThrow();
+});
 
 test('supervisor confirms ESRCH process disappearance before its exit callback runs', async () => {
   let sampledPid = 0, probes = 0;
@@ -230,3 +282,55 @@ test('output overflow remains byte bounded when UTF8 is cut within a character',
   expect(result.terminationReason).toBe('output');
   expect(Buffer.byteLength(result.stdout) + Buffer.byteLength(result.stderr)).toBeLessThanOrEqual(1025);
 });
+
+test('kernel exit proof parses complete stat records with unescaped task names and strict flags', () => {
+  // Field 9 is flags; Linux comm is parenthesized but may itself contain ')'
+  // and whitespace. There are 52 stat fields, including PID and comm.
+  const stat = (flags: string) => `17 (name ) with\nspaces) R 1 2 3 4 5 ${flags} ${'0 '.repeat(43).trim()}\n`;
+  for (const flags of ['4', '4194308']) expect(isExitingTask(stat(flags), 17)).toBe(true);
+  for (const flags of ['0', '4194304', '-4', '4x', '4.0', '4294967300', '9007199254740996']) expect(isExitingTask(stat(flags), 17)).toBe(false);
+  expect(isExitingTask(stat('4'), 18)).toBe(false);
+  expect(isExitingTask('17 (name) R 1 2 3 4 5 4', 17)).toBe(false);
+  expect(isExitingTask(stat('4').replace(') R ', ') invalid '), 17)).toBe(false);
+});
+
+for (const proof of ['empty initial group', 'empty final group', 'unproven final thread', 'permission failure', 'malformed stat', 'departed thread ENOENT', 'departed thread ESRCH'] as const) {
+  test(`supervisor checks ${proof} in task-group exit evidence`, async () => {
+    const departed = proof.startsWith('departed thread');
+    let pid = 0, listings = 0;
+    const list = fs.readdirSync, read = fs.readFileSync;
+    // Model races and faults only at the new kernel-proof boundary. The real
+    // child, signal delivery, pipes and reaping remain active.
+    const listProbe = spyOn(fs, 'readdirSync').mockImplementation(((path, options) => {
+      if (String(path) !== `/proc/${pid}/task`) return list(path, options as any);
+      listings++;
+      if (proof === 'permission failure') throw Object.assign(new Error('task directory denied'), { code: 'EACCES' });
+      if (proof === 'empty initial group' || proof === 'empty final group' && listings % 2 === 0) return [];
+      if (departed && listings % 2 === 1) return [String(pid), '99999999'];
+      return proof === 'unproven final thread' && listings % 2 === 0 ? [String(pid), '99999999'] : [String(pid)];
+    }) as typeof fs.readdirSync);
+    const statProbe = spyOn(fs, 'readFileSync').mockImplementation(((path, options) => {
+      if (departed && String(path) === `/proc/${pid}/task/99999999/stat`) throw Object.assign(new Error('thread departed'), { code: proof.split(' ').at(-1) });
+      if (String(path) !== `/proc/${pid}/task/${pid}/stat`) return read(path, options as any);
+      if (proof === 'malformed stat') return `${pid} (child) R 1 2 3 4 5 4`;
+      const stat = read(path, 'utf8'), close = stat.lastIndexOf(')');
+      const fields = stat.slice(close + 2).trim().split(' ');
+      fields[6] = '4';
+      return stat.slice(0, close + 2) + fields.join(' ') + '\n';
+    }) as typeof fs.readFileSync);
+    try {
+      const source = departed ? "setTimeout(() => { console.log('out'); console.error('err'); process.exitCode = 2; }, 50)" : 'setInterval(() => {}, 1000)';
+      const result = await supervise(node, ['-e', source], process.cwd(), limits, async childPid => {
+        pid = childPid;
+        return (await readFile(`/proc/${pid}/status`, 'utf8')).replace(/^VmRSS:.*\n/m, '');
+      });
+      if (departed) {
+        expect(result).toMatchObject({ status: 2, signal: null, stdout: 'out\n', stderr: 'err\n' });
+        expect(result.terminationReason).toBeUndefined();
+      } else expect(result).toMatchObject({ terminationReason: 'monitor', status: null, signal: 'SIGKILL', stdout: '', stderr: '' });
+      expect(listings).toBeGreaterThan(0);
+      expect(result.milliseconds).toBeLessThan(limits.timeoutMilliseconds);
+      expect(() => process.kill(pid, 0)).toThrow();
+    } finally { listProbe.mockRestore(); statProbe.mockRestore(); }
+  });
+}
