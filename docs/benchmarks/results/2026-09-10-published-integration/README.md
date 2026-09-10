@@ -101,5 +101,12 @@ rejected after repeated missing-RSS samples. The [narrow repair and regression
 evidence](../2026-09-10-supervisor-rss-fix/task-8-report.md) at `21b137f` changes only
 the supervisor and its tests. Production source, workload generators, worker
 limits, dependencies and workflows remain identical to the measured candidate.
-These measurements retain their original harness revision; hosted CI on the
-repaired candidate remains the merge gate.
+A further hosted failure at `3e9720e` led to [task-group shutdown proof and
+additional regressions](../2026-09-10-supervisor-rss-fix/integration-round-1/task-8-fix-round-1-report.md)
+at `04f5cca`: missing memory during kernel teardown is accepted only after every
+remaining thread is independently proven to be exiting. A dead leader with a
+live worker is rejected. The release wrapper now records its underlying monitor
+error; earlier opaque errors are not retrospectively assigned a proven cause.
+These measurements retain their original harness revision; production source and
+worker limits remain unchanged, and hosted CI on the repaired candidate remains
+the merge gate.
