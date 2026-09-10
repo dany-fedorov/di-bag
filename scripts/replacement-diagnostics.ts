@@ -39,6 +39,7 @@ export const replacementDiagnosticExpectations = {
       'a dependency has the wrong shape', 'missing factories',
       'a dependency has the wrong shape', 'incompatible or opaque',
       'a dependency has the wrong shape',
+      'incompatible or opaque', 'missing factories', 'incompatible or opaque',
     ],
     supplemental: [],
   },
