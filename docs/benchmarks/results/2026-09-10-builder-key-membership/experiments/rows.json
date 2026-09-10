@@ -1,0 +1,112 @@
+[
+  {
+    "variant": "baseline",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "baseline",
+      "100"
+    ],
+    "result": {
+      "variant": "baseline",
+      "count": 100,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1364951,
+      "milliseconds": 1531,
+      "maxRssMiB": 412.328125
+    }
+  },
+  {
+    "variant": "inverse-intersection",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "inverse-intersection",
+      "100"
+    ],
+    "result": {
+      "variant": "inverse-intersection",
+      "count": 100,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1445773,
+      "milliseconds": 2141,
+      "maxRssMiB": 422.984375
+    }
+  },
+  {
+    "variant": "registration-req-map",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "registration-req-map",
+      "100"
+    ],
+    "result": {
+      "variant": "registration-req-map",
+      "count": 100,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1361432,
+      "milliseconds": 1543,
+      "maxRssMiB": 412.37109375
+    }
+  },
+  {
+    "variant": "graph-needs-map",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "graph-needs-map",
+      "100"
+    ],
+    "result": {
+      "variant": "graph-needs-map",
+      "count": 100,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1365117,
+      "milliseconds": 1546,
+      "maxRssMiB": 414.25390625
+    }
+  },
+  {
+    "variant": "pairs-extract",
+    "status": 0,
+    "argv": [
+      "node",
+      "--max-old-space-size=3072",
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      "/tmp/di-bag-requirement-index-probe/worker.mjs",
+      "pairs-extract",
+      "100"
+    ],
+    "result": {
+      "variant": "pairs-extract",
+      "count": 100,
+      "typescript": "6.0.3",
+      "node": "v24.20.0",
+      "diagnostics": [],
+      "instantiations": 1316178,
+      "milliseconds": 1537,
+      "maxRssMiB": 408.9609375
+    }
+  }
+]
