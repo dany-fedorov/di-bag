@@ -459,6 +459,15 @@ describe('manifest validation and deterministic projection', () => {
     const changed: any = structuredClone(input); changed.handoff.handoffCommit = 'c'.repeat(40); changed.handoff.changedPaths = [];
     expect(serializeStable(createPublicReleaseEvidence(createReleaseManifest(changed)))).toBe(first);
   });
+  test('allows canonical SHA-512 SRI only in package integrity fields', () => {
+    const integrity = 'sha512-/ul7PV5WpdFxqftO2GgDAni9hloVlI9rKAlfydsKkI3FuovS7AqB4EeIU5G+/2I/lYfvhH3nNnhmxKUBek00zQ==';
+    const manifest: any = structuredClone(createReleaseManifest(validInput())); manifest.packages[0].integrity = integrity;
+    expect((createPublicReleaseEvidence(manifest) as any).packages[0].integrity).toBe(integrity);
+    const malformed: any = structuredClone(manifest); malformed.packages[0].integrity = 'sha512-+/etc/secret';
+    expect(() => createPublicReleaseEvidence(malformed)).toThrow('malformed integrity');
+    const nested: any = structuredClone(manifest); nested.packages[0].packageMetadata.dependencies.integrity = '/etc/secret';
+    expect(() => createPublicReleaseEvidence(nested)).toThrow('unsanitized absolute path');
+  });
   test('rejects duplicate/missing packages, bad versions, metadata, pack facts and handoff paths', () => {
     for (const mutate of [
       (value: any) => value.packages.pop(),
@@ -536,7 +545,7 @@ describe('manifest validation and deterministic projection', () => {
     const extraPackField: any = validInput(); extraPackField.packages[0].pack.packJson[0].hostPath = '/etc/secret'; extraPackField.packages[0].pack.dryRunJson[0].hostPath = '/etc/secret';
     const projected = serializeStable(createPublicReleaseEvidence(createReleaseManifest(extraPackField)));
     expect(projected).not.toContain('/etc/secret'); expect(projected).not.toContain('dryRunJson'); expect(projected).not.toContain('packJson');
-    const slashIntegrity: any = structuredClone(createReleaseManifest(validInput())); slashIntegrity.packages[0].integrity = `sha512-${'+/'.repeat(43)}==`;
+    const slashIntegrity: any = structuredClone(createReleaseManifest(validInput())); slashIntegrity.packages[0].integrity = `sha512-${'+/'.repeat(42)}+w==`;
     expect(() => createPublicReleaseEvidence(slashIntegrity)).not.toThrow();
     const malformedIntegrity: any = structuredClone(createReleaseManifest(validInput())); malformedIntegrity.packages[0].integrity = 'sha512-/etc/secret';
     expect(() => createPublicReleaseEvidence(malformedIntegrity)).toThrow('malformed integrity');

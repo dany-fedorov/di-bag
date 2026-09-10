@@ -32,8 +32,10 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run platform:pin
       - run: npm run check
+      - run: node --test --test-isolation=none tests/runtime-scale.node.mjs
       - run: npm run typecheck:native
       - run: npm run build:native
+      - run: node --test --test-isolation=none tests/runtime-scale.node.mjs
       - run: npm run check:native
       - name: Run examples
         run: |
