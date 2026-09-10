@@ -8,6 +8,8 @@ import {
 import type { ProviderGraph } from '../../src/provider';
 import { fromValBox } from '../../src/val-box';
 import type { Assert, Equal } from './assert';
+import type { IncrementalChecked, Entry, Unsatisfied } from '../../src/types';
+import type { Registration } from '../../src';
 
 const forward = DiBag.begin().add({ read: ({ value }: { value: number }) => value })
   .add({ value: () => 1 }).end();
@@ -42,3 +44,21 @@ type Frames = [Assert<Equal<typeof framedValue, Promise<number>>>,
 
 const numberFactory = () => 2;
 DiBag.begin().add({ value: () => 1 }).replace<'value', typeof numberFactory>('value', numberFactory).end();
+
+// Lookup shortcuts must retain opaque errors and the exact invalid-key details,
+// including for structurally valid manually annotated builder histories.
+type Incremental<E extends Entry, N extends { [K in keyof N]: Registration }> = IncrementalChecked<E, N>;
+type Failure<T> = Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: T }>;
+type OpaqueRead = import('../../src').Provider<() => number, {}, readonly [], import('../../src/token-types').OpaqueGraph>;
+type OpaqueEntry = { key: 'opaque'; registration: OpaqueRead };
+type ReadWider = import('../../src').Provider<() => number, {}, readonly [], TokenGraph<readonly [typeof widerToken]>>;
+const widerToken = DiBag.token(key).of<{ value: number } | string>();
+type Bound = import('../../src/token-types').Binding<typeof token, () => { value: number }>;
+type BoundEntry = { key: typeof key; registration: Bound };
+export type CachedTokenBoundaryContracts = [
+  Assert<Equal<Incremental<{ key: never; registration: OpaqueRead }, { unrelated: () => number }>, unknown>>,
+  Assert<Equal<Incremental<OpaqueEntry, { unrelated: () => number }>, Failure<'opaque token contract'>>>,
+  Assert<Equal<Incremental<OpaqueEntry, { opaque: () => number }>, unknown>>,
+  Assert<Equal<Incremental<BoundEntry, { read: ReadWider }>, Failure<typeof key>>>,
+  Assert<Equal<Incremental<{ key: 'read'; registration: ReadWider }, { [key]: Bound }>, Failure<typeof key>>>,
+];

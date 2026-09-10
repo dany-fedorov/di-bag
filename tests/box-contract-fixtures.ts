@@ -51,7 +51,7 @@ export function boxContractSource(fixture: string): string {
         fromSasBox(() => SasBox.fromAsync(async () => 7), { mode: 'sync' });
       ` : readFileSync(resolve(__dirname, 'types', fixture), 'utf8')
         .replace(/from '(?:\.\.\/)+\.related-repos\/(sas-box|val-box)\/src'/g, "from '$1'")
-        .replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types|module-types)'/g, "from './node_modules/di-bag/dist/$1.js'")
+        .replace(/from '(?:\.\.\/)+src\/(provider|tokens|token-types|module-types|types)'/g, "from './node_modules/di-bag/dist/$1.js'")
         .replace(/from '(?:\.\.\/)+src\/di-bag'/g, "from 'di-bag'")
         .replace(/import\('(?:\.\.\/)+src\/token-types'\)/g, "import('./node_modules/di-bag/dist/token-types.js')")
         .replace(/import\('(?:\.\.\/)+src'\)/g, "import('di-bag')")

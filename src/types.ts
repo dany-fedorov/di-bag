@@ -107,7 +107,12 @@ type OldWrong<E extends Entry, N extends Registrations> = E extends Entry
 type NewTokenWrong<E extends Entry, N extends Registrations> = {
   [K in keyof N]: WrongToken<ProviderTokenNeeds<N[K]> | ProviderOptionalTokenNeeds<N[K]>, From<Exclude<E, { key: keyof N }>>>
 }[keyof N];
-type OldTokenWrong<E extends Entry, N extends Registrations> = E extends Entry
+// Without incoming symbol keys, only opaque token needs can fail. Cache that
+// check per retained entry while preserving removal of replaced registrations.
+type OpaqueTokenNeeds<E extends Entry> = E extends Entry
+  ? E['key'] extends never ? never : WrongToken<ProviderTokenNeeds<E['registration']> | ProviderOptionalTokenNeeds<E['registration']>, {}> : never;
+type OldTokenWrong<E extends Entry, N extends Registrations> = [Extract<keyof N, symbol>] extends [never]
+  ? OpaqueTokenNeeds<[E['key'] & keyof N] extends [never] ? E : Exclude<E, { key: keyof N }>> : E extends Entry
   ? E['key'] extends keyof N ? never : WrongToken<ProviderTokenNeeds<E['registration']> | ProviderOptionalTokenNeeds<E['registration']>, N>
   : never;
 // Preserve Checked's incoming-first precedence before inspecting cross-boundary

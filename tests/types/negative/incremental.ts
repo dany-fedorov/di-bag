@@ -54,3 +54,16 @@ DiBag.begin().add({ read: ({ value }: { value: number }) => value }).add({ opaqu
 DiBag.begin().bind(token, () => 1).add({ local: () => 1,
   invalidNamed: ({ local }: { local: string }) => local.length,
   wrongToken: DiBag.fromTokens([wider], value => value) });
+
+// Manually described histories remain checked even when an incoming name cannot
+// match any typed-token key.
+declare const manuallyOpaque: import('../../../src').Builder<{ key: 'opaque'; registration: typeof opaque }>;
+// diagnostic: incompatible or opaque
+manuallyOpaque.add({ unrelated: () => 1 });
+// diagnostic: missing factories
+manuallyOpaque.end();
+declare const manuallyMixed: import('../../../src').Builder<
+  { key: 'opaque'; registration: typeof opaque } | { key: 'plain'; registration: () => number }
+>;
+// diagnostic: incompatible or opaque
+manuallyMixed.add({ unrelated: () => 1 });
