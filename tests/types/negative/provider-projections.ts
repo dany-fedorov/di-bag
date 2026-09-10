@@ -50,7 +50,7 @@ DiBag.createBuilder().register({ mapped: DiBag.transformService(wrapped, { mode:
 // diagnostic-also: TS2684 required service registrations are missing
 DiBag.createBuilder().register({ mapped: DiBag.withDisposal(wrapped, () => {}) }).build();
 // diagnostic: factory dependencies must be finite
-DiBag.createModuleBuilder().register({ mapped: DiBag.withDisposal(DiBag.transformService(wrapped, { mode: 'awaited', transform: () => 1 }), () => {}) }).buildModule(['mapped']);
+DiBag.createBuilder().register({ mapped: DiBag.withDisposal(DiBag.transformService(wrapped, { mode: 'awaited', transform: () => 1 }), () => {}) }).buildModule(['mapped']);
 // diagnostic: read-only
 DiBag.withDisposal(() => 1, () => {}).create = () => 2;
 // diagnostic: not assignable

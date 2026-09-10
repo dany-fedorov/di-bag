@@ -1,5 +1,8 @@
 # Alternative names
 
+> Historical design sketch; the APIs below are not the current API. Start with
+> the [README](README.md) or see the [history index](docs/history/README.md).
+
 - deps-bag
 - services-bag, svc-bag, s-bag
 - injectables-bag, i-bag, injector-bag, nj-bag

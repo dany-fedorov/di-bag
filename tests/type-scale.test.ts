@@ -31,7 +31,7 @@ function namedModuleSource(scenario: 'valid' | 'missing' | 'wrong-shape') {
       return `svc${index}: ({ ${dependency} }: { ${dependency}: ${shape} }) => ${shape === 'string' ? `${dependency}.length` : `${dependency} + 1`}`;
     });
     const names = Array.from({ length: 50 }, (_, offset) => `'svc${group * 50 + offset}'`).join(', ');
-    return `const feature${group} = DiBag.createModuleBuilder().register({ ${entries.join(',\n')} }).buildModule([${names}]);`;
+    return `const feature${group} = DiBag.createBuilder().register({ ${entries.join(',\n')} }).buildModule([${names}]);`;
   });
   return `import { DiBag } from '../src';
 ${modules.join('\n')}

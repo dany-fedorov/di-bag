@@ -70,7 +70,7 @@ export const observerRuntimeAssertions = `
       && (!('registrationMetadata' in event) || Object.isFrozen(event.registrationMetadata))), 'observer snapshots are mutable');
 
     let privateDisposals = 0;
-    const privateFeature = observed.createModuleBuilder().register({ hidden: observed.withDisposal(
+    const privateFeature = observed.createBuilder().register({ hidden: observed.withDisposal(
       observed.fromFactory(() => ({ owner: 'private' }), { acquisitionMode: 'raw' }), () => { privateDisposals++; }) }).alias('visible', 'hidden').buildModule(['visible']).renameExport('visible', 'publicView');
     const moduleBag = observed.createBuilder().installModule(privateFeature).register({
       hidden: observed.fromFactory(() => ({ owner: 'host' }), { acquisitionMode: 'raw' }),

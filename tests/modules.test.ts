@@ -6,7 +6,7 @@ test('a module private retry keeps the caught failed attempt separate', async ()
   const valueA = { id: 'a' };
   const valueB = { id: 'b' };
   const events: string[] = [];
-  const feature = DiBag.createModuleBuilder().register({
+  const feature = DiBag.createBuilder().register({
     a: DiBag.withDisposal((deps: { b: typeof valueB }) => {
       try { void deps.b; } catch {}
       return valueA;
@@ -30,7 +30,7 @@ test('a module private retry keeps the caught failed attempt separate', async ()
 
 test('module private dependencies follow exported replacements and fresh forks', async () => {
   const events: string[] = [];
-  const feature = DiBag.createModuleBuilder().register({
+  const feature = DiBag.createBuilder().register({
     connection: DiBag.withDisposal(() => ({ open: true }), () => { events.push('connection'); }),
     service: ({ connection, logger }: { connection: { open: boolean }; logger: { log(message: string): void } }) =>
       ({ read() { logger.log('read'); return connection.open; }, extra() { return 7; } }),
@@ -57,7 +57,7 @@ test('module private dependencies follow exported replacements and fresh forks',
 test('renamed repeated installations isolate private instances and cleanup', async () => {
   const events: number[] = [];
   let next = 0;
-  const module = DiBag.createModuleBuilder().register({
+  const module = DiBag.createBuilder().register({
     state: DiBag.withDisposal(() => ({ id: ++next }), state => { events.push(state.id); }),
     read: ({ state }: { state: { id: number } }) => state,
   }).buildModule(['read']);
@@ -74,7 +74,7 @@ test('renamed repeated installations isolate private instances and cleanup', asy
 });
 
 test('rename preserves original parameter names even when an export takes a private name', async () => {
-  const module = DiBag.createModuleBuilder().register({
+  const module = DiBag.createBuilder().register({
     privateValue: () => 3,
     publicValue: () => 5,
     read: ({ privateValue, publicValue, external }: { privateValue: number; publicValue: number; external: number }) =>
@@ -89,7 +89,7 @@ test('rename preserves original parameter names even when an export takes a priv
 });
 
 test('invalid installations and export views fail atomically and reject forged modules', async () => {
-  const module = DiBag.createModuleBuilder().register({ a: () => 1, b: () => 2 }).buildModule(['a', 'b']);
+  const module = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).buildModule(['a', 'b']);
   const builder = DiBag.createBuilder().register({ b: () => 9 });
   expect(() => (builder.installModule as Function)(module)).toThrow('duplicate registration: b');
   expect(() => (DiBag.createBuilder().installModule as Function)({ ...module })).toThrow('module');
@@ -105,7 +105,7 @@ test('invalid installations and export views fail atomically and reject forged m
 test('exports use indexed tuple snapshots and preserve hidden local registrations', async () => {
   const all = { publicValue: () => 4, hidden: () => 8 };
   const visible: { publicValue: () => number } = all;
-  const builder = DiBag.createModuleBuilder().register(visible);
+  const builder = DiBag.createBuilder().register(visible);
   expect(() => (builder.register as Function)({ hidden: () => 9 })).toThrow('duplicate registration');
   const keys = ['publicValue'] as const;
   Object.defineProperty(keys, Symbol.iterator, { value: function* () { yield 'hidden'; } });
@@ -119,7 +119,7 @@ test('exports use indexed tuple snapshots and preserve hidden local registration
 test('module promise identity, retry and post-await cycle diagnostics use the host runtime', async () => {
   let attempts = 0;
   const original = Promise.resolve(42);
-  const module = DiBag.createModuleBuilder().register({
+  const module = DiBag.createBuilder().register({
     identity: () => original,
     retry: async () => { if (++attempts === 1) throw new Error('retry me'); return 7; },
     a: async (deps: { b: Promise<number> }): Promise<number> => { await Promise.resolve(); return deps.b; },
@@ -134,7 +134,7 @@ test('module promise identity, retry and post-await cycle diagnostics use the ho
 });
 
 test('renaming an export leaves an unrelated external requirement at its original slot', async () => {
-  const module = DiBag.createModuleBuilder().register({
+  const module = DiBag.createBuilder().register({
     value: () => 1,
     read: ({ value, external }: { value: number; external: number }) => [value, external],
   }).buildModule(['value', 'read']).renameExport('value', 'external').renameExport('external', 'renamed');
@@ -144,7 +144,7 @@ test('renaming an export leaves an unrelated external requirement at its origina
 });
 
 test('module providers can be replaced before sealing without mutating earlier views', async () => {
-  const builder = DiBag.createModuleBuilder().register({ value: () => 1 });
+  const builder = DiBag.createBuilder().register({ value: () => 1 });
   const original = builder.buildModule(['value']);
   const changed = builder.replace('value', () => 'changed').buildModule(['value']).renameExport('value', 'changed');
   const root = DiBag.createBuilder().installModule(original).installModule(changed).build();
@@ -155,7 +155,7 @@ test('module providers can be replaced before sealing without mutating earlier v
 
 test('close drains module acquisitions that discover private and host dependencies after await', async () => {
   const events: string[] = [];
-  const feature = DiBag.createModuleBuilder().register({
+  const feature = DiBag.createBuilder().register({
     privateResource: DiBag.withDisposal(async (deps: { external: Promise<number> }) => {
       await Promise.resolve();
       return await deps.external;

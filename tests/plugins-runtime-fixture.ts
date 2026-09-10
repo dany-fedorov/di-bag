@@ -114,7 +114,7 @@ export const pluginRuntimeAssertions = `
       apiVersion: 1,
       create: secret => ({ secret }),
     }, { acquisitionMode: 'raw', validate: item => typeof item === 'object' && item !== null && item.secret === 17 });
-    const privateFeature = DiBag.createModuleBuilder().register(privateToken, DiBag.fromFactory(() => 17, { acquisitionMode: 'raw' })).register({ privatePlugin: privateProvider }).alias('pluginAlias', 'privatePlugin').buildModule(['pluginAlias']).renameExport('pluginAlias', 'publicPlugin');
+    const privateFeature = DiBag.createBuilder().register(privateToken, DiBag.fromFactory(() => 17, { acquisitionMode: 'raw' })).register({ privatePlugin: privateProvider }).alias('pluginAlias', 'privatePlugin').buildModule(['pluginAlias']).renameExport('pluginAlias', 'publicPlugin');
     const privateBag = DiBag.createBuilder().installModule(privateFeature).build();
     const sharedPlugin = privateBag.resolve('publicPlugin');
     const sharedChild = privateBag.createScope({ share: ['publicPlugin'] });

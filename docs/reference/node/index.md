@@ -64,9 +64,9 @@ Re-exports [Bag](../index/interfaces/Bag.md)
 
 ***
 
-### BagBuilder
+### Builder
 
-Re-exports [BagBuilder](../index/interfaces/BagBuilder.md)
+Re-exports [Builder](../index/interfaces/Builder.md)
 
 ***
 
@@ -202,6 +202,18 @@ Re-exports [DisjointScopeSelection](../index/type-aliases/DisjointScopeSelection
 
 ***
 
+### Enclosed
+
+Re-exports [Enclosed](../index/type-aliases/Enclosed.md)
+
+***
+
+### EnclosedLifetimeObligation
+
+Re-exports [EnclosedLifetimeObligation](../index/type-aliases/EnclosedLifetimeObligation.md)
+
+***
+
 ### FactoryWithDisposal
 
 Re-exports [FactoryWithDisposal](../index/interfaces/FactoryWithDisposal.md)
@@ -238,21 +250,9 @@ Re-exports [Module](../index/interfaces/Module.md)
 
 ***
 
-### ModuleBuilder
-
-Re-exports [ModuleBuilder](../index/interfaces/ModuleBuilder.md)
-
-***
-
 ### ModuleConstraints
 
 Re-exports [ModuleConstraints](../index/type-aliases/ModuleConstraints.md)
-
-***
-
-### ModuleContribute
-
-Re-exports [ModuleContribute](../index/type-aliases/ModuleContribute.md)
 
 ***
 
@@ -283,6 +283,18 @@ Re-exports [ModulePublicProviders](../index/type-aliases/ModulePublicProviders.m
 ### ModuleRequiredServices
 
 Re-exports [ModuleRequiredServices](../index/type-aliases/ModuleRequiredServices.md)
+
+***
+
+### ModuleScope
+
+Re-exports [ModuleScope](../index/type-aliases/ModuleScope.md)
+
+***
+
+### ModuleSealedConstraints
+
+Re-exports [ModuleSealedConstraints](../index/type-aliases/ModuleSealedConstraints.md)
 
 ***
 
@@ -484,6 +496,12 @@ Re-exports [Renamed](../index/type-aliases/Renamed.md)
 
 ***
 
+### RenamedContext
+
+Re-exports [RenamedContext](../index/type-aliases/RenamedContext.md)
+
+***
+
 ### RenamedLifetimeObligation
 
 Re-exports [RenamedLifetimeObligation](../index/type-aliases/RenamedLifetimeObligation.md)
@@ -517,6 +535,12 @@ Re-exports [ScopeEventFields](../index/interfaces/ScopeEventFields.md)
 ### ScopeOptions
 
 Re-exports [ScopeOptions](../index/type-aliases/ScopeOptions.md)
+
+***
+
+### SealedConstraints
+
+Re-exports [SealedConstraints](../index/type-aliases/SealedConstraints.md)
 
 ***
 

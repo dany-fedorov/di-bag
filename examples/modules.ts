@@ -1,6 +1,6 @@
 import { DiBag } from '../src/node';
 
-const logging = DiBag.createModuleBuilder()
+const logging = DiBag.createBuilder()
   .register({
     prefix: () => '[modules]',
     logger: ({ prefix }: { prefix: string }) => ({
@@ -11,7 +11,7 @@ const logging = DiBag.createModuleBuilder()
   })
   .buildModule(['logger']);
 
-const feature = DiBag.createModuleBuilder()
+const feature = DiBag.createBuilder()
   .register({
     connection: DiBag.withDisposal(
       () => ({ open: true }),

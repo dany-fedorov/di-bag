@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-export const feature = DiBag.createModuleBuilder().register({
+export const feature = DiBag.createBuilder().register({
   privateReader: ({ service }: { service: { read(): number; extra(): boolean } }) => () => service.read(),
   service: ({ logger }: { logger: { log(message: string): void } }) => ({
     read() { logger.log('read'); return 42; }, extra() { return true; },

@@ -37,7 +37,7 @@ const annotatedSource = DiBag.fromFunction([port], value => ({
 }));
 export const annotated = DiBag.transformService(DiBag.withMetadata(annotatedSource, { dynamic: { mode: 'direct', describe: result => result.metadata } }), { mode: 'direct', transform: result => result.value });
 
-export const finalAdversarialFeature = DiBag.createModuleBuilder().register(port, () => 8080).register({ client, plugin, annotated }).alias('clientAlias', 'client').buildModule(['client', 'plugin', 'annotated', 'clientAlias']);
+export const finalAdversarialFeature = DiBag.createBuilder().register(port, () => 8080).register({ client, plugin, annotated }).alias('clientAlias', 'client').buildModule(['client', 'plugin', 'annotated', 'clientAlias']);
 
 export const finalAdversarialBag = DiBag.createBuilder().installModule(finalAdversarialFeature).build();
 export const finalAdversarialChild = finalAdversarialBag.createScope(['plugin'], {

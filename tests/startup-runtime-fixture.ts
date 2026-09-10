@@ -4,7 +4,7 @@ export const startupRuntimeAssertions = `{
   const { DiBagStartupError, DiBagStartupCancelledError } = await import('di-bag');
   let lazyCalls = 0;
   const token = DiBag.token(Symbol('startup')).of();
-  const feature = DiBag.createModuleBuilder().register({
+  const feature = DiBag.createBuilder().register({
     hidden: DiBag.fromFactory((_deps, context) => context, { context: 'acquisition' }),
     service: ({ hidden }) => hidden,
   }).buildModule(['service']);

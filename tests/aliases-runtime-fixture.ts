@@ -43,7 +43,7 @@ export const aliasRuntimeAssertions = `
 
     let privateCalls = 0;
     let privateDisposed = 0;
-    const feature = DiBag.createModuleBuilder().register({
+    const feature = DiBag.createBuilder().register({
       hidden: DiBag.withDisposal(() => { privateCalls++; return { kind: 'private' }; }, () => { privateDisposed++; }),
     }).alias('exported', 'hidden').buildModule(['exported']).renameExport('exported', 'publicAlias');
     const moduleBag = DiBag.createBuilder().installModule(feature).register({ hidden: () => ({ kind: 'host' }) }).build();

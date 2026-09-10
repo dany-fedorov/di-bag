@@ -11,7 +11,7 @@ export const source = DiBag.fromClass([port], Client);
 export const fn = DiBag.fromFunction([port], value => ({ port: value, literal: true as const }));
 export const native = DiBag.fromFunction([], () => Promise.resolve({ id: 1 }), { acquisitionMode: 'nativePromise' });
 export const raw = DiBag.fromFunction([], () => Promise.resolve({ id: 1 }), { acquisitionMode: 'raw' });
-export const feature = DiBag.createModuleBuilder().register({ source, fn }).buildModule(['source', 'fn']);
+export const feature = DiBag.createBuilder().register({ source, fn }).buildModule(['source', 'fn']);
 export const builder = DiBag.createBuilder().installModule(feature);
 export const bag = builder.register(port, () => 8080).build();
 const value = bag.resolve('source');

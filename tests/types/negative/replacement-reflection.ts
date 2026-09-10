@@ -13,11 +13,12 @@ const erasedAdd = empty.register<{ value: () => number; consumer: () => number }
 // diagnostic: is not assignable to type
 const erased: ReturnType<typeof erasedAdd> = builder;
 
-const moduleBuilder = DiBag.createModuleBuilder().register({
+const moduleBuilder = DiBag.createBuilder().register({
   value: () => 1,
   consumer: ({ value }: { value: number }) => value + 1,
 });
+// diagnostic: is not assignable to type
 const moduleView: ReturnType<typeof moduleBuilder.replace> = moduleBuilder;
-const value = DiBag.createBuilder().installModule(moduleView.buildModule(['consumer'])).build().resolve('consumer');
+const value = DiBag.createBuilder().installModule(moduleBuilder.buildModule(['consumer'])).build().resolve('consumer');
 // diagnostic: Type 'number' is not assignable to type 'string'.
 const wrong: string = value;

@@ -4,7 +4,7 @@ import { deferred } from './helpers';
 import { AcquisitionFamily } from '../src/acquisition-family';
 import type { AttemptIdentity } from '../src/acquisition-family';
 
-// Deliberate JS boundary: only invalid captive fixtures bypass BagBuilder.build checks.
+// Deliberate JS boundary: only invalid captive fixtures bypass Builder.build checks.
 function uncheckedRuntimeGraph(builder: { build: Function }) { return builder.build(); }
 
 test('root, scoped and transient identity have distinct ownership', async () => {
@@ -280,7 +280,7 @@ test('token captive reads reject at the observed edge before scoped creation', a
 test('renamed module exports retain private root and transient ownership despite public collisions', async () => {
   let sequence = 0;
   const events: number[] = [];
-  const feature = DiBag.createModuleBuilder().register({
+  const feature = DiBag.createBuilder().register({
     privateRoot: DiBag.withLifetime(DiBag.withDisposal(() => ({ id: ++sequence }), value => { events.push(value.id); }), 'root'),
     bridge: DiBag.withLifetime(DiBag.withDisposal((deps: { privateRoot: { id: number } }) => ({ root: deps.privateRoot, id: ++sequence }), value => { events.push(value.id); }), 'transient'),
     read: (deps: { bridge: { root: { id: number }; id: number } }) => () => deps.bridge,
@@ -302,7 +302,7 @@ test('renamed module exports retain private root and transient ownership despite
 
 test('private module scoped capture rejects despite an identically named public root', async () => {
   let calls = 0;
-  const feature = DiBag.createModuleBuilder().register({
+  const feature = DiBag.createBuilder().register({
     scoped: () => { calls++; return 1; },
     bridge: DiBag.withLifetime((deps: { scoped: number }) => deps.scoped, 'transient'),
   }).buildModule(['bridge']).renameExport('bridge', 'exported');

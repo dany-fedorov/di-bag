@@ -688,7 +688,7 @@ well when validating routing, serialization, disconnects, or streaming.
 
 | Need | API and example |
 | --- | --- |
-| Keep a feature's connection private while exposing its service | [`createModuleBuilder`, `buildModule`, `installModule`, `renameExport`](tutorial.md#reuse-named-modules) |
+| Keep a feature's connection private while exposing its service | [`buildModule`, `installModule`, `renameExport`](tutorial.md#reuse-named-modules) |
 | Inject a database contract into existing classes | [`token`, `register`, `fromClass`](tutorial.md#adapt-classes-and-positional-functions) |
 | Assemble ordered middleware or job handlers | [`contribute`, `all`, `resolveAll`](tutorial.md#compose-an-ordered-collection) |
 | Enable optional telemetry | [`optional`](tutorial.md#declare-optional-and-lazy-dependencies) |

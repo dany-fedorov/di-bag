@@ -155,7 +155,7 @@ export function tokenScaleSource(
     graph = `const graph = DiBag.createBuilder()${graphMarker}\n${calls.join('\n')}\n  .build();`;
   } else {
     const modules = Array.from({ length: count }, (_, index) =>
-      `const module${index} = DiBag.createModuleBuilder().register(token${index}, ${provider(index)}).buildModule([token${index}]);`,
+      `const module${index} = DiBag.createBuilder().register(token${index}, ${provider(index)}).buildModule([token${index}]);`,
     );
     const installs = Array.from({ length: count }, (_, index) => {
       const marker = scenario === 'mismatched-invariant-service' && index === count - 1 ? ` ${boundary}` : '';

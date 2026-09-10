@@ -1,5 +1,5 @@
 import { DiBag } from '../../src/node';
-import type { ProviderOutput, ProviderAcquiredValue, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, PluginProviderFactory, BagBuilder, DiBagApi, Registration } from '../../src';
+import type { ProviderOutput, ProviderAcquiredValue, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, PluginProviderFactory, Builder, DiBagApi, Registration } from '../../src';
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
 type Assert<T extends true> = T;
 const pending = Promise.resolve({ id: 1 });
@@ -13,7 +13,7 @@ type _Frames = Assert<Equal<ProviderAcquisitionMetadata<typeof awaited>, readonl
 const mapped = DiBag.transformService(raw, { mode: 'direct', acquisitionMode: 'raw', transform: value => value });
 type _Mapped = Assert<Equal<ProviderAcquiredValue<typeof mapped>, Promise<{ id: number }>>>;
 const api: DiBagApi = DiBag.withConfiguration({});
-const empty: BagBuilder<never> = api.createBuilder();
+const empty: Builder<never> = api.createBuilder();
 // Fast token overload selection must retain the reflected token call shape.
 type _RegisterReflection = Assert<Equal<Parameters<typeof empty.register>['length'], 2>>;
 // Explicit interface arguments can supply the required index through an intersection.

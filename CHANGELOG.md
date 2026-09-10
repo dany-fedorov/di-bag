@@ -2,83 +2,63 @@
 
 ## 0.1.0
 
-- **Breaking:** consolidate metadata, transformations, factory/context creation,
-  registration, and immutable facade configuration; adopt descriptive builder,
-  option, snapshot, and public type names. See the
-  [complete migration guide](docs/migrations/api-renaming.md).
-- Add structured library diagnostics and correct cleanup counts, closed-bag
-  messages, resolution paths, and compiler dependency diagnostics.
+Release-candidate changes in this repository. This heading identifies the local
+package version; it does not establish that the version has been published.
+The API is pre-1.0 and includes breaking changes from earlier checkouts.
 
+### Breaking changes
+
+- Merge `ModuleBuilder` into a single `Builder`. `DiBag.createModuleBuilder()`
+  and the `ModuleBuilder`, `BagBuilder`, and `ModuleContribute` types are removed;
+  `DiBag.createBuilder()` returns a `Builder` that both builds bags and seals
+  modules. Modules can now install modules. The
+  [single builder migration](docs/migrations/single-builder.md) lists the
+  replaced names and the nesting rules.
+- Consolidate builders, registration, configuration, metadata, and transformation
+  APIs under descriptive names. For example, use `createBuilder`, `register`,
+  `build`, and `createScope`. Compatibility aliases are not retained.
+  The [API migration guide](docs/migrations/api-renaming.md) maps every replaced
+  method, option, snapshot field, and public type.
+- Separate adding registrations from replacing them: `register` rejects
+  duplicates, while `replace` checks the surviving consumers.
+- Require explicit key selections for fork and scope overrides. Preserve exact
+  builder histories and owned provider handles so structural narrowing or
+  spreading cannot silently erase dependency or cleanup contracts. See the
+  [earlier migration guide](docs/migrations/0.1-to-enterprise.md).
 
 ### Added
 
-- `DiBag.withMetadata` with dynamic `direct` or `awaited` mode
-  capture typed, shallowly copied and frozen records for each acquisition.
-  The immediate form preserves the exact value and acquisition mode; the async
-  form awaits the source. Frames survive projection and retain existing
-  dependency, lifetime and ownership contracts.
-- `DiBag.fromPlugin(dependencies, descriptor, { acquisitionMode, validate })`
-  authenticates an application-selected unknown descriptor and admits its checked
-  result as one typed provider. Descriptors use own `apiVersion: 1` and `create`
-  fields with optional original-value disposal; explicit raw/native acquisition,
-  synchronous predicate validation, canonical cleanup and module composition
-  retain existing dependency, ownership and observer contracts.
-- `DiBag.withConfiguration({ observers: [{ onEvent, onError }] })` appends immutable lifecycle observers.
-  Frozen events report canonical scope, acquisition and accepted-cleanup identity,
-  final-stage readiness, metadata and original failures. Queued callbacks preserve
-  graph values and ownership; callback failures use the required error sink and
-  asynchronous observer work never gates shutdown.
-- `.contribute(token, provider)`, `.resolveAll(token)` and `DiBag.all(token)`
-  compose ordered collections with independently checked dependencies, lifetimes
-  and cleanup. Module contributions retain private helpers and installation order
-  even with no ordinary exports; frozen arrays preserve exact exposed values.
-  `ModuleContributions` and `.inspectAll(token)` expose conservative collection views.
+- Immutable builders for named factories and typed tokens, with checks for
+  declared dependencies, service contracts, and replacements.
+- Reusable modules with private services, selected exports, and export renaming.
+  Private dependency constraints remain checked after installation and replacement.
+- Class and function adapters, optional and lazy token dependencies, lookup
+  aliases, and ordered contributions resolved with `resolveAll`.
+- Root, scoped, and transient lifetimes; tracked child scopes with selected
+  sharing and overrides; independent forks for separate instances and cleanup.
+  Root services reject scoped dependency capture unless explicitly allowed.
+- Explicit disposal ownership with dependency-ordered cleanup. Transformations
+  retain existing ownership, and cleanup failures preserve their original errors.
+- Selected startup through `buildAndStart`, with parallel, sequential, or bounded
+  scheduling, rollback on failure, and cooperative cancellation or timeouts.
+  Acquisition contexts expose the owning scope's `AbortSignal`.
+- Static and per-acquisition metadata through `withMetadata`, inspection without
+  resolution, and lifecycle observers with a separate callback-error sink.
+- `fromPlugin` for an application-selected descriptor with runtime output
+  validation and optional disposal of the original acquired value.
+- A portable `di-bag` entry and a `di-bag/node` entry with native Promise
+  detection for Node and Bun. The package has zero runtime dependencies.
+- Generated API reference, tutorials, server recipes, migration guides, and
+  packed-package checks for Node, Bun, Deno, and a browser Worker.
 
-- `BagBuilder.alias` and `ModuleBuilder.alias` add checked name/token lookup aliases
-  that preserve the canonical target's identity, Promise mode, transient behavior,
-  ownership, module privacy and selected parent sharing. Inspection shows the direct
-  target relationship and canonical acquisition snapshots.
-- `DiBag.optional(token)` and `DiBag.lazy(token)` provide explicit dependency
-  references in all positional adapters. Optional absence preserves present-value
-  validation and acquisition failures; lazy calls preserve lexical graph, lifetime,
-  context and shutdown rules. Module and declaration contracts retain both kinds
-  of dependency, with no implicit awaiting or ownership transfer.
-- `DiBag.fromClass` adapts concrete constructors and `DiBag.fromFunction` adapts
-  positional callbacks with checked typed-token arguments. Both preserve exact
-  outputs, acquisition modes and explicit ownership; classes retain prototypes,
-  private fields and `new.target`. Optional/rest parameters and bound receivers
-  are supported without decorators or parameter-name reflection.
-- `Bag.createScope({ share })` borrows selected parent acquisitions, and
-  `Bag.createScope(keys, overrides, { share }?)` supplies checked child overrides.
-  Sharing retains parent dependencies, Promise identity, context and ownership;
-  conflicts and transient sharing reject before override getters run. New root
-  overrides are owned by their defining child and inherited by its descendants.
-- Selected scope contracts are verified through physical classic/native
-  declarations and packed Node/Bun CommonJS/ESM consumers.
-- `BagBuilder.buildAndStart(keys, options?)` eagerly acquires selected names/tokens in a fresh
-  bag, with parallel, sequential, or bounded numeric startup, rollback on failure, external cancellation
-  and finite positive timeouts. `DiBagStartupError` retains setup and cleanup
-  causes; `DiBagStartupCancelledError` rejects promptly and exposes eventual cleanup.
-- `DiBag.fromFactory` with `context: 'acquisition'` supplies a frozen acquisition-owner context and AbortSignal,
-  preserving named dependencies, exact output/acquired types and explicit modes.
-  Closing a scope cooperatively aborts its context before draining owned work.
-- Startup readiness observes the final acquisition stage independently of pending
-  source/projection work; shutdown still drains every stage. Raw Promise values
-  remain raw and native Promise identity is unchanged.
-- `DiBag.withLifetime` selects `root`, `scoped`, or `transient` caching while
-  preserving provider contracts and explicit ownership stages. Root values are
-  shared within a tracked scope family, scoped remains the default, and transient
-  creates one owned attempt per resolution. Strict roots reject captive scoped
-  dependencies at graph completion; `{ allowScopedDependencies: true }` explicitly permits
-  root-context capture without borrowing child-owned state.
-- Classic and native emitted archives now verify the inferred lifetime producer
-  with its source physically absent, all lifetime diagnostic regions, and exact
-  Node/Bun CommonJS/ESM ownership execution. Sixteen emitter-required helper
-  aliases are type-only root exports so unannotated declarations remain portable.
-- `Bag.createScope()` creates a tracked child with fresh acquisitions and ownership over
-  the parent's immutable binding graph. Parent shutdown closes live descendants
-  before parent-owned resources; independently closed children detach after their
-  close settles, while forks remain independent roots.
-- The root package now type-exports `Entries`, alongside `From` and `Provided`, so
-  inferred child-scope producer declarations are portable across installed-package
-  CommonJS and ESM consumers without annotations.
+### Fixed and improved
+
+- Structured `DI_BAG_*` diagnostics, accurate cleanup failure counts and
+  closed-bag messages, and clearer dependency paths in runtime and compiler errors.
+- Iterative cleanup planning, faster immutable graph updates and module
+  installation, and reduced retention of completed borrowed values. Some bulk
+  construction and lookup costs increased; see the
+  [performance evidence](docs/guides/development.md#performance-evidence).
+- Reduced compiler work for registrations, tokens, and replacements, while
+  retaining declaration and negative-diagnostic checks. Large fluent expressions
+  still have limits; see the [compiler results](docs/benchmarks/typescript.md).

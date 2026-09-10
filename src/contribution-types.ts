@@ -4,8 +4,8 @@ import type { ValidToken, TokenTupleAdmission, BindingOutput } from './token-typ
 import type { CheckDependencyCompatibility, CheckDependencyCompleteness, Unsatisfied, Entry, RegistrationsFromEntries } from './types';
 import type { ProviderCollectionTokens } from './provider';
 import type { Module } from './module';
-import type { RegistrationConstraints, PublicProvider, Renamed, NeedConstraint, CheckedConstraints } from './module-types';
-import type { LexicalContext } from './lifetime-types';
+import type { RegistrationConstraints, PublicProvider, NeedConstraint, CheckedConstraints } from './module-types';
+import type { LexicalContext, ModuleScope, Enclosed, RenamedContext } from './lifetime-types';
 
 declare const contributionSite: unique symbol;
 /** Each union member retains one independently checked provider and its group. */
@@ -39,26 +39,26 @@ export type CheckedContributions<C, A extends Registrations> = [Groups<C>] exten
   : Unsatisfied<'collection token has an incompatible or opaque contract', {}>;
 export type CompleteContributions<C, A extends Registrations> = [MissingProvider<C, A>] extends [never] ? unknown
   : Unsatisfied<'required service registrations are missing', { readonly contributions: MissingProvider<C, A> }>;
-/** Retain a module contribution's provider checks and lexical private-service context. */
+/**
+ * Retain a contribution's provider checks and lexical private-service context when
+ * its builder seals. A contribution retained from an inner installation is already
+ * projected; sealing only encloses its scope in this module's scope.
+ */
 export type ModuleContributionConstraints<C, R extends Registrations, P extends keyof R> = C extends ContributionConstraint
-  ? Contribution<C['token'], PublicProvider<C['registration']>, LexicalContext<R, { readonly [K in P]: K }> & { readonly registration: C['registration'] }>
-    | RegistrationConstraints<C['registration'], R, P>
+  ? C['context'] extends LexicalContext
+    ? Contribution<C['token'], C['registration'], Enclosed<C['context'], ModuleScope<R, P>>>
+    : Contribution<C['token'], PublicProvider<C['registration']>, ModuleScope<R, P> & { readonly registration: C['registration'] }>
+      | RegistrationConstraints<C['registration'], R, P>
   : never;
 export type RenamedContribution<C extends ContributionConstraint, Old extends string, New extends string> =
-  C['context'] extends LexicalContext<infer R, infer E> ? Contribution<C['token'], C['registration'], LexicalContext<R, Renamed<E, Old, New>> & Pick<C['context'], Exclude<keyof C['context'], keyof LexicalContext>>> : C;
+  C['context'] extends LexicalContext ? Contribution<C['token'], C['registration'], RenamedContext<C['context'], Old, New>> : C;
 /** Project a module's typed-token collections as readonly service arrays. */
 export type ModuleContributions<M> = M extends Module<infer _P, infer _R, infer C, infer _D>
   ? Readonly<{ [T in Groups<C>['token'] as TokenKey<T>]: ReadonlyArray<TokenService<T>> }> : never;
 
-/** The checked generic `contribute` callable exposed by an application builder. */
+/** The checked generic `contribute` callable exposed by a builder. */
 export type BuilderContribute<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends Registration>(
   token: T & TokenTupleAdmission<readonly [T]>,
   registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>,
   ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []
-) => import('./di-bag').BagBuilder<E, C | Contribution<T, V>>;
-/** The checked generic `contribute` callable exposed by a module builder. */
-export type ModuleContribute<E extends Entry, C extends ContributionConstraint> = <T extends TokenBase, V extends Registration>(
-  token: T & TokenTupleAdmission<readonly [T]>,
-  registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedContributions<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>,
-  ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []
-) => import('./module').ModuleBuilder<E, C | Contribution<T, V>>;
+) => import('./di-bag').Builder<E, C | Contribution<T, V>>;

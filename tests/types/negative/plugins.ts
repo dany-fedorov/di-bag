@@ -28,7 +28,7 @@ const native = DiBag.fromPlugin([], unknownPlugin, { acquisitionMode: 'nativePro
 DiBag.withDisposal(raw, (value: Promise<{ run(): number }>) => { void value; });
 // diagnostic: No overload matches
 DiBag.withDisposal(native, (value: Promise<{ run(): number }>) => { void value; });
-const privateFeature = DiBag.createModuleBuilder().register(number, () => 1).register({ privatePlugin: requiredPlugin }).buildModule(['privatePlugin']);
+const privateFeature = DiBag.createBuilder().register(number, () => 1).register({ privatePlugin: requiredPlugin }).buildModule(['privatePlugin']);
 // diagnostic: not assignable
 DiBag.createBuilder().installModule(privateFeature).build().resolve(number);
 declare const erased: ProviderBase;

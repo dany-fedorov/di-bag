@@ -5,7 +5,7 @@ import type { RuntimeContext } from './acquisition-mode';
 import { readTokenKey } from './tokens';
 import { DiBagCleanupError, DiBagStartupCancelledError, DiBagStartupError } from './errors';
 
-/** Controls eager acquisition performed by {@link BagBuilder.buildAndStart}. */
+/** Controls eager acquisition performed by {@link Builder.buildAndStart}. */
 export interface StartupOptions {
   /** An external signal that promptly cancels the startup wait and begins cleanup. */
   readonly signal?: AbortSignal;

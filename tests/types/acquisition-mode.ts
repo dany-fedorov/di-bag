@@ -12,7 +12,7 @@ export const metadata = DiBag.withMetadata(rawOwned, { static: { owner: 'raw' as
 export const key: unique symbol = Symbol('raw');
 export const token = DiBag.token(key).of<Promise<{ id: number }>>();
 export const tokenProvider = DiBag.fromFunction([token], value => value, { acquisitionMode: 'raw' });
-export const feature = DiBag.createModuleBuilder().register(token, metadata).register({ raw: rawOwned }).buildModule([token, 'raw']);
+export const feature = DiBag.createBuilder().register(token, metadata).register({ raw: rawOwned }).buildModule([token, 'raw']);
 export const bag = DiBag.createBuilder().installModule(feature).replace('raw', raw).build();
 export const projected = DiBag.transformService(native, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'raw' } });
 export const framed = DiBag.withMetadata(raw, { dynamic: { mode: 'direct', describe: () => ({ source: 'raw' }) } });

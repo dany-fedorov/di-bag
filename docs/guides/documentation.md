@@ -38,21 +38,33 @@ npm run docs:preview
 | --- | --- |
 | First impression, installation, quickstart | [README.md](../../README.md) |
 | Concepts and examples for each API | [tutorial.md](tutorial.md) |
+| Tradeoffs and comparisons with other libraries | [comparison.md](comparison.md) |
 | Node HTTP, Express, Fastify, Bun, and Deno applications | [server-integration.md](server-integration.md) |
 | API navigation and type inventories | [api-reference.md](api-reference.md) |
 | A signature's explanation, parameters, return value, or failure behavior | The public declaration's comment in [src](../../src), then regenerate |
 | Site navigation and appearance | [VitePress configuration](../../tools/docs/vitepress.config.mjs) and [theme](../../tools/docs/theme) |
+| Which documents are current or historical | [Documentation map](../README.md) |
 
 Keep `docs/reference/` generated. Its Markdown is committed so it can be reviewed
 in pull requests and read directly on GitHub. Edit source comments instead of
 patching generated pages. Use `import type` for type-only API exports; the
-reference must never suggest that `Bag`, `BagBuilder`, or `Provider` are public
+reference must never suggest that `Bag`, `Builder`, or `Provider` are public
 runtime constructors.
 
 Write examples with enough context to reproduce them. State whether a snippet
 continues an earlier example. Keep acquisition, cancellation, and cleanup rules
 close to the code they explain. Link to the tutorial for a learning path and to
 the generated reference for exact overloads and generic constraints.
+
+Keep comparison claims specific and link to the other library's official docs or
+source. Distinguish a typed lookup from checks across the dependency graph, a
+Promise-valued service from automatically awaited dependencies, and feature
+availability from stability or performance. Explain when an alternative is a
+good fit. Record version-sensitive scope and review dates in the comparison guide.
+
+Research, plans, reports, and benchmark artifacts record particular revisions.
+Keep their evidence intact; link to newer results from current guides instead of
+rewriting old measurements as if they describe the current checkout.
 
 ## How generation is checked
 

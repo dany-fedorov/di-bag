@@ -5,16 +5,16 @@
 # Type Alias: ModuleContributionConstraints\<C, R *extends* `Registrations`, P *extends* keyof `R`\>
 
 ```ts
-type ModuleContributionConstraints<C, R extends Registrations, P extends keyof R> = C extends ContributionConstraint ? Contribution<C['token'], PublicProvider<C['registration']>, LexicalContext<R, {
-    readonly [K in P]: K;
-}> & {
+type ModuleContributionConstraints<C, R extends Registrations, P extends keyof R> = C extends ContributionConstraint ? C['context'] extends LexicalContext ? Contribution<C['token'], C['registration'], Enclosed<C['context'], ModuleScope<R, P>>> : Contribution<C['token'], PublicProvider<C['registration']>, ModuleScope<R, P> & {
     readonly registration: C['registration'];
 }> | RegistrationConstraints<C['registration'], R, P> : never;
 ```
 
-Defined in: [contribution-types.ts:43](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L43)
+Defined in: [contribution-types.ts:47](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L47)
 
-Retain a module contribution's provider checks and lexical private-service context.
+Retain a contribution's provider checks and lexical private-service context when
+its builder seals. A contribution retained from an inner installation is already
+projected; sealing only encloses its scope in this module's scope.
 
 ## Type Parameters
 

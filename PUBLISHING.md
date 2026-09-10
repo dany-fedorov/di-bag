@@ -1,5 +1,7 @@
 # Publishing DI Bag
 
+[README](README.md) · [Development checks](docs/guides/development.md) · [Changelog](CHANGELOG.md)
+
 This guide prepares one local `di-bag` release candidate. It does not authorize
 or perform registry, authentication, remote Git, tag, or publication work.
 Registry version/owner/access/tag/provenance status is unavailable without a
@@ -28,11 +30,14 @@ declaration, documentation, native compiler, platform, and release checks that
 apply to the candidate. Build before both the dry run and
 `npm pack --ignore-scripts`; compare the built tree after each step.
 
-The required local gates are:
+Use the tool versions listed in the [development guide](docs/guides/development.md).
+Create the candidate directory if it does not exist. The required local gates are:
 
 ```sh
 npm ci
 npm ci --prefix tools/docs
+npm run platform:pin
+mkdir -p /tmp/di-bag-release-candidate
 npm run check
 npm run typecheck:native
 npm run build:native

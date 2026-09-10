@@ -26,7 +26,7 @@ async function main() {
       'handle' in value &&
       typeof value.handle === 'function',
   });
-  const feature = DiBag.createModuleBuilder()
+  const feature = DiBag.createBuilder()
     .register(handler, provider)
     .buildModule([handler]);
   const bag = DiBag.createBuilder().installModule(feature).build();

@@ -1,5 +1,10 @@
 # Enterprise DI feature parity, 2026-09-09
 
+> Historical feature inventory for the revision reviewed on this date. API names
+> and implementation status below may be outdated. Its parity assessment covers
+> the selected features, not equivalent semantics, maturity, or framework support.
+> Use the [current comparison guide](../guides/comparison.md) for adoption tradeoffs.
+
 ## Scope and method
 
 This is a dependency-injection comparison, not a claim that `di-bag` is a web or

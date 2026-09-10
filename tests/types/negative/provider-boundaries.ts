@@ -39,7 +39,7 @@ DiBag.createBuilder().register({ erased }).build();
 // diagnostic: factory dependencies must be finite
 DiBag.createBuilder().register({ value: () => 1 }).replace('value', erased).build();
 // diagnostic: factory dependencies must be finite
-DiBag.createModuleBuilder().register({ erased }).buildModule(['erased']);
+DiBag.createBuilder().register({ erased }).buildModule(['erased']);
 const bag = DiBag.createBuilder().register({ provider, clock: () => 1 }).build();
 // diagnostic: does not exist
 bag.inspect('provider').registrationMetadata.other;

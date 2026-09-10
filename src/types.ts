@@ -103,7 +103,7 @@ export type CheckDependencyCompatibility<R extends Registrations> = [
     ? Unsatisfied<'factory dependencies must be finite string-keyed objects', { tokens: InvalidNeeds<R> }>
     : Unsatisfied<'registration keys must be finite string or unique-symbol keys', { keys: NonFiniteKeys<R> | Extract<keyof R, number> }>;
 
-// BagBuilder history has already passed CheckDependencyCompatibility, so only relationships crossing
+// Builder history has already passed CheckDependencyCompatibility, so only relationships crossing
 // the accepted-history/incoming-registration boundary need validating again.
 type NewWrong<E extends Entry, N extends Registrations> = {
   [K in keyof N]: [Exclude<keyof Needs<N[K]>, keyof N> & E['key']] extends [never] ? never

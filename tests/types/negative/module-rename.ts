@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-const module = DiBag.createModuleBuilder().register({ a: () => 1, b: () => 2 }).buildModule(['a', 'b']);
+const module = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).buildModule(['a', 'b']);
 // diagnostic: renameExport requires
 module.renameExport('missing', 'c');
 // diagnostic: renameExport requires
@@ -13,13 +13,13 @@ module.renameExport(union, 'c');
 declare const template: `prefix:${string}`;
 // diagnostic: renameExport requires
 module.renameExport('a', template);
-const constrained = DiBag.createModuleBuilder().register({
+const constrained = DiBag.createBuilder().register({
   value: () => ({ read() { return 1; }, extra() { return true; } }),
   hidden: ({ value }: { value: { extra(): boolean } }) => value.extra(),
 }).buildModule(['value']).renameExport('value', 'renamed');
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().installModule(constrained).replace('renamed', () => ({ read() { return 2; } }));
-const collision = DiBag.createModuleBuilder().register({
+const collision = DiBag.createBuilder().register({
   value: () => 1,
   hidden: ({ value, external }: { value: number; external: string }) => [value, external],
 }).buildModule(['value']).renameExport('value', 'external');

@@ -101,7 +101,7 @@ test('inspection follows pending retries without retaining failed attempts or ch
 });
 
 test('module rename and fork keep metadata with the actual binding', async () => {
-  const unit = DiBag.createModuleBuilder().register({
+  const unit = DiBag.createBuilder().register({
     privateValue: () => 42,
     service: DiBag.withMetadata(({ privateValue }: { privateValue: number }) => privateValue, { static: { owner: 'module' } }),
   }).buildModule(['service']).renameExport('service', 'client');

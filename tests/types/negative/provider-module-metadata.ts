@@ -1,6 +1,6 @@
 import { DiBag, type Module, type ModuleExportedServices, type ModuleRequiredServices, type Provider } from '../../../src';
 const decorated = DiBag.withMetadata(({ clock }: { clock: { now(): number } }) => ({ read: () => clock.now() }), { static: { owner: 'team' } });
-const unit = DiBag.createModuleBuilder().register({ service: decorated }).buildModule(['service']);
+const unit = DiBag.createBuilder().register({ service: decorated }).buildModule(['service']);
 const renamed = unit.renameExport('service', 'client');
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().installModule(renamed).build();
@@ -10,13 +10,13 @@ type C = typeof unit extends Module<infer _P, infer _R, infer Constraints, infer
 // diagnostic: not assignable
 const erased: Module<ModuleExportedServices<typeof unit>, ModuleRequiredServices<typeof unit>, C> = unit;
 declare const framed: Provider<() => number, {}, readonly [{ tag: string }]>;
-const frameModule = DiBag.createModuleBuilder().register({ framed }).buildModule(['framed']);
+const frameModule = DiBag.createBuilder().register({ framed }).buildModule(['framed']);
 // diagnostic: not assignable
 const erasedFrames: Module<{ framed: number }, {}> = frameModule;
 // diagnostic: not assignable
 const changedFrames: Provider<() => number, {}, readonly []> = framed;
 declare const metadataChoice: { first: number } | { second: string };
-const choice = DiBag.createModuleBuilder().register({ choice: DiBag.withMetadata(() => 1, { static: metadataChoice }) }).buildModule(['choice']);
+const choice = DiBag.createBuilder().register({ choice: DiBag.withMetadata(() => 1, { static: metadataChoice }) }).buildModule(['choice']);
 // diagnostic: not assignable
 const erasedChoice: Module<{ choice: number }, {}> = choice;
 type Registration = Parameters<typeof DiBag.withMetadata>[0];

@@ -6,7 +6,7 @@
 
 Defined in: [startup.ts:9](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L9)
 
-Controls eager acquisition performed by [BagBuilder.buildAndStart](BagBuilder.md#buildandstart).
+Controls eager acquisition performed by [Builder.buildAndStart](Builder.md#buildandstart).
 
 ## Properties
 

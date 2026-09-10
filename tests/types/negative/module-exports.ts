@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-const module = DiBag.createModuleBuilder().register({ a: () => 1, b: () => 2 });
+const module = DiBag.createBuilder().register({ a: () => 1, b: () => 2 });
 // diagnostic: existing names or typed tokens only
 module.buildModule(['missing']);
 const widened = ['a'];
