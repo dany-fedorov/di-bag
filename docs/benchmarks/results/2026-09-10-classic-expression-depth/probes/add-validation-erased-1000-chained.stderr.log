@@ -1,0 +1,17 @@
+/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:3869
+  function assert(expression, message, verboseDebugInfo, stackCrawlMark) {
+                 ^
+
+RangeError: Maximum call stack size exceeded
+    at Object.assert (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:3869:18)
+    at isPartOfTypeNode (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:17931:13)
+    at containsReference (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:68171:36)
+    at visitNode2 (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:32551:18)
+    at forEachChildInTypeReference (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:32657:12)
+    at forEachChild (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:33072:35)
+    at containsReference (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:68195:16)
+    at visitNode2 (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:32551:18)
+    at forEachChildInParenthesizedTypeOrTypeOperator (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:33019:10)
+    at forEachChild (/tmp/di-bag-performance-integration/node_modules/@typescript/old/lib/typescript.js:33072:35)
+
+Node.js v24.20.0
