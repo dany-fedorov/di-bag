@@ -2,6 +2,16 @@
 
 [Why DI Bag?](../../README.md#why-di-bag) · [Comparison](comparison.md)
 
+For agentic development, compile-time composition checks are an early evaluation
+step. A coding agent can propose a wiring change, run the type checker, and use
+its diagnostics to revise the composition without starting the application or
+external services. Avoiding that setup can make wiring evals faster than a full
+integration-test run.
+
+This evaluates declared composition, not business behavior: keep behavioral and
+integration tests too. Compiler cost depends on graph size and composition style;
+see the [compiler evidence](../benchmarks/typescript.md) for measured costs and limits.
+
 These three independent TypeScript programs run in Node or Bun after following
 the [installation instructions](../../README.md#install). Save each block in its
 own `.mts` file. Enable TypeScript `strict` checking and Node types; type-check

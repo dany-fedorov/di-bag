@@ -1,10 +1,17 @@
-# Build application tools from provider metadata
+# A programmable DI layer for custom tooling
 
 [Why DI Bag?](../../README.md#why-di-bag) · [Comparison](comparison.md) ·
 [Metadata and inspection](tutorial.md#attach-metadata-and-inspect-without-resolving)
 
-Provider metadata lets application code build useful tools around its services:
-command catalogs, acquisition diagnostics, and telemetry conventions. Here,
+DI Bag's metadata, inspection, provider wrappers, and configurable observers give
+coding agents building blocks for custom application tooling: inspectors,
+diagnostics, and metadata-driven actions tailored to your workflow, without
+coupling those tools to service implementations.
+
+The examples below show command catalogs, acquisition diagnostics, and reusable
+telemetry conventions that you can extend with application code. They demonstrate
+the DI-layer APIs, not an agent-harness integration. To expose their output to an
+agent, connect them to your harness's tool interface. Here,
 “reflection” means inspecting declared provider metadata and acquisition state.
 It does not recover erased TypeScript types or inspect arbitrary service objects.
 

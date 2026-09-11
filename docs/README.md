@@ -24,8 +24,8 @@ Each guide contains three complete, independently runnable application examples.
 | --- | --- |
 | [Radical modularity](guides/examples-modularity.md) | Independent features, isolated automated tests, and contributed tools. |
 | [TypeScript-first composition](guides/examples-type-checking.md) | Missing dependencies, incompatible contracts, and checked replacements. |
-| [Metadata and extensibility](guides/examples-extensibility.md) | Metadata-driven actions, acquisition diagnostics, and custom instrumentation. |
-| [Plain JavaScript services](guides/examples-plain-services.md) | Existing functions, undecorated classes, and arbitrary service values. |
+| [Custom tooling](guides/examples-extensibility.md) | A programmable DI layer for metadata-driven actions, acquisition diagnostics, and custom instrumentation. |
+| [Simple service injection](guides/examples-plain-services.md) | TypeScript-first composition with ordinary functions, undecorated classes, and arbitrary service values. |
 
 ## Upgrade and contribute
 

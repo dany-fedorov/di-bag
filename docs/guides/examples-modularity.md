@@ -9,7 +9,9 @@ That gives a human or coding agent a bounded assignment: implement a feature
 against its contracts, test it with controlled dependencies, and integrate it
 without reaching into another feature's internals. This is an architectural fit
 for agentic development and automated testing, not a measured claim about agent
-productivity or generated-code correctness.
+productivity or generated-code correctness. See the
+[context-engineering rationale and evidence](../research/2026-09-11-agentic-positioning.md)
+for the distinction.
 
 The three programs below are independent. After [installing DI Bag](../../README.md#install),
 save any block as a TypeScript file and run it with Bun, or compile it as an ES

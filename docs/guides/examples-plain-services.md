@@ -1,13 +1,22 @@
-# Inject anything with plain JavaScript
+# Inject anything with a simple factory function
 
 [Why DI Bag?](../../README.md#why-di-bag) · [Comparison](comparison.md)
+
+DI Bag is TypeScript-first, but injecting a service is as simple as writing an
+ordinary JavaScript function: receive dependencies and return a value. TypeScript
+adds composition checks; the injection pattern needs no special class system.
 
 Your services can be functions, class instances, configuration objects, built-in
 collections, or asynchronously initialized clients. They need no decorators,
 special base classes, or reflection metadata. A small factory at the composition
 boundary tells DI Bag how to supply each service's dependencies.
 
-The three examples below are plain JavaScript: save any one block as an `.mjs`
+The three examples use plain JavaScript to show that same injection pattern
+without type annotations. In a TypeScript application, keep the pattern and
+declare the dependency contracts as shown in the
+[TypeScript-first examples](examples-type-checking.md).
+
+To run these JavaScript examples, save any one block as an `.mjs`
 file in a Node application with `di-bag` installed and run it with Node 24. Each
 block is independent, includes its data and assertions, and closes its bag.
 See the [installation instructions](../../README.md#install) to install this

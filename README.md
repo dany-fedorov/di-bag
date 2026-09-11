@@ -1,22 +1,17 @@
 # DI Bag
 
-Connect your services. Let TypeScript check the wiring.
-
-[![CI](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml)
-[![Runtime dependencies: 0](https://img.shields.io/badge/runtime_dependencies-0-2563eb)](package.json)
-[![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
-
-DI Bag is a TypeScript dependency injection library. You write ordinary functions
-that create services; it connects their dependencies, creates them when needed,
-and cleans up resources when you tell it how.
-
-A **service** can be a configuration object, a database client, or a function.
-A **factory** creates a service. A **bag** holds those factories and gives each
-one access to the services it needs.
+Dependency injection for agentic development.
 
 [Documentation](https://dany-fedorov.github.io/di-bag/) · [Quickstart](#quickstart) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
 
 ## Why DI Bag?
+
+DI Bag is designed to make modular applications easier for coding agents to
+work on. Modularity is a practical context-engineering technique: clear
+feature boundaries can reduce the code and dependencies an agent needs to
+consider for a task. DI Bag is a TypeScript dependency injection library built
+around that idea—helping you define those boundaries, replace dependencies in
+tests, and check how the pieces fit together.
 
 - **[Radical modularity for agentic development](docs/guides/examples-modularity.md).**
   Compose small features with private internals and explicit contracts. Give
@@ -25,14 +20,18 @@ one access to the services it needs.
 - **[TypeScript-first composition](docs/guides/examples-type-checking.md).**
   Catch missing dependencies, incompatible service contracts, and invalid
   replacements at compile time—not just incorrect arguments at the call site.
-- **[Rich metadata and extensibility](docs/guides/examples-extensibility.md).**
-  Inspect registrations and acquisitions, attach your own metadata, and build
-  metadata-driven tools and actions. Extend providers with composable wrappers
-  and configure lifecycle observers without changing your services.
-- **[Inject anything with plain JavaScript](docs/guides/examples-plain-services.md).**
-  Functions, class instances, configuration, clients, or promises: a service is
-  just a value. No decorators, reflection metadata, or special base classes.
-  Add TypeScript for compile-time composition checks.
+  Coding agents can shorten their evaluation loop by checking wiring without
+  starting the app or running integration tests.
+- **[A programmable DI layer for custom tooling](docs/guides/examples-extensibility.md).**
+  Give agents the building blocks to create the tooling your workflow needs:
+  custom inspectors, diagnostics, metadata-driven actions, and lifecycle tools.
+  Combine application-defined metadata, composable provider wrappers, and
+  configurable observers without changing your services.
+- **[Inject anything with a simple factory function](docs/guides/examples-plain-services.md).**
+  DI Bag is TypeScript-first, but injecting services is as simple as writing an
+  ordinary JavaScript function: receive dependencies and return a value.
+  Functions, class instances, configuration, clients, or promises—no decorators,
+  reflection metadata, or special base classes required.
 
 Each guide above contains three complete application examples. Lazy creation,
 configurable lifetimes, scopes, and dependency-ordered cleanup support these
@@ -69,6 +68,11 @@ For browsers and Deno, see [runtime support](#runtime-support).
 For an older checkout, follow the [single builder](docs/migrations/single-builder.md) and [API renaming](docs/migrations/api-renaming.md) migration guides.
 
 ## Quickstart
+
+A **service** can be a configuration object, a database client, or a function.
+A **factory** creates a service. A **bag** holds those factories and gives each
+one access to the services it needs. Services are created when needed, and
+resources are cleaned up when you provide a disposer and close their bag.
 
 Use `di-bag/node` in Node or Bun. Here, `greeter` needs `config`. Its parameter
 type describes that dependency, and its return value is the service it provides:
@@ -222,6 +226,8 @@ for both setup options.
 
 ## Tradeoffs and limits
 
+- **Agent context is still your responsibility.** DI Bag does not choose module
+  boundaries, manage an agent's context window, or replace behavioral tests.
 - **Async dependencies are explicit.** A factory returning `Promise<T>` exposes
   that promise. Consumers declare and await it themselves.
 - **Cleanup waits for your work.** Cancellation is cooperative; a factory or
@@ -235,7 +241,7 @@ for both setup options.
   See the [compiler evidence](docs/benchmarks/typescript.md) for tested forms and limits.
 - **Framework integration belongs to the application.** DI Bag provides the
   composition and ownership primitives; the host connects request, job, or UI
-  lifecycles. Direct NestJS and Angular adapters are not included.
+  lifecycles.
 
 ## Explore further
 
@@ -252,6 +258,10 @@ for both setup options.
 | [Documentation map](docs/README.md) | Current guides, migration history, and archived research and design notes. |
 
 ## Working on DI Bag
+
+[![CI](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dany-fedorov/di-bag/actions/workflows/ci.yml)
+[![Runtime dependencies: 0](https://img.shields.io/badge/runtime_dependencies-0-2563eb)](package.json)
+[![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 
 After `npm ci`, run the main checks with Node and Bun installed:
 

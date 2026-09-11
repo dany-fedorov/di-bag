@@ -15,8 +15,8 @@ const guide = [
   { text: 'Why DI Bag? · Worked examples', items: [
     { text: 'Radical modularity', link: '/guides/examples-modularity' },
     { text: 'TypeScript-first composition', link: '/guides/examples-type-checking' },
-    { text: 'Metadata and extensibility', link: '/guides/examples-extensibility' },
-    { text: 'Plain JavaScript services', link: '/guides/examples-plain-services' },
+    { text: 'Custom tooling', link: '/guides/examples-extensibility' },
+    { text: 'Simple service injection', link: '/guides/examples-plain-services' },
   ] },
   { text: 'Reference', items: [
     { text: 'API overview', link: '/guides/api-reference' },
