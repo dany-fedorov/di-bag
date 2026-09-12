@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+- Refresh the npm README with concise, self-contained package value and practical
+  guidance for agentic development, LLM harnesses, and agent graphs.
+- Keep detailed package guides while moving positioning research out of public
+  documentation.
+- No runtime or public API changes.
+
 ## 0.1.0
 
 Release-candidate changes in this repository. This heading identifies the local

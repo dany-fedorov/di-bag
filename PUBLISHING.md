@@ -17,7 +17,7 @@ JSON, archive bytes and hashes, and every supervised command record.
 The current candidate includes the breaking [API renaming migration](docs/migrations/api-renaming.md).
 Verify the consolidated API and inferred consumer declarations in the packed
 archive. Compatibility aliases are intentionally absent; the documented local
-version remains `0.1.0` pending separate release-version selection.
+version is `0.1.1`; select and verify each subsequent version before publication.
 
 Use the absolute, ignored directory `/tmp/di-bag-release-candidate` for archives,
 detailed manifests, logs, and isolated consumers. Durable evidence committed to
@@ -103,8 +103,8 @@ failed provenance, or unexpected tag policy stops the later publication session.
 ## DO NOT RUN without fresh explicit authorization
 
 ```bash
-npm view di-bag@0.1.0 version --registry=https://registry.npmjs.org
+npm view di-bag@0.1.1 version --registry=https://registry.npmjs.org
 npm login --registry=https://registry.npmjs.org
-npm publish /tmp/di-bag-release-candidate/di-bag-0.1.0.tgz --access public --provenance
-npm dist-tag add di-bag@0.1.0 latest --registry=https://registry.npmjs.org
+npm publish /tmp/di-bag-release-candidate/di-bag-0.1.1.tgz --access public --provenance
+npm dist-tag add di-bag@0.1.1 latest --registry=https://registry.npmjs.org
 ```

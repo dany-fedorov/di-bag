@@ -111,7 +111,7 @@ describe('release documentation contract', () => {
   test('release documents match the frozen package and gate every online command', () => {
     const changelog = readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8');
     const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
-    expect(packageManifest).toMatchObject({ name: 'di-bag', version: '0.1.0' });
+    expect(packageManifest).toMatchObject({ name: 'di-bag', version: '0.1.1' });
     expect(changelog.match(new RegExp(`^## ${packageManifest.version}$`, 'gm'))).toHaveLength(1);
     expect(changelog).not.toContain('## Unreleased');
     expect(validatePublishingDocument(publishing, packageManifest.version)).toEqual([]);
@@ -553,7 +553,7 @@ describe('archive verifier', () => {
 
   function packResult(name: string, archivePath: string) {
     const bytes = new Uint8Array(readFileSync(archivePath)), inspection = inspectNpmArchive(bytes);
-    return { id: `${name}@0.1.0`, name, version: '0.1.0', filename: `${name}-0.1.0.tgz`, size: bytes.length, unpackedSize: inspection.unpackedBytes,
+    return { id: `${name}@${packageManifest.version}`, name, version: packageManifest.version, filename: `${name}-${packageManifest.version}.tgz`, size: bytes.length, unpackedSize: inspection.unpackedBytes,
       shasum: createHash('sha1').update(bytes).digest('hex'), integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`,
       files: inspection.entries.map(entry => ({ path: entry.path.slice(8), size: entry.bytes, mode: entry.mode })), entryCount: inspection.entries.length, bundled: [] };
   }
@@ -594,10 +594,10 @@ describe('archive verifier', () => {
     if (diPack.status !== 0) throw new Error(`task3 DI pack setup failed: ${diPack.stdout}\n${diPack.stderr}`);
     const reviewed = collectReviewedNativeGaps(resolve(root, 'tests/types'));
     const packages = (['di-bag'] as const).map(name => {
-      const archive = resolve(directory, `${name}-0.1.0.tgz`), stdout = resolve(directory, `${name}.stdout`), stderr = resolve(directory, `${name}.stderr`), result = packResult(name, archive);
+      const archive = resolve(directory, `${name}-${packageManifest.version}.tgz`), stdout = resolve(directory, `${name}.stdout`), stderr = resolve(directory, `${name}.stderr`), result = packResult(name, archive);
       const packageCheckout = checkout;
       const command: ReleaseCommandEvidence = { argv: ['npm', 'run', 'build'], cwd: packageCheckout, startedAt: '2026-09-08T00:00:00.000Z', finishedAt: '2026-09-08T00:00:00.001Z', elapsedMilliseconds: 1, exitCode: 0, signal: null, terminationReason: null, peakObservedRssMiB: 10, inputs: [], stdout: writeLogEvidence(stdout, 'ok\n'), stderr: writeLogEvidence(stderr, '') };
-      return { name, version: '0.1.0', archive, checkout: { path: packageCheckout, branch: 'feat/v0.1', candidateSourceCommit: 'a'.repeat(40), status: '' }, pack: { dryRunJson: [result], packJson: [structuredClone(result)], packedAt: '2026-09-08T00:00:01.000Z' }, commands: [command] };
+      return { name, version: packageManifest.version, archive, checkout: { path: packageCheckout, branch: 'feat/v0.1', candidateSourceCommit: 'a'.repeat(40), status: '' }, pack: { dryRunJson: [result], packJson: [structuredClone(result)], packedAt: '2026-09-08T00:00:01.000Z' }, commands: [command] };
     });
     const versionOf = (executable: string, argv = ['--version']) => {
       const result = spawnSync(executable, argv, { cwd: root, encoding: 'utf8' });
@@ -717,7 +717,7 @@ describe('archive verifier', () => {
   test('installs owned verified bytes and passes real Node/Bun, CJS/ESM, core-only, and declaration oracles', async () => {
     publish(manifest); const work = resolve(directory, 'real-work'); const result = await verifyReleaseArtifacts(manifestPath, work);
     expect(result, result.failures.join('\n')).toEqual({ ok: true, failures: [] });
-    for (const record of manifest.packages) expect(new Uint8Array(readFileSync(resolve(work, `archives/${record.name}-0.1.0.tgz`)))).toEqual(new Uint8Array(readFileSync(record.archive)));
+    for (const record of manifest.packages) expect(new Uint8Array(readFileSync(resolve(work, `archives/${record.name}-${record.version}.tgz`)))).toEqual(new Uint8Array(readFileSync(record.archive)));
     for (const emitter of ['classic6', 'native7']) for (const format of ['cts', 'mts']) { const declaration = resolve(work, `consumer/declarations-${emitter}-${format}/out/producer.d.${format}`); expect(existsSync(declaration)).toBe(true); expect(existsSync(resolve(work, `consumer/declarations-${emitter}-${format}/producer.${format}`))).toBe(false); }
   }, 180_000);
 });

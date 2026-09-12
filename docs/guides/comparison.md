@@ -167,8 +167,8 @@ what a host would need to connect.
   limits; bulk registration and modules can help. Portable hosts require explicit
   acquisition modes or a trusted Promise predicate. See
   [compiler scale](../benchmarks/typescript.md) and [portable mode](tutorial.md#portable-mode).
-- **Release status matters.** This checkout describes the `0.1.0` release
-  candidate. Review its [installation instructions](../../README.md#install) and
+- **Release status matters.** DI Bag's API is pre-1.0.
+  Review its [installation instructions](../../README.md#install) and
   validate your application's integration before adoption. Feature breadth alone
   does not establish production history or ecosystem maturity.
 
