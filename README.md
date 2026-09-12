@@ -43,23 +43,14 @@ libraries also offer typed composition and resource management; the
 
 ## Install
 
-This checkout is a pre-1.0 release candidate, currently versioned `0.1.0`.
-It includes breaking API changes, so expect to review migrations when updating.
-These instructions install the current checkout without assuming an npm release
-is available. Build a local package with Node 24 and npm:
+Install [di-bag from npm](https://www.npmjs.com/package/di-bag):
 
 ```sh
-git clone https://github.com/dany-fedorov/di-bag.git
-cd di-bag
-npm ci
-npm pack
+npm install di-bag
 ```
 
-Then, from your application, install the generated archive using its local path:
-
-```sh
-npm install /path/to/di-bag/di-bag-0.1.0.tgz
-```
+Version `0.1.0` is available on npm. The API is pre-1.0 and includes breaking
+changes, so expect to review migrations when updating.
 
 The minimum supported TypeScript version is **6.0.3**; enable `strict` in your
 `tsconfig.json`. The repository checks classic TypeScript 6.0.3 and native 7.0.2.
