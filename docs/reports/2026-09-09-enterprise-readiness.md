@@ -2,7 +2,7 @@
 
 The reviewed DI feature set has broad capability parity with NestJS, Angular,
 Awilix, InversifyJS, TSyringe, Typed Inject and Effect within DI Bag's documented
-model. The [cited comparison](../research/2026-09-09-enterprise-parity.md) records
+model. The [cited comparison at its archived revision](https://github.com/dany-fedorov/di-bag/blob/317af4a3c374893aa9be8581b0bf8e97c7ebb998/docs/research/2026-09-09-enterprise-parity.md) records
 each capability, implementation/test evidence and semantic differences. This is
 DI capability parity, not framework-wide equivalence or a production workload
 certification. Direct NestJS/Angular adapters are not shipped.

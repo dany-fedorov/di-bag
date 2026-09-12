@@ -14,13 +14,12 @@ support decorator-free composition, compile-time dependency checks, async
 factories, and cleanup. The choice depends on which contracts and programming
 style your application needs.
 
-The README's “radical modularity” describes an application architecture: small
-features with explicit contracts that can be composed and tested independently.
-DI Bag supports that approach; it does not own the idea. The
+“Radical modularity” describes small features with explicit contracts that can
+be composed and tested independently. The
 [modularity examples](examples-modularity.md) show why it can suit work divided
-among coding agents. There is no measured agent-productivity advantage here, and
-module boundaries do not validate generated business logic or replace integration
-tests. Likewise, metadata inspection is an explicit application-facing surface,
+among coding agents: each feature exposes a contract, keeps helpers private, and
+can be tested with replacement dependencies. Test cross-feature behavior at the
+integration boundary. Metadata inspection supplies application-defined data,
 not reflection over erased TypeScript types.
 
 This guide reviews selected alternatives against their official documentation and
@@ -173,7 +172,6 @@ what a host would need to connect.
   validate your application's integration before adoption. Feature breadth alone
   does not establish production history or ecosystem maturity.
 
-For deeper source notes, see the dated [feature-overlap research](../research/2026-09-10-di-value-proposition.md).
 The repository's [performance measurements](development.md#performance-evidence)
 have specific workloads and exclusions;
 they do not establish that DI Bag is universally faster than these alternatives.

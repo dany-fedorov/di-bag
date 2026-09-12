@@ -41,12 +41,7 @@ Each guide contains three complete, independently runnable application examples.
 | [Publishing](../PUBLISHING.md) | Prepare and verify a local package candidate. |
 | [Compiler scale](benchmarks/typescript.md) | Find the latest recorded results and the limitations of large graphs. |
 
-## Research and history
-
-The [harness-engineering claim audit](research/2026-09-12-harness-engineering-claim-audit.md)
-backs the current agentic positioning with package-by-package mechanisms,
-plain-TypeScript baselines, counterexamples, executable probes, and the
-experiments still needed to establish stronger claims.
+## Development history
 
 These documents preserve decisions and evidence for particular revisions. They
 may use old API names, record failed experiments, or propose work that was later
@@ -54,8 +49,6 @@ changed. Use the current guides for application code. “Enterprise” in histor
 filenames describes a feature-development milestone, not a separate product tier
 or a production-readiness certification.
 
-- [Research](research): dated investigations and source notes. For current
-  library-selection advice, use the [comparison guide](guides/comparison.md).
 - [Reports](reports): implementation reviews and verification results, tied to
   their recorded source and toolchain.
 - [Benchmark artifacts](benchmarks/results): measurements, diagnostics, and

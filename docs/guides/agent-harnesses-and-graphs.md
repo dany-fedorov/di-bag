@@ -3,15 +3,10 @@
 [Introduction](../../README.md) · [Modularity](examples-modularity.md) ·
 [Contract checks](examples-type-checking.md) · [Metadata inspection](examples-extensibility.md)
 
-DI Bag supports agentic development in two connected ways: small modules give
-coding agents focused pieces of an application to work on, and those modules can
-also supply the tools, context sources, and LLM clients inside an agent harness.
-The application can be a conventional service, an agentic workflow, or both.
-
-For the supporting reasoning, plain-TypeScript baselines, and unmeasured claims,
-see the [detailed harness-engineering audit](../research/2026-09-12-harness-engineering-claim-audit.md).
-It includes a real LangGraph comparison and explains why not every harness needs
-a container or an execution graph.
+Compose an LLM harness from independently developed modules for tools, context
+sources, and model clients. DI Bag checks their declared dependencies and owns
+acquired resources; your application controls the agent workflow. Humans and
+coding agents can implement each module against its exported contracts and tests.
 
 ## Where DI Bag fits
 
@@ -35,15 +30,15 @@ edges or provide durable execution.
 ## Three building blocks for an agentic harness
 
 - **Explicit feature boundaries.** Export a node or tool contract and keep
-  its helpers private. A coding agent can implement that feature with focused
-  repository context when contracts and tests capture the task's obligations.
+  its helpers private. Keep the feature's contracts, implementation, and tests
+  together so an implementation task has a clear entry point.
   At runtime, the harness can use selected modules to supply
   a bounded tool set and explicit context sources to the LLM. DI Bag does not
   choose prompts or manage the model's context window.
 - **Contract checks and fixture tests.** Check declared dependencies and replacement
   contracts before starting the harness. Then use forks with deterministic model
   and tool fixtures to test routing and state handling. These checks complement
-  live-model quality evals; they do not establish answer quality or task success.
+  live-model evals for answer quality and task success.
 - **Inspectable capability descriptions.** Attach application-defined descriptions to
   providers, then inspect them without constructing services. Build catalogs,
   diagnostics, and dispatch rules around that data while keeping node functions

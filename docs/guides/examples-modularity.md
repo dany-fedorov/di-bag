@@ -12,13 +12,9 @@ harness composes the selected capabilities. See
 
 That gives a human or coding agent a bounded assignment: implement a feature
 against its contracts, test it with controlled dependencies, and integrate it
-without reaching into another feature's internals. This is an architectural fit
-for agentic development and automated testing, not a measured claim about agent
-productivity or generated-code correctness. See the
-[context-engineering rationale and evidence](../research/2026-09-12-harness-engineering-claim-audit.md)
-for the causal argument, counterexamples, and plain-TypeScript baseline. Coherent
-change boundaries matter more than the number of modules; cross-feature invariants
-still need integration tests and broader context.
+without reaching into another feature's internals. Choose boundaries around
+coherent features, not a target number of modules. Keep cross-feature invariants
+in integration tests and include the affected contracts when a task spans modules.
 
 The three programs below are independent. After [installing DI Bag](../../README.md#install),
 save any block as a TypeScript file and run it with Bun, or compile it as an ES

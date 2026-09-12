@@ -62,7 +62,7 @@ Promise-valued service from automatically awaited dependencies, and feature
 availability from stability or performance. Explain when an alternative is a
 good fit. Record version-sensitive scope and review dates in the comparison guide.
 
-Research, plans, reports, and benchmark artifacts record particular revisions.
+Plans, reports, and benchmark artifacts record particular revisions.
 Keep their evidence intact; link to newer results from current guides instead of
 rewriting old measurements as if they describe the current checkout.
 
@@ -89,16 +89,14 @@ both before pushing documentation changes.
 The pinned tools and their independent lockfile live in
 [tools/docs](../../tools/docs). TypeDoc uses classic TypeScript 6.0.3 because its
 compiler API is required for documentation generation. The library's separate
-native compiler checks remain part of development verification. The
-[tooling research](../research/2026-09-09-documentation-tooling.md) records the
-comparison, primary sources, and compatibility constraints.
+native compiler checks remain part of development verification.
 
 ## Website and package boundaries
 
 The site command stages the README, Markdown in `docs/guides/`, and generated
 reference pages into the ignored `tools/docs/site/` directory. It rewrites
 relative links for the hosted routes; links to examples, source files, and other
-repository material lead back to GitHub. Research, reports, plans, and build
+repository material lead back to GitHub. Reports, plans, and build
 evidence are not copied into the site.
 
 The production output is `tools/docs/site/.vitepress/dist/`. Keep the configured

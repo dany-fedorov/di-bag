@@ -6,73 +6,19 @@ TypeScript dependency composition and resource ownership for agentic development
 
 ## Why DI Bag?
 
-DI Bag composes ordinary service factories into reusable modules, checks their
-declared dependencies, and manages acquisition and explicit cleanup. In an LLM
-harness, those services can be model clients, tools, or agent graph node functions.
-Your application or graph framework still owns execution and routing.
-
-Module boundaries can support task-specific context selection when their contracts
-and tests capture the relevant obligations. DI Bag helps you compose those
-boundaries, replace dependencies in tests, and check declared service contracts.
-Smaller context and better coding-agent outcomes are potential benefits, not
-measured results. See the [mechanisms, baselines, and evidence](docs/research/2026-09-12-harness-engineering-claim-audit.md).
+Compose ordinary TypeScript factories into reusable features. DI Bag checks
+declared dependencies, keeps module internals private, and manages resource
+creation and cleanup. Build services, tools, or graph nodes against explicit
+contracts, then replace their dependencies for tests.
 
 - **[Reusable modules with private bindings](docs/guides/examples-modularity.md).**
-  Install separately authored features without exposing their private services.
-  Retain their declared host requirements through nested composition and test
-  substitutions. Coherent feature boundaries matter more than module count.
+  Compose independently developed features without exposing their internals.
 - **[Compile-time wiring checks](docs/guides/examples-type-checking.md).**
-  Catch missing dependencies, incompatible service contracts, and invalid
-  replacements at compile time—not just incorrect arguments at the call site.
-  Check declared wiring without starting the app; run behavioral tests separately.
-  This is an early contract check, not proof of workflow correctness or a measured
-  improvement in evaluation speed.
+  Catch missing dependencies and incompatible replacements before starting the app.
 - **[Metadata inspection without service startup](docs/guides/examples-extensibility.md).**
-  Inspect selected registrations to build a catalog without opening their clients
-  or running their factories. Provider wrappers and observers support acquisition
-  diagnostics; your tooling defines metadata semantics and invocation tracing.
+  Build capability catalogs without running factories or opening clients.
 - **[Inject anything with a simple factory function](docs/guides/examples-plain-services.md).**
-  DI Bag is TypeScript-first, but injecting services is as simple as writing an
-  ordinary JavaScript function: receive dependencies and return a value.
-  Functions, class instances, configuration, clients, or promises—no decorators,
-  reflection metadata, or special base classes required.
-
-Each guide above contains three complete application examples. Lazy creation,
-configurable lifetimes, scopes, and dependency-ordered cleanup support these
-patterns; the [tutorial](docs/guides/tutorial.md) explains how.
-
-For a small dependency graph, passing dependencies directly is often simpler.
-Other DI libraries also offer typed composition and resource management; the
-[comparison below](#how-it-compares) explains the tradeoffs.
-
-## LLM harnesses and agent graphs
-
-The same boundaries help when the application you are building is itself an
-agentic system. Use DI Bag to compose an **LLM harness** from model clients,
-tools, context sources, and ordinary functions that serve as **agent graph**
-nodes.
-
-- **Explicit feature boundaries:** give each node or tool a small contract
-  and private implementation. Local changes can use focused context when contracts
-  and tests capture their obligations; the harness selects tools and context for the LLM.
-- **Contract checks and fixture tests:** check declared wiring before a model call,
-  then fork the composition with typed model and tool fixtures for deterministic
-  behavioral tests. Keep live-model evals for quality and task success.
-- **Inspectable capability descriptions:** describe public nodes and tools next
-  to their factories. Inspect that metadata without creating services, and use
-  it in application-defined catalogs, diagnostics, or dispatch policies.
-
-DI Bag's dependency graph describes how services are supplied. The agent graph
-describes execution: which node runs next and what state it receives. Your
-harness or graph framework owns routing, retries, persistence, and execution;
-DI Bag supplies checked composition and resource ownership.
-
-The [agent harness and graph guide](docs/guides/agent-harnesses-and-graphs.md)
-combines private feature modules, an LLM-backed node, metadata inspection, and
-fork-based evals in one runnable example. The [detailed claim audit](docs/research/2026-09-12-di-bag-harness-evidence.md)
-compares manual DI and documents limits: inspection does not export complete
-dependency edges, observers do not trace ordinary node calls, and forks are not
-workflow checkpoints.
+  Supply functions, objects, clients, or promises—no decorators or base classes.
 
 ## Install
 
@@ -216,6 +162,32 @@ see the [server guide](docs/guides/server-integration.md) and
 The [tutorial](docs/guides/tutorial.md) also covers modules with private services,
 typed tokens, class and function adapters, optional and lazy dependencies,
 collections, startup, metadata, observers, and plugin validation.
+
+## LLM harnesses and agent graphs
+
+Compose an **LLM harness** from model clients, tools, context sources, and
+ordinary functions that serve as **agent graph** nodes.
+
+- **Explicit feature boundaries:** give each node or tool a small contract
+  and private implementation. Keep feature contracts and focused tests together;
+  select tools and context for the LLM in the harness.
+- **Contract checks and fixture tests:** check declared wiring before a model call,
+  then fork the composition with typed model and tool fixtures for deterministic
+  behavioral tests. Keep live-model evals for quality and task success.
+- **Inspectable capability descriptions:** describe public nodes and tools next
+  to their factories. Inspect that metadata without creating services, and use
+  it in application-defined catalogs, diagnostics, or dispatch policies.
+
+DI Bag's dependency graph describes how services are supplied. The agent graph
+describes execution: which node runs next and what state it receives. Your
+harness or graph framework owns routing, retries, persistence, and execution;
+DI Bag supplies checked composition and resource ownership.
+
+The [agent harness and graph guide](docs/guides/agent-harnesses-and-graphs.md)
+combines private feature modules, an LLM-backed node, metadata inspection, and
+fork-based fixture tests in one runnable example. Inspection describes selected
+registrations, not complete dependency edges; observers track acquisition, not
+ordinary node calls. Use your graph framework for workflow checkpoints.
 
 ## How it compares
 

@@ -63,7 +63,7 @@ pinned regression gates.
 
 The observed result is consistent with the documented change to contextual
 inference of methods that do not use `this`, discussed in
-[the compiler research](../research/2026-09-07-typescript-compiler-limits.md).
+[the compiler research at its archived revision](https://github.com/dany-fedorov/di-bag/blob/317af4a3c374893aa9be8581b0bf8e97c7ebb998/docs/research/2026-09-07-typescript-compiler-limits.md).
 This comparison changes the whole compiler release, so it does not isolate one
 upstream change as the sole cause.
 
