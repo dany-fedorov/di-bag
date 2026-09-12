@@ -1,4 +1,0 @@
-[modules] read
-root: true
-child: false
-connection closed

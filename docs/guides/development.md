@@ -2,8 +2,8 @@
 
 [← Back to the README](../../README.md) · [API reference](api-reference.md)
 
-Build, test, and release-candidate workflows, with links to the recorded compiler
-and performance evidence. Run commands from the repository root. The
+Build, test, and release-candidate workflows, with the compiler and performance
+limits that the checks enforce. Run commands from the repository root. The
 [CI workflow](../../.github/workflows/ci.yml) pins Node 24.20.0, npm 11.19.0, and
 Bun 1.4.0; use those versions to reproduce its checks.
 
@@ -95,13 +95,12 @@ Builders accumulate a flat union of registration entries internally; the public
 reusable registration groups and named modules, including missing and
 wrong-shaped dependencies. For applications at 1,000 providers, bulk registration,
 registration groups of 50, or reusable named modules keep expressions manageable.
-Classic TypeScript 6.0.3 still overflows on the recorded 1,000-call named
-registration and replacement expressions. The later follow-up accepts the
-original 1,000-operation token binding and module cases on both compilers, and
-all four forms on native 7.0.2. These are measured cases with fixed limits, not a
-promise about every application or editor session. The
-[compiler benchmark guide](../benchmarks/typescript.md) distinguishes the latest
-results from earlier matrices and links every retained failure.
+Classic TypeScript 6.0.3 still overflows on 1,000-call named registration and
+replacement expressions, while native 7.0.2 accepts all four 1,000-operation
+forms. These are measured cases with fixed limits, not a promise about every
+application or editor session. The
+[compiler benchmark guide](../benchmarks/typescript.md) records the measured
+limits and the benchmark commands.
 
 Run the informational matrices separately from the main checks:
 
@@ -120,24 +119,15 @@ its acceptance summary. Timings are not test pass criteria.
 
 Measurements compare specific revisions and workloads on the recorded host.
 They establish neither universal latency guarantees nor a ranking against other
-libraries. The [September 10 performance report](../reports/2026-09-10-performance-completion.md)
-records improvements to graph updates, module installation, dependency reads,
-cleanup, and borrowed-value retention. It also records costs that increased,
-remaining deep-resolution limits, and metadata retained until a scope closes.
-Its linked follow-ups retain their own source identities.
-
-The [earlier runtime runs](../benchmarks/results/2026-09-08-8ee8696/README.md) and
-[compiler controls](../benchmarks/results/2026-09-08-e5456f8/README.md) remain
-historical evidence. Later measurements do not turn earlier failures into passes.
+libraries. `npm run benchmark:runtime` measures the current source, and CI runs
+the runtime-scale, acquisition-retention, and graph-retention tests with
+`--expose-gc` to bound memory. Known limits: deep resolution chains stay within
+fixed bounds, and per-acquisition metadata is retained until its scope closes.
 
 Optional third-party measurements require a reviewed adapter that passes the
 **restricted common-subset throughput** contract for synchronous named graphs,
-singleton and transient resolution, and explicit lifecycle. Typed Inject and
-Awilix were **unavailable in that collection** because neither package was
-lockfile-pinned. The repository has no verified third-party timing comparison.
-The exact status rows and
-admission rules are retained in the
-[comparator evidence directory](../../docs/benchmarks/results/2026-09-08-ad70a14/README.md).
+singleton and transient resolution, and explicit lifecycle. The repository has
+no verified third-party timing comparison.
 
-Current code lives in `src/`. The [documentation map](../README.md) separates
-current guides from historical experiments, design decisions, and reports.
+Current code lives in `src/`. The [documentation map](../README.md) lists every
+guide.

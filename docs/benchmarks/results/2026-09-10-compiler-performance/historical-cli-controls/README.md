@@ -1,3 +1,0 @@
-Historical preparation controls collected before the Task1 runtime-only edits. These are explanatory CLI controls, not the fresh Task3 before baseline or original matrix. Fresh matching-API script/module-context controls are recorded separately.
-
-Library-free non-generic syntax controls executed serially on classic6/native7 with unchanged default stack and original worker ceilings. Six exact command/status/stdout/stderr/source-hash rows are in results.jsonl. Classic100/500 pass; classic1000 fails in the compiler binder with a stack overflow. Native100/500/1000 all pass. These controls isolate classic syntax depth and do not replace any original DI-generator acceptance rows.

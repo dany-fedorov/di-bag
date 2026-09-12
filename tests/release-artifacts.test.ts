@@ -146,8 +146,6 @@ describe('release documentation contract', () => {
     const reference = readFileSync(resolve(root, 'docs/guides/api-reference.md'), 'utf8');
     const tutorial = readFileSync(resolve(root, 'docs/guides/tutorial.md'), 'utf8');
     const development = readFileSync(resolve(root, 'docs/guides/development.md'), 'utf8');
-    const migration = readFileSync(resolve(root, 'docs/migrations/0.1-to-enterprise.md'), 'utf8');
-    const tracker = readFileSync(resolve(root, 'docs/superpowers/plans/2026-09-06-enterprise-di-program.md'), 'utf8');
 
     expect(readme).not.toContain('The package publishes');
     expect(packageManifest.exports).toEqual({
@@ -158,19 +156,15 @@ describe('release documentation contract', () => {
     expect(packageManifest.peerDependencies ?? {}).toEqual({});
     expect(packageManifest.optionalDependencies ?? {}).toEqual({});
     expect(packageManifest.bundledDependencies ?? []).toEqual([]);
-    for (const text of [readme, migration]) {
-      for (const entry of ['di-bag', 'di-bag/node'])
-        expect(text).toContain(`\`${entry}\``);
-    }
+    for (const entry of ['di-bag', 'di-bag/node'])
+      expect(readme).toContain(`\`${entry}\``);
     // The landing page links to the detailed contracts and verification evidence.
     expect(readme).toContain('(docs/guides/api-reference.md)');
     expect(readme).toContain('(docs/guides/tutorial.md)');
     expect(reference).toContain('../reference/index/interfaces/DiBagApi.md');
     expect(readme).toContain('(docs/guides/development.md)');
-    for (const text of [`${tutorial}\n${development}`, migration]) {
-      for (const fact of ['provider metadata', 'raw', 'native', 'selected scopes', 'non-blocking observers', 'original acquired value'])
-        expect(text).toContain(fact);
-    }
+    for (const fact of ['provider metadata', 'raw', 'native', 'selected scopes', 'non-blocking observers', 'original acquired value'])
+      expect(`${tutorial}\n${development}`).toContain(fact);
     expect(readme).toContain('npm run check');
     expect(readme).toContain('npm run check:native');
     expect(development).toContain('zero reviewed gaps or unexpected diagnostics');
@@ -178,9 +172,6 @@ describe('release documentation contract', () => {
     expect(development).toContain('groups of 50');
     for (const text of [readme, reference, tutorial, development])
       expect(text).not.toContain('27 explicitly recorded replacement diagnostic-quality gaps');
-    expect(migration).toContain('application-owned plugin loading');
-    expect(tracker).toContain('Local release-candidate handoff');
-    expect(tracker).toContain('registry version and publication remain unavailable');
   });
 });
 
@@ -520,8 +511,8 @@ describe('manifest validation and deterministic projection', () => {
     expect(() => parseManifestArgs(['--input', '/tmp/i', '--out', '/tmp/o', '--public-out', '/tmp/public.json'])).toThrow('public output');
     expect(() => parseManifestArgs(['--input', '/tmp/i', '--out', '/tmp/o', '--public-out', '../docs/reports/2026-09-08-release-candidate-evidence.json'])).toThrow('public output');
     expect(() => parseManifestArgs(['--input', '/tmp/i', '--out', '/tmp/o', '--public-out', 'docs/reports/other.json'])).toThrow('public output');
-    expect(parseManifestArgs(['--input', '/tmp/i', '--out', '/tmp/o', '--public-out', 'docs/reports/2026-09-08-release-candidate-evidence.json']).publicOut).toBe(resolve(root, 'docs/reports/2026-09-08-release-candidate-evidence.json'));
     const checkout = resolve(scratch, 'public-link-checkout'), reports = resolve(checkout, 'docs/reports'); mkdirSync(reports, { recursive: true });
+    expect(parseManifestArgs(['--input', '/tmp/i', '--out', '/tmp/o', '--public-out', 'docs/reports/2026-09-08-release-candidate-evidence.json'], checkout).publicOut).toBe(resolve(checkout, 'docs/reports/2026-09-08-release-candidate-evidence.json'));
     symlinkSync(resolve(scratch, 'outside-public'), resolve(reports, '2026-09-08-release-candidate-evidence.json'));
     expect(() => parseManifestArgs(['--input', '/tmp/i', '--out', '/tmp/o', '--public-out', 'docs/reports/2026-09-08-release-candidate-evidence.json'], checkout)).toThrow('symlink');
   });

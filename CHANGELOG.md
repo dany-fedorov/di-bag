@@ -19,20 +19,15 @@ The API is pre-1.0 and includes breaking changes from earlier checkouts.
 - Merge `ModuleBuilder` into a single `Builder`. `DiBag.createModuleBuilder()`
   and the `ModuleBuilder`, `BagBuilder`, and `ModuleContribute` types are removed;
   `DiBag.createBuilder()` returns a `Builder` that both builds bags and seals
-  modules. Modules can now install modules. The
-  [single builder migration](docs/migrations/single-builder.md) lists the
-  replaced names and the nesting rules.
+  modules. Modules can now install modules.
 - Consolidate builders, registration, configuration, metadata, and transformation
   APIs under descriptive names. For example, use `createBuilder`, `register`,
   `build`, and `createScope`. Compatibility aliases are not retained.
-  The [API migration guide](docs/migrations/api-renaming.md) maps every replaced
-  method, option, snapshot field, and public type.
 - Separate adding registrations from replacing them: `register` rejects
   duplicates, while `replace` checks the surviving consumers.
 - Require explicit key selections for fork and scope overrides. Preserve exact
   builder histories and owned provider handles so structural narrowing or
-  spreading cannot silently erase dependency or cleanup contracts. See the
-  [earlier migration guide](docs/migrations/0.1-to-enterprise.md).
+  spreading cannot silently erase dependency or cleanup contracts.
 
 ### Added
 

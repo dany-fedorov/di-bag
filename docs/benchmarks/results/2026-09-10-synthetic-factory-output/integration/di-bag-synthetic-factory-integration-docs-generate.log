@@ -1,8 +1,0 @@
-
-> di-bag@0.1.0 docs:generate
-> node tools/docs/generate.mjs
-
-[info] Loaded plugin typedoc-plugin-markdown
-[info] Loaded plugin typedoc-vitepress-theme
-[info] markdown generated at /tmp/di-bag-api-3IPT7S/reference
-Generated 102 API Markdown pages with verified public coverage and 197 valid TypeScript blocks.

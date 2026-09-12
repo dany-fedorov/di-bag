@@ -1,6 +1,0 @@
-{
-  "note": "Builds reconstructed after measurement from exact retained before/final source, with unchanged configs and pinned compilers. Never relabeled as pre-edit observations.",
-  "classicJavaScriptIdentical": true,
-  "nativeJavaScriptIdentical": true,
-  "commands": 4
-}

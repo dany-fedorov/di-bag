@@ -1,9 +1,0 @@
-import fs from 'node:fs';import ts from '/tmp/di-bag-replacement-spike/node_modules/typescript/lib/typescript.js';import {describeDiagnostic} from '/tmp/di-bag-replacement-spike/tests/compiler.ts';import path from 'node:path';
-const variant=process.argv[2],file=path.resolve('tests/generated-key-equivalence.ts'),source=`import type {From,Entry,EntryKeys} from '../src/types';
-import type {Assert,Equal} from './types/assert';
-type X<K extends string|symbol>={key:K;registration:()=>number};
-type C=[Assert<Equal<keyof From<X<string>>,EntryKeys<X<string>>>>,Assert<Equal<keyof From<X<symbol>>,EntryKeys<X<symbol>>>>,Assert<Equal<keyof From<X<never>>,EntryKeys<X<never>>>>,Assert<Equal<keyof From<never>,EntryKeys<never>>>,Assert<Equal<keyof From<X<'a'|'b'>>,EntryKeys<X<'a'|'b'>>>>,Assert<Equal<keyof From<Entry>,EntryKeys<Entry>>>,Assert<Equal<keyof From<X<string & {}>>,EntryKeys<X<string & {}>>>>,Assert<Equal<keyof From<X<\`x:\${string}\`>>,EntryKeys<X<\`x:\${string}\`>>>>,Assert<Equal<keyof From<any>,EntryKeys<any>>>,Assert<Equal<keyof From<X<\`\${number}\`>>,EntryKeys<X<\`\${number}\`>>>>>];`;
-const options={strict:true,noEmit:true,skipLibCheck:true,noUncheckedIndexedAccess:true,exactOptionalPropertyTypes:true,target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.NodeNext,moduleResolution:ts.ModuleResolutionKind.NodeNext,types:[]};
-const host=ts.createCompilerHost(options),get=host.getSourceFile.bind(host),modified=fs.readFileSync(new URL(variant+'.ts',import.meta.url),'utf8');
-host.getSourceFile=(name,v,...args)=>name===file?ts.createSourceFile(name,source,v,true):name===path.resolve('src/types.ts')?ts.createSourceFile(name,modified,v,true):get(name,v,...args);
-const p=ts.createProgram([file],options,host);console.log(JSON.stringify(ts.getPreEmitDiagnostics(p).map(describeDiagnostic)));

@@ -28,37 +28,15 @@ Each guide contains three complete, independently runnable application examples.
 | [Custom tooling](guides/examples-extensibility.md) | A programmable DI layer for metadata-driven actions, acquisition diagnostics, and custom instrumentation. |
 | [Simple service injection](guides/examples-plain-services.md) | TypeScript-first composition with ordinary functions, undecorated classes, and arbitrary service values. |
 
-## Upgrade and contribute
+## Contribute
 
 | Document | Purpose |
 | --- | --- |
-| [Single builder migration](migrations/single-builder.md) | Replace the former builder types and learn nested module composition. |
-| [API renaming](migrations/api-renaming.md) | Update the earlier breaking method, option, and type renames. |
-| [Earlier migrations](migrations/0.1-to-enterprise.md) | Understand changes from older pre-1.0 checkouts. The filename is an internal milestone, not a released version range. |
-| [Changelog](../CHANGELOG.md) | Review the release candidate's changes. |
+| [Changelog](../CHANGELOG.md) | Review changes by release. |
 | [Development](guides/development.md) | Run source, package, compiler, and platform checks. |
 | [Documentation maintenance](guides/documentation.md) | Edit guides, regenerate the API reference, and preview the website. |
 | [Publishing](../PUBLISHING.md) | Prepare and verify a local package candidate. |
-| [Compiler scale](benchmarks/typescript.md) | Find the latest recorded results and the limitations of large graphs. |
-
-## Development history
-
-These documents preserve decisions and evidence for particular revisions. They
-may use old API names, record failed experiments, or propose work that was later
-changed. Use the current guides for application code. “Enterprise” in historical
-filenames describes a feature-development milestone, not a separate product tier
-or a production-readiness certification.
-
-- [Reports](reports): implementation reviews and verification results, tied to
-  their recorded source and toolchain.
-- [Benchmark artifacts](benchmarks/results): measurements, diagnostics, and
-  manifests. Read the containing report before interpreting a result.
-- [Design specifications](superpowers/specs) and [implementation plans](superpowers/plans):
-  development history, including considered or superseded approaches.
-- [Archived experiments](history/README.md): the earlier prototypes and links to
-  the original design sketches.
-- [API consolidation plan](api-renaming-plan.md): naming decisions and the
-  alternatives considered before the current migration guide.
+| [Compiler scale](benchmarks/typescript.md) | Understand the measured limits of large fluent expressions and run the compiler benchmarks. |
 
 Generated reference pages belong in `docs/reference/`; edit their source comments
-and regenerate them. Keep dated evidence intact when adding newer results.
+and regenerate them.

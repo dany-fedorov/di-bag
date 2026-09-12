@@ -1,5 +1,0 @@
-{
-  "path": "/tmp/di-bag-native-1000-325SOi/src/types.ts",
-  "sha256": "96cbe8f56a19963979602d342575511171011f89e7a2caafae078fb161530e69",
-  "note": "Historical exploratory source, not a fresh baseline. Returns never for all old token needs when incoming has no symbols; current manual opaque-add characterization forbids this boundary change."
-}

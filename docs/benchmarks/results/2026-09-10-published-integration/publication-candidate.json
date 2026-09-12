@@ -1,9 +1,0 @@
-{
-  "candidateCommit": "04818af869e762a02fb66b7d1b9df07f54dfb650",
-  "baseCommit": "f5eb4d363e2769c6553d470fff13d3f1ee19f425",
-  "pullRequest": "https://github.com/dany-fedorov/di-bag/pull/3",
-  "branch": "fix/persistent-graph-performance",
-  "codeReview": "approved; see integration-review.md",
-  "statusAtCapture": "published, hosted contract checks pending; not merge proof",
-  "authorization": "User explicitly approved publishing the reviewed performance code and benchmark artifacts to dany-fedorov/di-bag and merging after CI."
-}

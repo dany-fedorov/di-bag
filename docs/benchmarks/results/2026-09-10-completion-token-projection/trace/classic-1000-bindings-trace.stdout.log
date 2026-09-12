@@ -1,1 +1,0 @@
-{"variant":"baseline","count":1000,"form":"bindings","typescript":"6.0.3","node":"v24.20.0","diagnostics":[{"code":2589,"file":"/tmp/di-bag-replacement-spike/tests/generated-token-scale.ts","line":2002,"column":15,"message":"Type instantiation is excessively deep and possibly infinite."}],"instantiations":86774309,"milliseconds":56706,"maxRssMiB":2947.828125}

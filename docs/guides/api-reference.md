@@ -59,9 +59,6 @@ plain object records; direct metadata preserves its source acquisition policy.
 Static-only metadata preserves the source output. Each dynamic annotation appends
 one ordered metadata presence frame; no metadata or transformation adds ownership.
 
-See the [migration guide](../migrations/api-renaming.md) for all replaced names,
-mode tables, and before/after examples.
-
 ### Build and reuse a graph
 
 Builder operations return a new builder. Keep the returned value or chain the
