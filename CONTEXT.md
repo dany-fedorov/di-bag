@@ -26,6 +26,12 @@ The service-creation callback within a provider. Its declared dependencies are
 the services it needs to create its result.
 _Avoid_: Provider when referring only to the callback
 
+**Service dependency graph**:
+The relationships between provided services and the services their factories
+require. These relationships describe composition, not the sequence of work
+performed by acquired services.
+_Avoid_: Agent graph, execution graph, workflow graph
+
 **Token**:
 The identity by which a provided service and its consumers agree on a
 dependency.
@@ -51,6 +57,17 @@ _Avoid_: Module, registration map
 One attempt to obtain a service instance from its provider. Distinct
 acquisitions may use the same provider and have distinct cleanup obligations.
 _Avoid_: Registration when referring to a created instance
+
+**Service invocation**:
+An operation performed through an acquired service. Repeated invocations of a
+shared service are not necessarily new acquisitions.
+_Avoid_: Acquisition event when describing every call to a service
+
+**Bag fork**:
+An independent composition derived from a bag's registrations, with its own
+acquisitions and cleanup responsibility. A bag fork does not copy an execution's
+progress or restore a workflow checkpoint.
+_Avoid_: Checkpoint fork, workflow replay
 
 **Acquisition stage**:
 A source or transformation result within one acquisition, with its own rule for

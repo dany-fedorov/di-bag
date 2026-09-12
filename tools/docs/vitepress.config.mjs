@@ -11,6 +11,7 @@ const guide = [
     { text: 'Complete tutorial', link: '/guides/tutorial' },
     { text: 'Server recipes', link: '/guides/server-integration' },
     { text: 'Integration patterns', link: '/guides/enterprise-integration' },
+    { text: 'Agent harnesses and graphs', link: '/guides/agent-harnesses-and-graphs' },
   ] },
   { text: 'Why DI Bag? · Worked examples', items: [
     { text: 'Radical modularity', link: '/guides/examples-modularity' },
@@ -33,7 +34,7 @@ const guide = [
 
 export default defineConfig({
   title: 'DI Bag',
-  description: 'Type-checked dependency composition with ordinary factories, explicit ownership, and request scopes.',
+  description: 'Type-checked dependency composition, private modules, and resource ownership for TypeScript apps and LLM harnesses.',
   base: '/di-bag/',
   lang: 'en-US',
   cleanUrls: false,
@@ -43,6 +44,7 @@ export default defineConfig({
     nav: [
       { text: 'Learn', link: '/guides/tutorial' },
       { text: 'Servers', link: '/guides/server-integration' },
+      { text: 'Agents', link: '/guides/agent-harnesses-and-graphs' },
       { text: 'API', link: '/guides/api-reference' },
     ],
     sidebar: {

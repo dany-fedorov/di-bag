@@ -5,8 +5,13 @@
 For agentic development, compile-time composition checks are an early evaluation
 step. A coding agent can propose a wiring change, run the type checker, and use
 its diagnostics to revise the composition without starting the application or
-external services. Avoiding that setup can make wiring evals faster than a full
-integration-test run.
+external services. These checks avoid that setup, but their cost depends on
+compiler startup and inference; they do not replace an integration-test run.
+
+For an LLM harness, that means checking the dependencies of agent graph nodes
+before spending a model call, then substituting typed model and tool fixtures for
+local behavioral evals. The [harness example](agent-harnesses-and-graphs.md) shows
+both steps; LLM output quality still needs its own evaluations.
 
 This evaluates declared composition, not business behavior: keep behavioral and
 integration tests too. Compiler cost depends on graph size and composition style;

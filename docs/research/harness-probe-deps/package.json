@@ -1,0 +1,8 @@
+{
+  "name": "harness-engineering-audit-fixture",
+  "private": true,
+  "dependencies": {
+    "@langchain/langgraph": "1.4.15",
+    "zod": "4.6.2"
+  }
+}

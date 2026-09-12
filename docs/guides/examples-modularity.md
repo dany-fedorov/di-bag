@@ -5,13 +5,20 @@ replaceable, and testable units the normal way to build an application—not an
 afterthought. DI Bag modules declare their dependencies, keep unexported services
 private to an installation, and expose a small public surface.
 
+In an LLM harness, those units can supply tools, context sources, or agent graph
+nodes. A coding agent can implement one module against its contracts, while the
+harness composes the selected capabilities. See
+[agent harnesses and graphs](agent-harnesses-and-graphs.md) for a complete example.
+
 That gives a human or coding agent a bounded assignment: implement a feature
 against its contracts, test it with controlled dependencies, and integrate it
 without reaching into another feature's internals. This is an architectural fit
 for agentic development and automated testing, not a measured claim about agent
 productivity or generated-code correctness. See the
-[context-engineering rationale and evidence](../research/2026-09-11-agentic-positioning.md)
-for the distinction.
+[context-engineering rationale and evidence](../research/2026-09-12-harness-engineering-claim-audit.md)
+for the causal argument, counterexamples, and plain-TypeScript baseline. Coherent
+change boundaries matter more than the number of modules; cross-feature invariants
+still need integration tests and broader context.
 
 The three programs below are independent. After [installing DI Bag](../../README.md#install),
 save any block as a TypeScript file and run it with Bun, or compile it as an ES

@@ -12,6 +12,7 @@ The guides below describe the current public API.
 | [Comparison with alternatives](guides/comparison.md) | Assess DI Bag alongside manual DI and other libraries, with primary sources and tradeoffs. |
 | [Server guide](guides/server-integration.md) | Connect application services to Node HTTP, Express, Fastify, Bun, and Deno. |
 | [Integration recipes](guides/enterprise-integration.md) | Own request scopes, substitute test services, and manage dynamic features. |
+| [Agent harnesses and graphs](guides/agent-harnesses-and-graphs.md) | Compose model and tool dependencies, inspect metadata, and test nodes with typed fixtures. |
 | [API overview](guides/api-reference.md) | Find methods, error fields, and exported types. |
 | [Generated reference](reference/index.md) | Read exact signatures and source comments for both package entries. |
 | [Runnable examples](../examples) | Execute focused examples from the repository. |
@@ -41,6 +42,11 @@ Each guide contains three complete, independently runnable application examples.
 | [Compiler scale](benchmarks/typescript.md) | Find the latest recorded results and the limitations of large graphs. |
 
 ## Research and history
+
+The [harness-engineering claim audit](research/2026-09-12-harness-engineering-claim-audit.md)
+backs the current agentic positioning with package-by-package mechanisms,
+plain-TypeScript baselines, counterexamples, executable probes, and the
+experiments still needed to establish stronger claims.
 
 These documents preserve decisions and evidence for particular revisions. They
 may use old API names, record failed experiments, or propose work that was later

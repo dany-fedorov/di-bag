@@ -8,6 +8,11 @@ coding agents building blocks for custom application tooling: inspectors,
 diagnostics, and metadata-driven actions tailored to your workflow, without
 coupling those tools to service implementations.
 
+In an LLM harness, the same metadata can describe public tools and agent graph
+nodes for an application-defined catalog or dispatcher. See
+[agent harnesses and graphs](agent-harnesses-and-graphs.md) for that agentic
+application of these primitives.
+
 The examples below show command catalogs, acquisition diagnostics, and reusable
 telemetry conventions that you can extend with application code. They demonstrate
 the DI-layer APIs, not an agent-harness integration. To expose their output to an

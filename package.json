@@ -1,7 +1,7 @@
 {
   "name": "di-bag",
   "version": "0.1.0",
-  "description": "Type-checked dependency composition with lazy factories, forks, and optional disposal.",
+  "description": "Type-checked dependency composition, private modules, and resource ownership for TypeScript apps and LLM harnesses.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -49,7 +49,20 @@
   },
   "keywords": [
     "di",
-    "bag"
+    "bag",
+    "dependency-injection",
+    "typescript",
+    "modularity",
+    "context-engineering",
+    "agentic",
+    "agentic-development",
+    "llm",
+    "harness",
+    "agent-harness",
+    "graph",
+    "agent-graph",
+    "evals",
+    "metadata"
   ],
   "author": "Dany Fedorov",
   "license": "MIT",
