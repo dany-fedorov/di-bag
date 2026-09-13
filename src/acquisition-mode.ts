@@ -45,6 +45,6 @@ export function acquisitionMode(options: { readonly acquisitionMode?: Acquisitio
 export function requireClassificationCapability(modes: Iterable<AcquisitionMode>, context: RuntimeContext): void {
   if (context.isNativePromise) return;
   for (const mode of modes) if (mode === 'auto') {
-    throw libraryError('DI_BAG_CLASSIFIER_REQUIRED', 'Automatic acquisition classification requires DiBag.withConfiguration({ runtime }), di-bag/node, or explicit acquisitionMode options', { option: 'runtime.isNativePromise' });
+    throw libraryError('DI_BAG_CLASSIFIER_REQUIRED', 'this host has no process.getBuiltinModule; configure DiBag.withConfiguration({ runtime: { isNativePromise } }) or give each automatic registration an explicit acquisitionMode', { option: 'runtime.isNativePromise' });
   }
 }

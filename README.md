@@ -234,8 +234,10 @@ for both setup options.
   boundaries, manage an agent's context window, or replace behavioral tests.
 - **Async dependencies are explicit.** A factory returning `Promise<T>` exposes
   that promise. Consumers declare and await it themselves.
-- **Cleanup waits for your work.** Cancellation is cooperative; a factory or
-  disposer that never settles can keep `close()` pending.
+- **Cleanup waits for your work by default.** Cancellation is cooperative; a
+  factory or disposer that never settles keeps `close()` pending. Pass
+  `close({ timeoutMs, signal })` to stop waiting: the rejection names the
+  disposers still running and cleanup continues in the background.
 - **Type safety follows the declared graph.** Casts, unchecked JavaScript, and
   unknown plugins need appropriate runtime checks. Dependency cycles are detected
   at runtime.

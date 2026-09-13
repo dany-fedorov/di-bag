@@ -39,7 +39,7 @@ test('unconfigured core preflights every stage and private module before any fac
     () => Core.createBuilder().register({ source, automatic }).build(),
     () => Core.createBuilder().register({ projected: Core.transformService(source, { mode: 'direct', transform: value => { calls++; return value; } }) }).build(),
     () => Core.createBuilder().installModule(feature).build(),
-  ]) expect(finalize).toThrow(/classification.*withConfiguration.*node.*explicit/i);
+  ]) expect(finalize).toThrow(/^DI_BAG_CLASSIFIER_REQUIRED: this host has no process\.getBuiltinModule; configure DiBag\.withConfiguration\(\{ runtime: \{ isNativePromise \} \}\) or give each automatic registration an explicit acquisitionMode; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-classifier-required$/);
   expect(calls).toBe(0);
 });
 
@@ -55,7 +55,7 @@ test('facades snapshot and isolate their predicate, carrying it through builders
   const bag = configured.createBuilder().installModule(feature).build();
   const forks = [bag.fork(), bag.fork([key], { [key.key]: () => pending })];
   for (const item of [bag, ...forks]) { expect(item.resolve(key)).toBe(pending); await item.close(); }
-  expect(() => Core.createBuilder().register({ value: () => 1 }).build()).toThrow('classification');
+  expect(() => Core.createBuilder().register({ value: () => 1 }).build()).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   const failure = new Error('predicate failure');
   const other = Core.withConfiguration({ runtime: { isNativePromise: () => { throw failure; } } }).createBuilder().register({ value: () => 1 }).build();
   expect(() => other.resolve('value')).toThrow(failure);

@@ -7,6 +7,7 @@
 ## Classes
 
 - [DiBagCleanupError](classes/DiBagCleanupError.md)
+- [DiBagCloseCancelledError](classes/DiBagCloseCancelledError.md)
 - [DiBagPluginValidationError](classes/DiBagPluginValidationError.md)
 - [DiBagStartupCancelledError](classes/DiBagStartupCancelledError.md)
 - [DiBagStartupError](classes/DiBagStartupError.md)
@@ -20,6 +21,8 @@
 - [BindingSnapshot](interfaces/BindingSnapshot.md)
 - [Builder](interfaces/Builder.md)
 - [CleanupFailure](interfaces/CleanupFailure.md)
+- [CloseOptions](interfaces/CloseOptions.md)
+- [CloseProgress](interfaces/CloseProgress.md)
 - [ConfigurationOptions](interfaces/ConfigurationOptions.md)
 - [DiBagApi](interfaces/DiBagApi.md)
 - [DiBagDiagnostic](interfaces/DiBagDiagnostic.md)
@@ -27,6 +30,7 @@
 - [FactoryWithDisposal](interfaces/FactoryWithDisposal.md)
 - [GraphSnapshot](interfaces/GraphSnapshot.md)
 - [Module](interfaces/Module.md)
+- [ModuleOptions](interfaces/ModuleOptions.md)
 - [ObserverFailure](interfaces/ObserverFailure.md)
 - [ObserverOptions](interfaces/ObserverOptions.md)
 - [PluginOptions](interfaces/PluginOptions.md)

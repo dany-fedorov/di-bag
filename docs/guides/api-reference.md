@@ -74,7 +74,7 @@ next call; they do not mutate the original.
 | `installModule(module)` | Builder | Install a sealed [module](tutorial.md#reuse-named-modules) with private services and public exports; modules nest. |
 | `build()` | Builder | Check graph completeness and return a lazy bag. |
 | `buildAndStart(keys, options?)` | Builder | Return a promise for a fresh bag after [selected services are ready](tutorial.md#start-selected-services-and-cancel-cooperatively). |
-| `buildModule(keys)` | Builder | Seal the graph as a module and choose its public names and tokens; unmet dependencies become requirements. |
+| `buildModule(keys, { label? })` | Builder | Seal the graph as a module and choose its public names and tokens; unmet dependencies become requirements. A `label` names private bindings `<label>/<key>` in diagnostics. |
 | `verifyGraph()` | Builder | Runtime no-op whose return type is `void` only when the graph would [build](tutorial.md#read-compile-time-rejections). |
 | `renameExport(oldName, newName)` | Sealed Module | Return a module view with one string-named export renamed. |
 
@@ -99,8 +99,15 @@ nesting depth.
 | `fork()` | Create an [independent bag](tutorial.md#fork-for-scopes-and-tests) with fresh instances. |
 | `fork(keys, overrides)` | Create an independent bag with selected replacements. |
 | `close()` | Return the shutdown promise; stop new resolutions, drain work, and dispose owned resources. Repeated calls share the same promise. |
+| `close({ timeoutMs?, signal? })` | Start the same cleanup but stop waiting at the deadline or on abort with `DiBagCloseCancelledError`. |
 
 ## Errors and recovery
+
+Every library-created message has the form
+`<code>: <message>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#<code-slug>`,
+where the slug is the code lower-cased with `_` replaced by `-`. For example:
+`DI_BAG_CYCLE: cycle: a -> b -> a; see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-cycle`.
+The [errors page](https://dany-fedorov.github.io/di-bag/agent/errors.html) has one section per code.
 
 The specialized error classes below are runtime exports from both `di-bag` and
 `di-bag/node`. Each extends the built-in `Error` family and has a corresponding
@@ -112,6 +119,7 @@ The specialized error classes below are runtime exports from both `di-bag` and
 | [`DiBagPluginValidationError`](../reference/index/classes/DiBagPluginValidationError.md) | A plugin descriptor or acquired output fails the plugin boundary checks. | `phase` is `'descriptor'` or `'output'`; `reason` describes the rejection. |
 | [`DiBagStartupError`](../reference/index/classes/DiBagStartupError.md) | Selected startup acquisition fails and rollback has completed. | `cause` is the acquisition error; `cleanupFailures` contains disposal failures; `cleanupError` retains the complete cleanup error when present. |
 | [`DiBagStartupCancelledError`](../reference/index/classes/DiBagStartupCancelledError.md) | An external signal or startup deadline interrupts startup. | `reason` is `'aborted'` or `'timeout'`; `cause` retains the cancellation reason; `cleanupPromise` is a `Promise<void>` for eventual shutdown. |
+| [`DiBagCloseCancelledError`](../reference/index/classes/DiBagCloseCancelledError.md) | `close({ timeoutMs, signal })` stops waiting before cleanup finishes. | `code` is `DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`; `details.pending` lists unfinished disposer labels and `details.acquiring` pending acquisitions; `cleanupPromise` settles when cleanup finishes. |
 
 Given an existing application bag named `app`:
 
@@ -132,8 +140,9 @@ try {
 
 Constructors are `new DiBagCleanupError(failures)`,
 `new DiBagPluginValidationError(phase, reason)`,
-`new DiBagStartupError(cause, cleanupFailures, cleanupError?)`, and
-`new DiBagStartupCancelledError(reason, cause, cleanupPromise)`. Applications usually
+`new DiBagStartupError(cause, cleanupFailures, cleanupError?)`,
+`new DiBagStartupCancelledError(reason, cause, cleanupPromise)`, and
+`new DiBagCloseCancelledError(reason, cause, cleanupPromise, progress, timeoutMs?)`. Applications usually
 catch errors created by the library rather than constructing them.
 
 Factory errors and transformation errors retain their original identity on

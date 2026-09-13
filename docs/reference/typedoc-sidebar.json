@@ -13,6 +13,10 @@
             "link": "/reference/index/classes/DiBagCleanupError.md"
           },
           {
+            "text": "DiBagCloseCancelledError",
+            "link": "/reference/index/classes/DiBagCloseCancelledError.md"
+          },
+          {
             "text": "DiBagPluginValidationError",
             "link": "/reference/index/classes/DiBagPluginValidationError.md"
           },
@@ -59,6 +63,14 @@
             "link": "/reference/index/interfaces/CleanupFailure.md"
           },
           {
+            "text": "CloseOptions",
+            "link": "/reference/index/interfaces/CloseOptions.md"
+          },
+          {
+            "text": "CloseProgress",
+            "link": "/reference/index/interfaces/CloseProgress.md"
+          },
+          {
             "text": "ConfigurationOptions",
             "link": "/reference/index/interfaces/ConfigurationOptions.md"
           },
@@ -85,6 +97,10 @@
           {
             "text": "Module",
             "link": "/reference/index/interfaces/Module.md"
+          },
+          {
+            "text": "ModuleOptions",
+            "link": "/reference/index/interfaces/ModuleOptions.md"
           },
           {
             "text": "ObserverFailure",

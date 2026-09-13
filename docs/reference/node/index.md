@@ -112,6 +112,18 @@ Re-exports [CleanupFailure](../index/interfaces/CleanupFailure.md)
 
 ***
 
+### CloseOptions
+
+Re-exports [CloseOptions](../index/interfaces/CloseOptions.md)
+
+***
+
+### CloseProgress
+
+Re-exports [CloseProgress](../index/interfaces/CloseProgress.md)
+
+***
+
 ### CollectionDependency
 
 Re-exports [CollectionDependency](../index/type-aliases/CollectionDependency.md)
@@ -175,6 +187,12 @@ Re-exports [DiBagApi](../index/interfaces/DiBagApi.md)
 ### DiBagCleanupError
 
 Re-exports [DiBagCleanupError](../index/classes/DiBagCleanupError.md)
+
+***
+
+### DiBagCloseCancelledError
+
+Re-exports [DiBagCloseCancelledError](../index/classes/DiBagCloseCancelledError.md)
 
 ***
 
@@ -295,6 +313,12 @@ Re-exports [ModuleContributions](../index/type-aliases/ModuleContributions.md)
 ### ModuleExportedServices
 
 Re-exports [ModuleExportedServices](../index/type-aliases/ModuleExportedServices.md)
+
+***
+
+### ModuleOptions
+
+Re-exports [ModuleOptions](../index/interfaces/ModuleOptions.md)
 
 ***
 

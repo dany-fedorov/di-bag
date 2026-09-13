@@ -1,4 +1,4 @@
-import { DiBag, type AcquisitionContext, type ProviderAcquiredValue, type ProviderNamedDependencies, type ProviderOutput } from '../../src';
+import { DiBag, type AcquisitionContext, type CloseOptions, type DiBagCloseCancelledError, type ProviderAcquiredValue, type ProviderNamedDependencies, type ProviderOutput } from '../../src';
 import type { Assert, Equal } from './assert';
 
 const key: unique symbol = Symbol('startup');
@@ -37,4 +37,20 @@ export type Contracts = [
   Assert<Equal<ProviderOutput<typeof native>, Promise<{ signal: AbortSignal; value: 1 }>>>,
   Assert<Equal<ProviderOutput<typeof noDeps>, 7>>,
   Assert<Equal<AcquisitionContext['signal'], AbortSignal>>,
+];
+
+const closeBag = DiBag.createBuilder().register({ value: () => 1 }).build();
+export const closed = closeBag.close();
+export const boundedClose = closeBag.close({ timeoutMs: 100, signal: new AbortController().signal });
+export const scopeClosed = closeBag.createScope().close({ timeoutMs: 1 });
+export const labeledModule = DiBag.createBuilder().register({ hidden: () => 1, shown: ({ hidden }: { hidden: number }) => hidden }).buildModule(['shown'], { label: 'feature' });
+export const unlabeledModule = DiBag.createBuilder().register({ hidden: () => 1, shown: ({ hidden }: { hidden: number }) => hidden }).buildModule(['shown']);
+export type CloseContracts = [
+  Assert<Equal<typeof closed, Promise<void>>>,
+  Assert<Equal<typeof boundedClose, Promise<void>>>,
+  Assert<Equal<typeof scopeClosed, Promise<void>>>,
+  Assert<Equal<Parameters<typeof closeBag.close>[0], CloseOptions | undefined>>,
+  Assert<Equal<typeof labeledModule, typeof unlabeledModule>>,
+  Assert<Equal<DiBagCloseCancelledError['code'], 'DI_BAG_CLOSE_TIMEOUT' | 'DI_BAG_CLOSE_ABORTED'>>,
+  Assert<Equal<DiBagCloseCancelledError['details']['pending'], readonly string[]>>,
 ];

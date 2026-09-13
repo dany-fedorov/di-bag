@@ -1,4 +1,4 @@
-import { diagnostic, libraryError } from './errors';
+import { diagnostic, diagnosticMessage, libraryError } from './errors';
 import { ScopeAcquisitions } from './acquisition';
 import { PersistentMap } from './persistent-map';
 import { append, materialize } from './persistent-sequence';
@@ -461,6 +461,18 @@ export class BagRuntime {
     return closing;
   }
 
+  /** Labels in progress across this runtime and its live children, for a close deadline report. */
+  closeProgress(): { readonly pending: readonly string[]; readonly acquiring: readonly string[] } {
+    const pending: string[] = [];
+    const acquiring: string[] = [];
+    const visit = (runtime: BagRuntime) => {
+      for (const child of runtime.children) visit(child);
+      runtime.acquisitions.collectProgress(pending, acquiring);
+    };
+    visit(this);
+    return { pending, acquiring };
+  }
+
   private observeScope(kind: 'scope-opened' | 'scope-closing' | 'scope-closed' | 'scope-close-failed', error?: unknown): void {
     if (!this.context.observers) return;
     const fields = {
@@ -492,7 +504,7 @@ export class BagRuntime {
       const errors = failures.length > 0
         ? [new DiBagCleanupError(failures), ...unexpected]
         : unexpected;
-      throw diagnostic(new AggregateError(errors, `Failed to close ${errors.length} runtime operation(s)`), 'DI_BAG_CLOSE_FAILED', { operation: 'close', failedOperations: errors.length });
+      throw diagnostic(new AggregateError(errors, diagnosticMessage('DI_BAG_CLOSE_FAILED', `Failed to close ${errors.length} runtime operation(s)`)), 'DI_BAG_CLOSE_FAILED', { operation: 'close', failedOperations: errors.length });
     }
     if (failures.length > 0) throw new DiBagCleanupError(failures);
   }

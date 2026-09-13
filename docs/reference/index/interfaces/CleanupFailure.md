@@ -4,7 +4,7 @@
 
 # Interface: CleanupFailure
 
-Defined in: [errors.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L24)
+Defined in: [errors.ts:30](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L30)
 
 One disposer failure, associated with the acquisition that owned it.
 
@@ -16,7 +16,7 @@ One disposer failure, associated with the acquisition that owned it.
 readonly acquisitionId: symbol;
 ```
 
-Defined in: [errors.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L25)
+Defined in: [errors.ts:31](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L31)
 
 ***
 
@@ -26,7 +26,7 @@ Defined in: [errors.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/
 readonly bindingId: symbol;
 ```
 
-Defined in: [errors.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L26)
+Defined in: [errors.ts:32](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L32)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [errors.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/
 readonly error: unknown;
 ```
 
-Defined in: [errors.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L28)
+Defined in: [errors.ts:34](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L34)
 
 ***
 
@@ -46,4 +46,4 @@ Defined in: [errors.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/
 readonly label: string;
 ```
 
-Defined in: [errors.ts:27](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L27)
+Defined in: [errors.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L33)
