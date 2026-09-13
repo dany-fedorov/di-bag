@@ -627,3 +627,78 @@ Expected: PASS; `docs/reference/api-coverage.json` drops the removed names and a
 git add docs CHANGELOG.md
 git commit -m "docs: describe compact sealed module types"
 ```
+
+## Status
+
+Recorded 2026-09-13. The fallback was delivered on the plan branch; the full implementation is kept on the local
+branch `plan-07-module-erasure-full` for the maintainer's decision.
+
+### What the plan branch contains
+
+- Task 1: the characterization fixtures (`tests/types/module-erasure/*`, `tests/types/negative/module-erasure.ts`)
+  and `tests/module-declarations.test.ts`, with the assertions that need Tasks 2 to 5 skipped (each skip points here).
+  The seal-time negative case is not in the fixture, because without Task 4 the capture is reported at the host.
+- No `src/` change. Tasks 2 and 3 on their own push the `100 installed token modules` ceiling in
+  `tests/incremental-scale.test.ts` over its limit (see below), so they are not on the plan branch either.
+
+### What `plan-07-module-erasure-full` achieves
+
+Every type fixture, every negative marker, the three declaration assertions, the package suites, and the native audit
+(`accepted-with-diagnostic-gaps`, only the reviewed gap) pass there. The characterization declaration drops from 6,815 bytes to 2,095 bytes and names no private registration
+or private type. Design, as implemented (it differs from the Task 4 sketch):
+
+- Exports, requirements, constraint needs, and public providers print resolved. Helpers must answer through a resolved
+  conditional branch: an alias exported from a source file but not from the package index fails consumer emit with
+  TS2742, and union, mapped, and indexed-access aliases keep their names through instantiation (so a union built from
+  them prints through them, which is how `ModuleConstraints<RegistrationsFromEntries<...>>` kept leaking).
+  Symbol keys stay `Record` references: emit cannot serialize an expanded unique-symbol property even for an exported key.
+- Lifetime obligations are seal-time reach records: `root-reach` (private strict roots), `export-reach` (exported
+  strict roots, transients, aliases; dropped by `replace`, `fork` and `createScope` overrides of that key, renamed with
+  it), `contribution-reach` (root or transient contributions). Collections stay unresolved (`collection` reach) because
+  the host completes them.
+- Exported strict roots do not fail at seal time: `tests/types/lifetimes.ts` replaces such an export in the host.
+  Only roots nobody can replace (private roots, root contributions) fail at `buildModule`.
+- Exported aliases to private targets take the target's lifetime in the projected provider; aliases to exports or
+  externals keep the target name, renamed with `renameExport`.
+- `sharedAlias` routing for selected child scopes is kept in the host walk.
+- A cheap gate skips all lifetime walks for graphs with no lifetime, alias, retained obligation, or lifetime contribution.
+
+### Remaining failure: compiler-work ceilings
+
+`tests/incremental-scale.test.ts` on `plan-07-module-erasure-full` (tip `fdbcf50` in parentheses):
+
+| Case | Ceiling | Full plan 07 | Tip |
+|---|---|---|---|
+| 100 named additions | 790,000 | 787,385 | 765,037 |
+| 100 named replacements | 1,030,000 | 1,030,831 (fails) | 1,006,954 |
+| 100 token bindings | 850,000 | 846,818 | 824,964 |
+| 100 installed token modules | 1,220,000 | 1,241,108 (fails) | 1,215,919 |
+
+Tasks 1 to 3 alone, with the cheaper single-kind export form, measure 1,223,280 on the token-module case.
+The `1000 providers from reusable named modules` cases stay green on the full branch (three cases 83.0 s, against
+45.5 s measured on the base before Task 1, on a busier machine).
+
+Attribution on the full implementation (instantiations saved by removing one piece, 100 token modules): resolved
+exports 6.0k, sealed lifetime obligations 6.7k (of which the gate itself about 5k), projected public providers 4.8k,
+seal admission 3.3k, host lifetime check 3.1k.
+
+### Approaches tried
+
+1. The plan's Task 4 sketch: seal-time failure for every strict root (breaks `lifetimes.ts` replacement of an exported
+   root), `Extract<...>['reach']` indexing (TS2536 in generic context), and unexported aliases assumed to expand in emit
+   (TS2742 in the packed consumer).
+2. Distributive `Flatten` over the sealed constraint union: a conditional reached through a generic signature is
+   instantiated without its alias, so an unchanged union keeps its origin. Replaced by resolved-conditional bodies for
+   `RegistrationConstraints` and `ModuleConstraints`.
+3. Cost reduction: gate on `R[keyof R]` (−51k), per-key gate (+1.6k, dropped), seal admission on `this` (−0.2k,
+   dropped), `infer I extends object` symbol parts (+4k, dropped), mapped symbol parts (−3k each, but emit cannot
+   serialize them), direct `Record` fast paths (−3k at best, incorrect for several symbols).
+
+### What to try next
+
+- Decide whether the declaration-size and private-edit invalidation wins justify raising the two ceilings by about
+  1k and 22k; the maintainer owns that tradeoff.
+- Otherwise, move erasure out of the per-install type path: keep `Module` parameters lazy (the old `Pick` and
+  lexical forms) and add an explicit `sealed()` or `ModuleContract<typeof m>` projection that libraries opt into for
+  their exported declarations, so only emitted modules pay.
+- Make the lifetime gate reuse a check the builder already computes per registration.

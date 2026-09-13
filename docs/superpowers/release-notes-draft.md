@@ -29,3 +29,22 @@ this file.
   and `fromClass`, now reject declared outputs that are thenables but not
   Promises at compile time. Select an explicit `acquisitionMode`, or augment
   `DiBagPolicy` with `structuralThenables: 'allow'` to disable the check.
+
+## Plan 07: module declaration erasure
+
+- No library change. Sealed module declarations still name private registrations. The full implementation
+  prints a 2,095-byte declaration with no private names and rejects private root captives at `buildModule`, but it
+  exceeds two compiler-work ceilings in `tests/incremental-scale.test.ts`: 100 installed token modules measure
+  1,241,108 instantiations (ceiling 1,220,000), and 100 named replacements measure 1,030,831 (ceiling 1,030,000).
+  It is kept on the local branch `plan-07-module-erasure-full`; the plan file's `## Status` section has the numbers
+  and the options.
+- Add `tests/module-declarations.test.ts` and the `module-erasure` fixtures that characterize declaration size and
+  private-name leakage. The assertions that need erasure are skipped.
+
+### Breaking changes
+
+- None on this branch. If `plan-07-module-erasure-full` is adopted, the type-only exports `LexicalContext`,
+  `ModuleScope`, `Enclosed`, `RenamedContext`, `EnclosedLifetimeObligation`, `RenamedLifetimeObligation`, and
+  `RenamedLifetimeProviders` are removed in favor of `LifetimeObligation` and `Reach`; `Contribution` loses its third
+  type parameter; and a root that captures a scoped service inside its own module is rejected by `buildModule`
+  instead of the host's `build()`.
