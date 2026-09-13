@@ -18,7 +18,9 @@
     "dist"
   ],
   "scripts": {
-    "test": "bun test tests",
+    "test": "npm run test:fast && npm run test:compiler",
+    "test:fast": "node scripts/test-lane.mjs fast",
+    "test:compiler": "node scripts/test-lane.mjs compiler",
     "typecheck": "tsc6 -p tsconfig.json",
     "typecheck:native": "tsc -p tsconfig.json",
     "build:native": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
