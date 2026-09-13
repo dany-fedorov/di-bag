@@ -12,6 +12,10 @@
   `root lifetime cannot capture scoped dependency: db -> config`.
 - Add `builder.verifyGraph()` and the `CompositionReport<B>` type for a one-line
   build verdict anchored at the call.
+- Plain and disposable factories, and `auto`-mode `fromFactory`, `fromFunction`,
+  and `fromClass`, now reject declared outputs that are thenables but not
+  Promises at compile time. Select an explicit `acquisitionMode`, or augment
+  `DiBagPolicy` with `structuralThenables: 'allow'` to disable the check.
 
 ## 0.1.1
 

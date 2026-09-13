@@ -4,7 +4,7 @@
 
 # Interface: Bag\<R *extends* `Registrations`, C *extends* `NeedConstraint` = `never`\>
 
-Defined in: [di-bag.ts:70](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L70)
+Defined in: [di-bag.ts:71](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L71)
 
 A resolving container with lazy acquisition, caching, and independent resource ownership.
 
@@ -26,7 +26,7 @@ Create bags through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) followed
 close(): Promise<void>;
 ```
 
-Defined in: [di-bag.ts:238](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L238)
+Defined in: [di-bag.ts:239](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L239)
 
 Close this bag, drain in-flight work, and dispose owned resources once.
 Dependents are disposed before dependencies; remaining independent acquisitions use
@@ -50,7 +50,7 @@ The shared shutdown promise.
 createScope<const S extends readonly unknown[]>(options: ScopeOptions<R, S>): Bag<ScopedAliases<R, R, S>, C>;
 ```
 
-Defined in: [di-bag.ts:128](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L128)
+Defined in: [di-bag.ts:129](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L129)
 
 Create a tracked child that borrows selected parent acquisitions.
 
@@ -76,7 +76,7 @@ A child owned by this bag; closing the parent closes the child first.
 createScope<const K extends readonly unknown[], O extends OverrideFactoryContext<R, K, O>, const S extends readonly unknown[] = readonly []>(keys: K & Selection<R, K, 'createScope'>, overrides: O & object & Record<SelectionKey<K[number]>, Registration> & Overrides<R, SelectedRegistrations<K, O>> & CheckDependencyCompatibility<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckDependencyCompleteness<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CompleteConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedScopeLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>>, NoInfer<SelectedRegistrations<K, O>>, C>, options?: ScopeOptions<R, S> & DisjointScopeSelection<K, S>): Bag<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>, C>;
 ```
 
-Defined in: [di-bag.ts:137](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L137)
+Defined in: [di-bag.ts:138](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L138)
 
 Create a tracked child with selected replacements and optional parent sharing.
 
@@ -110,7 +110,7 @@ If the runtime selections, overrides, or sharing options are invalid.
 createScope(): Bag<UnsharedAliases<R>, C>;
 ```
 
-Defined in: [di-bag.ts:156](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L156)
+Defined in: [di-bag.ts:157](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L157)
 
 Create a tracked child with the same graph and fresh scoped acquisitions.
 
@@ -128,7 +128,7 @@ A child that is closed before its parent finishes closing.
 fork(this: Bag<R, C> & CheckedLifetimes<UnsharedAliases<R>, C>): Bag<UnsharedAliases<R>, C>;
 ```
 
-Defined in: [di-bag.ts:167](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L167)
+Defined in: [di-bag.ts:168](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L168)
 
 Create an independent bag with the same graph and fresh instances.
 
@@ -148,7 +148,7 @@ A new ownership family that must be closed separately.
 fork<const K extends readonly unknown[], O extends OverrideFactoryContext<R, K, O>>(keys: K & Selection<R, K>, overrides: O & object & Record<SelectionKey<K[number]>, Registration> & Overrides<R, SelectedRegistrations<K, O>> & CheckDependencyCompatibility<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckDependencyCompleteness<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CompleteConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedLifetimes<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, C>): Bag<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, C>;
 ```
 
-Defined in: [di-bag.ts:178](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L178)
+Defined in: [di-bag.ts:179](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L179)
 
 Create an independent bag with selected replacements.
 
@@ -182,7 +182,7 @@ If a selected key is absent or lacks an own override.
 inspect<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): RegistrationSnapshot<ProviderRegistrationMetadata<R[SelectionKey<K> & keyof R]>, ProviderAcquisitionMetadata<R[SelectionKey<K> & keyof R]>>;
 ```
 
-Defined in: [di-bag.ts:118](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L118)
+Defined in: [di-bag.ts:119](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L119)
 
 Inspect static metadata and copied acquisition state without resolving a service.
 
@@ -210,7 +210,7 @@ A frozen point-in-time snapshot. Application-owned metadata payloads are not fro
 inspectAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, C>, ...invalid: [T] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[];
 ```
 
-Defined in: [di-bag.ts:109](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L109)
+Defined in: [di-bag.ts:110](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L110)
 
 Inspect every contribution for a token without running its factories.
 
@@ -239,7 +239,7 @@ Frozen snapshots in contribution order.
 resolve<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): ServicesOf<R>[SelectionKey<K> & keyof R];
 ```
 
-Defined in: [di-bag.ts:89](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L89)
+Defined in: [di-bag.ts:90](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L90)
 
 Resolve a named or typed-token service, acquiring it lazily when needed.
 Scoped and root services are cached according to their lifetime; transient services
@@ -273,7 +273,7 @@ If the bag is closing, the token is invalid, acquisition fails, or a runtime cyc
 resolveAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, C>, ...invalid: [T] extends [never] ? [never] : []): ReadonlyArray<TokenService<T>>;
 ```
 
-Defined in: [di-bag.ts:100](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L100)
+Defined in: [di-bag.ts:101](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L101)
 
 Resolve every contribution for a typed token in declaration and installation order.
 

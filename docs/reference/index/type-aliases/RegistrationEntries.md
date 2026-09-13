@@ -10,7 +10,7 @@ type RegistrationEntries<R extends Registrations> = {
 }[keyof R & (string | symbol)];
 ```
 
-Defined in: [types.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L23)
+Defined in: [types.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L24)
 
 Convert a registration map to the union of entries retained by a builder.
 

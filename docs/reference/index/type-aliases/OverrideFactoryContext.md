@@ -10,7 +10,7 @@ type OverrideFactoryContext<R extends Registrations, K extends readonly unknown[
 };
 ```
 
-Defined in: [types.ts:289](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L289)
+Defined in: [types.ts:309](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L309)
 
 Contextual override shape used to infer a selected fork or child-scope graph.
 

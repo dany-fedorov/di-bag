@@ -238,9 +238,24 @@ be revoked, and a disposer must not await the same bag's `close()` Promise.
 
 An automatic synchronous stage accepts ordinary values and observes native
 Promises. A structural thenable returned directly is rejected without invoking
-its `then` or transferring ownership. Normalize such a value explicitly inside
-an async boundary, for example `() => Promise.resolve(legacyThenable)`. Use a raw
-stage when the Promise object itself is the owned value.
+its `then` or transferring ownership. Query builders from libraries such as Knex,
+Drizzle, or Mongoose are thenables, so a plain factory that returns one is
+rejected at compile time with
+`factory output is a structural thenable: users; ...`. Normalize such a value
+explicitly inside an async boundary, for example
+`() => Promise.resolve(legacyThenable)`, or select the stage explicitly with
+`DiBag.fromFactory(create, { acquisitionMode: 'raw' })` when the builder object
+itself is the service. Use a raw stage when the Promise object itself is the
+owned value. To disable the compile-time check for a whole project, augment the
+policy interface once:
+
+```ts
+declare module 'di-bag' {
+  interface DiBagPolicy { readonly structuralThenables: 'allow' }
+}
+```
+
+The runtime rejection stays in place either way.
 
 **Conceptual snippet:** `pendingPromise`, `releasePromiseHandle`, and the fulfilled
 resource's `close` method are application values.

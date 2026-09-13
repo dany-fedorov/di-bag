@@ -190,6 +190,12 @@ Re-exports [DiBagPluginValidationError](../index/classes/DiBagPluginValidationEr
 
 ***
 
+### DiBagPolicy
+
+Re-exports [DiBagPolicy](../index/interfaces/DiBagPolicy.md)
+
+***
+
 ### DiBagStartupCancelledError
 
 Re-exports [DiBagStartupCancelledError](../index/classes/DiBagStartupCancelledError.md)

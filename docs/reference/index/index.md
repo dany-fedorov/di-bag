@@ -22,6 +22,7 @@
 - [ConfigurationOptions](interfaces/ConfigurationOptions.md)
 - [DiBagApi](interfaces/DiBagApi.md)
 - [DiBagDiagnostic](interfaces/DiBagDiagnostic.md)
+- [DiBagPolicy](interfaces/DiBagPolicy.md)
 - [FactoryWithDisposal](interfaces/FactoryWithDisposal.md)
 - [Module](interfaces/Module.md)
 - [ObserverFailure](interfaces/ObserverFailure.md)

@@ -189,6 +189,7 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | [`PluginAcquisitionMode`](../reference/index/type-aliases/PluginAcquisitionMode.md), [`PluginOptions`](../reference/index/interfaces/PluginOptions.md), [`PluginOutputValidator`](../reference/index/type-aliases/PluginOutputValidator.md), [`PluginProvider`](../reference/index/type-aliases/PluginProvider.md) | Plugin mode, validation options, output predicate, and resulting provider. |
 | [`PluginProviderFactory`](../reference/index/type-aliases/PluginProviderFactory.md) | The callable type of `DiBag.fromPlugin`; use it directly as a type. |
 | [`CompositionReport`](../reference/index/type-aliases/CompositionReport.md) | The compile-time verdict for a builder: `void` when buildable, otherwise the `build()` failure with details. |
+| [`DiBagPolicy`](../reference/index/interfaces/DiBagPolicy.md) | Empty interface for project-wide compile-time switches; augment with `structuralThenables: 'allow'` to relax the [thenable check](tutorial.md#attach-cleanup-with-withdisposal). |
 
 ### Provider and module projections
 

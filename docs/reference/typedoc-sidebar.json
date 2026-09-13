@@ -67,6 +67,10 @@
             "link": "/reference/index/interfaces/DiBagDiagnostic.md"
           },
           {
+            "text": "DiBagPolicy",
+            "link": "/reference/index/interfaces/DiBagPolicy.md"
+          },
+          {
             "text": "FactoryWithDisposal",
             "link": "/reference/index/interfaces/FactoryWithDisposal.md"
           },
