@@ -99,6 +99,28 @@ facts, rebuild the candidate, and repeat every local gate. Never overwrite or
 reuse the defective version. A registry collision, wrong owner, denied access,
 failed provenance, or unexpected tag policy stops the later publication session.
 
+## Releasing di-bag-graph
+
+`tools/graph` is the separate package `di-bag-graph`, with its own version,
+lockfile, and `typescript` dependency. It reads DI Bag builder chains
+syntactically and does not depend on `di-bag`, so the two versions move
+independently. Record a tool release in the `CHANGELOG.md` section of the
+`di-bag` release it accompanies, naming the tool version.
+
+1. Set `version` in `tools/graph/package.json`; run `npm install --prefix tools/graph`
+   to update its lockfile.
+2. Run `npm ci --prefix tools/graph` and `npm run graph:check`. The pack test
+   asserts the archive holds only `LICENSE`, `README.md`, `cli.mjs`,
+   `lib/extract.mjs`, and `package.json`.
+3. Run the CI step "Smoke-test the packed graph tool" locally: it installs both
+   packed archives into a copy of `tools/graph/test/fixtures/consumer` and runs
+   `tsc` and `npx di-bag-graph --check` there.
+4. `npm pack ./tools/graph --pack-destination /tmp/di-bag-release-candidate` and
+   inspect the archive.
+5. Publication of that archive falls under the authorization rule below: the
+   same registry check, public access, and provenance as `di-bag`, only in a
+   separately authorized session.
+
 ## DO NOT RUN without fresh explicit authorization
 
 ```bash
