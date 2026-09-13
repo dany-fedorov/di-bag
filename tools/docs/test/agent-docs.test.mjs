@@ -129,3 +129,20 @@ test('message URLs in src resolve to a page and anchor, in sources and in the bu
     assert.equal(checkMessageUrlsInBuild(root, join(root, 'dist')).length, 2);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test('type-level message URLs expand ErrorsPage with each SeeErrors section', () => {
+  const root = fixture({
+    'README.md': '# Intro\n',
+    'docs/agent/errors.md': '# Errors\n## Missing service {#missing-service}\n',
+    'src/types.ts': "export type ErrorsPage = 'https://dany-fedorov.github.io/di-bag/agent/errors.html';\ntype A = `missing${SeeErrors<'missing-service'>}`;\ntype B = `gone${SeeErrors<'gone'>}`;",
+    'dist/agent/errors.html': '<h3 id="missing-service">Missing service</h3>',
+  });
+  try {
+    assert.deepEqual(checkMessageUrlsInSources(root, sitePages(root)), [
+      'src/types.ts: https://dany-fedorov.github.io/di-bag/agent/errors.html#gone names a missing anchor in docs/agent/errors.md',
+    ]);
+    assert.deepEqual(checkMessageUrlsInBuild(root, join(root, 'dist')), [
+      'src/types.ts: https://dany-fedorov.github.io/di-bag/agent/errors.html#gone has no rendered anchor',
+    ]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

@@ -5,12 +5,12 @@
 # Type Alias: Selection\<R *extends* `Registrations`, K *extends* readonly `unknown`[], Operation *extends* `string` = `"fork"`\>
 
 ```ts
-type Selection<R extends Registrations, K extends readonly unknown[], Operation extends string = 'fork'> = true extends IsUnion<K> ? InvalidSelection<Operation> : number extends K['length'] ? InvalidSelection<Operation> : K extends Required<K> ? [InvalidElements<K>] extends [never] ? [Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>] extends [never] ? unknown : Unsatisfied<`${Operation} accepts existing names or typed tokens only: unknown ${NameText<Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>>}`, {
+type Selection<R extends Registrations, K extends readonly unknown[], Operation extends string = 'fork'> = true extends IsUnion<K> ? InvalidSelection<Operation> : number extends K['length'] ? InvalidSelection<Operation> : K extends Required<K> ? [InvalidElements<K>] extends [never] ? [Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>] extends [never] ? unknown : Unsatisfied<`${Operation} accepts existing names or typed tokens only: unknown ${NameText<Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>>}${SeeErrors<'unknown-key'>}`, {
     extra: Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>;
 }> : InvalidSelection<Operation> : InvalidSelection<Operation>;
 ```
 
-Defined in: [types.ts:305](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L305)
+Defined in: [types.ts:315](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L315)
 
 Validate a finite tuple of existing singleton names or genuine typed tokens.
 

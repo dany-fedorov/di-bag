@@ -331,7 +331,11 @@ for exact class shapes and constructors.
 
 `build()`, `register()`, `replace()`, `fork()`, and `createScope()` reject an
 invalid graph at compile time. TypeScript reports these as assignability errors
-whose message names the problem and, where it is cheap to compute, the services involved:
+whose message names the problem and, where it is cheap to compute, the services involved.
+Each message ends with the section of the
+[errors page](../agent/errors.md#compile-time) that gives the cause and fix, for
+example `; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service`;
+the table omits that suffix:
 
 | Message | Meaning |
 | --- | --- |
@@ -353,7 +357,7 @@ const builder = DiBag.createBuilder().register({
   db: ({ config }: { config: { url: string } }) => config.url,
 });
 builder.verifyGraph() satisfies void;
-// error: Type 'Unsatisfied<"required service registrations are missing: config", { missing: "config"; ... }>' does not satisfy the expected type 'void'.
+// error: Type 'Unsatisfied<"required service registrations are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service", { missing: "config"; ... }>' does not satisfy the expected type 'void'.
 ```
 
 `CompositionReport<typeof builder>` is the same verdict as a type, for
