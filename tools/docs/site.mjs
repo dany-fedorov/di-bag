@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, watch, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, watch, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { listFiles, rewriteMarkdownLinks } from './lib/markdown.mjs';
+import { checkMessageUrlsInBuild } from './lib/agent-docs.mjs';
+import { listFiles, rewriteMarkdownLinks, sitePages } from './lib/markdown.mjs';
 import { verifyBuiltSite } from './lib/site-check.mjs';
 
 const directory = dirname(fileURLToPath(import.meta.url));
@@ -18,13 +19,9 @@ function writeChanged(path, content) {
 }
 
 function prepare() {
-  const pages = new Map([['README.md', 'index.md']]);
-  for (const file of readdirSync(join(root, 'docs/guides')).filter(file => file.endsWith('.md'))) {
-    pages.set(`docs/guides/${file}`, `guides/${file}`);
-  }
   const reference = join(root, 'docs/reference');
   if (!existsSync(join(reference, 'index.md'))) throw new Error('Missing generated reference. Run npm run docs:generate first.');
-  for (const file of listFiles(reference).filter(file => file.endsWith('.md'))) pages.set(`docs/reference/${file}`, `reference/${file}`);
+  const pages = sitePages(root);
   for (const [source, route] of pages) {
     const content = rewriteMarkdownLinks(readFileSync(join(root, source), 'utf8'), source, pages, root);
     const settings = source.startsWith('docs/reference/') ? '---\neditLink: false\n---\n\n' : '';
@@ -64,7 +61,7 @@ if (command === 'dev') {
   // Watch stable parents so atomic saves and a regenerated reference keep working.
   for (const [path, recursive, accepts] of [
     ['.', false, name => name === 'README.md'],
-    ['docs', true, name => /^(?:guides|reference)(?:\/|$)/.test(name)],
+    ['docs', true, name => /^(?:guides|agent|reference)(?:\/|$)/.test(name)],
     ['tools/docs', false, name => name === 'vitepress.config.mjs'],
     ['tools/docs/theme', true, () => true],
   ]) {
@@ -83,6 +80,8 @@ clearTimeout(timer);
 for (const watcher of watchers) watcher.close();
 if (command === 'build' && exitCode === 0) {
   const report = verifyBuiltSite(join(site, '.vitepress/dist'));
-  console.log(`Verified ${report.pages} rendered pages and ${report.links} internal links, anchors, and assets.`);
+  const messageErrors = checkMessageUrlsInBuild(root, join(site, '.vitepress/dist'));
+  if (messageErrors.length) throw new Error(`Message URLs do not resolve in the built site:\n${messageErrors.join('\n')}`);
+  console.log(`Verified ${report.pages} rendered pages and ${report.links} internal links, anchors, assets, and message URLs.`);
 }
 process.exitCode = exitCode;
