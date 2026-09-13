@@ -4,9 +4,9 @@ DI Bag composes TypeScript factories into a dependency graph that the compiler
 checks. Modules keep a feature's services private behind exported keys; a bag
 creates services on first use and releases what it owns when closed.
 
-This file ships in `node_modules/di-bag/`. Task recipes are in
-[docs/agent/recipes.md](docs/agent/recipes.md); every compiler and runtime
-message is in [docs/agent/errors.md](docs/agent/errors.md).
+This file ships in `node_modules/di-bag/`. Every call, with one way per task and an example:
+[docs/agent/api-card.md](docs/agent/api-card.md). Task recipes: [docs/agent/recipes.md](docs/agent/recipes.md).
+Every compiler and runtime message: [docs/agent/errors.md](docs/agent/errors.md).
 
 ## Rules
 
