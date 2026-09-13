@@ -53,6 +53,7 @@ import type {
   SelectedRegistrations,
   Selection,
   NamedAdmission,
+  ThenableAdmission,
 } from './types';
 
 type ReplacementFactory<O> = (this: void) => O;
@@ -270,7 +271,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   register<N extends { [K in keyof N]: Registration }>(
     more: N & Registrations & ([N] extends [never]
       ? never
-      : NamedAdmission<N> & IntroducesKeys<EntryKeys<E>, keyof N> & IncrementalChecked<E, N> &
+      : NamedAdmission<N> & ThenableAdmission<N> & IntroducesKeys<EntryKeys<E>, keyof N> & IncrementalChecked<E, N> &
         CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, N>>),
   ): Builder<E | RegistrationEntries<N>, C>;
   /**
@@ -281,7 +282,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    */
   register<T extends TokenBase, V extends Registration>(
     token: T & TokenTupleAdmission<readonly [T]> & IntroducesKeys<EntryKeys<E>, TokenKey<T>>,
-    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
+    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & ThenableAdmission<Record<TokenKey<T>, NoInfer<V>>> &
       IncrementalChecked<E, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>> &
       CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>>>,
   ): Builder<E | { key: TokenKey<T>; registration: TokenBinding<T, V> }, C>;

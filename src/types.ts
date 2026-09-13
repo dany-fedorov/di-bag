@@ -1,4 +1,5 @@
 import type {
+  Factory,
   FactoryWithDisposal,
   Registration,
   Registrations,
@@ -35,6 +36,25 @@ export type OverrideRegistrations<F extends Registrations, N extends Registratio
   keyof N
 > &
   N;
+
+/**
+ * Project-wide compile-time policy switches. Augment it to relax a check:
+ * `declare module 'di-bag' { interface DiBagPolicy { readonly structuralThenables: 'allow' } }`.
+ */
+export interface DiBagPolicy {}
+type StructuralThenablesAllowed = DiBagPolicy extends { readonly structuralThenables: 'allow' } ? true : false;
+type IsAny<T> = 0 extends 1 & T ? true : false;
+/** True for a declared output with a callable `then` that is not a native Promise; `any` is exempt. */
+export type StructuralThenable<O> = StructuralThenablesAllowed extends true ? false
+  : IsAny<O> extends true ? false
+    // Infer through an intersection first: a NoInfer wrapper otherwise defers the check in adapter signatures.
+    : O extends infer T & {} ? T extends Promise<unknown> ? false : T extends { then(...args: never[]): unknown } ? true : false : false;
+type ThenableOutputs<R extends Registrations> = {
+  [K in keyof R]: R[K] extends Factory | FactoryWithDisposal<Factory> ? true extends StructuralThenable<ProviderOutput<R[K]>> ? K : never : never;
+}[keyof R];
+/** Reject plain or disposable factories whose declared output auto acquisition would reject at runtime. */
+export type ThenableAdmission<R extends Registrations> = [ThenableOutputs<R>] extends [never] ? unknown
+  : Unsatisfied<`factory output is a structural thenable: ${NameText<ThenableOutputs<R>>}; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise`, { tokens: ThenableOutputs<R> }>;
 
 /** Render dependency names inside diagnostic messages; typed tokens have no printable name. */
 export type NameText<K> = K extends string ? K : K extends number ? `${K}` : 'typed token';

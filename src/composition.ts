@@ -1,6 +1,6 @@
 import { libraryError } from './errors';
 import { acquisitionMode } from './acquisition-mode';
-import type { Acquired, AcquisitionMode, NativeOutput, StageOptions } from './acquisition-mode';
+import type { Acquired, AcquisitionMode, AutoOutput, NativeOutput, StageOptions } from './acquisition-mode';
 import { createProvider } from './provider';
 import type { Provider } from './provider';
 import { retainDescription, sourceDescription } from './provider-operations';
@@ -36,7 +36,7 @@ export type CompositionFunction<T extends readonly DependencyReference[], O = un
 // lazy getter); the last preserves the general checked diagnostic/reflected view.
 export function fromFunction<const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>, 'nativePromise' extends M ? Promise<unknown> : unknown>, M extends AcquisitionMode = 'auto'>(
   tokens: T & DependencyTupleAdmission<T>,
-  callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
+  callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
   ...modeOptions: StageOptions<M>
 ): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
 /**
@@ -49,12 +49,12 @@ export function fromFunction<const T extends readonly DependencyReference[], F e
  */
 export function fromFunction<const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>>, M extends AcquisitionMode = 'auto'>(
   tokens: T & DependencyTupleAdmission<T>,
-  callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
+  callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
   ...modeOptions: StageOptions<M>
 ): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
 export function fromFunction<const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>>, M extends AcquisitionMode = 'auto'>(
   tokens: T & DependencyTupleAdmission<T>,
-  callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
+  callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
   ...modeOptions: StageOptions<M>
 ): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>> {
   const mode = acquisitionMode(modeOptions[0]);
@@ -76,7 +76,7 @@ export function fromFunction<const T extends readonly DependencyReference[], F e
  */
 export function fromClass<const T extends readonly DependencyReference[], C extends new (...args: TokenArguments<NoInfer<T>>) => unknown, M extends AcquisitionMode = 'auto'>(
   tokens: T & DependencyTupleAdmission<T>,
-  constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>>,
+  constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>> & AutoOutput<InstanceType<NoInfer<C>>, NoInfer<M>>,
   ...modeOptions: StageOptions<M>
 ): Provider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>> {
   const mode = acquisitionMode(modeOptions[0]);

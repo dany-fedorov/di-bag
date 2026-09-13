@@ -131,6 +131,7 @@ test('raw class adapters preserve thenables and auto rejects them without assimi
   class Thenable { then() { thenCalls++; throw new Error('must not assimilate'); } }
   const bag = DiBag.createBuilder().register({
     raw: DiBag.withDisposal(DiBag.fromClass([], Thenable, { acquisitionMode: 'raw' }), value => { disposed.push(value); }),
+    // @ts-expect-error The runtime rejection of a structural thenable is what this test exercises.
     auto: DiBag.withDisposal(DiBag.fromClass([], Thenable), value => { disposed.push(value); }),
   }).build();
   const raw = bag.resolve('raw');
