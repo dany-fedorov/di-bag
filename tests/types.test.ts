@@ -88,6 +88,11 @@ for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-referenc
   expect(ts.getPreEmitDiagnostics(consumer).map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('verifyGraph reports void for buildable graphs and the build failure otherwise', () => {
+  expect(diagnostics(resolve(__dirname, 'types/verify-graph.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('acquisition modes retain exact acquired values across inferred exports', () => {
   expect(diagnostics(resolve(__dirname, 'types/acquisition-mode-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

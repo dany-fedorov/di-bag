@@ -12,6 +12,7 @@ import { BindingGraph, BagRuntime } from './runtime';
 import type { BindingKey } from './runtime';
 import { moduleGraph, sealModule } from './module';
 import type { Module } from './module';
+import type { CompositionReport } from './composition-report';
 import type { CheckedConstraints, CompleteConstraints, ExternalRequirements, IncrementalConstraints, ModulePublicProviders, ModuleSealedConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes } from './lifetime-types';
 import { withLifetime } from './lifetime';
@@ -374,6 +375,15 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   ): Builder<E | RegistrationEntries<D>, C | MC> {
     return new Builder(this.#graph.withInstallation(moduleGraph(module)), this.context);
   }
+
+  /**
+   * Report at the type level why this graph would not build; the runtime call does nothing.
+   * Write `builder.verifyGraph() satisfies void;` so a rejected graph fails on that line with
+   * the complete message and details, instead of at the start of the builder expression.
+   * @returns `void` for a buildable graph; otherwise the failure that `build()` would report.
+   */
+  verifyGraph(): CompositionReport<Builder<E, C>>;
+  verifyGraph(): unknown { return undefined; }
 
   /**
    * Seal this graph as a reusable module and select its public names and typed tokens.

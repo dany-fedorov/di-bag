@@ -3,6 +3,7 @@ export { DiBagCleanupError, DiBagPluginValidationError, DiBagStartupError, DiBag
 export type { CleanupFailure, DiBagErrorCode, DiBagDiagnostic } from './errors';
 export type { Bag, Builder, DiBagApi, ConfigurationOptions } from './di-bag';
 export type { Module } from './module';
+export type { CompositionReport } from './composition-report';
 export type { ModuleExportedServices, ModuleRequiredServices, ModuleConstraints, ModuleSealedConstraints, SealedConstraints, PublicProviders, ModulePublicProviders, Renamed } from './module-types';
 export type { FactoryWithDisposal, Registration } from './registration';
 export type { Provider, ProviderFactory, ProviderGraphContract, ProviderOutput, ProviderAcquiredValue, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens } from './provider';
