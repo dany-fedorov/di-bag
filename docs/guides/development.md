@@ -22,6 +22,14 @@ gate. Run `npm run typecheck:native`, `npm run build:native`, and
 requires the local, offline archive workflow in [`PUBLISHING.md`](../../PUBLISHING.md).
 Passing local checks establishes a release candidate, not a registry publication.
 
+`npm test` runs two lanes. `npm run test:fast` covers the runtime suites and
+finishes in a few seconds; run it after every source change.
+`npm run test:compiler` covers the compiler, package, native, platform, and
+benchmark suites; run it before committing. `scripts/test-lane.mjs` holds the
+single list that assigns files to lanes. Compiler-driven tests share one
+TypeScript program through `tests/compiler.ts`, so a fixture's diagnostics cover
+that fixture and the other test files it imports; `npm run typecheck` covers `src/`.
+
 ```sh
 npm ci
 npm run platform:pin   # capture the installed foundation tool identities

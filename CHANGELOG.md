@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Split `npm test` into `test:fast` and `test:compiler` lanes and share one
+  TypeScript program across compiler-driven tests. No runtime or public API changes.
+
 ## 0.1.1
 
 - Refresh the npm README with concise, self-contained package value and practical
