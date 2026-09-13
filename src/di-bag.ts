@@ -26,7 +26,7 @@ import { fromFunction, fromClass } from './composition';
 import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
 import type { ProviderRegistrationMetadata, ProviderAcquisitionMetadata } from './provider';
-import type { RegistrationSnapshot } from './inspection';
+import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
 import { token, readTokenKey } from './tokens';
 import { fromPlugin } from './plugins';
 import type { PluginProviderFactory } from './plugins';
@@ -118,6 +118,14 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
   inspect(token: unknown): unknown {
     return this.#runtime.inspect(typeof token === 'string' ? token : readTokenKey(token));
   }
+
+  /**
+   * Describe every binding this bag can resolve and the dependency edges observed so far.
+   * Nothing is acquired. Named dependencies declared on factory parameters are not visible
+   * until the factory runs; the static graph tool reports them from source.
+   * @returns A frozen point-in-time snapshot; application-owned metadata payloads are not frozen.
+   */
+  inspectGraph(): GraphSnapshot { return this.#runtime.inspectGraph(); }
 
   /**
    * Create a tracked child that borrows selected parent acquisitions.

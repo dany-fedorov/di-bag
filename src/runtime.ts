@@ -7,7 +7,7 @@ import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import { normalize } from './registration';
 import type { Registration, Registrations } from './registration';
-import type { RegistrationSnapshot } from './inspection';
+import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
 import { requireClassificationCapability } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
 
@@ -380,6 +380,26 @@ export class BagRuntime {
 
   inspect(key: BindingKey): RegistrationSnapshot<object, readonly unknown[]> {
     return this.inspectBinding(this.graph.publicBinding(key));
+  }
+
+  inspectGraph(): GraphSnapshot {
+    const bindings = this.graph.bindingSummaries().map(({ id, keys }) => {
+      const description = this.graph.registration(id);
+      return Object.freeze({
+        ...this.inspectBinding(id),
+        keys,
+        lifetime: description.lifetime.kind,
+        acquisitionMode: description.acquisitionMode,
+        owned: description.dispose !== undefined || description.operations.some(operation => operation.kind === 'owned'),
+        tokenDependencies: Object.freeze(description.references.map(reference => Object.freeze({ key: reference.key, kind: reference.kind }))),
+      });
+    });
+    return Object.freeze({
+      scopeId: this.acquisitions.ownerId,
+      bindings: Object.freeze(bindings),
+      contributions: this.graph.contributionGroups(),
+      observedEdges: this.acquisitions.observedEdges(),
+    });
   }
 
   private inspectBinding(bindingId: BindingId): RegistrationSnapshot<object, readonly unknown[]> {
