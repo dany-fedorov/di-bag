@@ -23,11 +23,14 @@ needs without opening its implementation:
 
 ```text
 src/features/invoicing/
-  contract.ts   # exported service types and the requirements the host must supply
-  module.ts     # buildModule([...]) over the private factories
-  store.ts      # private services; free to use names other modules also use
+  contract.ts        # exported service types and the requirements the host must supply
+  module.ts          # buildModule([...]) over the private factories
+  store.ts           # private services; free to use names other modules also use
+  check.ts           # type-checks this module alone; never imported, not built
+  tsconfig.json      # extends the root tsconfig and includes only this directory
   invoicing.test.ts
-src/app.ts      # installs every module and registers what they require
+src/app.ts           # installs every module, one installModule call per line
+src/app.check.ts     # verifyGraph() on the application builder: the merge check
 ```
 
 - `contract.ts` holds the exported service types and the types of the
@@ -36,12 +39,18 @@ src/app.ts      # installs every module and registers what they require
   the contracts it changes.
 - `module.ts` registers the private factories and seals them with
   `buildModule(keys)`. Only the listed keys leave the directory.
+- `check.ts` is one statement: a builder that installs the module, registers a
+  typed fixture for each requirement, and ends in `verifyGraph() satisfies void`.
+  With the directory's `tsconfig.json` it type-checks the module without the
+  rest of the application; a missing requirement fails with its name. The
+  command is in [AGENTS.md](../../AGENTS.md#check-one-module).
 - The test file forks the module with typed fixtures for its requirements, so it
   runs without the other modules or live clients.
-- `src/app.ts` is where independently developed modules meet. `build()`, or
-  `verifyGraph()` in a type test, rejects a missing requirement or an
-  incompatible contract there. The `di-bag-graph` tool in `tools/graph` exports
-  the declared edges for merge review; it is not needed to find code.
+- `src/app.ts` is where independently developed modules meet, and
+  `src/app.check.ts` checks it: `verifyGraph()` rejects a missing requirement or
+  an incompatible contract there. Merge review is the
+  [review-merge recipe](../agent/recipes.md#review-merge); it is not needed to
+  find code.
 
 The [agent harness and graph guide](agent-harnesses-and-graphs.md) applies this
 layout to model clients, tools, and graph nodes.

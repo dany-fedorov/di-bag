@@ -42,6 +42,10 @@ npm run docs:preview
 | Node HTTP, Express, Fastify, Bun, and Deno applications | [server-integration.md](server-integration.md) |
 | API navigation and type inventories | [api-reference.md](api-reference.md) |
 | A signature's explanation, parameters, return value, or failure behavior | The public declaration's comment in [src](../../src), then regenerate |
+| A rule a coding agent must follow, the per-module check, the fast check | [AGENTS.md](../../AGENTS.md) |
+| The recommended module layout | [examples-modularity.md](examples-modularity.md#recommended-module-layout); copy the block byte for byte into `AGENTS.md` |
+| How to do one agent task | [recipes.md](../agent/recipes.md) |
+| A compile-time message family or a `DI_BAG_*` code: when, cause, fix | [errors.md](../agent/errors.md); add the section in the change that adds the code |
 | Site navigation and appearance | [VitePress configuration](../../tools/docs/vitepress.config.mjs) and [theme](../../tools/docs/theme) |
 | The list of guides and contributor documents | [Documentation map](../README.md) |
 
@@ -77,7 +81,30 @@ witness fields in the public output.
 
 `npm run docs:check` runs the tooling tests, generates a fresh temporary reference,
 and compares it with the committed files. Added, changed, and removed pages all
-count as drift. It also stages the site and checks that linked repository files
+count as drift. It then checks the agent documentation:
+
+- **Snippets.** Every `ts` block in `AGENTS.md` and `docs/agent/*.md`, and every
+  `@example` in `src/`, is type-checked in one strict program against
+  declarations emitted from `src/` into a temporary `node_modules/di-bag`, so
+  `di-bag` and `di-bag/node` resolve as in a consumer project. No prior build is
+  needed. Leading comment lines are markers: `// src/features/x/module.ts` makes
+  the block that file, so blocks on one page can import each other;
+  `// continues: <heading-id>` prepends the last block under that heading on the
+  same page; `// expect-error: <text>` requires a diagnostic containing the text.
+  An `@example` without imports gets `import { DiBag } from 'di-bag';`.
+- **Size budgets.** `AGENTS.md` at most 150 lines, each recipe section under 60
+  lines, and `docs/agent/api-card.md` at most 400 lines.
+- **Layout identity.** The `text` block in `AGENTS.md` equals the one under
+  "Recommended module layout" in the modularity guide.
+- **Errors page.** The `DI_BAG_*` codes in `src/` and the code sections of
+  `docs/agent/errors.md` are the same set; every heading there has an explicit
+  `{#id}`, a code section's id is the code lower-cased with `_` replaced by `-`,
+  and the six compile-time family sections exist.
+- **Message URLs.** Every `https://dany-fedorov.github.io/di-bag/...` URL in
+  `src/` names an existing page and heading. `docs:build` checks them again
+  against the rendered HTML.
+
+It also stages the site and checks that linked repository files
 exist. `npm run docs:build` checks website page links while building the production
 artifact, then verifies rendered anchors and asset paths under the Pages base. Run
 both before pushing documentation changes.
@@ -89,8 +116,9 @@ native compiler checks remain part of development verification.
 
 ## Website and package boundaries
 
-The site command stages the README, Markdown in `docs/guides/`, and generated
-reference pages into the ignored `tools/docs/site/` directory. It rewrites
+The site command stages the README, Markdown in `docs/guides/` and `docs/agent/`
+(published at `/agent/`), and generated reference pages into the ignored
+`tools/docs/site/` directory. The site description is read from `package.json`. It rewrites
 relative links for the hosted routes; links to examples, source files, and other
 repository material lead back to GitHub. Nothing else is copied into the
 site.
@@ -101,8 +129,9 @@ the built Markdown and needs no external search account. Generated pages offer
 links to their source declarations; handwritten pages offer an edit link.
 
 Documentation dependencies stay in the private tools package. The published
-library archive continues to contain the manifest, README, license, and `dist/`;
-it does not contain the website or its dependencies.
+library archive contains the manifest, README, license, `dist/`, `AGENTS.md`, and
+`docs/agent/`, so agents read the rules and recipes in `node_modules/di-bag`; it
+does not contain the website or its dependencies.
 
 ## Publish through GitHub Pages
 

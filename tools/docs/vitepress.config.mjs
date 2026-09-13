@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitepress';
 
 const generated = JSON.parse(readFileSync(new URL('../reference/typedoc-sidebar.json', import.meta.url), 'utf8'));
+// Staged at tools/docs/site/.vitepress/config.mjs; the manifest owns the package description.
+const manifest = JSON.parse(readFileSync(new URL('../../../../package.json', import.meta.url), 'utf8'));
 const labels = { index: 'Portable API · di-bag', node: 'Node and Bun · di-bag/node' };
 const api = generated.map(group => ({ ...group, text: labels[group.text] ?? group.text }));
 const guide = [
@@ -12,6 +14,10 @@ const guide = [
     { text: 'Server recipes', link: '/guides/server-integration' },
     { text: 'Integration patterns', link: '/guides/enterprise-integration' },
     { text: 'Agent harnesses and graphs', link: '/guides/agent-harnesses-and-graphs' },
+  ] },
+  { text: 'Agent docs', items: [
+    { text: 'Recipes', link: '/agent/recipes' },
+    { text: 'Errors and messages', link: '/agent/errors' },
   ] },
   { text: 'Why DI Bag? · Worked examples', items: [
     { text: 'Radical modularity', link: '/guides/examples-modularity' },
@@ -34,7 +40,7 @@ const guide = [
 
 export default defineConfig({
   title: 'DI Bag',
-  description: 'Type-checked dependency composition, private modules, and resource ownership for modular TypeScript codebases.',
+  description: manifest.description,
   base: '/di-bag/',
   lang: 'en-US',
   cleanUrls: false,

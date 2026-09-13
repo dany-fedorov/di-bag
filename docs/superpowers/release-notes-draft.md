@@ -31,5 +31,19 @@ version is frozen.
   before any factory runs, including cycles and missing requirements that span
   modules installed from other files. It uses the project's TypeScript 6.0.3+
   compiler API when present, otherwise its own TypeScript 6.
+- The package ships agent documentation: `AGENTS.md` (rules, module layout,
+  per-module check command) and `docs/agent/` (`recipes.md` with six task
+  recipes, `errors.md` with one section per `DI_BAG_*` code and per compile-time
+  message family). Package `files` are `dist`, `AGENTS.md`, and `docs/agent`.
+- The recommended module layout adds `check.ts` and a per-module
+  `tsconfig.json` in each module directory, `src/app.check.ts`, and one
+  `installModule` call per line in `src/app.ts`.
+- The documentation site publishes `docs/agent/` at `/agent/`.
+- `npm run docs:check` type-checks every TypeScript block in `AGENTS.md`,
+  `docs/agent/`, and `@example` comments against the emitted declarations;
+  enforces the size budgets of `AGENTS.md` (150 lines), recipes (under 60 lines
+  each), and the API card (400 lines); keeps the layout copy in `AGENTS.md`
+  identical to the modularity guide; checks that every `DI_BAG_*` code has an
+  errors-page section; and resolves every documentation URL cited in `src/`.
 
 ## Fixed and improved

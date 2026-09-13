@@ -579,7 +579,7 @@ describe('archive verifier', () => {
     process.env.npm_config_cache = resolve(directory, '.npm-cache');
     cpSync(resolve(root, 'tests/types'), resolve(checkout, 'tests/types'), { recursive: true }); symlinkSync(resolve(root, 'node_modules'), resolve(checkout, 'node_modules'));
     symlinkSync(resolve(root, 'tests/final-adversarial-runtime-fixture.ts'), resolve(checkout, 'tests/final-adversarial-runtime-fixture.ts'));
-    for (const name of ['src', 'package.json', 'README.md', 'LICENSE', 'tsconfig.json', 'tsconfig.build.json']) {
+    for (const name of ['src', 'package.json', 'README.md', 'LICENSE', 'AGENTS.md', 'docs/agent', 'tsconfig.json', 'tsconfig.build.json']) {
       cpSync(resolve(root, name), resolve(checkout, name), { recursive: true });
     }
     const built = await supervise('node', [resolve(root, 'node_modules/typescript/bin/tsc6'), '-p', 'tsconfig.build.json'], checkout, nativeLimits);
@@ -644,6 +644,7 @@ describe('archive verifier', () => {
     }
   });
   test('rejects missing public export pairs and removed adapter entries from archive bytes', () => {
+    { const value: any = structuredClone(manifest), bytes = archiveOf(archiveEntries('di-bag').filter(entry => entry.path !== 'package/AGENTS.md')); adoptArchive(value, 'di-bag', bytes, 'missing-agents'); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('missing AGENTS.md'))).toBe(true); }
     { const value: any = structuredClone(manifest), bytes = archiveOf(archiveEntries('di-bag').filter(entry => entry.path !== 'package/dist/node.d.ts')); adoptArchive(value, 'di-bag', bytes, 'missing-node-types'); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('missing public export file'))).toBe(true); }
     for (const name of ['sas-box', 'val-box']) { const value: any = structuredClone(manifest), bytes = archiveOf([...archiveEntries('di-bag'), { path: `package/dist/${name}.js`, content: 'export{}' }]); adoptArchive(value, 'di-bag', bytes, `${name}-extra`); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('removed package entry'))).toBe(true); }
   });

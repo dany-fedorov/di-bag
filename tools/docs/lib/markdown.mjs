@@ -12,6 +12,22 @@ export function listFiles(root, prefix = '') {
     }).sort();
 }
 
+/** Repository Markdown and its website route; the one place that decides what is published. */
+export function sitePages(root) {
+  const pages = new Map([['README.md', 'index.md']]);
+  for (const section of ['guides', 'agent']) {
+    const directory = join(root, 'docs', section);
+    if (!existsSync(directory)) continue;
+    for (const file of readdirSync(directory).filter(file => file.endsWith('.md')).sort()) {
+      pages.set(`docs/${section}/${file}`, `${section}/${file}`);
+    }
+  }
+  for (const file of listFiles(join(root, 'docs/reference')).filter(file => file.endsWith('.md'))) {
+    pages.set(`docs/reference/${file}`, `reference/${file}`);
+  }
+  return pages;
+}
+
 /** Compare fresh output to committed Markdown, including added/deleted files. */
 export function compareTrees(expected, actual) {
   const left = new Set(listFiles(expected));
