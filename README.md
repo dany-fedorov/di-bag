@@ -45,11 +45,11 @@ A **factory** creates a service. A **bag** holds those factories and gives each
 one access to the services it needs. Services are created when needed, and
 resources are cleaned up when you provide a disposer and close their bag.
 
-Use `di-bag/node` in Node or Bun. Here, `greeter` needs `config`. Its parameter
+Import from `di-bag`. Here, `greeter` needs `config`. Its parameter
 type describes that dependency, and its return value is the service it provides:
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
   .register({
@@ -103,7 +103,7 @@ An async factory provides a promise. Declare that promise in any dependent
 factory and await it where you need the value:
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
   .register({
@@ -125,7 +125,7 @@ factories keep returning ordinary values. See
 Wrap a factory with `withDisposal` to tell the bag how to release its result:
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const resources = DiBag.createBuilder()
   .register({
@@ -221,12 +221,13 @@ The package has **zero runtime dependencies** and two entry points:
 
 | Import | Purpose |
 | --- | --- |
-| `di-bag/node` | Ready-to-use factory composition in Node and Bun, with native Promise detection. |
-| `di-bag` | Portable core for other hosts, including Deno and bundled browsers. Use explicit acquisition modes or configure a trusted native Promise predicate. |
+| `di-bag` | The entry to use. Configures native Promise detection itself on Node, Bun, and Deno through `process.getBuiltinModule`; has no `node:` imports, so it also bundles for browsers. |
+| `di-bag/node` | The same API with detection configured explicitly at import, for Node and Bun. |
 
-The portable entry rejects automatic acquisition stages unless you configure a
-trusted classifier. See [portable mode](docs/guides/tutorial.md#portable-mode)
-for both setup options.
+On hosts without `process.getBuiltinModule` (browsers, workers), `build()`
+rejects automatic acquisition stages unless you configure a trusted classifier
+or give each stage an explicit acquisition mode. See
+[portable mode](docs/guides/tutorial.md#portable-mode) for both options.
 
 ## Tradeoffs and limits
 

@@ -35,7 +35,7 @@ and tests.
 
 ```ts
 // expect-error: required service registrations are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
   .register({ greeter: ({ config }: { config: { greeting: string } }) => config.greeting })
@@ -43,7 +43,7 @@ DiBag.createBuilder()
 ```
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
   .register({
@@ -74,7 +74,7 @@ agree; the details name both keys and both types.
 
 ```ts
 // expect-error: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
   .register({
@@ -99,7 +99,7 @@ bag's instance.
 
 ```ts
 // expect-error: root lifetime cannot capture scoped dependency: client -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
   .register({
@@ -110,7 +110,7 @@ DiBag.createBuilder()
 ```
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
   .register({
@@ -145,7 +145,7 @@ when the key is new. Pass the selection as a literal tuple
 
 ```ts
 // expect-error: fork accepts existing names or typed tokens only: unknown host; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ port: () => 80 }).build();
 app.fork(['host'], { host: () => 'localhost' });
@@ -168,7 +168,7 @@ await it.
 
 ```ts
 // expect-error: factory output is a structural thenable: query; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type Query = { then(onFulfilled: (rows: string[]) => void): void };
 const select = (): Query => ({ then: onFulfilled => onFulfilled([]) });
@@ -176,7 +176,7 @@ DiBag.createBuilder().register({ query: select }).build();
 ```
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type Query = { then(onFulfilled: (rows: string[]) => void): void };
 const select = (): Query => ({ then: onFulfilled => onFulfilled([]) });
@@ -204,7 +204,7 @@ dependency, expected type, and provided type.
 
 ```ts
 // expect-error: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-shape
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ port: () => 80 });
 app.register({ server: ({ port }: { port: string }) => port.length });
@@ -228,7 +228,7 @@ change the contract, change the registration in the builder and re-`build()`.
 
 ```ts
 // expect-error: Type 'string' is not assignable to type 'number'
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ port: () => 80 }).build();
 app.fork(['port'], { port: () => 'eighty' });
@@ -240,21 +240,23 @@ app.fork(['port'], { port: () => 'eighty' });
 
 ### DI_BAG_CLASSIFIER_REQUIRED {#di-bag-classifier-required}
 
-**When:** `build()`, `buildAndStart()`, or a scope or fork completes a graph
-imported from the portable `di-bag` entry.
+**When:** `build()` or `buildAndStart()` completes a graph on a host without
+`process.getBuiltinModule`: browsers, Web Workers, and other non-Node runtimes.
+Node, Bun, and Deno never raise it.
 
-**Cause:** a factory uses automatic acquisition, and no native-Promise
-classifier is configured.
+**Cause:** a factory uses automatic acquisition, no native-Promise classifier
+is configured, and the host offers none.
 
-**Fix:** on Node, Bun, or Deno import from `di-bag/node` (until the bare entry
-configures itself). On other hosts configure
-`withConfiguration({ runtime: { isNativePromise } })` or give each factory an
-explicit `acquisitionMode`.
+**Fix:** configure a trusted classifier with
+`withConfiguration({ runtime: { isNativePromise } })`, or give each automatic
+registration an explicit `acquisitionMode`.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
+const app = DiBag.createBuilder()
+  .register({ answer: DiBag.fromFactory(() => 42, { acquisitionMode: 'raw' }) })
+  .build();
 ```
 
 **Recipe:** none; see [rule 1](../../AGENTS.md#rules).
@@ -270,7 +272,7 @@ bag is closed; `failures` lists `label` and `error` for each.
 **Fix:** fix the failing disposer; log the failures where the application closes.
 
 ```ts
-import { DiBag, DiBagCleanupError } from 'di-bag/node';
+import { DiBag, DiBagCleanupError } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
 try {
@@ -296,7 +298,7 @@ acquisitions close is still draining, and `cause` is the abort reason.
 the named disposer or acquisition if it never settles.
 
 ```ts
-import { DiBag, DiBagCloseCancelledError } from 'di-bag/node';
+import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
 const controller = new AbortController();
@@ -323,7 +325,7 @@ by a `DiBagCleanupError` when disposers also failed.
 created it.
 
 ```ts
-import { DiBag, type DiBagDiagnostic } from 'di-bag/node';
+import { DiBag, type DiBagDiagnostic } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
 await app.close().catch((error: unknown) => {
@@ -348,7 +350,7 @@ acquisitions still pending; `cleanupPromise` settles when cleanup ends.
 finite cleanup.
 
 ```ts
-import { DiBag, DiBagCloseCancelledError } from 'di-bag/node';
+import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
 await app.close({ timeoutMs: 5_000 }).catch((error: unknown) => {
@@ -371,7 +373,7 @@ bag whose `close()` has finished.
 and close the scope, not the application bag.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
 const scope = app.createScope();
@@ -411,7 +413,7 @@ detect cycles.
 edge with `DiBag.lazy(token)`.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
   .register({
@@ -435,7 +437,7 @@ registration already carries.
 **Fix:** use distinct, namespaced keys such as `'app:owner'` and `'app:node'`.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const service = DiBag.withMetadata(
   DiBag.withMetadata(() => 42, { static: { 'app:owner': 'billing' } }),
@@ -457,13 +459,13 @@ second copy of a module under another name with `renameExport`.
 
 ```ts
 // expect-error: register introduces new names or typed tokens only
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 DiBag.createBuilder().register({ port: () => 80 }).register({ port: () => 81 });
 ```
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 DiBag.createBuilder().register({ port: () => 80 }).replace('port', () => 81).build();
 ```
@@ -493,7 +495,7 @@ receives options that are not an object, or an `acquisitionMode` other than
 **Fix:** pass one of the three literals.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const handle = DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' });
 ```
@@ -511,7 +513,7 @@ registered. The compiler reports `alias requires an existing named target`.
 later.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
   .register({ service: () => ({ port: 8080 }) })
@@ -553,7 +555,7 @@ deadline.
 **Fix:** pass only `timeoutMs` and `signal`, or call `close()` without options.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
 await app.close({ timeoutMs: 1_000, signal: AbortSignal.timeout(2_000) });
@@ -571,7 +573,7 @@ that is not an array, an observer without both `onEvent` and `onError`, or a
 **Fix:** pass both observer callbacks and a function classifier.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const observed = DiBag.withConfiguration({
   observers: [{ onEvent: event => console.log(event.kind), onError: ({ error }) => console.error(error) }],
@@ -590,7 +592,7 @@ be called with `new`, such as an arrow function.
 **Fix:** pass the class; adapt a plain function with `fromFunction`.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const portKey = Symbol('port');
 const port = DiBag.token(portKey).of<number>();
@@ -613,7 +615,7 @@ cannot list its properties.
 **Fix:** destructure the declared dependencies or read them one by one.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
   .register({
@@ -638,7 +640,7 @@ a non-string name, or an existing export.
 **Fix:** export only keys the module registers; rename to an unused name.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const reports = DiBag.createBuilder().register({ service: () => ({ read: () => true }) }).buildModule(['service']);
 const east = reports.renameExport('service', 'eastReports');
@@ -657,7 +659,7 @@ const east = reports.renameExport('service', 'eastReports');
 acquisition signal as the second argument.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const settings = DiBag.fromFactory(
   async ({ url }: { url: string }, { signal }) => (await fetch(url, { signal })).text(),
@@ -676,7 +678,7 @@ const settings = DiBag.fromFactory(
 **Fix:** pass the function; bind methods that need their receiver.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const nameKey = Symbol('name');
 const name = DiBag.token(nameKey).of<string>();
@@ -697,7 +699,7 @@ other than `'root'`, `'scoped'`, or `'transient'`, unknown options, or
 `'root'`.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const config = DiBag.withLifetime(() => ({ region: 'eu' }), 'root');
 ```
@@ -716,7 +718,7 @@ a plain object.
 **Fix:** return a plain object literal from `describe`.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const client = DiBag.withMetadata(() => ({ region: 'eu' }), {
   dynamic: { mode: 'direct', describe: value => ({ 'app:region': value.region }) },
@@ -735,7 +737,7 @@ create, such as a copied or proxied module.
 **Fix:** import and install the module value exported by `module.ts`.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const feature = DiBag.createBuilder().register({ answer: () => 42 }).buildModule(['answer']);
 const app = DiBag.createBuilder().installModule(feature).build();
@@ -755,7 +757,7 @@ override property.
 **Fix:** list each replaced key once and give it an override.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type Clock = { now(): number };
 const app = DiBag.createBuilder().register({ clock: (): Clock => ({ now: () => 42 }) }).build();
@@ -776,7 +778,7 @@ without an own `acquisitionMode` of `'raw'` or `'nativePromise'`, or without a
 **Fix:** pass both options.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type Handler = { handle(text: string): string };
 const descriptor: unknown = { apiVersion: 1, create: () => ({ handle: (text: string) => text }) };
@@ -798,7 +800,7 @@ that is neither a factory nor a DiBag provider.
 **Fix:** wrap values in factories; register tokens with `register(token, provider)`.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const portKey = Symbol('port');
 const port = DiBag.token(portKey).of<number>();
@@ -817,7 +819,7 @@ The compiler reports [unknown key](#unknown-key).
 **Fix:** replace an exported or registered key; register a new one instead.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 DiBag.createBuilder().register({ port: () => 80 }).replace('port', () => 8080).build();
 ```
@@ -837,7 +839,7 @@ most of these, for example `createScope cannot share transient providers`.
 **Fix:** override and share disjoint, registered, non-transient keys.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const parent = DiBag.createBuilder()
   .register({ config: () => ({ region: 'eu' }), client: () => ({ id: 1 }) })
@@ -859,7 +861,7 @@ unregistered key, unknown options, a non-positive `timeoutMs`, an invalid
 **Fix:** pass registered keys and valid options.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = await DiBag.createBuilder()
   .register({ settings: async () => 'ready' })
@@ -881,7 +883,7 @@ from its shape.
 wherever it is used.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const clockKey = Symbol('clock');
 export const clock = DiBag.token(clockKey).of<{ now(): number }>();
@@ -900,7 +902,7 @@ export const clock = DiBag.token(clockKey).of<{ now(): number }>();
 **Fix:** pass `acquisitionMode` only with `'direct'`.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const upper = DiBag.transformService(async () => 'ready', { mode: 'awaited', transform: value => value.toUpperCase() });
 ```
@@ -944,7 +946,7 @@ private names are not public.
 public keys.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ port: () => 80 }).build();
 const keys = app.inspectGraph().bindings.flatMap(binding => binding.keys);
@@ -978,7 +980,7 @@ selected services were ready. Cleanup continues in the background.
 acquisition `signal`.
 
 ```ts
-import { DiBag, DiBagStartupCancelledError } from 'di-bag/node';
+import { DiBag, DiBagStartupCancelledError } from 'di-bag';
 
 const builder = DiBag.createBuilder().register({ settings: async () => 'ready' });
 try {
@@ -1002,7 +1004,7 @@ that error and `cleanupFailures` lists rollback disposer failures.
 **Fix:** fix `cause`; startup can be retried with a new `buildAndStart`.
 
 ```ts
-import { DiBag, DiBagStartupError } from 'di-bag/node';
+import { DiBag, DiBagStartupError } from 'di-bag';
 
 const builder = DiBag.createBuilder().register({ settings: async () => 'ready' });
 const app = await builder.buildAndStart(['settings']).catch((error: unknown) => {

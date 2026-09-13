@@ -27,9 +27,10 @@ how to regenerate it.
 
 ## API at a glance
 
-Import `DiBag` and the error classes from `di-bag/node` in Node or Bun,
-or from `di-bag` when using explicit portable acquisition modes. Both entries
-expose the same methods and types. Each table links to explanations and examples
+Import `DiBag` and the error classes from `di-bag`. On Node, Bun, and Deno it
+detects native Promises itself; elsewhere see [portable mode](tutorial.md#portable-mode).
+`di-bag/node` is the explicit Node/Bun form. Both entries expose the same
+methods and types. Each table links to explanations and examples
 in the tutorial; the [server guide](server-integration.md) puts them into an application.
 
 ### Configure and describe services
@@ -124,7 +125,7 @@ The specialized error classes below are runtime exports from both `di-bag` and
 Given an existing application bag named `app`:
 
 ```ts
-import { DiBagCleanupError } from 'di-bag/node';
+import { DiBagCleanupError } from 'di-bag';
 
 try {
   await app.close();

@@ -37,7 +37,7 @@ to those arguments.
 
 ```js
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 // Existing application functions; neither depends on DI Bag.
 function priceInvoice(lines, rules) {
@@ -126,7 +126,7 @@ outgoing messages so the example can verify delivery and skipped recipients.
 
 ```js
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 class NotificationDispatcher {
   constructor(directory, transport, sender) {
@@ -226,7 +226,7 @@ models an async connection boundary without external credentials or network I/O.
 
 ```js
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const rows = [
   { day: '2026-09-09', channel: 'web', revenueCents: 12_500 },

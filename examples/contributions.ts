@@ -1,4 +1,4 @@
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 type Step = (text: string) => string;
 async function main() {

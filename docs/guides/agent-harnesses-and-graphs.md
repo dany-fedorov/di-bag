@@ -70,7 +70,7 @@ deliberate type errors checked by `@ts-expect-error`; do not execute that functi
 
 ```ts
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type State = { question: string; context: readonly string[]; answer?: string };
 type Node = (state: State) => Promise<State>;

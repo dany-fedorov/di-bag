@@ -8,7 +8,8 @@ creates services when they are first requested, and releases the resources that
 an application explicitly gives it. This guide starts with a small application
 and then introduces the APIs in the order in which most applications need them.
 
-Examples use `DiBag` from `di-bag/node`, the Node and Bun entry point. Complete
+Examples use `DiBag` from `di-bag`, which configures itself on Node, Bun, and
+Deno; for browsers and workers see [portable mode](#portable-mode). Complete
 examples are labeled **Standalone**. Shorter snippets illustrate individual
 operations or build on the declarations in their surrounding section.
 Run repository examples from the repository root with `bun run examples/<name>.ts`.
@@ -36,7 +37,7 @@ Start with `DiBag.createBuilder()`, add named factories, and finish the graph wi
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
   .register({
@@ -99,7 +100,7 @@ dependency type and decides where to await it.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
   .register({
@@ -134,7 +135,7 @@ selection and dependencies, and leaves everything else lazy.
 **Standalone example:**
 
 ```ts
-import { DiBag, DiBagStartupCancelledError } from 'di-bag/node';
+import { DiBag, DiBagStartupCancelledError } from 'di-bag';
 
 const builder = DiBag.createBuilder().register({
   url: () => 'https://example.com/settings.json',
@@ -201,7 +202,7 @@ successfully acquired by a registration.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
   .register({
@@ -307,7 +308,7 @@ The linked section explains the cause and the fix. Branch on `code` and
 **Continuation of the cache ownership example:**
 
 ```ts
-import { DiBagCleanupError } from 'di-bag/node';
+import { DiBagCleanupError } from 'di-bag';
 
 try {
   await app.close();
@@ -372,7 +373,7 @@ family-root services according to their lifetime.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const root = DiBag.createBuilder()
   .register({
@@ -397,7 +398,7 @@ There are three `createScope` forms:
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const parent = DiBag.createBuilder()
   .register({
@@ -450,7 +451,7 @@ shutdown. `fork()` keeps the graph and creates all instances afresh.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
   .register({
@@ -514,7 +515,7 @@ every read.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const root = DiBag.createBuilder()
   .register({
@@ -544,7 +545,7 @@ root-context capture:
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
   .register({
@@ -575,7 +576,7 @@ a module with `buildModule(keys)`, and any builder installs modules.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const reports = DiBag.createBuilder()
   .register({
@@ -667,7 +668,7 @@ when other files need the identity.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const clockKey = Symbol('clock');
 const clock = DiBag.token(clockKey).of<{ now(): number }>();
@@ -709,7 +710,7 @@ function already takes positional arguments.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 class Client {
   constructor(private readonly port: number) {}
@@ -759,7 +760,7 @@ by `fromFunction`, `fromClass`, and `fromPlugin`.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const portKey = Symbol('port');
 const hostKey = Symbol('host');
@@ -809,7 +810,7 @@ binding identities.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const clientKey = Symbol('client');
 const client = DiBag.token(clientKey).of<{ port: number }>();
@@ -848,7 +849,7 @@ ordered services without competing for one singular binding.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type Step = (text: string) => string;
 const stepKey = Symbol('pipeline step');
@@ -949,7 +950,7 @@ that description with a copied view of current acquisition attempts.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const service = DiBag.withMetadata(
   ({ clock }: { clock: { now(): number } }) => ({ read: () => clock.now() }),
@@ -1023,7 +1024,7 @@ Observers send telemetry without joining the service or cleanup control flow.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 const observed = DiBag.withConfiguration({
   observers: [
@@ -1077,7 +1078,7 @@ application code. DI Bag does not load a path or choose an export.
 **Standalone example:**
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 interface Handler {
   handle(text: string): string;
@@ -1126,9 +1127,12 @@ sandbox plugin code or continuously validate a mutable service.
 
 ## Portable mode
 
-Use `di-bag/node` in Node and Bun. It supplies native-Promise classification. Use
-the portable `di-bag` entry in Deno, browsers, or hosts where an application must
-choose classification policy.
+On Node, Bun, and Deno, `di-bag` classifies native Promises with the host's
+`util.types.isPromise`, loaded through `process.getBuiltinModule` at the first
+`build()` that needs it; `di-bag/node` configures the same classifier at import.
+Browsers, workers, and other hosts have no `process.getBuiltinModule`, so there
+`build()` throws `DI_BAG_CLASSIFIER_REQUIRED` for any automatic stage. The same
+applies where an application must choose its own classification policy.
 
 There are two portable strategies. Configure an application-local facade with a
 trusted native-Promise predicate:
@@ -1160,7 +1164,7 @@ const resource = DiBag.fromFactory(() => ({ id: 7 }), { acquisitionMode: 'raw' }
 const app = DiBag.createBuilder().register({ resource }).build();
 ```
 
-Without a configured predicate, graph completion checks the entire graph,
+Without a configured or host predicate, graph completion checks the entire graph,
 including private module providers, before factories
 run. Any stage still using `auto` is rejected.
 
@@ -1169,8 +1173,8 @@ The stage rules are precise:
 - `raw` exposes the exact return value without reading `then`.
 - `nativePromise` requires a Promise-shaped TypeScript output, observes native
   fulfillment, and still exposes the exact source Promise.
-- `auto` asks the configured predicate. The Node/Bun facade supplies its own
-  classifier.
+- `auto` asks the configured predicate, or the host's `util.types.isPromise`
+  when none is configured and the host exposes `process.getBuiltinModule`.
 - `fromFactory`, `fromFunction`, and `fromClass` select their result stage's
   `acquisitionMode`; omission defaults to `auto`.
 - `transformService` in `direct` mode independently selects its output acquisition
@@ -1195,7 +1199,7 @@ value whose payload is `undefined`.
 **Standalone example:**
 
 ```ts
-import { DiBag, type Presence } from 'di-bag/node';
+import { DiBag, type Presence } from 'di-bag';
 
 type Located<T> = {
   readonly value: Presence<T>;

@@ -1,4 +1,4 @@
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 interface Handler {
   handle(text: string): string;

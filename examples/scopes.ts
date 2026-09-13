@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 async function main() {
   const released: string[] = [];

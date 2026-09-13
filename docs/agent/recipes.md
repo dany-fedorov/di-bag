@@ -18,7 +18,7 @@ export type AuditSink = { write(lines: readonly string[]): Promise<void> };
 
 ```ts
 // src/features/audit/module.ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { Audit, AuditSink } from './contract.js';
 
 export const auditModule = DiBag.createBuilder()
@@ -36,7 +36,7 @@ export const auditModule = DiBag.createBuilder()
 
 ```ts
 // src/features/audit/check.ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { AuditSink } from './contract.js';
 import { auditModule } from './module.js';
 
@@ -73,7 +73,7 @@ each one.
 // src/features/audit/audit.test.ts
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { AuditSink } from './contract.js';
 import { auditModule } from './module.js';
 
@@ -126,7 +126,7 @@ export type Store = ReturnType<typeof createStore>;
 
 ```ts
 // src/features/billing/module.ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { Billing, PaymentGateway } from './contract.js';
 import { createStore, type Store } from './store.js';
 
@@ -146,7 +146,7 @@ export const billingModule = DiBag.createBuilder()
 
 ```ts
 // src/features/billing/check.ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { PaymentGateway } from './contract.js';
 import { billingModule } from './module.js';
 
@@ -163,7 +163,7 @@ Without the `gateway` fixture, `check.ts` fails on the `verifyGraph()` line:
 ```ts
 // src/features/billing/check.ts
 // expect-error: required service registrations are missing: gateway
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import { billingModule } from './module.js';
 
 DiBag.createBuilder()
@@ -209,7 +209,7 @@ export async function connect(url: string): Promise<Db> {
 
 ```ts
 // src/features/catalog/module.ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import { connect } from './client.js';
 import type { Catalog, Db, DbConfig } from './contract.js';
 
@@ -228,7 +228,7 @@ export const catalogModule = DiBag.createBuilder()
 
 ```ts
 // src/features/catalog/check.ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { DbConfig } from './contract.js';
 import { catalogModule } from './module.js';
 
@@ -249,7 +249,7 @@ installs one module per line and registers what the modules require.
 
 ```ts
 // src/app.ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { AuditSink } from './features/audit/contract.js';
 import { auditModule } from './features/audit/module.js';
 import type { PaymentGateway } from './features/billing/contract.js';

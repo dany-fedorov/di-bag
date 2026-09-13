@@ -38,7 +38,7 @@ its service or run its operation.
 
 ```ts
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type Role = 'support' | 'operator';
 type Command = () => string;
@@ -140,7 +140,7 @@ configuration the checkout service uses.
 
 ```ts
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 interface Pricing {
   shippingCents: number;
@@ -253,7 +253,7 @@ telemetry export must be observable while allowing application cleanup to finish
 
 ```ts
 import assert from 'node:assert/strict';
-import { DiBag, type ObserverFailure } from 'di-bag/node';
+import { DiBag, type ObserverFailure } from 'di-bag';
 
 interface ConnectionOptions { region: string }
 interface Reports { countOpenOrders(): number; close(): void }

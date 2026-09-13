@@ -10,11 +10,11 @@ Every compiler and runtime message: [docs/agent/errors.md](docs/agent/errors.md)
 
 ## Rules
 
-1. **Import from `di-bag/node` in Node and Bun:** `import { DiBag } from 'di-bag/node';`.
-   The bare `di-bag` entry is the portable core; there `build()` throws
+1. **Import from `di-bag`:** `import { DiBag } from 'di-bag';`. It configures
+   itself on Node, Bun, and Deno; `di-bag/node` is the same API in explicit form.
+   In browsers and workers `build()` throws
    [`DI_BAG_CLASSIFIER_REQUIRED`](docs/agent/errors.md#di-bag-classifier-required)
-   unless you configure `DiBag.withConfiguration({ runtime: { isNativePromise } })`
-   or give every factory an explicit `acquisitionMode`.
+   for factories without an explicit `acquisitionMode`.
 2. **A factory declares its dependencies in the type of its one object
    parameter; destructure it** (`({ clock }: { clock: Clock }) => ...`) or read
    `deps.clock` directly. The object is a Proxy that resolves each property when
@@ -76,7 +76,7 @@ export type GreetingConfig = { greeting: string };
 
 ```ts
 // src/features/greeting/module.ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { Greeter, GreetingConfig } from './contract.js';
 
 export const greetingModule = DiBag.createBuilder()
@@ -93,7 +93,7 @@ each requirement, and verify.
 
 ```ts
 // src/features/greeting/check.ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { GreetingConfig } from './contract.js';
 import { greetingModule } from './module.js';
 
