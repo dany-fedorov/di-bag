@@ -336,6 +336,9 @@ export type Resolved<T> = T extends object ? { [K in keyof T]: T[K] } : T;
 export type Intersect<U> = (U extends unknown ? (value: U) => void : never) extends (value: infer I) => void ? I : never;
 // Declaration emit cannot serialize an expanded property named by a unique symbol, so symbol keys
 // stay `Record` references, which print by name and carry only the key and service types.
-type SymbolExports<S, K> = [Extract<K, symbol>] extends [never] ? unknown : Intersect<K extends symbol ? Record<K, S[K & keyof S]> : never>;
+type SymbolExports<S, K> = Extract<Intersect<K extends symbol ? Record<K, S[K & keyof S]> : never>, object>;
 /** The services a sealed module exports, printed without the registrations they came from. */
-export type ExportedServices<S, K extends keyof S> = [K] extends [unknown] ? Resolved<Pick<S, Extract<K, string>>> & SymbolExports<S, K> : never;
+// Single-kind selections skip the intersection: installs compare this type on every call.
+export type ExportedServices<S, K extends keyof S> = [Extract<K, symbol>] extends [never] ? Resolved<Pick<S, K>>
+  : [Extract<K, string>] extends [never] ? SymbolExports<S, K>
+  : Resolved<Pick<S, Extract<K, string>>> & SymbolExports<S, K>;

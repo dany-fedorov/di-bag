@@ -4,7 +4,8 @@ import { feature } from '../module-erasure/feature';
 DiBag.createBuilder().installModule(feature).register({ external: () => 'x', api: DiBag.withLifetime(({ passthrough }: { passthrough: () => number }) => passthrough(), 'root') }).build();
 // diagnostic: root lifetime cannot capture scoped dependency: api -> external
 DiBag.createBuilder().installModule(feature.renameExport('passthrough', 'through')).register({ external: () => 'x', api: DiBag.withLifetime(({ through }: { through: () => number }) => through(), 'root') }).build();
-// The seal-time captive case (`buildModule` rejecting a private root over a private scoped service) needs plan 07
-// Task 4; see the `## Status` section of docs/superpowers/plans/2026-09-13-07-module-declaration-erasure.md.
+const helper = DiBag.createBuilder().register({ helper: () => 1, api: DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'root') });
+// diagnostic: root lifetime cannot capture scoped dependency: api -> helper
+helper.buildModule([]);
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().installModule(feature).register({ external: () => 'x' }).replace('service', () => ({ read: (_key: string) => 'text' }));

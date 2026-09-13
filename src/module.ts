@@ -1,8 +1,7 @@
 import { libraryError } from './errors';
 import type { BindingDescription, BindingGraph, BindingId, BindingKey, BindingRef, GraphDescription } from './runtime';
 import type { Registrations } from './registration';
-import type { NeedConstraint, PublicRegistrations, Renamed, RenamedConstraints, RenameKeys } from './module-types';
-import type { RenamedLifetimeProviders } from './lifetime-types';
+import type { NeedConstraint, PublicRegistrations, Renamed, RenamedConstraints, RenamedProviders, RenameKeys } from './module-types';
 import { readTokenKey } from './tokens';
 
 interface ModuleDescription {
@@ -52,11 +51,11 @@ class Module<P extends object, R extends object, C extends NeedConstraint = neve
    */
   renameExport<const Old extends string, const New extends string>(
     oldKey: Old & RenameKeys<P, Old, New>, newKey: New & RenameKeys<P, Old, New>,
-  ): Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedLifetimeProviders<D, Old, New>> {
+  ): Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedProviders<D, Old, New>> {
     const description = descriptions.get(this)!;
     if (typeof oldKey !== 'string' || !description.exports.has(oldKey)) throw libraryError('DI_BAG_INVALID_EXPORT', 'renameExport requires an existing export', { operation: 'renameExport', oldKey, newKey });
     if (typeof newKey !== 'string') throw libraryError('DI_BAG_INVALID_EXPORT', 'renameExport requires a string name', { operation: 'renameExport', oldKey, newKey });
-    if (oldKey as string === newKey) return this as unknown as Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedLifetimeProviders<D, Old, New>>;
+    if (oldKey as string === newKey) return this as unknown as Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedProviders<D, Old, New>>;
     if (description.exports.has(newKey)) throw libraryError('DI_BAG_INVALID_EXPORT', `duplicate export: ${newKey}`, { operation: 'renameExport', oldKey, newKey });
     const exports = new Map(description.exports);
     const localName = exports.get(oldKey)!;
