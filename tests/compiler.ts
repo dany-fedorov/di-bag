@@ -1,7 +1,7 @@
-import { resolve } from 'node:path';
+import { resolve, sep } from 'node:path';
 import ts from 'typescript';
 
-const options: ts.CompilerOptions = {
+export const options: ts.CompilerOptions = {
   strict: true,
   noEmit: true,
   skipLibCheck: true,
@@ -13,18 +13,54 @@ const options: ts.CompilerOptions = {
   types: [],
 };
 
-export function compilerProgram(path: string, source?: string): ts.Program {
-  const host = ts.createCompilerHost(options);
-  const originalGetSourceFile = host.getSourceFile.bind(host);
-  host.getSourceFile = (fileName, languageVersion, onError, shouldCreateNewSourceFile) =>
-    fileName === path && source !== undefined
-      ? ts.createSourceFile(fileName, source, languageVersion, true)
-      : originalGetSourceFile(fileName, languageVersion, onError, shouldCreateNewSourceFile);
-  return ts.createProgram([path], options, host);
+// One host per test process: on-disk files parse once, virtual sources replace their path.
+const sourceFiles = new Map<string, ts.SourceFile>();
+const virtualSources = new Map<string, string>();
+let sharedHost: ts.CompilerHost | undefined;
+let previousProgram: ts.Program | undefined;
+// cwd-relative like scalePath: __dirname is undefined when Node loads this module for the scripts.
+const librarySources = resolve('src') + sep;
+
+function host(): ts.CompilerHost {
+  if (sharedHost) return sharedHost;
+  const created = ts.createCompilerHost(options);
+  const read = created.getSourceFile.bind(created);
+  created.getSourceFile = (fileName, languageVersion, onError, shouldCreateNewSourceFile) => {
+    const virtual = virtualSources.get(fileName);
+    if (virtual !== undefined) return ts.createSourceFile(fileName, virtual, languageVersion, true);
+    const cached = sourceFiles.get(fileName);
+    if (cached && !shouldCreateNewSourceFile) return cached;
+    const file = read(fileName, languageVersion, onError, shouldCreateNewSourceFile);
+    if (file) sourceFiles.set(fileName, file);
+    return file;
+  };
+  return sharedHost = created;
 }
 
-export function diagnostics(path: string, source?: string) {
-  return ts.getPreEmitDiagnostics(compilerProgram(path, source));
+function program(roots: readonly string[]): ts.Program {
+  return previousProgram = ts.createProgram([...roots], options, host(), previousProgram);
+}
+
+export function compilerProgram(path: string, source?: string): ts.Program {
+  if (source === undefined) virtualSources.delete(path); else virtualSources.set(path, source);
+  return program([path]);
+}
+
+// The library itself is checked by `npm run typecheck`; fixtures only need their own files.
+function fixtureFiles(compiled: ts.Program): readonly ts.SourceFile[] {
+  return compiled.getSourceFiles().filter(file => !file.isDeclarationFile && !file.fileName.startsWith(librarySources));
+}
+
+export function diagnostics(path: string, source?: string): readonly ts.Diagnostic[] {
+  const compiled = compilerProgram(path, source);
+  return fixtureFiles(compiled).flatMap(file => ts.getPreEmitDiagnostics(compiled, file));
+}
+
+/** Compile many independent fixtures in one program; each path keeps only its own file's diagnostics. */
+export function diagnosticsByFile(paths: readonly string[]): Map<string, readonly ts.Diagnostic[]> {
+  for (const path of paths) virtualSources.delete(path);
+  const compiled = program(paths);
+  return new Map(paths.map(path => [path, ts.getPreEmitDiagnostics(compiled, compiled.getSourceFile(path))]));
 }
 
 export function describeDiagnostic(error: ts.Diagnostic) {
