@@ -185,6 +185,11 @@ test('nested modules forward requirements and lexical lifetimes across levels', 
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('module erasure fixtures keep exact exports, requirements, and carrier obligations', () => {
+  expect(diagnostics(resolve(__dirname, 'types/module-erasure/consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('named modules preserve contracts across a file boundary', () => {
   expect(diagnostics(resolve(__dirname, 'types/modules/consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
