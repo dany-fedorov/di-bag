@@ -8,6 +8,7 @@ import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './
 /**
  * Where a sealed lifetime walk leaves its module: an export or external name the installing
  * host resolves, a typed-token collection the host completes, or a private scoped dead end.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
  */
 export type Reach =
   | { readonly kind: 'export' | 'external'; readonly key: PropertyKey }
@@ -18,6 +19,7 @@ export type Reach =
  * `root-reach` names a private strict root, `export-reach` an export the host checks as a root or
  * walks through as a transient or alias, and `contribution-reach` a sealed contribution group
  * that is checked as a root or walked by collecting roots. Each record carries one reach.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
  */
 export type LifetimeObligation =
   | { readonly kind: 'root-reach'; readonly root: PropertyKey; readonly reach: Reach }
@@ -174,7 +176,10 @@ type ObligationCaptives<R extends Registrations, C, O = C> =
   : O extends { readonly kind: 'contribution-reach'; readonly policy: 'root'; readonly reach: infer X } ? Captive<ContributionSite, HostFollow<R, C, X, never>>
   : never;
 type Captives<R extends Registrations, C> = RootCaptives<R, C, keyof R> | ContributionRootCaptives<R, C> | ObligationCaptives<R, C>;
-/** Reject strict root providers that transitively capture scoped dependencies. */
+/**
+ * Reject strict root providers that transitively capture scoped dependencies.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+ */
 export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
   : [Captives<R, C>] extends [never] ? unknown
     : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R>
@@ -183,7 +188,10 @@ export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> 
 // Inherited roots construct in their already-validated ancestor graph. Only
 // roots newly introduced by this scope can capture its overridden dependencies.
 type OverrideCaptives<R extends Registrations, O extends Registrations, C> = RootCaptives<R, C, keyof O & keyof R>;
-/** Reject root providers introduced by a scope override when they capture scoped dependencies. */
+/**
+ * Reject root providers introduced by a scope override when they capture scoped dependencies.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
+ */
 export type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, C = never> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
   : [OverrideCaptives<R, O, C>] extends [never] ? unknown
     : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}`, { readonly captives: OverrideCaptives<R, O, C> }>;

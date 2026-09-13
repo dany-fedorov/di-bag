@@ -10,7 +10,7 @@ type RegistrationsFromEntries<E extends Entry> = {
 };
 ```
 
-Defined in: [types.ts:29](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L29)
+Defined in: [types.ts:38](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L38)
 
 Reconstruct a registration map from a builder's retained entry union.
 
@@ -19,3 +19,7 @@ Reconstruct a registration map from a builder's retained entry union.
 | Type Parameter | Description |
 | ------ | ------ |
 | `E` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types

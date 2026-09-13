@@ -2,14 +2,20 @@ import { libraryTypeError } from './errors';
 import type { AcquisitionMetadataPresence } from './inspection';
 import type { Lifetime } from './lifetime';
 
-/** Identity shared by lifecycle events for one owning scope. */
+/**
+ * Identity shared by lifecycle events for one owning scope.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
+ */
 export interface ScopeEventFields {
   /** The scope that owns the transition. */
   readonly scopeId: symbol;
   /** The tracked parent, present only for child-scope events. */
   readonly parentScopeId?: symbol;
 }
-/** Copied binding and acquisition details carried by acquisition and cleanup events. */
+/**
+ * Copied binding and acquisition details carried by acquisition and cleanup events.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
+ */
 export interface AcquisitionEventFields {
   readonly scopeId: symbol;
   readonly bindingId: symbol;
@@ -22,6 +28,7 @@ export interface AcquisitionEventFields {
 /**
  * A frozen discriminated lifecycle transition emitted after the corresponding state change.
  * Narrow on `kind` to access failure, cleanup outcome, or disposal-index fields.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
  */
 export type LifecycleEvent =
   | (ScopeEventFields & { readonly kind: 'scope-opened' })
@@ -34,16 +41,28 @@ export type LifecycleEvent =
   | (AcquisitionEventFields & { readonly kind: 'acquisition-failed'; readonly error: unknown })
   | (AcquisitionEventFields & { readonly kind: 'cleanup-failed'; readonly error: unknown; readonly disposalSequence: number })
   | (AcquisitionEventFields & { readonly kind: 'cleanup-completed'; readonly outcome: 'success' | 'failure' });
-/** A failure thrown or rejected by an observer together with its original event. */
+/**
+ * A failure thrown or rejected by an observer together with its original event.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
+ */
 export interface ObserverFailure {
   readonly error: unknown;
   readonly event: LifecycleEvent;
 }
-/** An asynchronous, non-gating callback for frozen lifecycle events. */
+/**
+ * An asynchronous, non-gating callback for frozen lifecycle events.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
+ */
 export type ObserverCallback = (this: void, event: LifecycleEvent) => unknown;
-/** Reports failures from one observer's event callback; its own failures are consumed. */
+/**
+ * Reports failures from one observer's event callback; its own failures are consumed.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
+ */
 export type ObserverErrorCallback = (this: void, failure: ObserverFailure) => unknown;
-/** Both callbacks required by {@link DiBagApi.withConfiguration}. */
+/**
+ * Both callbacks required by {@link DiBagApi.withConfiguration}.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
+ */
 export interface ObserverOptions {
   /** Receives events in transition and observer-registration order on a microtask queue. */
   readonly onEvent: ObserverCallback;

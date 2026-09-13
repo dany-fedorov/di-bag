@@ -11,7 +11,7 @@ type CompositionArguments<A extends readonly unknown[], P extends readonly unkno
 }>;
 ```
 
-Defined in: [composition.ts:18](https://github.com/dany-fedorov/di-bag/blob/main/src/composition.ts#L18)
+Defined in: [composition.ts:21](https://github.com/dany-fedorov/di-bag/blob/main/src/composition.ts#L21)
 
 Compile-time admission that checks supplied token values against a callable's parameter tuple.
 
@@ -21,3 +21,7 @@ Compile-time admission that checks supplied token values against a callable's pa
 | ------ | ------ |
 | `A` | - |
 | `P` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#adapt-classes-and-positional-functions

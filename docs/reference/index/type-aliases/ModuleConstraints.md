@@ -10,7 +10,7 @@ type ModuleConstraints<R extends Registrations, Public extends keyof R> = [R] ex
 }[keyof R & (string | symbol)] : never;
 ```
 
-Defined in: [module-types.ts:76](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L76)
+Defined in: [module-types.ts:79](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L79)
 
 Retained requirements of a module's public and private registrations.
 
@@ -20,3 +20,7 @@ Retained requirements of a module's public and private registrations.
 | ------ | ------ |
 | `R` | - |
 | `Public` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections

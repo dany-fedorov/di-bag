@@ -4,9 +4,13 @@
 
 # Interface: PluginOptions\<M *extends* [`PluginAcquisitionMode`](../type-aliases/PluginAcquisitionMode.md), V\>
 
-Defined in: [plugins.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L16)
+Defined in: [plugins.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L25)
 
 Validation and acquisition choices for [DiBagApi.fromPlugin](DiBagApi.md#fromplugin).
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
 
 ## Type Parameters
 
@@ -23,7 +27,7 @@ Validation and acquisition choices for [DiBagApi.fromPlugin](DiBagApi.md#fromplu
 readonly acquisitionMode: M;
 ```
 
-Defined in: [plugins.ts:18](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L18)
+Defined in: [plugins.ts:27](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L27)
 
 Preserve the exact result with `raw`, or await a genuine native Promise with `nativePromise`.
 
@@ -35,6 +39,6 @@ Preserve the exact result with `raw`, or await a genuine native Promise with `na
 readonly validate: PluginOutputValidator<V>;
 ```
 
-Defined in: [plugins.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L20)
+Defined in: [plugins.ts:29](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L29)
 
 Must synchronously return exactly `true` for acceptable output values.

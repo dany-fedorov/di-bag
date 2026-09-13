@@ -4,9 +4,13 @@
 
 # Interface: ScopeEventFields
 
-Defined in: [observers.ts:6](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L6)
+Defined in: [observers.ts:9](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L9)
 
 Identity shared by lifecycle events for one owning scope.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
 
 ## Properties
 
@@ -16,7 +20,7 @@ Identity shared by lifecycle events for one owning scope.
 readonly parentScopeId?: symbol;
 ```
 
-Defined in: [observers.ts:10](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L10)
+Defined in: [observers.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L13)
 
 The tracked parent, present only for child-scope events.
 
@@ -28,6 +32,6 @@ The tracked parent, present only for child-scope events.
 readonly scopeId: symbol;
 ```
 
-Defined in: [observers.ts:8](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L8)
+Defined in: [observers.ts:11](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L11)
 
 The scope that owns the transition.

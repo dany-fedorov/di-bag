@@ -8,7 +8,7 @@
 type TokenMember<R extends Registrations, T> = ValidToken<T> extends true ? [WrongToken<T, R> | MissingToken<T, R>] extends [never] ? unknown : Unsatisfied<'token must match an existing binding contract', {}> : Unsatisfied<'token must be an individually known genuine handle', {}>;
 ```
 
-Defined in: [token-types.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L56)
+Defined in: [token-types.ts:68](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L68)
 
 Admit a genuine token only when it exactly matches an existing binding contract.
 
@@ -18,3 +18,7 @@ Admit a genuine token only when it exactly matches an existing binding contract.
 | ------ | ------ |
 | `R` | - |
 | `T` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection

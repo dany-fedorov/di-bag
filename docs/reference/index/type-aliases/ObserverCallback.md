@@ -8,7 +8,7 @@
 type ObserverCallback = (this: void, event: LifecycleEvent) => unknown;
 ```
 
-Defined in: [observers.ts:43](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L43)
+Defined in: [observers.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L56)
 
 An asynchronous, non-gating callback for frozen lifecycle events.
 
@@ -18,3 +18,7 @@ An asynchronous, non-gating callback for frozen lifecycle events.
 | ------ | ------ |
 | `this` | - |
 | `event` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions

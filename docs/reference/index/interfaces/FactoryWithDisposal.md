@@ -4,9 +4,13 @@
 
 # Interface: FactoryWithDisposal\<F *extends* `Factory`\>
 
-Defined in: [registration.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/registration.ts#L12)
+Defined in: [registration.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/registration.ts#L15)
 
 A nominal registration pairing a factory with fulfilled-value cleanup.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-cleanup-with-withdisposal
 
 ## Type Parameters
 
@@ -22,4 +26,4 @@ A nominal registration pairing a factory with fulfilled-value cleanup.
 readonly create: F;
 ```
 
-Defined in: [registration.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/registration.ts#L14)
+Defined in: [registration.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/registration.ts#L17)

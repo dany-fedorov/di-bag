@@ -8,7 +8,7 @@
 type ProviderNamedDependencies<R extends Registration> = ProviderBase extends R ? unknown : Parameters<ProviderFactory<R>> extends [] ? Record<never, never> : Exclude<Parameters<ProviderFactory<R>>[0], undefined>;
 ```
 
-Defined in: [provider.ts:69](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L69)
+Defined in: [provider.ts:82](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L82)
 
 Extract the registration's named dependency object.
 
@@ -17,3 +17,7 @@ Extract the registration's named dependency object.
 | Type Parameter | Description |
 | ------ | ------ |
 | `R` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections

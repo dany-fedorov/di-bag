@@ -10,7 +10,7 @@ type AliasRegistration<R extends Registrations, D, T> = Provider<(this: void, de
 }, unknown>;
 ```
 
-Defined in: [alias-types.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/alias-types.ts#L22)
+Defined in: [alias-types.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/alias-types.ts#L28)
 
 A provider contract that forwards a destination to a canonical target acquisition.
 
@@ -21,3 +21,7 @@ A provider contract that forwards a destination to a canonical target acquisitio
 | `R` | - |
 | `D` | - |
 | `T` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#give-a-dependency-another-lookup-name

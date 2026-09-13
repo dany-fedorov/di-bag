@@ -4,12 +4,16 @@
 
 # Interface: Bag\<R *extends* `Registrations`, C *extends* `NeedConstraint` = `never`\>
 
-Defined in: [di-bag.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L72)
+Defined in: [di-bag.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L73)
 
 A resolving container with lazy acquisition, caching, and independent resource ownership.
 
 Create bags through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) followed by [Builder.build](Builder.md#build) or
 [Builder.buildAndStart](Builder.md#buildandstart); the class is exported as a type and has no public constructor.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/agent/api-card.html#bag
 
 ## Type Parameters
 
@@ -26,14 +30,14 @@ Create bags through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) followed
 close(options?: CloseOptions): Promise<void>;
 ```
 
-Defined in: [di-bag.ts:262](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L262)
+Defined in: [di-bag.ts:319](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L319)
 
 Close this bag, drain in-flight work, and dispose owned resources once.
 Dependents are disposed before dependencies; remaining independent acquisitions use
 reverse acquisition order. Without options the promise waits for cleanup however long it
 takes, and repeated calls return the same promise. With `timeoutMs` or `signal`, cleanup
 starts the same way but the returned promise stops waiting when either fires; scopes and
-forks accept the same options.
+forks accept the same options. Close every scope and fork you create; a parent closes its live scopes, never forks.
 
 #### Parameters
 
@@ -55,8 +59,6 @@ naming unfinished disposers in `details.pending`; `DI_BAG_INVALID_CLOSE` for mal
 #### Example
 
 ```ts
-import { DiBag } from 'di-bag/node';
-
 const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
 await bag.close({ timeoutMs: 10_000, signal: AbortSignal.timeout(15_000) });
 ```
@@ -71,7 +73,7 @@ await bag.close({ timeoutMs: 10_000, signal: AbortSignal.timeout(15_000) });
 createScope<const S extends readonly unknown[]>(options: ScopeOptions<R, S>): Bag<ScopedAliases<R, R, S>, C>;
 ```
 
-Defined in: [di-bag.ts:138](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L138)
+Defined in: [di-bag.ts:177](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L177)
 
 Create a tracked child that borrows selected parent acquisitions.
 
@@ -91,13 +93,18 @@ Create a tracked child that borrows selected parent acquisitions.
 
 A child owned by this bag; closing the parent closes the child first.
 
+##### Throws
+
+`DI_BAG_INVALID_SCOPE` for a malformed or transient share selection; `DI_BAG_INVALID_TOKEN` for a bad token;
+`DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`.
+
 #### Call Signature
 
 ```ts
 createScope<const K extends readonly unknown[], O extends OverrideFactoryContext<R, K, O>, const S extends readonly unknown[] = readonly []>(keys: K & Selection<R, K, 'createScope'>, overrides: O & object & Record<SelectionKey<K[number]>, Registration> & Overrides<R, SelectedRegistrations<K, O>> & CheckDependencyCompatibility<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckDependencyCompleteness<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CompleteConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedScopeLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>>, NoInfer<SelectedRegistrations<K, O>>, WithoutExportObligations<C, SelectionKey<K[number]>>>, options?: ScopeOptions<R, S> & DisjointScopeSelection<K, S>): Bag<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>, WithoutExportObligations<C, SelectionKey<K[number]>>>;
 ```
 
-Defined in: [di-bag.ts:147](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L147)
+Defined in: [di-bag.ts:187](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L187)
 
 Create a tracked child with selected replacements and optional parent sharing.
 
@@ -123,7 +130,8 @@ A child with fresh scoped acquisitions and ownership for unshared services.
 
 ##### Throws
 
-If the runtime selections, overrides, or sharing options are invalid.
+`DI_BAG_INVALID_SCOPE` for invalid selections, overrides, or sharing; `DI_BAG_INVALID_TOKEN` or `DI_BAG_INVALID_REGISTRATION`
+for malformed input; `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_CLASSIFIER_REQUIRED` as for [Builder.build](Builder.md#build).
 
 #### Call Signature
 
@@ -131,13 +139,27 @@ If the runtime selections, overrides, or sharing options are invalid.
 createScope(): Bag<UnsharedAliases<R>, C>;
 ```
 
-Defined in: [di-bag.ts:166](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L166)
+Defined in: [di-bag.ts:215](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L215)
 
 Create a tracked child with the same graph and fresh scoped acquisitions.
+Close every scope you create, typically one per request; closing the parent closes its live scopes first.
 
 ##### Returns
 
 A child that is closed before its parent finishes closing.
+
+##### Throws
+
+`DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`.
+
+##### Example
+
+```ts
+const app = DiBag.createBuilder().register({ requestId: () => Math.random() }).build();
+const request = app.createScope();
+const id: number = request.resolve('requestId');
+await request.close();
+```
 
 ***
 
@@ -149,7 +171,7 @@ A child that is closed before its parent finishes closing.
 fork(this: Bag<R, C> & CheckedLifetimes<UnsharedAliases<R>, C>): Bag<UnsharedAliases<R>, C>;
 ```
 
-Defined in: [di-bag.ts:177](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L177)
+Defined in: [di-bag.ts:227](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L227)
 
 Create an independent bag with the same graph and fresh instances.
 
@@ -163,15 +185,20 @@ Create an independent bag with the same graph and fresh instances.
 
 A new ownership family that must be closed separately.
 
+##### Throws
+
+`DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`.
+
 #### Call Signature
 
 ```ts
 fork<const K extends readonly unknown[], O extends OverrideFactoryContext<R, K, O>>(keys: K & Selection<R, K>, overrides: O & object & Record<SelectionKey<K[number]>, Registration> & Overrides<R, SelectedRegistrations<K, O>> & CheckDependencyCompatibility<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckDependencyCompleteness<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CompleteConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedLifetimes<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, WithoutExportObligations<C, SelectionKey<K[number]>>>): Bag<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, WithoutExportObligations<C, SelectionKey<K[number]>>>;
 ```
 
-Defined in: [di-bag.ts:188](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L188)
+Defined in: [di-bag.ts:247](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L247)
 
-Create an independent bag with selected replacements.
+Create an independent bag with selected replacements, the way tests substitute dependencies.
+Each override must satisfy the original contract; close the fork, since its parent does not.
 
 ##### Type Parameters
 
@@ -193,7 +220,17 @@ A fresh ownership family whose graph uses the checked replacements.
 
 ##### Throws
 
-If a selected key is absent or lacks an own override.
+`DI_BAG_INVALID_OVERRIDE` for an absent key or a missing own override; `DI_BAG_INVALID_TOKEN` or `DI_BAG_INVALID_REGISTRATION`
+for malformed input; `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_CLASSIFIER_REQUIRED` as for [Builder.build](Builder.md#build).
+
+##### Example
+
+```ts
+type Clock = { now(): number };
+const app = DiBag.createBuilder().register({ clock: (): Clock => ({ now: () => Date.now() }) }).build();
+const test = app.fork(['clock'], { clock: (): Clock => ({ now: () => 0 }) });
+await test.close();
+```
 
 ***
 
@@ -203,7 +240,7 @@ If a selected key is absent or lacks an own override.
 inspect<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): RegistrationSnapshot<ProviderRegistrationMetadata<R[SelectionKey<K> & keyof R]>, ProviderAcquisitionMetadata<R[SelectionKey<K> & keyof R]>>;
 ```
 
-Defined in: [di-bag.ts:120](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L120)
+Defined in: [di-bag.ts:152](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L152)
 
 Inspect static metadata and copied acquisition state without resolving a service.
 
@@ -223,6 +260,17 @@ Inspect static metadata and copied acquisition state without resolving a service
 
 A frozen point-in-time snapshot. Application-owned metadata payloads are not frozen.
 
+#### Throws
+
+`DI_BAG_INVALID_TOKEN` or `DI_BAG_MISSING_REGISTRATION` for a bad selection; `DI_BAG_CYCLE` for an alias cycle.
+
+#### Example
+
+```ts
+const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
+const acquired = bag.inspect('greeting').acquisitions.length;
+```
+
 ***
 
 ### inspectAll()
@@ -231,7 +279,7 @@ A frozen point-in-time snapshot. Application-owned metadata payloads are not fro
 inspectAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, C>, ...invalid: [T] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[];
 ```
 
-Defined in: [di-bag.ts:111](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L111)
+Defined in: [di-bag.ts:137](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L137)
 
 Inspect every contribution for a token without running its factories.
 
@@ -252,6 +300,19 @@ Inspect every contribution for a token without running its factories.
 
 Frozen snapshots in contribution order.
 
+#### Throws
+
+`DI_BAG_INVALID_TOKEN` for a bad token.
+
+#### Example
+
+```ts
+const toolsKey = Symbol('tools');
+const tools = DiBag.token(toolsKey).of<string>();
+const bag = DiBag.createBuilder().contribute(tools, () => 'search').build();
+const labels = bag.inspectAll(tools).map(snapshot => snapshot.label);
+```
+
 ***
 
 ### inspectGraph()
@@ -260,7 +321,7 @@ Frozen snapshots in contribution order.
 inspectGraph(): GraphSnapshot;
 ```
 
-Defined in: [di-bag.ts:131](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L131)
+Defined in: [di-bag.ts:168](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L168)
 
 Describe every binding this bag can resolve and the dependency edges observed so far.
 Nothing is acquired. Named dependencies declared on factory parameters are not visible
@@ -270,6 +331,13 @@ until the factory runs; the static graph tool reports them from source.
 
 A frozen point-in-time snapshot; application-owned metadata payloads are not frozen.
 
+#### Example
+
+```ts
+const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
+const labels = bag.inspectGraph().bindings.map(binding => binding.label);
+```
+
 ***
 
 ### resolve()
@@ -278,11 +346,12 @@ A frozen point-in-time snapshot; application-owned metadata payloads are not fro
 resolve<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): ServicesOf<R>[SelectionKey<K> & keyof R];
 ```
 
-Defined in: [di-bag.ts:91](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L91)
+Defined in: [di-bag.ts:101](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L101)
 
 Resolve a named or typed-token service, acquiring it lazily when needed.
 Scoped and root services are cached according to their lifetime; transient services
 create a new acquisition for each call. Promise-valued services keep their identity.
+An async factory's service is its Promise; nothing is awaited for you.
 
 #### Type Parameters
 
@@ -302,7 +371,17 @@ The service exposed by the selected registration.
 
 #### Throws
 
-If the bag is closing, the token is invalid, acquisition fails, or a runtime cycle is found.
+`DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_INVALID_TOKEN` or `DI_BAG_MISSING_REGISTRATION` for a bad selection;
+during acquisition `DI_BAG_MISSING_DEPENDENCY`, `DI_BAG_CYCLE`, `DI_BAG_LIFETIME_DEPENDENCY`, `DI_BAG_INVALID_DEPENDENCY_ACCESS`,
+`DI_BAG_STRUCTURAL_THENABLE`, `DI_BAG_INVALID_CLASSIFIER_RESULT`, `DI_BAG_INVALID_METADATA`, `DI_BAG_PLUGIN_VALIDATION`,
+or the factory's own error.
+
+#### Example
+
+```ts
+const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
+const greeting: string = bag.resolve('greeting');
+```
 
 ***
 
@@ -312,7 +391,7 @@ If the bag is closing, the token is invalid, acquisition fails, or a runtime cyc
 resolveAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, C>, ...invalid: [T] extends [never] ? [never] : []): ReadonlyArray<TokenService<T>>;
 ```
 
-Defined in: [di-bag.ts:102](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L102)
+Defined in: [di-bag.ts:120](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L120)
 
 Resolve every contribution for a typed token in declaration and installation order.
 
@@ -335,4 +414,14 @@ A fresh frozen array; an unpopulated collection returns an empty array.
 
 #### Throws
 
-If the bag is closing, the token is invalid, or a contribution fails.
+`DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_INVALID_TOKEN` for a bad token;
+a contribution's acquisition errors as listed for [Bag.resolve](#resolve).
+
+#### Example
+
+```ts
+const toolsKey = Symbol('tools');
+const tools = DiBag.token(toolsKey).of<string>();
+const bag = DiBag.createBuilder().contribute(tools, () => 'search').contribute(tools, () => 'fetch').build();
+const names: readonly string[] = bag.resolveAll(tools);
+```

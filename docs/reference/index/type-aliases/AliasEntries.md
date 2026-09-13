@@ -8,7 +8,7 @@
 type AliasEntries<R extends Registrations, D, T> = Record<SelectionKey<D>, AliasRegistration<R, D, T>>;
 ```
 
-Defined in: [alias-types.ts:30](https://github.com/dany-fedorov/di-bag/blob/main/src/alias-types.ts#L30)
+Defined in: [alias-types.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/alias-types.ts#L39)
 
 The single registration-map entry introduced by an alias operation.
 
@@ -19,3 +19,7 @@ The single registration-map entry introduced by an alias operation.
 | `R` | - |
 | `D` | - |
 | `T` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#give-a-dependency-another-lookup-name

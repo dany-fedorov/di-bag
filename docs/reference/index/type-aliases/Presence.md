@@ -13,7 +13,7 @@ type Presence<T> = {
 };
 ```
 
-Defined in: [inspection.ts:5](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L5)
+Defined in: [inspection.ts:8](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L8)
 
 Structural optional presence; payloads are application-owned and not frozen.
 
@@ -22,3 +22,7 @@ Structural optional presence; payloads are application-owned and not frozen.
 | Type Parameter | Description |
 | ------ | ------ |
 | `T` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving

@@ -4,10 +4,14 @@
 
 # Interface: TokenBase
 
-Defined in: [tokens.ts:9](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L9)
+Defined in: [tokens.ts:10](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L10)
 
 The common type-only base for genuine typed-token handles.
 Create tokens through `DiBag.token`; fabricated structural values are not authenticated.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
 
 ## Extended by
 

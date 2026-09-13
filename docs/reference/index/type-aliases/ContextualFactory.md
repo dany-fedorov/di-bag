@@ -8,7 +8,7 @@
 type ContextualFactory<F extends ContextFactory> = (this: void, deps: Parameters<F> extends [] ? {} : Parameters<F>[0]) => ReturnType<F>;
 ```
 
-Defined in: [acquisition-context.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L17)
+Defined in: [acquisition-context.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L23)
 
 The named-dependency factory contract retained by an acquisition-context callback.
 
@@ -24,3 +24,7 @@ The named-dependency factory contract retained by an acquisition-context callbac
 | ------ | ------ |
 | `this` | - |
 | `deps` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively

@@ -7,11 +7,17 @@ import type { Module } from './module';
 import type { RegistrationConstraints, PublicProvider, NeedConstraint, CheckedConstraints } from './module-types';
 
 declare const contributionSite: unique symbol;
-/** Each union member retains one independently checked provider and its group. */
+/**
+ * Each union member retains one independently checked provider and its group.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
+ */
 export type Contribution<T extends TokenBase = TokenBase, V extends Registration = Registration> = {
   readonly kind: 'contribution'; readonly token: T; readonly registration: V;
 };
-/** The erased contribution contract retained by checked builders and modules. */
+/**
+ * The erased contribution contract retained by checked builders and modules.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
+ */
 export type ContributionConstraint = Contribution<TokenBase, Registration>;
 type Groups<C> = Extract<C, ContributionConstraint>;
 type Same<A, B> = [A] extends [B] ? [B] extends [A] ? true : false : false;
@@ -42,15 +48,22 @@ export type CompleteContributions<C, A extends Registrations> = [MissingProvider
  * Retain a contribution's projected provider and its checked needs when its builder seals.
  * Lifetime reach is retained separately as compact obligations. A contribution retained
  * from an inner installation is already projected and has no needs left to re-scope.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
  */
 export type ModuleContributionConstraints<C, R extends Registrations, P extends keyof R> = C extends ContributionConstraint
   ? Contribution<C['token'], PublicProvider<C['registration']>> | RegistrationConstraints<C['registration'], R, P>
   : never;
-/** Project a module's typed-token collections as readonly service arrays. */
+/**
+ * Project a module's typed-token collections as readonly service arrays.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
+ */
 export type ModuleContributions<M> = M extends Module<infer _P, infer _R, infer C, infer _D>
   ? Readonly<{ [T in Groups<C>['token'] as TokenKey<T>]: ReadonlyArray<TokenService<T>> }> : never;
 
-/** The checked generic `contribute` callable exposed by a builder. */
+/**
+ * The checked generic `contribute` callable exposed by a builder.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
+ */
 export type BuilderContribute<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends Registration>(
   token: T & TokenTupleAdmission<readonly [T]>,
   registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>,

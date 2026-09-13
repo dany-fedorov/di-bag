@@ -8,7 +8,7 @@
 type ProviderRegistrationMetadata<R> = R extends infer T & {} ? MetadataOf<T> : unknown;
 ```
 
-Defined in: [provider.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L72)
+Defined in: [provider.ts:88](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L88)
 
 Extract static metadata attached to a registration.
 
@@ -17,3 +17,7 @@ Extract static metadata attached to a registration.
 | Type Parameter | Description |
 | ------ | ------ |
 | `R` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections

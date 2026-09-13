@@ -8,7 +8,7 @@
 type TokenKey<T> = T extends infer U & {} ? U extends Token<infer K, infer _S> ? K : never : never;
 ```
 
-Defined in: [tokens.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L23)
+Defined in: [tokens.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L28)
 
 Extract the canonical unique-symbol key from a typed token.
 
@@ -17,3 +17,7 @@ Extract the canonical unique-symbol key from a typed token.
 | Type Parameter | Description |
 | ------ | ------ |
 | `T` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection

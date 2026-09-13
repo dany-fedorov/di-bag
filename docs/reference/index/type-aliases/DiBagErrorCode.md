@@ -8,6 +8,10 @@
 type DiBagErrorCode = `DI_BAG_${string}`;
 ```
 
-Defined in: [errors.ts:2](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L2)
+Defined in: [errors.ts:5](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L5)
 
 Stable category for a diagnostic created by DI Bag itself.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/agent/errors.html#runtime-codes

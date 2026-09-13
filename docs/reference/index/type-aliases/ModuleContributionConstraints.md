@@ -8,7 +8,7 @@
 type ModuleContributionConstraints<C, R extends Registrations, P extends keyof R> = C extends ContributionConstraint ? Contribution<C['token'], PublicProvider<C['registration']>> | RegistrationConstraints<C['registration'], R, P> : never;
 ```
 
-Defined in: [contribution-types.ts:46](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L46)
+Defined in: [contribution-types.ts:53](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L53)
 
 Retain a contribution's projected provider and its checked needs when its builder seals.
 Lifetime reach is retained separately as compact obligations. A contribution retained
@@ -21,3 +21,7 @@ from an inner installation is already projected and has no needs left to re-scop
 | `C` | - |
 | `R` | - |
 | `P` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection

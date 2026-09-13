@@ -8,6 +8,10 @@
 type Lifetime = 'root' | 'scoped' | 'transient';
 ```
 
-Defined in: [lifetime.ts:10](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime.ts#L10)
+Defined in: [lifetime.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime.ts#L13)
 
 Cache at the ownership-family root, once per scope, or once per resolution.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#choose-root-scoped-or-transient-caching

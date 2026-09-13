@@ -4,9 +4,13 @@
 
 # Interface: DiBagApi
 
-Defined in: [di-bag.ts:482](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L482)
+Defined in: [di-bag.ts:602](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L602)
 
 The immutable public entry surface used by [DiBag](../variables/DiBag.md) and derived facades.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/agent/api-card.html#dibag-facade
 
 ## Properties
 
@@ -16,9 +20,9 @@ The immutable public entry surface used by [DiBag](../variables/DiBag.md) and de
 all: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => CollectionDependency<T>;
 ```
 
-Defined in: [di-bag.ts:494](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L494)
+Defined in: [di-bag.ts:667](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L667)
 
-Create a positional dependency containing ordered collection contributions.
+Create a positional dependency containing every contribution to a collection token, in order.
 
 Describe a positional dependency containing every contribution for a token.
 
@@ -39,6 +43,18 @@ Describe a positional dependency containing every contribution for a token.
 
 An immutable reference that supplies a fresh frozen array, including when empty.
 
+#### Throws
+
+`DI_BAG_INVALID_TOKEN` for a value that is not a genuine token.
+
+#### Example
+
+```ts
+const toolsKey = Symbol('tools');
+const tools = DiBag.token(toolsKey).of<string>();
+const menu = DiBag.fromFunction([DiBag.all(tools)], names => names.join(', '));
+```
+
 ***
 
 ### createBuilder
@@ -47,9 +63,15 @@ An immutable reference that supplies a fresh frozen array, including when empty.
 createBuilder: () => Builder<never>;
 ```
 
-Defined in: [di-bag.ts:502](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L502)
+Defined in: [di-bag.ts:713](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L713)
 
-Begin an empty immutable graph; build creates its owning bag, buildModule seals a reusable module.
+Begin an empty immutable graph; `build` creates its owning bag, `buildModule` seals a reusable module.
+
+#### Example
+
+```ts
+const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
+```
 
 ***
 
@@ -59,9 +81,9 @@ Begin an empty immutable graph; build creates its owning bag, buildModule seals 
 fromClass: <const T extends readonly DependencyReference[], C extends new (...args: TokenArguments<NoInfer<T>>) => unknown, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>> & AutoOutput<InstanceType<NoInfer<C>>, NoInfer<M>>, ...modeOptions: StageOptions<M>) => Provider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>>;
 ```
 
-Defined in: [di-bag.ts:500](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L500)
+Defined in: [di-bag.ts:705](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L705)
 
-Adapt a concrete constructor with positional dependency injection.
+Adapt a class whose constructor parameters receive the listed tokens' services.
 
 Adapt a concrete constructor while preserving its prototype, private fields, and `new.target`.
 
@@ -89,6 +111,19 @@ A lazy provider that constructs one instance per acquisition attempt.
 
 When the supplied runtime value is not constructable.
 
+#### Throws
+
+`DI_BAG_INVALID_TOKEN` for a malformed token tuple; `DI_BAG_INVALID_CONSTRUCTOR` for a non-constructable value;
+`DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode.
+
+#### Example
+
+```ts
+class Greeter { constructor(readonly greeting: string) {} }
+const greetingKey = Symbol('greeting');
+const greeter = DiBag.fromClass([DiBag.token(greetingKey).of<string>()], Greeter);
+```
+
 ***
 
 ### fromFactory
@@ -102,9 +137,10 @@ fromFactory: {
 };
 ```
 
-Defined in: [di-bag.ts:486](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L486)
+Defined in: [di-bag.ts:624](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L624)
 
-Describe a named-dependency factory, optionally receiving acquisition context.
+Describe a named-dependency factory with an explicit acquisition mode or the acquisition's abort signal.
+A factory that returns a non-Promise object with a `then` method needs `acquisitionMode: 'raw'` or must return `Promise.resolve(value)`.
 
 #### Call Signature
 
@@ -162,6 +198,17 @@ Raw mode preserves the exact acquired value; nativePromise observes Promise fulf
 
 A lazy provider retaining exact output and dependency types without adding ownership.
 
+#### Throws
+
+`DI_BAG_INVALID_FACTORY` for a non-function or an unknown `context`; `DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode.
+
+#### Example
+
+```ts
+type Query = { then(done: (rows: string[]) => void): void };
+const query = DiBag.fromFactory((): Query => ({ then: done => done([]) }), { acquisitionMode: 'raw' });
+```
+
 ***
 
 ### fromFunction
@@ -173,9 +220,9 @@ fromFunction: {
 };
 ```
 
-Defined in: [di-bag.ts:498](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L498)
+Defined in: [di-bag.ts:693](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L693)
 
-Adapt a positional function with strict dependency tuple and argument checking.
+Adapt a positional function whose parameters receive the listed tokens' services.
 
 #### Call Signature
 
@@ -233,6 +280,19 @@ Adapt a positional function whose parameters exactly match the selected dependen
 
 A reusable provider; no dependency or result is implicitly awaited.
 
+#### Throws
+
+`DI_BAG_INVALID_TOKEN` for a malformed token tuple; `DI_BAG_INVALID_FUNCTION` for a non-function;
+`DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode.
+
+#### Example
+
+```ts
+const clockKey = Symbol('clock');
+const clock = DiBag.token(clockKey).of<{ now(): number }>();
+const stamp = DiBag.fromFunction([clock], source => new Date(source.now()).toISOString());
+```
+
 ***
 
 ### fromPlugin
@@ -241,9 +301,24 @@ A reusable provider; no dependency or result is implicitly awaited.
 fromPlugin: PluginProviderFactory;
 ```
 
-Defined in: [di-bag.ts:496](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L496)
+Defined in: [di-bag.ts:681](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L681)
 
-Validate an unknown plugin descriptor and its acquired output at a checked boundary.
+Validate an unknown plugin descriptor now and its acquired output at acquisition.
+
+#### Throws
+
+`DI_BAG_INVALID_TOKEN` for a malformed dependency tuple; `DI_BAG_INVALID_PLUGIN_OPTIONS` for malformed options;
+[DiBagPluginValidationError](../classes/DiBagPluginValidationError.md) (`DI_BAG_PLUGIN_VALIDATION`) for an invalid descriptor, or at acquisition for rejected output.
+
+#### Example
+
+```ts
+declare const descriptor: unknown;
+const greeter = DiBag.fromPlugin([], descriptor, {
+  acquisitionMode: 'raw',
+  validate: (value): value is () => string => typeof value === 'function',
+});
+```
 
 ***
 
@@ -253,9 +328,9 @@ Validate an unknown plugin descriptor and its acquired output at a checked bound
 lazy: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => LazyDependency<T>;
 ```
 
-Defined in: [di-bag.ts:492](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L492)
+Defined in: [di-bag.ts:656](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L656)
 
-Create a positional dependency resolved on demand by the receiving service.
+Create a positional dependency supplied as a function that resolves the token when called.
 
 Describe a positional dependency supplied as an on-demand lookup function.
 Each invocation follows the target lifetime and records its dependency edge then.
@@ -277,6 +352,18 @@ Each invocation follows the target lifetime and records its dependency edge then
 
 An immutable lazy reference accepted by positional provider adapters.
 
+#### Throws
+
+`DI_BAG_INVALID_TOKEN` for a value that is not a genuine token.
+
+#### Example
+
+```ts
+const clockKey = Symbol('clock');
+const clock = DiBag.token(clockKey).of<{ now(): number }>();
+const stamp = DiBag.fromFunction([DiBag.lazy(clock)], getClock => () => getClock().now());
+```
+
 ***
 
 ### optional
@@ -285,9 +372,9 @@ An immutable lazy reference accepted by positional provider adapters.
 optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalDependency<T>;
 ```
 
-Defined in: [di-bag.ts:490](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L490)
+Defined in: [di-bag.ts:645](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L645)
 
-Create a positional dependency that yields undefined only when unregistered.
+Create a positional dependency that yields `undefined` only when the token is unregistered.
 
 Describe a positional dependency that supplies `undefined` only when the token is unbound.
 A present `undefined` value and acquisition failures remain present dependency results.
@@ -309,6 +396,18 @@ A present `undefined` value and acquisition failures remain present dependency r
 
 An immutable reference accepted by positional provider adapters.
 
+#### Throws
+
+`DI_BAG_INVALID_TOKEN` for a value that is not a genuine token.
+
+#### Example
+
+```ts
+const clockKey = Symbol('clock');
+const clock = DiBag.token(clockKey).of<{ now(): number }>();
+const stamp = DiBag.fromFunction([DiBag.optional(clock)], source => source?.now() ?? 0);
+```
+
 ***
 
 ### token
@@ -319,9 +418,9 @@ token: <const K extends symbol>(key: K & TokenKeyAdmission<K>, ...invalid: [K] e
 };
 ```
 
-Defined in: [di-bag.ts:488](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L488)
+Defined in: [di-bag.ts:634](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L634)
 
-Create a nominal typed token with a diagnostic label.
+Create a typed token from a unique symbol; `.of<Service>()` fixes its service type.
 
 Create a typed-token factory from the caller's canonical unique symbol.
 Reusing the same key and service type produces compatible handles; copied or fabricated
@@ -351,6 +450,17 @@ const clockKey = Symbol('clock');
 const clock = DiBag.token(clockKey).of<{ now(): number }>();
 ```
 
+#### Throws
+
+`DI_BAG_INVALID_TOKEN` when the key is not a symbol.
+
+#### Example
+
+```ts
+const clockKey = Symbol('clock');
+const clock = DiBag.token(clockKey).of<{ now(): number }>();
+```
+
 ***
 
 ### transformService
@@ -369,7 +479,7 @@ transformService: {
 };
 ```
 
-Defined in: [di-bag.ts:510](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L510)
+Defined in: [di-bag.ts:758](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L758)
 
 Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership.
 
@@ -435,6 +545,17 @@ Retains dependencies, lifetime, metadata, and existing cleanup; adds no result o
 
 A provider exposing a Promise of the awaited transform result.
 
+#### Throws
+
+`DI_BAG_INVALID_TRANSFORM` for a bad mode or callback; `DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode;
+`DI_BAG_INVALID_REGISTRATION` for an invalid registration.
+
+#### Example
+
+```ts
+const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform: text => text.toUpperCase() });
+```
+
 ***
 
 ### withConfiguration
@@ -443,7 +564,7 @@ A provider exposing a Promise of the awaited transform result.
 withConfiguration: (options: ConfigurationOptions) => DiBagApi;
 ```
 
-Defined in: [di-bag.ts:484](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L484)
+Defined in: [di-bag.ts:613](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L613)
 
 Return a facade with inherited runtime settings and appended observers.
 
@@ -452,6 +573,18 @@ Return a facade with inherited runtime settings and appended observers.
 | Parameter | Description |
 | ------ | ------ |
 | `options` | - |
+
+#### Throws
+
+`DI_BAG_INVALID_CONFIGURATION` for a non-object, a runtime without `isNativePromise`, or malformed observers.
+
+#### Example
+
+```ts
+const Observed = DiBag.withConfiguration({
+  observers: [{ onEvent: event => console.log(event.kind), onError: failure => console.error(failure.error) }],
+});
+```
 
 ***
 
@@ -464,9 +597,10 @@ withDisposal: {
 };
 ```
 
-Defined in: [di-bag.ts:504](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L504)
+Defined in: [di-bag.ts:726](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L726)
 
-Attach owned-value cleanup while retaining earlier disposal stages.
+Make the bag own a factory's value and run `dispose` on it when the bag closes.
+`close()` runs disposers, dependents first; close every scope and fork you create.
 
 #### Call Signature
 
@@ -520,6 +654,19 @@ Earlier disposal stages remain attached and run after this stage in reverse orde
 
 A provider retaining output, dependencies, metadata, frames, and earlier ownership.
 
+#### Throws
+
+`DI_BAG_INVALID_REGISTRATION` when the registration is neither a function nor a provider.
+
+#### Example
+
+```ts
+const bag = DiBag.createBuilder()
+  .register({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) })
+  .build();
+await bag.close();
+```
+
 ***
 
 ### withLifetime
@@ -531,9 +678,10 @@ withLifetime: {
 };
 ```
 
-Defined in: [di-bag.ts:506](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L506)
+Defined in: [di-bag.ts:738](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L738)
 
-Select root, scoped, or transient caching within an ownership family.
+Select `root`, `scoped` (the default), or `transient` caching for a registration.
+Mark a shared client `root` only when nothing it depends on is scoped.
 
 #### Call Signature
 
@@ -591,6 +739,18 @@ Select a lifetime and optionally permit a root provider to capture scoped depend
 
 A provider preserving factory, output, metadata, frames, and ownership stages.
 
+#### Throws
+
+`DI_BAG_INVALID_LIFETIME` for an unknown lifetime or malformed options; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
+
+#### Example
+
+```ts
+const bag = DiBag.createBuilder()
+  .register({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') })
+  .build();
+```
+
 ***
 
 ### withMetadata
@@ -632,9 +792,9 @@ withMetadata: {
 };
 ```
 
-Defined in: [di-bag.ts:508](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L508)
+Defined in: [di-bag.ts:748](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L748)
 
-Attach registration metadata and ordered acquisition metadata in direct or awaited mode.
+Attach static registration metadata, or per-acquisition metadata in direct or awaited mode.
 
 #### Call Signature
 
@@ -801,3 +961,14 @@ Existing ownership and metadata frames remain ordered; annotation adds no owners
 ##### Returns
 
 A provider exposing a Promise of the source value with one appended metadata frame.
+
+#### Throws
+
+`DI_BAG_INVALID_METADATA` for malformed options or, at acquisition, a describe result that is not a plain record;
+`DI_BAG_DUPLICATE_METADATA` for a repeated key; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
+
+#### Example
+
+```ts
+const greeting = DiBag.withMetadata(() => 'hello', { static: { owner: 'greeting' } });
+```

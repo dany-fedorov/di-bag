@@ -4,9 +4,13 @@
 
 # Interface: RuntimeOptions
 
-Defined in: [acquisition-mode.ts:11](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-mode.ts#L11)
+Defined in: [acquisition-mode.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-mode.ts#L15)
 
 Portable facade configuration for `auto` acquisition stages.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#portable-mode
 
 ## Properties
 
@@ -16,7 +20,7 @@ Portable facade configuration for `auto` acquisition stages.
 readonly isNativePromise: (this: void, value: unknown) => boolean;
 ```
 
-Defined in: [acquisition-mode.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-mode.ts#L13)
+Defined in: [acquisition-mode.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-mode.ts#L17)
 
 Return true only for native Promises the host can observe without thenable assimilation.
 

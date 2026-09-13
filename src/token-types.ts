@@ -4,7 +4,10 @@ import type { Unsatisfied } from './types';
 import type { Registration, Registrations } from './registration';
 import type { BoundToken, Provider, ProviderFactory, ProviderGraphContract, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderOutput, ProviderRequiredTokens, ProviderOptionalTokens } from './provider';
 
-/** A provider's retained required, bound, and optional typed-token contracts. */
+/**
+ * A provider's retained required, bound, and optional typed-token contracts.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
+ */
 export type TokenDependencyContract<T extends readonly TokenBase[] = readonly [], B extends TokenBase = never, O extends readonly TokenBase[] = readonly []> = {
   readonly kind: 'tokens'; readonly required: T; readonly bound: B; readonly optional: O;
 };
@@ -39,11 +42,17 @@ export type ReboundGraph<G extends GraphContract, T extends TokenBase> = G exten
   ? U extends TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[]> ? { [K in keyof U]: K extends 'bound' ? T : U[K] } : U extends GraphContract ? U : never
   : never;
 
-/** A registration rebound to an invariant typed-token service contract. */
+/**
+ * A registration rebound to an invariant typed-token service contract.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
+ */
 export type TokenBinding<T extends TokenBase, R extends Registration> = Provider<ProviderFactory<R>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraphContract<R>, T>, ProviderAcquiredValue<R>>;
 export type BindingOutput<T extends TokenBase, R extends Registration> = [ProviderOutput<R>] extends [TokenService<T>] ? unknown
   : Unsatisfied<'token binding output is not assignable to its service', { token: TokenKey<T>; expected: TokenService<T>; provided: ProviderOutput<R> }>;
-/** Convert a string selection to itself or a typed token to its symbol key. */
+/**
+ * Convert a string selection to itself or a typed token to its symbol key.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
+ */
 export type SelectionKey<T> = T extends string ? T : TokenKey<T>;
 type SameToken<A, B> = [A] extends [B] ? [B] extends [A] ? true : false : false;
 export type WrongToken<T, R extends Registrations> = T extends unknown
@@ -52,7 +61,10 @@ export type WrongToken<T, R extends Registrations> = T extends unknown
     : never : 'opaque token contract' : never;
 export type MissingToken<T, R extends Registrations> = T extends unknown
   ? ValidToken<T> extends true ? Exclude<TokenKey<T>, keyof R> : 'opaque token contract' : never;
-/** Admit a genuine token only when it exactly matches an existing binding contract. */
+/**
+ * Admit a genuine token only when it exactly matches an existing binding contract.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
+ */
 export type TokenMember<R extends Registrations, T> = ValidToken<T> extends true
   ? [WrongToken<T, R> | MissingToken<T, R>] extends [never] ? unknown
     : Unsatisfied<'token must match an existing binding contract', {}>
@@ -66,10 +78,16 @@ export type MissingTokens<R extends Registrations> = {
   [K in keyof R]: MissingToken<ProviderRequiredTokens<R[K]>, R>;
 }[keyof R];
 // Keep the symbol-keyed mapped result nameable in inferred declarations.
-/** Rebind symbol-keyed override registrations to the original typed-token contracts. */
+/**
+ * Rebind symbol-keyed override registrations to the original typed-token contracts.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
+ */
 export type ReboundProviders<R extends Registrations, O extends Registrations> = {
   [K in keyof O]: K extends keyof R ? K extends symbol
     ? TokenBinding<BoundToken<R[K]>, O[K]> : O[K] : O[K];
 };
-/** Preserve named overrides and rebind any symbol-keyed override providers. */
+/**
+ * Preserve named overrides and rebind any symbol-keyed override providers.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
+ */
 export type ReboundSelection<R extends Registrations, O extends Registrations> = [Extract<keyof O, symbol>] extends [never] ? O : ReboundProviders<R, O>;

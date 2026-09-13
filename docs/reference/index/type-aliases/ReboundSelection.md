@@ -8,7 +8,7 @@
 type ReboundSelection<R extends Registrations, O extends Registrations> = [Extract<keyof O, symbol>] extends [never] ? O : ReboundProviders<R, O>;
 ```
 
-Defined in: [token-types.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L75)
+Defined in: [token-types.ts:93](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L93)
 
 Preserve named overrides and rebind any symbol-keyed override providers.
 
@@ -18,3 +18,7 @@ Preserve named overrides and rebind any symbol-keyed override providers.
 | ------ | ------ |
 | `R` | - |
 | `O` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection

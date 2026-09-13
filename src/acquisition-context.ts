@@ -7,13 +7,19 @@ import { acquisitionMode } from './acquisition-mode';
 import type { Acquired, AcquisitionMode, AutoOutput, NativeOutput, ModeOptions } from './acquisition-mode';
 import type { TokenDependencyContract } from './token-types';
 
-/** Cooperative cancellation information supplied to a context-aware acquisition. */
+/**
+ * Cooperative cancellation information supplied to a context-aware acquisition.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
+ */
 export interface AcquisitionContext {
   /** Aborted when the acquisition's owning scope begins closing. */
   readonly signal: AbortSignal;
 }
 type ContextFactory = (this: void, deps: never, context: AcquisitionContext) => unknown;
-/** The named-dependency factory contract retained by an acquisition-context callback. */
+/**
+ * The named-dependency factory contract retained by an acquisition-context callback.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
+ */
 export type ContextualFactory<F extends ContextFactory> = (this: void,
   deps: Parameters<F> extends [] ? {} : Parameters<F>[0],
 ) => ReturnType<F>;

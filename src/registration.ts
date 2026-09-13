@@ -8,7 +8,10 @@ export { normalize } from './provider-operations';
 export type Factory = (this: void, deps: never) => unknown;
 
 // A private member is lost on spread; structural copies cannot be registrations.
-/** A nominal registration pairing a factory with fulfilled-value cleanup. */
+/**
+ * A nominal registration pairing a factory with fulfilled-value cleanup.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-cleanup-with-withdisposal
+ */
 class FactoryWithDisposal<F extends Factory> {
   declare private readonly nominal: void;
   constructor(readonly create: F) {}
@@ -17,7 +20,10 @@ class FactoryWithDisposal<F extends Factory> {
 /** A nominal registration pairing a factory with fulfilled-value cleanup. */
 export type { FactoryWithDisposal };
 
-/** A factory, disposable factory, or immutable provider accepted by builders and decorators. */
+/**
+ * A factory, disposable factory, or immutable provider accepted by builders and decorators.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-services
+ */
 export type Registration = Factory | FactoryWithDisposal<Factory> | ProviderBase;
 
 export type Registrations = Record<string, Registration>;

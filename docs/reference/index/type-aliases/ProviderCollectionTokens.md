@@ -10,7 +10,7 @@ type ProviderCollectionTokens<R> = ProviderGraphContract<R> extends infer G ? G 
 } ? T[number] : never : never;
 ```
 
-Defined in: [provider.ts:91](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L91)
+Defined in: [provider.ts:116](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L116)
 
 Extract token collection requirements from a registration.
 
@@ -19,3 +19,7 @@ Extract token collection requirements from a registration.
 | Type Parameter | Description |
 | ------ | ------ |
 | `R` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections

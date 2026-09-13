@@ -8,7 +8,7 @@
 type ModuleSealedConstraints<E extends Entry, C extends NeedConstraint, P extends keyof RegistrationsFromEntries<E>> = [P] extends [unknown] ? ModuleConstraints<RegistrationsFromEntries<E>, P> | SealedConstraints<C, RegistrationsFromEntries<E>, P> | SealedLifetimes<RegistrationsFromEntries<E>, P, C> : never;
 ```
 
-Defined in: [module-types.ts:183](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L183)
+Defined in: [module-types.ts:197](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L197)
 
 Every constraint a sealed module carries: its own registrations' needs, re-scoped retained constraints, and compact lifetime obligations.
 
@@ -19,3 +19,7 @@ Every constraint a sealed module carries: its own registrations' needs, re-scope
 | `E` | - |
 | `C` | - |
 | `P` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections

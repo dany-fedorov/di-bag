@@ -5,6 +5,7 @@ declare const tokenInvariant: unique symbol;
 /**
  * The common type-only base for genuine typed-token handles.
  * Create tokens through `DiBag.token`; fabricated structural values are not authenticated.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
  */
 class TokenBase {
   declare private readonly nominal: void;
@@ -12,6 +13,7 @@ class TokenBase {
 /**
  * An immutable typed-token handle pairing a canonical symbol with an invariant service contract.
  * Create one with `DiBag.token(key).of<Service>()`.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
  */
 class Token<K extends symbol, S> extends TokenBase {
   /** @internal */
@@ -19,9 +21,15 @@ class Token<K extends symbol, S> extends TokenBase {
   constructor(readonly key: K) { super(); }
 }
 
-/** Extract the canonical unique-symbol key from a typed token. */
+/**
+ * Extract the canonical unique-symbol key from a typed token.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
+ */
 export type TokenKey<T> = T extends infer U & {} ? U extends Token<infer K, infer _S> ? K : never : never;
-/** Extract the invariant service contract declared by a typed token. */
+/**
+ * Extract the invariant service contract declared by a typed token.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
+ */
 export type TokenService<T> = T extends infer U & {} ? U extends Token<infer _K, infer S> ? S : never : never;
 const keys = new WeakMap<TokenBase, symbol>();
 

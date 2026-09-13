@@ -4,9 +4,13 @@
 
 # Interface: AcquisitionSnapshot\<A *extends* readonly `unknown`[] = readonly \[\]\>
 
-Defined in: [inspection.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L13)
+Defined in: [inspection.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L22)
 
 A frozen point-in-time view of one acquisition attempt.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
 
 ## Type Parameters
 
@@ -22,7 +26,7 @@ A frozen point-in-time view of one acquisition attempt.
 readonly acquisitionId: symbol;
 ```
 
-Defined in: [inspection.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L15)
+Defined in: [inspection.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L24)
 
 Stable identity for this attempt; retries receive a new symbol.
 
@@ -34,7 +38,7 @@ Stable identity for this attempt; retries receive a new symbol.
 readonly acquisitionMetadata: AcquisitionMetadataPresence<A>;
 ```
 
-Defined in: [inspection.ts:19](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L19)
+Defined in: [inspection.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L28)
 
 Ordered presence records for metadata captured during acquisition.
 
@@ -46,6 +50,6 @@ Ordered presence records for metadata captured during acquisition.
 readonly state: 'creating' | 'pending' | 'ready' | 'failed' | 'disposing' | 'disposed';
 ```
 
-Defined in: [inspection.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L17)
+Defined in: [inspection.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L26)
 
 State at the instant the snapshot was copied.

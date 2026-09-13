@@ -8,18 +8,30 @@ import { retainDescription, sourceDescription } from './provider-operations';
 import type { Factory } from './registration';
 import type { DependencyTupleAdmission, ReferenceGraph } from './token-types';
 
-/** The explicit output boundary used for an application-selected plugin. */
+/**
+ * The explicit output boundary used for an application-selected plugin.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
+ */
 export type PluginAcquisitionMode = 'raw' | 'nativePromise';
-/** A synchronous predicate that admits an unknown plugin output as a service type. */
+/**
+ * A synchronous predicate that admits an unknown plugin output as a service type.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
+ */
 export type PluginOutputValidator<V> = (this: void, value: unknown) => value is V;
-/** Validation and acquisition choices for {@link DiBagApi.fromPlugin}. */
+/**
+ * Validation and acquisition choices for {@link DiBagApi.fromPlugin}.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
+ */
 export interface PluginOptions<M extends PluginAcquisitionMode, V> {
   /** Preserve the exact result with `raw`, or await a genuine native Promise with `nativePromise`. */
   readonly acquisitionMode: M;
   /** Must synchronously return exactly `true` for acceptable output values. */
   readonly validate: PluginOutputValidator<V>;
 }
-/** The provider contract produced by {@link DiBagApi.fromPlugin}. */
+/**
+ * The provider contract produced by {@link DiBagApi.fromPlugin}.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
+ */
 export type PluginProvider<T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode> = Provider<
   () => M extends 'raw' ? V : Promise<Awaited<V>>,
   Readonly<{}>,
@@ -120,6 +132,7 @@ function createPluginProvider<const T extends readonly DependencyReference[], V,
  * @typeParam T - The exact positional dependency-reference tuple.
  * @typeParam V - The service admitted by the synchronous output validator.
  * @typeParam M - The raw or nativePromise plugin acquisition policy.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
  */
 export type PluginProviderFactory = <const T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode>(
   dependencies: T & DependencyTupleAdmission<T>,

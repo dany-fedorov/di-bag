@@ -4,9 +4,21 @@
 
 # Class: DiBagCleanupError
 
-Defined in: [errors.ts:53](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L53)
+Defined in: [errors.ts:86](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L86)
 
-Original cleanup causes and detached acquisition diagnostics, in attempt order.
+One or more disposers failed during `close()`; every cleanup was still attempted.
+`failures` lists each original error with the label of the service it belonged to, in attempt order.
+
+## Example
+
+```ts
+import { DiBag, DiBagCleanupError } from 'di-bag';
+
+const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+await bag.close().catch((error: unknown) => {
+  if (error instanceof DiBagCleanupError) for (const failure of error.failures) console.error(failure.label, failure.error);
+});
+```
 
 ## Extends
 
@@ -20,7 +32,7 @@ Original cleanup causes and detached acquisition diagnostics, in attempt order.
 new (failures: readonly CleanupFailure[]): DiBagCleanupError;
 ```
 
-Defined in: [errors.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L60)
+Defined in: [errors.ts:93](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L93)
 
 #### Parameters
 
@@ -42,7 +54,7 @@ AggregateError.constructor
 declare readonly code: 'DI_BAG_CLEANUP_FAILED';
 ```
 
-Defined in: [errors.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L54)
+Defined in: [errors.ts:87](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L87)
 
 ***
 
@@ -52,7 +64,7 @@ Defined in: [errors.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/
 declare readonly details: Readonly<Record<string, unknown>>;
 ```
 
-Defined in: [errors.ts:55](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L55)
+Defined in: [errors.ts:88](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L88)
 
 ***
 
@@ -62,6 +74,6 @@ Defined in: [errors.ts:55](https://github.com/dany-fedorov/di-bag/blob/main/src/
 readonly failures: readonly CleanupFailure[];
 ```
 
-Defined in: [errors.ts:57](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L57)
+Defined in: [errors.ts:90](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L90)
 
 Frozen cleanup failures in finalizer invocation order.

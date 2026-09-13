@@ -8,7 +8,7 @@
 type ModuleRequiredServices<M> = M extends Module<infer _P, infer R, infer _C, infer _D> ? Readonly<R> : never;
 ```
 
-Defined in: [module-types.ts:190](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L190)
+Defined in: [module-types.ts:210](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L210)
 
 Extract a readonly map of services a module requires from its host.
 
@@ -17,3 +17,7 @@ Extract a readonly map of services a module requires from its host.
 | Type Parameter | Description |
 | ------ | ------ |
 | `M` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections

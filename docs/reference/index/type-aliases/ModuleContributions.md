@@ -10,7 +10,7 @@ type ModuleContributions<M> = M extends Module<infer _P, infer _R, infer C, infe
 }> : never;
 ```
 
-Defined in: [contribution-types.ts:50](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L50)
+Defined in: [contribution-types.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L60)
 
 Project a module's typed-token collections as readonly service arrays.
 
@@ -19,3 +19,7 @@ Project a module's typed-token collections as readonly service arrays.
 | Type Parameter | Description |
 | ------ | ------ |
 | `M` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection

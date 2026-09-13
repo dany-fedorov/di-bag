@@ -8,7 +8,7 @@
 type AliasOutput<R extends Registrations, T> = T extends string ? T extends keyof R ? ProviderOutput<R[T]> : never : TokenService<T>;
 ```
 
-Defined in: [alias-types.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/alias-types.ts#L14)
+Defined in: [alias-types.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/alias-types.ts#L17)
 
 Resolve the service type exposed by a possible alias target.
 
@@ -18,3 +18,7 @@ Resolve the service type exposed by a possible alias target.
 | ------ | ------ |
 | `R` | - |
 | `T` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#give-a-dependency-another-lookup-name

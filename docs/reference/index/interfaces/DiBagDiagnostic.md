@@ -4,9 +4,13 @@
 
 # Interface: DiBagDiagnostic
 
-Defined in: [errors.ts:4](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L4)
+Defined in: [errors.ts:10](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L10)
 
 Structured library diagnostics. Application-owned payloads retain their identity.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/agent/errors.html#runtime-codes
 
 ## Properties
 
@@ -16,7 +20,7 @@ Structured library diagnostics. Application-owned payloads retain their identity
 readonly code: DiBagErrorCode;
 ```
 
-Defined in: [errors.ts:5](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L5)
+Defined in: [errors.ts:11](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L11)
 
 ***
 
@@ -26,4 +30,4 @@ Defined in: [errors.ts:5](https://github.com/dany-fedorov/di-bag/blob/main/src/e
 readonly details: Readonly<Record<string, unknown>>;
 ```
 
-Defined in: [errors.ts:6](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L6)
+Defined in: [errors.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L12)

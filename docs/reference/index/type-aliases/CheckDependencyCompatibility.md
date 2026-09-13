@@ -19,7 +19,7 @@ type CheckDependencyCompatibility<R extends Registrations> = [
 }>;
 ```
 
-Defined in: [types.ts:121](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L121)
+Defined in: [types.ts:137](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L137)
 
 Compile-time admission for finite dependency objects and compatible known services.
 
@@ -28,3 +28,7 @@ Compile-time admission for finite dependency objects and compatible known servic
 | Type Parameter | Description |
 | ------ | ------ |
 | `R` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer

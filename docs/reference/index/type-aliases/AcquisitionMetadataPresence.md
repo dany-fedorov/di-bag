@@ -10,7 +10,7 @@ type AcquisitionMetadataPresence<A extends readonly unknown[]> = {
 };
 ```
 
-Defined in: [inspection.ts:8](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L8)
+Defined in: [inspection.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L14)
 
 A readonly tuple indicating whether each acquisition-stage frame is available.
 
@@ -19,3 +19,7 @@ A readonly tuple indicating whether each acquisition-stage frame is available.
 | Type Parameter | Description |
 | ------ | ------ |
 | `A` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving

@@ -28,6 +28,7 @@ class ProviderBase {
  * @typeParam A - The ordered tuple of acquisition metadata frame payloads.
  * @typeParam G - The retained token, lifetime, and graph compatibility contract.
  * @typeParam V - The raw or fulfilled value supplied to an outer disposal stage.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
  */
 class Provider<F extends Factory, M extends object = Readonly<{}>, A extends readonly unknown[] = readonly [], G extends GraphContract = TokenDependencyContract, V = Awaited<ReturnType<F>>> extends ProviderBase {
   // Unlike an ordinary private field, this witness survives declaration emit.
@@ -49,7 +50,10 @@ export type ProviderContext<F extends Factory, G extends GraphContract = GraphCo
 // Infer through an intersection before distributing. A bare infer preserves
 // NoInfer's substitution wrapper, which tests heterogeneous unions as a whole
 // and can miss every branch. Every registration is non-nullish.
-/** Extract the callable factory contract retained by a registration. */
+/**
+ * Extract the callable factory contract retained by a registration.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ProviderFactory<R extends Registration> = R extends infer T & {} ? FactoryOf<T> : never;
 type FactoryOf<R> = R extends Factory ? R
   : R extends { create: infer F extends Factory } ? F
@@ -57,28 +61,46 @@ type FactoryOf<R> = R extends Factory ? R
       : R extends ProviderBase ? (this: void, deps: unknown) => unknown : never;
 // An erased provider cannot prove an output or dependency shape, including
 // when mixed with concrete registrations behind a NoInfer boundary.
-/** Extract the exact service value exposed by a registration, including Promise identity. */
+/**
+ * Extract the exact service value exposed by a registration, including Promise identity.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ProviderOutput<R extends Registration> = ProviderBase extends R ? unknown : ReturnType<ProviderFactory<R>>;
-/** Extract the fulfilled or raw value passed to the registration's outer disposer. */
+/**
+ * Extract the fulfilled or raw value passed to the registration's outer disposer.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ProviderAcquiredValue<R extends Registration> = ProviderBase extends R ? unknown
   : R extends infer T & {} ? AcquiredOf<T> : unknown;
 type AcquiredOf<R> = R extends { readonly [providerInvariant]: (...args: never[]) => [Factory, object, readonly unknown[], GraphContract, infer V] } ? V
   : R extends Factory ? Awaited<ReturnType<R>>
     : R extends FactoryWithDisposal<infer F> ? Awaited<ReturnType<F>> : unknown;
-/** Extract the registration's named dependency object. */
+/**
+ * Extract the registration's named dependency object.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ProviderNamedDependencies<R extends Registration> = ProviderBase extends R ? unknown : Parameters<ProviderFactory<R>> extends [] ? Record<never, never>
   : Exclude<Parameters<ProviderFactory<R>>[0], undefined>;
-/** Extract static metadata attached to a registration. */
+/**
+ * Extract static metadata attached to a registration.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ProviderRegistrationMetadata<R> = R extends infer T & {} ? MetadataOf<T> : unknown;
 type MetadataOf<R> = R extends Provider<infer _F, infer M, infer _A, infer _G, infer _V> ? M
   : R extends Factory | FactoryWithDisposal<Factory> ? Readonly<{}> : unknown;
-/** Extract the ordered acquisition-frame metadata tuple exposed by inspection. */
+/**
+ * Extract the ordered acquisition-frame metadata tuple exposed by inspection.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ProviderAcquisitionMetadata<R> = ProviderBase extends R ? readonly unknown[]
   : R extends infer T & {} ? AcquisitionMetadataOf<T> : readonly unknown[];
 type AcquisitionMetadataOf<R> = R extends Provider<infer _F, infer _M, infer A, infer _G, infer _V> ? A
   : R extends Factory | FactoryWithDisposal<Factory> ? readonly [] : readonly unknown[];
 
-/** Extract the retained typed-token and lifetime graph contract. */
+/**
+ * Extract the retained typed-token and lifetime graph contract.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ProviderGraphContract<R> = ProviderBase extends R ? OpaqueGraph
   : R extends infer T & {} ? GraphOf<T> : OpaqueGraph;
 type GraphOf<R> = R extends Provider<infer _F, infer _M, infer _A, infer G, infer _V> ? G
@@ -87,11 +109,20 @@ type GraphOf<R> = R extends Provider<infer _F, infer _M, infer _A, infer G, infe
 type RequiredTokens<G> = G extends TokenDependencyContract<infer T, TokenBase, readonly TokenBase[]> ? T[number] : TokenBase;
 type Bound<G> = G extends TokenDependencyContract<readonly TokenBase[], infer B, readonly TokenBase[]> ? B : TokenBase;
 type OptionalTokens<G> = G extends TokenDependencyContract<readonly TokenBase[], TokenBase, infer O> ? O[number] : TokenBase;
-/** Extract token collection requirements from a registration. */
+/**
+ * Extract token collection requirements from a registration.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ProviderCollectionTokens<R> = ProviderGraphContract<R> extends infer G ? G extends { readonly all: infer T extends readonly TokenBase[] } ? T[number] : never : never;
-/** Extract optional typed-token requirements from a registration. */
+/**
+ * Extract optional typed-token requirements from a registration.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ProviderOptionalTokens<R> = OptionalTokens<ProviderGraphContract<R>>;
-/** Extract required typed-token dependencies from a registration. */
+/**
+ * Extract required typed-token dependencies from a registration.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ProviderRequiredTokens<R> = RequiredTokens<ProviderGraphContract<R>>;
 export type BoundToken<R> = Bound<ProviderGraphContract<R>>;
 

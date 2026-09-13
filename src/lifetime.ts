@@ -6,7 +6,10 @@ import { describe, retainDescription } from './provider-operations';
 import type { GraphContract } from './token-types';
 import type { Singleton, Unsatisfied } from './types';
 
-/** Cache at the ownership-family root, once per scope, or once per resolution. */
+/**
+ * Cache at the ownership-family root, once per scope, or once per resolution.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#choose-root-scoped-or-transient-caching
+ */
 export type Lifetime = 'root' | 'scoped' | 'transient';
 export interface LifetimePolicy {
   readonly kind: Lifetime;
