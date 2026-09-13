@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.2.0
+
+The API is pre-1.0; this release rejects some code that 0.1.1 accepted.
+
+### Breaking changes
+
+- A factory's dependency object now throws `DI_BAG_INVALID_DEPENDENCY_ACCESS`
+  for `in`, `Object.keys`, spread, `JSON.stringify`, and descriptor reads instead
+  of silently reporting an empty object. Destructuring and direct reads are unchanged.
+- Plain and disposable factories, and `auto`-mode `fromFactory`, `fromFunction`,
+  and `fromClass`, now reject declared outputs that are thenables but not Promises
+  at compile time, such as query builders. Select an explicit `acquisitionMode`, or
+  augment `DiBagPolicy` with `structuralThenables: 'allow'` to disable the check.
+  The runtime rejection is unchanged.
+
+### Added
+
+- `builder.verifyGraph()` and the `CompositionReport<B>` type: a compile-time build
+  verdict, with details, anchored at the call. Use `builder.verifyGraph() satisfies void;`.
+- `bag.inspectGraph()` with `GraphSnapshot` and `BindingSnapshot`: every binding,
+  contribution group, and observed dependency edge, without acquiring anything.
+- The `DiBagPolicy` interface for project-wide compile-time switches.
+- Missing-service, lifetime-capture, and unknown-key compile-time messages now name
+  the services involved, for example `required service registrations are missing: clock`
+  and `root lifetime cannot capture scoped dependency: db -> config`. Wrong-shape
+  messages from `register`, `replace`, and `installModule` stay generic to keep
+  compiler work within its measured limits; `verifyGraph()` reports their details.
+
+### Fixed and improved
+
+- The repository's `npm test` runs a fast runtime lane and a compiler lane, and
+  compiler-driven tests share one TypeScript program.
+- The repository includes `di-bag-graph` (`tools/graph`, not published), which
+  extracts builder chains, declared named dependencies, module exports, lifetimes,
+  cycles, and unresolved names into JSON.
+- Tests now measure sealed module declarations. Emitted module declarations still
+  name private registrations; see the [compiler scale notes](docs/benchmarks/typescript.md).
+- Native TypeScript 7.0.2 reports one reviewed diagnostic-quality gap: it rejects a
+  contextual `fromFactory` that returns a structural thenable with a generic
+  overload message.
+
 ## 0.1.1
 
 - Refresh the npm README with concise, self-contained package value and practical

@@ -15,7 +15,7 @@ tool versions, native diagnostic inventory, build output, dry-run and actual pac
 JSON, archive bytes and hashes, and every supervised command record.
 
 Verify the public API and inferred consumer declarations in the packed
-archive. The documented local version is `0.1.1`; select and verify each
+archive. The documented local version is `0.2.0`; select and verify each
 subsequent version before publication.
 
 Use the absolute, ignored directory `/tmp/di-bag-release-candidate` for archives,
@@ -102,8 +102,8 @@ failed provenance, or unexpected tag policy stops the later publication session.
 ## DO NOT RUN without fresh explicit authorization
 
 ```bash
-npm view di-bag@0.1.1 version --registry=https://registry.npmjs.org
+npm view di-bag@0.2.0 version --registry=https://registry.npmjs.org
 npm login --registry=https://registry.npmjs.org
-npm publish /tmp/di-bag-release-candidate/di-bag-0.1.1.tgz --access public --provenance
-npm dist-tag add di-bag@0.1.1 latest --registry=https://registry.npmjs.org
+npm publish /tmp/di-bag-release-candidate/di-bag-0.2.0.tgz --access public --provenance
+npm dist-tag add di-bag@0.2.0 latest --registry=https://registry.npmjs.org
 ```
