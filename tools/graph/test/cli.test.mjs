@@ -28,6 +28,25 @@ test('--check exits non-zero when issues exist and prints them', () => {
   assert.match(result.stdout, /unresolved .*lonely needs missing/);
 });
 
+test('--check reads ./tsconfig.json by default and passes the layout fixture', () => {
+  const result = spawnSync(process.execPath, [cli, '--check'], { cwd: resolve(root, 'tools/graph/test/fixtures/consumer'), encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /^3 units, 5 nodes, 0 issues \(TypeScript \d+\.\d+\.\d+, (project|bundled)\)\n$/);
+});
+
+test('--check names a cycle that spans two installed modules', () => {
+  const result = spawnSync(process.execPath, [cli, 'tools/graph/test/fixtures/cross-module/app.ts', '--check'], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /cycle in tools\/graph\/test\/fixtures\/cross-module\/app\.ts:9: billingModule\/ledger -> shippingModule\/shipping -> shippingModule\/carrier -> billingModule\/billing -> billingModule\/ledger/);
+});
+
+test('usage errors exit 2', () => {
+  assert.equal(spawnSync(process.execPath, [cli, '--projct', 'x'], { cwd: root, encoding: 'utf8' }).status, 2);
+  const missing = spawnSync(process.execPath, [cli, '--project', 'missing.json', '--check'], { cwd: root, encoding: 'utf8' });
+  assert.equal(missing.status, 2);
+  assert.match(missing.stderr, /missing\.json/);
+});
+
 test('--project reads a tsconfig', () => {
   // Write to a file: the whole repository's JSON exceeds spawnSync's default stdout buffer.
   const directory = mkdtempSync(join(tmpdir(), 'di-bag-graph-'));
