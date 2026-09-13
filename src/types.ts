@@ -67,7 +67,7 @@ type ThenableOutputs<R extends Registrations> = {
 }[keyof R];
 /** Reject plain or disposable factories whose declared output auto acquisition would reject at runtime. */
 export type ThenableAdmission<R extends Registrations> = [ThenableOutputs<R>] extends [never] ? unknown
-  : Unsatisfied<`factory output is a structural thenable: ${NameText<ThenableOutputs<R>>}; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise`, { tokens: ThenableOutputs<R> }>;
+  : Unsatisfied<`factory output is a structural thenable: ${NameText<ThenableOutputs<R>>}; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise${SeeErrors<'structural-thenable'>}`, { tokens: ThenableOutputs<R> }>;
 
 /**
  * Render dependency names inside diagnostic messages; typed tokens have no printable name.
@@ -75,10 +75,20 @@ export type ThenableAdmission<R extends Registrations> = [ThenableOutputs<R>] ex
  * per-call wrong-shape checks stay plain because templates there cost instantiations on valid graphs.
  */
 export type NameText<K> = K extends string ? K : K extends number ? `${K}` : 'typed token';
+// The errors page for compile-time messages; tests/message-urls.test.ts pins it to the runtime base in src/errors.ts.
+export type ErrorsPage = 'https://dany-fedorov.github.io/di-bag/agent/errors.html';
+/** Message suffix naming the errors-page section of a compile-time message family. */
+export type SeeErrors<Family extends string> = `; see ${ErrorsPage}#${Family}`;
+// Per-call wrong-shape sites stay unnamed for compiler cost; that section tells the reader to call verifyGraph().
+export type WrongShapeMessage = `provided service does not satisfy its consumer dependency${SeeErrors<'wrong-shape'>}`;
 declare const diBagTypeError: unique symbol;
 export type Unsatisfied<Message extends string, Details> = {
   readonly [diBagTypeError]: Message;
 } & Details;
+// verifyGraph() prints the details a wrong-shape report points to, so its report names the unsatisfied-consumer section instead.
+export type ConsumerReport<Check> = Check extends { readonly [diBagTypeError]: WrongShapeMessage }
+  ? Unsatisfied<`provided service does not satisfy its consumer dependency${SeeErrors<'unsatisfied-consumer'>}`, Omit<Check, typeof diBagTypeError>>
+  : Check;
 
 type IsUnion<T, Whole = T> = T extends Whole
   ? [Whole] extends [T]
@@ -139,7 +149,7 @@ export type CheckDependencyCompatibility<R extends Registrations> = [
 ] extends [never]
   ? [InvalidGraphs<R>] extends [never] ? [WrongShapes<R>] extends [never]
     ? unknown
-    : Unsatisfied<'provided service does not satisfy its consumer dependency', { tokens: WrongShapes<R>; relationships: WrongRelationships<R, WrongShapes<R>> }>
+    : Unsatisfied<WrongShapeMessage, { tokens: WrongShapes<R>; relationships: WrongRelationships<R, WrongShapes<R>> }>
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<R> }>
   : [NonFiniteKeys<R> | Extract<keyof R, number>] extends [never]
     ? Unsatisfied<'factory dependencies must be finite string-keyed objects', { tokens: InvalidNeeds<R> }>
@@ -178,7 +188,7 @@ type OldTokenWrong<E extends Entry, N extends Registrations> = [Extract<keyof N,
 export type IncrementalChecked<E extends Entry, N extends Registrations> = unknown extends CheckDependencyCompatibility<N>
   ? [NewTokenWrong<E, N> | OldTokenWrong<E, N>] extends [never]
     ? [NewWrong<E, N> | OldWrong<E, N>] extends [never] ? unknown
-      : Unsatisfied<'provided service does not satisfy its consumer dependency', { tokens: NewWrong<E, N> | OldWrong<E, N>; relationships: WrongRelationships<OverrideRegistrations<RegistrationsFromEntries<E>, N>, (NewWrong<E, N> | OldWrong<E, N>) & keyof OverrideRegistrations<RegistrationsFromEntries<E>, N>> }>
+      : Unsatisfied<WrongShapeMessage, { tokens: NewWrong<E, N> | OldWrong<E, N>; relationships: WrongRelationships<OverrideRegistrations<RegistrationsFromEntries<E>, N>, (NewWrong<E, N> | OldWrong<E, N>) & keyof OverrideRegistrations<RegistrationsFromEntries<E>, N>> }>
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: NewTokenWrong<E, N> | OldTokenWrong<E, N> }>
   : CheckDependencyCompatibility<N>;
 
@@ -203,7 +213,7 @@ export type CheckDependencyCompleteness<R extends Registrations> = [
   ? [InvalidGraphs<CompletionMap<R>>] extends [never] ? unknown
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<CompletionMap<R>> }>
   : Unsatisfied<
-      `required service registrations are missing: ${NameText<Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>>}`,
+      `required service registrations are missing: ${NameText<Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>>}${SeeErrors<'missing-service'>}`,
       { missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>; relationships: MissingRelationships<R> }
     >;
 
@@ -225,7 +235,7 @@ export type Overrides<F extends Registrations, O extends Registrations> = [
         { tokens: BadOverrides<F, O> }
       >
   : Unsatisfied<
-      `fork accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof F>>}`,
+      `fork accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof F>>}${SeeErrors<'unknown-key'>}`,
       { extra: Exclude<keyof O, keyof F> }
     >;
 
@@ -260,15 +270,15 @@ export type ReplacementKey<R extends Registrations, K extends string> =
   Singleton<K> extends true
     ? K extends keyof R
       ? unknown
-      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>
-    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>;
+      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>
+    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>;
 
 export type ReplacementKeyOf<Keys extends PropertyKey, K extends string> =
   Singleton<K> extends true
     ? K extends Keys
       ? unknown
-      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>
-    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>;
+      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>
+    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>;
 
 // Context needs one compatible output per surviving consumer. Intersect their
 // callback parameters, not their value unions: string | number in one consumer
@@ -312,7 +322,7 @@ export type Selection<R extends Registrations, K extends readonly unknown[], Ope
           ? [Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>] extends [never]
             ? unknown
             : Unsatisfied<
-                `${Operation} accepts existing names or typed tokens only: unknown ${NameText<Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>>}`,
+                `${Operation} accepts existing names or typed tokens only: unknown ${NameText<Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>>}${SeeErrors<'unknown-key'>}`,
                 { extra: Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]> }
               >
           : InvalidSelection<Operation>

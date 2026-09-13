@@ -1,7 +1,7 @@
 import type { Registration, Registrations } from './registration';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
 import type { ValidToken, TokenTupleAdmission, BindingOutput } from './token-types';
-import type { CheckDependencyCompatibility, CheckDependencyCompleteness, Unsatisfied, Entry, RegistrationsFromEntries } from './types';
+import type { CheckDependencyCompatibility, CheckDependencyCompleteness, SeeErrors, Unsatisfied, Entry, RegistrationsFromEntries } from './types';
 import type { ProviderCollectionTokens } from './provider';
 import type { Module } from './module';
 import type { RegistrationConstraints, PublicProvider, NeedConstraint, CheckedConstraints } from './module-types';
@@ -43,7 +43,7 @@ export type CheckedContributions<C, A extends Registrations> = [Groups<C>] exten
     : Unsatisfied<'contribution service is incompatible with its consumer dependency contract', { readonly failures: ContributionFailures<WrongProvider<C, A>, A> }>
   : Unsatisfied<'collection token has an incompatible or opaque contract', {}>;
 export type CompleteContributions<C, A extends Registrations> = [MissingProvider<C, A>] extends [never] ? unknown
-  : Unsatisfied<'required service registrations are missing', { readonly contributions: MissingProvider<C, A> }>;
+  : Unsatisfied<`required service registrations are missing${SeeErrors<'missing-service'>}`, { readonly contributions: MissingProvider<C, A> }>;
 /**
  * Retain a contribution's projected provider and its checked needs when its builder seals.
  * Lifetime reach is retained separately as compact obligations. A contribution retained
