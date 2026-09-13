@@ -17,6 +17,7 @@ DiBag.createBuilder().register(usersToken, () => new QueryBuilder());
 // diagnostic: factory output is a structural thenable
 DiBag.fromFactory(() => new QueryBuilder());
 // diagnostic: factory output is a structural thenable
+// diagnostic-native-gap: last-contextual-factory-thenable
 DiBag.fromFactory((_deps: {}, context) => { void context.signal; return new QueryBuilder(); }, { context: 'acquisition' });
 // diagnostic: factory output is a structural thenable
 DiBag.fromFunction([], () => new QueryBuilder());
