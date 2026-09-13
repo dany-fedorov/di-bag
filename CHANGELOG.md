@@ -4,6 +4,9 @@
 
 - Split `npm test` into `test:fast` and `test:compiler` lanes and share one
   TypeScript program across compiler-driven tests. No runtime or public API changes.
+- A factory's dependency object now throws `DI_BAG_INVALID_DEPENDENCY_ACCESS`
+  for `in`, `Object.keys`, spread, `JSON.stringify`, and descriptor reads instead
+  of silently reporting an empty object. Destructuring and direct reads are unchanged.
 
 ## 0.1.1
 

@@ -79,6 +79,13 @@ including `undefined` and an in-flight Promise, so repeated resolutions in one
 bag return the same value. A factory is still borrowed by default even if its
 result has a method called `close` or `dispose`.
 
+The dependency object is a lazy view, not a plain record. Reading a property
+acquires that dependency; destructuring in the parameter list is the usual way
+to do it. Testing `'name' in deps`, calling `Object.keys(deps)`, spreading
+`{ ...deps }`, or serializing it with `JSON.stringify` throws
+`DI_BAG_INVALID_DEPENDENCY_ACCESS`, because those operations would otherwise
+report an empty object. Read every dependency by name.
+
 `DiBag.fromFactory(create, { acquisitionMode })` describes the output stage explicitly.
 It is useful for deliberate raw Promise-like values and is required by one of the
 portable-runtime strategies described under [portable mode](#portable-mode). It

@@ -138,6 +138,7 @@ Factory errors and transformation errors retain their original identity on
 resolution. Library-created failures expose stable `DI_BAG_*` codes and frozen
 structured `details`; inspect those fields instead of parsing message text. Observer callback failures are delivered to the observer's
 `onError` callback and do not become service or shutdown failures.
+`DI_BAG_INVALID_DEPENDENCY_ACCESS` reports enumeration or `in` checks on a factory's dependency object; its `details.consumer` names the factory.
 
 ## Exported TypeScript types
 
