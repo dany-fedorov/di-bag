@@ -50,6 +50,7 @@
 - [CollectionDependency](type-aliases/CollectionDependency.md)
 - [CompositionArguments](type-aliases/CompositionArguments.md)
 - [CompositionFunction](type-aliases/CompositionFunction.md)
+- [CompositionReport](type-aliases/CompositionReport.md)
 - [ContextualFactory](type-aliases/ContextualFactory.md)
 - [Contribution](type-aliases/Contribution.md)
 - [ContributionConstraint](type-aliases/ContributionConstraint.md)

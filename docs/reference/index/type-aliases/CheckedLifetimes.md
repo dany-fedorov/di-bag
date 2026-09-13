@@ -7,12 +7,12 @@
 ```ts
 type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [
     Captives<R, C>
-] extends [never] ? unknown : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R> ? Unsatisfied<'root lifetime cannot capture scoped dependency', {
+] extends [never] ? unknown : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R> ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}`, {
     readonly captives: Captives<R, C>;
 }> : unknown;
 ```
 
-Defined in: [lifetime-types.ts:156](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L156)
+Defined in: [lifetime-types.ts:160](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L160)
 
 Reject strict root providers that transitively capture scoped dependencies.
 

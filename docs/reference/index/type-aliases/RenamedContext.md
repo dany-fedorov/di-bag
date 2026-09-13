@@ -12,7 +12,7 @@ type RenamedContext<C, Old extends string, New extends string> = C extends Lexic
 }> : WithExtras<C, LexicalContext<R, Renamed<E, Old, New>>> : C;
 ```
 
-Defined in: [lifetime-types.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L33)
+Defined in: [lifetime-types.ts:37](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L37)
 
 Rename one public export at the chain end, where names meet the installing host.
 

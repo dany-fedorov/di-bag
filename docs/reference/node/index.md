@@ -124,6 +124,12 @@ Re-exports [CompositionFunction](../index/type-aliases/CompositionFunction.md)
 
 ***
 
+### CompositionReport
+
+Re-exports [CompositionReport](../index/type-aliases/CompositionReport.md)
+
+***
+
 ### ConfigurationOptions
 
 Re-exports [ConfigurationOptions](../index/interfaces/ConfigurationOptions.md)

@@ -8,7 +8,7 @@
 type ModuleScope<R extends Registrations, P extends PropertyKey> = LexicalContext<R, ExportMap<P>>;
 ```
 
-Defined in: [lifetime-types.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L22)
+Defined in: [lifetime-types.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L26)
 
 The lexical scope a sealing builder gives its retained constraints and providers.
 

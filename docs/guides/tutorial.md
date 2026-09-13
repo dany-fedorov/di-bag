@@ -297,6 +297,39 @@ same rejected Promise. Acquisition failures remain on their resolution Promises;
 they are not added to a later close error. See the [API reference](api-reference.md#errors-and-recovery)
 for exact class shapes and constructors.
 
+## Read compile-time rejections
+
+`build()`, `register()`, `replace()`, `fork()`, and `createScope()` reject an
+invalid graph at compile time. TypeScript reports these as assignability errors
+whose message names the problem and the services involved:
+
+| Message | Meaning |
+| --- | --- |
+| `required service registrations are missing: clock` | No registration supplies `clock`. |
+| `provided service does not satisfy its consumer dependency: db needs config` | `config` exists but its service type does not match what `db` declares. |
+| `provided service does not satisfy its consumer dependency: check db` | The same mismatch found while adding a registration; the details list the dependency. |
+| `root lifetime cannot capture scoped dependency: db -> config` | A `root` service would hold a `scoped` one. |
+| `fork accepts existing names or typed tokens only: unknown extra` | A selected key is not registered. |
+
+The full detail object (expected and provided types, every relationship) is part
+of the error type. With the default error truncation it prints as `{ ...; }`;
+set `"noErrorTruncation": true` in `tsconfig.json` to read it.
+
+`build()` errors are anchored where the builder expression starts. To get the
+verdict on a line of your choice, call `verifyGraph()`; it does nothing at
+runtime and its return type is `void` exactly when the graph would build:
+
+```ts
+const builder = DiBag.createBuilder().register({
+  db: ({ config }: { config: { url: string } }) => config.url,
+});
+builder.verifyGraph() satisfies void;
+// error: Type 'Unsatisfied<"required service registrations are missing: config", { missing: "config"; ... }>' does not satisfy the expected type 'void'.
+```
+
+`CompositionReport<typeof builder>` is the same verdict as a type, for
+assertions in test files.
+
 ## Create tracked child scopes
 
 A scope represents work owned by a parent, such as one request or job. The

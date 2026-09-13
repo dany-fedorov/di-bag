@@ -75,6 +75,7 @@ next call; they do not mutate the original.
 | `build()` | Builder | Check graph completeness and return a lazy bag. |
 | `buildAndStart(keys, options?)` | Builder | Return a promise for a fresh bag after [selected services are ready](tutorial.md#start-selected-services-and-cancel-cooperatively). |
 | `buildModule(keys)` | Builder | Seal the graph as a module and choose its public names and tokens; unmet dependencies become requirements. |
+| `verifyGraph()` | Builder | Runtime no-op whose return type is `void` only when the graph would [build](tutorial.md#read-compile-time-rejections). |
 | `renameExport(oldName, newName)` | Sealed Module | Return a module view with one string-named export renamed. |
 
 There is one builder. `build()` requires a complete graph; `buildModule(keys)`
@@ -187,6 +188,7 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | [`LifecycleEvent`](../reference/index/type-aliases/LifecycleEvent.md), [`ObserverFailure`](../reference/index/interfaces/ObserverFailure.md), [`ScopeEventFields`](../reference/index/interfaces/ScopeEventFields.md), [`AcquisitionEventFields`](../reference/index/interfaces/AcquisitionEventFields.md) | Discriminated lifecycle events and observer failure context. |
 | [`PluginAcquisitionMode`](../reference/index/type-aliases/PluginAcquisitionMode.md), [`PluginOptions`](../reference/index/interfaces/PluginOptions.md), [`PluginOutputValidator`](../reference/index/type-aliases/PluginOutputValidator.md), [`PluginProvider`](../reference/index/type-aliases/PluginProvider.md) | Plugin mode, validation options, output predicate, and resulting provider. |
 | [`PluginProviderFactory`](../reference/index/type-aliases/PluginProviderFactory.md) | The callable type of `DiBag.fromPlugin`; use it directly as a type. |
+| [`CompositionReport`](../reference/index/type-aliases/CompositionReport.md) | The compile-time verdict for a builder: `void` when buildable, otherwise the `build()` failure with details. |
 
 ### Provider and module projections
 

@@ -7,7 +7,7 @@
 ```ts
 type CheckDependencyCompatibility<R extends Registrations> = [
     InvalidNeeds<R> | NonFiniteKeys<R> | Extract<keyof R, number>
-] extends [never] ? [InvalidGraphs<R>] extends [never] ? [WrongShapes<R>] extends [never] ? unknown : Unsatisfied<'provided service does not satisfy its consumer dependency', {
+] extends [never] ? [InvalidGraphs<R>] extends [never] ? [WrongShapes<R>] extends [never] ? unknown : Unsatisfied<`provided service does not satisfy its consumer dependency: ${RelationshipText<WrongRelationships<R, WrongShapes<R>>>}`, {
     tokens: WrongShapes<R>;
     relationships: WrongRelationships<R, WrongShapes<R>>;
 }> : Unsatisfied<'token dependency has an incompatible or opaque contract', {
@@ -19,7 +19,7 @@ type CheckDependencyCompatibility<R extends Registrations> = [
 }>;
 ```
 
-Defined in: [types.ts:95](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L95)
+Defined in: [types.ts:101](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L101)
 
 Compile-time admission for finite dependency objects and compatible known services.
 

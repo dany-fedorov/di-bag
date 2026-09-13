@@ -7,12 +7,12 @@
 ```ts
 type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, G = never> = [
     OverrideCaptives<R, O, G>
-] extends [never] ? unknown : Unsatisfied<'root lifetime cannot capture scoped dependency', {
+] extends [never] ? unknown : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, G>>}`, {
     readonly captives: OverrideCaptives<R, O, G>;
 }>;
 ```
 
-Defined in: [lifetime-types.ts:152](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L152)
+Defined in: [lifetime-types.ts:156](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L156)
 
 Reject root providers introduced by a scope override when they capture scoped dependencies.
 
