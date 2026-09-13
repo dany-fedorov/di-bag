@@ -5,9 +5,9 @@
 # Type Alias: ContributionConstraint
 
 ```ts
-type ContributionConstraint = Contribution<TokenBase, Registration, unknown>;
+type ContributionConstraint = Contribution<TokenBase, Registration>;
 ```
 
-Defined in: [contribution-types.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L16)
+Defined in: [contribution-types.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L15)
 
 The erased contribution contract retained by checked builders and modules.

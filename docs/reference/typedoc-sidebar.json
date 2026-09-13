@@ -229,20 +229,8 @@
             "link": "/reference/index/type-aliases/DisjointScopeSelection.md"
           },
           {
-            "text": "Enclosed",
-            "link": "/reference/index/type-aliases/Enclosed.md"
-          },
-          {
-            "text": "EnclosedLifetimeObligation",
-            "link": "/reference/index/type-aliases/EnclosedLifetimeObligation.md"
-          },
-          {
             "text": "LazyDependency",
             "link": "/reference/index/type-aliases/LazyDependency.md"
-          },
-          {
-            "text": "LexicalContext",
-            "link": "/reference/index/type-aliases/LexicalContext.md"
           },
           {
             "text": "LifecycleEvent",
@@ -251,6 +239,10 @@
           {
             "text": "Lifetime",
             "link": "/reference/index/type-aliases/Lifetime.md"
+          },
+          {
+            "text": "LifetimeObligation",
+            "link": "/reference/index/type-aliases/LifetimeObligation.md"
           },
           {
             "text": "ModuleConstraints",
@@ -275,10 +267,6 @@
           {
             "text": "ModuleRequiredServices",
             "link": "/reference/index/type-aliases/ModuleRequiredServices.md"
-          },
-          {
-            "text": "ModuleScope",
-            "link": "/reference/index/type-aliases/ModuleScope.md"
           },
           {
             "text": "ModuleSealedConstraints",
@@ -373,6 +361,10 @@
             "link": "/reference/index/type-aliases/PublicProviders.md"
           },
           {
+            "text": "Reach",
+            "link": "/reference/index/type-aliases/Reach.md"
+          },
+          {
             "text": "ReboundProviders",
             "link": "/reference/index/type-aliases/ReboundProviders.md"
           },
@@ -395,18 +387,6 @@
           {
             "text": "Renamed",
             "link": "/reference/index/type-aliases/Renamed.md"
-          },
-          {
-            "text": "RenamedContext",
-            "link": "/reference/index/type-aliases/RenamedContext.md"
-          },
-          {
-            "text": "RenamedLifetimeObligation",
-            "link": "/reference/index/type-aliases/RenamedLifetimeObligation.md"
-          },
-          {
-            "text": "RenamedLifetimeProviders",
-            "link": "/reference/index/type-aliases/RenamedLifetimeProviders.md"
           },
           {
             "text": "ScopedAliases",

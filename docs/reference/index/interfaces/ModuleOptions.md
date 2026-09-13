@@ -4,7 +4,7 @@
 
 # Interface: ModuleOptions
 
-Defined in: [module.ts:18](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L18)
+Defined in: [module.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L17)
 
 Options for [Builder.buildModule](Builder.md#buildmodule).
 
@@ -16,7 +16,7 @@ Options for [Builder.buildModule](Builder.md#buildmodule).
 readonly label?: string;
 ```
 
-Defined in: [module.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L24)
+Defined in: [module.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L23)
 
 Name each installation's private bindings `<label>/<key>` in error messages, cycle paths,
 `inspectGraph()`, and observer events. Nested labels compose: `outer/inner/key`.

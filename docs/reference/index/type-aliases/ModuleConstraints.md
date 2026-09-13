@@ -5,12 +5,12 @@
 # Type Alias: ModuleConstraints\<R *extends* `Registrations`, Public *extends* keyof `R`\>
 
 ```ts
-type ModuleConstraints<R extends Registrations, Public extends keyof R> = {
+type ModuleConstraints<R extends Registrations, Public extends keyof R> = [R] extends [unknown] ? {
     [K in keyof R & (string | symbol)]: RegistrationConstraints<R[K], R, Public, K>;
-}[keyof R & (string | symbol)] | PrivateLifetimes<R, Public>;
+}[keyof R & (string | symbol)] : never;
 ```
 
-Defined in: [module-types.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L72)
+Defined in: [module-types.ts:76](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L76)
 
 Retained requirements of a module's public and private registrations.
 

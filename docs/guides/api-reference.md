@@ -239,8 +239,7 @@ contracts; they do not perform runtime validation.
 | [`DisjointScopeSelection`](../reference/index/type-aliases/DisjointScopeSelection.md) | Enforce separate override and sharing selections. |
 | [`UnsharedAliases`](../reference/index/type-aliases/UnsharedAliases.md), [`ScopedAliases`](../reference/index/type-aliases/ScopedAliases.md), [`SharedAliasProviders`](../reference/index/type-aliases/SharedAliasProviders.md) | Preserve alias contracts as scopes inherit or explicitly share services. |
 | [`CheckedLifetimes`](../reference/index/type-aliases/CheckedLifetimes.md), [`CheckedScopeLifetimes`](../reference/index/type-aliases/CheckedScopeLifetimes.md) | Check root capture and lifetime compatibility in completed graphs and scope overrides. |
-| [`LexicalContext`](../reference/index/type-aliases/LexicalContext.md), [`ModuleScope`](../reference/index/type-aliases/ModuleScope.md), [`Enclosed`](../reference/index/type-aliases/Enclosed.md), [`RenamedContext`](../reference/index/type-aliases/RenamedContext.md) | Lexical module scopes, chained through nesting, and their renamed views. |
-| [`RenamedLifetimeObligation`](../reference/index/type-aliases/RenamedLifetimeObligation.md), [`EnclosedLifetimeObligation`](../reference/index/type-aliases/EnclosedLifetimeObligation.md), [`RenamedLifetimeProviders`](../reference/index/type-aliases/RenamedLifetimeProviders.md) | Retain lifetime ownership and requirements through lexical module boundaries, nesting, and renaming. |
+| [`LifetimeObligation`](../reference/index/type-aliases/LifetimeObligation.md), [`Reach`](../reference/index/type-aliases/Reach.md) | Compact seal-time lifetime records a module retains instead of its private registrations. |
 
 The authoritative export lists are [`src/index.ts`](../../src/index.ts) and
 [`src/node.ts`](../../src/node.ts).

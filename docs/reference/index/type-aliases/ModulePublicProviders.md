@@ -5,14 +5,17 @@
 # Type Alias: ModulePublicProviders\<R *extends* `Registrations`, P *extends* keyof `R`\>
 
 ```ts
-type ModulePublicProviders<R extends Registrations, P extends keyof R> = {
-    [K in P]: LexicalProvider<PublicProvider<R[K]>, R, P, K>;
-};
+type ModulePublicProviders<R extends Registrations, P extends keyof R> = [Extract<P, symbol>] extends [never] ? {
+    [K in P]: SealedProvider<R, P, R[K]>;
+} : [Extract<P, string>] extends [never] ? SymbolProviders<R, P> : {
+    [K in Extract<P, string>]: SealedProvider<R, P, R[K]>;
+} & SymbolProviders<R, P>;
 ```
 
-Defined in: [module-types.ts:111](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L111)
+Defined in: [module-types.ts:139](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L139)
 
-Project selected module exports while retaining their lexical private graph where required.
+Project selected module exports to dependency-free providers that keep behavioral contracts.
+The conditional answer carries no alias, so declarations print the providers, not the registrations.
 
 ## Type Parameters
 
