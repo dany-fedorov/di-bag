@@ -246,6 +246,7 @@ for both setup options.
 | [API reference](docs/guides/api-reference.md) | Exact generated signatures, overloads, type parameters, and API inventories. |
 | [Server guide](docs/guides/server-integration.md) | Node HTTP, Express, Fastify, Bun, and Deno: shared services, request scopes, startup, and shutdown. |
 | [Agent harnesses and graphs](docs/guides/agent-harnesses-and-graphs.md) | Compose model and tool dependencies, inspect metadata, and test nodes with typed fixtures. |
+| [Static dependency graph](docs/guides/agent-harnesses-and-graphs.md#export-the-declared-dependency-graph) | Export every builder chain, declared edge, and cycle to JSON with `di-bag-graph`. |
 | [Runnable examples](examples) | Modules, tokens, composition, collections, plugins, observers, scopes, and provider metadata. |
 | [Integration guide](docs/guides/enterprise-integration.md) | Tested recipes for request ownership, substitutions, and dynamic features. |
 | [Comparison with alternatives](docs/guides/comparison.md) | When DI Bag or another approach may be a better fit, with primary sources. |

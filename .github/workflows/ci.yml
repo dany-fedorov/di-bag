@@ -25,6 +25,9 @@ jobs:
         with:
           node-version: '24.20.0'
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tools/graph/package-lock.json
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: '1.4.0'
@@ -37,6 +40,8 @@ jobs:
       - run: npm run build:native
       - run: node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs tests/graph-retention.node.mjs
       - run: npm run check:native
+      - run: npm ci --prefix tools/graph --no-audit --no-fund
+      - run: npm run graph:check
       - name: Run examples
         run: |
           for example in examples/*.ts; do

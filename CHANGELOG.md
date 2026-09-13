@@ -4,6 +4,9 @@
 
 - Split `npm test` into `test:fast` and `test:compiler` lanes and share one
   TypeScript program across compiler-driven tests. No runtime or public API changes.
+- Add the `di-bag-graph` tool (`tools/graph`) that extracts builder chains,
+  declared named dependencies, module exports and installations, lifetimes,
+  async outputs, cycles, and unresolved names into JSON.
 
 ## 0.1.1
 

@@ -190,6 +190,24 @@ still share that object. Graph state is created per `run` call, not kept in a
 cached service. These fixtures test harness behavior, not real retrieval
 relevance or LLM quality.
 
+## Export the declared dependency graph
+
+Named dependencies are declared on factory parameters, so they are visible to
+the TypeScript checker but not to the runtime. The `di-bag-graph` tool in
+`tools/graph` reads a project and writes every builder chain as a unit with its
+nodes, declared edges, module exports and installations, lifetimes, async
+outputs, and issues:
+
+```sh
+node tools/graph/cli.mjs --project tsconfig.json --out graph.json
+node tools/graph/cli.mjs src/app.ts --check   # exit 1 on cycles or unresolved names
+```
+
+Each node records `key`, `line`, `dependencies`, `async`, `lifetime`, and
+`owned`. Cycles are reported per unit before any factory runs. Feed the JSON to
+an agent as the map of a feature, or fail CI on new cycles. At runtime,
+`bag.inspectGraph()` reports the same bindings plus the edges observed so far.
+
 ## Connect your own harness or graph framework
 
 Keep the node contracts and replace the fixture adapters with your search and
