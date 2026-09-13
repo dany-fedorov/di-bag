@@ -130,6 +130,12 @@ Re-exports [CompositionFunction](../index/type-aliases/CompositionFunction.md)
 
 ***
 
+### CompositionReport
+
+Re-exports [CompositionReport](../index/type-aliases/CompositionReport.md)
+
+***
+
 ### ConfigurationOptions
 
 Re-exports [ConfigurationOptions](../index/interfaces/ConfigurationOptions.md)
@@ -187,6 +193,12 @@ Re-exports [DiBagErrorCode](../index/type-aliases/DiBagErrorCode.md)
 ### DiBagPluginValidationError
 
 Re-exports [DiBagPluginValidationError](../index/classes/DiBagPluginValidationError.md)
+
+***
+
+### DiBagPolicy
+
+Re-exports [DiBagPolicy](../index/interfaces/DiBagPolicy.md)
 
 ***
 

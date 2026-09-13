@@ -50,7 +50,7 @@ test('compiler declarations retain syntax that TypeDoc reflections cannot repres
 
   assert.match(facadeText, /fromClass: <const T extends readonly DependencyReference\[\], C extends new \(/);
   assert.match(facadeText, /M extends AcquisitionMode = 'auto'>/);
-  assert.match(facadeText, /callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, \.\.\.options: FactoryOptions<M>/);
+  assert.match(facadeText, /callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, \.\.\.options: FactoryOptions<M>/);
   assert.match(bagText, /inspect<K extends \(keyof R & string\) \| TokenBase>\(token: K & \(\[K\] extends \[string\] \? unknown : TokenMember<R, K>\)\)/);
   assert.match(bagText, /createScope<const S extends readonly unknown\[\]>/);
 });

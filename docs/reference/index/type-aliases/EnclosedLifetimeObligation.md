@@ -12,7 +12,7 @@ type EnclosedLifetimeObligation<C extends LifetimeObligation, R extends Registra
 };
 ```
 
-Defined in: [lifetime-types.ts:82](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L82)
+Defined in: [lifetime-types.ts:86](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L86)
 
 Re-scope a retained obligation when the builder holding it seals into a module.
 
@@ -32,7 +32,7 @@ Re-scope a retained obligation when the builder holding it seals into a module.
 readonly context: Enclosed<C['context'], ModuleScope<R, P>>;
 ```
 
-Defined in: [lifetime-types.ts:84](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L84)
+Defined in: [lifetime-types.ts:88](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L88)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: [lifetime-types.ts:84](https://github.com/dany-fedorov/di-bag/blob/m
 readonly kind: 'lifetime';
 ```
 
-Defined in: [lifetime-types.ts:83](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L83)
+Defined in: [lifetime-types.ts:87](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L87)
 
 ***
 
@@ -52,4 +52,4 @@ Defined in: [lifetime-types.ts:83](https://github.com/dany-fedorov/di-bag/blob/m
 readonly source: C['source'];
 ```
 
-Defined in: [lifetime-types.ts:83](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L83)
+Defined in: [lifetime-types.ts:87](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L87)

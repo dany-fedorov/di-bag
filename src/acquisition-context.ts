@@ -4,7 +4,7 @@ import type { Provider, ProviderBase } from './provider';
 import type { Factory } from './registration';
 import { retainDescription, sourceDescription } from './provider-operations';
 import { acquisitionMode } from './acquisition-mode';
-import type { Acquired, AcquisitionMode, NativeOutput, ModeOptions } from './acquisition-mode';
+import type { Acquired, AcquisitionMode, AutoOutput, NativeOutput, ModeOptions } from './acquisition-mode';
 import type { TokenDependencyContract } from './token-types';
 
 /** Cooperative cancellation information supplied to a context-aware acquisition. */
@@ -31,7 +31,7 @@ type FactoryOptions<M extends AcquisitionMode> = 'auto' extends M
  * @typeParam M - The raw, nativePromise, or configured auto acquisition policy.
  */
 export function fromFactory<F extends (this: void, deps: never, context: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
-  callback: F,
+  callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
   options: { readonly context: 'acquisition' } & ModeOptions<M>,
 ): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
 /**
@@ -44,7 +44,7 @@ export function fromFactory<F extends (this: void, deps: never, context: Acquisi
  * @typeParam M - The raw, nativePromise, or configured auto acquisition policy.
  */
 export function fromFactory<F extends Factory, M extends AcquisitionMode = 'auto'>(
-  callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
+  callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
   ...options: FactoryOptions<M>
 ): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
 export function fromFactory(callback: Factory | ContextFactory, options?: { readonly context?: 'acquisition'; readonly acquisitionMode?: AcquisitionMode }): ProviderBase {

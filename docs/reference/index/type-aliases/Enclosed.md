@@ -14,7 +14,7 @@ type Enclosed<C, Parent> = [Parent] extends [undefined] ? C : C extends LexicalC
 }> : C;
 ```
 
-Defined in: [lifetime-types.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L26)
+Defined in: [lifetime-types.ts:30](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L30)
 
 Attach an enclosing scope at the end of a lexical chain; `undefined` leaves the chain unchanged.
 
