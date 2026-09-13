@@ -86,7 +86,7 @@ A new builder; aliases add no cache or ownership of their own.
 build(this: Builder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>): Bag<RegistrationsFromEntries<E>, C>;
 ```
 
-Defined in: [di-bag.ts:420](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L420)
+Defined in: [di-bag.ts:421](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L421)
 
 Finish a complete graph as a lazy bag.
 
@@ -112,7 +112,7 @@ At runtime if automatic acquisition is used without a configured Promise classif
 buildAndStart<const K extends readonly unknown[]>(this: Builder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>, keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildAndStart'>, options?: StartupOptions): Promise<Bag<RegistrationsFromEntries<E>, C>>;
 ```
 
-Defined in: [di-bag.ts:432](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L432)
+Defined in: [di-bag.ts:433](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L433)
 
 Create a fresh bag and acquire selected services before returning it.
 
@@ -147,7 +147,7 @@ A promise for the new bag after every selected final stage is ready.
 buildModule<const K extends readonly unknown[]>(keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildModule'>): Module<Pick<ServicesOf<RegistrationsFromEntries<E>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>, ExternalRequirements<ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>, ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>, ModulePublicProviders<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>;
 ```
 
-Defined in: [di-bag.ts:406](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L406)
+Defined in: [di-bag.ts:407](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L407)
 
 Seal this graph as a reusable module and select its public names and typed tokens.
 Unselected registrations stay private to each installation; unmet dependencies
@@ -342,14 +342,26 @@ A new builder with the replacement and its inferred service type.
 ### verifyGraph()
 
 ```ts
-verifyGraph(): CompositionReport<Builder<E, C>>;
+verifyGraph<Self extends Builder<E, C>>(this: Self): CompositionReport<Self>;
 ```
 
-Defined in: [di-bag.ts:394](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L394)
+Defined in: [di-bag.ts:395](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L395)
 
 Report at the type level why this graph would not build; the runtime call does nothing.
 Write `builder.verifyGraph() satisfies void;` so a rejected graph fails on that line with
 the complete message and details, instead of at the start of the builder expression.
+
+#### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `Self` | - |
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `this` | - |
 
 #### Returns
 

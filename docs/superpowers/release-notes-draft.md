@@ -19,7 +19,8 @@ this file.
 - A factory's dependency object now throws `DI_BAG_INVALID_DEPENDENCY_ACCESS`
   for `in`, `Object.keys`, spread, `JSON.stringify`, and descriptor reads instead
   of silently reporting an empty object. Destructuring and direct reads are unchanged.
-- Compile-time messages now name the services involved, for example
+- Missing-service, lifetime-capture, and unknown-key compile-time messages now
+  name the services involved, for example
   `required service registrations are missing: clock` and
   `root lifetime cannot capture scoped dependency: db -> config`.
 - Add `builder.verifyGraph()` and the `CompositionReport<B>` type for a one-line

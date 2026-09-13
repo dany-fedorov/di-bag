@@ -7,7 +7,7 @@
 ```ts
 type CheckDependencyCompatibility<R extends Registrations> = [
     InvalidNeeds<R> | NonFiniteKeys<R> | Extract<keyof R, number>
-] extends [never] ? [InvalidGraphs<R>] extends [never] ? [WrongShapes<R>] extends [never] ? unknown : Unsatisfied<`provided service does not satisfy its consumer dependency: ${RelationshipText<WrongRelationships<R, WrongShapes<R>>>}`, {
+] extends [never] ? [InvalidGraphs<R>] extends [never] ? [WrongShapes<R>] extends [never] ? unknown : Unsatisfied<'provided service does not satisfy its consumer dependency', {
     tokens: WrongShapes<R>;
     relationships: WrongRelationships<R, WrongShapes<R>>;
 }> : Unsatisfied<'token dependency has an incompatible or opaque contract', {

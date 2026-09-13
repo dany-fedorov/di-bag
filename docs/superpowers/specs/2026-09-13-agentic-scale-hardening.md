@@ -74,6 +74,16 @@ and discoverability) is deferred to a separate session; its agenda is
   expanding relationships there produced TS2590 at 1,000 grouped providers.
   Verified: all 77 negative fixtures, the type-scale suite, and `tests/types.test.ts`
   pass with these messages.
+- Deviation after merge (measured 2026-09-13): named messages at the per-call
+  wrong-shape sites (`CheckDependencyCompatibility`, `IncrementalChecked`,
+  `CheckedConstraints`) pushed `tests/incremental-scale.test.ts` over its pinned
+  instantiation ceilings, because TypeScript expands both branches while inferring
+  `register` arguments. Even a consumer-only template stayed over two ceilings
+  (100 named additions 800,280 > 790,000; 100 token modules 1,245,081 > 1,220,000).
+  Those three sites keep the plain message; `verifyGraph()` reports their details.
+  Names stay in missing-service, module-completeness, lifetime, and key-selection
+  messages. With plain wrong-shape messages and a generic `this` on `verifyGraph`:
+  765,037 / 824,964 / 1,215,945 against ceilings 790,000 / 850,000 / 1,220,000.
 - `builder.verifyGraph()` is a runtime no-op typed as `CompositionReport<typeof builder>`:
   `void` when the graph would build, otherwise the same failure `build()` would
   report, with details. Usage: `builder.verifyGraph() satisfies void;`. The error

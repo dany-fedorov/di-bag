@@ -56,12 +56,12 @@ type ThenableOutputs<R extends Registrations> = {
 export type ThenableAdmission<R extends Registrations> = [ThenableOutputs<R>] extends [never] ? unknown
   : Unsatisfied<`factory output is a structural thenable: ${NameText<ThenableOutputs<R>>}; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise`, { tokens: ThenableOutputs<R> }>;
 
-/** Render dependency names inside diagnostic messages; typed tokens have no printable name. */
+/**
+ * Render dependency names inside diagnostic messages; typed tokens have no printable name.
+ * Use it only in checks that run once per graph (build, module completeness, lifetimes, key selection):
+ * per-call wrong-shape checks stay plain because templates there cost instantiations on valid graphs.
+ */
 export type NameText<K> = K extends string ? K : K extends number ? `${K}` : 'typed token';
-/** Append names only when there are names: a message that collapses to `never` hides the diagnostic. */
-export type WithNames<Prefix extends string, Names extends string> = [Names] extends [never] ? Prefix : `${Prefix}: ${Names}`;
-/** Render `consumer needs dependency` for each relationship record. */
-export type RelationshipText<Rel> = Rel extends { consumer: infer C; dependency: infer D } ? `${NameText<C>} needs ${NameText<D>}` : never;
 declare const diBagTypeError: unique symbol;
 export type Unsatisfied<Message extends string, Details> = {
   readonly [diBagTypeError]: Message;
@@ -123,7 +123,7 @@ export type CheckDependencyCompatibility<R extends Registrations> = [
 ] extends [never]
   ? [InvalidGraphs<R>] extends [never] ? [WrongShapes<R>] extends [never]
     ? unknown
-    : Unsatisfied<`provided service does not satisfy its consumer dependency: ${RelationshipText<WrongRelationships<R, WrongShapes<R>>>}`, { tokens: WrongShapes<R>; relationships: WrongRelationships<R, WrongShapes<R>> }>
+    : Unsatisfied<'provided service does not satisfy its consumer dependency', { tokens: WrongShapes<R>; relationships: WrongRelationships<R, WrongShapes<R>> }>
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<R> }>
   : [NonFiniteKeys<R> | Extract<keyof R, number>] extends [never]
     ? Unsatisfied<'factory dependencies must be finite string-keyed objects', { tokens: InvalidNeeds<R> }>
@@ -162,7 +162,7 @@ type OldTokenWrong<E extends Entry, N extends Registrations> = [Extract<keyof N,
 export type IncrementalChecked<E extends Entry, N extends Registrations> = unknown extends CheckDependencyCompatibility<N>
   ? [NewTokenWrong<E, N> | OldTokenWrong<E, N>] extends [never]
     ? [NewWrong<E, N> | OldWrong<E, N>] extends [never] ? unknown
-      : Unsatisfied<`provided service does not satisfy its consumer dependency: check ${NameText<NewWrong<E, N> | OldWrong<E, N>>}`, { tokens: NewWrong<E, N> | OldWrong<E, N>; relationships: WrongRelationships<OverrideRegistrations<RegistrationsFromEntries<E>, N>, (NewWrong<E, N> | OldWrong<E, N>) & keyof OverrideRegistrations<RegistrationsFromEntries<E>, N>> }>
+      : Unsatisfied<'provided service does not satisfy its consumer dependency', { tokens: NewWrong<E, N> | OldWrong<E, N>; relationships: WrongRelationships<OverrideRegistrations<RegistrationsFromEntries<E>, N>, (NewWrong<E, N> | OldWrong<E, N>) & keyof OverrideRegistrations<RegistrationsFromEntries<E>, N>> }>
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: NewTokenWrong<E, N> | OldTokenWrong<E, N> }>
   : CheckDependencyCompatibility<N>;
 

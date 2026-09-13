@@ -316,13 +316,12 @@ for exact class shapes and constructors.
 
 `build()`, `register()`, `replace()`, `fork()`, and `createScope()` reject an
 invalid graph at compile time. TypeScript reports these as assignability errors
-whose message names the problem and the services involved:
+whose message names the problem and, where it is cheap to compute, the services involved:
 
 | Message | Meaning |
 | --- | --- |
 | `required service registrations are missing: clock` | No registration supplies `clock`. |
-| `provided service does not satisfy its consumer dependency: db needs config` | `config` exists but its service type does not match what `db` declares. |
-| `provided service does not satisfy its consumer dependency: check db` | The same mismatch found while adding a registration; the details list the dependency. |
+| `provided service does not satisfy its consumer dependency` | A service's type does not match what a consumer declares. `verifyGraph()` shows the consumer, dependency, expected type, and provided type. |
 | `root lifetime cannot capture scoped dependency: db -> config` | A `root` service would hold a `scoped` one. |
 | `fork accepts existing names or typed tokens only: unknown extra` | A selected key is not registered. |
 

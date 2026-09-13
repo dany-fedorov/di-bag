@@ -1,7 +1,7 @@
 import type { ContributionConstraint, CheckedContributions, CompleteContributions, RenamedContribution, ModuleContributionConstraints } from './contribution-types';
 import type { Module } from './module';
 import type { Registrations } from './registration';
-import type { Entry, NameText, Needs, RegistrationsFromEntries, RelationshipText, ServicesOf, Singleton, Unsatisfied, WithNames } from './types';
+import type { Entry, NameText, Needs, RegistrationsFromEntries, ServicesOf, Singleton, Unsatisfied } from './types';
 import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens, BoundToken } from './provider';
 import type { TokenDependencyContract, WrongToken, MissingToken } from './token-types';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
@@ -41,7 +41,7 @@ type MissingConstraintRelationships<C, A extends object> = C extends { readonly 
 
 export type CheckedConstraints<C extends NeedConstraint, A extends Registrations> =
   [WrongConstraint<C, A> | WrongTokenConstraint<C, A>] extends [never] ? CheckedContributions<C, A>
-    : Unsatisfied<WithNames<'provided service does not satisfy its consumer dependency', RelationshipText<ConstraintRelationships<C, ServicesOf<A>>>>, { tokens: WrongConstraint<C, A> | WrongTokenConstraint<C, A>; relationships: ConstraintRelationships<C, ServicesOf<A>> }>;
+    : Unsatisfied<'provided service does not satisfy its consumer dependency', { tokens: WrongConstraint<C, A> | WrongTokenConstraint<C, A>; relationships: ConstraintRelationships<C, ServicesOf<A>> }>;
 export type IncrementalConstraints<
   C extends NeedConstraint,
   MC extends NeedConstraint,
