@@ -133,7 +133,7 @@ function keyText(expression) {
 function readUnit(terminal, sourceFile, checker, root) {
   const calls = chainCalls(terminal, checker);
   const nodes = [], installs = [], aliases = [];
-  let exports = [];
+  let exports = [], label;
   for (const call of calls) {
     const name = methodName(call);
     if ((name === 'register' || name === 'replace') && call.arguments.length === 1 && ts.isObjectLiteralExpression(call.arguments[0])) {
@@ -155,11 +155,16 @@ function readUnit(terminal, sourceFile, checker, root) {
       installs.push(call.arguments[0]);
     } else if (name === 'buildModule' && call.arguments[0] && ts.isArrayLiteralExpression(call.arguments[0])) {
       exports = call.arguments[0].elements.map(keyText);
+      const options = call.arguments[1];
+      const property = options && ts.isObjectLiteralExpression(options)
+        ? options.properties.find(candidate => ts.isPropertyAssignment(candidate) && keyText(candidate.name) === 'label') : undefined;
+      if (property && ts.isStringLiteralLike(property.initializer)) label = property.initializer.text;
     }
   }
   const { line } = sourceFile.getLineAndCharacterOfPosition(calls[0].getStart(sourceFile));
   const file = relative(root, sourceFile.fileName);
-  return { id: `${file}:${line + 1}`, kind: methodName(terminal) === 'buildModule' ? 'module' : 'bag', file, line: line + 1, exports, installs, nodes, aliases, terminal };
+  const kind = methodName(terminal) === 'buildModule' ? 'module' : 'bag';
+  return { id: `${file}:${line + 1}`, kind, file, line: line + 1, ...(label === undefined ? {} : { label }), exports, installs, nodes, aliases, terminal };
 }
 
 /** Map each install argument to the module unit it names, with its label and export renames. */
@@ -198,7 +203,8 @@ function instantiate(unit, prefix, outer, graph, active) {
     const exported = new Map(ref.unit.exports.map(key => [key, key]));
     for (const [from, to] of ref.renames) if (exported.has(from)) { exported.set(to, exported.get(from)); exported.delete(from); }
     active.add(ref.unit);
-    const own = instantiate(ref.unit, `${prefix}${ref.label}/`, name => lookup(name), graph, active);
+    // The module's own label matches runtime messages; the install expression names unlabeled modules.
+    const own = instantiate(ref.unit, `${prefix}${ref.unit.label ?? ref.label}/`, name => lookup(name), graph, active);
     active.delete(ref.unit);
     installed.push({ exported, own });
   }

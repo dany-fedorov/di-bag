@@ -2,7 +2,7 @@
 // Modules imported from other files. The extractor does not require the fixture to type-check.
 import { DiBag } from '../../../../../src/node';
 import { billingModule } from './billing.js';
-import { clockModule, loopModule } from './parts.js';
+import { clockModule, labeledModule, loopModule } from './parts.js';
 import { shippingModule } from './shipping.js';
 
 // Each module's private service needs the other module's export.
@@ -26,3 +26,5 @@ export const opaque = DiBag.createBuilder()
   .build();
 
 export const hostOfLoop = DiBag.createBuilder().installModule(loopModule).build();
+
+export const labeledHost = DiBag.createBuilder().installModule(labeledModule).build();

@@ -31,9 +31,10 @@ usage or tsconfig error.
 ## What `--check` fails on
 
 - **cycle**: a dependency path returns to its start. Cycles through installed
-  modules are found: a module's private nodes appear under the name of the
-  variable passed to `installModule`, as `<label>/<key>`. A cycle inside one
-  module is reported once, on that module.
+  modules are found: a module's private nodes appear as `<label>/<key>`, where
+  the label is `buildModule(keys, { label })` when given, as in runtime
+  messages, and otherwise the expression passed to `installModule`. A cycle
+  inside one module is reported once, on that module.
 - **unresolved**: a bag (`build()` or `buildAndStart()`) has a declared
   dependency that no registration, alias, installed module export, or its
   requirement supplier provides. A module's unmet names are not issues; they are
@@ -51,6 +52,7 @@ not run factories.
 - `Unit`: one builder chain.
   - `id`: `<file>:<line>` of the chain start, relative to the working directory.
   - `kind`: `bag` or `module`.
+  - `label` (modules only, when given): the `buildModule` label.
   - `exports`: keys passed to `buildModule`.
   - `installs`: ids of installed module units, or the source text of an
     install the tool cannot trace to a `buildModule` chain.

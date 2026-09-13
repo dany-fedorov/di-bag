@@ -45,6 +45,13 @@ test('a cycle inside one module is reported once, on the module', () => {
   assert.deepEqual(issuesOf(idOf('app.ts', 'export const hostOfLoop')), []);
 });
 
+test('a module label from buildModule options names its private nodes, as runtime messages do', () => {
+  const module = graph.units.find(unit => unit.id === idOf('parts.ts', 'export const labeledModule'));
+  assert.equal(module.label, 'orders');
+  const host = idOf('app.ts', 'export const labeledHost');
+  assert.deepEqual(issuesOf(host), [{ kind: 'unresolved', unit: host, consumer: 'orders/inner', dependency: 'outerNeed' }]);
+});
+
 test('loadTypeScript uses the project compiler only when it has the compiler API at 6.0.3 or later', () => {
   // One directory per case: require caches a module by path.
   const base = mkdtempSync(join(tmpdir(), 'di-bag-graph-ts-'));
