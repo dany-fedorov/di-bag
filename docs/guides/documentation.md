@@ -42,6 +42,8 @@ npm run docs:preview
 | Node HTTP, Express, Fastify, Bun, and Deno applications | [server-integration.md](server-integration.md) |
 | API navigation and type inventories | [api-reference.md](api-reference.md) |
 | A signature's explanation, parameters, return value, or failure behavior | The public declaration's comment in [src](../../src), then regenerate |
+| A call's line and example in the API card | That call's JSDoc summary, `@throws`, and `@example` in [src](../../src), then regenerate |
+| The card's "one way per task" table | [api-card-tasks.json](../../tools/docs/api-card-tasks.json), then regenerate |
 | A rule a coding agent must follow, the per-module check, the fast check | [AGENTS.md](../../AGENTS.md) |
 | The recommended module layout | [examples-modularity.md](examples-modularity.md#recommended-module-layout); copy the block byte for byte into `AGENTS.md` |
 | How to do one agent task | [recipes.md](../agent/recipes.md) |
@@ -78,6 +80,13 @@ Generation requires comments on exported declarations and checks generated publi
 compiler's view, parses every generated TypeScript block, validates documentation
 links, and rejects internal compiler
 witness fields in the public output.
+
+Generation also writes `docs/agent/api-card.md` from the JSDoc of the runtime
+surface (`DiBag` facade members, `Builder` and `Bag` methods, the error classes)
+and the task table in `tools/docs/api-card-tasks.json`. Each call gets its first
+summary sentence, the `DI_BAG_*` codes named in its `@throws`, and its
+`@example`. Generation fails when a runtime call has no `@example`, a task names
+an unknown call, or the card exceeds 400 lines. Never edit the card by hand.
 
 `npm run docs:check` runs the tooling tests, generates a fresh temporary reference,
 and compares it with the committed files. Added, changed, and removed pages all
