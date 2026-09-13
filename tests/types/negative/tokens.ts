@@ -25,9 +25,9 @@ builder.register({ conflict: DiBag.fromFunction([conflict], value => value.extra
 DiBag.createBuilder().register({ conflict: DiBag.fromFunction([conflict], value => value.extra) }).register(token, () => ({ value: 1, extra: true }));
 // diagnostic: not assignable
 bag.resolve(other);
-// diagnostic: not assignable
+// diagnostic: token must match an existing binding contract; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 bag.resolve(conflict);
-// diagnostic: not assignable
+// diagnostic: token must match an existing binding contract; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 bag.inspect(conflict);
 // diagnostic: not assignable
 builder.replace(token, () => ({ value: 'wrong' }));

@@ -6,17 +6,17 @@ declare const optional: readonly ['a', 'b'?];
 declare const union: 'a' | 'b';
 declare const template: `a${string}`;
 declare const tupleUnion: readonly ['a'] | readonly ['b'];
-// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens
+// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 root.fork(widened, { a: () => 3, b: () => 4 });
-// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens
+// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 root.fork(variadic, { a: () => 3, b: () => 4 });
-// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens
+// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 root.fork(optional, { a: () => 3, b: () => 4 });
-// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens
+// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 root.fork([union], { a: () => 3, b: () => 4 });
-// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens
+// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 root.fork([template], { a: () => 3, b: () => 4 });
-// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens
+// diagnostic: fork requires a finite tuple of singleton string-literal names or typed tokens; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 root.fork(tupleUnion, { a: () => 3, b: () => 4 });
 // diagnostic: Property 'b' is missing
 root.fork(['a', 'b'], { a: () => 3 });

@@ -7,7 +7,7 @@
 ```ts
 type Overrides<F extends Registrations, O extends Registrations> = [
     Exclude<keyof O, keyof F>
-] extends [never] ? [BadOverrides<F, O>] extends [never] ? unknown : Unsatisfied<`override value is not assignable to the original token: ${NameText<BadOverrides<F, O>>}`, {
+] extends [never] ? [BadOverrides<F, O>] extends [never] ? unknown : Unsatisfied<`override value is not assignable to the original token: ${NameText<BadOverrides<F, O>>}${SeeErrors<'wrong-override'>}`, {
     tokens: BadOverrides<F, O>;
 }> : Unsatisfied<`fork accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof F>>}${SeeErrors<'unknown-key'>}`, {
     extra: Exclude<keyof O, keyof F>;

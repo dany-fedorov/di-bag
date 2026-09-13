@@ -1,4 +1,8 @@
-import { DiBag } from '../../../src';
+import { DiBag, type Overrides } from '../../../src';
+// fork and createScope usually reject a wrong override first through the factory context; the named report is the Overrides verdict.
+declare const override: Overrides<{ port: () => number }, { port: () => string }>;
+// diagnostic: override value is not assignable to the original token: port; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-override
+override satisfies void;
 // diagnostic: required service registrations are missing: clock; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
 DiBag.createBuilder().register({ db: ({ clock }: { clock: number }) => clock }).build();
 // diagnostic: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-shape

@@ -43,7 +43,7 @@ DiBag.createBuilder().contribute(wrong, () => 'wrong').installModule(privateAll)
 DiBag.createBuilder().contribute(numbers, () => 1).register({ all: DiBag.fromFunction([DiBag.all(wrong)], values => values) });
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().installModule(DiBag.createBuilder().contribute(numbers, ({ missing }: { missing: number }) => missing).buildModule([])).build();
-// diagnostic: consumer dependency
+// diagnostic: contribution service is incompatible with its consumer dependency contract; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer
 DiBag.createBuilder().contribute(numbers, ({ value }: { value: number }) => value).register({ value: () => 'bad' });
 // diagnostic: consumer dependency
 DiBag.createBuilder().contribute(numbers, ({ value }: { value: number }) => value).register({ value: () => 'bad' });

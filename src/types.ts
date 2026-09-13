@@ -231,7 +231,7 @@ export type Overrides<F extends Registrations, O extends Registrations> = [
   ? [BadOverrides<F, O>] extends [never]
     ? unknown
     : Unsatisfied<
-        `override value is not assignable to the original token: ${NameText<BadOverrides<F, O>>}`,
+        `override value is not assignable to the original token: ${NameText<BadOverrides<F, O>>}${SeeErrors<'wrong-override'>}`,
         { tokens: BadOverrides<F, O> }
       >
   : Unsatisfied<
@@ -329,7 +329,7 @@ export type Selection<R extends Registrations, K extends readonly unknown[], Ope
         : InvalidSelection<Operation>;
 
 type InvalidSelection<Operation extends string> = Unsatisfied<
-  `${Operation} requires a finite tuple of singleton string-literal names or typed tokens`,
+  `${Operation} requires a finite tuple of singleton string-literal names or typed tokens${SeeErrors<'unknown-key'>}`,
   { selection: 'use a const tuple with individually known names or typed tokens' }
 >;
 

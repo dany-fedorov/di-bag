@@ -5,7 +5,7 @@
 # Type Alias: TokenMember\<R *extends* `Registrations`, T\>
 
 ```ts
-type TokenMember<R extends Registrations, T> = ValidToken<T> extends true ? [WrongToken<T, R> | MissingToken<T, R>] extends [never] ? unknown : Unsatisfied<'token must match an existing binding contract', {}> : Unsatisfied<`token must be an individually known genuine handle${SeeErrors<'unknown-key'>}`, {}>;
+type TokenMember<R extends Registrations, T> = ValidToken<T> extends true ? [WrongToken<T, R> | MissingToken<T, R>] extends [never] ? unknown : Unsatisfied<`token must match an existing binding contract${SeeErrors<'unknown-key'>}`, {}> : Unsatisfied<`token must be an individually known genuine handle${SeeErrors<'unknown-key'>}`, {}>;
 ```
 
 Defined in: [token-types.ts:68](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L68)
