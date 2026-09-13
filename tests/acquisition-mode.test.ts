@@ -3,6 +3,7 @@ import { DiBag } from '../src/node';
 import { DiBag as Core } from '../src';
 import { isPromise } from 'node:util/types';
 import { runInNewContext } from 'node:vm';
+import { withoutBuiltinModule } from './host-builtin-module';
 
 for (const stage of ['source', 'projection', 'metadata'] as const) {
   test(`close waits for a native acquisition with shadowed then at ${stage}`, async () => {
@@ -30,6 +31,60 @@ for (const stage of ['source', 'projection', 'metadata'] as const) {
   });
 }
 
+test('bare entry resolves automatic async factories through the host classifier', async () => {
+  const pending = Promise.resolve(42);
+  const thenable = { then: (resolve: (value: number) => void) => resolve(1) };
+  const bag = Core.createBuilder().register({
+    answer: async () => 42,
+    same: () => pending,
+    thenable: Core.fromFactory(() => thenable, { acquisitionMode: 'raw' }),
+  }).build();
+  expect(await bag.resolve('answer')).toBe(42);
+  expect(bag.resolve('same')).toBe(pending);
+  expect(bag.resolve('thenable')).toBe(thenable);
+  const scope = bag.createScope();
+  const fork = bag.fork();
+  // Scopes and forks reuse the classifier resolved at build.
+  withoutBuiltinModule(() => { expect(scope.resolve('same')).toBe(pending); expect(fork.resolve('same')).toBe(pending); });
+  await Promise.all([scope.close(), fork.close()]);
+  await bag.close();
+  const started = await Core.createBuilder().register({ answer: async () => 7 }).buildAndStart(['answer']);
+  expect(await started.resolve('answer')).toBe(7);
+  await started.close();
+});
+
+test('bare entry fires DI_BAG_CLASSIFIER_REQUIRED on hosts without a usable process.getBuiltinModule', () => {
+  const build = () => Core.createBuilder().register({ value: () => 1 }).build();
+  for (const replacement of [undefined, 1, () => undefined, () => ({}), () => ({ isPromise: true })]) {
+    expect(() => withoutBuiltinModule(build, replacement)).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'process')!;
+  for (const host of [undefined, null]) {
+    Object.defineProperty(globalThis, 'process', { configurable: true, writable: true, value: host });
+    try { expect(build).toThrow('DI_BAG_CLASSIFIER_REQUIRED'); }
+    finally { Object.defineProperty(globalThis, 'process', descriptor); }
+  }
+});
+
+test('an explicit classifier wins and explicit graphs never consult the host', async () => {
+  let loads = 0;
+  const classified: unknown[] = [];
+  const counting = (id: string) => { loads++; return id === 'node:util/types' ? { isPromise } : undefined; };
+  const configured = Core.withConfiguration({ runtime: { isNativePromise: value => { classified.push(value); return isPromise(value); } } });
+  const [explicit, automatic] = withoutBuiltinModule(() => [
+    Core.createBuilder().register({ raw: Core.fromFactory(() => 1, { acquisitionMode: 'raw' }) }).build(),
+    configured.createBuilder().register({ value: () => 2 }).build(),
+  ], counting);
+  expect(explicit.resolve('raw')).toBe(1);
+  expect(automatic.resolve('value')).toBe(2);
+  expect(classified).toEqual([2]);
+  expect(loads).toBe(0);
+  const detected = withoutBuiltinModule(() => Core.createBuilder().register({ value: async () => 3 }).build(), counting);
+  expect(await detected.resolve('value')).toBe(3);
+  expect(loads).toBe(1);
+  await Promise.all([explicit.close(), automatic.close(), detected.close()]);
+});
+
 test('unconfigured core preflights every stage and private module before any factory effects', () => {
   let calls = 0;
   const source = Core.fromFactory(() => { calls++; return 1; }, { acquisitionMode: 'raw' });
@@ -39,7 +94,7 @@ test('unconfigured core preflights every stage and private module before any fac
     () => Core.createBuilder().register({ source, automatic }).build(),
     () => Core.createBuilder().register({ projected: Core.transformService(source, { mode: 'direct', transform: value => { calls++; return value; } }) }).build(),
     () => Core.createBuilder().installModule(feature).build(),
-  ]) expect(finalize).toThrow(/^DI_BAG_CLASSIFIER_REQUIRED: this host has no process\.getBuiltinModule; configure DiBag\.withConfiguration\(\{ runtime: \{ isNativePromise \} \}\) or give each automatic registration an explicit acquisitionMode; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-classifier-required$/);
+  ]) expect(() => withoutBuiltinModule<unknown>(finalize)).toThrow(/^DI_BAG_CLASSIFIER_REQUIRED: this host has no process\.getBuiltinModule; configure DiBag\.withConfiguration\(\{ runtime: \{ isNativePromise \} \}\) or give each automatic registration an explicit acquisitionMode; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-classifier-required$/);
   expect(calls).toBe(0);
 });
 
@@ -55,7 +110,7 @@ test('facades snapshot and isolate their predicate, carrying it through builders
   const bag = configured.createBuilder().installModule(feature).build();
   const forks = [bag.fork(), bag.fork([key], { [key.key]: () => pending })];
   for (const item of [bag, ...forks]) { expect(item.resolve(key)).toBe(pending); await item.close(); }
-  expect(() => Core.createBuilder().register({ value: () => 1 }).build()).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
+  expect(() => withoutBuiltinModule(() => Core.createBuilder().register({ value: () => 1 }).build())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   const failure = new Error('predicate failure');
   const other = Core.withConfiguration({ runtime: { isNativePromise: () => { throw failure; } } }).createBuilder().register({ value: () => 1 }).build();
   expect(() => other.resolve('value')).toThrow(failure);

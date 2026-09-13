@@ -56,7 +56,13 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
         const metadata = bag.inspect(token).acquisitions[0].acquisitionMetadata;
         const closing = bag.close(); await Promise.resolve(); await Promise.resolve();
         const before = [...disposed]; release(resource); await closing;
-        let preflight = false; try { Core.createBuilder().register({ value: () => 1 }).build(); } catch { preflight = true; }
+        // Simulate a host without process.getBuiltinModule, where the bare entry must reject automatic stages.
+        const loader = Object.getOwnPropertyDescriptor(process, 'getBuiltinModule');
+        Object.defineProperty(process, 'getBuiltinModule', { configurable: true, writable: true, value: undefined });
+        let preflight = false; try { Core.createBuilder().register({ value: () => 1 }).build(); } catch (error) { preflight = error.code === 'DI_BAG_CLASSIFIER_REQUIRED'; }
+        finally { Object.defineProperty(process, 'getBuiltinModule', loader); }
+        const detected = Core.createBuilder().register({ value: async () => 1 }).build();
+        preflight = preflight && await detected.resolve('value') === 1; await detected.close();
         const rawDisposed = [];
         const raw = Core.createBuilder().register({ value: Core.withDisposal(Core.fromFactory(() => pending, { acquisitionMode: 'raw' }), value => { rawDisposed.push(value === pending); }) }).build();
         raw.resolve('value'); await raw.close();

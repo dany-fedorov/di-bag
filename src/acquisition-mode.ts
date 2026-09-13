@@ -46,9 +46,24 @@ export function acquisitionMode(options: { readonly acquisitionMode?: Acquisitio
   if (mode !== 'auto' && mode !== 'raw' && mode !== 'nativePromise') throw libraryError('DI_BAG_INVALID_ACQUISITION_MODE', 'invalid acquisitionMode: use auto, raw, or nativePromise', { option: 'acquisitionMode' });
   return mode;
 }
-export function requireClassificationCapability(modes: Iterable<AcquisitionMode>, context: RuntimeContext): void {
-  if (context.isNativePromise) return;
-  for (const mode of modes) if (mode === 'auto') {
-    throw libraryError('DI_BAG_CLASSIFIER_REQUIRED', 'this host has no process.getBuiltinModule; configure DiBag.withConfiguration({ runtime: { isNativePromise } }) or give each automatic registration an explicit acquisitionMode', { option: 'runtime.isNativePromise' });
-  }
+/**
+ * Read the host classifier through `process.getBuiltinModule` (Node, Bun, Deno). A call, not an
+ * import, keeps `node:` specifiers out of the root entry's module graph for bundlers and browsers.
+ */
+function hostClassifier(): RuntimeOptions['isNativePromise'] | undefined {
+  const host: unknown = (globalThis as { readonly process?: unknown }).process;
+  if (typeof host !== 'object' || host === null) return undefined;
+  const load: unknown = (host as { readonly getBuiltinModule?: unknown }).getBuiltinModule;
+  if (typeof load !== 'function') return undefined;
+  const types: unknown = Reflect.apply(load, host, ['node:util/types']);
+  if (typeof types !== 'object' || types === null) return undefined;
+  const { isPromise } = types as { readonly isPromise?: unknown };
+  return typeof isPromise === 'function' ? isPromise as RuntimeOptions['isNativePromise'] : undefined;
+}
+/** Resolve the classifier when a graph first needs one; a configured classifier always wins. */
+export function requireClassifier(context: RuntimeContext): RuntimeContext {
+  if (context.isNativePromise) return context;
+  const isNativePromise = hostClassifier();
+  if (isNativePromise) return Object.freeze({ ...context, isNativePromise });
+  throw libraryError('DI_BAG_CLASSIFIER_REQUIRED', 'this host has no process.getBuiltinModule; configure DiBag.withConfiguration({ runtime: { isNativePromise } }) or give each automatic registration an explicit acquisitionMode', { option: 'runtime.isNativePromise' });
 }

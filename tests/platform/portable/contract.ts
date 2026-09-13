@@ -49,6 +49,20 @@ export function validatePortableInspection(inspection: unknown): {
   }
 }
 
+/**
+ * Host-dependent probe: the root entry resolves an automatic async factory where the host exposes
+ * process.getBuiltinModule, and otherwise rejects at build with DI_BAG_CLASSIFIER_REQUIRED.
+ */
+export function automaticAcquisition(DiBag: PortableDiBag): Promise<'resolved' | string> {
+  let bag: any;
+  try { bag = DiBag.createBuilder().register({ answer: async () => 42 }).build(); }
+  catch (error) { return Promise.resolve(String((error as { code?: unknown }).code)); }
+  return Promise.resolve(bag.resolve('answer')).then(async (value: unknown) => {
+    await bag.close();
+    return value === 42 ? 'resolved' : 'wrong-value';
+  });
+}
+
 export async function portableContract(DiBag: PortableDiBag): Promise<PortableContractResult> {
   const cleanupLog: string[] = [];
   const privateHelper = Object.freeze({ source: 'private-module-helper' });

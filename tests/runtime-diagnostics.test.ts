@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { getEventListeners } from 'node:events';
 import { DiBag, DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagStartupCancelledError, type GraphSnapshot, type LifecycleEvent } from '../src/node';
 import { DiBag as Core } from '../src';
+import { withoutBuiltinModule } from './host-builtin-module';
 
 // Dynamic graphs below are cast past the compiler on purpose: these tests pin runtime labels.
 type LooseBag = { resolve(key: string): unknown; inspectGraph(): GraphSnapshot; close(): Promise<void> };
@@ -26,7 +27,7 @@ test('library messages carry the code, the original text, and the errors-page se
   expect(cycle.message).toBe(`DI_BAG_CYCLE: cycle: a -> b -> a; see ${page}#di-bag-cycle`);
   expect(cycle.details.path).toEqual(['a', 'b', 'a']);
 
-  const classifier = caught(() => Core.createBuilder().register({ value: () => 1 }).build());
+  const classifier = caught(() => withoutBuiltinModule(() => Core.createBuilder().register({ value: () => 1 }).build()));
   expect(classifier.message).toBe(`DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule; configure DiBag.withConfiguration({ runtime: { isNativePromise } }) or give each automatic registration an explicit acquisitionMode; see ${page}#di-bag-classifier-required`);
 
   const typeError = caught(() => DiBag.withConfiguration(null as never));

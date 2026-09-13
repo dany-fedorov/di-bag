@@ -8,7 +8,7 @@ import type { CleanupFailure } from './errors';
 import { normalize } from './registration';
 import type { Registration, Registrations } from './registration';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
-import { requireClassificationCapability } from './acquisition-mode';
+import { requireClassifier } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
 
 export type BindingId = symbol;
@@ -162,14 +162,18 @@ export class BindingGraph {
   hasPublic(key: BindingKey): boolean { return this.#publicCache.has(key) || this.#publicSlots.has(key); }
   hasBinding(id: BindingId): boolean { return this.#bindings.has(id); }
 
-  /** Immutable graphs need explicit-mode validation only once; configured forks are O(1). */
-  preflight(context: RuntimeContext): void {
-    if (context.isNativePromise || this.#explicitlyClassified) return;
+  /**
+   * Return the context acquisitions use, resolving the host classifier before any factory runs.
+   * Immutable graphs need explicit-mode validation only once; configured forks are O(1).
+   */
+  preflight(context: RuntimeContext): RuntimeContext {
+    if (context.isNativePromise || this.#explicitlyClassified) return context;
     for (const [, { normalized: description }] of this.#bindings) {
-      requireClassificationCapability([description.acquisitionMode, ...description.operations.flatMap(operation =>
-        'acquisitionMode' in operation ? [operation.acquisitionMode] : [])], context);
+      if (description.acquisitionMode === 'auto' || description.operations.some(operation =>
+        'acquisitionMode' in operation && operation.acquisitionMode === 'auto')) return requireClassifier(context);
     }
     this.#explicitlyClassified = true;
+    return context;
   }
 
   publicBinding(key: BindingKey): BindingId {
@@ -348,15 +352,18 @@ export class BagRuntime {
   private closing: Promise<void> | undefined;
   private state: 'open' | 'closing' | 'closed' = 'open';
 
+  /** The configured or host-resolved context; scopes inherit it. */
+  readonly context: RuntimeContext;
+
   constructor(
     private readonly graph: BindingGraph,
-    private readonly context: RuntimeContext,
+    context: RuntimeContext,
     private detach: (() => void) | undefined = undefined,
     private readonly parentAcquisitions?: ScopeAcquisitions,
     shared: readonly BindingId[] = [],
   ) {
-    graph.preflight(context);
-    this.acquisitions = new ScopeAcquisitions(graph, context, parentAcquisitions, shared);
+    this.context = graph.preflight(context);
+    this.acquisitions = new ScopeAcquisitions(graph, this.context, parentAcquisitions, shared);
     this.observeScope('scope-opened');
   }
 

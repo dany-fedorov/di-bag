@@ -221,6 +221,9 @@ const expectedPortableResult = {
   scopedOnce: true,
   transientDistinct: true,
 } as const;
+// Deno exposes process.getBuiltinModule, so the root entry classifies automatically; a Worker has no process.
+const expectedDenoResult = { ...expectedPortableResult, automatic: 'resolved' } as const;
+const expectedWorkerResult = { ...expectedPortableResult, automatic: 'DI_BAG_CLASSIFIER_REQUIRED' } as const;
 
 function platformGit(): PlatformRow['git'] {
   const sha = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: platformRoot, encoding: 'utf8' });
@@ -401,7 +404,7 @@ export function evaluateBrowserWorkerProtocol(transcript: BrowserWorkerTranscrip
     return { status: 'fail', reason: 'Worker message shape mismatch' };
   }
   if (value.lane !== 'browser-worker-minified') return { status: 'fail', reason: 'Worker lane mismatch' };
-  if (!exactStructuredValue(value.result, expectedPortableResult)) return { status: 'fail', reason: 'Worker result mismatch' };
+  if (!exactStructuredValue(value.result, expectedWorkerResult)) return { status: 'fail', reason: 'Worker result mismatch' };
   return { status: 'pass' };
 }
 
@@ -521,7 +524,7 @@ export async function runBrowserWorkerLane(
       gzipSha256: bundle.gzipSha256,
       metafileSha256: bundle.metafileSha256,
       resolvedDiBag: bundle.resolvedDiBag,
-      result: expectedPortableResult,
+      result: expectedWorkerResult,
     });
   } catch (error) {
     return browserRow('fail', { reason: error instanceof Error ? error.message : String(error) });
@@ -553,7 +556,7 @@ export function evaluateDenoChild(installedPackage: string, supervised: Platform
   if (!resolvedModule.startsWith(packagePrefix)) {
     return { status: 'fail', reason: 'Deno resolved di-bag outside the local archive install' };
   }
-  return evaluatePlatformChild({ lane: 'deno-root', resolvedDiBag: value.resolvedDiBag, result: expectedPortableResult }, supervised);
+  return evaluatePlatformChild({ lane: 'deno-root', resolvedDiBag: value.resolvedDiBag, result: expectedDenoResult }, supervised);
 }
 
 export async function runDenoLane(

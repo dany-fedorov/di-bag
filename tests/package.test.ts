@@ -119,6 +119,19 @@ for (const mode of ['commonjs', 'module'] as const) {
     });
   });
 
+  test(`Node ${mode} bare di-bag entry resolves automatic async factories`, async () => {
+    const load = mode === 'commonjs' ? "const { DiBag } = require('di-bag');" : "import { DiBag } from 'di-bag';";
+    const stdout = await run(['node', `--input-type=${mode}`, '--eval', `${load}
+      (async () => {
+        const bag = DiBag.createBuilder().register({ answer: async () => 42, same: () => Promise.resolve(1) }).build();
+        const answer = await bag.resolve('answer');
+        await bag.close();
+        console.log(JSON.stringify({ answer }));
+      })();
+    `], classicPackageConsumer);
+    expect(JSON.parse(stdout)).toEqual({ answer: 42 });
+  });
+
   test(`Node ${mode} consumers can resolve and dispose through the public package`, async () => {
     const load =
       mode === 'commonjs'
