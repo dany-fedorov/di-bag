@@ -295,6 +295,26 @@ export class BindingGraph {
     return { bindings, publicSlots, contributions };
   }
 
+  /** Every retained binding in `describe()` order, with the public keys that select it. */
+  bindingSummaries(): readonly { readonly id: BindingId; readonly keys: readonly BindingKey[] }[] {
+    const keysById = new Map<BindingId, BindingKey[]>();
+    if (this.#publicOrder) for (const key of materialize(this.#publicOrder)) {
+      const id = this.#publicSlots.get(key);
+      if (id === undefined) continue;
+      const keys = keysById.get(id) ?? [];
+      if (!keys.includes(key)) keys.push(key);
+      keysById.set(id, keys);
+    }
+    return Object.freeze([...this.describe().bindings.keys()].map(id => Object.freeze({ id, keys: Object.freeze(keysById.get(id) ?? []) })));
+  }
+
+  /** Every contribution group with its member bindings in contribution order. */
+  contributionGroups(): readonly { readonly token: symbol; readonly bindingIds: readonly BindingId[] }[] {
+    const groups: { readonly token: symbol; readonly bindingIds: readonly BindingId[] }[] = [];
+    for (const [key] of this.#contributions) groups.push(Object.freeze({ token: key as symbol, bindingIds: this.contributionBindings(key as symbol) }));
+    return Object.freeze(groups);
+  }
+
   /** Install disjoint public slots atomically, retaining lexical private refs. */
   withInstallation(description: GraphDescription): BindingGraph {
     for (const key of description.publicSlots.keys()) {
