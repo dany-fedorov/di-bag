@@ -1,7 +1,7 @@
 import type { ContributionConstraint, CheckedContributions, CompleteContributions, RenamedContribution, ModuleContributionConstraints } from './contribution-types';
 import type { Module } from './module';
 import type { Registrations } from './registration';
-import type { Entry, NameText, Needs, RegistrationsFromEntries, ServicesOf, Singleton, Unsatisfied } from './types';
+import type { Entry, Intersect, NameText, Needs, Resolved, RegistrationsFromEntries, ServicesOf, Singleton, Unsatisfied } from './types';
 import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens, BoundToken } from './provider';
 import type { TokenDependencyContract, WrongToken, MissingToken } from './token-types';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
@@ -60,7 +60,7 @@ export type CompleteConstraints<C extends NeedConstraint, A extends Registration
 // their lookup keys equal. Keep consumers distributive, never intersect needs
 // before validating them: incompatible requirements must not become `never`.
 type Constraint<K extends string | symbol, N, Keys extends keyof N, Kind extends string> =
-  [Keys] extends [never] ? never : { readonly consumer: K; readonly needs: Pick<N, Keys>; readonly kind: Kind };
+  [Keys] extends [never] ? never : { readonly consumer: K; readonly needs: Resolved<Pick<N, Keys>>; readonly kind: Kind };
 export type RegistrationConstraints<V extends Registrations[string], R extends Registrations, Public extends keyof R, K extends string | symbol = string | symbol> =
     | Constraint<K, Needs<V>, Extract<keyof Needs<V>, Public>, 'export'>
     | Constraint<K, Needs<V>, Exclude<keyof Needs<V>, keyof R>, 'external'>
@@ -77,12 +77,12 @@ type TokenConstraint<K extends string | symbol, T, R, Public, Optional extends b
     : TokenKey<T> extends keyof R ? never : { readonly consumer: K; readonly token: T; readonly kind: Optional extends true ? 'optional-token-external' : 'token-external' }
   : never;
 
-type Intersect<U> = (U extends unknown ? (value: U) => void : never) extends
-  (value: infer I) => void ? I : never;
 type External<C> = C extends { kind: 'external'; needs: infer N } ? N
   : C extends { kind: 'token-external'; token: infer T } ? Record<TokenKey<T>, TokenService<T>>
     : C extends { kind: 'optional-token-external'; token: infer T } ? Partial<Record<TokenKey<T>, TokenService<T>>> : never;
 export type ExternalRequirements<C> = [External<C>] extends [never] ? Readonly<{}>
+  // Named needs are already resolved objects; token needs stay `Record` references because
+  // declaration emit cannot serialize an expanded unique-symbol property.
   : Readonly<Intersect<External<C>>>;
 
 // Capture the output independently of the registration retained by its public projection.

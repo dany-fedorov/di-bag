@@ -40,6 +40,7 @@ import type {
   RegistrationEntries,
   Entry,
   EntryKeys,
+  ExportedServices,
   OverrideFactoryContext,
   RegistrationsFromEntries,
   IncrementalChecked,
@@ -432,7 +433,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * ```
    */
   buildModule<const K extends readonly unknown[]>(keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildModule'>, options?: ModuleOptions): Module<
-    Pick<ServicesOf<RegistrationsFromEntries<E>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
+    ExportedServices<ServicesOf<RegistrationsFromEntries<E>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
     ExternalRequirements<ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>,
     ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
     ModulePublicProviders<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>
