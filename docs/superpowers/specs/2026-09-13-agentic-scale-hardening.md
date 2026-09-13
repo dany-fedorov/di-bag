@@ -124,6 +124,6 @@ and discoverability) is deferred to a separate session; its agenda is
 - `tsconfig.json` is `strict` with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`.
 - `npm run check` (typecheck, tests, build) must pass before every commit.
 - After changing public API comments or exports: `npm run docs:generate`, then `npm run docs:check` (requires `npm ci --prefix tools/docs`).
-- Every plan adds its entry under a new `## Unreleased` heading at the top of `CHANGELOG.md`; the API is pre-1.0 and compatibility aliases are not kept.
+- Pending changelog entries go into `docs/superpowers/release-notes-draft.md`, not `CHANGELOG.md`: the release contract forbids an `## Unreleased` section and requires the top section to be the frozen package version. The API is pre-1.0 and compatibility aliases are not kept.
 - Code style: single quotes, semicolons, two-space indentation, terse comments explaining why.
 - Commit prefixes: `feat:`, `fix:`, `test:`, `docs:`, `chore:`.
