@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import ts from 'typescript';
-import { diagnostics, describeDiagnostic } from './compiler';
+import { diagnostics, diagnosticsByFile, describeDiagnostic } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 
 test('observers retain exact inferred cross-file contracts', () => {
@@ -212,15 +212,19 @@ for (const operation of ['add', 'fork', 'disposal']) {
   });
 }
 
-for (const name of readdirSync(resolve(__dirname, 'types/negative')).filter(
-  (name) => name.endsWith('.ts'),
-)) {
-  test(`type rejection: ${name}`, () => {
-    const path = resolve(__dirname, 'types/negative', name);
+const negativeDirectory = resolve(__dirname, 'types/negative');
+const negativeFixtures = readdirSync(negativeDirectory)
+  .filter((name) => name.endsWith('.ts'))
+  .map((name) => resolve(negativeDirectory, name));
+// One program for every independent rejection fixture; each test reads its own file's diagnostics.
+const negativeDiagnostics = diagnosticsByFile(negativeFixtures);
+
+for (const path of negativeFixtures) {
+  test(`type rejection: ${basename(path)}`, () => {
     const source = readFileSync(path, 'utf8');
     const expected = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
     expect(expected.length).toBeGreaterThan(0);
-    const errors = diagnostics(path);
+    const errors = negativeDiagnostics.get(path)!;
     expect(errors.length).toBeGreaterThan(0);
     expect(errors.every((error) => error.file?.fileName === path)).toBe(true);
     const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
