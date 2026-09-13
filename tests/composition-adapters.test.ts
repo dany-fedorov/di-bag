@@ -141,8 +141,8 @@ test('raw class adapters preserve thenables and auto rejects them without assimi
 
 test('automatic adapters require runtime classification before acquisition', () => {
   let calls = 0;
-  expect(() => Core.createBuilder().register({ source: Core.fromFunction([], () => { calls++; return 1; }) }).build()).toThrow('classification');
-  expect(() => Core.createBuilder().register({ source: Core.fromClass([], class { constructor() { calls++; } }) }).build()).toThrow('classification');
+  expect(() => Core.createBuilder().register({ source: Core.fromFunction([], () => { calls++; return 1; }) }).build()).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
+  expect(() => Core.createBuilder().register({ source: Core.fromClass([], class { constructor() { calls++; } }) }).build()).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   expect(calls).toBe(0);
 });
 

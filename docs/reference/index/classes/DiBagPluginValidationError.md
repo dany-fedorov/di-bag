@@ -4,7 +4,7 @@
 
 # Class: DiBagPluginValidationError
 
-Defined in: [errors.ts:32](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L32)
+Defined in: [errors.ts:38](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L38)
 
 A plugin descriptor or produced value crossed the checked plugin boundary.
 
@@ -20,7 +20,7 @@ A plugin descriptor or produced value crossed the checked plugin boundary.
 new (phase: "descriptor" | "output", reason: string): DiBagPluginValidationError;
 ```
 
-Defined in: [errors.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L39)
+Defined in: [errors.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L45)
 
 #### Parameters
 
@@ -43,7 +43,7 @@ Error.constructor
 declare readonly code: 'DI_BAG_PLUGIN_VALIDATION';
 ```
 
-Defined in: [errors.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L33)
+Defined in: [errors.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L39)
 
 ***
 
@@ -53,7 +53,7 @@ Defined in: [errors.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/
 declare readonly details: Readonly<Record<string, unknown>>;
 ```
 
-Defined in: [errors.ts:34](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L34)
+Defined in: [errors.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L40)
 
 ***
 
@@ -63,7 +63,7 @@ Defined in: [errors.ts:34](https://github.com/dany-fedorov/di-bag/blob/main/src/
 readonly phase: 'descriptor' | 'output';
 ```
 
-Defined in: [errors.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L39)
+Defined in: [errors.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L45)
 
 Whether descriptor authentication or output validation failed.
 
@@ -75,6 +75,6 @@ Whether descriptor authentication or output validation failed.
 readonly reason: string;
 ```
 
-Defined in: [errors.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L39)
+Defined in: [errors.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L45)
 
 A stable description of the rejected boundary condition.

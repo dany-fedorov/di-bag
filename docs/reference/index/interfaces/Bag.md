@@ -23,22 +23,43 @@ Create bags through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) followed
 ### close()
 
 ```ts
-close(): Promise<void>;
+close(options?: CloseOptions): Promise<void>;
 ```
 
-Defined in: [di-bag.ts:247](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L247)
+Defined in: [di-bag.ts:261](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L261)
 
 Close this bag, drain in-flight work, and dispose owned resources once.
 Dependents are disposed before dependencies; remaining independent acquisitions use
-reverse acquisition order. Repeated calls return the same promise.
+reverse acquisition order. Without options the promise waits for cleanup however long it
+takes, and repeated calls return the same promise. With `timeoutMs` or `signal`, cleanup
+starts the same way but the returned promise stops waiting when either fires; scopes and
+forks accept the same options.
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `options?` | An optional deadline and abort signal bounding the wait, not the cleanup. |
 
 #### Returns
 
-The shared shutdown promise.
+The shared shutdown promise, or a bounded wait on it when options are given.
 
 #### Throws
 
-[DiBagCleanupError](../classes/DiBagCleanupError.md) when one or more disposers fail after all cleanup is attempted.
+[DiBagCleanupError](../classes/DiBagCleanupError.md) (`DI_BAG_CLEANUP_FAILED`) when one or more disposers fail after all cleanup is attempted;
+`DI_BAG_CLOSE_FAILED` for other shutdown failures;
+[DiBagCloseCancelledError](../classes/DiBagCloseCancelledError.md) (`DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`) when the wait stops first,
+naming unfinished disposers in `details.pending`; `DI_BAG_INVALID_CLOSE` for malformed options.
+
+#### Example
+
+```ts
+import { DiBag } from 'di-bag/node';
+
+const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+await bag.close({ timeoutMs: 10_000, signal: AbortSignal.timeout(15_000) });
+```
 
 ***
 

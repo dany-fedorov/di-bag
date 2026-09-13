@@ -11,17 +11,17 @@ import type { FactoryWithDisposal, Factory, Registration, Registrations } from '
 import { BindingGraph, BagRuntime } from './runtime';
 import type { BindingKey } from './runtime';
 import { moduleGraph, sealModule } from './module';
-import type { Module } from './module';
+import type { Module, ModuleOptions } from './module';
 import type { CompositionReport } from './composition-report';
 import type { CheckedConstraints, CompleteConstraints, ExternalRequirements, IncrementalConstraints, ModulePublicProviders, ModuleSealedConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes } from './lifetime-types';
 import { withLifetime } from './lifetime';
 import { fromFactory } from './acquisition-context';
-import { startRuntime } from './startup';
+import { closeRuntime, startRuntime } from './startup';
 import { selectScope } from './scope-selection';
 import type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases } from './scope-types';
 import type { CheckedScopeLifetimes } from './lifetime-types';
-import type { StartupOptions } from './startup';
+import type { CloseOptions, StartupOptions } from './startup';
 import { withMetadata, transformService, withTokenBinding } from './provider';
 import { fromFunction, fromClass } from './composition';
 import { runtimeContext, unconfigured } from './acquisition-mode';
@@ -240,12 +240,26 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
   /**
    * Close this bag, drain in-flight work, and dispose owned resources once.
    * Dependents are disposed before dependencies; remaining independent acquisitions use
-   * reverse acquisition order. Repeated calls return the same promise.
-   * @returns The shared shutdown promise.
-   * @throws {@link DiBagCleanupError} when one or more disposers fail after all cleanup is attempted.
+   * reverse acquisition order. Without options the promise waits for cleanup however long it
+   * takes, and repeated calls return the same promise. With `timeoutMs` or `signal`, cleanup
+   * starts the same way but the returned promise stops waiting when either fires; scopes and
+   * forks accept the same options.
+   * @param options - An optional deadline and abort signal bounding the wait, not the cleanup.
+   * @returns The shared shutdown promise, or a bounded wait on it when options are given.
+   * @throws {@link DiBagCleanupError} (`DI_BAG_CLEANUP_FAILED`) when one or more disposers fail after all cleanup is attempted;
+   * `DI_BAG_CLOSE_FAILED` for other shutdown failures;
+   * {@link DiBagCloseCancelledError} (`DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`) when the wait stops first,
+   * naming unfinished disposers in `details.pending`; `DI_BAG_INVALID_CLOSE` for malformed options.
+   * @example
+   * ```ts
+   * import { DiBag } from 'di-bag/node';
+   *
+   * const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+   * await bag.close({ timeoutMs: 10_000, signal: AbortSignal.timeout(15_000) });
+   * ```
    */
-  close(): Promise<void> {
-    return this.#runtime.close();
+  close(options?: CloseOptions): Promise<void> {
+    return closeRuntime(this.#runtime, options);
   }
 }
 
@@ -401,16 +415,29 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * become requirements of the module. Installed modules nest: their private
    * bindings and retained constraints are re-scoped inside this module.
    * @param keys - A finite tuple of existing names or tokens; an empty tuple is allowed.
+   * @param options - An optional `label`; each installation names its private bindings `<label>/<key>` in
+   * error messages, cycle paths, `inspectGraph()`, and observer events, and nested labels compose as `outer/inner/key`.
    * @returns An immutable module that can be renamed or installed in another builder.
-   * @throws If the selection is not a tuple or contains an absent name or token.
+   * @throws `DI_BAG_INVALID_EXPORT` if the selection is not a tuple, contains an absent name or token, or the label is not a non-empty string.
+   * @example
+   * ```ts
+   * import { DiBag } from 'di-bag/node';
+   *
+   * const orders = DiBag.createBuilder()
+   *   .register({ repository: () => new Map<string, number>() })
+   *   .register({ placeOrder: ({ repository }: { repository: Map<string, number> }) => (id: string) => repository.set(id, 1) })
+   *   .buildModule(['placeOrder'], { label: 'orders' });
+   * // Errors and inspectGraph() name the private binding 'orders/repository'.
+   * const app = DiBag.createBuilder().installModule(orders).build();
+   * ```
    */
-  buildModule<const K extends readonly unknown[]>(keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildModule'>): Module<
+  buildModule<const K extends readonly unknown[]>(keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildModule'>, options?: ModuleOptions): Module<
     Pick<ServicesOf<RegistrationsFromEntries<E>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
     ExternalRequirements<ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>,
     ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
     ModulePublicProviders<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>
   > {
-    return sealModule(this.#graph, keys) as never;
+    return sealModule(this.#graph, keys, options) as never;
   }
 
   /**

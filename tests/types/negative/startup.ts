@@ -51,3 +51,14 @@ DiBag.fromFactory((_deps: {}, context) => {
   // diagnostic: Property 'abort' does not exist on type 'AcquisitionContext'
   context.abort();
 }, { context: 'acquisition' });
+const closable = DiBag.createBuilder().register({ value: () => 1 }).build();
+// diagnostic: not assignable
+closable.close({ timeoutMs: '1' });
+// diagnostic: does not exist in type 'CloseOptions'
+closable.close({ startupOrder: 'sequential' });
+// diagnostic: missing the following properties from type 'AbortSignal'
+closable.close({ signal: {} });
+// diagnostic: not assignable
+DiBag.createBuilder().register({ value: () => 1 }).buildModule(['value'], { label: 1 });
+// diagnostic: does not exist in type 'ModuleOptions'
+DiBag.createBuilder().register({ value: () => 1 }).buildModule(['value'], { name: 'x' });

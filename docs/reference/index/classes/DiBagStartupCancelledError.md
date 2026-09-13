@@ -4,7 +4,7 @@
 
 # Class: DiBagStartupCancelledError
 
-Defined in: [errors.ts:84](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L84)
+Defined in: [errors.ts:90](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L90)
 
 Prompt cancellation; cleanup remains awaitable for uncooperative factories.
 
@@ -20,7 +20,7 @@ Prompt cancellation; cleanup remains awaitable for uncooperative factories.
 new (reason: "aborted" | "timeout", cause: unknown, cleanupPromise: Promise<void>): DiBagStartupCancelledError;
 ```
 
-Defined in: [errors.ts:92](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L92)
+Defined in: [errors.ts:98](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L98)
 
 #### Parameters
 
@@ -44,7 +44,7 @@ Error.constructor
 readonly cleanupPromise: Promise<void>;
 ```
 
-Defined in: [errors.ts:95](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L95)
+Defined in: [errors.ts:101](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L101)
 
 Eventual shutdown of the partially started bag; cancellation does not await it.
 
@@ -56,7 +56,7 @@ Eventual shutdown of the partially started bag; cancellation does not await it.
 declare readonly code: 'DI_BAG_STARTUP_CANCELLED';
 ```
 
-Defined in: [errors.ts:85](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L85)
+Defined in: [errors.ts:91](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L91)
 
 ***
 
@@ -66,7 +66,7 @@ Defined in: [errors.ts:85](https://github.com/dany-fedorov/di-bag/blob/main/src/
 declare readonly details: Readonly<Record<string, unknown>>;
 ```
 
-Defined in: [errors.ts:86](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L86)
+Defined in: [errors.ts:92](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L92)
 
 ***
 
@@ -76,6 +76,6 @@ Defined in: [errors.ts:86](https://github.com/dany-fedorov/di-bag/blob/main/src/
 readonly reason: 'aborted' | 'timeout';
 ```
 
-Defined in: [errors.ts:93](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L93)
+Defined in: [errors.ts:99](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L99)
 
 Whether an external abort or startup timeout cancelled the wait.

@@ -4,7 +4,7 @@
 
 # Class: DiBagStartupError
 
-Defined in: [errors.ts:64](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L64)
+Defined in: [errors.ts:70](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L70)
 
 Acquisition failure after the new bag has finished releasing its resources.
 
@@ -20,7 +20,7 @@ Acquisition failure after the new bag has finished releasing its resources.
 new (cause: unknown, cleanupFailures: readonly CleanupFailure[], cleanupError?: unknown | undefined): DiBagStartupError;
 ```
 
-Defined in: [errors.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L75)
+Defined in: [errors.ts:81](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L81)
 
 #### Parameters
 
@@ -44,7 +44,7 @@ Error.constructor
 readonly cleanupError?: unknown;
 ```
 
-Defined in: [errors.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L75)
+Defined in: [errors.ts:81](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L81)
 
 The complete shutdown error, when rollback itself rejected.
 
@@ -56,7 +56,7 @@ The complete shutdown error, when rollback itself rejected.
 readonly cleanupFailures: readonly CleanupFailure[];
 ```
 
-Defined in: [errors.ts:68](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L68)
+Defined in: [errors.ts:74](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L74)
 
 Frozen rollback disposal failures in invocation order.
 
@@ -68,7 +68,7 @@ Frozen rollback disposal failures in invocation order.
 declare readonly code: 'DI_BAG_STARTUP_FAILED';
 ```
 
-Defined in: [errors.ts:65](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L65)
+Defined in: [errors.ts:71](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L71)
 
 ***
 
@@ -78,4 +78,4 @@ Defined in: [errors.ts:65](https://github.com/dany-fedorov/di-bag/blob/main/src/
 declare readonly details: Readonly<Record<string, unknown>>;
 ```
 
-Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L66)
+Defined in: [errors.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L72)

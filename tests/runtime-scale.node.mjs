@@ -40,7 +40,7 @@ test('Node admits a late acyclic edge and rejects a late cycle across a deep gra
   try {
     const reader = bag.resolve('reader');
     assert.equal(reader(), nodes[0]);
-    assert.throws(() => nodes.at(-1).link(), /^Error: cycle:/);
+    assert.throws(() => nodes.at(-1).link(), /^Error: DI_BAG_CYCLE: cycle:/);
   } finally {
     await bag.close();
   }
@@ -93,7 +93,7 @@ for (const lifetime of ['scoped', 'transient']) {
     const bag = DiBag.createBuilder().register({
       value: DiBag.withLifetime(DiBag.fromFactory(() => { calls++; return bag.resolve('value'); }, { acquisitionMode: 'raw' }), lifetime),
     }).build();
-    assert.throws(() => bag.resolve('value'), /^Error: cycle: value -> value$/);
+    assert.throws(() => bag.resolve('value'), /^Error: DI_BAG_CYCLE: cycle: value -> value; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-cycle$/);
     assert.equal(calls, 1);
     await bag.close();
   });
@@ -106,7 +106,7 @@ test('native transient ancestry rejects after-await cycles with the original lab
     a: transient(async deps => { calls++; await Promise.resolve(); return deps.b; }),
     b: transient(async deps => { await Promise.resolve(); return deps.a; }),
   }).build();
-  await assert.rejects(bag.resolve('a'), /^Error: cycle: a -> b -> a$/);
+  await assert.rejects(bag.resolve('a'), /^Error: DI_BAG_CYCLE: cycle: a -> b -> a; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-cycle$/);
   assert.equal(calls, 1);
   await bag.close();
 });
@@ -125,7 +125,7 @@ test('ready borrowed transient proxies keep late cycle and root capture checks',
   const bridge = child.resolve('root');
   assert.throws(bridge.read, /root lifetime cannot capture scoped dependency: root -> scoped/);
   const reader = bag.resolve('reader');
-  assert.throws(reader.next().next, /^Error: cycle: reader -> link -> reader$/);
+  assert.throws(reader.next().next, /^Error: DI_BAG_CYCLE: cycle: reader -> link -> reader; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-cycle$/);
   assert.equal(child.resolve('scoped'), 42);
   await bag.close();
 });

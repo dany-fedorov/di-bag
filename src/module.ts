@@ -10,6 +10,18 @@ interface ModuleDescription {
   readonly graph: GraphDescription;
   /** Public slot -> original local name. Factory parameter names never change. */
   readonly exports: ReadonlyMap<BindingKey, BindingKey>;
+  /** Prefix for every non-exported binding label of an installation. */
+  readonly label: string | undefined;
+}
+
+/** Options for {@link Builder.buildModule}. */
+export interface ModuleOptions {
+  /**
+   * Name each installation's private bindings `<label>/<key>` in error messages, cycle paths,
+   * `inspectGraph()`, and observer events. Nested labels compose: `outer/inner/key`.
+   * Exported bindings keep their bare key.
+   */
+  readonly label?: string;
 }
 const descriptions = new WeakMap<object, ModuleDescription>();
 declare const moduleInvariant: unique symbol;
@@ -26,7 +38,7 @@ class Module<P extends object, R extends object, C extends NeedConstraint = neve
   declare readonly [moduleInvariant]: (value: [P, R, C, D]) => [P, R, C, D];
 
   constructor(description: ModuleDescription) {
-    descriptions.set(this, { graph: description.graph, exports: new Map(description.exports) });
+    descriptions.set(this, { graph: description.graph, exports: new Map(description.exports), label: description.label });
     Object.freeze(this);
   }
 
@@ -50,7 +62,7 @@ class Module<P extends object, R extends object, C extends NeedConstraint = neve
     const localName = exports.get(oldKey)!;
     exports.delete(oldKey);
     exports.set(newKey, localName);
-    return new Module({ graph: description.graph, exports });
+    return new Module({ graph: description.graph, exports, label: description.label });
   }
 }
 
@@ -59,7 +71,8 @@ class Module<P extends object, R extends object, C extends NeedConstraint = neve
  * keys must be a tuple of existing public names or typed tokens.
  * @internal
  */
-export function sealModule(graph: BindingGraph, keys: unknown): Module<never, never, never, never> {
+export function sealModule(graph: BindingGraph, keys: unknown, options?: unknown): Module<never, never, never, never> {
+  const label = moduleLabel(options);
   if (!Array.isArray(keys)) throw libraryError('DI_BAG_INVALID_EXPORT', 'buildModule requires a key tuple', { operation: 'buildModule' });
   // Snapshot indexed entries before a custom iterator can substitute keys.
   const selected: unknown[] = [];
@@ -71,7 +84,19 @@ export function sealModule(graph: BindingGraph, keys: unknown): Module<never, ne
     if (!graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_EXPORT', 'buildModule accepts existing names or typed tokens only', { operation: 'buildModule' });
     exports.set(key, key);
   }
-  return new Module({ graph: graph.describe(), exports });
+  return new Module({ graph: graph.describe(), exports, label });
+}
+
+function moduleLabel(options: unknown): string | undefined {
+  if (options === undefined) return undefined;
+  const invalid = () => libraryError('DI_BAG_INVALID_EXPORT', 'buildModule options must be { label?: string } with a non-empty label', { operation: 'buildModule', option: 'label' });
+  if (typeof options !== 'object' || options === null || Array.isArray(options)) throw invalid();
+  if (Reflect.ownKeys(options).some(key => key !== 'label') || ('label' in options && !Object.hasOwn(options, 'label'))) throw invalid();
+  if (!Object.hasOwn(options, 'label')) return undefined;
+  const label: unknown = Reflect.get(options, 'label');
+  if (label === undefined) return undefined;
+  if (typeof label !== 'string' || label === '') throw invalid();
+  return label;
 }
 
 /**
@@ -83,9 +108,13 @@ export function sealModule(graph: BindingGraph, keys: unknown): Module<never, ne
 export function moduleGraph(value: object): GraphDescription {
   const description = descriptions.get(value);
   if (!description) throw libraryError('DI_BAG_INVALID_MODULE', 'installModule requires a genuine module', { operation: 'installModule' });
-  const { graph, exports } = description;
+  const { graph, exports, label } = description;
+  // Labels are baked per installation, so a nested module's prefix composes outward.
+  const exported = new Set<BindingId>();
+  for (const localKey of exports.values()) exported.add(graph.publicSlots.get(localKey)!);
+  const labelOf = (id: BindingId, binding: BindingDescription) => label === undefined || exported.has(id) ? binding.label : `${label}/${binding.label}`;
   const ids = new Map<BindingId, BindingId>();
-  for (const [id, binding] of graph.bindings) ids.set(id, Symbol(binding.label));
+  for (const [id, binding] of graph.bindings) ids.set(id, Symbol(labelOf(id, binding)));
   const exportNames = new Map<BindingKey, BindingKey>();
   for (const [publicKey, localKey] of exports) exportNames.set(localKey, publicKey);
   // Every public name of the sealed graph, as seen by its own bindings.
@@ -113,7 +142,7 @@ export function moduleGraph(value: object): GraphDescription {
   const bindings = new Map<BindingId, BindingDescription>();
   for (const [id, binding] of graph.bindings) {
     const fresh = ids.get(id)!;
-    bindings.set(fresh, { id: fresh, label: binding.label, registration: binding.registration, localNames: localNamesFor(binding) });
+    bindings.set(fresh, { id: fresh, label: labelOf(id, binding), registration: binding.registration, localNames: localNamesFor(binding) });
   }
   const publicSlots = new Map<BindingKey, BindingId>();
   for (const [publicKey, localKey] of exports) publicSlots.set(publicKey, ids.get(graph.publicSlots.get(localKey)!)!);

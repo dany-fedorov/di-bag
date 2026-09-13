@@ -4,7 +4,7 @@
 
 # Interface: Module\<P *extends* `object`, R *extends* `object`, C *extends* `NeedConstraint` = `never`, D *extends* `Registrations` = `PublicRegistrations`\<`P`\>\>
 
-Defined in: [module.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L22)
+Defined in: [module.ts:34](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L34)
 
 A sealed, non-resolving module with private registrations and selected public exports.
 Create modules through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) and [Builder.buildModule](Builder.md#buildmodule); this
@@ -27,7 +27,7 @@ type-only class has no public constructor.
 renameExport<const Old extends string, const New extends string>(oldKey: Old & RenameKeys<P, Old, New>, newKey: New & RenameKeys<P, Old, New>): Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedLifetimeProviders<D, Old, New>>;
 ```
 
-Defined in: [module.ts:41](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L41)
+Defined in: [module.ts:53](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L53)
 
 Return a module view with one string-named export renamed.
 Factory dependency names and private identities remain unchanged.

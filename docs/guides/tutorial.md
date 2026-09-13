@@ -236,6 +236,14 @@ cleanup runs once. A parent closes live child scopes before releasing its own
 resources. Stop application work before closing: already-returned services cannot
 be revoked, and a disposer must not await the same bag's `close()` Promise.
 
+By default `close()` waits as long as cleanup takes. `close({ timeoutMs, signal })`
+starts the same cleanup but stops waiting when the deadline passes or the signal
+aborts. It rejects with `DiBagCloseCancelledError`: `code` is
+`DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`, `details.pending` lists the
+labels of disposers that started and have not finished, `details.acquiring` lists
+acquisitions cleanup is still draining, and `cleanupPromise` settles when cleanup
+eventually finishes. Scopes and forks accept the same options.
+
 An automatic synchronous stage accepts ordinary values and observes native
 Promises. A structural thenable returned directly is rejected without invoking
 its `then` or transferring ownership. Query builders from libraries such as Knex,
@@ -287,6 +295,13 @@ Application exceptions keep their identity and are never relabeled as library er
 | `DiBagCleanupError` | `close()` attempted all finalizers. `errors` holds their original errors, while `failures` adds `acquisitionId`, `bindingId`, `label`, and `error`. |
 | `DiBagStartupError` | Startup acquisition failed and rollback finished. Read `cause`, `cleanupFailures`, and optional `cleanupError`. |
 | `DiBagStartupCancelledError` | Startup was aborted or timed out. Read `reason`, `cause`, and await `cleanupPromise` if shutdown completion matters. |
+| `DiBagCloseCancelledError` | `close({ timeoutMs, signal })` stopped waiting. Read `code`, `details.pending`, and await `cleanupPromise` if shutdown completion matters. |
+
+Every library-created message has the form
+`<code>: <message>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#<code-slug>`,
+for example `DI_BAG_CYCLE: cycle: a -> b -> a; see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-cycle`.
+The linked section explains the cause and the fix. Branch on `code` and
+`details`, not on message text.
 | `DiBagPluginValidationError` | A plugin descriptor or output failed validation. `phase` is `'descriptor'` or `'output'`, and `reason` explains the rejection. |
 
 **Continuation of the cache ownership example:**
@@ -599,6 +614,13 @@ receives fresh private identities and separate disposal ownership. Requirements
 an inner module leaves unmet pass outward unless the enclosing module satisfies
 them; a requirement satisfied by an enclosing export stays checked when the host
 replaces that export, while one satisfied privately is final.
+
+`buildModule(keys, { label: 'reports' })` names each installation's private
+bindings `reports/connection` in error messages, cycle paths, `inspectGraph()`,
+and observer events. Exported bindings keep their bare key. Labels compose when
+modules nest: a private `state` of an `inner` module installed in an `outer`
+module appears as `outer/inner/state`. Without a label, bindings keep their bare
+key.
 
 Private providers keep their external requirements, including requirements from
 providers that are not currently reachable from an export. The host may satisfy

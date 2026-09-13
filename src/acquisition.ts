@@ -152,6 +152,14 @@ export class ScopeAcquisitions {
     return this.closing;
   }
 
+  /** Labels of this scope's running disposers and of acquisitions close is still draining. */
+  collectProgress(pending: string[], acquiring: string[]): void {
+    for (const attempt of this.attempts.values()) {
+      if (attempt.state === 'disposing' || this.retired.has(attempt.id)) pending.push(attempt.label);
+      else if (attempt.state === 'creating' || attempt.state === 'pending') acquiring.push(attempt.label);
+    }
+  }
+
   private getContext(): AcquisitionContext {
     if (!this.acquisitionContext) {
       this.controller = new AbortController();

@@ -92,7 +92,7 @@ test('configuration snapshots callbacks, appends in order and retains classifica
   expect(() => DiBag.withConfiguration({ observers: [{ onEvent: 1, onError() {} } as never] })).toThrow();
   expect(() => DiBag.withConfiguration({ observers: [null as never] })).toThrow();
   const { observed, events } = recording();
-  expect(() => observed.createBuilder().register({ value: () => 1 }).build()).toThrow('classification');
+  expect(() => observed.createBuilder().register({ value: () => 1 }).build()).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   await flush();
   expect(events).toEqual([]);
 });
