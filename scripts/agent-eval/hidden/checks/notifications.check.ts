@@ -1,5 +1,5 @@
 // The module installs with fixtures for exactly its contract's requirements and exports its contract.
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { MailConfig, Notifier } from '../../src/features/notifications/contract.js';
 import { notificationsModule } from '../../src/features/notifications/module.js';
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { Mail, MailConfig } from './contract.js';
 import { notificationsModule } from './module.js';
 

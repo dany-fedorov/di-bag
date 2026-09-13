@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import { catalogModule } from '../../src/features/catalog/module.js';
 
 const products = [

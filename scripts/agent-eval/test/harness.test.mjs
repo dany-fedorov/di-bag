@@ -42,7 +42,9 @@ test('the reference solution scores full success', async () => {
   // Agents see the docs the package ships, and nothing from this repository.
   assert.equal(result.package.agentDocs, true);
   const installed = join(result.workDir, 'sandboxes', 'catalog', 'node_modules', 'di-bag');
-  for (const file of ['AGENTS.md', 'docs/agent/recipes.md', 'docs/agent/errors.md']) assert.equal(existsSync(join(installed, file)), true, file);
+  const links = [...readFileSync(join(installed, 'AGENTS.md'), 'utf8').matchAll(/\]\((docs\/agent\/[^)#]+)/g)].map(match => match[1]);
+  assert.ok(links.length > 0);
+  for (const file of new Set(links)) assert.equal(existsSync(join(installed, file)), true, `AGENTS.md links ${file}`);
   assert.equal(existsSync(join(result.workDir, 'sandboxes', 'catalog', 'eval-hidden')), false);
   for (const name of modules) {
     const { isolated, hiddenTests, layout } = result.merge.modules[name];

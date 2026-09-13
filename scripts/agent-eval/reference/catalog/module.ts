@@ -1,4 +1,4 @@
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { Catalog, CatalogData } from './contract.js';
 
 export const catalogModule = DiBag.createBuilder()

@@ -1,4 +1,4 @@
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { Catalog } from '../catalog/contract.js';
 import type { Inventory } from '../inventory/contract.js';
 import type { Notifier } from '../notifications/contract.js';

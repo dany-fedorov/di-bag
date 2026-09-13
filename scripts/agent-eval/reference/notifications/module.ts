@@ -1,4 +1,4 @@
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { MailConfig, MailTransport, Notifier } from './contract.js';
 
 export const notificationsModule = DiBag.createBuilder()

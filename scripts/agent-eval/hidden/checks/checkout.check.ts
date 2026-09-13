@@ -1,5 +1,5 @@
 // The module installs with fixtures for exactly its contract's requirements and exports its contract.
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { Catalog } from '../../src/features/catalog/contract.js';
 import type { Checkout, PaymentGateway } from '../../src/features/checkout/contract.js';
 import { checkoutModule } from '../../src/features/checkout/module.js';

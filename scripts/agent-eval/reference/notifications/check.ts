@@ -1,4 +1,4 @@
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { MailConfig } from './contract.js';
 import { notificationsModule } from './module.js';
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import { notificationsModule } from '../../src/features/notifications/module.js';
 
 type Event = string | { to: string; subject: string; body: string };

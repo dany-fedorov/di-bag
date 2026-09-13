@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import { inventoryModule } from '../../src/features/inventory/module.js';
 
 const catalogOf = (skus: string[]) => DiBag.withLifetime(() => ({

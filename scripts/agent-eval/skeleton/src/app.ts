@@ -1,4 +1,4 @@
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import type { CatalogData } from './features/catalog/contract.js';
 import { catalogModule } from './features/catalog/module.js';
 import type { PaymentGateway } from './features/checkout/contract.js';
