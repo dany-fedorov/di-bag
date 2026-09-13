@@ -10,7 +10,7 @@ type AcquisitionMetadataPresence<A extends readonly unknown[]> = {
 };
 ```
 
-Defined in: [inspection.ts:5](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L5)
+Defined in: [inspection.ts:8](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L8)
 
 A readonly tuple indicating whether each acquisition-stage frame is available.
 

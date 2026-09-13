@@ -183,9 +183,10 @@ DI Bag supplies checked composition and resource ownership.
 
 The [agent harness and graph guide](docs/guides/agent-harnesses-and-graphs.md)
 combines private feature modules, an LLM-backed node, metadata inspection, and
-fork-based fixture tests in one runnable example. Inspection describes selected
-registrations, not complete dependency edges; observers track acquisition, not
-ordinary node calls. Use your graph framework for workflow checkpoints.
+fork-based fixture tests in one runnable example. `inspectGraph()` lists every
+binding and the edges observed at runtime; declared edges come from the static
+graph tool. Observers track acquisition, not ordinary node calls. Use your graph
+framework for workflow checkpoints.
 
 ## How it compares
 

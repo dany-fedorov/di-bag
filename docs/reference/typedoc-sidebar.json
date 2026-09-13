@@ -47,6 +47,10 @@
             "link": "/reference/index/interfaces/Bag.md"
           },
           {
+            "text": "BindingSnapshot",
+            "link": "/reference/index/interfaces/BindingSnapshot.md"
+          },
+          {
             "text": "Builder",
             "link": "/reference/index/interfaces/Builder.md"
           },
@@ -69,6 +73,10 @@
           {
             "text": "FactoryWithDisposal",
             "link": "/reference/index/interfaces/FactoryWithDisposal.md"
+          },
+          {
+            "text": "GraphSnapshot",
+            "link": "/reference/index/interfaces/GraphSnapshot.md"
           },
           {
             "text": "Module",

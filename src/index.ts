@@ -15,7 +15,7 @@ export type { Token, TokenBase, TokenKey, TokenService } from './tokens';
 export type { TokenBinding, TokenMember, TokenDependencyContract, ReboundProviders, ReboundSelection, SelectionKey } from './token-types';
 export type { CheckedLifetimes, CheckedScopeLifetimes, LexicalContext, ModuleScope, Enclosed, RenamedContext, RenamedLifetimeObligation, EnclosedLifetimeObligation, RenamedLifetimeProviders } from './lifetime-types';
 export type { CheckDependencyCompatibility, CheckDependencyCompleteness, RegistrationEntries, OverrideFactoryContext, RegistrationsFromEntries, OverrideRegistrations, Overrides, ServicesOf, SelectedRegistrations, Selection } from './types';
-export type { Presence, AcquisitionMetadataPresence, AcquisitionSnapshot, RegistrationSnapshot } from './inspection';
+export type { Presence, AcquisitionMetadataPresence, AcquisitionSnapshot, RegistrationSnapshot, BindingSnapshot, GraphSnapshot } from './inspection';
 export type { CompositionArguments, CompositionFunction } from './composition';
 export type { OptionalDependency, LazyDependency, CollectionDependency, DependencyReference } from './dependency-references';
 export type { PluginProviderFactory, PluginAcquisitionMode, PluginOptions, PluginOutputValidator, PluginProvider } from './plugins';

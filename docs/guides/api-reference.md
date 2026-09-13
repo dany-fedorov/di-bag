@@ -91,6 +91,7 @@ nesting depth.
 | `resolveAll(token)` | Resolve the [ordered contributions](tutorial.md#compose-an-ordered-collection) as a readonly array. |
 | `inspect(nameOrToken)` | Copy [metadata and acquisition state](tutorial.md#attach-metadata-and-inspect-without-resolving) without resolving. |
 | `inspectAll(token)` | Inspect contribution descriptions and attempts without resolving. |
+| `inspectGraph()` | Describe every binding, contribution group, and [observed edge](tutorial.md#attach-metadata-and-inspect-without-resolving) without resolving. |
 | `createScope()` | Create a tracked [child scope](tutorial.md#create-tracked-child-scopes). |
 | `createScope({ share: keys })` | Create a child that explicitly borrows selected parent acquisitions. |
 | `createScope(keys, overrides, options?)` | Create a child with checked replacements and optional disjoint `share` selection. |
@@ -180,6 +181,7 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | [`CompositionArguments`](../reference/index/type-aliases/CompositionArguments.md), [`CompositionFunction`](../reference/index/type-aliases/CompositionFunction.md) | Positional argument compatibility and callback signatures for function/constructor adaptation. |
 | [`Presence`](../reference/index/type-aliases/Presence.md) | `{ present: false }` or `{ present: true, value }`, including present `undefined`. |
 | [`AcquisitionMetadataPresence`](../reference/index/type-aliases/AcquisitionMetadataPresence.md), [`AcquisitionSnapshot`](../reference/index/interfaces/AcquisitionSnapshot.md), [`RegistrationSnapshot`](../reference/index/interfaces/RegistrationSnapshot.md) | Inspection frames, acquisition state, and registration metadata snapshots. |
+| `GraphSnapshot`, `BindingSnapshot` | The frozen result of `inspectGraph()` and its per-binding entries. |
 | [`CleanupFailure`](../reference/index/interfaces/CleanupFailure.md) | The detached acquisition identity, label, and original cleanup error. |
 | [`DiBagErrorCode`](../reference/index/type-aliases/DiBagErrorCode.md), [`DiBagDiagnostic`](../reference/index/interfaces/DiBagDiagnostic.md) | Stable library error codes and their structured diagnostic fields. |
 | [`ObserverOptions`](../reference/index/interfaces/ObserverOptions.md), [`ObserverCallback`](../reference/index/type-aliases/ObserverCallback.md), [`ObserverErrorCallback`](../reference/index/type-aliases/ObserverErrorCallback.md) | Observer configuration and its event/failure callbacks. |

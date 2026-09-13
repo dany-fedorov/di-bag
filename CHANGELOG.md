@@ -7,6 +7,8 @@
 - Add the `di-bag-graph` tool (`tools/graph`) that extracts builder chains,
   declared named dependencies, module exports and installations, lifetimes,
   async outputs, cycles, and unresolved names into JSON.
+- Add `bag.inspectGraph()` with `GraphSnapshot` and `BindingSnapshot`: every
+  binding, contribution group, and observed dependency edge, without acquiring.
 
 ## 0.1.1
 
