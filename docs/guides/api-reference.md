@@ -107,7 +107,7 @@ Every library-created message has the form
 `<code>: <message>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#<code-slug>`,
 where the slug is the code lower-cased with `_` replaced by `-`. For example:
 `DI_BAG_CYCLE: cycle: a -> b -> a; see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-cycle`.
-The [errors page](https://dany-fedorov.github.io/di-bag/agent/errors.html) has one section per code.
+The [errors page](../agent/errors.md) has one section per code and per compile-time message family.
 
 The specialized error classes below are runtime exports from both `di-bag` and
 `di-bag/node`. Each extends the built-in `Error` family and has a corresponding
@@ -147,7 +147,8 @@ catch errors created by the library rather than constructing them.
 
 Factory errors and transformation errors retain their original identity on
 resolution. Library-created failures expose stable `DI_BAG_*` codes and frozen
-structured `details`; inspect those fields instead of parsing message text. Observer callback failures are delivered to the observer's
+structured `details`; inspect those fields instead of parsing message text.
+Observer callback failures are delivered to the observer's
 `onError` callback and do not become service or shutdown failures.
 `DI_BAG_INVALID_DEPENDENCY_ACCESS` reports enumeration or `in` checks on a factory's dependency object; its `details.consumer` names the factory.
 

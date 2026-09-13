@@ -13,6 +13,7 @@ The guides below describe the current public API.
 | [Server guide](guides/server-integration.md) | Connect application services to Node HTTP, Express, Fastify, Bun, and Deno. |
 | [Integration recipes](guides/enterprise-integration.md) | Own request scopes, substitute test services, and manage dynamic features. |
 | [Agent harnesses and graphs](guides/agent-harnesses-and-graphs.md) | One worked application of the module pattern: model and tool modules, metadata inspection, and node tests with typed fixtures. |
+| [Agent docs](../AGENTS.md) | Rules, module layout, and check commands for coding agents, with [recipes](agent/recipes.md) and [errors and messages](agent/errors.md). Shipped in the package. |
 | [API overview](guides/api-reference.md) | Find methods, error fields, and exported types. |
 | [Generated reference](reference/index.md) | Read exact signatures and source comments for both package entries. |
 | [Runnable examples](../examples) | Execute focused examples from the repository. |

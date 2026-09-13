@@ -15,7 +15,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "AGENTS.md",
+    "docs/agent"
   ],
   "scripts": {
     "test": "npm run test:fast && npm run test:compiler",
@@ -34,7 +36,7 @@
     "platform:pin": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/pin-platform-tools.ts",
     "check:platform": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/platform-evidence.ts --required",
     "docs:generate": "node tools/docs/generate.mjs",
-    "docs:check": "node --test --test-isolation=none tools/docs/test/*.test.mjs && node tools/docs/generate.mjs --check && node tools/docs/site.mjs check",
+    "docs:check": "node --test --test-isolation=none tools/docs/test/*.test.mjs && node tools/docs/generate.mjs --check && node tools/docs/check-agent-docs.mjs && node tools/docs/site.mjs check",
     "graph:check": "node --test tools/graph/test/*.test.mjs",
     "docs:build": "node tools/docs/site.mjs build",
     "docs:dev": "node tools/docs/site.mjs dev",
@@ -65,7 +67,10 @@
     "graph",
     "agent-graph",
     "evals",
-    "metadata"
+    "metadata",
+    "agents",
+    "coding-agents",
+    "modules"
   ],
   "author": "Dany Fedorov",
   "license": "MIT",
