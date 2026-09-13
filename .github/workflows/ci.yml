@@ -46,6 +46,7 @@ jobs:
         run: |
           consumer="$(mktemp -d)"
           cp -R tools/graph/test/fixtures/consumer/. "$consumer"
+          mkdir -p "$consumer/packs/di-bag" "$consumer/packs/di-bag-graph"
           npm run build
           npm pack --ignore-scripts --pack-destination "$consumer/packs/di-bag"
           npm pack ./tools/graph --pack-destination "$consumer/packs/di-bag-graph"
