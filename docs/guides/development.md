@@ -32,7 +32,7 @@ that fixture and the other test files it imports; `npm run typecheck` covers `sr
 
 `npm run graph:check` tests the standalone `di-bag-graph` tool in `tools/graph`
 (`npm ci --prefix tools/graph` first). The tool depends on the TypeScript
-compiler and is therefore not part of the published package.
+compiler, so it is published as its own package; see [PUBLISHING.md](../../PUBLISHING.md#releasing-di-bag-graph).
 
 ```sh
 npm ci

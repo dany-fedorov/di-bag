@@ -1,11 +1,50 @@
 {
   "name": "di-bag-graph",
   "version": "0.1.0",
-  "private": true,
-  "description": "Extract a static dependency graph from DI Bag builder chains.",
+  "description": "Static check for DI Bag builder chains: fails CI on dependency cycles and unresolved names before any factory runs.",
+  "keywords": [
+    "di-bag",
+    "dependency-injection",
+    "dependency-graph",
+    "cycles",
+    "ci",
+    "typescript",
+    "agents",
+    "coding-agents",
+    "modules"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dany-fedorov/di-bag.git",
+    "directory": "tools/graph"
+  },
+  "homepage": "https://github.com/dany-fedorov/di-bag/tree/main/tools/graph#readme",
+  "bugs": {
+    "url": "https://github.com/dany-fedorov/di-bag/issues"
+  },
   "type": "module",
-  "bin": { "di-bag-graph": "./cli.mjs" },
-  "exports": { ".": "./lib/extract.mjs" },
-  "scripts": { "test": "node --test test/*.test.mjs" },
-  "dependencies": { "typescript": "npm:@typescript/typescript6@6.0.2" }
+  "bin": {
+    "di-bag-graph": "cli.mjs"
+  },
+  "exports": {
+    ".": "./lib/extract.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "cli.mjs",
+    "lib"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "typescript": "^6.0.3"
+  }
 }

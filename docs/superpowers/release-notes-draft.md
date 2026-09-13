@@ -26,5 +26,10 @@ version is frozen.
   `details.acquiring` lists acquisitions still draining, and whose
   `cleanupPromise` settles when cleanup finishes. `CloseOptions` and
   `CloseProgress` types. Malformed options reject with `DI_BAG_INVALID_CLOSE`.
+- `di-bag-graph` is publishable as its own npm package (`tools/graph`).
+  `npx di-bag-graph --check` fails CI on dependency cycles and unresolved names
+  before any factory runs, including cycles and missing requirements that span
+  modules installed from other files. It uses the project's TypeScript 6.0.3+
+  compiler API when present, otherwise its own TypeScript 6.
 
 ## Fixed and improved

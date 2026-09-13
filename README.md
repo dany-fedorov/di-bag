@@ -240,7 +240,7 @@ for both setup options.
   disposers still running and cleanup continues in the background.
 - **Type safety follows the declared graph.** Casts, unchecked JavaScript, and
   unknown plugins need appropriate runtime checks. Dependency cycles are detected
-  at runtime.
+  at runtime, or before running by [`di-bag-graph`](tools/graph/README.md).
 - **Graph types have a compiler cost.** Very long fluent expressions can exceed
   compiler limits. Classic TypeScript still fails the recorded 1,000-call named
   registration and replacement cases; use bulk registration or smaller groups.

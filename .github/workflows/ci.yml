@@ -42,6 +42,17 @@ jobs:
       - run: npm run check:native
       - run: npm ci --prefix tools/graph --no-audit --no-fund
       - run: npm run graph:check
+      - name: Smoke-test the packed graph tool
+        run: |
+          consumer="$(mktemp -d)"
+          cp -R tools/graph/test/fixtures/consumer/. "$consumer"
+          npm run build
+          npm pack --ignore-scripts --pack-destination "$consumer/packs/di-bag"
+          npm pack ./tools/graph --pack-destination "$consumer/packs/di-bag-graph"
+          cd "$consumer"
+          npm install --no-audit --no-fund packs/di-bag/*.tgz packs/di-bag-graph/*.tgz
+          npx tsc -p tsconfig.json
+          npx di-bag-graph --check
       - name: Run examples
         run: |
           for example in examples/*.ts; do
