@@ -36,6 +36,12 @@ export type OverrideRegistrations<F extends Registrations, N extends Registratio
 > &
   N;
 
+/** Render dependency names inside diagnostic messages; typed tokens have no printable name. */
+export type NameText<K> = K extends string ? K : K extends number ? `${K}` : 'typed token';
+/** Append names only when there are names: a message that collapses to `never` hides the diagnostic. */
+export type WithNames<Prefix extends string, Names extends string> = [Names] extends [never] ? Prefix : `${Prefix}: ${Names}`;
+/** Render `consumer needs dependency` for each relationship record. */
+export type RelationshipText<Rel> = Rel extends { consumer: infer C; dependency: infer D } ? `${NameText<C>} needs ${NameText<D>}` : never;
 declare const diBagTypeError: unique symbol;
 export type Unsatisfied<Message extends string, Details> = {
   readonly [diBagTypeError]: Message;
@@ -97,7 +103,7 @@ export type CheckDependencyCompatibility<R extends Registrations> = [
 ] extends [never]
   ? [InvalidGraphs<R>] extends [never] ? [WrongShapes<R>] extends [never]
     ? unknown
-    : Unsatisfied<'provided service does not satisfy its consumer dependency', { tokens: WrongShapes<R>; relationships: WrongRelationships<R, WrongShapes<R>> }>
+    : Unsatisfied<`provided service does not satisfy its consumer dependency: ${RelationshipText<WrongRelationships<R, WrongShapes<R>>>}`, { tokens: WrongShapes<R>; relationships: WrongRelationships<R, WrongShapes<R>> }>
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<R> }>
   : [NonFiniteKeys<R> | Extract<keyof R, number>] extends [never]
     ? Unsatisfied<'factory dependencies must be finite string-keyed objects', { tokens: InvalidNeeds<R> }>
@@ -136,7 +142,7 @@ type OldTokenWrong<E extends Entry, N extends Registrations> = [Extract<keyof N,
 export type IncrementalChecked<E extends Entry, N extends Registrations> = unknown extends CheckDependencyCompatibility<N>
   ? [NewTokenWrong<E, N> | OldTokenWrong<E, N>] extends [never]
     ? [NewWrong<E, N> | OldWrong<E, N>] extends [never] ? unknown
-      : Unsatisfied<'provided service does not satisfy its consumer dependency', { tokens: NewWrong<E, N> | OldWrong<E, N>; relationships: WrongRelationships<OverrideRegistrations<RegistrationsFromEntries<E>, N>, (NewWrong<E, N> | OldWrong<E, N>) & keyof OverrideRegistrations<RegistrationsFromEntries<E>, N>> }>
+      : Unsatisfied<`provided service does not satisfy its consumer dependency: check ${NameText<NewWrong<E, N> | OldWrong<E, N>>}`, { tokens: NewWrong<E, N> | OldWrong<E, N>; relationships: WrongRelationships<OverrideRegistrations<RegistrationsFromEntries<E>, N>, (NewWrong<E, N> | OldWrong<E, N>) & keyof OverrideRegistrations<RegistrationsFromEntries<E>, N>> }>
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: NewTokenWrong<E, N> | OldTokenWrong<E, N> }>
   : CheckDependencyCompatibility<N>;
 
@@ -158,7 +164,7 @@ export type CheckDependencyCompleteness<R extends Registrations> = [
   ? [InvalidGraphs<CompletionMap<R>>] extends [never] ? unknown
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<CompletionMap<R>> }>
   : Unsatisfied<
-      'required service registrations are missing',
+      `required service registrations are missing: ${NameText<Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>>}`,
       { missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>; relationships: MissingRelationships<R> }
     >;
 
@@ -173,11 +179,11 @@ export type Overrides<F extends Registrations, O extends Registrations> = [
   ? [BadOverrides<F, O>] extends [never]
     ? unknown
     : Unsatisfied<
-        'override value is not assignable to the original token',
+        `override value is not assignable to the original token: ${NameText<BadOverrides<F, O>>}`,
         { tokens: BadOverrides<F, O> }
       >
   : Unsatisfied<
-      'fork accepts existing names or typed tokens only',
+      `fork accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof F>>}`,
       { extra: Exclude<keyof O, keyof F> }
     >;
 
@@ -212,15 +218,15 @@ export type ReplacementKey<R extends Registrations, K extends string> =
   Singleton<K> extends true
     ? K extends keyof R
       ? unknown
-      : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>
-    : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>;
+      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>
+    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>;
 
 export type ReplacementKeyOf<Keys extends PropertyKey, K extends string> =
   Singleton<K> extends true
     ? K extends Keys
       ? unknown
-      : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>
-    : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>;
+      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>
+    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>;
 
 // Context needs one compatible output per surviving consumer. Intersect their
 // callback parameters, not their value unions: string | number in one consumer
@@ -261,7 +267,7 @@ export type Selection<R extends Registrations, K extends readonly unknown[], Ope
           ? [Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>] extends [never]
             ? unknown
             : Unsatisfied<
-                `${Operation} accepts existing names or typed tokens only`,
+                `${Operation} accepts existing names or typed tokens only: unknown ${NameText<Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>>}`,
                 { extra: Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]> }
               >
           : InvalidSelection<Operation>
