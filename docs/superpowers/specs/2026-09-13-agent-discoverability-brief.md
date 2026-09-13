@@ -53,9 +53,13 @@ think through its questions." Decide the questions first; draft files second.
    `llms.txt`. Which of these should the repository ship, and which should the
    npm package ship? Shipping docs in the package changes the release contract
    checked by `scripts/verify-release-artifacts.ts`.
-2. What success means. Proposal: an eval of a fixed set of task prompts run by
-   an agent that sees only the installed package and its shipped docs, scored
-   by first-attempt success and iterations to a green `npm run typecheck`.
+2. What success means. Proposal: an eval in which several agents, each seeing
+   only the installed package, its shipped docs, and one module directory with
+   its contract, implement their modules in parallel against a fixed
+   application skeleton. Score whether the merged composition passes
+   `npm run typecheck` and the module tests on the first attempt, and how many
+   iterations each agent needs. A single-agent variant of the same tasks is
+   the baseline.
 3. Division of content. What belongs in `AGENTS.md` (rules and pointers), an
    API card (every public call, one line each, plus the compile-time messages
    and their fixes), and the tutorial. Size budgets: `AGENTS.md` at most 150
@@ -66,14 +70,21 @@ think through its questions." Decide the questions first; draft files second.
    stumbles: add a request-scoped service with cleanup; write a fixture test
    with `fork`; split a feature into a module with private services; debug a
    missing-dependency compile error; add an async client and consume it.
-6. Positioning. The README frames DI Bag for agentic development and LLM
-   harnesses. Which of those claims are measured, and what would measure them?
+6. Positioning. The README frames DI Bag as the modular building block of
+   codebases that agents build, with harnesses as one application. The claim
+   that needs measuring is that sealed modules, fixture forks, and merge-time
+   checks make parallel work on one codebase safer than plain modules and
+   interfaces. The eval in question 2 is the proposed measurement. Discovery
+   is served by the directory layout, not by the graph tools; do not sell the
+   graph export as a planning input.
 
 ## Candidate deliverables
 
 - `AGENTS.md` at the root: what the library is, the rules an agent must follow
   (entry point, lifetimes, thenables, dependency object, how to read a
-  rejection), how to run the fast checks, where the canonical docs are.
+  rejection), the recommended module layout from
+  `docs/guides/examples-modularity.md`, how to run the fast checks, where the
+  canonical docs are.
 - `llms.txt` at the root following the specification at llmstxt.org.
 - `docs/guides/agent-api-card.md`: every public call with a one-line purpose
   and a minimal example; a table of compile-time messages with the fix for each.

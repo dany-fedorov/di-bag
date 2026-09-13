@@ -697,7 +697,10 @@ seal admission 3.3k, host lifetime check 3.1k.
 ### What to try next
 
 - Decide whether the declaration-size and private-edit invalidation wins justify raising the two ceilings by about
-  1k and 22k; the maintainer owns that tradeoff.
+  1k and 22k; the maintainer owns that tradeoff. Weigh it against the positioning recorded on 2026-09-13: a module
+  is the unit one agent owns and checks in isolation, so the cost of type-checking one module directory against its
+  contracts, without the rest of the application, is the number that matters. Measure that per-module cost on both
+  branches before deciding; the ceilings above measure whole-application composition.
 - Otherwise, move erasure out of the per-install type path: keep `Module` parameters lazy (the old `Pick` and
   lexical forms) and add an explicit `sealed()` or `ModuleContract<typeof m>` projection that libraries opt into for
   their exported declarations, so only emitted modules pay.

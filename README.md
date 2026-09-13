@@ -1,18 +1,21 @@
 # DI Bag
 
-TypeScript dependency composition and resource ownership for agentic development, LLM harnesses, and agent graphs.
+TypeScript dependency composition and resource ownership for modular codebases,
+including the ones coding agents build one feature at a time.
 
-[Documentation](https://dany-fedorov.github.io/di-bag/) · [Quickstart](#quickstart) · [Agent harnesses](docs/guides/agent-harnesses-and-graphs.md) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
+[Documentation](https://dany-fedorov.github.io/di-bag/) · [Quickstart](#quickstart) · [Modules as units of work](#modules-as-units-of-work) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
 
 ## Why DI Bag?
 
 Compose ordinary TypeScript factories into reusable features. DI Bag checks
 declared dependencies, keeps module internals private, and manages resource
-creation and cleanup. Build services, tools, or graph nodes against explicit
-contracts, then replace their dependencies for tests.
+creation and cleanup. Build each feature against an explicit contract, test it
+with replaced dependencies, and let the compiler check the composition when
+independently developed features come together.
 
-- **[Reusable modules with private bindings](docs/guides/examples-modularity.md).**
-  Compose independently developed features without exposing their internals.
+- **[Modules a single owner can build in isolation](docs/guides/examples-modularity.md).**
+  A person or a coding agent implements one feature against its contract
+  without exposing its internals or reading another feature's source.
 - **[Compile-time wiring checks](docs/guides/examples-type-checking.md).**
   Catch missing dependencies and incompatible replacements before starting the app.
 - **[Metadata inspection without service startup](docs/guides/examples-extensibility.md).**
@@ -161,32 +164,37 @@ The [tutorial](docs/guides/tutorial.md) also covers modules with private service
 typed tokens, class and function adapters, optional and lazy dependencies,
 collections, startup, metadata, observers, and plugin validation.
 
-## LLM harnesses and agent graphs
+## Modules as units of work
 
-Compose an **LLM harness** from model clients, tools, context sources, and
-ordinary functions that serve as **agent graph** nodes.
+A DI Bag **module** is the unit of work that one person or one coding agent can
+own: a directory with a small exported contract, private services, and its own
+tests. The composition is checked when the modules meet, so several modules can
+be developed in parallel and merged with confidence.
 
-- **Explicit feature boundaries:** give each node or tool a small contract
-  and private implementation. Keep feature contracts and focused tests together;
-  select tools and context for the LLM in the harness.
-- **Contract checks and fixture tests:** check declared wiring before a model call,
-  then fork the composition with typed model and tool fixtures for deterministic
-  behavioral tests. Keep live-model evals for quality and task success.
-- **Inspectable capability descriptions:** describe public nodes and tools next
-  to their factories. Inspect that metadata without creating services, and use
-  it in application-defined catalogs, diagnostics, or dispatch policies.
+- **A boundary an owner can hold.** `buildModule(keys)` seals a feature and
+  exports only the named services. Private services and their types stay
+  inside, and two modules can use the same private names without collision.
+- **Verification without the whole application.** A module type-checks
+  against the contracts it declares. `fork()` replaces its external
+  dependencies with typed fixtures for deterministic tests, so a module's tests
+  need neither the other modules nor live clients.
+- **Checks at merge time.** Installing every module into one builder is where
+  independently developed work meets. A missing requirement, an incompatible
+  replacement, or a contract that no longer matches its consumers fails at
+  `build()` or `verifyGraph()`. The `di-bag-graph` tool exports the declared
+  edges and cycles for review.
 
-DI Bag's dependency graph describes how services are supplied. The agent graph
-describes execution: which node runs next and what state it receives. Your
-harness or graph framework owns routing, retries, persistence, and execution;
-DI Bag supplies checked composition and resource ownership.
+For discovery, the directory layout is the map: one directory per module, the
+contract first. The [modularity guide](docs/guides/examples-modularity.md)
+describes the recommended layout and shows separately owned features, isolated
+tests, and contributed tools in three runnable programs.
 
-The [agent harness and graph guide](docs/guides/agent-harnesses-and-graphs.md)
-combines private feature modules, an LLM-backed node, metadata inspection, and
-fork-based fixture tests in one runnable example. `inspectGraph()` lists every
-binding and the edges observed at runtime; declared edges come from the static
-graph tool. Observers track acquisition, not ordinary node calls. Use your graph
-framework for workflow checkpoints.
+DI Bag's dependency graph describes how services are supplied, not what runs
+next. LLM harnesses and agent graphs are one application of the module pattern:
+model clients, tools, and context sources become modules, and the harness or
+graph framework owns routing, retries, persistence, and execution. The
+[agent harness and graph guide](docs/guides/agent-harnesses-and-graphs.md) is a
+complete example.
 
 ## How it compares
 
@@ -246,8 +254,9 @@ for both setup options.
 | [Complete tutorial](docs/guides/tutorial.md) | Learn every public API through examples, from first composition to advanced ownership. |
 | [API reference](docs/guides/api-reference.md) | Exact generated signatures, overloads, type parameters, and API inventories. |
 | [Server guide](docs/guides/server-integration.md) | Node HTTP, Express, Fastify, Bun, and Deno: shared services, request scopes, startup, and shutdown. |
-| [Agent harnesses and graphs](docs/guides/agent-harnesses-and-graphs.md) | Compose model and tool dependencies, inspect metadata, and test nodes with typed fixtures. |
-| [Static dependency graph](docs/guides/agent-harnesses-and-graphs.md#export-the-declared-dependency-graph) | Export every builder chain, declared edge, and cycle to JSON with `di-bag-graph`. |
+| [Radical modularity](docs/guides/examples-modularity.md) | The recommended module layout, separately owned features, isolated tests, and contributed tools. |
+| [Agent harnesses and graphs](docs/guides/agent-harnesses-and-graphs.md) | One worked application: model and tool modules, metadata inspection, and node tests with typed fixtures. |
+| [Static dependency graph](docs/guides/agent-harnesses-and-graphs.md#export-the-declared-dependency-graph) | Export every builder chain, declared edge, and cycle to JSON with `di-bag-graph` for merge review and CI. |
 | [Runnable examples](examples) | Modules, tokens, composition, collections, plugins, observers, scopes, and provider metadata. |
 | [Integration guide](docs/guides/enterprise-integration.md) | Tested recipes for request ownership, substitutions, and dynamic features. |
 | [Comparison with alternatives](docs/guides/comparison.md) | When DI Bag or another approach may be a better fit, with primary sources. |

@@ -34,7 +34,7 @@ const guide = [
 
 export default defineConfig({
   title: 'DI Bag',
-  description: 'Type-checked dependency composition, private modules, and resource ownership for TypeScript apps and LLM harnesses.',
+  description: 'Type-checked dependency composition, private modules, and resource ownership for modular TypeScript codebases.',
   base: '/di-bag/',
   lang: 'en-US',
   cleanUrls: false,
@@ -44,7 +44,7 @@ export default defineConfig({
     nav: [
       { text: 'Learn', link: '/guides/tutorial' },
       { text: 'Servers', link: '/guides/server-integration' },
-      { text: 'Agents', link: '/guides/agent-harnesses-and-graphs' },
+      { text: 'Modules', link: '/guides/examples-modularity' },
       { text: 'API', link: '/guides/api-reference' },
     ],
     sidebar: {

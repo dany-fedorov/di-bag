@@ -1,7 +1,7 @@
 {
   "name": "di-bag",
   "version": "0.2.0",
-  "description": "Type-checked dependency composition, private modules, and resource ownership for TypeScript apps and LLM harnesses.",
+  "description": "Type-checked dependency composition, private modules, and resource ownership for modular TypeScript codebases.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
