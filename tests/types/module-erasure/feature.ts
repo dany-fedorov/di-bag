@@ -8,7 +8,8 @@ export const tokenService = DiBag.token(tokenKey).of<{ id: number }>();
 export const feature = DiBag.createBuilder()
   .register({
     privateCache: DiBag.withLifetime((): PrivateCacheShape => ({ entries: new Map() }), 'root'),
-    privateHelper: DiBag.withLifetime(({ privateCache }: { privateCache: PrivateCacheShape }) => (key: string) => privateCache.entries.get(key) ?? 0, 'root'),
+    // Private root with an external need: its key survives only as a quoted `consumer` and `root` value.
+    privateHelper: DiBag.withLifetime(({ privateCache, clock }: { privateCache: PrivateCacheShape; clock: () => number }) => (key: string) => (privateCache.entries.get(key) ?? 0) + clock(), 'root'),
     // Exported strict root over private roots: no obligation survives sealing.
     service: DiBag.withLifetime(({ privateHelper }: { privateHelper: (key: string) => number }) => ({ read: (key: string) => privateHelper(key) }), 'root'),
     // Exported transient over an external requirement: a carrier obligation reaching `external`.

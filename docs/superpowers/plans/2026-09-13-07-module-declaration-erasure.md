@@ -694,14 +694,27 @@ seal admission 3.3k, host lifetime check 3.1k.
    dropped), `infer I extends object` symbol parts (+4k, dropped), mapped symbol parts (−3k each, but emit cannot
    serialize them), direct `Record` fast paths (−3k at best, incorrect for several symbols).
 
-### What to try next
+### Decision
 
-- Decide whether the declaration-size and private-edit invalidation wins justify raising the two ceilings by about
-  1k and 22k; the maintainer owns that tradeoff. Weigh it against the positioning recorded on 2026-09-13: a module
-  is the unit one agent owns and checks in isolation, so the cost of type-checking one module directory against its
-  contracts, without the rest of the application, is the number that matters. Measure that per-module cost on both
-  branches before deciding; the ceilings above measure whole-application composition.
-- Otherwise, move erasure out of the per-install type path: keep `Module` parameters lazy (the old `Pick` and
-  lexical forms) and add an explicit `sealed()` or `ModuleContract<typeof m>` projection that libraries opt into for
-  their exported declarations, so only emitted modules pay.
-- Make the lifetime gate reuse a check the builder already computes per registration.
+Adopted in full on 2026-09-13; the rule, the evidence, and the conditions are in the L2 "Erased module
+declarations" bullet of [the agent-friendly loop spec](../specs/2026-09-13-agent-friendly-loop.md#l2-what-ships-in-the-package).
+Landed on `feat/module-erasure`, rebased onto `main` after `buildModule(keys, { label })`.
+
+Integration changes on top of `plan-07-module-erasure-full`: `buildModule` takes both the seal admission and
+`options?: ModuleOptions`; `ExternalRequirements` merges string-keyed needs into one resolved object (each named need
+prints once; token needs stay `Record` references); the characterization fixture's private root `privateHelper`
+needs `clock`, and the declaration test pins the boundary (private keys only as quoted values). The characterization
+declaration is 2,425 bytes.
+
+Compiler work after integration (`tests/incremental-scale.test.ts`, TypeScript 6.0.3, deterministic):
+
+| Case | Measured | Stop mark (1.5% under ceiling) | New ceiling |
+|---|---|---|---|
+| 100 named additions | 787,393 | 797,850 | 810,000 |
+| 100 named replacements | 1,030,839 | 1,044,100 | 1,060,000 |
+| 100 token bindings | 846,826 | 856,950 | 870,000 |
+| 100 installed token modules | 1,241,223 | 1,255,875 | 1,275,000 |
+
+1000-provider wall time (condition 6): PENDING-CONDITION-6
+
+Per-module measurement after integration (condition 7): PENDING-CONDITION-7

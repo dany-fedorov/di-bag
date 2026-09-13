@@ -81,13 +81,15 @@ type TokenConstraint<K extends string | symbol, T, R, Public, Optional extends b
     : TokenKey<T> extends keyof R ? never : { readonly consumer: K; readonly token: T; readonly kind: Optional extends true ? 'optional-token-external' : 'token-external' }
   : never;
 
-type External<C> = C extends { kind: 'external'; needs: infer N } ? N
-  : C extends { kind: 'token-external'; token: infer T } ? Record<TokenKey<T>, TokenService<T>>
-    : C extends { kind: 'optional-token-external'; token: infer T } ? Partial<Record<TokenKey<T>, TokenService<T>>> : never;
-export type ExternalRequirements<C> = [External<C>] extends [never] ? Readonly<{}>
-  // Named needs are already resolved objects; token needs stay `Record` references because
-  // declaration emit cannot serialize an expanded unique-symbol property.
-  : Readonly<Intersect<External<C>>>;
+type ExternalNames<C> = C extends { kind: 'external'; needs: infer N } ? N : never;
+type ExternalTokens<C> = C extends { kind: 'token-external'; token: infer T } ? Record<TokenKey<T>, TokenService<T>>
+  : C extends { kind: 'optional-token-external'; token: infer T } ? Partial<Record<TokenKey<T>, TokenService<T>>> : never;
+// Named needs merge into one resolved object, so a need several consumers share prints once.
+// Token needs stay `Record` references: declaration emit cannot serialize an expanded unique-symbol property.
+export type ExternalRequirements<C> = [ExternalNames<C>] extends [never]
+  ? [ExternalTokens<C>] extends [never] ? Readonly<{}> : Readonly<Intersect<ExternalTokens<C>>>
+  : [ExternalTokens<C>] extends [never] ? Readonly<Resolved<Intersect<ExternalNames<C>>>>
+  : Readonly<Resolved<Intersect<ExternalNames<C>>> & Intersect<ExternalTokens<C>>>;
 
 // Capture the output independently of the registration retained by its public projection.
 type OutputFactory<O> = () => O;

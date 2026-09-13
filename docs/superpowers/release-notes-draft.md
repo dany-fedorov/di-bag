@@ -13,6 +13,17 @@ version is frozen.
   process.getBuiltinModule; configure DiBag.withConfiguration({ runtime: {
   isNativePromise } }) or give each automatic registration an explicit
   acquisitionMode`.
+- Sealed module types no longer carry the module's private registrations.
+  `buildModule` returns a `Module` whose exports, requirements, and public
+  providers print as resolved object types, and whose lifetime state is a set of
+  compact reach records. Private registration keys remain only as quoted string
+  values of `consumer`, `root`, `export`, `group`, and `reach.key` fields, where
+  host diagnostics use them. A private strict root or root contribution that
+  captures a private scoped service is now rejected at `buildModule` instead of
+  at the installing host's `build()`.
+- Removed exported types: `LexicalContext`, `ModuleScope`, `Enclosed`,
+  `RenamedContext`, `RenamedLifetimeObligation`, `EnclosedLifetimeObligation`,
+  `RenamedLifetimeProviders`. Added: `LifetimeObligation`, `Reach`.
 
 ## Added
 

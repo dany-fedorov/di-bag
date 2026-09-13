@@ -100,18 +100,41 @@ contract does not change.
   summary and gain `@see` to the guide anchor that explains them. The generator
   already refuses a missing comment; it additionally refuses a missing
   `@example` on the runtime surface listed above.
-- **Erased module declarations** (plan 07) are adopted. The decision rule
-  replaces the one in plan 07's status: measure the type-check time of one
-  module directory with its `check.ts` (L4) on the plan branch and on
-  `plan-07-module-erasure-full`. Take full erasure and raise the two
-  instantiation ceilings if that per-module time does not regress, because a
-  module edit is what agents do repeatedly while the whole-application
-  ceilings measure a one-time composition. Take the opt-in projection only if
-  it does regress. Under full erasure, hovering any sealed module in an editor
-  and its emitted `.d.ts` show its exports and requirements and no private
-  name. Under the projection, only modules that opt in are erased, so the
-  recipe's `module.ts` opts in and the layout still yields legible
-  declarations; modules built outside the layout keep today's lazy types.
+- **Erased module declarations** (plan 07) are adopted in full: every
+  `buildModule` seals to a `Module` whose exports, requirements, and public
+  providers print as resolved object types, and whose retained lifetime state
+  is a set of compact reach records instead of the module's private
+  registrations. Decided 2026-09-13 on the per-module measurement this rule
+  asked for (an 8-module consumer fixture reading the built `.d.ts`, medians
+  of 5): the type-check time of one module directory with its `check.ts` did
+  not change (0.24 to 0.33 s on TypeScript 6.0.3, 17 to 37 ms native,
+  identical within noise on both branches) while instantiations rose 2 to 7%
+  per module on 6.0.3 and 11 to 21% native. An instantiation increase that is
+  linear in module size and invisible in wall time is a cost, not a
+  regression: the ceilings guard against superlinear blow-ups, so they are
+  raised to uniform headroom rather than read as a verdict. Two further
+  results decided it. A private factory edit that changes an inferred return
+  type leaves the emitted declaration unchanged under erasure, so `check.ts`
+  and `src/app.check.ts` are not rechecked (25k instantiations, 0.01 s) where
+  today they are (244k, 0.12 s; 426k, 0.25 s native); that is the edit agents
+  make repeatedly. And the declaration shrinks five to ten times (7.6 to
+  18.2 KB down to 0.8 to 2.3 KB), so hovering a sealed module or reading its
+  `.d.ts` shows `Module<{ exports }, Readonly<{ requirements }>, ...>` with no
+  private type and no private registration shape. The opt-in projection is
+  rejected: it puts erasure behind a call the agent must know exists, against
+  the organizing rule, and keeps two module type shapes to test. Conditions
+  carried into the work: requirement records print each named need once
+  (symbol-keyed token needs stay `Record` references because declaration
+  emit cannot expand a unique-symbol property); private registration keys may
+  remain only as quoted string literals inside constraint records
+  (`consumer`, `root`, `export`, `reach.key`), where they give the host's
+  diagnostics their provenance, and a test pins that boundary; the four
+  ceilings in `tests/incremental-scale.test.ts` become 810,000 / 1,060,000 /
+  870,000 / 1,275,000, about 3% above the measured values, the headroom the
+  L4 message-URL work also needs; and the three `1000 providers from reusable
+  named modules` cases are timed back to back against `main` on one machine
+  before merge, with the branch at most 1.25 times `main`, because the
+  earlier 83 s against 45.5 s figure was taken under different load.
 - **Package metadata**: the description is the one in the working tree on
   2026-09-13 ("DI container for agent-built codebases: the compiler checks the
   wiring, modules stay private, resources get cleaned up."); the site

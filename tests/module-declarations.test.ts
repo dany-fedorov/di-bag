@@ -23,14 +23,17 @@ function emitDeclaration(): string {
   return emitted = declaration!;
 }
 
-// Needs plan 07 Tasks 2 to 5; see the Status section of docs/superpowers/plans/2026-09-13-07-module-declaration-erasure.md.
-test.skip('a sealed module declaration names no private registration or private type', () => {
+// Private keys may survive only as quoted values (`consumer`, `root`, `export`, `reach.key`) that give host
+// diagnostics their provenance; never as a type name, identifier, or property key.
+test('a sealed module declaration names private registrations only inside quoted constraint values', () => {
   const declaration = emitDeclaration();
-  for (const name of ['privateCache', 'privateHelper', 'PrivateCacheShape']) expect(declaration).not.toContain(name);
+  const unquoted = declaration.replace(/"[^"\n]*"|'[^'\n]*'/g, '""');
+  for (const name of ['privateCache', 'privateHelper', 'PrivateCacheShape']) expect(unquoted).not.toContain(name);
+  expect(declaration).toContain('"privateHelper"');
+  expect(declaration).toMatch(/readonly root: "privateHelper"/);
 });
 
-// Needs plan 07 Tasks 2 to 5; see the Status section of docs/superpowers/plans/2026-09-13-07-module-declaration-erasure.md.
-test.skip('a sealed module declaration is compact', () => {
+test('a sealed module declaration is compact', () => {
   const declaration = emitDeclaration();
   console.log(`module-erasure feature.d.ts: ${declaration.length} bytes`);
   expect(declaration.length).toBeLessThan(2_500);
