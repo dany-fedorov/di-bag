@@ -64,6 +64,12 @@ Re-exports [Bag](../index/interfaces/Bag.md)
 
 ***
 
+### BindingSnapshot
+
+Re-exports [BindingSnapshot](../index/interfaces/BindingSnapshot.md)
+
+***
+
 ### Builder
 
 Re-exports [Builder](../index/interfaces/Builder.md)
@@ -217,6 +223,12 @@ Re-exports [EnclosedLifetimeObligation](../index/type-aliases/EnclosedLifetimeOb
 ### FactoryWithDisposal
 
 Re-exports [FactoryWithDisposal](../index/interfaces/FactoryWithDisposal.md)
+
+***
+
+### GraphSnapshot
+
+Re-exports [GraphSnapshot](../index/interfaces/GraphSnapshot.md)
 
 ***
 

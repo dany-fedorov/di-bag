@@ -4,9 +4,13 @@
 
 # Interface: RegistrationSnapshot\<M = `Readonly`\<\{ \}\>, A *extends* readonly `unknown`[] = readonly \[\]\>
 
-Defined in: [inspection.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L20)
+Defined in: [inspection.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L23)
 
 A frozen registration description and copied acquisition state returned by bag inspection.
+
+## Extended by
+
+- [`BindingSnapshot`](BindingSnapshot.md)
 
 ## Type Parameters
 
@@ -23,7 +27,7 @@ A frozen registration description and copied acquisition state returned by bag i
 readonly acquisitions: readonly AcquisitionSnapshot<A>[];
 ```
 
-Defined in: [inspection.ts:30](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L30)
+Defined in: [inspection.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L33)
 
 Point-in-time attempts; inspection does not retain failed-attempt history.
 
@@ -38,7 +42,7 @@ readonly aliasTarget?: {
 };
 ```
 
-Defined in: [inspection.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L26)
+Defined in: [inspection.ts:29](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L29)
 
 Direct lexical target; acquisition snapshots follow the canonical target.
 
@@ -62,7 +66,7 @@ readonly label: string;
 readonly bindingId: symbol;
 ```
 
-Defined in: [inspection.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L22)
+Defined in: [inspection.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L25)
 
 Stable identity for the canonical graph binding.
 
@@ -74,7 +78,7 @@ Stable identity for the canonical graph binding.
 readonly label: string;
 ```
 
-Defined in: [inspection.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L24)
+Defined in: [inspection.ts:27](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L27)
 
 Human-readable binding label.
 
@@ -86,6 +90,6 @@ Human-readable binding label.
 readonly registrationMetadata: Readonly<M>;
 ```
 
-Defined in: [inspection.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L28)
+Defined in: [inspection.ts:31](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L31)
 
 Static registration metadata; application-owned payload values retain their identity.

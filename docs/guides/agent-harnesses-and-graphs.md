@@ -42,8 +42,9 @@ edges or provide durable execution.
 - **Inspectable capability descriptions.** Attach application-defined descriptions to
   providers, then inspect them without constructing services. Build catalogs,
   diagnostics, and dispatch rules around that data while keeping node functions
-  independent of the tooling. Inspection describes selected registrations and
-  acquisitions; it does not export a complete dependency-edge graph.
+  independent of the tooling. `inspect` describes one registration, `inspectGraph`
+  describes every binding and the edges observed so far, and the static graph tool
+  exports declared edges from source.
 
 ## A runnable harness with two graph nodes
 

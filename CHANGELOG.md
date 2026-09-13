@@ -4,6 +4,8 @@
 
 - Split `npm test` into `test:fast` and `test:compiler` lanes and share one
   TypeScript program across compiler-driven tests. No runtime or public API changes.
+- Add `bag.inspectGraph()` with `GraphSnapshot` and `BindingSnapshot`: every
+  binding, contribution group, and observed dependency edge, without acquiring.
 
 ## 0.1.1
 

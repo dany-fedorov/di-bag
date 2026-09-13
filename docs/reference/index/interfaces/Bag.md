@@ -26,7 +26,7 @@ Create bags through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) followed
 close(): Promise<void>;
 ```
 
-Defined in: [di-bag.ts:237](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L237)
+Defined in: [di-bag.ts:245](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L245)
 
 Close this bag, drain in-flight work, and dispose owned resources once.
 Dependents are disposed before dependencies; remaining independent acquisitions use
@@ -50,7 +50,7 @@ The shared shutdown promise.
 createScope<const S extends readonly unknown[]>(options: ScopeOptions<R, S>): Bag<ScopedAliases<R, R, S>, C>;
 ```
 
-Defined in: [di-bag.ts:127](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L127)
+Defined in: [di-bag.ts:135](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L135)
 
 Create a tracked child that borrows selected parent acquisitions.
 
@@ -76,7 +76,7 @@ A child owned by this bag; closing the parent closes the child first.
 createScope<const K extends readonly unknown[], O extends OverrideFactoryContext<R, K, O>, const S extends readonly unknown[] = readonly []>(keys: K & Selection<R, K, 'createScope'>, overrides: O & object & Record<SelectionKey<K[number]>, Registration> & Overrides<R, SelectedRegistrations<K, O>> & CheckDependencyCompatibility<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckDependencyCompleteness<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CompleteConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedScopeLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>>, NoInfer<SelectedRegistrations<K, O>>, C>, options?: ScopeOptions<R, S> & DisjointScopeSelection<K, S>): Bag<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>, C>;
 ```
 
-Defined in: [di-bag.ts:136](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L136)
+Defined in: [di-bag.ts:144](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L144)
 
 Create a tracked child with selected replacements and optional parent sharing.
 
@@ -110,7 +110,7 @@ If the runtime selections, overrides, or sharing options are invalid.
 createScope(): Bag<UnsharedAliases<R>, C>;
 ```
 
-Defined in: [di-bag.ts:155](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L155)
+Defined in: [di-bag.ts:163](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L163)
 
 Create a tracked child with the same graph and fresh scoped acquisitions.
 
@@ -128,7 +128,7 @@ A child that is closed before its parent finishes closing.
 fork(this: Bag<R, C> & CheckedLifetimes<UnsharedAliases<R>, C>): Bag<UnsharedAliases<R>, C>;
 ```
 
-Defined in: [di-bag.ts:166](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L166)
+Defined in: [di-bag.ts:174](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L174)
 
 Create an independent bag with the same graph and fresh instances.
 
@@ -148,7 +148,7 @@ A new ownership family that must be closed separately.
 fork<const K extends readonly unknown[], O extends OverrideFactoryContext<R, K, O>>(keys: K & Selection<R, K>, overrides: O & object & Record<SelectionKey<K[number]>, Registration> & Overrides<R, SelectedRegistrations<K, O>> & CheckDependencyCompatibility<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckDependencyCompleteness<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CompleteConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> & CheckedLifetimes<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, C>): Bag<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, C>;
 ```
 
-Defined in: [di-bag.ts:177](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L177)
+Defined in: [di-bag.ts:185](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L185)
 
 Create an independent bag with selected replacements.
 
@@ -230,6 +230,24 @@ Inspect every contribution for a token without running its factories.
 #### Returns
 
 Frozen snapshots in contribution order.
+
+***
+
+### inspectGraph()
+
+```ts
+inspectGraph(): GraphSnapshot;
+```
+
+Defined in: [di-bag.ts:128](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L128)
+
+Describe every binding this bag can resolve and the dependency edges observed so far.
+Nothing is acquired. Named dependencies declared on factory parameters are not visible
+until the factory runs; the static graph tool reports them from source.
+
+#### Returns
+
+A frozen point-in-time snapshot; application-owned metadata payloads are not frozen.
 
 ***
 

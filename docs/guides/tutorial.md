@@ -921,6 +921,21 @@ Aliases expose their direct target description and canonical acquisition state.
 Metadata wrappers add frames as described under
 [acquisition values and metadata](#represent-acquisition-values-and-metadata-natively).
 
+`inspectGraph()` describes the whole bag at once: every binding with its public
+keys, label, lifetime, acquisition mode, ownership, typed-token dependencies,
+static metadata, and current attempts; every contribution group; and the
+consumer-to-dependency edges observed during acquisition so far. Private
+bindings from installed modules appear with an empty key list. Nothing is
+acquired, and the snapshot is frozen. Named dependencies read from a factory's
+object parameter are unknown until that factory runs, so the edge list grows as
+services are acquired; the static graph tool reports declared edges from source.
+
+```ts
+const graph = app.inspectGraph();
+graph.bindings.map(binding => [binding.keys, binding.lifetime]);
+graph.observedEdges; // [] before any resolve
+```
+
 ## Observe lifecycle transitions
 
 Observers send telemetry without joining the service or cleanup control flow.

@@ -13,7 +13,7 @@ type Presence<T> = {
 };
 ```
 
-Defined in: [inspection.ts:2](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L2)
+Defined in: [inspection.ts:5](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L5)
 
 Structural optional presence; payloads are application-owned and not frozen.
 
