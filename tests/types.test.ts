@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import ts from 'typescript';
-import { diagnostics, diagnosticsByFile, describeDiagnostic } from './compiler';
+import { diagnostics, diagnosticsByFile, describeDiagnostic, options } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 
 test('observers retain exact inferred cross-file contracts', () => {
@@ -91,6 +91,13 @@ for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-referenc
 test('verifyGraph reports void for buildable graphs and the build failure otherwise', () => {
   expect(diagnostics(resolve(__dirname, 'types/verify-graph.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('the DiBagPolicy structuralThenables switch relaxes the compile-time check', () => {
+  // Isolated program: the augmentation must not leak into the shared fixture program.
+  const path = resolve(__dirname, 'types/isolated/thenable-policy.ts');
+  const isolated = ts.createProgram([path], options, ts.createCompilerHost(options));
+  expect(ts.getPreEmitDiagnostics(isolated).map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
 test('acquisition modes retain exact acquired values across inferred exports', () => {
