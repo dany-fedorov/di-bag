@@ -3,10 +3,12 @@
 [Introduction](../../README.md) · [Modularity](examples-modularity.md) ·
 [Contract checks](examples-type-checking.md) · [Metadata inspection](examples-extensibility.md)
 
-Compose an LLM harness from independently developed modules for tools, context
-sources, and model clients. DI Bag checks their declared dependencies and owns
-acquired resources; your application controls the agent workflow. Humans and
-coding agents can implement each module against its exported contracts and tests.
+This guide is one worked application of the
+[module pattern](examples-modularity.md): an LLM harness composed from
+independently developed modules for tools, context sources, and model clients.
+DI Bag checks their declared dependencies and owns acquired resources; your
+application controls the agent workflow. Humans and coding agents can implement
+each module against its exported contracts and tests.
 
 ## Where DI Bag fits
 
@@ -205,9 +207,11 @@ node tools/graph/cli.mjs src/app.ts --check   # exit 1 on cycles or unresolved n
 ```
 
 Each node records `key`, `line`, `dependencies`, `async`, `lifetime`, and
-`owned`. Cycles are reported per unit before any factory runs. Feed the JSON to
-an agent as the map of a feature, or fail CI on new cycles. At runtime,
-`bag.inspectGraph()` reports the same bindings plus the edges observed so far.
+`owned`. Cycles are reported per unit before any factory runs. Use the JSON to
+review a merge of independently developed modules, or fail CI on new cycles.
+For finding code, the [directory layout](examples-modularity.md#recommended-module-layout)
+is the better map. At runtime, `bag.inspectGraph()` reports the same bindings
+plus the edges observed so far.
 
 ## Connect your own harness or graph framework
 

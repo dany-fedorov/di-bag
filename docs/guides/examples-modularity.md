@@ -5,16 +5,46 @@ replaceable, and testable units the normal way to build an application—not an
 afterthought. DI Bag modules declare their dependencies, keep unexported services
 private to an installation, and expose a small public surface.
 
-In an LLM harness, those units can supply tools, context sources, or agent graph
-nodes. A coding agent can implement one module against its contracts, while the
-harness composes the selected capabilities. See
-[agent harnesses and graphs](agent-harnesses-and-graphs.md) for a complete example.
+A module is the unit of work that one person or one coding agent can own. It
+gives them a bounded assignment: implement a feature against its contracts, test
+it with controlled dependencies, and integrate it without reaching into another
+feature's internals. Several such assignments can run in parallel; the
+composition is checked when the modules are installed together. Choose
+boundaries around coherent features, not a target number of modules. Keep
+cross-feature invariants in integration tests and include the affected contracts
+when a task spans modules.
 
-That gives a human or coding agent a bounded assignment: implement a feature
-against its contracts, test it with controlled dependencies, and integrate it
-without reaching into another feature's internals. Choose boundaries around
-coherent features, not a target number of modules. Keep cross-feature invariants
-in integration tests and include the affected contracts when a task spans modules.
+## Recommended module layout
+
+Nothing in the library requires a layout, but discovery works through the file
+tree, not through the dependency graph. One directory per module, with the
+contract first, lets a reader or an agent find what a module exports and what it
+needs without opening its implementation:
+
+```text
+src/features/invoicing/
+  contract.ts   # exported service types and the requirements the host must supply
+  module.ts     # buildModule([...]) over the private factories
+  store.ts      # private services; free to use names other modules also use
+  invoicing.test.ts
+src/app.ts      # installs every module and registers what they require
+```
+
+- `contract.ts` holds the exported service types and the types of the
+  dependencies the module declares on the host. A task that touches only one
+  module reads this file and its own directory; a task that spans modules names
+  the contracts it changes.
+- `module.ts` registers the private factories and seals them with
+  `buildModule(keys)`. Only the listed keys leave the directory.
+- The test file forks the module with typed fixtures for its requirements, so it
+  runs without the other modules or live clients.
+- `src/app.ts` is where independently developed modules meet. `build()`, or
+  `verifyGraph()` in a type test, rejects a missing requirement or an
+  incompatible contract there. The `di-bag-graph` tool in `tools/graph` exports
+  the declared edges for merge review; it is not needed to find code.
+
+The [agent harness and graph guide](agent-harnesses-and-graphs.md) applies this
+layout to model clients, tools, and graph nodes.
 
 The three programs below are independent. After [installing DI Bag](../../README.md#install),
 save any block as a TypeScript file and run it with Bun, or compile it as an ES
@@ -317,8 +347,8 @@ already express a small application's composition clearly. Other libraries also
 support modular composition; see the [comparison guide](comparison.md).
 
 DI Bag does not enforce repository ownership or prevent an agent from importing
-another feature's source. Agree on contracts, keep feature implementation and
-test files separate, and retain integration tests alongside isolated tests.
+another feature's source. Agree on contracts, keep each module in its own
+directory with its tests, and retain integration tests alongside isolated tests.
 For the precise module API and its compiler limits, see the
 [tutorial](tutorial.md#reuse-named-modules) and [compiler evidence](../benchmarks/typescript.md).
 
