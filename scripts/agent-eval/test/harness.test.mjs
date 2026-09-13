@@ -39,6 +39,11 @@ test('the reference solution scores full success', async () => {
   assert.deepEqual(result.agents.map(agent => [agent.id, agent.exitCode, agent.timedOut, agent.iterations, agent.outsideChanges]),
     modules.map(name => [name, 0, false, 3, []]));
   assert.equal(result.merge.projectTests.pass, 4);
+  // Agents see the docs the package ships, and nothing from this repository.
+  assert.equal(result.package.agentDocs, true);
+  const installed = join(result.workDir, 'sandboxes', 'catalog', 'node_modules', 'di-bag');
+  for (const file of ['AGENTS.md', 'docs/agent/recipes.md', 'docs/agent/errors.md']) assert.equal(existsSync(join(installed, file)), true, file);
+  assert.equal(existsSync(join(result.workDir, 'sandboxes', 'catalog', 'eval-hidden')), false);
   for (const name of modules) {
     const { isolated, hiddenTests, layout } = result.merge.modules[name];
     assert.equal(isolated.ok, true, name);
