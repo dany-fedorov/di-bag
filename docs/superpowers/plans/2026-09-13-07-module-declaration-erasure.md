@@ -715,6 +715,38 @@ Compiler work after integration (`tests/incremental-scale.test.ts`, TypeScript 6
 | 100 token bindings | 846,826 | 856,950 | 870,000 |
 | 100 installed token modules | 1,241,223 | 1,255,875 | 1,275,000 |
 
-1000-provider wall time (condition 6): PENDING-CONDITION-6
+1000-provider wall time (condition 6): `bun test tests/type-scale.test.ts -t "1000 providers from reusable named
+modules"`, main and branch alternated, three runs each, one machine, per-case seconds from the JUnit reporter,
+load average under 2 at every start (1.77 to 1.98; `uptime` recorded per run, 23:50 to 23:58):
 
-Per-module measurement after integration (condition 7): PENDING-CONDITION-7
+| Case | Main runs | Main median | Branch runs | Branch median | Ratio |
+|---|---|---|---|---|---|
+| valid | 13.51, 13.26, 13.71 | 13.51 | 13.33, 13.28, 13.39 | 13.33 | 0.99 |
+| missing | 13.53, 13.53, 13.58 | 13.53 | 13.69, 13.82, 13.62 | 13.69 | 1.01 |
+| wrong-shape | 13.10, 13.54, 13.57 | 13.54 | 13.30, 13.30, 12.72 | 13.30 | 0.98 |
+
+The limit is 1.25; the lifetime gate was not reworked. The earlier 83 s against 45.5 s was load. Peak resident memory
+of the run was 10.7 to 16.0 GB on main and 16.7 to 16.9 GB on the branch; a first attempt under a background task
+runner was stopped by the host for low memory before it recorded a sample.
+
+Per-module measurement after integration (condition 7): `/tmp/di-bag-erasure-bench/reproduce.sh <main> <branch> 5`,
+dist mode (8-module consumer fixture reading the built `.d.ts`), medians of 5, load average 2.3 to 3.3 during the run
+(the rule sets no load gate for this step; both variants interleave per rep).
+
+| Module | Check s tsc6 main / branch | Instantiations tsc6 main / branch | Check s native main / branch | Instantiations native main / branch |
+|---|---|---|---|---|
+| platform | 0.21 / 0.22 | 50,085 / 53,111 | 0.016 / 0.018 | 39,165 / 45,640 |
+| db | 0.24 / 0.25 | 64,832 / 67,843 | 0.028 / 0.026 | 65,215 / 74,534 |
+| cache | 0.21 / 0.23 | 52,455 / 56,284 | 0.022 / 0.022 | 44,169 / 50,713 |
+| sessions | 0.22 / 0.24 | 51,542 / 55,000 | 0.023 / 0.025 | 41,025 / 45,921 |
+| users | 0.23 / 0.24 | 60,193 / 64,577 | 0.023 / 0.027 | 51,787 / 62,923 |
+| auth | 0.27 / 0.28 | 74,597 / 77,818 | 0.034 / 0.036 | 93,003 / 106,471 |
+| notifications | 0.21 / 0.22 | 47,855 / 50,840 | 0.019 / 0.020 | 35,660 / 41,112 |
+| billing | 0.27 / 0.28 | 80,670 / 82,814 | 0.034 / 0.037 | 101,232 / 119,911 |
+
+Every per-module check median is within 0.02 s of `main` on TypeScript 6.0.3 and within 0.004 s native (limit
+±0.05 s). The private edit that changes an inferred return type leaves `users/module.d.ts` unchanged on the branch
+under both compilers, and the importing app rechecks at the same cost as a body-only edit (25,490 instantiations,
+0.01 s; native 25,488, 0.019 s) where `main` pays 244,004 in 0.11 s (native 425,885 in 0.211 s). Emitted module
+declarations are 778 to 2,239 bytes (`main` 6,649 to 18,239) with private keys only as quoted strings, and the `users`
+requirements parameter prints `Readonly<{ db: Db; clock: Clock; logger: Logger }>`, `db: Db` once.
