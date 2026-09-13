@@ -6,6 +6,13 @@ the agent succeeds without human help? This brief carries the facts from the
 2026-09-13 assessment and the questions to settle. It is an agenda, not a task
 list for an unattended run.
 
+## Status
+
+Superseded on 2026-09-13 for its candidate deliverables and its eval design by
+`2026-09-13-agent-friendly-loop.md`, which decides what ships in the package,
+what the compiler and runtime messages carry, and the drift checks. The facts
+and the audit tasks below remain the reference for that spec's recipes.
+
 ## How to use it
 
 Open a new session in this repository and say: "Read
