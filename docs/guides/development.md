@@ -22,11 +22,23 @@ gate. Run `npm run typecheck:native`, `npm run build:native`, and
 requires the local, offline archive workflow in [`PUBLISHING.md`](../../PUBLISHING.md).
 Passing local checks establishes a release candidate, not a registry publication.
 
+`npm test` runs two lanes. `npm run test:fast` covers the runtime suites and
+finishes in a few seconds; run it after every source change.
+`npm run test:compiler` covers the compiler, package, native, platform, and
+benchmark suites; run it before committing. `scripts/test-lane.mjs` holds the
+single list that assigns files to lanes. Compiler-driven tests share one
+TypeScript program through `tests/compiler.ts`, so a fixture's diagnostics cover
+that fixture and the other test files it imports; `npm run typecheck` covers `src/`.
+
+`npm run graph:check` tests the standalone `di-bag-graph` tool in `tools/graph`
+(`npm ci --prefix tools/graph` first). The tool depends on the TypeScript
+compiler and is therefore not part of the published package.
+
 ```sh
 npm ci
 npm run platform:pin   # capture the installed foundation tool identities
 npm run check          # strict types, runtime/type/package tests, build
-npm run check:native   # native 7.0.2 source rejection gate; requires zero message gaps
+npm run check:native   # native 7.0.2 source rejection gate; only declared message gaps pass
 npm run typecheck:native
 npm run build:native
 npm pack --dry-run    # builds and previews the publication contents
@@ -80,8 +92,11 @@ declarations are emitted to `dist/`.
 
 Classic TypeScript 6.0.3 remains the primary compiler. Native 7.0.2 checks the
 source and installed declaration contracts. The strict native audit currently
-matches every expected diagnostic, including all replacement diagnostics, with
-zero reviewed gaps or unexpected diagnostics. The scale matrices allow no
+matches every expected diagnostic, including all replacement diagnostics, with no
+unexpected diagnostics and one reviewed gap: native 7.0.2 rejects a contextual
+`fromFactory` that returns a structural thenable, but reports the last overload's
+arity error instead of the thenable message. Gaps are declared in
+`tests/native-diagnostic-markers.ts` with the exact native message. The scale matrices allow no
 diagnostic exceptions. The native development tests and
 supervised reports require Linux. Native reports supervise the actual
 Linux executable with a 60-second limit, 3,072 MiB sampled child-RSS threshold,

@@ -47,6 +47,10 @@
             "link": "/reference/index/interfaces/Bag.md"
           },
           {
+            "text": "BindingSnapshot",
+            "link": "/reference/index/interfaces/BindingSnapshot.md"
+          },
+          {
             "text": "Builder",
             "link": "/reference/index/interfaces/Builder.md"
           },
@@ -67,8 +71,16 @@
             "link": "/reference/index/interfaces/DiBagDiagnostic.md"
           },
           {
+            "text": "DiBagPolicy",
+            "link": "/reference/index/interfaces/DiBagPolicy.md"
+          },
+          {
             "text": "FactoryWithDisposal",
             "link": "/reference/index/interfaces/FactoryWithDisposal.md"
+          },
+          {
+            "text": "GraphSnapshot",
+            "link": "/reference/index/interfaces/GraphSnapshot.md"
           },
           {
             "text": "Module",
@@ -171,6 +183,10 @@
           {
             "text": "CompositionFunction",
             "link": "/reference/index/type-aliases/CompositionFunction.md"
+          },
+          {
+            "text": "CompositionReport",
+            "link": "/reference/index/type-aliases/CompositionReport.md"
           },
           {
             "text": "ContextualFactory",

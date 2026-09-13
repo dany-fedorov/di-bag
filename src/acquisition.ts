@@ -128,6 +128,8 @@ export class ScopeAcquisitions {
     return owner === this ? { registrationMetadata: description.metadata } : owner.inspectDescription(bindingId);
   }
 
+  observedEdges(): readonly { readonly from: BindingId; readonly to: BindingId }[] { return this.family.observedEdges(); }
+
   private assertAliasPath(bindingId: BindingId, path: readonly BindingId[]): void {
     if (path.includes(bindingId)) throw libraryError('DI_BAG_CYCLE', `alias cycle: ${[...path, bindingId].map(id => this.graph.label(id)).join(' -> ')}`, { path: Object.freeze([...path, bindingId].map(id => this.graph.label(id))) });
   }
@@ -242,14 +244,25 @@ export class ScopeAcquisitions {
       return target === undefined ? undefined : this.takeExposed(this.resolveBinding(target, attempt));
     };
     const references = new Map(description.references.map(reference => [reference.slot, reference]));
+    const invalidAccess = (access: string) => libraryError(
+      'DI_BAG_INVALID_DEPENDENCY_ACCESS',
+      `Cannot inspect the dependencies of ${JSON.stringify(attempt.label)}: ${access} is not supported. Read each named dependency directly; the dependency object resolves lazily.`,
+      { operation: 'resolve', consumer: attempt.label, access },
+    );
     const deps = new Proxy(Object.create(null) as Record<string, unknown>, {
       get: (_, key) => {
+        // JSON.stringify probes toJSON through get before enumerating; name the real operation.
+        if (key === 'toJSON') throw invalidAccess('JSON.stringify');
         const reference = typeof key === 'symbol' ? references.get(key) : undefined;
         if (reference) return reference.kind === 'lazy' ? () => read(reference.key)
           : read(reference.key, reference.kind === 'optional', reference.kind === 'all');
         if (typeof key === 'symbol' && !description.tokenKeys.includes(key)) return undefined;
         return read(key);
       },
+      // Only `get` is lazy and checked; every other reflection would silently report an empty object.
+      has: (_, key) => { throw invalidAccess(`'${String(key)}' in deps`); },
+      ownKeys: () => { throw invalidAccess('enumeration (Object.keys, spread, JSON.stringify)'); },
+      getOwnPropertyDescriptor: (_, key) => { throw invalidAccess(`descriptor of '${String(key)}'`); },
     });
     this.observeAttempt(attempt, 'acquisition-started');
     this.family.enter(attempt);

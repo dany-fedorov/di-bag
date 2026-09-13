@@ -3,8 +3,12 @@ import type { Registration, Registrations } from './registration';
 import type { Provider, ProviderFactory, ProviderGraphContract, ProviderNamedDependencies, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue } from './provider';
 import type { GraphContract } from './token-types';
 import type { TokenKey } from './tokens';
-import type { CheckDependencyCompatibility, CheckDependencyCompleteness, Unsatisfied } from './types';
+import type { CheckDependencyCompatibility, CheckDependencyCompleteness, NameText, Unsatisfied } from './types';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint, Renamed } from './module-types';
+
+// Render captive sites inside diagnostic messages.
+type SiteText<S> = S extends { readonly key: infer K } ? NameText<K> : S extends { readonly kind: 'contribution' } ? 'contribution' : never;
+type CaptiveText<C> = C extends { readonly root: infer R; readonly dependency: infer D } ? `${SiteText<R>} -> ${SiteText<D>}` : never;
 
 /**
  * A module provider's retained local registrations and public-to-local export mapping.
@@ -151,12 +155,12 @@ type OverrideCaptives<R extends Registrations, O extends Registrations, G> = {
 /** Reject root providers introduced by a scope override when they capture scoped dependencies. */
 export type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, G = never> =
   [OverrideCaptives<R, O, G>] extends [never] ? unknown
-    : Unsatisfied<'root lifetime cannot capture scoped dependency', { readonly captives: OverrideCaptives<R, O, G> }>;
+    : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, G>>}`, { readonly captives: OverrideCaptives<R, O, G> }>;
 /** Reject strict root providers that transitively capture scoped dependencies. */
 export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> =
   [Captives<R, C>] extends [never] ? unknown
     : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R>
-      ? Unsatisfied<'root lifetime cannot capture scoped dependency', { readonly captives: Captives<R, C> }>
+      ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}`, { readonly captives: Captives<R, C> }>
       : unknown;
 
 // Sharing needs the current canonical policy, including private module targets

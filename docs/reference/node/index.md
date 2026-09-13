@@ -64,6 +64,12 @@ Re-exports [Bag](../index/interfaces/Bag.md)
 
 ***
 
+### BindingSnapshot
+
+Re-exports [BindingSnapshot](../index/interfaces/BindingSnapshot.md)
+
+***
+
 ### Builder
 
 Re-exports [Builder](../index/interfaces/Builder.md)
@@ -121,6 +127,12 @@ Re-exports [CompositionArguments](../index/type-aliases/CompositionArguments.md)
 ### CompositionFunction
 
 Re-exports [CompositionFunction](../index/type-aliases/CompositionFunction.md)
+
+***
+
+### CompositionReport
+
+Re-exports [CompositionReport](../index/type-aliases/CompositionReport.md)
 
 ***
 
@@ -184,6 +196,12 @@ Re-exports [DiBagPluginValidationError](../index/classes/DiBagPluginValidationEr
 
 ***
 
+### DiBagPolicy
+
+Re-exports [DiBagPolicy](../index/interfaces/DiBagPolicy.md)
+
+***
+
 ### DiBagStartupCancelledError
 
 Re-exports [DiBagStartupCancelledError](../index/classes/DiBagStartupCancelledError.md)
@@ -217,6 +235,12 @@ Re-exports [EnclosedLifetimeObligation](../index/type-aliases/EnclosedLifetimeOb
 ### FactoryWithDisposal
 
 Re-exports [FactoryWithDisposal](../index/interfaces/FactoryWithDisposal.md)
+
+***
+
+### GraphSnapshot
+
+Re-exports [GraphSnapshot](../index/interfaces/GraphSnapshot.md)
 
 ***
 

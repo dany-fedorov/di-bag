@@ -12,6 +12,7 @@ import { BindingGraph, BagRuntime } from './runtime';
 import type { BindingKey } from './runtime';
 import { moduleGraph, sealModule } from './module';
 import type { Module } from './module';
+import type { CompositionReport } from './composition-report';
 import type { CheckedConstraints, CompleteConstraints, ExternalRequirements, IncrementalConstraints, ModulePublicProviders, ModuleSealedConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes } from './lifetime-types';
 import { withLifetime } from './lifetime';
@@ -26,7 +27,7 @@ import { fromFunction, fromClass } from './composition';
 import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
 import type { ProviderRegistrationMetadata, ProviderAcquisitionMetadata } from './provider';
-import type { RegistrationSnapshot } from './inspection';
+import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
 import { token, readTokenKey } from './tokens';
 import { fromPlugin } from './plugins';
 import type { PluginProviderFactory } from './plugins';
@@ -52,6 +53,7 @@ import type {
   SelectedRegistrations,
   Selection,
   NamedAdmission,
+  ThenableAdmission,
 } from './types';
 
 type ReplacementFactory<O> = (this: void) => O;
@@ -118,6 +120,14 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
   inspect(token: unknown): unknown {
     return this.#runtime.inspect(typeof token === 'string' ? token : readTokenKey(token));
   }
+
+  /**
+   * Describe every binding this bag can resolve and the dependency edges observed so far.
+   * Nothing is acquired. Named dependencies declared on factory parameters are not visible
+   * until the factory runs; the static graph tool reports them from source.
+   * @returns A frozen point-in-time snapshot; application-owned metadata payloads are not frozen.
+   */
+  inspectGraph(): GraphSnapshot { return this.#runtime.inspectGraph(); }
 
   /**
    * Create a tracked child that borrows selected parent acquisitions.
@@ -269,7 +279,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   register<N extends { [K in keyof N]: Registration }>(
     more: N & Registrations & ([N] extends [never]
       ? never
-      : NamedAdmission<N> & IntroducesKeys<EntryKeys<E>, keyof N> & IncrementalChecked<E, N> &
+      : NamedAdmission<N> & ThenableAdmission<N> & IntroducesKeys<EntryKeys<E>, keyof N> & IncrementalChecked<E, N> &
         CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, N>>),
   ): Builder<E | RegistrationEntries<N>, C>;
   /**
@@ -280,7 +290,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    */
   register<T extends TokenBase, V extends Registration>(
     token: T & TokenTupleAdmission<readonly [T]> & IntroducesKeys<EntryKeys<E>, TokenKey<T>>,
-    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> &
+    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & ThenableAdmission<Record<TokenKey<T>, NoInfer<V>>> &
       IncrementalChecked<E, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>> &
       CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>>>,
   ): Builder<E | { key: TokenKey<T>; registration: TokenBinding<T, V> }, C>;
@@ -374,6 +384,16 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   ): Builder<E | RegistrationEntries<D>, C | MC> {
     return new Builder(this.#graph.withInstallation(moduleGraph(module)), this.context);
   }
+
+  /**
+   * Report at the type level why this graph would not build; the runtime call does nothing.
+   * Write `builder.verifyGraph() satisfies void;` so a rejected graph fails on that line with
+   * the complete message and details, instead of at the start of the builder expression.
+   * @returns `void` for a buildable graph; otherwise the failure that `build()` would report.
+   */
+  // A generic `this` keeps the report out of every builder instantiation (about 11k fewer instantiations per 100 calls).
+  verifyGraph<Self extends Builder<E, C>>(this: Self): CompositionReport<Self>;
+  verifyGraph(): unknown { return undefined; }
 
   /**
    * Seal this graph as a reusable module and select its public names and typed tokens.

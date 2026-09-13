@@ -1,3 +1,6 @@
+import type { AcquisitionMode } from './acquisition-mode';
+import type { Lifetime } from './lifetime';
+
 /** Structural optional presence; payloads are application-owned and not frozen. */
 export type Presence<T> = { readonly present: false } | { readonly present: true; readonly value: T };
 
@@ -28,4 +31,30 @@ export interface RegistrationSnapshot<M = Readonly<{}>, A extends readonly unkno
   readonly registrationMetadata: Readonly<M>;
   /** Point-in-time attempts; inspection does not retain failed-attempt history. */
   readonly acquisitions: readonly AcquisitionSnapshot<A>[];
+}
+
+/** One binding of a bag's graph, described without acquiring it. */
+export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] = readonly []> extends RegistrationSnapshot<M, A> {
+  /** Public names or token symbols that select this binding, in registration order; empty for a private module binding. */
+  readonly keys: readonly (string | symbol)[];
+  readonly lifetime: Lifetime;
+  readonly acquisitionMode: AcquisitionMode;
+  /** True when some stage of the provider accepts ownership through a disposer. */
+  readonly owned: boolean;
+  /** Typed-token dependencies declared positionally through tokens, `optional`, `lazy`, or `all` references. */
+  readonly tokenDependencies: readonly { readonly key: symbol; readonly kind: 'required' | 'optional' | 'lazy' | 'all' }[];
+}
+
+/**
+ * A frozen description of every binding a bag can resolve, plus the edges observed so far.
+ * Named dependencies read from a factory's object parameter are not knowable until the factory
+ * runs; `observedEdges` records them after acquisition. Use the static graph tool for declared edges.
+ */
+export interface GraphSnapshot {
+  readonly scopeId: symbol;
+  /** Public bindings in registration order, then contributions in group order, then remaining private bindings. */
+  readonly bindings: readonly BindingSnapshot<object, readonly unknown[]>[];
+  readonly contributions: readonly { readonly token: symbol; readonly bindingIds: readonly symbol[] }[];
+  /** Consumer-to-dependency edges recorded by acquisitions in this bag's ownership family. */
+  readonly observedEdges: readonly { readonly from: symbol; readonly to: symbol }[];
 }

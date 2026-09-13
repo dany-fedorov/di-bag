@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import ts from 'typescript';
-import { diagnostics, describeDiagnostic } from './compiler';
+import { diagnostics, diagnosticsByFile, describeDiagnostic, options } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 
 test('observers retain exact inferred cross-file contracts', () => {
@@ -86,6 +86,18 @@ for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-referenc
   expect(consumer.getSourceFile(producerPath)).toBeUndefined();
   expect(consumer.getSourceFile(declarationPath)).toBeDefined();
   expect(ts.getPreEmitDiagnostics(consumer).map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('verifyGraph reports void for buildable graphs and the build failure otherwise', () => {
+  expect(diagnostics(resolve(__dirname, 'types/verify-graph.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('the DiBagPolicy structuralThenables switch relaxes the compile-time check', () => {
+  // Isolated program: the augmentation must not leak into the shared fixture program.
+  const path = resolve(__dirname, 'types/isolated/thenable-policy.ts');
+  const isolated = ts.createProgram([path], options, ts.createCompilerHost(options));
+  expect(ts.getPreEmitDiagnostics(isolated).map(error => ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
 test('acquisition modes retain exact acquired values across inferred exports', () => {
@@ -173,6 +185,11 @@ test('nested modules forward requirements and lexical lifetimes across levels', 
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('module erasure fixtures keep exact exports, requirements, and carrier obligations', () => {
+  expect(diagnostics(resolve(__dirname, 'types/module-erasure/consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('named modules preserve contracts across a file boundary', () => {
   expect(diagnostics(resolve(__dirname, 'types/modules/consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
@@ -212,15 +229,19 @@ for (const operation of ['add', 'fork', 'disposal']) {
   });
 }
 
-for (const name of readdirSync(resolve(__dirname, 'types/negative')).filter(
-  (name) => name.endsWith('.ts'),
-)) {
-  test(`type rejection: ${name}`, () => {
-    const path = resolve(__dirname, 'types/negative', name);
+const negativeDirectory = resolve(__dirname, 'types/negative');
+const negativeFixtures = readdirSync(negativeDirectory)
+  .filter((name) => name.endsWith('.ts'))
+  .map((name) => resolve(negativeDirectory, name));
+// One program for every independent rejection fixture; each test reads its own file's diagnostics.
+const negativeDiagnostics = diagnosticsByFile(negativeFixtures);
+
+for (const path of negativeFixtures) {
+  test(`type rejection: ${basename(path)}`, () => {
     const source = readFileSync(path, 'utf8');
     const expected = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
     expect(expected.length).toBeGreaterThan(0);
-    const errors = diagnostics(path);
+    const errors = negativeDiagnostics.get(path)!;
     expect(errors.length).toBeGreaterThan(0);
     expect(errors.every((error) => error.file?.fileName === path)).toBe(true);
     const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));

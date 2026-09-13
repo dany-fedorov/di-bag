@@ -75,6 +75,7 @@ next call; they do not mutate the original.
 | `build()` | Builder | Check graph completeness and return a lazy bag. |
 | `buildAndStart(keys, options?)` | Builder | Return a promise for a fresh bag after [selected services are ready](tutorial.md#start-selected-services-and-cancel-cooperatively). |
 | `buildModule(keys)` | Builder | Seal the graph as a module and choose its public names and tokens; unmet dependencies become requirements. |
+| `verifyGraph()` | Builder | Runtime no-op whose return type is `void` only when the graph would [build](tutorial.md#read-compile-time-rejections). |
 | `renameExport(oldName, newName)` | Sealed Module | Return a module view with one string-named export renamed. |
 
 There is one builder. `build()` requires a complete graph; `buildModule(keys)`
@@ -91,6 +92,7 @@ nesting depth.
 | `resolveAll(token)` | Resolve the [ordered contributions](tutorial.md#compose-an-ordered-collection) as a readonly array. |
 | `inspect(nameOrToken)` | Copy [metadata and acquisition state](tutorial.md#attach-metadata-and-inspect-without-resolving) without resolving. |
 | `inspectAll(token)` | Inspect contribution descriptions and attempts without resolving. |
+| `inspectGraph()` | Describe every binding, contribution group, and [observed edge](tutorial.md#attach-metadata-and-inspect-without-resolving) without resolving. |
 | `createScope()` | Create a tracked [child scope](tutorial.md#create-tracked-child-scopes). |
 | `createScope({ share: keys })` | Create a child that explicitly borrows selected parent acquisitions. |
 | `createScope(keys, overrides, options?)` | Create a child with checked replacements and optional disjoint `share` selection. |
@@ -138,6 +140,7 @@ Factory errors and transformation errors retain their original identity on
 resolution. Library-created failures expose stable `DI_BAG_*` codes and frozen
 structured `details`; inspect those fields instead of parsing message text. Observer callback failures are delivered to the observer's
 `onError` callback and do not become service or shutdown failures.
+`DI_BAG_INVALID_DEPENDENCY_ACCESS` reports enumeration or `in` checks on a factory's dependency object; its `details.consumer` names the factory.
 
 ## Exported TypeScript types
 
@@ -180,12 +183,15 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | [`CompositionArguments`](../reference/index/type-aliases/CompositionArguments.md), [`CompositionFunction`](../reference/index/type-aliases/CompositionFunction.md) | Positional argument compatibility and callback signatures for function/constructor adaptation. |
 | [`Presence`](../reference/index/type-aliases/Presence.md) | `{ present: false }` or `{ present: true, value }`, including present `undefined`. |
 | [`AcquisitionMetadataPresence`](../reference/index/type-aliases/AcquisitionMetadataPresence.md), [`AcquisitionSnapshot`](../reference/index/interfaces/AcquisitionSnapshot.md), [`RegistrationSnapshot`](../reference/index/interfaces/RegistrationSnapshot.md) | Inspection frames, acquisition state, and registration metadata snapshots. |
+| `GraphSnapshot`, `BindingSnapshot` | The frozen result of `inspectGraph()` and its per-binding entries. |
 | [`CleanupFailure`](../reference/index/interfaces/CleanupFailure.md) | The detached acquisition identity, label, and original cleanup error. |
 | [`DiBagErrorCode`](../reference/index/type-aliases/DiBagErrorCode.md), [`DiBagDiagnostic`](../reference/index/interfaces/DiBagDiagnostic.md) | Stable library error codes and their structured diagnostic fields. |
 | [`ObserverOptions`](../reference/index/interfaces/ObserverOptions.md), [`ObserverCallback`](../reference/index/type-aliases/ObserverCallback.md), [`ObserverErrorCallback`](../reference/index/type-aliases/ObserverErrorCallback.md) | Observer configuration and its event/failure callbacks. |
 | [`LifecycleEvent`](../reference/index/type-aliases/LifecycleEvent.md), [`ObserverFailure`](../reference/index/interfaces/ObserverFailure.md), [`ScopeEventFields`](../reference/index/interfaces/ScopeEventFields.md), [`AcquisitionEventFields`](../reference/index/interfaces/AcquisitionEventFields.md) | Discriminated lifecycle events and observer failure context. |
 | [`PluginAcquisitionMode`](../reference/index/type-aliases/PluginAcquisitionMode.md), [`PluginOptions`](../reference/index/interfaces/PluginOptions.md), [`PluginOutputValidator`](../reference/index/type-aliases/PluginOutputValidator.md), [`PluginProvider`](../reference/index/type-aliases/PluginProvider.md) | Plugin mode, validation options, output predicate, and resulting provider. |
 | [`PluginProviderFactory`](../reference/index/type-aliases/PluginProviderFactory.md) | The callable type of `DiBag.fromPlugin`; use it directly as a type. |
+| [`CompositionReport`](../reference/index/type-aliases/CompositionReport.md) | The compile-time verdict for a builder: `void` when buildable, otherwise the `build()` failure with details. |
+| [`DiBagPolicy`](../reference/index/interfaces/DiBagPolicy.md) | Empty interface for project-wide compile-time switches; augment with `structuralThenables: 'allow'` to relax the [thenable check](tutorial.md#attach-cleanup-with-withdisposal). |
 
 ### Provider and module projections
 

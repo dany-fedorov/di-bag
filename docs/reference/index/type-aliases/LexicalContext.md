@@ -12,7 +12,7 @@ type LexicalContext<R extends Registrations = Registrations, E extends object = 
 };
 ```
 
-Defined in: [lifetime-types.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L15)
+Defined in: [lifetime-types.ts:19](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L19)
 
 A module provider's retained local registrations and public-to-local export mapping.
 Contexts chain through `parent` when a module was sealed inside another module:
@@ -34,7 +34,7 @@ resolves in the installing host, matching runtime lexical lookup.
 readonly exports: E;
 ```
 
-Defined in: [lifetime-types.ts:18](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L18)
+Defined in: [lifetime-types.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L22)
 
 Current public name -> original local name.
 
@@ -46,7 +46,7 @@ Current public name -> original local name.
 readonly parent?: LexicalContext;
 ```
 
-Defined in: [lifetime-types.ts:19](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L19)
+Defined in: [lifetime-types.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L23)
 
 ***
 
@@ -56,4 +56,4 @@ Defined in: [lifetime-types.ts:19](https://github.com/dany-fedorov/di-bag/blob/m
 readonly registrations: R;
 ```
 
-Defined in: [lifetime-types.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L16)
+Defined in: [lifetime-types.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L20)

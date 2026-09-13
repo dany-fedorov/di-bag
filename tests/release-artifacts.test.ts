@@ -167,7 +167,7 @@ describe('release documentation contract', () => {
       expect(`${tutorial}\n${development}`).toContain(fact);
     expect(readme).toContain('npm run check');
     expect(readme).toContain('npm run check:native');
-    expect(development).toContain('zero reviewed gaps or unexpected diagnostics');
+    expect(development).toContain('one reviewed gap: native 7.0.2 rejects a contextual');
     expect(development).toContain('applications at 1,000 providers');
     expect(development).toContain('groups of 50');
     for (const text of [readme, reference, tutorial, development])
@@ -350,9 +350,12 @@ describe('native gap inventory', () => {
   const syntheticRoot = resolve(scratch, 'synthetic-native-gap-authority');
   mkdirSync(syntheticRoot);
   writeFileSync(resolve(syntheticRoot, 'legacy.ts'), '// diagnostic: legacy failure\n// diagnostic-native-gap: last-token-string\nconst legacy = true;\n');
-  test('freezes the exact current zero-gap source authority', () => {
+  test('freezes the exact current reviewed-gap source authority', () => {
     expect(Object.isFrozen(nativeDiagnosticGapMessages)).toBe(true);
-    const gaps = collectReviewedNativeGaps(reviewedRoot); expect(gaps).toEqual([]); expect(Object.isFrozen(gaps)).toBe(true);
+    const gaps = collectReviewedNativeGaps(reviewedRoot);
+    // One reviewed gap: native 7.0.2 rejects the contextual fromFactory thenable through its last overload's arity error.
+    expect(gaps.map(gap => [gap.fixture, gap.id, gap.code])).toEqual([['negative/structural-thenable.ts', 'last-contextual-factory-thenable', 2769]]);
+    expect(Object.isFrozen(gaps)).toBe(true);
   });
   test('accepts empty and reviewed fresh inventory while an empty authority rejects a new gap', () => {
     const reviewed = collectReviewedNativeGaps(syntheticRoot), first = reviewed[0]!;

@@ -1,4 +1,5 @@
 import type {
+  Factory,
   FactoryWithDisposal,
   Registration,
   Registrations,
@@ -36,6 +37,31 @@ export type OverrideRegistrations<F extends Registrations, N extends Registratio
 > &
   N;
 
+/**
+ * Project-wide compile-time policy switches. Augment it to relax a check:
+ * `declare module 'di-bag' { interface DiBagPolicy { readonly structuralThenables: 'allow' } }`.
+ */
+export interface DiBagPolicy {}
+type StructuralThenablesAllowed = DiBagPolicy extends { readonly structuralThenables: 'allow' } ? true : false;
+type IsAny<T> = 0 extends 1 & T ? true : false;
+/** True for a declared output with a callable `then` that is not a native Promise; `any` is exempt. */
+export type StructuralThenable<O> = StructuralThenablesAllowed extends true ? false
+  : IsAny<O> extends true ? false
+    // Infer through an intersection first: a NoInfer wrapper otherwise defers the check in adapter signatures.
+    : O extends infer T & {} ? T extends Promise<unknown> ? false : T extends { then(...args: never[]): unknown } ? true : false : false;
+type ThenableOutputs<R extends Registrations> = {
+  [K in keyof R]: R[K] extends Factory | FactoryWithDisposal<Factory> ? true extends StructuralThenable<ProviderOutput<R[K]>> ? K : never : never;
+}[keyof R];
+/** Reject plain or disposable factories whose declared output auto acquisition would reject at runtime. */
+export type ThenableAdmission<R extends Registrations> = [ThenableOutputs<R>] extends [never] ? unknown
+  : Unsatisfied<`factory output is a structural thenable: ${NameText<ThenableOutputs<R>>}; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise`, { tokens: ThenableOutputs<R> }>;
+
+/**
+ * Render dependency names inside diagnostic messages; typed tokens have no printable name.
+ * Use it only in checks that run once per graph (build, module completeness, lifetimes, key selection):
+ * per-call wrong-shape checks stay plain because templates there cost instantiations on valid graphs.
+ */
+export type NameText<K> = K extends string ? K : K extends number ? `${K}` : 'typed token';
 declare const diBagTypeError: unique symbol;
 export type Unsatisfied<Message extends string, Details> = {
   readonly [diBagTypeError]: Message;
@@ -158,7 +184,7 @@ export type CheckDependencyCompleteness<R extends Registrations> = [
   ? [InvalidGraphs<CompletionMap<R>>] extends [never] ? unknown
     : Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: InvalidGraphs<CompletionMap<R>> }>
   : Unsatisfied<
-      'required service registrations are missing',
+      `required service registrations are missing: ${NameText<Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>>}`,
       { missing: Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>; relationships: MissingRelationships<R> }
     >;
 
@@ -173,11 +199,11 @@ export type Overrides<F extends Registrations, O extends Registrations> = [
   ? [BadOverrides<F, O>] extends [never]
     ? unknown
     : Unsatisfied<
-        'override value is not assignable to the original token',
+        `override value is not assignable to the original token: ${NameText<BadOverrides<F, O>>}`,
         { tokens: BadOverrides<F, O> }
       >
   : Unsatisfied<
-      'fork accepts existing names or typed tokens only',
+      `fork accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof F>>}`,
       { extra: Exclude<keyof O, keyof F> }
     >;
 
@@ -212,15 +238,15 @@ export type ReplacementKey<R extends Registrations, K extends string> =
   Singleton<K> extends true
     ? K extends keyof R
       ? unknown
-      : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>
-    : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>;
+      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>
+    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>;
 
 export type ReplacementKeyOf<Keys extends PropertyKey, K extends string> =
   Singleton<K> extends true
     ? K extends Keys
       ? unknown
-      : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>
-    : Unsatisfied<'replace requires one existing singleton string-literal key', { key: K }>;
+      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>
+    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}`, { key: K }>;
 
 // Context needs one compatible output per surviving consumer. Intersect their
 // callback parameters, not their value unions: string | number in one consumer
@@ -261,7 +287,7 @@ export type Selection<R extends Registrations, K extends readonly unknown[], Ope
           ? [Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>] extends [never]
             ? unknown
             : Unsatisfied<
-                `${Operation} accepts existing names or typed tokens only`,
+                `${Operation} accepts existing names or typed tokens only: unknown ${NameText<Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>>}`,
                 { extra: Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]> }
               >
           : InvalidSelection<Operation>

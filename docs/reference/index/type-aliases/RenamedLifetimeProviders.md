@@ -10,7 +10,7 @@ type RenamedLifetimeProviders<D extends Registrations, Old extends string, New e
 };
 ```
 
-Defined in: [lifetime-types.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L73)
+Defined in: [lifetime-types.ts:77](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L77)
 
 Rename public lifetime-carrier registrations while preserving their lexical sources.
 

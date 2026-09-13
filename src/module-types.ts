@@ -1,7 +1,7 @@
 import type { ContributionConstraint, CheckedContributions, CompleteContributions, RenamedContribution, ModuleContributionConstraints } from './contribution-types';
 import type { Module } from './module';
 import type { Registrations } from './registration';
-import type { Entry, Needs, RegistrationsFromEntries, ServicesOf, Singleton, Unsatisfied } from './types';
+import type { Entry, NameText, Needs, RegistrationsFromEntries, ServicesOf, Singleton, Unsatisfied } from './types';
 import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens, BoundToken } from './provider';
 import type { TokenDependencyContract, WrongToken, MissingToken } from './token-types';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
@@ -54,7 +54,7 @@ export type IncrementalConstraints<
   : CheckedConstraints<C | MC, import('./types').OverrideRegistrations<Old, Incoming>>;
 export type CompleteConstraints<C extends NeedConstraint, A extends Registrations> =
   [MissingConstraint<C, ServicesOf<A>> | MissingTokenConstraint<C, A>] extends [never] ? CompleteContributions<C, A>
-    : Unsatisfied<'required service registrations are missing', { missing: MissingConstraint<C, ServicesOf<A>> | MissingTokenConstraint<C, A>; relationships: MissingConstraintRelationships<C, ServicesOf<A>> }>;
+    : Unsatisfied<`required service registrations are missing: ${NameText<MissingConstraint<C, ServicesOf<A>> | MissingTokenConstraint<C, A>>}`, { missing: MissingConstraint<C, ServicesOf<A>> | MissingTokenConstraint<C, A>; relationships: MissingConstraintRelationships<C, ServicesOf<A>> }>;
 
 // Separate exported and external references even when a later rename makes
 // their lookup keys equal. Keep consumers distributive, never intersect needs

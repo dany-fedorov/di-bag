@@ -79,6 +79,13 @@ including `undefined` and an in-flight Promise, so repeated resolutions in one
 bag return the same value. A factory is still borrowed by default even if its
 result has a method called `close` or `dispose`.
 
+The dependency object is a lazy view, not a plain record. Reading a property
+acquires that dependency; destructuring in the parameter list is the usual way
+to do it. Testing `'name' in deps`, calling `Object.keys(deps)`, spreading
+`{ ...deps }`, or serializing it with `JSON.stringify` throws
+`DI_BAG_INVALID_DEPENDENCY_ACCESS`, because those operations would otherwise
+report an empty object. Read every dependency by name.
+
 `DiBag.fromFactory(create, { acquisitionMode })` describes the output stage explicitly.
 It is useful for deliberate raw Promise-like values and is required by one of the
 portable-runtime strategies described under [portable mode](#portable-mode). It
@@ -231,9 +238,24 @@ be revoked, and a disposer must not await the same bag's `close()` Promise.
 
 An automatic synchronous stage accepts ordinary values and observes native
 Promises. A structural thenable returned directly is rejected without invoking
-its `then` or transferring ownership. Normalize such a value explicitly inside
-an async boundary, for example `() => Promise.resolve(legacyThenable)`. Use a raw
-stage when the Promise object itself is the owned value.
+its `then` or transferring ownership. Query builders from libraries such as Knex,
+Drizzle, or Mongoose are thenables, so a plain factory that returns one is
+rejected at compile time with
+`factory output is a structural thenable: users; ...`. Normalize such a value
+explicitly inside an async boundary, for example
+`() => Promise.resolve(legacyThenable)`, or select the stage explicitly with
+`DiBag.fromFactory(create, { acquisitionMode: 'raw' })` when the builder object
+itself is the service. Use a raw stage when the Promise object itself is the
+owned value. To disable the compile-time check for a whole project, augment the
+policy interface once:
+
+```ts
+declare module 'di-bag' {
+  interface DiBagPolicy { readonly structuralThenables: 'allow' }
+}
+```
+
+The runtime rejection stays in place either way.
 
 **Conceptual snippet:** `pendingPromise`, `releasePromiseHandle`, and the fulfilled
 resource's `close` method are application values.
@@ -289,6 +311,38 @@ and another `close()` observes the
 same rejected Promise. Acquisition failures remain on their resolution Promises;
 they are not added to a later close error. See the [API reference](api-reference.md#errors-and-recovery)
 for exact class shapes and constructors.
+
+## Read compile-time rejections
+
+`build()`, `register()`, `replace()`, `fork()`, and `createScope()` reject an
+invalid graph at compile time. TypeScript reports these as assignability errors
+whose message names the problem and, where it is cheap to compute, the services involved:
+
+| Message | Meaning |
+| --- | --- |
+| `required service registrations are missing: clock` | No registration supplies `clock`. |
+| `provided service does not satisfy its consumer dependency` | A service's type does not match what a consumer declares. `verifyGraph()` shows the consumer, dependency, expected type, and provided type. |
+| `root lifetime cannot capture scoped dependency: db -> config` | A `root` service would hold a `scoped` one. |
+| `fork accepts existing names or typed tokens only: unknown extra` | A selected key is not registered. |
+
+The full detail object (expected and provided types, every relationship) is part
+of the error type. With the default error truncation it prints as `{ ...; }`;
+set `"noErrorTruncation": true` in `tsconfig.json` to read it.
+
+`build()` errors are anchored where the builder expression starts. To get the
+verdict on a line of your choice, call `verifyGraph()`; it does nothing at
+runtime and its return type is `void` exactly when the graph would build:
+
+```ts
+const builder = DiBag.createBuilder().register({
+  db: ({ config }: { config: { url: string } }) => config.url,
+});
+builder.verifyGraph() satisfies void;
+// error: Type 'Unsatisfied<"required service registrations are missing: config", { missing: "config"; ... }>' does not satisfy the expected type 'void'.
+```
+
+`CompositionReport<typeof builder>` is the same verdict as a type, for
+assertions in test files.
 
 ## Create tracked child scopes
 
@@ -920,6 +974,21 @@ close, static metadata remains available and acquisition lists are empty.
 Aliases expose their direct target description and canonical acquisition state.
 Metadata wrappers add frames as described under
 [acquisition values and metadata](#represent-acquisition-values-and-metadata-natively).
+
+`inspectGraph()` describes the whole bag at once: every binding with its public
+keys, label, lifetime, acquisition mode, ownership, typed-token dependencies,
+static metadata, and current attempts; every contribution group; and the
+consumer-to-dependency edges observed during acquisition so far. Private
+bindings from installed modules appear with an empty key list. Nothing is
+acquired, and the snapshot is frozen. Named dependencies read from a factory's
+object parameter are unknown until that factory runs, so the edge list grows as
+services are acquired; the static graph tool reports declared edges from source.
+
+```ts
+const graph = app.inspectGraph();
+graph.bindings.map(binding => [binding.keys, binding.lifetime]);
+graph.observedEdges; // [] before any resolve
+```
 
 ## Observe lifecycle transitions
 

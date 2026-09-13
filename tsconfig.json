@@ -14,5 +14,5 @@
     "types": ["bun"]
   },
   "include": ["src", "tests", "examples"],
-  "exclude": ["tests/types/negative"]
+  "exclude": ["tests/types/negative", "tests/types/isolated"]
 }

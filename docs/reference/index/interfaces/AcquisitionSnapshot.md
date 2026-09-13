@@ -4,7 +4,7 @@
 
 # Interface: AcquisitionSnapshot\<A *extends* readonly `unknown`[] = readonly \[\]\>
 
-Defined in: [inspection.ts:10](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L10)
+Defined in: [inspection.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L13)
 
 A frozen point-in-time view of one acquisition attempt.
 
@@ -22,7 +22,7 @@ A frozen point-in-time view of one acquisition attempt.
 readonly acquisitionId: symbol;
 ```
 
-Defined in: [inspection.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L12)
+Defined in: [inspection.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L15)
 
 Stable identity for this attempt; retries receive a new symbol.
 
@@ -34,7 +34,7 @@ Stable identity for this attempt; retries receive a new symbol.
 readonly acquisitionMetadata: AcquisitionMetadataPresence<A>;
 ```
 
-Defined in: [inspection.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L16)
+Defined in: [inspection.ts:19](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L19)
 
 Ordered presence records for metadata captured during acquisition.
 
@@ -46,6 +46,6 @@ Ordered presence records for metadata captured during acquisition.
 readonly state: 'creating' | 'pending' | 'ready' | 'failed' | 'disposing' | 'disposed';
 ```
 
-Defined in: [inspection.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L14)
+Defined in: [inspection.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L17)
 
 State at the instant the snapshot was copied.

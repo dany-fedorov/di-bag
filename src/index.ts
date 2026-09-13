@@ -3,6 +3,7 @@ export { DiBagCleanupError, DiBagPluginValidationError, DiBagStartupError, DiBag
 export type { CleanupFailure, DiBagErrorCode, DiBagDiagnostic } from './errors';
 export type { Bag, Builder, DiBagApi, ConfigurationOptions } from './di-bag';
 export type { Module } from './module';
+export type { CompositionReport } from './composition-report';
 export type { ModuleExportedServices, ModuleRequiredServices, ModuleConstraints, ModuleSealedConstraints, SealedConstraints, PublicProviders, ModulePublicProviders, Renamed } from './module-types';
 export type { FactoryWithDisposal, Registration } from './registration';
 export type { Provider, ProviderFactory, ProviderGraphContract, ProviderOutput, ProviderAcquiredValue, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens } from './provider';
@@ -14,8 +15,9 @@ export type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAlias
 export type { Token, TokenBase, TokenKey, TokenService } from './tokens';
 export type { TokenBinding, TokenMember, TokenDependencyContract, ReboundProviders, ReboundSelection, SelectionKey } from './token-types';
 export type { CheckedLifetimes, CheckedScopeLifetimes, LexicalContext, ModuleScope, Enclosed, RenamedContext, RenamedLifetimeObligation, EnclosedLifetimeObligation, RenamedLifetimeProviders } from './lifetime-types';
+export type { DiBagPolicy } from './types';
 export type { CheckDependencyCompatibility, CheckDependencyCompleteness, RegistrationEntries, OverrideFactoryContext, RegistrationsFromEntries, OverrideRegistrations, Overrides, ServicesOf, SelectedRegistrations, Selection } from './types';
-export type { Presence, AcquisitionMetadataPresence, AcquisitionSnapshot, RegistrationSnapshot } from './inspection';
+export type { Presence, AcquisitionMetadataPresence, AcquisitionSnapshot, RegistrationSnapshot, BindingSnapshot, GraphSnapshot } from './inspection';
 export type { CompositionArguments, CompositionFunction } from './composition';
 export type { OptionalDependency, LazyDependency, CollectionDependency, DependencyReference } from './dependency-references';
 export type { PluginProviderFactory, PluginAcquisitionMode, PluginOptions, PluginOutputValidator, PluginProvider } from './plugins';

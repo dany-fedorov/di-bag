@@ -42,8 +42,9 @@ edges or provide durable execution.
 - **Inspectable capability descriptions.** Attach application-defined descriptions to
   providers, then inspect them without constructing services. Build catalogs,
   diagnostics, and dispatch rules around that data while keeping node functions
-  independent of the tooling. Inspection describes selected registrations and
-  acquisitions; it does not export a complete dependency-edge graph.
+  independent of the tooling. `inspect` describes one registration, `inspectGraph`
+  describes every binding and the edges observed so far, and the static graph tool
+  exports declared edges from source.
 
 ## A runnable harness with two graph nodes
 
@@ -189,6 +190,24 @@ created inside each trial; a factory closing over a shared mutable object would
 still share that object. Graph state is created per `run` call, not kept in a
 cached service. These fixtures test harness behavior, not real retrieval
 relevance or LLM quality.
+
+## Export the declared dependency graph
+
+Named dependencies are declared on factory parameters, so they are visible to
+the TypeScript checker but not to the runtime. The `di-bag-graph` tool in
+`tools/graph` reads a project and writes every builder chain as a unit with its
+nodes, declared edges, module exports and installations, lifetimes, async
+outputs, and issues:
+
+```sh
+node tools/graph/cli.mjs --project tsconfig.json --out graph.json
+node tools/graph/cli.mjs src/app.ts --check   # exit 1 on cycles or unresolved names
+```
+
+Each node records `key`, `line`, `dependencies`, `async`, `lifetime`, and
+`owned`. Cycles are reported per unit before any factory runs. Feed the JSON to
+an agent as the map of a feature, or fail CI on new cycles. At runtime,
+`bag.inspectGraph()` reports the same bindings plus the edges observed so far.
 
 ## Connect your own harness or graph framework
 

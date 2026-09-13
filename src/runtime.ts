@@ -7,7 +7,7 @@ import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import { normalize } from './registration';
 import type { Registration, Registrations } from './registration';
-import type { RegistrationSnapshot } from './inspection';
+import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
 import { requireClassificationCapability } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
 
@@ -295,6 +295,26 @@ export class BindingGraph {
     return { bindings, publicSlots, contributions };
   }
 
+  /** Every retained binding in `describe()` order, with the public keys that select it. */
+  bindingSummaries(): readonly { readonly id: BindingId; readonly keys: readonly BindingKey[] }[] {
+    const keysById = new Map<BindingId, BindingKey[]>();
+    if (this.#publicOrder) for (const key of materialize(this.#publicOrder)) {
+      const id = this.#publicSlots.get(key);
+      if (id === undefined) continue;
+      const keys = keysById.get(id) ?? [];
+      if (!keys.includes(key)) keys.push(key);
+      keysById.set(id, keys);
+    }
+    return Object.freeze([...this.describe().bindings.keys()].map(id => Object.freeze({ id, keys: Object.freeze(keysById.get(id) ?? []) })));
+  }
+
+  /** Every contribution group with its member bindings in contribution order. */
+  contributionGroups(): readonly { readonly token: symbol; readonly bindingIds: readonly BindingId[] }[] {
+    const groups: { readonly token: symbol; readonly bindingIds: readonly BindingId[] }[] = [];
+    for (const [key] of this.#contributions) groups.push(Object.freeze({ token: key as symbol, bindingIds: this.contributionBindings(key as symbol) }));
+    return Object.freeze(groups);
+  }
+
   /** Install disjoint public slots atomically, retaining lexical private refs. */
   withInstallation(description: GraphDescription): BindingGraph {
     for (const key of description.publicSlots.keys()) {
@@ -360,6 +380,26 @@ export class BagRuntime {
 
   inspect(key: BindingKey): RegistrationSnapshot<object, readonly unknown[]> {
     return this.inspectBinding(this.graph.publicBinding(key));
+  }
+
+  inspectGraph(): GraphSnapshot {
+    const bindings = this.graph.bindingSummaries().map(({ id, keys }) => {
+      const description = this.graph.registration(id);
+      return Object.freeze({
+        ...this.inspectBinding(id),
+        keys,
+        lifetime: description.lifetime.kind,
+        acquisitionMode: description.acquisitionMode,
+        owned: description.dispose !== undefined || description.operations.some(operation => operation.kind === 'owned'),
+        tokenDependencies: Object.freeze(description.references.map(reference => Object.freeze({ key: reference.key, kind: reference.kind }))),
+      });
+    });
+    return Object.freeze({
+      scopeId: this.acquisitions.ownerId,
+      bindings: Object.freeze(bindings),
+      contributions: this.graph.contributionGroups(),
+      observedEdges: this.acquisitions.observedEdges(),
+    });
   }
 
   private inspectBinding(bindingId: BindingId): RegistrationSnapshot<object, readonly unknown[]> {

@@ -12,7 +12,7 @@ type RenamedLifetimeObligation<C extends LifetimeObligation, Old extends string,
 };
 ```
 
-Defined in: [lifetime-types.ts:77](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L77)
+Defined in: [lifetime-types.ts:81](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L81)
 
 Rename a retained lifetime obligation's public export view.
 
@@ -32,7 +32,7 @@ Rename a retained lifetime obligation's public export view.
 readonly context: RenamedContext<C['context'], Old, New>;
 ```
 
-Defined in: [lifetime-types.ts:79](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L79)
+Defined in: [lifetime-types.ts:83](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L83)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: [lifetime-types.ts:79](https://github.com/dany-fedorov/di-bag/blob/m
 readonly kind: 'lifetime';
 ```
 
-Defined in: [lifetime-types.ts:78](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L78)
+Defined in: [lifetime-types.ts:82](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L82)
 
 ***
 
@@ -52,4 +52,4 @@ Defined in: [lifetime-types.ts:78](https://github.com/dany-fedorov/di-bag/blob/m
 readonly source: C['source'];
 ```
 
-Defined in: [lifetime-types.ts:78](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L78)
+Defined in: [lifetime-types.ts:82](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L82)

@@ -120,6 +120,7 @@ test('a PromiseLike with a throwing then getter never reaches the fulfilled-valu
   }
   let created = 0;
   const disposed: number[] = [];
+  // @ts-expect-error The runtime rejection of a structural thenable is what this test exercises.
   const bag = DiBag.createBuilder().register({
       resource: DiBag.withDisposal(
         () => {
@@ -303,6 +304,7 @@ test('direct structural thenables reject without invoking then or accepting owne
   };
   let created = 0;
   const disposed: typeof resource[] = [];
+  // @ts-expect-error The runtime rejection of a structural thenable is what this test exercises.
   const bag = DiBag.createBuilder().register({
     resource: DiBag.withDisposal(() => { created++; return raw; },
       value => { disposed.push(value); }),
