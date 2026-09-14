@@ -48,7 +48,9 @@ src/app.check.ts     # verifyGraph() on the application builder: the merge check
   runs without the other modules or live clients.
 - `src/app.ts` is where independently developed modules meet, and
   `src/app.check.ts` checks it: `verifyGraph()` rejects a missing requirement or
-  an incompatible contract there. Merge review is the
+  an incompatible contract there. The type check does not see dependency
+  cycles; `npx di-bag-graph --check` fails on cycles and unsupplied
+  requirements before any factory runs. Merge review is the
   [review-merge recipe](../agent/recipes.md#review-merge); it is not needed to
   find code.
 

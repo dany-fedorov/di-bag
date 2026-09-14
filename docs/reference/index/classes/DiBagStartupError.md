@@ -4,9 +4,23 @@
 
 # Class: DiBagStartupError
 
-Defined in: [errors.ts:70](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L70)
+Defined in: [errors.ts:117](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L117)
 
-Acquisition failure after the new bag has finished releasing its resources.
+`buildAndStart` failed to acquire a selected service; the new bag has already released its resources.
+`cause` is the original failure and `cleanupFailures` lists disposers that failed during rollback.
+
+## Example
+
+```ts
+import { DiBag, DiBagStartupError } from 'di-bag';
+
+const builder = DiBag.createBuilder().register({ db: async (): Promise<number> => { throw new Error('offline'); } });
+try {
+  await builder.buildAndStart(['db']);
+} catch (error) {
+  if (error instanceof DiBagStartupError) console.error(error.cause, error.cleanupFailures);
+}
+```
 
 ## Extends
 
@@ -20,7 +34,7 @@ Acquisition failure after the new bag has finished releasing its resources.
 new (cause: unknown, cleanupFailures: readonly CleanupFailure[], cleanupError?: unknown | undefined): DiBagStartupError;
 ```
 
-Defined in: [errors.ts:81](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L81)
+Defined in: [errors.ts:128](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L128)
 
 #### Parameters
 
@@ -44,7 +58,7 @@ Error.constructor
 readonly cleanupError?: unknown;
 ```
 
-Defined in: [errors.ts:81](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L81)
+Defined in: [errors.ts:128](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L128)
 
 The complete shutdown error, when rollback itself rejected.
 
@@ -56,7 +70,7 @@ The complete shutdown error, when rollback itself rejected.
 readonly cleanupFailures: readonly CleanupFailure[];
 ```
 
-Defined in: [errors.ts:74](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L74)
+Defined in: [errors.ts:121](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L121)
 
 Frozen rollback disposal failures in invocation order.
 
@@ -68,7 +82,7 @@ Frozen rollback disposal failures in invocation order.
 declare readonly code: 'DI_BAG_STARTUP_FAILED';
 ```
 
-Defined in: [errors.ts:71](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L71)
+Defined in: [errors.ts:118](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L118)
 
 ***
 
@@ -78,4 +92,4 @@ Defined in: [errors.ts:71](https://github.com/dany-fedorov/di-bag/blob/main/src/
 declare readonly details: Readonly<Record<string, unknown>>;
 ```
 
-Defined in: [errors.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L72)
+Defined in: [errors.ts:119](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L119)

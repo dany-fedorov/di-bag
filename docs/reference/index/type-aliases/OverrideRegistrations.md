@@ -8,7 +8,7 @@
 type OverrideRegistrations<F extends Registrations, N extends Registrations> = Omit<F, keyof N> & N;
 ```
 
-Defined in: [types.ts:34](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L34)
+Defined in: [types.ts:46](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L46)
 
 Replace overlapping registrations in `F` with registrations from `N`.
 
@@ -18,3 +18,7 @@ Replace overlapping registrations in `F` with registrations from `N`.
 | ------ | ------ |
 | `F` | - |
 | `N` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests

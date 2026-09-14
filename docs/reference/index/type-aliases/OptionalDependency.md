@@ -8,7 +8,7 @@
 type OptionalDependency<T extends TokenBase> = DependencyHandle<T, 'optional'>;
 ```
 
-Defined in: [dependency-references.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/dependency-references.ts#L14)
+Defined in: [dependency-references.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/dependency-references.ts#L17)
 
 A positional dependency that yields the token service or `undefined` when unbound.
 
@@ -17,3 +17,7 @@ A positional dependency that yields the token service or `undefined` when unboun
 | Type Parameter | Description |
 | ------ | ------ |
 | `T` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#declare-optional-and-lazy-dependencies

@@ -8,6 +8,10 @@
 type ContributionConstraint = Contribution<TokenBase, Registration>;
 ```
 
-Defined in: [contribution-types.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L15)
+Defined in: [contribution-types.ts:21](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L21)
 
 The erased contribution contract retained by checked builders and modules.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection

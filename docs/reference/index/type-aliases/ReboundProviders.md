@@ -10,7 +10,7 @@ type ReboundProviders<R extends Registrations, O extends Registrations> = {
 };
 ```
 
-Defined in: [token-types.ts:70](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L70)
+Defined in: [token-types.ts:85](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L85)
 
 Rebind symbol-keyed override registrations to the original typed-token contracts.
 
@@ -20,3 +20,7 @@ Rebind symbol-keyed override registrations to the original typed-token contracts
 | ------ | ------ |
 | `R` | - |
 | `O` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection

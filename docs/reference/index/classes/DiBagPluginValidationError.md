@@ -4,9 +4,21 @@
 
 # Class: DiBagPluginValidationError
 
-Defined in: [errors.ts:38](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L38)
+Defined in: [errors.ts:59](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L59)
 
-A plugin descriptor or produced value crossed the checked plugin boundary.
+A plugin descriptor or its acquired output failed validation at the checked plugin boundary.
+
+## Example
+
+```ts
+import { DiBag, DiBagPluginValidationError } from 'di-bag';
+
+try {
+  DiBag.fromPlugin([], { apiVersion: 2 }, { acquisitionMode: 'raw', validate: (value): value is string => typeof value === 'string' });
+} catch (error) {
+  if (error instanceof DiBagPluginValidationError) console.error(error.phase, error.reason);
+}
+```
 
 ## Extends
 
@@ -20,7 +32,7 @@ A plugin descriptor or produced value crossed the checked plugin boundary.
 new (phase: "descriptor" | "output", reason: string): DiBagPluginValidationError;
 ```
 
-Defined in: [errors.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L45)
+Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L66)
 
 #### Parameters
 
@@ -43,7 +55,7 @@ Error.constructor
 declare readonly code: 'DI_BAG_PLUGIN_VALIDATION';
 ```
 
-Defined in: [errors.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L39)
+Defined in: [errors.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L60)
 
 ***
 
@@ -53,7 +65,7 @@ Defined in: [errors.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/
 declare readonly details: Readonly<Record<string, unknown>>;
 ```
 
-Defined in: [errors.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L40)
+Defined in: [errors.ts:61](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L61)
 
 ***
 
@@ -63,7 +75,7 @@ Defined in: [errors.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/
 readonly phase: 'descriptor' | 'output';
 ```
 
-Defined in: [errors.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L45)
+Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L66)
 
 Whether descriptor authentication or output validation failed.
 
@@ -75,6 +87,6 @@ Whether descriptor authentication or output validation failed.
 readonly reason: string;
 ```
 
-Defined in: [errors.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L45)
+Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L66)
 
 A stable description of the rejected boundary condition.

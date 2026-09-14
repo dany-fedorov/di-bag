@@ -8,7 +8,7 @@
 type PluginProvider<T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode> = Provider<() => M extends 'raw' ? V : Promise<Awaited<V>>, Readonly<{}>, readonly [], ReferenceGraph<T>, M extends 'raw' ? V : Awaited<V>>;
 ```
 
-Defined in: [plugins.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L23)
+Defined in: [plugins.ts:35](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L35)
 
 The provider contract produced by [DiBagApi.fromPlugin](../interfaces/DiBagApi.md#fromplugin).
 
@@ -19,3 +19,7 @@ The provider contract produced by [DiBagApi.fromPlugin](../interfaces/DiBagApi.m
 | `T` | - |
 | `V` | - |
 | `M` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin

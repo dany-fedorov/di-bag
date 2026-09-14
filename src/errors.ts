@@ -1,6 +1,12 @@
-/** Stable category for a diagnostic created by DI Bag itself. */
+/**
+ * Stable category for a diagnostic created by DI Bag itself.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#runtime-codes
+ */
 export type DiBagErrorCode = `DI_BAG_${string}`;
-/** Structured library diagnostics. Application-owned payloads retain their identity. */
+/**
+ * Structured library diagnostics. Application-owned payloads retain their identity.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#runtime-codes
+ */
 export interface DiBagDiagnostic {
   readonly code: DiBagErrorCode;
   readonly details: Readonly<Record<string, unknown>>;
@@ -26,7 +32,10 @@ export function libraryTypeError(code: DiBagErrorCode, message: string, details:
   return diagnostic(new TypeError(diagnosticMessage(code, message)), code, details);
 }
 
-/** One disposer failure, associated with the acquisition that owned it. */
+/**
+ * One disposer failure, associated with the acquisition that owned it.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-cleanup-failed
+ */
 export interface CleanupFailure {
   readonly acquisitionId: symbol;
   readonly bindingId: symbol;
@@ -34,7 +43,19 @@ export interface CleanupFailure {
   readonly error: unknown;
 }
 
-/** A plugin descriptor or produced value crossed the checked plugin boundary. */
+/**
+ * A plugin descriptor or its acquired output failed validation at the checked plugin boundary.
+ * @example
+ * ```ts
+ * import { DiBag, DiBagPluginValidationError } from 'di-bag';
+ *
+ * try {
+ *   DiBag.fromPlugin([], { apiVersion: 2 }, { acquisitionMode: 'raw', validate: (value): value is string => typeof value === 'string' });
+ * } catch (error) {
+ *   if (error instanceof DiBagPluginValidationError) console.error(error.phase, error.reason);
+ * }
+ * ```
+ */
 export class DiBagPluginValidationError extends Error {
   declare readonly code: 'DI_BAG_PLUGIN_VALIDATION';
   declare readonly details: Readonly<Record<string, unknown>>;
@@ -49,7 +70,19 @@ export class DiBagPluginValidationError extends Error {
   }
 }
 
-/** Original cleanup causes and detached acquisition diagnostics, in attempt order. */
+/**
+ * One or more disposers failed during `close()`; every cleanup was still attempted.
+ * `failures` lists each original error with the label of the service it belonged to, in attempt order.
+ * @example
+ * ```ts
+ * import { DiBag, DiBagCleanupError } from 'di-bag';
+ *
+ * const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+ * await bag.close().catch((error: unknown) => {
+ *   if (error instanceof DiBagCleanupError) for (const failure of error.failures) console.error(failure.label, failure.error);
+ * });
+ * ```
+ */
 export class DiBagCleanupError extends AggregateError {
   declare readonly code: 'DI_BAG_CLEANUP_FAILED';
   declare readonly details: Readonly<Record<string, unknown>>;
@@ -66,7 +99,21 @@ export class DiBagCleanupError extends AggregateError {
   }
 }
 
-/** Acquisition failure after the new bag has finished releasing its resources. */
+/**
+ * `buildAndStart` failed to acquire a selected service; the new bag has already released its resources.
+ * `cause` is the original failure and `cleanupFailures` lists disposers that failed during rollback.
+ * @example
+ * ```ts
+ * import { DiBag, DiBagStartupError } from 'di-bag';
+ *
+ * const builder = DiBag.createBuilder().register({ db: async (): Promise<number> => { throw new Error('offline'); } });
+ * try {
+ *   await builder.buildAndStart(['db']);
+ * } catch (error) {
+ *   if (error instanceof DiBagStartupError) console.error(error.cause, error.cleanupFailures);
+ * }
+ * ```
+ */
 export class DiBagStartupError extends Error {
   declare readonly code: 'DI_BAG_STARTUP_FAILED';
   declare readonly details: Readonly<Record<string, unknown>>;
@@ -86,7 +133,21 @@ export class DiBagStartupError extends Error {
   }
 }
 
-/** Prompt cancellation; cleanup remains awaitable for uncooperative factories. */
+/**
+ * `buildAndStart` stopped waiting on abort or timeout; `cleanupPromise` settles when the partial bag is released.
+ * On timeout, `cause` carries `DI_BAG_STARTUP_TIMEOUT`.
+ * @example
+ * ```ts
+ * import { DiBag, DiBagStartupCancelledError } from 'di-bag';
+ *
+ * const builder = DiBag.createBuilder().register({ db: () => new Promise<number>(() => {}) });
+ * try {
+ *   await builder.buildAndStart(['db'], { timeoutMs: 1_000 });
+ * } catch (error) {
+ *   if (error instanceof DiBagStartupCancelledError) await error.cleanupPromise;
+ * }
+ * ```
+ */
 export class DiBagStartupCancelledError extends Error {
   declare readonly code: 'DI_BAG_STARTUP_CANCELLED';
   declare readonly details: Readonly<Record<string, unknown>>;
@@ -107,7 +168,10 @@ export class DiBagStartupCancelledError extends Error {
   }
 }
 
-/** What a close deadline or abort interrupted: labels still in progress when the wait stopped. */
+/**
+ * What a close deadline or abort interrupted: labels still in progress when the wait stopped.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-close-timeout
+ */
 export interface CloseProgress {
   /** Labels of disposers that started and had not completed. */
   readonly pending: readonly string[];
@@ -120,7 +184,7 @@ export interface CloseProgress {
  * `code` is `DI_BAG_CLOSE_TIMEOUT` for the deadline and `DI_BAG_CLOSE_ABORTED` for the signal.
  * @example
  * ```ts
- * import { DiBag, DiBagCloseCancelledError } from 'di-bag/node';
+ * import { DiBag, DiBagCloseCancelledError } from 'di-bag';
  *
  * const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
  * try {

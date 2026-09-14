@@ -8,7 +8,7 @@
 type ProviderGraphContract<R> = ProviderBase extends R ? OpaqueGraph : R extends infer T & {} ? GraphOf<T> : OpaqueGraph;
 ```
 
-Defined in: [provider.ts:82](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L82)
+Defined in: [provider.ts:104](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L104)
 
 Extract the retained typed-token and lifetime graph contract.
 
@@ -17,3 +17,7 @@ Extract the retained typed-token and lifetime graph contract.
 | Type Parameter | Description |
 | ------ | ------ |
 | `R` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections

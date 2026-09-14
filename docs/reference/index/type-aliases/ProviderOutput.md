@@ -8,7 +8,7 @@
 type ProviderOutput<R extends Registration> = ProviderBase extends R ? unknown : ReturnType<ProviderFactory<R>>;
 ```
 
-Defined in: [provider.ts:61](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L61)
+Defined in: [provider.ts:68](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L68)
 
 Extract the exact service value exposed by a registration, including Promise identity.
 
@@ -17,3 +17,7 @@ Extract the exact service value exposed by a registration, including Promise ide
 | Type Parameter | Description |
 | ------ | ------ |
 | `R` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections

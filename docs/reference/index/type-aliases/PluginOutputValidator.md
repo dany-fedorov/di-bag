@@ -8,7 +8,7 @@
 type PluginOutputValidator<V> = (this: void, value: unknown) => value is V;
 ```
 
-Defined in: [plugins.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L14)
+Defined in: [plugins.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L20)
 
 A synchronous predicate that admits an unknown plugin output as a service type.
 
@@ -24,3 +24,7 @@ A synchronous predicate that admits an unknown plugin output as a service type.
 | ------ | ------ |
 | `this` | - |
 | `value` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin

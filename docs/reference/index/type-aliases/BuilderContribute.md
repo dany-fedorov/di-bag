@@ -8,7 +8,7 @@
 type BuilderContribute<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends Registration>(token: T & TokenTupleAdmission<readonly [T]>, registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>, ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []) => import('./di-bag').Builder<E, C | Contribution<T, V>>;
 ```
 
-Defined in: [contribution-types.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L54)
+Defined in: [contribution-types.ts:67](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L67)
 
 The checked generic `contribute` callable exposed by a builder.
 
@@ -33,3 +33,7 @@ The checked generic `contribute` callable exposed by a builder.
 | `token` | - |
 | `registration` | - |
 | `...invalid` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection

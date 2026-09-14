@@ -183,7 +183,7 @@ contract does not change.
   (missing service, unsatisfied consumer, root capture, unknown key, thenable)
   ends with the `docs/agent/errors.md` site URL for its family, for example
   `required service registrations are missing: clock; see
-  https://dany-fedorov.github.io/di-bag/agent/errors#missing-service`. The
+  https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service`. The
   three wrong-shape sites that stay generic for compiler-cost reasons (plan 03
   deviation) carry the URL of the section that says to call `verifyGraph()`.
   Template-literal cost is measured against the ceilings in
@@ -211,7 +211,7 @@ contract does not change.
   code lower-cased with underscores replaced by hyphens, which is what the
   site's heading slugifier produces. For example
   `DI_BAG_CYCLE: cycle: a -> b -> a; see
-  https://dany-fedorov.github.io/di-bag/agent/errors#di-bag-cycle`. `code` and
+  https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-cycle`. `code` and
   `details` stay as structured fields and remain the supported way to branch;
   the message is for people and agents reading a stack trace. The tests that
   assert message text (about ten assertions today) are updated. This is a
@@ -223,13 +223,15 @@ contract does not change.
   and the close deadline below; nothing else changes shape.
 - **Cycle messages** already print the path. Nothing to add.
 - **Classifier error** carries the message text specified in L3.
-- **Close deadline.** `close({ timeoutMs?, signal? })` mirrors startup. On
-  deadline it rejects with `DI_BAG_CLOSE_TIMEOUT` whose `details.pending`
-  lists the labels of disposers that have started and not completed, and whose
-  `cleanupPromise` settles when cleanup eventually finishes, as
-  `DiBagStartupCancelledError` does today. Without options, `close()` waits as
-  it does now, so the README tradeoff "cleanup waits for your work" is
-  reworded to "by default".
+- **Close deadline.** `close({ timeoutMs?, signal? })` mirrors startup. When
+  the wait stops it rejects with `DiBagCloseCancelledError`, whose `code` is
+  `DI_BAG_CLOSE_TIMEOUT` for the deadline and `DI_BAG_CLOSE_ABORTED` for the
+  signal; `details.pending` lists the labels of disposers that have started and
+  not completed, `details.acquiring` the acquisitions close was still draining,
+  and `cleanupPromise` settles when cleanup eventually finishes, as
+  `DiBagStartupCancelledError` does. Malformed options reject with
+  `DI_BAG_INVALID_CLOSE`. Without options, `close()` waits as it does now, so
+  the README tradeoff "cleanup waits for your work" is reworded to "by default".
 - Acceptance: every code in `src` has a section in `docs/agent/errors.md`
   (checked in CI); every message URL resolves; `close({ timeoutMs: 1 })` on a
   bag with a never-settling disposer rejects naming that disposer.
@@ -257,21 +259,26 @@ contract does not change.
 - **Snippet check.** `npm run docs:check` gains a step that extracts every
   `ts` block from `AGENTS.md`, `docs/agent/*.md`, and every `@example` in
   `src/`, resolves `di-bag` and `di-bag/node` to `dist/`, and type-checks them
-  in one shared program (the `tests/compiler.ts` approach). Two markers the
-  extractor honors: a first line `// continues: <anchor>` prepends the named
-  earlier block, and a first line `// expect-error: <fragment>` requires the
-  block to fail with a diagnostic containing the fragment, which is how the
-  errors page and the missing-dependency recipe show rejected code.
+  in one shared program (the `tests/compiler.ts` approach). Three leading
+  markers the extractor honors: `// continues: <anchor>` prepends the named
+  earlier block; `// expect-error: <fragment>` requires the block to fail with
+  a diagnostic containing the fragment, which is how the errors page and the
+  missing-dependency recipe show rejected code; and a file path such as
+  `// src/features/x/module.ts` makes the block that file, so blocks on one
+  page import each other.
 - **Generated card.** The API card is never edited by hand; `docs:check`
-  regenerates it and fails on drift, as it does for `docs/reference/`.
+  regenerates it and fails on drift, as it does for `docs/reference/`. The
+  generator refuses a runtime call without `@example`; the task table's source
+  is `tools/docs/api-card-tasks.json`.
 - **Layout block identity.** `docs:check` asserts the layout block in
   `AGENTS.md` is byte-identical to the one in the modularity guide.
 - **Code coverage of errors.** `docs:check` asserts the set of `DI_BAG_*`
   codes in `src` equals the set of code-anchored sections in
   `docs/agent/errors.md` (the message-family sections are additional), and
   that every URL in a message resolves in the built site.
-- **Size budgets.** `docs:check` fails when `AGENTS.md` exceeds 150 lines or
-  the card exceeds 400.
+- **Size budgets.** `docs:check` fails when `AGENTS.md` exceeds 150 lines, a
+  recipe section in `docs/agent/recipes.md` reaches 60 lines, or the card
+  exceeds 400.
 - **Eval.** `scripts/agent-eval/` runs the parallel-modules eval from the
   brief: several agents, each seeing only the installed package and one module
   directory with its contract, implement their modules against a fixed

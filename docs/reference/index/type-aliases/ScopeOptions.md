@@ -14,9 +14,13 @@ type ScopeOptions<R extends Registrations, S extends readonly unknown[]> = {
 };
 ```
 
-Defined in: [scope-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L12)
+Defined in: [scope-types.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L15)
 
 CheckDependencyCompatibility options for borrowing selected non-transient parent acquisitions in a child scope.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
 
 ## Type Parameters
 
@@ -37,6 +41,6 @@ readonly share: S & Selection<R, S, 'createScope share'> & ([
 }>);
 ```
 
-Defined in: [scope-types.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L14)
+Defined in: [scope-types.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L17)
 
 Existing names or tokens to resolve through the parent's acquisition and ownership context.

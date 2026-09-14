@@ -10,13 +10,25 @@ class ReferenceBase {
 class DependencyHandle<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'> extends ReferenceBase {
   declare readonly [referenceInvariant]: (value: [T, K]) => [T, K];
 }
-/** A positional dependency that yields the token service or `undefined` when unbound. */
+/**
+ * A positional dependency that yields the token service or `undefined` when unbound.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#declare-optional-and-lazy-dependencies
+ */
 export type OptionalDependency<T extends TokenBase> = DependencyHandle<T, 'optional'>;
-/** A positional dependency that yields all contributions for a token as a readonly array. */
+/**
+ * A positional dependency that yields all contributions for a token as a readonly array.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
+ */
 export type CollectionDependency<T extends TokenBase> = DependencyHandle<T, 'all'>;
-/** A positional dependency that yields a function which resolves the token on demand. */
+/**
+ * A positional dependency that yields a function which resolves the token on demand.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#declare-optional-and-lazy-dependencies
+ */
 export type LazyDependency<T extends TokenBase> = DependencyHandle<T, 'lazy'>;
-/** A typed token or one of the positional dependency-reference handles. */
+/**
+ * A typed token or one of the positional dependency-reference handles.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#adapt-classes-and-positional-functions
+ */
 export type DependencyReference = TokenBase | ReferenceBase;
 // Extract invariant carriers through a covariant view of their return tuple.
 type ReferenceParts<R> = R extends { readonly [referenceInvariant]: (...args: never[]) => [infer T extends TokenBase, infer K] } ? [T, K] : never;

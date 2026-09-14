@@ -33,7 +33,11 @@ type LifecycleEvent = (ScopeEventFields & {
 });
 ```
 
-Defined in: [observers.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L26)
+Defined in: [observers.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L33)
 
 A frozen discriminated lifecycle transition emitted after the corresponding state change.
 Narrow on `kind` to access failure, cleanup outcome, or disposal-index fields.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions

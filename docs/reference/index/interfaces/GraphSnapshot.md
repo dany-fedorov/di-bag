@@ -4,11 +4,15 @@
 
 # Interface: GraphSnapshot
 
-Defined in: [inspection.ts:53](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L53)
+Defined in: [inspection.ts:69](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L69)
 
 A frozen description of every binding a bag can resolve, plus the edges observed so far.
 Named dependencies read from a factory's object parameter are not knowable until the factory
 runs; `observedEdges` records them after acquisition. Use the static graph tool for declared edges.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
 
 ## Properties
 
@@ -18,7 +22,7 @@ runs; `observedEdges` records them after acquisition. Use the static graph tool 
 readonly bindings: readonly BindingSnapshot<object, readonly unknown[]>[];
 ```
 
-Defined in: [inspection.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L56)
+Defined in: [inspection.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L72)
 
 Public bindings in registration order, then contributions in group order, then remaining private bindings.
 
@@ -33,7 +37,7 @@ readonly contributions: readonly {
 }[];
 ```
 
-Defined in: [inspection.ts:57](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L57)
+Defined in: [inspection.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L73)
 
 ***
 
@@ -46,7 +50,7 @@ readonly observedEdges: readonly {
 }[];
 ```
 
-Defined in: [inspection.ts:59](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L59)
+Defined in: [inspection.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L75)
 
 Consumer-to-dependency edges recorded by acquisitions in this bag's ownership family.
 
@@ -58,4 +62,4 @@ Consumer-to-dependency edges recorded by acquisitions in this bag's ownership fa
 readonly scopeId: symbol;
 ```
 
-Defined in: [inspection.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L54)
+Defined in: [inspection.ts:70](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L70)

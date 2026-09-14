@@ -14,13 +14,19 @@ type OutputFactory<O> = () => O;
 
 // Callable assignability allows unused trailing arguments. Composition instead
 // checks the supplied tuple against the actual optional/rest parameter tuple.
-/** Compile-time admission that checks supplied token values against a callable's parameter tuple. */
+/**
+ * Compile-time admission that checks supplied token values against a callable's parameter tuple.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#adapt-classes-and-positional-functions
+ */
 export type CompositionArguments<A extends readonly unknown[], P extends readonly unknown[]> = [A] extends [P] ? unknown
   : Unsatisfied<'composition arguments must match the declared parameter tuple', { supplied: A; parameters: P }>;
 
 // Materialize the mapped tuple before contextual typing. A still-mapped rest
 // gives omitted inline default parameters an erroneous undefined context.
-/** A receiver-free positional callback matching the values supplied by a dependency tuple. */
+/**
+ * A receiver-free positional callback matching the values supplied by a dependency tuple.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#adapt-classes-and-positional-functions
+ */
 export type CompositionFunction<T extends readonly DependencyReference[], O = unknown> = TokenArguments<T> extends [...infer A]
   ? (this: void, ...args: A) => O : never;
 

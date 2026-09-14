@@ -6,7 +6,10 @@ import { readTokenKey } from './tokens';
 import { DiBagCleanupError, DiBagCloseCancelledError, DiBagStartupCancelledError, DiBagStartupError } from './errors';
 import type { DiBagErrorCode } from './errors';
 
-/** Controls eager acquisition performed by {@link Builder.buildAndStart}. */
+/**
+ * Controls eager acquisition performed by {@link Builder.buildAndStart}.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
+ */
 export interface StartupOptions {
   /** An external signal that promptly cancels the startup wait and begins cleanup. */
   readonly signal?: AbortSignal;
@@ -16,7 +19,10 @@ export interface StartupOptions {
   readonly startupOrder?: 'parallel' | 'sequential' | number;
 }
 
-/** Bounds the wait of {@link Bag.close}; cleanup itself keeps running after either fires. */
+/**
+ * Bounds the wait of {@link Bag.close}; cleanup itself keeps running after either fires.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-close-timeout
+ */
 export interface CloseOptions {
   /** An external signal that stops the wait promptly. */
   readonly signal?: AbortSignal;

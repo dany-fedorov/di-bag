@@ -280,8 +280,11 @@ composition.verifyGraph() satisfies void;
    no branch registers, or a contract one branch changed under another's
    consumer, fails there by name.
 3. Run the full test suite.
-4. Optionally, in CI: `npx di-bag-graph --project tsconfig.json --check` exits 1
-   on dependency cycles and unresolved names before any factory runs. The type
-   check does not see cycles; without this step they fail at first resolve with
+4. Optionally, in CI: `npx di-bag-graph --check` exits 1 on dependency cycles
+   and unresolved names before any factory runs. It reads `./tsconfig.json`
+   unless `--project` names another, and needs its own package:
+   `npm install --save-dev di-bag-graph`. The type check does not see cycles;
+   without this step they fail at first resolve with
    [`DI_BAG_CYCLE`](errors.md#di-bag-cycle). The graph is a merge-review and CI
-   artifact, not a map for finding code; the layout is the map.
+   artifact, not a map for finding code; the layout is the map. Options and
+   output: [di-bag-graph README](https://github.com/dany-fedorov/di-bag/blob/main/tools/graph/README.md).

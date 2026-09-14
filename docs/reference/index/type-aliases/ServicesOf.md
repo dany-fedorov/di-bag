@@ -10,7 +10,7 @@ type ServicesOf<R extends Registrations> = {
 };
 ```
 
-Defined in: [types.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L13)
+Defined in: [types.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L16)
 
 Map registrations to the exact service values they expose.
 
@@ -19,3 +19,7 @@ Map registrations to the exact service values they expose.
 | Type Parameter | Description |
 | ------ | ------ |
 | `R` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types

@@ -21,9 +21,13 @@ type LifetimeObligation = {
 };
 ```
 
-Defined in: [lifetime-types.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L22)
+Defined in: [lifetime-types.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L24)
 
 A compact seal-time lifetime record that replaces a module's private registrations:
 `root-reach` names a private strict root, `export-reach` an export the host checks as a root or
 walks through as a transient or alias, and `contribution-reach` a sealed contribution group
 that is checked as a root or walked by collecting roots. Each record carries one reach.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture

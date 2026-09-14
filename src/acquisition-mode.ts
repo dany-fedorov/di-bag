@@ -5,9 +5,13 @@ import type { StructuralThenable, Unsatisfied } from './types';
 /**
  * How an acquisition stage treats its returned value: configured classification,
  * the exact raw value, or an observed native Promise fulfillment.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#portable-mode
  */
 export type AcquisitionMode = 'auto' | 'raw' | 'nativePromise';
-/** Portable facade configuration for `auto` acquisition stages. */
+/**
+ * Portable facade configuration for `auto` acquisition stages.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#portable-mode
+ */
 export interface RuntimeOptions {
   /** Return true only for native Promises the host can observe without thenable assimilation. */
   readonly isNativePromise: (this: void, value: unknown) => boolean;

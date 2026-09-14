@@ -9,7 +9,10 @@ import type { InvalidGraphs, MissingTokens, SelectionKey, TokenMember, ValidToke
 
 export type Needs<R extends Registration> = ProviderNamedDependencies<R>;
 
-/** Map registrations to the exact service values they expose. */
+/**
+ * Map registrations to the exact service values they expose.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types
+ */
 export type ServicesOf<R extends Registrations> = {
   [K in keyof R]: ProviderOutput<R[K]>;
 };
@@ -20,17 +23,26 @@ export type Entry = { key: string | symbol; registration: Registration };
 // Compare distinct keys before the registration types retained by an entry union.
 type RegistrationEntry<K extends string | symbol, V extends Registration> = { key: K; registration: V };
 
-/** Convert a registration map to the union of entries retained by a builder. */
+/**
+ * Convert a registration map to the union of entries retained by a builder.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types
+ */
 export type RegistrationEntries<R extends Registrations> = {
   [K in keyof R & (string | symbol)]: RegistrationEntry<K, R[K]>;
 }[keyof R & (string | symbol)];
 
-/** Reconstruct a registration map from a builder's retained entry union. */
+/**
+ * Reconstruct a registration map from a builder's retained entry union.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types
+ */
 export type RegistrationsFromEntries<E extends Entry> = {
   [P in E as P['key']]: P['registration'];
 };
 
-/** Replace overlapping registrations in `F` with registrations from `N`. */
+/**
+ * Replace overlapping registrations in `F` with registrations from `N`.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ */
 export type OverrideRegistrations<F extends Registrations, N extends Registrations> = Omit<
   F,
   keyof N
@@ -40,6 +52,7 @@ export type OverrideRegistrations<F extends Registrations, N extends Registratio
 /**
  * Project-wide compile-time policy switches. Augment it to relax a check:
  * `declare module 'di-bag' { interface DiBagPolicy { readonly structuralThenables: 'allow' } }`.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types
  */
 export interface DiBagPolicy {}
 type StructuralThenablesAllowed = DiBagPolicy extends { readonly structuralThenables: 'allow' } ? true : false;
@@ -117,7 +130,10 @@ type MissingRelationships<R extends Registrations> = {
   }[Exclude<keyof Needs<R[Consumer]>, keyof R>]
 }[keyof R];
 
-/** Compile-time admission for finite dependency objects and compatible known services. */
+/**
+ * Compile-time admission for finite dependency objects and compatible known services.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer
+ */
 export type CheckDependencyCompatibility<R extends Registrations> = [
   InvalidNeeds<R> | NonFiniteKeys<R> | Extract<keyof R, number>,
 ] extends [never]
@@ -177,7 +193,10 @@ type RequiredOf<R extends Registrations> = {
 // otherwise repeat their key projection for every required token.
 type CompletionMap<R extends Registrations> = { [K in keyof R]: R[K] };
 
-/** Compile-time admission requiring every named and typed-token dependency to be bound. */
+/**
+ * Compile-time admission requiring every named and typed-token dependency to be bound.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
+ */
 export type CheckDependencyCompleteness<R extends Registrations> = [
   Exclude<RequiredOf<R>, keyof R> | MissingTokens<CompletionMap<R>>,
 ] extends [never]
@@ -192,7 +211,10 @@ type BadOverrides<F extends Registrations, O extends Registrations> = {
   [K in keyof O & keyof F]: ServicesOf<O>[K] extends ServicesOf<F>[K] ? never : K;
 }[keyof O & keyof F];
 
-/** Admit overrides only for existing keys whose service values remain assignable. */
+/**
+ * Admit overrides only for existing keys whose service values remain assignable.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ */
 export type Overrides<F extends Registrations, O extends Registrations> = [
   Exclude<keyof O, keyof F>,
 ] extends [never]
@@ -276,7 +298,10 @@ type InvalidElements<K extends readonly unknown[]> = {
 }[number];
 type InvalidMembers<R extends Registrations, T> = T extends string ? never : unknown extends TokenMember<R, T> ? never : T;
 
-/** Validate a finite tuple of existing singleton names or genuine typed tokens. */
+/**
+ * Validate a finite tuple of existing singleton names or genuine typed tokens.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ */
 export type Selection<R extends Registrations, K extends readonly unknown[], Operation extends string = 'fork'> =
   true extends IsUnion<K>
     ? InvalidSelection<Operation>
@@ -298,14 +323,20 @@ type InvalidSelection<Operation extends string> = Unsatisfied<
   { selection: 'use a const tuple with individually known names or typed tokens' }
 >;
 
-/** Select registration-valued own fields corresponding to a checked key tuple. */
+/**
+ * Select registration-valued own fields corresponding to a checked key tuple.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ */
 export type SelectedRegistrations<K extends readonly unknown[], O> = {
   [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], Registration>;
 };
 
 // A graph-compatible bound gives context-sensitive factories a usable first
 // inference pass, while requiring every selected key in explicit type arguments.
-/** Contextual override shape used to infer a selected fork or child-scope graph. */
+/**
+ * Contextual override shape used to infer a selected fork or child-scope graph.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ */
 export type OverrideFactoryContext<
   R extends Registrations,
   K extends readonly unknown[],

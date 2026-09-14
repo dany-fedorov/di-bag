@@ -8,7 +8,7 @@
 type TokenBinding<T extends TokenBase, R extends Registration> = Provider<ProviderFactory<R>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraphContract<R>, T>, ProviderAcquiredValue<R>>;
 ```
 
-Defined in: [token-types.ts:43](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L43)
+Defined in: [token-types.ts:49](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L49)
 
 A registration rebound to an invariant typed-token service contract.
 
@@ -18,3 +18,7 @@ A registration rebound to an invariant typed-token service contract.
 | ------ | ------ |
 | `T` | - |
 | `R` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection

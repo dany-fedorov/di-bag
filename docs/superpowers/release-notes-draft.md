@@ -50,6 +50,13 @@ version is frozen.
   `tsconfig.json` in each module directory, `src/app.check.ts`, and one
   `installModule` call per line in `src/app.ts`.
 - The documentation site publishes `docs/agent/` at `/agent/`.
+- `docs/agent/api-card.md` ships in the package: every runtime call (facade
+  members, `Builder` and `Bag` methods, error classes) with its summary, the
+  `DI_BAG_*` codes it can raise, and a type-checked example, plus a "one way per
+  task" table. It is generated from JSDoc by `npm run docs:generate`, which
+  refuses a runtime call without `@example`. Public runtime declarations name
+  their `@throws` codes, and exported types link to their guide section with
+  `@see`.
 - `npm run docs:check` type-checks every TypeScript block in `AGENTS.md`,
   `docs/agent/`, and `@example` comments against the emitted declarations;
   enforces the size budgets of `AGENTS.md` (150 lines), recipes (under 60 lines

@@ -13,7 +13,10 @@ interface ModuleDescription {
   readonly label: string | undefined;
 }
 
-/** Options for {@link Builder.buildModule}. */
+/**
+ * Options for {@link Builder.buildModule}.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#reuse-named-modules
+ */
 export interface ModuleOptions {
   /**
    * Name each installation's private bindings `<label>/<key>` in error messages, cycle paths,
@@ -29,6 +32,7 @@ declare const moduleInvariant: unique symbol;
  * A sealed, non-resolving module with private registrations and selected public exports.
  * Create modules through {@link DiBagApi.createBuilder} and {@link Builder.buildModule}; this
  * type-only class has no public constructor.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#reuse-named-modules
  */
 class Module<P extends object, R extends object, C extends NeedConstraint = never, D extends Registrations = PublicRegistrations<P>> {
   declare private readonly nominal: void;

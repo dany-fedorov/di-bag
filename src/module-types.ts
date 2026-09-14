@@ -72,7 +72,10 @@ export type RegistrationConstraints<V extends Registrations[string], R extends R
     | TokenConstraint<K, ProviderOptionalTokens<V>, R, Public, true>
     | ([ProviderGraphContract<V>] extends [TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? never : { readonly kind: 'opaque' })
   : never;
-/** Retained requirements of a module's public and private registrations. */
+/**
+ * Retained requirements of a module's public and private registrations.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ModuleConstraints<R extends Registrations, Public extends keyof R> = [R] extends [unknown] ? {
   [K in keyof R & (string | symbol)]: RegistrationConstraints<R[K], R, Public, K>;
 }[keyof R & (string | symbol)] : never;
@@ -111,7 +114,10 @@ export type PublicProvider<R> = R extends Registrations[string]
   : never;
 type PublicGraph<G> = G extends TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[]> ? { [K in keyof G]: K extends 'required' | 'optional' | 'all' ? readonly [] : G[K] } : never;
 type RetainedPublicProvider<R extends Registrations[string]> = Provider<OutputFactory<ProviderOutput<R>>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, PublicGraph<ProviderGraphContract<R>>, ProviderAcquiredValue<R>>;
-/** Project registrations to dependency-free public descriptions while retaining behavioral contracts. */
+/**
+ * Project registrations to dependency-free public descriptions while retaining behavioral contracts.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type PublicProviders<R extends object> = { [K in keyof R]: PublicProvider<R[K]> };
 type WithoutAlias<G> = { [K in keyof G as K extends 'alias' ? never : K]: G[K] };
 // An exported alias to a private target takes that target's lifetime, so the target name does
@@ -135,12 +141,16 @@ type SymbolProviders<R extends Registrations, P extends keyof R, K = P> =
 /**
  * Project selected module exports to dependency-free providers that keep behavioral contracts.
  * The conditional answer carries no alias, so declarations print the providers, not the registrations.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
  */
 export type ModulePublicProviders<R extends Registrations, P extends keyof R> = [Extract<P, symbol>] extends [never]
   ? { [K in P]: SealedProvider<R, P, R[K]> }
   : [Extract<P, string>] extends [never] ? SymbolProviders<R, P>
   : { [K in Extract<P, string>]: SealedProvider<R, P, R[K]> } & SymbolProviders<R, P>;
-/** Rename one string key in an object contract. */
+/**
+ * Rename one string key in an object contract.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#reuse-named-modules
+ */
 export type Renamed<P extends object, Old extends string, New extends string> = {
   [K in keyof P as K extends Old ? New : K]: P[K];
 };
@@ -166,6 +176,7 @@ type InvalidRename = Unsatisfied<'renameExport requires an existing export and a
  * contributions when that builder seals into a module with exports `P`.
  * Needs on an export stay checkable by the host; needs satisfied privately are
  * final and drop; unsatisfied needs remain external requirements of the module.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
  */
 export type SealedConstraints<C extends NeedConstraint, R extends Registrations, P extends keyof R> = C extends ContributionConstraint
   ? ModuleContributionConstraints<C, R, P>
@@ -178,13 +189,22 @@ export type SealedConstraints<C extends NeedConstraint, R extends Registrations,
   : C extends { readonly kind: 'optional-token-export' | 'optional-token-external'; readonly consumer: infer K extends string | symbol; readonly token: infer T }
     ? TokenConstraint<K, T, R, P, true>
   : C;
-/** Every constraint a sealed module carries: its own registrations' needs, re-scoped retained constraints, and compact lifetime obligations. */
+/**
+ * Every constraint a sealed module carries: its own registrations' needs, re-scoped retained constraints, and compact lifetime obligations.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 // The outer conditional keeps this exported alias name off the result, so declarations print its members.
 export type ModuleSealedConstraints<E extends Entry, C extends NeedConstraint, P extends keyof RegistrationsFromEntries<E>> = [P] extends [unknown]
   ? ModuleConstraints<RegistrationsFromEntries<E>, P> | SealedConstraints<C, RegistrationsFromEntries<E>, P> | SealedLifetimes<RegistrationsFromEntries<E>, P, C>
   : never;
 
-/** Extract a readonly map of services publicly exposed by a module. */
+/**
+ * Extract a readonly map of services publicly exposed by a module.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ModuleExportedServices<M> = M extends Module<infer P, infer _R, infer _C, infer _D> ? Readonly<P> : never;
-/** Extract a readonly map of services a module requires from its host. */
+/**
+ * Extract a readonly map of services a module requires from its host.
+ * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
+ */
 export type ModuleRequiredServices<M> = M extends Module<infer _P, infer R, infer _C, infer _D> ? Readonly<R> : never;

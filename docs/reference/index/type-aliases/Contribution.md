@@ -12,9 +12,13 @@ type Contribution<T extends TokenBase = TokenBase, V extends Registration = Regi
 };
 ```
 
-Defined in: [contribution-types.ts:11](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L11)
+Defined in: [contribution-types.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L14)
 
 Each union member retains one independently checked provider and its group.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
 
 ## Type Parameters
 
@@ -31,7 +35,7 @@ Each union member retains one independently checked provider and its group.
 readonly kind: 'contribution';
 ```
 
-Defined in: [contribution-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L12)
+Defined in: [contribution-types.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L15)
 
 ***
 
@@ -41,7 +45,7 @@ Defined in: [contribution-types.ts:12](https://github.com/dany-fedorov/di-bag/bl
 readonly registration: V;
 ```
 
-Defined in: [contribution-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L12)
+Defined in: [contribution-types.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L15)
 
 ***
 
@@ -51,4 +55,4 @@ Defined in: [contribution-types.ts:12](https://github.com/dany-fedorov/di-bag/bl
 readonly token: T;
 ```
 
-Defined in: [contribution-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L12)
+Defined in: [contribution-types.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L15)

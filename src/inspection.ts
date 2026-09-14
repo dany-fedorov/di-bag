@@ -1,15 +1,24 @@
 import type { AcquisitionMode } from './acquisition-mode';
 import type { Lifetime } from './lifetime';
 
-/** Structural optional presence; payloads are application-owned and not frozen. */
+/**
+ * Structural optional presence; payloads are application-owned and not frozen.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
+ */
 export type Presence<T> = { readonly present: false } | { readonly present: true; readonly value: T };
 
-/** A readonly tuple indicating whether each acquisition-stage frame is available. */
+/**
+ * A readonly tuple indicating whether each acquisition-stage frame is available.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
+ */
 export type AcquisitionMetadataPresence<A extends readonly unknown[]> = {
   readonly [I in keyof A]: Presence<A[I]>;
 };
 
-/** A frozen point-in-time view of one acquisition attempt. */
+/**
+ * A frozen point-in-time view of one acquisition attempt.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
+ */
 export interface AcquisitionSnapshot<A extends readonly unknown[] = readonly []> {
   /** Stable identity for this attempt; retries receive a new symbol. */
   readonly acquisitionId: symbol;
@@ -19,7 +28,10 @@ export interface AcquisitionSnapshot<A extends readonly unknown[] = readonly []>
   readonly acquisitionMetadata: AcquisitionMetadataPresence<A>;
 }
 
-/** A frozen registration description and copied acquisition state returned by bag inspection. */
+/**
+ * A frozen registration description and copied acquisition state returned by bag inspection.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
+ */
 export interface RegistrationSnapshot<M = Readonly<{}>, A extends readonly unknown[] = readonly []> {
   /** Stable identity for the canonical graph binding. */
   readonly bindingId: symbol;
@@ -33,7 +45,10 @@ export interface RegistrationSnapshot<M = Readonly<{}>, A extends readonly unkno
   readonly acquisitions: readonly AcquisitionSnapshot<A>[];
 }
 
-/** One binding of a bag's graph, described without acquiring it. */
+/**
+ * One binding of a bag's graph, described without acquiring it.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
+ */
 export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] = readonly []> extends RegistrationSnapshot<M, A> {
   /** Public names or token symbols that select this binding, in registration order; empty for a private module binding. */
   readonly keys: readonly (string | symbol)[];
@@ -49,6 +64,7 @@ export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] 
  * A frozen description of every binding a bag can resolve, plus the edges observed so far.
  * Named dependencies read from a factory's object parameter are not knowable until the factory
  * runs; `observedEdges` records them after acquisition. Use the static graph tool for declared edges.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
  */
 export interface GraphSnapshot {
   readonly scopeId: symbol;

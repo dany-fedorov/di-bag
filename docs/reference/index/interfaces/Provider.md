@@ -4,13 +4,17 @@
 
 # Interface: Provider\<F *extends* `Factory`, M *extends* `object` = `Readonly`\<\{ \}\>, A *extends* readonly `unknown`[] = readonly \[\], G *extends* `GraphContract` = [`TokenDependencyContract`](../type-aliases/TokenDependencyContract.md), V = `Awaited`\<`ReturnType`\<`F`\>\>\>
 
-Defined in: [provider.ts:32](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L32)
+Defined in: [provider.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L33)
 
 An immutable provider description retaining factory, metadata, inspection-frame,
 dependency-graph, and acquired-value contracts.
 
 Create providers through [DiBagApi.fromFactory](DiBagApi.md#fromfactory), composition adapters, or provider
 decorators. This type-only class has no public constructor.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
 
 ## Extends
 

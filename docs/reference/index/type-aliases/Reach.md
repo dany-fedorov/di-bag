@@ -17,7 +17,11 @@ type Reach = {
 };
 ```
 
-Defined in: [lifetime-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L12)
+Defined in: [lifetime-types.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L13)
 
 Where a sealed lifetime walk leaves its module: an export or external name the installing
 host resolves, a typed-token collection the host completes, or a private scoped dead end.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture

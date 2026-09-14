@@ -4,9 +4,23 @@
 
 # Class: DiBagStartupCancelledError
 
-Defined in: [errors.ts:90](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L90)
+Defined in: [errors.ts:151](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L151)
 
-Prompt cancellation; cleanup remains awaitable for uncooperative factories.
+`buildAndStart` stopped waiting on abort or timeout; `cleanupPromise` settles when the partial bag is released.
+On timeout, `cause` carries `DI_BAG_STARTUP_TIMEOUT`.
+
+## Example
+
+```ts
+import { DiBag, DiBagStartupCancelledError } from 'di-bag';
+
+const builder = DiBag.createBuilder().register({ db: () => new Promise<number>(() => {}) });
+try {
+  await builder.buildAndStart(['db'], { timeoutMs: 1_000 });
+} catch (error) {
+  if (error instanceof DiBagStartupCancelledError) await error.cleanupPromise;
+}
+```
 
 ## Extends
 
@@ -20,7 +34,7 @@ Prompt cancellation; cleanup remains awaitable for uncooperative factories.
 new (reason: "aborted" | "timeout", cause: unknown, cleanupPromise: Promise<void>): DiBagStartupCancelledError;
 ```
 
-Defined in: [errors.ts:98](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L98)
+Defined in: [errors.ts:159](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L159)
 
 #### Parameters
 
@@ -44,7 +58,7 @@ Error.constructor
 readonly cleanupPromise: Promise<void>;
 ```
 
-Defined in: [errors.ts:101](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L101)
+Defined in: [errors.ts:162](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L162)
 
 Eventual shutdown of the partially started bag; cancellation does not await it.
 
@@ -56,7 +70,7 @@ Eventual shutdown of the partially started bag; cancellation does not await it.
 declare readonly code: 'DI_BAG_STARTUP_CANCELLED';
 ```
 
-Defined in: [errors.ts:91](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L91)
+Defined in: [errors.ts:152](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L152)
 
 ***
 
@@ -66,7 +80,7 @@ Defined in: [errors.ts:91](https://github.com/dany-fedorov/di-bag/blob/main/src/
 declare readonly details: Readonly<Record<string, unknown>>;
 ```
 
-Defined in: [errors.ts:92](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L92)
+Defined in: [errors.ts:153](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L153)
 
 ***
 
@@ -76,6 +90,6 @@ Defined in: [errors.ts:92](https://github.com/dany-fedorov/di-bag/blob/main/src/
 readonly reason: 'aborted' | 'timeout';
 ```
 
-Defined in: [errors.ts:99](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L99)
+Defined in: [errors.ts:160](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L160)
 
 Whether an external abort or startup timeout cancelled the wait.

@@ -14,7 +14,7 @@ type Overrides<F extends Registrations, O extends Registrations> = [
 }>;
 ```
 
-Defined in: [types.ts:196](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L196)
+Defined in: [types.ts:218](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L218)
 
 Admit overrides only for existing keys whose service values remain assignable.
 
@@ -24,3 +24,7 @@ Admit overrides only for existing keys whose service values remain assignable.
 | ------ | ------ |
 | `F` | - |
 | `O` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests

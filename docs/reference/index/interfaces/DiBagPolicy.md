@@ -4,7 +4,11 @@
 
 # Interface: DiBagPolicy
 
-Defined in: [types.ts:44](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L44)
+Defined in: [types.ts:57](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L57)
 
 Project-wide compile-time policy switches. Augment it to relax a check:
 `declare module 'di-bag' { interface DiBagPolicy { readonly structuralThenables: 'allow' } }`.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/api-reference.html#graph-composition-support-types

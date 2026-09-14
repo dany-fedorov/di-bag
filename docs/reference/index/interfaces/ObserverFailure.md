@@ -4,9 +4,13 @@
 
 # Interface: ObserverFailure
 
-Defined in: [observers.ts:38](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L38)
+Defined in: [observers.ts:48](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L48)
 
 A failure thrown or rejected by an observer together with its original event.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
 
 ## Properties
 
@@ -16,7 +20,7 @@ A failure thrown or rejected by an observer together with its original event.
 readonly error: unknown;
 ```
 
-Defined in: [observers.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L39)
+Defined in: [observers.ts:49](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L49)
 
 ***
 
@@ -26,4 +30,4 @@ Defined in: [observers.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/s
 readonly event: LifecycleEvent;
 ```
 
-Defined in: [observers.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L40)
+Defined in: [observers.ts:50](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L50)

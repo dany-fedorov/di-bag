@@ -97,7 +97,9 @@ function listSources(directory, prefix = '') {
  * per page, so a recipe's `check.ts` can import the `module.ts` shown earlier on the page.
  */
 export function collectSnippets(root) {
-  const pages = [...(existsSync(join(root, 'AGENTS.md')) ? ['AGENTS.md'] : []), ...listMarkdown(join(root, 'docs/agent')).map(file => `docs/agent/${file}`)];
+  // The API card is generated from the `@example` comments checked below.
+  const pages = [...(existsSync(join(root, 'AGENTS.md')) ? ['AGENTS.md'] : []),
+    ...listMarkdown(join(root, 'docs/agent')).filter(file => file !== 'api-card.md').map(file => `docs/agent/${file}`)];
   const snippets = [];
   const errors = [];
   for (const page of pages) {

@@ -8,7 +8,7 @@
 type CollectionDependency<T extends TokenBase> = DependencyHandle<T, 'all'>;
 ```
 
-Defined in: [dependency-references.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/dependency-references.ts#L16)
+Defined in: [dependency-references.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/dependency-references.ts#L22)
 
 A positional dependency that yields all contributions for a token as a readonly array.
 
@@ -17,3 +17,7 @@ A positional dependency that yields all contributions for a token as a readonly 
 | Type Parameter | Description |
 | ------ | ------ |
 | `T` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection

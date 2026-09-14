@@ -4,9 +4,13 @@
 
 # Interface: BindingSnapshot\<M = `Readonly`\<\{ \}\>, A *extends* readonly `unknown`[] = readonly \[\]\>
 
-Defined in: [inspection.ts:37](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L37)
+Defined in: [inspection.ts:52](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L52)
 
 One binding of a bag's graph, described without acquiring it.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
 
 ## Extends
 
@@ -27,7 +31,7 @@ One binding of a bag's graph, described without acquiring it.
 readonly acquisitionMode: AcquisitionMode;
 ```
 
-Defined in: [inspection.ts:41](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L41)
+Defined in: [inspection.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L56)
 
 ***
 
@@ -37,7 +41,7 @@ Defined in: [inspection.ts:41](https://github.com/dany-fedorov/di-bag/blob/main/
 readonly acquisitions: readonly AcquisitionSnapshot<A>[];
 ```
 
-Defined in: [inspection.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L33)
+Defined in: [inspection.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L45)
 
 Point-in-time attempts; inspection does not retain failed-attempt history.
 
@@ -56,7 +60,7 @@ readonly aliasTarget?: {
 };
 ```
 
-Defined in: [inspection.ts:29](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L29)
+Defined in: [inspection.ts:41](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L41)
 
 Direct lexical target; acquisition snapshots follow the canonical target.
 
@@ -84,7 +88,7 @@ readonly label: string;
 readonly bindingId: symbol;
 ```
 
-Defined in: [inspection.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L25)
+Defined in: [inspection.ts:37](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L37)
 
 Stable identity for the canonical graph binding.
 
@@ -100,7 +104,7 @@ Stable identity for the canonical graph binding.
 readonly keys: readonly (string | symbol)[];
 ```
 
-Defined in: [inspection.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L39)
+Defined in: [inspection.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L54)
 
 Public names or token symbols that select this binding, in registration order; empty for a private module binding.
 
@@ -112,7 +116,7 @@ Public names or token symbols that select this binding, in registration order; e
 readonly label: string;
 ```
 
-Defined in: [inspection.ts:27](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L27)
+Defined in: [inspection.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L39)
 
 Human-readable binding label.
 
@@ -128,7 +132,7 @@ Human-readable binding label.
 readonly lifetime: Lifetime;
 ```
 
-Defined in: [inspection.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L40)
+Defined in: [inspection.ts:55](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L55)
 
 ***
 
@@ -138,7 +142,7 @@ Defined in: [inspection.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/
 readonly owned: boolean;
 ```
 
-Defined in: [inspection.ts:43](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L43)
+Defined in: [inspection.ts:58](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L58)
 
 True when some stage of the provider accepts ownership through a disposer.
 
@@ -150,7 +154,7 @@ True when some stage of the provider accepts ownership through a disposer.
 readonly registrationMetadata: Readonly<M>;
 ```
 
-Defined in: [inspection.ts:31](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L31)
+Defined in: [inspection.ts:43](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L43)
 
 Static registration metadata; application-owned payload values retain their identity.
 
@@ -169,6 +173,6 @@ readonly tokenDependencies: readonly {
 }[];
 ```
 
-Defined in: [inspection.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L45)
+Defined in: [inspection.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L60)
 
 Typed-token dependencies declared positionally through tokens, `optional`, `lazy`, or `all` references.

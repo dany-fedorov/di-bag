@@ -8,7 +8,7 @@
 type LazyDependency<T extends TokenBase> = DependencyHandle<T, 'lazy'>;
 ```
 
-Defined in: [dependency-references.ts:18](https://github.com/dany-fedorov/di-bag/blob/main/src/dependency-references.ts#L18)
+Defined in: [dependency-references.ts:27](https://github.com/dany-fedorov/di-bag/blob/main/src/dependency-references.ts#L27)
 
 A positional dependency that yields a function which resolves the token on demand.
 
@@ -17,3 +17,7 @@ A positional dependency that yields a function which resolves the token on deman
 | Type Parameter | Description |
 | ------ | ------ |
 | `T` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#declare-optional-and-lazy-dependencies

@@ -4,9 +4,13 @@
 
 # Interface: CloseOptions
 
-Defined in: [startup.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L20)
+Defined in: [startup.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L26)
 
 Bounds the wait of [Bag.close](Bag.md#close); cleanup itself keeps running after either fires.
+
+## See
+
+https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-close-timeout
 
 ## Properties
 
@@ -16,7 +20,7 @@ Bounds the wait of [Bag.close](Bag.md#close); cleanup itself keeps running after
 readonly signal?: AbortSignal;
 ```
 
-Defined in: [startup.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L22)
+Defined in: [startup.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L28)
 
 An external signal that stops the wait promptly.
 
@@ -28,6 +32,6 @@ An external signal that stops the wait promptly.
 readonly timeoutMs?: number;
 ```
 
-Defined in: [startup.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L24)
+Defined in: [startup.ts:30](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L30)
 
 A finite positive deadline in milliseconds.

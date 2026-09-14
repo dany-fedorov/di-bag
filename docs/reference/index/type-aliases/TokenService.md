@@ -8,7 +8,7 @@
 type TokenService<T> = T extends infer U & {} ? U extends Token<infer _K, infer S> ? S : never : never;
 ```
 
-Defined in: [tokens.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L25)
+Defined in: [tokens.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L33)
 
 Extract the invariant service contract declared by a typed token.
 
@@ -17,3 +17,7 @@ Extract the invariant service contract declared by a typed token.
 | Type Parameter | Description |
 | ------ | ------ |
 | `T` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection

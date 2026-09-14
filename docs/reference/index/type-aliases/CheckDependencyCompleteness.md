@@ -15,7 +15,7 @@ type CheckDependencyCompleteness<R extends Registrations> = [
 }>;
 ```
 
-Defined in: [types.ts:181](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L181)
+Defined in: [types.ts:200](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L200)
 
 Compile-time admission requiring every named and typed-token dependency to be bound.
 
@@ -24,3 +24,7 @@ Compile-time admission requiring every named and typed-token dependency to be bo
 | Type Parameter | Description |
 | ------ | ------ |
 | `R` | - |
+
+## See
+
+https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service

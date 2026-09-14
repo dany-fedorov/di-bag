@@ -16,6 +16,7 @@ const guide = [
     { text: 'Agent harnesses and graphs', link: '/guides/agent-harnesses-and-graphs' },
   ] },
   { text: 'Agent docs', items: [
+    { text: 'API card', link: '/agent/api-card' },
     { text: 'Recipes', link: '/agent/recipes' },
     { text: 'Errors and messages', link: '/agent/errors' },
   ] },
