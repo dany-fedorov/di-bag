@@ -1,4 +1,4 @@
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 const logging = DiBag.createBuilder()
   .register({

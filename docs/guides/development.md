@@ -9,8 +9,10 @@ Bun 1.4.0; use those versions to reproduce its checks.
 
 ## Package entry points and release-candidate checks
 
-The package has two entry points: portable `di-bag` and the Node/Bun facade
-`di-bag/node`. It has no runtime, peer, optional, or bundled dependencies.
+The package has two entry points: `di-bag`, which classifies native Promises
+through `process.getBuiltinModule` where the host has it and has no `node:`
+imports, and the explicit Node/Bun facade `di-bag/node`. It has no runtime,
+peer, optional, or bundled dependencies.
 The [tutorial](tutorial.md) explains acquisition modes, provider metadata,
 selected scopes, non-blocking observers, and plugin ownership of the
 original acquired value.

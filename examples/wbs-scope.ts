@@ -1,4 +1,4 @@
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 export type Change = Readonly<{
   id: string;

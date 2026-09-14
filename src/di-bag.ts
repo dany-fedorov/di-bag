@@ -76,9 +76,13 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
   readonly #graph: BindingGraph;
   readonly #runtime: BagRuntime;
 
-  constructor(graph: BindingGraph, private readonly context: RuntimeContext, runtime?: BagRuntime) {
+  private readonly context: RuntimeContext;
+
+  constructor(graph: BindingGraph, context: RuntimeContext, runtime?: BagRuntime) {
     this.#graph = graph;
     this.#runtime = runtime ?? new BagRuntime(graph, context);
+    // Scopes and forks reuse the classifier the runtime resolved, so detection runs once per build.
+    this.context = this.#runtime.context;
   }
 
   /**
@@ -548,7 +552,8 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * Finish a complete graph as a lazy bag.
    * The bag owns what it acquires; close it when done.
    * @returns A fresh bag that owns the acquisitions it creates.
-   * @throws `DI_BAG_CLASSIFIER_REQUIRED` when a registration uses `auto` acquisition and the facade has no Promise classifier.
+   * @throws `DI_BAG_CLASSIFIER_REQUIRED` when a registration uses `auto` acquisition, the facade has no Promise
+   * classifier, and the host has no `process.getBuiltinModule`.
    * @example
    * ```ts
    * const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
@@ -772,5 +777,8 @@ function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
   createBuilder: (): Builder<never> => new Builder(new BindingGraph(), context),
   withDisposal, withLifetime, withMetadata, transformService,
 }); }
-/** The portable, immutable DI Bag facade. Configure `auto` acquisition or use explicit modes. */
+/**
+ * The immutable DI Bag facade. `auto` acquisition uses the host classifier where `process.getBuiltinModule`
+ * exists; elsewhere configure one or use explicit modes.
+ */
 export const DiBag: DiBagApi = facade(unconfigured);

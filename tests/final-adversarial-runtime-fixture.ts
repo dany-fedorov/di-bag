@@ -302,10 +302,14 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   invariant(i8AErrors === 1 && i8BErrors === 0 && i8Failure.error === i8ObserverError && i8Failure.event === i8ReadyEvent, 'I8', 'observer failure identity changed');
   invariant(Object.isFrozen(i8ReadyEvent) && Object.isFrozen(i8Failure), 'I8', 'observer records are mutable');
 
-  // I9: portable automatic mode fails before effects while explicit raw preserves identity.
+  // I9: portable automatic mode fails before effects on a host without process.getBuiltinModule,
+  // while explicit raw preserves identity.
   let i9AutomaticEffects = 0; let i9ThenReads = 0; let i9RawDisposals = 0;
   let i9AutomaticError: unknown;
+  const i9Loader = Object.getOwnPropertyDescriptor(process, 'getBuiltinModule');
+  Object.defineProperty(process, 'getBuiltinModule', { configurable: true, writable: true, value: undefined });
   try { PortableDiBag.createBuilder().register({ value: () => { i9AutomaticEffects++; return 1; } }).build(); } catch (error) { i9AutomaticError = error; }
+  finally { if (i9Loader) Object.defineProperty(process, 'getBuiltinModule', i9Loader); else Reflect.deleteProperty(process, 'getBuiltinModule'); }
   const i9Raw = Promise.resolve({ id: 'I9' });
   const i9Then = i9Raw.then.bind(i9Raw);
   Object.defineProperty(i9Raw, 'then', { configurable: true, get() { i9ThenReads++; return i9Then; } });

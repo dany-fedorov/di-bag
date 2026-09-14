@@ -72,7 +72,7 @@ Neither name leaks into the application or collides with the other installation.
 
 ```ts
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type Stock = { reserve(sku: string, quantity: number): boolean };
 type InvoiceStore = { save(orderId: string, amountCents: number): string };
@@ -168,7 +168,7 @@ same behavior through a fresh fork and supplies a different gateway.
 
 ```ts
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type Gateway = { charge(amountCents: number): Promise<string> };
 type Receipt = { status: 'paid' | 'declined'; attempts: number };
@@ -266,7 +266,7 @@ maintain a separate list of every tool instance.
 
 ```ts
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 // contracts.ts: import this same token in every feature; do not recreate it.
 type Tool = {

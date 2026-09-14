@@ -3,6 +3,7 @@ import { BindingGraph } from '../src/runtime';
 import type { BindingDescription, BindingRef } from '../src/runtime';
 import { BagRuntime } from './runtime-context';
 import { DiBag } from '../src/node';
+import { withoutBuiltinModule } from './host-builtin-module';
 
 const binding = (id: symbol, value: number, localNames: ReadonlyMap<string | symbol, BindingRef> = new Map()): BindingDescription =>
   ({ id, label: String(id), registration: () => value, localNames });
@@ -54,7 +55,8 @@ test('constructor keeps unused private registrations for explicit preflight and 
   const value = new BindingGraph({ bindings: new Map([[unused, binding(unused, 1)], [consumer, binding(consumer, 2, new Map([['missing', { kind: 'private', id: dangling }]]))]]), publicSlots: new Map() });
   expect(value.hasBinding(unused)).toBe(true);
   expect(value.dependency(consumer, 'missing')).toBe(dangling);
-  expect(() => value.preflight({})).toThrow();
+  expect(() => withoutBuiltinModule(() => value.preflight({}))).toThrow('DI_BAG_CLASSIFIER_REQUIRED');
+  expect(typeof value.preflight({}).isNativePromise).toBe('function');
 });
 
 test('shared lexical input maps are snapshotted once per installation', () => {

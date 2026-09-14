@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { DiBag } from '../src/node';
 import { DiBag as Core } from '../src';
+import { withoutBuiltinModule } from './host-builtin-module';
 
 const portKey = Symbol('port');
 const port = DiBag.token(portKey).of<number>();
@@ -141,8 +142,8 @@ test('raw class adapters preserve thenables and auto rejects them without assimi
 
 test('automatic adapters require runtime classification before acquisition', () => {
   let calls = 0;
-  expect(() => Core.createBuilder().register({ source: Core.fromFunction([], () => { calls++; return 1; }) }).build()).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
-  expect(() => Core.createBuilder().register({ source: Core.fromClass([], class { constructor() { calls++; } }) }).build()).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
+  expect(() => withoutBuiltinModule(() => Core.createBuilder().register({ source: Core.fromFunction([], () => { calls++; return 1; }) }).build())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
+  expect(() => withoutBuiltinModule(() => Core.createBuilder().register({ source: Core.fromClass([], class { constructor() { calls++; } }) }).build())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   expect(calls).toBe(0);
 });
 

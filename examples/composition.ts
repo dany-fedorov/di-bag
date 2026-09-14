@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 class Client {
   constructor(private readonly port: number) {}

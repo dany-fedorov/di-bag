@@ -1,4 +1,4 @@
-import { DiBag, type Presence } from '../src/node';
+import { DiBag, type Presence } from '../src';
 
 type Located<T> = {
   readonly value: Presence<T>;

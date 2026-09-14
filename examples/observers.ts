@@ -1,4 +1,4 @@
-import { DiBag, type LifecycleEvent, type ObserverFailure } from '../src/node';
+import { DiBag, type LifecycleEvent, type ObserverFailure } from '../src';
 
 async function main() {
   const events: LifecycleEvent[] = [];

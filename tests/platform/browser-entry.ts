@@ -1,7 +1,7 @@
 // @ts-ignore -- this entry is copied beside a freshly installed package archive.
 import { DiBag } from 'di-bag';
-import { portableContract } from './portable/contract.ts';
+import { automaticAcquisition, portableContract } from './portable/contract.ts';
 
-void portableContract(DiBag).then(result => {
-  postMessage({ lane: 'browser-worker-minified', result });
+void Promise.all([portableContract(DiBag), automaticAcquisition(DiBag)]).then(([result, automatic]) => {
+  postMessage({ lane: 'browser-worker-minified', result: { ...result, automatic } });
 });

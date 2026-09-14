@@ -39,7 +39,7 @@ runs, even though no service has been resolved yet.
 
 ```ts
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type Invoice = {
   id: string;
@@ -133,7 +133,7 @@ contract. An adapter makes that conversion explicit and validates malformed data
 
 ```ts
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type Inventory = { available(sku: string): Promise<number> };
 type RequestedLine = { sku: string; quantity: number };
@@ -232,7 +232,7 @@ rather than incidental details of a particular adapter.
 
 ```ts
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type Charge = { orderId: string; amountCents: number };
 type ChargeResult = {

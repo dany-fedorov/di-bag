@@ -4,7 +4,7 @@
 
 # Interface: DiBagApi
 
-Defined in: [di-bag.ts:602](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L602)
+Defined in: [di-bag.ts:607](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L607)
 
 The immutable public entry surface used by [DiBag](../variables/DiBag.md) and derived facades.
 
@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#dibag-facade
 all: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => CollectionDependency<T>;
 ```
 
-Defined in: [di-bag.ts:667](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L667)
+Defined in: [di-bag.ts:672](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L672)
 
 Create a positional dependency containing every contribution to a collection token, in order.
 
@@ -63,7 +63,7 @@ const menu = DiBag.fromFunction([DiBag.all(tools)], names => names.join(', '));
 createBuilder: () => Builder<never>;
 ```
 
-Defined in: [di-bag.ts:713](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L713)
+Defined in: [di-bag.ts:718](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L718)
 
 Begin an empty immutable graph; `build` creates its owning bag, `buildModule` seals a reusable module.
 
@@ -81,7 +81,7 @@ const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
 fromClass: <const T extends readonly DependencyReference[], C extends new (...args: TokenArguments<NoInfer<T>>) => unknown, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>> & AutoOutput<InstanceType<NoInfer<C>>, NoInfer<M>>, ...modeOptions: StageOptions<M>) => Provider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>>;
 ```
 
-Defined in: [di-bag.ts:705](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L705)
+Defined in: [di-bag.ts:710](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L710)
 
 Adapt a class whose constructor parameters receive the listed tokens' services.
 
@@ -137,7 +137,7 @@ fromFactory: {
 };
 ```
 
-Defined in: [di-bag.ts:624](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L624)
+Defined in: [di-bag.ts:629](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L629)
 
 Describe a named-dependency factory with an explicit acquisition mode or the acquisition's abort signal.
 A factory that returns a non-Promise object with a `then` method needs `acquisitionMode: 'raw'` or must return `Promise.resolve(value)`.
@@ -220,7 +220,7 @@ fromFunction: {
 };
 ```
 
-Defined in: [di-bag.ts:693](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L693)
+Defined in: [di-bag.ts:698](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L698)
 
 Adapt a positional function whose parameters receive the listed tokens' services.
 
@@ -301,7 +301,7 @@ const stamp = DiBag.fromFunction([clock], source => new Date(source.now()).toISO
 fromPlugin: PluginProviderFactory;
 ```
 
-Defined in: [di-bag.ts:681](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L681)
+Defined in: [di-bag.ts:686](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L686)
 
 Validate an unknown plugin descriptor now and its acquired output at acquisition.
 
@@ -328,7 +328,7 @@ const greeter = DiBag.fromPlugin([], descriptor, {
 lazy: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => LazyDependency<T>;
 ```
 
-Defined in: [di-bag.ts:656](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L656)
+Defined in: [di-bag.ts:661](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L661)
 
 Create a positional dependency supplied as a function that resolves the token when called.
 
@@ -372,7 +372,7 @@ const stamp = DiBag.fromFunction([DiBag.lazy(clock)], getClock => () => getClock
 optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalDependency<T>;
 ```
 
-Defined in: [di-bag.ts:645](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L645)
+Defined in: [di-bag.ts:650](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L650)
 
 Create a positional dependency that yields `undefined` only when the token is unregistered.
 
@@ -418,7 +418,7 @@ token: <const K extends symbol>(key: K & TokenKeyAdmission<K>, ...invalid: [K] e
 };
 ```
 
-Defined in: [di-bag.ts:634](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L634)
+Defined in: [di-bag.ts:639](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L639)
 
 Create a typed token from a unique symbol; `.of<Service>()` fixes its service type.
 
@@ -479,7 +479,7 @@ transformService: {
 };
 ```
 
-Defined in: [di-bag.ts:758](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L758)
+Defined in: [di-bag.ts:763](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L763)
 
 Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership.
 
@@ -564,7 +564,7 @@ const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform:
 withConfiguration: (options: ConfigurationOptions) => DiBagApi;
 ```
 
-Defined in: [di-bag.ts:613](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L613)
+Defined in: [di-bag.ts:618](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L618)
 
 Return a facade with inherited runtime settings and appended observers.
 
@@ -597,7 +597,7 @@ withDisposal: {
 };
 ```
 
-Defined in: [di-bag.ts:726](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L726)
+Defined in: [di-bag.ts:731](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L731)
 
 Make the bag own a factory's value and run `dispose` on it when the bag closes.
 `close()` runs disposers, dependents first; close every scope and fork you create.
@@ -678,7 +678,7 @@ withLifetime: {
 };
 ```
 
-Defined in: [di-bag.ts:738](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L738)
+Defined in: [di-bag.ts:743](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L743)
 
 Select `root`, `scoped` (the default), or `transient` caching for a registration.
 Mark a shared client `root` only when nothing it depends on is scoped.
@@ -792,7 +792,7 @@ withMetadata: {
 };
 ```
 
-Defined in: [di-bag.ts:748](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L748)
+Defined in: [di-bag.ts:753](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L753)
 
 Attach static registration metadata, or per-acquisition metadata in direct or awaited mode.
 

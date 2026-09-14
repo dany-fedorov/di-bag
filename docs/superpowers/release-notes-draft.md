@@ -24,6 +24,14 @@ version is frozen.
 - Removed exported types: `LexicalContext`, `ModuleScope`, `Enclosed`,
   `RenamedContext`, `RenamedLifetimeObligation`, `EnclosedLifetimeObligation`,
   `RenamedLifetimeProviders`. Added: `LifetimeObligation`, `Reach`.
+- The bare `di-bag` entry configures its native-Promise classifier on hosts that
+  expose `process.getBuiltinModule` (Node, Bun, Deno), loading `node:util/types`
+  at the first `build()` or `buildAndStart()` of a graph with automatic
+  acquisition. Such graphs no longer throw `DI_BAG_CLASSIFIER_REQUIRED` there;
+  it still fires on hosts without `process.getBuiltinModule` (browsers,
+  workers). An explicit `withConfiguration({ runtime: { isNativePromise } })`
+  still wins, the root entry still has no `node:` imports, and `di-bag/node`
+  is unchanged.
 
 ## Added
 

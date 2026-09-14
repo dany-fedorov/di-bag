@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { DiBag } from '../src';
 import { evaluateDenoChild, runDenoLane, type PackedArchive } from '../scripts/platform-evidence';
-import { portableContract, validatePortableInspection } from './platform/portable/contract';
+import { automaticAcquisition, portableContract, validatePortableInspection } from './platform/portable/contract';
+import { withoutBuiltinModule } from './host-builtin-module';
 
 test('portable root contract has host-independent semantics', async () => {
   await expect(portableContract(DiBag)).resolves.toEqual({
@@ -54,6 +55,14 @@ const portableResult = {
   scopedOnce: true as const,
   transientDistinct: true as const,
 };
+// Canonical child output sorts keys, so the host-dependent probe sits in order.
+const { aliasCanonical, ...portableRest } = portableResult;
+const denoResult = { aliasCanonical, automatic: 'resolved' as const, ...portableRest };
+
+test('automatic acquisition probe resolves with process.getBuiltinModule and names the code without it', async () => {
+  expect(await automaticAcquisition(DiBag)).toBe('resolved');
+  expect(await withoutBuiltinModule(() => automaticAcquisition(DiBag))).toBe('DI_BAG_CLASSIFIER_REQUIRED');
+});
 
 test('Deno child validation requires canonical output from the local installed archive', () => {
   const consumer = mkdtempSync(join(tmpdir(), 'di-bag-deno-evaluator-'));
@@ -61,7 +70,7 @@ test('Deno child validation requires canonical output from the local installed a
   mkdirSync(join(installed, 'dist'), { recursive: true });
   writeFileSync(join(installed, 'dist', 'index.js'), 'export {};\n');
   const local = `file://${installed}/dist/index.js`;
-  const expected = { lane: 'deno-root', resolvedDiBag: local, result: portableResult };
+  const expected = { lane: 'deno-root', resolvedDiBag: local, result: denoResult };
   const stdout = `${JSON.stringify(expected)}\n`;
 
   expect(evaluateDenoChild(installed, { status: 0, signal: null, stderr: '', stdout })).toEqual({ status: 'pass' });
@@ -82,7 +91,7 @@ test('Deno child validation fails closed when the expected installation is absen
   const expected = {
     lane: 'deno-root',
     resolvedDiBag: `file://${resolved}`,
-    result: portableResult,
+    result: denoResult,
   };
   expect(evaluateDenoChild('/tmp/missing-di-bag', {
     status: 0,

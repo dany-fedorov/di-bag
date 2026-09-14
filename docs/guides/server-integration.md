@@ -56,7 +56,7 @@ without a database. In an application, its async factory could open a client or
 pool and its disposer could call that client's shutdown method.
 
 ```ts
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 
 type RequestContext = { id: string };
 type Catalog = Map<string, string>;
@@ -376,7 +376,7 @@ registrations; Fastify plugins organize routes, hooks, and framework context.
 
 ## Bun
 
-Use the same `application.ts` with `di-bag/node`. Save this as `server.ts` and run
+Use the same `application.ts`. Save this as `server.ts` and run
 `bun run server.ts`:
 
 ```ts
@@ -423,14 +423,16 @@ shutdown policy. Keep the scope open longer when returning a streaming response.
 
 ## Deno and portable acquisition
 
-For Deno, change `application.ts` to import `DiBag` from `di-bag`. Resolve that
-bare import through the local npm installation from the README; if needed, use
-`"nodeModulesDir": "manual"` in `deno.json`. See
+Deno runs the same `application.ts`: `di-bag` finds the native-Promise
+classifier through `process.getBuiltinModule` there, as on Node and Bun. Resolve
+the bare import through the local npm installation from the README; if needed,
+use `"nodeModulesDir": "manual"` in `deno.json`. See
 [Deno's manual npm installation mode](https://docs.deno.com/runtime/fundamentals/node/#manual-node_modules-creation).
 
-The portable entry has no automatic native-Promise predicate. Declare the
-acquisition mode of **every factory stage**, including overrides. Use this
-complete portable version of `application.ts`:
+Hosts without `process.getBuiltinModule`, such as browsers and workers, have no
+automatic native-Promise predicate. There, declare the acquisition mode of
+**every factory stage**, including overrides. This portable version of
+`application.ts` runs on every host, Deno included:
 
 ```ts
 import { DiBag } from 'di-bag';
@@ -548,7 +550,7 @@ opening a listener when selected services must be ready. Starting a service
 does not eagerly resolve unrelated registrations.
 
 ```ts
-import { DiBagStartupCancelledError, DiBagStartupError } from 'di-bag/node';
+import { DiBagStartupCancelledError, DiBagStartupError } from 'di-bag';
 
 // builder is your completed application builder, before .build() or .buildAndStart().
 try {
@@ -646,7 +648,7 @@ Use the same request helper to test behavior without opening a socket:
 
 ```ts
 import assert from 'node:assert/strict';
-import { DiBag } from 'di-bag/node';
+import { DiBag } from 'di-bag';
 import { createApplication } from './application.ts';
 import { handleRequest } from './handle-request.ts';
 import { withOwnedScope } from './owned-scope.ts';
@@ -679,7 +681,7 @@ try {
 
 This replacement explicitly repeats the original lifetime and disposal policies. A
 replacement is a complete registration: those wrappers are not inherited from
-the original factory. This test uses the Node/Bun application; portable fixtures
+the original factory. Fixtures for hosts without `process.getBuiltinModule`
 also need explicit acquisition modes. A fork has independent
 instances and is not closed by the original app. Use transport-level tests as
 well when validating routing, serialization, disconnects, or streaming.
@@ -711,7 +713,7 @@ describes the integration responsibilities.
 | A client intended to be shared opens once per request | Mark its registration `root`, or explicitly select parent sharing with `createScope({ share: [...] })`. |
 | A child override does not affect a shared handler | Sharing borrows the parent's complete acquisition and original dependencies. Keep the handler scoped. |
 | A promise appears where a service was expected | Async factories expose promises. Declare and await that dependency explicitly. |
-| Portable `.build()` rejects before work begins | Check all factory and projection stages, including private modules and overrides, for an undeclared acquisition mode. |
+| `.build()` rejects with `DI_BAG_CLASSIFIER_REQUIRED` in a browser or worker | Check all factory and projection stages, including private modules and overrides, for an undeclared acquisition mode. |
 | Cleanup never runs | Attach `withDisposal` and close the owning bag. A method named `close` does not imply ownership. |
 | Shutdown remains pending | Look for unfinished acquisitions, uncooperative disposers, active streams, or server connections. |
 | A dependency object cannot be spread or enumerated | Read declared properties directly; the runtime proxy cannot recover an erased parameter type's keys. |

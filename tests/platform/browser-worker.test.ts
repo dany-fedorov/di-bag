@@ -83,6 +83,7 @@ const portableResult = {
   rootOnce: true,
   scopedOnce: true,
   transientDistinct: true,
+  automatic: 'DI_BAG_CLASSIFIER_REQUIRED',
 } as const;
 
 test('browser metafile accepts only the installed root export and package-local dependencies', () => {
