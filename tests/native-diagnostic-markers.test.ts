@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { matchNativeDiagnosticMarkers } from './native-diagnostic-markers';
 
-const message = "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'.";
+const message = "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type 'string' is not assignable to parameter of type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key\"; }'.\n      Type 'string' is not assignable to type 'TokenBase'.";
 const source = '// diagnostic: provided service does not satisfy its consumer dependency\n// diagnostic-native-gap: last-token-string\nreplace();';
 const error = { file: '/fixture.ts', line: 3, code: 2769, message };
 test('known native overload rejection retains its unmet useful requirement separately', () => {
@@ -36,7 +36,7 @@ test('native gap cannot replace a supplemental expectation', () => {
 
 test('union and open-template fingerprints require their own exact declarations', () => {
   const union = message.replace("      Type 'string' is not assignable to type 'TokenBase'.",
-    "      Type 'string' is not assignable to type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle\"; }'.\n        Type 'string' is not assignable to type 'TokenBase'.");
+    "      Type 'string' is not assignable to type 'TokenBase & { readonly [errorBrand]: \"token must be an individually known genuine handle; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key\"; }'.\n        Type 'string' is not assignable to type 'TokenBase'.");
   const template = message.replaceAll("'string'", "'`a${string}`'");
   for (const [id, full] of [['last-token-string-union', union], ['last-token-open-template', template]]) {
     const declared = source.replace('last-token-string', id!);

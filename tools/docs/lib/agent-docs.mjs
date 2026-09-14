@@ -6,7 +6,7 @@ export const siteUrl = 'https://dany-fedorov.github.io/di-bag/';
 export const agentsBudget = 150;
 export const cardBudget = 400;
 export const recipeBudget = 60;
-export const familyIds = ['missing-service', 'unsatisfied-consumer', 'root-capture', 'unknown-key', 'structural-thenable', 'wrong-shape'];
+export const familyIds = ['missing-service', 'unsatisfied-consumer', 'root-capture', 'unknown-key', 'structural-thenable', 'wrong-shape', 'wrong-override'];
 
 /** VitePress's heading slugifier, so implicit anchors match the rendered site. */
 export function slugify(text) {
@@ -275,13 +275,20 @@ export function checkErrorCoverage(root) {
   return errors;
 }
 
-/** Site URLs cited in library source, which messages carry to agents. */
+/**
+ * Site URLs cited in library source, which messages carry to agents. Compile-time messages
+ * spell the page once as `type ErrorsPage` and the section as `SeeErrors<'id'>`; expand those too.
+ */
 export function messageUrls(root) {
   const urls = new Map();
   const pattern = new RegExp(`${siteUrl.replace(/[.]/g, '\\.')}[^\\s'"\`)]*`, 'g');
-  for (const file of listSources(join(root, 'src'))) {
-    for (const match of readFileSync(join(root, 'src', file), 'utf8').matchAll(pattern)) {
-      if (!urls.has(match[0])) urls.set(match[0], `src/${file}`);
+  const sources = listSources(join(root, 'src')).map(file => [`src/${file}`, readFileSync(join(root, 'src', file), 'utf8')]);
+  const page = sources.map(([, text]) => /type ErrorsPage = '([^']+)'/.exec(text)?.[1]).find(Boolean);
+  for (const [file, text] of sources) {
+    for (const match of text.matchAll(pattern)) if (!urls.has(match[0])) urls.set(match[0], file);
+    for (const match of text.matchAll(/SeeErrors<'([^']+)'>/g)) {
+      const url = page ? `${page}#${match[1]}` : `SeeErrors<'${match[1]}'> without type ErrorsPage`;
+      if (!urls.has(url)) urls.set(url, file);
     }
   }
   return urls;

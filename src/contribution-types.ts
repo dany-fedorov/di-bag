@@ -1,7 +1,7 @@
 import type { Registration, Registrations } from './registration';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
 import type { ValidToken, TokenTupleAdmission, BindingOutput } from './token-types';
-import type { CheckDependencyCompatibility, CheckDependencyCompleteness, Unsatisfied, Entry, RegistrationsFromEntries } from './types';
+import type { CheckDependencyCompatibility, CheckDependencyCompleteness, SeeErrors, Unsatisfied, Entry, RegistrationsFromEntries } from './types';
 import type { ProviderCollectionTokens } from './provider';
 import type { Module } from './module';
 import type { RegistrationConstraints, PublicProvider, NeedConstraint, CheckedConstraints } from './module-types';
@@ -40,10 +40,10 @@ type AllNeeds<C, A extends Registrations> = ProviderCollectionTokens<A[keyof A]>
 type GroupErrors<C, A extends Registrations> = WrongGroup<Groups<C>['token'] | AllNeeds<C, A>, C>;
 export type CheckedContributions<C, A extends Registrations> = [Groups<C>] extends [never] ? unknown
   : [GroupErrors<C, A>] extends [never] ? [WrongProvider<C, A>] extends [never] ? unknown
-    : Unsatisfied<'contribution service is incompatible with its consumer dependency contract', { readonly failures: ContributionFailures<WrongProvider<C, A>, A> }>
+    : Unsatisfied<`contribution service is incompatible with its consumer dependency contract${SeeErrors<'unsatisfied-consumer'>}`, { readonly failures: ContributionFailures<WrongProvider<C, A>, A> }>
   : Unsatisfied<'collection token has an incompatible or opaque contract', {}>;
 export type CompleteContributions<C, A extends Registrations> = [MissingProvider<C, A>] extends [never] ? unknown
-  : Unsatisfied<'required service registrations are missing', { readonly contributions: MissingProvider<C, A> }>;
+  : Unsatisfied<`required service registrations are missing${SeeErrors<'missing-service'>}`, { readonly contributions: MissingProvider<C, A> }>;
 /**
  * Retain a contribution's projected provider and its checked needs when its builder seals.
  * Lifetime reach is retained separately as compact obligations. A contribution retained

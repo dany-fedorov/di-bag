@@ -2,7 +2,7 @@ import type { ContributionConstraint } from './contribution-types';
 import type { Registration, Registrations } from './registration';
 import type { ProviderGraphContract, ProviderNamedDependencies, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens } from './provider';
 import type { TokenBase, TokenKey } from './tokens';
-import type { CheckDependencyCompatibility, CheckDependencyCompleteness, NameText, Unsatisfied } from './types';
+import type { CheckDependencyCompatibility, CheckDependencyCompleteness, NameText, SeeErrors, Unsatisfied } from './types';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
 
 /**
@@ -114,7 +114,7 @@ export type SealAdmission<R extends Registrations, P extends PropertyKey, C> = [
   : [SealCaptives<R, P, C>] extends [never] ? unknown
   // Shape errors were already reported by register; do not add a captive report on top of them.
   : unknown extends CheckDependencyCompatibility<R>
-    ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${SealCaptiveText<SealCaptives<R, P, C>>}`, { readonly captives: SealCaptives<R, P, C> }>
+    ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${SealCaptiveText<SealCaptives<R, P, C>>}${SeeErrors<'root-capture'>}`, { readonly captives: SealCaptives<R, P, C> }>
     : unknown;
 type RenamedReach<X, Old, New> = X extends { readonly kind: 'export'; readonly key: Old } ? { readonly kind: 'export'; readonly key: New } : X;
 /** Rename one export inside retained lifetime obligations. */
@@ -183,7 +183,7 @@ type Captives<R extends Registrations, C> = RootCaptives<R, C, keyof R> | Contri
 export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
   : [Captives<R, C>] extends [never] ? unknown
     : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R>
-      ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}`, { readonly captives: Captives<R, C> }>
+      ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}${SeeErrors<'root-capture'>}`, { readonly captives: Captives<R, C> }>
       : unknown;
 // Inherited roots construct in their already-validated ancestor graph. Only
 // roots newly introduced by this scope can capture its overridden dependencies.
@@ -194,7 +194,7 @@ type OverrideCaptives<R extends Registrations, O extends Registrations, C> = Roo
  */
 export type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, C = never> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
   : [OverrideCaptives<R, O, C>] extends [never] ? unknown
-    : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}`, { readonly captives: OverrideCaptives<R, O, C> }>;
+    : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}${SeeErrors<'root-capture'>}`, { readonly captives: OverrideCaptives<R, O, C> }>;
 
 // Sharing needs the current canonical policy, including public replacements and
 // parent sharing routes. Alias cycles terminate without inventing a policy.

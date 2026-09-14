@@ -1,6 +1,6 @@
 import { libraryError } from './errors';
 import type { LifecycleObservers } from './observers';
-import type { StructuralThenable, Unsatisfied } from './types';
+import type { SeeErrors, StructuralThenable, Unsatisfied } from './types';
 
 /**
  * How an acquisition stage treats its returned value: configured classification,
@@ -35,7 +35,7 @@ export type NativeOutput<O, M extends AcquisitionMode> = 'nativePromise' extends
 /** Reject a structural thenable output when the stage would classify it automatically. */
 export type AutoOutput<O, M extends AcquisitionMode> = 'auto' extends M
   ? true extends StructuralThenable<O>
-    ? Unsatisfied<'factory output is a structural thenable; return a native Promise or select acquisitionMode raw or nativePromise', {}>
+    ? Unsatisfied<`factory output is a structural thenable; return a native Promise or select acquisitionMode raw or nativePromise${SeeErrors<'structural-thenable'>}`, {}>
     : unknown
   : unknown;
 export function acquisitionMode(options: { readonly acquisitionMode?: AcquisitionMode } | undefined, fallback: AcquisitionMode = 'auto'): AcquisitionMode {

@@ -1,13 +1,13 @@
 import type { Builder } from './di-bag';
 import type { CheckedLifetimes } from './lifetime-types';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
-import type { CheckDependencyCompatibility, CheckDependencyCompleteness, Entry, RegistrationsFromEntries } from './types';
+import type { CheckDependencyCompatibility, CheckDependencyCompleteness, ConsumerReport, Entry, RegistrationsFromEntries } from './types';
 
 type ReportOf<Check> = unknown extends Check ? never : Check;
 type Reports<E extends Entry, C extends NeedConstraint> =
-  | ReportOf<CheckDependencyCompatibility<RegistrationsFromEntries<E>>>
+  | ReportOf<ConsumerReport<CheckDependencyCompatibility<RegistrationsFromEntries<E>>>>
   | ReportOf<CheckDependencyCompleteness<RegistrationsFromEntries<E>>>
-  | ReportOf<CheckedConstraints<C, RegistrationsFromEntries<E>>>
+  | ReportOf<ConsumerReport<CheckedConstraints<C, RegistrationsFromEntries<E>>>>
   | ReportOf<CompleteConstraints<C, RegistrationsFromEntries<E>>>
   | ReportOf<CheckedLifetimes<RegistrationsFromEntries<E>, C>>;
 

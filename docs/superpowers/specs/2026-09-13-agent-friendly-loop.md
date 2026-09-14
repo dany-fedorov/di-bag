@@ -91,7 +91,7 @@ contract does not change.
 - **`docs/agent/errors.md`**: one section per `DI_BAG_*` code (37 today, from
   `grep -rho "'DI_BAG_[A-Z_]*'" src | sort -u`) and one per compile-time message family
   (missing service, unsatisfied consumer, root capture, unknown key, structural
-  thenable, wrong shape). Each section: when it appears, the cause, the fix
+  thenable, wrong shape, wrong override). Each section: when it appears, the cause, the fix
   with a snippet, and which recipe applies. Its anchors are the URLs that
   messages carry (L4, L6).
 - **JSDoc**: every exported runtime declaration has a one-sentence summary, an

@@ -1,6 +1,6 @@
 import type { TokenBase, TokenKey, TokenService } from './tokens';
 import type { DependencyReference, DependencyValue, DependencyToken, DependencyKind, ValidDependency } from './dependency-references';
-import type { Unsatisfied } from './types';
+import type { SeeErrors, Unsatisfied } from './types';
 import type { Registration, Registrations } from './registration';
 import type { BoundToken, Provider, ProviderFactory, ProviderGraphContract, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderOutput, ProviderRequiredTokens, ProviderOptionalTokens } from './provider';
 
@@ -67,8 +67,8 @@ export type MissingToken<T, R extends Registrations> = T extends unknown
  */
 export type TokenMember<R extends Registrations, T> = ValidToken<T> extends true
   ? [WrongToken<T, R> | MissingToken<T, R>] extends [never] ? unknown
-    : Unsatisfied<'token must match an existing binding contract', {}>
-  : Unsatisfied<'token must be an individually known genuine handle', {}>;
+    : Unsatisfied<`token must match an existing binding contract${SeeErrors<'unknown-key'>}`, {}>
+  : Unsatisfied<`token must be an individually known genuine handle${SeeErrors<'unknown-key'>}`, {}>;
 export type InvalidGraphs<R extends Registrations> = {
   [K in keyof R]: [ProviderGraphContract<R[K]>] extends [TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[]>]
     ? WrongToken<ProviderRequiredTokens<R[K]> | ProviderOptionalTokens<R[K]>, R> | InvalidBound<BoundToken<R[K]>> : K;

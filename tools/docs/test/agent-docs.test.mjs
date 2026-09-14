@@ -82,7 +82,7 @@ test('snippets type-check together against a consumer package, honoring continue
 });
 
 test('budgets, layout identity, and error coverage report drift', () => {
-  const families = ['missing-service', 'unsatisfied-consumer', 'root-capture', 'unknown-key', 'structural-thenable', 'wrong-shape'];
+  const families = ['missing-service', 'unsatisfied-consumer', 'root-capture', 'unknown-key', 'structural-thenable', 'wrong-shape', 'wrong-override'];
   const errorsPage = codes => `# Errors {#errors}\n${codes.map(code => `## ${code} {#${code.toLowerCase().replace(/_/g, '-')}}\n`).join('')}${families.map(id => `## Family {#${id}}\n`).join('')}`;
   const root = fixture({
     'AGENTS.md': `# A\n${layout}`,
@@ -102,8 +102,8 @@ test('budgets, layout identity, and error coverage report drift', () => {
     writeFileSync(join(root, 'src/b.ts'), "libraryError('DI_BAG_NEW', 'new');");
     writeFileSync(join(root, 'docs/agent/errors.md'), `${errorsPage(['DI_BAG_CYCLE', 'DI_BAG_GONE'])}## DI_BAG_ODD {#odd}\n## Untagged\n`);
     assert.deepEqual(checkErrorCoverage(root), [
-      'docs/agent/errors.md:10: DI_BAG_ODD must use {#di-bag-odd}',
-      'docs/agent/errors.md:11: heading "Untagged" needs an explicit {#id}',
+      'docs/agent/errors.md:11: DI_BAG_ODD must use {#di-bag-odd}',
+      'docs/agent/errors.md:12: heading "Untagged" needs an explicit {#id}',
       'docs/agent/errors.md: no section for DI_BAG_NEW',
       'docs/agent/errors.md: section DI_BAG_GONE is not raised in src',
       'docs/agent/errors.md: section DI_BAG_ODD is not raised in src',
@@ -127,5 +127,22 @@ test('message URLs in src resolve to a page and anchor, in sources and in the bu
       'src/b.ts: https://dany-fedorov.github.io/di-bag/agent/nope.html names no site page',
     ]);
     assert.equal(checkMessageUrlsInBuild(root, join(root, 'dist')).length, 2);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('type-level message URLs expand ErrorsPage with each SeeErrors section', () => {
+  const root = fixture({
+    'README.md': '# Intro\n',
+    'docs/agent/errors.md': '# Errors\n## Missing service {#missing-service}\n',
+    'src/types.ts': "export type ErrorsPage = 'https://dany-fedorov.github.io/di-bag/agent/errors.html';\ntype A = `missing${SeeErrors<'missing-service'>}`;\ntype B = `gone${SeeErrors<'gone'>}`;",
+    'dist/agent/errors.html': '<h3 id="missing-service">Missing service</h3>',
+  });
+  try {
+    assert.deepEqual(checkMessageUrlsInSources(root, sitePages(root)), [
+      'src/types.ts: https://dany-fedorov.github.io/di-bag/agent/errors.html#gone names a missing anchor in docs/agent/errors.md',
+    ]);
+    assert.deepEqual(checkMessageUrlsInBuild(root, join(root, 'dist')), [
+      'src/types.ts: https://dany-fedorov.github.io/di-bag/agent/errors.html#gone has no rendered anchor',
+    ]);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

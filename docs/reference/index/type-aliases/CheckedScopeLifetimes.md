@@ -5,7 +5,7 @@
 # Type Alias: CheckedScopeLifetimes\<R *extends* `Registrations`, O *extends* `Registrations`, C = `never`\>
 
 ```ts
-type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, C = never> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown : [OverrideCaptives<R, O, C>] extends [never] ? unknown : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}`, {
+type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, C = never> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown : [OverrideCaptives<R, O, C>] extends [never] ? unknown : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}${SeeErrors<'root-capture'>}`, {
     readonly captives: OverrideCaptives<R, O, C>;
 }>;
 ```

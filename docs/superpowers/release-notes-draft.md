@@ -65,3 +65,17 @@ version is frozen.
   errors-page section; and resolves every documentation URL cited in `src/`.
 
 ## Fixed and improved
+
+- Compile-time messages end with the errors-page section for their family, for
+  example `required service registrations are missing: clock; see
+  https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service`.
+  Missing-service, root-capture, unknown-key (including `requires a finite
+  tuple` and `token must match an existing binding contract`),
+  structural-thenable, and contribution-incompatibility (`#unsatisfied-consumer`)
+  messages carry their own section; `override value is not assignable to the
+  original token` points at the new `#wrong-override` section. The unnamed wrong-shape message at `register`,
+  `installModule`, and `replace` points at `#wrong-shape`, which says to call
+  `verifyGraph()`; the same report from `verifyGraph()` points at
+  `#unsatisfied-consumer`. Existing message text is unchanged up to the suffix,
+  so prefix matches keep working; exact matches need the suffix. Measured cost:
+  +85 instantiations in each 100-provider incremental case.

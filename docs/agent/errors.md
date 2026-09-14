@@ -14,16 +14,17 @@ as `<label>/<key>` in messages and `details` paths (`outer/inner/key` when
 nested), which names the module directory to open.
 
 A compile-time rejection is an assignability error whose type reads
-`Unsatisfied<"message", details>`. Put `builder.verifyGraph() satisfies void;` on
-its own line to report it there, and set `"noErrorTruncation": true` to print the
-details.
+`Unsatisfied<"message", details>`. The message ends with
+`; see https://dany-fedorov.github.io/di-bag/agent/errors.html#<family>`, one of
+the sections below. Put `builder.verifyGraph() satisfies void;` on its own line
+to report it there, and set `"noErrorTruncation": true` to print the details.
 
 ## Compile-time messages {#compile-time}
 
 ### Missing service {#missing-service}
 
 **When:** `build()`, `verifyGraph()`, or `check.ts` reports
-`required service registrations are missing: <keys>`.
+`required service registrations are missing: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service`.
 
 **Cause:** a factory declares a dependency that no registration, installed
 module, or host supplies. A module's unmet dependencies become requirements of
@@ -33,7 +34,7 @@ the builder that installs it.
 and tests.
 
 ```ts
-// expect-error: required service registrations are missing: config
+// expect-error: required service registrations are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
 import { DiBag } from 'di-bag/node';
 
 DiBag.createBuilder()
@@ -56,9 +57,14 @@ DiBag.createBuilder()
 
 ### Unsatisfied consumer {#unsatisfied-consumer}
 
-**When:** `build()` or `verifyGraph()` reports
-`provided service does not satisfy its consumer dependency`, with details
-`{ consumer, dependency, expected, provided }`.
+**When:** `verifyGraph()` reports
+`provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer`,
+with details `{ consumer, dependency, expected, provided }`, or any registering
+call (`contribute`, `installModule`, `register`, `replace`, `fork`,
+`createScope`) and `verifyGraph()` report
+`contribution service is incompatible with its consumer dependency contract; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer`,
+with details `{ failures: { consumer, diagnostic } }` where `diagnostic` carries
+the same four fields for the contributed service.
 
 **Cause:** a registered service's type is not assignable to the type a consumer
 declares for it, often after one branch changed a contract.
@@ -67,7 +73,7 @@ declares for it, often after one branch changed a contract.
 agree; the details name both keys and both types.
 
 ```ts
-// expect-error: provided service does not satisfy its consumer dependency
+// expect-error: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer
 import { DiBag } from 'di-bag/node';
 
 DiBag.createBuilder()
@@ -82,7 +88,7 @@ DiBag.createBuilder()
 
 ### Root capture {#root-capture}
 
-**When:** `root lifetime cannot capture scoped dependency: <root> -> <scoped>`.
+**When:** `root lifetime cannot capture scoped dependency: <root> -> <scoped>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture`.
 
 **Cause:** a `root` service would keep one scope's instance of a `scoped` (the
 default) dependency for the whole application.
@@ -92,7 +98,7 @@ default) dependency for the whole application.
 bag's instance.
 
 ```ts
-// expect-error: root lifetime cannot capture scoped dependency: client -> config
+// expect-error: root lifetime cannot capture scoped dependency: client -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
 import { DiBag } from 'di-bag/node';
 
 DiBag.createBuilder()
@@ -120,17 +126,25 @@ DiBag.createBuilder()
 
 **When:** `fork accepts existing names or typed tokens only: unknown <key>`, the
 same message for `createScope` and `buildAndStart`,
-`replace requires one existing singleton string-literal key: <key>`, or
-`token must be an individually known genuine handle` on `resolve`.
+`replace requires one existing singleton string-literal key: <key>`, or, on
+`resolve`, `inspect`, or `replace`,
+`token must be an individually known genuine handle` or
+`token must match an existing binding contract`, or
+`<op> requires a finite tuple of singleton string-literal names or typed tokens`
+when the selection is a `string[]`, a union, or a widened array (`fork`,
+`createScope`, `createScope` share, `buildModule`, `buildAndStart`), each
+followed by `; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key`.
 
 **Cause:** the selected or resolved key is not registered in this graph, or is
-a private name of an installed module.
+a private name of an installed module, or the key is registered under a
+different typed token than the one passed.
 
 **Fix:** select only exported or registered keys; add the registration first
-when the key is new.
+when the key is new. Pass the selection as a literal tuple
+(`['a', 'b'] as const`, or a `const` type parameter), not a `string[]`.
 
 ```ts
-// expect-error: fork accepts existing names or typed tokens only: unknown host
+// expect-error: fork accepts existing names or typed tokens only: unknown host; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 import { DiBag } from 'di-bag/node';
 
 const app = DiBag.createBuilder().register({ port: () => 80 }).build();
@@ -141,7 +155,9 @@ app.fork(['host'], { host: () => 'localhost' });
 
 ### Structural thenable {#structural-thenable}
 
-**When:** `factory output is a structural thenable: <keys>; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise`.
+**When:** `factory output is a structural thenable: <keys>; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`,
+or on `DiBag.fromFactory`, `fromFunction`, and `fromClass`
+`factory output is a structural thenable; return a native Promise or select acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`.
 
 **Cause:** a factory returns an object with a `then` method that is not a native
 Promise, such as a query builder. Automatic acquisition cannot tell whether to
@@ -151,7 +167,7 @@ await it.
 `acquisitionMode: 'raw'`.
 
 ```ts
-// expect-error: factory output is a structural thenable: query
+// expect-error: factory output is a structural thenable: query; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable
 import { DiBag } from 'di-bag/node';
 
 type Query = { then(onFulfilled: (rows: string[]) => void): void };
@@ -176,9 +192,8 @@ DiBag.createBuilder()
 
 ### Wrong shape at a call {#wrong-shape}
 
-**When:** `register`, `installModule`, `replace`, or a `fork` override reports
-`provided service does not satisfy its consumer dependency` without details, or
-a plain `Type 'X' is not assignable to type 'Y'`.
+**When:** `register`, `installModule`, or `replace` reports
+`provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-shape`.
 
 **Cause:** the same mismatch as an [unsatisfied consumer](#unsatisfied-consumer).
 These call sites keep a short message because naming the keys there costs
@@ -188,6 +203,30 @@ compile time on every valid graph.
 dependency, expected type, and provided type.
 
 ```ts
+// expect-error: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-shape
+import { DiBag } from 'di-bag/node';
+
+const app = DiBag.createBuilder().register({ port: () => 80 });
+app.register({ server: ({ port }: { port: string }) => port.length });
+```
+
+**Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
+
+### Wrong override {#wrong-override}
+
+**When:** `fork` or `createScope` reports
+`override value is not assignable to the original token: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-override`,
+or a plain `Type 'X' is not assignable to type 'Y'` on an override factory.
+
+**Cause:** an override's service value is not assignable to the type the
+original registration declares for that key. A fork or scope substitutes a
+service but cannot change its contract, and its consumers are typed against the
+original.
+
+**Fix:** return the original service type (or a subtype) from the override. To
+change the contract, change the registration in the builder and re-`build()`.
+
+```ts
 // expect-error: Type 'string' is not assignable to type 'number'
 import { DiBag } from 'di-bag/node';
 
@@ -195,7 +234,7 @@ const app = DiBag.createBuilder().register({ port: () => 80 }).build();
 app.fork(['port'], { port: () => 'eighty' });
 ```
 
-**Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
+**Recipe:** [write a fixture test with `fork`](recipes.md#fixture-test).
 
 ## Runtime codes {#runtime-codes}
 

@@ -5,7 +5,7 @@
 # Type Alias: CheckedLifetimes\<R *extends* `Registrations`, C *extends* `NeedConstraint`\>
 
 ```ts
-type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown : [Captives<R, C>] extends [never] ? unknown : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R> ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}`, {
+type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown : [Captives<R, C>] extends [never] ? unknown : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R> ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}${SeeErrors<'root-capture'>}`, {
     readonly captives: Captives<R, C>;
 }> : unknown;
 ```
