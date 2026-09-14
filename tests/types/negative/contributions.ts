@@ -27,9 +27,9 @@ DiBag.createBuilder().contribute(numbers, DiBag.withLifetime(({ helper }: { help
 const privateScoped = DiBag.createBuilder().register({ helper: () => 1 }).contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'transient')).buildModule([]);
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().installModule(privateScoped).register({ rootAll }).build();
-const privateRoot = DiBag.createBuilder().register({ helper: () => 1 }).contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'root')).buildModule([]);
-// diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(privateRoot).build();
+const privateRootBuilder = DiBag.createBuilder().register({ helper: () => 1 }).contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'root'));
+// diagnostic: root lifetime cannot capture scoped dependency: contribution -> helper
+privateRootBuilder.buildModule([]);
 // diagnostic: incompatible
 DiBag.createBuilder().register({ all: DiBag.fromFunction([all], values => values) }).contribute(wrong, () => 'wrong');
 // diagnostic: incompatible

@@ -24,13 +24,13 @@ const renamed = DiBag.createBuilder().register({ bridge: withLifetime(({ externa
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().installModule(renamed).replace('external', () => 1).register({ root: withLifetime(({ external }: { external: number }) => external, 'root') }).build();
 
-const privateRoot = DiBag.createBuilder().register({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root'), api: () => 1 }).buildModule(['api']);
-// diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(privateRoot).replace('api', withLifetime(() => 1, 'root')).build();
+const privateRootBuilder = DiBag.createBuilder().register({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root'), api: () => 1 });
+// diagnostic: root lifetime cannot capture scoped dependency: hidden -> db
+privateRootBuilder.buildModule(['api']);
 
-const exportless = DiBag.createBuilder().register({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule([]);
-// diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(exportless).build();
+const exportlessBuilder = DiBag.createBuilder().register({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') });
+// diagnostic: root lifetime cannot capture scoped dependency: hidden -> db
+exportlessBuilder.buildModule([]);
 
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().register({ db: () => 1, permissive: withLifetime(({ db }: { db: number }) => db, 'root', { allowScopedDependencies: true }), a: withLifetime(({ permissive }: { permissive: number }) => permissive, 'root'), c: withLifetime(({ db }: { db: number }) => db, 'root') }).build();

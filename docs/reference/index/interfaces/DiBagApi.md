@@ -4,7 +4,7 @@
 
 # Interface: DiBagApi
 
-Defined in: [di-bag.ts:478](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L478)
+Defined in: [di-bag.ts:482](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L482)
 
 The immutable public entry surface used by [DiBag](../variables/DiBag.md) and derived facades.
 
@@ -16,7 +16,7 @@ The immutable public entry surface used by [DiBag](../variables/DiBag.md) and de
 all: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => CollectionDependency<T>;
 ```
 
-Defined in: [di-bag.ts:490](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L490)
+Defined in: [di-bag.ts:494](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L494)
 
 Create a positional dependency containing ordered collection contributions.
 
@@ -47,7 +47,7 @@ An immutable reference that supplies a fresh frozen array, including when empty.
 createBuilder: () => Builder<never>;
 ```
 
-Defined in: [di-bag.ts:498](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L498)
+Defined in: [di-bag.ts:502](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L502)
 
 Begin an empty immutable graph; build creates its owning bag, buildModule seals a reusable module.
 
@@ -59,7 +59,7 @@ Begin an empty immutable graph; build creates its owning bag, buildModule seals 
 fromClass: <const T extends readonly DependencyReference[], C extends new (...args: TokenArguments<NoInfer<T>>) => unknown, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>> & AutoOutput<InstanceType<NoInfer<C>>, NoInfer<M>>, ...modeOptions: StageOptions<M>) => Provider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>>;
 ```
 
-Defined in: [di-bag.ts:496](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L496)
+Defined in: [di-bag.ts:500](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L500)
 
 Adapt a concrete constructor with positional dependency injection.
 
@@ -102,7 +102,7 @@ fromFactory: {
 };
 ```
 
-Defined in: [di-bag.ts:482](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L482)
+Defined in: [di-bag.ts:486](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L486)
 
 Describe a named-dependency factory, optionally receiving acquisition context.
 
@@ -173,7 +173,7 @@ fromFunction: {
 };
 ```
 
-Defined in: [di-bag.ts:494](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L494)
+Defined in: [di-bag.ts:498](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L498)
 
 Adapt a positional function with strict dependency tuple and argument checking.
 
@@ -241,7 +241,7 @@ A reusable provider; no dependency or result is implicitly awaited.
 fromPlugin: PluginProviderFactory;
 ```
 
-Defined in: [di-bag.ts:492](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L492)
+Defined in: [di-bag.ts:496](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L496)
 
 Validate an unknown plugin descriptor and its acquired output at a checked boundary.
 
@@ -253,7 +253,7 @@ Validate an unknown plugin descriptor and its acquired output at a checked bound
 lazy: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => LazyDependency<T>;
 ```
 
-Defined in: [di-bag.ts:488](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L488)
+Defined in: [di-bag.ts:492](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L492)
 
 Create a positional dependency resolved on demand by the receiving service.
 
@@ -285,7 +285,7 @@ An immutable lazy reference accepted by positional provider adapters.
 optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalDependency<T>;
 ```
 
-Defined in: [di-bag.ts:486](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L486)
+Defined in: [di-bag.ts:490](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L490)
 
 Create a positional dependency that yields undefined only when unregistered.
 
@@ -319,7 +319,7 @@ token: <const K extends symbol>(key: K & TokenKeyAdmission<K>, ...invalid: [K] e
 };
 ```
 
-Defined in: [di-bag.ts:484](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L484)
+Defined in: [di-bag.ts:488](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L488)
 
 Create a nominal typed token with a diagnostic label.
 
@@ -369,7 +369,7 @@ transformService: {
 };
 ```
 
-Defined in: [di-bag.ts:506](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L506)
+Defined in: [di-bag.ts:510](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L510)
 
 Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership.
 
@@ -443,7 +443,7 @@ A provider exposing a Promise of the awaited transform result.
 withConfiguration: (options: ConfigurationOptions) => DiBagApi;
 ```
 
-Defined in: [di-bag.ts:480](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L480)
+Defined in: [di-bag.ts:484](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L484)
 
 Return a facade with inherited runtime settings and appended observers.
 
@@ -464,7 +464,7 @@ withDisposal: {
 };
 ```
 
-Defined in: [di-bag.ts:500](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L500)
+Defined in: [di-bag.ts:504](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L504)
 
 Attach owned-value cleanup while retaining earlier disposal stages.
 
@@ -531,7 +531,7 @@ withLifetime: {
 };
 ```
 
-Defined in: [di-bag.ts:502](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L502)
+Defined in: [di-bag.ts:506](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L506)
 
 Select root, scoped, or transient caching within an ownership family.
 
@@ -632,7 +632,7 @@ withMetadata: {
 };
 ```
 
-Defined in: [di-bag.ts:504](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L504)
+Defined in: [di-bag.ts:508](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L508)
 
 Attach registration metadata and ordered acquisition metadata in direct or awaited mode.
 

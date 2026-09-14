@@ -4,7 +4,7 @@
 
 # Interface: Builder\<E *extends* `Entry`, C *extends* `NeedConstraint` = `never`\>
 
-Defined in: [di-bag.ts:273](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L273)
+Defined in: [di-bag.ts:274](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L274)
 
 An immutable, type-checked graph builder. Every operation returns a new builder.
 Create one with [DiBagApi.createBuilder](DiBagApi.md#createbuilder). The same builder value can
@@ -27,7 +27,7 @@ requirements the installing host must satisfy.
 readonly contribute: BuilderContribute<E, C>;
 ```
 
-Defined in: [di-bag.ts:346](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L346)
+Defined in: [di-bag.ts:347](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L347)
 
 Append a provider to a typed-token collection.
 
@@ -55,7 +55,7 @@ A new builder preserving contribution order.
 alias<const D extends AliasSelection, const T extends AliasSelection>(destination: D & (unknown extends AliasAdmission<D> ? Introduces<RegistrationsFromEntries<E>, AliasEntries<RegistrationsFromEntries<E>, D, T>> : AliasAdmission<D>), target: T & AliasAdmission<T> & (unknown extends AliasAdmission<T> ? AliasTarget<RegistrationsFromEntries<E>, T> & AliasDestination<RegistrationsFromEntries<E>, NoInfer<D>, T> : unknown) & (unknown extends AliasAdmission<D> & AliasAdmission<T> ? IncrementalChecked<E, AliasEntries<RegistrationsFromEntries<E>, NoInfer<D>, NoInfer<T>>> & CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, AliasEntries<RegistrationsFromEntries<E>, NoInfer<D>, NoInfer<T>>>> : unknown), ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []): Builder<E | AliasEntry<RegistrationsFromEntries<E>, D, T>, C>;
 ```
 
-Defined in: [di-bag.ts:327](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L327)
+Defined in: [di-bag.ts:328](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L328)
 
 Add another lookup name or token for an existing service.
 
@@ -86,7 +86,7 @@ A new builder; aliases add no cache or ownership of their own.
 build(this: Builder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>): Bag<RegistrationsFromEntries<E>, C>;
 ```
 
-Defined in: [di-bag.ts:448](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L448)
+Defined in: [di-bag.ts:452](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L452)
 
 Finish a complete graph as a lazy bag.
 
@@ -112,7 +112,7 @@ At runtime if automatic acquisition is used without a configured Promise classif
 buildAndStart<const K extends readonly unknown[]>(this: Builder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>, keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildAndStart'>, options?: StartupOptions): Promise<Bag<RegistrationsFromEntries<E>, C>>;
 ```
 
-Defined in: [di-bag.ts:460](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L460)
+Defined in: [di-bag.ts:464](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L464)
 
 Create a fresh bag and acquire selected services before returning it.
 
@@ -144,10 +144,10 @@ A promise for the new bag after every selected final stage is ready.
 ### buildModule()
 
 ```ts
-buildModule<const K extends readonly unknown[]>(keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildModule'>, options?: ModuleOptions): Module<Pick<ServicesOf<RegistrationsFromEntries<E>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>, ExternalRequirements<ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>, ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>, ModulePublicProviders<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>;
+buildModule<const K extends readonly unknown[]>(keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildModule'> & SealAdmission<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>, C>, options?: ModuleOptions): Module<ExportedServices<ServicesOf<RegistrationsFromEntries<E>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>, ExternalRequirements<ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>, ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>, ModulePublicProviders<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>;
 ```
 
-Defined in: [di-bag.ts:434](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L434)
+Defined in: [di-bag.ts:435](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L435)
 
 Seal this graph as a reusable module and select its public names and typed tokens.
 Unselected registrations stay private to each installation; unmet dependencies
@@ -196,7 +196,7 @@ const app = DiBag.createBuilder().installModule(orders).build();
 installModule<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(module: Module<P, R, MC, D> & IntroducesKeys<EntryKeys<E>, keyof D> & IncrementalChecked<E, D> & IncrementalConstraints<C, MC, RegistrationsFromEntries<E>, D>): Builder<E | RegistrationEntries<D>, C | MC>;
 ```
 
-Defined in: [di-bag.ts:394](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L394)
+Defined in: [di-bag.ts:395](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L395)
 
 Install a sealed module, allocating fresh private bindings for this installation.
 
@@ -231,7 +231,7 @@ register<N extends {
 }>(more: N & Registrations & ([N] extends [never] ? never : NamedAdmission<N> & ThenableAdmission<N> & IntroducesKeys<EntryKeys<E>, keyof N> & IncrementalChecked<E, N> & CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, N>>)): Builder<E | RegistrationEntries<N>, C>;
 ```
 
-Defined in: [di-bag.ts:293](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L293)
+Defined in: [di-bag.ts:294](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L294)
 
 Add new string-named registrations.
 
@@ -264,7 +264,7 @@ register<T extends TokenBase, V extends Registration>(token: T & TokenTupleAdmis
 }, C>;
 ```
 
-Defined in: [di-bag.ts:305](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L305)
+Defined in: [di-bag.ts:306](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L306)
 
 Register a provider to a typed token.
 
@@ -298,10 +298,10 @@ replace<const K extends string, V extends (ReplacementFactory<ReplacementOutput<
 }> | {
     key: K;
     registration: V;
-}, C>;
+}, WithoutExportObligations<C, K>>;
 ```
 
-Defined in: [di-bag.ts:365](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L365)
+Defined in: [di-bag.ts:366](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L366)
 
 Replace an existing string-named registration with a dependency-free factory.
 
@@ -326,10 +326,10 @@ A new builder with the replacement.
 #### Call Signature
 
 ```ts
-replace<const K extends string | TokenBase, V extends Registration>(key: K & NoInfer<ReplacementAdmission<RegistrationsFromEntries<E>, K>>, registration: V & Registration & BuilderReplacementRegistration<E, C, NoInfer<K>, V>): Builder<ReplacedEntries<E, K, V>, C>;
+replace<const K extends string | TokenBase, V extends Registration>(key: K & NoInfer<ReplacementAdmission<RegistrationsFromEntries<E>, K>>, registration: V & Registration & BuilderReplacementRegistration<E, C, NoInfer<K>, V>): Builder<ReplacedEntries<E, K, V>, WithoutExportObligations<C, SelectionKey<K>>>;
 ```
 
-Defined in: [di-bag.ts:376](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L376)
+Defined in: [di-bag.ts:377](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L377)
 
 Replace an existing named or typed-token registration.
 
@@ -359,7 +359,7 @@ A new builder with the replacement and its inferred service type.
 verifyGraph<Self extends Builder<E, C>>(this: Self): CompositionReport<Self>;
 ```
 
-Defined in: [di-bag.ts:409](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L409)
+Defined in: [di-bag.ts:410](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L410)
 
 Report at the type level why this graph would not build; the runtime call does nothing.
 Write `builder.verifyGraph() satisfies void;` so a rejected graph fails on that line with

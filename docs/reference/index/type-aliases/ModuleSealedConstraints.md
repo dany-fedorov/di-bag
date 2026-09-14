@@ -5,12 +5,12 @@
 # Type Alias: ModuleSealedConstraints\<E *extends* `Entry`, C *extends* `NeedConstraint`, P *extends* keyof [`RegistrationsFromEntries`](RegistrationsFromEntries.md)\<`E`\>\>
 
 ```ts
-type ModuleSealedConstraints<E extends Entry, C extends NeedConstraint, P extends keyof RegistrationsFromEntries<E>> = ModuleConstraints<RegistrationsFromEntries<E>, P> | SealedConstraints<C, RegistrationsFromEntries<E>, P>;
+type ModuleSealedConstraints<E extends Entry, C extends NeedConstraint, P extends keyof RegistrationsFromEntries<E>> = [P] extends [unknown] ? ModuleConstraints<RegistrationsFromEntries<E>, P> | SealedConstraints<C, RegistrationsFromEntries<E>, P> | SealedLifetimes<RegistrationsFromEntries<E>, P, C> : never;
 ```
 
-Defined in: [module-types.ts:143](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L143)
+Defined in: [module-types.ts:183](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L183)
 
-Every constraint a sealed module carries: its own registrations' needs plus re-scoped retained constraints.
+Every constraint a sealed module carries: its own registrations' needs, re-scoped retained constraints, and compact lifetime obligations.
 
 ## Type Parameters
 

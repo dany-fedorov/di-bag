@@ -2,17 +2,15 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / CheckedScopeLifetimes
 
-# Type Alias: CheckedScopeLifetimes\<R *extends* `Registrations`, O *extends* `Registrations`, G = `never`\>
+# Type Alias: CheckedScopeLifetimes\<R *extends* `Registrations`, O *extends* `Registrations`, C = `never`\>
 
 ```ts
-type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, G = never> = [
-    OverrideCaptives<R, O, G>
-] extends [never] ? unknown : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, G>>}`, {
-    readonly captives: OverrideCaptives<R, O, G>;
+type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, C = never> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown : [OverrideCaptives<R, O, C>] extends [never] ? unknown : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}`, {
+    readonly captives: OverrideCaptives<R, O, C>;
 }>;
 ```
 
-Defined in: [lifetime-types.ts:156](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L156)
+Defined in: [lifetime-types.ts:187](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L187)
 
 Reject root providers introduced by a scope override when they capture scoped dependencies.
 
@@ -22,4 +20,4 @@ Reject root providers introduced by a scope override when they capture scoped de
 | ------ | ------ |
 | `R` | - |
 | `O` | - |
-| `G` | - |
+| `C` | - |

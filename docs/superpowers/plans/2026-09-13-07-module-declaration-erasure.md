@@ -694,14 +694,59 @@ seal admission 3.3k, host lifetime check 3.1k.
    dropped), `infer I extends object` symbol parts (+4k, dropped), mapped symbol parts (−3k each, but emit cannot
    serialize them), direct `Record` fast paths (−3k at best, incorrect for several symbols).
 
-### What to try next
+### Decision
 
-- Decide whether the declaration-size and private-edit invalidation wins justify raising the two ceilings by about
-  1k and 22k; the maintainer owns that tradeoff. Weigh it against the positioning recorded on 2026-09-13: a module
-  is the unit one agent owns and checks in isolation, so the cost of type-checking one module directory against its
-  contracts, without the rest of the application, is the number that matters. Measure that per-module cost on both
-  branches before deciding; the ceilings above measure whole-application composition.
-- Otherwise, move erasure out of the per-install type path: keep `Module` parameters lazy (the old `Pick` and
-  lexical forms) and add an explicit `sealed()` or `ModuleContract<typeof m>` projection that libraries opt into for
-  their exported declarations, so only emitted modules pay.
-- Make the lifetime gate reuse a check the builder already computes per registration.
+Adopted in full on 2026-09-13; the rule, the evidence, and the conditions are in the L2 "Erased module
+declarations" bullet of [the agent-friendly loop spec](../specs/2026-09-13-agent-friendly-loop.md#l2-what-ships-in-the-package).
+Landed on `feat/module-erasure`, rebased onto `main` after `buildModule(keys, { label })`.
+
+Integration changes on top of `plan-07-module-erasure-full`: `buildModule` takes both the seal admission and
+`options?: ModuleOptions`; `ExternalRequirements` merges string-keyed needs into one resolved object (each named need
+prints once; token needs stay `Record` references); the characterization fixture's private root `privateHelper`
+needs `clock`, and the declaration test pins the boundary (private keys only as quoted values). The characterization
+declaration is 2,425 bytes.
+
+Compiler work after integration (`tests/incremental-scale.test.ts`, TypeScript 6.0.3, deterministic):
+
+| Case | Measured | Stop mark (1.5% under ceiling) | New ceiling |
+|---|---|---|---|
+| 100 named additions | 787,393 | 797,850 | 810,000 |
+| 100 named replacements | 1,030,839 | 1,044,100 | 1,060,000 |
+| 100 token bindings | 846,826 | 856,950 | 870,000 |
+| 100 installed token modules | 1,241,223 | 1,255,875 | 1,275,000 |
+
+1000-provider wall time (condition 6): `bun test tests/type-scale.test.ts -t "1000 providers from reusable named
+modules"`, main and branch alternated, three runs each, one machine, per-case seconds from the JUnit reporter,
+load average under 2 at every start (1.77 to 1.98; `uptime` recorded per run, 23:50 to 23:58):
+
+| Case | Main runs | Main median | Branch runs | Branch median | Ratio |
+|---|---|---|---|---|---|
+| valid | 13.51, 13.26, 13.71 | 13.51 | 13.33, 13.28, 13.39 | 13.33 | 0.99 |
+| missing | 13.53, 13.53, 13.58 | 13.53 | 13.69, 13.82, 13.62 | 13.69 | 1.01 |
+| wrong-shape | 13.10, 13.54, 13.57 | 13.54 | 13.30, 13.30, 12.72 | 13.30 | 0.98 |
+
+The limit is 1.25; the lifetime gate was not reworked. The earlier 83 s against 45.5 s was load. Peak resident memory
+of the run was 10.7 to 16.0 GB on main and 16.7 to 16.9 GB on the branch; a first attempt under a background task
+runner was stopped by the host for low memory before it recorded a sample.
+
+Per-module measurement after integration (condition 7): `/tmp/di-bag-erasure-bench/reproduce.sh <main> <branch> 5`,
+dist mode (8-module consumer fixture reading the built `.d.ts`), medians of 5, load average 2.3 to 3.3 during the run
+(the rule sets no load gate for this step; both variants interleave per rep).
+
+| Module | Check s tsc6 main / branch | Instantiations tsc6 main / branch | Check s native main / branch | Instantiations native main / branch |
+|---|---|---|---|---|
+| platform | 0.21 / 0.22 | 50,085 / 53,111 | 0.016 / 0.018 | 39,165 / 45,640 |
+| db | 0.24 / 0.25 | 64,832 / 67,843 | 0.028 / 0.026 | 65,215 / 74,534 |
+| cache | 0.21 / 0.23 | 52,455 / 56,284 | 0.022 / 0.022 | 44,169 / 50,713 |
+| sessions | 0.22 / 0.24 | 51,542 / 55,000 | 0.023 / 0.025 | 41,025 / 45,921 |
+| users | 0.23 / 0.24 | 60,193 / 64,577 | 0.023 / 0.027 | 51,787 / 62,923 |
+| auth | 0.27 / 0.28 | 74,597 / 77,818 | 0.034 / 0.036 | 93,003 / 106,471 |
+| notifications | 0.21 / 0.22 | 47,855 / 50,840 | 0.019 / 0.020 | 35,660 / 41,112 |
+| billing | 0.27 / 0.28 | 80,670 / 82,814 | 0.034 / 0.037 | 101,232 / 119,911 |
+
+Every per-module check median is within 0.02 s of `main` on TypeScript 6.0.3 and within 0.004 s native (limit
+±0.05 s). The private edit that changes an inferred return type leaves `users/module.d.ts` unchanged on the branch
+under both compilers, and the importing app rechecks at the same cost as a body-only edit (25,490 instantiations,
+0.01 s; native 25,488, 0.019 s) where `main` pays 244,004 in 0.11 s (native 425,885 in 0.211 s). Emitted module
+declarations are 778 to 2,239 bytes (`main` 6,649 to 18,239) with private keys only as quoted strings, and the `users`
+requirements parameter prints `Readonly<{ db: Db; clock: Clock; logger: Logger }>`, `db: Db` once.

@@ -238,18 +238,6 @@ Re-exports [DisjointScopeSelection](../index/type-aliases/DisjointScopeSelection
 
 ***
 
-### Enclosed
-
-Re-exports [Enclosed](../index/type-aliases/Enclosed.md)
-
-***
-
-### EnclosedLifetimeObligation
-
-Re-exports [EnclosedLifetimeObligation](../index/type-aliases/EnclosedLifetimeObligation.md)
-
-***
-
 ### FactoryWithDisposal
 
 Re-exports [FactoryWithDisposal](../index/interfaces/FactoryWithDisposal.md)
@@ -268,12 +256,6 @@ Re-exports [LazyDependency](../index/type-aliases/LazyDependency.md)
 
 ***
 
-### LexicalContext
-
-Re-exports [LexicalContext](../index/type-aliases/LexicalContext.md)
-
-***
-
 ### LifecycleEvent
 
 Re-exports [LifecycleEvent](../index/type-aliases/LifecycleEvent.md)
@@ -283,6 +265,12 @@ Re-exports [LifecycleEvent](../index/type-aliases/LifecycleEvent.md)
 ### Lifetime
 
 Re-exports [Lifetime](../index/type-aliases/Lifetime.md)
+
+***
+
+### LifetimeObligation
+
+Re-exports [LifetimeObligation](../index/type-aliases/LifetimeObligation.md)
 
 ***
 
@@ -331,12 +319,6 @@ Re-exports [ModulePublicProviders](../index/type-aliases/ModulePublicProviders.m
 ### ModuleRequiredServices
 
 Re-exports [ModuleRequiredServices](../index/type-aliases/ModuleRequiredServices.md)
-
-***
-
-### ModuleScope
-
-Re-exports [ModuleScope](../index/type-aliases/ModuleScope.md)
 
 ***
 
@@ -502,6 +484,12 @@ Re-exports [PublicProviders](../index/type-aliases/PublicProviders.md)
 
 ***
 
+### Reach
+
+Re-exports [Reach](../index/type-aliases/Reach.md)
+
+***
+
 ### ReboundProviders
 
 Re-exports [ReboundProviders](../index/type-aliases/ReboundProviders.md)
@@ -541,24 +529,6 @@ Re-exports [RegistrationSnapshot](../index/interfaces/RegistrationSnapshot.md)
 ### Renamed
 
 Re-exports [Renamed](../index/type-aliases/Renamed.md)
-
-***
-
-### RenamedContext
-
-Re-exports [RenamedContext](../index/type-aliases/RenamedContext.md)
-
-***
-
-### RenamedLifetimeObligation
-
-Re-exports [RenamedLifetimeObligation](../index/type-aliases/RenamedLifetimeObligation.md)
-
-***
-
-### RenamedLifetimeProviders
-
-Re-exports [RenamedLifetimeProviders](../index/type-aliases/RenamedLifetimeProviders.md)
 
 ***
 

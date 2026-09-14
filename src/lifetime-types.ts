@@ -1,190 +1,199 @@
 import type { ContributionConstraint } from './contribution-types';
 import type { Registration, Registrations } from './registration';
-import type { Provider, ProviderFactory, ProviderGraphContract, ProviderNamedDependencies, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue } from './provider';
-import type { GraphContract } from './token-types';
-import type { TokenKey } from './tokens';
+import type { ProviderGraphContract, ProviderNamedDependencies, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens } from './provider';
+import type { TokenBase, TokenKey } from './tokens';
 import type { CheckDependencyCompatibility, CheckDependencyCompleteness, NameText, Unsatisfied } from './types';
-import type { CheckedConstraints, CompleteConstraints, NeedConstraint, Renamed } from './module-types';
-
-// Render captive sites inside diagnostic messages.
-type SiteText<S> = S extends { readonly key: infer K } ? NameText<K> : S extends { readonly kind: 'contribution' } ? 'contribution' : never;
-type CaptiveText<C> = C extends { readonly root: infer R; readonly dependency: infer D } ? `${SiteText<R>} -> ${SiteText<D>}` : never;
+import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
 
 /**
- * A module provider's retained local registrations and public-to-local export mapping.
- * Contexts chain through `parent` when a module was sealed inside another module:
- * a name absent from `registrations` resolves in the parent, and the chain end
- * resolves in the installing host, matching runtime lexical lookup.
+ * Where a sealed lifetime walk leaves its module: an export or external name the installing
+ * host resolves, a typed-token collection the host completes, or a private scoped dead end.
  */
-export type LexicalContext<R extends Registrations = Registrations, E extends object = object> = {
-  readonly registrations: R;
-  /** Current public name -> original local name. */
-  readonly exports: E;
-  readonly parent?: LexicalContext;
-};
-/** The lexical scope a sealing builder gives its retained constraints and providers. */
-export type ModuleScope<R extends Registrations, P extends PropertyKey> = LexicalContext<R, ExportMap<P>>;
-type Extras<C> = Pick<C, Exclude<keyof C, keyof LexicalContext>>;
-type WithExtras<C, X> = [Exclude<keyof C, keyof LexicalContext>] extends [never] ? X : X & Extras<C>;
-/** Attach an enclosing scope at the end of a lexical chain; `undefined` leaves the chain unchanged. */
-export type Enclosed<C, Parent> = [Parent] extends [undefined] ? C
-  : C extends LexicalContext<infer R, infer E>
-    ? C extends { readonly parent: infer P extends LexicalContext }
-      ? WithExtras<C, LexicalContext<R, E> & { readonly parent: Enclosed<P, Parent> }>
-      : WithExtras<C, LexicalContext<R, E> & { readonly parent: Parent }>
-    : C;
-/** Rename one public export at the chain end, where names meet the installing host. */
-export type RenamedContext<C, Old extends string, New extends string> =
-  C extends LexicalContext<infer R, infer E>
-    ? C extends { readonly parent: infer P extends LexicalContext }
-      ? WithExtras<C, LexicalContext<R, E> & { readonly parent: RenamedContext<P, Old, New> }>
-      : WithExtras<C, LexicalContext<R, Renamed<E, Old, New>>>
-    : C;
-/** The plain scope of a sealed contribution, without its retained original registration. */
-type Scope<C> = C extends LexicalContext<infer R, infer E>
-  ? C extends { readonly parent: infer P extends LexicalContext } ? LexicalContext<R, E> & { readonly parent: P } : LexicalContext<R, E>
-  : undefined;
-type WithoutLexical<G> = G extends { readonly lexical: unknown } ? Omit<G, 'lexical'> : G;
-export type LifetimeObligation = {
-  readonly kind: 'lifetime';
-  readonly source: PropertyKey;
-  readonly context: LexicalContext;
-};
-type ExportMap<P extends PropertyKey> = { readonly [K in P]: K };
-type Strict<R> = ProviderGraphContract<R> extends infer G ? G extends { readonly lifetime: { readonly kind: 'root'; readonly allowScopedDependencies: infer C } }
-  ? [C] extends [true] ? false : true : false : false;
-export type PrivateLifetimes<R extends Registrations, P extends keyof R> = {
-  [K in Exclude<keyof R, P>]: true extends Strict<R[K]>
-    ? { readonly kind: 'lifetime'; readonly source: K; readonly context: LexicalContext<R, ExportMap<P>> } : never;
-}[Exclude<keyof R, P>];
+export type Reach =
+  | { readonly kind: 'export' | 'external'; readonly key: PropertyKey }
+  | { readonly kind: 'collection'; readonly key: symbol }
+  | { readonly kind: 'scoped'; readonly key: PropertyKey };
+/**
+ * A compact seal-time lifetime record that replaces a module's private registrations:
+ * `root-reach` names a private strict root, `export-reach` an export the host checks as a root or
+ * walks through as a transient or alias, and `contribution-reach` a sealed contribution group
+ * that is checked as a root or walked by collecting roots. Each record carries one reach.
+ */
+export type LifetimeObligation =
+  | { readonly kind: 'root-reach'; readonly root: PropertyKey; readonly reach: Reach }
+  | { readonly kind: 'export-reach'; readonly export: PropertyKey; readonly reach: Reach }
+  | { readonly kind: 'contribution-reach'; readonly group: symbol; readonly policy: 'root' | 'transient'; readonly reach: Reach };
 
-// A provider exported from an inner module already carries a lexical source.
-// Sealing again points the source at this scope's own entry, whose retained
-// inner source is followed on the walk; the chain end stays the host.
-export type LexicalProvider<V extends Registration, R extends Registrations, P extends keyof R, K extends keyof R> =
-  V extends infer T & {} ? T extends Registration ? [Extract<ProviderGraphContract<T>, { readonly lifetime: { readonly kind: 'root' | 'transient' } } | { readonly alias: PropertyKey }>] extends [never] ? T
-    : Provider<ProviderFactory<T>, ProviderRegistrationMetadata<T> & object, ProviderAcquisitionMetadata<T>, WithoutLexical<ProviderGraphContract<T>> & {
-      readonly lexical: { readonly source: K; readonly context: ModuleScope<R, P> };
-    }, ProviderAcquiredValue<T>> : never : never;
+// A contribution has no key; its site renders as `contribution`.
+type ContributionSite = { readonly kind: 'contribution' };
+type SiteText<S> = S extends ContributionSite ? 'contribution' : NameText<S>;
+type CaptiveText<C> = C extends { readonly root: infer R; readonly dependency: infer D } ? `${SiteText<R>} -> ${SiteText<D>}` : never;
 
-type RenamedGraph<G extends GraphContract, Old extends string, New extends string> = G extends {
-  readonly lexical: { readonly source: infer K; readonly context: infer L extends LexicalContext };
-} ? Omit<G, 'lexical'> & { readonly lexical: { readonly source: K; readonly context: RenamedContext<L, Old, New> } } : G;
-export type RenamedLifetimeProvider<V extends Registration, Old extends string, New extends string> =
-  V extends infer T & {} ? T extends Registration ? ProviderGraphContract<T> extends { readonly lexical: unknown }
-    ? Provider<ProviderFactory<T>, ProviderRegistrationMetadata<T> & object, ProviderAcquisitionMetadata<T>, RenamedGraph<ProviderGraphContract<T>, Old, New>, ProviderAcquiredValue<T>> : T : never : never;
-/** Rename public lifetime-carrier registrations while preserving their lexical sources. */
-export type RenamedLifetimeProviders<D extends Registrations, Old extends string, New extends string> = {
-  [K in keyof D as K extends Old ? New : K]: RenamedLifetimeProvider<D[K], Old, New>;
-};
-/** Rename a retained lifetime obligation's public export view. */
-export type RenamedLifetimeObligation<C extends LifetimeObligation, Old extends string, New extends string> = {
-  readonly kind: 'lifetime'; readonly source: C['source'];
-  readonly context: RenamedContext<C['context'], Old, New>;
-};
-/** Re-scope a retained obligation when the builder holding it seals into a module. */
-export type EnclosedLifetimeObligation<C extends LifetimeObligation, R extends Registrations, P extends PropertyKey> = {
-  readonly kind: 'lifetime'; readonly source: C['source'];
-  readonly context: Enclosed<C['context'], ModuleScope<R, P>>;
-};
+// Distribute registration unions and NoInfer wrappers so each member keeps its own policy.
+type Members<V> = V extends infer T & {} ? T extends Registration ? T : never : never;
+type Strict<T> = ProviderGraphContract<T> extends infer G ? G extends { readonly lifetime: { readonly kind: 'root'; readonly allowScopedDependencies: infer A } }
+  ? [A] extends [true] ? false : true : false : false;
+type Carrying<T> = ProviderGraphContract<T> extends infer G
+  ? G extends { readonly alias: PropertyKey } | { readonly lifetime: { readonly kind: 'transient' } } ? true : false : false;
+type StrictMembers<V> = Members<V> extends infer T ? T extends Registration ? true extends Strict<T> ? T : never : never : never;
+type CarrierMembers<V> = Members<V> extends infer T ? T extends Registration ? true extends Strict<T> | Carrying<T> ? T : never : never : never;
+type Dependencies<V> = V extends Registration ? keyof ProviderNamedDependencies<V> | TokenKey<ProviderRequiredTokens<V> | ProviderOptionalTokens<V>> : never;
+// A projected alias has no dependency object left; its target is the alias key.
+type AliasKeys<V> = ProviderGraphContract<V> extends infer G ? G extends { readonly alias: infer A } ? A : never : never;
+type CollectionKeys<V> = ProviderCollectionTokens<V> extends infer T ? T extends TokenBase ? TokenKey<T> : never : never;
+// Most graphs declare no lifetime or alias at all; they cannot hold a captive or a carrier,
+// so every lifetime walk below is skipped for them. This keeps per-module sealing cheap.
+type Lifetimed<V> = V extends infer T & {} ? ProviderGraphContract<T> extends infer G
+  ? G extends { readonly lifetime: unknown } | { readonly alias: unknown } | { readonly sharedAlias: unknown } ? true : never : never : never;
+type ContributionRegistrations<C> = C extends ContributionConstraint ? C['registration'] : never;
+type NeedsLifetimeWalk<R extends Registrations, C> = [Extract<C, LifetimeObligation>] extends [never]
+  ? Lifetimed<R[keyof R] | ContributionRegistrations<C>> : true;
+type ExportReaches<C, K> = C extends { readonly kind: 'export-reach'; readonly export: K; readonly reach: infer X } ? X : never;
 
-type PublicSite<K> = { readonly kind: 'public'; readonly key: K };
-type PrivateSite<C, K> = { readonly kind: 'private'; readonly context: C; readonly key: K };
-type Captive<Root, Site> = { readonly root: Root; readonly dependency: Site };
-type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
-type Seen<S, V> = true extends (V extends unknown ? Equal<S, V> : never) ? true : false;
-type PublicKey<E, K> = { [P in keyof E]: Equal<E[P], K> extends true ? P : never }[keyof E];
-type Dependencies<V extends Registration> = keyof ProviderNamedDependencies<V> | TokenKey<ProviderRequiredTokens<V> | ProviderOptionalTokens<V>>;
-
-// A single lexical walk serves public roots, private obligations, and tokens.
-// A name leaving a context resolves in its parent context, or in the host at the chain end.
-type WalkEnclosing<H extends Registrations, C, K, Root, Visited, G> = C extends { readonly parent: infer P extends LexicalContext }
-  ? WalkDependency<H, P, K, Root, Visited, G> : WalkPublic<H, K, Root, Visited, G>;
-type WalkDependency<H extends Registrations, C, K, Root, Visited, G> = K extends PropertyKey
-  ? C extends LexicalContext<infer R, infer E> ? K extends keyof R
-    ? [PublicKey<E, K>] extends [never] ? WalkTarget<H, R[K], C, Root, PrivateSite<C, K>, Visited, G>
-      : WalkEnclosing<H, C, PublicKey<E, K>, Root, Visited, G>
-    : WalkEnclosing<H, C, K, Root, Visited, G>
-  : WalkPublic<H, K, Root, Visited, G> : never;
-type WalkPublic<H extends Registrations, K, Root, Visited, G> = K extends keyof H
-  ? WalkTarget<H, H[K], undefined, Root, PublicSite<K>, Visited, G> : never;
-type WalkTarget<H extends Registrations, V extends Registration, C, Root, Site, Visited, G> =
-  V extends infer T & {} ? T extends Registration ? ProviderGraphContract<T> extends infer PG
-    ? PG extends { readonly sharedAlias: { readonly registrations: infer P extends Registrations; readonly source: infer K } }
-      ? WalkPublic<P, K, Root, never, G>
-      : PG extends { readonly kind: 'opaque' } ? never
-      : PG extends { readonly alias: PropertyKey }
-        ? Seen<Site, Visited> extends true ? never : WalkSource<H, T, C, Root, Visited | Site, G>
-      : PG extends { readonly lifetime: { readonly kind: 'root' } } ? never
-        : PG extends { readonly lifetime: { readonly kind: 'transient' } }
-          ? Seen<Site, Visited> extends true ? never : WalkSource<H, T, C, Root, Visited | Site, G>
-          : Captive<Root, Site>
+// ---- Seal time: what does each registration reach outside its module? ----
+// Exports stop the walk (the host may replace them), roots end it, private scoped registrations
+// are dead ends, and private transients and aliases are followed. Collections are completed by
+// the installing host, so they are retained unresolved.
+type Reached<R extends Registrations, P, C, D, Visited> = D extends P ? { readonly kind: 'export'; readonly key: D }
+  : D extends keyof R ? D extends Visited ? never : ReachTarget<R, P, C, R[D], D, Visited | D>
+  : D extends PropertyKey ? { readonly kind: 'external'; readonly key: D } : never;
+type ReachTarget<R extends Registrations, P, C, V, D, Visited> = Members<V> extends infer T ? T extends Registration
+  ? ProviderGraphContract<T> extends infer G
+    ? G extends { readonly kind: 'opaque' } ? never
+    : G extends { readonly alias: PropertyKey } ? Reaches<R, P, C, T, D, Visited>
+    : G extends { readonly lifetime: { readonly kind: 'root' } } ? never
+    : G extends { readonly lifetime: { readonly kind: 'transient' } } ? Reaches<R, P, C, T, D, Visited>
+    : { readonly kind: 'scoped'; readonly key: D }
     : never : never : never;
-// A lexical source found inside context C is declared in its own context L,
-// which was sealed inside C; unwrap until the original registration.
-type WalkSource<H extends Registrations, V extends Registration, C, Root, Visited, G> = ProviderGraphContract<V> extends {
-  readonly lexical: { readonly source: infer K; readonly context: infer L extends LexicalContext };
-} ? K extends keyof L['registrations'] ? WalkSource<H, L['registrations'][K], Enclosed<L, C>, Root, Visited, G> : never
-  : WalkDeclared<H, V, C, Root, Visited, G>;
-// Local shape errors have already been reported by Builder.register. External
-// dependencies are intentionally absent here, so local completeness is not required.
-type WalkDeclared<H extends Registrations, V extends Registration, C, Root, Visited, G> =
-  unknown extends (C extends LexicalContext ? CheckDependencyCompatibility<C['registrations']> : unknown)
-    ? WalkDependency<H, C, Dependencies<V>, Root, Visited, G> | WalkCollection<H, ProviderCollectionTokens<V>, Root, Visited, G> : never;
-type CheckRoot<H extends Registrations, V extends Registration, C, Site, G> = V extends infer T & {}
-  ? T extends Registration ? true extends Strict<T> ? WalkSource<H, T, C, Site, Site, G> : never : never : never;
-type PublicCaptives<H extends Registrations, G> = { [K in keyof H]: CheckRoot<H, H[K], undefined, PublicSite<K>, G> }[keyof H];
-type PrivateCaptives<H extends Registrations, C, G> = C extends LifetimeObligation
-  ? C['source'] extends keyof C['context']['registrations']
-    ? CheckRoot<H, C['context']['registrations'][C['source']], C['context'], PrivateSite<C['context'], C['source']>, G> : never : never;
-type ContributionSite<C> = { readonly kind: 'contribution'; readonly contribution: C };
-// A sealed contribution retains its original registration beside the projected one.
-type ContributionRegistration<I extends ContributionConstraint> = I['context'] extends { readonly registration: infer O extends Registration } ? O : I['registration'];
-type ContributionScope<I extends ContributionConstraint> = Scope<I['context']>;
-type WalkCollection<H extends Registrations, T, Root, Visited, G, Items = Extract<G, ContributionConstraint>> =
-  Items extends ContributionConstraint ? TokenKey<Items['token']> extends TokenKey<T>
-    ? WalkTarget<H, ContributionRegistration<Items>, ContributionScope<Items>, Root, ContributionSite<Items>, Visited, G> : never : never;
-type ContributionCaptives<H extends Registrations, G, Items = Extract<G, ContributionConstraint>> = Items extends ContributionConstraint
-  ? CheckRoot<H, ContributionRegistration<Items>, ContributionScope<Items>, ContributionSite<Items>, G> : never;
-type Captives<R extends Registrations, C> = PublicCaptives<R, C> | PrivateCaptives<R, C, C> | ContributionCaptives<R, C>;
-// Inherited roots construct in their already-validated ancestor graph. Only
-// roots newly introduced by this scope can capture its overridden dependencies.
-type OverrideCaptives<R extends Registrations, O extends Registrations, G> = {
-  [K in keyof O & keyof R]: CheckRoot<R, R[K], undefined, PublicSite<K>, G>;
-}[keyof O & keyof R];
-/** Reject root providers introduced by a scope override when they capture scoped dependencies. */
-export type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, G = never> =
-  [OverrideCaptives<R, O, G>] extends [never] ? unknown
-    : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, G>>}`, { readonly captives: OverrideCaptives<R, O, G> }>;
+type Reaches<R extends Registrations, P, C, V, K, Visited> =
+  | Reached<R, P, C, Dependencies<V> | AliasKeys<V>, Visited>
+  | Follow<R, P, C, ExportReaches<C, K>, Visited>
+  | (CollectionKeys<V> extends infer T ? T extends symbol ? { readonly kind: 'collection'; readonly key: T } : never : never);
+// A retained reach names a key of this builder; re-walk it here.
+type Follow<R extends Registrations, P, C, X, Visited> = X extends { readonly kind: 'export' | 'external'; readonly key: infer D } ? Reached<R, P, C, D, Visited> : X;
+
+type AsRoot<Root, X> = X extends Reach ? { readonly kind: 'root-reach'; readonly root: Root; readonly reach: X } : never;
+type AsExport<K, X> = X extends Reach ? { readonly kind: 'export-reach'; readonly export: K; readonly reach: X } : never;
+type AsContribution<T, Policy, X> = X extends Reach ? { readonly kind: 'contribution-reach'; readonly group: T; readonly policy: Policy; readonly reach: X } : never;
+
+type PrivateRoots<R extends Registrations, P, C> = {
+  [K in Exclude<keyof R, P>]: [StrictMembers<R[K]>] extends [never] ? never : AsRoot<K, Reaches<R, P, C, StrictMembers<R[K]>, K, K>>;
+}[Exclude<keyof R, P>];
+type RetainedRoots<R extends Registrations, P, C, O = C> = O extends { readonly kind: 'root-reach'; readonly root: infer Root; readonly reach: infer X }
+  ? AsRoot<Root, Follow<R, P, C, X, never>> : never;
+type ExportObligations<R extends Registrations, P, C> = {
+  [K in P & keyof R]: [CarrierMembers<R[K]>] extends [never] ? never : AsExport<K, Reaches<R, P, C, CarrierMembers<R[K]>, K, K>>;
+}[P & keyof R];
+type ContributionPolicy<T> = true extends Strict<T> ? 'root'
+  : ProviderGraphContract<T> extends infer G ? G extends { readonly lifetime: { readonly kind: 'transient' } } ? 'transient' : never : never;
+type OwnContributions<R extends Registrations, P, C, I = Extract<C, ContributionConstraint>> = I extends ContributionConstraint
+  ? Members<I['registration']> extends infer T ? T extends Registration ? ContributionPolicy<T> extends infer Policy ? Policy extends 'root' | 'transient'
+    ? AsContribution<TokenKey<I['token']>, Policy, Reaches<R, P, C, T, never, never>> : never : never : never : never
+  : never;
+type RetainedContributions<R extends Registrations, P, C, O = C> = O extends { readonly kind: 'contribution-reach'; readonly group: infer T; readonly policy: infer Policy; readonly reach: infer X }
+  ? AsContribution<T, Policy, Follow<R, P, C, X, never>> : never;
+type ContributionObligations<R extends Registrations, P, C> = OwnContributions<R, P, C> | RetainedContributions<R, P, C>;
+type Scoped = { readonly reach: { readonly kind: 'scoped' } };
+// Roots nobody can replace: private roots and every contribution checked as a root.
+type Unreplaceable<R extends Registrations, P, C> = PrivateRoots<R, P, C> | RetainedRoots<R, P, C> | Extract<ContributionObligations<R, P, C>, { readonly policy: 'root' }>;
+type SealCaptives<R extends Registrations, P, C> = Extract<Unreplaceable<R, P, C>, Scoped>;
+type SealCaptiveText<O> = O extends { readonly reach: { readonly key: infer D } }
+  ? `${O extends { readonly root: infer Root } ? SiteText<Root> : 'contribution'} -> ${NameText<D>}` : never;
+/** Every compact lifetime obligation a sealing builder retains for its installing host. */
+export type SealedLifetimes<R extends Registrations, P extends PropertyKey, C> = [NeedsLifetimeWalk<R, C>] extends [never] ? never
+  // A graph whose shapes were already rejected by register retains no reach: its walk would report twice.
+  : unknown extends CheckDependencyCompatibility<R>
+    ? | Exclude<Unreplaceable<R, P, C>, Scoped>
+      | ExportObligations<R, P, C>
+      | Extract<ContributionObligations<R, P, C>, { readonly policy: 'transient' }>
+    : never;
+/** Reject sealing when a root the host cannot replace captures a scoped service of the same module. */
+export type SealAdmission<R extends Registrations, P extends PropertyKey, C> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
+  : [SealCaptives<R, P, C>] extends [never] ? unknown
+  // Shape errors were already reported by register; do not add a captive report on top of them.
+  : unknown extends CheckDependencyCompatibility<R>
+    ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${SealCaptiveText<SealCaptives<R, P, C>>}`, { readonly captives: SealCaptives<R, P, C> }>
+    : unknown;
+type RenamedReach<X, Old, New> = X extends { readonly kind: 'export'; readonly key: Old } ? { readonly kind: 'export'; readonly key: New } : X;
+/** Rename one export inside retained lifetime obligations. */
+export type RenamedObligation<O, Old extends string, New extends string> =
+  O extends { readonly kind: 'export-reach'; readonly export: infer K; readonly reach: infer X }
+    ? { readonly kind: 'export-reach'; readonly export: K extends Old ? New : K; readonly reach: RenamedReach<X, Old, New> }
+  : O extends { readonly kind: 'root-reach'; readonly root: infer Root; readonly reach: infer X }
+    ? { readonly kind: 'root-reach'; readonly root: Root; readonly reach: RenamedReach<X, Old, New> }
+  : O extends { readonly kind: 'contribution-reach'; readonly group: infer T; readonly policy: infer Policy; readonly reach: infer X }
+    ? { readonly kind: 'contribution-reach'; readonly group: T; readonly policy: Policy; readonly reach: RenamedReach<X, Old, New> }
+  : O;
+/** Drop the obligations of replaced exports: the replacement brings its own graph. */
+export type WithoutExportObligations<C, K> = [Extract<C, { readonly kind: 'export-reach'; readonly export: K }>] extends [never] ? C
+  : Exclude<C, { readonly kind: 'export-reach'; readonly export: K }>;
+
+// ---- Host time: does any strict root reach a scoped registration? ----
+type Captured<D> = { readonly captured: D };
+type GroupReaches<C, T> = C extends { readonly kind: 'contribution-reach'; readonly group: T; readonly policy: 'transient'; readonly reach: infer X } ? X : never;
+type Collected<T> = { readonly collection: T };
+type HostReach<R extends Registrations, C, D, Visited> = D extends keyof R ? D extends Visited ? never : HostTarget<R, C, R[D], D, Visited | D> : never;
+type HostTarget<R extends Registrations, C, V, D, Visited> = Members<V> extends infer T ? T extends Registration
+  ? ProviderGraphContract<T> extends infer G
+    // A selected child alias resolves in its parent's registrations.
+    ? G extends { readonly sharedAlias: { readonly registrations: infer S extends Registrations; readonly source: infer K } } ? HostReach<S, C, K, never>
+    : G extends { readonly kind: 'opaque' } ? never
+    : G extends { readonly alias: PropertyKey } ? HostReaches<R, C, T, D, Visited>
+    : G extends { readonly lifetime: { readonly kind: 'root' } } ? never
+    : G extends { readonly lifetime: { readonly kind: 'transient' } } ? HostReaches<R, C, T, D, Visited>
+    : Captured<D>
+    : never : never : never;
+type HostReaches<R extends Registrations, C, V, K, Visited> =
+  | HostReach<R, C, Dependencies<V> | AliasKeys<V>, Visited>
+  | HostFollow<R, C, ExportReaches<C, K>, Visited>
+  | HostCollection<R, C, CollectionKeys<V>, Visited>;
+type HostFollow<R extends Registrations, C, X, Visited> = X extends { readonly kind: 'scoped'; readonly key: infer S } ? Captured<S>
+  : X extends { readonly kind: 'collection'; readonly key: infer T } ? HostCollection<R, C, T, Visited>
+  : X extends { readonly key: infer D } ? HostReach<R, C, D, Visited> : never;
+type HostCollection<R extends Registrations, C, T, Visited> = T extends symbol ? Collected<T> extends Visited ? never
+  : | HostContributions<R, C, T, Visited | Collected<T>>
+    | HostFollow<R, C, GroupReaches<C, T>, Visited | Collected<T>>
+  : never;
+type HostContributions<R extends Registrations, C, T, Visited, I = Extract<C, ContributionConstraint>> = I extends ContributionConstraint
+  ? TokenKey<I['token']> extends T ? Members<I['registration']> extends infer M ? M extends Registration ? ProviderGraphContract<M> extends infer G
+    ? G extends { readonly kind: 'opaque' } ? never
+    : G extends { readonly lifetime: { readonly kind: 'root' } } ? never
+    : G extends { readonly lifetime: { readonly kind: 'transient' } } ? HostReaches<R, C, M, never, Visited>
+    : Captured<ContributionSite>
+    : never : never : never : never
+  : never;
+type Captive<Root, X> = X extends Captured<infer D> ? { readonly root: Root; readonly dependency: D } : never;
+type RootCaptives<R extends Registrations, C, Keys extends keyof R> = {
+  [K in Keys]: [StrictMembers<R[K]>] extends [never] ? never : Captive<K, HostReaches<R, C, StrictMembers<R[K]>, K, K>>;
+}[Keys];
+type ContributionRootCaptives<R extends Registrations, C, I = Extract<C, ContributionConstraint>> = I extends ContributionConstraint
+  ? [StrictMembers<I['registration']>] extends [never] ? never : Captive<ContributionSite, HostReaches<R, C, StrictMembers<I['registration']>, never, never>>
+  : never;
+type ObligationCaptives<R extends Registrations, C, O = C> =
+  O extends { readonly kind: 'root-reach'; readonly root: infer Root; readonly reach: infer X } ? Captive<Root, HostFollow<R, C, X, never>>
+  : O extends { readonly kind: 'contribution-reach'; readonly policy: 'root'; readonly reach: infer X } ? Captive<ContributionSite, HostFollow<R, C, X, never>>
+  : never;
+type Captives<R extends Registrations, C> = RootCaptives<R, C, keyof R> | ContributionRootCaptives<R, C> | ObligationCaptives<R, C>;
 /** Reject strict root providers that transitively capture scoped dependencies. */
-export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> =
-  [Captives<R, C>] extends [never] ? unknown
+export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
+  : [Captives<R, C>] extends [never] ? unknown
     : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R>
       ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}`, { readonly captives: Captives<R, C> }>
       : unknown;
+// Inherited roots construct in their already-validated ancestor graph. Only
+// roots newly introduced by this scope can capture its overridden dependencies.
+type OverrideCaptives<R extends Registrations, O extends Registrations, C> = RootCaptives<R, C, keyof O & keyof R>;
+/** Reject root providers introduced by a scope override when they capture scoped dependencies. */
+export type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, C = never> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
+  : [OverrideCaptives<R, O, C>] extends [never] ? unknown
+    : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}`, { readonly captives: OverrideCaptives<R, O, C> }>;
 
-// Sharing needs the current canonical policy, including private module targets
-// and public replacements. Alias cycles terminate without inventing a policy.
-type PolicyEnclosing<H extends Registrations, C, K, Visited> = C extends { readonly parent: infer P extends LexicalContext }
-  ? PolicyDependency<H, P, K, Visited> : PolicyPublic<H, K, Visited>;
-type PolicyDependency<H extends Registrations, C, K, Visited> = K extends PropertyKey
-  ? C extends LexicalContext<infer R, infer E> ? K extends keyof R
-    ? [PublicKey<E, K>] extends [never] ? PolicyTarget<H, R[K], C, PrivateSite<C, K>, Visited>
-      : PolicyEnclosing<H, C, PublicKey<E, K>, Visited>
-    : PolicyEnclosing<H, C, K, Visited>
-  : PolicyPublic<H, K, Visited> : never;
-type PolicyPublic<H extends Registrations, K, Visited> = K extends keyof H
-  ? PolicyTarget<H, H[K], undefined, PublicSite<K>, Visited> : never;
-type PolicyTarget<H extends Registrations, V extends Registration, C, Site, Visited> =
-  Seen<Site, Visited> extends true ? never : PolicyGraph<H, V, C, Visited | Site>;
-// Unwrap lexical sources first: an exported alias or lifetime carrier reports the
-// policy of its original declaration, resolved through the enclosing chain.
-type PolicyGraph<H extends Registrations, V extends Registration, C, Visited> = ProviderGraphContract<V> extends infer G
-  ? G extends { readonly sharedAlias: { readonly registrations: infer P extends Registrations; readonly source: infer K } }
-    ? PolicyPublic<P, K, never>
-    : G extends { readonly lexical: { readonly source: infer S; readonly context: infer L extends LexicalContext } }
-      ? S extends keyof L['registrations'] ? PolicyGraph<H, L['registrations'][S], Enclosed<L, C>, Visited> : never
-    : G extends { readonly alias: infer K } ? PolicyDependency<H, C, K, Visited>
-    : G extends { readonly lifetime: { readonly kind: infer K } } ? K : 'scoped'
+// Sharing needs the current canonical policy, including public replacements and
+// parent sharing routes. Alias cycles terminate without inventing a policy.
+type PolicyOf<R extends Registrations, K, Visited> = K extends keyof R ? K extends Visited ? never : PolicyTarget<R, R[K], Visited | K> : never;
+type PolicyTarget<R extends Registrations, V, Visited> = ProviderGraphContract<V> extends infer G
+  ? G extends { readonly sharedAlias: { readonly registrations: infer P extends Registrations; readonly source: infer K } } ? PolicyOf<P, K, never>
+  : G extends { readonly alias: infer K } ? PolicyOf<R, K, Visited>
+  : G extends { readonly lifetime: { readonly kind: infer L } } ? L : 'scoped'
   : never;
-export type CanonicalLifetime<R extends Registrations, K extends keyof R> = PolicyPublic<R, K, never>;
+export type CanonicalLifetime<R extends Registrations, K extends keyof R> = PolicyOf<R, K, never>;

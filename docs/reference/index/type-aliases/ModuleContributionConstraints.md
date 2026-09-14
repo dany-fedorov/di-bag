@@ -5,16 +5,14 @@
 # Type Alias: ModuleContributionConstraints\<C, R *extends* `Registrations`, P *extends* keyof `R`\>
 
 ```ts
-type ModuleContributionConstraints<C, R extends Registrations, P extends keyof R> = C extends ContributionConstraint ? C['context'] extends LexicalContext ? Contribution<C['token'], C['registration'], Enclosed<C['context'], ModuleScope<R, P>>> : Contribution<C['token'], PublicProvider<C['registration']>, ModuleScope<R, P> & {
-    readonly registration: C['registration'];
-}> | RegistrationConstraints<C['registration'], R, P> : never;
+type ModuleContributionConstraints<C, R extends Registrations, P extends keyof R> = C extends ContributionConstraint ? Contribution<C['token'], PublicProvider<C['registration']>> | RegistrationConstraints<C['registration'], R, P> : never;
 ```
 
-Defined in: [contribution-types.ts:47](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L47)
+Defined in: [contribution-types.ts:46](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L46)
 
-Retain a contribution's provider checks and lexical private-service context when
-its builder seals. A contribution retained from an inner installation is already
-projected; sealing only encloses its scope in this module's scope.
+Retain a contribution's projected provider and its checked needs when its builder seals.
+Lifetime reach is retained separately as compact obligations. A contribution retained
+from an inner installation is already projected and has no needs left to re-scope.
 
 ## Type Parameters
 

@@ -14,7 +14,7 @@ import { moduleGraph, sealModule } from './module';
 import type { Module, ModuleOptions } from './module';
 import type { CompositionReport } from './composition-report';
 import type { CheckedConstraints, CompleteConstraints, ExternalRequirements, IncrementalConstraints, ModulePublicProviders, ModuleSealedConstraints, NeedConstraint } from './module-types';
-import type { CheckedLifetimes } from './lifetime-types';
+import type { CheckedLifetimes, SealAdmission, WithoutExportObligations } from './lifetime-types';
 import { withLifetime } from './lifetime';
 import { fromFactory } from './acquisition-context';
 import { closeRuntime, startRuntime } from './startup';
@@ -40,6 +40,7 @@ import type {
   RegistrationEntries,
   Entry,
   EntryKeys,
+  ExportedServices,
   OverrideFactoryContext,
   RegistrationsFromEntries,
   IncrementalChecked,
@@ -155,9 +156,9 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
       CheckDependencyCompleteness<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
       CheckedConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
       CompleteConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
-      CheckedScopeLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>>, NoInfer<SelectedRegistrations<K, O>>, C>,
+      CheckedScopeLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>>, NoInfer<SelectedRegistrations<K, O>>, WithoutExportObligations<C, SelectionKey<K[number]>>>,
     options?: ScopeOptions<R, S> & DisjointScopeSelection<K, S>,
-  ): Bag<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>, C>;
+  ): Bag<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>, WithoutExportObligations<C, SelectionKey<K[number]>>>;
   /**
    * Create a tracked child with the same graph and fresh scoped acquisitions.
    * @returns A child that is closed before its parent finishes closing.
@@ -197,8 +198,8 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
       CheckDependencyCompleteness<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
       CheckedConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
       CompleteConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
-      CheckedLifetimes<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, C>,
-  ): Bag<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, C>;
+      CheckedLifetimes<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, WithoutExportObligations<C, SelectionKey<K[number]>>>,
+  ): Bag<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, WithoutExportObligations<C, SelectionKey<K[number]>>>;
   fork(keys?: readonly unknown[], overrides?: object): unknown {
     this.#runtime.assertOpen();
     if (keys === undefined && overrides === undefined) {
@@ -366,7 +367,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
     key: K & ReplacementKeyOf<EntryKeys<E>, K>,
     registration: V & (Factory | FactoryWithDisposal<Factory>) & ZeroDependencyAdmission<NoInfer<V>> &
       CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<K, NoInfer<V>>>>,
-  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, C>;
+  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, WithoutExportObligations<C, K>>;
   /**
    * Replace an existing named or typed-token registration.
    * @param key - The single existing name or token to replace.
@@ -376,7 +377,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   replace<const K extends string | TokenBase, V extends Registration>(
     key: K & NoInfer<ReplacementAdmission<RegistrationsFromEntries<E>, K>>,
     registration: V & Registration & BuilderReplacementRegistration<E, C, NoInfer<K>, V>,
-  ): Builder<ReplacedEntries<E, K, V>, C>;
+  ): Builder<ReplacedEntries<E, K, V>, WithoutExportObligations<C, SelectionKey<K>>>;
   replace(selection: string | TokenBase, registration: Registration): unknown {
     const key = typeof selection === 'string' ? selection : readTokenKey(selection);
     if (!this.#graph.hasPublic(key)) {
@@ -431,8 +432,11 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * const app = DiBag.createBuilder().installModule(orders).build();
    * ```
    */
-  buildModule<const K extends readonly unknown[]>(keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildModule'>, options?: ModuleOptions): Module<
-    Pick<ServicesOf<RegistrationsFromEntries<E>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
+  buildModule<const K extends readonly unknown[]>(
+    keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildModule'> & SealAdmission<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>, C>,
+    options?: ModuleOptions,
+  ): Module<
+    ExportedServices<ServicesOf<RegistrationsFromEntries<E>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
     ExternalRequirements<ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>,
     ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
     ModulePublicProviders<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>

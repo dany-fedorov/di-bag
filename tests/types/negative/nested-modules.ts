@@ -43,19 +43,18 @@ DiBag.createBuilder().installModule(exportedOuter).build();
 
 // A private root of the outer module that captures through an inner transient bridge.
 const bridge = DiBag.createBuilder().register({ hop: withLifetime(({ db }: { db: number }) => db, 'transient') }).buildModule(['hop']);
-const privateRoot = DiBag.createBuilder().installModule(bridge).register({ db: () => 1, hidden: withLifetime(({ hop }: { hop: number }) => hop, 'root'), api: () => 1 }).buildModule(['api']);
-// diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(privateRoot).build();
+const privateRootBuilder = DiBag.createBuilder().installModule(bridge).register({ db: () => 1, hidden: withLifetime(({ hop }: { hop: number }) => hop, 'root'), api: () => 1 });
+// diagnostic: root lifetime cannot capture scoped dependency: hidden -> db
+privateRootBuilder.buildModule(['api']);
 
 // A host root capturing through two nested transient bridges, where the scoped source is host-provided.
 const deepBridge = DiBag.createBuilder().installModule(bridge).register({ relay: withLifetime(({ hop }: { hop: number }) => hop, 'transient') }).buildModule(['relay']);
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().installModule(deepBridge).register({ db: () => 1, root: withLifetime(({ relay }: { relay: number }) => relay, 'root') }).build();
 
-// A nested contribution whose private dependency is scoped, consumed by a host root collection.
+// A root contribution whose private dependency is scoped is rejected when its module seals.
 const groupKey = Symbol('group');
 const group = DiBag.token(groupKey).of<number>();
-const contributing = DiBag.createBuilder().register({ hidden: () => 1 }).contribute(group, withLifetime(({ hidden }: { hidden: number }) => hidden, 'root')).buildModule([]);
-const wrapped = DiBag.createBuilder().installModule(contributing).buildModule([]);
-// diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(wrapped).build();
+const contributingBuilder = DiBag.createBuilder().register({ hidden: () => 1 }).contribute(group, withLifetime(({ hidden }: { hidden: number }) => hidden, 'root'));
+// diagnostic: root lifetime cannot capture scoped dependency: contribution -> hidden
+contributingBuilder.buildModule([]);

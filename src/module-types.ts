@@ -1,11 +1,11 @@
-import type { ContributionConstraint, CheckedContributions, CompleteContributions, RenamedContribution, ModuleContributionConstraints } from './contribution-types';
+import type { ContributionConstraint, CheckedContributions, CompleteContributions, ModuleContributionConstraints } from './contribution-types';
 import type { Module } from './module';
-import type { Registrations } from './registration';
-import type { Entry, NameText, Needs, RegistrationsFromEntries, ServicesOf, Singleton, Unsatisfied } from './types';
-import type { MetadataKeyUnion, Provider, ProviderOutput, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens, BoundToken } from './provider';
-import type { TokenDependencyContract, WrongToken, MissingToken } from './token-types';
+import type { Registration, Registrations } from './registration';
+import type { Entry, Intersect, NameText, Needs, Resolved, RegistrationsFromEntries, ServicesOf, Singleton, Unsatisfied } from './types';
+import type { MetadataKeyUnion, Provider, ProviderFactory, ProviderOutput, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens, BoundToken } from './provider';
+import type { GraphContract, TokenDependencyContract, WrongToken, MissingToken } from './token-types';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
-import type { LifetimeObligation, PrivateLifetimes, LexicalProvider, RenamedLifetimeObligation, EnclosedLifetimeObligation } from './lifetime-types';
+import type { LifetimeObligation, RenamedObligation, SealedLifetimes } from './lifetime-types';
 
 export type NeedConstraint =
   | LifetimeObligation
@@ -47,7 +47,7 @@ export type IncrementalConstraints<
   MC extends NeedConstraint,
   Old extends Registrations,
   Incoming extends Registrations,
-> = [Extract<C | MC, { kind: 'contribution' | 'all' | 'opaque' | 'lifetime' }>] extends [never]
+> = [Extract<C | MC, { kind: 'contribution' | 'all' | 'opaque' | 'root-reach' | 'export-reach' | 'contribution-reach' }>] extends [never]
   ? unknown extends CheckedConstraints<C, Incoming>
     ? CheckedConstraints<MC, import('./types').OverrideRegistrations<Old, Incoming>>
     : CheckedConstraints<C, Incoming>
@@ -60,30 +60,36 @@ export type CompleteConstraints<C extends NeedConstraint, A extends Registration
 // their lookup keys equal. Keep consumers distributive, never intersect needs
 // before validating them: incompatible requirements must not become `never`.
 type Constraint<K extends string | symbol, N, Keys extends keyof N, Kind extends string> =
-  [Keys] extends [never] ? never : { readonly consumer: K; readonly needs: Pick<N, Keys>; readonly kind: Kind };
-export type RegistrationConstraints<V extends Registrations[string], R extends Registrations, Public extends keyof R, K extends string | symbol = string | symbol> =
-    | Constraint<K, Needs<V>, Extract<keyof Needs<V>, Public>, 'export'>
+  [Keys] extends [never] ? never : { readonly consumer: K; readonly needs: Resolved<Pick<N, Keys>>; readonly kind: Kind };
+// Union and indexed-access aliases keep their names through instantiation, and a union built from
+// named unions prints through them. These answer through a resolved conditional branch instead, so
+// a sealed module's declaration prints constraint objects, not the registrations they came from.
+export type RegistrationConstraints<V extends Registrations[string], R extends Registrations, Public extends keyof R, K extends string | symbol = string | symbol> = [V] extends [unknown]
+  ? | Constraint<K, Needs<V>, Extract<keyof Needs<V>, Public>, 'export'>
     | Constraint<K, Needs<V>, Exclude<keyof Needs<V>, keyof R>, 'external'>
     | (ProviderCollectionTokens<V> extends infer T ? T extends TokenBase ? { readonly kind: 'all'; readonly token: T } : never : never)
     | TokenConstraint<K, ProviderRequiredTokens<V>, R, Public>
     | TokenConstraint<K, ProviderOptionalTokens<V>, R, Public, true>
-    | ([ProviderGraphContract<V>] extends [TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? never : { readonly kind: 'opaque' });
+    | ([ProviderGraphContract<V>] extends [TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? never : { readonly kind: 'opaque' })
+  : never;
 /** Retained requirements of a module's public and private registrations. */
-export type ModuleConstraints<R extends Registrations, Public extends keyof R> = {
+export type ModuleConstraints<R extends Registrations, Public extends keyof R> = [R] extends [unknown] ? {
   [K in keyof R & (string | symbol)]: RegistrationConstraints<R[K], R, Public, K>;
-}[keyof R & (string | symbol)] | PrivateLifetimes<R, Public>;
+}[keyof R & (string | symbol)] : never;
 type TokenConstraint<K extends string | symbol, T, R, Public, Optional extends boolean = false> = T extends TokenBase
   ? TokenKey<T> extends Public ? { readonly consumer: K; readonly token: T; readonly kind: Optional extends true ? 'optional-token-export' : 'token-export' }
     : TokenKey<T> extends keyof R ? never : { readonly consumer: K; readonly token: T; readonly kind: Optional extends true ? 'optional-token-external' : 'token-external' }
   : never;
 
-type Intersect<U> = (U extends unknown ? (value: U) => void : never) extends
-  (value: infer I) => void ? I : never;
-type External<C> = C extends { kind: 'external'; needs: infer N } ? N
-  : C extends { kind: 'token-external'; token: infer T } ? Record<TokenKey<T>, TokenService<T>>
-    : C extends { kind: 'optional-token-external'; token: infer T } ? Partial<Record<TokenKey<T>, TokenService<T>>> : never;
-export type ExternalRequirements<C> = [External<C>] extends [never] ? Readonly<{}>
-  : Readonly<Intersect<External<C>>>;
+type ExternalNames<C> = C extends { kind: 'external'; needs: infer N } ? N : never;
+type ExternalTokens<C> = C extends { kind: 'token-external'; token: infer T } ? Record<TokenKey<T>, TokenService<T>>
+  : C extends { kind: 'optional-token-external'; token: infer T } ? Partial<Record<TokenKey<T>, TokenService<T>>> : never;
+// Named needs merge into one resolved object, so a need several consumers share prints once.
+// Token needs stay `Record` references: declaration emit cannot serialize an expanded unique-symbol property.
+export type ExternalRequirements<C> = [ExternalNames<C>] extends [never]
+  ? [ExternalTokens<C>] extends [never] ? Readonly<{}> : Readonly<Intersect<ExternalTokens<C>>>
+  : [ExternalTokens<C>] extends [never] ? Readonly<Resolved<Intersect<ExternalNames<C>>>>
+  : Readonly<Resolved<Intersect<ExternalNames<C>>> & Intersect<ExternalTokens<C>>>;
 
 // Capture the output independently of the registration retained by its public projection.
 type OutputFactory<O> = () => O;
@@ -107,14 +113,46 @@ type PublicGraph<G> = G extends TokenDependencyContract<readonly TokenBase[], To
 type RetainedPublicProvider<R extends Registrations[string]> = Provider<OutputFactory<ProviderOutput<R>>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, PublicGraph<ProviderGraphContract<R>>, ProviderAcquiredValue<R>>;
 /** Project registrations to dependency-free public descriptions while retaining behavioral contracts. */
 export type PublicProviders<R extends object> = { [K in keyof R]: PublicProvider<R[K]> };
-/** Project selected module exports while retaining their lexical private graph where required. */
-export type ModulePublicProviders<R extends Registrations, P extends keyof R> = { [K in P]: LexicalProvider<PublicProvider<R[K]>, R, P, K> };
+type WithoutAlias<G> = { [K in keyof G as K extends 'alias' ? never : K]: G[K] };
+// An exported alias to a private target takes that target's lifetime, so the target name does
+// not leave the module; one to an export or an external name keeps following that name.
+type AliasEnd<R extends Registrations, P, A, Visited> = A extends P ? { readonly alias: A }
+  : A extends keyof R ? A extends Visited ? {} : ProviderGraphContract<R[A]> extends infer G
+    ? G extends { readonly alias: infer B } ? AliasEnd<R, P, B, Visited | A>
+    : G extends { readonly lifetime: infer L } ? { readonly lifetime: L } : {}
+    : never
+  : { readonly alias: A };
+type SealedProvider<R extends Registrations, P, V> = PublicProvider<V> extends infer T ? T extends Registration
+  ? ProviderGraphContract<T> extends { readonly alias: infer A }
+    ? AliasEnd<R, P, A, never> extends infer F ? F extends object
+      ? Provider<ProviderFactory<T>, ProviderRegistrationMetadata<T> & object, ProviderAcquisitionMetadata<T>, Extract<Resolved<WithoutAlias<ProviderGraphContract<T>> & F>, GraphContract>, ProviderAcquiredValue<T>>
+      : never : never
+    : T
+  : never : never;
+// Symbol-keyed exports stay `Record` references; declaration emit cannot expand a unique-symbol property.
+type SymbolProviders<R extends Registrations, P extends keyof R, K = P> =
+  Extract<Intersect<K extends symbol ? Record<K, SealedProvider<R, P, R[K & keyof R]>> : never>, Registrations>;
+/**
+ * Project selected module exports to dependency-free providers that keep behavioral contracts.
+ * The conditional answer carries no alias, so declarations print the providers, not the registrations.
+ */
+export type ModulePublicProviders<R extends Registrations, P extends keyof R> = [Extract<P, symbol>] extends [never]
+  ? { [K in P]: SealedProvider<R, P, R[K]> }
+  : [Extract<P, string>] extends [never] ? SymbolProviders<R, P>
+  : { [K in Extract<P, string>]: SealedProvider<R, P, R[K]> } & SymbolProviders<R, P>;
 /** Rename one string key in an object contract. */
 export type Renamed<P extends object, Old extends string, New extends string> = {
   [K in keyof P as K extends Old ? New : K]: P[K];
 };
+type AliasesTo<D, Old> = { [K in keyof D]: ProviderGraphContract<D[K]> extends { readonly alias: Old } ? K : never }[keyof D];
+type RenamedAlias<V, Old, New> = V extends Registration ? ProviderGraphContract<V> extends { readonly alias: Old }
+  ? Provider<ProviderFactory<V>, ProviderRegistrationMetadata<V> & object, ProviderAcquisitionMetadata<V>, Extract<Resolved<WithoutAlias<ProviderGraphContract<V>> & { readonly alias: New }>, GraphContract>, ProviderAcquiredValue<V>>
+  : V : V;
+/** Rename one export in a module's public providers, including exported aliases that follow it. */
+export type RenamedProviders<D extends object, Old extends string, New extends string> = [AliasesTo<D, Old>] extends [never] ? Renamed<D, Old, New>
+  : { [K in keyof D as K extends Old ? New : K]: RenamedAlias<D[K], Old, New> };
 export type RenamedConstraints<C extends NeedConstraint, Old extends string, New extends string> =
-  C extends ContributionConstraint ? RenamedContribution<C, Old, New> : C extends LifetimeObligation ? RenamedLifetimeObligation<C, Old, New> : C extends { readonly kind: 'export'; readonly consumer: string | symbol; readonly needs: object }
+  C extends LifetimeObligation ? RenamedObligation<C, Old, New> : C extends { readonly kind: 'export'; readonly consumer: string | symbol; readonly needs: object }
     ? { readonly consumer: C['consumer']; readonly needs: Renamed<C['needs'], Old, New>; readonly kind: 'export' }
     : C;
 export type RenameKeys<P, Old extends string, New extends string> =
@@ -131,7 +169,8 @@ type InvalidRename = Unsatisfied<'renameExport requires an existing export and a
  */
 export type SealedConstraints<C extends NeedConstraint, R extends Registrations, P extends keyof R> = C extends ContributionConstraint
   ? ModuleContributionConstraints<C, R, P>
-  : C extends LifetimeObligation ? EnclosedLifetimeObligation<C, R, P>
+  // Sealing re-derives retained lifetime obligations in this module's scope (SealedLifetimes).
+  : C extends LifetimeObligation ? never
   : C extends { readonly kind: 'export' | 'external'; readonly consumer: infer K extends string | symbol; readonly needs: infer N extends object }
     ? Constraint<K, N, Extract<keyof N, P>, 'export'> | Constraint<K, N, Exclude<keyof N, keyof R>, 'external'>
   : C extends { readonly kind: 'token-export' | 'token-external'; readonly consumer: infer K extends string | symbol; readonly token: infer T }
@@ -139,9 +178,11 @@ export type SealedConstraints<C extends NeedConstraint, R extends Registrations,
   : C extends { readonly kind: 'optional-token-export' | 'optional-token-external'; readonly consumer: infer K extends string | symbol; readonly token: infer T }
     ? TokenConstraint<K, T, R, P, true>
   : C;
-/** Every constraint a sealed module carries: its own registrations' needs plus re-scoped retained constraints. */
-export type ModuleSealedConstraints<E extends Entry, C extends NeedConstraint, P extends keyof RegistrationsFromEntries<E>> =
-  ModuleConstraints<RegistrationsFromEntries<E>, P> | SealedConstraints<C, RegistrationsFromEntries<E>, P>;
+/** Every constraint a sealed module carries: its own registrations' needs, re-scoped retained constraints, and compact lifetime obligations. */
+// The outer conditional keeps this exported alias name off the result, so declarations print its members.
+export type ModuleSealedConstraints<E extends Entry, C extends NeedConstraint, P extends keyof RegistrationsFromEntries<E>> = [P] extends [unknown]
+  ? ModuleConstraints<RegistrationsFromEntries<E>, P> | SealedConstraints<C, RegistrationsFromEntries<E>, P> | SealedLifetimes<RegistrationsFromEntries<E>, P, C>
+  : never;
 
 /** Extract a readonly map of services publicly exposed by a module. */
 export type ModuleExportedServices<M> = M extends Module<infer P, infer _R, infer _C, infer _D> ? Readonly<P> : never;

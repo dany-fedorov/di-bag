@@ -2,18 +2,17 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / Contribution
 
-# Type Alias: Contribution\<T *extends* [`TokenBase`](../interfaces/TokenBase.md) = [`TokenBase`](../interfaces/TokenBase.md), V *extends* [`Registration`](Registration.md) = [`Registration`](Registration.md), L = `undefined`\>
+# Type Alias: Contribution\<T *extends* [`TokenBase`](../interfaces/TokenBase.md) = [`TokenBase`](../interfaces/TokenBase.md), V *extends* [`Registration`](Registration.md) = [`Registration`](Registration.md)\>
 
 ```ts
-type Contribution<T extends TokenBase = TokenBase, V extends Registration = Registration, L = undefined> = {
+type Contribution<T extends TokenBase = TokenBase, V extends Registration = Registration> = {
     readonly kind: 'contribution';
     readonly token: T;
     readonly registration: V;
-    readonly context: L;
 };
 ```
 
-Defined in: [contribution-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L12)
+Defined in: [contribution-types.ts:11](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L11)
 
 Each union member retains one independently checked provider and its group.
 
@@ -23,19 +22,8 @@ Each union member retains one independently checked provider and its group.
 | ------ | ------ |
 | `T` | - |
 | `V` | - |
-| `L` | - |
 
 ## Properties
-
-### context
-
-```ts
-readonly context: L;
-```
-
-Defined in: [contribution-types.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L13)
-
-***
 
 ### kind
 
@@ -43,7 +31,7 @@ Defined in: [contribution-types.ts:13](https://github.com/dany-fedorov/di-bag/bl
 readonly kind: 'contribution';
 ```
 
-Defined in: [contribution-types.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L13)
+Defined in: [contribution-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L12)
 
 ***
 
@@ -53,7 +41,7 @@ Defined in: [contribution-types.ts:13](https://github.com/dany-fedorov/di-bag/bl
 readonly registration: V;
 ```
 
-Defined in: [contribution-types.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L13)
+Defined in: [contribution-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L12)
 
 ***
 
@@ -63,4 +51,4 @@ Defined in: [contribution-types.ts:13](https://github.com/dany-fedorov/di-bag/bl
 readonly token: T;
 ```
 
-Defined in: [contribution-types.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L13)
+Defined in: [contribution-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L12)

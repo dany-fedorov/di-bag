@@ -5,15 +5,14 @@ import type { CheckDependencyCompatibility, CheckDependencyCompleteness, Unsatis
 import type { ProviderCollectionTokens } from './provider';
 import type { Module } from './module';
 import type { RegistrationConstraints, PublicProvider, NeedConstraint, CheckedConstraints } from './module-types';
-import type { LexicalContext, ModuleScope, Enclosed, RenamedContext } from './lifetime-types';
 
 declare const contributionSite: unique symbol;
 /** Each union member retains one independently checked provider and its group. */
-export type Contribution<T extends TokenBase = TokenBase, V extends Registration = Registration, L = undefined> = {
-  readonly kind: 'contribution'; readonly token: T; readonly registration: V; readonly context: L;
+export type Contribution<T extends TokenBase = TokenBase, V extends Registration = Registration> = {
+  readonly kind: 'contribution'; readonly token: T; readonly registration: V;
 };
 /** The erased contribution contract retained by checked builders and modules. */
-export type ContributionConstraint = Contribution<TokenBase, Registration, unknown>;
+export type ContributionConstraint = Contribution<TokenBase, Registration>;
 type Groups<C> = Extract<C, ContributionConstraint>;
 type Same<A, B> = [A] extends [B] ? [B] extends [A] ? true : false : false;
 type WrongMember<T, G> = G extends ContributionConstraint ? TokenKey<T> extends TokenKey<G['token']>
@@ -40,18 +39,13 @@ export type CheckedContributions<C, A extends Registrations> = [Groups<C>] exten
 export type CompleteContributions<C, A extends Registrations> = [MissingProvider<C, A>] extends [never] ? unknown
   : Unsatisfied<'required service registrations are missing', { readonly contributions: MissingProvider<C, A> }>;
 /**
- * Retain a contribution's provider checks and lexical private-service context when
- * its builder seals. A contribution retained from an inner installation is already
- * projected; sealing only encloses its scope in this module's scope.
+ * Retain a contribution's projected provider and its checked needs when its builder seals.
+ * Lifetime reach is retained separately as compact obligations. A contribution retained
+ * from an inner installation is already projected and has no needs left to re-scope.
  */
 export type ModuleContributionConstraints<C, R extends Registrations, P extends keyof R> = C extends ContributionConstraint
-  ? C['context'] extends LexicalContext
-    ? Contribution<C['token'], C['registration'], Enclosed<C['context'], ModuleScope<R, P>>>
-    : Contribution<C['token'], PublicProvider<C['registration']>, ModuleScope<R, P> & { readonly registration: C['registration'] }>
-      | RegistrationConstraints<C['registration'], R, P>
+  ? Contribution<C['token'], PublicProvider<C['registration']>> | RegistrationConstraints<C['registration'], R, P>
   : never;
-export type RenamedContribution<C extends ContributionConstraint, Old extends string, New extends string> =
-  C['context'] extends LexicalContext ? Contribution<C['token'], C['registration'], RenamedContext<C['context'], Old, New>> : C;
 /** Project a module's typed-token collections as readonly service arrays. */
 export type ModuleContributions<M> = M extends Module<infer _P, infer _R, infer C, infer _D>
   ? Readonly<{ [T in Groups<C>['token'] as TokenKey<T>]: ReadonlyArray<TokenService<T>> }> : never;

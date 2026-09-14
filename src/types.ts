@@ -327,3 +327,18 @@ export type OverrideFactoryContext<
         P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract
       >;
 };
+
+// Declaration emit prints a type through the alias it was instantiated from, and an alias the
+// package index does not export cannot be named by consumers. A resolved conditional branch carries
+// no alias, so these helpers answer through one and print as plain object types.
+/** Force a projection to print as a resolved object type in declarations. */
+export type Resolved<T> = T extends object ? { [K in keyof T]: T[K] } : T;
+export type Intersect<U> = (U extends unknown ? (value: U) => void : never) extends (value: infer I) => void ? I : never;
+// Declaration emit cannot serialize an expanded property named by a unique symbol, so symbol keys
+// stay `Record` references, which print by name and carry only the key and service types.
+type SymbolExports<S, K> = Extract<Intersect<K extends symbol ? Record<K, S[K & keyof S]> : never>, object>;
+/** The services a sealed module exports, printed without the registrations they came from. */
+// Single-kind selections skip the intersection: installs compare this type on every call.
+export type ExportedServices<S, K extends keyof S> = [Extract<K, symbol>] extends [never] ? Resolved<Pick<S, K>>
+  : [Extract<K, string>] extends [never] ? SymbolExports<S, K>
+  : Resolved<Pick<S, Extract<K, string>>> & SymbolExports<S, K>;

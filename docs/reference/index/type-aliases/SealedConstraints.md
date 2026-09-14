@@ -5,7 +5,7 @@
 # Type Alias: SealedConstraints\<C *extends* `NeedConstraint`, R *extends* `Registrations`, P *extends* keyof `R`\>
 
 ```ts
-type SealedConstraints<C extends NeedConstraint, R extends Registrations, P extends keyof R> = C extends ContributionConstraint ? ModuleContributionConstraints<C, R, P> : C extends LifetimeObligation ? EnclosedLifetimeObligation<C, R, P> : C extends {
+type SealedConstraints<C extends NeedConstraint, R extends Registrations, P extends keyof R> = C extends ContributionConstraint ? ModuleContributionConstraints<C, R, P> : C extends LifetimeObligation ? never : C extends {
     readonly kind: 'export' | 'external';
     readonly consumer: infer K extends string | symbol;
     readonly needs: infer N extends object;
@@ -20,7 +20,7 @@ type SealedConstraints<C extends NeedConstraint, R extends Registrations, P exte
 } ? TokenConstraint<K, T, R, P, true> : C;
 ```
 
-Defined in: [module-types.ts:132](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L132)
+Defined in: [module-types.ts:170](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L170)
 
 Re-scope every constraint a builder retained from installed modules and
 contributions when that builder seals into a module with exports `P`.
