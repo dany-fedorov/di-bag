@@ -1,0 +1,10 @@
+{
+  "name": "shop",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --import ./resolve-ts.mjs --test \"src/**/*.test.ts\"",
+    "check:fast": "tsc --noEmit -p src/features/$MODULE/tsconfig.json && node --import ./resolve-ts.mjs --test \"src/features/$MODULE/*.test.ts\""
+  }
+}

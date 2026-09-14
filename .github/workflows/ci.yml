@@ -54,6 +54,7 @@ jobs:
           npm install --no-audit --no-fund packs/di-bag/*.tgz packs/di-bag-graph/*.tgz
           npx tsc -p tsconfig.json
           npx di-bag-graph --check
+      - run: npm run agent-eval:test
       - name: Run examples
         run: |
           for example in examples/*.ts; do
