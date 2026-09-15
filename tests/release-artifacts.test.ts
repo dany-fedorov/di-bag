@@ -111,7 +111,7 @@ describe('release documentation contract', () => {
   test('release documents match the frozen package and gate every online command', () => {
     const changelog = readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8');
     const publishing = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
-    expect(packageManifest).toMatchObject({ name: 'di-bag', version: '0.2.0' });
+    expect(packageManifest).toMatchObject({ name: 'di-bag', version: '0.3.0' });
     expect(changelog.match(new RegExp(`^## ${packageManifest.version}$`, 'gm'))).toHaveLength(1);
     expect(changelog).not.toContain('## Unreleased');
     expect(validatePublishingDocument(publishing, packageManifest.version)).toEqual([]);
