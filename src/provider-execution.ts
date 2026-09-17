@@ -6,6 +6,7 @@ import type { AcquisitionContext } from './acquisition-context';
 
 type RegistrationDescription = ReturnType<typeof normalize>;
 type Disposer = (value: never) => void | Promise<void>;
+type DeferredAction = (this: void) => void | Promise<void>;
 interface AcceptedStage {
   readonly index: number;
   readonly value: unknown;
@@ -41,6 +42,7 @@ export class CompletedExecution {
   readonly state = 'ready';
   readonly sourceInFlight = false;
   readonly hasOwnership = false;
+  readonly hasRollback = false;
   readonly error = undefined;
   readonly work = emptyWork;
   constructor(private frames: AcquisitionMetadataPresence<readonly unknown[]>) {}
@@ -59,6 +61,10 @@ const completedWithoutFrames = new CompletedExecution(emptyFrames);
 export class ProviderExecution {
   private readonly frames: Presence<unknown>[];
   private readonly stages: AcceptedStage[] = [];
+  // Acquisition-local rollback: actions a context-aware factory registered for
+  // resources it acquired. Discarded on success; run LIFO on failure.
+  private readonly deferred: DeferredAction[] = [];
+  private acquisitionSettled = false;
   private readonly pending = new Set<Promise<void>>();
   private result: ValueStage | undefined;
   private cleaning: Promise<void> | undefined;
@@ -76,7 +82,26 @@ export class ProviderExecution {
   get state(): 'pending' | 'ready' | 'failed' { return this.result?.state ?? 'failed'; }
   get error(): unknown { return this.result?.error; }
   get hasOwnership(): boolean { return this.stages.length > 0; }
+  get hasRollback(): boolean { return this.deferred.length > 0; }
   get work(): readonly Promise<void>[] { return [...this.pending]; }
+
+  /** Register acquisition-local cleanup for a resource this attempt already holds. */
+  defer(action: DeferredAction): void {
+    if (typeof action !== 'function') throw libraryError('DI_BAG_INVALID_CLEANUP', 'context.defer requires a function', { operation: 'defer', provided: typeof action });
+    // A retained context is a leak, not a stack: registration closes with the attempt.
+    if (this.acquisitionSettled) throw libraryError('DI_BAG_CLEANUP_AFTER_ACQUISITION', 'context.defer is only available while its acquisition is running', { operation: 'defer' });
+    this.deferred.push(action);
+  }
+
+  /**
+   * Close registration when the source settles. A factory that returned has
+   * transferred ownership of every deferred resource to the value it produced,
+   * so a later projection failure disposes that value once, through its stages.
+   */
+  private settleDeferred(state: 'ready' | 'failed'): void {
+    this.acquisitionSettled = true;
+    if (state === 'ready') this.deferred.length = 0;
+  }
 
   /** Observe the selected stage, retaining its failure even after retirement. */
   async ready(): Promise<void> {
@@ -87,7 +112,7 @@ export class ProviderExecution {
   }
 
   compact(): ProviderExecution | CompletedExecution {
-    if (this.state !== 'ready' || this.pending.size || this.hasOwnership) return this;
+    if (this.state !== 'ready' || this.pending.size || this.hasOwnership || this.hasRollback) return this;
     return this.frames.length ? new CompletedExecution(this.inspectFrames()) : completedWithoutFrames;
   }
 
@@ -111,6 +136,8 @@ export class ProviderExecution {
     let current = this.capture(() => description.contextual
       ? Reflect.apply(create, undefined, [deps, acquisitionContext()])
       : create(deps as never), true, description.acquisitionMode);
+    // A pending source settles its own rollback list from the promise handler.
+    if (current.state !== 'pending') this.settleDeferred(current.state);
     let nextFrame = 0;
     if (dispose) this.own(current, 0, dispose);
     description.operations.forEach((operation, offset) => {
@@ -205,7 +232,10 @@ export class ProviderExecution {
         stage.settled = barrier;
         this.pending.add(barrier);
         const finish = () => {
-          if (source) this.sourceInFlight = false;
+          if (source) {
+            this.sourceInFlight = false;
+            this.settleDeferred(stage.state === 'ready' ? 'ready' : 'failed');
+          }
           this.pending.delete(barrier);
           settled();
           if (this.result === stage) this.events.settled();
@@ -243,9 +273,22 @@ export class ProviderExecution {
   private async disposeStages(): Promise<void> {
     // All later acceptances must be known before reversing stable stage indices.
     while (this.pending.size) await Promise.all(this.pending);
-    const owned = this.stages.length > 0;
+    const owned = this.stages.length > 0 || this.deferred.length > 0;
     let failed = false;
     if (owned) this.events.cleanupStarted?.();
+    // Acquisition-local rollback releases resources the factory acquired but
+    // never handed over, innermost first, before any value this attempt owns.
+    this.acquisitionSettled = true;
+    while (this.deferred.length) {
+      const action = this.deferred.pop()!;
+      const sequence = this.events.invoking();
+      try {
+        await action();
+      } catch (error) {
+        failed = true;
+        this.events.cleanupFailed(sequence, error);
+      }
+    }
     for (const stage of this.stages.sort((a, b) => b.index - a.index)) {
       stage.state = 'disposing';
       const sequence = this.events.invoking();
@@ -261,12 +304,15 @@ export class ProviderExecution {
     }
     if (owned) this.events.cleanupCompleted?.(failed ? 'failure' : 'success');
     this.stages.length = 0;
+    this.deferred.length = 0;
     this.result = undefined;
   }
 
   release(): void {
     this.frames.length = 0;
     this.stages.length = 0;
+    this.deferred.length = 0;
+    this.acquisitionSettled = true;
     this.pending.clear();
     this.result = undefined;
   }

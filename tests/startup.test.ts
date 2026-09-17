@@ -19,8 +19,9 @@ test('contexts follow acquisition owners through child-first roots and independe
   const childContext = child.resolve('scoped');
   const siblingContext = sibling.resolve('scoped');
   const forkContext = fork.resolve('root');
-  expect(rootContext).toBe(root.resolve('scoped'));
-  expect(child.resolve('transient')).toBe(childContext);
+  // Each acquisition owns its context object; the cancellation signal is the owner's.
+  expect(rootContext.signal).toBe(root.resolve('scoped').signal);
+  expect(child.resolve('transient').signal).toBe(childContext.signal);
   expect(Object.isFrozen(childContext)).toBe(true);
   expect(childContext.signal.aborted).toBe(false);
   await child.close();

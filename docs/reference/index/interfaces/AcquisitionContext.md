@@ -23,3 +23,25 @@ readonly signal: AbortSignal;
 Defined in: [acquisition-context.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L16)
 
 Aborted when the acquisition's owning scope begins closing.
+
+## Methods
+
+### defer()
+
+```ts
+defer(this: void, action: (this: void) => void | Promise<void>): void;
+```
+
+Defined in: [acquisition-context.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L24)
+
+Release a resource this factory has already acquired if the factory does not complete.
+Deferred actions run in reverse registration order, before any value the same acquisition
+owns, and only when this factory fails or is cancelled; returning a value discards them
+untouched, leaving the returned value to `withDisposal`.
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `this` | - |
+| `action` | Cleanup for the resource acquired immediately before this call. |
