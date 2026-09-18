@@ -3,7 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { compileNative, matchDiagnosticMarkers, parseNativeDiagnostics, resolveNative } from '../scripts/native-compiler.ts';
-import { nativeScale } from '../scripts/native-scale.ts';
+import { compileGeneratedNative, nativeScale } from '../scripts/native-scale.ts';
+import { controlScaleSource } from './compiler';
 
 test('parser retains real native multiline diagnostics, positions and metrics', () => {
   const output = "invalid.ts(3,7): error TS2322: Type '{ read(): { value: string; }; }' is not assignable to type 'Needs'.\r\n  The types returned by 'read().value' are incompatible between these types.\r\n    Type 'string' is not assignable to type 'number'.\r\nFiles: 64\r\nMemory used: 61602K\r\nTotal time: 0.209s\r\n";
@@ -101,4 +102,15 @@ test('native compiler completes 1000 dependent named additions within the origin
     checked: true, accepted: true, status: 0, diagnostics: [],
   });
   expect(row.peakObservedRssMiB).toBeGreaterThan(0);
+}, 65000);
+
+test('a generated source outside the matrix compiles in a native project with provenance', async () => {
+  const result = await compileGeneratedNative(process.cwd(), await resolveNative(process.cwd()), {
+    fileName: 'generated-type-scale.ts', source: controlScaleSource(20),
+  });
+  expect(result).toMatchObject({ checked: true, status: 0, diagnostics: [], typescript: '7.0.2' });
+  expect(result.file.endsWith('/tests/generated-type-scale.ts')).toBe(true);
+  expect(result.sourceSha256).toMatch(/^[0-9a-f]{64}$/);
+  expect(result.generatedSha256).toMatch(/^[0-9a-f]{64}$/);
+  expect(result.nativeMetrics.Instantiations).toBeGreaterThan(0);
 }, 65000);

@@ -110,14 +110,19 @@ Builders accumulate a flat union of registration entries internally; the public
 `Bag<R>` type still takes a registration map. Compile-time acceptance tests cover
 100 chained additions, 100 replacements, and 1,000 providers assembled from
 reusable registration groups and named modules, including missing and
-wrong-shaped dependencies. For applications at 1,000 providers, bulk registration,
-registration groups of 50, or reusable named modules keep expressions manageable.
-Classic TypeScript 6.0.3 still overflows on 1,000-call named registration and
-replacement expressions, while native 7.0.2 accepts all four 1,000-operation
-forms. These are measured cases with fixed limits, not a promise about every
+wrong-shaped dependencies. One fluent expression is bounded by the compiler's
+recursion budget on V8's default stack: on the recorded host, classic 6.0.3
+accepts a 1,000-call chain and overflows at 1,015 calls, one step below a
+library-free chain (accepted at 1,015, overflowing at 1,031); a bulk map
+followed by individual replacements is accepted at 952, exceeded the
+60-second budget once in three runs at 968, and overflows at 1,000.
+Native 7.0.2 has no stack ceiling. Budget 500 calls per expression; for
+applications at 1,000 providers, bulk registration or registration groups of 50 check in about 3.5 s
+and 0.6 GiB on classic, and named modules of 50 in about 15.5 s and 3 GiB.
+These are measured brackets with fixed limits, not a promise about every
 application or editor session. The
 [compiler benchmark guide](../benchmarks/typescript.md) records the measured
-limits and the benchmark commands.
+limits, the ceiling search, and the benchmark commands.
 
 Run the informational matrices separately from the main checks:
 
@@ -127,6 +132,7 @@ npm run benchmark:types -- --tokens
 npm run benchmark:types -- --native
 npm run benchmark:types -- --native --tokens
 npm run benchmark:compiler-controls
+npm run benchmark:compiler-ceiling
 ```
 
 A benchmark command can finish successfully while recording failed cases; read
