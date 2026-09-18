@@ -73,9 +73,10 @@ the thing deciding when that happens.
 `bootstrap()` runs before React renders. Every stage names its acquisition
 mode: browsers have no `process.getBuiltinModule`, so an `auto` stage would
 throw `DI_BAG_CLASSIFIER_REQUIRED` at `build()`; see
-[portable mode](tutorial.md#portable-mode). Issue
-[#28](https://github.com/dany-fedorov/di-bag/issues/28) proposes shorthand
-helpers for exactly this repetition; the semantics below do not change with them.
+[portable mode](tutorial.md#portable-mode). The `fromSyncFactory`/`fromAsyncFactory`
+helpers ([#28](https://github.com/dany-fedorov/di-bag/issues/28)) are the
+explicit modes with less repetition; the semantics are those of
+`acquisitionMode: 'raw'` and `'nativePromise'`.
 
 ```ts
 import { DiBag, type CloseOptions, type StartupOptions } from 'di-bag';
@@ -83,10 +84,10 @@ import { DiBag, type CloseOptions, type StartupOptions } from 'di-bag';
 export function createAppBuilder(adapters: AppAdapters) {
   return DiBag.createBuilder().register({
     // Borrowed: IndexedDB-style storage has no close; the bag never disposes it.
-    storage: DiBag.withLifetime(DiBag.fromFactory((): Storage => adapters.storage, { acquisitionMode: 'raw' }), 'root'),
+    storage: DiBag.withLifetime(DiBag.fromSyncFactory((): Storage => adapters.storage), 'root'),
     // Owned: bootstrap hands the transport over, and the app bag closes it exactly once.
     transport: DiBag.withLifetime(
-      DiBag.withDisposal(DiBag.fromFactory((): Transport => adapters.transport, { acquisitionMode: 'raw' }), transport => transport.close()),
+      DiBag.withDisposal(DiBag.fromSyncFactory((): Transport => adapters.transport), transport => transport.close()),
       'root',
     ),
   });
@@ -111,22 +112,22 @@ cancels it, and failure rolls back what was acquired.
 ```ts
 export function createProjectBuilder(app: AppServices, projectId: string) {
   return DiBag.createBuilder().register({
-    projectId: DiBag.fromFactory(() => projectId, { acquisitionMode: 'raw' }),
-    storage: DiBag.fromFactory((): Storage => app.storage, { acquisitionMode: 'raw' }),
-    transport: DiBag.fromFactory((): Transport => app.transport, { acquisitionMode: 'raw' }),
+    projectId: DiBag.fromSyncFactory(() => projectId),
+    storage: DiBag.fromSyncFactory((): Storage => app.storage),
+    transport: DiBag.fromSyncFactory((): Transport => app.transport),
     lock: DiBag.withDisposal(
-      DiBag.fromFactory(({ storage, projectId }: { storage: Storage; projectId: string }) => storage.lock(projectId), { acquisitionMode: 'nativePromise' }),
+      DiBag.fromAsyncFactory(({ storage, projectId }: { storage: Storage; projectId: string }) => storage.lock(projectId)),
       lock => lock.release(),
     ),
     // Depends on the lock so nothing is fetched for a project another runtime still holds.
-    manifest: DiBag.fromFactory(
+    manifest: DiBag.fromAsyncFactory(
       async ({ transport, projectId, lock }: { transport: Transport; projectId: string; lock: Promise<ProjectLock> }, factoryCtx) => {
         await lock;
         return transport.fetchManifest(projectId, factoryCtx.signal);
       },
-      { context: 'acquisition', acquisitionMode: 'nativePromise' },
+      { context: 'acquisition' },
     ),
-    documents: DiBag.fromFactory(async ({ storage, projectId, lock }: { storage: Storage; projectId: string; lock: Promise<ProjectLock> }): Promise<DocumentsStore> => {
+    documents: DiBag.fromAsyncFactory(async ({ storage, projectId, lock }: { storage: Storage; projectId: string; lock: Promise<ProjectLock> }): Promise<DocumentsStore> => {
       await lock;
       let snapshot = await storage.load(projectId);
       const listeners = new Set<() => void>();
@@ -140,7 +141,7 @@ export function createProjectBuilder(app: AppServices, projectId: string) {
           for (const listener of [...listeners]) listener();
         },
       };
-    }, { acquisitionMode: 'nativePromise' }),
+    }),
   });
 }
 

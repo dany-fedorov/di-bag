@@ -16,10 +16,10 @@ export interface AppRuntime {
 export function createAppBuilder(adapters: AppAdapters) {
   return DiBag.createBuilder().register({
     // Borrowed: IndexedDB-style storage has no close; the bag never disposes it.
-    storage: DiBag.withLifetime(DiBag.fromFactory((): Storage => adapters.storage, { acquisitionMode: 'raw' }), 'root'),
+    storage: DiBag.withLifetime(DiBag.fromSyncFactory((): Storage => adapters.storage), 'root'),
     // Owned: bootstrap hands the transport over, and the app bag closes it exactly once.
     transport: DiBag.withLifetime(
-      DiBag.withDisposal(DiBag.fromFactory((): Transport => adapters.transport, { acquisitionMode: 'raw' }), transport => transport.close()),
+      DiBag.withDisposal(DiBag.fromSyncFactory((): Transport => adapters.transport), transport => transport.close()),
       'root',
     ),
   });

@@ -13,22 +13,22 @@ export interface ProjectRuntime {
  */
 export function createProjectBuilder(app: AppServices, projectId: string) {
   return DiBag.createBuilder().register({
-    projectId: DiBag.fromFactory(() => projectId, { acquisitionMode: 'raw' }),
-    storage: DiBag.fromFactory((): Storage => app.storage, { acquisitionMode: 'raw' }),
-    transport: DiBag.fromFactory((): Transport => app.transport, { acquisitionMode: 'raw' }),
+    projectId: DiBag.fromSyncFactory(() => projectId),
+    storage: DiBag.fromSyncFactory((): Storage => app.storage),
+    transport: DiBag.fromSyncFactory((): Transport => app.transport),
     lock: DiBag.withDisposal(
-      DiBag.fromFactory(({ storage, projectId }: { storage: Storage; projectId: string }) => storage.lock(projectId), { acquisitionMode: 'nativePromise' }),
+      DiBag.fromAsyncFactory(({ storage, projectId }: { storage: Storage; projectId: string }) => storage.lock(projectId)),
       lock => lock.release(),
     ),
     // Depends on the lock so nothing is fetched for a project another runtime still holds.
-    manifest: DiBag.fromFactory(
+    manifest: DiBag.fromAsyncFactory(
       async ({ transport, projectId, lock }: { transport: Transport; projectId: string; lock: Promise<ProjectLock> }, factoryCtx) => {
         await lock;
         return transport.fetchManifest(projectId, factoryCtx.signal);
       },
-      { context: 'acquisition', acquisitionMode: 'nativePromise' },
+      { context: 'acquisition' },
     ),
-    documents: DiBag.fromFactory(
+    documents: DiBag.fromAsyncFactory(
       async ({ storage, projectId, lock }: { storage: Storage; projectId: string; lock: Promise<ProjectLock> }): Promise<DocumentsStore> => {
         await lock;
         let snapshot = await storage.load(projectId);
@@ -44,7 +44,6 @@ export function createProjectBuilder(app: AppServices, projectId: string) {
           },
         };
       },
-      { acquisitionMode: 'nativePromise' },
     ),
   });
 }
