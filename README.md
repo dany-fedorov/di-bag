@@ -242,10 +242,12 @@ or give each stage an explicit acquisition mode. See
 - **Type safety follows the declared graph.** Casts, unchecked JavaScript, and
   unknown plugins need appropriate runtime checks. Dependency cycles are detected
   at runtime, or before running by [`di-bag-graph`](tools/graph/README.md).
-- **Graph types have a compiler cost.** Very long fluent expressions can exceed
-  compiler limits. Classic TypeScript still fails the recorded 1,000-call named
-  registration and replacement cases; use bulk registration or smaller groups.
-  See the [compiler evidence](docs/benchmarks/typescript.md) for tested forms and limits.
+- **Graph types have a compiler cost.** One fluent expression is bounded by the
+  compiler's recursion budget: classic TypeScript 6.0.3 accepts about 1,000
+  chained calls and overflows beyond that (about 950 for a bulk map followed by
+  individual replacements); native 7.0.2 has no such ceiling. Keep an
+  expression to 500 calls or fewer and use bulk registration, groups, or named
+  modules beyond that. See the [compiler evidence](docs/benchmarks/typescript.md).
 - **Framework integration belongs to the application.** DI Bag provides the
   composition and ownership primitives; the host connects request, job, or UI
   lifecycles.
