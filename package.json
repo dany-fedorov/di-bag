@@ -31,6 +31,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc6 -p ./tsconfig.build.json",
     "benchmark:types": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/benchmark-types.ts",
     "benchmark:compiler-controls": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/benchmark-compiler-controls.ts",
+    "benchmark:compiler-ceiling": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/benchmark-compiler-ceiling.ts",
     "benchmark:runtime": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/performance-evidence.ts --current",
     "evidence:platform": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/platform-evidence.ts",
     "platform:pin": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/pin-platform-tools.ts",
