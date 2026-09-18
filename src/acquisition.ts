@@ -1,4 +1,4 @@
-import { libraryError } from './errors';
+import { diagnosticMessage, libraryError } from './errors';
 import type { AcquisitionEventFields, LifecycleEvent } from './observers';
 import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
@@ -16,6 +16,20 @@ interface Acquisition extends AttemptIdentity {
   exposed: unknown;
   execution: ProviderExecution | CompletedExecution;
 }
+
+/**
+ * The reason a close() without a cause aborts with. Built once at load: an error
+ * created inside close() keeps an unformatted stack whose frames retain the
+ * closing callbacks, and through them the scope and its graph, on every signal an
+ * application kept after the bag closed. It stays a plain `AbortError`, so its
+ * legacy numeric `code` is what an automatic abort reason had; the message names
+ * the diagnostic.
+ */
+const closingReason: DOMException = (() => {
+  const reason = new DOMException(diagnosticMessage('DI_BAG_CLOSING', 'bag is closing'), 'AbortError');
+  void reason.stack; // format the load-time frames now, so nothing is retained lazily
+  return Object.freeze(reason);
+})();
 
 /** Mutable, runtime-local attempts. Binding descriptions never carry ownership. */
 export class ScopeAcquisitions {
@@ -144,8 +158,8 @@ export class ScopeAcquisitions {
     this.closing = Promise.resolve().then(() => {
       // Every descendant admission gate is closed before abort listeners run.
       this.cancellationStarted = true;
-      this.cancellationCause = cause;
-      this.controller?.abort(cause);
+      this.cancellationCause = cause === undefined ? closingReason : cause;
+      this.controller?.abort(this.cancellationCause);
       return this.disposeAll(beforeDispose);
     });
     return this.closing;

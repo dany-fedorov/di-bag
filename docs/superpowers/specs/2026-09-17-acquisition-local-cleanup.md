@@ -198,11 +198,27 @@ in the cleanup events.
 ## Retention
 
 The bag holds pushed disposers until `close()` by design; that is what owning
-them means. A context the application retains pins only its `DisposerStack` and
-the signal. `tests/acquisition-retention.node.mjs` covers the dependency proxy,
-the retained context, and a pushed disposer's payload being alive before close
-and collectible after. These suites need `--expose-gc` and run in CI's
-`contracts` job, not in `npm run check`.
+them means. After close, a context the application retains pins only its
+`DisposerStack` and the signal, and the signal pins nothing of the bag.
+
+That last part needed a fix, and it predates this feature. `close()` without a
+cause used to call `abort()` with no reason, so the runtime created an
+`AbortError` inside the closing call. An unformatted V8 stack keeps the frames it
+captured alive, and those frames reached the scope and its graph. So any
+application that kept a `signal` — or a context — kept the whole closed bag.
+The bag now aborts with one reason built at module load, with its stack
+formatted up front: still an `AbortError` with the legacy numeric `code` 20, its
+message naming `DI_BAG_CLOSING`. An explicit cause passed to `close()` is used
+as-is.
+
+`tests/acquisition-retention.node.mjs` covers the dependency proxy, frames under
+a retained context, a pushed disposer's payload being alive before close and
+collectible after, and — the only cases that can detect a retained graph — a
+payload reachable solely through the bag's graph, with the context or the signal
+kept after the bag is dropped. The frames cases cannot detect a context that
+captured the execution: `compact()` and `release()` clear frames either way.
+These suites need `--expose-gc` and run in CI's `contracts` job, not in
+`npm run check`.
 
 ## Tests
 
@@ -263,6 +279,13 @@ under the next version heading when the release chore bumps it.
 - A `close({ timeoutMs, signal })` that stops waiting while a failed factory's
   pushed disposers are still running lists that acquisition under
   `details.pending`.
+
+### Fixed
+
+- A `signal` kept after its bag closed no longer keeps the closed bag in memory.
+  A `close()` without a cause now aborts with one shared `AbortError`, created at
+  load, whose message names `DI_BAG_CLOSING`; before, each close created an
+  `AbortError` whose stack retained the bag's scope and graph.
 ```
 
 ## Decisions taken during implementation

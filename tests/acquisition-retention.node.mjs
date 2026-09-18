@@ -235,3 +235,36 @@ test('pushed disposer closures live until close and are collectible afterwards e
   await collected(refs);
   assert.throws(() => kept.pushDisposer(() => {}), /CLEANUP_AFTER_FACTORY/);
 });
+
+// A payload reachable only through the bag's graph: a factory closure and a
+// dependency's value. The bag itself is dropped after close(), so the payloads
+// can be collected unless something the application kept still reaches the graph.
+function graphBag(refs, keep) {
+  const graphPayload = Array(4096).fill('graph');
+  const depPayload = Array(4096).fill('dep');
+  refs.push(new WeakRef(graphPayload), new WeakRef(depPayload));
+  return DiBag.createBuilder().register({
+    dep: () => depPayload,
+    value: DiBag.fromFactory((deps, factoryCtx) => {
+      keep(factoryCtx);
+      return deps.dep.length + graphPayload.length;
+    }, { context: 'acquisition' }),
+  }).build();
+}
+
+for (const [label, pick] of [['context', factoryCtx => factoryCtx], ['signal', factoryCtx => factoryCtx.signal]]) {
+  test(`a retained acquisition ${label} does not keep the closed bag's graph alive`, async () => {
+    const refs = [];
+    let kept;
+    let bag = graphBag(refs, factoryCtx => { kept = pick(factoryCtx); });
+    bag.resolve('value');
+    await bag.close();
+    bag = undefined;
+    await collected(refs);
+    const signal = label === 'signal' ? kept : kept.signal;
+    assert.equal(signal.aborted, true);
+    assert.equal(signal.reason.name, 'AbortError');
+    assert.equal(signal.reason.code, 20);
+    assert.match(signal.reason.message, /^DI_BAG_CLOSING: /);
+  });
+}
