@@ -116,8 +116,8 @@ accepts a 1,000-call chain and overflows at 1,015 calls, one step below a
 library-free chain (accepted at 1,015, overflowing at 1,031); a bulk map
 followed by individual replacements is accepted at 952, exceeded the
 60-second budget once in three runs at 968, and overflows at 1,000.
-Native 7.0.2 has no stack ceiling. Budget 500 calls per expression; at 1,000
-providers, bulk registration or registration groups of 50 check in about 3.5 s
+Native 7.0.2 has no stack ceiling. Budget 500 calls per expression; for
+applications at 1,000 providers, bulk registration or registration groups of 50 check in about 3.5 s
 and 0.6 GiB on classic, and named modules of 50 in about 15.5 s and 3 GiB.
 These are measured brackets with fixed limits, not a promise about every
 application or editor session. The
