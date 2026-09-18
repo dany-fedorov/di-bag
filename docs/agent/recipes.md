@@ -298,7 +298,7 @@ Actions run in reverse registration order, and a rejecting one does
 not skip the rest: it is reported like any `close()` disposer failure, through
 [`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed). `context.defer`
 belongs to the running acquisition; keeping the context and calling it later
-throws [`DI_BAG_CLEANUP_AFTER_ACQUISITION`](errors.md#di-bag-cleanup-after-acquisition).
+throws [`DI_BAG_CLEANUP_AFTER_FACTORY`](errors.md#di-bag-cleanup-after-factory).
 
 ## Review a merge {#review-merge}
 

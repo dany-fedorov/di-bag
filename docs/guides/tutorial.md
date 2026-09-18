@@ -229,12 +229,18 @@ bag never observes it: in a `raw` async factory the acquisition has already
 settled at the first `await`, so register cleanup under `nativePromise` or
 automatic acquisition instead.
 
+One shape does not honour that rule: a `direct` projection over an asynchronous
+source leaves the result ready while the source is still pending, so a source
+that then rejects never retires its acquisition and its deferred actions wait for
+`close()` — or do not run at all, when the acquisition owns nothing else. See
+[issue 32](https://github.com/dany-fedorov/di-bag/issues/32).
+
 Rollback is scheduled when the acquisition settles, not awaited by the failing
 `resolve`: the initialization error propagates first, and `close()` — or the
 `cleanupPromise` of `DiBagStartupCancelledError` — waits for the release to
 finish. `defer` belongs to one running acquisition; calling it on a context
 retained past that acquisition throws
-[`DI_BAG_CLEANUP_AFTER_ACQUISITION`](../agent/errors.md#di-bag-cleanup-after-acquisition).
+[`DI_BAG_CLEANUP_AFTER_FACTORY`](../agent/errors.md#di-bag-cleanup-after-factory).
 
 Startup waits according to the selected service's final acquisition mode. A raw
 Promise or thenable is already a ready value; a native Promise waits for

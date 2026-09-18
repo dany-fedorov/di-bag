@@ -78,7 +78,7 @@ not a method on the value, and it reads the same as the `using` proposal's
 `AsyncDisposableStack.defer`.
 
 `defer` throws `DI_BAG_INVALID_CLEANUP` (new code) when passed a non-function,
-and `DI_BAG_CLEANUP_AFTER_ACQUISITION` (new code) when called after its
+and `DI_BAG_CLEANUP_AFTER_FACTORY` (new code) when called after its
 acquisition has settled — a retained `context` is a leak, not a stack.
 
 ## Runtime changes
@@ -97,12 +97,15 @@ object, so the context becomes per-attempt:
 The signal's observable behaviour is unchanged: same scope-wide abort, same
 cause, same already-aborted case when the scope is closing.
 
-### 2. Deferred actions live on `ProviderExecution`
+### 2. Deferred actions live in an `AcquisitionRollback` record
 
-`ProviderExecution` already holds an attempt's ownership and its disposal
-order, so the action list belongs there next to `stages`. It is separate from
-`stages`: stages are owned values disposed at close, deferred actions are
-rollback only.
+The list is its own small object, held by `ProviderExecution` next to `stages`
+and allocated only for a contextual registration. It is separate from `stages`:
+stages are owned values disposed at close, deferred actions are rollback only.
+
+The record exists so the frozen context can carry `defer` while referencing
+neither the execution nor the scope — see "A retained context must pin nothing"
+below. It owns its own settled flag, so registration closes in one place.
 
 - `defer(action)` pushes onto the list while the source is unsettled.
 - When the source stage settles ready — synchronously in `evaluate`, or from the
@@ -174,7 +177,7 @@ code without claiming to stop it.
 
 ## Tests
 
-`tests/acquisition-cleanup.test.ts`, 16 cases:
+`tests/acquisition-cleanup.test.ts`, 22 cases:
 
 - acquire, then fail — the resource is released once and the init error propagates
 - success — no deferred action runs; `close()` runs the `withDisposal` disposer once
@@ -186,7 +189,7 @@ code without claiming to stop it.
 - rollback runs without waiting for `close()`
 - rollback reports each failure as `cleanup-started` / `cleanup-failed` / `cleanup-completed`
 - scope close aborts mid-acquisition — the factory throws on `signal` and rollback runs
-- `defer` after a synchronous acquisition settles throws `DI_BAG_CLEANUP_AFTER_ACQUISITION`
+- `defer` after a synchronous acquisition settles throws `DI_BAG_CLEANUP_AFTER_FACTORY`
 - `defer` after an asynchronous acquisition settles throws the same code
 - `defer(nonFunction)` throws `DI_BAG_INVALID_CLEANUP`
 - a synchronous factory's resource is released after its failure propagates (§5)
@@ -195,6 +198,15 @@ code without claiming to stop it.
 - a `direct` projection over a rejecting source defers rollback to `close()` —
   pins the known limitation below, and the only shape where rollback and an owned
   value of the same acquisition both run, in that order
+- `close()` waits for a Promise-returning deferred action
+- a `raw` asynchronous factory settles at its first `await`, as documented
+- a rollback failure during startup appears in `DiBagStartupError.cleanupFailures`
+- a retried scoped acquisition registers on a fresh list, and the failed
+  attempt's context is closed
+- a root service acquired through a child runs its rollback on the owning bag
+
+`tests/acquisition-retention.node.mjs` adds the retained-context case; it runs
+only in CI's `contracts` job.
 
 Type fixtures: `tests/types/startup.ts` pins `defer`'s signature and return type;
 `tests/types/negative/startup.ts` rejects a non-function and a callback that
@@ -227,7 +239,7 @@ when the release chore bumps it.
   single owner of the returned value, including when a later projection fails. Failure and cancellation run them in reverse registration
   order, before any value the same attempt owns; each rejection is reported like
   a `close()` disposer failure. New codes `DI_BAG_INVALID_CLEANUP` and
-  `DI_BAG_CLEANUP_AFTER_ACQUISITION`.
+  `DI_BAG_CLEANUP_AFTER_FACTORY`.
 
 ### Changed
 
@@ -255,17 +267,25 @@ object, so both now compare `context.signal` instead. The contract that matters
 — *which owner's cancellation an acquisition observes* — is unchanged; only the
 object wrapping the signal is no longer shared. Recorded in the changelog.
 
-**The context is built outside `resolveBinding`.** The first version created the
-per-attempt context inline in `resolveBinding`. Every closure in a function
-shares one scope record, so capturing `execution` there put the
-`ProviderExecution` into the same scope as the dependency proxy's handlers — and
-a factory that returns a closure over `deps` keeps that proxy, and therefore the
-execution and its payloads, alive past `close()`.
-`tests/acquisition-retention.node.mjs` caught it ("closing releases compacted
-frame payloads even when a dependency proxy is retained"); it runs in CI's
-`contracts` job, not in `npm run check`. `contextSource(execution)` now builds
-the closure in its own scope. Anything else added to `resolveBinding` that
-captures the execution will reintroduce the leak.
+**A retained context must pin nothing.** Two rounds of review found retention
+bugs here, both of the same shape: a reference the context reached indirectly.
+First, building the context inline in `resolveBinding` put the
+`ProviderExecution` into the scope record shared with the dependency proxy's
+handlers. Then, after that was fixed, the `defer` closure still captured the
+execution directly, so a factory that kept its context — the documented way to
+read `signal` later — kept the execution, its frames, and through
+`execution.events` the attempt and the whole scope. Compaction made it worse:
+`compact()` copies the frames into a `CompletedExecution` and the original's copy
+was never cleared, because `release()` only ever runs on `attempt.execution`.
+
+The fix is structural rather than another severed reference. `defer` closes over
+an `AcquisitionRollback` and nothing else, the signal is read eagerly when the
+context is built, and `compact()` clears the frames it has handed over. A
+retained context now pins one small record and the signal, which is the profile
+it had before this feature existed.
+`tests/acquisition-retention.node.mjs` covers both routes: the dependency proxy
+and the retained context. Neither runs in `npm run check` — they need
+`--expose-gc` and live in CI's `contracts` job.
 
 **A known limitation: one exotic shape leaks.** A `direct`-mode projection over
 an asynchronous source produces a result stage that is ready while the source is
@@ -283,7 +303,9 @@ action is different: it names a resource the factory said it already holds.
 
 Fixing it needs a retirement path for an attempt whose source failed while its
 result stayed ready, which is a change to the attempt lifecycle rather than to
-this feature. It is out of scope here and worth its own issue.
+this feature. Tracked as
+[issue 32](https://github.com/dany-fedorov/di-bag/issues/32); the tutorial
+carries the caveat so the "if, and only if" rule is not read as unconditional.
 
 **`compact()` and `retire()` learned about rollback.** An attempt holding only
 deferred actions has no accepted stage, so `hasOwnership` was not enough:
