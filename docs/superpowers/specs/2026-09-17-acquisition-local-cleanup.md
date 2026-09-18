@@ -2,12 +2,12 @@
 
 Design note for [issue #27](https://github.com/dany-fedorov/di-bag/issues/27),
 "Support acquisition-local cleanup registration for partially initialized
-providers". The issue states the problem and the acceptance criteria but leaves
-the API a design choice. This note settles the choice.
+providers", and [issue #32](https://github.com/dany-fedorov/di-bag/issues/32),
+the one shape the first design leaked in.
 
-**Status: implemented.** The open question is resolved in favour of opt-in, and
-the two assumptions implementation forced are recorded in "Decisions taken
-during implementation" at the end.
+**Status: implemented.** A disposer stack the bag owns replaced the first,
+rollback-only design (`context.defer`, never released). The implementation plan
+is `docs/superpowers/plans/2026-09-18-01-push-disposer.md`.
 
 ## Problem
 
@@ -26,291 +26,329 @@ const session = DiBag.withDisposal(async () => {
 `buildAndStart` rollback closes acquisitions the bag already owns, but cannot
 see a resource still hidden inside an unfinished factory.
 
-## Decision: rollback-only semantics
+## Decision: a disposer stack the bag owns
 
-Actions registered during an acquisition run **only when that acquisition fails
-or is cancelled**. Successful completion discards them; the value the factory
-returns is owned by `withDisposal` as it is today.
+A context-aware factory pushes a disposer for each resource as soon as it holds
+it. Every pushed disposer runs exactly once, last pushed first:
 
-This is the smaller of the two candidate rules. The alternative — adopting
-registered actions as real ownership stages that also run at `close()` — would
-need an extra rule to stop `withDisposal` from double-owning the same value.
-Under rollback-only that criterion is true by construction: the two mechanisms
-never both own anything, because registered actions cease to exist the moment
-the factory returns.
+- **If the factory fails** — throws, rejects, or is cancelled through `signal` —
+  the stack runs at once.
+- **If the factory returns**, the bag owns the stack below the returned value.
+  It runs at `close()`, or at retirement when a later projection fails, after
+  every disposer of the service.
 
-The rule stated for users: *a deferred action runs if, and only if, the factory
-that registered it does not complete.* The anchor is the factory, not the whole
-acquisition: once the factory has returned, ownership has moved to the value it
-produced, and a later projection failure disposes that value through its
-ownership stages alone.
+The first design was rollback-only: success discarded the list, so `withDisposal`
+stayed the single owner of everything by construction. It was dropped for two
+reasons. An intermediate the returned value does not own (a pool the factory
+opened on the way) leaked on success. And its rule, "runs if, and only if, the
+factory does not complete", failed one shape outright (#32).
+
+A stack gives up the by-construction single-ownership property: a pushed
+disposer and a service disposer can now name the same resource. What replaces
+it is a rule plus information:
+
+- **One rule, stated once:** `withDisposal` owns the returned value;
+  `pushDisposer` owns what is acquired on the way; a pushed resource that is also
+  the returned value acts only when `disposerCtx.reason !== 'service-disposed'`.
+- **`DisposerContext.reason`** tells each pushed disposer why it is running, and
+  describes only the `withDisposal` on the returned value — the one disposer a
+  factory author can see.
+
+The library cannot enforce the rule — it cannot know that `session.close()`
+closes the socket — so the reason check is how a factory author states it.
 
 ## API
 
-Extend `AcquisitionContext` with one method:
+`AcquisitionContext` (published in 0.3.0) gains `pushDisposer`; the unreleased
+`defer` is removed.
 
 ```ts
 export interface AcquisitionContext {
-  /** Aborted when the acquisition's owning scope begins closing. */
   readonly signal: AbortSignal;
-  /** Release an already-acquired resource if this acquisition does not complete. */
-  defer(action: (this: void) => void | Promise<void>): void;
+  pushDisposer(this: void, disposer: (this: void, disposerCtx: DisposerContext) => void | Promise<void>): void;
+}
+export interface DisposerContext {
+  readonly reason: 'factory-failed' | 'no-service-disposer' | 'service-disposed' | 'service-disposal-failed';
 }
 ```
 
-Usage:
+The reasons:
 
-```ts
-const session = DiBag.withDisposal(
-  DiBag.fromFactory(async (_deps, context) => {
-    const socket = await connect();
-    context.defer(() => socket.close());   // covers the window below
-    await handshake(socket);               // throws: socket.close() runs
-    return new Session(socket);            // succeeds: defer discarded
-  }, { context: 'acquisition' }),
-  session => session.close(),
-);
-```
+| `reason` | when |
+| --- | --- |
+| `'factory-failed'` | the factory threw, rejected, or was cancelled; no service exists |
+| `'no-service-disposer'` | the factory returned and no `withDisposal` owns the returned value |
+| `'service-disposed'` | the service disposer ran without throwing |
+| `'service-disposal-failed'` | the service disposer threw; the pushed disposers still run |
 
-One method, no new exported type, no new registration form. `defer` is chosen
-over `use(value, dispose)` because it composes with resources whose release is
-not a method on the value, and it reads the same as the `using` proposal's
-`AsyncDisposableStack.defer`.
+The service disposer is the ownership of the returned value: the source's own
+`dispose` and any `withDisposal` attached before the first `transformService`.
+Metadata frames preserve the value, so ownership after `withMetadata` still
+counts. Ownership of a transformed value belongs to whoever transformed it; its
+outcome is reported through `cleanup-failed` and `DiBagCleanupError`, not
+through `reason`.
 
-`defer` throws `DI_BAG_INVALID_CLEANUP` (new code) when passed a non-function,
-and `DI_BAG_CLEANUP_AFTER_FACTORY` (new code) when called after its
-acquisition has settled — a retained `context` is a leak, not a stack.
+How the reason is decided:
 
-## Runtime changes
+- **Mixed outcomes.** `disposeStages` awaits every barrier before disposing, so no
+  stage is pending when the reason is computed. Each accepted stage records
+  whether it owns the returned value; the reason is decided from those alone. None
+  → `'no-service-disposer'`; one threw → `'service-disposal-failed'`; otherwise
+  `'service-disposed'`.
+- **Retirement after a projection fails.** The source returned, so the stack is
+  owned; the failed projection's own ownership was never accepted. The reason
+  comes from the returned value's `withDisposal`, if any.
+- **The #32 fulfil shape** — a `direct` projection over a source that fulfils
+  after the wrapper was handed out: the stack is accepted at fulfilment, the
+  wrapper's stage was accepted earlier and runs first, and the reason ignores it:
+  the wrapper owns a transformed value.
+- **The failure path is always `'factory-failed'`**, even when a projection stage
+  is owned.
+- **One frozen `DisposerContext` per run**, shared by every disposer in it.
 
-### 1. The context becomes per-acquisition
+Conventions: examples name the factory's context `factoryCtx` and the disposer's
+`disposerCtx`, never `context` or `ctx`. `DisposerContext` is exported from
+`di-bag` and, through `export *`, from `di-bag/node`.
 
-`ScopeAcquisitions.getContext()` (`src/acquisition.ts:163`) memoises **one**
-frozen `{ signal }` for the whole scope and hands the same object to every
-contextual factory. A per-acquisition action list cannot hang off a shared
-object, so the context becomes per-attempt:
+Error codes: `DI_BAG_INVALID_CLEANUP` when the argument is not a function, and
+`DI_BAG_CLEANUP_AFTER_FACTORY` when pushing after the factory settled — from the
+service, a projection, or a disposer already running.
 
-- the scope keeps its single `AbortController`, unchanged;
-- each contextual acquisition gets a fresh frozen context wrapping that scope
-  signal plus its own `defer` bound to that attempt.
+## Runtime
 
-The signal's observable behaviour is unchanged: same scope-wide abort, same
-cause, same already-aborted case when the scope is closing.
+- **`DisposerStack`** (`src/provider-execution.ts`) holds one factory's pushed
+  disposers and a settled flag. It is the only thing the frozen context
+  references; see "A retained context must pin nothing".
+- **`settleDisposers(state)`** runs where the *source* stage settles: in
+  `evaluate` for a synchronous source, in the promise handler for a native one.
+  - Failed: it schedules `rollbackDisposers()` as pending work of the execution.
+    That run starts one microtask after the source settles, emits one
+    `cleanup-started` / `cleanup-completed` pair, and passes `'factory-failed'`.
+    Without a projection it follows `acquisition-failed`; under a projection it
+    may precede it, because the run is anchored on the source and the event on
+    the attempt's result.
+  - Ready: it marks the stack owned and reports the acceptance, so
+    `hasOwnership` is true.
+- **`disposeStages`** runs the accepted stages in reverse index order, then the
+  owned stack with the reason computed from them.
+- **Ownership.** An accepted stack counts as ownership: `close()` visits the
+  attempt, retirement disposes it, and `compact()` keeps it. An in-flight rollback
+  is pending work, so `retire()` and `close()` already wait for it.
+- **Close progress.** `rollingBack` is true while the failure-path run is in
+  flight, and `collectProgress` reports such an attempt as pending.
 
-### 2. Deferred actions live in an `AcquisitionRollback` record
+### Why rollback is anchored on the source
 
-The list is its own small object, held by `ProviderExecution` next to `stages`
-and allocated only for a contextual registration. It is separate from `stages`:
-stages are owned values disposed at close, deferred actions are rollback only.
+Rollback used to be settled by the source stage but only ever *run* from the
+attempt's disposal. That is reached by retirement, which fires only when the
+*result* stage settles, or by `close()`, which visits only owned attempts. A
+`direct` projection over an asynchronous source makes the result ready while the
+source is still running, so a source that then rejected reached neither: its
+cleanup ran at `close()` only if the attempt owned something else, and otherwise
+never (#32).
 
-The record exists so the frozen context can carry `defer` while referencing
-neither the execution nor the scope — see "A retained context must pin nothing"
-below. It owns its own settled flag, so registration closes in one place.
+The lifecycle had no "source settled" event. `settleDisposers` is that event.
 
-- `defer(action)` pushes onto the list while the source is unsettled.
-- When the source stage settles ready — synchronously in `evaluate`, or from the
-  promise handler in `capture` — the list is cleared without running anything.
-- When the source stage settles failed, the list is kept and runs LIFO from
-  `disposeStages`.
+## Ordering
 
-Cancellation needs no separate path: a factory that observes `signal` and
-throws is the failure path.
+At close, per attempt: projection ownership, then `withDisposal` on the source,
+then the pushed disposers last-pushed-first. A `map-async` projection still
+pending when `close()` starts is settled by the barrier wait before anything is
+disposed. Across attempts the existing dependency order holds: a consumer's
+stages *and* stack finish before its dependency's begin.
 
-### 3. Ordering
+**One inversion, in the #32 failure shape.** A source that fails under a `direct`
+projection runs its stack at once, while the projection's own disposer runs at
+`close()`. It is harmless: the projection was handed a promise that rejected, so
+it cannot hold the pushed resources unless the factory leaked them through a
+side channel.
 
-Deferred actions run LIFO among themselves, and **before** any accepted
-ownership stage of the same attempt.
+**`raw` asynchronous factories** complete when they return their promise. A
+disposer pushed before the first `await` is owned and runs at `close()` with a
+service reason; one pushed after throws; the promise's later rejection is never
+observed, so it never produces `'factory-failed'`.
 
-The two cannot both release the same resource, because the list is settled by
-the **source** stage, not by the attempt's final result stage. A factory that
-returns discards its list immediately, even while later projections are still
-running; if one of those projections then fails, the accepted `withDisposal`
-stage disposes the value exactly once. Anchoring on the result stage instead
-double-releases in exactly that shape, which is what the first review of this
-change found (`tests/acquisition-cleanup.test.ts`, "a projection failing after
-the factory returned releases the value exactly once").
+**Transient services** keep each successful attempt's stack until `close()`,
+exactly as a transient `withDisposal` keeps its value.
 
-### 4. Failures
+## Observers and failures
 
-Rollback reuses the existing best-effort machinery rather than inventing a
-second one: every action is attempted even when one rejects, and each rejection
-goes to the observer `cleanup-failed` channel and to `ScopeAcquisitions.failures`
-with an `invoking()` sequence, exactly as a close-time disposer failure does.
-A failing rollback is therefore visible in `DiBagCleanupError` at close and in
-observer output, and never replaces or masks the initialization error.
-
-The initialization error keeps propagating as it does today.
-
-### 5. Scheduling
-
-Rollback runs through the existing retirement path: `retire(attempt)` already
-calls `execution.dispose()` for a failed attempt, publishes the resulting
-promise in `retired`, and `disposeAll` already awaits it. Deferred actions
-therefore run inside `disposeStages`, ahead of the accepted stages, and need no
-second mechanism.
-
-This means rollback is *scheduled* when the acquisition settles, not awaited by
-the failing `resolve`. A synchronous factory's failure still propagates
-synchronously; its release completes on the microtask queue. Callers that need
-to observe completion await `close()`, or `DiBagStartupCancelledError.cleanupPromise`
-— both of which already wait for retired attempts.
-
-The alternative, running synchronous actions inline before the throw, would add
-a second rollback path for a guarantee no acceptance criterion asks for.
-
-No new timeout option. The acceptance criterion's "bounded waiting" is met by
-the existing `buildAndStart({ timeoutMs })` and `close({ timeoutMs })` waits,
-which already bound the time a caller spends waiting for factory and disposer
-code without claiming to stop it.
+- A successful acquisition emits one cleanup pair at close covering its stages
+  and its stack.
+- A failed factory emits one pair for the rollback run. Without a projection it
+  follows `acquisition-failed`; under a projection it may precede it, and the
+  first pushed disposer may run before the consumer sees the rejection. Waiting
+  for the result instead would bring back #32 for a transform that delays or
+  swallows the rejection.
+- The #32 failure shape emits two: a rollback run when the factory fails and a
+  disposal run at close. A pair brackets one cleanup *run*, not one attempt.
+- Failures surface in `DiBagCleanupError` at close and in
+  `DiBagStartupError.cleanupFailures`. Startup rollback also releases the stack
+  of a selected service that had already succeeded.
 
 ## Acceptance criteria, mapped
 
-| Criterion | Covered by |
+| Criterion (#27 and #32) | Covered by |
 | --- | --- |
-| A closes exactly once when B fails | rollback-only rule; list cleared after running |
-| Success then close closes each resource once | success discards deferred actions; `withDisposal` unchanged |
-| No double ownership | true by construction under rollback-only |
-| Documented order, others attempted on rejection | §3, §4 |
-| Both failures preserved | §4: init error propagates, cleanup failures to observers/`DiBagCleanupError` |
-| Cooperative cancellation, bounded waiting | unchanged scope signal; existing `timeoutMs` waits |
+| A closes exactly once when B fails | a failed factory runs its stack once, at once |
+| Success then close closes each resource once | the one-disposer rule, and the reason check where the service also releases it |
+| No double ownership | a documented rule plus `DisposerContext.reason`, no longer by construction |
+| Documented order; others attempted on rejection | "Ordering"; every disposer is attempted |
+| Both failures preserved | the initialization error propagates; cleanup failures reach observers and `DiBagCleanupError` |
+| Cooperative cancellation, bounded waiting | unchanged scope signal; existing `timeoutMs` waits, now reporting in-flight rollback |
 | Nothing acquired by declaring a provider | unchanged: providers are lazy handles |
+| #32: rollback under a `direct` projection, without waiting for `close()` | source-anchored rollback |
+| #32: a racing `close()` waits before disposing anything | rollback is pending work, which `close()` drains first |
+
+Issue #32's original criterion "the attempt's inspected state distinguishes a
+ready projection from a failed source" was dropped. The state describes the
+service that was delivered: consumers hold it and `acquisition-ready` was true
+when emitted, so a later `failed` would give one attempt two terminal outcomes.
+The factory's failure is visible in the rejected promise the consumer holds and
+in the cleanup events.
+
+## Retention
+
+The bag holds pushed disposers until `close()` by design; that is what owning
+them means. After close, a context the application retains pins only its
+`DisposerStack` and the signal, and the signal pins nothing of the bag.
+
+That last part needed a fix, and it predates this feature. `close()` without a
+cause used to call `abort()` with no reason, so the runtime created an
+`AbortError` inside the closing call. An unformatted V8 stack keeps the frames it
+captured alive, and those frames reached the scope and its graph. So any
+application that kept a `signal` — or a context — kept the whole closed bag.
+The bag now aborts with one reason built at module load, with its stack
+formatted up front: still an `AbortError` with the legacy numeric `code` 20, its
+message naming `DI_BAG_CLOSING`. A startup that is cancelled or fails aborts
+with its own cause, used as-is, so the signal then retains whatever that cause
+retains. The library's own startup and close timeout errors format their stacks
+before they are handed on, for the same reason: they are created in closures
+over the runtime, and a startup timeout becomes the signal's reason.
+
+`tests/acquisition-retention.node.mjs` covers the dependency proxy, frames under
+a retained context, a pushed disposer's payload being alive before close and
+collectible after, and — the only cases that can detect a retained graph — a
+payload reachable solely through the bag's graph, with the context or the signal
+kept after the bag is dropped, and the same after a startup timeout. The frames cases cannot detect a context that
+captured the execution: `compact()` and `release()` clear frames either way.
+These suites need `--expose-gc` and run in CI's `contracts` job, not in
+`npm run check`.
 
 ## Tests
 
-`tests/acquisition-cleanup.test.ts`, 22 cases:
+`tests/acquisition-cleanup.test.ts`, 48 cases, covering:
 
-- acquire, then fail — the resource is released once and the init error propagates
-- success — no deferred action runs; `close()` runs the `withDisposal` disposer once
-- LIFO order across three deferred actions
-- one action rejects — the rest still run; the failure surfaces at `close()` in `DiBagCleanupError`
-- a rejecting source runs rollback and never reaches its ownership stage
-- **a projection failing after the factory returned releases the value exactly once**
-  (the regression test for the source-anchoring fix in §3)
-- rollback runs without waiting for `close()`
-- rollback reports each failure as `cleanup-started` / `cleanup-failed` / `cleanup-completed`
-- scope close aborts mid-acquisition — the factory throws on `signal` and rollback runs
-- `defer` after a synchronous acquisition settles throws `DI_BAG_CLEANUP_AFTER_FACTORY`
-- `defer` after an asynchronous acquisition settles throws the same code
-- `defer(nonFunction)` throws `DI_BAG_INVALID_CLEANUP`
-- a synchronous factory's resource is released after its failure propagates (§5)
-- each transient attempt owns its own action list
-- `buildAndStart` rollback releases a resource hidden inside an unfinished factory
-- a `direct` projection over a rejecting source defers rollback to `close()` —
-  pins the known limitation below, and the only shape where rollback and an owned
-  value of the same acquisition both run, in that order
-- `close()` waits for a Promise-returning deferred action
-- a `raw` asynchronous factory settles at its first `await`, as documented
-- a rollback failure during startup appears in `DiBagStartupError.cleanupFailures`
-- a retried scoped acquisition registers on a fresh list, and the failed
-  attempt's context is closed
-- a root service acquired through a child runs its rollback on the owning bag
+- **Failure path:** release once, LIFO, best-effort, the frozen shared
+  `'factory-failed'` context, never inline with a synchronous *factory* throw,
+  cancellation, and event order with and without a projection. (Retirement after
+  a projection fails may run disposers inline, as `withDisposal` already does.)
+- **#32:** a `direct` projection over a rejecting source with and without
+  ownership, a disposer pushed after the wrapper was handed out, and a `close()`
+  racing the rollback. Each asserts after a macrotask yield: bun resumes a test
+  awaiting an already-rejected promise before the rollback's microtask, so a
+  "nothing ran yet" assertion without the yield proves nothing.
+- **Success path:** ownership after the service disposer, retirement after a
+  projection fails, close ordering against projections, the fulfil shape, a stack
+  alone making an attempt owned, and late acceptance during close.
+- **Lifetimes:** transient, root through a child, a fork, a binding shared to the
+  parent, and cross-attempt order.
+- **Reasons:** one test per reason, the recommended check releasing a
+  service-owned resource exactly once, and a projection owner neither standing in
+  for nor discrediting the returned value's disposer.
+- **Startup, observers, close progress:** startup rollback of a succeeded
+  service's stack, `cleanupFailures`, one and two cleanup pairs, and an in-flight
+  rollback reported as pending.
 
-`tests/acquisition-retention.node.mjs` adds the retained-context case; it runs
-only in CI's `contracts` job.
-
-Type fixtures: `tests/types/startup.ts` pins `defer`'s signature and return type;
-`tests/types/negative/startup.ts` rejects a non-function and a callback that
-declares a parameter.
-
-## Docs
-
-`docs/agent/recipes.md` (one recipe; the API card is generated from JSDoc and
-covers only the facade, builder, and bag surfaces, so an interface member cannot
-get a card entry), `docs/agent/errors.md` (two new codes),
-the tutorial section the `AcquisitionContext` JSDoc links to, and a CHANGELOG
-entry. `AGENTS.md` rule 6 gains one sentence on partial acquisition.
+Type fixtures in `tests/types/startup.ts` and `tests/types/negative/startup.ts`
+pin the signatures; their diagnostic markers were checked against tsc6 and
+native tsc.
 
 ## Changelog entry for the next release chore
 
 `tests/release-artifacts.test.ts` pins `CHANGELOG.md` to the published
-`package.json` version and rejects an `## Unreleased` heading, so this branch
-carries no changelog change. Paste the following under the next version heading
-when the release chore bumps it.
+`package.json` version and rejects an `## Unreleased` heading, so paste this
+under the next version heading when the release chore bumps it.
 
 ```md
 ### Added
 
-- `context.defer(action)` on the acquisition context registers acquisition-local
-  cleanup for a resource a factory already holds, closing the gap where a factory
-  that fails after acquiring a resource has nothing to hand to `withDisposal`
-  ([#27](https://github.com/dany-fedorov/di-bag/issues/27)). A deferred action
-  runs if, and only if, the factory that registered it does not complete:
-  returning a value discards every deferred action, so `withDisposal` stays the
-  single owner of the returned value, including when a later projection fails. Failure and cancellation run them in reverse registration
-  order, before any value the same attempt owns; each rejection is reported like
-  a `close()` disposer failure. New codes `DI_BAG_INVALID_CLEANUP` and
-  `DI_BAG_CLEANUP_AFTER_FACTORY`.
+- `factoryCtx.pushDisposer(disposer)` on the acquisition context makes the bag own
+  a resource a factory acquired before it could return
+  ([#27](https://github.com/dany-fedorov/di-bag/issues/27),
+  [#32](https://github.com/dany-fedorov/di-bag/issues/32)). Pushed disposers run
+  exactly once, last pushed first: at once when the factory throws, rejects, or is
+  cancelled, otherwise at `close()` — or at retirement after a later projection
+  fails — after every disposer of the service. Each receives a `DisposerContext`
+  whose `reason` is `'factory-failed'`, `'no-service-disposer'`,
+  `'service-disposed'`, or `'service-disposal-failed'`, describing the
+  `withDisposal` on the returned value, so a disposer for a resource the returned
+  value also releases can act only when that disposer did not. Failures are reported like `close()` disposer failures. New
+  codes `DI_BAG_INVALID_CLEANUP` and `DI_BAG_CLEANUP_AFTER_FACTORY`; new exported
+  type `DisposerContext`.
 
 ### Changed
 
-- Each acquisition now receives its own frozen `AcquisitionContext` object rather
-  than one shared per scope, because deferred cleanup belongs to a single
-  attempt. The `signal` is unchanged: it is still the owning bag's, shared by
-  every acquisition that bag owns. Code comparing context objects by identity
+- Each acquisition now receives its own frozen `AcquisitionContext` rather than
+  one shared per scope. The `signal` is unchanged — still the owning bag's, shared
+  by every acquisition it owns — so code comparing context objects by identity
   should compare `context.signal` instead.
+- A `close({ timeoutMs, signal })` that stops waiting while a failed factory's
+  pushed disposers are still running lists that acquisition under
+  `details.pending`.
+
+### Fixed
+
+- A `signal` kept after its bag closed no longer keeps the closed bag in memory.
+  A `close()` without a cause now aborts with one shared `AbortError`, created at
+  load, whose message names `DI_BAG_CLOSING`; before, each close created an
+  `AbortError` whose stack retained the bag's scope and graph.
 ```
 
 ## Decisions taken during implementation
 
-**Opt-in, as designed.** `defer` requires `{ context: 'acquisition' }`. Adding
-rollback to an existing plain factory is therefore a signature change, which is
-the intended cost: a universal context would allocate one per acquisition
-whether or not a factory uses it, and the `context: 'acquisition'` marker is
-what already tells a reader that a factory participates in cancellation.
+**Opt-in.** `pushDisposer` requires `{ context: 'acquisition' }`, so adding it to
+a plain factory is a signature change. That is the intended cost: a universal
+context would allocate one per acquisition whether or not a factory uses it, and
+the flag already tells a reader that a factory participates in cancellation.
 
-**The context object is now per-acquisition (behaviour change).**
-`getContext()` memoised one frozen context per scope, and two tests pinned that
-identity: `tests/startup.test.ts` compared the contexts of two bindings in one
-scope, and `tests/selected-scope-runtime.test.ts` compared a late acquisition's
-context with an earlier one. A per-attempt `defer` cannot live on a shared
-object, so both now compare `context.signal` instead. The contract that matters
-— *which owner's cancellation an acquisition observes* — is unchanged; only the
-object wrapping the signal is no longer shared. Recorded in the changelog.
+**The context object is per-acquisition (behaviour change).** `getContext()`
+used to memoise one frozen context per scope, and two tests pinned that
+identity. A per-attempt stack cannot live on a shared object, so those tests now
+compare `signal`. The contract that matters — which owner's cancellation an
+acquisition observes — is unchanged.
 
 **A retained context must pin nothing.** Two rounds of review found retention
-bugs here, both of the same shape: a reference the context reached indirectly.
-First, building the context inline in `resolveBinding` put the
-`ProviderExecution` into the scope record shared with the dependency proxy's
-handlers. Then, after that was fixed, the `defer` closure still captured the
-execution directly, so a factory that kept its context — the documented way to
-read `signal` later — kept the execution, its frames, and through
-`execution.events` the attempt and the whole scope. Compaction made it worse:
-`compact()` copies the frames into a `CompletedExecution` and the original's copy
-was never cleared, because `release()` only ever runs on `attempt.execution`.
+bugs of the same shape: a reference the context reached indirectly. First,
+building the context inline in `resolveBinding` put the `ProviderExecution` into
+the scope record shared with the dependency proxy's handlers. Then the closure on
+the context captured the execution directly, so a factory that kept its context
+kept the execution, its frames, and through `execution.events` the attempt and
+the scope; `compact()` also never cleared the frames it copied. The fix is
+structural: the context closes over the `DisposerStack` alone, reads the signal
+eagerly, and `compact()` clears the frames it hands over.
 
-The fix is structural rather than another severed reference. `defer` closes over
-an `AcquisitionRollback` and nothing else, the signal is read eagerly when the
-context is built, and `compact()` clears the frames it has handed over. A
-retained context now pins one small record and the signal, which is the profile
-it had before this feature existed.
-`tests/acquisition-retention.node.mjs` covers both routes: the dependency proxy
-and the retained context. Neither runs in `npm run check` — they need
-`--expose-gc` and live in CI's `contracts` job.
+**Naming.** `defer` was replaced before release because every language that uses
+it — Go, Swift, TC39 `DisposableStack` — means "always runs", which is right for
+a stack but was wrong for the rollback-only design. `pushDisposer` says stack and
+multiplicity; "disposer" is the library's word. The factory's context type stays
+`AcquisitionContext` because it is published and matches the opt-in flag. The
+error codes name the category the failures are reported under, cleanup, not the
+method.
 
-**A known limitation: one exotic shape leaks.** A `direct`-mode projection over
-an asynchronous source produces a result stage that is ready while the source is
-still pending — `transformService(asyncContextualFactory, { mode: 'direct',
-transform: promise => ({ wrapped: promise }) })`. If that source then rejects,
-the attempt's result is already ready, so nothing retires it: its deferred
-actions run at `close()` if the attempt owns anything else, and not at all if it
-does not.
+**The reason ignores projection owners.** The first version of the stack
+computed `reason` over every accepted stage. A consumer that wrapped the service
+in an owned `transformService` then decided it: a wrapper disposer that
+succeeded read as `'service-disposed'` and the socket was never closed; one that
+threw read as `'service-disposal-failed'` and the socket was closed twice. A
+module author cannot see that consumer, so each accepted stage now records
+whether it owns the returned value, and only those decide the reason.
 
-This is a real leak in that shape, not parity with existing ownership. The
-superficially similar case — `own()` queuing a disposer on a pending stage whose
-promise then rejects, and the rejection path clearing `stage.owners` — drops
-nothing, because a rejected promise has no fulfilled value to dispose. A deferred
-action is different: it names a resource the factory said it already holds.
+**One pattern for a returned resource.** A socket that is acquired before the
+factory can fail and then returned could be owned by a single push alone. The
+recipe uses `withDisposal` plus a push with a reason check instead, so that
+every codebase owns returned values the same way.
 
-Fixing it needs a retirement path for an attempt whose source failed while its
-result stayed ready, which is a change to the attempt lifecycle rather than to
-this feature. Tracked as
-[issue 32](https://github.com/dany-fedorov/di-bag/issues/32); the tutorial
-carries the caveat so the "if, and only if" rule is not read as unconditional.
-
-**`compact()` and `retire()` learned about rollback.** An attempt holding only
-deferred actions has no accepted stage, so `hasOwnership` was not enough:
-`retire` would have released it without running them, and `compact()` would have
-discarded the list. Both now also consult `hasRollback`. In `retire()` the guard
-is load-bearing. In `compact()` it is not: the only shape it retains is the
-`direct`-projection leak above, where nothing consumes the list anyway. It is
-kept so that a future retirement path for that shape finds the list intact.
+**`hasRollback` is gone.** It guarded `retire()` and `compact()` against dropping
+a list nothing owned yet. With source-anchored rollback, an in-flight rollback is
+pending work and an accepted stack is ownership; nothing else remains to guard.

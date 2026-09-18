@@ -263,32 +263,33 @@ const app = DiBag.createBuilder()
 
 ### DI_BAG_CLEANUP_AFTER_FACTORY {#di-bag-cleanup-after-factory}
 
-**When:** `context.defer(action)` throws because the factory that owns the
-context has already returned or failed. Its projections may still be running;
-the factory is the boundary, not the whole acquisition.
+**When:** `factoryCtx.pushDisposer(disposer)` throws because the factory that
+owns the context has already returned or failed. Its projections may still be
+running; the factory is the boundary, not the whole acquisition.
 
 **Cause:** the acquisition context escaped its factory and was called later —
 from the service it produced, from a projection of the registration, or from
-inside a deferred action already running. A context belongs to one running
+inside a pushed disposer already running. A context belongs to one running
 factory, not to the service it produced.
 
-**Fix:** register cleanup inside the factory, immediately after acquiring the
-resource; own the returned value with `DiBag.withDisposal` instead.
+**Fix:** push inside the factory, immediately after acquiring the resource; own
+the returned value with `DiBag.withDisposal`, and give a pushed disposer for that
+same value a `reason` check.
 
 ```ts
 import { DiBag } from 'di-bag';
 
 const handle = DiBag.withDisposal(
-  DiBag.fromFactory(async (_deps: {}, context) => {
+  DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
     const socket = { close: async () => {} };
-    context.defer(() => socket.close());
+    factoryCtx.pushDisposer(disposerCtx => { if (disposerCtx.reason !== 'service-disposed') return socket.close(); });
     return socket;
   }, { context: 'acquisition' }),
   socket => socket.close(),
 );
 ```
 
-**Recipe:** [release a resource a factory failed to finish acquiring](recipes.md#partial-acquisition).
+**Recipe:** [own a resource a factory acquires on the way](recipes.md#partial-acquisition).
 
 ### DI_BAG_CLEANUP_FAILED {#di-bag-cleanup-failed}
 
@@ -419,7 +420,9 @@ await app.close();
 ### DI_BAG_CLOSING {#di-bag-closing}
 
 **When:** the same operations as [`DI_BAG_CLOSED`](#di-bag-closed), while
-`close()` is still in progress.
+`close()` is still in progress. Also the message of `factoryCtx.signal.reason`
+after `close()`: an `AbortError` that is the same object for every bag. A
+cancelled or failed startup aborts with its own cause instead.
 
 **Cause:** a request, timer, or factory started new resolution after shutdown
 began. Only a factory already running when `close()` started may still read its
@@ -574,25 +577,26 @@ const DiBag = CoreDiBag.withConfiguration({
 
 ### DI_BAG_INVALID_CLEANUP {#di-bag-invalid-cleanup}
 
-**When:** `context.defer(action)` throws because `action` is not a function.
+**When:** `factoryCtx.pushDisposer(disposer)` throws because `disposer` is not a
+function.
 
-**Cause:** a value was passed where a zero-argument cleanup callback belongs,
-usually the result of calling the release instead of passing it.
+**Cause:** a value was passed where a disposer callback belongs, usually the
+result of calling the release instead of passing it.
 
-**Fix:** pass a function: `context.defer(() => socket.close())`, not
-`context.defer(socket.close())`.
+**Fix:** pass a function: `factoryCtx.pushDisposer(() => socket.close())`, not
+`factoryCtx.pushDisposer(socket.close())`.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-const socket = DiBag.fromFactory(async (_deps: {}, context) => {
+const socket = DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
   const handle = { close: async () => {} };
-  context.defer(() => handle.close());
+  factoryCtx.pushDisposer(() => handle.close());
   return handle;
 }, { context: 'acquisition' });
 ```
 
-**Recipe:** [release a resource a factory failed to finish acquiring](recipes.md#partial-acquisition).
+**Recipe:** [own a resource a factory acquires on the way](recipes.md#partial-acquisition).
 
 ### DI_BAG_INVALID_CLOSE {#di-bag-invalid-close}
 

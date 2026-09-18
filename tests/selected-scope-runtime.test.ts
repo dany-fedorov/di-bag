@@ -98,8 +98,8 @@ test('closing a borrower leaves the pending owner context and finalizer intact',
   let ownerContext: AcquisitionContext | undefined;
   let finalized = 0;
   const graph = new BindingGraph().withPublicRegistrations({
-    service: DiBag.withDisposal(DiBag.fromFactory(async (_deps: {}, context) => { ownerContext = context; await gate.promise; return 42; }, { context: 'acquisition' }), () => { finalized++; }),
-    local: DiBag.fromFactory((_deps: {}, context) => context, { context: 'acquisition' }),
+    service: DiBag.withDisposal(DiBag.fromFactory(async (_deps: {}, factoryCtx) => { ownerContext = factoryCtx; await gate.promise; return 42; }, { context: 'acquisition' }), () => { finalized++; }),
+    local: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }),
   });
   const parent = new BagRuntime(graph, context);
   const child = parent.scope(graph, [graph.publicBinding('service')]);
@@ -122,8 +122,8 @@ test('pending child sources discover shared parent dependencies during tree clos
   const events: string[] = [];
   let lateContext: AcquisitionContext | undefined;
   const graph = new BindingGraph().withPublicRegistrations({
-    service: DiBag.withDisposal(DiBag.fromFactory((_deps: {}, context) => { lateContext = context; return 42; }, { context: 'acquisition' }), () => { events.push('service'); }),
-    context: DiBag.fromFactory((_deps: {}, context) => context, { context: 'acquisition' }),
+    service: DiBag.withDisposal(DiBag.fromFactory((_deps: {}, factoryCtx) => { lateContext = factoryCtx; return 42; }, { context: 'acquisition' }), () => { events.push('service'); }),
+    context: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }),
     consumer: DiBag.withDisposal(async (deps: { service: number }) => { await gate.promise; return deps.service; }, () => { events.push('consumer'); }),
   });
   const parent = new BagRuntime(graph, context);

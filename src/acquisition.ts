@@ -1,14 +1,14 @@
-import { libraryError } from './errors';
+import { diagnosticMessage, libraryError } from './errors';
 import type { AcquisitionEventFields, LifecycleEvent } from './observers';
 import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import type { BindingGraph, BindingId, BindingKey } from './runtime';
 import type { RegistrationSnapshot, AcquisitionSnapshot } from './inspection';
-import { ProviderExecution, type AcquisitionRollback, type CompletedExecution } from './provider-execution';
+import { ProviderExecution, type DisposerStack, type CompletedExecution } from './provider-execution';
 import type { RuntimeContext } from './acquisition-mode';
 import { AcquisitionFamily } from './acquisition-family';
 import type { AcquisitionId, AttemptIdentity } from './acquisition-family';
-import type { AcquisitionContext } from './acquisition-context';
+import type { AcquisitionContext, DisposerContext } from './acquisition-context';
 
 interface Acquisition extends AttemptIdentity {
   readonly strictRoot: string | undefined;
@@ -16,6 +16,20 @@ interface Acquisition extends AttemptIdentity {
   exposed: unknown;
   execution: ProviderExecution | CompletedExecution;
 }
+
+/**
+ * The reason a close() without a cause aborts with. Built once at load: an error
+ * created inside close() keeps an unformatted stack whose frames retain the
+ * closing callbacks, and through them the scope and its graph, on every signal an
+ * application kept after the bag closed. It stays a plain `AbortError`, so its
+ * legacy numeric `code` is what an automatic abort reason had; the message names
+ * the diagnostic.
+ */
+const closingReason: DOMException = (() => {
+  const reason = new DOMException(diagnosticMessage('DI_BAG_CLOSING', 'bag is closing'), 'AbortError');
+  void reason.stack; // format the load-time frames now, so nothing is retained lazily
+  return Object.freeze(reason);
+})();
 
 /** Mutable, runtime-local attempts. Binding descriptions never carry ownership. */
 export class ScopeAcquisitions {
@@ -144,8 +158,8 @@ export class ScopeAcquisitions {
     this.closing = Promise.resolve().then(() => {
       // Every descendant admission gate is closed before abort listeners run.
       this.cancellationStarted = true;
-      this.cancellationCause = cause;
-      this.controller?.abort(cause);
+      this.cancellationCause = cause === undefined ? closingReason : cause;
+      this.controller?.abort(this.cancellationCause);
       return this.disposeAll(beforeDispose);
     });
     return this.closing;
@@ -154,7 +168,7 @@ export class ScopeAcquisitions {
   /** Labels of this scope's running disposers and of acquisitions close is still draining. */
   collectProgress(pending: string[], acquiring: string[]): void {
     for (const attempt of this.attempts.values()) {
-      if (attempt.state === 'disposing' || this.retired.has(attempt.id)) pending.push(attempt.label);
+      if (attempt.state === 'disposing' || this.retired.has(attempt.id) || attempt.execution.rollingBack) pending.push(attempt.label);
       else if (attempt.state === 'creating' || attempt.state === 'pending') acquiring.push(attempt.label);
     }
   }
@@ -171,15 +185,15 @@ export class ScopeAcquisitions {
   /**
    * The signal is scope-wide; deferred cleanup is local to this attempt, so each
    * contextual acquisition receives its own frozen context. The context captures
-   * only its rollback record, never the execution or this scope, so an
+   * only its disposer stack, never the execution or this scope, so an
    * application that retains it past `close()` retains nothing else. Built here
    * rather than in `resolveBinding` for the same reason: every closure of a
    * function shares one scope, and a factory can retain the dependency proxy.
    */
-  private acquisitionContext(rollback: AcquisitionRollback): AcquisitionContext {
+  private acquisitionContext(disposers: DisposerStack): AcquisitionContext {
     return Object.freeze({
       signal: this.cancellationSignal(),
-      defer: (action: (this: void) => void | Promise<void>) => { rollback.defer(action); },
+      pushDisposer: (disposer: (this: void, disposerCtx: DisposerContext) => void | Promise<void>) => { disposers.push(disposer); },
     });
   }
 
@@ -289,7 +303,7 @@ export class ScopeAcquisitions {
     this.observeAttempt(attempt, 'acquisition-started');
     this.family.enter(attempt);
     const directSource = !description.contextual && !description.operations.length;
-    const { rollback } = execution;
+    const { disposers } = execution;
     try {
       let value: unknown;
       if (directSource) {
@@ -297,7 +311,7 @@ export class ScopeAcquisitions {
         value = create(deps as never);
         execution.publishSource(value, description);
       } else {
-        value = execution.evaluate(description, deps, rollback && this.acquisitionContext(rollback));
+        value = execution.evaluate(description, deps, disposers && this.acquisitionContext(disposers));
       }
       attempt.exposed = value;
       attempt.state = attempt.execution.state;
@@ -351,7 +365,7 @@ export class ScopeAcquisitions {
       this.retired.delete(attempt.id);
     };
     // Incoming IDs may dangle; never substitute a cached retry's identity.
-    if (!attempt.execution.hasOwnership && !attempt.execution.hasRollback && !attempt.execution.work.length) { release(); return; }
+    if (!attempt.execution.hasOwnership && !attempt.execution.work.length) { release(); return; }
     const cleanup = attempt.execution.dispose().then(release);
     this.retired.set(attempt.id, cleanup);
   }

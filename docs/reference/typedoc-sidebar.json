@@ -87,6 +87,10 @@
             "link": "/reference/index/interfaces/DiBagPolicy.md"
           },
           {
+            "text": "DisposerContext",
+            "link": "/reference/index/interfaces/DisposerContext.md"
+          },
+          {
             "text": "FactoryWithDisposal",
             "link": "/reference/index/interfaces/FactoryWithDisposal.md"
           },

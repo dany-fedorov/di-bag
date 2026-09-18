@@ -1,33 +1,33 @@
-import { DiBag, type AcquisitionContext, type CloseOptions, type DiBagCloseCancelledError, type ProviderAcquiredValue, type ProviderNamedDependencies, type ProviderOutput } from '../../src';
+import { DiBag, type AcquisitionContext, type DisposerContext, type CloseOptions, type DiBagCloseCancelledError, type ProviderAcquiredValue, type ProviderNamedDependencies, type ProviderOutput } from '../../src';
 import type { Assert, Equal } from './assert';
 
 const key: unique symbol = Symbol('startup');
 export const selectedToken = DiBag.token(key).of<{ readonly value: 42 }>();
-export const contextual = DiBag.fromFactory((deps: { input: { readonly label: 'exact' } }, context) => ({
+export const contextual = DiBag.fromFactory((deps: { input: { readonly label: 'exact' } }, factoryCtx) => ({
   read() { return deps.input.label; },
-  signal: context.signal,
+  signal: factoryCtx.signal,
 }), { context: 'acquisition' });
 const rawPromise = Promise.resolve({ value: 42 as const });
-export const raw = DiBag.withDisposal(DiBag.fromFactory((_deps: {}, _context) => rawPromise, { context: 'acquisition', ...{ acquisitionMode: 'raw' } }), value => {
+export const raw = DiBag.withDisposal(DiBag.fromFactory((_deps: {}, _factoryCtx) => rawPromise, { context: 'acquisition', ...{ acquisitionMode: 'raw' } }), value => {
   const exact: Promise<{ value: 42 }> = value;
   void exact;
 });
 const feature = DiBag.createBuilder().register({
-  hidden: DiBag.fromFactory((deps: { input: { readonly label: 'exact' } }, context) => ({ label: deps.input.label, signal: context.signal }), { context: 'acquisition' }),
+  hidden: DiBag.fromFactory((deps: { input: { readonly label: 'exact' } }, factoryCtx) => ({ label: deps.input.label, signal: factoryCtx.signal }), { context: 'acquisition' }),
   exported: (deps: { hidden: { label: 'exact'; signal: AbortSignal } }) => deps.hidden,
 }).buildModule(['exported']).renameExport('exported', 'renamed');
-export const builder = DiBag.createBuilder().installModule(feature).register(selectedToken, DiBag.fromFactory((_deps: {}, _context) => ({ value: 42 as const }), { context: 'acquisition' })).register({ input: () => ({ label: 'exact' as const }), contextual: DiBag.withMetadata(contextual, { static: { owner: 'startup' as const } }), raw });
+export const builder = DiBag.createBuilder().installModule(feature).register(selectedToken, DiBag.fromFactory((_deps: {}, _factoryCtx) => ({ value: 42 as const }), { context: 'acquisition' })).register({ input: () => ({ label: 'exact' as const }), contextual: DiBag.withMetadata(contextual, { static: { owner: 'startup' as const } }), raw });
 export const lazy = builder.build();
 export const started = builder.buildAndStart(['contextual', selectedToken, 'raw', 'renamed']);
 export const sequential = builder.buildAndStart(['contextual'], { startupOrder: 'sequential', signal: new AbortController().signal, timeoutMs: 100 });
 export const bounded = builder.buildAndStart(['contextual'], { startupOrder: 4 });
 export const empty = builder.buildAndStart([]);
-export const native = DiBag.fromFactory(async (_deps: {}, context) => ({ signal: context.signal, value: 1 as const }), { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } });
+export const native = DiBag.fromFactory(async (_deps: {}, factoryCtx) => ({ signal: factoryCtx.signal, value: 1 as const }), { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } });
 export const noDeps = DiBag.fromFactory(() => 7 as const, { context: 'acquisition' });
-export const rollback = DiBag.fromFactory((_deps: {}, context) => {
-  context.defer(() => {});
-  context.defer(async () => {});
-  return 'released' as const;
+export const pushed = DiBag.fromFactory((_deps: {}, factoryCtx) => {
+  factoryCtx.pushDisposer(() => {});
+  factoryCtx.pushDisposer(async disposerCtx => { const reason: DisposerContext['reason'] = disposerCtx.reason; void reason; });
+  return 'owned' as const;
 }, { context: 'acquisition' });
 export const reflected = builder.buildAndStart<readonly ['contextual']>;
 export type Contracts = [
@@ -42,9 +42,10 @@ export type Contracts = [
   Assert<Equal<ProviderOutput<typeof native>, Promise<{ signal: AbortSignal; value: 1 }>>>,
   Assert<Equal<ProviderOutput<typeof noDeps>, 7>>,
   Assert<Equal<AcquisitionContext['signal'], AbortSignal>>,
-  Assert<Equal<Parameters<AcquisitionContext['defer']>, [action: (this: void) => void | Promise<void>]>>,
-  Assert<Equal<ReturnType<AcquisitionContext['defer']>, void>>,
-  Assert<Equal<ProviderOutput<typeof rollback>, 'released'>>,
+  Assert<Equal<Parameters<AcquisitionContext['pushDisposer']>, [disposer: (this: void, disposerCtx: DisposerContext) => void | Promise<void>]>>,
+  Assert<Equal<ReturnType<AcquisitionContext['pushDisposer']>, void>>,
+  Assert<Equal<DisposerContext['reason'], 'factory-failed' | 'no-service-disposer' | 'service-disposed' | 'service-disposal-failed'>>,
+  Assert<Equal<ProviderOutput<typeof pushed>, 'owned'>>,
 ];
 
 const closeBag = DiBag.createBuilder().register({ value: () => 1 }).build();

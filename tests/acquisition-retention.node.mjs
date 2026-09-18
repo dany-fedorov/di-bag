@@ -165,11 +165,11 @@ test('a retained acquisition context releases the frame payloads of its own atte
     refs.push(new WeakRef(frame));
     return { metadata: frame };
   }
-  // Reading context.signal later is the documented use, so a factory that keeps
+  // Reading factoryCtx.signal later is the documented use, so a factory that keeps
   // the whole context must not keep its attempt's payloads alive.
   const contextual = create => DiBag.fromFactory(create, { context: 'acquisition' });
   const bag = DiBag.createBuilder().register({
-    value: transient(DiBag.withMetadata(contextual((_deps, context) => () => context.signal.aborted), { dynamic: { mode: 'direct', describe: describe } })),
+    value: transient(DiBag.withMetadata(contextual((_deps, factoryCtx) => () => factoryCtx.signal.aborted), { dynamic: { mode: 'direct', describe: describe } })),
   }).build();
   const read = bag.resolve('value');
   assert.equal(read(), false);
@@ -213,4 +213,85 @@ test('a ready borrowed projection drops its payload while pending source ownersh
     await closing;
   }
   assert.deepEqual(disposed, ['source', 'root']);
+});
+
+test('pushed disposer closures live until close and are collectible afterwards even with the context retained', async () => {
+  const refs = [];
+  let kept;
+  const bag = DiBag.createBuilder().register({
+    value: DiBag.fromFactory((_deps, factoryCtx) => {
+      kept = factoryCtx;
+      const payload = Array(256).fill(1);
+      refs.push(new WeakRef(payload));
+      factoryCtx.pushDisposer(() => payload.length);
+      return 1;
+    }, { context: 'acquisition' }),
+  }).build();
+  bag.resolve('value');
+  await setImmediate();
+  globalThis.gc();
+  assert.notEqual(refs[0].deref(), undefined, 'the bag owns the pushed disposer until close');
+  await bag.close();
+  await collected(refs);
+  assert.throws(() => kept.pushDisposer(() => {}), /CLEANUP_AFTER_FACTORY/);
+});
+
+// A payload reachable only through the bag's graph: a factory closure and a
+// dependency's value. The bag itself is dropped after close(), so the payloads
+// can be collected unless something the application kept still reaches the graph.
+function graphBag(refs, keep) {
+  const graphPayload = Array(4096).fill('graph');
+  const depPayload = Array(4096).fill('dep');
+  refs.push(new WeakRef(graphPayload), new WeakRef(depPayload));
+  return DiBag.createBuilder().register({
+    dep: () => depPayload,
+    value: DiBag.fromFactory((deps, factoryCtx) => {
+      keep(factoryCtx);
+      return deps.dep.length + graphPayload.length;
+    }, { context: 'acquisition' }),
+  }).build();
+}
+
+for (const [label, pick] of [['context', factoryCtx => factoryCtx], ['signal', factoryCtx => factoryCtx.signal]]) {
+  test(`a retained acquisition ${label} does not keep the closed bag's graph alive`, async () => {
+    const refs = [];
+    let kept;
+    let bag = graphBag(refs, factoryCtx => { kept = pick(factoryCtx); });
+    bag.resolve('value');
+    await bag.close();
+    bag = undefined;
+    await collected(refs);
+    const signal = label === 'signal' ? kept : kept.signal;
+    assert.equal(signal.aborted, true);
+    assert.equal(signal.reason.name, 'AbortError');
+    assert.equal(signal.reason.code, 20);
+    assert.match(signal.reason.message, /^DI_BAG_CLOSING: /);
+  });
+}
+
+test('a signal kept past a timed-out startup does not keep the runtime alive once the error is dropped', async () => {
+  const refs = [];
+  let kept;
+  let open;
+  const gate = new Promise(resolve => { open = resolve; });
+  // Built in a helper so this test's own scope holds no reference to the payload.
+  const slowBuilder = () => {
+    const graphPayload = Array(4096).fill('graph');
+    refs.push(new WeakRef(graphPayload));
+    return DiBag.createBuilder().register({
+      value: DiBag.fromFactory(async (_deps, factoryCtx) => {
+        kept = factoryCtx.signal;
+        await gate;
+        return graphPayload.length;
+      }, { context: 'acquisition' }),
+    });
+  };
+  let failure = await slowBuilder().buildAndStart(['value'], { timeoutMs: 1 }).then(() => undefined, error => error);
+  assert.equal(failure.name, 'DiBagStartupCancelledError');
+  open();
+  await failure.cleanupPromise.catch(() => {});
+  // The timeout error became the signal's reason; it must not carry the runtime with it.
+  assert.equal(kept.reason.name, 'TimeoutError');
+  failure = undefined;
+  await collected(refs);
 });

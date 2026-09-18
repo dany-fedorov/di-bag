@@ -27,6 +27,7 @@
 - [DiBagApi](interfaces/DiBagApi.md)
 - [DiBagDiagnostic](interfaces/DiBagDiagnostic.md)
 - [DiBagPolicy](interfaces/DiBagPolicy.md)
+- [DisposerContext](interfaces/DisposerContext.md)
 - [FactoryWithDisposal](interfaces/FactoryWithDisposal.md)
 - [GraphSnapshot](interfaces/GraphSnapshot.md)
 - [Module](interfaces/Module.md)
