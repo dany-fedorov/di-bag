@@ -1,5 +1,8 @@
 export type PortableContractResult = {
   readonly aliasCanonical: true;
+  readonly asyncDisposerValue: true;
+  readonly asyncFulfilled: true;
+  readonly asyncPromiseIdentity: true;
   readonly cleanupLog: readonly ['scoped', 'transient-2', 'transient-1', 'root'];
   readonly inspectionFrozen: true;
   readonly metadataFrozen: true;
@@ -16,7 +19,8 @@ type PortableToken<T> = { readonly key: symbol; readonly __service?: T };
 export type PortableDiBag = {
   createBuilder(): any;
   fromFactory(factory: (...dependencies: any[]) => unknown, options: { acquisitionMode: 'raw' }): any;
-  createBuilder(): any;
+  fromSyncFactory(factory: (...dependencies: any[]) => unknown): any;
+  fromAsyncFactory(factory: (...dependencies: any[]) => Promise<unknown>): any;
   token(key: symbol): { of<T>(): PortableToken<T> };
   withDisposal(factory: any, dispose: (value: any) => void | Promise<void>): any;
   withLifetime(factory: any, lifetime: 'root' | 'scoped' | 'transient'): any;
@@ -67,29 +71,35 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   const cleanupLog: string[] = [];
   const privateHelper = Object.freeze({ source: 'private-module-helper' });
   const exported = DiBag.token(Symbol('portable-export')).of<typeof privateHelper>();
-  const feature = DiBag.createBuilder().register({ helper: DiBag.fromFactory(() => privateHelper, { acquisitionMode: 'raw' }) }).register(exported, DiBag.fromFactory(({ helper }: { helper: typeof privateHelper }) => helper, { acquisitionMode: 'raw' })).buildModule([exported]);
+  const feature = DiBag.createBuilder().register({ helper: DiBag.fromSyncFactory(() => privateHelper) }).register(exported, DiBag.fromSyncFactory(({ helper }: { helper: typeof privateHelper }) => helper)).buildModule([exported]);
 
   let rootCalls = 0;
   let scopedCalls = 0;
   let transientCalls = 0;
   const rawPromise = Promise.resolve({ value: 'raw' });
   let rawDisposed: unknown;
+  let asyncDisposed: { value: string } | undefined;
   const root = DiBag.createBuilder().installModule(feature).register({
     root: DiBag.withMetadata(DiBag.withLifetime(DiBag.withDisposal(
-      DiBag.fromFactory(() => ({ id: ++rootCalls }), { acquisitionMode: 'raw' }),
+      DiBag.fromSyncFactory(() => ({ id: ++rootCalls })),
       () => { cleanupLog.push('root'); },
     ), 'root'), { static: { portable: true } }),
     scoped: DiBag.withDisposal(
-      DiBag.fromFactory(() => ({ id: ++scopedCalls }), { acquisitionMode: 'raw' }),
+      DiBag.fromSyncFactory(() => ({ id: ++scopedCalls })),
       () => { cleanupLog.push('scoped'); },
     ),
     transient: DiBag.withLifetime(DiBag.withDisposal(
-      DiBag.fromFactory(() => ({ id: ++transientCalls }), { acquisitionMode: 'raw' }),
+      DiBag.fromSyncFactory(() => ({ id: ++transientCalls })),
       value => { cleanupLog.push(`transient-${value.id}`); },
     ), 'transient'),
+    // The Promise object itself is the service: the explicit raw form stays the way to say so.
     raw: DiBag.withDisposal(
       DiBag.fromFactory(() => rawPromise, { acquisitionMode: 'raw' }),
       value => { rawDisposed = value; },
+    ),
+    pending: DiBag.withDisposal(
+      DiBag.fromAsyncFactory(async () => ({ value: 'async' })),
+      (value: { value: string }) => { asyncDisposed = value; },
     ),
   }).alias('rootAlias', 'root').build();
   const child = root.createScope();
@@ -103,6 +113,10 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   const scoped1 = child.resolve('scoped');
   const scoped2 = child.resolve('scoped');
   const rawValue = child.resolve('raw');
+  const pending1 = child.resolve('pending');
+  const pending2 = child.resolve('pending');
+  const asyncPromiseIdentity = pending1 === pending2 && pending1 instanceof Promise;
+  const asyncFulfilled = (await pending1).value === 'async';
   const inspection = child.inspect('root');
   const inspectionProof = validatePortableInspection(inspection);
 
@@ -111,6 +125,9 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
 
   return {
     aliasCanonical: aliasCanonical as true,
+    asyncDisposerValue: (asyncDisposed !== undefined && asyncDisposed.value === 'async') as true,
+    asyncFulfilled: asyncFulfilled as true,
+    asyncPromiseIdentity: asyncPromiseIdentity as true,
     cleanupLog: cleanupLog as unknown as PortableContractResult['cleanupLog'],
     inspectionFrozen: inspectionProof.inspectionFrozen as true,
     metadataFrozen: inspectionProof.metadataFrozen as true,
