@@ -14,6 +14,14 @@ import type { TokenDependencyContract } from './token-types';
 export interface AcquisitionContext {
   /** Aborted when the acquisition's owning scope begins closing. */
   readonly signal: AbortSignal;
+  /**
+   * Release a resource this factory has already acquired if the factory does not complete.
+   * Deferred actions run in reverse registration order, before any value the same acquisition
+   * owns, and only when this factory fails or is cancelled; returning a value discards them
+   * untouched, leaving the returned value to `withDisposal`.
+   * @param action - Cleanup for the resource acquired immediately before this call.
+   */
+  defer(this: void, action: (this: void) => void | Promise<void>): void;
 }
 type ContextFactory = (this: void, deps: never, context: AcquisitionContext) => unknown;
 /**

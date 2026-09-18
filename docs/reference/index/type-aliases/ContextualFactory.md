@@ -8,7 +8,7 @@
 type ContextualFactory<F extends ContextFactory> = (this: void, deps: Parameters<F> extends [] ? {} : Parameters<F>[0]) => ReturnType<F>;
 ```
 
-Defined in: [acquisition-context.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L23)
+Defined in: [acquisition-context.ts:31](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L31)
 
 The named-dependency factory contract retained by an acquisition-context callback.
 

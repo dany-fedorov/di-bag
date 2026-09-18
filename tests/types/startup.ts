@@ -24,6 +24,11 @@ export const bounded = builder.buildAndStart(['contextual'], { startupOrder: 4 }
 export const empty = builder.buildAndStart([]);
 export const native = DiBag.fromFactory(async (_deps: {}, context) => ({ signal: context.signal, value: 1 as const }), { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } });
 export const noDeps = DiBag.fromFactory(() => 7 as const, { context: 'acquisition' });
+export const rollback = DiBag.fromFactory((_deps: {}, context) => {
+  context.defer(() => {});
+  context.defer(async () => {});
+  return 'released' as const;
+}, { context: 'acquisition' });
 export const reflected = builder.buildAndStart<readonly ['contextual']>;
 export type Contracts = [
   Assert<Equal<Awaited<typeof started>, typeof lazy>>,
@@ -37,6 +42,9 @@ export type Contracts = [
   Assert<Equal<ProviderOutput<typeof native>, Promise<{ signal: AbortSignal; value: 1 }>>>,
   Assert<Equal<ProviderOutput<typeof noDeps>, 7>>,
   Assert<Equal<AcquisitionContext['signal'], AbortSignal>>,
+  Assert<Equal<Parameters<AcquisitionContext['defer']>, [action: (this: void) => void | Promise<void>]>>,
+  Assert<Equal<ReturnType<AcquisitionContext['defer']>, void>>,
+  Assert<Equal<ProviderOutput<typeof rollback>, 'released'>>,
 ];
 
 const closeBag = DiBag.createBuilder().register({ value: () => 1 }).build();

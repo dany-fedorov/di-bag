@@ -50,6 +50,10 @@ DiBag.fromFactory((_deps: {}, context) => {
   context.signal = new AbortController().signal;
   // diagnostic: Property 'abort' does not exist on type 'AcquisitionContext'
   context.abort();
+  // diagnostic: Argument of type 'number' is not assignable to parameter of type '(this: void) => void | Promise<void>'
+  context.defer(1);
+  // diagnostic: Target signature provides too few arguments. Expected 1 or more, but got 0.
+  context.defer((value: number) => value);
 }, { context: 'acquisition' });
 const closable = DiBag.createBuilder().register({ value: () => 1 }).build();
 // diagnostic: not assignable

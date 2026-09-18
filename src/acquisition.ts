@@ -30,7 +30,6 @@ export class ScopeAcquisitions {
   private state: 'open' | 'closing' | 'closed' = 'open';
   private closing: Promise<void> | undefined;
   private controller: AbortController | undefined;
-  private acquisitionContext: AcquisitionContext | undefined;
   private cancellationStarted = false;
   private cancellationCause: unknown;
 
@@ -160,13 +159,27 @@ export class ScopeAcquisitions {
     }
   }
 
-  private getContext(): AcquisitionContext {
-    if (!this.acquisitionContext) {
+  /** One controller per scope; every acquisition observes the same cancellation. */
+  private cancellationSignal(): AbortSignal {
+    if (!this.controller) {
       this.controller = new AbortController();
       if (this.cancellationStarted) this.controller.abort(this.cancellationCause);
-      this.acquisitionContext = Object.freeze({ signal: this.controller.signal });
     }
-    return this.acquisitionContext;
+    return this.controller.signal;
+  }
+
+  /**
+   * The signal is scope-wide; deferred cleanup is local to this attempt, so each
+   * contextual acquisition receives its own frozen context. Built here rather
+   * than in `resolveBinding` so that the execution never joins the closure scope
+   * a retained dependency proxy keeps alive.
+   */
+  private contextSource(execution: ProviderExecution): () => AcquisitionContext {
+    let context: AcquisitionContext | undefined;
+    return () => context ??= Object.freeze({
+      signal: this.cancellationSignal(),
+      defer: (action: (this: void) => void | Promise<void>) => { execution.defer(action); },
+    });
   }
 
   private resolveBinding(bindingId: BindingId, from?: Acquisition, path: readonly BindingId[] = []): Acquisition {
@@ -282,7 +295,7 @@ export class ScopeAcquisitions {
         value = create(deps as never);
         execution.publishSource(value, description);
       } else {
-        value = execution.evaluate(description, deps, () => this.getContext());
+        value = execution.evaluate(description, deps, this.contextSource(execution));
       }
       attempt.exposed = value;
       attempt.state = attempt.execution.state;
@@ -336,7 +349,7 @@ export class ScopeAcquisitions {
       this.retired.delete(attempt.id);
     };
     // Incoming IDs may dangle; never substitute a cached retry's identity.
-    if (!attempt.execution.hasOwnership && !attempt.execution.work.length) { release(); return; }
+    if (!attempt.execution.hasOwnership && !attempt.execution.hasRollback && !attempt.execution.work.length) { release(); return; }
     const cleanup = attempt.execution.dispose().then(release);
     this.retired.set(attempt.id, cleanup);
   }

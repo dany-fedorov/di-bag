@@ -242,6 +242,64 @@ A scoped `config` fails with `root lifetime cannot capture scoped dependency: db
 If a driver returns a query builder, return `Promise.resolve(builder)`; see
 [structural thenable](errors.md#structural-thenable).
 
+## Release a resource a factory failed to finish acquiring {#partial-acquisition}
+
+`withDisposal` owns the value a factory *returns*. A factory that acquires a
+resource and then fails has nothing to hand over, so it registers cleanup for
+that resource as soon as it holds it.
+
+```ts
+// src/features/feed/contract.ts
+export type Socket = { send(text: string): Promise<void>; close(): Promise<void> };
+export type Feed = { publish(text: string): Promise<void> };
+export type FeedConfig = { url: string; token: string };
+```
+
+```ts
+// src/features/feed/client.ts
+import type { Socket } from './contract.js';
+
+export async function open(url: string): Promise<Socket> {
+  return { send: async () => {}, close: async () => {} }; // a driver's connect()
+}
+export async function authenticate(socket: Socket, token: string): Promise<void> {
+  await socket.send(token); // rejects on a bad token, after the socket is open
+}
+```
+
+```ts
+// src/features/feed/module.ts
+import { DiBag } from 'di-bag';
+import { authenticate, open } from './client.js';
+import type { Feed, FeedConfig, Socket } from './contract.js';
+
+export const feedModule = DiBag.createBuilder()
+  .register({
+    socket: DiBag.withDisposal(
+      DiBag.fromFactory(async ({ config }: { config: FeedConfig }, context): Promise<Socket> => {
+        const socket = await open(config.url);
+        context.defer(() => socket.close());
+        await authenticate(socket, config.token);
+        return socket;
+      }, { context: 'acquisition' }),
+      socket => socket.close(),
+    ),
+    feed: ({ socket }: { socket: Promise<Socket> }): Feed => ({
+      publish: async text => (await socket).send(text),
+    }),
+  })
+  .buildModule(['feed']);
+```
+
+A deferred action runs only when the factory does not complete, so a failed
+handshake closes the socket and a successful one leaves it to `withDisposal` —
+never both, including when a later projection of this registration fails.
+Actions run in reverse registration order, and a rejecting one does
+not skip the rest: it is reported like any `close()` disposer failure, through
+[`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed). `context.defer`
+belongs to the running acquisition; keeping the context and calling it later
+throws [`DI_BAG_CLEANUP_AFTER_ACQUISITION`](errors.md#di-bag-cleanup-after-acquisition).
+
 ## Review a merge {#review-merge}
 
 The merge check is `src/app.check.ts` plus the full test suite. `src/app.ts`

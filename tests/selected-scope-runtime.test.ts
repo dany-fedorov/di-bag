@@ -136,7 +136,7 @@ test('pending child sources discover shared parent dependencies during tree clos
   gate.resolve();
   expect(await pending).toBe(42);
   await closing;
-  expect(lateContext).toBe(ownerContext);
+  expect(lateContext?.signal).toBe(ownerContext.signal);
   expect(lateContext?.signal.reason).toBe('tree');
   expect(events).toEqual(['consumer', 'service']);
 });

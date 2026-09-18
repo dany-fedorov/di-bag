@@ -261,6 +261,34 @@ const app = DiBag.createBuilder()
 
 **Recipe:** none; see [rule 1](../../AGENTS.md#rules).
 
+### DI_BAG_CLEANUP_AFTER_ACQUISITION {#di-bag-cleanup-after-acquisition}
+
+**When:** `context.defer(action)` throws because the factory that owns the
+context has already returned or failed.
+
+**Cause:** the acquisition context escaped its factory and was called later —
+from the service it produced, from a projection of the registration, or from
+inside a deferred action already running. A context belongs to one running
+factory, not to the service it produced.
+
+**Fix:** register cleanup inside the factory, immediately after acquiring the
+resource; own the returned value with `DiBag.withDisposal` instead.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const handle = DiBag.withDisposal(
+  DiBag.fromFactory(async (_deps: {}, context) => {
+    const socket = { close: async () => {} };
+    context.defer(() => socket.close());
+    return socket;
+  }, { context: 'acquisition' }),
+  socket => socket.close(),
+);
+```
+
+**Recipe:** [release a resource a factory failed to finish acquiring](recipes.md#partial-acquisition).
+
 ### DI_BAG_CLEANUP_FAILED {#di-bag-cleanup-failed}
 
 **When:** `close()` rejects with `DiBagCleanupError` after attempting every
@@ -542,6 +570,28 @@ const DiBag = CoreDiBag.withConfiguration({
 ```
 
 **Recipe:** none.
+
+### DI_BAG_INVALID_CLEANUP {#di-bag-invalid-cleanup}
+
+**When:** `context.defer(action)` throws because `action` is not a function.
+
+**Cause:** a value was passed where a zero-argument cleanup callback belongs,
+usually the result of calling the release instead of passing it.
+
+**Fix:** pass a function: `context.defer(() => socket.close())`, not
+`context.defer(socket.close())`.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const socket = DiBag.fromFactory(async (_deps: {}, context) => {
+  const handle = { close: async () => {} };
+  context.defer(() => handle.close());
+  return handle;
+}, { context: 'acquisition' });
+```
+
+**Recipe:** [release a resource a factory failed to finish acquiring](recipes.md#partial-acquisition).
 
 ### DI_BAG_INVALID_CLOSE {#di-bag-invalid-close}
 

@@ -182,10 +182,59 @@ succeeds, the timer and external listener are removed; a later abort of that
 external signal does not close the bag.
 
 `DiBag.fromFactory(factory, { context: 'acquisition' })` passes a frozen acquisition context as the
-factory's second argument. Its `signal` belongs to the bag that owns the attempt.
+factory's second argument. Each acquisition receives its own context object. Its
+`signal` belongs to the bag that owns the attempt.
 Root services use the family root signal even when a child first asks for them.
 Closing a scope aborts its signal before draining pending work. Cancellation is
 cooperative: JavaScript that ignores the signal can keep cleanup pending.
+
+#### Release a partially acquired resource {#release-partial-acquisition}
+
+`withDisposal` owns the value a factory *returns*, so a factory that acquires a
+resource and then fails has nothing to hand over. `context.defer(action)`
+registers cleanup for a resource the factory already holds:
+
+```ts
+import { DiBag } from 'di-bag';
+
+declare function connect(): Promise<{ close(): Promise<void> }>;
+declare function handshake(socket: { close(): Promise<void> }): Promise<void>;
+
+const session = DiBag.withDisposal(
+  DiBag.fromFactory(async (_deps: {}, context) => {
+    const socket = await connect();
+    context.defer(() => socket.close());
+    await handshake(socket);
+    return socket;
+  }, { context: 'acquisition' }),
+  socket => socket.close(),
+);
+```
+
+A deferred action runs if, and only if, the factory that registered it does not
+complete. Completing discards every deferred action untouched, so `withDisposal`
+remains the single owner of the returned value and nothing is released twice —
+including when a later projection such as `transformService` fails, which
+disposes the returned value through its ownership stage alone. Failure and
+cancellation run the actions in reverse registration order, before any value the
+same acquisition owns; every action is attempted even when one rejects, and each
+rejection is reported exactly like a `close()` disposer failure, through
+`cleanup-failed` observer events and the `DiBagCleanupError` of the owning
+`close()`.
+
+"Complete" follows the registration's acquisition mode. A native Promise
+completes when it fulfils, so `defer` stays available across every `await` in the
+factory. A `raw` result completes as soon as the factory returns it, because the
+bag never observes it: in a `raw` async factory the acquisition has already
+settled at the first `await`, so register cleanup under `nativePromise` or
+automatic acquisition instead.
+
+Rollback is scheduled when the acquisition settles, not awaited by the failing
+`resolve`: the initialization error propagates first, and `close()` — or the
+`cleanupPromise` of `DiBagStartupCancelledError` — waits for the release to
+finish. `defer` belongs to one running acquisition; calling it on a context
+retained past that acquisition throws
+[`DI_BAG_CLEANUP_AFTER_ACQUISITION`](../agent/errors.md#di-bag-cleanup-after-acquisition).
 
 Startup waits according to the selected service's final acquisition mode. A raw
 Promise or thenable is already a ready value; a native Promise waits for
