@@ -8,7 +8,7 @@ import type { CleanupFailure } from './errors';
 import { normalize } from './registration';
 import type { Registration, Registrations } from './registration';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
-import { requireClassifier } from './acquisition-mode';
+import { classifierRequired, resolveClassifier } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
 
 export type BindingId = symbol;
@@ -165,13 +165,20 @@ export class BindingGraph {
   /**
    * Return the context acquisitions use, resolving the host classifier before any factory runs.
    * Immutable graphs need explicit-mode validation only once; configured forks are O(1).
+   * A host without a classifier gets every automatic registration named, so the fix is one pass.
    */
   preflight(context: RuntimeContext): RuntimeContext {
     if (context.isNativePromise || this.#explicitlyClassified) return context;
-    for (const [, { normalized: description }] of this.#bindings) {
-      if (description.acquisitionMode === 'auto' || description.operations.some(operation =>
-        'acquisitionMode' in operation && operation.acquisitionMode === 'auto')) return requireClassifier(context);
+    const automatic: string[] = [];
+    for (const [, { description, normalized }] of this.#bindings) {
+      if (normalized.acquisitionMode === 'auto' || normalized.operations.some(operation =>
+        'acquisitionMode' in operation && operation.acquisitionMode === 'auto')) {
+        // The host answers once for the whole graph; only a host without a classifier needs the full list.
+        if (!automatic.length) { const resolved = resolveClassifier(context); if (resolved) return resolved; }
+        automatic.push(description.label);
+      }
     }
+    if (automatic.length) throw classifierRequired(automatic);
     this.#explicitlyClassified = true;
     return context;
   }

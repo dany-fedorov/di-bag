@@ -70,9 +70,17 @@ function hostClassifier(): RuntimeOptions['isNativePromise'] | undefined {
   return typeof isPromise === 'function' ? isPromise as RuntimeOptions['isNativePromise'] : undefined;
 }
 /** Resolve the classifier when a graph first needs one; a configured classifier always wins. */
-export function requireClassifier(context: RuntimeContext): RuntimeContext {
+export function resolveClassifier(context: RuntimeContext): RuntimeContext | undefined {
   if (context.isNativePromise) return context;
   const isNativePromise = hostClassifier();
-  if (isNativePromise) return Object.freeze({ ...context, isNativePromise });
-  throw libraryError('DI_BAG_CLASSIFIER_REQUIRED', 'this host has no process.getBuiltinModule; configure DiBag.withConfiguration({ runtime: { isNativePromise } }) or give each automatic registration an explicit acquisitionMode', { option: 'runtime.isNativePromise' });
+  return isNativePromise ? Object.freeze({ ...context, isNativePromise }) : undefined;
+}
+const namedBindings = 8;
+/** The graph has automatic stages and no classifier; `bindings` labels every such registration. */
+export function classifierRequired(bindings: readonly string[]): Error {
+  const sorted = [...bindings].sort();
+  const shown = sorted.slice(0, namedBindings).map(label => JSON.stringify(label)).join(', ');
+  const rest = sorted.length - Math.min(sorted.length, namedBindings);
+  const count = sorted.length === 1 ? '1 registration uses' : `${sorted.length} registrations use`;
+  return libraryError('DI_BAG_CLASSIFIER_REQUIRED', `this host has no process.getBuiltinModule; ${count} automatic acquisition: ${shown}${rest ? `, and ${rest} more` : ''}; use DiBag.fromSyncFactory or DiBag.fromAsyncFactory (or an explicit acquisitionMode) for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } })`, { option: 'runtime.isNativePromise', bindings: Object.freeze(sorted) });
 }
