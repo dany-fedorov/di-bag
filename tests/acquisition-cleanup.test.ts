@@ -436,7 +436,7 @@ test('a synchronous failure never runs a pushed disposer inline with the throw',
   await bag.close();
 });
 
-test('rollback events follow acquisition-failed and never precede it', async () => {
+test('without a projection the rollback pair follows acquisition-failed', async () => {
   const kinds: string[] = [];
   const Observed = DiBag.withConfiguration({ observers: [{ onEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onError: () => {} }] });
   const bag = Observed.createBuilder().register({
@@ -753,4 +753,22 @@ test("a failing projection disposer does not make the returned value's disposer 
   const failure = await bag.close().then(() => undefined, (error: unknown) => error);
   expect(closes).toEqual(['socket']);
   expect((failure as DiBagCleanupError).failures.map(item => (item.error as Error).message)).toEqual(['projection disposer failed']);
+});
+
+test('under a projection the rollback pair precedes acquisition-failed', async () => {
+  const kinds: string[] = [];
+  const Observed = DiBag.withConfiguration({ observers: [{ onEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onError: () => {} }] });
+  const bag = Observed.createBuilder().register({
+    service: Observed.transformService(Observed.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => {});
+      await Promise.resolve();
+      throw new Error('source');
+    }, { context: 'acquisition' }), { mode: 'awaited', transform: value => value }),
+  }).build();
+  await expect(bag.resolve('service') as Promise<unknown>).rejects.toThrow('source');
+  await tick();
+  // The rollback is anchored on the source; acquisition-failed waits for the projected result.
+  expect(kinds).toEqual(['acquisition-started', 'cleanup-started', 'acquisition-failed', 'cleanup-completed']);
+  await bag.close();
+  expect(kinds).toEqual(['acquisition-started', 'cleanup-started', 'acquisition-failed', 'cleanup-completed']);
 });

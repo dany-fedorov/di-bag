@@ -240,9 +240,12 @@ completes when it returns its promise: a disposer pushed before its first
 rejection of that promise is not a factory failure. Transient services keep
 each attempt's pushed disposers until `close()`, like `withDisposal`.
 
-Rollback is scheduled when the factory fails, not awaited by the failing
-`resolve`: the initialization error propagates first, and `close()` — or the
-`cleanupPromise` of `DiBagStartupCancelledError` — waits for it to finish.
+Rollback starts one microtask after the factory fails and is not awaited by the
+failing `resolve`; `close()` — or the `cleanupPromise` of
+`DiBagStartupCancelledError` — waits for it to finish. Without a projection the
+rejection reaches the consumer first. Under `transformService` or dynamic
+metadata the pushed disposers can run before the projected promise rejects and
+before `acquisition-failed`.
 `pushDisposer` belongs to one running factory; calling it on a context retained
 past that factory throws
 [`DI_BAG_CLEANUP_AFTER_FACTORY`](../agent/errors.md#di-bag-cleanup-after-factory).

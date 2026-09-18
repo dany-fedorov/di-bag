@@ -148,7 +148,10 @@ export class ProviderExecution {
   }
 
   private async rollbackDisposers(): Promise<void> {
-    // The initialization error propagates first; a synchronous failure never runs cleanup inline.
+    // One microtask after the source settles: a synchronous failure never runs
+    // cleanup inline, and an unprojected attempt has already reported
+    // acquisition-failed. Under a projection the result settles later, so this
+    // run can precede both acquisition-failed and the consumer's rejection.
     await undefined;
     this.events.cleanupStarted?.();
     const failed = await this.runDisposers('factory-failed');
@@ -385,6 +388,8 @@ export class ProviderExecution {
     this.result = undefined;
   }
 
+  // Reached only after every barrier and rollback has drained; draining the stack
+  // here is for a context the application retained, never for a running one.
   release(): void {
     this.frames.length = 0;
     this.stages.length = 0;

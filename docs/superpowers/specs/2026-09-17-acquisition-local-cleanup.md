@@ -116,8 +116,11 @@ service, a projection, or a disposer already running.
 - **`settleDisposers(state)`** runs where the *source* stage settles: in
   `evaluate` for a synchronous source, in the promise handler for a native one.
   - Failed: it schedules `rollbackDisposers()` as pending work of the execution.
-    That run starts after one microtask, emits one `cleanup-started` /
-    `cleanup-completed` pair, and passes `'factory-failed'`.
+    That run starts one microtask after the source settles, emits one
+    `cleanup-started` / `cleanup-completed` pair, and passes `'factory-failed'`.
+    Without a projection it follows `acquisition-failed`; under a projection it
+    may precede it, because the run is anchored on the source and the event on
+    the attempt's result.
   - Ready: it marks the stack owned and reports the acceptance, so
     `hasOwnership` is true.
 - **`disposeStages`** runs the accepted stages in reverse index order, then the
@@ -166,8 +169,11 @@ exactly as a transient `withDisposal` keeps its value.
 
 - A successful acquisition emits one cleanup pair at close covering its stages
   and its stack.
-- A failed factory emits one pair for the rollback run, after
-  `acquisition-failed`.
+- A failed factory emits one pair for the rollback run. Without a projection it
+  follows `acquisition-failed`; under a projection it may precede it, and the
+  first pushed disposer may run before the consumer sees the rejection. Waiting
+  for the result instead would bring back #32 for a transform that delays or
+  swallows the rejection.
 - The #32 failure shape emits two: a rollback run when the factory fails and a
   disposal run at close. A pair brackets one cleanup *run*, not one attempt.
 - Failures surface in `DiBagCleanupError` at close and in
@@ -225,8 +231,9 @@ These suites need `--expose-gc` and run in CI's `contracts` job, not in
 `tests/acquisition-cleanup.test.ts`, 45 cases, covering:
 
 - **Failure path:** release once, LIFO, best-effort, the frozen shared
-  `'factory-failed'` context, never inline with a synchronous throw, cancellation,
-  and event order after `acquisition-failed`.
+  `'factory-failed'` context, never inline with a synchronous *factory* throw,
+  cancellation, and event order with and without a projection. (Retirement after
+  a projection fails may run disposers inline, as `withDisposal` already does.)
 - **#32:** a `direct` projection over a rejecting source with and without
   ownership, a disposer pushed after the wrapper was handed out, and a `close()`
   racing the rollback. Each asserts after a macrotask yield: bun resumes a test
