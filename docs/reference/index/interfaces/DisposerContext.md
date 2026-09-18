@@ -7,8 +7,8 @@
 Defined in: [acquisition-context.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L16)
 
 Why a pushed disposer is running: the factory never returned, or it did and the
-attempt's service-level disposers — `withDisposal` on the returned value and any
-projection ownership — have just run.
+service disposer — the `withDisposal` on the value this factory returned — has
+just run. Ownership a consumer attaches to a transformed value does not count.
 
 ## See
 
@@ -25,6 +25,6 @@ readonly reason: 'factory-failed' | 'no-service-disposer' | 'service-disposed' |
 Defined in: [acquisition-context.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L23)
 
 `'factory-failed'`: the factory threw, rejected, or was cancelled; no service exists.
-`'no-service-disposer'`: the factory returned and nothing owns the service.
-`'service-disposed'`: every service-level disposer ran without throwing.
-`'service-disposal-failed'`: a service-level disposer threw; pushed disposers still run.
+`'no-service-disposer'`: the factory returned and no `withDisposal` owns that value.
+`'service-disposed'`: the service disposer ran without throwing.
+`'service-disposal-failed'`: the service disposer threw; pushed disposers still run.

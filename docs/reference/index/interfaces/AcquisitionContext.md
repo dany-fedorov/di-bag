@@ -35,9 +35,9 @@ pushDisposer(this: void, disposer: (this: void, disposerCtx: DisposerContext) =>
 Defined in: [acquisition-context.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L39)
 
 Own a resource this factory has already acquired. Pushed disposers run exactly once, last
-pushed first: at once if the factory fails, otherwise at `close()` after every service-level
-disposer, with `disposerCtx.reason` saying which. Give each resource one disposer — here or
-in `withDisposal`, not both — or test `reason` before releasing a resource the service owns.
+pushed first: at once if the factory fails, otherwise at `close()` after every disposer of the
+service, with `disposerCtx.reason` saying which. `withDisposal` owns the returned value; push
+what is acquired on the way, and test `reason` before releasing the returned value itself.
 
 #### Parameters
 

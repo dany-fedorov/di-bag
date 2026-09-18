@@ -273,7 +273,8 @@ inside a pushed disposer already running. A context belongs to one running
 factory, not to the service it produced.
 
 **Fix:** push inside the factory, immediately after acquiring the resource; own
-the returned value with `DiBag.withDisposal`.
+the returned value with `DiBag.withDisposal`, and give a pushed disposer for that
+same value a `reason` check.
 
 ```ts
 import { DiBag } from 'di-bag';

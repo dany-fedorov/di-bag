@@ -217,17 +217,19 @@ Each pushed disposer runs exactly once, last pushed first. If the factory
 throws, rejects, or is cancelled, they run at once — `pool.end()` after
 `socket.close()` — and `disposerCtx.reason` is `'factory-failed'`. If the
 factory returns, the bag owns them below the returned value: at `close()`, and
-at retirement when a later projection fails, every service-level disposer runs
-first — `withDisposal` on the returned value and any projection ownership — and
-then the pushed disposers, with `reason` `'service-disposed'`,
-`'service-disposal-failed'` (a service disposer threw; the pushed disposers
-still run), or `'no-service-disposer'`.
+at retirement when a later projection fails, every disposer of the service runs
+first and then the pushed disposers. `reason` says how the service disposer — the
+`withDisposal` on the value this factory returned — went: `'service-disposed'`,
+`'service-disposal-failed'` (it threw; the pushed disposers still run), or
+`'no-service-disposer'`. Ownership a consumer attaches to a transformed value is
+not the service disposer; its failures are reported on their own.
 
-Give each resource one disposer. `pool` above is released only by its pushed
-disposer. The socket is released by `session.close()`, so its pushed disposer
-checks `reason` and acts only when no service disposer released it. A pushed
-disposer that ignores `disposerCtx` runs unconditionally, which is right when
-nothing else releases the resource.
+`withDisposal` owns the returned value; `pushDisposer` owns what is acquired on
+the way. `pool` above is released only by its pushed disposer. The socket is the
+returned value, released by `session.close()`, so its pushed disposer acts only
+when `reason` is not `'service-disposed'`. A pushed disposer that ignores
+`disposerCtx` runs unconditionally, which is right when nothing else releases
+the resource.
 
 Every disposer is attempted even when one rejects; each rejection is reported
 like a `close()` disposer failure, through `cleanup-failed` observer events and

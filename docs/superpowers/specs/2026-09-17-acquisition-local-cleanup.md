@@ -35,7 +35,7 @@ it. Every pushed disposer runs exactly once, last pushed first:
   the stack runs at once.
 - **If the factory returns**, the bag owns the stack below the returned value.
   It runs at `close()`, or at retirement when a later projection fails, after
-  every service-level disposer.
+  every disposer of the service.
 
 The first design was rollback-only: success discarded the list, so `withDisposal`
 stayed the single owner of everything by construction. It was dropped for two
@@ -47,11 +47,12 @@ A stack gives up the by-construction single-ownership property: a pushed
 disposer and a service disposer can now name the same resource. What replaces
 it is a rule plus information:
 
-- **One disposer per resource** is the documented rule. A resource is released
-  by the service disposer or by a pushed disposer, not both.
-- **`DisposerContext.reason`** tells each pushed disposer why it is running, so a
-  disposer for a resource the returned value also releases can act only when the
-  service disposer did not: `if (disposerCtx.reason !== 'service-disposed') …`.
+- **One rule, stated once:** `withDisposal` owns the returned value;
+  `pushDisposer` owns what is acquired on the way; a pushed resource that is also
+  the returned value acts only when `disposerCtx.reason !== 'service-disposed'`.
+- **`DisposerContext.reason`** tells each pushed disposer why it is running, and
+  describes only the `withDisposal` on the returned value — the one disposer a
+  factory author can see.
 
 The library cannot enforce the rule — it cannot know that `session.close()`
 closes the socket — so the reason check is how a factory author states it.
@@ -76,26 +77,31 @@ The reasons:
 | `reason` | when |
 | --- | --- |
 | `'factory-failed'` | the factory threw, rejected, or was cancelled; no service exists |
-| `'no-service-disposer'` | the factory returned and no service-level disposer was accepted |
-| `'service-disposed'` | every service-level disposer ran without throwing |
-| `'service-disposal-failed'` | a service-level disposer threw; the pushed disposers still run |
+| `'no-service-disposer'` | the factory returned and no `withDisposal` owns the returned value |
+| `'service-disposed'` | the service disposer ran without throwing |
+| `'service-disposal-failed'` | the service disposer threw; the pushed disposers still run |
 
-"Service-level disposers" are the attempt's accepted ownership stages:
-`withDisposal` on the source and any projection ownership.
+The service disposer is the ownership of the returned value: the source's own
+`dispose` and any `withDisposal` attached before the first `transformService`.
+Metadata frames preserve the value, so ownership after `withMetadata` still
+counts. Ownership of a transformed value belongs to whoever transformed it; its
+outcome is reported through `cleanup-failed` and `DiBagCleanupError`, not
+through `reason`.
 
 How the reason is decided:
 
 - **Mixed outcomes.** `disposeStages` awaits every barrier before disposing, so no
-  stage is pending when the reason is computed; it is a pure function of the
-  accepted stages. None accepted → `'no-service-disposer'`; any threw →
-  `'service-disposal-failed'`; otherwise `'service-disposed'`.
+  stage is pending when the reason is computed. Each accepted stage records
+  whether it owns the returned value; the reason is decided from those alone. None
+  → `'no-service-disposer'`; one threw → `'service-disposal-failed'`; otherwise
+  `'service-disposed'`.
 - **Retirement after a projection fails.** The source returned, so the stack is
   owned; the failed projection's own ownership was never accepted. The reason
-  comes from the stages that were (usually the source's `withDisposal`).
+  comes from the returned value's `withDisposal`, if any.
 - **The #32 fulfil shape** — a `direct` projection over a source that fulfils
   after the wrapper was handed out: the stack is accepted at fulfilment, the
-  wrapper's stage was accepted earlier, and the reason reflects the wrapper's
-  disposer.
+  wrapper's stage was accepted earlier and runs first, and the reason ignores it:
+  the wrapper owns a transformed value.
 - **The failure path is always `'factory-failed'`**, even when a projection stage
   is owned.
 - **One frozen `DisposerContext` per run**, shared by every disposer in it.
@@ -228,7 +234,7 @@ These suites need `--expose-gc` and run in CI's `contracts` job, not in
 
 ## Tests
 
-`tests/acquisition-cleanup.test.ts`, 45 cases, covering:
+`tests/acquisition-cleanup.test.ts`, 48 cases, covering:
 
 - **Failure path:** release once, LIFO, best-effort, the frozen shared
   `'factory-failed'` context, never inline with a synchronous *factory* throw,
@@ -244,8 +250,9 @@ These suites need `--expose-gc` and run in CI's `contracts` job, not in
   alone making an attempt owned, and late acceptance during close.
 - **Lifetimes:** transient, root through a child, a fork, a binding shared to the
   parent, and cross-attempt order.
-- **Reasons:** one test per reason, plus the recommended check releasing a
-  service-owned resource exactly once.
+- **Reasons:** one test per reason, the recommended check releasing a
+  service-owned resource exactly once, and a projection owner neither standing in
+  for nor discrediting the returned value's disposer.
 - **Startup, observers, close progress:** startup rollback of a succeeded
   service's stack, `cleanupFailures`, one and two cleanup pairs, and an in-flight
   rollback reported as pending.
@@ -269,11 +276,11 @@ under the next version heading when the release chore bumps it.
   [#32](https://github.com/dany-fedorov/di-bag/issues/32)). Pushed disposers run
   exactly once, last pushed first: at once when the factory throws, rejects, or is
   cancelled, otherwise at `close()` — or at retirement after a later projection
-  fails — after every service-level disposer. Each receives a `DisposerContext`
+  fails — after every disposer of the service. Each receives a `DisposerContext`
   whose `reason` is `'factory-failed'`, `'no-service-disposer'`,
-  `'service-disposed'`, or `'service-disposal-failed'`, so a disposer for a
-  resource the returned value also releases can act only when the service
-  disposer did not. Failures are reported like `close()` disposer failures. New
+  `'service-disposed'`, or `'service-disposal-failed'`, describing the
+  `withDisposal` on the returned value, so a disposer for a resource the returned
+  value also releases can act only when that disposer did not. Failures are reported like `close()` disposer failures. New
   codes `DI_BAG_INVALID_CLEANUP` and `DI_BAG_CLEANUP_AFTER_FACTORY`; new exported
   type `DisposerContext`.
 
@@ -325,6 +332,19 @@ multiplicity; "disposer" is the library's word. The factory's context type stays
 `AcquisitionContext` because it is published and matches the opt-in flag. The
 error codes name the category the failures are reported under, cleanup, not the
 method.
+
+**The reason ignores projection owners.** The first version of the stack
+computed `reason` over every accepted stage. A consumer that wrapped the service
+in an owned `transformService` then decided it: a wrapper disposer that
+succeeded read as `'service-disposed'` and the socket was never closed; one that
+threw read as `'service-disposal-failed'` and the socket was closed twice. A
+module author cannot see that consumer, so each accepted stage now records
+whether it owns the returned value, and only those decide the reason.
+
+**One pattern for a returned resource.** A socket that is acquired before the
+factory can fail and then returned could be owned by a single push alone. The
+recipe uses `withDisposal` plus a push with a reason check instead, so that
+every codebase owns returned values the same way.
 
 **`hasRollback` is gone.** It guarded `retire()` and `compact()` against dropping
 a list nothing owned yet. With source-anchored rollback, an in-flight rollback is
