@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#dibag-facade
 all: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => CollectionDependency<T>;
 ```
 
-Defined in: [di-bag.ts:672](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L672)
+Defined in: [di-bag.ts:695](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L695)
 
 Create a positional dependency containing every contribution to a collection token, in order.
 
@@ -63,7 +63,7 @@ const menu = DiBag.fromFunction([DiBag.all(tools)], names => names.join(', '));
 createBuilder: () => Builder<never>;
 ```
 
-Defined in: [di-bag.ts:718](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L718)
+Defined in: [di-bag.ts:741](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L741)
 
 Begin an empty immutable graph; `build` creates its owning bag, `buildModule` seals a reusable module.
 
@@ -75,13 +75,95 @@ const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
 
 ***
 
+### fromAsyncFactory
+
+```ts
+fromAsyncFactory: {
+    <F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
+    <F extends Factory>(callback: F & AsyncOutput<ReturnType<NoInfer<F>>>, options?: PortableFactoryOptions): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
+};
+```
+
+Defined in: [di-bag.ts:652](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L652)
+
+Describe an asynchronous factory that runs on every host: the service is the returned native Promise and `withDisposal` receives its fulfilled value.
+A non-Promise output is rejected at compile time; a thenable that is not a native Promise fails the acquisition with a `TypeError`.
+
+#### Call Signature
+
+```ts
+<F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
+```
+
+Describe an asynchronous named-dependency factory that runs on every host: a `nativePromise`
+stage whose service is the returned Promise and whose owners receive the fulfilled value.
+
+##### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `F` | The complete callback signature, retaining dependency and output inference. |
+
+##### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `callback` | A receiver-free async factory taking its named dependency object and the acquisition context. |
+| `options` | `context: 'acquisition'`; the acquisition mode is fixed and `acquisitionMode` is rejected. |
+
+##### Returns
+
+A lazy provider exposing the factory's own Promise; adds no ownership.
+
+#### Call Signature
+
+```ts
+<F extends Factory>(callback: F & AsyncOutput<ReturnType<NoInfer<F>>>, options?: PortableFactoryOptions): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
+```
+
+Describe an asynchronous named-dependency factory that runs on every host: a `nativePromise`
+stage whose service is the returned Promise and whose owners receive the fulfilled value.
+A non-Promise output is rejected at compile time; a thenable that is not a native Promise fails the acquisition with a `TypeError`.
+
+##### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `F` | The exact factory signature and exposed Promise. |
+
+##### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `callback` | A receiver-free factory returning a native Promise. |
+| `options?` | Optional; `acquisitionMode` is rejected because the helper fixes it. |
+
+##### Returns
+
+A lazy provider exposing the factory's own Promise; `withDisposal` receives its fulfilled value.
+
+#### Throws
+
+`DI_BAG_INVALID_FACTORY` for a non-function, an unknown `context`, or an `acquisitionMode` option.
+
+#### Example
+
+```ts
+const db = DiBag.withDisposal(
+  DiBag.fromAsyncFactory(async ({ config }: { config: { url: string } }) => ({ url: config.url, end: async () => {} })),
+  db => db.end(),
+);
+```
+
+***
+
 ### fromClass
 
 ```ts
 fromClass: <const T extends readonly DependencyReference[], C extends new (...args: TokenArguments<NoInfer<T>>) => unknown, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>> & AutoOutput<InstanceType<NoInfer<C>>, NoInfer<M>>, ...modeOptions: StageOptions<M>) => Provider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>>;
 ```
 
-Defined in: [di-bag.ts:710](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L710)
+Defined in: [di-bag.ts:733](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L733)
 
 Adapt a class whose constructor parameters receive the listed tokens' services.
 
@@ -220,7 +302,7 @@ fromFunction: {
 };
 ```
 
-Defined in: [di-bag.ts:698](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L698)
+Defined in: [di-bag.ts:721](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L721)
 
 Adapt a positional function whose parameters receive the listed tokens' services.
 
@@ -301,7 +383,7 @@ const stamp = DiBag.fromFunction([clock], source => new Date(source.now()).toISO
 fromPlugin: PluginProviderFactory;
 ```
 
-Defined in: [di-bag.ts:686](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L686)
+Defined in: [di-bag.ts:709](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L709)
 
 Validate an unknown plugin descriptor now and its acquired output at acquisition.
 
@@ -322,13 +404,92 @@ const greeter = DiBag.fromPlugin([], descriptor, {
 
 ***
 
+### fromSyncFactory
+
+```ts
+fromSyncFactory: {
+    <F extends ContextFactory>(callback: F & SyncOutput<ReturnType<NoInfer<F>>>, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, ReturnType<F>>;
+    <F extends Factory>(callback: F & SyncOutput<ReturnType<NoInfer<F>>>, options?: PortableFactoryOptions): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, ReturnType<F>>;
+};
+```
+
+Defined in: [di-bag.ts:639](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L639)
+
+Describe a synchronous factory that runs on every host: the exact return value is the service and `then` is never read.
+A Promise or thenable output is rejected at compile time; use `fromAsyncFactory`, or `fromFactory` with `acquisitionMode: 'raw'` when the Promise object itself is the service.
+
+#### Call Signature
+
+```ts
+<F extends ContextFactory>(callback: F & SyncOutput<ReturnType<NoInfer<F>>>, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, ReturnType<F>>;
+```
+
+Describe a synchronous named-dependency factory that runs on every host: a `raw` stage whose
+exact return value is the service, so `then` is never read and no Promise classifier is needed.
+
+##### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `F` | The complete callback signature, retaining dependency and output inference. |
+
+##### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `callback` | A receiver-free factory taking its named dependency object and the acquisition context. |
+| `options` | `context: 'acquisition'`; the acquisition mode is fixed and `acquisitionMode` is rejected. |
+
+##### Returns
+
+A lazy provider preserving exact output and named dependencies; adds no ownership.
+
+#### Call Signature
+
+```ts
+<F extends Factory>(callback: F & SyncOutput<ReturnType<NoInfer<F>>>, options?: PortableFactoryOptions): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, ReturnType<F>>;
+```
+
+Describe a synchronous named-dependency factory that runs on every host: a `raw` stage whose
+exact return value is the service. A Promise or thenable output is rejected at compile time;
+use `fromAsyncFactory`, or `fromFactory` with `acquisitionMode: 'raw'` when the Promise object is the service.
+
+##### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `F` | The exact factory signature and exposed result. |
+
+##### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `callback` | A receiver-free factory taking its named dependency object. |
+| `options?` | Optional; `acquisitionMode` is rejected because the helper fixes it. |
+
+##### Returns
+
+A lazy provider retaining exact output and dependency types without adding ownership.
+
+#### Throws
+
+`DI_BAG_INVALID_FACTORY` for a non-function, an unknown `context`, or an `acquisitionMode` option.
+
+#### Example
+
+```ts
+const config = DiBag.fromSyncFactory(() => ({ url: 'memory:' }));
+```
+
+***
+
 ### lazy
 
 ```ts
 lazy: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => LazyDependency<T>;
 ```
 
-Defined in: [di-bag.ts:661](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L661)
+Defined in: [di-bag.ts:684](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L684)
 
 Create a positional dependency supplied as a function that resolves the token when called.
 
@@ -372,7 +533,7 @@ const stamp = DiBag.fromFunction([DiBag.lazy(clock)], getClock => () => getClock
 optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalDependency<T>;
 ```
 
-Defined in: [di-bag.ts:650](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L650)
+Defined in: [di-bag.ts:673](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L673)
 
 Create a positional dependency that yields `undefined` only when the token is unregistered.
 
@@ -418,7 +579,7 @@ token: <const K extends symbol>(key: K & TokenKeyAdmission<K>, ...invalid: [K] e
 };
 ```
 
-Defined in: [di-bag.ts:639](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L639)
+Defined in: [di-bag.ts:662](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L662)
 
 Create a typed token from a unique symbol; `.of<Service>()` fixes its service type.
 
@@ -479,7 +640,7 @@ transformService: {
 };
 ```
 
-Defined in: [di-bag.ts:763](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L763)
+Defined in: [di-bag.ts:786](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L786)
 
 Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership.
 
@@ -597,7 +758,7 @@ withDisposal: {
 };
 ```
 
-Defined in: [di-bag.ts:731](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L731)
+Defined in: [di-bag.ts:754](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L754)
 
 Make the bag own a factory's value and run `dispose` on it when the bag closes.
 `close()` runs disposers, dependents first; close every scope and fork you create.
@@ -678,7 +839,7 @@ withLifetime: {
 };
 ```
 
-Defined in: [di-bag.ts:743](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L743)
+Defined in: [di-bag.ts:766](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L766)
 
 Select `root`, `scoped` (the default), or `transient` caching for a registration.
 Mark a shared client `root` only when nothing it depends on is scoped.
@@ -792,7 +953,7 @@ withMetadata: {
 };
 ```
 
-Defined in: [di-bag.ts:753](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L753)
+Defined in: [di-bag.ts:776](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L776)
 
 Attach static registration metadata, or per-acquisition metadata in direct or awaited mode.
 

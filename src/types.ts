@@ -56,7 +56,7 @@ export type OverrideRegistrations<F extends Registrations, N extends Registratio
  */
 export interface DiBagPolicy {}
 type StructuralThenablesAllowed = DiBagPolicy extends { readonly structuralThenables: 'allow' } ? true : false;
-type IsAny<T> = 0 extends 1 & T ? true : false;
+export type IsAny<T> = 0 extends 1 & T ? true : false;
 /** True for a declared output with a callable `then` that is not a native Promise; `any` is exempt. */
 export type StructuralThenable<O> = StructuralThenablesAllowed extends true ? false
   : IsAny<O> extends true ? false

@@ -1,6 +1,8 @@
 [
   { "task": "Start a graph", "call": "DiBag.createBuilder" },
   { "task": "Register a service", "call": "builder.register" },
+  { "task": "Register a synchronous factory for a browser or worker", "call": "DiBag.fromSyncFactory" },
+  { "task": "Register an async factory for a browser or worker", "call": "DiBag.fromAsyncFactory" },
   { "task": "Attach cleanup", "call": "DiBag.withDisposal" },
   { "task": "Choose a lifetime", "call": "DiBag.withLifetime" },
   { "task": "Seal a module", "call": "builder.buildModule" },

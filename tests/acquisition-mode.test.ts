@@ -5,6 +5,11 @@ import { isPromise } from 'node:util/types';
 import { runInNewContext } from 'node:vm';
 import { withoutBuiltinModule } from './host-builtin-module';
 
+const caught = (run: () => unknown): { code?: string; message: string; details: Record<string, unknown> } => {
+  try { run(); } catch (error) { return error as never; }
+  throw new Error('expected a throw');
+};
+
 for (const stage of ['source', 'projection', 'metadata'] as const) {
   test(`close waits for a native acquisition with shadowed then at ${stage}`, async () => {
     let release!: (value: { id: number }) => void;
@@ -90,11 +95,16 @@ test('unconfigured core preflights every stage and private module before any fac
   const source = Core.fromFactory(() => { calls++; return 1; }, { acquisitionMode: 'raw' });
   const automatic = () => { calls++; return 2; };
   const feature = Core.createBuilder().register({ hidden: automatic, public: source }).buildModule(['public']);
-  for (const finalize of [
-    () => Core.createBuilder().register({ source, automatic }).build(),
-    () => Core.createBuilder().register({ projected: Core.transformService(source, { mode: 'direct', transform: value => { calls++; return value; } }) }).build(),
-    () => Core.createBuilder().installModule(feature).build(),
-  ]) expect(() => withoutBuiltinModule<unknown>(finalize)).toThrow(/^DI_BAG_CLASSIFIER_REQUIRED: this host has no process\.getBuiltinModule; configure DiBag\.withConfiguration\(\{ runtime: \{ isNativePromise \} \}\) or give each automatic registration an explicit acquisitionMode; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-classifier-required$/);
+  const cases: Array<[() => unknown, readonly string[]]> = [
+    [() => Core.createBuilder().register({ source, automatic }).build(), ['automatic']],
+    [() => Core.createBuilder().register({ projected: Core.transformService(source, { mode: 'direct', transform: value => { calls++; return value; } }) }).build(), ['projected']],
+    [() => Core.createBuilder().installModule(feature).build(), ['hidden']],
+  ];
+  for (const [finalize, bindings] of cases) {
+    const failure = caught(() => withoutBuiltinModule<unknown>(finalize));
+    expect(failure.code).toBe('DI_BAG_CLASSIFIER_REQUIRED');
+    expect(failure.details.bindings).toEqual(bindings);
+  }
   expect(calls).toBe(0);
 });
 
@@ -195,5 +205,36 @@ test('async metadata retains a native output contract without a portable classif
   const bag = Core.createBuilder().register({ value: Core.withMetadata(source, { dynamic: { mode: 'awaited', describe: value => ({ result: value }) } }) }).build();
   expect(await bag.resolve('value')).toBe(7);
   expect(bag.inspect('value').acquisitions[0]?.acquisitionMetadata).toEqual([{ present: true, value: { result: 7 } }]);
+  await bag.close();
+});
+
+test('DI_BAG_CLASSIFIER_REQUIRED names every automatic registration, sorted, and suggests the helpers', () => {
+  const raw = Core.fromFactory(() => 1, { acquisitionMode: 'raw' });
+  const feature = Core.createBuilder().register({ hidden: () => 1, shown: ({ hidden }: { hidden: number }) => hidden }).buildModule(['shown'], { label: 'billing' });
+  const failure = caught(() => withoutBuiltinModule(() => Core.createBuilder().installModule(feature).register({
+    raw,
+    plain: () => 2,
+    projected: Core.transformService(raw, { mode: 'direct', transform: value => value }),
+    sync: Core.fromSyncFactory(() => 3),
+    pending: Core.fromAsyncFactory(async () => 4),
+  }).build()));
+  expect(failure.code).toBe('DI_BAG_CLASSIFIER_REQUIRED');
+  expect(failure.details).toEqual({ option: 'runtime.isNativePromise', bindings: ['billing/hidden', 'plain', 'projected', 'shown'] });
+  expect(Object.isFrozen(failure.details.bindings)).toBe(true);
+  expect(failure.message).toBe('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule; 4 registrations use automatic acquisition: "billing/hidden", "plain", "projected", "shown"; use DiBag.fromSyncFactory or DiBag.fromAsyncFactory (or an explicit acquisitionMode) for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } }); see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-classifier-required');
+});
+
+test('the classifier message lists at most eight registrations; details carry them all', () => {
+  const registrations = Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`s${String(index).padStart(2, '0')}`, () => index]));
+  const failure = caught(() => withoutBuiltinModule(() => Core.createBuilder().register(registrations as never).build()));
+  expect(failure.details.bindings).toHaveLength(12);
+  expect(failure.message).toContain('12 registrations use automatic acquisition: "s00", "s01", "s02", "s03", "s04", "s05", "s06", "s07", and 4 more; use DiBag.fromSyncFactory');
+});
+
+test('a host classifier is consulted once, at the first automatic registration', async () => {
+  let loads = 0;
+  const counting = (id: string) => { loads++; return id === 'node:util/types' ? { isPromise } : undefined; };
+  const bag = withoutBuiltinModule(() => Core.createBuilder().register({ a: () => 1, b: () => 2, c: () => 3 }).build(), counting);
+  expect(loads).toBe(1);
   await bag.close();
 });

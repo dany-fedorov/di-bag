@@ -212,6 +212,9 @@ const platformRoot = resolve(process.cwd());
 const platformScript = resolve(platformRoot, 'scripts', 'platform-evidence.ts');
 const expectedPortableResult = {
   aliasCanonical: true,
+  asyncDisposerValue: true,
+  asyncFulfilled: true,
+  asyncPromiseIdentity: true,
   cleanupLog: ['scoped', 'transient-2', 'transient-1', 'root'],
   inspectionFrozen: true,
   metadataFrozen: true,

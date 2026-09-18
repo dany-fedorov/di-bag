@@ -75,6 +75,9 @@ function browserBundle(source = 'minified-worker();'): BrowserBundle {
 
 const portableResult = {
   aliasCanonical: true,
+  asyncDisposerValue: true,
+  asyncFulfilled: true,
+  asyncPromiseIdentity: true,
   cleanupLog: ['scoped', 'transient-2', 'transient-1', 'root'],
   inspectionFrozen: true,
   metadataFrozen: true,

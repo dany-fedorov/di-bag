@@ -28,7 +28,7 @@ test('library messages carry the code, the original text, and the errors-page se
   expect(cycle.details.path).toEqual(['a', 'b', 'a']);
 
   const classifier = caught(() => withoutBuiltinModule(() => Core.createBuilder().register({ value: () => 1 }).build()));
-  expect(classifier.message).toBe(`DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule; configure DiBag.withConfiguration({ runtime: { isNativePromise } }) or give each automatic registration an explicit acquisitionMode; see ${page}#di-bag-classifier-required`);
+  expect(classifier.message).toBe(`DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule; 1 registration uses automatic acquisition: "value"; use DiBag.fromSyncFactory or DiBag.fromAsyncFactory (or an explicit acquisitionMode) for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } }); see ${page}#di-bag-classifier-required`);
 
   const typeError = caught(() => DiBag.withConfiguration(null as never));
   expect(typeError).toBeInstanceOf(TypeError);

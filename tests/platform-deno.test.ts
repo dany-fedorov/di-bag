@@ -10,6 +10,9 @@ import { withoutBuiltinModule } from './host-builtin-module';
 test('portable root contract has host-independent semantics', async () => {
   await expect(portableContract(DiBag)).resolves.toEqual({
     aliasCanonical: true,
+    asyncDisposerValue: true,
+    asyncFulfilled: true,
+    asyncPromiseIdentity: true,
     rootOnce: true,
     scopedOnce: true,
     transientDistinct: true,
@@ -46,6 +49,9 @@ test('portable inspection proof rejects nonobjects and inexact or unfrozen metad
 
 const portableResult = {
   aliasCanonical: true as const,
+  asyncDisposerValue: true as const,
+  asyncFulfilled: true as const,
+  asyncPromiseIdentity: true as const,
   cleanupLog: ['scoped', 'transient-2', 'transient-1', 'root'] as const,
   inspectionFrozen: true as const,
   metadataFrozen: true as const,
@@ -56,8 +62,8 @@ const portableResult = {
   transientDistinct: true as const,
 };
 // Canonical child output sorts keys, so the host-dependent probe sits in order.
-const { aliasCanonical, ...portableRest } = portableResult;
-const denoResult = { aliasCanonical, automatic: 'resolved' as const, ...portableRest };
+const { aliasCanonical, asyncDisposerValue, asyncFulfilled, asyncPromiseIdentity, ...portableRest } = portableResult;
+const denoResult = { aliasCanonical, asyncDisposerValue, asyncFulfilled, asyncPromiseIdentity, automatic: 'resolved' as const, ...portableRest };
 
 test('automatic acquisition probe resolves with process.getBuiltinModule and names the code without it', async () => {
   expect(await automaticAcquisition(DiBag)).toBe('resolved');

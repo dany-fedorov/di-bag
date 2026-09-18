@@ -297,6 +297,64 @@ consumer attaches to a transformed value. A rejecting disposer is reported
 through [`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed); pushing after
 the factory settled throws [`DI_BAG_CLEANUP_AFTER_FACTORY`](errors.md#di-bag-cleanup-after-factory).
 
+## Make a graph portable to browsers and workers {#portable-graph}
+
+Hosts without `process.getBuiltinModule` cannot classify Promises, so every
+registration says whether its factory is synchronous or asynchronous. The same
+module then runs on Node, Bun, Deno, and in a browser Worker.
+
+```ts
+// src/features/search/contract.ts
+export type Index = { lookup(term: string): Promise<string[]>; close(): Promise<void> };
+export type IndexConfig = { url: string };
+export type Search = { find(term: string): Promise<string[]> };
+```
+
+```ts
+// src/features/search/module.ts
+import { DiBag } from 'di-bag';
+import type { Index, IndexConfig, Search } from './contract.js';
+
+export const searchModule = DiBag.createBuilder()
+  .register({
+    index: DiBag.withLifetime(
+      DiBag.withDisposal(
+        DiBag.fromAsyncFactory(async ({ config }: { config: IndexConfig }): Promise<Index> => ({
+          lookup: async term => [`${config.url}#${term}`],
+          close: async () => {},
+        })),
+        index => index.close(),
+      ),
+      'root',
+    ),
+    search: DiBag.fromSyncFactory(({ index }: { index: Promise<Index> }): Search => ({
+      find: async term => (await index).lookup(term),
+    })),
+  })
+  .buildModule(['search'], { label: 'search' });
+```
+
+```ts
+// src/features/search/check.ts
+import { DiBag } from 'di-bag';
+import type { IndexConfig } from './contract.js';
+import { searchModule } from './module.js';
+
+DiBag.createBuilder()
+  .installModule(searchModule)
+  .register({ config: DiBag.withLifetime(DiBag.fromSyncFactory((): IndexConfig => ({ url: 'memory:' })), 'root') })
+  .verifyGraph() satisfies void;
+```
+
+`fromSyncFactory` is `fromFactory` with `acquisitionMode: 'raw'`: the exact value
+is the service and `then` is never read; an `async` function or a thenable output
+is rejected at compile time. `fromAsyncFactory` is `fromFactory` with
+`acquisitionMode: 'nativePromise'`: the Promise is the service, consumers await it,
+and `withDisposal` receives the fulfilled value. Give direct `transformService`,
+`fromFunction`, and `fromClass` an explicit `acquisitionMode`. A leftover automatic
+registration fails `build()` with [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required),
+which names it; a Promise that is itself the service keeps `fromFactory(create, { acquisitionMode: 'raw' })`.
+
 ## Review a merge {#review-merge}
 
 The merge check is `src/app.check.ts` plus the full test suite. `src/app.ts`

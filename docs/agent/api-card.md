@@ -12,6 +12,8 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | --- | --- |
 | Start a graph | [`DiBag.createBuilder()`](#dibag-createbuilder) |
 | Register a service | [`builder.register(more)`](#builder-register) |
+| Register a synchronous factory for a browser or worker | [`DiBag.fromSyncFactory(callback, options)`](#dibag-fromsyncfactory) |
+| Register an async factory for a browser or worker | [`DiBag.fromAsyncFactory(callback, options)`](#dibag-fromasyncfactory) |
 | Attach cleanup | [`DiBag.withDisposal(create, dispose)`](#dibag-withdisposal) |
 | Choose a lifetime | [`DiBag.withLifetime(registration, lifetime)`](#dibag-withlifetime) |
 | Seal a module | [`builder.buildModule(keys, options?)`](#builder-buildmodule) |
@@ -38,6 +40,21 @@ Describe a named-dependency factory with an explicit acquisition mode or the acq
 ```ts
 type Query = { then(done: (rows: string[]) => void): void };
 const query = DiBag.fromFactory((): Query => ({ then: done => done([]) }), { acquisitionMode: 'raw' });
+```
+
+### `DiBag.fromSyncFactory(callback, options)` {#dibag-fromsyncfactory}
+Describe a synchronous factory that runs on every host: the exact return value is the service and `then` is never read. Throws: [`DI_BAG_INVALID_FACTORY`](errors.md#di-bag-invalid-factory).
+```ts
+const config = DiBag.fromSyncFactory(() => ({ url: 'memory:' }));
+```
+
+### `DiBag.fromAsyncFactory(callback, options)` {#dibag-fromasyncfactory}
+Describe an asynchronous factory that runs on every host: the service is the returned native Promise and `withDisposal` receives its fulfilled value. Throws: [`DI_BAG_INVALID_FACTORY`](errors.md#di-bag-invalid-factory).
+```ts
+const db = DiBag.withDisposal(
+  DiBag.fromAsyncFactory(async ({ config }: { config: { url: string } }) => ({ url: config.url, end: async () => {} })),
+  db => db.end(),
+);
 ```
 
 ### `DiBag.token(key)` {#dibag-token}

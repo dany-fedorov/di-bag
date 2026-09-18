@@ -430,9 +430,10 @@ use `"nodeModulesDir": "manual"` in `deno.json`. See
 [Deno's manual npm installation mode](https://docs.deno.com/runtime/fundamentals/node/#manual-node_modules-creation).
 
 Hosts without `process.getBuiltinModule`, such as browsers and workers, have no
-automatic native-Promise predicate. There, declare the acquisition mode of
-**every factory stage**, including overrides. This portable version of
-`application.ts` runs on every host, Deno included:
+automatic native-Promise predicate. There, say on **every factory stage**,
+including overrides, whether it is synchronous or asynchronous:
+`fromSyncFactory` for a value, `fromAsyncFactory` for a Promise. This portable
+version of `application.ts` runs on every host, Deno included:
 
 ```ts
 import { DiBag } from 'di-bag';
@@ -445,24 +446,14 @@ export function createApplication() {
     .register({
       catalog: DiBag.withLifetime(
         DiBag.withDisposal(
-          DiBag.fromFactory(async () => new Map([['book', 'A good book']]), {
-            acquisitionMode: 'nativePromise',
-          }),
+          DiBag.fromAsyncFactory(async () => new Map([['book', 'A good book']])),
           (catalog) => catalog.clear(),
         ),
         'root',
       ),
-      request: DiBag.fromFactory((): RequestContext => ({ id: 'outside-request' }), {
-        acquisitionMode: 'raw',
-      }),
-      handler: DiBag.fromFactory(
-        ({
-          catalog,
-          request,
-        }: {
-          catalog: Promise<Catalog>;
-          request: RequestContext;
-        }) => ({
+      request: DiBag.fromSyncFactory((): RequestContext => ({ id: 'outside-request' })),
+      handler: DiBag.fromSyncFactory(
+        ({ catalog, request }: { catalog: Promise<Catalog>; request: RequestContext }) => ({
           async list() {
             return {
               requestId: request.id,
@@ -470,7 +461,6 @@ export function createApplication() {
             };
           },
         }),
-        { acquisitionMode: 'raw' },
       ),
     })
     .buildAndStart(['catalog']);
@@ -480,20 +470,21 @@ export type Application = Awaited<ReturnType<typeof createApplication>>;
 
 export function createRequestScope(app: Application, requestId: string) {
   return app.createScope(['request'], {
-    request: DiBag.fromFactory(() => ({ id: requestId }), { acquisitionMode: 'raw' }),
+    request: DiBag.fromSyncFactory(() => ({ id: requestId })),
   });
 }
 ```
 
 Keep `owned-scope.ts` and `handle-request.ts` from the earlier sections.
-`raw` preserves the exact value without inspecting `then`.
-`nativePromise` tracks a genuine native promise and gives its fulfillment to the
-disposer. Wrapping with `withDisposal`, `withLifetime`, static `withMetadata`, or
-direct dynamic `withMetadata` preserves the chosen mode. `transformService` and
-positional adapters may introduce new automatic stages; select explicit modes
-where those APIs accept an acquisition option. `transformService` and dynamic `withMetadata` in `awaited` mode declare native
-acquisition. Direct transformations select their own output `acquisitionMode`. See
-[portable host configuration](tutorial.md#portable-mode).
+`fromSyncFactory` preserves the exact value without inspecting `then`.
+`fromAsyncFactory` tracks a genuine native promise and gives its fulfillment to
+the disposer. Wrapping with `withDisposal`, `withLifetime`, static `withMetadata`,
+or direct dynamic `withMetadata` preserves the chosen mode. `transformService`
+in `direct` mode, `fromFunction`, and `fromClass` introduce stages of their own;
+give them an explicit `acquisitionMode`. `transformService` and dynamic
+`withMetadata` in `awaited` mode declare native acquisition. If `build()` still
+throws `DI_BAG_CLASSIFIER_REQUIRED`, its message names the registrations that
+are automatic. See [portable host configuration](tutorial.md#portable-mode).
 
 Save this as `server.ts` and run `deno run --allow-net server.ts`:
 
@@ -682,7 +673,7 @@ try {
 This replacement explicitly repeats the original lifetime and disposal policies. A
 replacement is a complete registration: those wrappers are not inherited from
 the original factory. Fixtures for hosts without `process.getBuiltinModule`
-also need explicit acquisition modes. A fork has independent
+also use `fromSyncFactory` or `fromAsyncFactory`. A fork has independent
 instances and is not closed by the original app. Use transport-level tests as
 well when validating routing, serialization, disconnects, or streaming.
 
@@ -713,7 +704,7 @@ describes the integration responsibilities.
 | A client intended to be shared opens once per request | Mark its registration `root`, or explicitly select parent sharing with `createScope({ share: [...] })`. |
 | A child override does not affect a shared handler | Sharing borrows the parent's complete acquisition and original dependencies. Keep the handler scoped. |
 | A promise appears where a service was expected | Async factories expose promises. Declare and await that dependency explicitly. |
-| `.build()` rejects with `DI_BAG_CLASSIFIER_REQUIRED` in a browser or worker | Check all factory and projection stages, including private modules and overrides, for an undeclared acquisition mode. |
+| `.build()` rejects with `DI_BAG_CLASSIFIER_REQUIRED` in a browser or worker | Its message and `details.bindings` name the automatic registrations; register each with `fromSyncFactory` or `fromAsyncFactory`, and give direct `transformService`, `fromFunction`, and `fromClass` an `acquisitionMode`. |
 | Cleanup never runs | Attach `withDisposal` and close the owning bag. A method named `close` does not imply ownership. |
 | Shutdown remains pending | Look for unfinished acquisitions, uncooperative disposers, active streams, or server connections. |
 | A dependency object cannot be spread or enumerated | Read declared properties directly; the runtime proxy cannot recover an erased parameter type's keys. |
