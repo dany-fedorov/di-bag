@@ -73,6 +73,7 @@ export class CompletedExecution {
   readonly state = 'ready';
   readonly sourceInFlight = false;
   readonly hasOwnership = false;
+  readonly rollingBack = false;
   readonly disposers = undefined;
   readonly error = undefined;
   readonly work = emptyWork;
@@ -96,6 +97,8 @@ export class ProviderExecution {
   readonly disposers: DisposerStack | undefined;
   // The factory returned, so the bag owns what it pushed, below every accepted stage.
   private disposersOwned = false;
+  // The failure-path run of the stack, while it is in flight.
+  private rollback: Promise<void> | undefined;
   private readonly pending = new Set<Promise<void>>();
   private result: ValueStage | undefined;
   private cleaning: Promise<void> | undefined;
@@ -114,6 +117,7 @@ export class ProviderExecution {
   get state(): 'pending' | 'ready' | 'failed' { return this.result?.state ?? 'failed'; }
   get error(): unknown { return this.result?.error; }
   get hasOwnership(): boolean { return this.stages.length > 0 || this.disposersOwned; }
+  get rollingBack(): boolean { return this.rollback !== undefined; }
   get work(): readonly Promise<void>[] { return [...this.pending]; }
 
   /**
@@ -133,9 +137,11 @@ export class ProviderExecution {
       return;
     }
     const work: Promise<void> = this.rollbackDisposers().then(() => {
+      this.rollback = undefined;
       this.pending.delete(work);
       if (!this.pending.size) this.events.drained();
     });
+    this.rollback = work;
     this.pending.add(work);
   }
 

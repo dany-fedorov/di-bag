@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { DiBag } from '../src/node';
-import { DiBagCleanupError, DiBagStartupError } from '../src';
+import { DiBagCleanupError, DiBagCloseCancelledError, DiBagStartupError } from '../src';
 import { deferred } from './helpers';
 
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
@@ -676,4 +676,49 @@ test('the recommended reason check releases a resource the service owns exactly 
   bag.resolve('session');
   await bag.close();
   expect(closes).toEqual(['socket']);
+});
+
+test('a successful acquisition reports one cleanup pair at close covering stages and stack', async () => {
+  const kinds: string[] = [];
+  const Observed = DiBag.withConfiguration({ observers: [{ onEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onError: () => {} }] });
+  const bag = Observed.createBuilder().register({
+    service: Observed.withDisposal(Observed.fromFactory((_deps: {}, factoryCtx) => { factoryCtx.pushDisposer(() => {}); return 1; }, { context: 'acquisition' }), () => {}),
+  }).build();
+  bag.resolve('service');
+  await bag.close();
+  expect(kinds).toEqual(['acquisition-started', 'acquisition-ready', 'cleanup-started', 'cleanup-completed']);
+});
+
+test('a direct projection whose source fails reports a rollback run and, at close, a disposal run', async () => {
+  const kinds: string[] = [];
+  const Observed = DiBag.withConfiguration({ observers: [{ onEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onError: () => {} }] });
+  const bag = Observed.createBuilder().register({
+    service: Observed.withDisposal(Observed.transformService(Observed.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => {});
+      await Promise.resolve();
+      throw new Error('source');
+    }, { context: 'acquisition' }), { mode: 'direct', transform: promise => ({ wrapped: promise }) }), () => {}),
+  }).build();
+  await expect(bag.resolve('service').wrapped).rejects.toThrow('source');
+  await tick();
+  expect(kinds).toEqual(['acquisition-started', 'acquisition-ready', 'cleanup-started', 'cleanup-completed']);
+  await bag.close();
+  expect(kinds).toEqual(['acquisition-started', 'acquisition-ready', 'cleanup-started', 'cleanup-completed', 'cleanup-started', 'cleanup-completed']);
+});
+
+test('a bounded close reports an in-flight rollback as pending', async () => {
+  const gate = deferred<void>();
+  const bag = DiBag.createBuilder().register({
+    service: DiBag.transformService(DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => gate.promise);
+      await Promise.resolve();
+      throw new Error('source');
+    }, { context: 'acquisition' }), { mode: 'direct', transform: promise => ({ wrapped: promise }) }),
+  }).build();
+  await expect(bag.resolve('service').wrapped).rejects.toThrow('source');
+  const failure = await bag.close({ timeoutMs: 5 }).then(() => undefined, (error: unknown) => error);
+  expect(failure).toBeInstanceOf(DiBagCloseCancelledError);
+  expect((failure as DiBagCloseCancelledError).details.pending).toEqual(['service']);
+  gate.resolve();
+  await (failure as DiBagCloseCancelledError).cleanupPromise;
 });

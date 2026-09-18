@@ -154,7 +154,7 @@ export class ScopeAcquisitions {
   /** Labels of this scope's running disposers and of acquisitions close is still draining. */
   collectProgress(pending: string[], acquiring: string[]): void {
     for (const attempt of this.attempts.values()) {
-      if (attempt.state === 'disposing' || this.retired.has(attempt.id)) pending.push(attempt.label);
+      if (attempt.state === 'disposing' || this.retired.has(attempt.id) || attempt.execution.rollingBack) pending.push(attempt.label);
       else if (attempt.state === 'creating' || attempt.state === 'pending') acquiring.push(attempt.label);
     }
   }
