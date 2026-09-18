@@ -1,7 +1,7 @@
 # DI Bag
 
-TypeScript dependency composition and resource ownership for modular codebases,
-including the ones coding agents build one feature at a time.
+TypeScript dependency composition and resource ownership for modular codebases.
+Built for coding agents that ship one feature at a time.
 
 [Documentation](https://dany-fedorov.github.io/di-bag/) · [Quickstart](#quickstart) · [Modules as units of work](#modules-as-units-of-work) · [Comparison](#how-it-compares) · [Tutorial](docs/guides/tutorial.md) · [API reference](docs/guides/api-reference.md)
 
