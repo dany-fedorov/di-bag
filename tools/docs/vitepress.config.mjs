@@ -12,6 +12,7 @@ const guide = [
     { text: 'Comparison with alternatives', link: '/guides/comparison' },
     { text: 'Complete tutorial', link: '/guides/tutorial' },
     { text: 'Server recipes', link: '/guides/server-integration' },
+    { text: 'React and browser runtimes', link: '/guides/react-integration' },
     { text: 'Integration patterns', link: '/guides/enterprise-integration' },
     { text: 'Agent harnesses and graphs', link: '/guides/agent-harnesses-and-graphs' },
   ] },

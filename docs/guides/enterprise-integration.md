@@ -134,6 +134,9 @@ streaming and error propagation against the actual framework version. The repo
 does not ship or claim tested direct NestJS/Angular adapters. [Nest scopes](https://docs.nestjs.com/fundamentals/injection-scopes),
 [Angular hierarchy](https://angular.dev/guide/di/hierarchical-dependency-injection).
 
+For React in the browser, the [React guide](react-integration.md) ships a tested
+owner that bridges effect setup and cleanup to runtime startup and close.
+
 Run the complete executable recipe checks with:
 
 ```sh

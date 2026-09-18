@@ -250,7 +250,8 @@ classifier. See [portable mode](docs/guides/tutorial.md#portable-mode).
   modules beyond that. See the [compiler evidence](docs/benchmarks/typescript.md).
 - **Framework integration belongs to the application.** DI Bag provides the
   composition and ownership primitives; the host connects request, job, or UI
-  lifecycles.
+  lifecycles. The [server guide](docs/guides/server-integration.md) and the
+  [React guide](docs/guides/react-integration.md) are tested recipes for both.
 
 ## Explore further
 
@@ -259,6 +260,7 @@ classifier. See [portable mode](docs/guides/tutorial.md#portable-mode).
 | [Complete tutorial](docs/guides/tutorial.md) | Learn every public API through examples, from first composition to advanced ownership. |
 | [API reference](docs/guides/api-reference.md) | Exact generated signatures, overloads, type parameters, and API inventories. |
 | [Server guide](docs/guides/server-integration.md) | Node HTTP, Express, Fastify, Bun, and Deno: shared services, request scopes, startup, and shutdown. |
+| [React guide](docs/guides/react-integration.md) | Browser applications: one app runtime at bootstrap, project runtimes owned from effects, Strict Mode, cancellation, bounded teardown, and `useSyncExternalStore`. |
 | [Radical modularity](docs/guides/examples-modularity.md) | The recommended module layout, separately owned features, isolated tests, and contributed tools. |
 | [Agent docs](AGENTS.md) | Rules, module layout, and check commands for coding agents, with [recipes](docs/agent/recipes.md) and [errors](docs/agent/errors.md). Shipped in the package. |
 | [Agent harnesses and graphs](docs/guides/agent-harnesses-and-graphs.md) | One worked application: model and tool modules, metadata inspection, and node tests with typed fixtures. |

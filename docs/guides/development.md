@@ -26,6 +26,7 @@ Passing local checks establishes a release candidate, not a registry publication
 
 `npm test` runs two lanes. `npm run test:fast` covers the runtime suites and
 finishes in a few seconds; run it after every source change.
+`tests/react/` holds the React recipe's owner and composition tests; they run in the fast lane without React.
 `npm run test:compiler` covers the compiler, package, native, platform, and
 benchmark suites; run it before committing. `scripts/test-lane.mjs` holds the
 single list that assigns files to lanes. Compiler-driven tests share one
@@ -60,7 +61,7 @@ See [documentation maintenance](documentation.md) for the preview workflow.
 ## Portable runtime checks
 
 A separate CI job runs the actual packed root package in Deno and a minified
-Chromium Worker. To reproduce that job locally:
+Chromium Worker, and the React example in a Chromium page. To reproduce that job locally:
 
 ```sh
 npm ci
@@ -69,6 +70,7 @@ export PLAYWRIGHT_BROWSERS_PATH="$PWD/tools/platform/.browsers"
 node tools/platform/node_modules/playwright/cli.js install chromium
 npm run platform:pin -- --all
 npm run check:platform
+npm run check:react-browser
 ```
 
 On Linux hosts missing browser system libraries, use Playwright's
@@ -80,7 +82,9 @@ over the historical machine-specific manifest; an invalid one fails explicitly.
 The private platform tools have their own lockfile and are excluded from the
 published package. `check:platform` requires all three lanes to pass, while
 `evidence:platform` remains an informational collector that can record unavailable
-portable tools. CI configuration is separate from evidence that a run passed.
+portable tools. `check:react-browser` bundles `examples/react` with the pinned
+esbuild and runs it in the pinned Chromium in development and production builds,
+writing `react-browser.jsonl` next to the platform evidence; both rows must pass. CI configuration is separate from evidence that a run passed.
 Evidence also records the platform lockfile hash. A script tool's entry hash
 identifies its version-probe wrapper, not every transitive driver/compiler file;
 use the locked `npm ci` installation when reproducing the run.
