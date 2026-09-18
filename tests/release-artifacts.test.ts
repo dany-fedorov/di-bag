@@ -353,8 +353,12 @@ describe('native gap inventory', () => {
   test('freezes the exact current reviewed-gap source authority', () => {
     expect(Object.isFrozen(nativeDiagnosticGapMessages)).toBe(true);
     const gaps = collectReviewedNativeGaps(reviewedRoot);
-    // One reviewed gap: native 7.0.2 rejects the contextual fromFactory thenable through its last overload's arity error.
-    expect(gaps.map(gap => [gap.fixture, gap.id, gap.code])).toEqual([['negative/structural-thenable.ts', 'last-contextual-factory-thenable', 2769]]);
+    // Two reviewed gaps: native 7.0.2 rejects the contextual fromFactory thenable and the contextual
+    // fromSyncFactory Promise through their last overload's arity error.
+    expect(gaps.map(gap => [gap.fixture, gap.id, gap.code])).toEqual([
+      ['negative/portable-factories.ts', 'last-contextual-sync-factory-promise', 2769],
+      ['negative/structural-thenable.ts', 'last-contextual-factory-thenable', 2769],
+    ]);
     expect(Object.isFrozen(gaps)).toBe(true);
   });
   test('accepts empty and reviewed fresh inventory while an empty authority rejects a new gap', () => {
