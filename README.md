@@ -225,9 +225,9 @@ The package has **zero runtime dependencies** and two entry points:
 | `di-bag/node` | The same API with detection configured explicitly at import, for Node and Bun. |
 
 On hosts without `process.getBuiltinModule` (browsers, workers), `build()`
-rejects automatic acquisition stages unless you configure a trusted classifier
-or give each stage an explicit acquisition mode. See
-[portable mode](docs/guides/tutorial.md#portable-mode) for both options.
+rejects automatic acquisition stages and names them. Register with
+`DiBag.fromSyncFactory` / `DiBag.fromAsyncFactory` there, or configure a trusted
+classifier. See [portable mode](docs/guides/tutorial.md#portable-mode).
 
 ## Tradeoffs and limits
 

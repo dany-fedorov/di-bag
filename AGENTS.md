@@ -12,9 +12,9 @@ Every compiler and runtime message: [docs/agent/errors.md](docs/agent/errors.md)
 
 1. **Import from `di-bag`:** `import { DiBag } from 'di-bag';`. It configures
    itself on Node, Bun, and Deno; `di-bag/node` is the same API in explicit form.
-   In browsers and workers `build()` throws
-   [`DI_BAG_CLASSIFIER_REQUIRED`](docs/agent/errors.md#di-bag-classifier-required)
-   for factories without an explicit `acquisitionMode`.
+   For browsers and workers register with `DiBag.fromSyncFactory` / `fromAsyncFactory`
+   ([portable recipe](docs/agent/recipes.md#portable-graph)); a plain factory there fails
+   `build()` with [`DI_BAG_CLASSIFIER_REQUIRED`](docs/agent/errors.md#di-bag-classifier-required), which names it.
 2. **A factory declares its dependencies in the type of its one object
    parameter; destructure it** (`({ clock }: { clock: Clock }) => ...`) or read
    `deps.clock` directly. The object is a Proxy that resolves each property when

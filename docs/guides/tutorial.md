@@ -1196,11 +1196,67 @@ On Node, Bun, and Deno, `di-bag` classifies native Promises with the host's
 `util.types.isPromise`, loaded through `process.getBuiltinModule` at the first
 `build()` that needs it; `di-bag/node` configures the same classifier at import.
 Browsers, workers, and other hosts have no `process.getBuiltinModule`, so there
-`build()` throws `DI_BAG_CLASSIFIER_REQUIRED` for any automatic stage. The same
-applies where an application must choose its own classification policy.
+`build()` throws `DI_BAG_CLASSIFIER_REQUIRED`, naming every registration that
+still uses automatic acquisition.
 
-There are two portable strategies. Configure an application-local facade with a
-trusted native-Promise predicate:
+The portable style says on each registration whether its factory is synchronous
+or asynchronous, so no classifier is needed anywhere:
+
+**Standalone example:**
+
+```ts
+import { DiBag } from 'di-bag';
+
+type Config = { readonly url: string };
+type Catalog = { names(): Promise<string[]>; close(): Promise<void> };
+
+const app = DiBag.createBuilder()
+  .register({
+    config: DiBag.fromSyncFactory((): Config => ({ url: 'memory:' })),
+    catalog: DiBag.withDisposal(
+      DiBag.fromAsyncFactory(async ({ config }: { config: Config }): Promise<Catalog> => ({
+        names: async () => [config.url],
+        close: async () => {},
+      })),
+      catalog => catalog.close(),
+    ),
+    handler: DiBag.fromSyncFactory(({ catalog }: { catalog: Promise<Catalog> }) => ({
+      list: async () => (await catalog).names(),
+    })),
+  })
+  .build();
+
+console.log(await app.resolve('handler').list()); // ['memory:']
+await app.close();
+```
+
+`fromSyncFactory(create)` is a `raw` stage: the exact return value is the
+service and `then` is never read. The compiler rejects an `async` function, a
+`Promise`-returning function, a union with a Promise member, or a thenable such
+as a query builder with `fromSyncFactory output must not be a Promise or thenable`.
+`fromAsyncFactory(create)` is a `nativePromise` stage: the service is the
+returned Promise, consumers declare and await it, and `withDisposal` receives
+the fulfilled value. The compiler rejects a non-Promise output, a union, or a
+`PromiseLike` with `fromAsyncFactory requires a Promise output`. Both accept
+`{ context: 'acquisition' }` like `fromFactory`. Ownership, lifetimes, metadata,
+modules, scopes, and forks are unchanged: the helpers only fix the mode that
+`fromFactory(create, { acquisitionMode })` spells out.
+
+Thenables and foreign Promises: `fromAsyncFactory` uses the engine's own check,
+`Promise.prototype.then` called on the value, so a Promise from another realm or
+a `Promise` subclass is observed like any native Promise, and an own `then`
+override on the instance is never called. A value that is not a native Promise,
+reachable only through a cast because the type is rejected, fails that
+acquisition with the engine's `TypeError` and never has its `then` called. A
+Promise object that is itself the service, or a thenable that is the service,
+keeps `DiBag.fromFactory(create, { acquisitionMode: 'raw' })`.
+
+Everything reachable must be explicit: private module services, overrides in
+`fork` and `createScope`, and every direct `transformService`, `fromFunction`,
+and `fromClass`, which take `acquisitionMode` as an option. Graph completion
+checks the whole graph before any factory runs and lists what is still
+automatic. The other portable strategy is a trusted application-local
+classifier:
 
 **Conceptual snippet:** `trustedHostPredicate` is supplied by the application.
 
@@ -1218,26 +1274,13 @@ It must identify native Promises without using a structural thenable test or a
 plain `instanceof` test. `withConfiguration()` returns a new facade; it does not mutate
 global state. Its context follows builders, bags, scopes, and forks.
 
-Alternatively, make every reachable automatic stage explicit:
-
-**Standalone example:**
-
-```ts
-import { DiBag } from 'di-bag';
-
-const resource = DiBag.fromFactory(() => ({ id: 7 }), { acquisitionMode: 'raw' });
-const app = DiBag.createBuilder().register({ resource }).build();
-```
-
-Without a configured or host predicate, graph completion checks the entire graph,
-including private module providers, before factories
-run. Any stage still using `auto` is rejected.
-
 The stage rules are precise:
 
 - `raw` exposes the exact return value without reading `then`.
 - `nativePromise` requires a Promise-shaped TypeScript output, observes native
   fulfillment, and still exposes the exact source Promise.
+- `fromSyncFactory` and `fromAsyncFactory` are `fromFactory` with `raw` and
+  `nativePromise` fixed, plus a compile-time check that the output agrees.
 - `auto` asks the configured predicate, or the host's `util.types.isPromise`
   when none is configured and the host exposes `process.getBuiltinModule`.
 - `fromFactory`, `fromFunction`, and `fromClass` select their result stage's

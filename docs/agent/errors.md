@@ -190,6 +190,37 @@ DiBag.createBuilder()
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 
+### Portable factory output {#portable-factory-output}
+
+**When:** `fromSyncFactory output must not be a Promise or thenable; use fromAsyncFactory for a Promise, or fromFactory with acquisitionMode raw to make the Promise object the service; see https://dany-fedorov.github.io/di-bag/agent/errors.html#portable-factory-output`,
+or `fromAsyncFactory requires a Promise output; use fromSyncFactory for a synchronous value; see https://dany-fedorov.github.io/di-bag/agent/errors.html#portable-factory-output`.
+
+**Cause:** the helper fixes the acquisition mode from its name, so the factory's
+declared output must agree with it. `fromSyncFactory` is a `raw` stage that never
+reads `then`: an `async` function, a `Promise`-returning function, a union with a
+Promise member, or a thenable such as a query builder cannot be its service.
+`fromAsyncFactory` is a `nativePromise` stage: a plain value, a union, or a
+`PromiseLike` cannot be its service.
+
+**Fix:** pick the helper that matches the output. When the Promise object itself
+is the service, use `DiBag.fromFactory(create, { acquisitionMode: 'raw' })`.
+
+```ts
+// expect-error: fromSyncFactory output must not be a Promise or thenable
+import { DiBag } from 'di-bag';
+
+const config = DiBag.fromSyncFactory(async () => ({ url: 'memory:' }));
+```
+
+```ts
+import { DiBag } from 'di-bag';
+
+const config = DiBag.fromAsyncFactory(async () => ({ url: 'memory:' }));
+const ownedPromise = DiBag.fromFactory(() => Promise.resolve({ url: 'memory:' }), { acquisitionMode: 'raw' });
+```
+
+**Recipe:** [make a graph portable to browsers and workers](recipes.md#portable-graph).
+
 ### Wrong shape at a call {#wrong-shape}
 
 **When:** `register`, `installModule`, or `replace` reports
@@ -244,22 +275,29 @@ app.fork(['port'], { port: () => 'eighty' });
 `process.getBuiltinModule`: browsers, Web Workers, and other non-Node runtimes.
 Node, Bun, and Deno never raise it.
 
-**Cause:** a factory uses automatic acquisition, no native-Promise classifier
-is configured, and the host offers none.
+**Cause:** a registration uses automatic acquisition, no native-Promise classifier
+is configured, and the host offers none. The message and `details.bindings` name
+every such registration, sorted, with private module services as `<label>/<key>`;
+a direct `transformService` without an `acquisitionMode` counts under its
+registration's name.
 
-**Fix:** configure a trusted classifier with
-`withConfiguration({ runtime: { isNativePromise } })`, or give each automatic
-registration an explicit `acquisitionMode`.
+**Fix:** register each named service with `DiBag.fromSyncFactory` or
+`DiBag.fromAsyncFactory`; give `fromFunction`, `fromClass`, and direct
+`transformService` an explicit `acquisitionMode`; or configure a trusted
+classifier with `withConfiguration({ runtime: { isNativePromise } })`.
 
 ```ts
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({ answer: DiBag.fromFactory(() => 42, { acquisitionMode: 'raw' }) })
+  .register({
+    answer: DiBag.fromSyncFactory(() => 42),
+    later: DiBag.fromAsyncFactory(async ({ answer }: { answer: number }) => answer * 2),
+  })
   .build();
 ```
 
-**Recipe:** none; see [rule 1](../../AGENTS.md#rules).
+**Recipe:** [make a graph portable to browsers and workers](recipes.md#portable-graph).
 
 ### DI_BAG_CLEANUP_AFTER_FACTORY {#di-bag-cleanup-after-factory}
 
@@ -705,13 +743,16 @@ const east = reports.renameExport('service', 'eastReports');
 
 ### DI_BAG_INVALID_FACTORY {#di-bag-invalid-factory}
 
-**When:** `DiBag.fromFactory(callback, options)` receives a non-function, or a
-`context` option other than `'acquisition'`.
+**When:** `DiBag.fromFactory`, `fromSyncFactory`, or `fromAsyncFactory` receives a
+non-function, or a `context` option other than `'acquisition'`; the two portable
+helpers also refuse an `acquisitionMode` option, because they fix it themselves.
 
-**Cause:** a value passed where a factory is expected.
+**Cause:** a value passed where a factory is expected, or a mode passed to a
+helper whose name already selects it.
 
 **Fix:** pass a function; use `{ context: 'acquisition' }` to receive the
-acquisition signal as the second argument.
+acquisition context as the second argument; choose `fromSyncFactory` or
+`fromAsyncFactory` instead of passing a mode to them.
 
 ```ts
 import { DiBag } from 'di-bag';

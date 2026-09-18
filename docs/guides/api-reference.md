@@ -43,6 +43,8 @@ is a reusable declaration; creating one does not acquire a service.
 | `createBuilder()` | Create an empty immutable [builder](tutorial.md#compose-services) that can build a bag or seal a [module](tutorial.md#reuse-named-modules). |
 | `withConfiguration({ runtime?, observers? })` | Return a new facade; inherit omitted runtime options and append the ordered observer array. |
 | `fromFactory(create, options?)` | Describe a named-dependency factory; `acquisitionMode` defaults to `auto`. Add `context: 'acquisition'` to supply the owner's cancellation context. |
+| `fromSyncFactory(create, options?)` | `fromFactory` with `acquisitionMode: 'raw'` fixed and a Promise or thenable output rejected at compile time: the [portable](tutorial.md#portable-mode) synchronous form. |
+| `fromAsyncFactory(create, options?)` | `fromFactory` with `acquisitionMode: 'nativePromise'` fixed and a non-Promise output rejected: the portable asynchronous form; `withDisposal` receives the fulfilled value. |
 | `token(key).of<Service>()` | Create a [typed token](tutorial.md#use-typed-tokens-for-explicit-positional-injection) from a canonical unique symbol. |
 | `fromFunction(dependencies, fn, options?)` | Inject a tuple of tokens/references into a positional callback, checking its actual optional/rest parameter tuple. Write selected but unused parameters explicitly. |
 | `fromClass(dependencies, Constructor, options?)` | Adapt an existing [constructor](tutorial.md#adapt-classes-and-positional-functions). |
