@@ -8,9 +8,9 @@ const { DiBag, DiBagCleanupError, DiBagStartupError, DiBagStartupCancelledError 
 
 test('contexts follow acquisition owners through child-first roots and independent forks', async () => {
   const root = DiBag.createBuilder().register({
-    scoped: DiBag.fromFactory((_deps: {}, context) => context, { context: 'acquisition' }),
-    root: DiBag.withLifetime(DiBag.fromFactory((_deps: {}, context) => context, { context: 'acquisition' }), 'root'),
-    transient: DiBag.withLifetime(DiBag.fromFactory((_deps: {}, context) => context, { context: 'acquisition' }), 'transient'),
+    scoped: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }),
+    root: DiBag.withLifetime(DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }), 'root'),
+    transient: DiBag.withLifetime(DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }), 'transient'),
   }).build();
   const child = root.createScope();
   const sibling = root.createScope();
@@ -36,7 +36,7 @@ test('contexts follow acquisition owners through child-first roots and independe
 });
 
 test('abort listeners cannot reenter any closing scope admission gate', async () => {
-  const root = DiBag.createBuilder().register({ context: DiBag.fromFactory((_deps: {}, context) => context, { context: 'acquisition' }) }).build();
+  const root = DiBag.createBuilder().register({ context: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }) }).build();
   const child = root.createScope();
   const sibling = root.createScope();
   let called = false;
@@ -74,7 +74,7 @@ test('startup uses native observation with shadowed then and treats raw promises
   const raw = deferred<number>();
   const disposed: unknown[] = [];
   const starting = Core.createBuilder().register({
-    native: Core.fromFactory((_deps: {}, _context) => native.promise, { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
+    native: Core.fromFactory((_deps: {}, _factoryCtx) => native.promise, { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
     raw: Core.withDisposal(Core.fromFactory(() => raw.promise, { acquisitionMode: 'raw' }), value => { disposed.push(value); }),
   }).buildAndStart(['native', 'raw']);
   let ready = false;
@@ -107,8 +107,8 @@ test('a ready native projection starts while its source remains pending until sh
 test('failed native projection aborts a cooperative pending source before cleanup', async () => {
   const cause = new Error('project');
   const disposed: number[] = [];
-  const source = DiBag.withDisposal(DiBag.fromFactory((_deps: {}, context) => new Promise<number>(resolve => {
-    context.signal.addEventListener('abort', () => resolve(7), { once: true });
+  const source = DiBag.withDisposal(DiBag.fromFactory((_deps: {}, factoryCtx) => new Promise<number>(resolve => {
+    factoryCtx.signal.addEventListener('abort', () => resolve(7), { once: true });
   }), { context: 'acquisition' }), value => { disposed.push(value); });
   const error: unknown = await DiBag.createBuilder().register({
     service: DiBag.transformService(source, { mode: 'direct', transform: () => Promise.reject(cause) }),
@@ -154,7 +154,7 @@ test('startup selects genuine tokens and keeps separate owned transient attempts
 test('late contextual dependencies receive an already aborted owner signal', async () => {
   const gate = deferred<void>();
   const bag = DiBag.createBuilder().register({
-    late: DiBag.fromFactory((_deps: {}, context) => context.signal.aborted, { context: 'acquisition' }),
+    late: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx.signal.aborted, { context: 'acquisition' }),
     first: async (deps: { late: boolean }) => { await gate.promise; return deps.late; },
   }).build();
   const value = bag.resolve('first');
@@ -253,8 +253,8 @@ for (const reason of ['aborted', 'timeout'] as const) test(`${reason} rejects be
   const disposed: number[] = [];
   let signal: AbortSignal | undefined;
   const starting = DiBag.createBuilder().register({
-    value: DiBag.withDisposal(DiBag.fromFactory(async (deps: { late: number }, context) => {
-      signal = context.signal;
+    value: DiBag.withDisposal(DiBag.fromFactory(async (deps: { late: number }, factoryCtx) => {
+      signal = factoryCtx.signal;
       await gate.promise;
       return deps.late;
     }, { context: 'acquisition' }), value => { disposed.push(value); throw cleanupError; }),
@@ -314,7 +314,7 @@ test('successful startup removes external cancellation and snapshots indexed sel
   const keys: ['value'] = ['value'];
   keys[Symbol.iterator] = function* () { throw new Error('do not iterate'); };
   const bag = await DiBag.createBuilder().register({
-    value: DiBag.fromFactory((_deps: {}, context) => { calls.push('value'); return context; }, { context: 'acquisition' }),
+    value: DiBag.fromFactory((_deps: {}, factoryCtx) => { calls.push('value'); return factoryCtx; }, { context: 'acquisition' }),
     hidden: () => { calls.push('hidden'); return 2; },
   }).buildAndStart(keys, { signal: controller.signal, timeoutMs: 2 ** 32 });
   controller.abort();

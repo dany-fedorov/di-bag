@@ -6,9 +6,9 @@ import { deferred } from './helpers';
 test('a failed acquisition releases each resource it had already acquired, once', async () => {
   const released: string[] = [];
   const bag = DiBag.createBuilder().register({
-    session: DiBag.fromFactory(async (_deps: {}, context) => {
+    session: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
       released.push('open:a');
-      context.defer(() => { released.push('close:a'); });
+      factoryCtx.pushDisposer(() => { released.push('close:a'); });
       throw new Error('handshake');
     }, { context: 'acquisition' }),
   }).build();
@@ -21,8 +21,8 @@ test('a successful acquisition discards its deferred actions and keeps withDispo
   const events: string[] = [];
   const bag = DiBag.createBuilder().register({
     session: DiBag.withDisposal(
-      DiBag.fromFactory((_deps: {}, context) => {
-        context.defer(() => { events.push('rollback'); });
+      DiBag.fromFactory((_deps: {}, factoryCtx) => {
+        factoryCtx.pushDisposer(() => { events.push('rollback'); });
         return 'session';
       }, { context: 'acquisition' }),
       value => { events.push(`dispose:${value}`); },
@@ -36,8 +36,8 @@ test('a successful acquisition discards its deferred actions and keeps withDispo
 test('deferred actions run in reverse registration order', async () => {
   const released: number[] = [];
   const bag = DiBag.createBuilder().register({
-    service: DiBag.fromFactory(async (_deps: {}, context) => {
-      for (const index of [1, 2, 3]) context.defer(() => { released.push(index); });
+    service: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+      for (const index of [1, 2, 3]) factoryCtx.pushDisposer(() => { released.push(index); });
       throw new Error('late');
     }, { context: 'acquisition' }),
   }).build();
@@ -49,10 +49,10 @@ test('deferred actions run in reverse registration order', async () => {
 test('one rejecting deferred action never skips the rest and surfaces at close', async () => {
   const released: string[] = [];
   const bag = DiBag.createBuilder().register({
-    service: DiBag.fromFactory(async (_deps: {}, context) => {
-      context.defer(() => { released.push('outer'); });
-      context.defer(() => { throw new Error('release failed'); });
-      context.defer(() => { released.push('inner'); });
+    service: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => { released.push('outer'); });
+      factoryCtx.pushDisposer(() => { throw new Error('release failed'); });
+      factoryCtx.pushDisposer(() => { released.push('inner'); });
       throw new Error('acquire');
     }, { context: 'acquisition' }),
   }).build();
@@ -68,8 +68,8 @@ test('a rejecting source runs its rollback and never reaches the ownership stage
   const events: string[] = [];
   const bag = DiBag.createBuilder().register({
     service: DiBag.withDisposal(
-      DiBag.fromFactory(async (_deps: {}, context) => {
-        context.defer(() => { events.push('rollback'); });
+      DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+        factoryCtx.pushDisposer(() => { events.push('rollback'); });
         return Promise.reject(new Error('rejected'));
       }, { context: 'acquisition', acquisitionMode: 'nativePromise' }),
       () => { events.push('dispose'); },
@@ -85,8 +85,8 @@ test('a projection failing after the factory returned releases the value exactly
   const bag = DiBag.createBuilder().register({
     service: DiBag.transformService(
       DiBag.withDisposal(
-        DiBag.fromFactory(async (_deps: {}, context) => {
-          context.defer(() => { events.push('rollback'); });
+        DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+          factoryCtx.pushDisposer(() => { events.push('rollback'); });
           return { id: 1 };
         }, { context: 'acquisition' }),
         () => { events.push('dispose'); },
@@ -109,8 +109,8 @@ test('a direct projection over a rejecting source defers its rollback to close',
   const bag = DiBag.createBuilder().register({
     service: DiBag.withDisposal(
       DiBag.transformService(
-        DiBag.fromFactory((_deps: {}, context) => {
-          context.defer(() => { events.push('rollback'); });
+        DiBag.fromFactory((_deps: {}, factoryCtx) => {
+          factoryCtx.pushDisposer(() => { events.push('rollback'); });
           return Promise.reject(new Error('source'));
         }, { context: 'acquisition', acquisitionMode: 'nativePromise' }),
         { mode: 'direct', transform: promise => ({ wrapped: promise }) },
@@ -129,8 +129,8 @@ test('a direct projection over a rejecting source defers its rollback to close',
 test('rollback runs without waiting for the bag to close', async () => {
   const released: string[] = [];
   const bag = DiBag.createBuilder().register({
-    service: DiBag.fromFactory(async (_deps: {}, context) => {
-      context.defer(() => { released.push('socket'); });
+    service: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => { released.push('socket'); });
       throw new Error('handshake');
     }, { context: 'acquisition' }),
   }).build();
@@ -150,8 +150,8 @@ test('rollback reports each failure through the cleanup observer channel', async
     }],
   });
   const bag = Observed.createBuilder().register({
-    service: Observed.fromFactory(async (_deps: {}, context) => {
-      context.defer(() => { throw new Error('release failed'); });
+    service: Observed.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => { throw new Error('release failed'); });
       throw new Error('acquire');
     }, { context: 'acquisition' }),
   }).build();
@@ -161,22 +161,22 @@ test('rollback reports each failure through the cleanup observer channel', async
 });
 
 test('defer is rejected after an asynchronous factory has settled', async () => {
-  let escaped!: { defer: (action: () => void) => void };
+  let escaped!: { pushDisposer: (disposer: () => void) => void };
   const bag = DiBag.createBuilder().register({
-    service: DiBag.fromFactory(async (_deps: {}, context) => {
-      escaped = context;
+    service: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+      escaped = factoryCtx;
       return 'ok';
     }, { context: 'acquisition' }),
   }).build();
   expect(await bag.resolve('service')).toBe('ok');
-  expect(() => escaped.defer(() => {})).toThrow(/DI_BAG_CLEANUP_AFTER_FACTORY/);
+  expect(() => escaped.pushDisposer(() => {})).toThrow(/DI_BAG_CLEANUP_AFTER_FACTORY/);
   await bag.close();
 });
 
 test('each acquisition receives its own context object over the owner signal', () => {
   const bag = DiBag.createBuilder().register({
-    first: DiBag.fromFactory((_deps: {}, context) => context, { context: 'acquisition' }),
-    second: DiBag.fromFactory((_deps: {}, context) => context, { context: 'acquisition' }),
+    first: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }),
+    second: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }),
   }).build();
   const first = bag.resolve('first');
   const second = bag.resolve('second');
@@ -189,10 +189,10 @@ test('cancelling a scope mid-acquisition runs the deferred actions of the abando
   const gate = deferred<void>();
   const released: string[] = [];
   const bag = DiBag.createBuilder().register({
-    service: DiBag.fromFactory(async (_deps: {}, context) => {
-      context.defer(() => { released.push('socket'); });
+    service: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => { released.push('socket'); });
       await gate.promise;
-      context.signal.throwIfAborted();
+      factoryCtx.signal.throwIfAborted();
       return 'never';
     }, { context: 'acquisition' }),
   }).build();
@@ -206,8 +206,8 @@ test('cancelling a scope mid-acquisition runs the deferred actions of the abando
 
 test('defer rejects a value that is not a function', async () => {
   const bag = DiBag.createBuilder().register({
-    service: DiBag.fromFactory((_deps: {}, context) => {
-      expect(() => (context as { defer: (action: unknown) => void }).defer(42)).toThrow(/DI_BAG_INVALID_CLEANUP/);
+    service: DiBag.fromFactory((_deps: {}, factoryCtx) => {
+      expect(() => (factoryCtx as { pushDisposer: (disposer: unknown) => void }).pushDisposer(42)).toThrow(/DI_BAG_INVALID_CLEANUP/);
       return 'ok';
     }, { context: 'acquisition' }),
   }).build();
@@ -216,23 +216,23 @@ test('defer rejects a value that is not a function', async () => {
 });
 
 test('defer is rejected after a synchronous factory has returned', async () => {
-  let escaped!: { defer: (action: () => void) => void };
+  let escaped!: { pushDisposer: (disposer: () => void) => void };
   const bag = DiBag.createBuilder().register({
-    service: DiBag.fromFactory((_deps: {}, context) => {
-      escaped = context;
+    service: DiBag.fromFactory((_deps: {}, factoryCtx) => {
+      escaped = factoryCtx;
       return 'ok';
     }, { context: 'acquisition' }),
   }).build();
   expect(bag.resolve('service')).toBe('ok');
-  expect(() => escaped.defer(() => {})).toThrow(/DI_BAG_CLEANUP_AFTER_FACTORY/);
+  expect(() => escaped.pushDisposer(() => {})).toThrow(/DI_BAG_CLEANUP_AFTER_FACTORY/);
   await bag.close();
 });
 
 test('a synchronous factory releases its deferred resource after the failure propagates', async () => {
   const released: string[] = [];
   const bag = DiBag.createBuilder().register({
-    service: DiBag.fromFactory((_deps: {}, context) => {
-      context.defer(() => { released.push('handle'); });
+    service: DiBag.fromFactory((_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => { released.push('handle'); });
       throw new Error('sync');
     }, { context: 'acquisition' }),
   }).build();
@@ -245,9 +245,9 @@ test('each transient attempt owns its own deferred actions', async () => {
   const released: number[] = [];
   let attempts = 0;
   const bag = DiBag.createBuilder().register({
-    service: DiBag.withLifetime(DiBag.fromFactory((_deps: {}, context) => {
+    service: DiBag.withLifetime(DiBag.fromFactory((_deps: {}, factoryCtx) => {
       const index = attempts++;
-      context.defer(() => { released.push(index); });
+      factoryCtx.pushDisposer(() => { released.push(index); });
       throw new Error(`attempt ${index}`);
     }, { context: 'acquisition' }), 'transient'),
   }).build();
@@ -261,8 +261,8 @@ test('close waits for an asynchronous deferred action to finish', async () => {
   const gate = deferred<void>();
   const released: string[] = [];
   const bag = DiBag.createBuilder().register({
-    service: DiBag.fromFactory(async (_deps: {}, context) => {
-      context.defer(async () => { await gate.promise; released.push('socket'); });
+    service: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(async () => { await gate.promise; released.push('socket'); });
       throw new Error('handshake');
     }, { context: 'acquisition' }),
   }).build();
@@ -282,10 +282,10 @@ test('a raw asynchronous factory settles at its first await, as documented', asy
   const released: string[] = [];
   let afterAwait!: () => void;
   const bag = DiBag.createBuilder().register({
-    service: DiBag.fromFactory(async (_deps: {}, context) => {
-      context.defer(() => { released.push('before'); });
+    service: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => { released.push('before'); });
       await Promise.resolve();
-      afterAwait = () => context.defer(() => { released.push('after'); });
+      afterAwait = () => factoryCtx.pushDisposer(() => { released.push('after'); });
       throw new Error('rejected');
     }, { context: 'acquisition', acquisitionMode: 'raw' }),
   }).build();
@@ -298,8 +298,8 @@ test('a raw asynchronous factory settles at its first await, as documented', asy
 
 test('a rollback failure during startup is reported on DiBagStartupError', async () => {
   const failure = await DiBag.createBuilder().register({
-    socket: DiBag.fromFactory(async (_deps: {}, context) => {
-      context.defer(() => { throw new Error('release failed'); });
+    socket: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => { throw new Error('release failed'); });
       throw new Error('handshake');
     }, { context: 'acquisition' }),
   }).buildAndStart(['socket']).then(() => undefined, (error: unknown) => error);
@@ -313,18 +313,18 @@ test('a rollback failure during startup is reported on DiBagStartupError', async
 test('a retried scoped acquisition registers cleanup on a fresh list', async () => {
   const released: number[] = [];
   let attempts = 0;
-  let first!: { defer: (action: () => void) => void };
+  let first!: { pushDisposer: (disposer: () => void) => void };
   const bag = DiBag.createBuilder().register({
-    service: DiBag.fromFactory((_deps: {}, context) => {
+    service: DiBag.fromFactory((_deps: {}, factoryCtx) => {
       const index = attempts++;
-      if (index === 0) first = context;
-      context.defer(() => { released.push(index); });
+      if (index === 0) first = factoryCtx;
+      factoryCtx.pushDisposer(() => { released.push(index); });
       throw new Error(`attempt ${index}`);
     }, { context: 'acquisition' }),
   }).build();
   expect(() => bag.resolve('service')).toThrow('attempt 0');
   expect(() => bag.resolve('service')).toThrow('attempt 1');
-  expect(() => first.defer(() => {})).toThrow(/DI_BAG_CLEANUP_AFTER_FACTORY/);
+  expect(() => first.pushDisposer(() => {})).toThrow(/DI_BAG_CLEANUP_AFTER_FACTORY/);
   await bag.close();
   expect(released).toEqual([0, 1]);
 });
@@ -332,8 +332,8 @@ test('a retried scoped acquisition registers cleanup on a fresh list', async () 
 test('a root service acquired through a child runs its rollback on the owning bag', async () => {
   const released: string[] = [];
   const root = DiBag.createBuilder().register({
-    shared: DiBag.withLifetime(DiBag.fromFactory(async (_deps: {}, context) => {
-      context.defer(() => { released.push('shared'); });
+    shared: DiBag.withLifetime(DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => { released.push('shared'); });
       throw new Error('root failed');
     }, { context: 'acquisition' }), 'root'),
   }).build();
@@ -348,8 +348,8 @@ test('a root service acquired through a child runs its rollback on the owning ba
 test('startup rollback releases resources hidden inside an unfinished factory', async () => {
   const released: string[] = [];
   const failure = await DiBag.createBuilder().register({
-    socket: DiBag.fromFactory(async (_deps: {}, context) => {
-      context.defer(() => { released.push('socket'); });
+    socket: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(() => { released.push('socket'); });
       throw new Error('handshake');
     }, { context: 'acquisition' }),
   }).buildAndStart(['socket']).then(() => undefined, (error: unknown) => error);

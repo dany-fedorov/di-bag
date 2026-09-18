@@ -9,7 +9,7 @@ export type { FactoryWithDisposal, Registration } from './registration';
 export type { Provider, ProviderFactory, ProviderGraphContract, ProviderOutput, ProviderAcquiredValue, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens } from './provider';
 export type { AcquisitionMode, RuntimeOptions } from './acquisition-mode';
 export type { Lifetime } from './lifetime';
-export type { AcquisitionContext, ContextualFactory } from './acquisition-context';
+export type { AcquisitionContext, ContextualFactory, DisposerContext } from './acquisition-context';
 export type { CloseOptions, StartupOptions } from './startup';
 export type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases, SharedAliasProviders } from './scope-types';
 export type { Token, TokenBase, TokenKey, TokenService } from './tokens';

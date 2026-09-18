@@ -2,42 +2,42 @@ import { libraryError, libraryTypeError } from './errors';
 import type { normalize } from './provider-operations';
 import type { AcquisitionMetadataPresence, Presence } from './inspection';
 import type { AcquisitionMode, RuntimeContext } from './acquisition-mode';
-import type { AcquisitionContext } from './acquisition-context';
+import type { AcquisitionContext, DisposerContext } from './acquisition-context';
 
 type RegistrationDescription = ReturnType<typeof normalize>;
 type Disposer = (value: never) => void | Promise<void>;
-type DeferredAction = (this: void) => void | Promise<void>;
+type PushedDisposer = (this: void, disposerCtx: DisposerContext) => void | Promise<void>;
 
 /**
- * One factory's acquisition-local rollback list. It is held by the frozen
- * acquisition context handed to that factory, so it deliberately references
- * neither the execution nor its scope: a context the application retains must
- * keep nothing but its own registrations alive.
+ * One factory's pushed disposers. It is held by the frozen acquisition context
+ * handed to that factory, so it deliberately references neither the execution
+ * nor its scope: a context the application retains must keep nothing but its
+ * own registrations alive.
  */
-export class AcquisitionRollback {
-  private readonly actions: DeferredAction[] = [];
+export class DisposerStack {
+  private readonly disposers: PushedDisposer[] = [];
   private settled = false;
 
-  /** Register cleanup for a resource the running factory already holds. */
-  defer(action: DeferredAction): void {
-    if (typeof action !== 'function') throw libraryError('DI_BAG_INVALID_CLEANUP', 'context.defer requires a function', { operation: 'defer', provided: typeof action });
+  /** Own a resource the running factory already holds. */
+  push(disposer: PushedDisposer): void {
+    if (typeof disposer !== 'function') throw libraryError('DI_BAG_INVALID_CLEANUP', 'pushDisposer requires a function', { operation: 'pushDisposer', provided: typeof disposer });
     // A retained context is a leak, not a stack: registration closes with the factory.
-    if (this.settled) throw libraryError('DI_BAG_CLEANUP_AFTER_FACTORY', 'context.defer is only available while its factory is running', { operation: 'defer' });
-    this.actions.push(action);
+    if (this.settled) throw libraryError('DI_BAG_CLEANUP_AFTER_FACTORY', 'pushDisposer is only available while its factory is running', { operation: 'pushDisposer' });
+    this.disposers.push(disposer);
   }
 
-  /** A factory that returned transferred ownership to the value it produced. */
+  /** The factory settled; nothing more can be pushed. */
   settle(state: 'ready' | 'failed'): void {
     this.settled = true;
-    if (state === 'ready') this.actions.length = 0;
+    if (state === 'ready') this.disposers.length = 0;
   }
 
-  get pending(): boolean { return this.actions.length > 0; }
+  get pending(): boolean { return this.disposers.length > 0; }
 
-  /** Take every registered action, innermost first, and close registration for good. */
-  drain(): readonly DeferredAction[] {
+  /** Take every pushed disposer, last pushed first, and close registration for good. */
+  drain(): readonly PushedDisposer[] {
     this.settled = true;
-    return this.actions.splice(0).reverse();
+    return this.disposers.splice(0).reverse();
   }
 }
 
@@ -77,7 +77,7 @@ export class CompletedExecution {
   readonly sourceInFlight = false;
   readonly hasOwnership = false;
   readonly hasRollback = false;
-  readonly rollback = undefined;
+  readonly disposers = undefined;
   readonly error = undefined;
   readonly work = emptyWork;
   constructor(private frames: AcquisitionMetadataPresence<readonly unknown[]>) {}
@@ -96,8 +96,8 @@ const completedWithoutFrames = new CompletedExecution(emptyFrames);
 export class ProviderExecution {
   private readonly frames: Presence<unknown>[];
   private readonly stages: AcceptedStage[] = [];
-  /** Allocated only for a context-aware factory, which is the only source that can register cleanup. */
-  readonly rollback: AcquisitionRollback | undefined;
+  /** Allocated only for a context-aware factory, which is the only source that can push disposers. */
+  readonly disposers: DisposerStack | undefined;
   private readonly pending = new Set<Promise<void>>();
   private result: ValueStage | undefined;
   private cleaning: Promise<void> | undefined;
@@ -108,7 +108,7 @@ export class ProviderExecution {
     // Reserve every metadata frame before the source can reenter inspection.
     this.frames = description.operations.filter(operation => operation.kind === 'frame-sync' || operation.kind === 'frame-async')
       .map(() => Object.freeze({ present: false as const }));
-    if (description.contextual) this.rollback = new AcquisitionRollback();
+    if (description.contextual) this.disposers = new DisposerStack();
   }
 
   inspectFrames(): AcquisitionMetadataPresence<readonly unknown[]> { return Object.freeze([...this.frames]); }
@@ -116,7 +116,7 @@ export class ProviderExecution {
   get state(): 'pending' | 'ready' | 'failed' { return this.result?.state ?? 'failed'; }
   get error(): unknown { return this.result?.error; }
   get hasOwnership(): boolean { return this.stages.length > 0; }
-  get hasRollback(): boolean { return this.rollback?.pending ?? false; }
+  get hasRollback(): boolean { return this.disposers?.pending ?? false; }
   get work(): readonly Promise<void>[] { return [...this.pending]; }
 
   /** Observe the selected stage, retaining its failure even after retirement. */
@@ -158,7 +158,7 @@ export class ProviderExecution {
       ? Reflect.apply(create, undefined, [deps, context])
       : create(deps as never), true, description.acquisitionMode);
     // A pending source settles its own rollback list from the promise handler.
-    if (current.state !== 'pending') this.rollback?.settle(current.state);
+    if (current.state !== 'pending') this.disposers?.settle(current.state);
     let nextFrame = 0;
     if (dispose) this.own(current, 0, dispose);
     description.operations.forEach((operation, offset) => {
@@ -255,7 +255,7 @@ export class ProviderExecution {
         const finish = () => {
           if (source) {
             this.sourceInFlight = false;
-            this.rollback?.settle(stage.state === 'ready' ? 'ready' : 'failed');
+            this.disposers?.settle(stage.state === 'ready' ? 'ready' : 'failed');
           }
           this.pending.delete(barrier);
           settled();
@@ -299,10 +299,10 @@ export class ProviderExecution {
     if (owned) this.events.cleanupStarted?.();
     // Acquisition-local rollback releases resources the factory acquired but
     // never handed over, innermost first, before any value this attempt owns.
-    for (const action of this.rollback?.drain() ?? []) {
+    for (const disposer of this.disposers?.drain() ?? []) {
       const sequence = this.events.invoking();
       try {
-        await action();
+        await disposer(Object.freeze({ reason: 'factory-failed' }));
       } catch (error) {
         failed = true;
         this.events.cleanupFailed(sequence, error);
@@ -329,7 +329,7 @@ export class ProviderExecution {
   release(): void {
     this.frames.length = 0;
     this.stages.length = 0;
-    this.rollback?.drain();
+    this.disposers?.drain();
     this.pending.clear();
     this.result = undefined;
   }
