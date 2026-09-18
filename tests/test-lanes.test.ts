@@ -28,4 +28,5 @@ test('the two lanes partition every test file exactly once', () => {
   expect(compiler).toContain('tests/types.test.ts');
   expect(compiler).toContain('tests/platform/browser-worker.test.ts');
   expect(fast).toContain('tests/scopes.test.ts');
+  expect(fast).toContain('tests/react/project-runtime.test.ts');
 });

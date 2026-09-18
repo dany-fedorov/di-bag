@@ -7,6 +7,7 @@
     "exactOptionalPropertyTypes": true,
     "module": "NodeNext",
     "target": "es2022",
+    "jsx": "react-jsx",
     "moduleResolution": "NodeNext",
     "rootDir": ".",
     "esModuleInterop": true,
