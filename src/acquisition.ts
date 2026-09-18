@@ -4,7 +4,7 @@ import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import type { BindingGraph, BindingId, BindingKey } from './runtime';
 import type { RegistrationSnapshot, AcquisitionSnapshot } from './inspection';
-import { ProviderExecution, type CompletedExecution } from './provider-execution';
+import { ProviderExecution, type AcquisitionRollback, type CompletedExecution } from './provider-execution';
 import type { RuntimeContext } from './acquisition-mode';
 import { AcquisitionFamily } from './acquisition-family';
 import type { AcquisitionId, AttemptIdentity } from './acquisition-family';
@@ -170,15 +170,16 @@ export class ScopeAcquisitions {
 
   /**
    * The signal is scope-wide; deferred cleanup is local to this attempt, so each
-   * contextual acquisition receives its own frozen context. Built here rather
-   * than in `resolveBinding` so that the execution never joins the closure scope
-   * a retained dependency proxy keeps alive.
+   * contextual acquisition receives its own frozen context. The context captures
+   * only its rollback record, never the execution or this scope, so an
+   * application that retains it past `close()` retains nothing else. Built here
+   * rather than in `resolveBinding` for the same reason: every closure of a
+   * function shares one scope, and a factory can retain the dependency proxy.
    */
-  private contextSource(execution: ProviderExecution): () => AcquisitionContext {
-    let context: AcquisitionContext | undefined;
-    return () => context ??= Object.freeze({
+  private acquisitionContext(rollback: AcquisitionRollback): AcquisitionContext {
+    return Object.freeze({
       signal: this.cancellationSignal(),
-      defer: (action: (this: void) => void | Promise<void>) => { execution.defer(action); },
+      defer: (action: (this: void) => void | Promise<void>) => { rollback.defer(action); },
     });
   }
 
@@ -288,6 +289,7 @@ export class ScopeAcquisitions {
     this.observeAttempt(attempt, 'acquisition-started');
     this.family.enter(attempt);
     const directSource = !description.contextual && !description.operations.length;
+    const { rollback } = execution;
     try {
       let value: unknown;
       if (directSource) {
@@ -295,7 +297,7 @@ export class ScopeAcquisitions {
         value = create(deps as never);
         execution.publishSource(value, description);
       } else {
-        value = execution.evaluate(description, deps, this.contextSource(execution));
+        value = execution.evaluate(description, deps, rollback && this.acquisitionContext(rollback));
       }
       attempt.exposed = value;
       attempt.state = attempt.execution.state;

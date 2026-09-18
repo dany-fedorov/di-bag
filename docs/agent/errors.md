@@ -261,10 +261,11 @@ const app = DiBag.createBuilder()
 
 **Recipe:** none; see [rule 1](../../AGENTS.md#rules).
 
-### DI_BAG_CLEANUP_AFTER_ACQUISITION {#di-bag-cleanup-after-acquisition}
+### DI_BAG_CLEANUP_AFTER_FACTORY {#di-bag-cleanup-after-factory}
 
 **When:** `context.defer(action)` throws because the factory that owns the
-context has already returned or failed.
+context has already returned or failed. Its projections may still be running;
+the factory is the boundary, not the whole acquisition.
 
 **Cause:** the acquisition context escaped its factory and was called later —
 from the service it produced, from a projection of the registration, or from

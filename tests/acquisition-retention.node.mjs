@@ -158,6 +158,29 @@ test('closing releases compacted frame payloads even when a dependency proxy is 
   assert.throws(read, /bag is closed/);
 });
 
+test('a retained acquisition context releases the frame payloads of its own attempt', async () => {
+  const refs = [];
+  function describe() {
+    const frame = { tag: 'retained context' };
+    refs.push(new WeakRef(frame));
+    return { metadata: frame };
+  }
+  // Reading context.signal later is the documented use, so a factory that keeps
+  // the whole context must not keep its attempt's payloads alive.
+  const contextual = create => DiBag.fromFactory(create, { context: 'acquisition' });
+  const bag = DiBag.createBuilder().register({
+    value: transient(DiBag.withMetadata(contextual((_deps, context) => () => context.signal.aborted), { dynamic: { mode: 'direct', describe: describe } })),
+  }).build();
+  const read = bag.resolve('value');
+  assert.equal(read(), false);
+  await setImmediate();
+  globalThis.gc();
+  assert.notEqual(refs[0].deref(), undefined);
+  await bag.close();
+  await collected(refs);
+  assert.equal(read(), true);
+});
+
 test('a ready borrowed projection drops its payload while pending source ownership and close admission survive', async () => {
   let open;
   const gate = new Promise(resolve => { open = resolve; });
