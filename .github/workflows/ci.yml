@@ -86,8 +86,9 @@ jobs:
       - run: node tools/platform/node_modules/playwright/cli.js install --with-deps chromium
       - run: npm run platform:pin -- --all
       - run: npm run check:platform
+      - run: npm run check:react-browser
       - name: Exercise platform failure oracles
-        run: bun test tests/platform-evidence.test.ts tests/platform-tools.test.ts tests/platform-deno.test.ts tests/platform/browser-worker.test.ts
+        run: bun test tests/platform-evidence.test.ts tests/platform-tools.test.ts tests/platform-deno.test.ts tests/platform/browser-worker.test.ts tests/platform/react-page.test.ts
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:

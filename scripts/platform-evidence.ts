@@ -228,7 +228,7 @@ const expectedPortableResult = {
 const expectedDenoResult = { ...expectedPortableResult, automatic: 'resolved' } as const;
 const expectedWorkerResult = { ...expectedPortableResult, automatic: 'DI_BAG_CLASSIFIER_REQUIRED' } as const;
 
-function platformGit(): PlatformRow['git'] {
+export function platformGit(): PlatformRow['git'] {
   const sha = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: platformRoot, encoding: 'utf8' });
   const dirty = spawnSync('git', ['status', '--porcelain'], { cwd: platformRoot, encoding: 'utf8' });
   if (sha.status !== 0 || sha.signal !== null || !/^[a-f0-9]{40}\n$/.test(sha.stdout)
@@ -424,7 +424,7 @@ function exactStructuredValue(actual: unknown, expected: unknown): boolean {
   ));
 }
 
-function playwrightPackageEntry(tool: VerifiedTool): string {
+export function playwrightPackageEntry(tool: VerifiedTool): string {
   let current = dirname(tool.hashPath);
   while (current !== dirname(current)) {
     const packagePath = join(current, 'package.json');

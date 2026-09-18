@@ -7,7 +7,7 @@ const compilerLane = new Set([
   'benchmark-compiler-ceiling', 'benchmark-compiler-controls', 'benchmark-types', 'comparator-contract', 'compiler-case', 'incremental-scale', 'module-declarations',
   'native-compiler', 'native-diagnostic-markers', 'native-package', 'native-process', 'native-replacement-diagnostics',
   'package', 'performance-baseline', 'performance-evidence', 'platform-deno', 'platform-evidence', 'platform-tools',
-  'platform/browser-worker', 'release-artifacts', 'runtime-benchmark-child', 'token-package', 'token-scale',
+  'platform/browser-worker', 'platform/react-page', 'release-artifacts', 'runtime-benchmark-child', 'token-package', 'token-scale',
   'type-scale', 'types',
 ]);
 
