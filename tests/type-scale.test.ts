@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { describeDiagnostic, diagnostics, scalePath, scaleSource } from './compiler';
+import { describeDiagnostic, diagnostics, namedModuleScaleSource, scalePath, scaleSource } from './compiler';
 import type { ScaleForm } from './compiler';
 
 for (const [count, form] of [[100, 'bulk'], [100, 'chained'], [100, 'replacement'], [1000, 'grouped']] as const) {
@@ -21,32 +21,9 @@ for (const form of ['bulk', 'chained', 'grouped', 'replacement'] satisfies Scale
   }
 }
 
-function namedModuleSource(scenario: 'valid' | 'missing' | 'wrong-shape') {
-  const modules = Array.from({ length: 20 }, (_, group) => {
-    const entries = Array.from({ length: 50 }, (_, offset) => {
-      const index = group * 50 + offset;
-      if (index === 0) return 'svc0: () => 1';
-      const dependency = scenario === 'missing' && index === 950 ? 'missingFinal' : `svc${index - 1}`;
-      const shape = scenario === 'wrong-shape' && index === 950 ? 'string' : 'number';
-      return `svc${index}: ({ ${dependency} }: { ${dependency}: ${shape} }) => ${shape === 'string' ? `${dependency}.length` : `${dependency} + 1`}`;
-    });
-    const names = Array.from({ length: 50 }, (_, offset) => `'svc${group * 50 + offset}'`).join(', ');
-    return `const feature${group} = DiBag.createBuilder().register({ ${entries.join(',\n')} }).buildModule([${names}]);`;
-  });
-  return `import { DiBag } from '../src';
-${modules.join('\n')}
-const bag = DiBag.createBuilder()${modules.map((_, index) => `.installModule(feature${index})`).join('\n')}.build();
-const first: number = bag.resolve('svc0');
-const middle: number = bag.resolve('svc500');
-const last: number = bag.resolve('svc999');
-const reused = DiBag.createBuilder().installModule(feature0).build();
-const reusableResult: number = reused.resolve('svc49');
-`;
-}
-
 for (const scenario of ['valid', 'missing', 'wrong-shape'] as const) {
   test(`type scale: 1000 providers from reusable named modules: ${scenario}`, () => {
-    const errors = diagnostics(scalePath, namedModuleSource(scenario)).map(describeDiagnostic);
+    const errors = diagnostics(scalePath, namedModuleScaleSource(1000, scenario)).map(describeDiagnostic);
     if (scenario === 'valid') expect(errors).toEqual([]);
     else {
       expect(errors.length).toBeGreaterThan(0);

@@ -212,3 +212,49 @@ export function tokenScaleBoundaryLine(source: string) {
   const index = lines.findIndex(line => line.includes('token-scale-boundary'));
   return index === -1 ? undefined : index + 1;
 }
+
+/**
+ * A library-free fluent chain of `count` calls. It imports the library without using it so the
+ * program contains `src` and the checker visits it first, as it does for every library case:
+ * the same chain compiled alone overflows at 575 calls where this one passes at 1,000, because
+ * V8's optimized checker frames are smaller than its interpreted ones.
+ */
+export function controlScaleSource(count: number) {
+  if (!Number.isInteger(count) || count < 1) throw new Error('control scale count must be at least one');
+  const calls = Array.from({ length: count }, (_, index) => `.register({ svc${index}: () => ${index} })`).join('\n');
+  return `import { DiBag } from '../src';
+const seed: unknown = DiBag;
+declare const builder: { register(more: object): typeof builder; build(): { resolve(key: string): number } };
+const bag = builder${calls}.build();
+const last: number = bag.resolve('svc${count - 1}');
+`;
+}
+
+/** `count` linearly dependent providers in reusable named modules of 50, installed into one host; the fault opens the last module. */
+export function namedModuleScaleSource(count: number, scenario: ScaleCase = 'valid') {
+  if (!Number.isInteger(count) || count < 50) throw new Error('named module scale count must be at least 50');
+  const groups = Math.ceil(count / 50);
+  if (scenario !== 'valid' && groups < 2) throw new Error('negative named module scenarios need at least two modules');
+  const fault = (groups - 1) * 50;
+  const modules = Array.from({ length: groups }, (_, group) => {
+    const size = Math.min(50, count - group * 50);
+    const entries = Array.from({ length: size }, (_, offset) => {
+      const index = group * 50 + offset;
+      if (index === 0) return 'svc0: () => 1';
+      const dependency = scenario === 'missing' && index === fault ? 'missingFinal' : `svc${index - 1}`;
+      const shape = scenario === 'wrong-shape' && index === fault ? 'string' : 'number';
+      return `svc${index}: ({ ${dependency} }: { ${dependency}: ${shape} }) => ${shape === 'string' ? `${dependency}.length` : `${dependency} + 1`}`;
+    });
+    const names = Array.from({ length: size }, (_, offset) => `'svc${group * 50 + offset}'`).join(', ');
+    return `const feature${group} = DiBag.createBuilder().register({ ${entries.join(',\n')} }).buildModule([${names}]);`;
+  });
+  return `import { DiBag } from '../src';
+${modules.join('\n')}
+const bag = DiBag.createBuilder()${modules.map((_, index) => `.installModule(feature${index})`).join('\n')}.build();
+const first: number = bag.resolve('svc0');
+const middle: number = bag.resolve('svc${Math.floor(count / 2)}');
+const last: number = bag.resolve('svc${count - 1}');
+const reused = DiBag.createBuilder().installModule(feature0).build();
+const reusableResult: number = reused.resolve('svc49');
+`;
+}
