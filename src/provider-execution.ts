@@ -42,6 +42,8 @@ interface AcceptedStage {
   readonly index: number;
   readonly value: unknown;
   readonly dispose: Disposer;
+  /** Owns the value the factory returned, rather than a transformed value. */
+  readonly returned: boolean;
   state: 'accepted' | 'disposing' | 'disposed';
 }
 interface ValueStage {
@@ -51,7 +53,7 @@ interface ValueStage {
   value: unknown;
   error: unknown;
   settled?: Promise<void>;
-  readonly owners: { index: number; dispose: Disposer }[];
+  readonly owners: { index: number; dispose: Disposer; returned: boolean }[];
 }
 interface ExecutionEvents {
   accepted(): void;
@@ -192,11 +194,11 @@ export class ProviderExecution {
     if (description.acquisitionMode === 'raw') {
       this.sourceInFlight = false;
       this.result = { exposed: undefined, consumed: true, state: 'ready', value: undefined, error: undefined, owners: [] };
-      if (description.dispose) this.accept(0, value, description.dispose);
+      if (description.dispose) this.accept(0, value, description.dispose, true);
       return;
     }
     const stage = this.capture(() => value, true, description.acquisitionMode);
-    if (description.dispose) this.own(stage, 0, description.dispose);
+    if (description.dispose) this.own(stage, 0, description.dispose, true);
     this.result = stage;
     this.consume(stage);
     if (stage.state === 'failed') throw stage.error;
@@ -210,19 +212,24 @@ export class ProviderExecution {
     // A pending source settles its own rollback list from the promise handler.
     if (current.state !== 'pending') this.settleDisposers(current.state);
     let nextFrame = 0;
-    if (dispose) this.own(current, 0, dispose);
+    // Ownership attached before the first transform owns the value the factory
+    // returned; metadata frames preserve the value, so they do not end it.
+    let returned = true;
+    if (dispose) this.own(current, 0, dispose, true);
     description.operations.forEach((operation, offset) => {
       const inputStage = current;
       const index = offset + 1;
       if (operation.kind === 'owned') {
-        this.own(current, index, operation.dispose);
+        this.own(current, index, operation.dispose, returned);
       } else if (operation.kind === 'map-sync') {
+        returned = false;
         if (current.state !== 'failed') {
           const input = current.exposed;
           const { project } = operation;
           current = this.capture(() => project(input as never), false, operation.acquisitionMode);
         }
       } else if (operation.kind === 'map-async') {
+        returned = false;
         const input = current;
         const { project } = operation;
         current = this.capture(async () => {
@@ -289,7 +296,7 @@ export class ProviderExecution {
         observePromise.call(exposed, value => {
           stage.state = 'ready';
           if (!stage.consumed) stage.value = value;
-          for (const owner of stage.owners) this.accept(owner.index, value, owner.dispose);
+          for (const owner of stage.owners) this.accept(owner.index, value, owner.dispose, owner.returned);
           stage.owners.length = 0;
           finish();
         }, error => {
@@ -322,13 +329,13 @@ export class ProviderExecution {
     }
   }
 
-  private own(stage: ValueStage, index: number, dispose: Disposer): void {
-    if (stage.state === 'ready') this.accept(index, stage.value, dispose);
-    else if (stage.state === 'pending') stage.owners.push({ index, dispose });
+  private own(stage: ValueStage, index: number, dispose: Disposer, returned: boolean): void {
+    if (stage.state === 'ready') this.accept(index, stage.value, dispose, returned);
+    else if (stage.state === 'pending') stage.owners.push({ index, dispose, returned });
   }
 
-  private accept(index: number, value: unknown, dispose: Disposer): void {
-    this.stages.push({ index, value, dispose, state: 'accepted' });
+  private accept(index: number, value: unknown, dispose: Disposer, returned: boolean): void {
+    this.stages.push({ index, value, dispose, returned, state: 'accepted' });
     this.events.accepted();
   }
 
@@ -346,24 +353,30 @@ export class ProviderExecution {
     while (this.pending.size) await Promise.all(this.pending);
     const owned = this.hasOwnership;
     let failed = false;
+    let returnedOwned = false;
+    let returnedFailed = false;
     if (owned) this.events.cleanupStarted?.();
     for (const stage of this.stages.sort((a, b) => b.index - a.index)) {
       stage.state = 'disposing';
+      if (stage.returned) returnedOwned = true;
       const sequence = this.events.invoking();
       const { dispose, value } = stage;
       try {
         await dispose(value as never);
       } catch (error) {
         failed = true;
+        if (stage.returned) returnedFailed = true;
         this.events.cleanupFailed(sequence, error);
       } finally {
         stage.state = 'disposed';
       }
     }
     // Pushed disposers are the bottom of the ownership stack: they run after every
-    // service-level disposer and are told how those went.
+    // accepted stage and are told how the returned value's own disposer went. A
+    // projection owner belongs to whoever transformed the value; its outcome is
+    // reported through cleanup-failed, not through the reason.
     if (this.disposersOwned) {
-      const reason = !this.stages.length ? 'no-service-disposer' : failed ? 'service-disposal-failed' : 'service-disposed';
+      const reason = !returnedOwned ? 'no-service-disposer' : returnedFailed ? 'service-disposal-failed' : 'service-disposed';
       if (await this.runDisposers(reason)) failed = true;
       this.disposersOwned = false;
     }

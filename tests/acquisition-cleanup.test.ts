@@ -636,7 +636,7 @@ test('pushed disposers learn that no service disposer exists', async () => {
   expect(reasons).toEqual(['no-service-disposer']);
 });
 
-test('pushed disposers learn that every service disposer succeeded', async () => {
+test('pushed disposers learn that the service disposer succeeded', async () => {
   const reasons: string[] = [];
   const bag = DiBag.createBuilder().register({
     service: DiBag.withDisposal(DiBag.transformService(DiBag.withDisposal(DiBag.fromFactory((_deps: {}, factoryCtx) => {
@@ -649,7 +649,7 @@ test('pushed disposers learn that every service disposer succeeded', async () =>
   expect(reasons).toEqual(['service-disposed']);
 });
 
-test('pushed disposers learn that a service disposer threw and still run', async () => {
+test('pushed disposers learn that the service disposer threw and still run', async () => {
   const reasons: string[] = [];
   const bag = DiBag.createBuilder().register({
     service: DiBag.withDisposal(DiBag.transformService(DiBag.withDisposal(DiBag.fromFactory((_deps: {}, factoryCtx) => {
@@ -721,4 +721,36 @@ test('a bounded close reports an in-flight rollback as pending', async () => {
   expect((failure as DiBagCloseCancelledError).details.pending).toEqual(['service']);
   gate.resolve();
   await (failure as DiBagCloseCancelledError).cleanupPromise;
+});
+
+const strictSocket = (closes: string[]) => ({ closed: false, close() { if (this.closed) throw new Error('double close'); this.closed = true; closes.push('socket'); } });
+
+test("a projection owner does not stand in for the returned value's disposer", async () => {
+  const closes: string[] = [];
+  const socket = strictSocket(closes);
+  const bag = DiBag.createBuilder().register({
+    session: DiBag.withDisposal(DiBag.transformService(DiBag.fromFactory((_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(disposerCtx => { if (disposerCtx.reason !== 'service-disposed') socket.close(); });
+      return { close: () => socket.close() };
+    }, { context: 'acquisition' }), { mode: 'direct', transform: session => ({ wrapped: session }) }), () => { closes.push('wrapper'); }),
+  }).build();
+  bag.resolve('session');
+  await bag.close();
+  // The consumer's wrapper knows nothing of the socket, so it must not read as the service disposer.
+  expect(closes).toEqual(['wrapper', 'socket']);
+});
+
+test("a failing projection disposer does not make the returned value's disposer look failed", async () => {
+  const closes: string[] = [];
+  const socket = strictSocket(closes);
+  const bag = DiBag.createBuilder().register({
+    session: DiBag.withDisposal(DiBag.transformService(DiBag.withDisposal(DiBag.fromFactory((_deps: {}, factoryCtx) => {
+      factoryCtx.pushDisposer(disposerCtx => { if (disposerCtx.reason !== 'service-disposed') socket.close(); });
+      return { close: () => socket.close() };
+    }, { context: 'acquisition' }), session => session.close()), { mode: 'direct', transform: session => ({ session }) }), () => { throw new Error('projection disposer failed'); }),
+  }).build();
+  bag.resolve('session');
+  const failure = await bag.close().then(() => undefined, (error: unknown) => error);
+  expect(closes).toEqual(['socket']);
+  expect((failure as DiBagCleanupError).failures.map(item => (item.error as Error).message)).toEqual(['projection disposer failed']);
 });
