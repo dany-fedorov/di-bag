@@ -16,7 +16,7 @@ import type { CompositionReport } from './composition-report';
 import type { CheckedConstraints, CompleteConstraints, ExternalRequirements, IncrementalConstraints, ModulePublicProviders, ModuleSealedConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes, SealAdmission, WithoutExportObligations } from './lifetime-types';
 import { withLifetime } from './lifetime';
-import { fromFactory } from './acquisition-context';
+import { fromFactory, fromSyncFactory, fromAsyncFactory } from './acquisition-context';
 import { closeRuntime, startRuntime } from './startup';
 import { selectScope } from './scope-selection';
 import type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases } from './scope-types';
@@ -628,6 +628,29 @@ export interface DiBagApi {
    */
   fromFactory: typeof fromFactory;
   /**
+   * Describe a synchronous factory that runs on every host: the exact return value is the service and `then` is never read.
+   * A Promise or thenable output is rejected at compile time; use `fromAsyncFactory`, or `fromFactory` with `acquisitionMode: 'raw'` when the Promise object itself is the service.
+   * @throws `DI_BAG_INVALID_FACTORY` for a non-function, an unknown `context`, or an `acquisitionMode` option.
+   * @example
+   * ```ts
+   * const config = DiBag.fromSyncFactory(() => ({ url: 'memory:' }));
+   * ```
+   */
+  fromSyncFactory: typeof fromSyncFactory;
+  /**
+   * Describe an asynchronous factory that runs on every host: the service is the returned native Promise and `withDisposal` receives its fulfilled value.
+   * A non-Promise output is rejected at compile time; a thenable that is not a native Promise fails the acquisition with a `TypeError`.
+   * @throws `DI_BAG_INVALID_FACTORY` for a non-function, an unknown `context`, or an `acquisitionMode` option.
+   * @example
+   * ```ts
+   * const db = DiBag.withDisposal(
+   *   DiBag.fromAsyncFactory(async ({ config }: { config: { url: string } }) => ({ url: config.url, end: async () => {} })),
+   *   db => db.end(),
+   * );
+   * ```
+   */
+  fromAsyncFactory: typeof fromAsyncFactory;
+  /**
    * Create a typed token from a unique symbol; `.of<Service>()` fixes its service type.
    * @throws `DI_BAG_INVALID_TOKEN` when the key is not a symbol.
    * @example
@@ -773,12 +796,12 @@ function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
     }
     return facade(configured);
   },
-  fromFactory, token, optional, lazy, all, fromPlugin, fromFunction, fromClass,
+  fromFactory, fromSyncFactory, fromAsyncFactory, token, optional, lazy, all, fromPlugin, fromFunction, fromClass,
   createBuilder: (): Builder<never> => new Builder(new BindingGraph(), context),
   withDisposal, withLifetime, withMetadata, transformService,
 }); }
 /**
  * The immutable DI Bag facade. `auto` acquisition uses the host classifier where `process.getBuiltinModule`
- * exists; elsewhere configure one or use explicit modes.
+ * exists; elsewhere register with `fromSyncFactory` and `fromAsyncFactory`, use explicit modes, or configure a classifier.
  */
 export const DiBag: DiBagApi = facade(unconfigured);

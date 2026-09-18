@@ -1,6 +1,6 @@
 import { libraryError } from './errors';
 import type { LifecycleObservers } from './observers';
-import type { SeeErrors, StructuralThenable, Unsatisfied } from './types';
+import type { IsAny, SeeErrors, StructuralThenable, Unsatisfied } from './types';
 
 /**
  * How an acquisition stage treats its returned value: configured classification,
@@ -38,6 +38,15 @@ export type AutoOutput<O, M extends AcquisitionMode> = 'auto' extends M
     ? Unsatisfied<`factory output is a structural thenable; return a native Promise or select acquisitionMode raw or nativePromise${SeeErrors<'structural-thenable'>}`, {}>
     : unknown
   : unknown;
+type PromiseOutput<O> = O extends infer T & {} ? T extends Promise<unknown> ? true : false : false;
+/** Reject a Promise or thenable output where the helper declares the stage synchronous; `any` is exempt. */
+export type SyncOutput<O> = IsAny<O> extends true ? unknown
+  : true extends PromiseOutput<O> | StructuralThenable<O>
+    ? Unsatisfied<`fromSyncFactory output must not be a Promise or thenable; use fromAsyncFactory for a Promise, or fromFactory with acquisitionMode raw to make the Promise object the service${SeeErrors<'portable-factory-output'>}`, {}>
+    : unknown;
+/** Require a Promise output where the helper declares the stage asynchronous. */
+export type AsyncOutput<O> = [O] extends [Promise<unknown>] ? unknown
+  : Unsatisfied<`fromAsyncFactory requires a Promise output; use fromSyncFactory for a synchronous value${SeeErrors<'portable-factory-output'>}`, {}>;
 export function acquisitionMode(options: { readonly acquisitionMode?: AcquisitionMode } | undefined, fallback: AcquisitionMode = 'auto'): AcquisitionMode {
   if (options === undefined) return fallback;
   if (typeof options !== 'object' || options === null) throw libraryError('DI_BAG_INVALID_ACQUISITION_MODE', 'invalid acquisition options', { option: 'acquisitionMode' });
