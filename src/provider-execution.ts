@@ -73,7 +73,6 @@ export class CompletedExecution {
   readonly state = 'ready';
   readonly sourceInFlight = false;
   readonly hasOwnership = false;
-  readonly hasRollback = false;
   readonly disposers = undefined;
   readonly error = undefined;
   readonly work = emptyWork;
@@ -95,6 +94,8 @@ export class ProviderExecution {
   private readonly stages: AcceptedStage[] = [];
   /** Allocated only for a context-aware factory, which is the only source that can push disposers. */
   readonly disposers: DisposerStack | undefined;
+  // The factory returned, so the bag owns what it pushed, below every accepted stage.
+  private disposersOwned = false;
   private readonly pending = new Set<Promise<void>>();
   private result: ValueStage | undefined;
   private cleaning: Promise<void> | undefined;
@@ -112,21 +113,25 @@ export class ProviderExecution {
 
   get state(): 'pending' | 'ready' | 'failed' { return this.result?.state ?? 'failed'; }
   get error(): unknown { return this.result?.error; }
-  get hasOwnership(): boolean { return this.stages.length > 0; }
-  get hasRollback(): boolean { return this.disposers?.pending ?? false; }
+  get hasOwnership(): boolean { return this.stages.length > 0 || this.disposersOwned; }
   get work(): readonly Promise<void>[] { return [...this.pending]; }
 
   /**
-   * The source stage settles the stack. A failed factory releases what it pushed
-   * at once, as pending work of this execution: anchoring on the source rather
-   * than on the attempt's result covers a direct projection that is already
-   * ready while its source is still running, which no retirement reaches.
+   * The source stage settles the stack. A factory that returned hands what it
+   * pushed to the bag; a failed one releases it at once, as pending work of this
+   * execution. Anchoring on the source rather than on the attempt's result covers
+   * a direct projection that is already ready while its source is still running,
+   * which no retirement reaches.
    */
   private settleDisposers(state: 'ready' | 'failed'): void {
     if (!this.disposers) return;
     this.disposers.settle();
     if (!this.disposers.pending) return;
-    if (state === 'ready') { this.disposers.drain(); return; }
+    if (state === 'ready') {
+      this.disposersOwned = true;
+      this.events.accepted();
+      return;
+    }
     const work: Promise<void> = this.rollbackDisposers().then(() => {
       this.pending.delete(work);
       if (!this.pending.size) this.events.drained();
@@ -167,7 +172,7 @@ export class ProviderExecution {
   }
 
   compact(): ProviderExecution | CompletedExecution {
-    if (this.state !== 'ready' || this.pending.size || this.hasOwnership || this.hasRollback) return this;
+    if (this.state !== 'ready' || this.pending.size || this.hasOwnership) return this;
     if (!this.frames.length) return completedWithoutFrames;
     // The copy owns the frames from here; a retained reference to this record
     // must not keep the application's frame payloads alive.
@@ -333,7 +338,7 @@ export class ProviderExecution {
   private async disposeStages(): Promise<void> {
     // All later acceptances must be known before reversing stable stage indices.
     while (this.pending.size) await Promise.all(this.pending);
-    const owned = this.stages.length > 0;
+    const owned = this.hasOwnership;
     let failed = false;
     if (owned) this.events.cleanupStarted?.();
     for (const stage of this.stages.sort((a, b) => b.index - a.index)) {
@@ -349,6 +354,13 @@ export class ProviderExecution {
         stage.state = 'disposed';
       }
     }
+    // Pushed disposers are the bottom of the ownership stack: they run after every
+    // service-level disposer and are told how those went.
+    if (this.disposersOwned) {
+      const reason = !this.stages.length ? 'no-service-disposer' : failed ? 'service-disposal-failed' : 'service-disposed';
+      if (await this.runDisposers(reason)) failed = true;
+      this.disposersOwned = false;
+    }
     if (owned) this.events.cleanupCompleted?.(failed ? 'failure' : 'success');
     this.stages.length = 0;
     this.result = undefined;
@@ -358,6 +370,7 @@ export class ProviderExecution {
     this.frames.length = 0;
     this.stages.length = 0;
     this.disposers?.drain();
+    this.disposersOwned = false;
     this.pending.clear();
     this.result = undefined;
   }

@@ -351,7 +351,7 @@ export class ScopeAcquisitions {
       this.retired.delete(attempt.id);
     };
     // Incoming IDs may dangle; never substitute a cached retry's identity.
-    if (!attempt.execution.hasOwnership && !attempt.execution.hasRollback && !attempt.execution.work.length) { release(); return; }
+    if (!attempt.execution.hasOwnership && !attempt.execution.work.length) { release(); return; }
     const cleanup = attempt.execution.dispose().then(release);
     this.retired.set(attempt.id, cleanup);
   }
