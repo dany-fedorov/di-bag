@@ -27,6 +27,7 @@ test('the two lanes partition every test file exactly once', () => {
   expect(fast.some(file => file === 'tests/types.test.ts')).toBe(false);
   expect(compiler).toContain('tests/types.test.ts');
   expect(compiler).toContain('tests/platform/browser-worker.test.ts');
+  expect(compiler).toContain('tests/platform/react-page.test.ts');
   expect(fast).toContain('tests/scopes.test.ts');
   expect(fast).toContain('tests/react/project-runtime.test.ts');
   expect(fast).toContain('tests/react/runtime-owner.test.ts');
