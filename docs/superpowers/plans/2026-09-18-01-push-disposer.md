@@ -6,6 +6,8 @@
 
 **Architecture:** `AcquisitionRollback` in `src/provider-execution.ts` becomes `DisposerStack` and stays the only thing the frozen `AcquisitionContext` references. `ProviderExecution.settleDisposers(state)` runs wherever the source stage settles (`evaluate` for a synchronous source, `finish()` for a native promise). A failed source schedules the stack as pending work of the execution with reason `'factory-failed'`; a ready source accepts the stack into ownership, so `hasOwnership` is true, `compact()` keeps the record, `disposeAll` visits the attempt, and `disposeStages` runs the stack after the accepted stages with a reason computed from their outcomes. `ScopeAcquisitions` changes only in names, the `retire()` guard, and `collectProgress`.
 
+**Correction after review:** this plan describes `reason` in terms of "service-level disposers", meaning every accepted ownership stage. The PR #34 review showed that a consumer's projection owner then decides it, so the implementation computes `reason` from the disposers of the returned value only; see the design note. The code listings below are kept as written.
+
 **Tech Stack:** TypeScript, bun:test, node:test with `--expose-gc` for retention.
 
 **Spec:** `docs/superpowers/specs/2026-09-17-acquisition-local-cleanup.md` (rewritten in Task 7).

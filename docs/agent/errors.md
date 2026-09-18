@@ -421,8 +421,8 @@ await app.close();
 
 **When:** the same operations as [`DI_BAG_CLOSED`](#di-bag-closed), while
 `close()` is still in progress. Also the message of `factoryCtx.signal.reason`
-when `close()` was called without a cause: an `AbortError` that is the same
-object for every bag.
+after `close()`: an `AbortError` that is the same object for every bag. A
+cancelled or failed startup aborts with its own cause instead.
 
 **Cause:** a request, timer, or factory started new resolution after shutdown
 began. Only a factory already running when `close()` started may still read its

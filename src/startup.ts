@@ -31,6 +31,16 @@ export interface CloseOptions {
 }
 
 /** Snapshot own cancellation options once, so getters and prototypes cannot change them later. */
+/**
+ * Format a timeout error's stack before handing it on. An unformatted stack keeps
+ * the frames that created it alive, and these are closures over the runtime; a
+ * startup timeout also becomes the reason on every signal the bag handed out.
+ */
+function formatted<E extends Error>(error: E): E {
+  void error.stack;
+  return error;
+}
+
 function snapshotOptions(options: unknown, operation: 'buildAndStart' | 'close', code: DiBagErrorCode, supported: readonly string[]): Record<string, unknown> {
   if (options === undefined) return {};
   if (typeof options !== 'object' || options === null || Array.isArray(options)) throw libraryError(code, `invalid ${operation} options`, { operation });
@@ -85,7 +95,7 @@ export function closeRuntime(runtime: BagRuntime, options: CloseOptions | undefi
     const schedule = () => {
       if (settled || timeoutMs === undefined) return;
       if (performance.now() - began >= timeoutMs) {
-        cancel('timeout', diagnostic(new DOMException(diagnosticMessage('DI_BAG_CLOSE_TIMEOUT', 'Bag close timed out'), 'TimeoutError'), 'DI_BAG_CLOSE_TIMEOUT', { operation: 'close', timeoutMs }));
+        cancel('timeout', formatted(diagnostic(new DOMException(diagnosticMessage('DI_BAG_CLOSE_TIMEOUT', 'Bag close timed out'), 'TimeoutError'), 'DI_BAG_CLOSE_TIMEOUT', { operation: 'close', timeoutMs })));
         return;
       }
       // Long deadlines must not wrap into an immediate timer on Node/Bun.
@@ -133,7 +143,7 @@ export function startRuntime(graph: BindingGraph, context: RuntimeContext, keys:
     const checkCancellation = () => {
       aborted();
       if (!settled && timeoutMs !== undefined && performance.now() - began >= timeoutMs) {
-        cancel('timeout', diagnostic(new DOMException(diagnosticMessage('DI_BAG_STARTUP_TIMEOUT', 'Bag startup timed out'), 'TimeoutError'), 'DI_BAG_STARTUP_TIMEOUT', { operation: 'buildAndStart', timeoutMs }));
+        cancel('timeout', formatted(diagnostic(new DOMException(diagnosticMessage('DI_BAG_STARTUP_TIMEOUT', 'Bag startup timed out'), 'TimeoutError'), 'DI_BAG_STARTUP_TIMEOUT', { operation: 'buildAndStart', timeoutMs })));
       }
       return settled;
     };

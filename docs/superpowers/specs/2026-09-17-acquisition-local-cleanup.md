@@ -220,14 +220,17 @@ captured alive, and those frames reached the scope and its graph. So any
 application that kept a `signal` — or a context — kept the whole closed bag.
 The bag now aborts with one reason built at module load, with its stack
 formatted up front: still an `AbortError` with the legacy numeric `code` 20, its
-message naming `DI_BAG_CLOSING`. An explicit cause passed to `close()` is used
-as-is.
+message naming `DI_BAG_CLOSING`. A startup that is cancelled or fails aborts
+with its own cause, used as-is, so the signal then retains whatever that cause
+retains. The library's own startup and close timeout errors format their stacks
+before they are handed on, for the same reason: they are created in closures
+over the runtime, and a startup timeout becomes the signal's reason.
 
 `tests/acquisition-retention.node.mjs` covers the dependency proxy, frames under
 a retained context, a pushed disposer's payload being alive before close and
 collectible after, and — the only cases that can detect a retained graph — a
 payload reachable solely through the bag's graph, with the context or the signal
-kept after the bag is dropped. The frames cases cannot detect a context that
+kept after the bag is dropped, and the same after a startup timeout. The frames cases cannot detect a context that
 captured the execution: `compact()` and `release()` clear frames either way.
 These suites need `--expose-gc` and run in CI's `contracts` job, not in
 `npm run check`.

@@ -268,3 +268,30 @@ for (const [label, pick] of [['context', factoryCtx => factoryCtx], ['signal', f
     assert.match(signal.reason.message, /^DI_BAG_CLOSING: /);
   });
 }
+
+test('a signal kept past a timed-out startup does not keep the runtime alive once the error is dropped', async () => {
+  const refs = [];
+  let kept;
+  let open;
+  const gate = new Promise(resolve => { open = resolve; });
+  // Built in a helper so this test's own scope holds no reference to the payload.
+  const slowBuilder = () => {
+    const graphPayload = Array(4096).fill('graph');
+    refs.push(new WeakRef(graphPayload));
+    return DiBag.createBuilder().register({
+      value: DiBag.fromFactory(async (_deps, factoryCtx) => {
+        kept = factoryCtx.signal;
+        await gate;
+        return graphPayload.length;
+      }, { context: 'acquisition' }),
+    });
+  };
+  let failure = await slowBuilder().buildAndStart(['value'], { timeoutMs: 1 }).then(() => undefined, error => error);
+  assert.equal(failure.name, 'DiBagStartupCancelledError');
+  open();
+  await failure.cleanupPromise.catch(() => {});
+  // The timeout error became the signal's reason; it must not carry the runtime with it.
+  assert.equal(kept.reason.name, 'TimeoutError');
+  failure = undefined;
+  await collected(refs);
+});
