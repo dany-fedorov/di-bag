@@ -27,10 +27,7 @@ export class DisposerStack {
   }
 
   /** The factory settled; nothing more can be pushed. */
-  settle(state: 'ready' | 'failed'): void {
-    this.settled = true;
-    if (state === 'ready') this.disposers.length = 0;
-  }
+  settle(): void { this.settled = true; }
 
   get pending(): boolean { return this.disposers.length > 0; }
 
@@ -119,6 +116,48 @@ export class ProviderExecution {
   get hasRollback(): boolean { return this.disposers?.pending ?? false; }
   get work(): readonly Promise<void>[] { return [...this.pending]; }
 
+  /**
+   * The source stage settles the stack. A failed factory releases what it pushed
+   * at once, as pending work of this execution: anchoring on the source rather
+   * than on the attempt's result covers a direct projection that is already
+   * ready while its source is still running, which no retirement reaches.
+   */
+  private settleDisposers(state: 'ready' | 'failed'): void {
+    if (!this.disposers) return;
+    this.disposers.settle();
+    if (!this.disposers.pending) return;
+    if (state === 'ready') { this.disposers.drain(); return; }
+    const work: Promise<void> = this.rollbackDisposers().then(() => {
+      this.pending.delete(work);
+      if (!this.pending.size) this.events.drained();
+    });
+    this.pending.add(work);
+  }
+
+  private async rollbackDisposers(): Promise<void> {
+    // The initialization error propagates first; a synchronous failure never runs cleanup inline.
+    await undefined;
+    this.events.cleanupStarted?.();
+    const failed = await this.runDisposers('factory-failed');
+    this.events.cleanupCompleted?.(failed ? 'failure' : 'success');
+  }
+
+  /** Run every pushed disposer, last pushed first, all attempted; true when one threw. */
+  private async runDisposers(reason: DisposerContext['reason']): Promise<boolean> {
+    const disposerCtx: DisposerContext = Object.freeze({ reason });
+    let failed = false;
+    for (const disposer of this.disposers?.drain() ?? []) {
+      const sequence = this.events.invoking();
+      try {
+        await disposer(disposerCtx);
+      } catch (error) {
+        failed = true;
+        this.events.cleanupFailed(sequence, error);
+      }
+    }
+    return failed;
+  }
+
   /** Observe the selected stage, retaining its failure even after retirement. */
   async ready(): Promise<void> {
     const result = this.result;
@@ -158,7 +197,7 @@ export class ProviderExecution {
       ? Reflect.apply(create, undefined, [deps, context])
       : create(deps as never), true, description.acquisitionMode);
     // A pending source settles its own rollback list from the promise handler.
-    if (current.state !== 'pending') this.disposers?.settle(current.state);
+    if (current.state !== 'pending') this.settleDisposers(current.state);
     let nextFrame = 0;
     if (dispose) this.own(current, 0, dispose);
     description.operations.forEach((operation, offset) => {
@@ -255,7 +294,7 @@ export class ProviderExecution {
         const finish = () => {
           if (source) {
             this.sourceInFlight = false;
-            this.disposers?.settle(stage.state === 'ready' ? 'ready' : 'failed');
+            this.settleDisposers(stage.state === 'ready' ? 'ready' : 'failed');
           }
           this.pending.delete(barrier);
           settled();
@@ -294,20 +333,9 @@ export class ProviderExecution {
   private async disposeStages(): Promise<void> {
     // All later acceptances must be known before reversing stable stage indices.
     while (this.pending.size) await Promise.all(this.pending);
-    const owned = this.stages.length > 0 || this.hasRollback;
+    const owned = this.stages.length > 0;
     let failed = false;
     if (owned) this.events.cleanupStarted?.();
-    // Acquisition-local rollback releases resources the factory acquired but
-    // never handed over, innermost first, before any value this attempt owns.
-    for (const disposer of this.disposers?.drain() ?? []) {
-      const sequence = this.events.invoking();
-      try {
-        await disposer(Object.freeze({ reason: 'factory-failed' }));
-      } catch (error) {
-        failed = true;
-        this.events.cleanupFailed(sequence, error);
-      }
-    }
     for (const stage of this.stages.sort((a, b) => b.index - a.index)) {
       stage.state = 'disposing';
       const sequence = this.events.invoking();
