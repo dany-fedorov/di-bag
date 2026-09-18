@@ -165,11 +165,11 @@ test('a retained acquisition context releases the frame payloads of its own atte
     refs.push(new WeakRef(frame));
     return { metadata: frame };
   }
-  // Reading context.signal later is the documented use, so a factory that keeps
+  // Reading factoryCtx.signal later is the documented use, so a factory that keeps
   // the whole context must not keep its attempt's payloads alive.
   const contextual = create => DiBag.fromFactory(create, { context: 'acquisition' });
   const bag = DiBag.createBuilder().register({
-    value: transient(DiBag.withMetadata(contextual((_deps, context) => () => context.signal.aborted), { dynamic: { mode: 'direct', describe: describe } })),
+    value: transient(DiBag.withMetadata(contextual((_deps, factoryCtx) => () => factoryCtx.signal.aborted), { dynamic: { mode: 'direct', describe: describe } })),
   }).build();
   const read = bag.resolve('value');
   assert.equal(read(), false);
@@ -213,4 +213,25 @@ test('a ready borrowed projection drops its payload while pending source ownersh
     await closing;
   }
   assert.deepEqual(disposed, ['source', 'root']);
+});
+
+test('pushed disposer closures live until close and are collectible afterwards even with the context retained', async () => {
+  const refs = [];
+  let kept;
+  const bag = DiBag.createBuilder().register({
+    value: DiBag.fromFactory((_deps, factoryCtx) => {
+      kept = factoryCtx;
+      const payload = Array(256).fill(1);
+      refs.push(new WeakRef(payload));
+      factoryCtx.pushDisposer(() => payload.length);
+      return 1;
+    }, { context: 'acquisition' }),
+  }).build();
+  bag.resolve('value');
+  await setImmediate();
+  globalThis.gc();
+  assert.notEqual(refs[0].deref(), undefined, 'the bag owns the pushed disposer until close');
+  await bag.close();
+  await collected(refs);
+  assert.throws(() => kept.pushDisposer(() => {}), /CLEANUP_AFTER_FACTORY/);
 });
