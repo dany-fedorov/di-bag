@@ -191,55 +191,60 @@ cooperative: JavaScript that ignores the signal can keep cleanup pending.
 #### Release a partially acquired resource {#release-partial-acquisition}
 
 `withDisposal` owns the value a factory *returns*, so a factory that acquires a
-resource and then fails has nothing to hand over. `context.defer(action)`
-registers cleanup for a resource the factory already holds:
+resource and then fails has nothing to hand over. `factoryCtx.pushDisposer(disposer)`
+makes the bag own a resource the factory already holds:
 
 ```ts
 import { DiBag } from 'di-bag';
 
-declare function connect(): Promise<{ close(): Promise<void> }>;
+declare function openPool(): Promise<{ end(): Promise<void>; connect(): Promise<{ close(): Promise<void> }> }>;
 declare function handshake(socket: { close(): Promise<void> }): Promise<void>;
 
 const session = DiBag.withDisposal(
-  DiBag.fromFactory(async (_deps: {}, context) => {
-    const socket = await connect();
-    context.defer(() => socket.close());
+  DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+    const pool = await openPool();
+    factoryCtx.pushDisposer(() => pool.end());
+    const socket = await pool.connect();
+    factoryCtx.pushDisposer(disposerCtx => { if (disposerCtx.reason !== 'service-disposed') return socket.close(); });
     await handshake(socket);
-    return socket;
+    return { socket, close: () => socket.close() };
   }, { context: 'acquisition' }),
-  socket => socket.close(),
+  session => session.close(),
 );
 ```
 
-A deferred action runs if, and only if, the factory that registered it does not
-complete. Completing discards every deferred action untouched, so `withDisposal`
-remains the single owner of the returned value and nothing is released twice —
-including when a later projection such as `transformService` fails, which
-disposes the returned value through its ownership stage alone. Failure and
-cancellation run the actions in reverse registration order, before any value the
-same acquisition owns; every action is attempted even when one rejects, and each
-rejection is reported exactly like a `close()` disposer failure, through
-`cleanup-failed` observer events and the `DiBagCleanupError` of the owning
-`close()`.
+Each pushed disposer runs exactly once, last pushed first. If the factory
+throws, rejects, or is cancelled, they run at once — `pool.end()` after
+`socket.close()` — and `disposerCtx.reason` is `'factory-failed'`. If the
+factory returns, the bag owns them below the returned value: at `close()`, and
+at retirement when a later projection fails, every service-level disposer runs
+first — `withDisposal` on the returned value and any projection ownership — and
+then the pushed disposers, with `reason` `'service-disposed'`,
+`'service-disposal-failed'` (a service disposer threw; the pushed disposers
+still run), or `'no-service-disposer'`.
 
-"Complete" follows the registration's acquisition mode. A native Promise
-completes when it fulfils, so `defer` stays available across every `await` in the
-factory. A `raw` result completes as soon as the factory returns it, because the
-bag never observes it: in a `raw` async factory the acquisition has already
-settled at the first `await`, so register cleanup under `nativePromise` or
-automatic acquisition instead.
+Give each resource one disposer. `pool` above is released only by its pushed
+disposer. The socket is released by `session.close()`, so its pushed disposer
+checks `reason` and acts only when no service disposer released it. A pushed
+disposer that ignores `disposerCtx` runs unconditionally, which is right when
+nothing else releases the resource.
 
-One shape does not honour that rule: a `direct` projection over an asynchronous
-source leaves the result ready while the source is still pending, so a source
-that then rejects never retires its acquisition and its deferred actions wait for
-`close()` — or do not run at all, when the acquisition owns nothing else. See
-[issue 32](https://github.com/dany-fedorov/di-bag/issues/32).
+Every disposer is attempted even when one rejects; each rejection is reported
+like a `close()` disposer failure, through `cleanup-failed` observer events and
+the `DiBagCleanupError` of the owning `close()`. Two shapes deserve a note. A
+`direct` projection over an asynchronous source is ready while the source is
+still running, so a source that then fails runs its pushed disposers at once and
+its projection's own disposer at `close()`. A `raw` asynchronous factory
+completes when it returns its promise: a disposer pushed before its first
+`await` is owned and runs at `close()`, one pushed after throws, and a later
+rejection of that promise is not a factory failure. Transient services keep
+each attempt's pushed disposers until `close()`, like `withDisposal`.
 
-Rollback is scheduled when the acquisition settles, not awaited by the failing
+Rollback is scheduled when the factory fails, not awaited by the failing
 `resolve`: the initialization error propagates first, and `close()` — or the
-`cleanupPromise` of `DiBagStartupCancelledError` — waits for the release to
-finish. `defer` belongs to one running acquisition; calling it on a context
-retained past that acquisition throws
+`cleanupPromise` of `DiBagStartupCancelledError` — waits for it to finish.
+`pushDisposer` belongs to one running factory; calling it on a context retained
+past that factory throws
 [`DI_BAG_CLEANUP_AFTER_FACTORY`](../agent/errors.md#di-bag-cleanup-after-factory).
 
 Startup waits according to the selected service's final acquisition mode. A raw

@@ -238,6 +238,12 @@ Re-exports [DisjointScopeSelection](../index/type-aliases/DisjointScopeSelection
 
 ***
 
+### DisposerContext
+
+Re-exports [DisposerContext](../index/interfaces/DisposerContext.md)
+
+***
+
 ### FactoryWithDisposal
 
 Re-exports [FactoryWithDisposal](../index/interfaces/FactoryWithDisposal.md)

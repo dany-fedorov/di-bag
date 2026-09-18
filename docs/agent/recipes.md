@@ -242,11 +242,11 @@ A scoped `config` fails with `root lifetime cannot capture scoped dependency: db
 If a driver returns a query builder, return `Promise.resolve(builder)`; see
 [structural thenable](errors.md#structural-thenable).
 
-## Release a resource a factory failed to finish acquiring {#partial-acquisition}
+## Own a resource a factory acquires on the way {#partial-acquisition}
 
-`withDisposal` owns the value a factory *returns*. A factory that acquires a
-resource and then fails has nothing to hand over, so it registers cleanup for
-that resource as soon as it holds it.
+`withDisposal` owns the value a factory *returns*. A factory that can fail after
+acquiring a resource pushes a disposer for it as soon as it holds it: the bag
+releases it at once if the factory fails and, otherwise, when the bag closes.
 
 ```ts
 // src/features/feed/contract.ts
@@ -275,15 +275,12 @@ import type { Feed, FeedConfig, Socket } from './contract.js';
 
 export const feedModule = DiBag.createBuilder()
   .register({
-    socket: DiBag.withDisposal(
-      DiBag.fromFactory(async ({ config }: { config: FeedConfig }, context): Promise<Socket> => {
-        const socket = await open(config.url);
-        context.defer(() => socket.close());
-        await authenticate(socket, config.token);
-        return socket;
-      }, { context: 'acquisition' }),
-      socket => socket.close(),
-    ),
+    socket: DiBag.fromFactory(async ({ config }: { config: FeedConfig }, factoryCtx): Promise<Socket> => {
+      const socket = await open(config.url);
+      factoryCtx.pushDisposer(() => socket.close());
+      await authenticate(socket, config.token);
+      return socket;
+    }, { context: 'acquisition' }),
     feed: ({ socket }: { socket: Promise<Socket> }): Feed => ({
       publish: async text => (await socket).send(text),
     }),
@@ -291,14 +288,14 @@ export const feedModule = DiBag.createBuilder()
   .buildModule(['feed']);
 ```
 
-A deferred action runs only when the factory does not complete, so a failed
-handshake closes the socket and a successful one leaves it to `withDisposal` —
-never both, including when a later projection of this registration fails.
-Actions run in reverse registration order, and a rejecting one does
-not skip the rest: it is reported like any `close()` disposer failure, through
-[`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed). `context.defer`
-belongs to the running acquisition; keeping the context and calling it later
-throws [`DI_BAG_CLEANUP_AFTER_FACTORY`](errors.md#di-bag-cleanup-after-factory).
+A pushed disposer runs exactly once, last pushed first: at once if the factory
+fails, otherwise at `close()` after any `withDisposal` disposer. Give each
+resource one disposer. If the returned value's own teardown also releases a
+pushed resource, check `disposerCtx.reason !== 'service-disposed'` before
+releasing it. A rejecting disposer does not skip the rest; it is reported through
+[`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed). Calling
+`pushDisposer` after the factory settled throws
+[`DI_BAG_CLEANUP_AFTER_FACTORY`](errors.md#di-bag-cleanup-after-factory).
 
 ## Review a merge {#review-merge}
 

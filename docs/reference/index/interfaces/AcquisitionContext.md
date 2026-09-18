@@ -4,9 +4,9 @@
 
 # Interface: AcquisitionContext
 
-Defined in: [acquisition-context.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L14)
+Defined in: [acquisition-context.ts:29](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L29)
 
-Cooperative cancellation information supplied to a context-aware acquisition.
+Cooperative cancellation and acquisition-local ownership supplied to a context-aware factory.
 
 ## See
 
@@ -20,28 +20,28 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-servic
 readonly signal: AbortSignal;
 ```
 
-Defined in: [acquisition-context.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L16)
+Defined in: [acquisition-context.ts:31](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L31)
 
 Aborted when the acquisition's owning scope begins closing.
 
 ## Methods
 
-### defer()
+### pushDisposer()
 
 ```ts
-defer(this: void, action: (this: void) => void | Promise<void>): void;
+pushDisposer(this: void, disposer: (this: void, disposerCtx: DisposerContext) => void | Promise<void>): void;
 ```
 
-Defined in: [acquisition-context.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L24)
+Defined in: [acquisition-context.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L39)
 
-Release a resource this factory has already acquired if the factory does not complete.
-Deferred actions run in reverse registration order, before any value the same acquisition
-owns, and only when this factory fails or is cancelled; returning a value discards them
-untouched, leaving the returned value to `withDisposal`.
+Own a resource this factory has already acquired. Pushed disposers run exactly once, last
+pushed first: at once if the factory fails, otherwise at `close()` after every service-level
+disposer, with `disposerCtx.reason` saying which. Give each resource one disposer — here or
+in `withDisposal`, not both — or test `reason` before releasing a resource the service owns.
 
 #### Parameters
 
 | Parameter | Description |
 | ------ | ------ |
 | `this` | - |
-| `action` | Cleanup for the resource acquired immediately before this call. |
+| `disposer` | Releases the resource acquired immediately before this call. |

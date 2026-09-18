@@ -32,8 +32,8 @@ Every compiler and runtime message: [docs/agent/errors.md](docs/agent/errors.md)
    Return `Promise.resolve(builder)` or use `DiBag.fromFactory(create, { acquisitionMode: 'raw' })`.
 6. **Ownership.** `DiBag.withDisposal(factory, dispose)` makes the bag own the
    value; `close()` runs disposers, dependents first. Close every scope and fork
-   you create; a parent closes its live scopes, never forks. A factory that can
-   fail after acquiring a resource releases it with [`context.defer`](docs/agent/recipes.md#partial-acquisition).
+   you create; a parent closes its live scopes, never forks. Inside a factory,
+   [`factoryCtx.pushDisposer`](docs/agent/recipes.md#partial-acquisition) owns what it acquires on the way.
 7. **Replace dependencies in tests with `fork(keys, overrides)`**; each
    override must satisfy the original contract.
 8. **Modules.** Register a feature's factories, then `buildModule(['exported'])`.
