@@ -168,6 +168,20 @@ export class ScopeAcquisitions {
     return this.controller.signal;
   }
 
+  /**
+   * The signal is scope-wide; deferred cleanup is local to this attempt, so each
+   * contextual acquisition receives its own frozen context. Built here rather
+   * than in `resolveBinding` so that the execution never joins the closure scope
+   * a retained dependency proxy keeps alive.
+   */
+  private contextSource(execution: ProviderExecution): () => AcquisitionContext {
+    let context: AcquisitionContext | undefined;
+    return () => context ??= Object.freeze({
+      signal: this.cancellationSignal(),
+      defer: (action: (this: void) => void | Promise<void>) => { execution.defer(action); },
+    });
+  }
+
   private resolveBinding(bindingId: BindingId, from?: Acquisition, path: readonly BindingId[] = []): Acquisition {
     // Sharing an alias borrows its lexical parent graph before following targets.
     if (this.parent && this.shared.has(bindingId)) return this.parent.resolveBinding(bindingId, from, path);
@@ -273,13 +287,6 @@ export class ScopeAcquisitions {
     });
     this.observeAttempt(attempt, 'acquisition-started');
     this.family.enter(attempt);
-    // The signal is scope-wide; deferred cleanup is local to this attempt, so
-    // each contextual acquisition receives its own frozen context object.
-    let context: AcquisitionContext | undefined;
-    const acquisitionContext = (): AcquisitionContext => context ??= Object.freeze({
-      signal: this.cancellationSignal(),
-      defer: (action: (this: void) => void | Promise<void>) => { execution.defer(action); },
-    });
     const directSource = !description.contextual && !description.operations.length;
     try {
       let value: unknown;
@@ -288,7 +295,7 @@ export class ScopeAcquisitions {
         value = create(deps as never);
         execution.publishSource(value, description);
       } else {
-        value = execution.evaluate(description, deps, acquisitionContext);
+        value = execution.evaluate(description, deps, this.contextSource(execution));
       }
       attempt.exposed = value;
       attempt.state = attempt.execution.state;

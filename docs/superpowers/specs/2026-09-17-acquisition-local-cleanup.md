@@ -255,6 +255,18 @@ object, so both now compare `context.signal` instead. The contract that matters
 — *which owner's cancellation an acquisition observes* — is unchanged; only the
 object wrapping the signal is no longer shared. Recorded in the changelog.
 
+**The context is built outside `resolveBinding`.** The first version created the
+per-attempt context inline in `resolveBinding`. Every closure in a function
+shares one scope record, so capturing `execution` there put the
+`ProviderExecution` into the same scope as the dependency proxy's handlers — and
+a factory that returns a closure over `deps` keeps that proxy, and therefore the
+execution and its payloads, alive past `close()`.
+`tests/acquisition-retention.node.mjs` caught it ("closing releases compacted
+frame payloads even when a dependency proxy is retained"); it runs in CI's
+`contracts` job, not in `npm run check`. `contextSource(execution)` now builds
+the closure in its own scope. Anything else added to `resolveBinding` that
+captures the execution will reintroduce the leak.
+
 **A known limitation: one exotic shape leaks.** A `direct`-mode projection over
 an asynchronous source produces a result stage that is ready while the source is
 still pending — `transformService(asyncContextualFactory, { mode: 'direct',
