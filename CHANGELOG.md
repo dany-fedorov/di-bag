@@ -1,5 +1,78 @@
 # Changelog
 
+## 0.4.0
+
+The API is pre-1.0; this release adds ownership for resources a factory acquires
+on the way, portable factories for browsers and workers, and a tested React
+recipe. It changes one error message and the identity of acquisition contexts.
+
+### Breaking changes
+
+- `DI_BAG_CLASSIFIER_REQUIRED` now names every registration that still uses
+  automatic acquisition, sorted: the first eight in the message, all of them in
+  `details.bindings`, private module services as `<label>/<key>`. The message
+  suggests `fromSyncFactory` and `fromAsyncFactory`. Code matching the full
+  message text must match the new text; the `this host has no
+  process.getBuiltinModule` prefix, `code`, and `details.option` are unchanged
+  ([#28](https://github.com/dany-fedorov/di-bag/issues/28)).
+- Each acquisition now receives its own frozen `AcquisitionContext` rather than
+  one shared per scope. The `signal` is unchanged — still the owning bag's, shared
+  by every acquisition it owns — so code comparing context objects by identity
+  should compare `context.signal` instead.
+
+### Added
+
+- `factoryCtx.pushDisposer(disposer)` on the acquisition context makes the bag own
+  a resource a factory acquired before it could return
+  ([#27](https://github.com/dany-fedorov/di-bag/issues/27),
+  [#32](https://github.com/dany-fedorov/di-bag/issues/32)). Pushed disposers run
+  exactly once, last pushed first: at once when the factory throws, rejects, or is
+  cancelled, otherwise at `close()` — or at retirement after a later projection
+  fails — after every disposer of the service. Each receives a `DisposerContext`
+  whose `reason` is `'factory-failed'`, `'no-service-disposer'`,
+  `'service-disposed'`, or `'service-disposal-failed'`, describing the
+  `withDisposal` on the returned value, so a disposer for a resource the returned
+  value also releases can act only when that disposer did not. Failures are
+  reported like `close()` disposer failures. New codes `DI_BAG_INVALID_CLEANUP`
+  and `DI_BAG_CLEANUP_AFTER_FACTORY`; new exported type `DisposerContext`.
+- `DiBag.fromSyncFactory(create, options?)` and `DiBag.fromAsyncFactory(create, options?)`
+  ([#28](https://github.com/dany-fedorov/di-bag/issues/28)): `fromFactory` with
+  `acquisitionMode: 'raw'` and `'nativePromise'` fixed by name, so a graph built
+  from them runs on hosts without `process.getBuiltinModule` (browsers, workers)
+  with no classifier. The compiler rejects a Promise, a union with a Promise
+  member, or a thenable output on `fromSyncFactory` and a non-Promise output on
+  `fromAsyncFactory` (family `portable-factory-output`). Both accept
+  `{ context: 'acquisition' }`; an `acquisitionMode` option is rejected at
+  compile time and with `DI_BAG_INVALID_FACTORY` at runtime. A Promise that is
+  itself the service keeps `fromFactory(create, { acquisitionMode: 'raw' })`.
+- A tested React/browser recipe in `examples/react` with a guide at
+  `docs/guides/react-integration.md`
+  ([#30](https://github.com/dany-fedorov/di-bag/issues/30)): an application
+  runtime built once at bootstrap, project runtimes that borrow app services and
+  own an exclusive lock, and a framework-free `RuntimeOwner` that starts,
+  replaces, and closes runtimes from React effects — a replaced startup is never
+  published, teardowns are serialized, a bounded wait reports its expiry to an
+  explicit sink, and status is an external store for `useSyncExternalStore`.
+  React is a development dependency only; the package remains React-free.
+
+### Fixed and improved
+
+- A `signal` kept after its bag closed no longer keeps the closed bag in memory.
+  A `close()` without a cause now aborts with one shared `AbortError`, created at
+  load, whose message names `DI_BAG_CLOSING`; before, each close created an
+  `AbortError` whose stack retained the bag's scope and graph.
+- A `close({ timeoutMs, signal })` that stops waiting while a failed factory's
+  pushed disposers are still running lists that acquisition under
+  `details.pending`.
+- The [compiler benchmark guide](docs/benchmarks/typescript.md) states the
+  single-expression ceiling from measurements
+  ([#29](https://github.com/dany-fedorov/di-bag/issues/29)): classic TypeScript
+  6.0.3 accepts 1,000 chained `register` calls and overflows V8's stack at 1,015,
+  and accepts about 950 replacements; native 7.0.2 has no stack ceiling and reaches
+  its memory budget near 1,100–1,400 calls. The guidance is at most 500 calls per
+  expression. `npm run benchmark:compiler-ceiling` reproduces the search.
+- `di-bag-graph` is unchanged at 0.1.0.
+
 ## 0.3.0
 
 The API is pre-1.0; this release changes error message text and sealed module
