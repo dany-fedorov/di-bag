@@ -1161,3 +1161,633 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
 MSG
 ```
+
+---
+
+### Task 4: Migrate every call site
+
+The old API still exists, so the codemod can resolve it. First the codemod learns this phase, then it rewrites the typed call sites, then the rest is done by hand. About 80 `buildAndStart` calls live in `tests/`, `examples/` and `tools/`; the guides are not touched.
+
+**Files:**
+- Modify: `tools/codemod/rename-map.json`, one fixture pair under `tools/codemod/test/fixtures/`
+- Modify: `tests/startup.test.ts`, `tests/startup-runtime-fixture.ts`, `tests/final-adversarial-runtime-fixture.ts`, `tests/runtime-diagnostics.test.ts`, `tests/acquisition-cleanup.test.ts`, `tests/acquisition-mode.test.ts`, `tests/aliases.test.ts`, `tests/contributions.test.ts`, `tests/enterprise-integration.test.ts`, `tests/nested-modules.test.ts`, `tests/observers.test.ts`, `tests/plugins.test.ts`, `tests/react/runtime-owner.test.ts`, `tests/react/project-runtime.test.ts`, `tests/acquisition-retention.node.mjs`, `tests/runtime-scale.node.mjs`
+- Modify: `examples/scopes.ts`, `examples/react/app-runtime.ts`, `examples/react/project-runtime.ts`, `examples/react/runtime-owner.ts`, `examples/react/bootstrap.tsx`, `examples/react/app.tsx`
+- Modify: `scripts/verify-release-artifacts.ts`
+
+**Interfaces:**
+- Consumes: the codemod CLI and map of the master plan, "The codemod contract"; `Bag.ensureServicesReady` of Task 3.
+- Produces: no call to `buildAndStart`, no use of `StartupOptions`, `DiBagStartupError`, `DiBagStartupCancelledError`, `startupOrder` or a `DI_BAG_STARTUP_*` code anywhere outside `src/`, `tools/codemod/`, `tools/graph/lib/extract.mjs` and the guides.
+
+The rules, for the codemod and for your hands alike:
+
+| 0.4.0 | 0.5.0 |
+| --- | --- |
+| `x.buildAndStart(keys)` | `x.build().ensureServicesReady(keys)`, where the emitted `build` comes from `api.nameOf('Builder', 'build')` |
+| `x.buildAndStart(keys, options)` | `x.build().ensureServicesReady(keys, options)` with the option rows below |
+| option `signal: s`, or shorthand `signal` | `abortSignal: s`, `abortSignal: signal` |
+| option `timeoutMs: n` | `totalTimeoutMs: n` |
+| option `startupOrder: 'parallel'` | removed. When the bag literal becomes empty, the whole second argument is removed |
+| option `startupOrder: 'sequential'` | `maxConcurrentServiceKeys: 1` |
+| option `startupOrder: <number or any other expression>` | `maxConcurrentServiceKeys: <the same expression>`. When the expression is not a numeric literal, also report a manual item: "may hold 'parallel' or 'sequential'" |
+| options passed as an identifier typed `StartupOptions` | passed through unchanged, plus a manual item: "rename the properties where this object is built" |
+| `bag.close({ signal, timeoutMs })` | `bag.close({ abortSignal: signal, waitTimeoutMs: … })` |
+| type `StartupOptions` | `EnsureServicesReadyOptions` |
+| `DiBagStartupError` | `DiBagServiceReadinessError` |
+| `DiBagStartupCancelledError` | `DiBagServiceReadinessCancelledError` |
+| property `cleanupFailures` of `DiBagStartupError` | `disposalFailures` |
+| property `cleanupError` of `DiBagStartupError` | `disposalError` |
+| property `cleanupPromise` of `DiBagStartupCancelledError` | `disposalPromise` |
+| property `cleanupPromise` of `DiBagCloseCancelledError` | unchanged in this phase |
+| property `pending` of `CloseProgress` | `disposersStillRunning` |
+| property `acquiring` of `CloseProgress` | `acquisitionsStillPending` |
+| `'DI_BAG_STARTUP_FAILED'`, `'DI_BAG_STARTUP_CANCELLED'`, `'DI_BAG_STARTUP_TIMEOUT'` | `'DI_BAG_SERVICE_READINESS_FAILED'`, `'DI_BAG_SERVICE_READINESS_CANCELLED'`, `'DI_BAG_SERVICE_READINESS_TIMEOUT'` |
+
+- [ ] **Step 1: Put the data into `tools/codemod/rename-map.json`**
+
+Open the file and look at how phase 1 shaped its entries. The entries below use the field names of the master plan's contract. If phase 1 chose other field names, keep its names and carry these values over. Do not duplicate an entry that phase 1 already wrote for `buildAndStart`; complete it.
+
+```json
+{
+  "methods": [
+    { "owner": "Builder", "from": "buildAndStart", "transform": "build-and-start" }
+  ],
+  "options": [
+    { "owner": "Bag", "method": "close", "from": "signal", "to": "abortSignal" },
+    { "owner": "Bag", "method": "close", "from": "timeoutMs", "to": "waitTimeoutMs" }
+  ],
+  "types": [
+    { "from": "StartupOptions", "to": "EnsureServicesReadyOptions" },
+    { "from": "DiBagStartupError", "to": "DiBagServiceReadinessError" },
+    { "from": "DiBagStartupCancelledError", "to": "DiBagServiceReadinessCancelledError" }
+  ],
+  "properties": [
+    { "owner": "DiBagStartupError", "from": "cleanupFailures", "to": "disposalFailures" },
+    { "owner": "DiBagStartupError", "from": "cleanupError", "to": "disposalError" },
+    { "owner": "DiBagStartupCancelledError", "from": "cleanupPromise", "to": "disposalPromise" },
+    { "owner": "CloseProgress", "from": "pending", "to": "disposersStillRunning" },
+    { "owner": "CloseProgress", "from": "acquiring", "to": "acquisitionsStillPending" },
+    { "owner": "StartupOptions", "from": "signal", "to": "abortSignal" },
+    { "owner": "StartupOptions", "from": "timeoutMs", "to": "totalTimeoutMs" },
+    { "owner": "CloseOptions", "from": "signal", "to": "abortSignal" },
+    { "owner": "CloseOptions", "from": "timeoutMs", "to": "waitTimeoutMs" }
+  ],
+  "codes": [
+    { "from": "DI_BAG_STARTUP_FAILED", "to": "DI_BAG_SERVICE_READINESS_FAILED" },
+    { "from": "DI_BAG_STARTUP_CANCELLED", "to": "DI_BAG_SERVICE_READINESS_CANCELLED" },
+    { "from": "DI_BAG_STARTUP_TIMEOUT", "to": "DI_BAG_SERVICE_READINESS_TIMEOUT" }
+  ]
+}
+```
+
+`StartupOptions.startupOrder` has no plain rename: its value decides the result. The `build-and-start` transform owns it, by the rule table above. If the transform of phase 1 does not yet treat `startupOrder`, the shorthand `signal`, or an emptied bag literal, extend it in `tools/codemod/lib/transforms/` now.
+
+- [ ] **Step 2: Add a fixture that pins this phase**
+
+Create a fixture pair in the layout the existing fixtures use (look at the directory that `grep -rl buildAndStart tools/codemod/test/fixtures` prints). Name it `ensure-services-ready`. The input is 0.4.0 code and is checked against the 0.4.0 declarations that phase 1 vendored:
+
+```ts
+import { DiBag, DiBagCloseCancelledError, DiBagStartupCancelledError, DiBagStartupError, type StartupOptions } from 'di-bag';
+
+const builder = DiBag.createBuilder().register({ db: async () => 1, cache: () => 2 });
+
+export async function main(signal: AbortSignal, options: StartupOptions, bound: number) {
+  const plain = await builder.buildAndStart(['db']);
+  const all = await builder.buildAndStart(['db', 'cache'], { signal, timeoutMs: 5_000, startupOrder: 'sequential' });
+  const parallel = await builder.buildAndStart(['db'], { startupOrder: 'parallel' });
+  const four = await builder.buildAndStart(['db'], { startupOrder: 4, signal: signal });
+  const computed = await builder.buildAndStart(['db'], { startupOrder: bound });
+  const passed = await builder.buildAndStart(['db'], options);
+  await plain.close({ timeoutMs: 1_000, signal });
+  try {
+    await builder.buildAndStart(['db']);
+  } catch (error) {
+    if (error instanceof DiBagStartupError) console.error(error.code === 'DI_BAG_STARTUP_FAILED', error.cleanupFailures, error.cleanupError);
+    if (error instanceof DiBagStartupCancelledError) await error.cleanupPromise;
+    if (error instanceof DiBagCloseCancelledError) console.error(error.details.pending, error.details.acquiring, error.cleanupPromise);
+  }
+  return [all, parallel, four, computed, passed];
+}
+```
+
+The expected output. Its `build` is whatever `api.nameOf('Builder', 'build')` answers, which is `build` until phase 5 changes the map and this file with it:
+
+```ts
+import { DiBag, DiBagCloseCancelledError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError, type EnsureServicesReadyOptions } from 'di-bag';
+
+const builder = DiBag.createBuilder().register({ db: async () => 1, cache: () => 2 });
+
+export async function main(signal: AbortSignal, options: EnsureServicesReadyOptions, bound: number) {
+  const plain = await builder.build().ensureServicesReady(['db']);
+  const all = await builder.build().ensureServicesReady(['db', 'cache'], { abortSignal: signal, totalTimeoutMs: 5_000, maxConcurrentServiceKeys: 1 });
+  const parallel = await builder.build().ensureServicesReady(['db']);
+  const four = await builder.build().ensureServicesReady(['db'], { maxConcurrentServiceKeys: 4, abortSignal: signal });
+  const computed = await builder.build().ensureServicesReady(['db'], { maxConcurrentServiceKeys: bound });
+  const passed = await builder.build().ensureServicesReady(['db'], options);
+  await plain.close({ waitTimeoutMs: 1_000, abortSignal: signal });
+  try {
+    await builder.build().ensureServicesReady(['db']);
+  } catch (error) {
+    if (error instanceof DiBagServiceReadinessError) console.error(error.code === 'DI_BAG_SERVICE_READINESS_FAILED', error.disposalFailures, error.disposalError);
+    if (error instanceof DiBagServiceReadinessCancelledError) await error.disposalPromise;
+    if (error instanceof DiBagCloseCancelledError) console.error(error.details.disposersStillRunning, error.details.acquisitionsStillPending, error.cleanupPromise);
+  }
+  return [all, parallel, four, computed, passed];
+}
+```
+
+The report for this fixture must contain two manual items: the `startupOrder: bound` line and the `options` line.
+
+Run the codemod's tests the way phase 1 wired them. Look in `tools/codemod/package.json` for the `test` script; if there is none, run `node --test tools/codemod/test/*.test.mjs`.
+Expected: the new fixture fails first where the transform lacks a rule, and passes after Step 1's extension. All older fixtures still pass.
+
+- [ ] **Step 3: Run the codemod over the repo**
+
+```bash
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --extra-files 'tests/types/negative/*.ts' --report /tmp/phase-03-codemod-report.txt
+```
+
+Expected: a summary that lists rewrites in `tests/`, `examples/`, and nothing in `src/`. Read the report. Then write:
+
+```bash
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --extra-files 'tests/types/negative/*.ts' --write --report /tmp/phase-03-codemod-report.txt
+git add -A tests examples tools/codemod
+git commit -F - <<'MSG'
+refactor: move call sites to ensureServicesReady with the codemod
+
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --extra-files 'tests/types/negative/*.ts' --write
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
+```
+
+If the codemod changed `tests/types/startup.ts`, `tests/types/negative/startup.ts` or `tests/ensure-services-ready.test.ts`, check with `git diff HEAD~1 -- <file>` that Task 1 and Task 3 content is intact. Those files were already on the new API.
+
+- [ ] **Step 4: Finish `tests/startup.test.ts` by hand**
+
+Most values in this file are `any`, so check every rule of the table with `grep`, not with the compiler. Apply these exact rewrites where the codemod left the old text:
+
+| Find | Replace with |
+| --- | --- |
+| `.buildAndStart(` | `.build().ensureServicesReady(` |
+| `DiBagStartupCancelledError`, `DiBagStartupError` | `DiBagServiceReadinessCancelledError`, `DiBagServiceReadinessError` |
+| `.cleanupPromise`, `.cleanupFailures` | `.disposalPromise`, `.disposalFailures`. Every error in this file is a readiness error |
+| `{ startupOrder: 'sequential' }`, `{ startupOrder: 1 }` | `{ maxConcurrentServiceKeys: 1 }` |
+| `{ startupOrder }` | `{ maxConcurrentServiceKeys: startupOrder }`. The loop variable keeps its name |
+| `{ startupOrder: Number.MAX_SAFE_INTEGER }` | `{ maxConcurrentServiceKeys: Number.MAX_SAFE_INTEGER }` |
+| `startupOrder: 2, signal: abort.signal` | `maxConcurrentServiceKeys: 2, abortSignal: abort.signal` |
+| `{ timeoutMs: 5 }`, `{ timeoutMs: 30 }` | `{ totalTimeoutMs: 5 }`, `{ totalTimeoutMs: 30 }` |
+| `{ signal: controller.signal, timeoutMs: outcome === 'timeout' ? 5 : 10000 }` | `{ abortSignal: controller.signal, totalTimeoutMs: outcome === 'timeout' ? 5 : 10000 }` |
+| `{ signal: abort.signal }`, `{ signal: controller.signal }` | `{ abortSignal: abort.signal }`, `{ abortSignal: controller.signal }` |
+| `{ signal: controller.signal, timeoutMs: 2 ** 32 }` | `{ abortSignal: controller.signal, totalTimeoutMs: 2 ** 32 }` |
+
+Do not touch `factoryCtx.signal` or `context.signal`: that is the acquisition context, which phase 8 renames.
+
+Four tests need hand-written code. In `startup snapshots option getters once after snapshotting all selected keys`, the getter becomes:
+
+```ts
+  }).build().ensureServicesReady(keys, { get maxConcurrentServiceKeys() {
+    reads++;
+    Reflect.set(keys, 0, 'second');
+    return 1;
+  } });
+```
+
+In `numeric startup ${startupOrder} snapshots options and retains duplicate selected lifetimes`, the getter becomes `{ get maxConcurrentServiceKeys() { reads++; return startupOrder; } }`.
+
+In `numeric startup rejects invalid bounds before factories`, the expected message becomes:
+
+```ts
+    await expect(builder.build().ensureServicesReady(['value'], { maxConcurrentServiceKeys: startupOrder })).rejects.toThrow('ensureServicesReady maxConcurrentServiceKeys must be a positive safe integer');
+```
+
+In `invalid startup inputs reject before factory or unsupported option getter effects`, replace the body down to `expect(effects).toBe(0);` with:
+
+```ts
+  let effects = 0;
+  const bag = DiBag.createBuilder().register({ value: () => ++effects }).build();
+  const start = bag.ensureServicesReady.bind(bag) as (...args: unknown[]) => Promise<unknown>;
+  for (const options of [null, [], true, { totalTimeoutMs: 0 }, { totalTimeoutMs: -1 }, { totalTimeoutMs: Infinity }, { totalTimeoutMs: NaN }, { totalTimeoutMs: '1' }, { maxConcurrentServiceKeys: 'serial' }, { abortSignal: {} }, { timeoutMs: 1 }, { startupOrder: 'sequential' }, { other: true, get totalTimeoutMs() { effects++; return 1; } }, Object.create({ totalTimeoutMs: 1 })]) {
+    await expect(start(['value'], options)).rejects.toThrow(/ensureServicesReady/);
+  }
+  for (const keys of [undefined, 'value', [null], ['missing'], [{ key: Symbol('fake') }]]) {
+    await expect(start(keys)).rejects.toThrow();
+  }
+  expect(effects).toBe(0);
+  await bag.close();
+```
+
+Run: `bun test tests/startup.test.ts`
+Expected: `33 pass`, `0 fail`. This exact migration was run against a prototype of Task 3 and passed.
+
+- [ ] **Step 5: Migrate the string and JavaScript fixtures by hand**
+
+The codemod cannot read these: the code is inside a template string, or the file is `.mjs`, or the API is typed `any`.
+
+`tests/startup-runtime-fixture.ts` (one template string). Apply the table of Step 4, and also: `{ startupOrder: 'sequential' }` becomes `{ maxConcurrentServiceKeys: 1 }`; `{ signal: controller.signal }` becomes `{ abortSignal: controller.signal }`; `{ timeoutMs: 5 }` becomes `{ totalTimeoutMs: 5 }`; both `{ startupOrder }` become `{ maxConcurrentServiceKeys: startupOrder }`; `failed.cleanupFailures[0].error` becomes `failed.disposalFailures[0].error`; `cancelled.cleanupPromise` becomes `cancelled.disposalPromise`; the last loop's assertion becomes:
+
+```js
+    await assert.rejects(boundedBuilder.build().ensureServicesReady(['item'], { maxConcurrentServiceKeys: startupOrder }), /ensureServicesReady maxConcurrentServiceKeys must be a positive safe integer/);
+```
+
+Keep `context.signal` and `childContext.signal`.
+
+`tests/final-adversarial-runtime-fixture.ts` and `scripts/verify-release-artifacts.ts`. In both files replace every `DiBagStartupCancelledError` with `DiBagServiceReadinessCancelledError` and every `DiBagStartupError` with `DiBagServiceReadinessError`: identifiers, the literal types of the expected-evidence table, its values, and the two generated `require` and `import` lines near the end of the fixture. Keep the evidence keys `startupWrapper`, `startupCauseIdentity`, `startupDispose`, `ordinaryCleanupFailures`: they are this repo's own record names. In the fixture also: five `.buildAndStart(` become `.build().ensureServicesReady(`; `{ startupOrder: 'sequential' }` becomes `{ maxConcurrentServiceKeys: 1 }`; `{ signal: i12Abort.signal }` becomes `{ abortSignal: i12Abort.signal }`; `{ timeoutMs: 5 }` becomes `{ totalTimeoutMs: 5 }`; both `.cleanupPromise` become `.disposalPromise`; both `.cleanupFailures` become `.disposalFailures`.
+
+`tests/runtime-diagnostics.test.ts`, first test. Replace the four lines that start at `const startup = await` with:
+
+```ts
+  const readiness = await DiBag.createBuilder().register({ slow: () => new Promise(() => {}) }).build().ensureServicesReady(['slow'], { totalTimeoutMs: 1 }).catch(error => error);
+  expect(readiness).toBeInstanceOf(DiBagServiceReadinessCancelledError);
+  expect(readiness.message).toBe(`DI_BAG_SERVICE_READINESS_CANCELLED: The listed services were not ready: the wait timed out after 1ms; acquisitions still pending: slow; this bag is closing; see ${page}#di-bag-service-readiness-cancelled`);
+  expect(readiness.cause.message).toBe(`DI_BAG_SERVICE_READINESS_TIMEOUT: The listed services were not ready before the deadline; see ${page}#di-bag-service-readiness-timeout`);
+```
+
+and import `DiBagServiceReadinessCancelledError` instead of `DiBagStartupCancelledError`.
+
+`tests/acquisition-retention.node.mjs`: line 39 becomes `await builder.build().ensureServicesReady(['copy'])`; near line 289, `slowBuilder().buildAndStart(['value'], { timeoutMs: 1 })` becomes `slowBuilder().build().ensureServicesReady(['value'], { totalTimeoutMs: 1 })`, the expected name becomes `'DiBagServiceReadinessCancelledError'`, and `failure.cleanupPromise` becomes `failure.disposalPromise`.
+
+`tests/runtime-scale.node.mjs`: both `.buildAndStart(keys, { startupOrder })` become `.build().ensureServicesReady(keys, { maxConcurrentServiceKeys: startupOrder })`.
+
+`examples/react/runtime-owner.ts`: the two comments that name `buildAndStart` say `ensureServicesReady`; `DiBagStartupCancelledError` and its `cleanupPromise` follow the table. `examples/react/bootstrap.tsx`: `{ timeoutMs: 5_000 }` becomes `{ totalTimeoutMs: 5_000 }` and `{ signal, timeoutMs: 5_000 }` becomes `{ abortSignal: signal, totalTimeoutMs: 5_000 }`. In that example, `closeTimeoutMs` and the `timeoutMs` field of the `close-wait-expired` failure are the example's own names: leave them. `tests/react/project-runtime.test.ts`: `{ signal: controller.signal }` passed to `createProjectRuntime` becomes `{ abortSignal: controller.signal }`.
+
+- [ ] **Step 6: Audit with `grep`**
+
+```bash
+grep -rnE "buildAndStart|StartupOptions|DiBagStartup|DI_BAG_STARTUP_" tests examples scripts tools/graph AGENTS.md docs/agent/recipes.md
+```
+
+Expected: only `tools/graph/lib/extract.mjs` (the `TERMINALS` set, which keeps the old name on purpose) and `tools/graph/README.md` (Task 6 rewrites it).
+
+```bash
+grep -rnE "startupOrder:" tests examples scripts
+```
+
+Expected: only the entries that prove the old option is now rejected: `{ startupOrder: 'sequential' }` in the invalid-option lists of `tests/ensure-services-ready.test.ts`, `tests/startup.test.ts` and `tests/runtime-diagnostics.test.ts`, and the two negative cases in `tests/types/negative/startup.ts`. Loop variables named `startupOrder` may stay.
+
+```bash
+grep -rnE "cleanupPromise|cleanupFailures|\.cleanupError" tests examples scripts
+```
+
+Expected: every remaining `cleanupPromise` is read from a `DiBagCloseCancelledError` (in `tests/runtime-diagnostics.test.ts`, `tests/acquisition-cleanup.test.ts` near line 723, `tests/observers.test.ts` only if that error comes from `close`). Open each hit and check which error it is. `cleanupFailures` and `.cleanupError` must not remain; local variables named `cleanupError` in `tests/observers.test.ts`, `tests/observers-runtime-fixture.ts` and `examples/integration/owned-scope.ts` are not the library field and stay.
+
+```bash
+grep -rnE "close\(\{ ?(timeoutMs|signal)" tests examples scripts
+```
+
+Expected: no output.
+
+- [ ] **Step 7: Run the tests**
+
+Run: `npm run typecheck && npm run test:fast`
+Expected: typecheck exits 0; the fast lane reports `0 fail`.
+
+Run: `npm run build && node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs tests/graph-retention.node.mjs`
+Expected: `# fail 0`. CI runs this command; the master plan's gate list does not, so run it here.
+
+Run: `for example in examples/*.ts; do bun run "$example" || break; done`
+Expected: every example exits 0.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add -A tests examples scripts
+git commit -F - <<'MSG'
+refactor: finish the move to ensureServicesReady by hand
+
+String fixtures, JavaScript tests, any-typed errors and the release evidence
+names, which the codemod cannot resolve.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
+```
+
+---
+
+### Task 5: Remove `buildAndStart` and the startup names
+
+**Files:**
+- Modify: `src/di-bag.ts`, `src/startup.ts`, `src/errors.ts`, `src/index.ts`
+- Modify: `tests/types/negative/api-renaming.ts`, `tests/ensure-services-ready.test.ts`
+- Modify: `docs/agent/errors.md`
+
+**Interfaces:**
+- Produces: `src/index.ts` no longer exports `StartupOptions`, `DiBagStartupError`, `DiBagStartupCancelledError`. `Builder` has no `buildAndStart`. `src/` contains no `'DI_BAG_STARTUP_*'` literal. `snapshotOptions(options: unknown, operation: 'ensureServicesReady' | 'close', code: DiBagErrorCode, supported: readonly string[], timeoutKey: string, signalKey: string)`.
+
+- [ ] **Step 1: Write the failing removal checks**
+
+Append to `tests/types/negative/api-renaming.ts`:
+
+```ts
+// diagnostic: does not exist
+DiBag.createBuilder().register({ value: () => 1 }).buildAndStart(['value']);
+// diagnostic: has no exported member
+type RemovedStartupOptions = import('../../../src').StartupOptions;
+// diagnostic: has no exported member
+type RemovedStartupError = import('../../../src').DiBagStartupError;
+// diagnostic: has no exported member
+type RemovedStartupCancelledError = import('../../../src').DiBagStartupCancelledError;
+```
+
+The import path must be exactly `'../../../src'`: `tests/provider-contract-fixtures.ts` rewrites that spelling to `'di-bag'` when the fixture is compiled against the packed package. Both compilers print `Property 'buildAndStart' does not exist on type 'Builder<…>'` and `Namespace '…' has no exported member 'StartupOptions'` for these lines; this was checked.
+
+Append to `tests/ensure-services-ready.test.ts`:
+
+```ts
+test('the 0.4 startup names are gone at run time', async () => {
+  const api = await import('../src/node') as Record<string, unknown>;
+  expect('buildAndStart' in DiBag.createBuilder()).toBe(false);
+  expect(api.DiBagStartupError).toBeUndefined();
+  expect(api.DiBagStartupCancelledError).toBeUndefined();
+});
+```
+
+- [ ] **Step 2: Run to verify they fail**
+
+Run: `bun test tests/ensure-services-ready.test.ts -t "0.4 startup names"`
+Expected: FAIL, `buildAndStart` is still on the builder.
+
+- [ ] **Step 3: Delete from `src/di-bag.ts`**
+
+Delete the whole `buildAndStart` method of `Builder` with its JSDoc comment. Change the imports to:
+
+```ts
+import { closeRuntime, ensureRuntimeReady } from './startup';
+```
+
+```ts
+import type { CloseOptions, EnsureServicesReadyOptions } from './startup';
+```
+
+In the JSDoc of the `Bag` class, the sentence that links `Builder.build` and `Builder.buildAndStart` becomes:
+
+```ts
+ * Create bags through {@link DiBagApi.createBuilder} followed by {@link Builder.build}, and make services
+ * ready ahead of use with {@link Bag.ensureServicesReady}; the class is exported as a type and has no public constructor.
+```
+
+Run `grep -n "buildAndStart" src/di-bag.ts`. Expected: no output. A leftover `{@link Builder.buildAndStart}` makes `npm run docs:generate` warn about a broken link.
+
+- [ ] **Step 4: Delete from `src/startup.ts`**
+
+Delete the `StartupOptions` interface with its comment, the function `snapshotStartupOptions`, and the function `startRuntime` with its comment. Then:
+
+```ts
+import { diagnostic, diagnosticMessage, libraryError } from './errors';
+import type { BagRuntime, BindingGraph, BindingKey } from './runtime';
+import { readTokenKey } from './tokens';
+import { DiBagCleanupError, DiBagCloseCancelledError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from './errors';
+import type { DiBagErrorCode } from './errors';
+```
+
+`BagRuntime` was imported as a value only because `startRuntime` constructed one; it is a type-only import now, and the import of `RuntimeContext` goes away. Make the two keys of `snapshotOptions` required and drop the old operation:
+
+```ts
+function snapshotOptions(options: unknown, operation: 'ensureServicesReady' | 'close', code: DiBagErrorCode, supported: readonly string[], timeoutKey: string, signalKey: string): Record<string, unknown> {
+```
+
+In the comment above `formatted`, "a startup timeout" becomes "a readiness timeout".
+
+- [ ] **Step 5: Delete from `src/errors.ts` and `src/index.ts`**
+
+Delete the classes `DiBagStartupError` and `DiBagStartupCancelledError` with their comments. In `src/index.ts`:
+
+```ts
+export { DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } from './errors';
+```
+
+```ts
+export type { CloseOptions, EnsureServicesReadyOptions } from './startup';
+```
+
+Run: `grep -rnE "buildAndStart|StartupOptions|DiBagStartup|DI_BAG_STARTUP_|startupOrder" src`
+Expected: no output.
+
+- [ ] **Step 6: Update `docs/agent/errors.md`**
+
+Delete the three sections `DI_BAG_STARTUP_CANCELLED`, `DI_BAG_STARTUP_FAILED` and `DI_BAG_STARTUP_TIMEOUT`.
+
+Replace the `DI_BAG_INVALID_STARTUP` section body, keeping its heading and its recipe line:
+
+````md
+**When:** `ensureServicesReady(serviceKeys, options)` receives a list that is not
+an array, an unregistered key, an unknown option (the 0.4 names `signal`,
+`timeoutMs` and `startupOrder` are unknown), a non-positive `totalTimeoutMs`, a
+`maxConcurrentServiceKeys` that is not a positive safe integer, or an
+`abortSignal` that is not an `AbortSignal`. No factory runs and the bag stays
+open.
+
+**Cause:** keys or options computed at runtime.
+
+**Fix:** pass registered keys and valid options.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const app = await DiBag.createBuilder()
+  .register({ settings: async () => 'ready' })
+  .build()
+  .ensureServicesReady(['settings'], { totalTimeoutMs: 5_000, maxConcurrentServiceKeys: 1 });
+await app.close();
+```
+````
+
+In the "Unknown key" family, both mentions of `buildAndStart` become `ensureServicesReady`. In `DI_BAG_CLASSIFIER_REQUIRED`, "`build()` or `buildAndStart()` completes a graph" becomes "`build()` completes a graph".
+
+- [ ] **Step 7: Run the tests to verify they pass**
+
+Run: `npm run typecheck`
+Expected: exits 0. Any error here is a call site that Task 4 missed; fix it by the rule table of Task 4.
+
+Run: `bun test tests/ensure-services-ready.test.ts tests/startup.test.ts && bun test tests/types.test.ts -t "startup|api-renaming"`
+Expected: `0 fail` in both commands.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add -A src tests docs/agent
+git commit -F - <<'MSG'
+refactor!: remove buildAndStart and the startup error names
+
+builder.build().ensureServicesReady(serviceKeys, options) replaces
+builder.buildAndStart(keys, options). StartupOptions, DiBagStartupError,
+DiBagStartupCancelledError and the DI_BAG_STARTUP_* codes are gone.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
+```
+
+---
+
+### Task 6: API card, reference, graph tool, guide links
+
+**Files:**
+- Modify: `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs`
+- Modify: `docs/agent/api-card.md` and `docs/reference/` (generated)
+- Modify: `docs/guides/api-reference.md` (four table rows)
+- Modify: `tools/graph/README.md`, `tools/graph/test/extract.test.mjs`
+- Create: `tools/graph/test/fixtures/ready-chain.ts`
+
+- [ ] **Step 1: Add the task row**
+
+In `tools/docs/api-card-tasks.json`, after the `"Build a bag"` entry:
+
+```json
+  { "task": "Wait for services before accepting work", "call": "bag.ensureServicesReady" },
+```
+
+- [ ] **Step 2: Point the rendering test at the new class**
+
+In `tools/docs/test/exact-rendering.test.mjs`, the variable `startupError` becomes `readinessError` in its three places, the file it reads becomes `index/classes/DiBagServiceReadinessError.md`, and the assertion becomes:
+
+```js
+  assert.match(readinessError, /readonly disposalError\?: unknown;/);
+  assert.doesNotMatch(readinessError, /readonly optional/);
+```
+
+`tools/docs/test/syntax.test.mjs` writes its own sample page that happens to say `cleanupError`. It does not read `src/`. Leave it.
+
+- [ ] **Step 3: Fix the four rows of `docs/guides/api-reference.md`**
+
+Three rows link to reference pages that no longer exist, and `npm run docs:check` stops on a dead link. Replace the rows for `DiBagStartupError`, `DiBagStartupCancelledError`, `DiBagCloseCancelledError` and `StartupOptions` with:
+
+```md
+| [`DiBagServiceReadinessError`](../reference/index/classes/DiBagServiceReadinessError.md) | `ensureServicesReady` could not make a listed service ready, and the bag it was called on has closed. | `cause` is the acquisition error; `disposalFailures` contains disposal failures; `disposalError` retains the complete shutdown error when present. |
+| [`DiBagServiceReadinessCancelledError`](../reference/index/classes/DiBagServiceReadinessCancelledError.md) | An abort signal or the deadline interrupts `ensureServicesReady`. | `reason` is `'aborted'` or `'timeout'`; `cause` retains the cancellation reason; `details.acquisitionsStillPending` names the services that were not ready; `disposalPromise` is a `Promise<void>` for the eventual shutdown. |
+| [`DiBagCloseCancelledError`](../reference/index/classes/DiBagCloseCancelledError.md) | `close({ waitTimeoutMs, abortSignal })` stops waiting before cleanup finishes. | `code` is `DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`; `details.disposersStillRunning` lists unfinished disposer labels and `details.acquisitionsStillPending` pending acquisitions; `cleanupPromise` settles when cleanup finishes. |
+```
+
+```md
+| [`EnsureServicesReadyOptions`](../reference/index/interfaces/EnsureServicesReadyOptions.md) | Optional `abortSignal`, `totalTimeoutMs`, and `maxConcurrentServiceKeys` fields for `ensureServicesReady`. |
+```
+
+Do not edit anything else in the guides. Phase 12 rewrites them.
+
+- [ ] **Step 4: Regenerate**
+
+Run: `npm run build && npm run docs:generate`
+Expected: `docs/agent/api-card.md` gains a `bag.ensureServicesReady` section and the task row, and loses `builder.buildAndStart`. `docs/reference/index/classes/` gains two files and loses two; `docs/reference/index/interfaces/StartupOptions.md` is gone. If TypeDoc warns about an unresolved `{@link}`, fix that comment in `src/`.
+
+- [ ] **Step 5: Teach the graph tool's tests the new chain**
+
+`tools/graph/lib/extract.mjs` needs no change: its visitor descends into `x.build().ensureServicesReady(…)` and finds the `build()` call, and `TERMINALS` keeps `buildAndStart` for 0.4 code. This was run against the current extractor. Pin it.
+
+Create `tools/graph/test/fixtures/ready-chain.ts`:
+
+```ts
+// tools/graph/test/fixtures/ready-chain.ts
+import { DiBag } from '../../../../src/node';
+export const app = DiBag.createBuilder()
+  .register({
+    db: async () => ({ ping: () => true }),
+    report: ({ db }: { db: Promise<{ ping(): boolean }> }) => db,
+  })
+  .build()
+  .ensureServicesReady(['db']);
+```
+
+Append to `tools/graph/test/extract.test.mjs`:
+
+```js
+test('build() is still the end of the chain when ensureServicesReady follows it', () => {
+  const ready = extractDependencyGraph({ files: [resolve(root, 'tools/graph/test/fixtures/ready-chain.ts')], root });
+  assert.deepEqual(ready.units.map(candidate => [candidate.kind, candidate.nodes.map(node => node.key)]), [['bag', ['db', 'report']]]);
+  assert.deepEqual(ready.units[0].edges, [{ from: 'report', to: 'db' }]);
+  assert.deepEqual(ready.issues, []);
+});
+```
+
+In `tools/graph/README.md`, line 5 says a chain "ends in `build()`, `buildAndStart()`, or `buildModule()`". Make it: "ends in `build()` or `buildModule()`; a `build()` followed by `ensureServicesReady()` counts, and so does the 0.4 `buildAndStart()`". On line 38, "a bag (`build()` or `buildAndStart()`)" becomes "a bag (`build()`)".
+
+- [ ] **Step 6: Run the checks**
+
+Run: `npm run docs:check && npm run graph:check`
+Expected: both exit 0; `graph:check` reports one more passing test than before.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add -A tools docs
+git commit -F - <<'MSG'
+docs: API card, reference and graph tool follow ensureServicesReady
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
+```
+
+---
+
+### Task 7: Evidence, naming ratchet, full gate, report
+
+**Files:**
+- Create: `docs/superpowers/plans/evidence/phase-03.md`
+- Modify: the known-violations file of the naming test, only to delete entries
+
+- [ ] **Step 1: Shrink the naming ratchet**
+
+Run the naming test of phase 0 (the file found in Task 0, for example `bun test tests/api-naming.test.ts`). This phase removed names that the test listed as known violations, such as `StartupOptions`, `startupOrder`, `signal` and `timeoutMs` on the wait options, and `pending` and `acquiring`. If the test reports entries that no longer occur, delete exactly those entries from its known-violations file. Never add an entry. If it reports a new violation, a name in this plan was mistyped: compare with "Global Constraints" and fix the name.
+
+Expected after the edit: the naming test passes.
+
+- [ ] **Step 2: Measure the twelve cases**
+
+This phase changed a signature in `src/di-bag.ts`, so the master plan asks for the measurement.
+
+```bash
+N="node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON"
+for count in 100 500; do
+  for form in bulk chained grouped replacement; do $N scripts/benchmark-types.ts --worker $count $form valid; done
+  for form in bindings modules; do $N scripts/check-token-scale.ts $form valid $count; done
+done
+```
+
+Each prints one JSON row. Run the cases one after another, not in parallel. `accepted` must be `true` in every row. Write `docs/superpowers/plans/evidence/phase-03.md` with one table: case, baseline instantiations from `docs/superpowers/plans/evidence/baseline.md`, instantiations now, change in percent. The builder lost a method and the bag gained one, so expect a change below 1% in every case. If a case is more than 10% above its baseline, stop and report: nothing in this plan should cost that much, and the cause must be found before the phase ends.
+
+- [ ] **Step 3: Run the full gate**
+
+Run each command of the master plan's gate list and keep the last lines of its output for the report:
+
+```bash
+npm run check
+npm run docs:check
+npm run graph:check
+npm run typecheck:native && npm run build:native && npm run check:native
+node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs tests/graph-retention.node.mjs
+for example in examples/*.ts; do bun run "$example" || break; done
+npm run agent-eval:test
+```
+
+Expected: every command exits 0. `npm run build:native` overwrites `dist/` with the native compiler's output; run `npm run build` afterwards to restore the classic build. A compiler-lane test that times out under host load is a flake only under the rule in the master plan's "Environment" section: rerun that file alone, and report it either way.
+
+- [ ] **Step 4: Commit and report**
+
+```bash
+git add -A docs/superpowers/plans/evidence tests
+git commit -F - <<'MSG'
+docs(plans): phase 3 evidence
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
+```
+
+Reply to the controller in the format of the master plan, "Protocol for every phase", step 9: the branch, `git log --oneline next..HEAD`, the gate results, the evidence table, the manual items that the codemod reported, and every deviation from this plan with its reason. Under 60 lines.
+
+---
+
+## Self-review
+
+**Spec coverage.** `ensureServicesReady` on a bag, a child scope and a fork, the same-bag result, close on failure, untouched bag on invalid input, rejections only, repeated calls: Task 3, tests in `tests/ensure-services-ready.test.ts`. The pending-work report: Task 2 (`details`) and Task 3 (read before close). `close` options `abortSignal` and `waitTimeoutMs`: Task 1. `CloseProgress.disposersStillRunning` and `.acquisitionsStillPending`: Task 1. `DiBagServiceReadinessError`, `DiBagServiceReadinessCancelledError`, `disposalFailures`, `disposalError`, `disposalPromise`, the three codes: Tasks 2 and 3. `buildAndStart` removed, `StartupOptions` renamed and not aliased: Task 5. Old names fail to compile: Task 5, `tests/types/negative/api-renaming.ts`. Codemod data and fixture: Task 4. Graph tool: Task 6. Evidence: Task 7.
+
+**Left to later phases on purpose.** `DiBagCloseCancelledError.cleanupPromise`, `DiBagCleanupError`, `CleanupFailure` and the `cleanup-*` events (phase 11). The code `DI_BAG_INVALID_STARTUP` (phase 11 folds it into `DI_BAG_INVALID_ARGUMENT` and `DI_BAG_UNKNOWN_SERVICE_KEY`). The acquisition context's `signal` (phase 8). `build` to `buildContainer` (phase 5), `Bag` to `Container`, `createScope` and `fork` (phase 6); the words "bag", "scope" and "fork" in this phase's messages and comments are renamed with them. The tutorial section on startup and every other guide (phase 12); until then the `@see` URL of `EnsureServicesReadyOptions` points at the existing tutorial heading. Throwing stubs for the removed runtime names and the changelog (phase 13).
+
+**Known limit, stated in the JSDoc by its wording "what was still pending".** The report lists acquisitions owned by the bag the call ran on and by its child scopes. A singleton that a child scope asked for is owned by the root bag and does not appear in the child's report.
+
+**Placeholder scan.** No step says "handle", "similar to" or "as appropriate" without the content. Two places depend on what phase 1 produced and say so with the way to find out: the field names inside `rename-map.json` and the fixture directory layout.
+
+**Type consistency.** `ensureRuntimeReady(runtime, graph, keys, options?)` is defined in Task 3 Step 4 and called in Step 5 with `this.#runtime, this.#graph, serviceKeys, options`. The cancelled error's constructor `(reason, cause, disposalPromise, progress, totalTimeoutMs?)` is defined in Task 2 Step 3 and called in Task 3 Step 4 with `runtime.close(cause)` third and `runtime.closeProgress()` fourth, whose shape Task 1 Step 4 produces. `snapshotOptions` has six parameters from Task 1 Step 5 on; Task 3 Step 4 widens its `operation` union and Task 5 Step 4 narrows it. Option names are spelled `abortSignal`, `totalTimeoutMs`, `maxConcurrentServiceKeys`, `waitTimeoutMs` everywhere.
+
+**Verified before writing.** The source edits of Tasks 1 to 3 were applied to a scratch copy of `src/`. It type-checked with `tsc6`. The fifteen tests of Task 3, the migrated `tests/startup.test.ts` (33 tests) and the edited `tests/runtime-diagnostics.test.ts` (13 tests) passed on Bun 1.4.0. The fixture lines of Task 3 Step 2 and Task 5 Step 1 produced exactly the quoted diagnostics, one per line, with both compilers. The graph extractor found `build()` inside `build().ensureServicesReady()`.
