@@ -48,6 +48,7 @@ npm run docs:preview
 | The recommended module layout | [examples-modularity.md](examples-modularity.md#recommended-module-layout); copy the block byte for byte into `AGENTS.md` |
 | How to do one agent task | [recipes.md](../agent/recipes.md) |
 | A compile-time message family or a `DI_BAG_*` code: when, cause, fix | [errors.md](../agent/errors.md); add the section in the change that adds the code |
+| The name of a public method, option, string value, error code, or type | [api-naming.md](api-naming.md); `tests/api-naming.test.ts` enforces the mechanical rules |
 | Site navigation and appearance | [VitePress configuration](../../tools/docs/vitepress.config.mjs) and [theme](../../tools/docs/theme) |
 | The list of guides and contributor documents | [Documentation map](../README.md) |
 

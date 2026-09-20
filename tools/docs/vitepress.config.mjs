@@ -36,6 +36,7 @@ const guide = [
   ] },
   { text: 'Contribute', items: [
     { text: 'Development', link: '/guides/development' },
+    { text: 'API naming standard', link: '/guides/api-naming' },
     { text: 'Writing and publishing docs', link: '/guides/documentation' },
   ] },
 ];
