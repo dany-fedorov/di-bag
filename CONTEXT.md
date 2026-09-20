@@ -38,20 +38,31 @@ dependency.
 _Avoid_: Alias when identity rather than an alternative name is intended
 
 **Builder**:
-The single immutable declaration of a service graph. A builder builds a bag once
-its graph is complete, or seals a module while dependencies are still unmet.
-_Avoid_: Module builder, application builder, bag builder
+The single immutable declaration of a service graph. A builder builds a container
+once its graph is complete, or seals a module while dependencies are still unmet.
+_Avoid_: Module builder, application builder, bag builder, container builder
 
 **Module**:
 A sealed builder graph with selected exports and requirements that its
 installing builder must satisfy. Modules install into builders, including
 builders that seal further modules.
-_Avoid_: Bag when referring to a reusable declaration; Builder when referring to the sealed value
+_Avoid_: Container when referring to a reusable declaration; Builder when referring to the sealed value
 
-**Bag**:
-A resolvable service composition with its own acquisition and resource-ownership
-context.
-_Avoid_: Module, registration map
+**Container**:
+A set of providers together with the instances created from them. Instances are
+created on first use, reused inside the container, and released together when it
+closes.
+_Avoid_: Bag (the name before 0.5, still the product name DI Bag), scope, module, registration map
+
+**Child container**:
+A container nested in a parent container for one unit of work, such as a request
+or a job. It reuses the tree's singletons, creates its own scoped instances, and
+closes before its parent.
+_Avoid_: Scope, child scope, request scope
+
+**Container tree**:
+A root container and all its child containers. A singleton lives at its root.
+_Avoid_: Family, ownership family
 
 **Acquisition**:
 One attempt to obtain a service instance from its provider. Distinct
@@ -63,11 +74,24 @@ An operation performed through an acquired service. Repeated invocations of a
 shared service are not necessarily new acquisitions.
 _Avoid_: Acquisition event when describing every call to a service
 
-**Bag fork**:
-An independent composition derived from a bag's registrations, with its own
-acquisitions and cleanup responsibility. A bag fork does not copy an execution's
-progress or restore a workflow checkpoint.
-_Avoid_: Checkpoint fork, workflow replay
+**Independent container**:
+A container created from another container's providers that shares no instance
+with it and is closed separately. It starts a new container tree, and it does not
+copy an execution's progress or restore a workflow checkpoint.
+_Avoid_: Fork, bag fork, checkpoint fork, workflow replay
+
+**Singleton**:
+A lifetime of one instance for a whole container tree. It is the default.
+_Avoid_: Root lifetime, shared lifetime
+
+**Scoped**:
+A lifetime of one instance in each container that resolves the service.
+_Avoid_: Request-scoped when no request is involved
+
+**Transient**:
+A lifetime of a new instance for every resolve and every dependency read. The
+instance is still released with the container that asked for it.
+_Avoid_: Unowned, uncached
 
 **Acquisition stage**:
 A source or transformation result within one acquisition, with its own rule for
@@ -91,7 +115,7 @@ _Avoid_: Resolved service when the distinction from the exposed value matters
 
 **Owned resource**:
 A successfully acquired value whose cleanup responsibility was explicitly
-accepted by a bag or another application owner.
+accepted by a container or another application owner.
 _Avoid_: Disposable object when merely having a cleanup method is meant
 
 **Borrowed resource**:

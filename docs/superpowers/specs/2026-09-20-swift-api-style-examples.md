@@ -56,12 +56,12 @@ server.listen(3000);
 ```
 
 - Decorators read top to bottom in the order they apply, not inside out.
-- The three `'root'` marks are gone: shared by all scopes is the default.
+- The three `'root'` marks are gone: a singleton per container tree is the default.
 - The list says what to wait for. `config` comes along as a dependency.
 - If the cache fails or the deadline passes, the container closes and the database
   connection is released.
 
-## 2. One child scope per request
+## 2. One child container per request
 
 ```ts
 // 0.4.0
@@ -70,34 +70,34 @@ const scope = app.createScope(['request'], { request: () => ({ id: requestId }) 
 
 ```ts
 // 0.5.0
-const requestScope = app.createChildScope({
+const requestContainer = app.createChildContainer({
   replacedServiceKeys: ['request'],
   replacementProviders: { request: () => ({ id: requestId }) },
 });
 try {
-  return await requestScope.resolve('handler').list();
+  return await requestContainer.resolve('handler').list();
 } finally {
-  await requestScope.close();
+  await requestContainer.close();
 }
 ```
 
-- `request` is registered with `.withLifetime('one-per-scope')`. A child scope may
-  replace only per-scope services, because a shared consumer would silently keep
+- `request` is registered with `.withLifetime('scoped:one-per-container')`. A child container may
+  replace only scoped and transient services, because a singleton consumer would silently keep
   the root's value.
-- "Child" says who closes it: the parent closes live child scopes, and you may
+- "Child" says who closes it: the parent closes its live child containers, and you may
   close one earlier.
 - The keys are listed separately from the providers on purpose. TypeScript lets
   an object carry extra properties when it comes from a variable, so the tuple
   is what pins the checked keys to the runtime keys.
-- New in 0.5.0, a scope can be warmed with a deadline:
+- New in 0.5.0, a child container can be warmed with a deadline:
 
 ```ts
-const requestScope = await app
-  .createChildScope({ replacedServiceKeys: ['request'], replacementProviders: { request: () => ({ id: requestId }) } })
+const requestContainer = await app
+  .createChildContainer({ replacedServiceKeys: ['request'], replacementProviders: { request: () => ({ id: requestId }) } })
   .ensureServicesReady(['session'], { totalTimeoutMs: 2_000 });
 ```
 
-## 3. A child scope that borrows a parent service
+## 3. A child container that borrows a parent service
 
 ```ts
 // 0.4.0
@@ -107,18 +107,18 @@ const grandchild = child.createScope({ share: ['session'] });
 
 ```ts
 // 0.5.0
-const child = root.createChildScope({
+const child = root.createChildContainer({
   replacedServiceKeys: ['config'],
   replacementProviders: { config: () => ({ region: 'us' }) },
   sharedParentServiceKeys: ['session'],
 });
-const grandchild = child.createChildScope({ sharedParentServiceKeys: ['session'] });
+const grandchild = child.createChildContainer({ sharedParentServiceKeys: ['session'] });
 
 child.resolve('session') === root.resolve('session'); // true: borrowed, and the child never disposes it
-// `config` and `session` are marked 'one-per-scope'. Shared services need no borrowing: every scope already uses them.
+// `config` and `session` are marked 'scoped:one-per-container'. Singletons need no borrowing: every container of the tree already uses them.
 ```
 
-## 4. Tests: an independent fork with fakes
+## 4. Tests: an independent container with fakes
 
 ```ts
 // 0.4.0
@@ -127,7 +127,7 @@ const testApp = app.fork(['clock'], { clock: (): Clock => ({ now: () => 0 }) });
 
 ```ts
 // 0.5.0
-const testApp = app.createIndependentFork({
+const testApp = app.createIndependentContainer({
   replacedServiceKeys: ['clock', controllersToken],
   replacementProviders: {
     clock: (): Clock => ({ now: () => 0 }),
@@ -137,7 +137,7 @@ const testApp = app.createIndependentFork({
 try {
   expect(testApp.resolve('stamp')).toBe(0);
 } finally {
-  await testApp.close(); // "independent": the app never closes a fork
+  await testApp.close(); // "independent": the app never closes it
 }
 ```
 
@@ -419,7 +419,7 @@ if (error.code === 'DI_BAG_UNKNOWN_SERVICE_KEY') console.error(error.details.ope
 ## 16. An Elysia server
 
 The app container is built once and connects before the server listens. Every request
-gets a child scope through one Elysia plugin. Hook names follow the Elysia
+gets a child container through one Elysia plugin. Hook names follow the Elysia
 documentation: `derive`, `onAfterResponse`, `onError`, `onStop`, and
 `{ as: 'global' }` so the plugin's hooks reach the routes of the app that uses it.
 
@@ -431,7 +431,7 @@ export type RequestContext = { readonly requestId: string; readonly userId: stri
 
 const ordersModule = DiBag.createBuilder()
   .withServices({
-    // built once: shared by all scopes is the default
+    // built once: a singleton per container tree is the default
     ordersRepository: ({ db }: { db: Promise<Db> }) => ({
       findByUser: async (userId: string) => (await db).query('select * from orders where user_id = $1', [userId]),
     }),
@@ -440,7 +440,7 @@ const ordersModule = DiBag.createBuilder()
       ({ ordersRepository, request }: { ordersRepository: OrdersRepository; request: RequestContext }) => ({
         listMyOrders: () => ordersRepository.findByUser(request.userId ?? 'anonymous'),
       }),
-    ).withLifetime('one-per-scope'),
+    ).withLifetime('scoped:one-per-container'),
   })
   .buildModule({ exportedServiceKeys: ['ordersService'], moduleLabel: 'orders' });
 
@@ -451,7 +451,7 @@ export function createAppContainer(shutdownSignal: AbortSignal) {
       db: DiBag.createProvider(async ({ config }: { config: Config }) => connectToDatabase(config.databaseUrl))
         .withDisposal(db => db.end()),
       request: DiBag.createProvider((): RequestContext => ({ requestId: 'outside-request', userId: undefined }))
-        .withLifetime('one-per-scope'), // replaced per request
+        .withLifetime('scoped:one-per-container'), // replaced per request
     })
     .withInstalledModules([ordersModule])
     .buildContainer()
@@ -462,32 +462,32 @@ export type AppContainer = Awaited<ReturnType<typeof createAppContainer>>;
 ```
 
 ```ts
-// request-scope-plugin.ts
+// request-container-plugin.ts
 import { Elysia } from 'elysia';
 import type { AppContainer, RequestContext } from './app-container';
 
-const closeScope = (requestScope: { close(): Promise<void> } | undefined) =>
-  requestScope?.close().catch(error => console.error('request scope failed to close', error));
+const closeContainer = (requestContainer: { close(): Promise<void> } | undefined) =>
+  requestContainer?.close().catch(error => console.error('request container failed to close', error));
 
-export const requestScopePlugin = (appContainer: AppContainer) =>
-  new Elysia({ name: 'di-bag-request-scope' })
+export const requestContainerPlugin = (appContainer: AppContainer) =>
+  new Elysia({ name: 'di-bag-request-container' })
     .derive({ as: 'global' }, ({ headers }) => ({
-      requestScope: appContainer.createChildScope({
+      requestContainer: appContainer.createChildContainer({
         replacedServiceKeys: ['request'],
         replacementProviders: {
           request: (): RequestContext => ({ requestId: crypto.randomUUID(), userId: headers['x-user-id'] }),
         },
       }),
     }))
-    .onAfterResponse({ as: 'global' }, ({ requestScope }) => { void closeScope(requestScope); })
-    .onError({ as: 'global' }, ({ requestScope }) => { void closeScope(requestScope); });
+    .onAfterResponse({ as: 'global' }, ({ requestContainer }) => { void closeContainer(requestContainer); })
+    .onError({ as: 'global' }, ({ requestContainer }) => { void closeContainer(requestContainer); });
 ```
 
 ```ts
 // server.ts
 import { Elysia } from 'elysia';
 import { createAppContainer } from './app-container';
-import { requestScopePlugin } from './request-scope-plugin';
+import { requestContainerPlugin } from './request-container-plugin';
 
 const shutdown = new AbortController();
 process.once('SIGTERM', () => shutdown.abort());
@@ -495,8 +495,8 @@ process.once('SIGTERM', () => shutdown.abort());
 const appContainer = await createAppContainer(shutdown.signal); // SIGTERM during startup cancels it and releases the db
 
 const server = new Elysia()
-  .use(requestScopePlugin(appContainer))
-  .get('/orders', ({ requestScope }) => requestScope.resolve('ordersService').listMyOrders())
+  .use(requestContainerPlugin(appContainer))
+  .get('/orders', ({ requestContainer }) => requestContainer.resolve('ordersService').listMyOrders())
   .onStop(() => appContainer.close({ waitTimeoutMs: 10_000 }))
   .listen(3000);
 
@@ -505,42 +505,44 @@ shutdown.signal.addEventListener('abort', () => void server.stop());
 
 - `db` and `ordersRepository` are built once. `request` and `ordersService` are
   built for each request, and `ordersService` sees that request's user.
-- Creating the scope runs no factory, so `derive` stays cheap on routes that never
+- Creating the child container runs no factory, so `derive` stays cheap on routes that never
   resolve anything.
 - `close()` returns the same promise when called twice, so closing in both
   `onAfterResponse` and `onError` is safe. A route that fails before `derive` runs
-  has no scope, which is why the helper accepts `undefined`.
+  has no child container, which is why the helper accepts `undefined`.
 - The app container closes after the server stops accepting requests, so no request
   loses its database connection midway.
 
-## 17. Shared by default: mark only what is per request
+## 17. Singleton by default: mark only what is per request
 
 ```ts
 const app = DiBag.createBuilder()
   .withServices({
     db: DiBag.createProvider(async () => connectToDatabase()).withDisposal(db => db.end()),
-    ordersRepository: ({ db }: { db: Promise<Db> }) => createOrdersRepository(db), // shared, no mark
-    priceCalculator: () => createPriceCalculator(),                                // shared, no mark
+    ordersRepository: ({ db }: { db: Promise<Db> }) => createOrdersRepository(db), // singleton, no mark
+    priceCalculator: () => createPriceCalculator(),                                // singleton, no mark
     request: DiBag.createProvider((): RequestContext => ({ requestId: 'outside-request', userId: undefined }))
-      .withLifetime('one-per-scope'),
+      .withLifetime('scoped:one-per-container'),
     unitOfWork: DiBag.createProvider(({ db }: { db: Promise<Db> }) => createUnitOfWork(db))
       .withDisposal(unitOfWork => unitOfWork.release())
-      .withLifetime('one-per-scope'),                                              // by hand: nothing forces it
+      .withLifetime('scoped:one-per-container'),                                              // by hand: nothing forces it
     ordersService: DiBag.createProvider(
       ({ ordersRepository, request, unitOfWork }: OrdersServiceDependencies) =>
         createOrdersService(ordersRepository, request, unitOfWork),
-    ).withLifetime('one-per-scope'),                                               // forced by the compiler
-    nonce: DiBag.createProvider(() => crypto.randomUUID()).withLifetime('new-on-every-resolve'),
+    ).withLifetime('scoped:one-per-container'),                                               // forced by the compiler
+    nonce: DiBag.createProvider(() => crypto.randomUUID()).withLifetime('transient:one-per-resolve'),
   })
   .buildContainer();
 ```
 
-- Without the mark on `ordersService` the build does not compile: a shared service
-  may not depend on the per-scope `request`, and the error names both.
-- Without the mark on `request`, replacing it in a child scope does not compile.
-- `unitOfWork` depends on nothing per-scope, so nothing catches a forgotten mark
-  there. It would be shared between requests.
-- An application that never creates a child scope writes no lifetime marks at all.
+- Without the mark on `ordersService` the build does not compile: a singleton may
+  not depend on the scoped `request`, and the error names both.
+- Without the mark on `request`, replacing it in a child container does not compile.
+- `unitOfWork` depends on nothing scoped, so nothing catches a forgotten mark
+  there. It would be one instance for all requests.
+- An application that never creates a child container writes no lifetime marks at all.
+- The value is `term:description`. The term is what other containers call it, and
+  the description is what it means here. Only the full value is accepted.
 
 ## Where 0.5.0 is longer than 0.4.0
 
