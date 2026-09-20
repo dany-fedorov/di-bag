@@ -3,7 +3,7 @@
 Design note for renaming and reshaping the whole public API so that every call is
 understood by reading it. It adopts the
 [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/)
-as the naming standard, translated to TypeScript. It also carries the five
+as the naming standard, translated to TypeScript. It also carries the four
 [behavior changes](#behavior-changes) approved from the orthogonality review, so
 that no call is renamed in 0.5.0 and then removed one release later.
 
@@ -153,9 +153,9 @@ are generated from it.
 | 0.4.0 | 0.5.0 | Rule |
 | --- | --- | --- |
 | `DiBag.createBuilder()` | unchanged | |
-| `DiBag.withConfiguration({ runtime, observers })` | removed: `buildBag({ isNativePromise?, lifecycleObservers? })`, see [configuration](#configuration-where-it-acts) | 12 |
+| `DiBag.withConfiguration({ runtime, observers })` | `DiBag.withConfiguration({ runtime, lifecycleObservers })` | 5 |
 | observer `{ onEvent, onError }` | `{ onLifecycleEvent, onObserverFailure }` | 5 |
-| `runtime.isNativePromise` | `isNativePromise`, directly in the `buildBag` options; it already reads as an assertion | 6 |
+| `runtime.isNativePromise` | unchanged, it already reads as an assertion | 6 |
 | `DiBag.fromFactory(callback, { acquisitionMode, context })` | `DiBag.createProvider(factory, { factoryReturnKind?, factoryReceivesContext? })` | 3, 4, 9 |
 | `DiBag.fromSyncFactory(callback)` | `DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' })` | 10 |
 | `DiBag.fromAsyncFactory(callback)` | `DiBag.createProvider(factory, { factoryReturnKind: 'native-promise' })` | 10 |
@@ -205,10 +205,10 @@ what the methods do.
 | `alias(destination, target)` | `withServiceAlias({ aliasKey, targetServiceKey })` | 3, 4 |
 | `contribute(token, registration)` | `withCollectionContribution({ collectionToken, provider })`, collection tokens only | 3, 4 |
 | `replace(key, registration)` | `withReplacedService({ serviceKey, provider })` | 3, 4 |
-| `installModule(module)` | `withInstalledModule(module, { renamedExports?, renamedRequirements? }?)` | 3, 4 |
+| `installModule(module)` | `withInstalledModule(module)` | 3 |
 | `verifyGraph()` | `verifyGraphAtCompileTime()` | 1 |
 | `buildModule(keys, { label })` | `buildModuleExporting(exportedServiceKeys, { moduleLabel }?)` | 4, 5 |
-| `build()` | `buildBag({ isNativePromise?, lifecycleObservers? }?)` | 1, 4 |
+| `build()` | `buildBag()` | 1 |
 | `buildAndStart(keys, options)` | removed: `buildBag().ensureServicesReady(serviceKeys, options?)` | |
 
 The internal `BindingGraph` already names these operations `withPublicBinding`,
@@ -223,8 +223,8 @@ The internal `BindingGraph` already names these operations `withPublicBinding`,
 | `inspect(token)` | `serviceSnapshot(serviceKey)` | 3 |
 | `inspectAll(token)` | removed: `serviceSnapshot(collectionToken)` returns a list of snapshots | 14 |
 | `inspectGraph()` | `graphSnapshot()` | 3 |
-| `createScope()`, `createScope({ share })`, `createScope(keys, overrides, { share })` | `createChildScope({ replacedServiceKeys?, replacementProviders?, sharedParentServiceKeys?, lifecycleObservers? }?)` | 4 |
-| `fork()`, `fork(keys, overrides)` | `createIndependentFork({ replacedServiceKeys?, replacementProviders?, lifecycleObservers? }?)` | 4 |
+| `createScope()`, `createScope({ share })`, `createScope(keys, overrides, { share })` | `createChildScope({ replacedServiceKeys?, replacementProviders?, sharedParentServiceKeys? }?)` | 4 |
+| `fork()`, `fork(keys, overrides)` | `createIndependentFork({ replacedServiceKeys?, replacementProviders? }?)` | 4 |
 | `close({ signal, timeoutMs })` | `close({ abortSignal?, waitTimeoutMs? }?)` | 5 |
 | new | `ensureServicesReady(serviceKeys, { abortSignal?, totalTimeoutMs?, maxConcurrentServiceKeys? }?)` | |
 
@@ -239,9 +239,8 @@ reports which services were still pending, as `close` does today.
 
 | 0.4.0 | 0.5.0 | Rule |
 | --- | --- | --- |
-| `module.renameExport(oldKey, newKey)` | removed: `withInstalledModule(module, { renamedExports: { [currentExportKey]: newExportKey } })` | 4 |
-
-A module then has no methods. It is an opaque value that a builder installs.
+| `module.renameExport(oldKey, newKey)` | `module.withRenamedExport({ currentExportKey, newExportKey })` | 3, 4 |
+| new | `module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })`, see [requirement renaming](#requirement-renaming) | 3, 4 |
 
 ### Factory and disposer contexts
 
@@ -295,7 +294,7 @@ and `DI_BAG_INVALID_ACQUISITION_MODE` embed names this note retires.
 | new | `DI_BAG_WRONG_TOKEN_KIND`, for a single-service token where a collection token is required, or the reverse |
 | `DiBagCloseCancelledError`, `DiBagPluginValidationError`, and the 15 codes not listed | unchanged |
 
-The 42 codes become about 31, including the new `DI_BAG_REMOVED_API` and `DI_BAG_WRONG_TOKEN_KIND`. The phase 10 plan fixes the mapping for each of the
+The 42 codes become about 31, including the new `DI_BAG_REMOVED_API` and `DI_BAG_WRONG_TOKEN_KIND`. The phase 9 plan fixes the mapping for each of the
 123 throw sites by reading it. Compile-time message families keep their
 anchors except `root-capture`, which becomes `singleton-capture`. Every message
 that names a retired call is rewritten.
@@ -314,9 +313,9 @@ A type is renamed only when its name contains a retired word.
 | `ScopeOptions` | `CreateChildScopeOptions`, plus new `CreateIndependentForkOptions` |
 | `ModuleOptions.label` | `ModuleOptions.moduleLabel` |
 | `ObserverOptions` | `LifecycleObserver` |
-| `ConfigurationOptions`, `RuntimeOptions`, `DiBagApi.withConfiguration` | `BuildBagOptions` |
+| `ConfigurationOptions.observers` | `ConfigurationOptions.lifecycleObservers` |
 | `CollectionDependency` | removed; new `CollectionToken` |
-| `Renamed` and the other export-renaming support types | replaced by the install-time mapping types |
+| `Renamed` and the other export-renaming support types | kept, joined by their requirement-renaming twins |
 | `PluginOptions` | folded into the `createProviderFromPlugin` bag |
 | `CompositionArguments`, `CompositionFunction` | `PositionalFactoryArguments`, `PositionalFactoryFunction` |
 | `BuilderContribute` | `BuilderWithCollectionContribution` |
@@ -340,7 +339,7 @@ PublicProviders>`, `Token<TokenSymbol, Service>`. This does not break callers.
 
 ## Behavior changes
 
-Five changes from the orthogonality review of 2026-09-19 ship in the same
+Four changes from the orthogonality review of 2026-09-19 ship in the same
 release. Each deletes a call that this note would otherwise only rename. Each
 states what it costs.
 
@@ -395,29 +394,19 @@ is present only after fulfillment. The stage engine in
 `src/provider-execution.ts` chooses the synchronous or asynchronous path at run
 time for `'auto-detect'` stages, which is the riskiest runtime change here.
 
-### Configuration where it acts
+### Requirement renaming
 
-`DiBag.withConfiguration` and the derivable facade are removed. A builder and a
-module are pure declarations. Runtime settings are given when a bag is created:
-`buildBag({ isNativePromise?, lifecycleObservers? })`. A child scope or a fork can
-append `lifecycleObservers` for its own subtree, which makes it possible to
-observe one request or one test.
-
-**Cost.** Code that builds several root bags passes the options each time, where
-one configured facade covered them all. `di-bag/node` stays: Node versions before
-20.16 and 22.3 have no `process.getBuiltinModule`, and that entry point
-configures the classifier for them through the same internal mechanism.
-
-### Install-time name mapping
-
-`withInstalledModule(module, { renamedExports?, renamedRequirements? })` replaces
-`module.renameExport`. Renaming a requirement is new: today it needs a wrapper
-module with an adapter service. Both maps take string service keys. Tokens are
+`module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })` is
+the twin of `withRenamedExport`. Today only exports can be renamed. Two modules
+that both require `config`, as the module layout in `AGENTS.md` suggests, collide,
+and the fix is a wrapper module with an adapter service and hand-written
+re-exports. Both methods return a new module value, so a renamed module stays
+reusable across hosts. Only string service keys can be renamed. Tokens are
 globally unique identities and need no renaming.
 
-**Cost.** A renamed view of a module is no longer a reusable value, so two hosts
-that want the same renaming both write it. `withInstalledModule` is on the hot
-path of modular applications and gains type-level work.
+**Cost.** One more method on `Module`, and new type-level remapping of a module's
+requirements and constraints. The work lands on a rarely called method, not on
+module installation, which is a hot path.
 
 ### Factory context for positional functions
 
@@ -437,6 +426,8 @@ function factory.
 | A multi-key builder replace | The single-key form has the compile-cost fast path, and forks already replace several keys |
 | One cancelled-error class for readiness and close | The two now mean different things: a readiness cancellation closes the bag, a close cancellation only stops waiting |
 | Removing `di-bag/node` | Older Node versions need it |
+| Configuration at bag creation in place of `withConfiguration` | The facade is the only object that exists before any bag does. If building steps are ever observed, that is the only home for the observer. Observers for a single scope move to the follow-up program |
+| Install-time name mapping in place of module methods | A renamed module is a reusable value, and module installation is a hot path that should not gain type-level work |
 | Factory context for classes and plugins | See above |
 
 ## Shapes decided by measurement
@@ -458,7 +449,7 @@ adopted when all three hold:
 | S3 | `replacementProviders` is contextually typed from `replacedServiceKeys` inside one object literal | The pair stays positional, followed by the bag |
 | S4 | `factoryFunction` parameters are inferred from `dependencies` inside one object literal | The pair stays positional, followed by the bag |
 | S5 | `resolve` returns `readonly Item[]` for a collection token through a conditional on the hottest signature | A separate `resolveCollection(collectionToken)` call |
-| S6 | `withInstalledModule` remaps exports and requirements in its type | Requirement renaming is dropped and export renaming stays a module method |
+| S6 | `withRenamedRequirement` remaps a module's requirements and constraints in its type | Requirement renaming is dropped |
 | S7 | A transformed service is typed from the acquired value of an `'auto-detect'` stage | `transformReceives: 'fulfilled-value'` stays as an explicit option |
 
 Rule 15 applies to every fallback.
@@ -483,11 +474,9 @@ Rule 15 applies to every fallback.
   from the rename map, so every old name fails to compile.
 - **A migration guide** generated from the same map, and a breaking-changes
   section in `CHANGELOG.md`.
-- **Manual steps the codemod reports but does not perform.** Moving
-  `withConfiguration` options to the `buildBag` call needs data flow across
-  files. So does moving a `renameExport` from an exported module value to each
-  install site. A token used on both channels must be split into two tokens by
-  hand; in this repo only one control test does that.
+- **Manual steps the codemod reports but does not perform.** A token used on
+  both channels must be split into two tokens by hand. In this repo only one
+  control test does that.
 
 ## Roadmap
 
@@ -498,43 +487,42 @@ on `npm run check`, `npm run docs:check` and `npm run graph:check` by itself.
 
 | Phase | Content | Kind |
 | --- | --- | --- |
-| 0 | The naming guide, the `CONTEXT.md` vocabulary, and a naming test that reads the built declarations. The test checks `with…` on builder methods, assertion-style booleans, kebab-case string values and an abbreviation denylist. It starts with a list of known violations that must be empty by phase 10 | Not breaking |
+| 0 | The naming guide, the `CONTEXT.md` vocabulary, and a naming test that reads the built declarations. The test checks `with…` on builder methods, assertion-style booleans, kebab-case string values and an abbreviation denylist. It starts with a list of known violations that must be empty by phase 9 | Not breaking |
 | 1 | Spikes S1 to S7 with recorded measurements. `rename-map.json` and the codemod, proven on a copy of the test suite | Not breaking |
 | 2 | Documented parameter names, callback parameter names, generic parameter names, and summaries that pass the "or" test | Not breaking |
 | 3 | `ensureServicesReady`, the pending-work report, `close` options, and the service readiness errors. `buildAndStart` is removed | Behavior |
 | 4 | Collection tokens. `all`, `resolveAll` and `inspectAll` are removed under their old names | Behavior |
-| 5 | Builder and bag methods, applied with the codemod. The graph tool learns the new chain endings and keeps the old ones. `renameExport` is left alone | Rename |
-| 6 | Install-time name mapping. `renameExport` is removed | Behavior |
+| 5 | Builder, bag and module methods and the configuration option names, applied with the codemod. The graph tool learns the new chain endings and keeps the old ones | Rename |
+| 6 | Requirement renaming | Behavior, additive |
 | 7 | One input rule for decorators, on the old names. `mode` is removed | Behavior |
 | 8 | The provider authoring surface: `createProvider` family, `factoryReturnKind`, `FactoryContext`, provider methods or their fallback, the metadata split, `singleton`, `createToken`, and the factory context for positional functions | Rename |
-| 9 | Configuration at bag creation. `withConfiguration` is removed and the observer options get their new names | Behavior |
-| 10 | Snapshot and event fields, the disposal vocabulary, error classes and codes, the errors page and compile-time messages. The known-violations list is empty | Rename |
-| 11 | Throwing stubs, the extended negative fixture, the migration guide, the changelog, regenerated agent docs, and the 0.5.0 release candidate through `PUBLISHING.md`. `next` merges into `main` | Release |
+| 9 | Snapshot and event fields, the disposal vocabulary, error classes and codes, the errors page and compile-time messages. The known-violations list is empty | Rename |
+| 10 | Throwing stubs, the extended negative fixture, the migration guide, the changelog, regenerated agent docs, and the 0.5.0 release candidate through `PUBLISHING.md`. `next` merges into `main` | Release |
 
 Phase 3 comes first among the breaking phases so the first method written under
 the standard exists as the example. Every behavior phase comes before the rename
 phase that would touch the same calls, so nothing is renamed and then removed:
-4 before 5, 7 before 8, and 9 carries its own option names. Phase 5 proves the
-codemod on the largest call counts. Phase 10 is late because error codes touch
-the most test assertions.
+4 before 5, and 7 before 8. Phase 5 proves the codemod on the largest call
+counts. Phase 9 is late because error codes touch the most test assertions.
 
 ## Out of scope
 
 This note changes names and parameter shapes, adds `ensureServicesReady`, and
-makes the five [behavior changes](#behavior-changes). These approved items are a
+makes the four [behavior changes](#behavior-changes). These approved items are a
 separate program, and the names above leave room for them:
 
 - Richer context and control: factory context identity, failure context for
   factory errors, scope and bag labels, event timing, bag state and membership,
   runtime description of modules, disposer context, `Symbol.asyncDispose`,
-  services marked must-be-ready, acquisition interceptors, per-provider time
-  limits, a failure policy for `ensureServicesReady`.
+  services marked must-be-ready, acquisition interceptors, observers for a single
+  scope or fork, per-provider time limits, a failure policy for
+  `ensureServicesReady`.
 
 ## Risks
 
-- **Compile cost.** Bags, provider methods, collection tokens and install-time
-  mapping can raise instantiation counts. The spikes and rule 15 contain this.
-- **Behavior and names change in one release.** Five behavior changes ride along
+- **Compile cost.** Bags, provider methods, collection tokens and requirement
+  renaming can raise instantiation counts. The spikes and rule 15 contain this.
+- **Behavior and names change in one release.** Four behavior changes ride along
   with the renames, which raises the risk of the release and lowers the number of
   migrations to one. Each behavior phase is its own pull request with its own
   tests, so a problem can be reverted without touching a rename phase.
@@ -556,7 +544,7 @@ separate program, and the names above leave room for them:
   `withCollectionContribution`, at compile time and at run time.
 - A fork replaces a whole collection in a test, and `ensureServicesReady` waits
   for a collection.
-- `withInstalledModule` renames a requirement without a wrapper module.
+- `withRenamedRequirement` renames a requirement without a wrapper module.
 - No 0.4.0 name in the rename map compiles, and each throws
   `DI_BAG_REMOVED_API` at runtime.
 - The codemod turns the 0.4.0 copies of `examples/` into code that type-checks
