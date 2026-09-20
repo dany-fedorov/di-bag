@@ -508,6 +508,36 @@ shutdown.signal.addEventListener('abort', () => void server.stop());
 - The app bag closes after the server stops accepting requests, so no request
   loses its database connection midway.
 
+## 17. A layer of singletons without the marks
+
+```ts
+const ordersModule = DiBag.createBuilder({ defaultLifetime: 'singleton' })
+  .withServices({
+    ordersRepository: ({ db }: { db: Promise<Db> }) => createOrdersRepository(db), // singleton, no mark
+    priceCalculator: () => createPriceCalculator(),                                // singleton, no mark
+    ordersService: DiBag.createProvider(
+      ({ ordersRepository, request }: { ordersRepository: OrdersRepository; request: RequestContext }) =>
+        createOrdersService(ordersRepository, request),
+    ).withLifetime('scoped'),                                                      // per request, marked
+  })
+  .buildModule({ exportedServiceKeys: ['ordersService'], moduleLabel: 'orders' });
+
+const app = DiBag.createBuilder()
+  .withServices({
+    db: DiBag.createProvider(async () => connectToDatabase()).withDisposal(db => db.end()).withLifetime('singleton'),
+    request: DiBag.createProvider((): RequestContext => ({ requestId: 'outside-request', userId: undefined }))
+      .withLifetime('scoped'),
+  })
+  .withInstalledModules([ordersModule])
+  .buildBag();
+```
+
+- Without the `'scoped'` mark on `ordersService`, the build does not compile: a
+  singleton may not depend on the scoped `request`, and the error names both.
+- The default does not reach into installed modules. `ordersModule` fixed its
+  lifetimes when it was sealed.
+- A unit of work that depends on nothing scoped still needs its mark by hand.
+
 ## Where 0.5.0 is longer than 0.4.0
 
 The standard trades brevity for clarity, and these are the places that pay most:

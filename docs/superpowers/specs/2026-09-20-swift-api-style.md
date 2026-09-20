@@ -7,7 +7,7 @@ as the naming standard, translated to TypeScript. It also carries the four
 [behavior changes](#behavior-changes) approved from the orthogonality review, so
 that no call is renamed in 0.5.0 and then removed one release later.
 
-Sixteen worked use cases are in the
+Seventeen worked use cases are in the
 [companion examples](2026-09-20-swift-api-style-examples.md).
 
 **Status: proposed, awaiting review.** Each phase in the [roadmap](#roadmap) gets
@@ -163,7 +163,7 @@ are generated from it.
 
 | 0.4.0 | 0.5.0 | Rule |
 | --- | --- | --- |
-| `DiBag.createBuilder()` | unchanged | |
+| `DiBag.createBuilder()` | `DiBag.createBuilder({ defaultLifetime? }?)`, see [a default lifetime per builder](#a-default-lifetime-per-builder) | 4 |
 | `import { DiBag } from 'di-bag/node'` | removed: `import { DiBag } from 'di-bag'`, see [one entry point](#one-entry-point) | 14 |
 | `DiBag.withConfiguration({ runtime, observers })` | `DiBag.withConfiguration({ runtime, lifecycleObservers })` | 5 |
 | observer `{ onEvent, onError }` | `{ onLifecycleEvent, onObserverFailure }` | 5 |
@@ -309,7 +309,7 @@ and `DI_BAG_INVALID_ACQUISITION_MODE` embed names this note retires.
 | new | `DI_BAG_WRONG_TOKEN_KIND`, for a single-service token where a collection token is required, or the reverse |
 | `DiBagCloseCancelledError`, `DiBagPluginValidationError`, and the 15 codes not listed | unchanged |
 
-The 42 codes become about 31, including the new `DI_BAG_REMOVED_API` and `DI_BAG_WRONG_TOKEN_KIND`. The phase 8 plan fixes the mapping for each of the
+The 42 codes become about 31, including the new `DI_BAG_REMOVED_API` and `DI_BAG_WRONG_TOKEN_KIND`. The phase 9 plan fixes the mapping for each of the
 123 throw sites by reading it. Compile-time message families keep their
 anchors except `root-capture`, which becomes `singleton-capture`. Every message
 that names a retired call is rewritten.
@@ -450,6 +450,49 @@ hot path, and a long list can reach the compiler's recursion limit. A collision
 must still be reported on the offending list element, not on the whole call. The
 graph tool must learn to read a list. Spike S7 decides.
 
+### A default lifetime per builder
+
+```ts
+const ordersModule = DiBag.createBuilder({ defaultLifetime: 'singleton' })
+  .withServices({
+    ordersRepository: ({ db }: { db: Promise<Db> }) => createOrdersRepository(db), // singleton, no mark
+    priceCalculator: () => createPriceCalculator(),                                // singleton, no mark
+    ordersService: DiBag.createProvider(
+      ({ ordersRepository, request }: { ordersRepository: OrdersRepository; request: RequestContext }) =>
+        createOrdersService(ordersRepository, request),
+    ).withLifetime('scoped'),                                                      // per request, marked
+  })
+  .buildModule({ exportedServiceKeys: ['ordersService'], moduleLabel: 'orders' });
+```
+
+Most services with business logic are stateless and can be shared. "Most of this
+layer is singletons" is a statement about a builder, so the default lives there.
+
+- A provider without an explicit lifetime takes its builder's default. An explicit
+  `withLifetime` always wins. When the option is omitted the default is `'scoped'`,
+  as today, so this is additive.
+- The default applies to everything registered on that builder, and to replacement
+  providers given later to child scopes and forks of the bag it builds.
+- It does not reach into installed modules. A module's lifetimes are fixed when it
+  is sealed, so installing costs nothing extra and a host cannot silently change
+  what a module means.
+- The compiler still rejects a singleton that depends on a scoped service. In a
+  singleton-default builder, mark the per-request services `scoped`, starting with
+  the `request` placeholder. Every consumer that forgot its mark then fails to
+  compile with an error that names both services.
+
+The library-wide default stays `'scoped'`. With no child scopes the two behave the
+same. With child scopes, a forgotten mark under a `'scoped'` default shares state
+too little, which breaks a feature. Under a `'singleton'` default it shares state
+too much, which leaks one request's state into another. The opt-in keeps the
+safer failure as the default and gives the shorter spelling to those who ask.
+
+**Cost.** One gap stays, and NestJS has the same one: per-request state that
+depends on nothing scoped, such as a unit of work, must be marked by hand, and
+nothing fails if the mark is forgotten. A default-lifetime type parameter is
+threaded through `Builder`, `Bag` and the lifetime checks, and the runtime must
+tell an unset lifetime from an explicit `'scoped'`. Spike S8 decides.
+
 ### Factory context for positional functions
 
 `createProviderFromFunction` accepts `factoryReceivesContext: true` and passes the
@@ -474,7 +517,7 @@ function factory.
 
 ## Shapes decided by measurement
 
-Seven shapes change how TypeScript infers callback parameters or how much work the
+Eight shapes change how TypeScript infers callback parameters or how much work the
 checker does. Each is spiked in phase 1 before any rename lands. A shape is
 adopted when all three hold:
 
@@ -493,6 +536,7 @@ adopted when all three hold:
 | S5 | `resolve` returns `readonly Item[]` for a collection token through a conditional on the hottest signature | A separate `resolveCollection(collectionToken)` call |
 | S6 | `withRenamedRequirement` remaps a module's requirements and constraints in its type | Requirement renaming is dropped |
 | S7 | `withInstalledModules` folds its checks over a list of modules and reports a collision on the offending element. Measured with 1, 10 and 50 modules | The singular `withInstalledModule(module)` ships instead |
+| S8 | A default-lifetime type parameter on `Builder` and `Bag`, read by the lifetime checks wherever a provider has no explicit lifetime | The option is dropped. It is additive and can return later |
 
 Rule 15 applies to every fallback.
 
@@ -529,22 +573,24 @@ on `npm run check`, `npm run docs:check` and `npm run graph:check` by itself.
 
 | Phase | Content | Kind |
 | --- | --- | --- |
-| 0 | The naming guide, the `CONTEXT.md` vocabulary, and a naming test that reads the built declarations. The test checks `with…` on builder methods, assertion-style booleans, kebab-case string values and an abbreviation denylist. It starts with a list of known violations that must be empty by phase 8 | Not breaking |
-| 1 | Spikes S1 to S7 with recorded measurements. `rename-map.json` and the codemod, proven on a copy of the test suite | Not breaking |
+| 0 | The naming guide, the `CONTEXT.md` vocabulary, and a naming test that reads the built declarations. The test checks `with…` on builder methods, assertion-style booleans, kebab-case string values and an abbreviation denylist. It starts with a list of known violations that must be empty by phase 9 | Not breaking |
+| 1 | Spikes S1 to S8 with recorded measurements. `rename-map.json` and the codemod, proven on a copy of the test suite | Not breaking |
 | 2 | Documented parameter names, callback parameter names, generic parameter names, and summaries that pass the "or" test | Not breaking |
 | 3 | `ensureServicesReady`, the pending-work report, `close` options, and the service readiness errors. `buildAndStart` is removed | Behavior |
 | 4 | Collection tokens. `all`, `resolveAll` and `inspectAll` are removed under their old names | Behavior |
 | 5 | Builder, bag and module methods and the configuration option names, applied with the codemod. `di-bag/node` is removed and its imports move to `di-bag`. The graph tool learns the new chain endings and the module list, and keeps the old names | Rename |
 | 6 | Requirement renaming on the module | Behavior, additive |
 | 7 | The provider authoring surface: `createProvider` family, `factoryReturnKind`, `FactoryContext`, provider methods or their fallback, the metadata split, `callbackReceives`, `singleton`, `createToken`, and the factory context for positional functions | Rename |
-| 8 | Snapshot and event fields, the disposal vocabulary, error classes and codes, the errors page and compile-time messages. The known-violations list is empty | Rename |
-| 9 | Throwing stubs, the extended negative fixture, the migration guide, the changelog, regenerated agent docs, and the 0.5.0 release candidate through `PUBLISHING.md`. `next` merges into `main` | Release |
+| 8 | A default lifetime per builder | Behavior, additive |
+| 9 | Snapshot and event fields, the disposal vocabulary, error classes and codes, the errors page and compile-time messages. The known-violations list is empty | Rename |
+| 10 | Throwing stubs, the extended negative fixture, the migration guide, the changelog, regenerated agent docs, and the 0.5.0 release candidate through `PUBLISHING.md`. `next` merges into `main` | Release |
 
 Phase 3 comes first among the breaking phases so the first method written under
 the standard exists as the example. Every behavior phase comes before the rename
 phase that would touch the same calls, so nothing is renamed and then removed:
 4 comes before 5. Phase 5 proves the codemod on the largest call counts. Phase 8
-is late because error codes touch the most test assertions.
+follows the provider surface because it builds on the `singleton` vocabulary.
+Phase 9 is late because error codes touch the most test assertions.
 
 ## Out of scope
 
@@ -562,7 +608,7 @@ separate program, and the names above leave room for them:
 ## Risks
 
 - **Compile cost.** Bags, provider methods, collection tokens, requirement
-  renaming and the module list can raise instantiation counts. The spikes and rule 15 contain this.
+  renaming, the module list and the default lifetime can raise instantiation counts. The spikes and rule 15 contain this.
 - **Behavior and names change in one release.** Four behavior changes ride along
   with the renames, which raises the risk of the release and lowers the number of
   migrations to one. Each behavior phase is its own pull request with its own
@@ -586,6 +632,9 @@ separate program, and the names above leave room for them:
 - A fork replaces a whole collection in a test, and `ensureServicesReady` waits
   for a collection.
 - `withRenamedRequirement` renames a requirement without a wrapper module.
+- A builder with `defaultLifetime: 'singleton'` builds its unmarked services once
+  across child scopes, and a service of it that depends on a scoped service does
+  not compile until it is marked `'scoped'`.
 - `withInstalledModules` reports an export collision on the list element that
   causes it, and installs in list order.
 - No 0.4.0 name in the rename map compiles, and each throws
