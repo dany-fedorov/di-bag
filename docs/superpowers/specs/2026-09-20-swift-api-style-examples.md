@@ -197,6 +197,15 @@ const app = DiBag.createBuilder()
 Each map reads like a destructuring rename: the key is the current name and the
 value is the new one.
 
+The options are a thin wrapper over two module methods. Use the methods when a
+renamed module should be a reusable value:
+
+```ts
+export const ordersModuleForShops = ordersModule
+  .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' })
+  .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'ordersHandler' });
+```
+
 ## 7. A list that modules add to: API controllers
 
 ```ts
