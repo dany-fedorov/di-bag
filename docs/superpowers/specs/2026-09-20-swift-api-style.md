@@ -7,7 +7,7 @@ as the naming standard, translated to TypeScript. It also carries the four
 [behavior changes](#behavior-changes) approved from the orthogonality review, so
 that no call is renamed in 0.5.0 and then removed one release later.
 
-Fifteen worked use cases are in the
+Sixteen worked use cases are in the
 [companion examples](2026-09-20-swift-api-style-examples.md).
 
 **Status: proposed, awaiting review.** Each phase in the [roadmap](#roadmap) gets
@@ -87,6 +87,10 @@ Each rule cites the guideline it comes from. This section becomes
      `ensureServicesReady(serviceKeys, options?)`.
    - Two or more required: one bag with named properties.
      `withServiceAlias({ aliasKey, targetServiceKey })`.
+   - A builder method always takes exactly one bag, even for a single input:
+     `withInstalledModule({ module })`. A builder chain is read far more often than
+     it is written, and every line then names what it adds. `withServices` already
+     is one: its bag maps each service name to its provider.
    - Never two positional parameters. When the single required input does not read
      as a phrase with the method name, it goes into the bag under its role name:
      `buildModule({ exportedServiceKeys })`, because "build module greeter" says the
@@ -214,7 +218,7 @@ what the methods do.
 | `alias(destination, target)` | `withServiceAlias({ aliasKey, targetServiceKey })` | 3, 4 |
 | `contribute(token, registration)` | `withCollectionContribution({ collectionToken, provider })`, collection tokens only | 3, 4 |
 | `replace(key, registration)` | `withReplacedService({ serviceKey, provider })` | 3, 4 |
-| `installModule(module)` | `withInstalledModule(module)` | 3 |
+| `installModule(module)` | `withInstalledModule({ module })` | 3, 4 |
 | `verifyGraph()` | `verifyGraphAtCompileTime()` | 1 |
 | `buildModule(keys, { label })` | `buildModule({ exportedServiceKeys, moduleLabel? })` | 4, 5 |
 | `build()` | `buildBag()` | 1 |

@@ -155,7 +155,7 @@ export const greetingModule = DiBag.createBuilder()
 ```ts
 // src/features/greeting/check.ts
 DiBag.createBuilder()
-  .withInstalledModule(greetingModule)
+  .withInstalledModule({ module: greetingModule })
   .withServices({ config: (): GreetingConfig => ({ language: 'en' }) })
   .verifyGraphAtCompileTime() satisfies void;
 ```
@@ -177,16 +177,16 @@ const ordersForThisApp = DiBag.createBuilder()
 ```ts
 // 0.5.0
 const app = DiBag.createBuilder()
-  .withInstalledModule(
-    ordersModule
+  .withInstalledModule({
+    module: ordersModule
       .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' })
       .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'ordersHandler' }),
-  )
-  .withInstalledModule(
-    billingModule
+  })
+  .withInstalledModule({
+    module: billingModule
       .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'billingConfig' })
       .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'billingHandler' }),
-  )
+  })
   .withServices({
     ordersConfig: (): OrdersConfig => ({ currency: 'EUR' }),
     billingConfig: (): BillingConfig => ({ vatRate: 0.2 }),
@@ -211,8 +211,8 @@ const usersModule = DiBag.createBuilder()
 
 // the app never names a controller
 const app = DiBag.createBuilder()
-  .withInstalledModule(usersModule)
-  .withInstalledModule(ordersModule)
+  .withInstalledModule({ module: usersModule })
+  .withInstalledModule({ module: ordersModule })
   .withServiceAlias({ aliasKey: 'controllers', targetServiceKey: controllersToken })
   .withServices({
     router: ({ controllers }: { controllers: readonly Controller[] }) => createRouter(controllers),
@@ -412,6 +412,101 @@ try {
 // Branch on the failure kind. The method that raised it is in the details.
 if (error.code === 'DI_BAG_UNKNOWN_SERVICE_KEY') console.error(error.details.operation, error.details.serviceKey);
 ```
+
+## 16. An Elysia server
+
+The app bag is built once and connects before the server listens. Every request
+gets a child scope through one Elysia plugin. Hook names follow the Elysia
+documentation: `derive`, `onAfterResponse`, `onError`, `onStop`, and
+`{ as: 'global' }` so the plugin's hooks reach the routes of the app that uses it.
+
+```ts
+// app-bag.ts
+import { DiBag } from 'di-bag';
+
+export type RequestContext = { readonly requestId: string; readonly userId: string | undefined };
+
+const ordersModule = DiBag.createBuilder()
+  .withServices({
+    // built once: it depends only on the singleton db
+    ordersRepository: DiBag.createProvider(({ db }: { db: Promise<Db> }) => ({
+      findByUser: async (userId: string) => (await db).query('select * from orders where user_id = $1', [userId]),
+    })).withLifetime('singleton'),
+    // built per request: it depends on the request
+    ordersService: ({ ordersRepository, request }: { ordersRepository: OrdersRepository; request: RequestContext }) => ({
+      listMyOrders: () => ordersRepository.findByUser(request.userId ?? 'anonymous'),
+    }),
+  })
+  .buildModule({ exportedServiceKeys: ['ordersService'], moduleLabel: 'orders' });
+
+export function createAppBag(shutdownSignal: AbortSignal) {
+  return DiBag.createBuilder()
+    .withServices({
+      config: DiBag.createProvider(() => loadConfig()).withLifetime('singleton'),
+      db: DiBag.createProvider(async ({ config }: { config: Config }) => connectToDatabase(config.databaseUrl))
+        .withDisposal(db => db.end())
+        .withLifetime('singleton'),
+      request: (): RequestContext => ({ requestId: 'outside-request', userId: undefined }), // replaced per request
+    })
+    .withInstalledModule({ module: ordersModule })
+    .buildBag()
+    .ensureServicesReady(['db'], { totalTimeoutMs: 10_000, abortSignal: shutdownSignal });
+}
+
+export type AppBag = Awaited<ReturnType<typeof createAppBag>>;
+```
+
+```ts
+// request-scope-plugin.ts
+import { Elysia } from 'elysia';
+import type { AppBag, RequestContext } from './app-bag';
+
+const closeScope = (requestScope: { close(): Promise<void> } | undefined) =>
+  requestScope?.close().catch(error => console.error('request scope failed to close', error));
+
+export const requestScopePlugin = (appBag: AppBag) =>
+  new Elysia({ name: 'di-bag-request-scope' })
+    .derive({ as: 'global' }, ({ headers }) => ({
+      requestScope: appBag.createChildScope({
+        replacedServiceKeys: ['request'],
+        replacementProviders: {
+          request: (): RequestContext => ({ requestId: crypto.randomUUID(), userId: headers['x-user-id'] }),
+        },
+      }),
+    }))
+    .onAfterResponse({ as: 'global' }, ({ requestScope }) => { void closeScope(requestScope); })
+    .onError({ as: 'global' }, ({ requestScope }) => { void closeScope(requestScope); });
+```
+
+```ts
+// server.ts
+import { Elysia } from 'elysia';
+import { createAppBag } from './app-bag';
+import { requestScopePlugin } from './request-scope-plugin';
+
+const shutdown = new AbortController();
+process.once('SIGTERM', () => shutdown.abort());
+
+const appBag = await createAppBag(shutdown.signal); // SIGTERM during startup cancels it and releases the db
+
+const server = new Elysia()
+  .use(requestScopePlugin(appBag))
+  .get('/orders', ({ requestScope }) => requestScope.resolve('ordersService').listMyOrders())
+  .onStop(() => appBag.close({ waitTimeoutMs: 10_000 }))
+  .listen(3000);
+
+shutdown.signal.addEventListener('abort', () => void server.stop());
+```
+
+- `db` and `ordersRepository` are built once. `request` and `ordersService` are
+  built for each request, and `ordersService` sees that request's user.
+- Creating the scope runs no factory, so `derive` stays cheap on routes that never
+  resolve anything.
+- `close()` returns the same promise when called twice, so closing in both
+  `onAfterResponse` and `onError` is safe. A route that fails before `derive` runs
+  has no scope, which is why the helper accepts `undefined`.
+- The app bag closes after the server stops accepting requests, so no request
+  loses its database connection midway.
 
 ## Where 0.5.0 is longer than 0.4.0
 
