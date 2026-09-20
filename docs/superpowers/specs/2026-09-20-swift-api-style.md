@@ -87,11 +87,12 @@ Each rule cites the guideline it comes from. This section becomes
      `ensureServicesReady(serviceKeys, options?)`.
    - Two or more required: one bag with named properties.
      `withServiceAlias({ aliasKey, targetServiceKey })`.
-   - A builder method always takes exactly one bag. A builder chain is read far
-     more often than it is written, and every line then names what it adds.
-     `withInstalledModule({ module, renamedExports?, renamedRequirements? })` has
-     real options to carry. `withServices` takes a bag by nature: it maps each
-     service name to its provider.
+   - A builder method with two or more inputs takes one bag with named
+     properties. `withInstalledModule(module)` keeps its single positional input:
+     it reads as a phrase with the method name, and a bag that only wraps one
+     value adds nothing. An optional bag can follow it later without breaking
+     callers. `withServices` takes a bag by nature: it maps each service name to
+     its provider.
    - Never two positional parameters. When the single required input does not read
      as a phrase with the method name, it goes into the bag under its role name:
      `buildModule({ exportedServiceKeys })`, because "build module greeter" says the
@@ -219,7 +220,7 @@ what the methods do.
 | `alias(destination, target)` | `withServiceAlias({ aliasKey, targetServiceKey })` | 3, 4 |
 | `contribute(token, registration)` | `withCollectionContribution({ collectionToken, provider })`, collection tokens only | 3, 4 |
 | `replace(key, registration)` | `withReplacedService({ serviceKey, provider })` | 3, 4 |
-| `installModule(module)` | `withInstalledModule({ module, renamedExports?, renamedRequirements? })`, see [renaming](#renaming-on-the-module-and-at-install-time) | 3, 4 |
+| `installModule(module)` | `withInstalledModule(module)` | 3 |
 | `verifyGraph()` | `verifyGraphAtCompileTime()` | 1 |
 | `buildModule(keys, { label })` | `buildModule({ exportedServiceKeys, moduleLabel? })` | 4, 5 |
 | `build()` | `buildBag()` | 1 |
@@ -254,9 +255,7 @@ reports which services were still pending, as `close` does today.
 | 0.4.0 | 0.5.0 | Rule |
 | --- | --- | --- |
 | `module.renameExport(oldKey, newKey)` | `module.withRenamedExport({ currentExportKey, newExportKey })` | 3, 4 |
-| new | `module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })` | 3, 4 |
-
-`withInstalledModule` wraps both, see [renaming](#renaming-on-the-module-and-at-install-time).
+| new | `module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })`, see [requirement renaming](#requirement-renaming) | 3, 4 |
 
 ### Factory and disposer contexts
 
@@ -409,41 +408,20 @@ by changing an import. It needs the one-line configuration above, and
 `DI_BAG_CLASSIFIER_REQUIRED` already says so. About 200 files in this repo import
 the second entry and move to the main one, 39 of them tests.
 
-### Renaming on the module and at install time
+### Requirement renaming
 
-Renaming stays an operation on the module, with the mechanics it has today: it
-returns a new module value, so a renamed module can be exported and installed by
-several hosts. It gains a twin for requirements. Today two modules that both
-require `config`, as the module layout in `AGENTS.md` suggests, collide, and the
-fix is a wrapper module with an adapter service and hand-written re-exports.
+`module.withRenamedRequirement({ currentRequirementKey, newRequirementKey })` is
+the twin of `withRenamedExport`. Today only exports can be renamed. Two modules
+that both require `config`, as the module layout in `AGENTS.md` suggests, collide,
+and the fix is a wrapper module with an adapter service and hand-written
+re-exports. Both methods return a new module value, so a renamed module stays
+reusable across hosts, and the calls can be written inline at the install line.
+Only string service keys can be renamed. Tokens are globally unique identities
+and need no renaming.
 
-The install options are a thin wrapper over those two methods. They apply each
-entry and then install, so these two are the same:
-
-```ts
-.withInstalledModule({
-  module: ordersModule,
-  renamedRequirements: { config: 'ordersConfig' },
-  renamedExports: { handler: 'ordersHandler' },
-})
-
-.withInstalledModule({
-  module: ordersModule
-    .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' })
-    .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'ordersHandler' }),
-})
-```
-
-Each map reads like a destructuring rename: the key is the current name and the
-value is the new one. Only string service keys can be renamed. Tokens are
-globally unique identities and need no renaming. The bag also gives later install
-options a home, such as a label for one installation of a module that is
-installed twice.
-
-**Cost.** Two spellings of one task, which is a deliberate exception to rule 14.
-The install options show a renaming where the collision happens, and the methods
-keep a renamed module reusable. The install type applies the existing rename
-types once per map entry, and takes today's path unchanged when no map is given.
+**Cost.** One more method on `Module`, and new type-level remapping of a module's
+requirements and constraints. The work lands on a rarely called method, not on
+module installation, which is a hot path.
 
 ### Factory context for positional functions
 
@@ -465,6 +443,7 @@ function factory.
 | One input rule for decorators, removing the choice of what a callback receives | It takes away the ability to handle the pending Promise of an asynchronous factory inside a decorator. The choice stays as `callbackReceives` |
 | Configuration at bag creation in place of `withConfiguration` | The facade is the only object that exists before any bag does. If building steps are ever observed, that is the only home for the observer. Observers for a single scope move to the follow-up program |
 | Factory context for classes and plugins | See above |
+| Renaming options on `withInstalledModule` | They only wrap the two module methods, which can be written inline at the install line. A module is an immutable value, so every per-installation setting can be a module method that returns a new module |
 
 ## Shapes decided by measurement
 
@@ -485,7 +464,7 @@ adopted when all three hold:
 | S3 | `replacementProviders` is contextually typed from `replacedServiceKeys` inside one object literal | The pair stays positional, followed by the bag |
 | S4 | `factoryFunction` parameters are inferred from `dependencies` inside one object literal | The pair stays positional, followed by the bag |
 | S5 | `resolve` returns `readonly Item[]` for a collection token through a conditional on the hottest signature | A separate `resolveCollection(collectionToken)` call |
-| S6 | `withRenamedRequirement` remaps a module's requirements and constraints, and `withInstalledModule` applies the rename types once per map entry | The install options are dropped and renaming stays on the module. If requirement remapping itself fails, requirement renaming is dropped |
+| S6 | `withRenamedRequirement` remaps a module's requirements and constraints in its type | Requirement renaming is dropped |
 
 Rule 15 applies to every fallback.
 
@@ -528,7 +507,7 @@ on `npm run check`, `npm run docs:check` and `npm run graph:check` by itself.
 | 3 | `ensureServicesReady`, the pending-work report, `close` options, and the service readiness errors. `buildAndStart` is removed | Behavior |
 | 4 | Collection tokens. `all`, `resolveAll` and `inspectAll` are removed under their old names | Behavior |
 | 5 | Builder, bag and module methods and the configuration option names, applied with the codemod. `di-bag/node` is removed and its imports move to `di-bag`. The graph tool learns the new chain endings and keeps the old ones | Rename |
-| 6 | Requirement renaming on the module, and the renaming options of `withInstalledModule` | Behavior, additive |
+| 6 | Requirement renaming on the module | Behavior, additive |
 | 7 | The provider authoring surface: `createProvider` family, `factoryReturnKind`, `FactoryContext`, provider methods or their fallback, the metadata split, `callbackReceives`, `singleton`, `createToken`, and the factory context for positional functions | Rename |
 | 8 | Snapshot and event fields, the disposal vocabulary, error classes and codes, the errors page and compile-time messages. The known-violations list is empty | Rename |
 | 9 | Throwing stubs, the extended negative fixture, the migration guide, the changelog, regenerated agent docs, and the 0.5.0 release candidate through `PUBLISHING.md`. `next` merges into `main` | Release |
@@ -578,8 +557,7 @@ separate program, and the names above leave room for them:
   `withCollectionContribution`, at compile time and at run time.
 - A fork replaces a whole collection in a test, and `ensureServicesReady` waits
   for a collection.
-- `withInstalledModule` renames a requirement without a wrapper module, and gives
-  the same graph as the two module methods.
+- `withRenamedRequirement` renames a requirement without a wrapper module.
 - No 0.4.0 name in the rename map compiles, and each throws
   `DI_BAG_REMOVED_API` at runtime.
 - The codemod turns the 0.4.0 copies of `examples/` into code that type-checks

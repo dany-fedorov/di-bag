@@ -155,7 +155,7 @@ export const greetingModule = DiBag.createBuilder()
 ```ts
 // src/features/greeting/check.ts
 DiBag.createBuilder()
-  .withInstalledModule({ module: greetingModule })
+  .withInstalledModule(greetingModule)
   .withServices({ config: (): GreetingConfig => ({ language: 'en' }) })
   .verifyGraphAtCompileTime() satisfies void;
 ```
@@ -177,16 +177,16 @@ const ordersForThisApp = DiBag.createBuilder()
 ```ts
 // 0.5.0
 const app = DiBag.createBuilder()
-  .withInstalledModule({
-    module: ordersModule,
-    renamedRequirements: { config: 'ordersConfig' },
-    renamedExports: { handler: 'ordersHandler' },
-  })
-  .withInstalledModule({
-    module: billingModule,
-    renamedRequirements: { config: 'billingConfig' },
-    renamedExports: { handler: 'billingHandler' },
-  })
+  .withInstalledModule(
+    ordersModule
+      .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' })
+      .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'ordersHandler' }),
+  )
+  .withInstalledModule(
+    billingModule
+      .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'billingConfig' })
+      .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'billingHandler' }),
+  )
   .withServices({
     ordersConfig: (): OrdersConfig => ({ currency: 'EUR' }),
     billingConfig: (): BillingConfig => ({ vatRate: 0.2 }),
@@ -194,17 +194,8 @@ const app = DiBag.createBuilder()
   .buildBag();
 ```
 
-Each map reads like a destructuring rename: the key is the current name and the
-value is the new one.
-
-The options are a thin wrapper over two module methods. Use the methods when a
-renamed module should be a reusable value:
-
-```ts
-export const ordersModuleForShops = ordersModule
-  .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' })
-  .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'ordersHandler' });
-```
+A renamed module is a value, so it can also be exported once and installed by
+several hosts.
 
 ## 7. A list that modules add to: API controllers
 
@@ -223,8 +214,8 @@ const usersModule = DiBag.createBuilder()
 
 // the app never names a controller
 const app = DiBag.createBuilder()
-  .withInstalledModule({ module: usersModule })
-  .withInstalledModule({ module: ordersModule })
+  .withInstalledModule(usersModule)
+  .withInstalledModule(ordersModule)
   .withServiceAlias({ aliasKey: 'controllers', targetServiceKey: controllersToken })
   .withServices({
     router: ({ controllers }: { controllers: readonly Controller[] }) => createRouter(controllers),
@@ -460,7 +451,7 @@ export function createAppBag(shutdownSignal: AbortSignal) {
         .withLifetime('singleton'),
       request: (): RequestContext => ({ requestId: 'outside-request', userId: undefined }), // replaced per request
     })
-    .withInstalledModule({ module: ordersModule })
+    .withInstalledModule(ordersModule)
     .buildBag()
     .ensureServicesReady(['db'], { totalTimeoutMs: 10_000, abortSignal: shutdownSignal });
 }
