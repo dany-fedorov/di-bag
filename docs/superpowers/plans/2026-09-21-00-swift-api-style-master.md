@@ -61,6 +61,8 @@ If that Bun is missing, install it: `curl -fsSL https://bun.sh/install | BUN_INS
 | `npm run graph:check` | `tools/graph` tests | 30 s |
 | `node scripts/test-lane.mjs fast tests/<file>.test.ts` does not filter; use `bun test tests/<file>.test.ts` | one test file | seconds |
 
+Baseline on `next` at the 0.4.0 source: 538 fast tests and 575 compiler-lane tests pass; `npm run check` takes about ten minutes. Compiler-lane tests have a 5,000 ms timeout per test. Under host load one of them can time out (seen: `tests/types.test.ts`, "final-adversarial-integration inferred exports survive declaration consumption", 5,016 ms). A timeout is a flake only if `bun test <that file>` passes when run alone on an idle host; anything else is a failure.
+
 During a task run the narrowest command that proves the step. Run the full gate list from "Global Constraints" once at the end of the phase.
 
 ## Repository map
