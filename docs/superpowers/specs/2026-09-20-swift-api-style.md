@@ -102,12 +102,14 @@ Each rule cites the guideline it comes from. This section becomes
    `maxConcurrentServiceKeys`. This includes generic parameters and the parameter
    names of callbacks shown in documentation.
 6. **Booleans read as assertions.** `isOwnedByBag`, `isPresent`,
-   `allowsScopedDependencies`, `factoryReceivesContext`.
+   `allowsPerScopeDependencies`, `factoryReceivesContext`.
 7. **No abbreviations.** `factoryContext`, `dependencies`. The unit suffix `Ms`
    is kept as established precedent.
-8. **Terms of art keep their established meaning.** `resolve`, `scoped`,
-   `transient`, `singleton`, `fork`, `provider`, `token`. "Don't surprise an
-   expert": a name borrowed from other containers must behave as it does there.
+8. **Terms of art keep their established meaning.** `resolve`, `container`,
+   `fork`, `provider`, `token`. "Don't surprise an expert": a name borrowed from
+   other containers must behave as it does there. Where a term of art has been
+   shown to confuse, a descriptive name wins: the three lifetimes are spelled out,
+   and the guide maps them to singleton, scoped and transient.
 9. **Common words before library words.** "Avoid obscure terms if a more common
    word conveys meaning just as well." "Acquisition" names observability data
    only: snapshots, events, and the metadata an author attaches for them. It never
@@ -143,12 +145,15 @@ Each rule cites the guideline it comes from. This section becomes
 | How a factory's return value is treated | factory return kind | acquisition mode, mode |
 | What a decorator callback is handed | callback receives | direct, awaited |
 | Waiting until listed services exist and are settled | service readiness | startup, start |
-| Family-wide cached lifetime | singleton | root |
+| A resolvable set of services with its own cache and ownership | container | bag, as a concept word. `DiBag` stays the product and facade name, and "bag" now only means an options bag |
+| One instance for a container and all its child scopes, the default | `'shared-by-all-scopes'` | root, singleton |
+| One instance per container or child scope | `'one-per-scope'` | scoped |
+| A new instance on every resolve and every dependency read | `'new-on-every-resolve'` | transient |
 | A provider appended to a collection token's list | contribution | |
 | Token that identifies exactly one service | single-service token | |
 | Token that identifies an ordered list of services | collection token | the `all` reference, the contribution channel |
-| Tracked derived bag | child scope | scope |
-| Untracked derived bag | independent fork | fork, as a method name |
+| Tracked derived container | child scope | scope |
+| Untracked derived container | independent fork | fork, as a method name |
 
 "Binding" is new to `CONTEXT.md`. "Cleanup", "startup" and "acquisition mode" are
 removed from it.
@@ -163,7 +168,7 @@ are generated from it.
 
 | 0.4.0 | 0.5.0 | Rule |
 | --- | --- | --- |
-| `DiBag.createBuilder()` | `DiBag.createBuilder({ defaultLifetime? }?)`, see [a default lifetime per builder](#a-default-lifetime-per-builder) | 4 |
+| `DiBag.createBuilder()` | unchanged | |
 | `import { DiBag } from 'di-bag/node'` | removed: `import { DiBag } from 'di-bag'`, see [one entry point](#one-entry-point) | 14 |
 | `DiBag.withConfiguration({ runtime, observers })` | `DiBag.withConfiguration({ runtime, lifecycleObservers })` | 5 |
 | observer `{ onEvent, onError }` | `{ onLifecycleEvent, onObserverFailure }` | 5 |
@@ -194,7 +199,7 @@ it with `createProvider` first.
 | 0.4.0 | 0.5.0 | Rule |
 | --- | --- | --- |
 | `DiBag.withDisposal(registration, dispose)` | `provider.withDisposal(disposeService)` | 12 |
-| `DiBag.withLifetime(registration, 'root', { allowScopedDependencies })` | `provider.withLifetime('singleton', { allowsScopedDependencies }?)` | 6, 8, 12 |
+| `DiBag.withLifetime(registration, 'root', { allowScopedDependencies })` | `provider.withLifetime('shared-by-all-scopes', { allowsPerScopeDependencies }?)` | 1, 6, 12 |
 | `DiBag.withMetadata(registration, { static })` | `provider.withRegistrationMetadata(registrationMetadata)` | 13 |
 | `DiBag.withMetadata(registration, { dynamic: { mode, describe } })` | `provider.withAcquisitionMetadata({ describeAcquisition, callbackReceives })` | 4, 13 |
 | `DiBag.transformService(registration, { mode, transform, acquisitionMode })` | `provider.withTransformedService({ transformService, callbackReceives, transformReturnKind? })` | 4, 12 |
@@ -203,9 +208,10 @@ it with `createProvider` first.
 provider exposes, which for an asynchronous factory is its Promise) and
 `'fulfilled-value'` (was `awaited`). The choice stays, because it is how a
 decorator handles an asynchronous factory either as a Promise or as its result.
-Lifetime values: `'singleton'`, `'scoped'`,
-`'transient'`. A child scope that overrides a singleton gets its own instance; the
-lifetime guide must say so, because a term of art must not surprise an expert.
+Lifetime values: `'shared-by-all-scopes'` (was `root`, and now the default, see
+[shared by default](#shared-by-default)), `'one-per-scope'` (was `scoped`) and
+`'new-on-every-resolve'` (was `transient`). The lifetime guide maps them to the
+usual singleton, scoped and transient.
 
 The single-bag alternative, `createProvider(factory, { disposeService, lifetime,
 registrationMetadata })`, is rejected by rule 14: it would be a second way to do
@@ -223,13 +229,15 @@ what the methods do.
 | `installModule(module)` | `withInstalledModules(modules)`, a list installed in order, see [installing a list of modules](#installing-a-list-of-modules) | 3, 4 |
 | `verifyGraph()` | `verifyGraphAtCompileTime()` | 1 |
 | `buildModule(keys, { label })` | `buildModule({ exportedServiceKeys, moduleLabel? })` | 4, 5 |
-| `build()` | `buildBag()` | 1 |
-| `buildAndStart(keys, options)` | removed: `buildBag().ensureServicesReady(serviceKeys, options?)` | |
+| `build()` | `buildContainer()` | 1, 8 |
+| `buildAndStart(keys, options)` | removed: `buildContainer().ensureServicesReady(serviceKeys, options?)` | |
 
 The internal `BindingGraph` already names these operations `withPublicBinding`,
 `withContribution` and `withInstallation`. The public surface catches up with it.
 
-### Bag
+### Container
+
+The `Bag` type becomes `Container`. A child scope and a fork are containers too.
 
 | 0.4.0 | 0.5.0 | Rule |
 | --- | --- | --- |
@@ -243,11 +251,11 @@ The internal `BindingGraph` already names these operations `withPublicBinding`,
 | `close({ signal, timeoutMs })` | `close({ abortSignal?, waitTimeoutMs? }?)` | 5 |
 | new | `ensureServicesReady(serviceKeys, { abortSignal?, totalTimeoutMs?, maxConcurrentServiceKeys? }?)` | |
 
-`ensureServicesReady` is the design agreed on 2026-09-20. It runs on any bag,
+`ensureServicesReady` is the design agreed on 2026-09-20. It runs on any container,
 including a child scope and a fork. It waits until every listed service is ready,
-resolves to the same bag, and closes the bag it was called on when a factory
+resolves to the same container, and closes the container it was called on when a factory
 fails, the signal aborts, or the deadline passes. A child scope closes only
-itself. Invalid input rejects and leaves the bag untouched. A cancelled call
+itself. Invalid input rejects and leaves the container untouched. A cancelled call
 reports which services were still pending, as `close` does today.
 
 ### Module
@@ -311,7 +319,7 @@ and `DI_BAG_INVALID_ACQUISITION_MODE` embed names this note retires.
 
 The 42 codes become about 31, including the new `DI_BAG_REMOVED_API` and `DI_BAG_WRONG_TOKEN_KIND`. The phase 9 plan fixes the mapping for each of the
 123 throw sites by reading it. Compile-time message families keep their
-anchors except `root-capture`, which becomes `singleton-capture`. Every message
+anchors except `root-capture`, which becomes `per-scope-capture`. Every message
 that names a retired call is rewritten.
 
 ### Exported types
@@ -320,6 +328,7 @@ A type is renamed only when its name contains a retired word.
 
 | 0.4.0 | 0.5.0 |
 | --- | --- |
+| `Bag` | `Container` |
 | `Registration` | `ProviderOrFactory` |
 | `FactoryWithDisposal` | removed from the public surface, see spike S2 |
 | `AcquisitionMode`, `PluginAcquisitionMode` | `FactoryReturnKind`, `PluginReturnKind` |
@@ -337,7 +346,7 @@ A type is renamed only when its name contains a retired word.
 | `RegistrationSnapshot`, `BindingSnapshot`, `GraphSnapshot`, `AcquisitionSnapshot` | unchanged |
 
 Generic parameters get role names: `Provider<Factory, RegistrationMetadata,
-AcquisitionMetadataFrames, GraphContract, AcquiredValue>`, `Bag<Registrations,
+AcquisitionMetadataFrames, GraphContract, AcquiredValue>`, `Container<Registrations,
 Constraints>`, `Module<ExportedServices, RequiredServices, Constraints,
 PublicProviders>`, `Token<TokenSymbol, Service>`. This does not break callers.
 
@@ -345,16 +354,15 @@ PublicProviders>`, `Token<TokenSymbol, Service>`. This does not break callers.
 
 | Name | Reason |
 | --- | --- |
-| `DiBag`, `Bag`, `Builder`, `Module`, `Provider`, `Token` | Product and term-of-art nouns |
+| `DiBag`, `Builder`, `Module`, `Provider`, `Token` | Product and term-of-art nouns |
 | `resolve`, `close`, `pushDisposer` | Imperative verbs with effects, already clear |
-| `'scoped'`, `'transient'`, `optional`, `lazy` | Established terms, rule 8 and rule 2 |
+| `optional`, `lazy` | Already clear inside a dependency list, rule 2 |
 | Plugin descriptor `{ apiVersion: 1, create, dispose }` | It is a versioned contract with third parties; renaming it needs `apiVersion: 2` and is a separate decision |
 | The `Ms` unit suffix | Established JavaScript precedent |
 
 ## Behavior changes
 
-Four changes from the orthogonality review of 2026-09-19 ship in the same
-release. Each deletes a call that this note would otherwise only rename. Each
+These behavior changes ship in the same release. Each deletes a call that this note would otherwise only rename. Each
 states what it costs.
 
 ### Collection tokens
@@ -368,8 +376,8 @@ const controllersToken = DiBag.createToken(controllersSymbol).forCollectionOf<Co
 builder.withTokenService({ token: clockToken, provider: createClock });
 builder.withCollectionContribution({ collectionToken: controllersToken, provider: createUsersController });
 
-bag.resolve(controllersToken);                       // readonly Controller[]
-await bag.ensureServicesReady([controllersToken]);   // waits for every contribution
+container.resolve(controllersToken);                 // readonly Controller[]
+await container.ensureServicesReady([controllersToken]); // waits for every contribution
 ```
 
 - A collection token is an ordinary service key whose service is
@@ -433,7 +441,7 @@ const app = DiBag.createBuilder()
     billingModule,
   ])
   .withServices({ ordersConfig, billingConfig })
-  .buildBag();
+  .buildContainer();
 ```
 
 `withInstalledModules(modules)` replaces the singular call and mirrors
@@ -450,48 +458,48 @@ hot path, and a long list can reach the compiler's recursion limit. A collision
 must still be reported on the offending list element, not on the whole call. The
 graph tool must learn to read a list. Spike S7 decides.
 
-### A default lifetime per builder
+### Shared by default
+
+The default lifetime becomes `'shared-by-all-scopes'`. Most services with business
+logic are stateless, and an application that passes request data as arguments
+needs no lifetime mark at all. Only per-request services are marked:
 
 ```ts
-const ordersModule = DiBag.createBuilder({ defaultLifetime: 'singleton' })
+const app = DiBag.createBuilder()
   .withServices({
-    ordersRepository: ({ db }: { db: Promise<Db> }) => createOrdersRepository(db), // singleton, no mark
-    priceCalculator: () => createPriceCalculator(),                                // singleton, no mark
+    db: DiBag.createProvider(async () => connectToDatabase()).withDisposal(db => db.end()),
+    ordersRepository: ({ db }: { db: Promise<Db> }) => createOrdersRepository(db),
+    request: DiBag.createProvider((): RequestContext => ({ requestId: 'outside-request', userId: undefined }))
+      .withLifetime('one-per-scope'),
     ordersService: DiBag.createProvider(
       ({ ordersRepository, request }: { ordersRepository: OrdersRepository; request: RequestContext }) =>
         createOrdersService(ordersRepository, request),
-    ).withLifetime('scoped'),                                                      // per request, marked
+    ).withLifetime('one-per-scope'),
   })
-  .buildModule({ exportedServiceKeys: ['ordersService'], moduleLabel: 'orders' });
+  .buildContainer();
 ```
 
-Most services with business logic are stateless and can be shared. "Most of this
-layer is singletons" is a statement about a builder, so the default lives there.
+Two compile-time rules make the default safe for the request pattern:
 
-- A provider without an explicit lifetime takes its builder's default. An explicit
-  `withLifetime` always wins. When the option is omitted the default is `'scoped'`,
-  as today, so this is additive.
-- The default applies to everything registered on that builder, and to replacement
-  providers given later to child scopes and forks of the bag it builds.
-- It does not reach into installed modules. A module's lifetimes are fixed when it
-  is sealed, so installing costs nothing extra and a host cannot silently change
-  what a module means.
-- The compiler still rejects a singleton that depends on a scoped service. In a
-  singleton-default builder, mark the per-request services `scoped`, starting with
-  the `request` placeholder. Every consumer that forgot its mark then fails to
-  compile with an error that names both services.
+1. A shared service may not depend on a per-scope service. This rule exists today.
+   Forgetting the mark on `ordersService` fails to compile, and the error names
+   both services.
+2. New: a child scope may replace only per-scope and new-on-every-resolve
+   services. A shared service is built once with the dependencies of the container
+   that defined it, so replacing `request` in a child while `request` is shared
+   would be ignored by every shared consumer, silently. With this rule the
+   replacement does not compile until `request` is marked `'one-per-scope'`, and
+   rule 1 then finds every consumer. A fork may still replace anything, because a
+   fork rebuilds everything.
 
-The library-wide default stays `'scoped'`. With no child scopes the two behave the
-same. With child scopes, a forgotten mark under a `'scoped'` default shares state
-too little, which breaks a feature. Under a `'singleton'` default it shares state
-too much, which leaks one request's state into another. The opt-in keeps the
-safer failure as the default and gives the shorter spelling to those who ask.
-
-**Cost.** One gap stays, and NestJS has the same one: per-request state that
-depends on nothing scoped, such as a unit of work, must be marked by hand, and
-nothing fails if the mark is forgotten. A default-lifetime type parameter is
-threaded through `Builder`, `Bag` and the lifetime checks, and the runtime must
-tell an unset lifetime from an explicit `'scoped'`. Spike S8 decides.
+**Cost.** One silent failure remains, and NestJS has the same one: per-request
+state that depends on nothing per-scope, such as a unit of work or a request id,
+must be marked by hand, and a forgotten mark shares it between requests. The
+lifetime check now covers every provider, not only the few marked ones, so it
+needs a fast path for graphs with no per-scope service. Spike S8 decides. Tests
+that replaced a shared service in a child scope move to a fork. This is the one
+change in the release where 0.4.0 code can compile and behave differently, which
+the [migration support](#migration-support) addresses.
 
 ### Factory context for positional functions
 
@@ -509,9 +517,9 @@ function factory.
 | Dependency references accepted by `resolve`, `serviceSnapshot` and `ensureServicesReady`, and nested references | Collection tokens cover the valuable part. What remains is `resolve` with `optional`, which a membership check covers, and `resolve` with `lazy`, which is pointless |
 | References registrable as providers, folding `withServiceAlias` | References take tokens only. Giving named factories optional and lazy dependencies on named services needs references typed from the builder's registrations, which is heavy type machinery for a gap the positional adapter already fills |
 | A multi-key builder replace | The single-key form has the compile-cost fast path, and forks already replace several keys |
-| One cancelled-error class for readiness and close | The two now mean different things: a readiness cancellation closes the bag, a close cancellation only stops waiting |
+| One cancelled-error class for readiness and close | The two now mean different things: a readiness cancellation closes the container, a close cancellation only stops waiting |
 | One input rule for decorators, removing the choice of what a callback receives | It takes away the ability to handle the pending Promise of an asynchronous factory inside a decorator. The choice stays as `callbackReceives` |
-| Configuration at bag creation in place of `withConfiguration` | The facade is the only object that exists before any bag does. If building steps are ever observed, that is the only home for the observer. Observers for a single scope move to the follow-up program |
+| Configuration at container creation in place of `withConfiguration` | The facade is the only object that exists before any container does. If building steps are ever observed, that is the only home for the observer. Observers for a single scope move to the follow-up program |
 | Factory context for classes and plugins | See above |
 | Renaming options on `withInstalledModules` | They only wrap the two module methods, which can be written inline at the install line. A module is an immutable value, so every per-installation setting can be a module method that returns a new module |
 
@@ -536,7 +544,7 @@ adopted when all three hold:
 | S5 | `resolve` returns `readonly Item[]` for a collection token through a conditional on the hottest signature | A separate `resolveCollection(collectionToken)` call |
 | S6 | `withRenamedRequirement` remaps a module's requirements and constraints in its type | Requirement renaming is dropped |
 | S7 | `withInstalledModules` folds its checks over a list of modules and reports a collision on the offending element. Measured with 1, 10 and 50 modules | The singular `withInstalledModule(module)` ships instead |
-| S8 | A default-lifetime type parameter on `Builder` and `Bag`, read by the lifetime checks wherever a provider has no explicit lifetime | The option is dropped. It is additive and can return later |
+| S8 | Shared by default: the lifetime check covers every provider, with a fast path when the graph has no per-scope service, and child-scope replacement checks the replaced lifetime | The default stays `'one-per-scope'` |
 
 Rule 15 applies to every fallback.
 
@@ -558,6 +566,11 @@ Rule 15 applies to every fallback.
   trained on 0.3 and 0.4 will call the old names.
 - **Compile-time removal.** `tests/types/negative/api-renaming.ts` is extended
   from the rename map, so every old name fails to compile.
+- **Lifetimes pinned by the codemod.** In a project that calls `createScope`
+  anywhere, the codemod gives every provider without a lifetime an explicit
+  `'one-per-scope'` mark, which is exactly its 0.4.0 meaning. The developer then
+  removes the marks where sharing is wanted. A project that never creates a child
+  scope needs nothing: with one container the two lifetimes behave the same.
 - **A migration guide** generated from the same map, and a breaking-changes
   section in `CHANGELOG.md`.
 - **Manual steps the codemod reports but does not perform.** A token used on
@@ -580,8 +593,8 @@ on `npm run check`, `npm run docs:check` and `npm run graph:check` by itself.
 | 4 | Collection tokens. `all`, `resolveAll` and `inspectAll` are removed under their old names | Behavior |
 | 5 | Builder, bag and module methods and the configuration option names, applied with the codemod. `di-bag/node` is removed and its imports move to `di-bag`. The graph tool learns the new chain endings and the module list, and keeps the old names | Rename |
 | 6 | Requirement renaming on the module | Behavior, additive |
-| 7 | The provider authoring surface: `createProvider` family, `factoryReturnKind`, `FactoryContext`, provider methods or their fallback, the metadata split, `callbackReceives`, `singleton`, `createToken`, and the factory context for positional functions | Rename |
-| 8 | A default lifetime per builder | Behavior, additive |
+| 7 | The provider authoring surface: `createProvider` family, `factoryReturnKind`, `FactoryContext`, provider methods or their fallback, the metadata split, `callbackReceives`, the lifetime names, `createToken`, and the factory context for positional functions | Rename |
+| 8 | Shared by default, and the rule that a child scope replaces only per-scope services | Behavior |
 | 9 | Snapshot and event fields, the disposal vocabulary, error classes and codes, the errors page and compile-time messages. The known-violations list is empty | Rename |
 | 10 | Throwing stubs, the extended negative fixture, the migration guide, the changelog, regenerated agent docs, and the 0.5.0 release candidate through `PUBLISHING.md`. `next` merges into `main` | Release |
 
@@ -589,7 +602,7 @@ Phase 3 comes first among the breaking phases so the first method written under
 the standard exists as the example. Every behavior phase comes before the rename
 phase that would touch the same calls, so nothing is renamed and then removed:
 4 comes before 5. Phase 5 proves the codemod on the largest call counts. Phase 8
-follows the provider surface because it builds on the `singleton` vocabulary.
+follows the provider surface because it builds on the new lifetime names.
 Phase 9 is late because error codes touch the most test assertions.
 
 ## Out of scope
@@ -599,7 +612,8 @@ makes the four [behavior changes](#behavior-changes). These approved items are a
 separate program, and the names above leave room for them:
 
 - Richer context and control: factory context identity, failure context for
-  factory errors, scope and bag labels, event timing, bag state and membership,
+  factory errors, scope and container labels, event timing, container state and
+  membership,
   runtime description of modules, disposer context, `Symbol.asyncDispose`,
   services marked must-be-ready, acquisition interceptors, observers for a single
   scope or fork, per-provider time limits, a failure policy for
@@ -608,7 +622,10 @@ separate program, and the names above leave room for them:
 ## Risks
 
 - **Compile cost.** Bags, provider methods, collection tokens, requirement
-  renaming, the module list and the default lifetime can raise instantiation counts. The spikes and rule 15 contain this.
+  renaming, the module list and the shared default can raise instantiation counts. The spikes and rule 15 contain this.
+- **A silent change of meaning.** The shared default is the only change where old
+  code can compile and behave differently. The second compile-time rule, the
+  codemod's lifetime pins and a prominent changelog entry contain it.
 - **Behavior and names change in one release.** Four behavior changes ride along
   with the renames, which raises the risk of the release and lowers the number of
   migrations to one. Each behavior phase is its own pull request with its own
@@ -632,9 +649,11 @@ separate program, and the names above leave room for them:
 - A fork replaces a whole collection in a test, and `ensureServicesReady` waits
   for a collection.
 - `withRenamedRequirement` renames a requirement without a wrapper module.
-- A builder with `defaultLifetime: 'singleton'` builds its unmarked services once
-  across child scopes, and a service of it that depends on a scoped service does
-  not compile until it is marked `'scoped'`.
+- A provider without a lifetime is built once for a container and its child
+  scopes. A shared service that depends on a per-scope service does not compile,
+  and neither does replacing a shared service in a child scope.
+- The codemod turns a 0.4.0 project with child scopes into one whose tests pass
+  unchanged.
 - `withInstalledModules` reports an export collision on the list element that
   causes it, and installs in list order.
 - No 0.4.0 name in the rename map compiles, and each throws

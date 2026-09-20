@@ -38,16 +38,14 @@ const app = await DiBag.createBuilder()
 // 0.5.0
 const app = await DiBag.createBuilder()
   .withServices({
-    config: DiBag.createProvider(() => loadConfig()).withLifetime('singleton'),
+    config: () => loadConfig(),
     db: DiBag.createProvider(async ({ config }: { config: Config }) => connectToDatabase(config.databaseUrl))
-      .withDisposal(db => db.end())
-      .withLifetime('singleton'),
+      .withDisposal(db => db.end()),
     cache: DiBag.createProvider(async ({ config }: { config: Config }) => connectToCache(config.cacheUrl))
-      .withDisposal(cache => cache.quit())
-      .withLifetime('singleton'),
-    mailer: ({ config }: { config: Config }) => createMailer(config.smtpUrl), // a plain factory is still fine
+      .withDisposal(cache => cache.quit()),
+    mailer: ({ config }: { config: Config }) => createMailer(config.smtpUrl),
   })
-  .buildBag()
+  .buildContainer()
   .ensureServicesReady(['db', 'cache'], {
     totalTimeoutMs: 10_000,
     abortSignal: shutdown.signal,
@@ -58,8 +56,9 @@ server.listen(3000);
 ```
 
 - Decorators read top to bottom in the order they apply, not inside out.
+- The three `'root'` marks are gone: shared by all scopes is the default.
 - The list says what to wait for. `config` comes along as a dependency.
-- If the cache fails or the deadline passes, the bag closes and the database
+- If the cache fails or the deadline passes, the container closes and the database
   connection is released.
 
 ## 2. One child scope per request
@@ -82,6 +81,9 @@ try {
 }
 ```
 
+- `request` is registered with `.withLifetime('one-per-scope')`. A child scope may
+  replace only per-scope services, because a shared consumer would silently keep
+  the root's value.
 - "Child" says who closes it: the parent closes live child scopes, and you may
   close one earlier.
 - The keys are listed separately from the providers on purpose. TypeScript lets
@@ -113,6 +115,7 @@ const child = root.createChildScope({
 const grandchild = child.createChildScope({ sharedParentServiceKeys: ['session'] });
 
 child.resolve('session') === root.resolve('session'); // true: borrowed, and the child never disposes it
+// `config` and `session` are marked 'one-per-scope'. Shared services need no borrowing: every scope already uses them.
 ```
 
 ## 4. Tests: an independent fork with fakes
@@ -189,7 +192,7 @@ const app = DiBag.createBuilder()
     ordersConfig: (): OrdersConfig => ({ currency: 'EUR' }),
     billingConfig: (): BillingConfig => ({ vatRate: 0.2 }),
   })
-  .buildBag();
+  .buildContainer();
 ```
 
 A renamed module is a value, so it can also be exported once and installed by
@@ -217,7 +220,7 @@ const app = DiBag.createBuilder()
   .withServices({
     router: ({ controllers }: { controllers: readonly Controller[] }) => createRouter(controllers),
   })
-  .buildBag();
+  .buildContainer();
 
 app.resolve(controllersToken); // readonly Controller[]
 ```
@@ -244,7 +247,7 @@ const app = DiBag.createBuilder()
       factoryFunction: sinks => createFanOutLogger(sinks),
     }),
   })
-  .buildBag();
+  .buildContainer();
 ```
 
 This is the one design that used both channels of a single token in 0.4.0. It
@@ -270,7 +273,7 @@ const reporter = DiBag.createProviderFromClass({
 const app = DiBag.createBuilder()
   .withTokenService({ token: portToken, provider: () => 8080 })
   .withServices({ reporter })
-  .buildBag();
+  .buildContainer();
 ```
 
 ## 10. The factory context: cancel, and release what was acquired on the way
@@ -350,10 +353,10 @@ const guarded = connection.withTransformedService({
   transformService: pending => withTimeout(pending, 5_000),
 });
 
-const snapshot = bag.serviceSnapshot('client');
+const snapshot = container.serviceSnapshot('client');
 snapshot.registrationMetadata.owner;               // 'platform-team'
 snapshot.acquisitions[0]?.acquisitionMetadata[0];  // { isPresent: true, value: { serverVersion: '16.2' } }
-bag.graphSnapshot().bindings.map(binding => binding.bindingLabel);
+container.graphSnapshot().bindings.map(binding => binding.bindingLabel);
 ```
 
 ## 13. Observe the lifecycle
@@ -370,7 +373,7 @@ const Observed = DiBag.withConfiguration({
   ],
 });
 
-const app = Observed.createBuilder().withServices({ db }).buildBag();
+const app = Observed.createBuilder().withServices({ db }).buildContainer();
 ```
 
 ## 14. Admit a plugin chosen at run time
@@ -415,59 +418,61 @@ if (error.code === 'DI_BAG_UNKNOWN_SERVICE_KEY') console.error(error.details.ope
 
 ## 16. An Elysia server
 
-The app bag is built once and connects before the server listens. Every request
+The app container is built once and connects before the server listens. Every request
 gets a child scope through one Elysia plugin. Hook names follow the Elysia
 documentation: `derive`, `onAfterResponse`, `onError`, `onStop`, and
 `{ as: 'global' }` so the plugin's hooks reach the routes of the app that uses it.
 
 ```ts
-// app-bag.ts
+// app-container.ts
 import { DiBag } from 'di-bag';
 
 export type RequestContext = { readonly requestId: string; readonly userId: string | undefined };
 
 const ordersModule = DiBag.createBuilder()
   .withServices({
-    // built once: it depends only on the singleton db
-    ordersRepository: DiBag.createProvider(({ db }: { db: Promise<Db> }) => ({
+    // built once: shared by all scopes is the default
+    ordersRepository: ({ db }: { db: Promise<Db> }) => ({
       findByUser: async (userId: string) => (await db).query('select * from orders where user_id = $1', [userId]),
-    })).withLifetime('singleton'),
-    // built per request: it depends on the request
-    ordersService: ({ ordersRepository, request }: { ordersRepository: OrdersRepository; request: RequestContext }) => ({
-      listMyOrders: () => ordersRepository.findByUser(request.userId ?? 'anonymous'),
     }),
+    // built per request: it depends on the request, so it must carry the mark
+    ordersService: DiBag.createProvider(
+      ({ ordersRepository, request }: { ordersRepository: OrdersRepository; request: RequestContext }) => ({
+        listMyOrders: () => ordersRepository.findByUser(request.userId ?? 'anonymous'),
+      }),
+    ).withLifetime('one-per-scope'),
   })
   .buildModule({ exportedServiceKeys: ['ordersService'], moduleLabel: 'orders' });
 
-export function createAppBag(shutdownSignal: AbortSignal) {
+export function createAppContainer(shutdownSignal: AbortSignal) {
   return DiBag.createBuilder()
     .withServices({
-      config: DiBag.createProvider(() => loadConfig()).withLifetime('singleton'),
+      config: () => loadConfig(),
       db: DiBag.createProvider(async ({ config }: { config: Config }) => connectToDatabase(config.databaseUrl))
-        .withDisposal(db => db.end())
-        .withLifetime('singleton'),
-      request: (): RequestContext => ({ requestId: 'outside-request', userId: undefined }), // replaced per request
+        .withDisposal(db => db.end()),
+      request: DiBag.createProvider((): RequestContext => ({ requestId: 'outside-request', userId: undefined }))
+        .withLifetime('one-per-scope'), // replaced per request
     })
     .withInstalledModules([ordersModule])
-    .buildBag()
+    .buildContainer()
     .ensureServicesReady(['db'], { totalTimeoutMs: 10_000, abortSignal: shutdownSignal });
 }
 
-export type AppBag = Awaited<ReturnType<typeof createAppBag>>;
+export type AppContainer = Awaited<ReturnType<typeof createAppContainer>>;
 ```
 
 ```ts
 // request-scope-plugin.ts
 import { Elysia } from 'elysia';
-import type { AppBag, RequestContext } from './app-bag';
+import type { AppContainer, RequestContext } from './app-container';
 
 const closeScope = (requestScope: { close(): Promise<void> } | undefined) =>
   requestScope?.close().catch(error => console.error('request scope failed to close', error));
 
-export const requestScopePlugin = (appBag: AppBag) =>
+export const requestScopePlugin = (appContainer: AppContainer) =>
   new Elysia({ name: 'di-bag-request-scope' })
     .derive({ as: 'global' }, ({ headers }) => ({
-      requestScope: appBag.createChildScope({
+      requestScope: appContainer.createChildScope({
         replacedServiceKeys: ['request'],
         replacementProviders: {
           request: (): RequestContext => ({ requestId: crypto.randomUUID(), userId: headers['x-user-id'] }),
@@ -481,18 +486,18 @@ export const requestScopePlugin = (appBag: AppBag) =>
 ```ts
 // server.ts
 import { Elysia } from 'elysia';
-import { createAppBag } from './app-bag';
+import { createAppContainer } from './app-container';
 import { requestScopePlugin } from './request-scope-plugin';
 
 const shutdown = new AbortController();
 process.once('SIGTERM', () => shutdown.abort());
 
-const appBag = await createAppBag(shutdown.signal); // SIGTERM during startup cancels it and releases the db
+const appContainer = await createAppContainer(shutdown.signal); // SIGTERM during startup cancels it and releases the db
 
 const server = new Elysia()
-  .use(requestScopePlugin(appBag))
+  .use(requestScopePlugin(appContainer))
   .get('/orders', ({ requestScope }) => requestScope.resolve('ordersService').listMyOrders())
-  .onStop(() => appBag.close({ waitTimeoutMs: 10_000 }))
+  .onStop(() => appContainer.close({ waitTimeoutMs: 10_000 }))
   .listen(3000);
 
 shutdown.signal.addEventListener('abort', () => void server.stop());
@@ -505,38 +510,37 @@ shutdown.signal.addEventListener('abort', () => void server.stop());
 - `close()` returns the same promise when called twice, so closing in both
   `onAfterResponse` and `onError` is safe. A route that fails before `derive` runs
   has no scope, which is why the helper accepts `undefined`.
-- The app bag closes after the server stops accepting requests, so no request
+- The app container closes after the server stops accepting requests, so no request
   loses its database connection midway.
 
-## 17. A layer of singletons without the marks
+## 17. Shared by default: mark only what is per request
 
 ```ts
-const ordersModule = DiBag.createBuilder({ defaultLifetime: 'singleton' })
-  .withServices({
-    ordersRepository: ({ db }: { db: Promise<Db> }) => createOrdersRepository(db), // singleton, no mark
-    priceCalculator: () => createPriceCalculator(),                                // singleton, no mark
-    ordersService: DiBag.createProvider(
-      ({ ordersRepository, request }: { ordersRepository: OrdersRepository; request: RequestContext }) =>
-        createOrdersService(ordersRepository, request),
-    ).withLifetime('scoped'),                                                      // per request, marked
-  })
-  .buildModule({ exportedServiceKeys: ['ordersService'], moduleLabel: 'orders' });
-
 const app = DiBag.createBuilder()
   .withServices({
-    db: DiBag.createProvider(async () => connectToDatabase()).withDisposal(db => db.end()).withLifetime('singleton'),
+    db: DiBag.createProvider(async () => connectToDatabase()).withDisposal(db => db.end()),
+    ordersRepository: ({ db }: { db: Promise<Db> }) => createOrdersRepository(db), // shared, no mark
+    priceCalculator: () => createPriceCalculator(),                                // shared, no mark
     request: DiBag.createProvider((): RequestContext => ({ requestId: 'outside-request', userId: undefined }))
-      .withLifetime('scoped'),
+      .withLifetime('one-per-scope'),
+    unitOfWork: DiBag.createProvider(({ db }: { db: Promise<Db> }) => createUnitOfWork(db))
+      .withDisposal(unitOfWork => unitOfWork.release())
+      .withLifetime('one-per-scope'),                                              // by hand: nothing forces it
+    ordersService: DiBag.createProvider(
+      ({ ordersRepository, request, unitOfWork }: OrdersServiceDependencies) =>
+        createOrdersService(ordersRepository, request, unitOfWork),
+    ).withLifetime('one-per-scope'),                                               // forced by the compiler
+    nonce: DiBag.createProvider(() => crypto.randomUUID()).withLifetime('new-on-every-resolve'),
   })
-  .withInstalledModules([ordersModule])
-  .buildBag();
+  .buildContainer();
 ```
 
-- Without the `'scoped'` mark on `ordersService`, the build does not compile: a
-  singleton may not depend on the scoped `request`, and the error names both.
-- The default does not reach into installed modules. `ordersModule` fixed its
-  lifetimes when it was sealed.
-- A unit of work that depends on nothing scoped still needs its mark by hand.
+- Without the mark on `ordersService` the build does not compile: a shared service
+  may not depend on the per-scope `request`, and the error names both.
+- Without the mark on `request`, replacing it in a child scope does not compile.
+- `unitOfWork` depends on nothing per-scope, so nothing catches a forgotten mark
+  there. It would be shared between requests.
+- An application that never creates a child scope writes no lifetime marks at all.
 
 ## Where 0.5.0 is longer than 0.4.0
 
