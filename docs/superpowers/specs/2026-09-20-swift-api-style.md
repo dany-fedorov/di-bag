@@ -7,6 +7,9 @@ as the naming standard, translated to TypeScript. It also carries the four
 [behavior changes](#behavior-changes) approved from the orthogonality review, so
 that no call is renamed in 0.5.0 and then removed one release later.
 
+Fifteen worked use cases are in the
+[companion examples](2026-09-20-swift-api-style-examples.md).
+
 **Status: proposed, awaiting review.** Each phase in the [roadmap](#roadmap) gets
 its own implementation plan under `docs/superpowers/plans/` once this note is
 approved.
