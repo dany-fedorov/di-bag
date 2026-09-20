@@ -155,7 +155,7 @@ export const greetingModule = DiBag.createBuilder()
 ```ts
 // src/features/greeting/check.ts
 DiBag.createBuilder()
-  .withInstalledModule({ module: greetingModule })
+  .withInstalledModule(greetingModule)
   .withServices({ config: (): GreetingConfig => ({ language: 'en' }) })
   .verifyGraphAtCompileTime() satisfies void;
 ```
@@ -177,16 +177,16 @@ const ordersForThisApp = DiBag.createBuilder()
 ```ts
 // 0.5.0
 const app = DiBag.createBuilder()
-  .withInstalledModule({
-    module: ordersModule
+  .withInstalledModule(
+    ordersModule
       .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' })
       .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'ordersHandler' }),
-  })
-  .withInstalledModule({
-    module: billingModule
+  )
+  .withInstalledModule(
+    billingModule
       .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'billingConfig' })
       .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'billingHandler' }),
-  })
+  )
   .withServices({
     ordersConfig: (): OrdersConfig => ({ currency: 'EUR' }),
     billingConfig: (): BillingConfig => ({ vatRate: 0.2 }),
@@ -211,8 +211,8 @@ const usersModule = DiBag.createBuilder()
 
 // the app never names a controller
 const app = DiBag.createBuilder()
-  .withInstalledModule({ module: usersModule })
-  .withInstalledModule({ module: ordersModule })
+  .withInstalledModule(usersModule)
+  .withInstalledModule(ordersModule)
   .withServiceAlias({ aliasKey: 'controllers', targetServiceKey: controllersToken })
   .withServices({
     router: ({ controllers }: { controllers: readonly Controller[] }) => createRouter(controllers),
@@ -448,7 +448,7 @@ export function createAppBag(shutdownSignal: AbortSignal) {
         .withLifetime('singleton'),
       request: (): RequestContext => ({ requestId: 'outside-request', userId: undefined }), // replaced per request
     })
-    .withInstalledModule({ module: ordersModule })
+    .withInstalledModule(ordersModule)
     .buildBag()
     .ensureServicesReady(['db'], { totalTimeoutMs: 10_000, abortSignal: shutdownSignal });
 }
