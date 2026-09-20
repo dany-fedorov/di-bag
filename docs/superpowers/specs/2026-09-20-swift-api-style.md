@@ -73,7 +73,7 @@ Each rule cites the guideline it comes from. This section becomes
 
 1. **Clarity at the point of use.** "Clarity is more important than brevity."
    Long names are fine. "Include all the words needed to avoid ambiguity":
-   `resolveAllContributions`, never `resolveAll`.
+   `verifyGraphAtCompileTime`, never `verifyGraph`.
 2. **Every word carries information.** "Omit needless words." `resolve` stays
    `resolve`, because adding "Service" says nothing new at the call site.
 3. **Effects decide the part of speech.** "Those with side-effects should read as
@@ -101,7 +101,7 @@ Each rule cites the guideline it comes from. This section becomes
    associated types according to their roles." `abortSignal`, `totalTimeoutMs`,
    `maxConcurrentServiceKeys`. This includes generic parameters and the parameter
    names of callbacks shown in documentation.
-6. **Booleans read as assertions.** `isOwnedByBag`, `isPresent`,
+6. **Booleans read as assertions.** `isOwnedByContainer`, `isPresent`,
    `allowsScopedDependencies`, `factoryReceivesContext`.
 7. **No abbreviations.** `factoryContext`, `dependencies`. The unit suffix `Ms`
    is kept as established precedent.
@@ -288,7 +288,7 @@ reports which services were still pending, as `close` does today.
 | `Presence.present` | `Presence.isPresent` | 6 |
 | `label`, in snapshots, events and failures | `bindingLabel` | 5 |
 | `BindingSnapshot.keys` | `serviceKeys` | 5 |
-| `BindingSnapshot.owned` | `isOwnedByBag` | 6 |
+| `BindingSnapshot.owned` | `isOwnedByContainer` | 6 |
 | `BindingSnapshot.acquisitionMode` | `factoryReturnKind` | 10 |
 | `tokenDependencies[].key`, `.kind` | `tokenSymbol`, `dependencyKind`; the kind `'all'` is removed, because a collection token says it | 5, 11 |
 | `contributions[].token` | `collectionTokenSymbol` | 5 |
@@ -342,6 +342,10 @@ A type is renamed only when its name contains a retired word.
 | `AcquisitionContext` | `FactoryContext` |
 | `StartupOptions` | `EnsureServicesReadyOptions` |
 | `ScopeOptions` | `CreateChildContainerOptions`, plus new `CreateIndependentContainerOptions` |
+| `CheckedScopeLifetimes`, `DisjointScopeSelection` | `CheckedChildContainerLifetimes`, `DisjointChildContainerSelection` |
+| `ScopeEventFields` | `ContainerEventFields` |
+| `LifetimeObligation` member `root` and its values `'root'`, `'root-reach'` | `singleton`, `'singleton'`, `'singleton-reach'` |
+| the documented rest parameter `modeOptions` | `returnKindOptions` |
 | `ModuleOptions.label` | `ModuleOptions.moduleLabel` |
 | `ObserverOptions` | `LifecycleObserver` |
 | `ConfigurationOptions.observers` | `ConfigurationOptions.lifecycleObservers` |
