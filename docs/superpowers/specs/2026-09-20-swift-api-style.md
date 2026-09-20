@@ -153,6 +153,7 @@ are generated from it.
 | 0.4.0 | 0.5.0 | Rule |
 | --- | --- | --- |
 | `DiBag.createBuilder()` | unchanged | |
+| `import { DiBag } from 'di-bag/node'` | removed: `import { DiBag } from 'di-bag'`, see [one entry point](#one-entry-point) | 14 |
 | `DiBag.withConfiguration({ runtime, observers })` | `DiBag.withConfiguration({ runtime, lifecycleObservers })` | 5 |
 | observer `{ onEvent, onError }` | `{ onLifecycleEvent, onObserverFailure }` | 5 |
 | `runtime.isNativePromise` | unchanged, it already reads as an assertion | 6 |
@@ -184,11 +185,14 @@ it with `createProvider` first.
 | `DiBag.withDisposal(registration, dispose)` | `provider.withDisposal(disposeService)` | 12 |
 | `DiBag.withLifetime(registration, 'root', { allowScopedDependencies })` | `provider.withLifetime('singleton', { allowsScopedDependencies }?)` | 6, 8, 12 |
 | `DiBag.withMetadata(registration, { static })` | `provider.withRegistrationMetadata(registrationMetadata)` | 13 |
-| `DiBag.withMetadata(registration, { dynamic: { mode, describe } })` | `provider.withAcquisitionMetadata(describeAcquisition)` | 4, 13 |
-| `DiBag.transformService(registration, { mode, transform, acquisitionMode })` | `provider.withTransformedService(transformService, { transformReturnKind? }?)` | 4, 12 |
+| `DiBag.withMetadata(registration, { dynamic: { mode, describe } })` | `provider.withAcquisitionMetadata({ describeAcquisition, callbackReceives })` | 4, 13 |
+| `DiBag.transformService(registration, { mode, transform, acquisitionMode })` | `provider.withTransformedService({ transformService, callbackReceives, transformReturnKind? })` | 4, 12 |
 
-`mode: 'direct' | 'awaited'` is removed and not replaced, see
-[one input rule](#one-input-rule-for-decorators). Lifetime values: `'singleton'`, `'scoped'`,
+`callbackReceives` values: `'exposed-service'` (was `direct`: exactly what the
+provider exposes, which for an asynchronous factory is its Promise) and
+`'fulfilled-value'` (was `awaited`). The choice stays, because it is how a
+decorator handles an asynchronous factory either as a Promise or as its result.
+Lifetime values: `'singleton'`, `'scoped'`,
 `'transient'`. A child scope that overrides a singleton gets its own instance; the
 lifetime guide must say so, because a term of art must not surprise an expert.
 
@@ -294,7 +298,7 @@ and `DI_BAG_INVALID_ACQUISITION_MODE` embed names this note retires.
 | new | `DI_BAG_WRONG_TOKEN_KIND`, for a single-service token where a collection token is required, or the reverse |
 | `DiBagCloseCancelledError`, `DiBagPluginValidationError`, and the 15 codes not listed | unchanged |
 
-The 42 codes become about 31, including the new `DI_BAG_REMOVED_API` and `DI_BAG_WRONG_TOKEN_KIND`. The phase 9 plan fixes the mapping for each of the
+The 42 codes become about 31, including the new `DI_BAG_REMOVED_API` and `DI_BAG_WRONG_TOKEN_KIND`. The phase 8 plan fixes the mapping for each of the
 123 throw sites by reading it. Compile-time message families keep their
 anchors except `root-capture`, which becomes `singleton-capture`. Every message
 that names a retired call is rewritten.
@@ -334,7 +338,6 @@ PublicProviders>`, `Token<TokenSymbol, Service>`. This does not break callers.
 | `resolve`, `close`, `pushDisposer` | Imperative verbs with effects, already clear |
 | `'scoped'`, `'transient'`, `optional`, `lazy` | Established terms, rule 8 and rule 2 |
 | Plugin descriptor `{ apiVersion: 1, create, dispose }` | It is a versioned contract with third parties; renaming it needs `apiVersion: 2` and is a separate decision |
-| `di-bag/node` entry point | Behavior, not naming; see out of scope |
 | The `Ms` unit suffix | Established JavaScript precedent |
 
 ## Behavior changes
@@ -380,19 +383,19 @@ candidates, a fallback after a chain, an override on top of defaults) need two
 tokens, such as `loggerToken` and `loggerSinksToken`. The composite becomes a
 recipe in `docs/agent/recipes.md`.
 
-### One input rule for decorators
+### One entry point
 
-`withDisposal`, `withTransformedService` and `withAcquisitionMetadata` all receive
-the acquired value of the stage before them: the value itself for a synchronous
-stage, the fulfilled value for an asynchronous one. `mode: 'direct' | 'awaited'`
-is removed. A transformed asynchronous service is exposed as a native Promise.
+`di-bag/node` is removed. `di-bag` already configures itself: on Node from 22.3,
+on Bun and on Deno it reads the host's native Promise check through
+`process.getBuiltinModule`, a call and not an import, so the entry still bundles
+for browsers. Everywhere else it is configurable:
+`DiBag.withConfiguration({ runtime: { isNativePromise } })`, or every registration
+states its `factoryReturnKind` and no check is needed.
 
-**Cost.** A decorator can no longer be handed the pending Promise itself while an
-earlier stage owns its fulfilled value. Wrapping the Promise, for a timeout or a
-fallback, moves into the factory. Acquisition metadata of an asynchronous service
-is present only after fulfillment. The stage engine in
-`src/provider-execution.ts` chooses the synchronous or asynchronous path at run
-time for `'auto-detect'` stages, which is the riskiest runtime change here.
+**Cost.** Node before 22.3, which is past or near its end of life, no longer works
+by changing an import. It needs the one-line configuration above, and
+`DI_BAG_CLASSIFIER_REQUIRED` already says so. About 200 files in this repo import
+the second entry and move to the main one, 39 of them tests.
 
 ### Requirement renaming
 
@@ -425,14 +428,14 @@ function factory.
 | References registrable as providers, folding `withServiceAlias` | References take tokens only. Giving named factories optional and lazy dependencies on named services needs references typed from the builder's registrations, which is heavy type machinery for a gap the positional adapter already fills |
 | A multi-key builder replace | The single-key form has the compile-cost fast path, and forks already replace several keys |
 | One cancelled-error class for readiness and close | The two now mean different things: a readiness cancellation closes the bag, a close cancellation only stops waiting |
-| Removing `di-bag/node` | Older Node versions need it |
+| One input rule for decorators, removing the choice of what a callback receives | It takes away the ability to handle the pending Promise of an asynchronous factory inside a decorator. The choice stays as `callbackReceives` |
 | Configuration at bag creation in place of `withConfiguration` | The facade is the only object that exists before any bag does. If building steps are ever observed, that is the only home for the observer. Observers for a single scope move to the follow-up program |
 | Install-time name mapping in place of module methods | A renamed module is a reusable value, and module installation is a hot path that should not gain type-level work |
 | Factory context for classes and plugins | See above |
 
 ## Shapes decided by measurement
 
-Seven shapes change how TypeScript infers callback parameters or how much work the
+Six shapes change how TypeScript infers callback parameters or how much work the
 checker does. Each is spiked in phase 1 before any rename lands. A shape is
 adopted when all three hold:
 
@@ -450,7 +453,6 @@ adopted when all three hold:
 | S4 | `factoryFunction` parameters are inferred from `dependencies` inside one object literal | The pair stays positional, followed by the bag |
 | S5 | `resolve` returns `readonly Item[]` for a collection token through a conditional on the hottest signature | A separate `resolveCollection(collectionToken)` call |
 | S6 | `withRenamedRequirement` remaps a module's requirements and constraints in its type | Requirement renaming is dropped |
-| S7 | A transformed service is typed from the acquired value of an `'auto-detect'` stage | `transformReceives: 'fulfilled-value'` stays as an explicit option |
 
 Rule 15 applies to every fallback.
 
@@ -487,23 +489,22 @@ on `npm run check`, `npm run docs:check` and `npm run graph:check` by itself.
 
 | Phase | Content | Kind |
 | --- | --- | --- |
-| 0 | The naming guide, the `CONTEXT.md` vocabulary, and a naming test that reads the built declarations. The test checks `with…` on builder methods, assertion-style booleans, kebab-case string values and an abbreviation denylist. It starts with a list of known violations that must be empty by phase 9 | Not breaking |
-| 1 | Spikes S1 to S7 with recorded measurements. `rename-map.json` and the codemod, proven on a copy of the test suite | Not breaking |
+| 0 | The naming guide, the `CONTEXT.md` vocabulary, and a naming test that reads the built declarations. The test checks `with…` on builder methods, assertion-style booleans, kebab-case string values and an abbreviation denylist. It starts with a list of known violations that must be empty by phase 8 | Not breaking |
+| 1 | Spikes S1 to S6 with recorded measurements. `rename-map.json` and the codemod, proven on a copy of the test suite | Not breaking |
 | 2 | Documented parameter names, callback parameter names, generic parameter names, and summaries that pass the "or" test | Not breaking |
 | 3 | `ensureServicesReady`, the pending-work report, `close` options, and the service readiness errors. `buildAndStart` is removed | Behavior |
 | 4 | Collection tokens. `all`, `resolveAll` and `inspectAll` are removed under their old names | Behavior |
-| 5 | Builder, bag and module methods and the configuration option names, applied with the codemod. The graph tool learns the new chain endings and keeps the old ones | Rename |
+| 5 | Builder, bag and module methods and the configuration option names, applied with the codemod. `di-bag/node` is removed and its imports move to `di-bag`. The graph tool learns the new chain endings and keeps the old ones | Rename |
 | 6 | Requirement renaming | Behavior, additive |
-| 7 | One input rule for decorators, on the old names. `mode` is removed | Behavior |
-| 8 | The provider authoring surface: `createProvider` family, `factoryReturnKind`, `FactoryContext`, provider methods or their fallback, the metadata split, `singleton`, `createToken`, and the factory context for positional functions | Rename |
-| 9 | Snapshot and event fields, the disposal vocabulary, error classes and codes, the errors page and compile-time messages. The known-violations list is empty | Rename |
-| 10 | Throwing stubs, the extended negative fixture, the migration guide, the changelog, regenerated agent docs, and the 0.5.0 release candidate through `PUBLISHING.md`. `next` merges into `main` | Release |
+| 7 | The provider authoring surface: `createProvider` family, `factoryReturnKind`, `FactoryContext`, provider methods or their fallback, the metadata split, `callbackReceives`, `singleton`, `createToken`, and the factory context for positional functions | Rename |
+| 8 | Snapshot and event fields, the disposal vocabulary, error classes and codes, the errors page and compile-time messages. The known-violations list is empty | Rename |
+| 9 | Throwing stubs, the extended negative fixture, the migration guide, the changelog, regenerated agent docs, and the 0.5.0 release candidate through `PUBLISHING.md`. `next` merges into `main` | Release |
 
 Phase 3 comes first among the breaking phases so the first method written under
 the standard exists as the example. Every behavior phase comes before the rename
 phase that would touch the same calls, so nothing is renamed and then removed:
-4 before 5, and 7 before 8. Phase 5 proves the codemod on the largest call
-counts. Phase 9 is late because error codes touch the most test assertions.
+4 comes before 5. Phase 5 proves the codemod on the largest call counts. Phase 8
+is late because error codes touch the most test assertions.
 
 ## Out of scope
 
