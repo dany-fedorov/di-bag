@@ -155,7 +155,7 @@ export const greetingModule = DiBag.createBuilder()
 ```ts
 // src/features/greeting/check.ts
 DiBag.createBuilder()
-  .withInstalledModule(greetingModule)
+  .withInstalledModule({ module: greetingModule })
   .withServices({ config: (): GreetingConfig => ({ language: 'en' }) })
   .verifyGraphAtCompileTime() satisfies void;
 ```
@@ -177,22 +177,25 @@ const ordersForThisApp = DiBag.createBuilder()
 ```ts
 // 0.5.0
 const app = DiBag.createBuilder()
-  .withInstalledModule(
-    ordersModule
-      .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' })
-      .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'ordersHandler' }),
-  )
-  .withInstalledModule(
-    billingModule
-      .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'billingConfig' })
-      .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'billingHandler' }),
-  )
+  .withInstalledModule({
+    module: ordersModule,
+    renamedRequirements: { config: 'ordersConfig' },
+    renamedExports: { handler: 'ordersHandler' },
+  })
+  .withInstalledModule({
+    module: billingModule,
+    renamedRequirements: { config: 'billingConfig' },
+    renamedExports: { handler: 'billingHandler' },
+  })
   .withServices({
     ordersConfig: (): OrdersConfig => ({ currency: 'EUR' }),
     billingConfig: (): BillingConfig => ({ vatRate: 0.2 }),
   })
   .buildBag();
 ```
+
+Each map reads like a destructuring rename: the key is the current name and the
+value is the new one.
 
 ## 7. A list that modules add to: API controllers
 
@@ -211,8 +214,8 @@ const usersModule = DiBag.createBuilder()
 
 // the app never names a controller
 const app = DiBag.createBuilder()
-  .withInstalledModule(usersModule)
-  .withInstalledModule(ordersModule)
+  .withInstalledModule({ module: usersModule })
+  .withInstalledModule({ module: ordersModule })
   .withServiceAlias({ aliasKey: 'controllers', targetServiceKey: controllersToken })
   .withServices({
     router: ({ controllers }: { controllers: readonly Controller[] }) => createRouter(controllers),
@@ -448,7 +451,7 @@ export function createAppBag(shutdownSignal: AbortSignal) {
         .withLifetime('singleton'),
       request: (): RequestContext => ({ requestId: 'outside-request', userId: undefined }), // replaced per request
     })
-    .withInstalledModule(ordersModule)
+    .withInstalledModule({ module: ordersModule })
     .buildBag()
     .ensureServicesReady(['db'], { totalTimeoutMs: 10_000, abortSignal: shutdownSignal });
 }
