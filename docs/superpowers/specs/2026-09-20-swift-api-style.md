@@ -470,7 +470,7 @@ function factory.
 | One input rule for decorators, removing the choice of what a callback receives | It takes away the ability to handle the pending Promise of an asynchronous factory inside a decorator. The choice stays as `callbackReceives` |
 | Configuration at bag creation in place of `withConfiguration` | The facade is the only object that exists before any bag does. If building steps are ever observed, that is the only home for the observer. Observers for a single scope move to the follow-up program |
 | Factory context for classes and plugins | See above |
-| Renaming options on `withInstalledModule` | They only wrap the two module methods, which can be written inline at the install line. A module is an immutable value, so every per-installation setting can be a module method that returns a new module |
+| Renaming options on `withInstalledModules` | They only wrap the two module methods, which can be written inline at the install line. A module is an immutable value, so every per-installation setting can be a module method that returns a new module |
 
 ## Shapes decided by measurement
 
