@@ -87,8 +87,10 @@ Each rule cites the guideline it comes from. This section becomes
      `ensureServicesReady(serviceKeys, options?)`.
    - Two or more required: one bag with named properties.
      `withServiceAlias({ aliasKey, targetServiceKey })`.
-   - Never two positional parameters. When the first argument needs a preposition,
-     the word moves into the base name: `buildModuleExporting(exportedServiceKeys)`.
+   - Never two positional parameters. When the single required input does not read
+     as a phrase with the method name, it goes into the bag under its role name:
+     `buildModule({ exportedServiceKeys })`, because "build module greeter" says the
+     wrong thing.
 5. **Names state role, subject and unit.** "Name variables, parameters, and
    associated types according to their roles." `abortSignal`, `totalTimeoutMs`,
    `maxConcurrentServiceKeys`. This includes generic parameters and the parameter
@@ -214,7 +216,7 @@ what the methods do.
 | `replace(key, registration)` | `withReplacedService({ serviceKey, provider })` | 3, 4 |
 | `installModule(module)` | `withInstalledModule(module)` | 3 |
 | `verifyGraph()` | `verifyGraphAtCompileTime()` | 1 |
-| `buildModule(keys, { label })` | `buildModuleExporting(exportedServiceKeys, { moduleLabel }?)` | 4, 5 |
+| `buildModule(keys, { label })` | `buildModule({ exportedServiceKeys, moduleLabel? })` | 4, 5 |
 | `build()` | `buildBag()` | 1 |
 | `buildAndStart(keys, options)` | removed: `buildBag().ensureServicesReady(serviceKeys, options?)` | |
 

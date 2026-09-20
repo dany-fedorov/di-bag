@@ -149,7 +149,7 @@ export const greetingModule = DiBag.createBuilder()
       greet: name => `${templates.get(config.language) ?? 'Hello'}, ${name}!`,
     }),
   })
-  .buildModuleExporting(['greeter'], { moduleLabel: 'greeting' });
+  .buildModule({ exportedServiceKeys: ['greeter'], moduleLabel: 'greeting' });
 ```
 
 ```ts
@@ -160,8 +160,8 @@ DiBag.createBuilder()
   .verifyGraphAtCompileTime() satisfies void;
 ```
 
-- `buildModuleExporting(['greeter'])` reads as a sentence. In 0.4.0,
-  `buildModule(['greeter'])` read as "build the module greeter".
+- `exportedServiceKeys` names what the list is. In 0.4.0, `buildModule(['greeter'])`
+  read as "build the module greeter".
 - `verifyGraphAtCompileTime` says that the call does nothing when it runs.
 
 ## 6. Two modules that both require `config`
@@ -207,7 +207,7 @@ const usersModule = DiBag.createBuilder()
     provider: ({ usersRepository }: { usersRepository: UsersRepository }): Controller =>
       new UsersController(usersRepository),
   })
-  .buildModuleExporting([], { moduleLabel: 'users' });
+  .buildModule({ exportedServiceKeys: [], moduleLabel: 'users' });
 
 // the app never names a controller
 const app = DiBag.createBuilder()
