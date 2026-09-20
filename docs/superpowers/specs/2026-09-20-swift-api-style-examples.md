@@ -155,7 +155,7 @@ export const greetingModule = DiBag.createBuilder()
 ```ts
 // src/features/greeting/check.ts
 DiBag.createBuilder()
-  .withInstalledModule(greetingModule)
+  .withInstalledModules([greetingModule])
   .withServices({ config: (): GreetingConfig => ({ language: 'en' }) })
   .verifyGraphAtCompileTime() satisfies void;
 ```
@@ -177,16 +177,14 @@ const ordersForThisApp = DiBag.createBuilder()
 ```ts
 // 0.5.0
 const app = DiBag.createBuilder()
-  .withInstalledModule(
+  .withInstalledModules([
     ordersModule
       .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' })
       .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'ordersHandler' }),
-  )
-  .withInstalledModule(
     billingModule
       .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'billingConfig' })
       .withRenamedExport({ currentExportKey: 'handler', newExportKey: 'billingHandler' }),
-  )
+  ])
   .withServices({
     ordersConfig: (): OrdersConfig => ({ currency: 'EUR' }),
     billingConfig: (): BillingConfig => ({ vatRate: 0.2 }),
@@ -214,8 +212,7 @@ const usersModule = DiBag.createBuilder()
 
 // the app never names a controller
 const app = DiBag.createBuilder()
-  .withInstalledModule(usersModule)
-  .withInstalledModule(ordersModule)
+  .withInstalledModules([usersModule, ordersModule])
   .withServiceAlias({ aliasKey: 'controllers', targetServiceKey: controllersToken })
   .withServices({
     router: ({ controllers }: { controllers: readonly Controller[] }) => createRouter(controllers),
@@ -451,7 +448,7 @@ export function createAppBag(shutdownSignal: AbortSignal) {
         .withLifetime('singleton'),
       request: (): RequestContext => ({ requestId: 'outside-request', userId: undefined }), // replaced per request
     })
-    .withInstalledModule(ordersModule)
+    .withInstalledModules([ordersModule])
     .buildBag()
     .ensureServicesReady(['db'], { totalTimeoutMs: 10_000, abortSignal: shutdownSignal });
 }

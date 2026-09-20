@@ -88,11 +88,11 @@ Each rule cites the guideline it comes from. This section becomes
    - Two or more required: one bag with named properties.
      `withServiceAlias({ aliasKey, targetServiceKey })`.
    - A builder method with two or more inputs takes one bag with named
-     properties. `withInstalledModule(module)` keeps its single positional input:
-     it reads as a phrase with the method name, and a bag that only wraps one
-     value adds nothing. An optional bag can follow it later without breaking
-     callers. `withServices` takes a bag by nature: it maps each service name to
-     its provider.
+     properties. `withInstalledModules(modules)` keeps its single positional
+     input: the list reads as a phrase with the method name, and a bag that only
+     wraps one value adds nothing. An optional bag can follow it later without
+     breaking callers. `withServices` takes a bag by nature: it maps each service
+     name to its provider.
    - Never two positional parameters. When the single required input does not read
      as a phrase with the method name, it goes into the bag under its role name:
      `buildModule({ exportedServiceKeys })`, because "build module greeter" says the
@@ -220,7 +220,7 @@ what the methods do.
 | `alias(destination, target)` | `withServiceAlias({ aliasKey, targetServiceKey })` | 3, 4 |
 | `contribute(token, registration)` | `withCollectionContribution({ collectionToken, provider })`, collection tokens only | 3, 4 |
 | `replace(key, registration)` | `withReplacedService({ serviceKey, provider })` | 3, 4 |
-| `installModule(module)` | `withInstalledModule(module)` | 3 |
+| `installModule(module)` | `withInstalledModules(modules)`, a list installed in order, see [installing a list of modules](#installing-a-list-of-modules) | 3, 4 |
 | `verifyGraph()` | `verifyGraphAtCompileTime()` | 1 |
 | `buildModule(keys, { label })` | `buildModule({ exportedServiceKeys, moduleLabel? })` | 4, 5 |
 | `build()` | `buildBag()` | 1 |
@@ -423,6 +423,33 @@ and need no renaming.
 requirements and constraints. The work lands on a rarely called method, not on
 module installation, which is a hot path.
 
+### Installing a list of modules
+
+```ts
+const app = DiBag.createBuilder()
+  .withInstalledModules([
+    loggingModule,
+    ordersModule.withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' }),
+    billingModule,
+  ])
+  .withServices({ ordersConfig, billingConfig })
+  .buildBag();
+```
+
+`withInstalledModules(modules)` replaces the singular call and mirrors
+`withServices`: both add in bulk under a plural name. List order is installation
+order, which is what contribution order follows. When a host contribution must sit
+between two modules, the method is called twice. One module per line keeps merges
+clean when several agents add modules. By rule 14 the singular form does not ship,
+so one module is written `withInstalledModules([ordersModule])`.
+
+**Cost.** The compile-time check becomes a fold over the list: each module is
+checked against the builder plus the modules before it, including export
+collisions between two modules of the same list. That is recursive type work on a
+hot path, and a long list can reach the compiler's recursion limit. A collision
+must still be reported on the offending list element, not on the whole call. The
+graph tool must learn to read a list. Spike S7 decides.
+
 ### Factory context for positional functions
 
 `createProviderFromFunction` accepts `factoryReceivesContext: true` and passes the
@@ -447,7 +474,7 @@ function factory.
 
 ## Shapes decided by measurement
 
-Six shapes change how TypeScript infers callback parameters or how much work the
+Seven shapes change how TypeScript infers callback parameters or how much work the
 checker does. Each is spiked in phase 1 before any rename lands. A shape is
 adopted when all three hold:
 
@@ -465,6 +492,7 @@ adopted when all three hold:
 | S4 | `factoryFunction` parameters are inferred from `dependencies` inside one object literal | The pair stays positional, followed by the bag |
 | S5 | `resolve` returns `readonly Item[]` for a collection token through a conditional on the hottest signature | A separate `resolveCollection(collectionToken)` call |
 | S6 | `withRenamedRequirement` remaps a module's requirements and constraints in its type | Requirement renaming is dropped |
+| S7 | `withInstalledModules` folds its checks over a list of modules and reports a collision on the offending element. Measured with 1, 10 and 50 modules | The singular `withInstalledModule(module)` ships instead |
 
 Rule 15 applies to every fallback.
 
@@ -502,11 +530,11 @@ on `npm run check`, `npm run docs:check` and `npm run graph:check` by itself.
 | Phase | Content | Kind |
 | --- | --- | --- |
 | 0 | The naming guide, the `CONTEXT.md` vocabulary, and a naming test that reads the built declarations. The test checks `with…` on builder methods, assertion-style booleans, kebab-case string values and an abbreviation denylist. It starts with a list of known violations that must be empty by phase 8 | Not breaking |
-| 1 | Spikes S1 to S6 with recorded measurements. `rename-map.json` and the codemod, proven on a copy of the test suite | Not breaking |
+| 1 | Spikes S1 to S7 with recorded measurements. `rename-map.json` and the codemod, proven on a copy of the test suite | Not breaking |
 | 2 | Documented parameter names, callback parameter names, generic parameter names, and summaries that pass the "or" test | Not breaking |
 | 3 | `ensureServicesReady`, the pending-work report, `close` options, and the service readiness errors. `buildAndStart` is removed | Behavior |
 | 4 | Collection tokens. `all`, `resolveAll` and `inspectAll` are removed under their old names | Behavior |
-| 5 | Builder, bag and module methods and the configuration option names, applied with the codemod. `di-bag/node` is removed and its imports move to `di-bag`. The graph tool learns the new chain endings and keeps the old ones | Rename |
+| 5 | Builder, bag and module methods and the configuration option names, applied with the codemod. `di-bag/node` is removed and its imports move to `di-bag`. The graph tool learns the new chain endings and the module list, and keeps the old names | Rename |
 | 6 | Requirement renaming on the module | Behavior, additive |
 | 7 | The provider authoring surface: `createProvider` family, `factoryReturnKind`, `FactoryContext`, provider methods or their fallback, the metadata split, `callbackReceives`, `singleton`, `createToken`, and the factory context for positional functions | Rename |
 | 8 | Snapshot and event fields, the disposal vocabulary, error classes and codes, the errors page and compile-time messages. The known-violations list is empty | Rename |
@@ -533,8 +561,8 @@ separate program, and the names above leave room for them:
 
 ## Risks
 
-- **Compile cost.** Bags, provider methods, collection tokens and install-time
-  renaming can raise instantiation counts. The spikes and rule 15 contain this.
+- **Compile cost.** Bags, provider methods, collection tokens, requirement
+  renaming and the module list can raise instantiation counts. The spikes and rule 15 contain this.
 - **Behavior and names change in one release.** Four behavior changes ride along
   with the renames, which raises the risk of the release and lowers the number of
   migrations to one. Each behavior phase is its own pull request with its own
@@ -558,6 +586,8 @@ separate program, and the names above leave room for them:
 - A fork replaces a whole collection in a test, and `ensureServicesReady` waits
   for a collection.
 - `withRenamedRequirement` renames a requirement without a wrapper module.
+- `withInstalledModules` reports an export collision on the list element that
+  causes it, and installs in list order.
 - No 0.4.0 name in the rename map compiles, and each throws
   `DI_BAG_REMOVED_API` at runtime.
 - The codemod turns the 0.4.0 copies of `examples/` into code that type-checks
