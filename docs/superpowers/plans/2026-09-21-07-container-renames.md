@@ -1437,6 +1437,10 @@ function transformApi(member, entry) {
 const result = transforms[entry.transform](call, transformApi(member, entry));
 ```
 
+Replace only this result line in the existing custom-transform branch. Retain the preceding
+`memberCoverage` completeness and call-plan consistency checks, and retain the following
+`result === undefined` skip handling unchanged.
+
 Update the transform-API JSDoc/type description beside this code to include `nameForRole(role)`. Append these exact assertions to `rename-map.test.mjs` and update the shipped-map transform id list in its existing validity test to `['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation']`:
 
 ```js

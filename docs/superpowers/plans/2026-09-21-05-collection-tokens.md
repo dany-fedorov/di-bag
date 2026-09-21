@@ -102,7 +102,7 @@ Facts about the code that the tasks rely on, all read on 2026-09-21:
 | `tools/codemod/rename-map.json` | modify | exact 0.4.0-to-0.5.0 collection method entries |
 | `tools/codemod/lib/rewrite.mjs` | modify | expose program/checker/library facts to whole-program transforms |
 | `tools/codemod/lib/transforms/collection-*.mjs`, `tools/codemod/lib/transforms/index.mjs` | create/modify | classify token use, rewrite safe uses, report mixed/external uses |
-| `tools/codemod/test/fixtures/collection-tokens*/` | create | cross-file rewrite and four-manual-item golden fixtures |
+| `tools/codemod/test/fixtures/collection-tokens*/`, `tools/codemod/test/fixtures/collection-token-partial/` | create | cross-file rewrite, four-manual-item golden, and incomplete-symbol boundary fixture |
 | `scripts/phase05-strings.py` | create | counted, idempotent migration for generated/untyped source strings |
 | `tests/contributions*.ts`, `tests/types/contributions*.ts`, `tests/*runtime-fixture.ts`, `tests/acquisition-retention.node.mjs`, `examples/contributions.ts` | modify | migrate collection declarations and reads; split the two-channel control |
 | `docs/agent/api-card.md`, `docs/reference/`, `docs/guides/api-reference.md`, `docs/agent/errors.md`, `docs/agent/recipes.md`, `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs` | modify/regenerate | generated/public docs, error coverage, composite recipe, exact signatures |
@@ -2263,6 +2263,7 @@ Execute this task only when Task 4's decision rule selects it.
 - Create: `tools/codemod/test/fixtures/collection-tokens/input.ts`, `expected.ts`, `expected-manual.json`
 - Create: `tools/codemod/test/fixtures/collection-tokens-import/input.ts`, `expected.ts`, `expected-manual.json`
 - Create: `tools/codemod/test/fixtures/collection-token-alias-source/{input.ts,expected.ts,expected-manual.json}` and `collection-token-alias-use/{input.ts,expected.ts,expected-manual.json}`
+- Create: `tools/codemod/test/fixtures/collection-token-partial/{input.ts,expected.ts,expected-manual.json}`
 
 **Interfaces:**
 - Consumes: phase-1 `api.nameOf`, `api.assemble`, `api.text`, `api.manual`, library-symbol resolution and one original TypeScript program.
@@ -2417,8 +2418,9 @@ function analyze(api) {
 function isTokenCreation(api, node) {
   const { ts, library } = api;
   if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return false;
-  return library.membersOf(library.symbolAt(node.expression.name))
-    .some(member => member.owner === 'token()' && member.name === 'of');
+  const coverage = library.memberCoverage(library.symbolAt(node.expression.name));
+  return coverage.complete && coverage.members.length > 0
+    && coverage.members.every(member => member.owner === 'token()' && member.name === 'of');
 }
 
 function variableSymbol(api, identifier) {
@@ -2437,8 +2439,11 @@ function classify(api, identifier) {
   if (ts.isImportSpecifier(parent) || ts.isExportSpecifier(parent) || ts.isImportClause(parent) || ts.isTypeQueryNode(parent)) return 'neutral';
   if (ts.isPropertyAccessExpression(parent) && parent.expression === identifier && parent.name.text === 'key') return 'neutral';
   if (ts.isCallExpression(parent) && parent.arguments[0] === identifier && ts.isPropertyAccessExpression(parent.expression)) {
-    const members = library.membersOf(library.symbolAt(parent.expression.name));
-    if (members.some(member => COLLECTION_POSITIONS.has(`${member.owner}.${member.name}`))) return 'collection';
+    const coverage = library.memberCoverage(library.symbolAt(parent.expression.name));
+    if (coverage.complete && coverage.members.length > 0
+        && coverage.members.every(member => COLLECTION_POSITIONS.has(`${member.owner}.${member.name}`))) {
+      return 'collection';
+    }
   }
   return 'other';
 }
@@ -2675,6 +2680,39 @@ export const items = app.resolve(localItems);
 
 Write `[]` to both `expected-manual.json` files. The phase-1 fixture glob discovers both `input.ts` files and its original program includes the imported declaration. Under S5 fallback only the final `resolve` becomes `resolveCollection`. Classification resolves every identifier's original symbol; it must not prefilter by the spelling of declarations, because imports may rename them.
 
+Add a `collection-token-partial` fixture that covers both completeness boundaries without changing
+the existing four-item golden. Its `input.ts` and `expected.ts` are byte-for-byte identical:
+
+```ts
+import { DiBag } from 'di-bag';
+
+declare const chooseUser: boolean;
+const uncertain = DiBag.token(Symbol('uncertain')).of<number>();
+const receiver = chooseUser
+  ? DiBag.createBuilder()
+  : { userKind: 'user-builder' as const, contribute(_token: unknown, _provider: () => number) { return this; } };
+export const unchangedUse = receiver.contribute(uncertain, () => 1);
+
+const tokenFactory = chooseUser
+  ? DiBag.token(Symbol('factory'))
+  : { userKind: 'user-token' as const, of<T>() { return undefined as T; } };
+export const unchangedCreation = tokenFactory.of<number>();
+```
+
+Its `expected-manual.json` is exactly:
+
+```json
+[
+  { "line": 8, "reason": "contribute resolves to both DI Bag and non-library declarations; migrate this use by hand" },
+  { "line": 13, "reason": "of resolves to both DI Bag and non-library declarations; migrate this use by hand" }
+]
+```
+
+Add `'collection-token-partial'` to the fixture-name array in `fixtures.test.mjs`. The first row
+proves an incomplete receiver is classified as `other`, so it cannot make `uncertain` a collection
+token; the second proves an incomplete token-factory receiver is not admitted as a token creation.
+Both calls remain byte-for-byte unchanged and receive only the phase-1 partial-declaration report.
+
 - [ ] **Step 7: Run codemod tests**
 
 ```bash
@@ -2682,7 +2720,9 @@ node --test tools/codemod/test/transforms.test.mjs tools/codemod/test/fixtures.t
 npm run codemod:check
 ```
 
-Expected: pass; inputs type-check against vendored 0.4.0 declarations; golden output matches; four manual items only.
+Expected: pass; inputs type-check against vendored 0.4.0 declarations; golden output matches; the
+primary fixture has its exact four manual items and `collection-token-partial` has its exact two
+partial-declaration items, with no additional report.
 
 - [ ] **Step 8: Commit**
 

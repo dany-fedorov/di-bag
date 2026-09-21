@@ -1252,7 +1252,14 @@ function currentRoute(api, call, owner, from, originalArity) {
   if (!api.ts.isPropertyAccessExpression(call.expression)) return undefined;
   const entry = api.entryFor(owner, from, originalArity);
   if (!entry || call.expression.name.text !== entry.to) return undefined;
-  return api.library.membersOf(api.library.symbolAt(call.expression.name)).length > 0 ? entry : undefined;
+  const coverage = api.library.memberCoverage(api.library.symbolAt(call.expression.name));
+  if (coverage.members.length === 0) return undefined;
+  if (!coverage.complete) {
+    api.manual(call, `${entry.to} resolves to both DI Bag and non-library declarations; preserve provider lifetimes by hand`);
+    return undefined;
+  }
+  if (coverage.members.length !== 1) return undefined;
+  return entry;
 }
 
 function mappedOutputs(api, owner, from) {
@@ -1357,15 +1364,16 @@ function providerForm(ts, expression, api, visited = new Set()) {
     }
   }
   if (ts.isPropertyAccessExpression(current.expression)) {
-    const resolvedCurrent = api.library.membersOf(api.library.symbolAt(current.expression.name));
-    if (resolvedCurrent.length === 0) return 'unknown';
+    const coverage = api.library.memberCoverage(api.library.symbolAt(current.expression.name));
+    if (!coverage.complete || coverage.members.length !== 1) return 'unknown';
+    const [resolvedCurrent] = coverage.members;
     const currentName = current.expression.name.text;
     if (mappedOutputs(api, 'DiBagApi', 'withLifetime').has(currentName)) return 'explicit';
     const decoratorOutputs = new Set(['withDisposal', 'withMetadata', 'transformService']
       .flatMap(name => [...mappedOutputs(api, 'DiBagApi', name)]));
     if (decoratorOutputs.has(currentName)) {
       let inner;
-      if (resolvedCurrent.some(resolved => resolved.owner === 'Provider')) {
+      if (resolvedCurrent.owner === 'Provider') {
         inner = providerForm(ts, current.expression.expression, api, visited);
       } else {
         const entry = ['withDisposal', 'withMetadata', 'transformService']
@@ -1507,8 +1515,9 @@ export function hasOldCreateScope({ ts, sourceFiles, library, index }) {
       if (found) return;
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
         const name = node.expression.name.text;
-        found = name === 'createScope' && library.membersOf(library.symbolAt(node.expression.name))
-          .some(resolved => index.methodFor(resolved.owner, name, node.arguments.length)?.owner === 'Bag');
+        const coverage = library.memberCoverage(library.symbolAt(node.expression.name));
+        found = name === 'createScope' && coverage.complete && coverage.members.length === 1
+          && index.methodFor(coverage.members[0].owner, name, node.arguments.length)?.owner === 'Bag';
       }
       if (!found) ts.forEachChild(node, visit);
     }
@@ -1537,11 +1546,14 @@ function originalMember(call) {
   const callee = call.expression;
   if (!ts.isPropertyAccessExpression(callee)) return undefined;
   const name = callee.name.text;
-  for (const resolved of library.membersOf(library.symbolAt(callee.name))) {
+  const coverage = library.memberCoverage(library.symbolAt(callee.name));
+  const candidates = [];
+  for (const resolved of coverage.members) {
     const entry = index.methodFor(resolved.owner, name, call.arguments.length);
-    if (entry) return { ...resolved, name, entry };
+    if (entry) candidates.push({ ...resolved, name, entry });
   }
-  return undefined;
+  if (!coverage.complete || candidates.length !== coverage.members.length || candidates.length !== 1) return undefined;
+  return candidates[0];
 }
 
 function transformApi(member, entry) {
@@ -1680,8 +1692,9 @@ export function hasOldCreateScope({ ts, sourceFiles, library, index }) {
       if (found) return;
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
         const name = node.expression.name.text;
-        found = name === 'createScope' && library.membersOf(library.symbolAt(node.expression.name))
-          .some(member => index.methodFor(member.owner, name, node.arguments.length)?.owner === 'Bag');
+        const coverage = library.memberCoverage(library.symbolAt(node.expression.name));
+        found = name === 'createScope' && coverage.complete && coverage.members.length === 1
+          && index.methodFor(coverage.members[0].owner, name, node.arguments.length)?.owner === 'Bag';
       }
       if (!found) ts.forEachChild(node, visit);
     }
@@ -1881,6 +1894,119 @@ test('whole-program policy analyzes files outside the output selection', () => {
     only: ['whole-program-pin/source.ts'],
   });
   assert.match(result.files[0].text, /(withLifetime\('scoped:one-per-container'\)|providerWithLifetime\(\{)/);
+});
+```
+
+Append this focused boundary test. It uses the scratch imports already added for the shape test
+above. Add `import { createLibrary } from '../lib/library.mjs';` beside the existing codemod imports.
+A mixed `Bag | UserBag` receiver must not enable project-wide pinning; a mixed current-name
+builder receiver must not acquire a pin; a pure user `withServices` lookalike remains silent; and a
+mixed current provider method remains unchanged with manual guidance when pinning is explicitly
+requested.
+
+```js
+test('mixed library and user receivers do not authorize lifetime pins', () => {
+  const scratch = mkdtempSync(join(tmpdir(), 'di-bag-lifetime-coverage-'));
+  const library = join(scratch, 'library');
+  mkdirSync(library);
+  writeFileSync(join(library, 'index.ts'), `
+export class Provider {
+  readonly providerKind = 'library-provider' as const;
+  withLifetime(_lifetime: string): Provider { return this; }
+}
+export class Bag {
+  readonly bagKind = 'library-bag' as const;
+  createScope(): Bag { return this; }
+}
+export class Builder {
+  readonly builderKind = 'library-builder' as const;
+  register(_services: unknown): this { return this; }
+  withServices(_services: unknown): this { return this; }
+  build(): Bag { return new Bag(); }
+}
+export class DiBag {
+  static createBuilder(): Builder { return new Builder(); }
+}
+`);
+  const input = join(scratch, 'input.ts');
+  writeFileSync(input, `
+import { Bag, DiBag, Provider } from './library/index.js';
+declare const chooseUser: boolean;
+class UserBag {
+  readonly bagKind = 'user-bag' as const;
+  createScope(): UserBag { return this; }
+}
+class UserBuilder {
+  readonly builderKind = 'user-builder' as const;
+  withServices(_services: unknown): this { return this; }
+}
+class UserProvider {
+  readonly providerKind = 'user-provider' as const;
+  withLifetime(_lifetime: string): UserProvider { return this; }
+}
+const mixedBag = chooseUser ? new Bag() : new UserBag();
+const mixedBuilder = chooseUser ? DiBag.createBuilder() : new UserBuilder();
+const mixedProvider = chooseUser ? new Provider() : new UserProvider();
+mixedBag.createScope();
+mixedBuilder.withServices({ current: () => 1 });
+new UserBuilder().withServices({ userOnly: () => 2 });
+DiBag.createBuilder().register({
+  plain: () => 3,
+  current: mixedProvider.withLifetime('root'),
+}).build();
+`);
+  const program = compiler.ts.createProgram([input], {
+    strict: true, noEmit: true, skipLibCheck: true, types: [],
+    target: compiler.ts.ScriptTarget.ES2022,
+    module: compiler.ts.ModuleKind.NodeNext,
+    moduleResolution: compiler.ts.ModuleResolutionKind.NodeNext,
+  });
+  const checker = program.getTypeChecker();
+  const sourceFile = program.getSourceFile(input);
+  assert.ok(sourceFile, 'coverage fixture source must belong to the program');
+  const libraryApi = createLibrary({
+    ts: compiler.ts, checker, root: scratch, libraryRoots: ['library'],
+  });
+  const mixedCoverage = new Map();
+  function inspectCoverage(node) {
+    if (compiler.ts.isCallExpression(node) && compiler.ts.isPropertyAccessExpression(node.expression)
+        && compiler.ts.isIdentifier(node.expression.expression)) {
+      const receiver = node.expression.expression.text;
+      if (['mixedBag', 'mixedBuilder', 'mixedProvider'].includes(receiver)) {
+        mixedCoverage.set(receiver, libraryApi.memberCoverage(libraryApi.symbolAt(node.expression.name)));
+      }
+    }
+    compiler.ts.forEachChild(node, inspectCoverage);
+  }
+  inspectCoverage(sourceFile);
+  for (const receiver of ['mixedBag', 'mixedBuilder', 'mixedProvider']) {
+    const coverage = mixedCoverage.get(receiver);
+    assert.ok(coverage?.members.length > 0, `${receiver} must retain its DI Bag declaration`);
+    assert.equal(coverage.complete, false, `${receiver} must also retain its user declaration`);
+  }
+  const automatic = runCodemod({
+    typescript: compiler.ts, root: scratch, program,
+    libraryRoots: ['library'], only: ['input.ts'],
+  });
+  assert.doesNotMatch(automatic.files[0].text, /scoped:one-per-container/);
+  assert.ok(automatic.manual.some(item => item.reason ===
+    'createScope resolves to both DI Bag and non-library declarations; migrate this use by hand'));
+  assert.ok(!automatic.manual.some(item => item.text.includes('userOnly')),
+    'a pure user lookalike must not produce a DI Bag migration report');
+
+  const explicit = runCodemod({
+    typescript: compiler.ts, root: scratch, program,
+    libraryRoots: ['library'], only: ['input.ts'], pinLifetimes: true,
+  });
+  assert.match(explicit.files[0].text, /plain: .*scoped:one-per-container/);
+  assert.match(explicit.files[0].text, /current: mixedProvider\.withLifetime\('root'\)/);
+  assert.ok(explicit.manual.some(item => item.reason ===
+    'withServices resolves to both DI Bag and non-library declarations; preserve provider lifetimes by hand'));
+  assert.ok(explicit.manual.some(item => item.reason ===
+    "this provider's lifetime is not visible in the source file; preserve its 0.4 scoped behavior by hand"));
+  assert.ok(!explicit.manual.some(item => item.text.includes('userOnly')),
+    'explicit pinning must also ignore a pure user lookalike');
+  rmSync(scratch, { recursive: true, force: true });
 });
 ```
 
