@@ -12,11 +12,15 @@
     "reason": "options are spread here; rename signal, timeoutMs and startupOrder where that object is built"
   },
   {
-    "line": 29,
+    "line": 20,
+    "reason": "buildAndStart is called with a spread argument; rewrite it to ensureServicesReady by hand"
+  },
+  {
+    "line": 30,
     "reason": "startupOrder is gone; use maxConcurrentServiceKeys: omit it for 'parallel', 1 for 'sequential', or the number"
   },
   {
-    "line": 36,
+    "line": 37,
     "reason": "DI_BAG_STARTUP_TIMEOUT appears outside a plain string; replace it with DI_BAG_SERVICE_READINESS_TIMEOUT by hand"
   }
 ]

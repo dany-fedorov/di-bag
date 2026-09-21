@@ -245,7 +245,7 @@ export function rewriteSourceFile({ ts, checker, sourceFile, library, index, tra
     const { member, entry, touched } = relevant[0];
     if ((entry?.arguments || entry?.transform) && call.arguments.some(ts.isSpreadElement)) {
       manual(call, `${name} is called with a spread argument; rewrite it to ${entry.to} by hand`);
-      skip.add(callee);
+      skip.add(entry.transform ? call : callee);
       return undefined;
     }
     if (entry?.transform) {

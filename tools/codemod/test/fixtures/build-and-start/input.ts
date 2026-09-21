@@ -17,13 +17,14 @@ export async function start(shutdown: AbortSignal, passedOptions: StartupOptions
   const unknownOrder = await builder.buildAndStart(['db'], { signal: shutdown as StartupOptions['signal'], timeoutMs: 3_000, startupOrder: order });
   const spreadOptions: StartupOptions = { signal: shutdown };
   const spread = await builder.buildAndStart(['db'], { timeoutMs: 3_000, ...spreadOptions });
+  const spreadCall = await builder.buildAndStart(...([['db'], { startupOrder: 'parallel' }] as [readonly ['db'], StartupOptions]));
   const chained = await DiBag.createBuilder()
     .register({ value: () => 1 })
     .buildAndStart(['value'], {
       timeoutMs: 2_000,
     });
   await plain.close({ signal: shutdown, timeoutMs: 10_000 });
-  return [sequential, bounded, parallel, mixed, passed, unknownOrder, spread, chained];
+  return [sequential, bounded, parallel, mixed, passed, unknownOrder, spread, spreadCall, chained];
 }
 
 export const typed: StartupOptions = { timeoutMs: 100, startupOrder: 'sequential' };

@@ -42,6 +42,8 @@ test('an undecidable custom transform leaves each whole call untouched and repor
   const text = result.files[0].text;
   assert.match(text, /builder\.buildAndStart\(\['db'\], \{ signal: shutdown as StartupOptions\['signal'\], timeoutMs: 3_000, startupOrder: order \}\)/);
   assert.match(text, /builder\.buildAndStart\(\['db'\], \{ timeoutMs: 3_000, \.\.\.spreadOptions \}\)/);
+  assert.match(text, /builder\.buildAndStart\(\.\.\.\(\[\['db'\], \{ startupOrder: 'parallel' \}\] as \[readonly \['db'\], StartupOptions\]\)\)/);
   assert.ok(result.manual.some(item => item.reason.startsWith('startupOrder is not a literal')));
   assert.ok(result.manual.some(item => item.reason.startsWith('options are spread here')));
+  assert.ok(result.manual.some(item => item.reason.startsWith('buildAndStart is called with a spread argument')));
 });
