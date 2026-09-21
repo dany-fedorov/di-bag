@@ -356,10 +356,14 @@ A type is renamed only when its name contains a retired word.
 | `BuilderContribute` | `BuilderWithCollectionContribution` |
 | `RegistrationSnapshot`, `BindingSnapshot`, `GraphSnapshot`, `AcquisitionSnapshot` | unchanged |
 
-Generic parameters get role names: `Provider<Factory, RegistrationMetadata,
-AcquisitionMetadataFrames, GraphContract, AcquiredValue>`, `Container<Registrations,
-Constraints>`, `Module<ExportedServices, RequiredServices, Constraints,
-PublicProviders>`, `Token<TokenSymbol, Service>`. This does not break callers.
+Generic parameters get role names: `Provider<ExposedFactory, RegistrationMetadata,
+AcquisitionMetadataFrames, RetainedGraphContract, AcquiredValue>`,
+`Container<ServiceRegistrations, Constraints>`, `Builder<Entries, Constraints>`,
+`Module<ExportedServices, RequiredServices, Constraints, PublicProviders>`,
+`Token<TokenSymbol, Service>`. `Factory`, `GraphContract` and `Registrations` are
+imported types in the same files, so a type parameter of the same name would
+shadow them and make its own constraint circular; those three take another role
+name. This does not break callers.
 
 ### Unchanged on purpose
 
