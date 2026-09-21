@@ -42,7 +42,7 @@ Phases 0 to 2 are merged into `next`. Confirm each line with the command next to
 
 Phase 2 renamed the type parameters of `Bag` from `R` and `C` to `ServiceRegistrations` and `Constraints`. Confirm that `class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedConstraint = never>` and `Selection<ServiceRegistrations, K, 'createScope'>` are present. Every method added to that class in this phase uses those exact class type-parameter names. Test files use the phase-2 callback spelling `factoryContext` when they name that parameter.
 
-The phase has three green commit boundaries that differ from the one-heading-per-commit default. Task 1 atomically migrates repository readers and renames the returned close-progress fields, because adding both returned field sets would break exact-object assertions. Tasks 2 and 3 form one green expand commit: do not commit the error classes until the method and all three error sections exist. Tasks 5 and 6 form one green contract-and-docs commit: do not commit removed declarations while generated references still describe them. No commit in this phase is intentionally red.
+The phase has three green commit boundaries that differ from the one-heading-per-commit default. Task 1 atomically migrates repository readers and renames the returned close-progress fields, because adding both returned field sets would break exact-object assertions. Tasks 2 and 3 form one green expand commit: do not commit the error classes until the method and all three error sections exist. Tasks 5 and 6 form one green contract-and-docs commit: do not commit removed declarations while generated references or the naming ratchet still describe them. No commit in this phase is intentionally red.
 
 ## File Structure
 
@@ -56,6 +56,7 @@ The phase has three green commit boundaries that differ from the one-heading-per
 | `tests/ensure-services-ready.test.ts` | New. Fifteen runtime tests for the new method |
 | `tests/startup.test.ts`, `tests/startup-runtime-fixture.ts`, `tests/runtime-diagnostics.test.ts`, `tests/acquisition-cleanup.test.ts`, `tests/final-adversarial-runtime-fixture.ts`, `tests/*.node.mjs`, other tests, `examples/` | Migrated call sites |
 | `tests/types/startup.ts`, `tests/types/startup-consumer.ts`, `tests/types/negative/startup.ts`, `tests/types/negative/api-renaming.ts` | Compiler fixtures |
+| `tests/api-naming-known-violations.json` | Tasks 5–6 delete exactly the ten known violations whose public startup names disappear in the contract step |
 | `tools/codemod/rename-map.json`, `tools/codemod/test/fixtures/…` | Map entries and a fixture for this phase |
 | `docs/agent/errors.md`, `docs/agent/api-card.md` (generated), `docs/reference/` (generated), `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs`, `docs/guides/api-reference.md` (the close row in Task 1; three removed-name rows in Task 6) | Documentation that `npm run docs:check` verifies |
 | `tools/graph/README.md`, `tools/graph/test/extract.test.mjs`, `tools/graph/test/fixtures/ready-chain.ts` | The graph tool keeps finding `build()` inside `build().ensureServicesReady()` |
@@ -1561,7 +1562,7 @@ MSG
 
 ### Task 5: Remove `buildAndStart` and the startup names (first half of the green contract)
 
-Tasks 5 and 6 are one green contract-and-docs boundary. Complete the source removal and its narrow checks here, keep the changes uncommitted, then regenerate the API card/reference and update the graph/docs in Task 6 before committing. A commit with removed declarations and stale generated documentation is not permitted.
+Tasks 5 and 6 are one green contract-and-docs boundary. Complete the source removal and its narrow checks here, keep the changes uncommitted, then regenerate the API card/reference, update the graph/docs and shrink the naming ratchet in Task 6 before committing. A commit with removed declarations and stale generated documentation or stale known-violation entries is not permitted.
 
 **Files:**
 - Modify: `src/di-bag.ts`, `src/startup.ts`, `src/errors.ts`, `src/index.ts`
@@ -1701,16 +1702,17 @@ Expected: `0 fail` in both commands.
 
 - [ ] **Step 8: Keep the verified contract changes uncommitted and continue to Task 6**
 
-Run `git diff --check`. Do not commit yet: the tracked API card and generated reference still describe the declarations removed here. Continue directly to Task 6 and make the combined green contract/docs commit there.
+Run `git diff --check`. Do not commit yet: the tracked API card, generated reference and naming ratchet still describe the declarations removed here. Continue directly to Task 6 and make the combined green contract/docs commit there.
 
 ---
 
-### Task 6: API card, reference, graph tool and the green Tasks 5–6 contract commit
+### Task 6: API card, reference, graph tool, naming ratchet and the green Tasks 5–6 contract commit
 
 **Files:**
 - Modify: `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs`
 - Modify: `docs/agent/api-card.md` and `docs/reference/` (generated)
 - Modify: `docs/guides/api-reference.md` (three removed-name rows; assert Task 1's close row)
+- Modify: `tests/api-naming-known-violations.json` (delete exactly ten retired startup entries)
 - Modify: `tools/graph/README.md`, `tools/graph/test/extract.test.mjs`
 - Create: `tools/graph/test/fixtures/ready-chain.ts`
 
@@ -1759,7 +1761,66 @@ Do not edit anything else in the guides. Phase 12 rewrites them.
 Run: `npm run build && npm run docs:generate`
 Expected: `docs/agent/api-card.md` retains the `bag.ensureServicesReady` section created by Tasks 2–3, gains its task row, and loses `builder.buildAndStart`. `docs/reference/index/classes/` retains the two readiness-error pages and loses the two startup-error pages; `docs/reference/index/interfaces/StartupOptions.md` is gone and `EnsureServicesReadyOptions.md` remains. If TypeDoc warns about an unresolved `{@link}`, fix that comment in `src/`.
 
-- [ ] **Step 5: Teach the graph tool's tests the new chain**
+- [ ] **Step 5: Shrink and verify the naming ratchet inside the green contract boundary**
+
+The fresh classic build in Step 4 exposes the contracted public surface to the phase-0 scanner. Task 1 removed no entry from `tests/api-naming-known-violations.json`: `signal`, `timeoutMs`, `pending` and `acquiring` were never listed. Tasks 2–3 only expand the surface, and Task 4 changes migration support rather than the exported source surface. The Task 5 contraction removes exactly these ten listed violations:
+
+```text
+retired-word: code DI_BAG_STARTUP_CANCELLED
+retired-word: code DI_BAG_STARTUP_FAILED
+retired-word: code DI_BAG_STARTUP_TIMEOUT
+retired-word: export DiBagStartupCancelledError
+retired-word: export DiBagStartupError
+retired-word: export StartupOptions
+retired-word: member buildAndStart
+retired-word: member cleanupError
+retired-word: member cleanupFailures
+retired-word: member startupOrder
+```
+
+Run the ratchet's shrink mode now, before the Tasks 5–6 commit:
+
+```bash
+UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts
+```
+
+Expected: the test passes and removes exactly those ten sorted strings from `tests/api-naming-known-violations.json`; it adds nothing. Inspect the diff against the phase-entry version. If any other entry disappears or a new violation is reported, stop and find the unintended public-surface change rather than accepting a broader ratchet edit.
+
+Run the ordinary mode to prove the smaller list matches the freshly built surface:
+
+```bash
+bun test tests/api-naming.test.ts
+```
+
+Then prove the shrink is exactly the phase-owned set, preserves the note and adds nothing. The `next` ref remains the phase-entry tree until the controller merges this phase:
+
+```bash
+python3 - <<'PY'
+import json, subprocess
+from pathlib import Path
+path = 'tests/api-naming-known-violations.json'
+before = json.loads(subprocess.check_output(['git', 'show', f'next:{path}'], text=True))
+after = json.loads(Path(path).read_text())
+expected = {
+    'retired-word: code DI_BAG_STARTUP_CANCELLED', 'retired-word: code DI_BAG_STARTUP_FAILED',
+    'retired-word: code DI_BAG_STARTUP_TIMEOUT', 'retired-word: export DiBagStartupCancelledError',
+    'retired-word: export DiBagStartupError', 'retired-word: export StartupOptions',
+    'retired-word: member buildAndStart', 'retired-word: member cleanupError',
+    'retired-word: member cleanupFailures', 'retired-word: member startupOrder',
+}
+old, new = set(before['violations']), set(after['violations'])
+assert before['note'] == after['note'], 'the ratchet note changed'
+assert old - new == expected, f'unexpected removals: {sorted(old - new)}'
+assert not new - old, f'ratchet additions: {sorted(new - old)}'
+assert after['violations'] == [item for item in before['violations'] if item not in expected], \
+    'ratchet content or ordering changed beyond the exact expected removals'
+print('naming ratchet: unchanged note, exactly 10 expected removals, 0 additions')
+PY
+```
+
+Expected: the naming test passes without changing the file, then the audit prints `naming ratchet: unchanged note, exactly 10 expected removals, 0 additions`.
+
+- [ ] **Step 6: Teach the graph tool's tests the new chain**
 
 `tools/graph/lib/extract.mjs` needs no change: its visitor descends into `x.build().ensureServicesReady(…)` and finds the `build()` call, and `TERMINALS` keeps `buildAndStart` for 0.4 code. This was run against the current extractor. Pin it.
 
@@ -1790,12 +1851,12 @@ test('build() is still the end of the chain when ensureServicesReady follows it'
 
 In `tools/graph/README.md`, line 5 says a chain "ends in `build()`, `buildAndStart()`, or `buildModule()`". Make it: "ends in `build()` or `buildModule()`; a `build()` followed by `ensureServicesReady()` counts, and so does the 0.4 `buildAndStart()`". On line 38, "a bag (`build()` or `buildAndStart()`)" becomes "a bag (`build()`)".
 
-- [ ] **Step 6: Run the checks**
+- [ ] **Step 7: Run the checks**
 
-Run: `npm run docs:check && npm run graph:check`
-Expected: both exit 0; `graph:check` reports one more passing test than before.
+Run: `npm run docs:check && npm run graph:check && bun test tests/api-naming.test.ts`
+Expected: all three checks exit 0; `graph:check` reports one more passing test than before, and the naming test leaves the ten-entry-smaller ratchet unchanged.
 
-- [ ] **Step 7: Commit Tasks 5 and 6 as one green contract/docs unit**
+- [ ] **Step 8: Commit Tasks 5 and 6 as one green contract/docs unit**
 
 ```bash
 git add -A src tests tools docs
@@ -1805,7 +1866,8 @@ refactor!: contract startup API and publish ensureServicesReady docs
 builder.build().ensureServicesReady(serviceKeys, options) replaces
 builder.buildAndStart(keys, options). StartupOptions, the startup error classes
 and DI_BAG_STARTUP_* codes are gone; generated references and the graph tool
-describe the contracted surface in this same green commit.
+describe the contracted surface, and the naming ratchet drops their ten retired
+entries in this same green commit.
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
@@ -1814,17 +1876,44 @@ MSG
 
 ---
 
-### Task 7: Evidence, naming ratchet, full gate, report
+### Task 7: Evidence, naming-ratchet audit, full gate, report
 
 **Files:**
 - Create: `docs/superpowers/plans/evidence/phase-03.md`
-- Modify: the known-violations file of the naming test, only to delete entries
 
-- [ ] **Step 1: Shrink the naming ratchet**
+`tests/api-naming-known-violations.json` is an audit input in this task, not a Task 7-owned file. Do not edit or stage it here.
 
-Run the naming test of phase 0 (the file found in Task 0, for example `bun test tests/api-naming.test.ts`). This phase removed names that the test listed as known violations, such as `StartupOptions`, `startupOrder`, `signal` and `timeoutMs` on the wait options, and `pending` and `acquiring`. If the test reports entries that no longer occur, delete exactly those entries from its known-violations file. Never add an entry. If it reports a new violation, a name in this plan was mistyped: compare with "Global Constraints" and fix the name.
+- [ ] **Step 1: Audit the phase-wide naming-ratchet result without editing it**
 
-Expected after the edit: the naming test passes.
+Tasks 5–6 already removed and verified the ten stale startup entries before their green commit. Run the naming test of phase 0 in ordinary mode and prove Task 7 does not edit the list:
+
+```bash
+bun test tests/api-naming.test.ts
+python3 - <<'PY'
+import json, subprocess
+from pathlib import Path
+path = 'tests/api-naming-known-violations.json'
+before = json.loads(subprocess.check_output(['git', 'show', f'next:{path}'], text=True))
+after = json.loads(Path(path).read_text())
+expected = {
+    'retired-word: code DI_BAG_STARTUP_CANCELLED', 'retired-word: code DI_BAG_STARTUP_FAILED',
+    'retired-word: code DI_BAG_STARTUP_TIMEOUT', 'retired-word: export DiBagStartupCancelledError',
+    'retired-word: export DiBagStartupError', 'retired-word: export StartupOptions',
+    'retired-word: member buildAndStart', 'retired-word: member cleanupError',
+    'retired-word: member cleanupFailures', 'retired-word: member startupOrder',
+}
+old, new = set(before['violations']), set(after['violations'])
+assert before['note'] == after['note'], 'the ratchet note changed'
+assert old - new == expected, f'unexpected removals: {sorted(old - new)}'
+assert not new - old, f'ratchet additions: {sorted(new - old)}'
+assert after['violations'] == [item for item in before['violations'] if item not in expected], \
+    'ratchet content or ordering changed beyond the exact expected removals'
+print('naming ratchet: unchanged note, exactly 10 expected removals, 0 additions')
+PY
+git diff --exit-code HEAD -- tests/api-naming-known-violations.json
+```
+
+Expected: the naming test passes, the Python audit prints `naming ratchet: unchanged note, exactly 10 expected removals, 0 additions`, and the diff command prints nothing. Record that output in the phase report: Task 1 removed no listed violation; the combined Tasks 5–6 commit removed exactly the three startup codes, three startup exports and four startup members named in Task 6 Step 5; no phase task added a known violation. If the test or exact audit reports another fixed, removed or new violation, repair it in the task/commit that owns the public-surface change rather than editing the list in this evidence task.
 
 - [ ] **Step 2: Measure the twelve cases**
 
@@ -1859,7 +1948,7 @@ Expected: every command exits 0. The `npm run build` immediately after the nativ
 - [ ] **Step 4: Commit and report**
 
 ```bash
-git add -A docs/superpowers/plans/evidence tests
+git add -A docs/superpowers/plans/evidence
 git commit -F - <<'MSG'
 docs(plans): phase 3 evidence
 
@@ -1874,7 +1963,7 @@ Reply to the controller in the format of the master plan, "Protocol for every ph
 
 ## Self-review
 
-**Spec coverage.** `ensureServicesReady` on a bag, a child scope and a fork, the same-bag result, close on failure, untouched bag on invalid input, rejections only, repeated calls: the green Tasks 2–3 expand, with tests in `tests/ensure-services-ready.test.ts`. The pending-work report is defined and consumed in that same expand commit. `close` options `abortSignal` and `waitTimeoutMs`: atomic Task 1. `CloseProgress.disposersStillRunning` and `.acquisitionsStillPending`: atomic Task 1. `DiBagServiceReadinessError`, `DiBagServiceReadinessCancelledError`, `disposalFailures`, `disposalError`, `disposalPromise`, the three codes: Tasks 2–3. `buildAndStart` removed, `StartupOptions` renamed and not aliased, old names fail to compile, generated docs contract, and graph compatibility: the green Tasks 5–6 contract. Codemod data and fixture: Task 4. Evidence: Task 7.
+**Spec coverage.** `ensureServicesReady` on a bag, a child scope and a fork, the same-bag result, close on failure, untouched bag on invalid input, rejections only, repeated calls: the green Tasks 2–3 expand, with tests in `tests/ensure-services-ready.test.ts`. The pending-work report is defined and consumed in that same expand commit. `close` options `abortSignal` and `waitTimeoutMs`: atomic Task 1. `CloseProgress.disposersStillRunning` and `.acquisitionsStillPending`: atomic Task 1. `DiBagServiceReadinessError`, `DiBagServiceReadinessCancelledError`, `disposalFailures`, `disposalError`, `disposalPromise`, the three codes: Tasks 2–3. `buildAndStart` removed, `StartupOptions` renamed and not aliased, old names fail to compile, generated docs contract, graph compatibility, and the exact ten-entry naming-ratchet shrink: the green Tasks 5–6 contract. Codemod data and fixture: Task 4. Evidence and the read-only phase-wide ratchet audit: Task 7.
 
 **Left to later phases on purpose.** `DiBagCloseCancelledError.cleanupPromise`, `DiBagCleanupError`, `CleanupFailure` and the `cleanup-*` events (phase 11). The code `DI_BAG_INVALID_STARTUP` (phase 11 folds it into `DI_BAG_INVALID_ARGUMENT` and `DI_BAG_UNKNOWN_SERVICE_KEY`). The acquisition context's `signal` (phase 8). `build` to `buildContainer` (phase 5), `Bag` to `Container`, `createScope` and `fork` (phase 6); the words "bag", "scope" and "fork" in this phase's messages and comments are renamed with them. The tutorial section on startup and every other guide (phase 12); until then the `@see` URL of `EnsureServicesReadyOptions` points at the existing tutorial heading. Throwing stubs for the removed runtime names and the changelog (phase 13).
 
