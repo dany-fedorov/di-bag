@@ -28,7 +28,7 @@
 - Every command runs from the repository root with this environment:
 
 ```bash
-export PATH="/tmp/claude-1000/-home-df-wd-personal-di-bag/7818417c-3b3a-48db-9bef-85624eff953b/scratchpad/bun/bin:$PATH"
+export PATH="<the directory that holds Bun 1.4.0>/bin:$PATH"
 export npm_config_update_notifier=false
 bun --version   # must print 1.4.0
 node --version  # must print v24.20.0
