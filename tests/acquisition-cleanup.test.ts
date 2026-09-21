@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { DiBag } from '../src/node';
-import { DiBagCleanupError, DiBagCloseCancelledError, DiBagStartupError } from '../src';
+import { DiBagCleanupError, DiBagCloseCancelledError, DiBagServiceReadinessError } from '../src';
 import { deferred } from './helpers';
 
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
@@ -271,9 +271,9 @@ test('a rollback failure during startup is reported on DiBagStartupError', async
       factoryCtx.pushDisposer(() => { throw new Error('release failed'); });
       throw new Error('handshake');
     }, { context: 'acquisition' }),
-  }).buildAndStart(['socket']).then(() => undefined, (error: unknown) => error);
-  expect(failure).toBeInstanceOf(DiBagStartupError);
-  const { cleanupFailures } = failure as DiBagStartupError;
+  }).build().ensureServicesReady(['socket']).then(() => undefined, (error: unknown) => error);
+  expect(failure).toBeInstanceOf(DiBagServiceReadinessError);
+  const { disposalFailures: cleanupFailures } = failure as DiBagServiceReadinessError;
   expect(cleanupFailures).toHaveLength(1);
   expect(cleanupFailures[0]!.label).toBe('socket');
   expect((cleanupFailures[0]!.error as Error).message).toBe('release failed');
@@ -321,10 +321,10 @@ test('startup rollback releases resources hidden inside an unfinished factory', 
       factoryCtx.pushDisposer(() => { released.push('socket'); });
       throw new Error('handshake');
     }, { context: 'acquisition' }),
-  }).buildAndStart(['socket']).then(() => undefined, (error: unknown) => error);
-  expect(failure).toBeInstanceOf(DiBagStartupError);
-  expect((failure as DiBagStartupError).cause).toBeInstanceOf(Error);
-  expect(((failure as DiBagStartupError).cause as Error).message).toBe('handshake');
+  }).build().ensureServicesReady(['socket']).then(() => undefined, (error: unknown) => error);
+  expect(failure).toBeInstanceOf(DiBagServiceReadinessError);
+  expect((failure as DiBagServiceReadinessError).cause).toBeInstanceOf(Error);
+  expect(((failure as DiBagServiceReadinessError).cause as Error).message).toBe('handshake');
   expect(released).toEqual(['socket']);
 });
 
@@ -562,9 +562,9 @@ test('startup rollback releases the stack of a service that had already succeede
       factoryCtx.pushDisposer(() => { throw new Error('b.stack failed'); });
       throw new Error('b');
     }, { context: 'acquisition' }),
-  }).buildAndStart(['a', 'b']).then(() => undefined, (error: unknown) => error);
+  }).build().ensureServicesReady(['a', 'b']).then(() => undefined, (error: unknown) => error);
   expect(events).toEqual(['a.stack']);
-  expect((failure as DiBagStartupError).cleanupFailures.map(item => (item.error as Error).message)).toEqual(['b.stack failed']);
+  expect((failure as DiBagServiceReadinessError).disposalFailures.map(item => (item.error as Error).message)).toEqual(['b.stack failed']);
 });
 
 test('a factory that succeeds while the bag is closing still has its stack disposed', async () => {
