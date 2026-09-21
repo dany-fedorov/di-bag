@@ -1,5 +1,5 @@
 import { DiBag } from 'di-bag';
-import type { LifecycleEvent, Presence } from 'di-bag';
+import type { DiBagCloseCancelledError, DiBagStartupCancelledError, LifecycleEvent, Presence } from 'di-bag';
 import type { BagRuntime } from '../node_modules/di-bag/dist/runtime.js';
 
 class Registry {
@@ -30,3 +30,6 @@ export const opened = (event: LifecycleEvent | OwnEvent) => event.kind === 'scop
 declare const runtime: BagRuntime;
 const libraryMixed = choose ? bag : runtime;
 export const conflicting = libraryMixed.resolve('value');
+
+declare const cleanupError: DiBagStartupCancelledError | DiBagCloseCancelledError;
+export const conflictingProperty = cleanupError.cleanupPromise;

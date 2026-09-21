@@ -66,6 +66,9 @@ Fix these by hand, then run the compiler.
 
 `rename-map.json` describes the distance from 0.4.0 to the current API.
 `rename-map.schema.json` documents every field.
+Method and property targets must be bare ASCII identifiers. Type targets have
+the same form and cannot be TypeScript keywords or primitive type names. Keys
+emitted inside options bags may contain other characters and are quoted safely.
 
 | Section | Rewrites |
 | --- | --- |

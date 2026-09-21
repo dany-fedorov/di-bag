@@ -17,6 +17,18 @@ const SECTIONS = ['methods', 'options', 'values', 'properties', 'types', 'codes'
 const isObject = value => typeof value === 'object' && value !== null && !Array.isArray(value);
 const isString = value => typeof value === 'string' && value.length > 0;
 const isStrings = value => Array.isArray(value) && value.every(isString);
+const BARE_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+const TYPE_NAME_FORBIDDEN = new Set([
+  'abstract', 'accessor', 'any', 'as', 'asserts', 'async', 'await', 'bigint', 'boolean', 'break', 'case', 'catch', 'class', 'const', 'constructor',
+  'continue', 'debugger', 'declare', 'default', 'delete', 'do', 'else', 'enum', 'export', 'extends', 'false', 'finally',
+  'for', 'from', 'function', 'get', 'global', 'if', 'implements', 'import', 'in', 'infer', 'instanceof', 'interface',
+  'intrinsic', 'is', 'keyof', 'let', 'module', 'namespace', 'never', 'new', 'null', 'number', 'object', 'of', 'out', 'override', 'package',
+  'private', 'protected', 'public', 'readonly', 'require', 'return', 'satisfies', 'set', 'static', 'string', 'super',
+  'switch', 'symbol', 'this', 'throw', 'true', 'try', 'type', 'typeof', 'undefined', 'unique', 'unknown', 'using',
+  'var', 'void', 'while', 'with', 'yield',
+]);
+const isBareIdentifier = value => isString(value) && BARE_IDENTIFIER.test(value);
+const isTypeIdentifier = value => isBareIdentifier(value) && !TYPE_NAME_FORBIDDEN.has(value);
 const has = (value, key) => Object.hasOwn(value, key);
 const pathsEqual = (left = [], right = []) => left.length === right.length && left.every((segment, index) => segment === right[index]);
 const pathAtOrBelow = (path = [], prefix = []) => path.length >= prefix.length && prefix.every((segment, index) => segment === path[index]);
@@ -49,6 +61,7 @@ export function validateRenameMap(map, transformIds = []) {
   };
   if (typeof map !== 'object' || map === null || Array.isArray(map)) return ['the rename map must be an object'];
   if (map.version !== 1) problems.push('version must be 1');
+  if (has(map, '$schema') && !isString(map.$schema)) problems.push('$schema must be a non-empty string');
   for (const key of Object.keys(map)) if (key !== 'version' && key !== '$schema' && !SECTIONS.includes(key)) problems.push(`unknown section ${key}`);
   for (const section of SECTIONS) if (map[section] !== undefined && !Array.isArray(map[section])) problems.push(`${section} must be an array`);
   const entries = section => Array.isArray(map[section]) ? map[section] : [];
@@ -56,6 +69,7 @@ export function validateRenameMap(map, transformIds = []) {
     if (!isObject(entry)) return bad('methods', index, 'entry must be an object');
     rejectUnknown('methods', index, entry, ['owner', 'from', 'to', 'arity', 'arguments', 'transform', 'transformNames']);
     if (!isString(entry.owner) || !isString(entry.from) || !isString(entry.to)) bad('methods', index, 'owner, from and to are required strings');
+    if (isString(entry.to) && !isBareIdentifier(entry.to)) bad('methods', index, 'to must be a safe bare identifier');
     if (entry.arity !== undefined && !(Array.isArray(entry.arity) && entry.arity.every(value => Number.isInteger(value) && value >= 0))) bad('methods', index, 'arity must be an array of non-negative integers');
     if (entry.transform !== undefined && !transformIds.includes(entry.transform)) bad('methods', index, `unknown transform ${entry.transform}`);
     if (has(entry, 'transform') && has(entry, 'arguments')) bad('methods', index, 'use either transform or arguments');
@@ -110,11 +124,13 @@ export function validateRenameMap(map, transformIds = []) {
     const hasTo = has(entry, 'to');
     const hasManual = has(entry, 'manual');
     if (!isString(entry.owner) || !isString(entry.from) || hasTo === hasManual || hasTo && !isString(entry.to) || hasManual && !isString(entry.manual)) bad('properties', index, 'owner, from and exactly one of to or manual are required');
+    if (isString(entry.to) && !isBareIdentifier(entry.to)) bad('properties', index, 'to must be a safe bare identifier');
   });
   entries('types').forEach((entry, index) => {
     if (!isObject(entry)) return bad('types', index, 'entry must be an object');
     rejectUnknown('types', index, entry, ['from', 'to']);
     if (!isString(entry.from) || !isString(entry.to)) bad('types', index, 'from and to are required');
+    if (isString(entry.to) && !isTypeIdentifier(entry.to)) bad('types', index, 'to must be a safe type identifier');
   });
   entries('codes').forEach((entry, index) => {
     if (!isObject(entry)) return bad('codes', index, 'entry must be an object');
@@ -169,7 +185,12 @@ export function validateRenameMap(map, transformIds = []) {
 
 /** Read and validate a map file. Throws one error that lists every problem. */
 export function loadRenameMap(file, transformIds = []) {
-  const map = JSON.parse(readFileSync(file, 'utf8'));
+  let map;
+  try {
+    map = JSON.parse(readFileSync(file, 'utf8'));
+  } catch (error) {
+    throw new Error(`invalid rename map ${file}:\n${error.message}`, { cause: error });
+  }
   const problems = validateRenameMap(map, transformIds);
   if (problems.length) throw new Error(`invalid rename map ${file}:\n${problems.join('\n')}`);
   return map;
@@ -244,7 +265,7 @@ export function indexRenameMap(map) {
     /** The current name of a library member: the map's target, or the old name when the map does not rename it. */
     nameOf(owner, oldName) {
       const entries = methods.get(`${owner}.${oldName}`) ?? [];
-      const method = entries.length > 0 && entries.every(entry => sameEffectiveMethod(entry, entries[0])) ? entries[0] : undefined;
+      const method = entries.length > 0 && entries.every(entry => entry.to === entries[0].to) ? entries[0] : undefined;
       if (method) return method.to;
       const property = properties.get(`${owner}.${oldName}`);
       return property?.to ?? oldName;

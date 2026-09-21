@@ -28,6 +28,37 @@ test('the schema file lists the same sections the validator accepts', () => {
     minProperties: 1,
     additionalProperties: { type: 'string', minLength: 1 },
   });
+  const method = schema.properties.methods.items;
+  const nonEmpty = [
+    schema.properties.$schema,
+    method.properties.owner, method.properties.from, method.properties.to, method.properties.transform,
+    method.properties.arguments.oneOf[0].properties.names.items,
+    method.properties.arguments.oneOf[0].properties.trailing.properties.keys.additionalProperties,
+    schema.properties.options.items.properties.owner, schema.properties.options.items.properties.method,
+    schema.properties.options.items.properties.path.items, schema.properties.options.items.properties.from,
+    ...schema.properties.values.items.oneOf.flatMap(variant => Object.values(variant.properties).filter(property => property.type === 'string')),
+    ...Object.values(schema.properties.properties.items.properties),
+    ...Object.values(schema.properties.types.items.properties),
+    ...Object.values(schema.properties.codes.items.properties).filter(property => property.type === 'string'),
+    ...schema.properties.imports.items.oneOf.flatMap(variant => Object.values(variant.properties)),
+  ];
+  for (const field of nonEmpty) assert.equal(field.minLength, 1);
+  assert.deepEqual(method.allOf, [
+    { not: { required: ['arguments', 'transform'] } },
+    { if: { required: ['transformNames'] }, then: { required: ['transform'] } },
+  ]);
+  assert.equal(method.properties.to.pattern, '^[A-Za-z_$][A-Za-z0-9_$]*$');
+  assert.equal(schema.properties.properties.items.properties.to.pattern, method.properties.to.pattern);
+  assert.equal(schema.properties.types.items.properties.to.pattern, method.properties.to.pattern);
+  assert.ok(schema.properties.types.items.properties.to.not.enum.includes('string'));
+  assert.ok(schema.properties.types.items.properties.to.not.enum.includes('default'));
+  assert.ok(schema.properties.types.items.properties.to.not.enum.includes('abstract'));
+});
+
+test('malformed JSON is framed with the rename-map file path', () => {
+  const file = join(temporaryRoot, 'invalid-json.json');
+  writeFileSync(file, '{');
+  assert.throws(() => loadRenameMap(file), error => error.message.startsWith(`invalid rename map ${file}:\n`) && error.message.length > file.length + 22);
 });
 
 test('custom-transform role names survive loading the shipped map', () => {
@@ -86,6 +117,37 @@ test('nameOf answers from the map and falls back to the old name', () => {
   assert.equal(index.nameOf('Builder', 'build'), 'buildContainer');
   assert.equal(index.nameOf('Token', 'key'), 'symbol');
   assert.equal(index.nameOf('Builder', 'register'), 'register');
+});
+
+test('nameOf returns a common target independent of arity-specific argument plans', () => {
+  const index = indexRenameMap({ version: 1, methods: [
+    { owner: 'Bag', from: 'createScope', to: 'createChildContainer', arity: [0, 1] },
+    { owner: 'Bag', from: 'createScope', to: 'createChildContainer', arity: [2, 3], arguments: { kind: 'bag', names: ['keys', 'providers'] } },
+  ] });
+  assert.equal(index.nameOf('Bag', 'createScope'), 'createChildContainer');
+  assert.equal(index.methodFor('Bag', 'createScope', undefined), undefined);
+});
+
+test('validation aligns schema combinations and rejects unsafe emitted API targets', () => {
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    $schema: '',
+    methods: [
+      { owner: 'Builder', from: 'build', to: 'new-name' },
+      { owner: 'Builder', from: 'shape', to: 'shape', arguments: { kind: 'array' }, transform: 'known' },
+      { owner: 'Builder', from: 'role', to: 'role', transformNames: { result: 'result' } },
+    ],
+    properties: [{ owner: 'Bag', from: 'size', to: 'capacity limit' }],
+    types: [{ from: 'OldBag', to: 'string' }, { from: 'OlderBag', to: 'abstract' }],
+  }, ['known']), [
+    '$schema must be a non-empty string',
+    'methods[0]: to must be a safe bare identifier',
+    'methods[1]: use either transform or arguments',
+    'methods[2]: transformNames requires transform',
+    'properties[0]: to must be a safe bare identifier',
+    'types[0]: to must be a safe type identifier',
+    'types[1]: to must be a safe type identifier',
+  ]);
 });
 
 test('an entry with arity applies only to calls with that many arguments', () => {

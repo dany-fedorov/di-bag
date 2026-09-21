@@ -2,7 +2,7 @@
   "name": "di-bag-codemod",
   "version": "0.1.0",
   "private": true,
-  "description": "Type-aware codemod that migrates DI Bag 0.4 call sites to 0.5: it rewrites only what the TypeScript checker resolves to a di-bag declaration.",
+  "description": "Type-aware DI Bag 0.4-to-0.5 codemod for checker-authenticated API uses and explicit runtime-code and import rules.",
   "keywords": ["di-bag", "codemod", "migration", "typescript", "dependency-injection", "agents", "coding-agents"],
   "license": "MIT",
   "repository": { "type": "git", "url": "git+https://github.com/dany-fedorov/di-bag.git", "directory": "tools/codemod" },

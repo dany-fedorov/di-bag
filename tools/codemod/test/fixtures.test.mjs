@@ -18,7 +18,7 @@ for (const name of fixtureNames) {
   });
 }
 
-test('a rewritten file is stable: a second run changes nothing the first run could decide', () => {
+test('expected output contains no old spelling for unconditional method renames', () => {
   // The expected files use 0.5 names that the 0.4.0 declarations lack, so only the text-level guarantee is checked:
   // no old method name that the map renames without conditions is left in an expected file.
   assert.doesNotMatch(readFixture('method-rename', 'expected.ts'), /\.(register|contribute|verifyGraph|inspectGraph)\(/);

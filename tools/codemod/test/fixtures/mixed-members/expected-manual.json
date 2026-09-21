@@ -22,5 +22,9 @@
   {
     "line": 32,
     "reason": "resolve resolves to declarations with incompatible rename-map entries; migrate this use by hand"
+  },
+  {
+    "line": 35,
+    "reason": "cleanupPromise resolves to declarations with incompatible rename-map entries; migrate this use by hand"
   }
 ]

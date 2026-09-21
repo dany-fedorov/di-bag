@@ -81,7 +81,8 @@ export function rewriteSourceFile({ ts, checker, sourceFile, library, index, tra
   };
   const quoted = (delimiter, value) => `${delimiter}${escapeLiteral(value, delimiter)}${delimiter}`;
   const quote = (literal, value) => quoted(slice(start(literal), start(literal) + 1), value);
-  const keyText = (nameNode, key) => ts.isStringLiteral(nameNode) ? quote(nameNode, key) : IDENTIFIER.test(key) ? key : quoted("'", key);
+  const safeKeyText = key => IDENTIFIER.test(key) ? key : quoted("'", key);
+  const keyText = (nameNode, key) => ts.isStringLiteral(nameNode) ? quote(nameNode, key) : safeKeyText(key);
   const isStringValue = node => ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
   const literalKey = property => property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) ? property.name.text : undefined;
 
@@ -169,7 +170,7 @@ export function rewriteSourceFile({ ts, checker, sourceFile, library, index, tra
     if (extra.length > 1 || (extra.length === 1 && !trailing)) { manual(call, `${member.name} has more arguments than the rename map describes; rewrite it to ${entry.to} by hand`); return undefined; }
     const parts = argumentNodes.slice(0, names.length).map((argumentNode, position) => {
       const value = argumentText(argumentNode, member, position);
-      return value === names[position] ? value : `${names[position]}: ${value}`;
+      return value === names[position] && IDENTIFIER.test(names[position]) ? value : `${safeKeyText(names[position])}: ${value}`;
     });
     let after = '';
     if (extra.length === 1 && trailing.mode === 'keep') after = `, ${argumentText(extra[0], member, names.length)}`;
@@ -281,11 +282,11 @@ export function rewriteSourceFile({ ts, checker, sourceFile, library, index, tra
     if (propertyEntries.some(Boolean)) {
       if (!coverage.complete) { manual(node, partialReason(name)); return null; }
       if (propertyEntries.some(entry => !entry)) { manual(node, `${name} resolves to several declarations and the rename map covers only some of them`); return null; }
-      const manualEntry = propertyEntries.find(entry => entry.manual !== undefined);
-      if (manualEntry) { manual(node, manualEntry.manual); return null; }
-      const targets = new Set(propertyEntries.map(entry => entry.to));
-      if (targets.size !== 1) { manual(node, `${name} resolves to declarations with different new names`); return null; }
-      return [...targets][0];
+      const guidance = new Set(propertyEntries.map(entry => entry.manual === undefined ? `to:${entry.to}` : `manual:${entry.manual}`));
+      if (guidance.size !== 1) { manual(node, conflictReason(name)); return null; }
+      const entry = propertyEntries[0];
+      if (entry.manual !== undefined) { manual(node, entry.manual); return null; }
+      return entry.to;
     }
     if (called) return null;
     const entries = members.map(member => index.methodFor(member.owner, name, undefined));

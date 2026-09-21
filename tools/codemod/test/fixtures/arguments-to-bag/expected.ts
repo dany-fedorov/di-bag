@@ -7,7 +7,7 @@ const token = clock;
 const feature = DiBag.createBuilder()
   .withServices({ config: () => ({ region: 'eu' }) })
   .withTokenService({ token: clock, provider: () => ({ now: () => 42 }) })
-  .withServiceAlias({ aliasKey: 'now', targetServiceKey: clock })
+  .withServiceAlias({ 'alias-key': 'now', 'target service key': clock })
   .buildModule({ exportedServiceKeys: ['now', 'config'], moduleLabel: 'feature' });
 
 const provider = DiBag.withLifetime({ provider: () => ({ region: 'eu' }), lifetime: 'singleton:one-per-container-tree' }, { allowScopedDependencies: true });
