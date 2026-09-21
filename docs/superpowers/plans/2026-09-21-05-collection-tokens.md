@@ -106,7 +106,8 @@ Facts about the code that the tasks rely on, all read on 2026-09-21:
 | `scripts/phase05-strings.py` | create | counted, idempotent migration for generated/untyped source strings |
 | `tests/contributions*.ts`, `tests/types/contributions*.ts`, `tests/*runtime-fixture.ts`, `tests/acquisition-retention.node.mjs`, `examples/contributions.ts` | modify | migrate collection declarations and reads; split the two-channel control |
 | `docs/agent/api-card.md`, `docs/reference/`, `docs/guides/api-reference.md`, `docs/agent/errors.md`, `docs/agent/recipes.md`, `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs` | modify/regenerate | generated/public docs, error coverage, composite recipe, exact signatures |
-| `tests/api-naming-known-violations.json`, `docs/superpowers/plans/evidence/phase-04.md` | modify/create | shrink naming debt and record S5 plus final evidence |
+| `tests/api-naming-known-violations.json` | modify in Task 8 | remove exactly the four legacy-collection findings in the same green contract commit that removes their public surface |
+| `docs/superpowers/plans/evidence/phase-04.md` | create/modify in Tasks 4, 5 and 9 | record S5 and final evidence |
 
 ### Task 0: Create the phase branch and prove the entry state
 
@@ -2901,6 +2902,7 @@ git commit -m "refactor!: migrate collection call sites" -m "Generated with: nod
 **Files:**
 - Modify: `src/dependency-references.ts`, `src/acquisition.ts`, `src/runtime.ts`, `src/startup.ts`, `src/scope-selection.ts`, `src/module.ts`, `src/contributions.ts`, `src/contribution-types.ts`, `src/di-bag.ts`, `src/index.ts`
 - Modify: `tests/collection-tokens.test.ts`, `tests/types/negative/collection-tokens.ts`, `tests/types/negative/api-renaming.ts`, `tests/inspect-graph.test.ts`
+- Modify: `tests/api-naming-known-violations.json` (remove exactly four legacy-collection findings)
 - Modify: `docs/agent/errors.md`, `docs/agent/recipes.md`, `docs/agent/api-card.md`, `docs/guides/api-reference.md`, `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs`
 - Delete: `docs/reference/index/type-aliases/CollectionDependency.md`
 - Regenerate: `docs/reference/`
@@ -3479,31 +3481,98 @@ rg -n "DI_BAG_WRONG_TOKEN_KIND" src tests docs/agent/errors.md
 
 Expected: the first command finds only codemod fixture inputs and intentional negative/migration text. The second finds throw/test/doc coverage. Every caught-error field audit uses `.code`/`.details`, not message parsing.
 
-- [ ] **Step 6: Commit the contract step**
+- [ ] **Step 6: Shrink and verify the naming ratchet inside the contract commit**
+
+The fresh contracted `npm run build` in Step 4 exposes the final public surface to the phase-0 scanner. The S5 adopted/fallback choice does not affect this removal set: both paths delete the same legacy collection channel. Remove exactly these four current violations now, before committing Task 8:
+
+```text
+retired-word: member all
+retired-word: member inspectAll
+retired-word: member resolveAll
+retired-word: value 'all'
+```
+
+`CollectionDependency` was never listed: neither word is retired. Run update mode, then ordinary mode:
+
+```bash
+UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts
+bun test tests/api-naming.test.ts
+```
+
+Prove the phase-entry note is unchanged, exactly those four strings disappeared, nothing was added, and all remaining content and ordering stayed intact. The `next` ref remains the phase-entry tree until the controller merges this phase:
+
+```bash
+python3 - <<'PY'
+import json, subprocess
+from pathlib import Path
+path = 'tests/api-naming-known-violations.json'
+before = json.loads(subprocess.check_output(['git', 'show', f'next:{path}'], text=True))
+after = json.loads(Path(path).read_text())
+expected = {
+    'retired-word: member all',
+    'retired-word: member inspectAll',
+    'retired-word: member resolveAll',
+    "retired-word: value 'all'",
+}
+old, new = set(before['violations']), set(after['violations'])
+assert before['note'] == after['note'], 'the ratchet note changed'
+assert old - new == expected, f'unexpected removals: {sorted(old - new)}'
+assert not new - old, f'ratchet additions: {sorted(new - old)}'
+assert after['violations'] == [item for item in before['violations'] if item not in expected], \
+    'ratchet content or ordering changed beyond the exact expected removals'
+print('collection ratchet: unchanged note, exactly 4 expected removals, 0 additions')
+PY
+```
+
+Expected: update and ordinary modes pass, and the audit prints `collection ratchet: unchanged note, exactly 4 expected removals, 0 additions`. Any different removal or any addition is an unintended public-surface change to repair before the contract commit.
+
+- [ ] **Step 7: Commit the contract step**
 
 ```bash
 git add src tests docs/agent docs/reference docs/guides/api-reference.md tools/docs
 git commit -m "feat!: remove the legacy collection channel" -m "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL"
 ```
 
-### Task 9: Ratchet naming, measure the final shape, run every gate and report
+### Task 9: Audit naming, measure the final shape, run every gate and report
 
 **Files:**
-- Modify: `tests/api-naming-known-violations.json`
+- Audit without modifying: `tests/api-naming-known-violations.json`
 - Modify: `docs/superpowers/plans/evidence/phase-04.md`
 
 **Interfaces:**
 - Consumes: complete contract step and the baseline evidence.
 - Produces: final phase-04 evidence and a green phase handoff.
 
-- [ ] **Step 1: Shrink the naming violation list**
+- [ ] **Step 1: Audit the phase-wide naming-ratchet result without editing it**
+
+Task 8 already removed and verified the four stale legacy-collection entries before its green contract commit. Run ordinary mode and repeat the exact phase-entry comparison without changing the file:
 
 ```bash
-UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts
-git diff -- tests/api-naming-known-violations.json
+bun test tests/api-naming.test.ts
+python3 - <<'PY'
+import json, subprocess
+from pathlib import Path
+path = 'tests/api-naming-known-violations.json'
+before = json.loads(subprocess.check_output(['git', 'show', f'next:{path}'], text=True))
+after = json.loads(Path(path).read_text())
+expected = {
+    'retired-word: member all',
+    'retired-word: member inspectAll',
+    'retired-word: member resolveAll',
+    "retired-word: value 'all'",
+}
+old, new = set(before['violations']), set(after['violations'])
+assert before['note'] == after['note'], 'the ratchet note changed'
+assert old - new == expected, f'unexpected removals: {sorted(old - new)}'
+assert not new - old, f'ratchet additions: {sorted(new - old)}'
+assert after['violations'] == [item for item in before['violations'] if item not in expected], \
+    'ratchet content or ordering changed beyond the exact expected removals'
+print('collection ratchet: unchanged note, exactly 4 expected removals, 0 additions')
+PY
+git diff --exit-code HEAD -- tests/api-naming-known-violations.json
 ```
 
-Expected: entries for `DiBag.all`, `Bag.resolveAll`, and `Bag.inspectAll` disappear. `forCollectionOf` is compliant and is never added. If `CollectionDependency` was listed, it disappears too.
+Expected: ordinary mode passes, the audit prints `collection ratchet: unchanged note, exactly 4 expected removals, 0 additions`, and the final command prints nothing. Task 9 does not own or stage this file. If any check fails, repair the task/commit that changed the public surface rather than editing the ratchet during evidence work.
 
 - [ ] **Step 2: Measure the final contract**
 
@@ -3547,7 +3616,7 @@ Expected: every command exits 0. Rebuild precedes the three Node suites because 
 git diff --check
 git status --short
 git diff next...HEAD --stat
-git add tests/api-naming-known-violations.json docs/superpowers/plans/evidence/phase-04.md
+git add docs/superpowers/plans/evidence/phase-04.md
 git commit -m "test: record collection token evidence" -m "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL"
 ```
 
@@ -3557,8 +3626,8 @@ Report in at most 60 lines: branch; `git log --oneline next..HEAD`; each gate an
 
 ## Self-review
 
-- Spec coverage: Tasks 1–4 cover identity, wrong-kind errors, reads, empty/fresh/frozen lists, lifetimes, dependencies, aliases, readiness, snapshots, replacements, unsupported sharing and module propagation. Tasks 6–8 cover codemod, repository migration and deletion. Task 5 is the complete S5 fallback. Task 9 covers the required evidence and gates.
-- Expand/migrate/contract: Tasks 1–4 expand, Tasks 6–7 migrate, Task 8 contracts. Task 5 conditionally replaces only the measured shape.
+- Spec coverage: Tasks 1–4 cover identity, wrong-kind errors, reads, empty/fresh/frozen lists, lifetimes, dependencies, aliases, readiness, snapshots, replacements, unsupported sharing and module propagation. Tasks 6–8 cover codemod, repository migration, deletion and the exact four-entry naming-ratchet shrink. Task 5 is the complete S5 fallback. Task 9 covers the required evidence, read-only phase-wide ratchet audit and gates.
+- Expand/migrate/contract: Tasks 1–4 expand, Tasks 6–7 migrate, Task 8 contracts and removes the four now-stale naming findings in the same green commit. Task 5 conditionally replaces only the measured shape and does not affect that exact removal set.
 - Public signature consistency: `CollectionToken<TokenSymbol, Item>` carries an item; its service value is `readonly Item[]`; contributions output one `Item`; replacement providers output the whole readonly list. `resolve` and `inspect` take the same admission helper. The fallback names are used consistently in its signatures, fixtures and codemod targets.
 - Runtime consistency: contribution storage remains separate. A collection public slot exists only after replacement and wins in resolve, inspect, dependencies, aliases and readiness. Its provider caches/owns the original value, while reads get fresh frozen shallow copies. Empty collections remain valid. Sharing is rejected before lifetime lookup.
 - Identity consistency: each graph persistently claims a symbol's token kind when a binding, contribution, or positional dependency enters it. The fresh 16-test probe proves conflicts fail in both operation orders while two independent graphs may reuse the symbol with different handles. No global strong map retains dynamic symbols.
