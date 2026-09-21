@@ -1191,7 +1191,7 @@ The old API still exists, so the codemod can resolve it. First verify the phase-
 
 **Files:**
 - Verify: `tools/codemod/rename-map.json`, `tools/codemod/rename-map.schema.json`, `tools/codemod/lib/rename-map.mjs`, `tools/codemod/lib/rewrite.mjs`, `tools/codemod/lib/transforms/build-and-start.mjs`
-- Verify without editing: the two lexical controls in `tests/api-naming.test.ts`, the still-live rows in `tests/api-naming-known-violations.json`, and the two statements in `tests/types/negative/startup.ts` that deliberately reject `close({ timeoutMs })` and `close({ signal })`; preserve the rest of that fixture unless an actual migration requires an edit
+- Verify without editing: the two lexical controls in `tests/api-naming.test.ts`, the still-live rows in `tests/api-naming-known-violations.json`, and the two statements in `tests/types/negative/startup.ts` that deliberately reject `close({ timeoutMs })` and `close({ signal })`. The inclusive dry run may propose rewriting those two close controls, but the mechanical write omits that file and proves its bytes remain unchanged; preserve the rest of the fixture unless an actual hand migration requires an edit
 - Create: one fixture pair under `tools/codemod/test/fixtures/`
 - Modify: `tests/startup.test.ts`, `tests/startup-runtime-fixture.ts`, `tests/final-adversarial-runtime-fixture.ts`, `tests/runtime-diagnostics.test.ts`, `tests/acquisition-cleanup.test.ts`, `tests/acquisition-mode.test.ts`, `tests/aliases.test.ts`, `tests/contributions.test.ts`, `tests/enterprise-integration.test.ts`, `tests/nested-modules.test.ts`, `tests/observers.test.ts`, `tests/plugins.test.ts`, `tests/react/runtime-owner.test.ts`, `tests/react/project-runtime.test.ts`, `tests/acquisition-retention.node.mjs`, `tests/runtime-scale.node.mjs`
 - Modify: `examples/scopes.ts`, `examples/react/app-runtime.ts`, `examples/react/project-runtime.ts`, `examples/react/runtime-owner.ts`, `examples/react/bootstrap.tsx`, `examples/react/app.tsx`
@@ -1199,7 +1199,7 @@ The old API still exists, so the codemod can resolve it. First verify the phase-
 
 **Interfaces:**
 - Consumes: the codemod CLI and map of the master plan, "The codemod contract"; `Bag.ensureServicesReady` of Task 3.
-- Produces: migrated repository consumer call sites. Until the green Tasks 5–6 contract, the old declarations and error sections remain in `src/` and `docs/agent/errors.md`; codemod map/input fixtures, graph legacy compatibility, guides owned by phase 12, and explicit old-name rejection cases also retain old spellings. Every manual item in the codemod report is either migrated in a named hand commit or explicitly accounted for before contract.
+- Produces: migrated repository consumer call sites. Until the green Tasks 5–6 contract, the old declarations and error sections remain in `src/` and `docs/agent/errors.md`; codemod map/input fixtures, graph legacy compatibility, guides owned by phase 12, and explicit old-name rejection cases also retain old spellings. The dry run covers every negative fixture; the mechanical write excludes only `tests/types/negative/startup.ts` so its two deliberate rejected old-close controls remain byte-identical. Every manual item in both codemod reports is either migrated in a named hand commit or explicitly accounted for before contract.
 
 The rules, for the codemod and for your hands alike:
 
@@ -1358,15 +1358,58 @@ Expected: the new fixture and all phase-1 fixtures pass; the transform tests sti
 
 - [ ] **Step 3: Dry-run the codemod, resolve preconditions, then make the separate mechanical commit**
 
+Keep the dry run inclusive so it measures every compiler-negative fixture, including `tests/types/negative/startup.ts`:
+
 ```bash
 npm run build
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --report /tmp/phase-03-codemod-report.json
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --report /tmp/phase-03-codemod-dry-run-report.json
+node - <<'JS'
+const report = require('/tmp/phase-03-codemod-dry-run-report.json');
+const skipped = report.manual.filter(item => item.reason.startsWith('this file was left untouched'));
+const startup = report.files.filter(item => item.file === 'tests/types/negative/startup.ts');
+console.log({ files: report.files.length, rewrites: report.files.reduce((sum, item) => sum + item.rewrites, 0), manual: report.manual.length, skipped: skipped.length, startup });
+if (report.written !== false || skipped.length !== 0 || startup.length !== 1 || startup[0].rewrites !== 5) process.exit(1);
+JS
 ```
 
-Expected: a summary that lists rewrites in `tests/` and `examples/`, and nothing in `src/`. Read every JSON manual item. Confirm that none says `this file was left untouched`:
+Expected: a summary that lists rewrites in `tests/` and `examples/`, and nothing in `src/`; the report says `written: false`, `skipped: 0`, and exactly five internal rewrites for `tests/types/negative/startup.ts`. The exact-text proof below establishes that those five edits affect only the two source lines containing the deliberate rejected `close({ timeoutMs })` and `close({ signal })` controls. Read every JSON manual item; those two lines are accepted dry-run findings rather than migration input.
+
+Prove the proposed diff for that fixture is exactly those two controls, and snapshot its original bytes for the later omitted-file check:
 
 ```bash
-node -e "const r=require('/tmp/phase-03-codemod-report.json'); const skipped=r.manual.filter(x=>x.reason.startsWith('this file was left untouched')); console.log({files:r.files.length, rewrites:r.files.reduce((n,x)=>n+x.rewrites,0), manual:r.manual.length, skipped:skipped.length}); if(skipped.length) process.exit(1)"
+node --input-type=module <<'JS'
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { loadTypeScript, runCodemod } from './tools/codemod/lib/codemod.mjs';
+const root = process.cwd();
+const file = 'tests/types/negative/startup.ts';
+const before = readFileSync(file, 'utf8');
+const replacements = [
+  ['closable.close({ timeoutMs: 1 });', 'closable.close({ waitTimeoutMs: 1 });'],
+  ['closable.close({ signal: new AbortController().signal });', 'closable.close({ abortSignal: new AbortController().signal });'],
+];
+let expected = before;
+for (const [from, to] of replacements) {
+  assert.equal(expected.split(from).length - 1, 1, `expected one control: ${from}`);
+  expected = expected.replace(from, to);
+}
+const compiler = loadTypeScript(root);
+const result = runCodemod({
+  typescript: compiler.ts,
+  root,
+  project: 'tsconfig.json',
+  extraFiles: ['tests/types/negative/*.ts'],
+  libraryRoots: ['src', 'dist'],
+  only: [file],
+});
+assert.equal(result.files.length, 1);
+assert.equal(result.files[0].file, file);
+assert.equal(result.files[0].rewrites, 5);
+assert.equal(result.files[0].text, expected);
+assert.equal(result.manual.filter(item => item.reason.startsWith('this file was left untouched')).length, 0);
+writeFileSync('/tmp/phase-03-negative-startup-before.ts', before);
+console.log('negative startup dry-run diff: exactly two accepted close controls; original bytes saved');
+JS
 ```
 
 The master requires the codemod's mechanical rewrite to remain a separate commit. If inspection shows that a manual case would make the mechanical result fail typecheck, the codemod tests, or the affected runtime tests, migrate that coherent manual case first while both APIs exist, then run and commit exactly this prior preparation:
@@ -1388,33 +1431,70 @@ Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
 MSG
 ```
 
-Then rebuild and repeat the dry run. Do not stage `tools/codemod` in this prior commit, do not fold these hand edits into the mechanical commit, and do not declare a red exception. If the report's manual cases leave the mechanical tree green, omit this optional preparation commit and handle them in Steps 4–5.
+After any such preparation commit, rebuild and repeat the inclusive dry run, its report assertion, and the exact startup-fixture preview/snapshot above. Do not stage `tools/codemod` in this prior commit, fold hand edits into the mechanical commit, declare a red exception, or change the map or engine. If the report's manual cases leave the mechanical tree green, omit this optional preparation commit and handle them in Steps 4–5.
 
-When the dry-run report is understood, write and verify the exact mechanical result:
+For the write, retain `--project` and both library roots but omit exactly `tests/types/negative/startup.ts`. Generate and save the explicit sorted inventory of every other negative TypeScript fixture, prove that no other fixture is omitted, and build one argument per saved path:
 
 ```bash
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --write --report /tmp/phase-03-codemod-report.json
+rg --files tests/types/negative -g '*.ts' | LC_ALL=C sort > /tmp/phase-03-all-negative-files.txt
+grep -vxF 'tests/types/negative/startup.ts' /tmp/phase-03-all-negative-files.txt > /tmp/phase-03-codemod-write-negative-files.txt
+python3 - <<'PY'
+from pathlib import Path
+all_files = Path('/tmp/phase-03-all-negative-files.txt').read_text().splitlines()
+write_files = Path('/tmp/phase-03-codemod-write-negative-files.txt').read_text().splitlines()
+assert all_files == sorted(set(all_files)), 'full negative-fixture inventory is not sorted and unique'
+assert write_files == sorted(set(write_files)), 'write inventory is not sorted and unique'
+assert [item for item in all_files if item not in write_files] == ['tests/types/negative/startup.ts']
+assert write_files == [item for item in all_files if item != 'tests/types/negative/startup.ts']
+print(f'write inventory: {len(write_files)} sorted unique negative fixtures; only startup.ts omitted')
+PY
+mapfile -t negative_extra_files < /tmp/phase-03-codemod-write-negative-files.txt
+negative_extra_args=()
+for file in "${negative_extra_files[@]}"; do negative_extra_args+=(--extra-files "$file"); done
+write_command=(node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist "${negative_extra_args[@]}" --write --report /tmp/phase-03-codemod-write-report.json)
+printf '%q ' "${write_command[@]}" > /tmp/phase-03-codemod-write-command.sh
+printf '\n' >> /tmp/phase-03-codemod-write-command.sh
+"${write_command[@]}"
+node - <<'JS'
+const report = require('/tmp/phase-03-codemod-write-report.json');
+const skipped = report.manual.filter(item => item.reason.startsWith('this file was left untouched'));
+const startup = report.files.filter(item => item.file === 'tests/types/negative/startup.ts');
+console.log({ files: report.files.length, rewrites: report.files.reduce((sum, item) => sum + item.rewrites, 0), manual: report.manual.length, skipped: skipped.length, startup: startup.length });
+if (report.written !== true || skipped.length !== 0 || startup.length !== 0) process.exit(1);
+JS
+cmp --silent tests/types/negative/startup.ts /tmp/phase-03-negative-startup-before.ts
+bun test tests/types.test.ts -t startup
 npm run typecheck
 npm run codemod:check
 bun test tests/startup.test.ts tests/runtime-diagnostics.test.ts tests/acquisition-cleanup.test.ts tests/react/runtime-owner.test.ts tests/react/project-runtime.test.ts
 git diff --check
 ```
 
-Expected: every command exits 0. Inspect the changed files and the report again. If a manual case was harmless because the old API still exists, leave it for Steps 4–5; if it caused a failure, restore the mechanical edit without discarding unrelated work, make the prior coherent manual commit described above, and rerun this step. Only after the actual mechanical tree is green:
+Expected: the inventory comparison proves that the write includes every current negative `.ts` fixture except exactly `tests/types/negative/startup.ts`. The write report says `written: true`, `skipped: 0`, and contains no entry for that omitted file. The byte comparison proves the whole startup fixture, including its two deliberate rejected old-close controls, is unchanged; the focused startup compiler check and every remaining command exit 0. There is no restoration step. Inspect every manual item and changed file again. If a manual case was harmless because the old API still exists, leave it for Steps 4–5; if it caused a failure, preserve unrelated work, make the prior coherent manual commit described above, and rerun this whole step from the inclusive dry run. In `task-4-report.md`, record the exact inclusive dry-run command, the saved exact write command and explicit inventory, each report's totals and `skipped: 0`, the five-rewrite/two-control preview result, and the omitted-file byte proof.
+
+Only after the actual mechanical tree is green:
 
 ```bash
 git add -A tests examples tools/codemod
-git commit -F - <<'MSG'
-refactor: move call sites to ensureServicesReady with the codemod
-
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --write
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
-MSG
+printf '%s\n' \
+  'refactor: move call sites to ensureServicesReady with the codemod' \
+  '' \
+  'Exact producing command:' > /tmp/phase-03-codemod-commit-message.txt
+cat /tmp/phase-03-codemod-write-command.sh >> /tmp/phase-03-codemod-commit-message.txt
+printf '%s\n' '' 'Explicit sorted --extra-files inventory:' >> /tmp/phase-03-codemod-commit-message.txt
+cat /tmp/phase-03-codemod-write-negative-files.txt >> /tmp/phase-03-codemod-commit-message.txt
+printf '%s\n' \
+  '' \
+  'The inclusive dry run covered startup.ts; the write omitted exactly that' \
+  'deliberate rejected-old-close fixture and preserved its bytes.' \
+  '' \
+  'Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>' \
+  'Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL' \
+  >> /tmp/phase-03-codemod-commit-message.txt
+git commit -F /tmp/phase-03-codemod-commit-message.txt
 ```
 
-If the codemod changed `tests/types/startup.ts`, `tests/types/negative/startup.ts` or `tests/ensure-services-ready.test.ts`, check with `git diff HEAD~1 -- <file>` that Tasks 1–3 content is intact. Those files were already on the new API.
+If the codemod changed `tests/types/startup.ts` or `tests/ensure-services-ready.test.ts`, check with `git diff HEAD~1 -- <file>` that Tasks 1–3 content is intact. The write must not change `tests/types/negative/startup.ts`; the byte proof above is authoritative.
 
 - [ ] **Step 4: Finish `tests/startup.test.ts` by hand**
 
@@ -1534,7 +1614,7 @@ assert actual == expected, f'missing={sorted((expected - actual).elements())}; u
 PY
 ```
 
-Expected: the exact assertion passes. The two naming-test rows are lexical scanner controls, the seven JSON rows are still-live known violations removed only by the combined Tasks 5–6 contract, and the three graph rows are deliberate compatibility/documentation removed by Task 6. Any other row is an executable caller, generated source, assertion, or document that Task 4 missed. Do not edit any of the twelve controls to make this audit pass.
+Expected: the exact assertion passes. The two naming-test rows are lexical scanner controls, the seven JSON rows are still-live known violations removed only by the combined Tasks 5–6 contract, and the three graph rows are deliberate compatibility/documentation: Task 6 retains `extract.mjs`'s `TERMINALS.buildAndStart` support for 0.4 input while updating the README wording. Any other row is an executable caller, generated source, assertion, or document that Task 4 missed. Do not edit any of the twelve controls to make this audit pass.
 
 ```bash
 grep -rnE "startupOrder:" tests examples scripts
@@ -2004,7 +2084,7 @@ Reply to the controller in the format of the master plan, "Protocol for every ph
 
 **Spec coverage.** `ensureServicesReady` on a bag, a child scope and a fork, the same-bag result, close on failure, untouched bag on invalid input, rejections only, repeated calls: the green Tasks 2–3 expand, with tests in `tests/ensure-services-ready.test.ts`. The pending-work report is defined and consumed in that same expand commit. `close` options `abortSignal` and `waitTimeoutMs`: atomic Task 1. `CloseProgress.disposersStillRunning` and `.acquisitionsStillPending`: atomic Task 1. `DiBagServiceReadinessError`, `DiBagServiceReadinessCancelledError`, `disposalFailures`, `disposalError`, `disposalPromise`, the three codes: Tasks 2–3. `buildAndStart` removed, `StartupOptions` renamed and not aliased, old names fail to compile, generated docs contract, graph compatibility, and the exact ten-entry naming-ratchet shrink: the green Tasks 5–6 contract. Codemod data and fixture: Task 4. Evidence and the read-only phase-wide ratchet audit: Task 7.
 
-**Task 4 audit precision.** Migration audits scan every owned consumer path and accept only exact intentional artifacts: two lexical naming-scanner controls, seven still-live startup ratchet rows, three graph compatibility/documentation rows, explicit invalid-option list entries, the two `CloseOptions` negative cases in `tests/types/negative/startup.ts`, and the two still-live cleanup member rows in the ratchet. The exact audits normalize away line numbers but compare `(path, line text)` with multiplicity; they exclude no whole test file, so an additional executable legacy caller fails the comparison. Tasks 5–6, not Task 4, remove the startup ratchet rows, graph compatibility, and `cleanupFailures`; the shared `cleanupPromise` finding remains for the close error until Phase 11.
+**Task 4 audit precision.** Migration audits scan every owned consumer path and accept only exact intentional artifacts: two lexical naming-scanner controls, seven still-live startup ratchet rows, three graph compatibility/documentation rows, explicit invalid-option list entries, the two `CloseOptions` negative cases in `tests/types/negative/startup.ts`, and the two still-live cleanup member rows in the ratchet. The exact audits normalize away line numbers but compare `(path, line text)` with multiplicity; they exclude no whole test file, so an additional executable legacy caller fails the comparison. The inclusive codemod dry run proves its only proposed `tests/types/negative/startup.ts` diff is those two close controls; the explicit mechanical-write inventory omits exactly that file and the byte comparison preserves it without restoration. Tasks 5–6, not Task 4, remove the startup ratchet rows and `cleanupFailures`; graph compatibility remains for 0.4 input while Task 6 updates its README wording, and the shared `cleanupPromise` finding remains for the close error until Phase 11.
 
 **Left to later phases on purpose.** `DiBagCloseCancelledError.cleanupPromise`, `DiBagCleanupError`, `CleanupFailure` and the `cleanup-*` events (phase 11). The code `DI_BAG_INVALID_STARTUP` (phase 11 folds it into `DI_BAG_INVALID_ARGUMENT` and `DI_BAG_UNKNOWN_SERVICE_KEY`). The acquisition context's `signal` (phase 8). `build` to `buildContainer` (phase 5), `Bag` to `Container`, `createScope` and `fork` (phase 6); the words "bag", "scope" and "fork" in this phase's messages and comments are renamed with them. The tutorial section on startup and every other guide (phase 12); until then the `@see` URL of `EnsureServicesReadyOptions` points at the existing tutorial heading. Throwing stubs for the removed runtime names and the changelog (phase 13).
 
