@@ -20,3 +20,4 @@
 /tools/docs/site/
 /tools/docs/.cache/
 /tools/graph/node_modules/
+/tools/codemod/node_modules/

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "methods": [
+    { "owner": "DiBagApi", "from": "fromFactory", "to": "createProvider", "arity": [2] },
+    { "owner": "DiBagApi", "from": "fromFactory", "to": "createUnaryProvider", "arity": [1] }
+  ],
+  "options": [
+    { "owner": "DiBagApi", "method": "fromFactory", "argument": 1, "from": "single-key", "to": "key'\\\n" },
+    { "owner": "DiBagApi", "method": "fromFactory", "argument": 1, "from": "double-key", "to": "key\"\\\t" },
+    { "owner": "DiBagApi", "method": "fromFactory", "argument": 1, "from": "template", "to": "identifier'\\\r" }
+  ],
+  "values": [
+    { "owner": "DiBagApi", "method": "fromFactory", "argument": 1, "path": ["single-key"], "from": "single-old", "to": "single'\\\n\t\u0001" },
+    { "owner": "DiBagApi", "method": "fromFactory", "argument": 1, "path": ["double-key"], "from": "double-old", "to": "double\"\\\r\b\f" },
+    { "owner": "DiBagApi", "method": "fromFactory", "argument": 1, "path": ["template"], "from": "template-old", "to": "template`\\${value}\u2028\u2029" }
+  ]
+}

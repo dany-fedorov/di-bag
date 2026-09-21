@@ -1,0 +1,34 @@
+{
+  "$schema": "./rename-map.schema.json",
+  "version": 1,
+  "methods": [
+    { "owner": "Builder", "from": "buildAndStart", "to": "ensureServicesReady", "transform": "build-and-start", "transformNames": { "concurrency": "maxConcurrentServiceKeys" } }
+  ],
+  "options": [
+    { "owner": "Bag", "method": "close", "argument": 0, "from": "signal", "to": "abortSignal" },
+    { "owner": "Bag", "method": "close", "argument": 0, "from": "timeoutMs", "to": "waitTimeoutMs" }
+  ],
+  "properties": [
+    { "owner": "CloseOptions", "from": "signal", "to": "abortSignal" },
+    { "owner": "CloseOptions", "from": "timeoutMs", "to": "waitTimeoutMs" },
+    { "owner": "StartupOptions", "from": "signal", "to": "abortSignal" },
+    { "owner": "StartupOptions", "from": "timeoutMs", "to": "totalTimeoutMs" },
+    { "owner": "StartupOptions", "from": "startupOrder", "manual": "startupOrder is gone; use maxConcurrentServiceKeys: omit it for 'parallel', 1 for 'sequential', or the number" },
+    { "owner": "DiBagStartupError", "from": "cleanupFailures", "to": "disposalFailures" },
+    { "owner": "DiBagStartupError", "from": "cleanupError", "to": "disposalError" },
+    { "owner": "DiBagStartupCancelledError", "from": "cleanupPromise", "to": "disposalPromise" },
+    { "owner": "DiBagCloseCancelledError", "from": "timeoutMs", "to": "waitTimeoutMs" },
+    { "owner": "CloseProgress", "from": "pending", "to": "disposersStillRunning" },
+    { "owner": "CloseProgress", "from": "acquiring", "to": "acquisitionsStillPending" }
+  ],
+  "types": [
+    { "from": "StartupOptions", "to": "EnsureServicesReadyOptions" },
+    { "from": "DiBagStartupError", "to": "DiBagServiceReadinessError" },
+    { "from": "DiBagStartupCancelledError", "to": "DiBagServiceReadinessCancelledError" }
+  ],
+  "codes": [
+    { "from": "DI_BAG_STARTUP_FAILED", "to": "DI_BAG_SERVICE_READINESS_FAILED" },
+    { "from": "DI_BAG_STARTUP_CANCELLED", "to": "DI_BAG_SERVICE_READINESS_CANCELLED" },
+    { "from": "DI_BAG_STARTUP_TIMEOUT", "to": "DI_BAG_SERVICE_READINESS_TIMEOUT" }
+  ]
+}

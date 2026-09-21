@@ -1,0 +1,6 @@
+[
+  {
+    "line": 15,
+    "reason": "the receiver of alias has type any, so this call cannot be checked; migrate it by hand if it is a DI Bag call"
+  }
+]

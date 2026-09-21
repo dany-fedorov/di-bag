@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "methods": [
+    { "owner": "Builder", "from": "register", "to": "withServices", "arity": [1] },
+    { "owner": "Builder", "from": "replace", "to": "withReplacedService", "arguments": { "kind": "bag", "names": ["serviceKey", "provider"] } },
+    { "owner": "Builder", "from": "alias", "to": "withServiceAlias", "arguments": { "kind": "bag", "names": ["aliasKey", "targetServiceKey"] } },
+    { "owner": "Bag", "from": "resolve", "to": "resolveService" },
+    { "owner": "Bag", "from": "resolveAll", "to": "resolveAllContributions" },
+    { "owner": "DiBagApi", "from": "all", "to": "allContributions" }
+  ],
+  "options": [
+    { "owner": "Bag", "method": "close", "argument": 0, "from": "signal", "to": "abortSignal" }
+  ],
+  "properties": [
+    { "owner": "CloseOptions", "from": "signal", "to": "abortSignal" }
+  ]
+}

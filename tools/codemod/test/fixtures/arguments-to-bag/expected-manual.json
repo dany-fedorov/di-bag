@@ -1,0 +1,10 @@
+[
+  {
+    "line": 37,
+    "reason": "fork is called with a spread argument; rewrite it to createIndependentContainer by hand"
+  },
+  {
+    "line": 39,
+    "reason": "the last argument of createScope is not an object literal; merge it into the createChildContainer bag by hand"
+  }
+]

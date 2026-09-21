@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "di-bag-codemod rename map",
+  "description": "The distance from di-bag 0.4.0 to the current API. Owners are library declaration names: a class, interface or type alias is `Name`, a function is `name()`, a method's inline types are `Owner.method()`. Method and property targets must be safe bare identifiers; type targets must also not be TypeScript keywords or primitive type names.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version"],
+  "properties": {
+    "$schema": { "type": "string", "minLength": 1 },
+    "version": { "const": 1 },
+    "methods": {
+      "description": "A renamed or reshaped method. Several entries may share owner and from when `arity` tells them apart; the first match wins.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["owner", "from", "to"],
+        "allOf": [
+          { "not": { "required": ["arguments", "transform"] } },
+          { "if": { "required": ["transformNames"] }, "then": { "required": ["transform"] } }
+        ],
+        "properties": {
+          "owner": { "type": "string", "minLength": 1 },
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$", "description": "The 0.5 name. Equal to `from` when only the arguments change." },
+          "arity": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "description": "Argument counts this entry applies to. Omit for any." },
+          "arguments": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind", "names"],
+                "properties": {
+                  "kind": { "const": "bag" },
+                  "names": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Bag property for each positional argument, in order." },
+                  "trailing": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["mode"],
+                    "properties": {
+                      "mode": { "enum": ["merge", "keep", "drop"], "description": "What happens to one extra argument after `names`: merge its properties into the bag, keep it as a second argument, or drop it." },
+                      "keys": { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 }, "description": "Key renames applied while merging." }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind"],
+                "properties": { "kind": { "const": "array", "description": "Wrap the single argument in an array." } }
+              }
+            ]
+          },
+          "transform": { "type": "string", "minLength": 1, "description": "Id of a custom transform in lib/transforms/index.mjs. Excludes `arguments`." },
+          "transformNames": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "options": {
+      "description": "A renamed key of an object-literal argument, found by position. Works even when the call does not type-check.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["owner", "method", "argument", "from", "to"],
+        "properties": {
+          "owner": { "type": "string", "minLength": 1 },
+          "method": { "type": "string", "minLength": 1, "description": "The 0.4.0 method name." },
+          "argument": { "type": "integer", "minimum": 0 },
+          "path": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Keys leading to a nested object literal. Omit for the argument itself." },
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "values": {
+      "description": "A renamed string value: either at an argument path of a call, or wherever a library property is compared with or assigned that string.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["owner", "method", "argument", "from", "to"],
+            "properties": {
+              "owner": { "type": "string", "minLength": 1 },
+              "method": { "type": "string", "minLength": 1 },
+              "argument": { "type": "integer", "minimum": 0 },
+              "path": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Keys leading to the string inside an object-literal argument. Omit when the argument is the string." },
+              "from": { "type": "string", "minLength": 1 },
+              "to": { "type": "string", "minLength": 1 }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["owner", "property", "from", "to"],
+            "properties": {
+              "owner": { "type": "string", "minLength": 1 },
+              "property": { "type": "string", "minLength": 1 },
+              "from": { "type": "string", "minLength": 1 },
+              "to": { "type": "string", "minLength": 1 }
+            }
+          }
+        ]
+      }
+    },
+    "properties": {
+      "description": "A renamed property of a library type: property access, destructuring, and keys of object literals typed by it. `manual` reports every use instead.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["owner", "from"],
+        "oneOf": [{ "required": ["to"] }, { "required": ["manual"] }],
+        "properties": {
+          "owner": { "type": "string", "minLength": 1 },
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$" },
+          "manual": { "type": "string", "minLength": 1, "description": "The sentence shown to the person who has to decide." }
+        }
+      }
+    },
+    "types": {
+      "description": "A renamed export: classes, interfaces, type aliases and error classes, in imports and wherever they are referenced.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1 },
+          "to": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$",
+            "not": { "enum": ["abstract", "accessor", "any", "as", "asserts", "async", "await", "bigint", "boolean", "break", "case", "catch", "class", "const", "constructor", "continue", "debugger", "declare", "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for", "from", "function", "get", "global", "if", "implements", "import", "in", "infer", "instanceof", "interface", "intrinsic", "is", "keyof", "let", "module", "namespace", "never", "new", "null", "number", "object", "of", "out", "override", "package", "private", "protected", "public", "readonly", "require", "return", "satisfies", "set", "static", "string", "super", "switch", "symbol", "this", "throw", "true", "try", "type", "typeof", "undefined", "unique", "unknown", "using", "var", "void", "while", "with", "yield"] }
+          }
+        }
+      }
+    },
+    "codes": {
+      "description": "A renamed runtime code. A code that was split has `manual` with the sentence that helps choose.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from"],
+        "oneOf": [{ "required": ["to"] }, { "required": ["manual"] }],
+        "properties": {
+          "from": { "type": "string", "minLength": 1, "pattern": "^DI_BAG_[A-Z_]+$" },
+          "to": { "type": "string", "minLength": 1, "description": "The new code, or the word manual." },
+          "manual": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "imports": {
+      "description": "A rewritten module specifier: an exact match, or the end of a relative path.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "to"],
+            "properties": { "from": { "type": "string", "minLength": 1 }, "to": { "type": "string", "minLength": 1 } }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["fromSuffix", "toSuffix"],
+            "properties": { "fromSuffix": { "type": "string", "minLength": 1 }, "toSuffix": { "type": "string", "minLength": 1 } }
+          }
+        ]
+      }
+    }
+  }
+}

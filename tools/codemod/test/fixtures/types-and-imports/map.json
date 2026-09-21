@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "types": [
+    { "from": "Bag", "to": "Container" },
+    { "from": "DiBagCleanupError", "to": "DiBagDisposalError" }
+  ],
+  "imports": [
+    { "from": "di-bag/node", "to": "di-bag" },
+    { "fromSuffix": "/src/node", "toSuffix": "/src" }
+  ]
+}

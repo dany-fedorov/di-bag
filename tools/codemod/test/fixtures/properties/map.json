@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "properties": [
+    { "owner": "Token", "from": "key", "to": "symbol" },
+    { "owner": "RegistrationSnapshot", "from": "label", "to": "bindingLabel" },
+    { "owner": "AcquisitionEventFields", "from": "label", "to": "bindingLabel" },
+    { "owner": "ScopeEventFields", "from": "scopeId", "to": "containerId" },
+    { "owner": "AcquisitionEventFields", "from": "scopeId", "to": "containerId" },
+    { "owner": "Presence", "from": "present", "to": "isPresent" },
+    { "owner": "BindingSnapshot", "from": "owned", "manual": "owned became isOwnedByBag and now means something narrower; check this use" }
+  ],
+  "values": [
+    { "owner": "LifecycleEvent", "property": "kind", "from": "scope-opened", "to": "container-opened" },
+    { "owner": "LifecycleEvent", "property": "kind", "from": "scope-closed", "to": "container-closed" }
+  ]
+}
