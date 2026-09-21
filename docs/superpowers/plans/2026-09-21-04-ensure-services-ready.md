@@ -36,11 +36,13 @@ Phases 0 to 2 are merged into `next`. Confirm each line with the command next to
 | --- | --- |
 | The naming guide and the naming ratchet test exist | `ls docs/guides/api-naming.md && ls tests | grep -i naming` |
 | The codemod exists with a `buildAndStart` transform and a fixture for it | `ls tools/codemod/cli.mjs tools/codemod/rename-map.json && grep -rl buildAndStart tools/codemod` |
-| Phase 2 renamed documented parameter names in `src` only | `grep -n "factoryContext" src/acquisition-context.ts` prints matches |
+| Phase 2 renamed documented parameter names and `Bag` generics | `grep -n "factoryContext" src/acquisition-context.ts` prints matches; `grep -F "class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedConstraint = never>" src/di-bag.ts` succeeds |
 | `Builder.buildAndStart` exists and `Bag.ensureServicesReady` does not | `grep -n "buildAndStart\|ensureServicesReady" src/di-bag.ts` |
 | The class is still `Bag` and the terminal is still `build()` | `grep -n "^class Bag\|  build(this" src/di-bag.ts` |
 
-Phase 2 may have renamed the type parameters of `Bag` (they were `R` and `C` in 0.4.0). Wherever this plan writes `Selection<R, K, …>` or `Bag<R, C>`, use the names you find in the `createScope` signature of `src/di-bag.ts`, which reads `Selection<R, K, 'createScope'>` in 0.4.0. Test files may name callback parameters `factoryCtx` or `factoryContext`; both are local names and both compile.
+Phase 2 renamed the type parameters of `Bag` from `R` and `C` to `ServiceRegistrations` and `Constraints`. Confirm that `class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedConstraint = never>` and `Selection<ServiceRegistrations, K, 'createScope'>` are present. Every method added to that class in this phase uses those exact class type-parameter names. Test files use the phase-2 callback spelling `factoryContext` when they name that parameter.
+
+The phase has three green commit boundaries that differ from the one-heading-per-commit default. Task 1 atomically migrates repository readers and renames the returned close-progress fields, because adding both returned field sets would break exact-object assertions. Tasks 2 and 3 form one green expand commit: do not commit the error classes until the method and all three error sections exist. Tasks 5 and 6 form one green contract-and-docs commit: do not commit removed declarations while generated references still describe them. No commit in this phase is intentionally red.
 
 ## File Structure
 
@@ -55,12 +57,12 @@ Phase 2 may have renamed the type parameters of `Bag` (they were `R` and `C` in 
 | `tests/startup.test.ts`, `tests/startup-runtime-fixture.ts`, `tests/runtime-diagnostics.test.ts`, `tests/acquisition-cleanup.test.ts`, `tests/final-adversarial-runtime-fixture.ts`, `tests/*.node.mjs`, other tests, `examples/` | Migrated call sites |
 | `tests/types/startup.ts`, `tests/types/startup-consumer.ts`, `tests/types/negative/startup.ts`, `tests/types/negative/api-renaming.ts` | Compiler fixtures |
 | `tools/codemod/rename-map.json`, `tools/codemod/test/fixtures/…` | Map entries and a fixture for this phase |
-| `docs/agent/errors.md`, `docs/agent/api-card.md` (generated), `docs/reference/` (generated), `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs`, `docs/guides/api-reference.md` (four table rows only) | Documentation that `npm run docs:check` verifies |
+| `docs/agent/errors.md`, `docs/agent/api-card.md` (generated), `docs/reference/` (generated), `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs`, `docs/guides/api-reference.md` (the close row in Task 1; three removed-name rows in Task 6) | Documentation that `npm run docs:check` verifies |
 | `tools/graph/README.md`, `tools/graph/test/extract.test.mjs`, `tools/graph/test/fixtures/ready-chain.ts` | The graph tool keeps finding `build()` inside `build().ensureServicesReady()` |
 | `scripts/verify-release-artifacts.ts` | Expected error class names in release evidence |
 | `docs/superpowers/plans/evidence/phase-03.md` | Measurements |
 
-The guides under `docs/guides/` and `README.md` are rewritten in phase 12. This phase touches `docs/guides/api-reference.md` only because three of its table rows link to reference pages that this phase deletes, and `npm run docs:check` fails on a dead link.
+The guides under `docs/guides/` and `README.md` are rewritten in phase 12. This phase touches `docs/guides/api-reference.md` only to keep its close-progress field names atomic with Task 1 and because three other rows link to reference pages that Tasks 5–6 delete; `npm run docs:check` rejects those dead links.
 
 ---
 
@@ -76,7 +78,7 @@ git switch next && git pull --ff-only 2>/dev/null; git switch -c phase-03-ensure
 
 - [ ] **Step 2: Run the checks of "State on entry"**
 
-Run each command of the table. Expected: every expectation holds. Write down the names of the `Bag` type parameters and the path of the naming test and of the codemod fixture that mentions `buildAndStart`; later tasks need them.
+Run each command of the table. Expected: every expectation holds. Record the path of the naming test and of the phase-1 codemod fixture that mentions `buildAndStart`; later tasks need them. The `Bag` parameters are not adaptive: they must be `ServiceRegistrations` and `Constraints`.
 
 - [ ] **Step 3: Build once, so that tests reading `dist/` start from a current build**
 
@@ -87,7 +89,7 @@ Expected: exits 0.
 
 ### Task 1: Rename the close options and the close progress fields
 
-`close({ signal, timeoutMs })` becomes `close({ abortSignal, waitTimeoutMs })`. `CloseProgress.pending` and `.acquiring` become `disposersStillRunning` and `acquisitionsStillPending`, and so do the keys of `DiBagCloseCancelledError.details`. The `details.timeoutMs` key becomes `details.waitTimeoutMs`. The field `cleanupPromise` of that error stays until phase 11. There are about twenty call sites and most hold the error as `any`, so this task is done by hand; the codemod learns the same renames in Task 4 for users.
+`close({ signal, timeoutMs })` becomes `close({ abortSignal, waitTimeoutMs })`. `CloseProgress.pending` and `.acquiring` become `disposersStillRunning` and `acquisitionsStillPending`, and so do the keys of `DiBagCloseCancelledError.details`. The `details.timeoutMs` key becomes `details.waitTimeoutMs`. The field `cleanupPromise` of that error stays until phase 11. Phase 1 already put these 0.4-to-0.5 entries in the shipped codemod map. A returned progress object cannot carry both enumerable field sets without breaking exact-object behavior, so this task migrates every repository reader and the declarations/producers/docs atomically in one green commit. Most caught errors are `any`, so the repository edits are done by hand and checked with searches as well as the compiler.
 
 **Files:**
 - Modify: `src/errors.ts` (the `CloseProgress` interface and the `DiBagCloseCancelledError` class, at the end of the file)
@@ -96,9 +98,18 @@ Expected: exits 0.
 - Modify: `src/di-bag.ts` (JSDoc of `Bag.close`)
 - Modify: `tests/runtime-diagnostics.test.ts`, `tests/acquisition-cleanup.test.ts`, `tests/types/startup.ts`, `tests/types/negative/startup.ts`
 - Modify: `docs/agent/errors.md` (sections `DI_BAG_CLOSE_ABORTED`, `DI_BAG_CLOSE_TIMEOUT`, `DI_BAG_INVALID_CLOSE`)
+- Modify: `docs/guides/api-reference.md` (the `DiBagCloseCancelledError` row only)
 
 **Interfaces:**
 - Produces: `CloseOptions { readonly abortSignal?: AbortSignal; readonly waitTimeoutMs?: number }`; `CloseProgress { readonly disposersStillRunning: readonly string[]; readonly acquisitionsStillPending: readonly string[] }`; `BagRuntime.closeProgress()` returns that shape; `snapshotOptions(options, operation, code, supported, timeoutKey, signalKey)`.
+
+- [ ] **Step 0: Inventory every repository consumer before the atomic rename**
+
+```bash
+grep -rnE "close\(\{ ?(timeoutMs|signal)|details\.(pending|acquiring)|CloseProgress|CloseOptions" src tests examples scripts docs/agent AGENTS.md
+```
+
+Read every hit. The edits below name the phase-entry hits; if phases 1 or 2 added another real close option or progress reader, migrate it in this task. Do not change acquisition-context `signal`, startup options, local variables that merely share a word, or codemod 0.4 input fixtures.
 
 - [ ] **Step 1: Make the tests state the new names (they fail first)**
 
@@ -301,15 +312,34 @@ In `DI_BAG_CLOSE_TIMEOUT`: `close({ timeoutMs })` becomes `close({ waitTimeoutMs
 
 In `DI_BAG_INVALID_CLOSE`: the options shape `{ timeoutMs?, signal? }` becomes `{ waitTimeoutMs?, abortSignal? }`; the words "a finite positive" are followed by `waitTimeoutMs` instead of `timeoutMs`; the fix line names `waitTimeoutMs` and `abortSignal` instead of `timeoutMs` and `signal`; the code block calls `app.close({ waitTimeoutMs: 1_000, abortSignal: AbortSignal.timeout(2_000) })`.
 
+- [ ] **Step 8a: Update the close row in `docs/guides/api-reference.md`**
+
+Replace only the `DiBagCloseCancelledError` row with:
+
+```md
+| [`DiBagCloseCancelledError`](../reference/index/classes/DiBagCloseCancelledError.md) | `close({ waitTimeoutMs, abortSignal })` stops waiting before cleanup finishes. | `code` is `DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`; `details.disposersStillRunning` lists unfinished disposer labels and `details.acquisitionsStillPending` pending acquisitions; `cleanupPromise` settles when cleanup finishes. |
+```
+
+The class and `cleanupPromise` keep their current names in this phase. Do not edit another guide row here.
+
 - [ ] **Step 9: Regenerate and check the docs**
 
 Run: `npm run build && npm run docs:generate && npm run docs:check`
 Expected: the last line reads `Prepared … Markdown pages; repository-only links point to GitHub.` and the command exits 0.
 
+- [ ] **Step 9a: Prove that the atomic rename covered every repository consumer**
+
+```bash
+if grep -rnE "close\(\{ ?(timeoutMs|signal)|details\.(pending|acquiring)" src tests examples scripts docs/agent AGENTS.md | grep -v '^tests/types/negative/startup.ts:'; then exit 1; fi
+grep -nE "closable\.close\(\{ (timeoutMs|signal)" tests/types/negative/startup.ts
+```
+
+Expected: the first command prints nothing; the second prints exactly the two compile-time rejection cases for the old close keys. Then run `git diff --check`. Other old spellings remain only in the phase-1 codemod's 0.4 input/map.
+
 - [ ] **Step 10: Commit**
 
 ```bash
-git add -A src tests docs/agent docs/reference
+git add -A src tests docs/agent docs/reference docs/guides/api-reference.md
 git commit -F - <<'MSG'
 refactor!: close takes abortSignal and waitTimeoutMs; progress fields say what they list
 
@@ -324,9 +354,9 @@ MSG
 
 ---
 
-### Task 2: Add the service readiness error classes
+### Task 2: Add the service readiness error classes (first half of the green expand)
 
-Two new classes next to the startup ones. Nothing throws them yet; Task 3 does.
+Two new classes go next to the startup ones. Nothing throws them until Task 3, and their checked documentation examples need the new method. Complete the steps here, keep the changes uncommitted, and continue directly into Task 3. Tasks 2 and 3 are reviewed and committed as one green expand unit.
 
 **Files:**
 - Modify: `src/errors.ts`, `src/index.ts`
@@ -462,23 +492,13 @@ export { DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError
 Run: `bun test tests/ensure-services-ready.test.ts && npm run typecheck`
 Expected: 1 pass, 0 fail; typecheck exits 0.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Keep the tested changes uncommitted and continue to Task 3**
 
-```bash
-git add src/errors.ts src/index.ts tests/ensure-services-ready.test.ts
-git commit -F - <<'MSG'
-feat: service readiness error classes
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
-MSG
-```
-
-`npm run docs:check` fails between this commit and the next, because the two new codes have no section in `docs/agent/errors.md` yet. Task 3 adds all three sections together.
+Run `git diff --check`, then continue immediately. Do not run `docs:check` or commit yet: Task 3 adds the public method, timeout code and all three errors-page sections, after which the combined expand boundary is green. This is not an intentionally red commit.
 
 ---
 
-### Task 3: Add `Bag.ensureServicesReady`
+### Task 3: Add `Bag.ensureServicesReady` and commit the green expand
 
 **Files:**
 - Modify: `src/startup.ts`, `src/di-bag.ts`, `src/index.ts`
@@ -488,7 +508,7 @@ MSG
 
 **Interfaces:**
 - Consumes: `BagRuntime.assertOpen()`, `BagRuntime.acquire(key): Promise<void>`, `BagRuntime.close(cause?): Promise<void>`, `BagRuntime.closeProgress()` from `src/runtime.ts`; `BindingGraph.hasPublic(key)`; `readTokenKey` from `src/tokens.ts`; the two classes of Task 2; `snapshotOptions` with the six parameters of Task 1; the private fields `#runtime` and `#graph` of `Bag`.
-- Produces: `export interface EnsureServicesReadyOptions { readonly abortSignal?: AbortSignal; readonly totalTimeoutMs?: number; readonly maxConcurrentServiceKeys?: number }`; `export function ensureRuntimeReady(runtime: BagRuntime, graph: BindingGraph, keys: readonly unknown[], options?: EnsureServicesReadyOptions): Promise<void>`; `Bag.prototype.ensureServicesReady<const K extends readonly unknown[]>(serviceKeys: K & Selection<R, K, 'ensureServicesReady'>, options?: EnsureServicesReadyOptions): Promise<this>`.
+- Produces: `export interface EnsureServicesReadyOptions { readonly abortSignal?: AbortSignal; readonly totalTimeoutMs?: number; readonly maxConcurrentServiceKeys?: number }`; `export function ensureRuntimeReady(runtime: BagRuntime, graph: BindingGraph, keys: readonly unknown[], options?: EnsureServicesReadyOptions): Promise<void>`; `Bag.prototype.ensureServicesReady<const K extends readonly unknown[]>(serviceKeys: K & Selection<ServiceRegistrations, K, 'ensureServicesReady'>, options?: EnsureServicesReadyOptions): Promise<this>`.
 
 Behavior, which the tests below pin:
 - The bag must be open, else the call rejects with `DI_BAG_CLOSING` or `DI_BAG_CLOSED`.
@@ -1012,7 +1032,7 @@ import { closeRuntime, ensureRuntimeReady, startRuntime } from './startup';
 import type { CloseOptions, EnsureServicesReadyOptions, StartupOptions } from './startup';
 ```
 
-Insert the method between `fork` and `close`. Use the class's own first type parameter where this code says `R`:
+Insert the method between `fork` and `close`. Phase 2 named the class's first type parameter `ServiceRegistrations`; use that exact name:
 
 ````ts
   /**
@@ -1038,7 +1058,7 @@ Insert the method between `fork` and `close`. Use the class's own first type par
    * ```
    */
   async ensureServicesReady<const K extends readonly unknown[]>(
-    serviceKeys: K & Selection<R, K, 'ensureServicesReady'>,
+    serviceKeys: K & Selection<ServiceRegistrations, K, 'ensureServicesReady'>,
     options?: EnsureServicesReadyOptions,
   ): Promise<this> {
     await ensureRuntimeReady(this.#runtime, this.#graph, serviceKeys, options);
@@ -1046,7 +1066,7 @@ Insert the method between `fork` and `close`. Use the class's own first type par
   }
 ````
 
-`Promise<this>` and `Promise<Bag<R, C>>` were compared on a prototype: both type-check every fixture of Step 2 and differ by 28 instantiations out of 115,000. Keep `Promise<this>`.
+`Promise<this>` and `Promise<Bag<ServiceRegistrations, Constraints>>` were compared on a prototype: both type-check every fixture of Step 2 and differ by 28 instantiations out of 115,000. Keep `Promise<this>`.
 
 - [ ] **Step 6: Export the options type from `src/index.ts`**
 
@@ -1146,7 +1166,7 @@ the signal so they stop promptly.
 Run: `npm run build && npm run docs:generate && npm run docs:check`
 Expected: exits 0. If `docs:generate` reports that the API card is over its 400-line budget, shorten the `@example` of `ensureServicesReady` to one line; do not touch other examples.
 
-- [ ] **Step 10: Commit**
+- [ ] **Step 10: Commit Tasks 2 and 3 as one green expand**
 
 ```bash
 git add -A src tests docs/agent docs/reference
@@ -1176,7 +1196,7 @@ The old API still exists, so the codemod can resolve it. First the codemod learn
 
 **Interfaces:**
 - Consumes: the codemod CLI and map of the master plan, "The codemod contract"; `Bag.ensureServicesReady` of Task 3.
-- Produces: no call to `buildAndStart`, no use of `StartupOptions`, `DiBagStartupError`, `DiBagStartupCancelledError`, `startupOrder` or a `DI_BAG_STARTUP_*` code anywhere outside `src/`, `tools/codemod/`, `tools/graph/lib/extract.mjs` and the guides.
+- Produces: migrated repository consumer call sites. Until the green Tasks 5–6 contract, the old declarations and error sections remain in `src/` and `docs/agent/errors.md`; codemod map/input fixtures, graph legacy compatibility, guides owned by phase 12, and explicit old-name rejection cases also retain old spellings. Every manual item in the codemod report is either migrated in a named hand commit or explicitly accounted for before contract.
 
 The rules, for the codemod and for your hands alike:
 
@@ -1188,7 +1208,8 @@ The rules, for the codemod and for your hands alike:
 | option `timeoutMs: n` | `totalTimeoutMs: n` |
 | option `startupOrder: 'parallel'` | removed. When the bag literal becomes empty, the whole second argument is removed |
 | option `startupOrder: 'sequential'` | `maxConcurrentServiceKeys: 1` |
-| option `startupOrder: <number or any other expression>` | `maxConcurrentServiceKeys: <the same expression>`. When the expression is not a numeric literal, also report a manual item: "may hold 'parallel' or 'sequential'" |
+| option `startupOrder: <number literal>` | `maxConcurrentServiceKeys: <the same number>` |
+| option `startupOrder: <any other expression>` | leave the whole `buildAndStart` call unchanged and report: `startupOrder is not a literal; use maxConcurrentServiceKeys: omit it for 'parallel', 1 for 'sequential', or the number` |
 | options passed as an identifier typed `StartupOptions` | passed through unchanged, plus a manual item: "rename the properties where this object is built" |
 | `bag.close({ signal, timeoutMs })` | `bag.close({ abortSignal: signal, waitTimeoutMs: … })` |
 | type `StartupOptions` | `EnsureServicesReadyOptions` |
@@ -1202,34 +1223,38 @@ The rules, for the codemod and for your hands alike:
 | property `acquiring` of `CloseProgress` | `acquisitionsStillPending` |
 | `'DI_BAG_STARTUP_FAILED'`, `'DI_BAG_STARTUP_CANCELLED'`, `'DI_BAG_STARTUP_TIMEOUT'` | `'DI_BAG_SERVICE_READINESS_FAILED'`, `'DI_BAG_SERVICE_READINESS_CANCELLED'`, `'DI_BAG_SERVICE_READINESS_TIMEOUT'` |
 
-- [ ] **Step 1: Put the data into `tools/codemod/rename-map.json`**
+- [ ] **Step 1: Verify the complete phase-1 map, changing it only if an entry is missing**
 
-Open the file and look at how phase 1 shaped its entries. The entries below use the field names of the master plan's contract. If phase 1 chose other field names, keep its names and carry these values over. Do not duplicate an entry that phase 1 already wrote for `buildAndStart`; complete it.
+Phase 1 owns the schema and ships the phase-3 entries in advance. Its file must equal the complete content below on phase entry. Do not append duplicates and do not remove `$schema`, `to` or `argument`. If the phase-1 executor repaired its implementation while preserving this contract, keep the valid phase-1 schema and compare every semantic entry below. Any semantic difference is an entry-check failure to report before continuing.
 
 ```json
 {
+  "$schema": "./rename-map.schema.json",
+  "version": 1,
   "methods": [
-    { "owner": "Builder", "from": "buildAndStart", "transform": "build-and-start" }
+    { "owner": "Builder", "from": "buildAndStart", "to": "ensureServicesReady", "transform": "build-and-start" }
   ],
   "options": [
-    { "owner": "Bag", "method": "close", "from": "signal", "to": "abortSignal" },
-    { "owner": "Bag", "method": "close", "from": "timeoutMs", "to": "waitTimeoutMs" }
+    { "owner": "Bag", "method": "close", "argument": 0, "from": "signal", "to": "abortSignal" },
+    { "owner": "Bag", "method": "close", "argument": 0, "from": "timeoutMs", "to": "waitTimeoutMs" }
+  ],
+  "properties": [
+    { "owner": "CloseOptions", "from": "signal", "to": "abortSignal" },
+    { "owner": "CloseOptions", "from": "timeoutMs", "to": "waitTimeoutMs" },
+    { "owner": "StartupOptions", "from": "signal", "to": "abortSignal" },
+    { "owner": "StartupOptions", "from": "timeoutMs", "to": "totalTimeoutMs" },
+    { "owner": "StartupOptions", "from": "startupOrder", "manual": "startupOrder is gone; use maxConcurrentServiceKeys: omit it for 'parallel', 1 for 'sequential', or the number" },
+    { "owner": "DiBagStartupError", "from": "cleanupFailures", "to": "disposalFailures" },
+    { "owner": "DiBagStartupError", "from": "cleanupError", "to": "disposalError" },
+    { "owner": "DiBagStartupCancelledError", "from": "cleanupPromise", "to": "disposalPromise" },
+    { "owner": "DiBagCloseCancelledError", "from": "timeoutMs", "to": "waitTimeoutMs" },
+    { "owner": "CloseProgress", "from": "pending", "to": "disposersStillRunning" },
+    { "owner": "CloseProgress", "from": "acquiring", "to": "acquisitionsStillPending" }
   ],
   "types": [
     { "from": "StartupOptions", "to": "EnsureServicesReadyOptions" },
     { "from": "DiBagStartupError", "to": "DiBagServiceReadinessError" },
     { "from": "DiBagStartupCancelledError", "to": "DiBagServiceReadinessCancelledError" }
-  ],
-  "properties": [
-    { "owner": "DiBagStartupError", "from": "cleanupFailures", "to": "disposalFailures" },
-    { "owner": "DiBagStartupError", "from": "cleanupError", "to": "disposalError" },
-    { "owner": "DiBagStartupCancelledError", "from": "cleanupPromise", "to": "disposalPromise" },
-    { "owner": "CloseProgress", "from": "pending", "to": "disposersStillRunning" },
-    { "owner": "CloseProgress", "from": "acquiring", "to": "acquisitionsStillPending" },
-    { "owner": "StartupOptions", "from": "signal", "to": "abortSignal" },
-    { "owner": "StartupOptions", "from": "timeoutMs", "to": "totalTimeoutMs" },
-    { "owner": "CloseOptions", "from": "signal", "to": "abortSignal" },
-    { "owner": "CloseOptions", "from": "timeoutMs", "to": "waitTimeoutMs" }
   ],
   "codes": [
     { "from": "DI_BAG_STARTUP_FAILED", "to": "DI_BAG_SERVICE_READINESS_FAILED" },
@@ -1239,7 +1264,7 @@ Open the file and look at how phase 1 shaped its entries. The entries below use 
 }
 ```
 
-`StartupOptions.startupOrder` has no plain rename: its value decides the result. The `build-and-start` transform owns it, by the rule table above. If the transform of phase 1 does not yet treat `startupOrder`, the shorthand `signal`, or an emptied bag literal, extend it in `tools/codemod/lib/transforms/` now.
+`StartupOptions.startupOrder` has a manual property entry because a standalone typed object cannot be rewritten safely without its value. The phase-1 `build-and-start` transform handles literal values inside a call, shorthand `signal`, and an emptied bag literal. It intentionally leaves the whole call unchanged for a nonliteral `startupOrder` and emits the manual item above. Do not broaden that behavior in this phase.
 
 - [ ] **Step 2: Add a fixture that pins this phase**
 
@@ -1281,7 +1306,7 @@ export async function main(signal: AbortSignal, options: EnsureServicesReadyOpti
   const all = await builder.build().ensureServicesReady(['db', 'cache'], { abortSignal: signal, totalTimeoutMs: 5_000, maxConcurrentServiceKeys: 1 });
   const parallel = await builder.build().ensureServicesReady(['db']);
   const four = await builder.build().ensureServicesReady(['db'], { maxConcurrentServiceKeys: 4, abortSignal: signal });
-  const computed = await builder.build().ensureServicesReady(['db'], { maxConcurrentServiceKeys: bound });
+  const computed = await builder.buildAndStart(['db'], { startupOrder: bound });
   const passed = await builder.build().ensureServicesReady(['db'], options);
   await plain.close({ waitTimeoutMs: 1_000, abortSignal: signal });
   try {
@@ -1295,33 +1320,89 @@ export async function main(signal: AbortSignal, options: EnsureServicesReadyOpti
 }
 ```
 
-The report for this fixture must contain two manual items: the `startupOrder: bound` line and the `options` line.
+Create `expected-manual.json` with the exact two manual items. These line numbers are for the input above:
 
-Run the codemod's tests the way phase 1 wired them. Look in `tools/codemod/package.json` for the `test` script; if there is none, run `node --test tools/codemod/test/*.test.mjs`.
-Expected: the new fixture fails first where the transform lacks a rule, and passes after Step 1's extension. All older fixtures still pass.
-
-- [ ] **Step 3: Run the codemod over the repo**
-
-```bash
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --extra-files 'tests/types/negative/*.ts' --report /tmp/phase-03-codemod-report.txt
+```json
+[
+  {
+    "line": 10,
+    "reason": "startupOrder is not a literal; use maxConcurrentServiceKeys: omit it for 'parallel', 1 for 'sequential', or the number"
+  },
+  {
+    "line": 11,
+    "reason": "these options are not an object literal; where they are built, rename signal to abortSignal, timeoutMs to totalTimeoutMs, and replace startupOrder with maxConcurrentServiceKeys"
+  }
+]
 ```
 
-Expected: a summary that lists rewrites in `tests/`, `examples/`, and nothing in `src/`. Read the report. Then write:
+Run:
 
 ```bash
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --extra-files 'tests/types/negative/*.ts' --write --report /tmp/phase-03-codemod-report.txt
-git add -A tests examples tools/codemod
-git commit -F - <<'MSG'
-refactor: move call sites to ensureServicesReady with the codemod
+node --test tools/codemod/test/fixtures.test.mjs tools/codemod/test/transforms.test.mjs
+npm run codemod:check
+```
 
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --extra-files 'tests/types/negative/*.ts' --write
+Expected: the new fixture and all phase-1 fixtures pass; the transform tests still prove that emitted method names come from `api.nameOf`; `codemod:check` exits 0. If the fixture fails because the phase-1 transform behaves differently, stop and compare the landed phase-1 repair with its plan. Do not weaken the nonliteral fallback.
+
+- [ ] **Step 3: Dry-run the codemod, resolve preconditions, then make the separate mechanical commit**
+
+```bash
+npm run build
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --report /tmp/phase-03-codemod-report.json
+```
+
+Expected: a summary that lists rewrites in `tests/` and `examples/`, and nothing in `src/`. Read every JSON manual item. Confirm that none says `this file was left untouched`:
+
+```bash
+node -e "const r=require('/tmp/phase-03-codemod-report.json'); const skipped=r.manual.filter(x=>x.reason.startsWith('this file was left untouched')); console.log({files:r.files.length, rewrites:r.files.reduce((n,x)=>n+x.rewrites,0), manual:r.manual.length, skipped:skipped.length}); if(skipped.length) process.exit(1)"
+```
+
+The master requires the codemod's mechanical rewrite to remain a separate commit. If inspection shows that a manual case would make the mechanical result fail typecheck, the codemod tests, or the affected runtime tests, migrate that coherent manual case first while both APIs exist, then run and commit exactly this prior preparation:
+
+```bash
+npm run typecheck
+npm run codemod:check
+bun test tests/startup.test.ts tests/runtime-diagnostics.test.ts tests/acquisition-cleanup.test.ts tests/react/runtime-owner.test.ts tests/react/project-runtime.test.ts
+git diff --check
+git add -A tests examples scripts
+git commit -F - <<'MSG'
+refactor: prepare manual readiness migrations
+
+Resolve codemod manual items that would otherwise leave the following separate
+mechanical rewrite unable to pass its type and affected-runtime checks.
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
 MSG
 ```
 
-If the codemod changed `tests/types/startup.ts`, `tests/types/negative/startup.ts` or `tests/ensure-services-ready.test.ts`, check with `git diff HEAD~1 -- <file>` that Task 1 and Task 3 content is intact. Those files were already on the new API.
+Then rebuild and repeat the dry run. Do not stage `tools/codemod` in this prior commit, do not fold these hand edits into the mechanical commit, and do not declare a red exception. If the report's manual cases leave the mechanical tree green, omit this optional preparation commit and handle them in Steps 4–5.
+
+When the dry-run report is understood, write and verify the exact mechanical result:
+
+```bash
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --write --report /tmp/phase-03-codemod-report.json
+npm run typecheck
+npm run codemod:check
+bun test tests/startup.test.ts tests/runtime-diagnostics.test.ts tests/acquisition-cleanup.test.ts tests/react/runtime-owner.test.ts tests/react/project-runtime.test.ts
+git diff --check
+```
+
+Expected: every command exits 0. Inspect the changed files and the report again. If a manual case was harmless because the old API still exists, leave it for Steps 4–5; if it caused a failure, restore the mechanical edit without discarding unrelated work, make the prior coherent manual commit described above, and rerun this step. Only after the actual mechanical tree is green:
+
+```bash
+git add -A tests examples tools/codemod
+git commit -F - <<'MSG'
+refactor: move call sites to ensureServicesReady with the codemod
+
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --write
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
+```
+
+If the codemod changed `tests/types/startup.ts`, `tests/types/negative/startup.ts` or `tests/ensure-services-ready.test.ts`, check with `git diff HEAD~1 -- <file>` that Tasks 1–3 content is intact. Those files were already on the new API.
 
 - [ ] **Step 4: Finish `tests/startup.test.ts` by hand**
 
@@ -1443,10 +1524,13 @@ Run: `npm run typecheck && npm run test:fast`
 Expected: typecheck exits 0; the fast lane reports `0 fail`.
 
 Run: `npm run build && node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs tests/graph-retention.node.mjs`
-Expected: `# fail 0`. CI runs this command; the master plan's gate list does not, so run it here.
+Expected: `# fail 0`. This mid-phase run catches migration regressions before contract; the same master gate runs again on the final candidate.
 
-Run: `for example in examples/*.ts; do bun run "$example" || break; done`
+Run: `for example in examples/*.ts; do bun run "$example" || exit 1; done`
 Expected: every example exits 0.
+
+Run: `npm run codemod:check`
+Expected: exits 0 after the hand migrations as well as after the mechanical commit.
 
 - [ ] **Step 8: Commit**
 
@@ -1465,7 +1549,9 @@ MSG
 
 ---
 
-### Task 5: Remove `buildAndStart` and the startup names
+### Task 5: Remove `buildAndStart` and the startup names (first half of the green contract)
+
+Tasks 5 and 6 are one green contract-and-docs boundary. Complete the source removal and its narrow checks here, keep the changes uncommitted, then regenerate the API card/reference and update the graph/docs in Task 6 before committing. A commit with removed declarations and stale generated documentation is not permitted.
 
 **Files:**
 - Modify: `src/di-bag.ts`, `src/startup.ts`, `src/errors.ts`, `src/index.ts`
@@ -1603,30 +1689,18 @@ Expected: exits 0. Any error here is a call site that Task 4 missed; fix it by t
 Run: `bun test tests/ensure-services-ready.test.ts tests/startup.test.ts && bun test tests/types.test.ts -t "startup|api-renaming"`
 Expected: `0 fail` in both commands.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 8: Keep the verified contract changes uncommitted and continue to Task 6**
 
-```bash
-git add -A src tests docs/agent
-git commit -F - <<'MSG'
-refactor!: remove buildAndStart and the startup error names
-
-builder.build().ensureServicesReady(serviceKeys, options) replaces
-builder.buildAndStart(keys, options). StartupOptions, DiBagStartupError,
-DiBagStartupCancelledError and the DI_BAG_STARTUP_* codes are gone.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
-MSG
-```
+Run `git diff --check`. Do not commit yet: the tracked API card and generated reference still describe the declarations removed here. Continue directly to Task 6 and make the combined green contract/docs commit there.
 
 ---
 
-### Task 6: API card, reference, graph tool, guide links
+### Task 6: API card, reference, graph tool and the green Tasks 5–6 contract commit
 
 **Files:**
 - Modify: `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs`
 - Modify: `docs/agent/api-card.md` and `docs/reference/` (generated)
-- Modify: `docs/guides/api-reference.md` (four table rows)
+- Modify: `docs/guides/api-reference.md` (three removed-name rows; assert Task 1's close row)
 - Modify: `tools/graph/README.md`, `tools/graph/test/extract.test.mjs`
 - Create: `tools/graph/test/fixtures/ready-chain.ts`
 
@@ -1649,18 +1723,23 @@ In `tools/docs/test/exact-rendering.test.mjs`, the variable `startupError` becom
 
 `tools/docs/test/syntax.test.mjs` writes its own sample page that happens to say `cleanupError`. It does not read `src/`. Leave it.
 
-- [ ] **Step 3: Fix the four rows of `docs/guides/api-reference.md`**
+- [ ] **Step 3: Fix the three removed-name rows and preserve Task 1's close row**
 
-Three rows link to reference pages that no longer exist, and `npm run docs:check` stops on a dead link. Replace the rows for `DiBagStartupError`, `DiBagStartupCancelledError`, `DiBagCloseCancelledError` and `StartupOptions` with:
+Three rows link to reference pages that no longer exist, and `npm run docs:check` stops on a dead link. Replace the rows for `DiBagStartupError`, `DiBagStartupCancelledError` and `StartupOptions` with:
 
 ```md
 | [`DiBagServiceReadinessError`](../reference/index/classes/DiBagServiceReadinessError.md) | `ensureServicesReady` could not make a listed service ready, and the bag it was called on has closed. | `cause` is the acquisition error; `disposalFailures` contains disposal failures; `disposalError` retains the complete shutdown error when present. |
 | [`DiBagServiceReadinessCancelledError`](../reference/index/classes/DiBagServiceReadinessCancelledError.md) | An abort signal or the deadline interrupts `ensureServicesReady`. | `reason` is `'aborted'` or `'timeout'`; `cause` retains the cancellation reason; `details.acquisitionsStillPending` names the services that were not ready; `disposalPromise` is a `Promise<void>` for the eventual shutdown. |
-| [`DiBagCloseCancelledError`](../reference/index/classes/DiBagCloseCancelledError.md) | `close({ waitTimeoutMs, abortSignal })` stops waiting before cleanup finishes. | `code` is `DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`; `details.disposersStillRunning` lists unfinished disposer labels and `details.acquisitionsStillPending` pending acquisitions; `cleanupPromise` settles when cleanup finishes. |
 ```
 
 ```md
 | [`EnsureServicesReadyOptions`](../reference/index/interfaces/EnsureServicesReadyOptions.md) | Optional `abortSignal`, `totalTimeoutMs`, and `maxConcurrentServiceKeys` fields for `ensureServicesReady`. |
+```
+
+Then assert that Task 1's unchanged close row is still present exactly once:
+
+```bash
+test "$(grep -cF '| [`DiBagCloseCancelledError`](../reference/index/classes/DiBagCloseCancelledError.md) | `close({ waitTimeoutMs, abortSignal })` stops waiting before cleanup finishes.' docs/guides/api-reference.md)" -eq 1
 ```
 
 Do not edit anything else in the guides. Phase 12 rewrites them.
@@ -1668,7 +1747,7 @@ Do not edit anything else in the guides. Phase 12 rewrites them.
 - [ ] **Step 4: Regenerate**
 
 Run: `npm run build && npm run docs:generate`
-Expected: `docs/agent/api-card.md` gains a `bag.ensureServicesReady` section and the task row, and loses `builder.buildAndStart`. `docs/reference/index/classes/` gains two files and loses two; `docs/reference/index/interfaces/StartupOptions.md` is gone. If TypeDoc warns about an unresolved `{@link}`, fix that comment in `src/`.
+Expected: `docs/agent/api-card.md` retains the `bag.ensureServicesReady` section created by Tasks 2–3, gains its task row, and loses `builder.buildAndStart`. `docs/reference/index/classes/` retains the two readiness-error pages and loses the two startup-error pages; `docs/reference/index/interfaces/StartupOptions.md` is gone and `EnsureServicesReadyOptions.md` remains. If TypeDoc warns about an unresolved `{@link}`, fix that comment in `src/`.
 
 - [ ] **Step 5: Teach the graph tool's tests the new chain**
 
@@ -1706,12 +1785,17 @@ In `tools/graph/README.md`, line 5 says a chain "ends in `build()`, `buildAndSta
 Run: `npm run docs:check && npm run graph:check`
 Expected: both exit 0; `graph:check` reports one more passing test than before.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Commit Tasks 5 and 6 as one green contract/docs unit**
 
 ```bash
-git add -A tools docs
+git add -A src tests tools docs
 git commit -F - <<'MSG'
-docs: API card, reference and graph tool follow ensureServicesReady
+refactor!: contract startup API and publish ensureServicesReady docs
+
+builder.build().ensureServicesReady(serviceKeys, options) replaces
+builder.buildAndStart(keys, options). StartupOptions, the startup error classes
+and DI_BAG_STARTUP_* codes are gone; generated references and the graph tool
+describe the contracted surface in this same green commit.
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
@@ -1734,17 +1818,13 @@ Expected after the edit: the naming test passes.
 
 - [ ] **Step 2: Measure the twelve cases**
 
-This phase changed a signature in `src/di-bag.ts`, so the master plan asks for the measurement.
+This phase changed a signature in `src/di-bag.ts`, so the master plan asks for the measurement. Use the phase-0 helper: it runs each worker in a fresh process, proves acceptance/empty diagnostics, compares against the baseline and enforces the cumulative +10% ceiling.
 
 ```bash
-N="node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON"
-for count in 100 500; do
-  for form in bulk chained grouped replacement; do $N scripts/benchmark-types.ts --worker $count $form valid; done
-  for form in bindings modules; do $N scripts/check-token-scale.ts $form valid $count; done
-done
+node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseline.md
 ```
 
-Each prints one JSON row. Run the cases one after another, not in parallel. `accepted` must be `true` in every row. Write `docs/superpowers/plans/evidence/phase-03.md` with one table: case, baseline instantiations from `docs/superpowers/plans/evidence/baseline.md`, instantiations now, change in percent. The builder lost a method and the bag gained one, so expect a change below 1% in every case. If a case is more than 10% above its baseline, stop and report: nothing in this plan should cost that much, and the cause must be found before the phase ends.
+Expected: the helper exits 0 and prints twelve accepted rows. Write `docs/superpowers/plans/evidence/phase-03.md` with one table: case, baseline instantiations, instantiations now, accepted, and change in percent. The builder lost a method and the bag gained one, so a change below 1% is expected, but only the master's cumulative `<= +10%` limit is a gate. If the helper rejects a case or reports a case above that limit, stop and find the cause before the phase ends.
 
 - [ ] **Step 3: Run the full gate**
 
@@ -1754,13 +1834,17 @@ Run each command of the master plan's gate list and keep the last lines of its o
 npm run check
 npm run docs:check
 npm run graph:check
-npm run typecheck:native && npm run build:native && npm run check:native
+npm run codemod:check
+npm run typecheck:native
+npm run build:native
+npm run check:native
+npm run build
 node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs tests/graph-retention.node.mjs
-for example in examples/*.ts; do bun run "$example" || break; done
+for example in examples/*.ts; do bun run "$example" || exit 1; done
 npm run agent-eval:test
 ```
 
-Expected: every command exits 0. `npm run build:native` overwrites `dist/` with the native compiler's output; run `npm run build` afterwards to restore the classic build. A compiler-lane test that times out under host load is a flake only under the rule in the master plan's "Environment" section: rerun that file alone, and report it either way.
+Expected: every command exits 0. The `npm run build` immediately after the native commands restores classic `dist/` before the retention suites and examples read it. The example loop exits nonzero on its first failure. A compiler-lane test that times out under host load is a flake only under the rule in the master plan's "Environment" section: rerun that file alone, and report it either way.
 
 - [ ] **Step 4: Commit and report**
 
@@ -1774,20 +1858,20 @@ Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
 MSG
 ```
 
-Reply to the controller in the format of the master plan, "Protocol for every phase", step 9: the branch, `git log --oneline next..HEAD`, the gate results, the evidence table, the manual items that the codemod reported, and every deviation from this plan with its reason. Under 60 lines.
+Reply to the controller in the format of the master plan, "Protocol for every phase", step 9: the branch, `git log --oneline next..HEAD`, the gate results, the evidence table, every manual item that the codemod reported and its resolution, and every deviation from this plan with its reason. Include a compact commit table with rows for Task 1, the combined Tasks 2–3 expand, any prior manual-preparation commit, the separate mechanical codemod commit, the hand-migration commit, the combined Tasks 5–6 contract/docs commit, and Task 7 evidence. Mark every produced hash green; this phase has no bisect-skip hashes. Under 60 lines.
 
 ---
 
 ## Self-review
 
-**Spec coverage.** `ensureServicesReady` on a bag, a child scope and a fork, the same-bag result, close on failure, untouched bag on invalid input, rejections only, repeated calls: Task 3, tests in `tests/ensure-services-ready.test.ts`. The pending-work report: Task 2 (`details`) and Task 3 (read before close). `close` options `abortSignal` and `waitTimeoutMs`: Task 1. `CloseProgress.disposersStillRunning` and `.acquisitionsStillPending`: Task 1. `DiBagServiceReadinessError`, `DiBagServiceReadinessCancelledError`, `disposalFailures`, `disposalError`, `disposalPromise`, the three codes: Tasks 2 and 3. `buildAndStart` removed, `StartupOptions` renamed and not aliased: Task 5. Old names fail to compile: Task 5, `tests/types/negative/api-renaming.ts`. Codemod data and fixture: Task 4. Graph tool: Task 6. Evidence: Task 7.
+**Spec coverage.** `ensureServicesReady` on a bag, a child scope and a fork, the same-bag result, close on failure, untouched bag on invalid input, rejections only, repeated calls: the green Tasks 2–3 expand, with tests in `tests/ensure-services-ready.test.ts`. The pending-work report is defined and consumed in that same expand commit. `close` options `abortSignal` and `waitTimeoutMs`: atomic Task 1. `CloseProgress.disposersStillRunning` and `.acquisitionsStillPending`: atomic Task 1. `DiBagServiceReadinessError`, `DiBagServiceReadinessCancelledError`, `disposalFailures`, `disposalError`, `disposalPromise`, the three codes: Tasks 2–3. `buildAndStart` removed, `StartupOptions` renamed and not aliased, old names fail to compile, generated docs contract, and graph compatibility: the green Tasks 5–6 contract. Codemod data and fixture: Task 4. Evidence: Task 7.
 
 **Left to later phases on purpose.** `DiBagCloseCancelledError.cleanupPromise`, `DiBagCleanupError`, `CleanupFailure` and the `cleanup-*` events (phase 11). The code `DI_BAG_INVALID_STARTUP` (phase 11 folds it into `DI_BAG_INVALID_ARGUMENT` and `DI_BAG_UNKNOWN_SERVICE_KEY`). The acquisition context's `signal` (phase 8). `build` to `buildContainer` (phase 5), `Bag` to `Container`, `createScope` and `fork` (phase 6); the words "bag", "scope" and "fork" in this phase's messages and comments are renamed with them. The tutorial section on startup and every other guide (phase 12); until then the `@see` URL of `EnsureServicesReadyOptions` points at the existing tutorial heading. Throwing stubs for the removed runtime names and the changelog (phase 13).
 
 **Known limit, stated in the JSDoc by its wording "what was still pending".** The report lists acquisitions owned by the bag the call ran on and by its child scopes. A singleton that a child scope asked for is owned by the root bag and does not appear in the child's report.
 
-**Placeholder scan.** No step says "handle", "similar to" or "as appropriate" without the content. Two places depend on what phase 1 produced and say so with the way to find out: the field names inside `rename-map.json` and the fixture directory layout.
+**Placeholder scan.** No step says "handle", "similar to" or "as appropriate" without the content. The production map, phase fixture input/output/manual file, both-root commands and commit boundaries are written in full. Only the fixture directory path is discovered from phase 1, with the exact search that finds it.
 
-**Type consistency.** `ensureRuntimeReady(runtime, graph, keys, options?)` is defined in Task 3 Step 4 and called in Step 5 with `this.#runtime, this.#graph, serviceKeys, options`. The cancelled error's constructor `(reason, cause, disposalPromise, progress, totalTimeoutMs?)` is defined in Task 2 Step 3 and called in Task 3 Step 4 with `runtime.close(cause)` third and `runtime.closeProgress()` fourth, whose shape Task 1 Step 4 produces. `snapshotOptions` has six parameters from Task 1 Step 5 on; Task 3 Step 4 widens its `operation` union and Task 5 Step 4 narrows it. Option names are spelled `abortSignal`, `totalTimeoutMs`, `maxConcurrentServiceKeys`, `waitTimeoutMs` everywhere.
+**Type consistency.** `ensureRuntimeReady(runtime, graph, keys, options?)` is defined in Task 3 Step 4 and called in Step 5 with `this.#runtime, this.#graph, serviceKeys, options`. The public selection is `Selection<ServiceRegistrations, K, 'ensureServicesReady'>`, using the exact phase-2 class parameter. The cancelled error's constructor `(reason, cause, disposalPromise, progress, totalTimeoutMs?)` is defined in Task 2 Step 3 and called in Task 3 Step 4 with `runtime.close(cause)` third and `runtime.closeProgress()` fourth, whose shape Task 1 Step 4 produces. `snapshotOptions` has six parameters from Task 1 Step 5 on; Task 3 Step 4 widens its `operation` union and Task 5 Step 4 narrows it. Option names are spelled `abortSignal`, `totalTimeoutMs`, `maxConcurrentServiceKeys`, `waitTimeoutMs` everywhere.
 
-**Verified before writing.** The source edits of Tasks 1 to 3 were applied to a scratch copy of `src/`. It type-checked with `tsc6`. The fifteen tests of Task 3, the migrated `tests/startup.test.ts` (33 tests) and the edited `tests/runtime-diagnostics.test.ts` (13 tests) passed on Bun 1.4.0. The fixture lines of Task 3 Step 2 and Task 5 Step 1 produced exactly the quoted diagnostics, one per line, with both compilers. The graph extractor found `build()` inside `build().ensureServicesReady()`.
+**Verified before writing.** The source edits of Tasks 1 to 3 were applied to a scratch copy of `src/`. It type-checked with `tsc6`. The fifteen method tests plus the retained error-constructor test, the migrated `tests/startup.test.ts` (33 tests) and the edited `tests/runtime-diagnostics.test.ts` (13 tests) passed on Bun 1.4.0. The fixture lines of Task 3 Step 2 and Task 5 Step 1 produced exactly the quoted diagnostics, one per line, with both compilers. The graph extractor found `build()` inside `build().ensureServicesReady()`. Phase 1's planned transform is the authority for the codemod fixture: a nonliteral `startupOrder` leaves its whole call unchanged and produces a manual item.
