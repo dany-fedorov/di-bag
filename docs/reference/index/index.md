@@ -9,8 +9,8 @@
 - [DiBagCleanupError](classes/DiBagCleanupError.md)
 - [DiBagCloseCancelledError](classes/DiBagCloseCancelledError.md)
 - [DiBagPluginValidationError](classes/DiBagPluginValidationError.md)
-- [DiBagStartupCancelledError](classes/DiBagStartupCancelledError.md)
-- [DiBagStartupError](classes/DiBagStartupError.md)
+- [DiBagServiceReadinessCancelledError](classes/DiBagServiceReadinessCancelledError.md)
+- [DiBagServiceReadinessError](classes/DiBagServiceReadinessError.md)
 
 ## Interfaces
 
@@ -28,6 +28,7 @@
 - [DiBagDiagnostic](interfaces/DiBagDiagnostic.md)
 - [DiBagPolicy](interfaces/DiBagPolicy.md)
 - [DisposerContext](interfaces/DisposerContext.md)
+- [EnsureServicesReadyOptions](interfaces/EnsureServicesReadyOptions.md)
 - [FactoryWithDisposal](interfaces/FactoryWithDisposal.md)
 - [GraphSnapshot](interfaces/GraphSnapshot.md)
 - [Module](interfaces/Module.md)
@@ -39,7 +40,6 @@
 - [RegistrationSnapshot](interfaces/RegistrationSnapshot.md)
 - [RuntimeOptions](interfaces/RuntimeOptions.md)
 - [ScopeEventFields](interfaces/ScopeEventFields.md)
-- [StartupOptions](interfaces/StartupOptions.md)
 - [Token](interfaces/Token.md)
 - [TokenBase](interfaces/TokenBase.md)
 

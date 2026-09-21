@@ -28,3 +28,11 @@ DiBag.createBuilder().register(number, () => 'wrong');
 DiBag.begin();
 // diagnostic: does not exist
 DiBag.fromTokens([number], (_number: number) => 1);
+// diagnostic: does not exist
+DiBag.createBuilder().register({ value: () => 1 }).buildAndStart(['value']);
+// diagnostic: has no exported member
+type RemovedStartupOptions = import('../../../src').StartupOptions;
+// diagnostic: has no exported member
+type RemovedStartupError = import('../../../src').DiBagStartupError;
+// diagnostic: has no exported member
+type RemovedStartupCancelledError = import('../../../src').DiBagStartupCancelledError;

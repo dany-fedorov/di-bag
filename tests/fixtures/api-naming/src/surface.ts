@@ -23,6 +23,15 @@ export type StandardKeyReferences<T extends { readonly camelKey: unknown; readon
 export type NestedValues<T> = T extends string
   ? Wrapper<'nestedGenericValue'> // finding: value-casing
   : { readonly [K in 'mappedKey']: Promise<'cleanup-finished'> }; // finding: retired-word value; mapped key is an identifier
+export class FixtureDiagnosticError extends Error {
+  declare readonly details: Readonly<{
+    readonly operation: 'methodReference'; // fine: a diagnostic structural reference to the method
+    readonly adjacent: 'neighboringDiagnosticValue'; // finding: value-casing
+  }>;
+}
+export type UnrelatedOperationPayload = {
+  readonly operation: 'ordinaryPayloadValue'; // finding: an ordinary payload is still an enum-like value
+};
 interface Hidden { readonly enabled: boolean } // reached through FixtureOptions.hidden; same subject as below, reported once
 export interface FixtureOptions {
   readonly enabled: boolean; // finding: boolean-name

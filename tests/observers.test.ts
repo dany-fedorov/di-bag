@@ -209,7 +209,7 @@ test('startup rollback observes accepted cleanup while preserving the startup ca
     bad: observed.fromFactory(() => Promise.reject(failure), { acquisitionMode: 'nativePromise' }),
   });
   let error: unknown;
-  try { await builder.buildAndStart(['good', 'bad']); } catch (caught) { error = caught; }
+  try { await builder.build().ensureServicesReady(['good', 'bad']); } catch (caught) { error = caught; }
   await flush();
   expect((error as Error).cause).toBe(failure);
   expect(events.filter(event => event.kind === 'acquisition-failed').map(event => event.error)).toEqual([failure]);
@@ -230,12 +230,12 @@ test('cancellation observes late accepted resources and final failure without aw
       context.signal.addEventListener('abort', () => reject(failure), { once: true });
     }), { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
   });
-  const startup = builder.buildAndStart(['good', 'bad'], { signal: abort.signal });
+  const startup = builder.build().ensureServicesReady(['good', 'bad'], { abortSignal: abort.signal });
   abort.abort(failure);
-  let cancelled!: import('../src').DiBagStartupCancelledError;
+  let cancelled!: import('../src').DiBagServiceReadinessCancelledError;
   try { await startup; } catch (error) { cancelled = error as typeof cancelled; }
   acquired(1);
-  await cancelled.cleanupPromise;
+  await cancelled.disposalPromise;
   await flush();
   expect(disposed).toBe(1);
   expect(events.filter(event => event.kind === 'acquisition-failed').map(event => event.error)).toEqual([failure]);

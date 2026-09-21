@@ -53,7 +53,7 @@ test('bare entry resolves automatic async factories through the host classifier'
   withoutBuiltinModule(() => { expect(scope.resolve('same')).toBe(pending); expect(fork.resolve('same')).toBe(pending); });
   await Promise.all([scope.close(), fork.close()]);
   await bag.close();
-  const started = await Core.createBuilder().register({ answer: async () => 7 }).buildAndStart(['answer']);
+  const started = await Core.createBuilder().register({ answer: async () => 7 }).build().ensureServicesReady(['answer']);
   expect(await started.resolve('answer')).toBe(7);
   await started.close();
 });

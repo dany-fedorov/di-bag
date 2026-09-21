@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError, DiBagStartupError } from '../src/node';
+import { DiBag, DiBagCleanupError, DiBagServiceReadinessError } from '../src/node';
 import { withOwnedScope } from '../examples/integration/owned-scope';
 
 test('overlapping requests isolate private dependencies and release scopes before the shared root', async () => {
@@ -87,7 +87,7 @@ test('a dynamically imported module starts private providers and unloads contrib
   const { feature, steps, reset, disposals } = await import('./fixtures/enterprise-feature.ts');
   reset();
   const result = await withOwnedScope(
-    () => DiBag.createBuilder().installModule(feature).buildAndStart(['handler']),
+    () => DiBag.createBuilder().installModule(feature).build().ensureServicesReady(['handler']),
     scope => {
       expect(scope.resolveAll(steps).map(step => step('x'))).toEqual(['private:x', 'x!']);
       return scope.resolve('handler')('ok');
@@ -142,8 +142,8 @@ test('a fixture whose startup fails releases acquired resources without admittin
       throw failure;
     },
   });
-  const result = await withOwnedScope(() => builder.buildAndStart(['handler']), () => { work++; }).catch(error => error);
-  expect(result).toBeInstanceOf(DiBagStartupError);
+  const result = await withOwnedScope(() => builder.build().ensureServicesReady(['handler']), () => { work++; }).catch(error => error);
+  expect(result).toBeInstanceOf(DiBagServiceReadinessError);
   expect(result.cause).toBe(failure);
   expect(released).toBe(1);
   expect(work).toBe(0);

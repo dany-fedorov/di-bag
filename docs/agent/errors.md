@@ -125,14 +125,14 @@ DiBag.createBuilder()
 ### Unknown key {#unknown-key}
 
 **When:** `fork accepts existing names or typed tokens only: unknown <key>`, the
-same message for `createScope` and `buildAndStart`,
+same message for `createScope` and `ensureServicesReady`,
 `replace requires one existing singleton string-literal key: <key>`, or, on
 `resolve`, `inspect`, or `replace`,
 `token must be an individually known genuine handle` or
 `token must match an existing binding contract`, or
 `<op> requires a finite tuple of singleton string-literal names or typed tokens`
 when the selection is a `string[]`, a union, or a widened array (`fork`,
-`createScope`, `createScope` share, `buildModule`, `buildAndStart`), each
+`createScope`, `createScope` share, `buildModule`, `ensureServicesReady`), each
 followed by `; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key`.
 
 **Cause:** the selected or resolved key is not registered in this graph, or is
@@ -271,7 +271,7 @@ app.fork(['port'], { port: () => 'eighty' });
 
 ### DI_BAG_CLASSIFIER_REQUIRED {#di-bag-classifier-required}
 
-**When:** `build()` or `buildAndStart()` completes a graph on a host without
+**When:** `build()` completes a graph on a host without
 `process.getBuiltinModule`: browsers, Web Workers, and other non-Node runtimes.
 Node, Bun, and Deno never raise it.
 
@@ -355,11 +355,11 @@ try {
 
 ### DI_BAG_CLOSE_ABORTED {#di-bag-close-aborted}
 
-**When:** `close({ signal })` rejects with `DiBagCloseCancelledError`,
+**When:** `close({ abortSignal })` rejects with `DiBagCloseCancelledError`,
 `reason: 'aborted'`, because the signal aborted before cleanup finished.
 
-**Cause:** the caller stopped waiting. Cleanup continues: `details.pending`
-names disposers that started and have not finished, `details.acquiring` the
+**Cause:** the caller stopped waiting. Cleanup continues: `details.disposersStillRunning`
+names disposers that started and have not finished, `details.acquisitionsStillPending` the
 acquisitions close is still draining, and `cause` is the abort reason.
 
 **Fix:** await `cleanupPromise` before exiting when cleanup must complete; fix
@@ -371,10 +371,10 @@ import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
 const controller = new AbortController();
 try {
-  await app.close({ signal: controller.signal });
+  await app.close({ abortSignal: controller.signal });
 } catch (error) {
   if (!(error instanceof DiBagCloseCancelledError)) throw error;
-  console.error(error.details.pending, error.details.acquiring);
+  console.error(error.details.disposersStillRunning, error.details.acquisitionsStillPending);
   await error.cleanupPromise;
 }
 ```
@@ -406,23 +406,23 @@ await app.close().catch((error: unknown) => {
 
 ### DI_BAG_CLOSE_TIMEOUT {#di-bag-close-timeout}
 
-**When:** `close({ timeoutMs })` rejects with `DiBagCloseCancelledError`,
+**When:** `close({ waitTimeoutMs })` rejects with `DiBagCloseCancelledError`,
 `reason: 'timeout'`; its `cause` is a `TimeoutError` with the same code.
 
-**Cause:** cleanup did not finish within `timeoutMs`. The message and
-`details.pending` name the disposers still running, or `details.acquiring` the
+**Cause:** cleanup did not finish within `waitTimeoutMs`. The message and
+`details.disposersStillRunning` name the disposers still running, or `details.acquisitionsStillPending` the
 acquisitions still pending; `cleanupPromise` settles when cleanup ends.
 
 **Fix:** find why the named disposer or factory never settles (a missing
-`await`, an ignored acquisition signal); raise `timeoutMs` only for slow but
+`await`, an ignored acquisition signal); raise `waitTimeoutMs` only for slow but
 finite cleanup.
 
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
-await app.close({ timeoutMs: 5_000 }).catch((error: unknown) => {
-  if (error instanceof DiBagCloseCancelledError) console.error('still running:', error.details.pending);
+await app.close({ waitTimeoutMs: 5_000 }).catch((error: unknown) => {
+  if (error instanceof DiBagCloseCancelledError) console.error('still running:', error.details.disposersStillRunning);
   throw error;
 });
 ```
@@ -639,19 +639,19 @@ const socket = DiBag.fromFactory(async (_dependencies: {}, factoryContext) => {
 ### DI_BAG_INVALID_CLOSE {#di-bag-invalid-close}
 
 **When:** `close(options)` rejects because options are not
-`{ timeoutMs?, signal? }` with a finite positive `timeoutMs` and a genuine
+`{ waitTimeoutMs?, abortSignal? }` with a finite positive `waitTimeoutMs` and a genuine
 `AbortSignal`. Cleanup does not start.
 
 **Cause:** options computed at runtime, extra keys, or a zero or negative
 deadline.
 
-**Fix:** pass only `timeoutMs` and `signal`, or call `close()` without options.
+**Fix:** pass only `waitTimeoutMs` and `abortSignal`, or call `close()` without options.
 
 ```ts
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
-await app.close({ timeoutMs: 1_000, signal: AbortSignal.timeout(2_000) });
+await app.close({ waitTimeoutMs: 1_000, abortSignal: AbortSignal.timeout(2_000) });
 ```
 
 **Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
@@ -948,11 +948,14 @@ await parent.close();
 
 ### DI_BAG_INVALID_STARTUP {#di-bag-invalid-startup}
 
-**When:** `buildAndStart(keys, options)` receives a non-array selection, an
-unregistered key, unknown options, a non-positive `timeoutMs`, an invalid
-`startupOrder`, or a `signal` that is not an `AbortSignal`. No factory runs.
+**When:** `ensureServicesReady(serviceKeys, options)` receives a list that is not
+an array, an unregistered key, an unknown option (the 0.4 names `signal`,
+`timeoutMs` and `startupOrder` are unknown), a non-positive `totalTimeoutMs`, a
+`maxConcurrentServiceKeys` that is not a positive safe integer, or an
+`abortSignal` that is not an `AbortSignal`. No factory runs and the bag stays
+open.
 
-**Cause:** startup options computed at runtime.
+**Cause:** keys or options computed at runtime.
 
 **Fix:** pass registered keys and valid options.
 
@@ -961,7 +964,8 @@ import { DiBag } from 'di-bag';
 
 const app = await DiBag.createBuilder()
   .register({ settings: async () => 'ready' })
-  .buildAndStart(['settings'], { timeoutMs: 5_000, startupOrder: 'sequential' });
+  .build()
+  .ensureServicesReady(['settings'], { totalTimeoutMs: 5_000, maxConcurrentServiceKeys: 1 });
 await app.close();
 ```
 
@@ -1064,63 +1068,73 @@ descriptor.
 
 **Recipe:** none.
 
-### DI_BAG_STARTUP_CANCELLED {#di-bag-startup-cancelled}
+### DI_BAG_SERVICE_READINESS_CANCELLED {#di-bag-service-readiness-cancelled}
 
-**When:** `buildAndStart` rejects with `DiBagStartupCancelledError`, `reason`
-`'aborted'` or `'timeout'`.
+**When:** `ensureServicesReady` rejects with `DiBagServiceReadinessCancelledError`,
+`reason` `'aborted'` or `'timeout'`.
 
-**Cause:** the external signal aborted or `timeoutMs` elapsed before the
-selected services were ready. Cleanup continues in the background.
+**Cause:** `abortSignal` aborted or `totalTimeoutMs` elapsed before the listed
+services were ready. This bag is closing. `details.acquisitionsStillPending`
+names the services that were not ready yet, `details.disposersStillRunning` the
+disposers that had started.
 
-**Fix:** await `cleanupPromise` before exiting; make slow factories honor the
-acquisition `signal`.
+**Fix:** await `disposalPromise` before exiting; fix or speed up the named
+service, and make slow factories honor the acquisition `signal`.
 
 ```ts
-import { DiBag, DiBagStartupCancelledError } from 'di-bag';
+import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
 
-const builder = DiBag.createBuilder().register({ settings: async () => 'ready' });
+const bag = DiBag.createBuilder().register({ settings: async () => 'ready' }).build();
 try {
-  await (await builder.buildAndStart(['settings'], { timeoutMs: 5_000 })).close();
+  await bag.ensureServicesReady(['settings'], { totalTimeoutMs: 5_000 });
+  await bag.close();
 } catch (error) {
-  if (error instanceof DiBagStartupCancelledError) await error.cleanupPromise;
+  if (error instanceof DiBagServiceReadinessCancelledError) {
+    console.error(error.details.acquisitionsStillPending);
+    await error.disposalPromise;
+  }
   throw error;
 }
 ```
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 
-### DI_BAG_STARTUP_FAILED {#di-bag-startup-failed}
+### DI_BAG_SERVICE_READINESS_FAILED {#di-bag-service-readiness-failed}
 
-**When:** `buildAndStart` rejects with `DiBagStartupError` after rolling back
-the new bag.
+**When:** `ensureServicesReady` rejects with `DiBagServiceReadinessError` after
+this bag has closed.
 
-**Cause:** a selected service or its dependency failed to acquire; `cause` is
-that error and `cleanupFailures` lists rollback disposer failures.
+**Cause:** a listed service or one of its dependencies failed to acquire;
+`cause` is that error and `disposalFailures` lists disposers that failed while
+the bag closed. A child scope closes only itself, never its parent.
 
-**Fix:** fix `cause`; startup can be retried with a new `buildAndStart`.
+**Fix:** fix `cause`, then build a new bag, or create a new scope, and call
+`ensureServicesReady` again.
 
 ```ts
-import { DiBag, DiBagStartupError } from 'di-bag';
+import { DiBag, DiBagServiceReadinessError } from 'di-bag';
 
-const builder = DiBag.createBuilder().register({ settings: async () => 'ready' });
-const app = await builder.buildAndStart(['settings']).catch((error: unknown) => {
-  throw error instanceof DiBagStartupError ? error.cause : error;
+const bag = DiBag.createBuilder().register({ settings: async () => 'ready' }).build();
+const app = await bag.ensureServicesReady(['settings']).catch((error: unknown) => {
+  throw error instanceof DiBagServiceReadinessError ? error.cause : error;
 });
 await app.close();
 ```
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 
-### DI_BAG_STARTUP_TIMEOUT {#di-bag-startup-timeout}
+### DI_BAG_SERVICE_READINESS_TIMEOUT {#di-bag-service-readiness-timeout}
 
-**When:** the `cause` of a [`DI_BAG_STARTUP_CANCELLED`](#di-bag-startup-cancelled)
+**When:** the `cause` of a
+[`DI_BAG_SERVICE_READINESS_CANCELLED`](#di-bag-service-readiness-cancelled)
 error with `reason: 'timeout'`: a `DOMException` named `TimeoutError`, with
-`details.timeoutMs`.
+`details.totalTimeoutMs`.
 
-**Cause:** selected services took longer than `timeoutMs`.
+**Cause:** the listed services took longer than `totalTimeoutMs`, which covers
+the whole call and not each service.
 
-**Fix:** raise `timeoutMs`, start fewer services eagerly, or make factories
-honor the signal so they stop promptly.
+**Fix:** raise `totalTimeoutMs`, list fewer services, or make factories honor
+the signal so they stop promptly.
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 

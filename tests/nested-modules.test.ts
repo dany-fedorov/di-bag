@@ -176,7 +176,7 @@ test('startup and child scopes acquire nested exports through the host runtime',
   const outer = DiBag.createBuilder().installModule(inner).register({
     scoped: DiBag.withLifetime(({ resource }: { resource: Promise<string> }) => resource, 'scoped'),
   }).buildModule(['resource', 'scoped']);
-  const host = await DiBag.createBuilder().installModule(outer).buildAndStart(['resource']);
+  const host = await DiBag.createBuilder().installModule(outer).build().ensureServicesReady(['resource']);
   expect(events).toEqual(['open']);
   const child = host.createScope({ share: ['resource'] });
   expect(await child.resolve('scoped')).toBe('ready');

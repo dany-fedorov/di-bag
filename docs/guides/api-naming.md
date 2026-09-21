@@ -177,7 +177,10 @@ String literals that name TypeScript structure are identifiers rather than
 public values. The scanner excludes property-key positions (including mapped
 keys and the key arguments of the standard `Pick` and `Omit` helpers), `keyof`
 comparisons, operation labels passed through a type parameter named `Operation`,
-and `SeeErrors` documentation anchors. These literals describe a member,
+the typed `details.operation` method reference on an exported `Error` subclass,
+and `SeeErrors` documentation anchors. The `details.operation` exception applies
+only to that diagnostic structure; an unrelated property named `operation` and
+neighboring diagnostic fields remain checked. These literals describe a member,
 operation, or diagnostic link; callers do not pass them as enum-like values.
 Other generic arguments, including nested string values, remain part of the
 checked surface.

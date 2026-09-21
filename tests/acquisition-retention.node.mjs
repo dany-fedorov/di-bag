@@ -36,7 +36,7 @@ for (const route of ['resolve', 'alias', 'dependency', 'collection', 'startup'])
     const token = DiBag.token(Symbol('arrays')).of();
     const builder = route === 'collection' ? DiBag.createBuilder().contribute(token, provider)
       : DiBag.createBuilder().register({ value: provider, reader: raw(deps => () => deps.value.length) }).alias('copy', 'value');
-    const bag = route === 'startup' ? await builder.buildAndStart(['copy']) : builder.build();
+    const bag = route === 'startup' ? await builder.build().ensureServicesReady(['copy']) : builder.build();
     try {
       if (route !== 'startup') for (let index = 0; index < 16; index++) {
         if (route === 'collection') assert.equal(bag.resolveAll(token)[0].length, 256);
@@ -286,10 +286,10 @@ test('a signal kept past a timed-out startup does not keep the runtime alive onc
       }, { context: 'acquisition' }),
     });
   };
-  let failure = await slowBuilder().buildAndStart(['value'], { timeoutMs: 1 }).then(() => undefined, error => error);
-  assert.equal(failure.name, 'DiBagStartupCancelledError');
+  let failure = await slowBuilder().build().ensureServicesReady(['value'], { totalTimeoutMs: 1 }).then(() => undefined, error => error);
+  assert.equal(failure.name, 'DiBagServiceReadinessCancelledError');
   open();
-  await failure.cleanupPromise.catch(() => {});
+  await failure.disposalPromise.catch(() => {});
   // The timeout error became the signal's reason; it must not carry the runtime with it.
   assert.equal(kept.reason.name, 'TimeoutError');
   failure = undefined;

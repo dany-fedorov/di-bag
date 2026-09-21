@@ -124,7 +124,7 @@ test('startup through an alias waits for final readiness and retries failed cano
   let ready!: () => void;
   const pending = new Promise<void>(resolve => { ready = resolve; });
   let started = false;
-  const start = DiBag.createBuilder().register({ value: async () => { await pending; return 1; } }).alias('copy', 'value').buildAndStart(['copy']).then(bag => { started = true; return bag; });
+  const start = DiBag.createBuilder().register({ value: async () => { await pending; return 1; } }).alias('copy', 'value').build().ensureServicesReady(['copy']).then(bag => { started = true; return bag; });
   await Promise.resolve(); expect(started).toBe(false);
   ready(); const bag = await start;
   expect(await bag.resolve('copy')).toBe(1);

@@ -164,5 +164,5 @@ test('observed strict roots reject cached scoped contributions before owner rout
 test('startup failure rolls back accepted contribution ownership', async () => {
   const key = Symbol('items'); const items = DiBag.token(key).of<number>(); const disposed: number[] = [];
   const builder = DiBag.createBuilder().contribute(items, DiBag.withDisposal(() => 1, value => { disposed.push(value); })).contribute(items, () => { throw new Error('failed contribution'); }).register({ aggregate: DiBag.fromFunction([DiBag.all(items)], values => values) });
-  await expect(builder.buildAndStart(['aggregate'])).rejects.toThrow(); expect(disposed).toEqual([1]);
+  await expect(builder.build().ensureServicesReady(['aggregate'])).rejects.toThrow(); expect(disposed).toEqual([1]);
 });

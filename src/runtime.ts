@@ -476,7 +476,7 @@ export class BagRuntime {
   }
 
   /** Labels in progress across this runtime and its live children, for a close deadline report. */
-  closeProgress(): { readonly pending: readonly string[]; readonly acquiring: readonly string[] } {
+  closeProgress(): { readonly disposersStillRunning: readonly string[]; readonly acquisitionsStillPending: readonly string[] } {
     const pending: string[] = [];
     const acquiring: string[] = [];
     const visit = (runtime: BagRuntime) => {
@@ -484,7 +484,7 @@ export class BagRuntime {
       runtime.acquisitions.collectProgress(pending, acquiring);
     };
     visit(this);
-    return { pending, acquiring };
+    return { disposersStillRunning: pending, acquisitionsStillPending: acquiring };
   }
 
   private observeScope(kind: 'scope-opened' | 'scope-closing' | 'scope-closed' | 'scope-close-failed', error?: unknown): void {

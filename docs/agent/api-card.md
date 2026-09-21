@@ -20,6 +20,7 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Install a module | [`builder.installModule(module)`](#builder-installmodule) |
 | Check the graph on its own line | [`builder.verifyGraph()`](#builder-verifygraph) |
 | Build a bag | [`builder.build()`](#builder-build) |
+| Wait for services before accepting work | [`bag.ensureServicesReady(serviceKeys, options?)`](#bag-ensureservicesready) |
 | Replace for a test | [`bag.fork(keys, overrides)`](#bag-fork) |
 | Open a scope | [`bag.createScope()`](#bag-createscope) |
 | Resolve | [`bag.resolve(token)`](#bag-resolve) |
@@ -214,14 +215,6 @@ const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
 await bag.close();
 ```
 
-### `builder.buildAndStart(keys, options?)` {#builder-buildandstart}
-Create a fresh bag and acquire selected services before returning it. Throws: [`DI_BAG_STARTUP_FAILED`](errors.md#di-bag-startup-failed), [`DI_BAG_STARTUP_CANCELLED`](errors.md#di-bag-startup-cancelled), [`DI_BAG_INVALID_STARTUP`](errors.md#di-bag-invalid-startup), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
-```ts
-const bag = await DiBag.createBuilder()
-  .register({ db: async () => ({ ping: () => true }) })
-  .buildAndStart(['db'], { timeoutMs: 5_000 });
-```
-
 ## Bag {#bag}
 
 ### `bag.resolve(token)` {#bag-resolve}
@@ -281,11 +274,20 @@ const test = app.fork(['clock'], { clock: (): Clock => ({ now: () => 0 }) });
 await test.close();
 ```
 
+### `bag.ensureServicesReady(serviceKeys, options?)` {#bag-ensureservicesready}
+Make the listed services ready before continuing, then resolve to this same bag. Throws: [`DI_BAG_SERVICE_READINESS_FAILED`](errors.md#di-bag-service-readiness-failed), [`DI_BAG_SERVICE_READINESS_CANCELLED`](errors.md#di-bag-service-readiness-cancelled), [`DI_BAG_INVALID_STARTUP`](errors.md#di-bag-invalid-startup), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed).
+```ts
+const bag = await DiBag.createBuilder()
+  .register({ db: async () => ({ ping: () => true }) })
+  .build()
+  .ensureServicesReady(['db'], { totalTimeoutMs: 5_000 });
+```
+
 ### `bag.close(options?)` {#bag-close}
 Close this bag, drain in-flight work, and dispose owned resources once. Throws: [`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed), [`DI_BAG_CLOSE_FAILED`](errors.md#di-bag-close-failed), [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted), [`DI_BAG_INVALID_CLOSE`](errors.md#di-bag-invalid-close).
 ```ts
 const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
-await bag.close({ timeoutMs: 10_000, signal: AbortSignal.timeout(15_000) });
+await bag.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(15_000) });
 ```
 
 ## Errors {#errors}
@@ -313,42 +315,42 @@ await bag.close().catch((error: unknown) => {
 });
 ```
 
-### `DiBagStartupError` {#dibagstartuperror}
-`buildAndStart` failed to acquire a selected service; the new bag has already released its resources. Code: [`DI_BAG_STARTUP_FAILED`](errors.md#di-bag-startup-failed).
+### `DiBagServiceReadinessError` {#dibagservicereadinesserror}
+`ensureServicesReady` could not make a listed service ready, and this bag is now closed. Code: [`DI_BAG_SERVICE_READINESS_FAILED`](errors.md#di-bag-service-readiness-failed).
 ```ts
-import { DiBag, DiBagStartupError } from 'di-bag';
+import { DiBag, DiBagServiceReadinessError } from 'di-bag';
 
-const builder = DiBag.createBuilder().register({ db: async (): Promise<number> => { throw new Error('offline'); } });
+const bag = DiBag.createBuilder().register({ db: async (): Promise<number> => { throw new Error('offline'); } }).build();
 try {
-  await builder.buildAndStart(['db']);
+  await bag.ensureServicesReady(['db']);
 } catch (error) {
-  if (error instanceof DiBagStartupError) console.error(error.cause, error.cleanupFailures);
+  if (error instanceof DiBagServiceReadinessError) console.error(error.cause, error.disposalFailures);
 }
 ```
 
-### `DiBagStartupCancelledError` {#dibagstartupcancellederror}
-`buildAndStart` stopped waiting on abort or timeout; `cleanupPromise` settles when the partial bag is released. Code: [`DI_BAG_STARTUP_CANCELLED`](errors.md#di-bag-startup-cancelled).
+### `DiBagServiceReadinessCancelledError` {#dibagservicereadinesscancellederror}
+`ensureServicesReady` stopped waiting on abort or timeout; this bag is closing and `disposalPromise` settles when it has closed. Code: [`DI_BAG_SERVICE_READINESS_CANCELLED`](errors.md#di-bag-service-readiness-cancelled).
 ```ts
-import { DiBag, DiBagStartupCancelledError } from 'di-bag';
+import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
 
-const builder = DiBag.createBuilder().register({ db: () => new Promise<number>(() => {}) });
+const bag = DiBag.createBuilder().register({ db: () => new Promise<number>(() => {}) }).build();
 try {
-  await builder.buildAndStart(['db'], { timeoutMs: 1_000 });
+  await bag.ensureServicesReady(['db'], { totalTimeoutMs: 1_000 });
 } catch (error) {
-  if (error instanceof DiBagStartupCancelledError) await error.cleanupPromise;
+  if (error instanceof DiBagServiceReadinessCancelledError) console.error(error.details.acquisitionsStillPending);
 }
 ```
 
 ### `DiBagCloseCancelledError` {#dibagclosecancellederror}
-A `close({ timeoutMs, signal })` wait stopped before cleanup finished; cleanup keeps running. Code: [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted).
+A `close({ waitTimeoutMs, abortSignal })` wait stopped before cleanup finished; cleanup keeps running. Code: [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted).
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
 const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
 try {
-  await bag.close({ timeoutMs: 5_000 });
+  await bag.close({ waitTimeoutMs: 5_000 });
 } catch (error) {
-  if (error instanceof DiBagCloseCancelledError) console.error(error.details.pending);
+  if (error instanceof DiBagCloseCancelledError) console.error(error.details.disposersStillRunning);
   throw error;
 }
 ```

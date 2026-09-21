@@ -30,9 +30,9 @@ export type Bootstrapped = {
  * lives outside every component. Nothing side-effectful happens during render.
  */
 export async function bootstrap(container: HTMLElement, adapters: AppAdapters, options: BootstrapOptions): Promise<Bootstrapped> {
-  const app = await createAppRuntime(adapters, { timeoutMs: 5_000 });
+  const app = await createAppRuntime(adapters, { totalTimeoutMs: 5_000 });
   const owner = new RuntimeOwner<ProjectRuntime>({
-    start: (projectId, signal) => createProjectRuntime(app.services, projectId, { signal, timeoutMs: 5_000 }),
+    start: (projectId, signal) => createProjectRuntime(app.services, projectId, { abortSignal: signal, totalTimeoutMs: 5_000 }),
     onFailure: options.onFailure ?? (failure => { console.error('project runtime teardown', failure); }),
     ...(options.closeTimeoutMs === undefined ? {} : { closeTimeoutMs: options.closeTimeoutMs }),
   });

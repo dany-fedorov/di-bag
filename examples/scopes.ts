@@ -22,7 +22,8 @@ async function main() {
         },
       ),
     })
-    .buildAndStart(['client']);
+    .build()
+    .ensureServicesReady(['client']);
 
   const child = root.createScope(
     ['config'],

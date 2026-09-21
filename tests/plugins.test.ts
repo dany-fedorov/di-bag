@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagStartupError } from '../src';
+import { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError } from '../src';
 import type { LifecycleEvent } from '../src';
 import { deferred } from './helpers';
 
@@ -214,9 +214,9 @@ test('startup rollback releases an accepted plugin source once', async () => {
   }, { acquisitionMode: 'raw', validate: (value): value is number => typeof value === 'number' });
   const builder = DiBag.createBuilder().register({ plugin, failure: DiBag.fromFactory(() => { throw failure; }, { acquisitionMode: 'raw' }) });
   let caught: unknown;
-  try { await builder.buildAndStart(['plugin', 'failure']); } catch (error) { caught = error; }
-  expect(caught).toBeInstanceOf(DiBagStartupError);
-  expect((caught as DiBagStartupError).cause).toBe(failure);
+  try { await builder.build().ensureServicesReady(['plugin', 'failure']); } catch (error) { caught = error; }
+  expect(caught).toBeInstanceOf(DiBagServiceReadinessError);
+  expect((caught as DiBagServiceReadinessError).cause).toBe(failure);
   expect(disposed).toEqual([5]);
 });
 
@@ -295,7 +295,7 @@ test('native plugin readiness waits for source validation', async () => {
       return typeof value === 'object' && value !== null && 'id' in value;
     },
   });
-  const starting = DiBag.createBuilder().register({ plugin }).buildAndStart(['plugin']);
+  const starting = DiBag.createBuilder().register({ plugin }).build().ensureServicesReady(['plugin']);
   let ready = false;
   void starting.then(() => { ready = true; });
   await Promise.resolve();

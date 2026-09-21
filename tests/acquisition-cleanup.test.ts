@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { DiBag } from '../src/node';
-import { DiBagCleanupError, DiBagCloseCancelledError, DiBagStartupError } from '../src';
+import { DiBagCleanupError, DiBagCloseCancelledError, DiBagServiceReadinessError } from '../src';
 import { deferred } from './helpers';
 
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
@@ -265,18 +265,18 @@ test('a raw asynchronous factory settles at its first await, as documented', asy
   expect(released).toEqual(['before']);
 });
 
-test('a rollback failure during startup is reported on DiBagStartupError', async () => {
+test('a rollback failure during readiness is reported on DiBagServiceReadinessError', async () => {
   const failure = await DiBag.createBuilder().register({
     socket: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
       factoryCtx.pushDisposer(() => { throw new Error('release failed'); });
       throw new Error('handshake');
     }, { context: 'acquisition' }),
-  }).buildAndStart(['socket']).then(() => undefined, (error: unknown) => error);
-  expect(failure).toBeInstanceOf(DiBagStartupError);
-  const { cleanupFailures } = failure as DiBagStartupError;
-  expect(cleanupFailures).toHaveLength(1);
-  expect(cleanupFailures[0]!.label).toBe('socket');
-  expect((cleanupFailures[0]!.error as Error).message).toBe('release failed');
+  }).build().ensureServicesReady(['socket']).then(() => undefined, (error: unknown) => error);
+  expect(failure).toBeInstanceOf(DiBagServiceReadinessError);
+  const { disposalFailures } = failure as DiBagServiceReadinessError;
+  expect(disposalFailures).toHaveLength(1);
+  expect(disposalFailures[0]!.label).toBe('socket');
+  expect((disposalFailures[0]!.error as Error).message).toBe('release failed');
 });
 
 test('a retried scoped acquisition pushes onto a fresh stack', async () => {
@@ -321,10 +321,10 @@ test('startup rollback releases resources hidden inside an unfinished factory', 
       factoryCtx.pushDisposer(() => { released.push('socket'); });
       throw new Error('handshake');
     }, { context: 'acquisition' }),
-  }).buildAndStart(['socket']).then(() => undefined, (error: unknown) => error);
-  expect(failure).toBeInstanceOf(DiBagStartupError);
-  expect((failure as DiBagStartupError).cause).toBeInstanceOf(Error);
-  expect(((failure as DiBagStartupError).cause as Error).message).toBe('handshake');
+  }).build().ensureServicesReady(['socket']).then(() => undefined, (error: unknown) => error);
+  expect(failure).toBeInstanceOf(DiBagServiceReadinessError);
+  expect((failure as DiBagServiceReadinessError).cause).toBeInstanceOf(Error);
+  expect(((failure as DiBagServiceReadinessError).cause as Error).message).toBe('handshake');
   expect(released).toEqual(['socket']);
 });
 
@@ -562,9 +562,9 @@ test('startup rollback releases the stack of a service that had already succeede
       factoryCtx.pushDisposer(() => { throw new Error('b.stack failed'); });
       throw new Error('b');
     }, { context: 'acquisition' }),
-  }).buildAndStart(['a', 'b']).then(() => undefined, (error: unknown) => error);
+  }).build().ensureServicesReady(['a', 'b']).then(() => undefined, (error: unknown) => error);
   expect(events).toEqual(['a.stack']);
-  expect((failure as DiBagStartupError).cleanupFailures.map(item => (item.error as Error).message)).toEqual(['b.stack failed']);
+  expect((failure as DiBagServiceReadinessError).disposalFailures.map(item => (item.error as Error).message)).toEqual(['b.stack failed']);
 });
 
 test('a factory that succeeds while the bag is closing still has its stack disposed', async () => {
@@ -716,9 +716,9 @@ test('a bounded close reports an in-flight rollback as pending', async () => {
     }, { context: 'acquisition' }), { mode: 'direct', transform: promise => ({ wrapped: promise }) }),
   }).build();
   await expect(bag.resolve('service').wrapped).rejects.toThrow('source');
-  const failure = await bag.close({ timeoutMs: 5 }).then(() => undefined, (error: unknown) => error);
+  const failure = await bag.close({ waitTimeoutMs: 5 }).then(() => undefined, (error: unknown) => error);
   expect(failure).toBeInstanceOf(DiBagCloseCancelledError);
-  expect((failure as DiBagCloseCancelledError).details.pending).toEqual(['service']);
+  expect((failure as DiBagCloseCancelledError).details.disposersStillRunning).toEqual(['service']);
   gate.resolve();
   await (failure as DiBagCloseCancelledError).cleanupPromise;
 });

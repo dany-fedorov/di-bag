@@ -45,3 +45,10 @@ test('cycles and unresolved names are reported as issues', () => {
   // `run` depends on `retrieve`, which an installed module exports: resolved, not an issue.
   assert.equal(graph.issues.some(issue => issue.unit === graph.units[1].id), false);
 });
+
+test('build() is still the end of the chain when ensureServicesReady follows it', () => {
+  const ready = extractDependencyGraph({ files: [resolve(root, 'tools/graph/test/fixtures/ready-chain.ts')], root });
+  assert.deepEqual(ready.units.map(candidate => [candidate.kind, candidate.nodes.map(node => node.key)]), [['bag', ['db', 'report']]]);
+  assert.deepEqual(ready.units[0].edges, [{ from: 'report', to: 'db' }]);
+  assert.deepEqual(ready.issues, []);
+});

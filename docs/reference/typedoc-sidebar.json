@@ -21,12 +21,12 @@
             "link": "/reference/index/classes/DiBagPluginValidationError.md"
           },
           {
-            "text": "DiBagStartupCancelledError",
-            "link": "/reference/index/classes/DiBagStartupCancelledError.md"
+            "text": "DiBagServiceReadinessCancelledError",
+            "link": "/reference/index/classes/DiBagServiceReadinessCancelledError.md"
           },
           {
-            "text": "DiBagStartupError",
-            "link": "/reference/index/classes/DiBagStartupError.md"
+            "text": "DiBagServiceReadinessError",
+            "link": "/reference/index/classes/DiBagServiceReadinessError.md"
           }
         ]
       },
@@ -91,6 +91,10 @@
             "link": "/reference/index/interfaces/DisposerContext.md"
           },
           {
+            "text": "EnsureServicesReadyOptions",
+            "link": "/reference/index/interfaces/EnsureServicesReadyOptions.md"
+          },
+          {
             "text": "FactoryWithDisposal",
             "link": "/reference/index/interfaces/FactoryWithDisposal.md"
           },
@@ -133,10 +137,6 @@
           {
             "text": "ScopeEventFields",
             "link": "/reference/index/interfaces/ScopeEventFields.md"
-          },
-          {
-            "text": "StartupOptions",
-            "link": "/reference/index/interfaces/StartupOptions.md"
           },
           {
             "text": "Token",

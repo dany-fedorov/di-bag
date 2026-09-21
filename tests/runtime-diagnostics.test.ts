@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { getEventListeners } from 'node:events';
-import { DiBag, DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagStartupCancelledError, type GraphSnapshot, type LifecycleEvent } from '../src/node';
+import { DiBag, DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagServiceReadinessCancelledError, type GraphSnapshot, type LifecycleEvent } from '../src/node';
 import { DiBag as Core } from '../src';
 import { withoutBuiltinModule } from './host-builtin-module';
 
@@ -43,10 +43,10 @@ test('library messages carry the code, the original text, and the errors-page se
   expect(cleanup).toBeInstanceOf(DiBagCleanupError);
   expect(cleanup.message).toBe(`DI_BAG_CLEANUP_FAILED: Failed to run 1 disposal callback(s); see ${page}#di-bag-cleanup-failed`);
 
-  const startup = await DiBag.createBuilder().register({ slow: () => new Promise(() => {}) }).buildAndStart(['slow'], { timeoutMs: 1 }).catch(error => error);
-  expect(startup).toBeInstanceOf(DiBagStartupCancelledError);
-  expect(startup.message).toBe(`DI_BAG_STARTUP_CANCELLED: Bag startup timeout; see ${page}#di-bag-startup-cancelled`);
-  expect(startup.cause.message).toBe(`DI_BAG_STARTUP_TIMEOUT: Bag startup timed out; see ${page}#di-bag-startup-timeout`);
+  const readiness = await DiBag.createBuilder().register({ slow: () => new Promise(() => {}) }).build().ensureServicesReady(['slow'], { totalTimeoutMs: 1 }).catch(error => error);
+  expect(readiness).toBeInstanceOf(DiBagServiceReadinessCancelledError);
+  expect(readiness.message).toBe(`DI_BAG_SERVICE_READINESS_CANCELLED: The listed services were not ready: the wait timed out after 1ms; acquisitions still pending: slow; this bag is closing; see ${page}#di-bag-service-readiness-cancelled`);
+  expect(readiness.cause.message).toBe(`DI_BAG_SERVICE_READINESS_TIMEOUT: The listed services were not ready before the deadline; see ${page}#di-bag-service-readiness-timeout`);
 });
 
 test('application errors keep their message untouched', () => {
@@ -130,7 +130,7 @@ test('buildModule rejects malformed label options', () => {
   expect(() => builder.buildModule(['value'], { label: undefined } as never)).not.toThrow();
 });
 
-test('close({ timeoutMs }) rejects naming the never-settling disposer and keeps cleanup awaitable', async () => {
+test('close({ waitTimeoutMs }) rejects naming the never-settling disposer and keeps cleanup awaitable', async () => {
   let release!: () => void;
   const disposed: string[] = [];
   const bag = DiBag.createBuilder().register({
@@ -138,11 +138,11 @@ test('close({ timeoutMs }) rejects naming the never-settling disposer and keeps 
     stuck: DiBag.withDisposal(({ fast }: { fast: string }) => fast, () => new Promise<void>(resolve => { release = resolve; })),
   }).build();
   bag.resolve('stuck');
-  const error = await bag.close({ timeoutMs: 1 }).catch(caughtError => caughtError);
+  const error = await bag.close({ waitTimeoutMs: 1 }).catch(caughtError => caughtError);
   expect(error).toBeInstanceOf(DiBagCloseCancelledError);
   expect(error.code).toBe('DI_BAG_CLOSE_TIMEOUT');
   expect(error.reason).toBe('timeout');
-  expect(error.details).toEqual({ operation: 'close', reason: 'timeout', timeoutMs: 1, pending: ['stuck'], acquiring: [] });
+  expect(error.details).toEqual({ operation: 'close', reason: 'timeout', waitTimeoutMs: 1, disposersStillRunning: ['stuck'], acquisitionsStillPending: [] });
   expect(error.message).toBe(`DI_BAG_CLOSE_TIMEOUT: Bag close timed out after 1ms; disposers still running: stuck; see ${page}#di-bag-close-timeout`);
   expect(error.cause.name).toBe('TimeoutError');
   expect(error.cause.code).toBe('DI_BAG_CLOSE_TIMEOUT');
@@ -163,13 +163,13 @@ test('close({ timeoutMs }) rejects naming the never-settling disposer and keeps 
 test('close deadline reports pending acquisitions when cleanup is still draining them', async () => {
   const bag = DiBag.createBuilder().register({ slow: () => new Promise<number>(() => {}) }).build();
   void bag.resolve('slow');
-  const error = await bag.close({ timeoutMs: 1 }).catch(caughtError => caughtError);
-  expect(error.details.pending).toEqual([]);
-  expect(error.details.acquiring).toEqual(['slow']);
+  const error = await bag.close({ waitTimeoutMs: 1 }).catch(caughtError => caughtError);
+  expect(error.details.disposersStillRunning).toEqual([]);
+  expect(error.details.acquisitionsStillPending).toEqual(['slow']);
   expect(error.message).toContain('acquisitions still pending: slow;');
 });
 
-test('close({ signal }) stops the wait on abort with DI_BAG_CLOSE_ABORTED and removes its listener', async () => {
+test('close({ abortSignal }) stops the wait on abort with DI_BAG_CLOSE_ABORTED and removes its listener', async () => {
   let release!: () => void;
   const bag = DiBag.createBuilder().register({
     stuck: DiBag.withDisposal(() => 1, () => new Promise<void>(resolve => { release = resolve; })),
@@ -177,7 +177,7 @@ test('close({ signal }) stops the wait on abort with DI_BAG_CLOSE_ABORTED and re
   bag.resolve('stuck');
   const controller = new AbortController();
   const reason = new Error('shutdown budget spent');
-  const closing = bag.close({ signal: controller.signal, timeoutMs: 60_000 }).catch(error => error);
+  const closing = bag.close({ abortSignal: controller.signal, waitTimeoutMs: 60_000 }).catch(error => error);
   expect(getEventListeners(controller.signal, 'abort')).toHaveLength(1);
   await tick();
   controller.abort(reason);
@@ -185,7 +185,7 @@ test('close({ signal }) stops the wait on abort with DI_BAG_CLOSE_ABORTED and re
   expect(error).toBeInstanceOf(DiBagCloseCancelledError);
   expect(error.code).toBe('DI_BAG_CLOSE_ABORTED');
   expect(error.cause).toBe(reason);
-  expect(error.details).toEqual({ operation: 'close', reason: 'aborted', pending: ['stuck'], acquiring: [] });
+  expect(error.details).toEqual({ operation: 'close', reason: 'aborted', disposersStillRunning: ['stuck'], acquisitionsStillPending: [] });
   expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
   release();
   await error.cleanupPromise;
@@ -197,7 +197,7 @@ test('an already aborted signal still starts cleanup and rejects immediately', a
   bag.resolve('value');
   const controller = new AbortController();
   controller.abort('now');
-  const error = await bag.close({ signal: controller.signal }).catch(caughtError => caughtError);
+  const error = await bag.close({ abortSignal: controller.signal }).catch(caughtError => caughtError);
   expect(error.code).toBe('DI_BAG_CLOSE_ABORTED');
   await error.cleanupPromise;
   expect(disposed).toEqual([1]);
@@ -207,13 +207,13 @@ test('bounded close resolves or rejects with the ordinary outcome when cleanup f
   const bag = DiBag.createBuilder().register({ value: DiBag.withDisposal(() => 1, () => {}) }).build();
   bag.resolve('value');
   const controller = new AbortController();
-  await bag.close({ timeoutMs: 1_000, signal: controller.signal });
+  await bag.close({ waitTimeoutMs: 1_000, abortSignal: controller.signal });
   expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
-  expect(await bag.close({ timeoutMs: 1 })).toBeUndefined();
+  expect(await bag.close({ waitTimeoutMs: 1 })).toBeUndefined();
 
   const failing = DiBag.createBuilder().register({ value: DiBag.withDisposal(() => 1, () => { throw new Error('boom'); }) }).build();
   failing.resolve('value');
-  expect(await failing.close({ timeoutMs: 1_000 }).catch(error => error)).toBeInstanceOf(DiBagCleanupError);
+  expect(await failing.close({ waitTimeoutMs: 1_000 }).catch(error => error)).toBeInstanceOf(DiBagCleanupError);
 });
 
 test('scopes and forks accept close options; a child deadline names the child disposer', async () => {
@@ -223,8 +223,8 @@ test('scopes and forks accept close options; a child deadline names the child di
   }).build();
   const child = root.createScope();
   child.resolve('session');
-  const childError = await child.close({ timeoutMs: 1 }).catch(error => error);
-  expect(childError.details.pending).toEqual(['session']);
+  const childError = await child.close({ waitTimeoutMs: 1 }).catch(error => error);
+  expect(childError.details.disposersStillRunning).toEqual(['session']);
   release();
   await childError.cleanupPromise;
 
@@ -232,19 +232,19 @@ test('scopes and forks accept close options; a child deadline names the child di
   fork.resolve('session');
   const parentChild = root.createScope();
   parentChild.resolve('session');
-  const rootError = await root.close({ timeoutMs: 1 }).catch(error => error);
+  const rootError = await root.close({ waitTimeoutMs: 1 }).catch(error => error);
   expect(rootError.code).toBe('DI_BAG_CLOSE_TIMEOUT');
-  expect(rootError.details.pending).toEqual(['session']);
+  expect(rootError.details.disposersStillRunning).toEqual(['session']);
   release();
   await rootError.cleanupPromise;
-  const forkError = await fork.close({ timeoutMs: 1 }).catch(error => error);
+  const forkError = await fork.close({ waitTimeoutMs: 1 }).catch(error => error);
   release();
   await forkError.cleanupPromise;
 });
 
 test('close rejects malformed options without starting cleanup', async () => {
   const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
-  for (const options of [null, [], { timeoutMs: 0 }, { timeoutMs: Infinity }, { timeoutMs: '1' }, { signal: {} }, { startupOrder: 'sequential' }, Object.create({ timeoutMs: 1 })]) {
+  for (const options of [null, [], { waitTimeoutMs: 0 }, { waitTimeoutMs: Infinity }, { waitTimeoutMs: '1' }, { abortSignal: {} }, { timeoutMs: 1 }, { signal: new AbortController().signal }, { startupOrder: 'sequential' }, Object.create({ waitTimeoutMs: 1 })]) {
     const error = await bag.close(options as never).catch(caughtError => caughtError);
     expect(error.code).toBe('DI_BAG_INVALID_CLOSE');
     expect(error.details).toEqual({ operation: 'close' });
