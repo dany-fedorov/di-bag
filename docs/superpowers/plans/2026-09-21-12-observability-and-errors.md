@@ -61,6 +61,7 @@ A non-zero count in check 2's first command, or any output from check 1, means a
 | `docs/agent/errors.md` (modify) | one section per new code, each listing the operations that raise it |
 | `tools/codemod/rename-map.json` (modify) | `codes`, `properties`, `values` and `types` entries; one new fixture pair, `snapshot-fields` |
 | `tests/types/negative/api-renaming.ts` (modify) | one line per removed export: `DiBagCleanupError`, `CleanupFailure`, `ScopeEventFields` |
+| `tests/api-naming-known-violations.json` (modify in Tasks 4, 9, 10 and 11; audit-only in Task 12) | shrink by the exact 5/4/2/10 findings at the restoring commit that removes each public surface; Task 12 proves the accumulated list is empty without editing or staging it |
 
 ---
 
@@ -682,6 +683,7 @@ The spec retires the word "cleanup" for releasing an owned value. Phase 3 alread
 **Files:**
 - Modify: `src/errors.ts` (class, type, field, two `diagnostic` calls, one `@see` URL), `src/index.ts` (two export lines), `src/provider-execution.ts` (one throw site), `src/di-bag.ts` and every other `src` file that imports the class or the type
 - Modify: `docs/agent/errors.md` (two headings and their bodies), `docs/agent/recipes.md` (two links), `docs/guides/tutorial.md` (one link), `tools/codemod/rename-map.json`
+- Modify: `tests/api-naming-known-violations.json` (exact five-entry shrink in the restoring commit)
 - Test: `tests/runtime-diagnostics.test.ts`, `tests/acquisition-cleanup.test.ts`, and the files the codemod rewrites
 
 **Interfaces:**
@@ -786,6 +788,35 @@ Expected: no error. On a scratch copy of the 0.4.0 source this exact command cha
 
 Then the field, by hand, because `label` is far too common a word for a substitution: in `src/errors.ts` rename `readonly label: string` inside `interface DisposalFailure` to `bindingLabel`, fix the `failure.label` in the JSDoc example of `DiBagDisposalError`, and run `npm run typecheck` again. It now lists every producer of a failure record; at 0.4.0 there are two, both in `src/acquisition.ts` (`this.failures.push({ ..., label: attempt.label, error })` and the `.map(({ acquisitionId, bindingId, label, error }) => ...)` that strips the sequence number). Write `bindingLabel: attempt.label` in the first and rename the destructured property in the second. Reads of `failure.label` on a caught error typed `any` are invisible to the compiler and to the codemod: `grep -rnE "failures?\b[^;]*\.label\b|failure\.label" src tests examples docs/agent AGENTS.md` finds them. Measured at 0.4.0, ten lines: `tests/acquisition.test.ts` two, `tests/acquisition-cleanup.test.ts` one, `tests/scopes.test.ts` one, `tests/package.test.ts` two (inside generated source held in a string, which no tool rewrites), the JSDoc example in `src/errors.ts`, the producer in `src/acquisition.ts`, the example in the errors page, and one line of `docs/agent/api-card.md`, which is generated and follows the JSDoc.
 
+The declarations and producers are now coherent. Before any old-name audit enters `tests`, make a fresh classic build and shrink the exact five findings this contraction removed:
+
+```bash
+npm run build
+UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts
+bun test tests/api-naming.test.ts
+python3 - <<'PY'
+import json, subprocess
+path = 'tests/api-naming-known-violations.json'
+entry = json.loads(subprocess.check_output(['git', 'show', f'next:{path}']))
+head = json.loads(subprocess.check_output(['git', 'show', f'HEAD:{path}']))
+current = json.load(open(path))
+removed = {
+    'retired-word: code DI_BAG_CLEANUP_AFTER_FACTORY',
+    'retired-word: code DI_BAG_CLEANUP_FAILED',
+    'retired-word: export CleanupFailure',
+    'retired-word: export DiBagCleanupError',
+    'retired-word: member cleanupPromise',
+}
+assert entry['note'] == head['note'] == current['note']
+assert set(head['violations']) - set(current['violations']) == removed
+assert not set(current['violations']) - set(head['violations'])
+assert set(entry['violations']) - set(current['violations']) == removed
+assert current['violations'] == [item for item in entry['violations'] if item not in removed]
+PY
+```
+
+The `HEAD` comparison is this task's exact delta; the `next` comparison is the phase-wide cumulative check at the first shrink. Both require the note to stay byte-for-byte equal and forbid additions.
+
 - [ ] **Step 6: Audit what no tool sees**
 
 ```bash
@@ -815,14 +846,16 @@ In the body of the first, `DiBagCleanupError` becomes `DiBagDisposalError`, thre
 - [ ] **Step 8: Verify, then run the gate for both codes**
 
 ```bash
+npm run build
+bun test tests/api-naming.test.ts
 bun test tests/acquisition-cleanup.test.ts tests/runtime-diagnostics.test.ts   # expect 0 fail
 npm run test:fast                                                              # expect 0 fail
-npm run build && npm run docs:generate && npm run docs:check                   # expect exit 0
+npm run docs:generate && npm run docs:check                                    # expect exit 0
 node scripts/error-code-facts.mjs DI_BAG_CLEANUP_FAILED DI_BAG_DISPOSAL_FAILED | grep '^  grep' | bash                       # expect no output
 node scripts/error-code-facts.mjs DI_BAG_CLEANUP_AFTER_FACTORY DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY | grep '^  grep' | bash  # expect no output
 ```
 
-The gate reads `docs/guides`. If it reports a line there other than the tutorial link you already fixed, that line quotes one of the two codes as text: apply the same substitution to it.
+This final gate makes another classic build and rechecks ordinary naming mode without rerunning update mode. It reads `docs/guides`; if it reports a line there other than the tutorial link you already fixed, that line quotes one of the two codes as text, so apply the same substitution to it.
 
 Append to `tests/types/negative/api-renaming.ts`, in the form phase 3 used there. The import path must be exactly `'../../../src'`, because `tests/provider-contract-fixtures.ts` rewrites that spelling when the fixture is compiled against the packed package. The file is already registered in `tests/types.test.ts`; the compiler lane runs it, not the fast lane.
 
@@ -836,7 +869,7 @@ type RemovedCleanupFailure = import('../../../src').CleanupFailure;
 - [ ] **Step 9: Commit**
 
 ```bash
-git add src docs/agent docs/reference docs/guides/tutorial.md tests
+git add src docs/agent docs/reference docs/guides/tutorial.md tests tests/api-naming-known-violations.json
 git commit -m "refactor(errors)!: DiBagDisposalError, DisposalFailure and the two disposal codes"
 ```
 
@@ -1381,6 +1414,7 @@ A caller can now tell twin checks apart. At 0.4.0 seven pairs of adjacent throws
 
 **Files:**
 - Modify: every file the inventory lists for the sixteen codes (at 0.4.0: `src/acquisition-context.ts`, `src/acquisition-mode.ts`, `src/composition.ts`, `src/di-bag.ts`, `src/lifetime.ts`, `src/module.ts`, `src/observers.ts`, `src/plugins.ts`, `src/provider-execution.ts`, `src/provider.ts`, `src/registration.ts`, `src/scope-selection.ts`, `src/startup.ts`), `docs/agent/errors.md`, `tools/codemod/rename-map.json`
+- Modify: `tests/api-naming-known-violations.json` (exact four-entry shrink in the restoring commit)
 - Test: `tests/error-code-taxonomy.test.ts`, and the existing assertions the facts script finds (at 0.4.0: `tests/portable-factories.test.ts` 7, `tests/api-renaming.test.ts` 2, `tests/runtime-diagnostics.test.ts` 3, `tests/acquisition-cleanup.test.ts` 1)
 
 **Interfaces:**
@@ -1649,14 +1683,44 @@ The phase 1 fixture `codes` already proves both forms, so no new fixture. Run `n
 - [ ] **Step 9: The gate for all sixteen codes, then the commit**
 
 ```bash
-npm run build && npm run docs:generate && npm run docs:check   # expect exit 0
+npm run build
+UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts
+bun test tests/api-naming.test.ts
+python3 - <<'PY'
+import json, subprocess
+path = 'tests/api-naming-known-violations.json'
+entry = json.loads(subprocess.check_output(['git', 'show', f'next:{path}']))
+head = json.loads(subprocess.check_output(['git', 'show', f'HEAD:{path}']))
+current = json.load(open(path))
+local = {
+    'retired-word: code DI_BAG_INVALID_ACQUISITION_MODE',
+    'retired-word: code DI_BAG_INVALID_CLEANUP',
+    'retired-word: code DI_BAG_INVALID_SCOPE',
+    'retired-word: code DI_BAG_INVALID_STARTUP',
+}
+cumulative = local | {
+    'retired-word: code DI_BAG_CLEANUP_AFTER_FACTORY',
+    'retired-word: code DI_BAG_CLEANUP_FAILED',
+    'retired-word: export CleanupFailure',
+    'retired-word: export DiBagCleanupError',
+    'retired-word: member cleanupPromise',
+}
+assert entry['note'] == head['note'] == current['note']
+assert set(head['violations']) - set(current['violations']) == local
+assert not set(current['violations']) - set(head['violations'])
+assert set(entry['violations']) - set(current['violations']) == cumulative
+assert current['violations'] == [item for item in entry['violations'] if item not in cumulative]
+PY
+npm run docs:generate && npm run docs:check                    # expect exit 0
 npm run test:fast                                              # expect 0 fail
 for code in ACQUISITION_MODE CLEANUP CLOSE CONFIGURATION CONSTRUCTOR EXPORT FACTORY FUNCTION LIFETIME METADATA OVERRIDE PLUGIN_OPTIONS REGISTRATION SCOPE STARTUP TRANSFORM; do
   node scripts/error-code-facts.mjs DI_BAG_INVALID_$code DI_BAG_INVALID_ARGUMENT | grep '^  grep' | bash
 done   # expect no output at all
-git add tests src docs/agent docs/reference tools/codemod/rename-map.json
+git add tests src docs/agent docs/reference tools/codemod/rename-map.json tests/api-naming-known-violations.json
 git commit -m "refactor(errors)!: DI_BAG_INVALID_ARGUMENT with operation, argument and expected"
 ```
+
+The first command is the fresh classic build required before the scanner and the first restored-state fast gate. The `HEAD` comparison proves this commit's exact four-entry delta; the `next` comparison proves the cumulative nine removals without demanding later Task 10/11 entries early. Both forbid additions and require an unchanged note.
 
 If `docs:check` reports `missing anchor` for `errors.md#di-bag-invalid-...`, a backticked mention of an old code survived in JSDoc and the API card turned it into a link: the gate's first `grep` names the line.
 
@@ -1683,6 +1747,7 @@ The old names are ordinary words, `label`, `keys`, `key`, `kind`, `from`, `to`, 
 **Files:**
 - Create: `tests/observability-field-names.test.ts`
 - Modify: `src/inspection.ts` (the declarations), the producers the compiler lists (at 0.4.0 in `src/acquisition.ts`, `src/runtime.ts`, `src/di-bag.ts`), `tools/codemod/rename-map.json`, `docs/agent/*.md`, `AGENTS.md`, `examples/provider-metadata.ts` (it builds `Presence` values by hand)
+- Modify: `tests/api-naming-known-violations.json` (exact two-entry shrink in the restoring commit)
 - Test: every test file the codemod rewrites or that fails afterwards
 
 **Interfaces:**
@@ -1782,9 +1847,40 @@ Every error is a producer or a typed reader that still uses an old name. Fix `sr
 
 - [ ] **Step 5: Run the suite and fix what only a run can find**
 
+The declarations and producers are now coherent. Before the first restored-state fast run, make a fresh classic build and shrink the two findings this source contraction removed:
+
 ```bash
+npm run build
+UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts
+bun test tests/api-naming.test.ts
+python3 - <<'PY'
+import json, subprocess
+path = 'tests/api-naming-known-violations.json'
+entry = json.loads(subprocess.check_output(['git', 'show', f'next:{path}']))
+head = json.loads(subprocess.check_output(['git', 'show', f'HEAD:{path}']))
+current = json.load(open(path))
+local = {'boolean-name: member owned', 'boolean-name: member present'}
+cumulative = local | {
+    'retired-word: code DI_BAG_CLEANUP_AFTER_FACTORY',
+    'retired-word: code DI_BAG_CLEANUP_FAILED',
+    'retired-word: export CleanupFailure',
+    'retired-word: export DiBagCleanupError',
+    'retired-word: member cleanupPromise',
+    'retired-word: code DI_BAG_INVALID_ACQUISITION_MODE',
+    'retired-word: code DI_BAG_INVALID_CLEANUP',
+    'retired-word: code DI_BAG_INVALID_SCOPE',
+    'retired-word: code DI_BAG_INVALID_STARTUP',
+}
+assert entry['note'] == head['note'] == current['note']
+assert set(head['violations']) - set(current['violations']) == local
+assert not set(current['violations']) - set(head['violations'])
+assert set(entry['violations']) - set(current['violations']) == cumulative
+assert current['violations'] == [item for item in entry['violations'] if item not in cumulative]
+PY
 npm run test:fast 2>&1 | grep -E "^\(fail\)|^ [0-9]+ (pass|fail)"
 ```
+
+The `HEAD` comparison proves this restoring commit removes exactly the two boolean-name findings; the `next` comparison proves the cumulative eleven removals, with the same note and no additions.
 
 What fails now is, almost entirely, whole-object assertions: `toEqual({ label: 'reader', ... })`, `toEqual([{ from: a, to: b }])`, `{ present: true, value }`. Counted at 0.4.0 for orientation: `present: true` or `present: false` occurs 31 times in tests, `owned: true|false` 4 times, `keys: [` 6 times. Rename the property inside the expected literal; never change the expected VALUE. Also by hand, because no tool reads them: generated source held in strings (`tests/package.test.ts`, `tests/compiler.ts`, `scripts/`), `AGENTS.md` and `docs/agent/*.md` (at 0.4.0 they read `.keys` and `label:` a few times each; `wc -l AGENTS.md` must stay at most 150), and the JSDoc examples in `src`. The guides under `docs/guides` are phase 12.
 
@@ -1795,9 +1891,12 @@ Expected at the end: `0 fail`, including the new test file.
 ```bash
 npm run build && npm run docs:generate && npm run docs:check   # expect exit 0; the snippets in docs/agent are type-checked, so a stale field name fails here
 npm run graph:check && npm run agent-eval:test                 # expect pass: neither reads a runtime snapshot, this only proves nothing else broke
+bun test tests/api-naming.test.ts
 git add src tests examples docs/agent docs/reference AGENTS.md scripts tools/codemod
 git commit -m "refactor(inspection)!: snapshot fields say what they hold"
 ```
+
+Ordinary naming mode is rechecked at the final commit gate without rerunning update mode. `tests/api-naming-known-violations.json` is part of this commit through the staged `tests` path.
 
 `tools/graph` has an output key `owned` of its own, derived from a `withDisposal` call in source text. It is NOT a runtime snapshot and is not renamed in this phase; the release plan decides the format of `di-bag-graph` 0.2.0.
 
@@ -1817,6 +1916,7 @@ The kinds `acquisition-started`, `acquisition-ready` and `acquisition-failed`, a
 
 **Files:**
 - Modify: `src/observers.ts` (the types), `src/index.ts` (the export), `src/inspection.ts` (`GraphSnapshot.scopeId`), the emitters (at 0.4.0: `src/acquisition.ts` and `src/runtime.ts`), one comment in `src/provider-execution.ts`, `examples/observers.ts`, `tools/codemod/rename-map.json`
+- Modify: `tests/api-naming-known-violations.json` (exact ten-entry shrink in the restoring commit)
 - Test: `tests/observability-field-names.test.ts`, `tests/observers*.ts`, and what the codemod rewrites
 
 - [ ] **Step 1: Append the failing test**
@@ -1882,9 +1982,54 @@ Then, by hand in `src/observers.ts`, `readonly label: string` inside `Acquisitio
 
 - [ ] **Step 5: The rest, by audit**
 
+The declarations and producers are coherent after Step 4. Before the old-name grep enters `tests` or any restored-state fast gate runs, make a fresh classic build and shrink this task's ten findings:
+
 ```bash
+npm run build
+UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts
+bun test tests/api-naming.test.ts
+python3 - <<'PY'
+import json, subprocess
+path = 'tests/api-naming-known-violations.json'
+entry = json.loads(subprocess.check_output(['git', 'show', f'next:{path}']))
+head = json.loads(subprocess.check_output(['git', 'show', f'HEAD:{path}']))
+current = json.load(open(path))
+local = {
+    'retired-word: export ScopeEventFields',
+    'retired-word: member parentScopeId',
+    'retired-word: member scopeId',
+    "retired-word: value 'cleanup-completed'",
+    "retired-word: value 'cleanup-failed'",
+    "retired-word: value 'cleanup-started'",
+    "retired-word: value 'scope-close-failed'",
+    "retired-word: value 'scope-closed'",
+    "retired-word: value 'scope-closing'",
+    "retired-word: value 'scope-opened'",
+}
+cumulative = local | {
+    'retired-word: code DI_BAG_CLEANUP_AFTER_FACTORY',
+    'retired-word: code DI_BAG_CLEANUP_FAILED',
+    'retired-word: export CleanupFailure',
+    'retired-word: export DiBagCleanupError',
+    'retired-word: member cleanupPromise',
+    'retired-word: code DI_BAG_INVALID_ACQUISITION_MODE',
+    'retired-word: code DI_BAG_INVALID_CLEANUP',
+    'retired-word: code DI_BAG_INVALID_SCOPE',
+    'retired-word: code DI_BAG_INVALID_STARTUP',
+    'boolean-name: member owned',
+    'boolean-name: member present',
+}
+assert entry['note'] == head['note'] == current['note']
+assert set(head['violations']) - set(current['violations']) == local
+assert not set(current['violations']) - set(head['violations'])
+assert set(entry['violations']) - set(current['violations']) == cumulative
+assert current['violations'] == [item for item in entry['violations'] if item not in cumulative]
+assert current['violations'] == []
+PY
 grep -rnE "\b(scopeId|parentScopeId|ScopeEventFields)\b|(scope-(opened|closing|closed|close-failed)|cleanup-(started|failed|completed))" src tests examples scripts AGENTS.md README.md docs/agent tools/docs/lib
 ```
+
+The `HEAD` comparison proves this restoring commit removes exactly ten findings; the `next` comparison proves all 21 phase-entry findings are now gone, with the note unchanged and no additions. Because the JSON is already empty, the grep can now inspect `tests` without treating the ratchet itself as an old-name hit.
 
 At the 0.4.0 source, before any edit, this prints 114 lines: 79 in `tests`, 29 in `src`, 4 in `docs/agent`, 1 in `examples`, 1 in `scripts`. Expected leftovers after Steps 3 and 4, fixed with the same substitutions: event literals inside `toEqual` in the observer tests, kinds inside test titles, generated source held in strings (at 0.4.0: `tests/package.test.ts`), and `examples/observers.ts` if the codemod reported it instead of rewriting it. Run the audit again; expected: no output. Then `npm run test:fast`; expected: `0 fail`.
 
@@ -1899,9 +2044,12 @@ type RemovedScopeEventFields = import('../../../src').ScopeEventFields;
 
 ```bash
 npm run build && npm run docs:generate && npm run docs:check
+bun test tests/api-naming.test.ts
 git add src tests examples docs/agent docs/reference AGENTS.md scripts tools/codemod
 git commit -m "refactor(observers)!: container and disposal event kinds, containerId, ContainerEventFields"
 ```
+
+Ordinary naming mode is rechecked at the final commit gate without rerunning update mode. `tests/api-naming-known-violations.json` is part of this commit through the staged `tests` path.
 
 ---
 
@@ -1910,7 +2058,8 @@ git commit -m "refactor(observers)!: container and disposal event kinds, contain
 The renames are done; what is left is prose. A runtime message, a compile-time message or a JSDoc line that still says a retired word sends the reader looking for something that no longer exists.
 
 **Files:**
-- Modify: `src/*.ts` (string literals and comments only), the tests that quote a changed message, `docs/agent/errors.md` where it quotes one, `tests/api-naming-known-violations.json`
+- Modify: `src/*.ts` (string literals and comments only), the tests that quote a changed message, `docs/agent/errors.md` where it quotes one
+- Audit only: `tests/api-naming-known-violations.json` (already empty after Tasks 4, 9, 10 and 11; do not edit or stage it)
 
 - [ ] **Step 1: List what is left**
 
@@ -1933,22 +2082,59 @@ npm run test:compiler                        # expect 0 fail: compile-time messa
 npm run build && npm run docs:generate && npm run docs:check
 ```
 
-- [ ] **Step 3: Empty the naming ratchet**
+- [ ] **Step 3: Audit the accumulated empty naming ratchet without editing it**
 
 ```bash
-npm run build
-UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts
-node -e "const list = require('./tests/api-naming-known-violations.json').violations; console.log(list.length); for (const item of list) console.log(item)"
+bun test tests/api-naming.test.ts
+python3 - <<'PY'
+import json, subprocess
+path = 'tests/api-naming-known-violations.json'
+entry = json.loads(subprocess.check_output(['git', 'show', f'next:{path}']))
+head = json.loads(subprocess.check_output(['git', 'show', f'HEAD:{path}']))
+current = json.load(open(path))
+expected = {
+    'retired-word: code DI_BAG_CLEANUP_AFTER_FACTORY',
+    'retired-word: code DI_BAG_CLEANUP_FAILED',
+    'retired-word: export CleanupFailure',
+    'retired-word: export DiBagCleanupError',
+    'retired-word: member cleanupPromise',
+    'retired-word: code DI_BAG_INVALID_ACQUISITION_MODE',
+    'retired-word: code DI_BAG_INVALID_CLEANUP',
+    'retired-word: code DI_BAG_INVALID_SCOPE',
+    'retired-word: code DI_BAG_INVALID_STARTUP',
+    'boolean-name: member owned',
+    'boolean-name: member present',
+    'retired-word: export ScopeEventFields',
+    'retired-word: member parentScopeId',
+    'retired-word: member scopeId',
+    "retired-word: value 'cleanup-completed'",
+    "retired-word: value 'cleanup-failed'",
+    "retired-word: value 'cleanup-started'",
+    "retired-word: value 'scope-close-failed'",
+    "retired-word: value 'scope-closed'",
+    "retired-word: value 'scope-closing'",
+    "retired-word: value 'scope-opened'",
+}
+assert entry['note'] == head['note'] == current['note']
+assert set(entry['violations']) - set(current['violations']) == expected
+assert not set(current['violations']) - set(entry['violations'])
+assert current['violations'] == [item for item in entry['violations'] if item not in expected]
+assert current['violations'] == []
+PY
+git diff --exit-code HEAD -- tests/api-naming-known-violations.json
 ```
 
-Expected: `0`. The update run only ever REMOVES entries that no longer occur. Every entry still printed is a public name that breaks a rule of `docs/guides/api-naming.md` and that no phase renamed. For each one: if the spec's rename map lists it, the phase that owned it missed it, so rename it now by that phase's procedure (expand, codemod entry, contract). If the spec does not list it, do not invent a name: record it in `docs/guides/api-naming.md` under "Measured exceptions" with the rule it breaks and why it stays, remove it from the list by hand, make the test's scanner skip exactly that subject with a comment that points to the exception, and name it in the phase report. The list must be empty when this task ends, because the master plan's release gate assumes it.
+Task 12 Step 2's fresh classic build immediately above is the input to ordinary naming mode. Expected: the test passes, the list is empty, the phase-entry comparison proves exactly the accumulated 21 removals with an unchanged note and no additions, and the `HEAD` guard proves Task 12 did not edit the file. If any entry remains, return to its owning Task 4/9/10/11 restoring commit; do not remove or except it here.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src tests docs/agent docs/reference docs/guides/api-naming.md AGENTS.md
+git add src docs/agent docs/reference docs/guides/api-naming.md AGENTS.md
+git add -- tests ':(exclude)tests/api-naming-known-violations.json'
 git commit -m "docs(messages)!: glossary words in messages and JSDoc, naming ratchet empty"
 ```
+
+`tests/api-naming-known-violations.json` is audit-only in this task and is deliberately excluded from staging.
 
 ---
 
@@ -1970,7 +2156,7 @@ node -e "console.log(require('./tests/api-naming-known-violations.json').violati
 
 - [ ] **Step 3: The report**
 
-Reply to the controller in the master plan's format, and add: the final list of runtime codes; every row of `tests/error-code-taxonomy.test.ts` that you deleted because its site was gone, or whose call you changed, and why; every naming exception you recorded; and the two red commits (Task 10 Step 3 and Task 11 Step 3) by hash, so the controller knows that `git bisect` must skip them.
+Reply to the controller in the master plan's format, and add: the final list of runtime codes; every row of `tests/error-code-taxonomy.test.ts` that you deleted because its site was gone, or whose call you changed, and why; every naming exception you recorded; the exact Task 4/9/10/11 ratchet removals and the Task 12 no-diff audit; and all three already authorized mechanical compile-red commits (Task 4 Step 4, Task 10 Step 3 and Task 11 Step 3) by hash, so the controller knows that `git bisect` must skip them. No restoring/source commit is red.
 
 ---
 
@@ -1985,10 +2171,13 @@ The spec wins over all of them; each is here so that a reviewer can overturn it 
 5. **The `expected` vocabulary of Task 9** is closed. A new phrase is a decision for the controller, not for the executor.
 6. **`tools/graph` output keys are out of scope.** The tool reads source text, not runtime snapshots; its `owned` key is decided with the `di-bag-graph` 0.2.0 release.
 7. **The spec's own roadmap calls this work "phase 9"; the master plan numbers it phase 11.** The master plan's numbering is the one used here and in branch names.
+8. **Naming stays green at restoring boundaries.** Tasks 4, 9, 10 and 11 each shrink the known-violations list by their exact 5/4/2/10 findings after a fresh classic build and before their restoring/source commit. Task 12 only audits the accumulated empty list, unchanged note, no additions and no working-tree edit.
 
 ## Self-review
 
 **Spec coverage.** "Snapshots and events" table: `isPresent`, `bindingLabel`, `serviceKeys`, `isOwnedByContainer`, `tokenSymbol`, `dependencyKind`, `collectionTokenSymbol`, `consumerBindingId`, `dependencyBindingId` (Task 10); the seven event kinds, `containerId`, `parentContainerId` (Task 11); `factoryReturnKind` and the `CloseProgress` fields belong to phases 8 and 3. "Errors" table: disposal class, type, field and codes (Task 4); `DI_BAG_DEPENDENCY_CYCLE` (Task 3); `DI_BAG_DUPLICATE_SERVICE_KEY`, `DI_BAG_DUPLICATE_METADATA_KEY` (Task 5); `DI_BAG_UNKNOWN_SERVICE_KEY` (Task 6); `DI_BAG_MISSING_REPLACEMENT_PROVIDER`, `DI_BAG_CONFLICTING_SERVICE_SELECTION` (Task 7); `DI_BAG_INVALID_PROVIDER`, `DI_BAG_INVALID_ACQUISITION_METADATA` (Task 8); `DI_BAG_INVALID_ARGUMENT` with `operation`, `argument`, `expected` (Task 9); service readiness codes and `DI_BAG_WRONG_TOKEN_KIND` belong to phases 3 and 4, `DI_BAG_REMOVED_API` to phase 13. "Exported types": `ContainerEventFields` (Task 11), `DisposalFailure` (Task 4). "Every message that names a retired call is rewritten" and the empty ratchet (Task 12).
+
+**Naming-ratchet commit integrity.** Task 4 removes exactly five disposal-vocabulary findings, Task 9 four invalid-code findings, Task 10 two boolean-member findings, and Task 11 ten event/type/member findings. Each task runs a fresh classic build, update mode, ordinary mode, an exact `HEAD` delta check and a cumulative `next` check before the first restored-state fast gate or old-name audit that can observe the JSON, and therefore before its restoring/source commit. Later commit gates rerun ordinary mode without another update. Task 12 runs ordinary mode and proves the same 21 phase-entry findings are absent, the note is unchanged, no finding was added, and the JSON has no working-tree change; its commit excludes that file.
 
 **What was run when this plan was written, and what was not.** Run: both scripts and their eleven tests, red and green, with two mutation checks; the fixtures' type-check; every `sed`, `grep` and `awk` command that Tasks 3 to 9 quote, on a scratch copy of the 0.4.0 source; 77 probe calls that reach the throw sites of Tasks 5 to 9 at the 0.4.0 API; the 0.4.0 edition of the two field-name tests. Not run: anything that needs the 0.5.0 API, which means the translated rows of `tests/error-code-taxonomy.test.ts`, `tests/observability-field-names.test.ts`, every example in a new errors-page section, the codemod, and the type-check after each substitution. Each such place says so where it stands.
 
