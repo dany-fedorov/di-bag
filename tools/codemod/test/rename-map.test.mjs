@@ -56,13 +56,17 @@ test('nameOf answers from the map and falls back to the old name', () => {
 });
 
 test('an entry with arity applies only to calls with that many arguments', () => {
-  const index = indexRenameMap({ version: 1, methods: [
+  const map = { version: 1, methods: [
     { owner: 'Builder', from: 'register', to: 'withServices', arity: [1] },
     { owner: 'Builder', from: 'register', to: 'withTokenService', arity: [2] },
-  ] });
+  ] };
+  assert.deepEqual(validateRenameMap(map), []);
+  const index = indexRenameMap(map);
   assert.equal(index.methodFor('Builder', 'register', 1).to, 'withServices');
   assert.equal(index.methodFor('Builder', 'register', 2).to, 'withTokenService');
   assert.equal(index.methodFor('Builder', 'register', 3), undefined);
+  assert.equal(index.methodFor('Builder', 'register', undefined), undefined);
+  assert.equal(index.nameOf('Builder', 'register'), 'register');
 });
 
 test("a code whose target is the word manual is reported, never rewritten", () => {
@@ -235,4 +239,70 @@ test('validation requires exact field-presence variants', () => {
     'imports[1]: use either from with to, or fromSuffix with toSuffix',
     'imports[2]: use either from with to, or fromSuffix with toSuffix',
   ]);
+});
+
+test('validation rejects conflicting effective selectors in every map section', () => {
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    methods: [
+      { owner: 'Builder', from: 'register', to: 'withServices', arity: [1] },
+      { owner: 'Builder', from: 'register', to: 'withTokenService', arity: [2] },
+      { owner: 'Builder', from: 'register', to: 'other', arity: [1, 3] },
+      { owner: 'Builder', from: 'build', to: 'buildContainer' },
+      { owner: 'Builder', from: 'build', to: 'otherBuild', arity: [0] },
+    ],
+    options: [
+      { owner: 'Bag', method: 'close', argument: 0, path: ['nested'], from: 'signal', to: 'abortSignal' },
+      { owner: 'Bag', method: 'close', argument: 0, path: ['nested'], from: 'signal', to: 'otherSignal' },
+    ],
+    values: [
+      { owner: 'Bag', method: 'close', argument: 0, path: ['mode'], from: 'old', to: 'new' },
+      { owner: 'Bag', method: 'close', argument: 0, path: ['mode'], from: 'old', to: 'other' },
+      { owner: 'LifecycleEvent', property: 'kind', from: 'old', to: 'new' },
+      { owner: 'LifecycleEvent', property: 'kind', from: 'old', to: 'other' },
+    ],
+    properties: [
+      { owner: 'Token', from: 'key', to: 'symbol' },
+      { owner: 'Token', from: 'key', manual: 'choose by hand' },
+    ],
+    types: [{ from: 'Bag', to: 'Container' }, { from: 'Bag', to: 'OtherContainer' }],
+    codes: [{ from: 'DI_BAG_OLD', to: 'DI_BAG_NEW' }, { from: 'DI_BAG_OLD', manual: 'choose by hand' }],
+    imports: [{ from: './node', to: './index' }, { from: './node', to: './other' }],
+  }), [
+    'methods[2]: conflicts with methods[0] for Builder.register',
+    'methods[4]: conflicts with methods[3] for Builder.build',
+    'options[1]: conflicts with options[0] for Bag.close argument 1 path nested key signal',
+    'values[1]: conflicts with values[0] for Bag.close argument 1 path mode value old',
+    'values[3]: conflicts with values[2] for LifecycleEvent.kind value old',
+    'properties[1]: conflicts with properties[0] for Token.key',
+    'types[1]: conflicts with types[0] for Bag',
+    'codes[1]: conflicts with codes[0] for DI_BAG_OLD',
+    'imports[1]: conflicts with imports[0] for overlapping import selectors',
+  ]);
+});
+
+test('validation rejects incompatible overlapping exact and suffix import selectors', () => {
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    imports: [
+      { from: './src/node', to: './src' },
+      { fromSuffix: '/node', toSuffix: '/index' },
+      { fromSuffix: '/src/node', toSuffix: '/other' },
+    ],
+  }), [
+    'imports[1]: conflicts with imports[0] for overlapping import selectors',
+    'imports[2]: conflicts with imports[0] for overlapping import selectors',
+    'imports[2]: conflicts with imports[1] for overlapping import selectors',
+  ]);
+});
+
+test('validation allows overlapping import selectors with the same effective result', () => {
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    imports: [
+      { from: './src/node', to: './src/index' },
+      { fromSuffix: '/node', toSuffix: '/index' },
+      { fromSuffix: '/src/node', toSuffix: '/src/index' },
+    ],
+  }), []);
 });

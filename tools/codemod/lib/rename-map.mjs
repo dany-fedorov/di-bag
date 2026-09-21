@@ -18,6 +18,25 @@ const isObject = value => typeof value === 'object' && value !== null && !Array.
 const isString = value => typeof value === 'string' && value.length > 0;
 const isStrings = value => Array.isArray(value) && value.every(isString);
 const has = (value, key) => Object.hasOwn(value, key);
+const pathsEqual = (left = [], right = []) => left.length === right.length && left.every((segment, index) => segment === right[index]);
+const pathAtOrBelow = (path = [], prefix = []) => path.length >= prefix.length && prefix.every((segment, index) => segment === path[index]);
+const stableValue = value => {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (!isObject(value)) return value;
+  return Object.fromEntries(Object.keys(value).sort().map(key => [key, stableValue(value[key])]));
+};
+const sameEffectiveMethod = (left, right) => JSON.stringify(stableValue({ to: left.to, arguments: left.arguments, transform: left.transform })) === JSON.stringify(stableValue({ to: right.to, arguments: right.arguments, transform: right.transform }));
+const aritiesOverlap = (left, right) => left === undefined || right === undefined || left.some(value => right.includes(value));
+const importResult = (entry, specifier) => {
+  if (entry.from !== undefined) return specifier === entry.from ? entry.to : undefined;
+  return specifier.startsWith('.') && specifier.endsWith(entry.fromSuffix) ? specifier.slice(0, -entry.fromSuffix.length) + entry.toSuffix : undefined;
+};
+const importOverlapWitness = (left, right) => {
+  if (left.from !== undefined) return importResult(right, left.from) === undefined ? undefined : left.from;
+  if (right.from !== undefined) return importResult(left, right.from) === undefined ? undefined : right.from;
+  const suffix = left.fromSuffix.endsWith(right.fromSuffix) ? left.fromSuffix : right.fromSuffix.endsWith(left.fromSuffix) ? right.fromSuffix : undefined;
+  return suffix === undefined ? undefined : suffix.startsWith('.') ? suffix : `.${suffix}`;
+};
 
 /** Every problem in a map, as readable sentences. An empty array means the map is valid. */
 export function validateRenameMap(map, transformIds = []) {
@@ -103,6 +122,40 @@ export function validateRenameMap(map, transformIds = []) {
     const suffix = !has(entry, 'from') && !has(entry, 'to') && has(entry, 'fromSuffix') && has(entry, 'toSuffix') && isString(entry.fromSuffix) && isString(entry.toSuffix);
     if (exact === suffix) bad('imports', index, 'use either from with to, or fromSuffix with toSuffix');
   });
+
+  const validMethods = entries('methods').map((entry, index) => ({ entry, index })).filter(({ entry }) => isObject(entry) && isString(entry.owner) && isString(entry.from) && isString(entry.to) && (entry.arity === undefined || Array.isArray(entry.arity) && entry.arity.every(value => Number.isInteger(value) && value >= 0)));
+  validMethods.forEach(({ entry, index }, position) => {
+    for (const prior of validMethods.slice(0, position)) {
+      if (entry.owner === prior.entry.owner && entry.from === prior.entry.from && aritiesOverlap(entry.arity, prior.entry.arity) && !sameEffectiveMethod(entry, prior.entry)) bad('methods', index, `conflicts with methods[${prior.index}] for ${entry.owner}.${entry.from}`);
+    }
+  });
+  const conflictsBySelector = (section, selector, effective, describe) => {
+    const valid = entries(section).map((entry, index) => ({ entry, index })).filter(({ entry }) => isObject(entry) && selector(entry) !== undefined && effective(entry) !== undefined);
+    valid.forEach(({ entry, index }, position) => {
+      for (const prior of valid.slice(0, position)) {
+        if (selector(entry) === selector(prior.entry) && effective(entry) !== effective(prior.entry)) bad(section, index, `conflicts with ${section}[${prior.index}] for ${describe(entry)}`);
+      }
+    });
+  };
+  const argumentSelector = entry => isString(entry.owner) && isString(entry.method) && Number.isInteger(entry.argument) && entry.argument >= 0 && (entry.path === undefined || isStrings(entry.path)) && isString(entry.from)
+    ? JSON.stringify([entry.owner, entry.method, entry.argument, entry.path ?? [], entry.from]) : undefined;
+  conflictsBySelector('options', argumentSelector, entry => isString(entry.to) ? entry.to : undefined, entry => `${entry.owner}.${entry.method} argument ${entry.argument + 1} path ${[...(entry.path ?? []), `key ${entry.from}`].join(' ')}`);
+  conflictsBySelector('values', entry => {
+    if (isString(entry.owner) && isString(entry.from) && isString(entry.property) && !has(entry, 'method') && !has(entry, 'argument') && !has(entry, 'path')) return JSON.stringify(['property', entry.owner, entry.property, entry.from]);
+    if (has(entry, 'property')) return undefined;
+    const selector = argumentSelector(entry);
+    return selector === undefined ? undefined : `argument:${selector}`;
+  }, entry => isString(entry.to) ? entry.to : undefined, entry => entry.property !== undefined ? `${entry.owner}.${entry.property} value ${entry.from}` : `${entry.owner}.${entry.method} argument ${entry.argument + 1} path ${[...(entry.path ?? []), `value ${entry.from}`].join(' ')}`);
+  conflictsBySelector('properties', entry => isString(entry.owner) && isString(entry.from) ? `${entry.owner}\0${entry.from}` : undefined, entry => isString(entry.to) ? `to:${entry.to}` : isString(entry.manual) ? `manual:${entry.manual}` : undefined, entry => `${entry.owner}.${entry.from}`);
+  conflictsBySelector('types', entry => isString(entry.from) ? entry.from : undefined, entry => isString(entry.to) ? entry.to : undefined, entry => entry.from);
+  conflictsBySelector('codes', entry => isString(entry.from) && /^DI_BAG_[A-Z_]+$/.test(entry.from) ? entry.from : undefined, entry => isString(entry.to) ? `to:${entry.to}` : isString(entry.manual) ? `manual:${entry.manual}` : undefined, entry => entry.from);
+  const validImports = entries('imports').map((entry, index) => ({ entry, index })).filter(({ entry }) => isObject(entry) && (isString(entry.from) && isString(entry.to) && !has(entry, 'fromSuffix') && !has(entry, 'toSuffix') || isString(entry.fromSuffix) && isString(entry.toSuffix) && !has(entry, 'from') && !has(entry, 'to')));
+  validImports.forEach(({ entry, index }, position) => {
+    for (const prior of validImports.slice(0, position)) {
+      const witness = importOverlapWitness(entry, prior.entry);
+      if (witness !== undefined && importResult(entry, witness) !== importResult(prior.entry, witness)) bad('imports', index, `conflicts with imports[${prior.index}] for overlapping import selectors`);
+    }
+  });
   return problems;
 }
 
@@ -113,9 +166,6 @@ export function loadRenameMap(file, transformIds = []) {
   if (problems.length) throw new Error(`invalid rename map ${file}:\n${problems.join('\n')}`);
   return map;
 }
-
-const pathsEqual = (left = [], right = []) => left.length === right.length && left.every((segment, index) => segment === right[index]);
-const pathAtOrBelow = (path = [], prefix = []) => path.length >= prefix.length && prefix.every((segment, index) => segment === path[index]);
 
 /** Lookup tables over a valid map. Every lookup answers from the map alone; nothing is hardcoded. */
 export function indexRenameMap(map) {
@@ -153,7 +203,12 @@ export function indexRenameMap(map) {
     propertyValueTexts: new Set((map.values ?? []).filter(entry => entry.property !== undefined).map(entry => entry.from)),
     /** The method entry for a call with `count` arguments, or undefined. */
     methodFor(owner, name, count) {
-      return (methods.get(`${owner}.${name}`) ?? []).find(entry => entry.arity === undefined || count === undefined || entry.arity.includes(count));
+      const entries = methods.get(`${owner}.${name}`) ?? [];
+      if (count !== undefined) return entries.find(entry => entry.arity === undefined || entry.arity.includes(count));
+      return entries.length > 0 && entries.every(entry => sameEffectiveMethod(entry, entries[0])) ? entries[0] : undefined;
+    },
+    hasMethodEntries(owner, name) {
+      return methods.has(`${owner}.${name}`);
     },
     optionsFor(owner, method, argument, path) {
       return (options.get(`${owner}.${method}`) ?? []).filter(entry => entry.argument === argument && pathsEqual(entry.path, path));
@@ -180,7 +235,8 @@ export function indexRenameMap(map) {
     },
     /** The current name of a library member: the map's target, or the old name when the map does not rename it. */
     nameOf(owner, oldName) {
-      const method = (methods.get(`${owner}.${oldName}`) ?? [])[0];
+      const entries = methods.get(`${owner}.${oldName}`) ?? [];
+      const method = entries.length > 0 && entries.every(entry => sameEffectiveMethod(entry, entries[0])) ? entries[0] : undefined;
       if (method) return method.to;
       const property = properties.get(`${owner}.${oldName}`);
       return property?.to ?? oldName;

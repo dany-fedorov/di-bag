@@ -1,0 +1,6 @@
+[
+  {
+    "line": 10,
+    "reason": "fromFactory has incompatible arity-specific rename-map entries; migrate this reference by hand"
+  }
+]

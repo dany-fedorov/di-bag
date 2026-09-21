@@ -24,3 +24,18 @@ test('a rewritten file is stable: a second run changes nothing the first run cou
   assert.doesNotMatch(readFixture('method-rename', 'expected.ts'), /\.(register|contribute|verifyGraph|inspectGraph)\(/);
   assert.doesNotMatch(readFixture('array-argument', 'expected.ts'), /\.(installModule|renameExport)\(/);
 });
+
+test('escaped replacements parse to their exact key and value strings', () => {
+  const ts = compiler.ts;
+  const source = ts.createSourceFile('escaped.ts', runFixture('literal-escaping').text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  assert.deepEqual(source.parseDiagnostics, []);
+  let literal;
+  const visit = node => {
+    if (ts.isObjectLiteralExpression(node) && node.properties.length === 3) literal = node;
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  assert.ok(literal);
+  assert.deepEqual(literal.properties.map(property => property.name.text), ["key'\\\n", 'key"\\\t', "identifier'\\\r"]);
+  assert.deepEqual(literal.properties.map(property => property.initializer.text), ["single'\\\n\t\x01", 'double"\\\r\b\f', 'template`\\${value}\u2028\u2029']);
+});

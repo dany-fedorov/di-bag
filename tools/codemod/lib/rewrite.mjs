@@ -57,11 +57,29 @@ export function rewriteSourceFile({ ts, checker, sourceFile, library, index, tra
     return out + slice(cursor, node.end);
   }
 
-  const quote = (literal, value) => {
-    const delimiter = slice(start(literal), start(literal) + 1);
-    return `${delimiter}${value.replaceAll(delimiter, `\\${delimiter}`)}${delimiter}`;
+  const escapeLiteral = (value, delimiter) => {
+    let escaped = '';
+    for (let index = 0; index < value.length; index++) {
+      const character = value[index];
+      const code = value.charCodeAt(index);
+      if (character === '\\') escaped += '\\\\';
+      else if (character === delimiter) escaped += `\\${character}`;
+      else if (delimiter === '`' && character === '$' && value[index + 1] === '{') escaped += '\\$';
+      else if (character === '\b') escaped += '\\b';
+      else if (character === '\t') escaped += '\\t';
+      else if (character === '\n') escaped += '\\n';
+      else if (character === '\v') escaped += '\\v';
+      else if (character === '\f') escaped += '\\f';
+      else if (character === '\r') escaped += '\\r';
+      else if (code < 0x20 || code === 0x7f) escaped += `\\x${code.toString(16).padStart(2, '0')}`;
+      else if (code === 0x2028 || code === 0x2029 || code >= 0xd800 && code <= 0xdfff) escaped += `\\u${code.toString(16).padStart(4, '0')}`;
+      else escaped += character;
+    }
+    return escaped;
   };
-  const keyText = (nameNode, key) => ts.isStringLiteral(nameNode) ? quote(nameNode, key) : IDENTIFIER.test(key) ? key : `'${key}'`;
+  const quoted = (delimiter, value) => `${delimiter}${escapeLiteral(value, delimiter)}${delimiter}`;
+  const quote = (literal, value) => quoted(slice(start(literal), start(literal) + 1), value);
+  const keyText = (nameNode, key) => ts.isStringLiteral(nameNode) ? quote(nameNode, key) : IDENTIFIER.test(key) ? key : quoted("'", key);
   const isStringValue = node => ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
   const literalKey = property => property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) ? property.name.text : undefined;
 
@@ -262,9 +280,11 @@ export function rewriteSourceFile({ ts, checker, sourceFile, library, index, tra
     }
     if (called) return null;
     const entries = members.map(member => index.methodFor(member.owner, name, undefined));
-    if (!entries.some(Boolean)) return null;
+    const mapped = members.map(member => index.hasMethodEntries(member.owner, name));
+    if (!mapped.some(Boolean)) return null;
     if (!coverage.complete) { manual(node, partialReason(name)); return null; }
-    if (entries.some(entry => !entry)) { manual(node, `${name} resolves to several declarations and the rename map covers only some of them`); return null; }
+    if (mapped.some(value => !value)) { manual(node, `${name} resolves to several declarations and the rename map covers only some of them`); return null; }
+    if (entries.some(entry => !entry)) { manual(node, `${name} has incompatible arity-specific rename-map entries; migrate this reference by hand`); return null; }
     const signatures = new Set(entries.map(entry => {
       const mapped = withoutOwner(entry);
       delete mapped.arity;
