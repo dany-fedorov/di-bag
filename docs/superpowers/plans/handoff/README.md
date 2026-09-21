@@ -2,6 +2,8 @@
 
 Written 2026-09-21 by the controller session, when it could go no further. Read this file first, then the master plan `../2026-09-21-00-swift-api-style-master.md`.
 
+**Resume in progress:** the maintainer subsequently instructed Codex to continue with Sol medium subagents, without questions, making and documenting assumptions. Read [the resume ledger](resume-2026-09-21.md) for current evidence, rulings, review findings and the remaining work. The status tables and blockers below describe the original handoff; they are not a completion report for the resumed work. In particular, delegation has resumed under the new instruction. No phase has newly passed the full gates.
+
 ## The goal, in the maintainer's words
 
 Finish planning the renames and the orthogonality refactoring, described well enough for an Opus agent at medium effort to execute; then execute; push; merge `next` into `main`; release to npm with the automation token the maintainer supplied. The maintainer also said: do not ask questions, make assumptions and document them.
