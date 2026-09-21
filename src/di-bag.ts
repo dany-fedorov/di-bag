@@ -17,11 +17,11 @@ import type { CheckedConstraints, CompleteConstraints, ExternalRequirements, Inc
 import type { CheckedLifetimes, SealAdmission, WithoutExportObligations } from './lifetime-types';
 import { withLifetime } from './lifetime';
 import { fromFactory, fromSyncFactory, fromAsyncFactory } from './acquisition-context';
-import { closeRuntime, ensureRuntimeReady, startRuntime } from './startup';
+import { closeRuntime, ensureRuntimeReady } from './startup';
 import { selectScope } from './scope-selection';
 import type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases } from './scope-types';
 import type { CheckedScopeLifetimes } from './lifetime-types';
-import type { CloseOptions, EnsureServicesReadyOptions, StartupOptions } from './startup';
+import type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 import { withMetadata, transformService, withTokenBinding } from './provider';
 import { fromFunction, fromClass } from './composition';
 import { runtimeContext, unconfigured } from './acquisition-mode';
@@ -66,8 +66,8 @@ declare const constraintInvariant: unique symbol;
 /**
  * A resolving container with lazy acquisition, caching, and independent resource ownership.
  *
- * Create bags through {@link DiBagApi.createBuilder} followed by {@link Builder.build} or
- * {@link Builder.buildAndStart}; the class is exported as a type and has no public constructor.
+ * Create bags through {@link DiBagApi.createBuilder} followed by {@link Builder.build}, and make services
+ * ready ahead of use with {@link Bag.ensureServicesReady}; the class is exported as a type and has no public constructor.
  * @typeParam ServiceRegistrations - The map from each public service name or token symbol to its registration.
  * @typeParam Constraints - The requirements, contributions and lifetime obligations that installed modules retain on this graph.
  * @see https://dany-fedorov.github.io/di-bag/agent/api-card.html#bag
@@ -598,30 +598,6 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
     return new Bag(this.#graph, this.context);
   }
 
-  /**
-   * Create a fresh bag and acquire selected services before returning it.
-   * @param keys - A finite tuple of existing names or typed tokens to make ready.
-   * @param options - Optional cancellation signal, positive timeout, and parallel, sequential, or positive safe integer bounded scheduling.
-   * @returns A promise for the new bag after every selected final stage is ready.
-   * @throws {@link DiBagStartupError} (`DI_BAG_STARTUP_FAILED`) after rollback on acquisition failure;
-   * {@link DiBagStartupCancelledError} (`DI_BAG_STARTUP_CANCELLED`) promptly on abort or timeout;
-   * `DI_BAG_INVALID_STARTUP` for malformed keys or options; `DI_BAG_INVALID_TOKEN` for a bad token;
-   * `DI_BAG_CLASSIFIER_REQUIRED` as for {@link Builder.build}. Each arrives as a rejection.
-   * @example
-   * ```ts
-   * const bag = await DiBag.createBuilder()
-   *   .register({ db: async () => ({ ping: () => true }) })
-   *   .buildAndStart(['db'], { timeoutMs: 5_000 });
-   * ```
-   */
-  async buildAndStart<const K extends readonly unknown[]>(
-    this: Builder<Entries, Constraints> & CheckDependencyCompleteness<RegistrationsFromEntries<Entries>> & CompleteConstraints<Constraints, RegistrationsFromEntries<Entries>> & CheckedLifetimes<RegistrationsFromEntries<Entries>, Constraints>,
-    keys: K & Selection<RegistrationsFromEntries<Entries>, K, 'buildAndStart'>,
-    options?: StartupOptions,
-  ): Promise<Bag<RegistrationsFromEntries<Entries>, Constraints>> {
-    const runtime = await startRuntime(this.#graph, this.context, keys, options);
-    return new Bag(this.#graph, this.context, runtime);
-  }
 }
 
 export type { Bag, Builder };

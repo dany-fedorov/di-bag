@@ -2,8 +2,9 @@
 
 Static check for [DI Bag](https://github.com/dany-fedorov/di-bag) builder
 chains. It reads a TypeScript project, finds every `DiBag.createBuilder()`
-chain that ends in `build()`, `buildAndStart()`, or `buildModule()`, and reports
-dependency cycles and unresolved names before any factory runs.
+chain that ends in `build()` or `buildModule()`; a `build()` followed by
+`ensureServicesReady()` counts, and so does the 0.4 `buildAndStart()`.
+It reports dependency cycles and unresolved names before any factory runs.
 
 It is a merge-review and CI tool, not a code map. To find code, read the module
 directories; to check wiring types, use `verifyGraph()`.
@@ -35,7 +36,7 @@ usage or tsconfig error.
   the label is `buildModule(keys, { label })` when given, as in runtime
   messages, and otherwise the expression passed to `installModule`. A cycle
   inside one module is reported once, on that module.
-- **unresolved**: a bag (`build()` or `buildAndStart()`) has a declared
+- **unresolved**: a bag (`build()`) has a declared
   dependency that no registration, alias, installed module export, or its
   requirement supplier provides. A module's unmet names are not issues; they are
   its `requirements`.

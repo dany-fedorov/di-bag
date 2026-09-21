@@ -27,14 +27,6 @@
           {
             "text": "DiBagServiceReadinessError",
             "link": "/reference/index/classes/DiBagServiceReadinessError.md"
-          },
-          {
-            "text": "DiBagStartupCancelledError",
-            "link": "/reference/index/classes/DiBagStartupCancelledError.md"
-          },
-          {
-            "text": "DiBagStartupError",
-            "link": "/reference/index/classes/DiBagStartupError.md"
           }
         ]
       },
@@ -145,10 +137,6 @@
           {
             "text": "ScopeEventFields",
             "link": "/reference/index/interfaces/ScopeEventFields.md"
-          },
-          {
-            "text": "StartupOptions",
-            "link": "/reference/index/interfaces/StartupOptions.md"
           },
           {
             "text": "Token",

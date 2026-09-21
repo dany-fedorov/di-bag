@@ -11,8 +11,6 @@
 - [DiBagPluginValidationError](classes/DiBagPluginValidationError.md)
 - [DiBagServiceReadinessCancelledError](classes/DiBagServiceReadinessCancelledError.md)
 - [DiBagServiceReadinessError](classes/DiBagServiceReadinessError.md)
-- [DiBagStartupCancelledError](classes/DiBagStartupCancelledError.md)
-- [DiBagStartupError](classes/DiBagStartupError.md)
 
 ## Interfaces
 
@@ -42,7 +40,6 @@
 - [RegistrationSnapshot](interfaces/RegistrationSnapshot.md)
 - [RuntimeOptions](interfaces/RuntimeOptions.md)
 - [ScopeEventFields](interfaces/ScopeEventFields.md)
-- [StartupOptions](interfaces/StartupOptions.md)
 - [Token](interfaces/Token.md)
 - [TokenBase](interfaces/TokenBase.md)
 

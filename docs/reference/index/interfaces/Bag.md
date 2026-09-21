@@ -8,8 +8,8 @@ Defined in: [di-bag.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/
 
 A resolving container with lazy acquisition, caching, and independent resource ownership.
 
-Create bags through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) followed by [Builder.build](Builder.md#build) or
-[Builder.buildAndStart](Builder.md#buildandstart); the class is exported as a type and has no public constructor.
+Create bags through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) followed by [Builder.build](Builder.md#build), and make services
+ready ahead of use with [Bag.ensureServicesReady](#ensureservicesready); the class is exported as a type and has no public constructor.
 
 ## See
 

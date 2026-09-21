@@ -4,7 +4,7 @@
 
 # Interface: EnsureServicesReadyOptions
 
-Defined in: [startup.ts:37](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L37)
+Defined in: [startup.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L22)
 
 Options of [Bag.ensureServicesReady](Bag.md#ensureservicesready).
 
@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-servic
 readonly abortSignal?: AbortSignal;
 ```
 
-Defined in: [startup.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L39)
+Defined in: [startup.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L24)
 
 Aborting it stops the wait and closes this bag.
 
@@ -32,7 +32,7 @@ Aborting it stops the wait and closes this bag.
 readonly maxConcurrentServiceKeys?: number;
 ```
 
-Defined in: [startup.ts:43](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L43)
+Defined in: [startup.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L28)
 
 How many entries of `serviceKeys` are acquired at once, in tuple order. Omitted means all at once, `1` means one after another. It does not limit the dependencies a factory reads.
 
@@ -44,6 +44,6 @@ How many entries of `serviceKeys` are acquired at once, in tuple order. Omitted 
 readonly totalTimeoutMs?: number;
 ```
 
-Defined in: [startup.ts:41](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L41)
+Defined in: [startup.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L26)
 
 A finite positive deadline in milliseconds for the whole call, until every listed service is ready. It is not per service. On expiry this bag is closed.

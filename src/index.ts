@@ -1,5 +1,5 @@
 export { DiBag } from './di-bag';
-export { DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError, DiBagStartupError, DiBagStartupCancelledError } from './errors';
+export { DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } from './errors';
 export type { CleanupFailure, CloseProgress, DiBagErrorCode, DiBagDiagnostic } from './errors';
 export type { Bag, Builder, DiBagApi, ConfigurationOptions } from './di-bag';
 export type { Module, ModuleOptions } from './module';
@@ -10,7 +10,7 @@ export type { Provider, ProviderFactory, ProviderGraphContract, ProviderOutput, 
 export type { AcquisitionMode, RuntimeOptions } from './acquisition-mode';
 export type { Lifetime } from './lifetime';
 export type { AcquisitionContext, ContextualFactory, DisposerContext } from './acquisition-context';
-export type { CloseOptions, EnsureServicesReadyOptions, StartupOptions } from './startup';
+export type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 export type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases, SharedAliasProviders } from './scope-types';
 export type { Token, TokenBase, TokenKey, TokenService } from './tokens';
 export type { TokenBinding, TokenMember, TokenDependencyContract, ReboundProviders, ReboundSelection, SelectionKey } from './token-types';

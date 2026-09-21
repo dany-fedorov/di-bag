@@ -142,51 +142,6 @@ await bag.close();
 
 ***
 
-### buildAndStart()
-
-```ts
-buildAndStart<const K extends readonly unknown[]>(this: Builder<Entries, Constraints> & CheckDependencyCompleteness<RegistrationsFromEntries<Entries>> & CompleteConstraints<Constraints, RegistrationsFromEntries<Entries>> & CheckedLifetimes<RegistrationsFromEntries<Entries>, Constraints>, keys: K & Selection<RegistrationsFromEntries<Entries>, K, 'buildAndStart'>, options?: StartupOptions): Promise<Bag<RegistrationsFromEntries<Entries>, Constraints>>;
-```
-
-Defined in: [di-bag.ts:617](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L617)
-
-Create a fresh bag and acquire selected services before returning it.
-
-#### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `K` | - |
-
-#### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `this` | - |
-| `keys` | A finite tuple of existing names or typed tokens to make ready. |
-| `options?` | Optional cancellation signal, positive timeout, and parallel, sequential, or positive safe integer bounded scheduling. |
-
-#### Returns
-
-A promise for the new bag after every selected final stage is ready.
-
-#### Throws
-
-[DiBagStartupError](../classes/DiBagStartupError.md) (`DI_BAG_STARTUP_FAILED`) after rollback on acquisition failure;
-[DiBagStartupCancelledError](../classes/DiBagStartupCancelledError.md) (`DI_BAG_STARTUP_CANCELLED`) promptly on abort or timeout;
-`DI_BAG_INVALID_STARTUP` for malformed keys or options; `DI_BAG_INVALID_TOKEN` for a bad token;
-`DI_BAG_CLASSIFIER_REQUIRED` as for [Builder.build](#build). Each arrives as a rejection.
-
-#### Example
-
-```ts
-const bag = await DiBag.createBuilder()
-  .register({ db: async () => ({ ping: () => true }) })
-  .buildAndStart(['db'], { timeoutMs: 5_000 });
-```
-
-***
-
 ### buildModule()
 
 ```ts

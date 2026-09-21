@@ -1,23 +1,8 @@
 import { diagnostic, diagnosticMessage, libraryError } from './errors';
-import { BagRuntime } from './runtime';
-import type { BindingGraph, BindingKey } from './runtime';
-import type { RuntimeContext } from './acquisition-mode';
+import type { BagRuntime, BindingGraph, BindingKey } from './runtime';
 import { readTokenKey } from './tokens';
-import { DiBagCleanupError, DiBagCloseCancelledError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError, DiBagStartupCancelledError, DiBagStartupError } from './errors';
+import { DiBagCleanupError, DiBagCloseCancelledError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from './errors';
 import type { DiBagErrorCode } from './errors';
-
-/**
- * Controls eager acquisition performed by {@link Builder.buildAndStart}.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
- */
-export interface StartupOptions {
-  /** An external signal that promptly cancels the startup wait and begins cleanup. */
-  readonly signal?: AbortSignal;
-  /** A finite positive deadline in milliseconds. */
-  readonly timeoutMs?: number;
-  /** Start together (`parallel`, default), in tuple order (`sequential`), or with a positive safe integer bound on selected readiness waits. Dependency fanout is not bounded. */
-  readonly startupOrder?: 'parallel' | 'sequential' | number;
-}
 
 /**
  * Bounds the wait of {@link Bag.close}; cleanup itself keeps running after either fires.
@@ -47,14 +32,14 @@ export interface EnsureServicesReadyOptions {
 /**
  * Format a timeout error's stack before handing it on. An unformatted stack keeps
  * the frames that created it alive, and these are closures over the runtime; a
- * startup timeout also becomes the reason on every signal the bag handed out.
+ * readiness timeout also becomes the reason on every signal the bag handed out.
  */
 function formatted<E extends Error>(error: E): E {
   void error.stack;
   return error;
 }
 
-function snapshotOptions(options: unknown, operation: 'buildAndStart' | 'ensureServicesReady' | 'close', code: DiBagErrorCode, supported: readonly string[], timeoutKey = 'timeoutMs', signalKey = 'signal'): Record<string, unknown> {
+function snapshotOptions(options: unknown, operation: 'ensureServicesReady' | 'close', code: DiBagErrorCode, supported: readonly string[], timeoutKey: string, signalKey: string): Record<string, unknown> {
   if (options === undefined) return {};
   if (typeof options !== 'object' || options === null || Array.isArray(options)) throw libraryError(code, `invalid ${operation} options`, { operation });
   if (Reflect.ownKeys(options).some(key => typeof key !== 'string' || !supported.includes(key)) ||
@@ -70,13 +55,6 @@ function snapshotOptions(options: unknown, operation: 'buildAndStart' | 'ensureS
     catch { throw libraryError(code, `${operation} ${signalKey} must be an AbortSignal`, { operation }); }
   }
   return selected;
-}
-
-function snapshotStartupOptions(options: StartupOptions | undefined): StartupOptions {
-  const selected = snapshotOptions(options, 'buildAndStart', 'DI_BAG_INVALID_STARTUP', ['signal', 'timeoutMs', 'startupOrder']);
-  if (Object.hasOwn(selected, 'startupOrder') && selected.startupOrder !== 'parallel' && selected.startupOrder !== 'sequential' &&
-    !(typeof selected.startupOrder === 'number' && Number.isSafeInteger(selected.startupOrder) && selected.startupOrder > 0)) throw libraryError('DI_BAG_INVALID_STARTUP', 'buildAndStart startupOrder must be parallel, sequential, or a positive safe integer', { operation: 'buildAndStart', option: 'startupOrder' });
-  return selected as StartupOptions;
 }
 
 /**
@@ -226,94 +204,6 @@ export function ensureRuntimeReady(runtime: BagRuntime, graph: BindingGraph, key
       settled = true;
       release();
       reject(new DiBagServiceReadinessError(cause, disposalError instanceof DiBagCleanupError ? disposalError.failures : [], disposalError));
-    });
-  });
-}
-
-/** One startup transaction; never assimilate an exposed service to establish readiness. */
-export function startRuntime(graph: BindingGraph, context: RuntimeContext, keys: readonly unknown[], options?: StartupOptions): Promise<BagRuntime> {
-  if (!Array.isArray(keys)) throw libraryError('DI_BAG_INVALID_STARTUP', 'buildAndStart requires selected keys', { operation: 'buildAndStart' });
-  const selected: BindingKey[] = [];
-  const length = keys.length;
-  for (let index = 0; index < length; index++) {
-    const value: unknown = keys[index];
-    const key = typeof value === 'string' ? value : readTokenKey(value);
-    if (!graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_STARTUP', `buildAndStart accepts existing names or typed tokens only: ${String(key)}`, { operation: 'buildAndStart' });
-    selected.push(key);
-  }
-  const { signal, timeoutMs, startupOrder = 'parallel' } = snapshotStartupOptions(options);
-  const runtime = new BagRuntime(graph, context);
-  return new Promise<BagRuntime>((resolve, reject) => {
-    let settled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const began = performance.now();
-    const release = () => {
-      if (timer !== undefined) clearTimeout(timer);
-      signal?.removeEventListener('abort', aborted);
-    };
-    const cancel = (reason: 'aborted' | 'timeout', cause: unknown) => {
-      if (settled) return;
-      settled = true;
-      release();
-      reject(new DiBagStartupCancelledError(reason, cause, runtime.close(cause)));
-    };
-    const aborted = () => { if (signal?.aborted) cancel('aborted', signal.reason); };
-    const checkCancellation = () => {
-      aborted();
-      if (!settled && timeoutMs !== undefined && performance.now() - began >= timeoutMs) {
-        cancel('timeout', formatted(diagnostic(new DOMException(diagnosticMessage('DI_BAG_STARTUP_TIMEOUT', 'Bag startup timed out'), 'TimeoutError'), 'DI_BAG_STARTUP_TIMEOUT', { operation: 'buildAndStart', timeoutMs })));
-      }
-      return settled;
-    };
-    const schedule = () => {
-      if (checkCancellation() || timeoutMs === undefined) return;
-      // Long deadlines must not wrap into an immediate timer on Node/Bun.
-      timer = setTimeout(schedule, Math.min(2 ** 31 - 1, Math.max(1, timeoutMs - (performance.now() - began))));
-    };
-    signal?.addEventListener('abort', aborted, { once: true });
-    if (checkCancellation()) return;
-    if (timeoutMs !== undefined) schedule();
-
-    const runBounded = (limit: number) => {
-      let next = 0;
-      let failed = false;
-      const worker = async () => {
-        while (next < selected.length) {
-          if (failed || checkCancellation()) return;
-          const key = selected[next++]!;
-          try { await runtime.acquire(key); }
-          catch (cause) {
-            // Stop other workers before rollback begins, even if cleanup waits.
-            failed = true;
-            throw cause;
-          }
-        }
-      };
-      return Promise.all(Array.from({ length: Math.min(limit, selected.length) }, worker));
-    };
-    const runParallel = () => {
-      const pending: Promise<void>[] = [];
-      for (const key of selected) {
-        if (checkCancellation()) break;
-        pending.push(runtime.acquire(key));
-      }
-      return Promise.all(pending);
-    };
-    const work = startupOrder === 'parallel' ? runParallel() : runBounded(startupOrder === 'sequential' ? 1 : startupOrder);
-    void work.then(() => {
-      if (checkCancellation()) return;
-      settled = true;
-      release();
-      resolve(runtime);
-    }, async cause => {
-      if (checkCancellation()) return;
-      let cleanupError: unknown;
-      try { await runtime.close(cause); }
-      catch (error) { cleanupError = error; }
-      if (checkCancellation()) return;
-      settled = true;
-      release();
-      reject(new DiBagStartupError(cause, cleanupError instanceof DiBagCleanupError ? cleanupError.failures : [], cleanupError));
     });
   });
 }

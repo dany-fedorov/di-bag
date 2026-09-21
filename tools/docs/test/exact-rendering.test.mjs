@@ -17,7 +17,7 @@ let bag;
 let fromPlugin;
 let tokenKey;
 let runtimeOptions;
-let startupError;
+let readinessError;
 let acquisitionContext;
 let contextualFactory;
 let pluginOutputValidator;
@@ -40,7 +40,7 @@ try {
   fromPlugin = readFileSync(join(output, 'index/type-aliases/PluginProviderFactory.md'), 'utf8');
   tokenKey = readFileSync(join(output, 'index/type-aliases/TokenKey.md'), 'utf8');
   runtimeOptions = readFileSync(join(output, 'index/interfaces/RuntimeOptions.md'), 'utf8');
-  startupError = readFileSync(join(output, 'index/classes/DiBagStartupError.md'), 'utf8');
+  readinessError = readFileSync(join(output, 'index/classes/DiBagServiceReadinessError.md'), 'utf8');
   acquisitionContext = readFileSync(join(output, 'index/interfaces/AcquisitionContext.md'), 'utf8');
   contextualFactory = readFileSync(join(output, 'index/type-aliases/ContextualFactory.md'), 'utf8');
   pluginOutputValidator = readFileSync(join(output, 'index/type-aliases/PluginOutputValidator.md'), 'utf8');
@@ -79,8 +79,8 @@ test('canonical signatures are followed by comment-only parameter details', () =
 test('source declarations preserve aliases and property modifiers exactly', () => {
   assert.match(compact(tokenKey), /type TokenKey<T> = T extends infer U & \{\} \? U extends Token<infer K, infer _S> \? K : never : never;/);
   assert.match(runtimeOptions, /readonly isNativePromise: \(this: void, candidate: unknown\) => boolean;/);
-  assert.match(startupError, /readonly cleanupError\?: unknown;/);
-  assert.doesNotMatch(startupError, /readonly optional/);
+  assert.match(readinessError, /readonly disposalError\?: unknown;/);
+  assert.doesNotMatch(readinessError, /readonly optional/);
   const builderContribute = readFileSync(join(output, 'index/type-aliases/BuilderContribute.md'), 'utf8');
   assert.match(compact(builderContribute), /<T extends TokenBase, V extends Registration>/);
   assert.match(compact(builderContribute), /Builder<E, C \| Contribution<T, V>>;/);

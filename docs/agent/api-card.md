@@ -20,6 +20,7 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Install a module | [`builder.installModule(module)`](#builder-installmodule) |
 | Check the graph on its own line | [`builder.verifyGraph()`](#builder-verifygraph) |
 | Build a bag | [`builder.build()`](#builder-build) |
+| Wait for services before accepting work | [`bag.ensureServicesReady(serviceKeys, options?)`](#bag-ensureservicesready) |
 | Replace for a test | [`bag.fork(keys, overrides)`](#bag-fork) |
 | Open a scope | [`bag.createScope()`](#bag-createscope) |
 | Resolve | [`bag.resolve(token)`](#bag-resolve) |
@@ -214,14 +215,6 @@ const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
 await bag.close();
 ```
 
-### `builder.buildAndStart(keys, options?)` {#builder-buildandstart}
-Create a fresh bag and acquire selected services before returning it. Throws: [`DI_BAG_STARTUP_FAILED`](errors.md#di-bag-startup-failed), [`DI_BAG_STARTUP_CANCELLED`](errors.md#di-bag-startup-cancelled), [`DI_BAG_INVALID_STARTUP`](errors.md#di-bag-invalid-startup), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
-```ts
-const bag = await DiBag.createBuilder()
-  .register({ db: async () => ({ ping: () => true }) })
-  .buildAndStart(['db'], { timeoutMs: 5_000 });
-```
-
 ## Bag {#bag}
 
 ### `bag.resolve(token)` {#bag-resolve}
@@ -320,32 +313,6 @@ const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
 await bag.close().catch((error: unknown) => {
   if (error instanceof DiBagCleanupError) for (const failure of error.failures) console.error(failure.label, failure.error);
 });
-```
-
-### `DiBagStartupError` {#dibagstartuperror}
-`buildAndStart` failed to acquire a selected service; the new bag has already released its resources. Code: [`DI_BAG_STARTUP_FAILED`](errors.md#di-bag-startup-failed).
-```ts
-import { DiBag, DiBagStartupError } from 'di-bag';
-
-const builder = DiBag.createBuilder().register({ db: async (): Promise<number> => { throw new Error('offline'); } });
-try {
-  await builder.buildAndStart(['db']);
-} catch (error) {
-  if (error instanceof DiBagStartupError) console.error(error.cause, error.cleanupFailures);
-}
-```
-
-### `DiBagStartupCancelledError` {#dibagstartupcancellederror}
-`buildAndStart` stopped waiting on abort or timeout; `cleanupPromise` settles when the partial bag is released. Code: [`DI_BAG_STARTUP_CANCELLED`](errors.md#di-bag-startup-cancelled).
-```ts
-import { DiBag, DiBagStartupCancelledError } from 'di-bag';
-
-const builder = DiBag.createBuilder().register({ db: () => new Promise<number>(() => {}) });
-try {
-  await builder.buildAndStart(['db'], { timeoutMs: 1_000 });
-} catch (error) {
-  if (error instanceof DiBagStartupCancelledError) await error.cleanupPromise;
-}
 ```
 
 ### `DiBagServiceReadinessError` {#dibagservicereadinesserror}

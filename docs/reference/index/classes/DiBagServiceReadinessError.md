@@ -4,7 +4,7 @@
 
 # Class: DiBagServiceReadinessError
 
-Defined in: [errors.ts:186](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L186)
+Defined in: [errors.ts:117](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L117)
 
 `ensureServicesReady` could not make a listed service ready, and this bag is now closed.
 `cause` is the original failure and `disposalFailures` lists disposers that failed while the bag closed.
@@ -34,7 +34,7 @@ try {
 new (cause: unknown, disposalFailures: readonly CleanupFailure[], disposalError?: unknown | undefined): DiBagServiceReadinessError;
 ```
 
-Defined in: [errors.ts:197](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L197)
+Defined in: [errors.ts:128](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L128)
 
 #### Parameters
 
@@ -58,7 +58,7 @@ Error.constructor
 declare readonly code: 'DI_BAG_SERVICE_READINESS_FAILED';
 ```
 
-Defined in: [errors.ts:187](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L187)
+Defined in: [errors.ts:118](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L118)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [errors.ts:187](https://github.com/dany-fedorov/di-bag/blob/main/src
 declare readonly details: Readonly<Record<string, unknown>>;
 ```
 
-Defined in: [errors.ts:188](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L188)
+Defined in: [errors.ts:119](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L119)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [errors.ts:188](https://github.com/dany-fedorov/di-bag/blob/main/src
 readonly disposalError?: unknown;
 ```
 
-Defined in: [errors.ts:197](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L197)
+Defined in: [errors.ts:128](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L128)
 
 The complete shutdown error, when closing itself rejected.
 
@@ -90,6 +90,6 @@ The complete shutdown error, when closing itself rejected.
 readonly disposalFailures: readonly CleanupFailure[];
 ```
 
-Defined in: [errors.ts:190](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L190)
+Defined in: [errors.ts:121](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L121)
 
 Frozen disposal failures in invocation order, collected while this bag closed.
