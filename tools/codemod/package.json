@@ -1,0 +1,19 @@
+{
+  "name": "di-bag-codemod",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Type-aware codemod that migrates DI Bag 0.4 call sites to 0.5: it rewrites only what the TypeScript checker resolves to a di-bag declaration.",
+  "keywords": ["di-bag", "codemod", "migration", "typescript", "dependency-injection", "agents", "coding-agents"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/dany-fedorov/di-bag.git", "directory": "tools/codemod" },
+  "homepage": "https://github.com/dany-fedorov/di-bag/tree/main/tools/codemod#readme",
+  "bugs": { "url": "https://github.com/dany-fedorov/di-bag/issues" },
+  "type": "module",
+  "bin": { "di-bag-codemod": "cli.mjs" },
+  "exports": { ".": "./lib/codemod.mjs", "./package.json": "./package.json" },
+  "files": ["cli.mjs", "lib", "rename-map.json", "rename-map.schema.json"],
+  "engines": { "node": ">=22" },
+  "publishConfig": { "access": "public" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "dependencies": { "typescript": "^6.0.3" }
+}
