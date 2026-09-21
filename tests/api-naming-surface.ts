@@ -91,17 +91,12 @@ export function collectFindings(root: string): Finding[] {
     if (ts.isConditionalTypeNode(node)) return isBooleanish(node.trueType) && isBooleanish(node.falseType);
     return false;
   };
-  const stringValues = (node: ts.TypeNode | undefined): string[] => {
+  const stringLiterals = (node: ts.TypeNode | undefined): ts.LiteralTypeNode[] => {
     if (!node) return [];
-    if (ts.isLiteralTypeNode(node) && ts.isStringLiteral(node.literal)) return [node.literal.text];
-    if (ts.isParenthesizedTypeNode(node)) return stringValues(node.type);
-    if (ts.isUnionTypeNode(node)) return node.types.flatMap(stringValues);
+    if (ts.isLiteralTypeNode(node) && ts.isStringLiteral(node.literal)) return [node];
+    if (ts.isParenthesizedTypeNode(node)) return stringLiterals(node.type);
+    if (ts.isUnionTypeNode(node)) return node.types.flatMap(stringLiterals);
     return [];
-  };
-  const checkTyped = (name: string, type: ts.TypeNode | undefined, where: string) => {
-    if (!type) return;
-    if (isBooleanish(type) && !words(name).some(word => assertionVerbs.has(word))) add('boolean-name', `member ${name}`, where);
-    for (const value of stringValues(type)) checkValue(value, where);
   };
   const containsKeyof = (node: ts.Node): boolean => {
     if (ts.isTypeOperatorNode(node) && node.operator === ts.SyntaxKind.KeyOfKeyword) return true;
@@ -111,14 +106,25 @@ export function collectFindings(root: string): Finding[] {
   };
   const isOperationReference = (node: ts.LiteralTypeNode): boolean => {
     if (ts.isTypeParameterDeclaration(node.parent) && node.parent.default === node) return node.parent.name.text === 'Operation';
-    if (!ts.isTypeReferenceNode(node.parent)) return false;
-    const index = node.parent.typeArguments?.indexOf(node) ?? -1;
-    if (index < 0) return false;
-    const declaration = resolveSymbol(checker.getSymbolAtLocation(node.parent.typeName))?.declarations?.find(candidate =>
-      ts.isTypeAliasDeclaration(candidate) || ts.isClassDeclaration(candidate) || ts.isInterfaceDeclaration(candidate),
-    );
-    if (!declaration || !('typeParameters' in declaration)) return false;
-    return declaration.typeParameters?.[index]?.name.text === 'Operation';
+    if (ts.isTypeReferenceNode(node.parent)) {
+      const index = node.parent.typeArguments?.indexOf(node) ?? -1;
+      if (index >= 0) {
+        const declaration = resolveSymbol(checker.getSymbolAtLocation(node.parent.typeName))?.declarations?.find(candidate =>
+          ts.isTypeAliasDeclaration(candidate) || ts.isClassDeclaration(candidate) || ts.isInterfaceDeclaration(candidate),
+        );
+        if (declaration && 'typeParameters' in declaration && declaration.typeParameters?.[index]?.name.text === 'Operation') return true;
+      }
+    }
+    if (!ts.isPropertySignature(node.parent) || plainName(node.parent.name) !== 'operation') return false;
+    let enclosingType: ts.Node = node.parent.parent;
+    while (enclosingType.parent && ts.isTypeNode(enclosingType.parent)) enclosingType = enclosingType.parent;
+    const details = enclosingType.parent;
+    if ((!ts.isPropertyDeclaration(details) && !ts.isPropertySignature(details)) || plainName(details.name) !== 'details') return false;
+    const owner = details.parent;
+    if (!ts.isClassDeclaration(owner)) return false;
+    const ownerType = checker.getTypeAtLocation(owner) as ts.InterfaceType;
+    return (checker.getBaseTypes(ownerType) ?? []).some(base => base.symbol?.name === 'Error' &&
+      base.symbol.declarations?.some(declaration => declaration.getSourceFile().isDeclarationFile));
   };
   const isDiagnosticReference = (node: ts.LiteralTypeNode): boolean => {
     if (!ts.isTypeReferenceNode(node.parent)) return false;
@@ -149,6 +155,15 @@ export function collectFindings(root: string): Finding[] {
     }
     return false;
   };
+  const checkLiteral = (node: ts.LiteralTypeNode, where: string) => {
+    if (ts.isStringLiteral(node.literal) &&
+      !isOperationReference(node) && !isDiagnosticReference(node) && !isKeyReference(node)) checkValue(node.literal.text, where);
+  };
+  const checkTyped = (name: string, type: ts.TypeNode | undefined, where: string) => {
+    if (!type) return;
+    if (isBooleanish(type) && !words(name).some(word => assertionVerbs.has(word))) add('boolean-name', `member ${name}`, where);
+    for (const literal of stringLiterals(type)) checkLiteral(literal, where);
+  };
 
   function visitSymbol(symbol: ts.Symbol | undefined) {
     for (const declaration of resolveSymbol(symbol)?.declarations ?? []) if (inLibrary(declaration)) visitDeclaration(declaration);
@@ -156,8 +171,7 @@ export function collectFindings(root: string): Finding[] {
 
   function visitType(node: ts.Node | undefined, owner: string) {
     if (!node) return;
-    if (ts.isLiteralTypeNode(node) && ts.isStringLiteral(node.literal) &&
-      !isOperationReference(node) && !isDiagnosticReference(node) && !isKeyReference(node)) checkValue(node.literal.text, owner);
+    if (ts.isLiteralTypeNode(node)) checkLiteral(node, owner);
     if (ts.isTypeReferenceNode(node)) visitSymbol(checker.getSymbolAtLocation(node.typeName));
     else if (ts.isExpressionWithTypeArguments(node)) visitSymbol(checker.getSymbolAtLocation(node.expression));
     else if (ts.isTypeQueryNode(node)) visitSymbol(checker.getSymbolAtLocation(node.exprName));
@@ -177,7 +191,7 @@ export function collectFindings(root: string): Finding[] {
       const name = plainName(parameter.name);
       if (name !== undefined && name !== 'this') {
         checkName('parameter', name, owner);
-        for (const value of stringValues(parameter.type)) checkValue(value, `${owner}(${name})`);
+        for (const literal of stringLiterals(parameter.type)) checkLiteral(literal, `${owner}(${name})`);
       }
       visitType(parameter.type, owner);
     }
@@ -233,7 +247,7 @@ export function collectFindings(root: string): Finding[] {
     } else if (ts.isTypeAliasDeclaration(declaration)) {
       const owner = declaration.name.text;
       visitTypeParameters(declaration.typeParameters, owner);
-      for (const value of stringValues(declaration.type)) checkValue(value, owner);
+      for (const literal of stringLiterals(declaration.type)) checkLiteral(literal, owner);
       visitType(declaration.type, owner);
     } else if (ts.isFunctionDeclaration(declaration)) {
       const owner = declaration.name?.text ?? '(anonymous)';

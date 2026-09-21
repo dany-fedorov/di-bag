@@ -58,7 +58,9 @@ test('the scanner reports every rule on the badly named fixture surface', () => 
     'value-casing: code DI_BAG_startup_BAD',
     'value-casing: code DI_BAG_template_BAD',
     "value-casing: value 'camelValue'",
+    "value-casing: value 'neighboringDiagnosticValue'",
     "value-casing: value 'nestedGenericValue'",
+    "value-casing: value 'ordinaryPayloadValue'",
     "value-casing: value 'properPayloadValue'",
     "value-casing: value 'resultValue'",
   ]);
