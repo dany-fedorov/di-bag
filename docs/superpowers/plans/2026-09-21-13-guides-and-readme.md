@@ -183,7 +183,7 @@ The script, its fixtures and its test were run when the plan was written. The te
     { "owner": "Builder", "from": "buildModule", "to": "buildModule", "transform": "bag" },
     { "owner": "DiBagApi", "from": "withLifetime", "to": "withLifetime", "transform": "method" }
   ],
-  "types": [{ "from": "Bag", "to": "Container" }],
+  "types": [{ "from": "Bag", "to": "Container" }, { "from": "PluginProvider", "to": "PluginProvider", "genericArguments": [{ "index": 2, "values": { "raw": "uninspected" } }] }],
   "codes": [{ "from": "DI_BAG_CYCLE", "to": "DI_BAG_DEPENDENCY_CYCLE" }],
   "values": [{ "owner": "DiBagApi", "method": "withLifetime", "argument": 1, "from": "root", "to": "singleton:one-per-container-tree" }],
   "imports": [{ "from": "di-bag/node", "to": "di-bag" }]
@@ -198,6 +198,7 @@ The script, its fixtures and its test were run when the plan was written. The te
 DI Bag builds a container with `buildContainer()` from one options bag. Import `di-bag`.
 We build the graph once. A service is in scope of nothing; the root container owns it.
 See `DI_BAG_DEPENDENCY_CYCLE` and `buildModule({ exportedServiceKeys })`.
+The `PluginProvider` type keeps its name.
 ````
 
 `tests/fixtures/docs-retired-names/docs/guides/stale.md`:
@@ -279,7 +280,7 @@ const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // A removed callable name counts when it is written as a call or as a code span: `build`, `build(...)`, .build( and DiBag.token(
 const live = new Set((map.methods ?? []).map(entry => entry.to));
 const calls = [...new Set((map.methods ?? []).filter(entry => entry.from !== entry.to && !live.has(entry.from)).map(entry => entry.from))];
-const names = [...(map.types ?? []).map(entry => entry.from), ...(map.codes ?? []).map(entry => entry.from)];
+const names = [...(map.types ?? []).filter(entry => entry.from !== entry.to).map(entry => entry.from), ...(map.codes ?? []).map(entry => entry.from)];
 const quoted = [...new Set((map.values ?? []).map(entry => entry.from))];
 const imports = (map.imports ?? []).filter(entry => entry.from).map(entry => entry.from);
 const rules = [
