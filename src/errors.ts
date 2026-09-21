@@ -50,7 +50,7 @@ export interface CleanupFailure {
  * import { DiBag, DiBagPluginValidationError } from 'di-bag';
  *
  * try {
- *   DiBag.fromPlugin([], { apiVersion: 2 }, { acquisitionMode: 'raw', validate: (value): value is string => typeof value === 'string' });
+ *   DiBag.fromPlugin([], { apiVersion: 2 }, { acquisitionMode: 'raw', validate: (pluginOutput): pluginOutput is string => typeof pluginOutput === 'string' });
  * } catch (error) {
  *   if (error instanceof DiBagPluginValidationError) console.error(error.phase, error.reason);
  * }

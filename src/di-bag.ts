@@ -702,7 +702,7 @@ export interface DiBagApi {
    * declare const descriptor: unknown;
    * const greeter = DiBag.fromPlugin([], descriptor, {
    *   acquisitionMode: 'raw',
-   *   validate: (value): value is () => string => typeof value === 'function',
+   *   validate: (pluginOutput): pluginOutput is () => string => typeof pluginOutput === 'function',
    * });
    * ```
    */

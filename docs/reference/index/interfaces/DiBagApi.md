@@ -398,7 +398,7 @@ Validate an unknown plugin descriptor now and its acquired output at acquisition
 declare const descriptor: unknown;
 const greeter = DiBag.fromPlugin([], descriptor, {
   acquisitionMode: 'raw',
-  validate: (value): value is () => string => typeof value === 'function',
+  validate: (pluginOutput): pluginOutput is () => string => typeof pluginOutput === 'function',
 });
 ```
 
@@ -628,11 +628,11 @@ const clock = DiBag.token(clockKey).of<{ now(): number }>();
 
 ```ts
 transformService: {
-    <R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, options: {
         readonly mode: 'direct';
         readonly transform: P;
     } & ModeOptions<M>): Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, Acquired<ReturnType<P>, M>>;
-    <R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, options: {
         readonly mode: 'awaited';
         readonly transform: P;
         readonly acquisitionMode?: never;
@@ -647,7 +647,7 @@ Transform the exposed service while retaining dependencies, metadata, lifetime, 
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, options: {
     readonly mode: 'direct';
     readonly transform: P;
 } & ModeOptions<M>): Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, Acquired<ReturnType<P>, M>>;
@@ -678,7 +678,7 @@ A provider exposing the callback's exact result, with the selected output acquis
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, options: {
     readonly mode: 'awaited';
     readonly transform: P;
     readonly acquisitionMode?: never;
@@ -753,8 +753,8 @@ const Observed = DiBag.withConfiguration({
 
 ```ts
 withDisposal: {
-    <F extends Factory>(create: F, dispose: (this: void, value: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>): FactoryWithDisposal<F>;
-    <R extends Registration>(provider: R & Registration, dispose: (this: void, value: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
+    <F extends Factory>(create: F, dispose: (this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>): FactoryWithDisposal<F>;
+    <R extends Registration>(provider: R & Registration, dispose: (this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
 };
 ```
 
@@ -766,7 +766,7 @@ Make the bag own a factory's value and run `dispose` on it when the bag closes.
 #### Call Signature
 
 ```ts
-<F extends Factory>(create: F, dispose: (this: void, value: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>): FactoryWithDisposal<F>;
+<F extends Factory>(create: F, dispose: (this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>): FactoryWithDisposal<F>;
 ```
 
 Declare that each acquiring bag owns a factory's fulfilled value.
@@ -792,7 +792,7 @@ A nominal disposable registration preserving the factory's exact output.
 #### Call Signature
 
 ```ts
-<R extends Registration>(provider: R & Registration, dispose: (this: void, value: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
+<R extends Registration>(provider: R & Registration, dispose: (this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
 ```
 
 Add an ownership stage to an existing registration.
@@ -922,28 +922,28 @@ withMetadata: {
         readonly static: M & MetadataKeys<NoInfer<R>, M>;
         readonly dynamic?: never;
     }): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & M>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-    <R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
         readonly static: M & MetadataKeys<NoInfer<R>, M>;
         readonly dynamic: {
             readonly mode: 'direct';
             readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
         };
     }): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & M>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-    <R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
         readonly static?: M & MetadataKeys<NoInfer<R>, M>;
         readonly dynamic: {
             readonly mode: 'direct';
             readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
         };
     }): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & Partial<M>>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-    <R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
         readonly static: M & MetadataKeys<NoInfer<R>, M>;
         readonly dynamic: {
             readonly mode: 'awaited';
             readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
         };
     }): Provider<MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, Readonly<RetainedMetadata<R> & M>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, Awaited<ProviderOutput<R>>>;
-    <R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
         readonly static?: M & MetadataKeys<NoInfer<R>, M>;
         readonly dynamic: {
             readonly mode: 'awaited';
@@ -990,7 +990,7 @@ A provider preserving exact output, acquisition policy, and ordered dynamic fram
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
     readonly static: M & MetadataKeys<NoInfer<R>, M>;
     readonly dynamic: {
         readonly mode: 'direct';
@@ -1024,7 +1024,7 @@ A provider with merged registration metadata and one appended acquisition metada
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
     readonly static?: M & MetadataKeys<NoInfer<R>, M>;
     readonly dynamic: {
         readonly mode: 'direct';
@@ -1058,7 +1058,7 @@ A provider with merged registration metadata and one appended acquisition metada
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
     readonly static: M & MetadataKeys<NoInfer<R>, M>;
     readonly dynamic: {
         readonly mode: 'awaited';
@@ -1092,7 +1092,7 @@ A provider exposing a Promise of the source value with one appended metadata fra
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
     readonly static?: M & MetadataKeys<NoInfer<R>, M>;
     readonly dynamic: {
         readonly mode: 'awaited';

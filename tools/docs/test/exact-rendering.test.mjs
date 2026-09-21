@@ -78,7 +78,7 @@ test('canonical signatures are followed by comment-only parameter details', () =
 
 test('source declarations preserve aliases and property modifiers exactly', () => {
   assert.match(compact(tokenKey), /type TokenKey<T> = T extends infer U & \{\} \? U extends Token<infer K, infer _S> \? K : never : never;/);
-  assert.match(runtimeOptions, /readonly isNativePromise: \(this: void, value: unknown\) => boolean;/);
+  assert.match(runtimeOptions, /readonly isNativePromise: \(this: void, candidate: unknown\) => boolean;/);
   assert.match(startupError, /readonly cleanupError\?: unknown;/);
   assert.doesNotMatch(startupError, /readonly optional/);
   const builderContribute = readFileSync(join(output, 'index/type-aliases/BuilderContribute.md'), 'utf8');
@@ -95,4 +95,14 @@ test('documented parameter names carry no abbreviations', () => {
   assert.match(acquisitionContext, /pushDisposer\(this: void, disposer: \(this: void, disposerContext: DisposerContext\) => void \| Promise<void>\): void;/);
   assert.match(compact(contextualFactory), /\(this: void, dependencies: Parameters<F> extends \[\] \? \{\s?\} : Parameters<F>\[0\]\) => ReturnType<F>;/);
   for (const page of [facade, bag, builder, acquisitionContext, contextualFactory]) assert.doesNotMatch(page, /\b(?:factoryCtx|disposerCtx|deps)\b/);
+});
+
+test('callback parameters in public signatures are named by role', () => {
+  const facadeText = compact(facade);
+  assert.match(facadeText, /dispose: \(this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>\) => void \| Promise<void>/);
+  assert.match(facadeText, /dispose: \(this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>\) => void \| Promise<void>/);
+  assert.match(facadeText, /P extends \(this: void, exposedService: ProviderOutput<NoInfer<R>>\) =>/);
+  assert.match(facadeText, /P extends \(this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>\) =>/);
+  assert.doesNotMatch(facadeText, /\(this: void, value:/);
+  assert.match(pluginOutputValidator, /type PluginOutputValidator<V> = \(this: void, pluginOutput: unknown\) => pluginOutput is V;/);
 });

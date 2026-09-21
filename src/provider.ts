@@ -159,7 +159,7 @@ export function transform<R extends Registration, F extends Factory, A extends r
  * @typeParam P - The exact transform callback signature and output.
  * @typeParam M - The result's auto, raw, or nativePromise acquisition policy.
  */
-export function transformService<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
+export function transformService<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
   registration: R & Registration,
   options: { readonly mode: 'direct'; readonly transform: P } & ModeOptions<M>,
 ): Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, Acquired<ReturnType<P>, M>>;
@@ -172,7 +172,7 @@ export function transformService<R extends Registration, P extends (this: void, 
  * @typeParam R - The source registration and retained contracts.
  * @typeParam P - The callback signature; its result may itself be a Promise.
  */
-export function transformService<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(
+export function transformService<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(
   registration: R & Registration,
   options: { readonly mode: 'awaited'; readonly transform: P; readonly acquisitionMode?: never },
 ): Provider<MappedFactory<R, Promise<Awaited<ReturnType<P>>>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>>;
@@ -298,7 +298,7 @@ export function withMetadata<R extends Registration, M extends object>(
  * @typeParam P - The synchronous describe callback and its record result.
  * @typeParam M - The required static metadata record.
  */
-export function withMetadata<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(
+export function withMetadata<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(
   registration: R & Registration,
   options: { readonly static: M & MetadataKeys<NoInfer<R>, M>; readonly dynamic: { readonly mode: 'direct'; readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>> } },
 ): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & M>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
@@ -313,7 +313,7 @@ export function withMetadata<R extends Registration, P extends (this: void, valu
  * @typeParam P - The synchronous describe callback and its record result.
  * @typeParam M - The optional static metadata record.
  */
-export function withMetadata<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(
+export function withMetadata<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(
   registration: R & Registration,
   options: { readonly static?: M & MetadataKeys<NoInfer<R>, M>; readonly dynamic: { readonly mode: 'direct'; readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>> } },
 ): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & Partial<M>>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
@@ -327,7 +327,7 @@ export function withMetadata<R extends Registration, P extends (this: void, valu
  * @typeParam P - The synchronous describe callback and its record result.
  * @typeParam M - The required static metadata record.
  */
-export function withMetadata<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(
+export function withMetadata<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(
   registration: R & Registration,
   options: { readonly static: M & MetadataKeys<NoInfer<R>, M>; readonly dynamic: { readonly mode: 'awaited'; readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>> } },
 ): Provider<MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, Readonly<RetainedMetadata<R> & M>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, Awaited<ProviderOutput<R>>>;
@@ -342,7 +342,7 @@ export function withMetadata<R extends Registration, P extends (this: void, valu
  * @typeParam P - The synchronous describe callback and its record result.
  * @typeParam M - The optional static metadata record.
  */
-export function withMetadata<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(
+export function withMetadata<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(
   registration: R & Registration,
   options: { readonly static?: M & MetadataKeys<NoInfer<R>, M>; readonly dynamic: { readonly mode: 'awaited'; readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>> } },
 ): Provider<MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, Readonly<RetainedMetadata<R> & Partial<M>>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, Awaited<ProviderOutput<R>>>;

@@ -17,7 +17,7 @@ export type PluginAcquisitionMode = 'raw' | 'nativePromise';
  * A synchronous predicate that admits an unknown plugin output as a service type.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
  */
-export type PluginOutputValidator<V> = (this: void, value: unknown) => value is V;
+export type PluginOutputValidator<V> = (this: void, pluginOutput: unknown) => pluginOutput is V;
 /**
  * Validation and acquisition choices for {@link DiBagApi.fromPlugin}.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin

@@ -14,7 +14,7 @@ export type AcquisitionMode = 'auto' | 'raw' | 'nativePromise';
  */
 export interface RuntimeOptions {
   /** Return true only for native Promises the host can observe without thenable assimilation. */
-  readonly isNativePromise: (this: void, value: unknown) => boolean;
+  readonly isNativePromise: (this: void, candidate: unknown) => boolean;
 }
 export interface RuntimeContext { readonly isNativePromise?: RuntimeOptions['isNativePromise']; readonly observers?: LifecycleObservers }
 export const unconfigured: RuntimeContext = Object.freeze({});

@@ -607,7 +607,7 @@ import { types } from 'node:util';
 import { DiBag as CoreDiBag } from 'di-bag';
 
 const DiBag = CoreDiBag.withConfiguration({
-  runtime: { isNativePromise: value => types.isPromise(value) },
+  runtime: { isNativePromise: candidate => types.isPromise(candidate) },
 });
 ```
 
@@ -691,7 +691,7 @@ const portKey = Symbol('port');
 const port = DiBag.token(portKey).of<number>();
 class Client { constructor(readonly port: number) {} }
 const client = DiBag.fromClass([port], Client);
-const address = DiBag.fromFunction([port], value => `localhost:${value}`);
+const address = DiBag.fromFunction([port], portNumber => `localhost:${portNumber}`);
 ```
 
 **Recipe:** none.
@@ -778,7 +778,7 @@ import { DiBag } from 'di-bag';
 
 const nameKey = Symbol('name');
 const name = DiBag.token(nameKey).of<string>();
-const greeting = DiBag.fromFunction([name], value => `Hello, ${value}`);
+const greeting = DiBag.fromFunction([name], personName => `Hello, ${personName}`);
 ```
 
 **Recipe:** none.
@@ -817,7 +817,7 @@ a plain object.
 import { DiBag } from 'di-bag';
 
 const client = DiBag.withMetadata(() => ({ region: 'eu' }), {
-  dynamic: { mode: 'direct', describe: value => ({ 'app:region': value.region }) },
+  dynamic: { mode: 'direct', describe: exposedClient => ({ 'app:region': exposedClient.region }) },
 });
 ```
 
@@ -880,7 +880,7 @@ type Handler = { handle(text: string): string };
 const descriptor: unknown = { apiVersion: 1, create: () => ({ handle: (text: string) => text }) };
 const handler = DiBag.fromPlugin([], descriptor, {
   acquisitionMode: 'raw',
-  validate: (value: unknown): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
+  validate: (pluginOutput: unknown): pluginOutput is Handler => typeof pluginOutput === 'object' && pluginOutput !== null && 'handle' in pluginOutput,
 });
 ```
 
@@ -1000,7 +1000,7 @@ export const clock = DiBag.token(clockKey).of<{ now(): number }>();
 ```ts
 import { DiBag } from 'di-bag';
 
-const upper = DiBag.transformService(async () => 'ready', { mode: 'awaited', transform: value => value.toUpperCase() });
+const upper = DiBag.transformService(async () => 'ready', { mode: 'awaited', transform: text => text.toUpperCase() });
 ```
 
 **Recipe:** none.

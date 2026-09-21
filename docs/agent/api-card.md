@@ -94,7 +94,7 @@ Validate an unknown plugin descriptor now and its acquired output at acquisition
 declare const descriptor: unknown;
 const greeter = DiBag.fromPlugin([], descriptor, {
   acquisitionMode: 'raw',
-  validate: (value): value is () => string => typeof value === 'function',
+  validate: (pluginOutput): pluginOutput is () => string => typeof pluginOutput === 'function',
 });
 ```
 
@@ -296,7 +296,7 @@ A plugin descriptor or its acquired output failed validation at the checked plug
 import { DiBag, DiBagPluginValidationError } from 'di-bag';
 
 try {
-  DiBag.fromPlugin([], { apiVersion: 2 }, { acquisitionMode: 'raw', validate: (value): value is string => typeof value === 'string' });
+  DiBag.fromPlugin([], { apiVersion: 2 }, { acquisitionMode: 'raw', validate: (pluginOutput): pluginOutput is string => typeof pluginOutput === 'string' });
 } catch (error) {
   if (error instanceof DiBagPluginValidationError) console.error(error.phase, error.reason);
 }
