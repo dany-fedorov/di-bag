@@ -1,4 +1,4 @@
-import { DiBagStartupCancelledError, type CloseOptions } from '../../src';
+import { DiBagServiceReadinessCancelledError, type CloseOptions } from '../../src';
 
 /** Anything with an asynchronous close: a DI Bag bag or a wrapper around one. */
 export interface Closable {
@@ -18,7 +18,7 @@ export type OwnerFailure =
   | { readonly phase: 'close-wait-expired'; readonly identity: string; readonly generation: number; readonly timeoutMs: number };
 
 export interface RuntimeOwnerOptions<T extends Closable> {
-  /** Start a runtime for an identity. Must reject once `signal` aborts; `buildAndStart` does. */
+  /** Start a runtime for an identity. Must reject once `signal` aborts; `ensureServicesReady` does. */
   readonly start: (identity: string, signal: AbortSignal) => Promise<T>;
   /** The application's error sink: telemetry, a toast, a log. */
   readonly onFailure: (failure: OwnerFailure) => void;
@@ -140,9 +140,9 @@ export class RuntimeOwner<T extends Closable> {
     } catch (error) {
       if (slot.controller.signal.aborted) {
         // Cancelled: the partial runtime is still being released, and that release is this slot's to finish.
-        await this.settle(slot, error instanceof DiBagStartupCancelledError ? error.cleanupPromise : Promise.resolve());
+        await this.settle(slot, error instanceof DiBagServiceReadinessCancelledError ? error.disposalPromise : Promise.resolve());
       } else {
-        // A genuine failure. buildAndStart has already rolled back what it acquired.
+        // A genuine failure. ensureServicesReady has already rolled back what it acquired.
         this.publish({ state: 'failed', identity: slot.identity, generation: slot.generation, error });
         slot.finish();
       }

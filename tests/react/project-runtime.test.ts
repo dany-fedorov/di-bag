@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, expect, test } from 'bun:test';
-import { DiBagStartupCancelledError, DiBagStartupError } from '../../src';
+import { DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from '../../src';
 import { createAppRuntime } from '../../examples/react/app-runtime';
 import { createMemoryStorage, createMemoryTransport } from '../../examples/react/fakes';
 import { createProjectRuntime } from '../../examples/react/project-runtime';
@@ -44,10 +44,10 @@ test('a failing manifest fetch fails startup and releases the lock acquired befo
   const adapters = fakes({ failing: ['broken'] });
   const app = await createAppRuntime(adapters);
   const error = await createProjectRuntime(app.services, 'broken').then(() => undefined, (failure: unknown) => failure);
-  expect(error).toBeInstanceOf(DiBagStartupError);
-  expect((error as DiBagStartupError).cause).toBeInstanceOf(Error);
-  expect(((error as DiBagStartupError).cause as Error).message).toBe('no manifest for broken');
-  expect((error as DiBagStartupError).cleanupFailures).toEqual([]);
+  expect(error).toBeInstanceOf(DiBagServiceReadinessError);
+  expect((error as DiBagServiceReadinessError).cause).toBeInstanceOf(Error);
+  expect(((error as DiBagServiceReadinessError).cause as Error).message).toBe('no manifest for broken');
+  expect((error as DiBagServiceReadinessError).disposalFailures).toEqual([]);
   expect(adapters.storage.events).toEqual(['acquire:broken', 'release:broken']);
   expect(adapters.storage.held.size).toBe(0);
   await app.close();
@@ -58,16 +58,16 @@ test('a cancelled startup rejects promptly and releases the lock once the fetch 
   const adapters = fakes({ manifestGate: id => (id === 'slow' ? manifest.promise : undefined) });
   const app = await createAppRuntime(adapters);
   const controller = new AbortController();
-  const starting = createProjectRuntime(app.services, 'slow', { signal: controller.signal });
+  const starting = createProjectRuntime(app.services, 'slow', { abortSignal: controller.signal });
   await tick();
   expect(adapters.storage.events).toEqual(['acquire:slow']);
   controller.abort();
   const error = await starting.then(() => undefined, (failure: unknown) => failure);
-  expect(error).toBeInstanceOf(DiBagStartupCancelledError);
+  expect(error).toBeInstanceOf(DiBagServiceReadinessCancelledError);
   // Cooperative: the fetch has not settled, so the lock is still held and cleanup is still pending.
   expect(adapters.storage.held.has('slow')).toBe(true);
   manifest.resolve();
-  await (error as DiBagStartupCancelledError).cleanupPromise;
+  await (error as DiBagServiceReadinessCancelledError).disposalPromise;
   expect(adapters.storage.events).toEqual(['acquire:slow', 'release:slow']);
   await app.close();
 });
@@ -77,8 +77,8 @@ test('the same project cannot be opened twice while its lock is held', async () 
   const app = await createAppRuntime(adapters);
   const first = await createProjectRuntime(app.services, 'a');
   const error = await createProjectRuntime(app.services, 'a').then(() => undefined, (failure: unknown) => failure);
-  expect(error).toBeInstanceOf(DiBagStartupError);
-  expect(((error as DiBagStartupError).cause as Error).message).toBe('project a is locked by another runtime');
+  expect(error).toBeInstanceOf(DiBagServiceReadinessError);
+  expect(((error as DiBagServiceReadinessError).cause as Error).message).toBe('project a is locked by another runtime');
   await first.services.documents.add('still mine');
   await first.close();
   const second = await createProjectRuntime(app.services, 'a');

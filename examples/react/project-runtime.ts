@@ -1,4 +1,4 @@
-import { DiBag, type CloseOptions, type StartupOptions } from '../../src';
+import { DiBag, type CloseOptions, type EnsureServicesReadyOptions } from '../../src';
 import type { AppServices, DocumentRecord, DocumentsStore, ProjectLock, ProjectServices, Storage, Transport } from './services';
 
 export interface ProjectRuntime {
@@ -48,9 +48,9 @@ export function createProjectBuilder(app: AppServices, projectId: string) {
   });
 }
 
-/** Start a project runtime; `options.signal` cancels the wait and releases what was acquired. */
-export async function createProjectRuntime(app: AppServices, projectId: string, options?: StartupOptions): Promise<ProjectRuntime> {
-  const bag = await createProjectBuilder(app, projectId).buildAndStart(['lock', 'manifest', 'documents'], options);
+/** Start a project runtime; `options.abortSignal` cancels the wait and releases what was acquired. */
+export async function createProjectRuntime(app: AppServices, projectId: string, options?: EnsureServicesReadyOptions): Promise<ProjectRuntime> {
+  const bag = await createProjectBuilder(app, projectId).build().ensureServicesReady(['lock', 'manifest', 'documents'], options);
   const [manifest, documents] = await Promise.all([bag.resolve('manifest'), bag.resolve('documents')]);
   const services: ProjectServices = { projectId, name: manifest.name, documents };
   return { services, close: closeOptions => bag.close(closeOptions) };

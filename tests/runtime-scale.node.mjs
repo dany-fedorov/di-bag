@@ -157,7 +157,7 @@ for (const startupOrder of [1, 2]) test(`Node numeric startup ${startupOrder} bo
   const gates = [gate(), gate(), gate()];
   const calls = [], disposed = [];
   const provider = index => DiBag.withDisposal(() => { calls.push(index); return gates[index].promise; }, value => { disposed.push(value); });
-  const starting = DiBag.createBuilder().register({ a: provider(0), b: provider(1), c: provider(2) }).buildAndStart(['a', 'b', 'c'], { startupOrder });
+  const starting = DiBag.createBuilder().register({ a: provider(0), b: provider(1), c: provider(2) }).build().ensureServicesReady(['a', 'b', 'c'], { maxConcurrentServiceKeys: startupOrder });
   assert.deepEqual(calls, startupOrder === 1 ? [0] : [0, 1]);
   gates[0].resolve(10); await turn();
   assert.deepEqual(calls, startupOrder === 1 ? [0, 1] : [0, 1, 2]);
@@ -170,7 +170,7 @@ for (const startupOrder of [1, 2]) test(`Node numeric startup ${startupOrder} bo
   const raw = { get then() { reads++; throw new Error('raw then'); } };
   const ready = await DiBag.createBuilder().register({
     raw: DiBag.fromFactory(() => raw, { acquisitionMode: 'raw' }), later: () => ++later,
-  }).buildAndStart(['raw', 'later'], { startupOrder });
+  }).build().ensureServicesReady(['raw', 'later'], { maxConcurrentServiceKeys: startupOrder });
   assert.equal(ready.resolve('raw'), raw); assert.equal(reads, 0); assert.equal(later, 1);
   await ready.close();
 });

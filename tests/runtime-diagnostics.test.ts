@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { getEventListeners } from 'node:events';
-import { DiBag, DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagStartupCancelledError, type GraphSnapshot, type LifecycleEvent } from '../src/node';
+import { DiBag, DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagServiceReadinessCancelledError, type GraphSnapshot, type LifecycleEvent } from '../src/node';
 import { DiBag as Core } from '../src';
 import { withoutBuiltinModule } from './host-builtin-module';
 
@@ -43,10 +43,10 @@ test('library messages carry the code, the original text, and the errors-page se
   expect(cleanup).toBeInstanceOf(DiBagCleanupError);
   expect(cleanup.message).toBe(`DI_BAG_CLEANUP_FAILED: Failed to run 1 disposal callback(s); see ${page}#di-bag-cleanup-failed`);
 
-  const startup = await DiBag.createBuilder().register({ slow: () => new Promise(() => {}) }).buildAndStart(['slow'], { timeoutMs: 1 }).catch(error => error);
-  expect(startup).toBeInstanceOf(DiBagStartupCancelledError);
-  expect(startup.message).toBe(`DI_BAG_STARTUP_CANCELLED: Bag startup timeout; see ${page}#di-bag-startup-cancelled`);
-  expect(startup.cause.message).toBe(`DI_BAG_STARTUP_TIMEOUT: Bag startup timed out; see ${page}#di-bag-startup-timeout`);
+  const readiness = await DiBag.createBuilder().register({ slow: () => new Promise(() => {}) }).build().ensureServicesReady(['slow'], { totalTimeoutMs: 1 }).catch(error => error);
+  expect(readiness).toBeInstanceOf(DiBagServiceReadinessCancelledError);
+  expect(readiness.message).toBe(`DI_BAG_SERVICE_READINESS_CANCELLED: The listed services were not ready: the wait timed out after 1ms; acquisitions still pending: slow; this bag is closing; see ${page}#di-bag-service-readiness-cancelled`);
+  expect(readiness.cause.message).toBe(`DI_BAG_SERVICE_READINESS_TIMEOUT: The listed services were not ready before the deadline; see ${page}#di-bag-service-readiness-timeout`);
 });
 
 test('application errors keep their message untouched', () => {

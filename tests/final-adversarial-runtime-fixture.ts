@@ -1,19 +1,19 @@
-import { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagStartupCancelledError, DiBagStartupError } from '../src/node';
+import { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from '../src/node';
 import { DiBag as PortableDiBag } from '../src';
 
 export type FinalAdversarialRuntimeResult = Readonly<{
   readonly I1: Readonly<{ payloadIdentity: true; metadataIdentity: true; aliasIdentity: true; dispose: readonly ['payload', 'source']; acquisitions: 1 }>;
   readonly I2: Readonly<{ nativePromise: true; rootShared: true; transientDistinct: true; childDispose: readonly ['transient-2', 'transient-1', 'scoped']; parentDispose: readonly ['transient-2', 'transient-1', 'scoped', 'root']; acquisitions: 4 }>;
   readonly I3: Readonly<{ absentIdentity: true; presentUndefined: true; getterIdentity: true; dispose: readonly ['source']; acquisitions: 3 }>;
-  readonly I4: Readonly<{ outputPhase: 'output'; errorIdentity: true; startupWrapper: 'DiBagStartupError'; startupCauseIdentity: true; dispose: readonly ['plugin', 'source']; payloadDisposals: 0; acquisitions: 1 }>;
-  readonly I5: Readonly<{ directRetained: true; directDispose: readonly ['direct-1']; startupWrapper: 'DiBagStartupError'; startupCauseIdentity: true; startupDispose: readonly ['startup-first']; retryFresh: true }>;
+  readonly I4: Readonly<{ outputPhase: 'output'; errorIdentity: true; startupWrapper: 'DiBagServiceReadinessError'; startupCauseIdentity: true; dispose: readonly ['plugin', 'source']; payloadDisposals: 0; acquisitions: 1 }>;
+  readonly I5: Readonly<{ directRetained: true; directDispose: readonly ['direct-1']; startupWrapper: 'DiBagServiceReadinessError'; startupCauseIdentity: true; startupDispose: readonly ['startup-first']; retryFresh: true }>;
   readonly I6: Readonly<{ aliasAcquisitions: 0; sharedIdentity: true; unsharedDistinct: true; dispose: readonly ['installation-2', 'installation-1']; acquisitions: 2 }>;
   readonly I7: Readonly<{ root: 1; scoped: 1; transient: 2; contributions: 2; cleanupFailureIdentity: true; independentCleanupCount: 5 }>;
   readonly I8: Readonly<{ callbackOrder: readonly ['A:acquisition-ready', 'B:acquisition-ready', 'A:cleanup-completed', 'B:cleanup-completed']; filteredOnEventCalls: 4; aOnErrorCalls: 1; bOnErrorCalls: 0; observerErrorIdentity: true; observerErrorEventIdentity: true; telemetryBlocksClose: false; lateDisposals: 1 }>;
   readonly I9: Readonly<{ automaticEffects: 0; rawIdentity: true; thenReads: 0; rawDisposals: 1 }>;
   readonly I10: Readonly<{ syncIdentity: true; rawIdentity: true; syncRawThenReads: 0; asyncThenReads: 1; failureIdentity: true; disposerCalls: 0 }>;
   readonly I11: Readonly<{ boundaryErrorIdentity: true; retryFresh: true; dispose: readonly ['source', 'source'] }>;
-  readonly I12: Readonly<{ ordinaryWrapper: 'DiBagStartupError'; ordinaryCauseIdentity: true; ordinaryCleanupFailures: 0; abortWrapper: 'DiBagStartupCancelledError'; abortCauseIdentity: true; timeoutWrapper: 'DiBagStartupCancelledError'; timeoutCauseName: 'TimeoutError'; dispose: readonly ['late', 'immediate'] }>;
+  readonly I12: Readonly<{ ordinaryWrapper: 'DiBagServiceReadinessError'; ordinaryCauseIdentity: true; ordinaryCleanupFailures: 0; abortWrapper: 'DiBagServiceReadinessCancelledError'; abortCauseIdentity: true; timeoutWrapper: 'DiBagServiceReadinessCancelledError'; timeoutCauseName: 'TimeoutError'; dispose: readonly ['late', 'immediate'] }>;
   readonly I13: Readonly<{ closingEffects: 0; parentDispose: readonly ['child', 'parent']; finalDispose: readonly ['child', 'parent', 'fork']; unsharedDistinct: true }>;
   readonly I14: Readonly<{ classicPositiveDiagnostics: 0; cjsPositiveDiagnostics: 0; mjsPositiveDiagnostics: 0; classicNegativeMarkers: 2; newNativeGapIds: readonly [] }>;
   readonly I15: Readonly<{ cjsMatchesSource: true; esmMatchesSource: true; runtimeDependencies: 0; rootLoadsNode: false; forbiddenFiles: 0 }>;
@@ -23,8 +23,8 @@ export const finalAdversarialExpectedResult: FinalAdversarialRuntimeResult = {
   I1: { payloadIdentity: true, metadataIdentity: true, aliasIdentity: true, dispose: ['payload', 'source'], acquisitions: 1 },
   I2: { nativePromise: true, rootShared: true, transientDistinct: true, childDispose: ['transient-2', 'transient-1', 'scoped'], parentDispose: ['transient-2', 'transient-1', 'scoped', 'root'], acquisitions: 4 },
   I3: { absentIdentity: true, presentUndefined: true, getterIdentity: true, dispose: ['source'], acquisitions: 3 },
-  I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, dispose: ['plugin', 'source'], payloadDisposals: 0, acquisitions: 1 },
-  I5: { directRetained: true, directDispose: ['direct-1'], startupWrapper: 'DiBagStartupError', startupCauseIdentity: true, startupDispose: ['startup-first'], retryFresh: true },
+  I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: 'DiBagServiceReadinessError', startupCauseIdentity: true, dispose: ['plugin', 'source'], payloadDisposals: 0, acquisitions: 1 },
+  I5: { directRetained: true, directDispose: ['direct-1'], startupWrapper: 'DiBagServiceReadinessError', startupCauseIdentity: true, startupDispose: ['startup-first'], retryFresh: true },
   I6: { aliasAcquisitions: 0, sharedIdentity: true, unsharedDistinct: true, dispose: ['installation-2', 'installation-1'], acquisitions: 2 },
   I7: { root: 1, scoped: 1, transient: 2, contributions: 2, cleanupFailureIdentity: true, independentCleanupCount: 5 },
   I8: { callbackOrder: ['A:acquisition-ready', 'B:acquisition-ready', 'A:cleanup-completed', 'B:cleanup-completed'], filteredOnEventCalls: 4, aOnErrorCalls: 1, bOnErrorCalls: 0, observerErrorIdentity: true, observerErrorEventIdentity: true, telemetryBlocksClose: false, lateDisposals: 1 },
@@ -33,7 +33,7 @@ export const finalAdversarialExpectedResult: FinalAdversarialRuntimeResult = {
   I11: { boundaryErrorIdentity: true, retryFresh: true, dispose: ['source', 'source'] },
   // README "Cleanup and ownership" requires unrelated resources to close in
   // reverse successful-acquisition order after late work has drained.
-  I12: { ordinaryWrapper: 'DiBagStartupError', ordinaryCauseIdentity: true, ordinaryCleanupFailures: 0, abortWrapper: 'DiBagStartupCancelledError', abortCauseIdentity: true, timeoutWrapper: 'DiBagStartupCancelledError', timeoutCauseName: 'TimeoutError', dispose: ['late', 'immediate'] },
+  I12: { ordinaryWrapper: 'DiBagServiceReadinessError', ordinaryCauseIdentity: true, ordinaryCleanupFailures: 0, abortWrapper: 'DiBagServiceReadinessCancelledError', abortCauseIdentity: true, timeoutWrapper: 'DiBagServiceReadinessCancelledError', timeoutCauseName: 'TimeoutError', dispose: ['late', 'immediate'] },
   I13: { closingEffects: 0, parentDispose: ['child', 'parent'], finalDispose: ['child', 'parent', 'fork'], unsharedDistinct: true },
   I14: { classicPositiveDiagnostics: 0, cjsPositiveDiagnostics: 0, mjsPositiveDiagnostics: 0, classicNegativeMarkers: 2, newNativeGapIds: [] },
   I15: { cjsMatchesSource: true, esmMatchesSource: true, runtimeDependencies: 0, rootLoadsNode: false, forbiddenFiles: 0 },
@@ -44,13 +44,13 @@ type RuntimeDependencies = Readonly<{
   PortableDiBag: any;
   DiBagCleanupError: any;
   DiBagPluginValidationError: any;
-  DiBagStartupError: any;
-  DiBagStartupCancelledError: any;
+  DiBagServiceReadinessError: any;
+  DiBagServiceReadinessCancelledError: any;
 }>;
 
 async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedId?: string): Promise<FinalAdversarialRuntimeResult> {
-  const { DiBag, PortableDiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagStartupError,
-    DiBagStartupCancelledError } = api;
+  const { DiBag, PortableDiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError,
+    DiBagServiceReadinessCancelledError } = api;
   const invariant: (condition: unknown, id: string, detail: string) => asserts condition = (condition, id, detail) => {
     if (!condition && (selectedId === undefined || selectedId === id)) throw new Error(`${id}: ${detail}`);
   };
@@ -163,9 +163,9 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   await i4Bag.close();
   const i4StartupPlugin = DiBag.fromPlugin([], { apiVersion: 1, create: () => ({}) },
     { acquisitionMode: 'raw', validate() { throw i4PluginError; } });
-  const i4Startup = await DiBag.createBuilder().register({ plugin: i4StartupPlugin }).buildAndStart(['plugin']).catch((error: unknown) => error);
+  const i4Startup = await DiBag.createBuilder().register({ plugin: i4StartupPlugin }).build().ensureServicesReady(['plugin']).catch((error: unknown) => error);
   invariant(i4Direct === i4PluginError && i4PluginError.phase === 'output', 'I4', 'plugin error identity changed');
-  invariant(i4Startup instanceof DiBagStartupError && i4Startup.cause === i4PluginError, 'I4', 'startup cause changed');
+  invariant(i4Startup instanceof DiBagServiceReadinessError && i4Startup.cause === i4PluginError, 'I4', 'startup cause changed');
   invariant(JSON.stringify(i4Dispose) === JSON.stringify(['plugin', 'source']), 'I4', 'plugin ownership changed');
   invariant(i4PayloadDisposals === 0, 'I4', 'plugin implicitly disposed its payload');
   let i4ExplicitPayloadDisposals = 0;
@@ -213,8 +213,8 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i5Started = await DiBag.createBuilder().register({
     first: DiBag.withDisposal(() => 1, () => { i5StartupDispose.push('startup-first'); }),
     fail: DiBag.fromPlugin([], { apiVersion: 1, create() { throw i5StartupError; } }, { acquisitionMode: 'raw', validate: (_value: unknown): _value is number => true }),
-  }).buildAndStart(['first', 'fail'], { startupOrder: 'sequential' }).catch((error: unknown) => error);
-  invariant(i5Started instanceof DiBagStartupError && i5Started.cause === i5StartupError, 'I5', 'startup cause changed');
+  }).build().ensureServicesReady(['first', 'fail'], { maxConcurrentServiceKeys: 1 }).catch((error: unknown) => error);
+  invariant(i5Started instanceof DiBagServiceReadinessError && i5Started.cause === i5StartupError, 'I5', 'startup cause changed');
   invariant(JSON.stringify(i5StartupDispose) === JSON.stringify(['startup-first']), 'I5', 'startup rollback changed');
 
   // I6: aliases and selected sharing do not duplicate private plugin ownership.
@@ -369,7 +369,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   // I12: ordinary, aborted, and timed-out startup retain their exact wrappers and causes.
   const i12PluginCause = new Error('I12 plugin');
   const i12Ordinary = await DiBag.createBuilder().register({ fail: DiBag.fromPlugin([], { apiVersion: 1, create() { throw i12PluginCause; } },
-    { acquisitionMode: 'raw', validate: (_value: unknown): _value is number => true }) }).buildAndStart(['fail']).catch((error: unknown) => error);
+    { acquisitionMode: 'raw', validate: (_value: unknown): _value is number => true }) }).build().ensureServicesReady(['fail']).catch((error: unknown) => error);
   const i12Dispose: string[] = []; const i12Late = deferred<{ id: string }>(); const i12Abort = new AbortController(); const i12AbortCause = new Error('I12 abort');
   const i12Items = DiBag.token(Symbol('I12-items')).of();
   const i12CleanupEvents: any[] = [];
@@ -384,11 +384,11 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
       { acquisitionMode: 'raw', validate: (value: unknown): value is object => typeof value === 'object' && value !== null }),
     items: i12Observed.fromFunction([i12Observed.all(i12Items)], (items: readonly unknown[]) => items),
     late: DiBag.withDisposal(DiBag.fromFactory(() => i12Late.promise, { acquisitionMode: 'nativePromise' }), () => { i12Dispose.push('late'); }),
-  }).contribute(i12Items, () => 1).contribute(i12Items, () => 2).buildAndStart(['adapter', 'plugin', 'items', 'late'], { signal: i12Abort.signal });
+  }).contribute(i12Items, () => 1).contribute(i12Items, () => 2).build().ensureServicesReady(['adapter', 'plugin', 'items', 'late'], { abortSignal: i12Abort.signal });
   i12Abort.abort(i12AbortCause);
   const i12Cancelled = await i12Starting.catch((error: unknown) => error);
   i12Late.resolve({ id: 'late' });
-  await i12Cancelled.cleanupPromise; await flush();
+  await i12Cancelled.disposalPromise; await flush();
   invariant(i12CleanupEvents.length === 2 && new Set(i12CleanupEvents.map(event => event.acquisitionId)).size === 2
     && i12CleanupEvents.every(event => event.scopeId === i12OwnerScope)
     && new Set(i12CleanupEvents.map(event => event.label)).has('adapter')
@@ -399,11 +399,11 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i12Timeout = await DiBag.createBuilder().register({
     immediate: DiBag.withDisposal(() => 1, () => { i12TimeoutDispose.push('immediate'); }),
     late: DiBag.withDisposal(DiBag.fromFactory(() => i12TimeoutGate.promise, { acquisitionMode: 'nativePromise' }), () => { i12TimeoutDispose.push('late'); }),
-  }).buildAndStart(['immediate', 'late'], { timeoutMs: 5 }).catch((error: unknown) => error);
-  i12TimeoutGate.resolve(1); await i12Timeout.cleanupPromise;
-  invariant(i12Ordinary instanceof DiBagStartupError && i12Ordinary.cause === i12PluginCause && i12Ordinary.cleanupFailures.length === 0, 'I12', 'ordinary wrapper changed');
-  invariant(i12Cancelled instanceof DiBagStartupCancelledError && i12Cancelled.reason === 'aborted' && i12Cancelled.cause === i12AbortCause, 'I12', 'abort wrapper changed');
-  invariant(i12Timeout instanceof DiBagStartupCancelledError && i12Timeout.reason === 'timeout' && i12Timeout.cause?.name === 'TimeoutError', 'I12', 'timeout wrapper changed');
+  }).build().ensureServicesReady(['immediate', 'late'], { totalTimeoutMs: 5 }).catch((error: unknown) => error);
+  i12TimeoutGate.resolve(1); await i12Timeout.disposalPromise;
+  invariant(i12Ordinary instanceof DiBagServiceReadinessError && i12Ordinary.cause === i12PluginCause && i12Ordinary.disposalFailures.length === 0, 'I12', 'ordinary wrapper changed');
+  invariant(i12Cancelled instanceof DiBagServiceReadinessCancelledError && i12Cancelled.reason === 'aborted' && i12Cancelled.cause === i12AbortCause, 'I12', 'abort wrapper changed');
+  invariant(i12Timeout instanceof DiBagServiceReadinessCancelledError && i12Timeout.reason === 'timeout' && i12Timeout.cause?.name === 'TimeoutError', 'I12', 'timeout wrapper changed');
   invariant(JSON.stringify(i12Dispose) === JSON.stringify(['late', 'immediate']), 'I12', `late cleanup changed: ${JSON.stringify(i12Dispose)}`);
   invariant(JSON.stringify(i12TimeoutDispose) === JSON.stringify(['late', 'immediate']), 'I12', `timeout cleanup changed: ${JSON.stringify(i12TimeoutDispose)}`);
 
@@ -448,7 +448,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
     I9: { automaticEffects: i9AutomaticEffects as 0, rawIdentity: true, thenReads: i9ThenReads as 0, rawDisposals: i9RawDisposals as 1 },
     I10: { syncIdentity: true, rawIdentity: true, syncRawThenReads: i10BeforeAsync as 0, asyncThenReads: i10ThenReads as 1, failureIdentity: true, disposerCalls: i10Disposers as 0 },
     I11: { boundaryErrorIdentity: true, retryFresh: i11FailedId !== i11RetryId, dispose: i11Dispose as ['source', 'source'] },
-    I12: { ordinaryWrapper: i12Ordinary.name, ordinaryCauseIdentity: true, ordinaryCleanupFailures: i12Ordinary.cleanupFailures.length as 0, abortWrapper: i12Cancelled.name, abortCauseIdentity: true, timeoutWrapper: i12Timeout.name, timeoutCauseName: i12Timeout.cause.name, dispose: i12Dispose as ['late', 'immediate'] },
+    I12: { ordinaryWrapper: i12Ordinary.name, ordinaryCauseIdentity: true, ordinaryCleanupFailures: i12Ordinary.disposalFailures.length as 0, abortWrapper: i12Cancelled.name, abortCauseIdentity: true, timeoutWrapper: i12Timeout.name, timeoutCauseName: i12Timeout.cause.name, dispose: i12Dispose as ['late', 'immediate'] },
     I13: { closingEffects: i13Effects as 0, parentDispose: i13ParentDispose as ['child', 'parent'], finalDispose: i13Dispose as ['child', 'parent', 'fork'], unsharedDistinct: true },
     I14: { classicPositiveDiagnostics: 0, cjsPositiveDiagnostics: 0, mjsPositiveDiagnostics: 0, classicNegativeMarkers: 2, newNativeGapIds: [] },
     I15: { cjsMatchesSource: true, esmMatchesSource: true, runtimeDependencies: 0, rootLoadsNode: false, forbiddenFiles: 0 },
@@ -457,14 +457,14 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
 
 export function runFinalAdversarialSourceMatrix(selectedId?: keyof FinalAdversarialRuntimeResult): Promise<FinalAdversarialRuntimeResult> {
   return executeFinalAdversarialMatrix({ DiBag, PortableDiBag, DiBagCleanupError, DiBagPluginValidationError,
-    DiBagStartupError, DiBagStartupCancelledError }, selectedId);
+    DiBagServiceReadinessError, DiBagServiceReadinessCancelledError }, selectedId);
 }
 
 /** Embedded by package tests after binding these public API names in consumer scope. */
 export const finalAdversarialRuntimeAssertions = `
 (async () => {
   const result = await (${executeFinalAdversarialMatrix.toString()})({ DiBag, PortableDiBag, DiBagCleanupError,
-    DiBagPluginValidationError, DiBagStartupError, DiBagStartupCancelledError });
+    DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError });
   console.log(JSON.stringify(result));
 })().catch(error => { console.error(error); process.exitCode = 1; });
 `;
@@ -472,10 +472,10 @@ export const finalAdversarialRuntimeAssertions = `
 /** Build a dependency-free consumer program using only published package subpaths. */
 export function finalAdversarialPackageRuntimeSource(mode: 'commonjs' | 'module'): string {
   const imports = mode === 'commonjs'
-    ? `const { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagStartupError, DiBagStartupCancelledError } = require('di-bag/node');
+    ? `const { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } = require('di-bag/node');
 const { DiBag: PortableDiBag } = require('di-bag');
 `
-    : `import { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagStartupError, DiBagStartupCancelledError } from 'di-bag/node';
+    : `import { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } from 'di-bag/node';
 import { DiBag as PortableDiBag } from 'di-bag';
 `;
   return `${imports}\n${finalAdversarialRuntimeAssertions}`;

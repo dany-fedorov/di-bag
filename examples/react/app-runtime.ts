@@ -1,4 +1,4 @@
-import { DiBag, type CloseOptions, type StartupOptions } from '../../src';
+import { DiBag, type CloseOptions, type EnsureServicesReadyOptions } from '../../src';
 import type { AppServices, Storage, Transport } from './services';
 
 export type AppAdapters = { readonly storage: Storage; readonly transport: Transport };
@@ -25,8 +25,8 @@ export function createAppBuilder(adapters: AppAdapters) {
   });
 }
 
-export async function createAppRuntime(adapters: AppAdapters, options?: StartupOptions): Promise<AppRuntime> {
-  const bag = await createAppBuilder(adapters).buildAndStart(['storage', 'transport'], options);
+export async function createAppRuntime(adapters: AppAdapters, options?: EnsureServicesReadyOptions): Promise<AppRuntime> {
+  const bag = await createAppBuilder(adapters).build().ensureServicesReady(['storage', 'transport'], options);
   const services: AppServices = { storage: bag.resolve('storage'), transport: bag.resolve('transport') };
   return { services, close: closeOptions => bag.close(closeOptions) };
 }
