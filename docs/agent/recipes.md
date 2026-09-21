@@ -275,9 +275,9 @@ import type { Feed, FeedConfig, Socket } from './contract.js';
 
 export const feedModule = DiBag.createBuilder()
   .register({
-    socket: DiBag.withDisposal(DiBag.fromFactory(async ({ config }: { config: FeedConfig }, factoryCtx): Promise<Socket> => {
+    socket: DiBag.withDisposal(DiBag.fromFactory(async ({ config }: { config: FeedConfig }, factoryContext): Promise<Socket> => {
       const socket = await open(config.url);
-      factoryCtx.pushDisposer(disposerCtx => { if (disposerCtx.reason !== 'service-disposed') return socket.close(); });
+      factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return socket.close(); });
       await authenticate(socket, config.token);
       return socket;
     }, { context: 'acquisition' }), socket => socket.close()),

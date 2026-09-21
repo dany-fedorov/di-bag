@@ -79,7 +79,7 @@ const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
 
 ```ts
 fromAsyncFactory: {
-    <F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
+    <F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
     <F extends Factory>(callback: F & AsyncOutput<ReturnType<NoInfer<F>>>, options?: PortableFactoryOptions): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
 };
 ```
@@ -92,7 +92,7 @@ A non-Promise output is rejected at compile time; a thenable that is not a nativ
 #### Call Signature
 
 ```ts
-<F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
+<F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
 ```
 
 Describe an asynchronous named-dependency factory that runs on every host: a `nativePromise`
@@ -212,7 +212,7 @@ const greeter = DiBag.fromClass([DiBag.token(greetingKey).of<string>()], Greeter
 
 ```ts
 fromFactory: {
-    <F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, options: {
+    <F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, options: {
         readonly context: 'acquisition';
     } & ModeOptions<M>): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
     <F extends Factory, M extends AcquisitionMode = 'auto'>(callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...options: FactoryOptions<M>): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
@@ -227,7 +227,7 @@ A factory that returns a non-Promise object with a `then` method needs `acquisit
 #### Call Signature
 
 ```ts
-<F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, options: {
+<F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, options: {
     readonly context: 'acquisition';
 } & ModeOptions<M>): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
 ```

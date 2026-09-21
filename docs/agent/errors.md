@@ -301,7 +301,7 @@ const app = DiBag.createBuilder()
 
 ### DI_BAG_CLEANUP_AFTER_FACTORY {#di-bag-cleanup-after-factory}
 
-**When:** `factoryCtx.pushDisposer(disposer)` throws because the factory that
+**When:** `factoryContext.pushDisposer(disposer)` throws because the factory that
 owns the context has already returned or failed. Its projections may still be
 running; the factory is the boundary, not the whole acquisition.
 
@@ -318,9 +318,9 @@ same value a `reason` check.
 import { DiBag } from 'di-bag';
 
 const handle = DiBag.withDisposal(
-  DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+  DiBag.fromFactory(async (_dependencies: {}, factoryContext) => {
     const socket = { close: async () => {} };
-    factoryCtx.pushDisposer(disposerCtx => { if (disposerCtx.reason !== 'service-disposed') return socket.close(); });
+    factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return socket.close(); });
     return socket;
   }, { context: 'acquisition' }),
   socket => socket.close(),
@@ -458,7 +458,7 @@ await app.close();
 ### DI_BAG_CLOSING {#di-bag-closing}
 
 **When:** the same operations as [`DI_BAG_CLOSED`](#di-bag-closed), while
-`close()` is still in progress. Also the message of `factoryCtx.signal.reason`
+`close()` is still in progress. Also the message of `factoryContext.signal.reason`
 after `close()`: an `AbortError` that is the same object for every bag. A
 cancelled or failed startup aborts with its own cause instead.
 
@@ -615,21 +615,21 @@ const DiBag = CoreDiBag.withConfiguration({
 
 ### DI_BAG_INVALID_CLEANUP {#di-bag-invalid-cleanup}
 
-**When:** `factoryCtx.pushDisposer(disposer)` throws because `disposer` is not a
+**When:** `factoryContext.pushDisposer(disposer)` throws because `disposer` is not a
 function.
 
 **Cause:** a value was passed where a disposer callback belongs, usually the
 result of calling the release instead of passing it.
 
-**Fix:** pass a function: `factoryCtx.pushDisposer(() => socket.close())`, not
-`factoryCtx.pushDisposer(socket.close())`.
+**Fix:** pass a function: `factoryContext.pushDisposer(() => socket.close())`, not
+`factoryContext.pushDisposer(socket.close())`.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-const socket = DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+const socket = DiBag.fromFactory(async (_dependencies: {}, factoryContext) => {
   const handle = { close: async () => {} };
-  factoryCtx.pushDisposer(() => handle.close());
+  factoryContext.pushDisposer(() => handle.close());
   return handle;
 }, { context: 'acquisition' });
 ```

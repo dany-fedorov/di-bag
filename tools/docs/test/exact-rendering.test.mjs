@@ -18,6 +18,13 @@ let fromPlugin;
 let tokenKey;
 let runtimeOptions;
 let startupError;
+let acquisitionContext;
+let contextualFactory;
+let pluginOutputValidator;
+let provider;
+let builder;
+let moduleInterface;
+let token;
 try {
   process.chdir(directory);
   const app = await Application.bootstrapWithPlugins({ options: resolve(directory, 'typedoc.json') });
@@ -34,6 +41,13 @@ try {
   tokenKey = readFileSync(join(output, 'index/type-aliases/TokenKey.md'), 'utf8');
   runtimeOptions = readFileSync(join(output, 'index/interfaces/RuntimeOptions.md'), 'utf8');
   startupError = readFileSync(join(output, 'index/classes/DiBagStartupError.md'), 'utf8');
+  acquisitionContext = readFileSync(join(output, 'index/interfaces/AcquisitionContext.md'), 'utf8');
+  contextualFactory = readFileSync(join(output, 'index/type-aliases/ContextualFactory.md'), 'utf8');
+  pluginOutputValidator = readFileSync(join(output, 'index/type-aliases/PluginOutputValidator.md'), 'utf8');
+  provider = readFileSync(join(output, 'index/interfaces/Provider.md'), 'utf8');
+  builder = readFileSync(join(output, 'index/interfaces/Builder.md'), 'utf8');
+  moduleInterface = readFileSync(join(output, 'index/interfaces/Module.md'), 'utf8');
+  token = readFileSync(join(output, 'index/interfaces/Token.md'), 'utf8');
 } catch (error) {
   rmSync(temporary, { recursive: true, force: true });
   throw error;
@@ -75,4 +89,10 @@ test('source declarations preserve aliases and property modifiers exactly', () =
 test('plugin factory is a callable type alias rather than a type-only function export', () => {
   assert.match(fromPlugin, /^# Type Alias: PluginProviderFactory$/m);
   assert.match(compact(fromPlugin), /type PluginProviderFactory = <const T extends readonly DependencyReference\[\], V, M extends PluginAcquisitionMode>/);
+});
+
+test('documented parameter names carry no abbreviations', () => {
+  assert.match(acquisitionContext, /pushDisposer\(this: void, disposer: \(this: void, disposerContext: DisposerContext\) => void \| Promise<void>\): void;/);
+  assert.match(compact(contextualFactory), /\(this: void, dependencies: Parameters<F> extends \[\] \? \{\s?\} : Parameters<F>\[0\]\) => ReturnType<F>;/);
+  for (const page of [facade, bag, builder, acquisitionContext, contextualFactory]) assert.doesNotMatch(page, /\b(?:factoryCtx|disposerCtx|deps)\b/);
 });

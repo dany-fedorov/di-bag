@@ -32,19 +32,19 @@ export interface AcquisitionContext {
   /**
    * Own a resource this factory has already acquired. Pushed disposers run exactly once, last
    * pushed first: at once if the factory fails, otherwise at `close()` after every disposer of the
-   * service, with `disposerCtx.reason` saying which. `withDisposal` owns the returned value; push
+   * service, with `disposerContext.reason` saying which. `withDisposal` owns the returned value; push
    * what is acquired on the way, and test `reason` before releasing the returned value itself.
    * @param disposer - Releases the resource acquired immediately before this call.
    */
-  pushDisposer(this: void, disposer: (this: void, disposerCtx: DisposerContext) => void | Promise<void>): void;
+  pushDisposer(this: void, disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>): void;
 }
-type ContextFactory = (this: void, deps: never, factoryCtx: AcquisitionContext) => unknown;
+type ContextFactory = (this: void, dependencies: never, factoryContext: AcquisitionContext) => unknown;
 /**
  * The named-dependency factory contract retained by an acquisition-context callback.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
  */
 export type ContextualFactory<F extends ContextFactory> = (this: void,
-  deps: Parameters<F> extends [] ? {} : Parameters<F>[0],
+  dependencies: Parameters<F> extends [] ? {} : Parameters<F>[0],
 ) => ReturnType<F>;
 type FactoryOptions<M extends AcquisitionMode> = 'auto' extends M
   ? [options?: { readonly context?: never; readonly acquisitionMode?: M }]
@@ -59,7 +59,7 @@ type FactoryOptions<M extends AcquisitionMode> = 'auto' extends M
  * @typeParam F - The complete callback signature, retaining dependency and output inference.
  * @typeParam M - The raw, nativePromise, or configured auto acquisition policy.
  */
-export function fromFactory<F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
+export function fromFactory<F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(
   callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>,
   options: { readonly context: 'acquisition' } & ModeOptions<M>,
 ): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
@@ -86,7 +86,7 @@ export function fromFactory(callback: Factory | ContextFactory, options?: { read
 /** Build the provider for one validated factory; `fromFactory` and both portable helpers end here. */
 function factoryProvider(callback: Factory | ContextFactory, mode: AcquisitionMode, contextual: boolean): ProviderBase {
   const handle = createProvider<Factory, Readonly<{}>, readonly [], TokenDependencyContract, unknown>();
-  const create: Factory = contextual ? ((deps: never, factoryCtx?: AcquisitionContext) => (callback as ContextFactory)(deps, factoryCtx!)) : callback as Factory;
+  const create: Factory = contextual ? ((dependencies: never, factoryContext?: AcquisitionContext) => (callback as ContextFactory)(dependencies, factoryContext!)) : callback as Factory;
   retainDescription(handle, sourceDescription(create, undefined, [], mode, contextual));
   return handle;
 }
@@ -142,7 +142,7 @@ export function fromSyncFactory(callback: Factory | ContextFactory, options?: { 
  * @returns A lazy provider exposing the factory's own Promise; adds no ownership.
  * @typeParam F - The complete callback signature, retaining dependency and output inference.
  */
-export function fromAsyncFactory<F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => Promise<unknown>>(
+export function fromAsyncFactory<F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => Promise<unknown>>(
   callback: F,
   options: ContextualPortableFactoryOptions,
 ): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;

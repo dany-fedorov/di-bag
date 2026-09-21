@@ -96,10 +96,10 @@ function createPluginProvider<const T extends readonly DependencyReference[], V,
   const references = snapshotReferences(dependencies);
   const selected = validateOptions<V>(options);
   const descriptor = validateDescriptor(plugin);
-  const create: Factory = (deps: Record<symbol, unknown>) => Reflect.apply(
+  const create: Factory = (dependencyProxy: Record<symbol, unknown>) => Reflect.apply(
     descriptor.create,
     undefined,
-    references.map(reference => Reflect.get(deps, reference.slot)),
+    references.map(reference => Reflect.get(dependencyProxy, reference.slot)),
   );
   const dispose = descriptor.dispose === undefined ? undefined : (value: never) =>
     Reflect.apply(descriptor.dispose!, undefined, [value]);

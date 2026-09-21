@@ -17,7 +17,7 @@ Every compiler and runtime message: [docs/agent/errors.md](docs/agent/errors.md)
    `build()` with [`DI_BAG_CLASSIFIER_REQUIRED`](docs/agent/errors.md#di-bag-classifier-required), which names it.
 2. **A factory declares its dependencies in the type of its one object
    parameter; destructure it** (`({ clock }: { clock: Clock }) => ...`) or read
-   `deps.clock` directly. The object is a Proxy that resolves each property when
+   `dependencies.clock` directly. The object is a Proxy that resolves each property when
    read: spreading it, `Object.keys`, `in`, and `JSON.stringify` throw
    [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](docs/agent/errors.md#di-bag-invalid-dependency-access).
 3. **Lifetimes.** The default is `scoped`: one instance per bag or child scope.
@@ -33,7 +33,7 @@ Every compiler and runtime message: [docs/agent/errors.md](docs/agent/errors.md)
 6. **Ownership.** `DiBag.withDisposal(factory, dispose)` makes the bag own the
    returned value; `close()` runs disposers, dependents first. Close every scope and
    fork you create; a parent closes its live scopes, never forks. Inside a factory,
-   [`factoryCtx.pushDisposer`](docs/agent/recipes.md#partial-acquisition) owns what it acquires on the way; if that is also the returned value, act only when `disposerCtx.reason !== 'service-disposed'`.
+   [`factoryContext.pushDisposer`](docs/agent/recipes.md#partial-acquisition) owns what it acquires on the way; if that is also the returned value, act only when `disposerContext.reason !== 'service-disposed'`.
 7. **Replace dependencies in tests with `fork(keys, overrides)`**; each
    override must satisfy the original contract.
 8. **Modules.** Register a feature's factories, then `buildModule(['exported'])`.

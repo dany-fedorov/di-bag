@@ -293,7 +293,7 @@ register<N extends {
 Defined in: [di-bag.ts:364](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L364)
 
 Add new string-named registrations.
-A factory declares its dependencies in the type of its one object parameter; destructure it or read `deps.name`, never spread it.
+A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
 
 ##### Type Parameters
 

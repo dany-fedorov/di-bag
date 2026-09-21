@@ -66,7 +66,7 @@ export function fromFunction<const T extends readonly DependencyReference[], F e
   const mode = acquisitionMode(modeOptions[0]);
   const references = snapshotReferences(tokens);
   if (typeof callback !== 'function') throw libraryError('DI_BAG_INVALID_FUNCTION', 'fromFunction callback must be a function', { operation: 'fromFunction' });
-  const create = (deps: Record<symbol, unknown>) => Reflect.apply(callback, undefined, references.map(reference => Reflect.get(deps, reference.slot)));
+  const create = (dependencyProxy: Record<symbol, unknown>) => Reflect.apply(callback, undefined, references.map(reference => Reflect.get(dependencyProxy, reference.slot)));
   const handle = createProvider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>();
   retainDescription(handle, sourceDescription(create, undefined, references.map(reference => reference.key), mode, false, references));
   return handle;
@@ -92,7 +92,7 @@ export function fromClass<const T extends readonly DependencyReference[], C exte
   if (typeof constructor !== 'function') throw libraryError('DI_BAG_INVALID_CONSTRUCTOR', 'fromClass requires a concrete constructor', { operation: 'fromClass' });
   try { Reflect.construct(new Proxy(constructor, { construct: () => ({}) }), []); }
   catch { throw libraryError('DI_BAG_INVALID_CONSTRUCTOR', 'fromClass requires a concrete constructor', { operation: 'fromClass' }); }
-  const create = (deps: Record<symbol, unknown>) => Reflect.construct(constructor, references.map(reference => Reflect.get(deps, reference.slot)));
+  const create = (dependencyProxy: Record<symbol, unknown>) => Reflect.construct(constructor, references.map(reference => Reflect.get(dependencyProxy, reference.slot)));
   const handle = createProvider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>>();
   retainDescription(handle, sourceDescription(create, undefined, references.map(reference => reference.key), mode, false, references));
   return handle;

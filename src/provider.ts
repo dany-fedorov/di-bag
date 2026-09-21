@@ -58,7 +58,7 @@ export type ProviderFactory<R extends Registration> = R extends infer T & {} ? F
 type FactoryOf<R> = R extends Factory ? R
   : R extends { create: infer F extends Factory } ? F
     : R extends ProviderContext<infer F> ? F
-      : R extends ProviderBase ? (this: void, deps: unknown) => unknown : never;
+      : R extends ProviderBase ? (this: void, dependencies: unknown) => unknown : never;
 // An erased provider cannot prove an output or dependency shape, including
 // when mixed with concrete registrations behind a NoInfer boundary.
 /**
@@ -138,7 +138,7 @@ export function withTokenBinding<T extends TokenBase, R extends Registration>(
   return handle;
 }
 
-type MappedFactory<R extends Registration, O> = (this: void, deps: ProviderNamedDependencies<R>) => O;
+type MappedFactory<R extends Registration, O> = (this: void, dependencies: ProviderNamedDependencies<R>) => O;
 export type RetainedMetadata<R> = ProviderRegistrationMetadata<R> extends object ? ProviderRegistrationMetadata<R> : object;
 
 /** Extend an authenticated description without exposing its operations. */

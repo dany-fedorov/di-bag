@@ -26,7 +26,7 @@ export type AliasDestination<R extends Registrations, D, T> = D extends TokenBas
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#give-a-dependency-another-lookup-name
  */
 export type AliasRegistration<R extends Registrations, D, T> = Provider<
-  (this: void, deps: T extends string ? Record<T, AliasOutput<R, T>> : Record<never, never>) => AliasOutput<R, T>,
+  (this: void, dependencies: T extends string ? Record<T, AliasOutput<R, T>> : Record<never, never>) => AliasOutput<R, T>,
   Readonly<object>, readonly unknown[],
   TokenDependencyContract<T extends TokenBase ? readonly [T] : readonly [], D extends TokenBase ? D : never> & {
     readonly alias: SelectionKey<T>;

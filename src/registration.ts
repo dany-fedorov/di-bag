@@ -5,7 +5,7 @@ import { normalize, retainDescription, sourceDescription } from './provider-oper
 export { normalize } from './provider-operations';
 
 // Contravariant bottom accepts each factory's actual parameter type without any.
-export type Factory = (this: void, deps: never) => unknown;
+export type Factory = (this: void, dependencies: never) => unknown;
 
 // A private member is lost on spread; structural copies cannot be registrations.
 /**

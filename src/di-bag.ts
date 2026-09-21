@@ -349,7 +349,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   // token registration does not project the entire retained history.
   /**
    * Add new string-named registrations.
-   * A factory declares its dependencies in the type of its one object parameter; destructure it or read `deps.name`, never spread it.
+   * A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
    * @param more - A finite object whose own string keys are service names and values are registrations.
    * @returns A new builder containing snapshots of the supplied registrations.
    * @throws `DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_REGISTRATION` for a name already registered.

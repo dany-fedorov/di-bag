@@ -193,7 +193,7 @@ export class ScopeAcquisitions {
   private acquisitionContext(disposers: DisposerStack): AcquisitionContext {
     return Object.freeze({
       signal: this.cancellationSignal(),
-      pushDisposer: (disposer: (this: void, disposerCtx: DisposerContext) => void | Promise<void>) => { disposers.push(disposer); },
+      pushDisposer: (disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>) => { disposers.push(disposer); },
     });
   }
 
@@ -285,7 +285,7 @@ export class ScopeAcquisitions {
       `Cannot inspect the dependencies of ${JSON.stringify(attempt.label)}: ${access} is not supported. Read each named dependency directly; the dependency object resolves lazily.`,
       { operation: 'resolve', consumer: attempt.label, access },
     );
-    const deps = new Proxy(Object.create(null) as Record<string, unknown>, {
+    const dependencyProxy = new Proxy(Object.create(null) as Record<string, unknown>, {
       get: (_, key) => {
         // JSON.stringify probes toJSON through get before enumerating; name the real operation.
         if (key === 'toJSON') throw invalidAccess('JSON.stringify');
@@ -308,10 +308,10 @@ export class ScopeAcquisitions {
       let value: unknown;
       if (directSource) {
         const { create } = description;
-        value = create(deps as never);
+        value = create(dependencyProxy as never);
         execution.publishSource(value, description);
       } else {
-        value = execution.evaluate(description, deps, disposers && this.acquisitionContext(disposers));
+        value = execution.evaluate(description, dependencyProxy, disposers && this.acquisitionContext(disposers));
       }
       attempt.exposed = value;
       attempt.state = attempt.execution.state;

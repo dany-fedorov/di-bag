@@ -29,14 +29,14 @@ Aborted when the acquisition's owning scope begins closing.
 ### pushDisposer()
 
 ```ts
-pushDisposer(this: void, disposer: (this: void, disposerCtx: DisposerContext) => void | Promise<void>): void;
+pushDisposer(this: void, disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>): void;
 ```
 
 Defined in: [acquisition-context.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L39)
 
 Own a resource this factory has already acquired. Pushed disposers run exactly once, last
 pushed first: at once if the factory fails, otherwise at `close()` after every disposer of the
-service, with `disposerCtx.reason` saying which. `withDisposal` owns the returned value; push
+service, with `disposerContext.reason` saying which. `withDisposal` owns the returned value; push
 what is acquired on the way, and test `reason` before releasing the returned value itself.
 
 #### Parameters
