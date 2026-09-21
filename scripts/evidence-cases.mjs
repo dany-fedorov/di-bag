@@ -63,9 +63,12 @@ function runCase(root, item) {
   catch { return { form: item.form, count: item.count, accepted: false, failure: 'the worker did not print a JSON row' }; }
   // The named worker reports `accepted`; the token worker reports only its diagnostics.
   const accepted = typeof row.accepted === 'boolean' ? row.accepted : Array.isArray(row.diagnostics) && row.diagnostics.length === 0;
+  const validInstantiations = Number.isSafeInteger(row.instantiations) && row.instantiations > 0;
   return {
     form: item.form, count: item.count, instantiations: row.instantiations, milliseconds: row.milliseconds, maxRssMiB: row.maxRssMiB,
-    accepted: accepted && Number.isSafeInteger(row.instantiations), typescript: row.typescript, node: row.node,
+    accepted: accepted && validInstantiations,
+    failure: !accepted ? 'worker rejected the case' : !validInstantiations ? 'worker reported invalid instantiations' : undefined,
+    typescript: row.typescript, node: row.node,
   };
 }
 
@@ -88,8 +91,32 @@ function readBaseline(path) {
 const number = value => (Number.isFinite(value) ? value.toLocaleString('en-US') : 'n/a');
 const percent = value => `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
 
-function render(rows, baseline) {
+function render(rows, baseline, expectedCases) {
   const problems = [];
+  const seen = new Set();
+  for (const [index, row] of rows.entries()) {
+    const id = `${row?.form} ${row?.count}`;
+    const key = `${row?.form}@${row?.count}`;
+    if (typeof row?.accepted !== 'boolean') problems.push(`${id}: accepted must be a boolean`);
+    if (seen.has(key)) problems.push(`${id}: duplicate saved row`);
+    seen.add(key);
+    if (row?.accepted === true && (!Number.isSafeInteger(row.instantiations) || row.instantiations <= 0)) {
+      problems.push(`${id}: instantiations must be a positive safe integer`);
+    }
+    if (baseline && typeof row?.form !== 'string') problems.push(`saved row ${index + 1}: form must be a string`);
+    if (baseline && (!Number.isSafeInteger(row?.count) || !allowedCounts.includes(row.count))) {
+      problems.push(`saved row ${index + 1}: count must be an allowed integer`);
+    }
+  }
+  if (baseline) {
+    const expected = new Set(expectedCases.map(item => `${item.form}@${item.count}`));
+    for (const item of expectedCases) {
+      if (!seen.has(`${item.form}@${item.count}`)) problems.push(`${item.form} ${item.count}: missing from saved rows`);
+    }
+    for (const row of rows) {
+      if (!expected.has(`${row?.form}@${row?.count}`)) problems.push(`${row?.form} ${row?.count}: unexpected saved row`);
+    }
+  }
   const header = baseline
     ? ['| Case | Count | Instantiations | Baseline | Change | Milliseconds | Max RSS MiB | Accepted |', '| --- | --- | --- | --- | --- | --- | --- | --- |']
     : ['| Case | Count | Instantiations | Milliseconds | Max RSS MiB | Accepted |', '| --- | --- | --- | --- | --- | --- |'];
@@ -122,8 +149,11 @@ const rows = options.rows
     console.error(`running ${item.form} ${item.count} …`);
     return runCase(options.root, item);
   });
+if (!Array.isArray(rows)) fail('saved rows must be a JSON array');
+const invalidRow = rows.findIndex(row => typeof row !== 'object' || row === null || Array.isArray(row));
+if (invalidRow >= 0) fail(`saved row ${invalidRow + 1} must be an object`);
 if (options.json) writeFileSync(options.json, `${JSON.stringify(rows, null, 2)}\n`);
-const { table, problems } = render(rows, options.compare ? readBaseline(options.compare) : undefined);
+const { table, problems } = render(rows, options.compare ? readBaseline(options.compare) : undefined, evidenceCases(options.counts));
 console.log(options.rows ? 'Rendered from saved rows.' : provenance(options.root, rows));
 console.log('');
 console.log(table);

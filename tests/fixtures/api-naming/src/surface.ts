@@ -5,6 +5,24 @@ export type FixtureKind =
   | 'scoped:one-per-container' // fine: term:description
   | 'a message with spaces is prose'; // fine: not a value anyone passes
 export type StartupThing = { readonly kind: 'cleanup-started' }; // findings: retired-word export, retired-word value
+type Wrapper<T> = { readonly wrapped: T };
+type OperationLabel<Operation extends string = 'fork'> = Operation;
+type SeeErrors<Family extends string> = `; see errors#${Family}`;
+export type ScannerReferences<T extends { readonly camelKey: unknown }> = {
+  readonly operation: OperationLabel<'createScope'>;
+  readonly omitted: Exclude<keyof T, 'allowScopedDependencies'>;
+  readonly indexed: T['camelKey'];
+  readonly diagnostic: SeeErrors<'root-capture'>;
+  readonly isCompared: 'allowScopedDependencies' extends keyof T ? true : false;
+};
+export type StandardKeyReferences<T extends { readonly camelKey: unknown; readonly anotherKey: unknown }> = {
+  readonly picked: Pick<T, 'camelKey'>;
+  readonly omitted: Omit<T, 'anotherKey'>;
+  readonly properPayload: Wrapper<'properPayloadValue'>; // finding: value-casing
+};
+export type NestedValues<T> = T extends string
+  ? Wrapper<'nestedGenericValue'> // finding: value-casing
+  : { readonly [K in 'mappedKey']: Promise<'cleanup-finished'> }; // finding: retired-word value; mapped key is an identifier
 interface Hidden { readonly enabled: boolean } // reached through FixtureOptions.hidden; same subject as below, reported once
 export interface FixtureOptions {
   readonly enabled: boolean; // finding: boolean-name
@@ -12,6 +30,11 @@ export interface FixtureOptions {
   readonly factoryReceivesContext?: true; // fine: the assertion verb may follow its subject
   readonly hidden: Hidden;
   readonly onEvent: (this: void, ctx: string) => void; // finding: abbreviation
+  enabledNow(): boolean; // finding: boolean-name
+  isReady(): boolean; // fine
+  get available(): boolean; // finding: boolean-name
+  get hasCapacity(): boolean; // fine
+  result(): Promise<'resultValue'>; // finding: value-casing
 }
 class Builder {
   declare private readonly nominal: void; // fine: private

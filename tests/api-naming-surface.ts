@@ -5,7 +5,7 @@
 // constructors' plain parameters, private members, #private names, symbol-keyed members and
 // members tagged @internal are not public.
 import { readdirSync, readFileSync } from 'node:fs';
-import { resolve, sep } from 'node:path';
+import { relative, resolve, sep } from 'node:path';
 import ts from 'typescript';
 import { compilerProgram } from './compiler';
 
@@ -103,6 +103,52 @@ export function collectFindings(root: string): Finding[] {
     if (isBooleanish(type) && !words(name).some(word => assertionVerbs.has(word))) add('boolean-name', `member ${name}`, where);
     for (const value of stringValues(type)) checkValue(value, where);
   };
+  const containsKeyof = (node: ts.Node): boolean => {
+    if (ts.isTypeOperatorNode(node) && node.operator === ts.SyntaxKind.KeyOfKeyword) return true;
+    let found = false;
+    ts.forEachChild(node, child => { if (!found && containsKeyof(child)) found = true; });
+    return found;
+  };
+  const isOperationReference = (node: ts.LiteralTypeNode): boolean => {
+    if (ts.isTypeParameterDeclaration(node.parent) && node.parent.default === node) return node.parent.name.text === 'Operation';
+    if (!ts.isTypeReferenceNode(node.parent)) return false;
+    const index = node.parent.typeArguments?.indexOf(node) ?? -1;
+    if (index < 0) return false;
+    const declaration = resolveSymbol(checker.getSymbolAtLocation(node.parent.typeName))?.declarations?.find(candidate =>
+      ts.isTypeAliasDeclaration(candidate) || ts.isClassDeclaration(candidate) || ts.isInterfaceDeclaration(candidate),
+    );
+    if (!declaration || !('typeParameters' in declaration)) return false;
+    return declaration.typeParameters?.[index]?.name.text === 'Operation';
+  };
+  const isDiagnosticReference = (node: ts.LiteralTypeNode): boolean => {
+    if (!ts.isTypeReferenceNode(node.parent)) return false;
+    return resolveSymbol(checker.getSymbolAtLocation(node.parent.typeName))?.declarations?.some(declaration =>
+      inLibrary(declaration) && ts.isTypeAliasDeclaration(declaration) && declaration.name.text === 'SeeErrors',
+    ) ?? false;
+  };
+  const isKeyReference = (node: ts.LiteralTypeNode): boolean => {
+    const parent = node.parent;
+    if (ts.isIndexedAccessTypeNode(parent) && parent.indexType === node) return true;
+    if (ts.isTypeReferenceNode(parent) && ['Exclude', 'Extract'].includes(parent.typeName.getText()) &&
+      (parent.typeArguments ?? []).some(argument => containsKeyof(argument))) return true;
+    if (ts.isConditionalTypeNode(parent)) {
+      if (parent.checkType === node && containsKeyof(parent.extendsType)) return true;
+      if (parent.extendsType === node && containsKeyof(parent.checkType)) return true;
+    }
+    let ancestor: ts.Node = node;
+    while (ancestor.parent && !ts.isTypeReferenceNode(ancestor.parent) && !ts.isTypeParameterDeclaration(ancestor.parent)) ancestor = ancestor.parent;
+    if (ancestor.parent && ts.isTypeParameterDeclaration(ancestor.parent) && ts.isMappedTypeNode(ancestor.parent.parent) &&
+      ancestor.parent.constraint === ancestor) return true;
+    if (ancestor.parent && ts.isTypeReferenceNode(ancestor.parent)) {
+      const reference = ancestor.parent;
+      const argumentIndex = reference.typeArguments?.indexOf(ancestor as ts.TypeNode) ?? -1;
+      const declaration = resolveSymbol(checker.getSymbolAtLocation(reference.typeName))?.declarations?.find(ts.isTypeAliasDeclaration);
+      const isStandardKeyUtility = declaration !== undefined && ['Pick', 'Omit'].includes(declaration.name.text) &&
+        declaration.getSourceFile().isDeclarationFile && /[/\\]lib\.[^/\\]+\.d\.ts$/.test(declaration.getSourceFile().fileName);
+      if (isStandardKeyUtility && argumentIndex === 1) return true;
+    }
+    return false;
+  };
 
   function visitSymbol(symbol: ts.Symbol | undefined) {
     for (const declaration of resolveSymbol(symbol)?.declarations ?? []) if (inLibrary(declaration)) visitDeclaration(declaration);
@@ -110,6 +156,8 @@ export function collectFindings(root: string): Finding[] {
 
   function visitType(node: ts.Node | undefined, owner: string) {
     if (!node) return;
+    if (ts.isLiteralTypeNode(node) && ts.isStringLiteral(node.literal) &&
+      !isOperationReference(node) && !isDiagnosticReference(node) && !isKeyReference(node)) checkValue(node.literal.text, owner);
     if (ts.isTypeReferenceNode(node)) visitSymbol(checker.getSymbolAtLocation(node.typeName));
     else if (ts.isExpressionWithTypeArguments(node)) visitSymbol(checker.getSymbolAtLocation(node.expression));
     else if (ts.isTypeQueryNode(node)) visitSymbol(checker.getSymbolAtLocation(node.exprName));
@@ -165,7 +213,11 @@ export function collectFindings(root: string): Finding[] {
       if (siblings.some(other => other !== member && ts.isMethodDeclaration(other) && !other.body && plainName(other.name) === name)) return;
     }
     checkName('member', name, where);
-    if (ts.isMethodSignature(member) || ts.isMethodDeclaration(member) || ts.isGetAccessorDeclaration(member)) { visitSignature(member, where); return; }
+    if (ts.isMethodSignature(member) || ts.isMethodDeclaration(member) || ts.isGetAccessorDeclaration(member)) {
+      checkTyped(name, member.type, where);
+      visitSignature(member, where);
+      return;
+    }
     checkTyped(name, member.type, where);
     visitType(member.type, where);
   }
@@ -211,12 +263,27 @@ export function collectFindings(root: string): Finding[] {
     if (callable && !builderPrefix.test(name)) add('builder-method-prefix', name, `Builder.${name}`);
   }
 
-  // Runtime codes live in calls, not in types, so they are read from the source text.
-  for (const file of readdirSync(sourceDirectory).filter(name => name.endsWith('.ts')).sort()) {
-    for (const [, code] of readFileSync(resolve(sourceDirectory, file), 'utf8').matchAll(/'(DI_BAG_[A-Za-z0-9_]*)'/g)) {
-      if (!codePattern.test(code!)) add('value-casing', `code ${code}`, `src/${file}`);
-      if (words(code!.slice('DI_BAG_'.length)).some(word => retiredWords.has(word))) add('retired-word', `code ${code}`, `src/${file}`);
-    }
+  // Runtime codes are string values in source bodies. Parsing keeps comments and other prose silent.
+  const sourceFiles = (directory: string): string[] => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const path = resolve(directory, entry.name);
+    return entry.isDirectory() ? sourceFiles(path) : entry.isFile() && entry.name.endsWith('.ts') ? [path] : [];
+  });
+  for (const file of sourceFiles(sourceDirectory).sort()) {
+    const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
+    const visitCode = (node: ts.Node) => {
+      if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+        const isModuleSpecifier = (ts.isImportDeclaration(node.parent) || ts.isExportDeclaration(node.parent)) && node.parent.moduleSpecifier === node;
+        const isPropertyName = 'name' in node.parent && node.parent.name === node;
+        const code = node.text;
+        if (!isModuleSpecifier && !isPropertyName && code.startsWith('DI_BAG_')) {
+          const where = relative(root, file).split(sep).join('/');
+          if (!codePattern.test(code)) add('value-casing', `code ${code}`, where);
+          if (words(code.slice('DI_BAG_'.length)).some(word => retiredWords.has(word))) add('retired-word', `code ${code}`, where);
+        }
+      }
+      ts.forEachChild(node, visitCode);
+    };
+    visitCode(source);
   }
   return [...findings.values()].sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0));
 }

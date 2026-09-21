@@ -43,15 +43,24 @@ test('the scanner reports every rule on the badly named fixture surface', () => 
   expect(collectFindings(resolve(__dirname, 'fixtures/api-naming')).map(finding => finding.id)).toEqual([
     'abbreviation: parameter ctx',
     'abbreviation: parameter deps',
+    'boolean-name: member available',
     'boolean-name: member enabled',
+    'boolean-name: member enabledNow',
     'builder-method-prefix: contribute',
     'builder-method-prefix: register',
+    'retired-word: code DI_BAG_cleanup_DOUBLE',
     'retired-word: code DI_BAG_startup_BAD',
     'retired-word: export StartupThing',
     'retired-word: member scopeId',
+    "retired-word: value 'cleanup-finished'",
     "retired-word: value 'cleanup-started'",
+    'value-casing: code DI_BAG_cleanup_DOUBLE',
     'value-casing: code DI_BAG_startup_BAD',
+    'value-casing: code DI_BAG_template_BAD',
     "value-casing: value 'camelValue'",
+    "value-casing: value 'nestedGenericValue'",
+    "value-casing: value 'properPayloadValue'",
+    "value-casing: value 'resultValue'",
   ]);
 });
 

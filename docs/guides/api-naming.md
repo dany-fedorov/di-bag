@@ -173,6 +173,15 @@ tagged `@internal` are not public. Names of helper types that are not exported
 from `src/index.ts` are not checked, but their members, parameters and values
 are, because they show up in editor hints and compiler messages.
 
+String literals that name TypeScript structure are identifiers rather than
+public values. The scanner excludes property-key positions (including mapped
+keys and the key arguments of the standard `Pick` and `Omit` helpers), `keyof`
+comparisons, operation labels passed through a type parameter named `Operation`,
+and `SeeErrors` documentation anchors. These literals describe a member,
+operation, or diagnostic link; callers do not pass them as enum-like values.
+Other generic arguments, including nested string values, remain part of the
+checked surface.
+
 | Check | Rule | What fails |
 | --- | --- | --- |
 | `builder-method-prefix` | 3 | A callable public member of `Builder` that does not start with `with`, `build` or `verify` |
