@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "methods": [
+    { "owner": "Builder", "from": "register", "to": "withServices", "arity": [1] },
+    { "owner": "Builder", "from": "contribute", "to": "withCollectionContribution" },
+    { "owner": "Builder", "from": "verifyGraph", "to": "verifyGraphAtCompileTime" },
+    { "owner": "Builder", "from": "build", "to": "buildContainer" },
+    { "owner": "Bag", "from": "inspectGraph", "to": "graphSnapshot" },
+    { "owner": "Bag", "from": "fork", "to": "createIndependentContainer", "arity": [0] },
+    { "owner": "DiBagApi", "from": "fromFactory", "to": "createProvider" }
+  ]
+}

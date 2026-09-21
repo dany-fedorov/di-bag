@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "methods": [
+    { "owner": "Builder", "from": "installModule", "to": "withInstalledModules", "arguments": { "kind": "array" } },
+    { "owner": "Module", "from": "renameExport", "to": "withRenamedExport", "arguments": { "kind": "bag", "names": ["currentExportKey", "newExportKey"] } }
+  ]
+}

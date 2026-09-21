@@ -1,0 +1,14 @@
+[
+  {
+    "line": 5,
+    "reason": "DI_BAG_INVALID_SCOPE was split into DI_BAG_INVALID_ARGUMENT, DI_BAG_UNKNOWN_SERVICE_KEY, DI_BAG_MISSING_REPLACEMENT_PROVIDER and DI_BAG_CONFLICTING_SERVICE_SELECTION; pick by the failure you expect"
+  },
+  {
+    "line": 6,
+    "reason": "DI_BAG_CYCLE appears outside a plain string; replace it with DI_BAG_DEPENDENCY_CYCLE by hand"
+  },
+  {
+    "line": 7,
+    "reason": "DI_BAG_CYCLE appears outside a plain string; replace it with DI_BAG_DEPENDENCY_CYCLE by hand"
+  }
+]

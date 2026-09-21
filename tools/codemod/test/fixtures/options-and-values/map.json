@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "methods": [
+    { "owner": "DiBagApi", "from": "fromFactory", "to": "createProvider" }
+  ],
+  "options": [
+    { "owner": "DiBagApi", "method": "fromFactory", "argument": 1, "from": "acquisitionMode", "to": "factoryReturnKind" },
+    { "owner": "DiBagApi", "method": "withMetadata", "argument": 1, "from": "static", "to": "registrationMetadata" },
+    { "owner": "DiBagApi", "method": "withMetadata", "argument": 1, "path": ["dynamic"], "from": "describe", "to": "describeAcquisition" }
+  ],
+  "values": [
+    { "owner": "DiBagApi", "method": "fromFactory", "argument": 1, "path": ["acquisitionMode"], "from": "raw", "to": "uninspected" },
+    { "owner": "DiBagApi", "method": "fromFactory", "argument": 1, "path": ["acquisitionMode"], "from": "nativePromise", "to": "native-promise" },
+    { "owner": "DiBagApi", "method": "withMetadata", "argument": 1, "path": ["dynamic", "mode"], "from": "direct", "to": "exposed-service" },
+    { "owner": "DiBagApi", "method": "withLifetime", "argument": 1, "from": "root", "to": "singleton:one-per-container-tree" }
+  ]
+}

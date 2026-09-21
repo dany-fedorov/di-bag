@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "codes": [
+    { "from": "DI_BAG_CYCLE", "to": "DI_BAG_DEPENDENCY_CYCLE" },
+    { "from": "DI_BAG_INVALID_SCOPE", "manual": "DI_BAG_INVALID_SCOPE was split into DI_BAG_INVALID_ARGUMENT, DI_BAG_UNKNOWN_SERVICE_KEY, DI_BAG_MISSING_REPLACEMENT_PROVIDER and DI_BAG_CONFLICTING_SERVICE_SELECTION; pick by the failure you expect" }
+  ]
+}

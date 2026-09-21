@@ -1,0 +1,14 @@
+[
+  {
+    "line": 8,
+    "reason": "the value of acquisitionMode is not a string literal; where it is produced, rename 'raw' to 'uninspected', 'nativePromise' to 'native-promise'"
+  },
+  {
+    "line": 9,
+    "reason": "an options object is spread here; rename its keys where that object is built"
+  },
+  {
+    "line": 17,
+    "reason": "argument 2 of withLifetime is not a literal; where it is built, apply: value 'root' to 'singleton:one-per-container-tree'"
+  }
+]
