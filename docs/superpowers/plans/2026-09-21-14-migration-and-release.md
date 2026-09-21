@@ -1071,7 +1071,7 @@ git commit -m "chore(release): 0.5.0"
 
 - [ ] **Step 1: Memory first**
 
-Run `free -g`. Each command below can need up to 17 GB. With less than 18 GB in the `available` column, do not start: report to the controller and go on with Task 10, which does not depend on this page. Never run two of these at once, and never while `npm run check` runs.
+The active heavy-command hold must first be lifted. A single-compiler exception does not authorize these matrices. Run `free -g`. Each command below can need up to 17 GB. With less than 18 GB in the `available` column, do not start: report to the controller and go on with Task 10, which does not depend on this page. Never run two of these at once, and never while `npm run check` runs. Preparing Task 10 while this task is held does not complete Task 9: the required final matrices remain pending and block release completion unless the maintainer explicitly changes that scope.
 
 - [ ] **Step 2: One at a time, in this order**
 
@@ -1169,25 +1169,25 @@ Write `/tmp/di-bag-release-candidate/candidate.txt` with the candidate commit, t
 
 ---
 
-### Task 11: The spec's acceptance list, one command each
+### Task 11: Prove the spec acceptance list on the exact candidate
 
-Every line must hold on the candidate commit. Where a test already proves the item, name the test in the report; do not write a second one.
+Every line must hold on the candidate commit. Read the assertions in the named tests and run them; a search result locates evidence but never proves behavior or a diagnostic location. Record the test name, command, exit status and candidate hash for each row. Reuse existing tests rather than adding duplicates. If a spec-authorized measured fallback was selected, cite its failed criterion and recorded decision, then run the fallback's complete acceptance cases; do not silently mark the preferred shape as passing.
 
 | Spec acceptance item | Proof |
 | --- | --- |
 | The naming test passes with an empty known-violations list | `bun test tests/api-naming.test.ts` and `node -e "console.log(require('./tests/api-naming-known-violations.json').violations.length)"` prints `0` |
-| No token is accepted by both `withTokenService` and `withCollectionContribution`, at compile time and at run time | the negative fixture and the `DI_BAG_WRONG_TOKEN_KIND` tests of phase 4: `grep -rln "DI_BAG_WRONG_TOKEN_KIND" tests` |
-| An independent container replaces a whole collection, and `ensureServicesReady` waits for a collection | phase 4's tests: `grep -rn "createIndependentContainer" tests/contributions*.test.ts` and `grep -rn "ensureServicesReady" tests/contributions*.test.ts` |
-| `withRenamedRequirement` renames a requirement without a wrapper module | phase 7's test file, `grep -rln "withRenamedRequirement" tests/*.test.ts` |
-| A provider without a lifetime is built once per tree; a singleton that depends on a scoped service does not compile; neither does replacing a singleton in a child | phase 10's tests and negative fixtures: `grep -rln "singleton-captures-scoped" tests` |
-| Only the full lifetime values are accepted; `'scoped'` alone is rejected with a message that names `'scoped:one-per-container'` | `grep -rn "scoped:one-per-container" tests/types/negative` |
+| No token is accepted by both `withTokenService` and `withCollectionContribution`, at compile time and at run time | Run `bun test tests/collection-tokens.test.ts` and the candidate compiler lane (`npm run test:compiler`); inspect the single/collection channel rejection assertions and the corresponding `tests/types/negative/collection-tokens.ts` markers |
+| An independent container replaces a whole collection, and `ensureServicesReady` waits for a collection | Run `bun test tests/collection-tokens.test.ts`; inspect whole-list replacement, direct/lazy/alias fresh frozen views, and readiness success/failure cases |
+| `withRenamedRequirement` renames a requirement without a wrapper module | Run `bun test tests/requirement-renaming.test.ts` plus the candidate compiler lane; inspect direct/nested/private-shadow/renamed-requirement fixtures and their exact type errors |
+| A provider without a lifetime is built once per tree; a singleton that depends on a scoped service does not compile; neither does replacing a singleton in a child | Run `bun test tests/singleton-default.test.ts` and the candidate compiler lane; inspect instance-count assertions and capture/child-replacement diagnostic locations. If S8 retained scoped default, run its explicitly recorded replacement-rule and scoped-default fixtures instead and report that measured exception |
+| Only the full lifetime values are accepted; `'scoped'` alone is rejected with a message that names `'scoped:one-per-container'` | Run `bun test tests/provider-methods.test.ts` and the candidate compiler lane; inspect rejection of each short lifetime value and the exact full-value guidance in runtime errors |
 | The codemod turns a 0.4.0 project with child scopes into one whose tests pass unchanged; the 0.4.0 examples type-check against 0.5.0 without hand edits | `npm run codemod:acceptance` |
-| `withInstalledModules` reports an export collision on the list element that causes it, and installs in list order | phase 5's tests: `grep -rn "withInstalledModules" tests/modules*.test.ts tests/types/negative` |
+| `withInstalledModules` reports an export collision on the list element that causes it, and installs in list order | Run `bun test tests/builder-renames.test.ts` and the candidate compiler lane; inspect contribution order and the exact offending list-element diagnostic in `tests/types/negative/installed-modules.ts`. Under S7 fallback, run its sequential-install order/collision cases and report the recorded shape exception |
 | No 0.4.0 name in the rename map compiles, and each throws `DI_BAG_REMOVED_API` at run time | `bun test tests/api-renaming-coverage.test.ts tests/removed-api.test.ts` and `npm run test:compiler` |
 | `npm run check`, `docs:check`, `graph:check`, `check:native`, `check:platform`, `check:react-browser` pass on `next` | Task 10, and CI on the pull request for the two platform lanes |
 | Every API card summary passes the "or" test, and every task in the "one way per task" table names a 0.5.0 call | `npm run docs:check`, which runs `tools/docs/test/api-card-summaries.test.mjs`; and `node -e "for (const t of require('./tools/docs/api-card-tasks.json')) console.log(JSON.stringify(t))"` read against the migration guide's tables |
 
-An item whose `grep` finds nothing is an item no phase tested: write the test now, in the file that phase would have used, and say so in the report.
+If a named test moved or disappeared, find its replacement and inspect its assertions. Missing behavior or location coverage requires a focused test and a new verified candidate commit; a passing filename search, message substring, or empty filtered test run cannot close an item. The compiler lane may run once for all rows on the unchanged candidate; record its shared log instead of repeating it per row.
 
 ---
 
