@@ -1186,10 +1186,11 @@ MSG
 
 ### Task 4: Migrate every call site
 
-The old API still exists, so the codemod can resolve it. First the codemod learns this phase, then it rewrites the typed call sites, then the rest is done by hand. About 80 `buildAndStart` calls live in `tests/`, `examples/` and `tools/`; the guides are not touched.
+The old API still exists, so the codemod can resolve it. First verify the phase-1 codemod already knows this phase, then it rewrites the typed call sites, then the rest is done by hand. About 80 `buildAndStart` calls live in `tests/`, `examples/` and `tools/`; the guides are not touched.
 
 **Files:**
-- Modify: `tools/codemod/rename-map.json`, one fixture pair under `tools/codemod/test/fixtures/`
+- Verify: `tools/codemod/rename-map.json`, `tools/codemod/rename-map.schema.json`, `tools/codemod/lib/rename-map.mjs`, `tools/codemod/lib/rewrite.mjs`, `tools/codemod/lib/transforms/build-and-start.mjs`
+- Create: one fixture pair under `tools/codemod/test/fixtures/`
 - Modify: `tests/startup.test.ts`, `tests/startup-runtime-fixture.ts`, `tests/final-adversarial-runtime-fixture.ts`, `tests/runtime-diagnostics.test.ts`, `tests/acquisition-cleanup.test.ts`, `tests/acquisition-mode.test.ts`, `tests/aliases.test.ts`, `tests/contributions.test.ts`, `tests/enterprise-integration.test.ts`, `tests/nested-modules.test.ts`, `tests/observers.test.ts`, `tests/plugins.test.ts`, `tests/react/runtime-owner.test.ts`, `tests/react/project-runtime.test.ts`, `tests/acquisition-retention.node.mjs`, `tests/runtime-scale.node.mjs`
 - Modify: `examples/scopes.ts`, `examples/react/app-runtime.ts`, `examples/react/project-runtime.ts`, `examples/react/runtime-owner.ts`, `examples/react/bootstrap.tsx`, `examples/react/app.tsx`
 - Modify: `scripts/verify-release-artifacts.ts`
@@ -1223,16 +1224,23 @@ The rules, for the codemod and for your hands alike:
 | property `acquiring` of `CloseProgress` | `acquisitionsStillPending` |
 | `'DI_BAG_STARTUP_FAILED'`, `'DI_BAG_STARTUP_CANCELLED'`, `'DI_BAG_STARTUP_TIMEOUT'` | `'DI_BAG_SERVICE_READINESS_FAILED'`, `'DI_BAG_SERVICE_READINESS_CANCELLED'`, `'DI_BAG_SERVICE_READINESS_TIMEOUT'` |
 
-- [ ] **Step 1: Verify the complete phase-1 map, changing it only if an entry is missing**
+- [ ] **Step 1: Verify the complete phase-1 map and role mechanism**
 
-Phase 1 owns the schema and ships the phase-3 entries in advance. Its file must equal the complete content below on phase entry. Do not append duplicates and do not remove `$schema`, `to` or `argument`. If the phase-1 executor repaired its implementation while preserving this contract, keep the valid phase-1 schema and compare every semantic entry below. Any semantic difference is an entry-check failure to report before continuing.
+Phase 1 owns and has already landed the schema, validator, rewrite engine, build transform, and
+complete phase-3 map entry. Verify that the map equals the complete content below; do not append a
+duplicate and do not remove `$schema`, `to`, `argument`, or `transformNames`. Verify that the
+phase-1 implementation still has closed method-entry validation, includes `transformNames` in
+effective-method conflict comparison, binds the selected entry into `nameForRole(role)`, resolves
+`StartupOptions.signal` and `.timeoutMs` through `api.nameOf`, and resolves the concurrency field
+through `api.nameForRole('concurrency')`. Preserve that implementation unchanged. Any semantic
+difference is an entry-check failure to report before continuing.
 
 ```json
 {
   "$schema": "./rename-map.schema.json",
   "version": 1,
   "methods": [
-    { "owner": "Builder", "from": "buildAndStart", "to": "ensureServicesReady", "transform": "build-and-start" }
+    { "owner": "Builder", "from": "buildAndStart", "to": "ensureServicesReady", "transform": "build-and-start", "transformNames": { "concurrency": "maxConcurrentServiceKeys" } }
   ],
   "options": [
     { "owner": "Bag", "method": "close", "argument": 0, "from": "signal", "to": "abortSignal" },
@@ -1264,7 +1272,9 @@ Phase 1 owns the schema and ships the phase-3 entries in advance. Its file must 
 }
 ```
 
-`StartupOptions.startupOrder` has a manual property entry because a standalone typed object cannot be rewritten safely without its value. The phase-1 `build-and-start` transform handles literal values inside a call, shorthand `signal`, and an emptied bag literal. It intentionally leaves the whole call unchanged for a nonliteral `startupOrder` and emits the manual item above. Do not broaden that behavior in this phase.
+`StartupOptions.startupOrder` has a manual property entry because a standalone typed object cannot be rewritten safely without its value. The `concurrency` role is transform-local metadata, not a declaration owner: `signal` and `timeoutMs` already have real `StartupOptions` property entries, while `startupOrder` has no one-to-one target. The build transform handles literal values inside a call, shorthand `signal`, and an emptied bag literal. It intentionally leaves the whole call unchanged for a nonliteral `startupOrder` and emits the manual item above. Do not broaden that behavior in this phase.
+
+The phase-1 role mechanism is generic transform metadata, not a declaration namespace. This phase only verifies and consumes it; it does not edit the schema, validator, typedef, conflict comparison, transform API, or build transform.
 
 - [ ] **Step 2: Add a fixture that pins this phase**
 

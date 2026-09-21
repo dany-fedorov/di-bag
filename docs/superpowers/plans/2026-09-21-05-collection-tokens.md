@@ -2266,7 +2266,7 @@ Execute this task only when Task 4's decision rule selects it.
 - Create: `tools/codemod/test/fixtures/collection-token-partial/{input.ts,expected.ts,expected-manual.json}`
 
 **Interfaces:**
-- Consumes: phase-1 `api.nameOf`, `api.assemble`, `api.text`, `api.manual`, library-symbol resolution and one original TypeScript program.
+- Consumes: phase-1 `api.nameOf`, `api.nameForRole`, `api.assemble`, `api.text`, `api.manual`, entry-bound custom dispatch, library-symbol resolution and one original TypeScript program.
 - Produces: whole-program token-use classification and safe rewrites; mixed and external/untraceable tokens become manual items.
 
 - [ ] **Step 1: Add the exact map entries**
@@ -2344,22 +2344,35 @@ export const described = bag.inspectAll(importedControllers).length;
 
 - [ ] **Step 3: Extend the transform API by exactly two read-only fields**
 
-The checker already exists in the transform API. Thread the original `program` into `rewriteSourceFile`, and expose both `program` and the existing `library` resolver in that API. These are the complete edits:
+The checker and phase-1 entry-bound `nameForRole` mechanism already exist in the transform API.
+Thread the original `program` into `rewriteSourceFile`, and expose both `program` and the existing
+`library` resolver without dropping that mechanism. These are the complete edits:
 
 ```diff
 -export function rewriteSourceFile({ ts, checker, sourceFile, library, index, transforms, manualItems, fileLabel }) {
 +export function rewriteSourceFile({ ts, checker, program, sourceFile, library, index, transforms, manualItems, fileLabel }) {
 ```
 
-Replace the existing transform API return inside `rewriteSourceFile` with:
+Replace the existing `transformApi` with this complete superset:
 
 ```js
-return {
-  ts, checker, program, library, sourceFile, member,
-  text, slice, start, assemble, objectLiteral, quote, manual,
-  nameOf: index.nameOf,
-};
+function transformApi(member, entry) {
+  return {
+    ts, checker, program, library, sourceFile, member,
+    text, slice, start, assemble, objectLiteral, quote, manual,
+    nameOf: index.nameOf,
+    nameForRole(role) {
+      const value = entry?.transformNames?.[role];
+      if (value === undefined) throw new Error(`transform ${entry?.transform ?? '<unknown>'} has no name for role ${role}`);
+      return value;
+    },
+  };
+}
 ```
+
+Keep the existing custom-transform dispatch exactly
+`transforms[entry.transform](call, transformApi(member, entry))`. This phase adds only `program`
+and `library`; it does not revert the phase-1 entry binding, coverage gate, or role lookup.
 
 In `tools/codemod/lib/codemod.mjs`, replace its call with:
 

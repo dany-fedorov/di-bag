@@ -1337,8 +1337,6 @@ git commit -m "feat!: rename lifecycle observer configuration"
 
 **Files:**
 - Modify: `tools/codemod/rename-map.json`
-- Modify: `tools/codemod/rename-map.schema.json`
-- Modify: `tools/codemod/lib/rewrite.mjs`
 - Create: `tools/codemod/lib/transforms/container-derivation.mjs`
 - Modify: `tools/codemod/lib/transforms/index.mjs`
 - Create: `tools/codemod/test/fixtures/container-renames/input.ts`
@@ -1350,7 +1348,7 @@ git commit -m "feat!: rename lifecycle observer configuration"
 - Modify: older fixture expected files containing phase-6 names
 
 **Interfaces:**
-- Consumes: phase 1's transform API plus this task's optional method-entry `transformNames` and `nameForRole(role)` extension; owner strings always name the 0.4.0 declaration.
+- Consumes: phase 1's optional method-entry `transformNames`, entry-bound `nameForRole(role)`, closed map validation, and effective-method conflict comparison; owner strings always name the 0.4.0 declaration.
 - Produces: one pass that composes type/property/import/method rewrites and reshapes all three `createScope` and both `fork` forms.
 
 - [ ] **Step 1: Add the exact rename-map entries**
@@ -1391,57 +1389,17 @@ Merge these entries into their existing arrays; retain every earlier entry:
 
 Replace the existing `Bag.inspectAll` entry in place; do not append a duplicate. Its phase-4 `collection-read` transform remains, but its target must now be `serviceSnapshot`. The map always spans original0.4 to current0.5; `nameOf` does not transitively follow `inspectAll -> inspect -> serviceSnapshot`.
 
-`CreateIndependentContainerOptions` is new and has no type-map entry. Every `owner` remains an actual 0.4.0 declaration. `transformNames` is method-entry metadata, not a declaration lookup namespace; the transform reads it through the engine API below. `CreateChildContainerOptions` orders its generics as registrations, shared keys, defaulted constraints, replaced keys, replacement providers. The phase-1 type rename therefore preserves every old `ScopeOptions<R, S>` annotation; phase 4's internal three-argument use remains `CreateChildContainerOptions<R, S, C>`.
+`CreateIndependentContainerOptions` is new and has no type-map entry. Every `owner` remains an actual 0.4.0 declaration. `transformNames` is method-entry metadata, not a declaration lookup namespace; the transform reads it through the phase-1 engine API. `CreateChildContainerOptions` orders its generics as registrations, shared keys, defaulted constraints, replaced keys, replacement providers. The phase-1 type rename therefore preserves every old `ScopeOptions<R, S>` annotation; phase 4's internal three-argument use remains `CreateChildContainerOptions<R, S, C>`.
 
-Extend the `methods.items.properties` object in `rename-map.schema.json` with this optional field; retain `additionalProperties: false` on a method entry:
+Do not add another schema field, validator branch, typedef member, transform-API function, or custom
+dispatch edit in this phase. Verify and retain the phase-1 mechanism while extending the shipped
+map: method entries still have `additionalProperties: false`; the runtime method-entry allowlist
+still includes only `owner`, `from`, `to`, `arity`, `arguments`, `transform`, and
+`transformNames`; nonempty string role maps still require a transform; `sameEffectiveMethod`
+still compares `transformNames`; and custom dispatch still calls
+`transformApi(member, entry)` after the coverage and call-plan consistency gates.
 
-```json
-"transformNames": {
-  "type": "object",
-  "minProperties": 1,
-  "additionalProperties": { "type": "string", "minLength": 1 }
-}
-```
-
-Update the `MethodEntry` JSDoc typedef in `lib/rename-map.mjs` with `transformNames?: Record<string, string>`. In `validateRenameMap`'s existing methods loop, immediately after the transform/arguments exclusivity check, add:
-
-```js
-if (entry.transformNames !== undefined) {
-  const names = entry.transformNames;
-  if (entry.transform === undefined) bad('methods', index, 'transformNames requires transform');
-  if (typeof names !== 'object' || names === null || Array.isArray(names)
-      || Object.keys(names).length === 0 || !Object.values(names).every(isString)) {
-    bad('methods', index, 'transformNames must map at least one role to a non-empty string');
-  }
-}
-```
-
-`loadRenameMap` already delegates every accepted-key/value check to `validateRenameMap`; it needs no separate allowlist edit. The JSON schema's method-entry `additionalProperties: false` now recognizes the new key, and the runtime validator above recognizes its value contract.
-
-In `lib/rewrite.mjs`, pass the selected method entry into the transform API and expose one exact role lookup:
-
-```js
-function transformApi(member, entry) {
-  return {
-    ts, checker, program, library, sourceFile, member, text, slice, start, assemble, objectLiteral, quote, manual,
-    nameOf: index.nameOf,
-    nameForRole(role) {
-      const value = entry?.transformNames?.[role];
-      if (value === undefined) throw new Error(`transform ${entry?.transform ?? '<unknown>'} has no name for role ${role}`);
-      return value;
-    },
-  };
-}
-
-// In rewriteCall's existing custom-transform branch:
-const result = transforms[entry.transform](call, transformApi(member, entry));
-```
-
-Replace only this result line in the existing custom-transform branch. Retain the preceding
-`memberCoverage` completeness and call-plan consistency checks, and retain the following
-`result === undefined` skip handling unchanged.
-
-Update the transform-API JSDoc/type description beside this code to include `nameForRole(role)`. Append these exact assertions to `rename-map.test.mjs` and update the shipped-map transform id list in its existing validity test to `['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation']`:
+Append these exact assertions to `rename-map.test.mjs` and update the shipped-map transform id list in its existing validity test to `['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation']`:
 
 ```js
 test('custom-transform role names survive loading the shipped map', () => {
@@ -1449,6 +1407,8 @@ test('custom-transform role names survive loading the shipped map', () => {
     join(packageRoot, 'rename-map.json'),
     ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation'],
   );
+  const buildEntry = loaded.methods.find(method => method.owner === 'Builder' && method.from === 'buildAndStart');
+  assert.deepEqual(buildEntry.transformNames, { concurrency: 'maxConcurrentServiceKeys' });
   const entry = loaded.methods.find(method => method.owner === 'Bag' && method.from === 'createScope');
   assert.deepEqual(entry.transformNames, {
     keys: 'replacedServiceKeys',
@@ -1457,21 +1417,32 @@ test('custom-transform role names survive loading the shipped map', () => {
   });
 });
 
-test('custom-transform role names require a transform and non-empty targets', () => {
-  assert.deepEqual(validateRenameMap({
+test('phase 6 roles retain closed validation and effective-method conflict checks', () => {
+  const base = {
     version: 1,
     methods: [{
       owner: 'Bag', from: 'createScope', to: 'createChildContainer',
-      transformNames: { keys: '' },
+      transform: 'container-derivation',
+      transformNames: { keys: 'replacedServiceKeys' },
     }],
+  };
+  assert.deepEqual(validateRenameMap({
+    ...base,
+    methods: [{ ...base.methods[0], inventedRoleField: true }],
+  }, ['container-derivation']), ['methods[0]: unknown field inventedRoleField']);
+  assert.deepEqual(validateRenameMap({
+    ...base,
+    methods: [
+      base.methods[0],
+      { ...base.methods[0], transformNames: { keys: 'chosenKeys' } },
+    ],
   }, ['container-derivation']), [
-    'methods[0]: transformNames requires transform',
-    'methods[0]: transformNames must map at least one role to a non-empty string',
+    'methods[1]: conflicts with methods[0] for Bag.createScope',
   ]);
 });
 ```
 
-This is a backwards-compatible optional map field; no earlier entry changes.
+Adding the container roles must not drop or overwrite earlier transform metadata.
 
 - [ ] **Step 2: Implement and register `container-derivation`**
 
@@ -1486,7 +1457,7 @@ Export the default transform `containerDerivation(call, api)` and register its i
 | `fork()` | `createIndependentContainer()` |
 | `fork(keys, providers)` | `createIndependentContainer({ replacedServiceKeys: keys, replacementProviders: providers })` |
 
-Use `api.assemble(call, replacements)` so nested phase transforms compose and untouched comments, whitespace, trailing commas, and multiline layout survive. Accept scope options only when it is an object literal containing the sole syntactic key `share` and no spread/computed key. Ask `api.nameOf` for the method and `api.nameForRole` for every emitted field name. Otherwise call `api.manual(call, 'the createScope options are not an object literal; rewrite it to createChildContainer by hand')` and return `undefined`. Spread call arguments are reported by the engine.
+Use `api.assemble(call, replacements)` so nested phase transforms compose and untouched comments, whitespace, trailing commas, and multiline layout survive. Accept scope options only when it is an object literal containing the sole syntactic key `share` and no spread/computed key. Ask `api.nameOf` for the method and `api.nameForRole` for every emitted field name. Render each role target with the transform-local `propertyName` helper printed below; do not extend the shared transform API. Otherwise call `api.manual(call, 'the createScope options are not an object literal; rewrite it to createChildContainer by hand')` and return `undefined`. Spread call arguments are reported by the engine.
 
 Under the S3 fallback, emit `createChildContainer(keys, providers, { sharedParentServiceKeys: share })` and `createIndependentContainer(keys, providers)`; zero-argument and share-only output remains unchanged.
 
@@ -1513,6 +1484,9 @@ Create `tools/codemod/lib/transforms/container-derivation.mjs` with this complet
 
 ```js
 // tools/codemod/lib/transforms/container-derivation.mjs
+const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+const propertyName = name => IDENTIFIER.test(name) ? name : JSON.stringify(name);
+
 function methodReplacement(call, api) {
   const name = call.expression.name;
   return { start: api.start(name), end: name.end, text: api.nameOf('Bag', name.text) };
@@ -1520,11 +1494,11 @@ function methodReplacement(call, api) {
 
 function fieldNames(oldName, api) {
   const names = {
-    keys: api.nameForRole('keys'),
-    providers: api.nameForRole('providers'),
+    keys: propertyName(api.nameForRole('keys')),
+    providers: propertyName(api.nameForRole('providers')),
   };
   return oldName === 'createScope'
-    ? { ...names, shared: api.nameForRole('sharing') }
+    ? { ...names, shared: propertyName(api.nameForRole('sharing')) }
     : names;
 }
 
@@ -1685,10 +1659,10 @@ For the shown input, create this exact `expected-manual.json` (line 14 is the `m
 
 If formatting changes the fixture line, use the actual 1-based line printed by `nl -ba input.ts`; the reason string is exact. The harness uses deep equality on literal `{ line, reason }` objects; it does not accept patterns.
 
-In `tools/codemod/test/transforms.test.mjs`, update the pinned registry keys to `['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation']`. Add a test through the real `runCodemod` helper and vendored 0.4.0 declarations, using the fixture's exact `root.createScope(keys /* k */, replacements /* p */, { share: ['b'], })` call and an alternate method entry whose `to` is `spawnChild` and whose `transformNames` targets are `chosenKeys`, `providerMap`, and `parentKeys`. The exact transformed line is:
+In `tools/codemod/test/transforms.test.mjs`, update the pinned registry keys to `['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation']`. Add a test through the real `runCodemod` helper and vendored 0.4.0 declarations, using the fixture's exact `root.createScope(keys /* k */, replacements /* p */, { share: ['b'], })` call and an alternate method entry whose `to` is `spawnChild` and whose `transformNames` targets are `chosen-keys`, `providerMap`, and `parentKeys`. The non-identifier first target proves safe role rendering. The exact transformed line is:
 
 ```ts
-export const child3 = root.spawnChild({ chosenKeys: keys /* k */, providerMap: replacements /* p */, parentKeys: ['b'], });
+export const child3 = root.spawnChild({ "chosen-keys": keys /* k */, providerMap: replacements /* p */, parentKeys: ['b'], });
 ```
 
 Use the original-program checker path; do not invoke `containerDerivation` directly and do not mock `assemble`. Append this complete test, adding `runCodemod`, `defaultMapFile`, `readFileSync`, `fixturesRoot`, and `fixturesProgram` to the file's existing imports where absent:
@@ -1702,7 +1676,7 @@ test('container derivation uses mapped role names and preserves three-argument t
       ? {
           ...entry,
           to: 'spawnChild',
-          transformNames: { keys: 'chosenKeys', providers: 'providerMap', sharing: 'parentKeys' },
+          transformNames: { keys: 'chosen-keys', providers: 'providerMap', sharing: 'parentKeys' },
         }
       : entry),
   };
@@ -1714,7 +1688,7 @@ test('container derivation uses mapped role names and preserves three-argument t
   };
   const alternateResult = runCodemod({ ...common, map: alternate });
   assert.match(alternateResult.files[0].text,
-    /export const child3 = root\.spawnChild\(\{ chosenKeys: keys \/\* k \*\/, providerMap: replacements \/\* p \*\/, parentKeys: \['b'\], \}\);/);
+    /export const child3 = root\.spawnChild\(\{ "chosen-keys": keys \/\* k \*\/, providerMap: replacements \/\* p \*\/, parentKeys: \['b'\], \}\);/);
   const shippedResult = runCodemod({ ...common, map: shipped });
   assert.match(shippedResult.files[0].text,
     /export const child3 = root\.createChildContainer\(\{ replacedServiceKeys: keys \/\* k \*\/, replacementProviders: replacements \/\* p \*\/, sharedParentServiceKeys: \['b'\], \}\);/);
