@@ -38,7 +38,7 @@ manual src/app.ts:41:52 startupOrder is not a literal; use maxConcurrentServiceK
 | `--write` | Write the rewritten files. Without it nothing changes on disk. |
 | `--report <file>` | Write the changed files and complete manual items as JSON. |
 | `--extra-files <glob>` | Add files the tsconfig excludes. Repeatable. `*`, `**`, and `?` are supported. |
-| `--library-root <dir>` | Treat declarations under this checked-out directory as DI Bag. Repeatable. Installed `node_modules/di-bag` declarations are recognized automatically. |
+| `--library-root <dir>` | Treat declarations under this directory as DI Bag. Repeatable. Without this option, installed `node_modules/di-bag` declarations are recognized automatically; when supplied, only the listed roots count. |
 | `--map <file>` | Use a rename map other than the one in this package. |
 | `--help`, `-h` | Print command usage. |
 
