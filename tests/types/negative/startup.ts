@@ -50,7 +50,7 @@ DiBag.fromFactory((_deps: {}, factoryCtx) => {
   factoryCtx.signal = new AbortController().signal;
   // diagnostic: Property 'abort' does not exist on type 'AcquisitionContext'
   factoryCtx.abort();
-  // diagnostic: Argument of type 'number' is not assignable to parameter of type '(this: void, disposerCtx: DisposerContext) => void | Promise<void>'
+  // diagnostic: Argument of type 'number' is not assignable to parameter of type '(this: void, disposerContext: DisposerContext) => void | Promise<void>'
   factoryCtx.pushDisposer(1);
   // diagnostic: Target signature provides too few arguments. Expected 2 or more, but got 1.
   factoryCtx.pushDisposer((_disposerCtx: DisposerContext, extra: number) => extra);

@@ -2,9 +2,9 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / Module
 
-# Interface: Module\<P *extends* `object`, R *extends* `object`, C *extends* `NeedConstraint` = `never`, D *extends* `Registrations` = `PublicRegistrations`\<`P`\>\>
+# Interface: Module\<ExportedServices *extends* `object`, RequiredServices *extends* `object`, Constraints *extends* `NeedConstraint` = `never`, PublicProviders *extends* `Registrations` = `PublicRegistrations`\<`ExportedServices`\>\>
 
-Defined in: [module.ts:37](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L37)
+Defined in: [module.ts:41](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L41)
 
 A sealed, non-resolving module with private registrations and selected public exports.
 Create modules through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) and [Builder.buildModule](Builder.md#buildmodule); this
@@ -18,20 +18,20 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#reuse-named-modules
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `P` | - |
-| `R` | - |
-| `C` | - |
-| `D` | - |
+| `ExportedServices` | The services this module exports, keyed by export name or token symbol. |
+| `RequiredServices` | The services the installing builder must provide. |
+| `Constraints` | The checks retained from the sealed graph and applied again at installation. |
+| `PublicProviders` | The provider contract of each export, as the installing builder sees it. |
 
 ## Methods
 
 ### renameExport()
 
 ```ts
-renameExport<const Old extends string, const New extends string>(oldKey: Old & RenameKeys<P, Old, New>, newKey: New & RenameKeys<P, Old, New>): Module<Renamed<P, Old, New>, R, RenamedConstraints<C, Old, New>, RenamedProviders<D, Old, New>>;
+renameExport<const Old extends string, const New extends string>(oldKey: Old & RenameKeys<ExportedServices, Old, New>, newKey: New & RenameKeys<ExportedServices, Old, New>): Module<Renamed<ExportedServices, Old, New>, RequiredServices, RenamedConstraints<Constraints, Old, New>, RenamedProviders<PublicProviders, Old, New>>;
 ```
 
-Defined in: [module.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L56)
+Defined in: [module.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L60)
 
 Return a module view with one string-named export renamed.
 Factory dependency names and private identities remain unchanged.

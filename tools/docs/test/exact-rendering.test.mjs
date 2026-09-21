@@ -18,6 +18,13 @@ let fromPlugin;
 let tokenKey;
 let runtimeOptions;
 let startupError;
+let acquisitionContext;
+let contextualFactory;
+let pluginOutputValidator;
+let provider;
+let builder;
+let moduleInterface;
+let token;
 try {
   process.chdir(directory);
   const app = await Application.bootstrapWithPlugins({ options: resolve(directory, 'typedoc.json') });
@@ -34,6 +41,13 @@ try {
   tokenKey = readFileSync(join(output, 'index/type-aliases/TokenKey.md'), 'utf8');
   runtimeOptions = readFileSync(join(output, 'index/interfaces/RuntimeOptions.md'), 'utf8');
   startupError = readFileSync(join(output, 'index/classes/DiBagStartupError.md'), 'utf8');
+  acquisitionContext = readFileSync(join(output, 'index/interfaces/AcquisitionContext.md'), 'utf8');
+  contextualFactory = readFileSync(join(output, 'index/type-aliases/ContextualFactory.md'), 'utf8');
+  pluginOutputValidator = readFileSync(join(output, 'index/type-aliases/PluginOutputValidator.md'), 'utf8');
+  provider = readFileSync(join(output, 'index/interfaces/Provider.md'), 'utf8');
+  builder = readFileSync(join(output, 'index/interfaces/Builder.md'), 'utf8');
+  moduleInterface = readFileSync(join(output, 'index/interfaces/Module.md'), 'utf8');
+  token = readFileSync(join(output, 'index/interfaces/Token.md'), 'utf8');
 } catch (error) {
   rmSync(temporary, { recursive: true, force: true });
   throw error;
@@ -51,7 +65,7 @@ test('compiler declarations retain syntax that TypeDoc reflections cannot repres
   assert.match(facadeText, /fromClass: <const T extends readonly DependencyReference\[\], C extends new \(/);
   assert.match(facadeText, /M extends AcquisitionMode = 'auto'>/);
   assert.match(facadeText, /callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, \.\.\.options: FactoryOptions<M>/);
-  assert.match(bagText, /inspect<K extends \(keyof R & string\) \| TokenBase>\(token: K & \(\[K\] extends \[string\] \? unknown : TokenMember<R, K>\)\)/);
+  assert.match(bagText, /inspect<K extends \(keyof ServiceRegistrations & string\) \| TokenBase>\(token: K & \(\[K\] extends \[string\] \? unknown : TokenMember<ServiceRegistrations, K>\)\)/);
   assert.match(bagText, /createScope<const S extends readonly unknown\[\]>/);
 });
 
@@ -64,7 +78,7 @@ test('canonical signatures are followed by comment-only parameter details', () =
 
 test('source declarations preserve aliases and property modifiers exactly', () => {
   assert.match(compact(tokenKey), /type TokenKey<T> = T extends infer U & \{\} \? U extends Token<infer K, infer _S> \? K : never : never;/);
-  assert.match(runtimeOptions, /readonly isNativePromise: \(this: void, value: unknown\) => boolean;/);
+  assert.match(runtimeOptions, /readonly isNativePromise: \(this: void, candidate: unknown\) => boolean;/);
   assert.match(startupError, /readonly cleanupError\?: unknown;/);
   assert.doesNotMatch(startupError, /readonly optional/);
   const builderContribute = readFileSync(join(output, 'index/type-aliases/BuilderContribute.md'), 'utf8');
@@ -75,4 +89,32 @@ test('source declarations preserve aliases and property modifiers exactly', () =
 test('plugin factory is a callable type alias rather than a type-only function export', () => {
   assert.match(fromPlugin, /^# Type Alias: PluginProviderFactory$/m);
   assert.match(compact(fromPlugin), /type PluginProviderFactory = <const T extends readonly DependencyReference\[\], V, M extends PluginAcquisitionMode>/);
+});
+
+test('documented parameter names carry no abbreviations', () => {
+  assert.match(acquisitionContext, /pushDisposer\(this: void, disposer: \(this: void, disposerContext: DisposerContext\) => void \| Promise<void>\): void;/);
+  assert.match(compact(contextualFactory), /\(this: void, dependencies: Parameters<F> extends \[\] \? \{\s?\} : Parameters<F>\[0\]\) => ReturnType<F>;/);
+  for (const page of [facade, bag, builder, acquisitionContext, contextualFactory]) assert.doesNotMatch(page, /\b(?:factoryCtx|disposerCtx|deps)\b/);
+});
+
+test('callback parameters in public signatures are named by role', () => {
+  const facadeText = compact(facade);
+  assert.match(facadeText, /dispose: \(this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>\) => void \| Promise<void>/);
+  assert.match(facadeText, /dispose: \(this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>\) => void \| Promise<void>/);
+  assert.match(facadeText, /P extends \(this: void, exposedService: ProviderOutput<NoInfer<R>>\) =>/);
+  assert.match(facadeText, /P extends \(this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>\) =>/);
+  assert.doesNotMatch(facadeText, /\(this: void, value:/);
+  assert.match(pluginOutputValidator, /type PluginOutputValidator<V> = \(this: void, pluginOutput: unknown\) => pluginOutput is V;/);
+});
+
+test('exported classes name their type parameters by role', () => {
+  assert.match(bag, /^# Interface: Bag\\<ServiceRegistrations \*extends\* `Registrations`, Constraints \*extends\* `NeedConstraint` = `never`\\>$/m);
+  assert.match(builder, /^# Interface: Builder\\<Entries \*extends\* `Entry`, Constraints \*extends\* `NeedConstraint` = `never`\\>$/m);
+  assert.match(moduleInterface, /^# Interface: Module\\<ExportedServices \*extends\* `object`, RequiredServices \*extends\* `object`, Constraints \*extends\* /m);
+  assert.match(provider, /^# Interface: Provider\\<ExposedFactory \*extends\* `Factory`, RegistrationMetadata \*extends\* /m);
+  assert.match(token, /^# Interface: Token\\<TokenSymbol \*extends\* `symbol`, Service\\>$/m);
+  assert.match(bag, /\| `ServiceRegistrations` \| The map from each public service name or token symbol to its registration\. \|/);
+  assert.match(builder, /\| `Entries` \| The union of accepted registration entries, one per public key\. \|/);
+  assert.match(moduleInterface, /\| `RequiredServices` \| The services the installing builder must provide\. \|/);
+  assert.match(token, /\| `TokenSymbol` \| The unique symbol that is this token's runtime identity\. \|/);
 });

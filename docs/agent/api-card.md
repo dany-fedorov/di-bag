@@ -94,7 +94,7 @@ Validate an unknown plugin descriptor now and its acquired output at acquisition
 declare const descriptor: unknown;
 const greeter = DiBag.fromPlugin([], descriptor, {
   acquisitionMode: 'raw',
-  validate: (value): value is () => string => typeof value === 'function',
+  validate: (pluginOutput): pluginOutput is () => string => typeof pluginOutput === 'function',
 });
 ```
 
@@ -225,7 +225,7 @@ const bag = await DiBag.createBuilder()
 ## Bag {#bag}
 
 ### `bag.resolve(token)` {#bag-resolve}
-Resolve a named or typed-token service, acquiring it lazily when needed. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_MISSING_REGISTRATION`](errors.md#di-bag-missing-registration), [`DI_BAG_MISSING_DEPENDENCY`](errors.md#di-bag-missing-dependency), [`DI_BAG_CYCLE`](errors.md#di-bag-cycle), [`DI_BAG_LIFETIME_DEPENDENCY`](errors.md#di-bag-lifetime-dependency), [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](errors.md#di-bag-invalid-dependency-access), [`DI_BAG_STRUCTURAL_THENABLE`](errors.md#di-bag-structural-thenable), [`DI_BAG_INVALID_CLASSIFIER_RESULT`](errors.md#di-bag-invalid-classifier-result), [`DI_BAG_INVALID_METADATA`](errors.md#di-bag-invalid-metadata), [`DI_BAG_PLUGIN_VALIDATION`](errors.md#di-bag-plugin-validation).
+Resolve a registered service, acquiring it lazily when needed. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_MISSING_REGISTRATION`](errors.md#di-bag-missing-registration), [`DI_BAG_MISSING_DEPENDENCY`](errors.md#di-bag-missing-dependency), [`DI_BAG_CYCLE`](errors.md#di-bag-cycle), [`DI_BAG_LIFETIME_DEPENDENCY`](errors.md#di-bag-lifetime-dependency), [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](errors.md#di-bag-invalid-dependency-access), [`DI_BAG_STRUCTURAL_THENABLE`](errors.md#di-bag-structural-thenable), [`DI_BAG_INVALID_CLASSIFIER_RESULT`](errors.md#di-bag-invalid-classifier-result), [`DI_BAG_INVALID_METADATA`](errors.md#di-bag-invalid-metadata), [`DI_BAG_PLUGIN_VALIDATION`](errors.md#di-bag-plugin-validation).
 ```ts
 const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
 const greeting: string = bag.resolve('greeting');
@@ -296,7 +296,7 @@ A plugin descriptor or its acquired output failed validation at the checked plug
 import { DiBag, DiBagPluginValidationError } from 'di-bag';
 
 try {
-  DiBag.fromPlugin([], { apiVersion: 2 }, { acquisitionMode: 'raw', validate: (value): value is string => typeof value === 'string' });
+  DiBag.fromPlugin([], { apiVersion: 2 }, { acquisitionMode: 'raw', validate: (pluginOutput): pluginOutput is string => typeof pluginOutput === 'string' });
 } catch (error) {
   if (error instanceof DiBagPluginValidationError) console.error(error.phase, error.reason);
 }

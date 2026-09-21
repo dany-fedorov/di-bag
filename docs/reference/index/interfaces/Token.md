@@ -2,9 +2,9 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / Token
 
-# Interface: Token\<K *extends* `symbol`, S\>
+# Interface: Token\<TokenSymbol *extends* `symbol`, Service\>
 
-Defined in: [tokens.ts:18](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L18)
+Defined in: [tokens.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L20)
 
 An immutable typed-token handle pairing a canonical symbol with an invariant service contract.
 Create one with `DiBag.token(key).of<Service>()`.
@@ -21,15 +21,15 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `K` | - |
-| `S` | - |
+| `TokenSymbol` | The unique symbol that is this token's runtime identity. |
+| `Service` | The service type that bindings must produce and that resolution returns. |
 
 ## Properties
 
 ### key
 
 ```ts
-readonly key: K;
+readonly key: TokenSymbol;
 ```
 
-Defined in: [tokens.ts:21](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L21)
+Defined in: [tokens.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L23)

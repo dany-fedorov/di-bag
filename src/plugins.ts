@@ -17,7 +17,7 @@ export type PluginAcquisitionMode = 'raw' | 'nativePromise';
  * A synchronous predicate that admits an unknown plugin output as a service type.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
  */
-export type PluginOutputValidator<V> = (this: void, value: unknown) => value is V;
+export type PluginOutputValidator<V> = (this: void, pluginOutput: unknown) => pluginOutput is V;
 /**
  * Validation and acquisition choices for {@link DiBagApi.fromPlugin}.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
@@ -96,10 +96,10 @@ function createPluginProvider<const T extends readonly DependencyReference[], V,
   const references = snapshotReferences(dependencies);
   const selected = validateOptions<V>(options);
   const descriptor = validateDescriptor(plugin);
-  const create: Factory = (deps: Record<symbol, unknown>) => Reflect.apply(
+  const create: Factory = (dependencyProxy: Record<symbol, unknown>) => Reflect.apply(
     descriptor.create,
     undefined,
-    references.map(reference => Reflect.get(deps, reference.slot)),
+    references.map(reference => Reflect.get(dependencyProxy, reference.slot)),
   );
   const dispose = descriptor.dispose === undefined ? undefined : (value: never) =>
     Reflect.apply(descriptor.dispose!, undefined, [value]);

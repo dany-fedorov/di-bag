@@ -1,9 +1,6 @@
 {
   "note": "Known violations of docs/guides/api-naming.md. This list can only shrink and must be empty after phase 11 of the Swift API style program. Shrink it with UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts",
   "violations": [
-    "abbreviation: parameter deps",
-    "abbreviation: parameter disposerCtx",
-    "abbreviation: parameter factoryCtx",
     "boolean-name: member allowScopedDependencies",
     "boolean-name: member owned",
     "boolean-name: member present",

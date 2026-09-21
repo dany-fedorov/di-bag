@@ -355,16 +355,16 @@ export type OverrideFactoryContext<
   [P in Extract<SelectionKey<K[number]>, keyof R>]:
     | ((
         this: void,
-        deps: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>,
+        dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>,
       ) => ServicesOf<R>[P])
     | FactoryWithDisposal<
         (
           this: void,
-          deps: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>,
+          dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>,
         ) => ServicesOf<R>[P]
       >
     | ProviderContext<
-        (this: void, deps: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P],
+        (this: void, dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P],
         P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract
       >;
 };

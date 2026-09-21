@@ -6,7 +6,7 @@
 
 ```ts
 type OverrideFactoryContext<R extends Registrations, K extends readonly unknown[], O> = {
-    [P in Extract<SelectionKey<K[number]>, keyof R>]: ((this: void, deps: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P]) | FactoryWithDisposal<(this: void, deps: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P]> | ProviderContext<(this: void, deps: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P], P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract>;
+    [P in Extract<SelectionKey<K[number]>, keyof R>]: ((this: void, dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P]) | FactoryWithDisposal<(this: void, dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P]> | ProviderContext<(this: void, dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P], P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract>;
 };
 ```
 

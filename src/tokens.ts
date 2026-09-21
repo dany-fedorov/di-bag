@@ -13,12 +13,14 @@ class TokenBase {
 /**
  * An immutable typed-token handle pairing a canonical symbol with an invariant service contract.
  * Create one with `DiBag.token(key).of<Service>()`.
+ * @typeParam TokenSymbol - The unique symbol that is this token's runtime identity.
+ * @typeParam Service - The service type that bindings must produce and that resolution returns.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
  */
-class Token<K extends symbol, S> extends TokenBase {
+class Token<TokenSymbol extends symbol, Service> extends TokenBase {
   /** @internal */
-  declare readonly [tokenInvariant]: (value: [K, S]) => [K, S];
-  constructor(readonly key: K) { super(); }
+  declare readonly [tokenInvariant]: (value: [TokenSymbol, Service]) => [TokenSymbol, Service];
+  constructor(readonly key: TokenSymbol) { super(); }
 }
 
 /**

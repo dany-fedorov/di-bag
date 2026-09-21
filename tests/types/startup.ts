@@ -42,7 +42,7 @@ export type Contracts = [
   Assert<Equal<ProviderOutput<typeof native>, Promise<{ signal: AbortSignal; value: 1 }>>>,
   Assert<Equal<ProviderOutput<typeof noDeps>, 7>>,
   Assert<Equal<AcquisitionContext['signal'], AbortSignal>>,
-  Assert<Equal<Parameters<AcquisitionContext['pushDisposer']>, [disposer: (this: void, disposerCtx: DisposerContext) => void | Promise<void>]>>,
+  Assert<Equal<Parameters<AcquisitionContext['pushDisposer']>, [disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>]>>,
   Assert<Equal<ReturnType<AcquisitionContext['pushDisposer']>, void>>,
   Assert<Equal<DisposerContext['reason'], 'factory-failed' | 'no-service-disposer' | 'service-disposed' | 'service-disposal-failed'>>,
   Assert<Equal<ProviderOutput<typeof pushed>, 'owned'>>,

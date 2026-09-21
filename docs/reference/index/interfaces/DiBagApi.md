@@ -4,7 +4,7 @@
 
 # Interface: DiBagApi
 
-Defined in: [di-bag.ts:607](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L607)
+Defined in: [di-bag.ts:611](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L611)
 
 The immutable public entry surface used by [DiBag](../variables/DiBag.md) and derived facades.
 
@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#dibag-facade
 all: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => CollectionDependency<T>;
 ```
 
-Defined in: [di-bag.ts:695](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L695)
+Defined in: [di-bag.ts:699](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L699)
 
 Create a positional dependency containing every contribution to a collection token, in order.
 
@@ -63,7 +63,7 @@ const menu = DiBag.fromFunction([DiBag.all(tools)], names => names.join(', '));
 createBuilder: () => Builder<never>;
 ```
 
-Defined in: [di-bag.ts:741](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L741)
+Defined in: [di-bag.ts:745](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L745)
 
 Begin an empty immutable graph; `build` creates its owning bag, `buildModule` seals a reusable module.
 
@@ -79,12 +79,12 @@ const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
 
 ```ts
 fromAsyncFactory: {
-    <F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
+    <F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
     <F extends Factory>(callback: F & AsyncOutput<ReturnType<NoInfer<F>>>, options?: PortableFactoryOptions): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
 };
 ```
 
-Defined in: [di-bag.ts:652](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L652)
+Defined in: [di-bag.ts:656](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L656)
 
 Describe an asynchronous factory that runs on every host: the service is the returned native Promise and `withDisposal` receives its fulfilled value.
 A non-Promise output is rejected at compile time; a thenable that is not a native Promise fails the acquisition with a `TypeError`.
@@ -92,7 +92,7 @@ A non-Promise output is rejected at compile time; a thenable that is not a nativ
 #### Call Signature
 
 ```ts
-<F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
+<F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
 ```
 
 Describe an asynchronous named-dependency factory that runs on every host: a `nativePromise`
@@ -163,7 +163,7 @@ const db = DiBag.withDisposal(
 fromClass: <const T extends readonly DependencyReference[], C extends new (...args: TokenArguments<NoInfer<T>>) => unknown, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>> & AutoOutput<InstanceType<NoInfer<C>>, NoInfer<M>>, ...modeOptions: StageOptions<M>) => Provider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>>;
 ```
 
-Defined in: [di-bag.ts:733](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L733)
+Defined in: [di-bag.ts:737](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L737)
 
 Adapt a class whose constructor parameters receive the listed tokens' services.
 
@@ -212,14 +212,14 @@ const greeter = DiBag.fromClass([DiBag.token(greetingKey).of<string>()], Greeter
 
 ```ts
 fromFactory: {
-    <F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, options: {
+    <F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, options: {
         readonly context: 'acquisition';
     } & ModeOptions<M>): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
     <F extends Factory, M extends AcquisitionMode = 'auto'>(callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...options: FactoryOptions<M>): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
 };
 ```
 
-Defined in: [di-bag.ts:629](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L629)
+Defined in: [di-bag.ts:633](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L633)
 
 Describe a named-dependency factory with an explicit acquisition mode or the acquisition's abort signal.
 A factory that returns a non-Promise object with a `then` method needs `acquisitionMode: 'raw'` or must return `Promise.resolve(value)`.
@@ -227,7 +227,7 @@ A factory that returns a non-Promise object with a `then` method needs `acquisit
 #### Call Signature
 
 ```ts
-<F extends (this: void, deps: never, factoryCtx: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, options: {
+<F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, options: {
     readonly context: 'acquisition';
 } & ModeOptions<M>): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
 ```
@@ -302,7 +302,7 @@ fromFunction: {
 };
 ```
 
-Defined in: [di-bag.ts:721](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L721)
+Defined in: [di-bag.ts:725](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L725)
 
 Adapt a positional function whose parameters receive the listed tokens' services.
 
@@ -383,7 +383,7 @@ const stamp = DiBag.fromFunction([clock], source => new Date(source.now()).toISO
 fromPlugin: PluginProviderFactory;
 ```
 
-Defined in: [di-bag.ts:709](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L709)
+Defined in: [di-bag.ts:713](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L713)
 
 Validate an unknown plugin descriptor now and its acquired output at acquisition.
 
@@ -398,7 +398,7 @@ Validate an unknown plugin descriptor now and its acquired output at acquisition
 declare const descriptor: unknown;
 const greeter = DiBag.fromPlugin([], descriptor, {
   acquisitionMode: 'raw',
-  validate: (value): value is () => string => typeof value === 'function',
+  validate: (pluginOutput): pluginOutput is () => string => typeof pluginOutput === 'function',
 });
 ```
 
@@ -413,7 +413,7 @@ fromSyncFactory: {
 };
 ```
 
-Defined in: [di-bag.ts:639](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L639)
+Defined in: [di-bag.ts:643](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L643)
 
 Describe a synchronous factory that runs on every host: the exact return value is the service and `then` is never read.
 A Promise or thenable output is rejected at compile time; use `fromAsyncFactory`, or `fromFactory` with `acquisitionMode: 'raw'` when the Promise object itself is the service.
@@ -489,7 +489,7 @@ const config = DiBag.fromSyncFactory(() => ({ url: 'memory:' }));
 lazy: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => LazyDependency<T>;
 ```
 
-Defined in: [di-bag.ts:684](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L684)
+Defined in: [di-bag.ts:688](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L688)
 
 Create a positional dependency supplied as a function that resolves the token when called.
 
@@ -533,7 +533,7 @@ const stamp = DiBag.fromFunction([DiBag.lazy(clock)], getClock => () => getClock
 optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalDependency<T>;
 ```
 
-Defined in: [di-bag.ts:673](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L673)
+Defined in: [di-bag.ts:677](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L677)
 
 Create a positional dependency that yields `undefined` only when the token is unregistered.
 
@@ -579,7 +579,7 @@ token: <const K extends symbol>(key: K & TokenKeyAdmission<K>, ...invalid: [K] e
 };
 ```
 
-Defined in: [di-bag.ts:662](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L662)
+Defined in: [di-bag.ts:666](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L666)
 
 Create a typed token from a unique symbol; `.of<Service>()` fixes its service type.
 
@@ -628,11 +628,11 @@ const clock = DiBag.token(clockKey).of<{ now(): number }>();
 
 ```ts
 transformService: {
-    <R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, options: {
         readonly mode: 'direct';
         readonly transform: P;
     } & ModeOptions<M>): Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, Acquired<ReturnType<P>, M>>;
-    <R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, options: {
         readonly mode: 'awaited';
         readonly transform: P;
         readonly acquisitionMode?: never;
@@ -640,14 +640,14 @@ transformService: {
 };
 ```
 
-Defined in: [di-bag.ts:786](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L786)
+Defined in: [di-bag.ts:790](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L790)
 
 Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership.
 
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, options: {
     readonly mode: 'direct';
     readonly transform: P;
 } & ModeOptions<M>): Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, Acquired<ReturnType<P>, M>>;
@@ -678,7 +678,7 @@ A provider exposing the callback's exact result, with the selected output acquis
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, options: {
     readonly mode: 'awaited';
     readonly transform: P;
     readonly acquisitionMode?: never;
@@ -725,7 +725,7 @@ const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform:
 withConfiguration: (options: ConfigurationOptions) => DiBagApi;
 ```
 
-Defined in: [di-bag.ts:618](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L618)
+Defined in: [di-bag.ts:622](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L622)
 
 Return a facade with inherited runtime settings and appended observers.
 
@@ -753,12 +753,12 @@ const Observed = DiBag.withConfiguration({
 
 ```ts
 withDisposal: {
-    <F extends Factory>(create: F, dispose: (this: void, value: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>): FactoryWithDisposal<F>;
-    <R extends Registration>(provider: R & Registration, dispose: (this: void, value: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
+    <F extends Factory>(create: F, dispose: (this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>): FactoryWithDisposal<F>;
+    <R extends Registration>(provider: R & Registration, dispose: (this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
 };
 ```
 
-Defined in: [di-bag.ts:754](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L754)
+Defined in: [di-bag.ts:758](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L758)
 
 Make the bag own a factory's value and run `dispose` on it when the bag closes.
 `close()` runs disposers, dependents first; close every scope and fork you create.
@@ -766,7 +766,7 @@ Make the bag own a factory's value and run `dispose` on it when the bag closes.
 #### Call Signature
 
 ```ts
-<F extends Factory>(create: F, dispose: (this: void, value: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>): FactoryWithDisposal<F>;
+<F extends Factory>(create: F, dispose: (this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>): FactoryWithDisposal<F>;
 ```
 
 Declare that each acquiring bag owns a factory's fulfilled value.
@@ -792,7 +792,7 @@ A nominal disposable registration preserving the factory's exact output.
 #### Call Signature
 
 ```ts
-<R extends Registration>(provider: R & Registration, dispose: (this: void, value: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
+<R extends Registration>(provider: R & Registration, dispose: (this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
 ```
 
 Add an ownership stage to an existing registration.
@@ -839,7 +839,7 @@ withLifetime: {
 };
 ```
 
-Defined in: [di-bag.ts:766](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L766)
+Defined in: [di-bag.ts:770](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L770)
 
 Select `root`, `scoped` (the default), or `transient` caching for a registration.
 Mark a shared client `root` only when nothing it depends on is scoped.
@@ -922,28 +922,28 @@ withMetadata: {
         readonly static: M & MetadataKeys<NoInfer<R>, M>;
         readonly dynamic?: never;
     }): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & M>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-    <R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
         readonly static: M & MetadataKeys<NoInfer<R>, M>;
         readonly dynamic: {
             readonly mode: 'direct';
             readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
         };
     }): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & M>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-    <R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
         readonly static?: M & MetadataKeys<NoInfer<R>, M>;
         readonly dynamic: {
             readonly mode: 'direct';
             readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
         };
     }): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & Partial<M>>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-    <R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
         readonly static: M & MetadataKeys<NoInfer<R>, M>;
         readonly dynamic: {
             readonly mode: 'awaited';
             readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
         };
     }): Provider<MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, Readonly<RetainedMetadata<R> & M>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, Awaited<ProviderOutput<R>>>;
-    <R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
+    <R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
         readonly static?: M & MetadataKeys<NoInfer<R>, M>;
         readonly dynamic: {
             readonly mode: 'awaited';
@@ -953,7 +953,7 @@ withMetadata: {
 };
 ```
 
-Defined in: [di-bag.ts:776](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L776)
+Defined in: [di-bag.ts:780](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L780)
 
 Attach static registration metadata, or per-acquisition metadata in direct or awaited mode.
 
@@ -990,7 +990,7 @@ A provider preserving exact output, acquisition policy, and ordered dynamic fram
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
     readonly static: M & MetadataKeys<NoInfer<R>, M>;
     readonly dynamic: {
         readonly mode: 'direct';
@@ -1024,7 +1024,7 @@ A provider with merged registration metadata and one appended acquisition metada
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
     readonly static?: M & MetadataKeys<NoInfer<R>, M>;
     readonly dynamic: {
         readonly mode: 'direct';
@@ -1058,7 +1058,7 @@ A provider with merged registration metadata and one appended acquisition metada
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
     readonly static: M & MetadataKeys<NoInfer<R>, M>;
     readonly dynamic: {
         readonly mode: 'awaited';
@@ -1092,7 +1092,7 @@ A provider exposing a Promise of the source value with one appended metadata fra
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
+<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
     readonly static?: M & MetadataKeys<NoInfer<R>, M>;
     readonly dynamic: {
         readonly mode: 'awaited';

@@ -6,7 +6,7 @@ import type { AcquisitionContext, DisposerContext } from './acquisition-context'
 
 type RegistrationDescription = ReturnType<typeof normalize>;
 type Disposer = (value: never) => void | Promise<void>;
-type PushedDisposer = (this: void, disposerCtx: DisposerContext) => void | Promise<void>;
+type PushedDisposer = (this: void, disposerContext: DisposerContext) => void | Promise<void>;
 
 /**
  * One factory's pushed disposers. It is held by the frozen acquisition context
@@ -160,12 +160,12 @@ export class ProviderExecution {
 
   /** Run every pushed disposer, last pushed first, all attempted; true when one threw. */
   private async runDisposers(reason: DisposerContext['reason']): Promise<boolean> {
-    const disposerCtx: DisposerContext = Object.freeze({ reason });
+    const disposerContext: DisposerContext = Object.freeze({ reason });
     let failed = false;
     for (const disposer of this.disposers?.drain() ?? []) {
       const sequence = this.events.invoking();
       try {
-        await disposer(disposerCtx);
+        await disposer(disposerContext);
       } catch (error) {
         failed = true;
         this.events.cleanupFailed(sequence, error);
@@ -207,11 +207,11 @@ export class ProviderExecution {
     if (stage.state === 'failed') throw stage.error;
   }
 
-  evaluate(description: RegistrationDescription, deps: unknown, context: AcquisitionContext | undefined): unknown {
+  evaluate(description: RegistrationDescription, dependencyProxy: unknown, context: AcquisitionContext | undefined): unknown {
     const { create, dispose } = description;
     let current = this.capture(() => description.contextual
-      ? Reflect.apply(create, undefined, [deps, context])
-      : create(deps as never), true, description.acquisitionMode);
+      ? Reflect.apply(create, undefined, [dependencyProxy, context])
+      : create(dependencyProxy as never), true, description.acquisitionMode);
     // A pending source settles its own rollback list from the promise handler.
     if (current.state !== 'pending') this.settleDisposers(current.state);
     let nextFrame = 0;

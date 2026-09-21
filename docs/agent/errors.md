@@ -301,7 +301,7 @@ const app = DiBag.createBuilder()
 
 ### DI_BAG_CLEANUP_AFTER_FACTORY {#di-bag-cleanup-after-factory}
 
-**When:** `factoryCtx.pushDisposer(disposer)` throws because the factory that
+**When:** `factoryContext.pushDisposer(disposer)` throws because the factory that
 owns the context has already returned or failed. Its projections may still be
 running; the factory is the boundary, not the whole acquisition.
 
@@ -318,9 +318,9 @@ same value a `reason` check.
 import { DiBag } from 'di-bag';
 
 const handle = DiBag.withDisposal(
-  DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+  DiBag.fromFactory(async (_dependencies: {}, factoryContext) => {
     const socket = { close: async () => {} };
-    factoryCtx.pushDisposer(disposerCtx => { if (disposerCtx.reason !== 'service-disposed') return socket.close(); });
+    factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return socket.close(); });
     return socket;
   }, { context: 'acquisition' }),
   socket => socket.close(),
@@ -458,7 +458,7 @@ await app.close();
 ### DI_BAG_CLOSING {#di-bag-closing}
 
 **When:** the same operations as [`DI_BAG_CLOSED`](#di-bag-closed), while
-`close()` is still in progress. Also the message of `factoryCtx.signal.reason`
+`close()` is still in progress. Also the message of `factoryContext.signal.reason`
 after `close()`: an `AbortError` that is the same object for every bag. A
 cancelled or failed startup aborts with its own cause instead.
 
@@ -607,7 +607,7 @@ import { types } from 'node:util';
 import { DiBag as CoreDiBag } from 'di-bag';
 
 const DiBag = CoreDiBag.withConfiguration({
-  runtime: { isNativePromise: value => types.isPromise(value) },
+  runtime: { isNativePromise: candidate => types.isPromise(candidate) },
 });
 ```
 
@@ -615,21 +615,21 @@ const DiBag = CoreDiBag.withConfiguration({
 
 ### DI_BAG_INVALID_CLEANUP {#di-bag-invalid-cleanup}
 
-**When:** `factoryCtx.pushDisposer(disposer)` throws because `disposer` is not a
+**When:** `factoryContext.pushDisposer(disposer)` throws because `disposer` is not a
 function.
 
 **Cause:** a value was passed where a disposer callback belongs, usually the
 result of calling the release instead of passing it.
 
-**Fix:** pass a function: `factoryCtx.pushDisposer(() => socket.close())`, not
-`factoryCtx.pushDisposer(socket.close())`.
+**Fix:** pass a function: `factoryContext.pushDisposer(() => socket.close())`, not
+`factoryContext.pushDisposer(socket.close())`.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-const socket = DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+const socket = DiBag.fromFactory(async (_dependencies: {}, factoryContext) => {
   const handle = { close: async () => {} };
-  factoryCtx.pushDisposer(() => handle.close());
+  factoryContext.pushDisposer(() => handle.close());
   return handle;
 }, { context: 'acquisition' });
 ```
@@ -691,7 +691,7 @@ const portKey = Symbol('port');
 const port = DiBag.token(portKey).of<number>();
 class Client { constructor(readonly port: number) {} }
 const client = DiBag.fromClass([port], Client);
-const address = DiBag.fromFunction([port], value => `localhost:${value}`);
+const address = DiBag.fromFunction([port], portNumber => `localhost:${portNumber}`);
 ```
 
 **Recipe:** none.
@@ -778,7 +778,7 @@ import { DiBag } from 'di-bag';
 
 const nameKey = Symbol('name');
 const name = DiBag.token(nameKey).of<string>();
-const greeting = DiBag.fromFunction([name], value => `Hello, ${value}`);
+const greeting = DiBag.fromFunction([name], personName => `Hello, ${personName}`);
 ```
 
 **Recipe:** none.
@@ -817,7 +817,7 @@ a plain object.
 import { DiBag } from 'di-bag';
 
 const client = DiBag.withMetadata(() => ({ region: 'eu' }), {
-  dynamic: { mode: 'direct', describe: value => ({ 'app:region': value.region }) },
+  dynamic: { mode: 'direct', describe: exposedClient => ({ 'app:region': exposedClient.region }) },
 });
 ```
 
@@ -880,7 +880,7 @@ type Handler = { handle(text: string): string };
 const descriptor: unknown = { apiVersion: 1, create: () => ({ handle: (text: string) => text }) };
 const handler = DiBag.fromPlugin([], descriptor, {
   acquisitionMode: 'raw',
-  validate: (value: unknown): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
+  validate: (pluginOutput: unknown): pluginOutput is Handler => typeof pluginOutput === 'object' && pluginOutput !== null && 'handle' in pluginOutput,
 });
 ```
 
@@ -1000,7 +1000,7 @@ export const clock = DiBag.token(clockKey).of<{ now(): number }>();
 ```ts
 import { DiBag } from 'di-bag';
 
-const upper = DiBag.transformService(async () => 'ready', { mode: 'awaited', transform: value => value.toUpperCase() });
+const upper = DiBag.transformService(async () => 'ready', { mode: 'awaited', transform: text => text.toUpperCase() });
 ```
 
 **Recipe:** none.

@@ -68,11 +68,13 @@ declare const constraintInvariant: unique symbol;
  *
  * Create bags through {@link DiBagApi.createBuilder} followed by {@link Builder.build} or
  * {@link Builder.buildAndStart}; the class is exported as a type and has no public constructor.
+ * @typeParam ServiceRegistrations - The map from each public service name or token symbol to its registration.
+ * @typeParam Constraints - The requirements, contributions and lifetime obligations that installed modules retain on this graph.
  * @see https://dany-fedorov.github.io/di-bag/agent/api-card.html#bag
  */
-class Bag<R extends Registrations, C extends NeedConstraint = never> {
+class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedConstraint = never> {
   /** @internal */
-  declare readonly [constraintInvariant]: (value: C) => C;
+  declare readonly [constraintInvariant]: (value: Constraints) => Constraints;
   readonly #graph: BindingGraph;
   readonly #runtime: BagRuntime;
 
@@ -86,7 +88,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
   }
 
   /**
-   * Resolve a named or typed-token service, acquiring it lazily when needed.
+   * Resolve a registered service, acquiring it lazily when needed.
    * Scoped and root services are cached according to their lifetime; transient services
    * create a new acquisition for each call. Promise-valued services keep their identity.
    * An async factory's service is its Promise; nothing is awaited for you.
@@ -102,7 +104,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
    * const greeting: string = bag.resolve('greeting');
    * ```
    */
-  resolve<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): ServicesOf<R>[SelectionKey<K> & keyof R];
+  resolve<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<ServiceRegistrations, K>)): ServicesOf<ServiceRegistrations>[SelectionKey<K> & keyof ServiceRegistrations];
   resolve(token: unknown): unknown {
     return this.#runtime.resolve(typeof token === 'string' ? token : readTokenKey(token));
   }
@@ -121,7 +123,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
    * const names: readonly string[] = bag.resolveAll(tools);
    * ```
    */
-  resolveAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, C>,
+  resolveAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, Constraints>,
     ...invalid: [T] extends [never] ? [never] : []): ReadonlyArray<TokenService<T>>;
   resolveAll(token: unknown): readonly unknown[] { return this.#runtime.resolveAll(readTokenKey(token)); }
 
@@ -138,7 +140,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
    * const labels = bag.inspectAll(tools).map(snapshot => snapshot.label);
    * ```
    */
-  inspectAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, C>,
+  inspectAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, Constraints>,
     ...invalid: [T] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[];
   inspectAll(token: unknown): readonly RegistrationSnapshot<object, readonly unknown[]>[] { return this.#runtime.inspectAll(readTokenKey(token)); }
 
@@ -153,7 +155,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
    * const acquired = bag.inspect('greeting').acquisitions.length;
    * ```
    */
-  inspect<K extends (keyof R & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<R, K>)): RegistrationSnapshot<ProviderRegistrationMetadata<R[SelectionKey<K> & keyof R]>, ProviderAcquisitionMetadata<R[SelectionKey<K> & keyof R]>>;
+  inspect<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<ServiceRegistrations, K>)): RegistrationSnapshot<ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>, ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>>;
   inspect(token: unknown): unknown {
     return this.#runtime.inspect(typeof token === 'string' ? token : readTokenKey(token));
   }
@@ -178,7 +180,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
    * @throws `DI_BAG_INVALID_SCOPE` for a malformed or transient share selection; `DI_BAG_INVALID_TOKEN` for a bad token;
    * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`.
    */
-  createScope<const S extends readonly unknown[]>(options: ScopeOptions<R, S>): Bag<ScopedAliases<R, R, S>, C>;
+  createScope<const S extends readonly unknown[]>(options: ScopeOptions<ServiceRegistrations, S>): Bag<ScopedAliases<ServiceRegistrations, ServiceRegistrations, S>, Constraints>;
   /**
    * Create a tracked child with selected replacements and optional parent sharing.
    * @param keys - Existing names or tokens to replace in the child.
@@ -190,19 +192,19 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
    */
   createScope<
     const K extends readonly unknown[],
-    O extends OverrideFactoryContext<R, K, O>,
+    O extends OverrideFactoryContext<ServiceRegistrations, K, O>,
     const S extends readonly unknown[] = readonly [],
   >(
-    keys: K & Selection<R, K, 'createScope'>,
+    keys: K & Selection<ServiceRegistrations, K, 'createScope'>,
     overrides: O & object & Record<SelectionKey<K[number]>, Registration> &
-      Overrides<R, SelectedRegistrations<K, O>> &
-      CheckDependencyCompatibility<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
-      CheckDependencyCompleteness<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
-      CheckedConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
-      CompleteConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
-      CheckedScopeLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>>, NoInfer<SelectedRegistrations<K, O>>, WithoutExportObligations<C, SelectionKey<K[number]>>>,
-    options?: ScopeOptions<R, S> & DisjointScopeSelection<K, S>,
-  ): Bag<ScopedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>, R, S>, WithoutExportObligations<C, SelectionKey<K[number]>>>;
+      Overrides<ServiceRegistrations, SelectedRegistrations<K, O>> &
+      CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
+      CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
+      CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
+      CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
+      CheckedScopeLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>, ServiceRegistrations, S>>, NoInfer<SelectedRegistrations<K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>,
+    options?: ScopeOptions<ServiceRegistrations, S> & DisjointScopeSelection<K, S>,
+  ): Bag<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>, ServiceRegistrations, S>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
   /**
    * Create a tracked child with the same graph and fresh scoped acquisitions.
    * Close every scope you create, typically one per request; closing the parent closes its live scopes first.
@@ -216,7 +218,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
    * await request.close();
    * ```
    */
-  createScope(): Bag<UnsharedAliases<R>, C>;
+  createScope(): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
   createScope(...args: unknown[]): unknown {
     this.#runtime.assertOpen();
     const { graph, shared } = selectScope(this.#graph, args, key => this.#runtime.isTransient(key));
@@ -228,7 +230,7 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
    * @returns A new ownership family that must be closed separately.
    * @throws `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`.
    */
-  fork(this: Bag<R, C> & CheckedLifetimes<UnsharedAliases<R>, C>): Bag<UnsharedAliases<R>, C>;
+  fork(this: Bag<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
   // The graph-aware bound keeps the first inference pass applicable and requires
   // selected registrations even with explicit generics. The argument's Record
   // supplies callable context; unselected keys stay outside checks and results.
@@ -250,19 +252,19 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
    */
   fork<
     const K extends readonly unknown[],
-    O extends OverrideFactoryContext<R, K, O>,
+    O extends OverrideFactoryContext<ServiceRegistrations, K, O>,
   >(
-    keys: K & Selection<R, K>,
+    keys: K & Selection<ServiceRegistrations, K>,
     overrides: O &
       object &
       Record<SelectionKey<K[number]>, Registration> &
-      Overrides<R, SelectedRegistrations<K, O>> &
-      CheckDependencyCompatibility<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
-      CheckDependencyCompleteness<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
-      CheckedConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
-      CompleteConstraints<C, OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>> &
-      CheckedLifetimes<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, WithoutExportObligations<C, SelectionKey<K[number]>>>,
-  ): Bag<UnsharedAliases<OverrideRegistrations<R, ReboundSelection<R, SelectedRegistrations<K, O>>>>, WithoutExportObligations<C, SelectionKey<K[number]>>>;
+      Overrides<ServiceRegistrations, SelectedRegistrations<K, O>> &
+      CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
+      CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
+      CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
+      CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
+      CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>,
+  ): Bag<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
   fork(keys?: readonly unknown[], overrides?: object): unknown {
     this.#runtime.assertOpen();
     if (keys === undefined && overrides === undefined) {
@@ -331,13 +333,15 @@ class Bag<R extends Registrations, C extends NeedConstraint = never> {
  * {@link Builder.build} a bag once its graph is complete, or
  * {@link Builder.buildModule} a reusable module whose unmet dependencies become
  * requirements the installing host must satisfy.
+ * @typeParam Entries - The union of accepted registration entries, one per public key.
+ * @typeParam Constraints - The requirements, contributions and lifetime obligations that installed modules retain on this graph.
  * @see https://dany-fedorov.github.io/di-bag/agent/api-card.html#builder
  */
-class Builder<E extends Entry, C extends NeedConstraint = never> {
+class Builder<Entries extends Entry, Constraints extends NeedConstraint = never> {
   // Preserve accepted registration history and module constraints through views.
   /** @internal */
   declare readonly [constraintInvariant]:
-    (value: readonly [E, C]) => readonly [E, C];
+    (value: readonly [Entries, Constraints]) => readonly [Entries, Constraints];
   readonly #graph: BindingGraph;
 
   constructor(graph: BindingGraph, private readonly context: RuntimeContext) {
@@ -349,7 +353,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   // token registration does not project the entire retained history.
   /**
    * Add new string-named registrations.
-   * A factory declares its dependencies in the type of its one object parameter; destructure it or read `deps.name`, never spread it.
+   * A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
    * @param more - A finite object whose own string keys are service names and values are registrations.
    * @returns A new builder containing snapshots of the supplied registrations.
    * @throws `DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_REGISTRATION` for a name already registered.
@@ -364,9 +368,9 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
   register<N extends { [K in keyof N]: Registration }>(
     more: N & Registrations & ([N] extends [never]
       ? never
-      : NamedAdmission<N> & ThenableAdmission<N> & IntroducesKeys<EntryKeys<E>, keyof N> & IncrementalChecked<E, N> &
-        CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, N>>),
-  ): Builder<E | RegistrationEntries<N>, C>;
+      : NamedAdmission<N> & ThenableAdmission<N> & IntroducesKeys<EntryKeys<Entries>, keyof N> & IncrementalChecked<Entries, N> &
+        CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, N>>),
+  ): Builder<Entries | RegistrationEntries<N>, Constraints>;
   /**
    * Register a provider to a typed token.
    * @param token - A new typed token identity.
@@ -376,11 +380,11 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
    */
   register<T extends TokenBase, V extends Registration>(
-    token: T & TokenTupleAdmission<readonly [T]> & IntroducesKeys<EntryKeys<E>, TokenKey<T>>,
+    token: T & TokenTupleAdmission<readonly [T]> & IntroducesKeys<EntryKeys<Entries>, TokenKey<T>>,
     registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & ThenableAdmission<Record<TokenKey<T>, NoInfer<V>>> &
-      IncrementalChecked<E, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>> &
-      CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>>>,
-  ): Builder<E | { key: TokenKey<T>; registration: TokenBinding<T, V> }, C>;
+      IncrementalChecked<Entries, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>> &
+      CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>>>,
+  ): Builder<Entries | { key: TokenKey<T>; registration: TokenBinding<T, V> }, Constraints>;
   register(moreOrToken: unknown, registration?: Registration): unknown {
     if (arguments.length === 1) {
       const snapshot = snapshotAdd(moreOrToken, key => this.#graph.hasPublic(key));
@@ -404,13 +408,13 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * ```
    */
   alias<const D extends AliasSelection, const T extends AliasSelection>(
-    destination: D & (unknown extends AliasAdmission<D> ? Introduces<RegistrationsFromEntries<E>, AliasEntries<RegistrationsFromEntries<E>, D, T>> : AliasAdmission<D>),
+    destination: D & (unknown extends AliasAdmission<D> ? Introduces<RegistrationsFromEntries<Entries>, AliasEntries<RegistrationsFromEntries<Entries>, D, T>> : AliasAdmission<D>),
     target: T & AliasAdmission<T> & (unknown extends AliasAdmission<T>
-      ? AliasTarget<RegistrationsFromEntries<E>, T> & AliasDestination<RegistrationsFromEntries<E>, NoInfer<D>, T> : unknown) &
+      ? AliasTarget<RegistrationsFromEntries<Entries>, T> & AliasDestination<RegistrationsFromEntries<Entries>, NoInfer<D>, T> : unknown) &
       (unknown extends AliasAdmission<D> & AliasAdmission<T>
-        ? IncrementalChecked<E, AliasEntries<RegistrationsFromEntries<E>, NoInfer<D>, NoInfer<T>>> & CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, AliasEntries<RegistrationsFromEntries<E>, NoInfer<D>, NoInfer<T>>>> : unknown),
+        ? IncrementalChecked<Entries, AliasEntries<RegistrationsFromEntries<Entries>, NoInfer<D>, NoInfer<T>>> & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, AliasEntries<RegistrationsFromEntries<Entries>, NoInfer<D>, NoInfer<T>>>> : unknown),
     ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []
-  ): Builder<E | AliasEntry<RegistrationsFromEntries<E>, D, T>, C> {
+  ): Builder<Entries | AliasEntry<RegistrationsFromEntries<Entries>, D, T>, Constraints> {
     const [key, registration] = aliasEntry(destination, target, key => this.#graph.hasPublic(key));
     return new Builder(this.#graph.withPublicBinding(key, registration), this.context);
   }
@@ -429,10 +433,10 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * ```
    */
   // A named callable keeps extracted generic methods nameable in consumer declarations.
-  readonly contribute: BuilderContribute<E, C> = ((token: unknown, registration: Registration) => {
+  readonly contribute: BuilderContribute<Entries, Constraints> = ((token: unknown, registration: Registration) => {
     const [key, value] = contributionEntry(token, registration);
     return new Builder(this.#graph.withContribution(key, value), this.context);
-  }) as BuilderContribute<E, C>;
+  }) as BuilderContribute<Entries, Constraints>;
 
 
 
@@ -453,11 +457,11 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * const builder = DiBag.createBuilder().register({ clock: () => Date.now() }).replace('clock', () => 0);
    * ```
    */
-  replace<const K extends string, V extends (ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<E>>, K, C>>) | FactoryWithDisposal<ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<E>>, K, C>>>>(
-    key: K & ReplacementKeyOf<EntryKeys<E>, K>,
+  replace<const K extends string, V extends (ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<Entries>>, K, Constraints>>) | FactoryWithDisposal<ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<Entries>>, K, Constraints>>>>(
+    key: K & ReplacementKeyOf<EntryKeys<Entries>, K>,
     registration: V & (Factory | FactoryWithDisposal<Factory>) & ZeroDependencyAdmission<NoInfer<V>> &
-      CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<K, NoInfer<V>>>>,
-  ): Builder<Exclude<E, { key: K }> | { key: K; registration: V }, WithoutExportObligations<C, K>>;
+      CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<K, NoInfer<V>>>>,
+  ): Builder<Exclude<Entries, { key: K }> | { key: K; registration: V }, WithoutExportObligations<Constraints, K>>;
   /**
    * Replace an existing named or typed-token registration.
    * @param key - The single existing name or token to replace.
@@ -466,9 +470,9 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * @throws `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_TOKEN` or `DI_BAG_INVALID_REGISTRATION` for malformed input.
    */
   replace<const K extends string | TokenBase, V extends Registration>(
-    key: K & NoInfer<ReplacementAdmission<RegistrationsFromEntries<E>, K>>,
-    registration: V & Registration & BuilderReplacementRegistration<E, C, NoInfer<K>, V>,
-  ): Builder<ReplacedEntries<E, K, V>, WithoutExportObligations<C, SelectionKey<K>>>;
+    key: K & NoInfer<ReplacementAdmission<RegistrationsFromEntries<Entries>, K>>,
+    registration: V & Registration & BuilderReplacementRegistration<Entries, Constraints, NoInfer<K>, V>,
+  ): Builder<ReplacedEntries<Entries, K, V>, WithoutExportObligations<Constraints, SelectionKey<K>>>;
   replace(selection: string | TokenBase, registration: Registration): unknown {
     const key = typeof selection === 'string' ? selection : readTokenKey(selection);
     if (!this.#graph.hasPublic(key)) {
@@ -493,10 +497,10 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * ```
    */
   installModule<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(
-    module: Module<P, R, MC, D> & IntroducesKeys<EntryKeys<E>, keyof D> &
-      IncrementalChecked<E, D> &
-      IncrementalConstraints<C, MC, RegistrationsFromEntries<E>, D>,
-  ): Builder<E | RegistrationEntries<D>, C | MC> {
+    module: Module<P, R, MC, D> & IntroducesKeys<EntryKeys<Entries>, keyof D> &
+      IncrementalChecked<Entries, D> &
+      IncrementalConstraints<Constraints, MC, RegistrationsFromEntries<Entries>, D>,
+  ): Builder<Entries | RegistrationEntries<D>, Constraints | MC> {
     return new Builder(this.#graph.withInstallation(moduleGraph(module)), this.context);
   }
 
@@ -512,7 +516,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * ```
    */
   // A generic `this` keeps the report out of every builder instantiation (about 11k fewer instantiations per 100 calls).
-  verifyGraph<Self extends Builder<E, C>>(this: Self): CompositionReport<Self>;
+  verifyGraph<Self extends Builder<Entries, Constraints>>(this: Self): CompositionReport<Self>;
   verifyGraph(): unknown { return undefined; }
 
   /**
@@ -537,13 +541,13 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * ```
    */
   buildModule<const K extends readonly unknown[]>(
-    keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildModule'> & SealAdmission<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>, C>,
+    keys: K & Selection<RegistrationsFromEntries<Entries>, K, 'buildModule'> & SealAdmission<RegistrationsFromEntries<Entries>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>, Constraints>,
     options?: ModuleOptions,
   ): Module<
-    ExportedServices<ServicesOf<RegistrationsFromEntries<E>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
-    ExternalRequirements<ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>>,
-    ModuleSealedConstraints<E, C, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>,
-    ModulePublicProviders<RegistrationsFromEntries<E>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<E>>>
+    ExportedServices<ServicesOf<RegistrationsFromEntries<Entries>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>,
+    ExternalRequirements<ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>>,
+    ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>,
+    ModulePublicProviders<RegistrationsFromEntries<Entries>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>
   > {
     return sealModule(this.#graph, keys, options) as never;
   }
@@ -560,7 +564,7 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * await bag.close();
    * ```
    */
-  build(this: Builder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>): Bag<RegistrationsFromEntries<E>, C> {
+  build(this: Builder<Entries, Constraints> & CheckDependencyCompleteness<RegistrationsFromEntries<Entries>> & CompleteConstraints<Constraints, RegistrationsFromEntries<Entries>> & CheckedLifetimes<RegistrationsFromEntries<Entries>, Constraints>): Bag<RegistrationsFromEntries<Entries>, Constraints> {
     return new Bag(this.#graph, this.context);
   }
 
@@ -581,10 +585,10 @@ class Builder<E extends Entry, C extends NeedConstraint = never> {
    * ```
    */
   async buildAndStart<const K extends readonly unknown[]>(
-    this: Builder<E, C> & CheckDependencyCompleteness<RegistrationsFromEntries<E>> & CompleteConstraints<C, RegistrationsFromEntries<E>> & CheckedLifetimes<RegistrationsFromEntries<E>, C>,
-    keys: K & Selection<RegistrationsFromEntries<E>, K, 'buildAndStart'>,
+    this: Builder<Entries, Constraints> & CheckDependencyCompleteness<RegistrationsFromEntries<Entries>> & CompleteConstraints<Constraints, RegistrationsFromEntries<Entries>> & CheckedLifetimes<RegistrationsFromEntries<Entries>, Constraints>,
+    keys: K & Selection<RegistrationsFromEntries<Entries>, K, 'buildAndStart'>,
     options?: StartupOptions,
-  ): Promise<Bag<RegistrationsFromEntries<E>, C>> {
+  ): Promise<Bag<RegistrationsFromEntries<Entries>, Constraints>> {
     const runtime = await startRuntime(this.#graph, this.context, keys, options);
     return new Bag(this.#graph, this.context, runtime);
   }
@@ -702,7 +706,7 @@ export interface DiBagApi {
    * declare const descriptor: unknown;
    * const greeter = DiBag.fromPlugin([], descriptor, {
    *   acquisitionMode: 'raw',
-   *   validate: (value): value is () => string => typeof value === 'function',
+   *   validate: (pluginOutput): pluginOutput is () => string => typeof pluginOutput === 'function',
    * });
    * ```
    */

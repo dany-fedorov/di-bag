@@ -5,7 +5,7 @@ import { normalize, retainDescription, sourceDescription } from './provider-oper
 export { normalize } from './provider-operations';
 
 // Contravariant bottom accepts each factory's actual parameter type without any.
-export type Factory = (this: void, deps: never) => unknown;
+export type Factory = (this: void, dependencies: never) => unknown;
 
 // A private member is lost on spread; structural copies cannot be registrations.
 /**
@@ -37,7 +37,7 @@ export type Registrations = Record<string, Registration>;
  */
 export function withDisposal<F extends Factory>(
   create: F,
-  dispose: (this: void, value: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>,
+  dispose: (this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>,
 ): FactoryWithDisposal<F>;
 /**
  * Add an ownership stage to an existing registration.
@@ -48,7 +48,7 @@ export function withDisposal<F extends Factory>(
  */
 export function withDisposal<R extends Registration>(
   provider: R & Registration,
-  dispose: (this: void, value: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>,
+  dispose: (this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>,
 ): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
 export function withDisposal(
   registration: Registration,
