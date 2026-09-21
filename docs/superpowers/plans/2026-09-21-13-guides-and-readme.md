@@ -19,6 +19,22 @@
 - `CHANGELOG.md` history is not rewritten. `docs/guides/migrating-to-0.5.md` belongs to phase 13 and is not created here. `AGENTS.md`, `docs/agent/*` and the generated reference were kept current by every earlier phase and are touched here only where this plan says so.
 - No em-dashes and no arrows in new prose; one idea per sentence; American spelling as the existing guides use.
 - Gates, commit format and environment are in the master plan. This phase changes no file under `src` except JSDoc URLs (Task 4), so the evidence benchmarks are not rerun.
+- Every example below assumes the preferred spike outcomes. Before editing, read the recorded S1–S8 decisions in the preceding phase evidence and `docs/guides/api-naming.md`. Apply the selected contracts to every guide, README claim, task instruction and recipe; a measured fallback is part of the shipped API. An unmeasured decision blocks entry to this phase rather than silently selecting either shape.
+
+Use this checklist when a recorded fallback applies. The preceding phase's verified declarations and fallback fixtures supply the exact generic and callback contracts; do not restore a preferred API to make a guide compile.
+
+| Decision | Documentation adjustment |
+| --- | --- |
+| S1 | Use the recorded positional form for each affected builder method, including examples in Tasks 4–9. |
+| S2 | Use the five `DiBag.providerWith*` option-bag functions from plan 10's selected fallback. Update disposal/lifetime prose and fragments as well as compiled examples. |
+| S3 | Write `createChildContainer(keys, providers, options?)` and `createIndependentContainer(keys, providers)` using the exact optional forms selected by plan 07. |
+| S4 | The composite recipe uses `DiBag.createProviderFromFunction([loggerSinksToken], (sinks: readonly Logger[]): Logger => ({ log: line => { for (const sink of sinks) sink.log(line); } }))`. Preserve the selected trailing options form where an example supplies one. |
+| S5 | Read collection tokens with `resolveCollection`; read single-service tokens with `resolve`. Use the final collection-snapshot name recorded by plan 07. |
+| S6 | Omit the requirement-renaming recipe and its API claims. For the two-module example, declare distinct `ordersConfig` and `billingConfig` dependencies in their factories, remove both `withRenamedRequirement` calls, and retain the two export renames and host registrations. |
+| S7 | Replace a list installation with one `withInstalledModule(module)` call per module, preserving order. |
+| S8 | State that the default is scoped. In Task 4's lifetime table mark scoped as the default; explicitly mark `clock` singleton so its identity assertion stays true. Replace “An application with a single container never writes a lifetime” with “An unmarked provider is scoped; choose singleton explicitly when child containers should share it.” In Task 6 retain request containers as the opening recipe; in Task 7's comparison and Task 8's README describe the recorded scoped default. Keep the singleton-capture and child-replacement rules only as implemented and verified by plan 11's selected fallback. |
+
+In Task 10's report, list the recorded spike outcomes and confirm that both the compiled examples and the prose agree with them. Passing snippet compilation alone cannot prove a statement about the default lifetime.
 
 ## State on entry
 
