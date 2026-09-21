@@ -87,6 +87,25 @@ test('--extra-files adds files the tsconfig excludes', () => {
   rmSync(project, { recursive: true, force: true });
 });
 
+test('--project and positional files are rejected before --write can change a file', () => {
+  const project = copyOf('library-root-fixture');
+  const file = join(project, 'app/main.ts');
+  const before = readFileSync(file, 'utf8');
+  const result = run(project, '--project', 'tsconfig.json', 'app/main.ts', '--write');
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /--project cannot be used with positional files/);
+  assert.equal(readFileSync(file, 'utf8'), before);
+  rmSync(project, { recursive: true, force: true });
+});
+
+test('positional files remain a supported input mode', () => {
+  const project = copyOf('library-root-fixture');
+  const result = run(project, '--library-root', 'src', 'app/main.ts', '--write');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(readFileSync(join(project, 'app/main.ts'), 'utf8'), /new Builder\(\)\.build\(\)\.ensureServicesReady\(\['db'\]/);
+  rmSync(project, { recursive: true, force: true });
+});
+
 test('usage errors exit 2', () => {
   const project = copyOf('library-root-fixture');
   assert.equal(run(project, '--projct', 'x').status, 2);

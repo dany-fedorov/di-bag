@@ -26,6 +26,7 @@ for (let index = 0; index < args.length; index++) {
   else if (argument.startsWith('-')) fail(`unknown option ${argument}`);
   else files.push(argument);
 }
+if (project && files.length > 0) fail('--project cannot be used with positional files');
 if (!project && files.length === 0) {
   if (!existsSync('tsconfig.json')) fail('no tsconfig.json in the current directory; pass --project or files');
   project = 'tsconfig.json';
