@@ -2262,6 +2262,7 @@ Execute this task only when Task 4's decision rule selects it.
 - Create: `tools/codemod/lib/transforms/collection-tokens.mjs`, `collection-token.mjs`, `collection-reference.mjs`, `collection-read.mjs`
 - Create: `tools/codemod/test/fixtures/collection-tokens/input.ts`, `expected.ts`, `expected-manual.json`
 - Create: `tools/codemod/test/fixtures/collection-tokens-import/input.ts`, `expected.ts`, `expected-manual.json`
+- Create: `tools/codemod/test/fixtures/collection-token-alias-source/{input.ts,expected.ts,expected-manual.json}` and `collection-token-alias-use/{input.ts,expected.ts,expected-manual.json}`
 
 **Interfaces:**
 - Consumes: phase-1 `api.nameOf`, `api.assemble`, `api.text`, `api.manual`, library-symbol resolution and one original TypeScript program.
@@ -2363,13 +2364,13 @@ In `tools/codemod/lib/codemod.mjs`, replace its call with:
 
 ```js
 result = rewriteSourceFile({
-  ts, checker, program, sourceFile, library, index, transforms,
+  ts, checker, program: built, sourceFile, library, index, transforms,
   manualItems: manual,
   fileLabel,
 });
 ```
 
-Do not create another program and do not reparse transformed text.
+`built` is the phase-1 `runCodemod` local that holds the supplied or loaded original program; its optional input parameter `program` may be undefined. Do not create another program and do not reparse transformed text.
 
 - [ ] **Step 4: Implement whole-program classification**
 
@@ -2388,20 +2389,18 @@ function analyze(api) {
   analyses.set(program, analysis);
   const files = program.getSourceFiles().filter(file =>
     !file.isDeclarationFile && !library.isLibraryFile(file.fileName) && !file.fileName.includes('/node_modules/'));
-  const names = new Set();
   const visitDeclarations = node => {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && isTokenCreation(api, node.initializer)) {
       const symbol = checker.getSymbolAtLocation(node.name);
       if (symbol) {
         analysis.set(symbol, { declaration: node, creation: node.initializer, collectionUses: [], otherUses: [] });
-        names.add(node.name.text);
       }
     }
     ts.forEachChild(node, visitDeclarations);
   };
   for (const file of files) visitDeclarations(file);
   const visitUses = node => {
-    if (ts.isIdentifier(node) && names.has(node.text)) {
+    if (ts.isIdentifier(node)) {
       const entry = analysis.get(variableSymbol(api, node));
       if (entry && node !== entry.declaration.name) {
         const use = classify(api, node);
@@ -2641,6 +2640,40 @@ export const described = bag.inspect(importedControllers).length;
 ```
 
 Its `expected-manual.json` is `[]`. If S5 takes the fallback, change only `resolve`/`inspect` in both expected files and the two corresponding literal reason suffixes to `resolveCollection`/`inspectCollection`.
+
+The alias-only regression uses two independent fixture directories so the source declaration has no local collection use to hide a name-based classification bug. `collection-token-alias-source/input.ts`:
+
+```ts
+import { DiBag } from 'di-bag';
+export const importedOnlyItems = DiBag.token(Symbol('imported-only-items')).of<number>();
+```
+
+`collection-token-alias-source/expected.ts`:
+
+```ts
+import { DiBag } from 'di-bag';
+export const importedOnlyItems = DiBag.token(Symbol('imported-only-items')).forCollectionOf<number>();
+```
+
+`collection-token-alias-use/input.ts`:
+
+```ts
+import { DiBag } from 'di-bag';
+import { importedOnlyItems as localItems } from '../collection-token-alias-source/input.js';
+const app = DiBag.createBuilder().contribute(localItems, () => 1).build();
+export const items = app.resolveAll(localItems);
+```
+
+`collection-token-alias-use/expected.ts`:
+
+```ts
+import { DiBag } from 'di-bag';
+import { importedOnlyItems as localItems } from '../collection-token-alias-source/input.js';
+const app = DiBag.createBuilder().contribute(localItems, () => 1).build();
+export const items = app.resolve(localItems);
+```
+
+Write `[]` to both `expected-manual.json` files. The phase-1 fixture glob discovers both `input.ts` files and its original program includes the imported declaration. Under S5 fallback only the final `resolve` becomes `resolveCollection`. Classification resolves every identifier's original symbol; it must not prefilter by the spelling of declarations, because imports may rename them.
 
 - [ ] **Step 7: Run codemod tests**
 
@@ -3481,3 +3514,5 @@ Report in at most 60 lines: branch; `git log --oneline next..HEAD`; each gate an
 - Planning evidence boundary: runtime and isolated codemod behavior were run; all compile-time signatures are explicitly proposed and uncompiled. The executor validates positives, negatives and the twelve evidence cases before adoption.
 - Syntax boundary: all 68 TS/JS plan blocks parse with `ts.createSourceFile`; undefined-name resolution, assignability, declaration emit, and performance remain explicitly uncompiled executor work.
 - Completeness scan: every code-producing step includes its source or an exact signature and decision rule; every test named in a step has a complete body.
+
+Controller alias-only regression probe: `/tmp/di-bag-resume-20260921/cumulative-codemod/check-import-alias.mjs` used the recovered phase01/04 engine and published0.4 declarations. Unaliased import migrated with no manual rows; an alias-only use incorrectly stayed unchanged. Removing the declaration-name filter made both migrate creation/read correctly with no manual rows (314MiB maxRSS). An initial probe used an unresolved extensionless NodeNext import; that run was discarded and the reported comparison uses `./tokens.js`. No compiler diagnostics, declaration emit or full gate ran. The plan's engine call also now passes the actual `built` program rather than the optional caller parameter.
