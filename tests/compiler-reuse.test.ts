@@ -1,7 +1,7 @@
 // tests/compiler-reuse.test.ts
 import { expect, test } from 'bun:test';
 import { resolve } from 'node:path';
-import { compilerProgram, describeDiagnostic, diagnostics, diagnosticsByFile } from './compiler';
+import { compilerProgram, describeDiagnostic, diagnostics, diagnosticsByFile, resetCompilerState } from './compiler';
 
 const fixture = resolve(__dirname, 'types/negative/fork-missing.ts');
 const sibling = resolve(__dirname, 'types/negative/fork-extra.ts');
@@ -11,6 +11,21 @@ test('consecutive programs share parsed library source files', () => {
   const first = compilerProgram(fixture);
   const second = compilerProgram(sibling);
   expect(second.getSourceFile(librarySource)).toBe(first.getSourceFile(librarySource)!);
+});
+
+test('reset releases parsed sources and preserves diagnostics for a new virtual compilation', () => {
+  const first = compilerProgram(fixture);
+  const firstLibrarySource = first.getSourceFile(librarySource);
+  const before = diagnostics(fixture).map(describeDiagnostic);
+  const path = resolve(__dirname, 'generated-compiler-reset.ts');
+  const invalid = "import { DiBag } from '../src';\nconst value: string = DiBag.createBuilder().register({ a: () => 1 }).build().resolve('a');\n";
+
+  resetCompilerState();
+
+  const second = compilerProgram(fixture);
+  expect(second.getSourceFile(librarySource)).not.toBe(firstLibrarySource);
+  expect(diagnostics(fixture).map(describeDiagnostic)).toEqual(before);
+  expect(diagnostics(path, invalid).map(error => describeDiagnostic(error).code)).toEqual([2322]);
 });
 
 test('a batch program reports the same per-file diagnostics as a single-root program', () => {
