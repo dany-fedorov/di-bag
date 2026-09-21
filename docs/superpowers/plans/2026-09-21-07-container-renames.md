@@ -1361,6 +1361,7 @@ Merge these entries into their existing arrays; retain every earlier entry:
 {
   "methods": [
     { "owner": "Bag", "from": "inspect", "to": "serviceSnapshot" },
+    { "owner": "Bag", "from": "inspectAll", "to": "serviceSnapshot", "transform": "collection-read" },
     { "owner": "Bag", "from": "inspectGraph", "to": "graphSnapshot" },
     { "owner": "Bag", "from": "createScope", "to": "createChildContainer", "arity": [0, 1, 2, 3], "transform": "container-derivation", "transformNames": { "keys": "replacedServiceKeys", "providers": "replacementProviders", "sharing": "sharedParentServiceKeys" } },
     { "owner": "Bag", "from": "fork", "to": "createIndependentContainer", "arity": [0, 1, 2], "transform": "container-derivation", "transformNames": { "keys": "replacedServiceKeys", "providers": "replacementProviders" } },
@@ -1387,6 +1388,8 @@ Merge these entries into their existing arrays; retain every earlier entry:
   ]
 }
 ```
+
+Replace the existing `Bag.inspectAll` entry in place; do not append a duplicate. Its phase-4 `collection-read` transform remains, but its target must now be `serviceSnapshot`. The map always spans original0.4 to current0.5; `nameOf` does not transitively follow `inspectAll -> inspect -> serviceSnapshot`.
 
 `CreateIndependentContainerOptions` is new and has no type-map entry. Every `owner` remains an actual 0.4.0 declaration. `transformNames` is method-entry metadata, not a declaration lookup namespace; the transform reads it through the engine API below. `CreateChildContainerOptions` orders its generics as registrations, shared keys, defaulted constraints, replaced keys, replacement providers. The phase-1 type rename therefore preserves every old `ScopeOptions<R, S>` annotation; phase 4's internal three-argument use remains `CreateChildContainerOptions<R, S, C>`.
 
@@ -1626,6 +1629,9 @@ export const nested = root.fork(['a'], { a: () => DiBag.createBuilder().register
 export type App = Bag<{ a: () => number }>;
 export type ChildOptions = ScopeOptions<{ a: () => number }, readonly ['a']>;
 export type ConstrainedChildOptions = ScopeOptions<{ a: () => number }, readonly ['a'], never>;
+const collection = DiBag.token(Symbol('collection')).of<number>();
+const collectionContainer = DiBag.createBuilder().contribute(collection, () => 1).build();
+export const collectionSnapshots = collectionContainer.inspectAll(collection);
 ```
 
 The adopted `expected.ts` is:
@@ -1655,9 +1661,12 @@ export const nested = root.createIndependentContainer({ replacedServiceKeys: ['a
 export type App = Container<{ a: () => number }>;
 export type ChildOptions = CreateChildContainerOptions<{ a: () => number }, readonly ['a']>;
 export type ConstrainedChildOptions = CreateChildContainerOptions<{ a: () => number }, readonly ['a'], never>;
+const collection = DiBag.token(Symbol('collection')).forCollectionOf<number>();
+const collectionContainer = DiBag.createBuilder().withCollectionContribution({ collectionToken: collection, provider: () => 1 }).buildContainer();
+export const collectionSnapshots = collectionContainer.serviceSnapshot(collection);
 ```
 
-Use the actual phase-5 builder syntax. `expected-manual.json` has one item at the `manual` line with the exact Step-2 reason.
+Use the actual phase-5 builder syntax, including its recorded S1 fallback for the appended contribution if selected. The appended collection regression must compose the phase-4 token/read transforms with the final snapshot name in one pass. `expected-manual.json` has one item at the `manual` line with the exact Step-2 reason.
 
 For the shown input, create this exact `expected-manual.json` (line 14 is the `manual` declaration in the fixture above):
 
@@ -2365,3 +2374,5 @@ The planner ran one Bun 1.4.0 file against the private archived 0.4.0 tree `/tmp
 **Type consistency.** The one-bag overloads consistently use `Selection<ServiceRegistrations, Constraints, Keys, Operation>`, `SelectionRegistrations`, `ReboundSelected`, and `AppliedSelection`; their fields are `replacedServiceKeys`, `replacementProviders`, and `sharedParentServiceKeys`. `CreateChildContainerOptions` preserves the original registrations/shared-keys generic positions, appends defaulted constraints third, and appends replacement generics after it. Return types use `CheckedChildContainerLifetimes` and `DisjointChildContainerSelection`. The module bag always uses `currentExportKey`/`newExportKey`. Observer types always use `LifecycleObserver`, `lifecycleObservers`, `onLifecycleEvent`, and `onObserverFailure`. Codemod owners intentionally remain the 0.4.0 names.
 
 **Placeholder scan.** The executor must substitute measured numeric evidence because planning was forbidden to run compilers; the procedure, decision rule, table columns, and fallback are complete. No implementation step delegates unspecified error handling or tests. Any `if S1/S7/S3` branch is tied to a prior evidence file and includes the exact alternative syntax.
+
+Controller cumulative-map probe: `/tmp/di-bag-resume-20260921/cumulative-codemod/check-snapshot.mjs` used the recovered phase01/04 engine and original published0.4 declarations. Before the explicit map-target correction it emitted `app.inspect(list)`; after replacing the existing entry target it emitted `app.serviceSnapshot(list)`, with no manual rows (320MiB maximum RSS). This is a narrow checker-backed codemod probe, not a compiler diagnostic/declaration or complete accumulated-map proof.
