@@ -265,7 +265,7 @@ test('a raw asynchronous factory settles at its first await, as documented', asy
   expect(released).toEqual(['before']);
 });
 
-test('a rollback failure during startup is reported on DiBagStartupError', async () => {
+test('a rollback failure during readiness is reported on DiBagServiceReadinessError', async () => {
   const failure = await DiBag.createBuilder().register({
     socket: DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
       factoryCtx.pushDisposer(() => { throw new Error('release failed'); });
@@ -273,10 +273,10 @@ test('a rollback failure during startup is reported on DiBagStartupError', async
     }, { context: 'acquisition' }),
   }).build().ensureServicesReady(['socket']).then(() => undefined, (error: unknown) => error);
   expect(failure).toBeInstanceOf(DiBagServiceReadinessError);
-  const { disposalFailures: cleanupFailures } = failure as DiBagServiceReadinessError;
-  expect(cleanupFailures).toHaveLength(1);
-  expect(cleanupFailures[0]!.label).toBe('socket');
-  expect((cleanupFailures[0]!.error as Error).message).toBe('release failed');
+  const { disposalFailures } = failure as DiBagServiceReadinessError;
+  expect(disposalFailures).toHaveLength(1);
+  expect(disposalFailures[0]!.label).toBe('socket');
+  expect((disposalFailures[0]!.error as Error).message).toBe('release failed');
 });
 
 test('a retried scoped acquisition pushes onto a fresh stack', async () => {
