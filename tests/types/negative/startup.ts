@@ -63,11 +63,15 @@ DiBag.fromFactory((_deps: {}, factoryCtx) => {
 }, { context: 'acquisition' });
 const closable = DiBag.createBuilder().register({ value: () => 1 }).build();
 // diagnostic: not assignable
-closable.close({ timeoutMs: '1' });
+closable.close({ waitTimeoutMs: '1' });
 // diagnostic: does not exist in type 'CloseOptions'
-closable.close({ startupOrder: 'sequential' });
+closable.close({ maxConcurrentServiceKeys: 1 });
 // diagnostic: missing the following properties from type 'AbortSignal'
-closable.close({ signal: {} });
+closable.close({ abortSignal: {} });
+// diagnostic: does not exist in type 'CloseOptions'
+closable.close({ timeoutMs: 1 });
+// diagnostic: does not exist in type 'CloseOptions'
+closable.close({ signal: new AbortController().signal });
 // diagnostic: not assignable
 DiBag.createBuilder().register({ value: () => 1 }).buildModule(['value'], { label: 1 });
 // diagnostic: does not exist in type 'ModuleOptions'

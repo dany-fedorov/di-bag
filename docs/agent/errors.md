@@ -355,11 +355,11 @@ try {
 
 ### DI_BAG_CLOSE_ABORTED {#di-bag-close-aborted}
 
-**When:** `close({ signal })` rejects with `DiBagCloseCancelledError`,
+**When:** `close({ abortSignal })` rejects with `DiBagCloseCancelledError`,
 `reason: 'aborted'`, because the signal aborted before cleanup finished.
 
-**Cause:** the caller stopped waiting. Cleanup continues: `details.pending`
-names disposers that started and have not finished, `details.acquiring` the
+**Cause:** the caller stopped waiting. Cleanup continues: `details.disposersStillRunning`
+names disposers that started and have not finished, `details.acquisitionsStillPending` the
 acquisitions close is still draining, and `cause` is the abort reason.
 
 **Fix:** await `cleanupPromise` before exiting when cleanup must complete; fix
@@ -371,10 +371,10 @@ import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
 const controller = new AbortController();
 try {
-  await app.close({ signal: controller.signal });
+  await app.close({ abortSignal: controller.signal });
 } catch (error) {
   if (!(error instanceof DiBagCloseCancelledError)) throw error;
-  console.error(error.details.pending, error.details.acquiring);
+  console.error(error.details.disposersStillRunning, error.details.acquisitionsStillPending);
   await error.cleanupPromise;
 }
 ```
@@ -406,23 +406,23 @@ await app.close().catch((error: unknown) => {
 
 ### DI_BAG_CLOSE_TIMEOUT {#di-bag-close-timeout}
 
-**When:** `close({ timeoutMs })` rejects with `DiBagCloseCancelledError`,
+**When:** `close({ waitTimeoutMs })` rejects with `DiBagCloseCancelledError`,
 `reason: 'timeout'`; its `cause` is a `TimeoutError` with the same code.
 
-**Cause:** cleanup did not finish within `timeoutMs`. The message and
-`details.pending` name the disposers still running, or `details.acquiring` the
+**Cause:** cleanup did not finish within `waitTimeoutMs`. The message and
+`details.disposersStillRunning` name the disposers still running, or `details.acquisitionsStillPending` the
 acquisitions still pending; `cleanupPromise` settles when cleanup ends.
 
 **Fix:** find why the named disposer or factory never settles (a missing
-`await`, an ignored acquisition signal); raise `timeoutMs` only for slow but
+`await`, an ignored acquisition signal); raise `waitTimeoutMs` only for slow but
 finite cleanup.
 
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
-await app.close({ timeoutMs: 5_000 }).catch((error: unknown) => {
-  if (error instanceof DiBagCloseCancelledError) console.error('still running:', error.details.pending);
+await app.close({ waitTimeoutMs: 5_000 }).catch((error: unknown) => {
+  if (error instanceof DiBagCloseCancelledError) console.error('still running:', error.details.disposersStillRunning);
   throw error;
 });
 ```
@@ -639,19 +639,19 @@ const socket = DiBag.fromFactory(async (_dependencies: {}, factoryContext) => {
 ### DI_BAG_INVALID_CLOSE {#di-bag-invalid-close}
 
 **When:** `close(options)` rejects because options are not
-`{ timeoutMs?, signal? }` with a finite positive `timeoutMs` and a genuine
+`{ waitTimeoutMs?, abortSignal? }` with a finite positive `waitTimeoutMs` and a genuine
 `AbortSignal`. Cleanup does not start.
 
 **Cause:** options computed at runtime, extra keys, or a zero or negative
 deadline.
 
-**Fix:** pass only `timeoutMs` and `signal`, or call `close()` without options.
+**Fix:** pass only `waitTimeoutMs` and `abortSignal`, or call `close()` without options.
 
 ```ts
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
-await app.close({ timeoutMs: 1_000, signal: AbortSignal.timeout(2_000) });
+await app.close({ waitTimeoutMs: 1_000, abortSignal: AbortSignal.timeout(2_000) });
 ```
 
 **Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).

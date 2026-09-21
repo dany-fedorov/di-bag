@@ -285,7 +285,7 @@ await test.close();
 Close this bag, drain in-flight work, and dispose owned resources once. Throws: [`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed), [`DI_BAG_CLOSE_FAILED`](errors.md#di-bag-close-failed), [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted), [`DI_BAG_INVALID_CLOSE`](errors.md#di-bag-invalid-close).
 ```ts
 const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
-await bag.close({ timeoutMs: 10_000, signal: AbortSignal.timeout(15_000) });
+await bag.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(15_000) });
 ```
 
 ## Errors {#errors}
@@ -340,15 +340,15 @@ try {
 ```
 
 ### `DiBagCloseCancelledError` {#dibagclosecancellederror}
-A `close({ timeoutMs, signal })` wait stopped before cleanup finished; cleanup keeps running. Code: [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted).
+A `close({ waitTimeoutMs, abortSignal })` wait stopped before cleanup finished; cleanup keeps running. Code: [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted).
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
 const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
 try {
-  await bag.close({ timeoutMs: 5_000 });
+  await bag.close({ waitTimeoutMs: 5_000 });
 } catch (error) {
-  if (error instanceof DiBagCloseCancelledError) console.error(error.details.pending);
+  if (error instanceof DiBagCloseCancelledError) console.error(error.details.disposersStillRunning);
   throw error;
 }
 ```

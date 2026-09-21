@@ -14,22 +14,22 @@ https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-close-timeout
 
 ## Properties
 
-### acquiring
+### acquisitionsStillPending
 
 ```ts
-readonly acquiring: readonly string[];
+readonly acquisitionsStillPending: readonly string[];
 ```
 
 Defined in: [errors.ts:179](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L179)
 
-Labels of acquisitions close was still draining before running disposers.
+Labels of acquisitions that had started and were not ready yet.
 
 ***
 
-### pending
+### disposersStillRunning
 
 ```ts
-readonly pending: readonly string[];
+readonly disposersStillRunning: readonly string[];
 ```
 
 Defined in: [errors.ts:177](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L177)

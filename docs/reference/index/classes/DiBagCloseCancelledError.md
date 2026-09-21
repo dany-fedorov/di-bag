@@ -6,7 +6,7 @@
 
 Defined in: [errors.ts:198](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L198)
 
-A `close({ timeoutMs, signal })` wait stopped before cleanup finished; cleanup keeps running.
+A `close({ waitTimeoutMs, abortSignal })` wait stopped before cleanup finished; cleanup keeps running.
 `code` is `DI_BAG_CLOSE_TIMEOUT` for the deadline and `DI_BAG_CLOSE_ABORTED` for the signal.
 
 ## Example
@@ -16,9 +16,9 @@ import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
 const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
 try {
-  await bag.close({ timeoutMs: 5_000 });
+  await bag.close({ waitTimeoutMs: 5_000 });
 } catch (error) {
-  if (error instanceof DiBagCloseCancelledError) console.error(error.details.pending);
+  if (error instanceof DiBagCloseCancelledError) console.error(error.details.disposersStillRunning);
   throw error;
 }
 ```
@@ -32,7 +32,7 @@ try {
 ### Constructor
 
 ```ts
-new (reason: "aborted" | "timeout", cause: unknown, cleanupPromise: Promise<void>, progress: CloseProgress, timeoutMs?: number): DiBagCloseCancelledError;
+new (reason: "aborted" | "timeout", cause: unknown, cleanupPromise: Promise<void>, progress: CloseProgress, waitTimeoutMs?: number): DiBagCloseCancelledError;
 ```
 
 Defined in: [errors.ts:208](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L208)
@@ -45,7 +45,7 @@ Defined in: [errors.ts:208](https://github.com/dany-fedorov/di-bag/blob/main/src
 | `cause` | The abort reason, or a `TimeoutError` DOMException for the deadline. |
 | `cleanupPromise` | The bag's shared shutdown promise; it settles when cleanup eventually finishes. |
 | `progress` | Labels still in progress when the wait stopped. |
-| `timeoutMs?` | The deadline that elapsed, for `reason: 'timeout'`. |
+| `waitTimeoutMs?` | The deadline that elapsed, for `reason: 'timeout'`. |
 
 #### Overrides
 
@@ -83,7 +83,7 @@ Defined in: [errors.ts:199](https://github.com/dany-fedorov/di-bag/blob/main/src
 declare readonly details: Readonly<{
     operation: 'close';
     reason: 'aborted' | 'timeout';
-    timeoutMs?: number;
+    waitTimeoutMs?: number;
 } & CloseProgress>;
 ```
 

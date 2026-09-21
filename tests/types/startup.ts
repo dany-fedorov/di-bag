@@ -50,8 +50,8 @@ export type Contracts = [
 
 const closeBag = DiBag.createBuilder().register({ value: () => 1 }).build();
 export const closed = closeBag.close();
-export const boundedClose = closeBag.close({ timeoutMs: 100, signal: new AbortController().signal });
-export const scopeClosed = closeBag.createScope().close({ timeoutMs: 1 });
+export const boundedClose = closeBag.close({ waitTimeoutMs: 100, abortSignal: new AbortController().signal });
+export const scopeClosed = closeBag.createScope().close({ waitTimeoutMs: 1 });
 export const labeledModule = DiBag.createBuilder().register({ hidden: () => 1, shown: ({ hidden }: { hidden: number }) => hidden }).buildModule(['shown'], { label: 'feature' });
 export const unlabeledModule = DiBag.createBuilder().register({ hidden: () => 1, shown: ({ hidden }: { hidden: number }) => hidden }).buildModule(['shown']);
 export type CloseContracts = [
@@ -61,5 +61,5 @@ export type CloseContracts = [
   Assert<Equal<Parameters<typeof closeBag.close>[0], CloseOptions | undefined>>,
   Assert<Equal<typeof labeledModule, typeof unlabeledModule>>,
   Assert<Equal<DiBagCloseCancelledError['code'], 'DI_BAG_CLOSE_TIMEOUT' | 'DI_BAG_CLOSE_ABORTED'>>,
-  Assert<Equal<DiBagCloseCancelledError['details']['pending'], readonly string[]>>,
+  Assert<Equal<DiBagCloseCancelledError['details']['disposersStillRunning'], readonly string[]>>,
 ];

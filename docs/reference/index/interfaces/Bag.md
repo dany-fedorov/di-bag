@@ -35,7 +35,7 @@ Defined in: [di-bag.ts:325](https://github.com/dany-fedorov/di-bag/blob/main/src
 Close this bag, drain in-flight work, and dispose owned resources once.
 Dependents are disposed before dependencies; remaining independent acquisitions use
 reverse acquisition order. Without options the promise waits for cleanup however long it
-takes, and repeated calls return the same promise. With `timeoutMs` or `signal`, cleanup
+takes, and repeated calls return the same promise. With `waitTimeoutMs` or `abortSignal`, cleanup
 starts the same way but the returned promise stops waiting when either fires; scopes and
 forks accept the same options. Close every scope and fork you create; a parent closes its live scopes, never forks.
 
@@ -54,13 +54,13 @@ The shared shutdown promise, or a bounded wait on it when options are given.
 [DiBagCleanupError](../classes/DiBagCleanupError.md) (`DI_BAG_CLEANUP_FAILED`) when one or more disposers fail after all cleanup is attempted;
 `DI_BAG_CLOSE_FAILED` for other shutdown failures;
 [DiBagCloseCancelledError](../classes/DiBagCloseCancelledError.md) (`DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`) when the wait stops first,
-naming unfinished disposers in `details.pending`; `DI_BAG_INVALID_CLOSE` for malformed options.
+naming unfinished disposers in `details.disposersStillRunning`; `DI_BAG_INVALID_CLOSE` for malformed options.
 
 #### Example
 
 ```ts
 const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
-await bag.close({ timeoutMs: 10_000, signal: AbortSignal.timeout(15_000) });
+await bag.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(15_000) });
 ```
 
 ***

@@ -716,9 +716,9 @@ test('a bounded close reports an in-flight rollback as pending', async () => {
     }, { context: 'acquisition' }), { mode: 'direct', transform: promise => ({ wrapped: promise }) }),
   }).build();
   await expect(bag.resolve('service').wrapped).rejects.toThrow('source');
-  const failure = await bag.close({ timeoutMs: 5 }).then(() => undefined, (error: unknown) => error);
+  const failure = await bag.close({ waitTimeoutMs: 5 }).then(() => undefined, (error: unknown) => error);
   expect(failure).toBeInstanceOf(DiBagCloseCancelledError);
-  expect((failure as DiBagCloseCancelledError).details.pending).toEqual(['service']);
+  expect((failure as DiBagCloseCancelledError).details.disposersStillRunning).toEqual(['service']);
   gate.resolve();
   await (failure as DiBagCloseCancelledError).cleanupPromise;
 });

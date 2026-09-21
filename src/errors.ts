@@ -174,13 +174,13 @@ export class DiBagStartupCancelledError extends Error {
  */
 export interface CloseProgress {
   /** Labels of disposers that started and had not completed. */
-  readonly pending: readonly string[];
-  /** Labels of acquisitions close was still draining before running disposers. */
-  readonly acquiring: readonly string[];
+  readonly disposersStillRunning: readonly string[];
+  /** Labels of acquisitions that had started and were not ready yet. */
+  readonly acquisitionsStillPending: readonly string[];
 }
 
 /**
- * A `close({ timeoutMs, signal })` wait stopped before cleanup finished; cleanup keeps running.
+ * A `close({ waitTimeoutMs, abortSignal })` wait stopped before cleanup finished; cleanup keeps running.
  * `code` is `DI_BAG_CLOSE_TIMEOUT` for the deadline and `DI_BAG_CLOSE_ABORTED` for the signal.
  * @example
  * ```ts
@@ -188,38 +188,39 @@ export interface CloseProgress {
  *
  * const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
  * try {
- *   await bag.close({ timeoutMs: 5_000 });
+ *   await bag.close({ waitTimeoutMs: 5_000 });
  * } catch (error) {
- *   if (error instanceof DiBagCloseCancelledError) console.error(error.details.pending);
+ *   if (error instanceof DiBagCloseCancelledError) console.error(error.details.disposersStillRunning);
  *   throw error;
  * }
  * ```
  */
 export class DiBagCloseCancelledError extends Error {
   declare readonly code: 'DI_BAG_CLOSE_TIMEOUT' | 'DI_BAG_CLOSE_ABORTED';
-  declare readonly details: Readonly<{ operation: 'close'; reason: 'aborted' | 'timeout'; timeoutMs?: number } & CloseProgress>;
+  declare readonly details: Readonly<{ operation: 'close'; reason: 'aborted' | 'timeout'; waitTimeoutMs?: number } & CloseProgress>;
   /**
    * @param reason - Whether an external abort or the close deadline stopped the wait.
    * @param cause - The abort reason, or a `TimeoutError` DOMException for the deadline.
    * @param cleanupPromise - The bag's shared shutdown promise; it settles when cleanup eventually finishes.
    * @param progress - Labels still in progress when the wait stopped.
-   * @param timeoutMs - The deadline that elapsed, for `reason: 'timeout'`.
+   * @param waitTimeoutMs - The deadline that elapsed, for `reason: 'timeout'`.
    */
   constructor(
     readonly reason: 'aborted' | 'timeout',
     cause: unknown,
     readonly cleanupPromise: Promise<void>,
     progress: CloseProgress,
-    timeoutMs?: number,
+    waitTimeoutMs?: number,
   ) {
     const code = reason === 'timeout' ? 'DI_BAG_CLOSE_TIMEOUT' : 'DI_BAG_CLOSE_ABORTED';
-    const waiting = progress.pending.length ? `; disposers still running: ${progress.pending.join(', ')}`
-      : progress.acquiring.length ? `; acquisitions still pending: ${progress.acquiring.join(', ')}` : '';
-    super(diagnosticMessage(code, `Bag close ${reason === 'timeout' ? `timed out after ${timeoutMs}ms` : 'aborted'}${waiting}`), { cause });
+    const waiting = progress.disposersStillRunning.length ? `; disposers still running: ${progress.disposersStillRunning.join(', ')}`
+      : progress.acquisitionsStillPending.length ? `; acquisitions still pending: ${progress.acquisitionsStillPending.join(', ')}` : '';
+    super(diagnosticMessage(code, `Bag close ${reason === 'timeout' ? `timed out after ${waitTimeoutMs}ms` : 'aborted'}${waiting}`), { cause });
     this.name = 'DiBagCloseCancelledError';
     diagnostic(this, code, {
-      operation: 'close', reason, ...(timeoutMs === undefined ? {} : { timeoutMs }),
-      pending: Object.freeze([...progress.pending]), acquiring: Object.freeze([...progress.acquiring]),
+      operation: 'close', reason, ...(waitTimeoutMs === undefined ? {} : { waitTimeoutMs }),
+      disposersStillRunning: Object.freeze([...progress.disposersStillRunning]),
+      acquisitionsStillPending: Object.freeze([...progress.acquisitionsStillPending]),
     });
     void cleanupPromise.catch(() => {});
   }

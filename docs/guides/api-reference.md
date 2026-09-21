@@ -122,7 +122,7 @@ The specialized error classes below are runtime exports from both `di-bag` and
 | [`DiBagPluginValidationError`](../reference/index/classes/DiBagPluginValidationError.md) | A plugin descriptor or acquired output fails the plugin boundary checks. | `phase` is `'descriptor'` or `'output'`; `reason` describes the rejection. |
 | [`DiBagStartupError`](../reference/index/classes/DiBagStartupError.md) | Selected startup acquisition fails and rollback has completed. | `cause` is the acquisition error; `cleanupFailures` contains disposal failures; `cleanupError` retains the complete cleanup error when present. |
 | [`DiBagStartupCancelledError`](../reference/index/classes/DiBagStartupCancelledError.md) | An external signal or startup deadline interrupts startup. | `reason` is `'aborted'` or `'timeout'`; `cause` retains the cancellation reason; `cleanupPromise` is a `Promise<void>` for eventual shutdown. |
-| [`DiBagCloseCancelledError`](../reference/index/classes/DiBagCloseCancelledError.md) | `close({ timeoutMs, signal })` stops waiting before cleanup finishes. | `code` is `DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`; `details.pending` lists unfinished disposer labels and `details.acquiring` pending acquisitions; `cleanupPromise` settles when cleanup finishes. |
+| [`DiBagCloseCancelledError`](../reference/index/classes/DiBagCloseCancelledError.md) | `close({ waitTimeoutMs, abortSignal })` stops waiting before cleanup finishes. | `code` is `DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`; `details.disposersStillRunning` lists unfinished disposer labels and `details.acquisitionsStillPending` pending acquisitions; `cleanupPromise` settles when cleanup finishes. |
 
 Given an existing application bag named `app`:
 

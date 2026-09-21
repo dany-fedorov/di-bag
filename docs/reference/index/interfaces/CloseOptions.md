@@ -14,24 +14,24 @@ https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-close-timeout
 
 ## Properties
 
-### signal?
+### abortSignal?
 
 ```ts
-readonly signal?: AbortSignal;
+readonly abortSignal?: AbortSignal;
 ```
 
 Defined in: [startup.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L28)
 
-An external signal that stops the wait promptly.
+Aborting it stops the wait promptly. Cleanup keeps running.
 
 ***
 
-### timeoutMs?
+### waitTimeoutMs?
 
 ```ts
-readonly timeoutMs?: number;
+readonly waitTimeoutMs?: number;
 ```
 
 Defined in: [startup.ts:30](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L30)
 
-A finite positive deadline in milliseconds.
+A finite positive deadline in milliseconds for the wait, not for the cleanup.

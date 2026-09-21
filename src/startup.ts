@@ -24,10 +24,10 @@ export interface StartupOptions {
  * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-close-timeout
  */
 export interface CloseOptions {
-  /** An external signal that stops the wait promptly. */
-  readonly signal?: AbortSignal;
-  /** A finite positive deadline in milliseconds. */
-  readonly timeoutMs?: number;
+  /** Aborting it stops the wait promptly. Cleanup keeps running. */
+  readonly abortSignal?: AbortSignal;
+  /** A finite positive deadline in milliseconds for the wait, not for the cleanup. */
+  readonly waitTimeoutMs?: number;
 }
 
 /** Snapshot own cancellation options once, so getters and prototypes cannot change them later. */
@@ -41,19 +41,20 @@ function formatted<E extends Error>(error: E): E {
   return error;
 }
 
-function snapshotOptions(options: unknown, operation: 'buildAndStart' | 'close', code: DiBagErrorCode, supported: readonly string[]): Record<string, unknown> {
+function snapshotOptions(options: unknown, operation: 'buildAndStart' | 'close', code: DiBagErrorCode, supported: readonly string[], timeoutKey = 'timeoutMs', signalKey = 'signal'): Record<string, unknown> {
   if (options === undefined) return {};
   if (typeof options !== 'object' || options === null || Array.isArray(options)) throw libraryError(code, `invalid ${operation} options`, { operation });
   if (Reflect.ownKeys(options).some(key => typeof key !== 'string' || !supported.includes(key)) ||
     supported.some(key => key in options && !Object.hasOwn(options, key))) throw libraryError(code, `invalid ${operation} options`, { operation });
   const selected: Record<string, unknown> = Object.create(null);
   for (const key of supported) if (Object.hasOwn(options, key)) selected[key] = Reflect.get(options, key);
-  if (Object.hasOwn(selected, 'timeoutMs') && (typeof selected.timeoutMs !== 'number' || !Number.isFinite(selected.timeoutMs) || selected.timeoutMs <= 0)) {
-    throw libraryError(code, `${operation} timeoutMs must be finite and positive`, { operation });
+  const timeout = selected[timeoutKey];
+  if (Object.hasOwn(selected, timeoutKey) && (typeof timeout !== 'number' || !Number.isFinite(timeout) || timeout <= 0)) {
+    throw libraryError(code, `${operation} ${timeoutKey} must be finite and positive`, { operation });
   }
-  if (Object.hasOwn(selected, 'signal')) {
-    try { Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted')!.get!.call(selected.signal); }
-    catch { throw libraryError(code, `${operation} signal must be an AbortSignal`, { operation }); }
+  if (Object.hasOwn(selected, signalKey)) {
+    try { Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted')!.get!.call(selected[signalKey]); }
+    catch { throw libraryError(code, `${operation} ${signalKey} must be an AbortSignal`, { operation }); }
   }
   return selected;
 }
@@ -72,9 +73,9 @@ function snapshotStartupOptions(options: StartupOptions | undefined): StartupOpt
 export function closeRuntime(runtime: BagRuntime, options: CloseOptions | undefined): Promise<void> {
   if (options === undefined) return runtime.close();
   let selected: CloseOptions;
-  try { selected = snapshotOptions(options, 'close', 'DI_BAG_INVALID_CLOSE', ['signal', 'timeoutMs']) as CloseOptions; }
+  try { selected = snapshotOptions(options, 'close', 'DI_BAG_INVALID_CLOSE', ['abortSignal', 'waitTimeoutMs'], 'waitTimeoutMs', 'abortSignal') as CloseOptions; }
   catch (error) { return Promise.reject(error); }
-  const { signal, timeoutMs } = selected;
+  const { abortSignal: signal, waitTimeoutMs: timeoutMs } = selected;
   const closing = runtime.close();
   if (signal === undefined && timeoutMs === undefined) return closing;
   return new Promise<void>((resolve, reject) => {
@@ -95,7 +96,7 @@ export function closeRuntime(runtime: BagRuntime, options: CloseOptions | undefi
     const schedule = () => {
       if (settled || timeoutMs === undefined) return;
       if (performance.now() - began >= timeoutMs) {
-        cancel('timeout', formatted(diagnostic(new DOMException(diagnosticMessage('DI_BAG_CLOSE_TIMEOUT', 'Bag close timed out'), 'TimeoutError'), 'DI_BAG_CLOSE_TIMEOUT', { operation: 'close', timeoutMs })));
+        cancel('timeout', formatted(diagnostic(new DOMException(diagnosticMessage('DI_BAG_CLOSE_TIMEOUT', 'Bag close timed out'), 'TimeoutError'), 'DI_BAG_CLOSE_TIMEOUT', { operation: 'close', waitTimeoutMs: timeoutMs })));
         return;
       }
       // Long deadlines must not wrap into an immediate timer on Node/Bun.
