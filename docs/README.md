@@ -36,6 +36,7 @@ Each guide contains three complete, independently runnable application examples.
 | --- | --- |
 | [Changelog](../CHANGELOG.md) | Review changes by release. |
 | [Development](guides/development.md) | Run source, package, compiler, and platform checks. |
+| [API naming standard](guides/api-naming.md) | Name a public method, option, string value, error code, or type; see what the naming test enforces. |
 | [Documentation maintenance](guides/documentation.md) | Edit guides, regenerate the API reference, and preview the website. |
 | [Publishing](../PUBLISHING.md) | Prepare and verify a local package candidate. |
 | [Compiler scale](benchmarks/typescript.md) | Understand the measured limits of large fluent expressions and run the compiler benchmarks. |

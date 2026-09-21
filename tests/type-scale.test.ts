@@ -1,6 +1,11 @@
-import { expect, test } from 'bun:test';
-import { describeDiagnostic, diagnostics, namedModuleScaleSource, scalePath, scaleSource } from './compiler';
+import { afterEach, expect, test } from 'bun:test';
+import { describeDiagnostic, diagnostics, namedModuleScaleSource, resetCompilerState, scalePath, scaleSource } from './compiler';
 import type { ScaleForm } from './compiler';
+
+afterEach(() => {
+  resetCompilerState();
+  Bun.gc(true);
+});
 
 for (const [count, form] of [[100, 'bulk'], [100, 'chained'], [100, 'replacement'], [1000, 'grouped']] as const) {
   test(`type scale: ${count} ${form} providers preserve consumer types`, () => {

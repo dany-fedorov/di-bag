@@ -21,6 +21,14 @@ let previousProgram: ts.Program | undefined;
 // cwd-relative like scalePath: __dirname is undefined when Node loads this module for the scripts.
 const librarySources = resolve('src') + sep;
 
+/** Drop test-process compiler reuse so large independent cases can be collected. */
+export function resetCompilerState(): void {
+  previousProgram = undefined;
+  sharedHost = undefined;
+  sourceFiles.clear();
+  virtualSources.clear();
+}
+
 function host(): ts.CompilerHost {
   if (sharedHost) return sharedHost;
   const created = ts.createCompilerHost(options);
