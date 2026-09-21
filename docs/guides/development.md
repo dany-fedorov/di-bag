@@ -37,6 +37,11 @@ that fixture and the other test files it imports; `npm run typecheck` covers `sr
 (`npm ci --prefix tools/graph` first). The tool depends on the TypeScript
 compiler, so it is published as its own package; see [PUBLISHING.md](../../PUBLISHING.md#releasing-di-bag-graph).
 
+`npm run codemod:check` tests the standalone `di-bag-codemod` tool in
+`tools/codemod` (`npm ci --prefix tools/codemod` first). Its fixtures type-check
+against the published 0.4.0 declarations, vendored under
+`tools/codemod/test/fixtures/node_modules/di-bag`; do not edit them.
+
 ```sh
 npm ci
 npm run platform:pin   # capture the installed foundation tool identities
