@@ -12,7 +12,7 @@ function atLeast(version, minimum) {
 
 /**
  * The project's `typescript` when it exposes the compiler API at 6.0.3 or later, else the bundled copy.
- * TypeScript 7 ships no compatible JavaScript API, so a project on 7 is analyzed with the bundled 6.
+ * A newer project compiler without a compatible JavaScript API is analyzed with the bundled 6.
  * @param {string} from - A directory inside the project.
  * @returns {{ ts: typeof import('typescript'), version: string, source: 'project' | 'bundled' }}
  */

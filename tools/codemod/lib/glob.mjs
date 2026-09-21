@@ -27,11 +27,12 @@ function toRegExp(pattern) {
  */
 export function expandGlob(pattern, root) {
   const normalized = pattern.replaceAll('\\', '/');
+  const segments = normalized.split('/');
+  if (segments.includes('node_modules')) return [];
   if (!WILDCARD.test(normalized)) {
     const file = resolve(root, normalized);
     return existsSync(file) && statSync(file).isFile() ? [file] : [];
   }
-  const segments = normalized.split('/');
   const firstWild = segments.findIndex(segment => WILDCARD.test(segment));
   const base = resolve(root, segments.slice(0, firstWild).join('/') || '.');
   if (!existsSync(base)) return [];
