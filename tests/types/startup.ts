@@ -1,4 +1,4 @@
-import { DiBag, type AcquisitionContext, type DisposerContext, type CloseOptions, type DiBagCloseCancelledError, type ProviderAcquiredValue, type ProviderNamedDependencies, type ProviderOutput } from '../../src';
+import { DiBag, type AcquisitionContext, type DisposerContext, type CloseOptions, type DiBagCloseCancelledError, type EnsureServicesReadyOptions, type ProviderAcquiredValue, type ProviderNamedDependencies, type ProviderOutput } from '../../src';
 import type { Assert, Equal } from './assert';
 
 const key: unique symbol = Symbol('startup');
@@ -18,10 +18,10 @@ const feature = DiBag.createBuilder().register({
 }).buildModule(['exported']).renameExport('exported', 'renamed');
 export const builder = DiBag.createBuilder().installModule(feature).register(selectedToken, DiBag.fromFactory((_deps: {}, _factoryCtx) => ({ value: 42 as const }), { context: 'acquisition' })).register({ input: () => ({ label: 'exact' as const }), contextual: DiBag.withMetadata(contextual, { static: { owner: 'startup' as const } }), raw });
 export const lazy = builder.build();
-export const started = builder.buildAndStart(['contextual', selectedToken, 'raw', 'renamed']);
-export const sequential = builder.buildAndStart(['contextual'], { startupOrder: 'sequential', signal: new AbortController().signal, timeoutMs: 100 });
-export const bounded = builder.buildAndStart(['contextual'], { startupOrder: 4 });
-export const empty = builder.buildAndStart([]);
+export const started = lazy.ensureServicesReady(['contextual', selectedToken, 'raw', 'renamed']);
+export const sequential = lazy.ensureServicesReady(['contextual'], { maxConcurrentServiceKeys: 1, abortSignal: new AbortController().signal, totalTimeoutMs: 100 });
+export const bounded = lazy.ensureServicesReady(['contextual'], { maxConcurrentServiceKeys: 4 });
+export const empty = lazy.ensureServicesReady([]);
 export const native = DiBag.fromFactory(async (_deps: {}, factoryCtx) => ({ signal: factoryCtx.signal, value: 1 as const }), { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } });
 export const noDeps = DiBag.fromFactory(() => 7 as const, { context: 'acquisition' });
 export const pushed = DiBag.fromFactory((_deps: {}, factoryCtx) => {
@@ -29,7 +29,16 @@ export const pushed = DiBag.fromFactory((_deps: {}, factoryCtx) => {
   factoryCtx.pushDisposer(async disposerCtx => { const reason: DisposerContext['reason'] = disposerCtx.reason; void reason; });
   return 'owned' as const;
 }, { context: 'acquisition' });
-export const reflected = builder.buildAndStart<readonly ['contextual']>;
+const readyChild = lazy.createScope();
+export const readyInChild = readyChild.ensureServicesReady(['contextual']);
+const readyFork = lazy.fork();
+export const readyInFork = readyFork.ensureServicesReady([selectedToken]);
+export type ReadinessContracts = [
+  Assert<Equal<Awaited<typeof readyInChild>, typeof readyChild>>,
+  Assert<Equal<Awaited<typeof readyInFork>, typeof readyFork>>,
+  Assert<Equal<Parameters<typeof lazy.ensureServicesReady>[1], EnsureServicesReadyOptions | undefined>>,
+];
+export const reflected = lazy.ensureServicesReady<readonly ['contextual']>;
 export type Contracts = [
   Assert<Equal<Awaited<typeof started>, typeof lazy>>,
   Assert<Equal<typeof sequential, typeof started>>,

@@ -220,6 +220,18 @@ Re-exports [DiBagPolicy](../index/interfaces/DiBagPolicy.md)
 
 ***
 
+### DiBagServiceReadinessCancelledError
+
+Re-exports [DiBagServiceReadinessCancelledError](../index/classes/DiBagServiceReadinessCancelledError.md)
+
+***
+
+### DiBagServiceReadinessError
+
+Re-exports [DiBagServiceReadinessError](../index/classes/DiBagServiceReadinessError.md)
+
+***
+
 ### DiBagStartupCancelledError
 
 Re-exports [DiBagStartupCancelledError](../index/classes/DiBagStartupCancelledError.md)
@@ -241,6 +253,12 @@ Re-exports [DisjointScopeSelection](../index/type-aliases/DisjointScopeSelection
 ### DisposerContext
 
 Re-exports [DisposerContext](../index/interfaces/DisposerContext.md)
+
+***
+
+### EnsureServicesReadyOptions
+
+Re-exports [EnsureServicesReadyOptions](../index/interfaces/EnsureServicesReadyOptions.md)
 
 ***
 

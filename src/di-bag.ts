@@ -17,11 +17,11 @@ import type { CheckedConstraints, CompleteConstraints, ExternalRequirements, Inc
 import type { CheckedLifetimes, SealAdmission, WithoutExportObligations } from './lifetime-types';
 import { withLifetime } from './lifetime';
 import { fromFactory, fromSyncFactory, fromAsyncFactory } from './acquisition-context';
-import { closeRuntime, startRuntime } from './startup';
+import { closeRuntime, ensureRuntimeReady, startRuntime } from './startup';
 import { selectScope } from './scope-selection';
 import type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases } from './scope-types';
 import type { CheckedScopeLifetimes } from './lifetime-types';
-import type { CloseOptions, StartupOptions } from './startup';
+import type { CloseOptions, EnsureServicesReadyOptions, StartupOptions } from './startup';
 import { withMetadata, transformService, withTokenBinding } from './provider';
 import { fromFunction, fromClass } from './composition';
 import { runtimeContext, unconfigured } from './acquisition-mode';
@@ -301,6 +301,36 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
       selectedBindings.push([token, registration as Registration]);
     }
     return new Bag(this.#graph.withPublicBindings(selectedBindings), this.context);
+  }
+
+  /**
+   * Make the listed services ready before continuing, then resolve to this same bag.
+   * Each listed service is acquired now, with whatever its factory reads, and the call waits until it is ready;
+   * every other service stays lazy. List the services whose readiness you need before the next line runs, such as
+   * a database pool or a cache client. Works on a built bag, a child scope, and a fork, and may be called again.
+   * A failed factory, an aborted signal, or an elapsed deadline closes this bag: a child scope closes only itself,
+   * never its parent or a service it borrows.
+   * @param serviceKeys - A finite tuple of existing names or typed tokens to wait for; an empty tuple is valid.
+   * @param options - An optional abort signal, a deadline for the whole call, and a bound on how many listed keys are acquired at once.
+   * @returns A promise for this bag once every listed service is ready.
+   * @throws {@link DiBagServiceReadinessError} (`DI_BAG_SERVICE_READINESS_FAILED`) after this bag has closed because a factory failed;
+   * {@link DiBagServiceReadinessCancelledError} (`DI_BAG_SERVICE_READINESS_CANCELLED`) promptly on abort or timeout, naming what was still pending;
+   * `DI_BAG_INVALID_STARTUP` for malformed keys or options and `DI_BAG_INVALID_TOKEN` for a bad token, both before any factory runs and with this bag left open;
+   * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`. Each arrives as a rejection.
+   * @example
+   * ```ts
+   * const bag = await DiBag.createBuilder()
+   *   .register({ db: async () => ({ ping: () => true }) })
+   *   .build()
+   *   .ensureServicesReady(['db'], { totalTimeoutMs: 5_000 });
+   * ```
+   */
+  async ensureServicesReady<const K extends readonly unknown[]>(
+    serviceKeys: K & Selection<ServiceRegistrations, K, 'ensureServicesReady'>,
+    options?: EnsureServicesReadyOptions,
+  ): Promise<this> {
+    await ensureRuntimeReady(this.#runtime, this.#graph, serviceKeys, options);
+    return this;
   }
 
   /**

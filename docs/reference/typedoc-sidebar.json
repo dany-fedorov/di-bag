@@ -21,6 +21,14 @@
             "link": "/reference/index/classes/DiBagPluginValidationError.md"
           },
           {
+            "text": "DiBagServiceReadinessCancelledError",
+            "link": "/reference/index/classes/DiBagServiceReadinessCancelledError.md"
+          },
+          {
+            "text": "DiBagServiceReadinessError",
+            "link": "/reference/index/classes/DiBagServiceReadinessError.md"
+          },
+          {
             "text": "DiBagStartupCancelledError",
             "link": "/reference/index/classes/DiBagStartupCancelledError.md"
           },
@@ -89,6 +97,10 @@
           {
             "text": "DisposerContext",
             "link": "/reference/index/interfaces/DisposerContext.md"
+          },
+          {
+            "text": "EnsureServicesReadyOptions",
+            "link": "/reference/index/interfaces/EnsureServicesReadyOptions.md"
           },
           {
             "text": "FactoryWithDisposal",

@@ -1064,6 +1064,76 @@ descriptor.
 
 **Recipe:** none.
 
+### DI_BAG_SERVICE_READINESS_CANCELLED {#di-bag-service-readiness-cancelled}
+
+**When:** `ensureServicesReady` rejects with `DiBagServiceReadinessCancelledError`,
+`reason` `'aborted'` or `'timeout'`.
+
+**Cause:** `abortSignal` aborted or `totalTimeoutMs` elapsed before the listed
+services were ready. This bag is closing. `details.acquisitionsStillPending`
+names the services that were not ready yet, `details.disposersStillRunning` the
+disposers that had started.
+
+**Fix:** await `disposalPromise` before exiting; fix or speed up the named
+service, and make slow factories honor the acquisition `signal`.
+
+```ts
+import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
+
+const bag = DiBag.createBuilder().register({ settings: async () => 'ready' }).build();
+try {
+  await bag.ensureServicesReady(['settings'], { totalTimeoutMs: 5_000 });
+  await bag.close();
+} catch (error) {
+  if (error instanceof DiBagServiceReadinessCancelledError) {
+    console.error(error.details.acquisitionsStillPending);
+    await error.disposalPromise;
+  }
+  throw error;
+}
+```
+
+**Recipe:** [add and consume an async client](recipes.md#async-client).
+
+### DI_BAG_SERVICE_READINESS_FAILED {#di-bag-service-readiness-failed}
+
+**When:** `ensureServicesReady` rejects with `DiBagServiceReadinessError` after
+this bag has closed.
+
+**Cause:** a listed service or one of its dependencies failed to acquire;
+`cause` is that error and `disposalFailures` lists disposers that failed while
+the bag closed. A child scope closes only itself, never its parent.
+
+**Fix:** fix `cause`, then build a new bag, or create a new scope, and call
+`ensureServicesReady` again.
+
+```ts
+import { DiBag, DiBagServiceReadinessError } from 'di-bag';
+
+const bag = DiBag.createBuilder().register({ settings: async () => 'ready' }).build();
+const app = await bag.ensureServicesReady(['settings']).catch((error: unknown) => {
+  throw error instanceof DiBagServiceReadinessError ? error.cause : error;
+});
+await app.close();
+```
+
+**Recipe:** [add and consume an async client](recipes.md#async-client).
+
+### DI_BAG_SERVICE_READINESS_TIMEOUT {#di-bag-service-readiness-timeout}
+
+**When:** the `cause` of a
+[`DI_BAG_SERVICE_READINESS_CANCELLED`](#di-bag-service-readiness-cancelled)
+error with `reason: 'timeout'`: a `DOMException` named `TimeoutError`, with
+`details.totalTimeoutMs`.
+
+**Cause:** the listed services took longer than `totalTimeoutMs`, which covers
+the whole call and not each service.
+
+**Fix:** raise `totalTimeoutMs`, list fewer services, or make factories honor
+the signal so they stop promptly.
+
+**Recipe:** [add and consume an async client](recipes.md#async-client).
+
 ### DI_BAG_STARTUP_CANCELLED {#di-bag-startup-cancelled}
 
 **When:** `buildAndStart` rejects with `DiBagStartupCancelledError`, `reason`

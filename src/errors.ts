@@ -169,6 +169,85 @@ export class DiBagStartupCancelledError extends Error {
 }
 
 /**
+ * `ensureServicesReady` could not make a listed service ready, and this bag is now closed.
+ * `cause` is the original failure and `disposalFailures` lists disposers that failed while the bag closed.
+ * @example
+ * ```ts
+ * import { DiBag, DiBagServiceReadinessError } from 'di-bag';
+ *
+ * const bag = DiBag.createBuilder().register({ db: async (): Promise<number> => { throw new Error('offline'); } }).build();
+ * try {
+ *   await bag.ensureServicesReady(['db']);
+ * } catch (error) {
+ *   if (error instanceof DiBagServiceReadinessError) console.error(error.cause, error.disposalFailures);
+ * }
+ * ```
+ */
+export class DiBagServiceReadinessError extends Error {
+  declare readonly code: 'DI_BAG_SERVICE_READINESS_FAILED';
+  declare readonly details: Readonly<Record<string, unknown>>;
+  /** Frozen disposal failures in invocation order, collected while this bag closed. */
+  readonly disposalFailures: readonly CleanupFailure[];
+
+  /**
+   * @param cause - The original failure of a listed service or of one of its dependencies.
+   * @param disposalFailures - Structured failures collected while closing the bag.
+   * @param disposalError - The complete shutdown error, when closing itself rejected.
+   */
+  constructor(cause: unknown, disposalFailures: readonly CleanupFailure[], readonly disposalError?: unknown) {
+    super(diagnosticMessage('DI_BAG_SERVICE_READINESS_FAILED', 'The listed services are not ready: a factory failed; this bag is closed'), { cause });
+    this.name = 'DiBagServiceReadinessError';
+    this.disposalFailures = Object.freeze(disposalFailures.map(item => Object.freeze({ ...item })));
+    diagnostic(this, 'DI_BAG_SERVICE_READINESS_FAILED', { operation: 'ensureServicesReady', disposalFailures: this.disposalFailures });
+  }
+}
+
+/**
+ * `ensureServicesReady` stopped waiting on abort or timeout; this bag is closing and `disposalPromise` settles when it has closed.
+ * `details` names what was still in progress. On timeout, `cause` carries `DI_BAG_SERVICE_READINESS_TIMEOUT`.
+ * @example
+ * ```ts
+ * import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
+ *
+ * const bag = DiBag.createBuilder().register({ db: () => new Promise<number>(() => {}) }).build();
+ * try {
+ *   await bag.ensureServicesReady(['db'], { totalTimeoutMs: 1_000 });
+ * } catch (error) {
+ *   if (error instanceof DiBagServiceReadinessCancelledError) console.error(error.details.acquisitionsStillPending);
+ * }
+ * ```
+ */
+export class DiBagServiceReadinessCancelledError extends Error {
+  declare readonly code: 'DI_BAG_SERVICE_READINESS_CANCELLED';
+  declare readonly details: Readonly<{ operation: 'ensureServicesReady'; reason: 'aborted' | 'timeout'; totalTimeoutMs?: number } & CloseProgress>;
+  /**
+   * @param reason - Whether an external abort or the deadline cancelled the wait.
+   * @param cause - The abort reason or the generated timeout error.
+   * @param disposalPromise - Eventual shutdown of this bag; cancellation does not await it.
+   * @param progress - Labels still in progress when the wait stopped.
+   * @param totalTimeoutMs - The deadline that elapsed, for `reason: 'timeout'`.
+   */
+  constructor(
+    readonly reason: 'aborted' | 'timeout',
+    cause: unknown,
+    readonly disposalPromise: Promise<void>,
+    progress: CloseProgress,
+    totalTimeoutMs?: number,
+  ) {
+    const waiting = progress.acquisitionsStillPending.length ? `; acquisitions still pending: ${progress.acquisitionsStillPending.join(', ')}`
+      : progress.disposersStillRunning.length ? `; disposers still running: ${progress.disposersStillRunning.join(', ')}` : '';
+    super(diagnosticMessage('DI_BAG_SERVICE_READINESS_CANCELLED', `The listed services were not ready: the wait ${reason === 'timeout' ? `timed out after ${totalTimeoutMs}ms` : 'was aborted'}${waiting}; this bag is closing`), { cause });
+    this.name = 'DiBagServiceReadinessCancelledError';
+    diagnostic(this, 'DI_BAG_SERVICE_READINESS_CANCELLED', {
+      operation: 'ensureServicesReady', reason, ...(totalTimeoutMs === undefined ? {} : { totalTimeoutMs }),
+      disposersStillRunning: Object.freeze([...progress.disposersStillRunning]),
+      acquisitionsStillPending: Object.freeze([...progress.acquisitionsStillPending]),
+    });
+    void disposalPromise.catch(() => {});
+  }
+}
+
+/**
  * What a close deadline or abort interrupted: labels still in progress when the wait stopped.
  * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-close-timeout
  */

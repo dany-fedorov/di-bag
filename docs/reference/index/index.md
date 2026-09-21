@@ -9,6 +9,8 @@
 - [DiBagCleanupError](classes/DiBagCleanupError.md)
 - [DiBagCloseCancelledError](classes/DiBagCloseCancelledError.md)
 - [DiBagPluginValidationError](classes/DiBagPluginValidationError.md)
+- [DiBagServiceReadinessCancelledError](classes/DiBagServiceReadinessCancelledError.md)
+- [DiBagServiceReadinessError](classes/DiBagServiceReadinessError.md)
 - [DiBagStartupCancelledError](classes/DiBagStartupCancelledError.md)
 - [DiBagStartupError](classes/DiBagStartupError.md)
 
@@ -28,6 +30,7 @@
 - [DiBagDiagnostic](interfaces/DiBagDiagnostic.md)
 - [DiBagPolicy](interfaces/DiBagPolicy.md)
 - [DisposerContext](interfaces/DisposerContext.md)
+- [EnsureServicesReadyOptions](interfaces/EnsureServicesReadyOptions.md)
 - [FactoryWithDisposal](interfaces/FactoryWithDisposal.md)
 - [GraphSnapshot](interfaces/GraphSnapshot.md)
 - [Module](interfaces/Module.md)

@@ -3,7 +3,7 @@ import { BagRuntime } from './runtime';
 import type { BindingGraph, BindingKey } from './runtime';
 import type { RuntimeContext } from './acquisition-mode';
 import { readTokenKey } from './tokens';
-import { DiBagCleanupError, DiBagCloseCancelledError, DiBagStartupCancelledError, DiBagStartupError } from './errors';
+import { DiBagCleanupError, DiBagCloseCancelledError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError, DiBagStartupCancelledError, DiBagStartupError } from './errors';
 import type { DiBagErrorCode } from './errors';
 
 /**
@@ -30,6 +30,19 @@ export interface CloseOptions {
   readonly waitTimeoutMs?: number;
 }
 
+/**
+ * Options of {@link Bag.ensureServicesReady}.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
+ */
+export interface EnsureServicesReadyOptions {
+  /** Aborting it stops the wait and closes this bag. */
+  readonly abortSignal?: AbortSignal;
+  /** A finite positive deadline in milliseconds for the whole call, until every listed service is ready. It is not per service. On expiry this bag is closed. */
+  readonly totalTimeoutMs?: number;
+  /** How many entries of `serviceKeys` are acquired at once, in tuple order. Omitted means all at once, `1` means one after another. It does not limit the dependencies a factory reads. */
+  readonly maxConcurrentServiceKeys?: number;
+}
+
 /** Snapshot own cancellation options once, so getters and prototypes cannot change them later. */
 /**
  * Format a timeout error's stack before handing it on. An unformatted stack keeps
@@ -41,7 +54,7 @@ function formatted<E extends Error>(error: E): E {
   return error;
 }
 
-function snapshotOptions(options: unknown, operation: 'buildAndStart' | 'close', code: DiBagErrorCode, supported: readonly string[], timeoutKey = 'timeoutMs', signalKey = 'signal'): Record<string, unknown> {
+function snapshotOptions(options: unknown, operation: 'buildAndStart' | 'ensureServicesReady' | 'close', code: DiBagErrorCode, supported: readonly string[], timeoutKey = 'timeoutMs', signalKey = 'signal'): Record<string, unknown> {
   if (options === undefined) return {};
   if (typeof options !== 'object' || options === null || Array.isArray(options)) throw libraryError(code, `invalid ${operation} options`, { operation });
   if (Reflect.ownKeys(options).some(key => typeof key !== 'string' || !supported.includes(key)) ||
@@ -110,6 +123,110 @@ export function closeRuntime(runtime: BagRuntime, options: CloseOptions | undefi
       () => { if (settled) return; settled = true; release(); resolve(); },
       error => { if (settled) return; settled = true; release(); reject(error); },
     );
+  });
+}
+
+function snapshotReadinessOptions(options: EnsureServicesReadyOptions | undefined): EnsureServicesReadyOptions {
+  const selected = snapshotOptions(options, 'ensureServicesReady', 'DI_BAG_INVALID_STARTUP', ['abortSignal', 'totalTimeoutMs', 'maxConcurrentServiceKeys'], 'totalTimeoutMs', 'abortSignal');
+  const bound = selected.maxConcurrentServiceKeys;
+  if (Object.hasOwn(selected, 'maxConcurrentServiceKeys') && !(typeof bound === 'number' && Number.isSafeInteger(bound) && bound > 0)) {
+    throw libraryError('DI_BAG_INVALID_STARTUP', 'ensureServicesReady maxConcurrentServiceKeys must be a positive safe integer', { operation: 'ensureServicesReady', option: 'maxConcurrentServiceKeys' });
+  }
+  return selected as EnsureServicesReadyOptions;
+}
+
+/**
+ * Acquire the listed services on an existing runtime and wait until each is ready.
+ * Invalid input throws before any factory runs and leaves the runtime untouched. A factory
+ * failure, an abort, or the deadline closes this runtime; never assimilate an exposed service
+ * to establish readiness.
+ */
+export function ensureRuntimeReady(runtime: BagRuntime, graph: BindingGraph, keys: readonly unknown[], options?: EnsureServicesReadyOptions): Promise<void> {
+  runtime.assertOpen();
+  if (!Array.isArray(keys)) throw libraryError('DI_BAG_INVALID_STARTUP', 'ensureServicesReady requires a tuple of service keys', { operation: 'ensureServicesReady' });
+  const selected: BindingKey[] = [];
+  const length = keys.length;
+  for (let index = 0; index < length; index++) {
+    const value: unknown = keys[index];
+    const key = typeof value === 'string' ? value : readTokenKey(value);
+    if (!graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_STARTUP', `ensureServicesReady accepts existing names or typed tokens only: ${String(key)}`, { operation: 'ensureServicesReady' });
+    selected.push(key);
+  }
+  const { abortSignal, totalTimeoutMs, maxConcurrentServiceKeys } = snapshotReadinessOptions(options);
+  return new Promise<void>((resolve, reject) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const began = performance.now();
+    const release = () => {
+      if (timer !== undefined) clearTimeout(timer);
+      abortSignal?.removeEventListener('abort', aborted);
+    };
+    const cancel = (reason: 'aborted' | 'timeout', cause: unknown) => {
+      if (settled) return;
+      settled = true;
+      release();
+      // Read the report before close starts, while the slow acquisitions are still pending.
+      const progress = runtime.closeProgress();
+      reject(new DiBagServiceReadinessCancelledError(reason, cause, runtime.close(cause), progress, reason === 'timeout' ? totalTimeoutMs : undefined));
+    };
+    const aborted = () => { if (abortSignal?.aborted) cancel('aborted', abortSignal.reason); };
+    const checkCancellation = () => {
+      aborted();
+      if (!settled && totalTimeoutMs !== undefined && performance.now() - began >= totalTimeoutMs) {
+        cancel('timeout', formatted(diagnostic(new DOMException(diagnosticMessage('DI_BAG_SERVICE_READINESS_TIMEOUT', 'The listed services were not ready before the deadline'), 'TimeoutError'), 'DI_BAG_SERVICE_READINESS_TIMEOUT', { operation: 'ensureServicesReady', totalTimeoutMs })));
+      }
+      return settled;
+    };
+    const schedule = () => {
+      if (checkCancellation() || totalTimeoutMs === undefined) return;
+      // Long deadlines must not wrap into an immediate timer on Node/Bun.
+      timer = setTimeout(schedule, Math.min(2 ** 31 - 1, Math.max(1, totalTimeoutMs - (performance.now() - began))));
+    };
+    abortSignal?.addEventListener('abort', aborted, { once: true });
+    if (checkCancellation()) return;
+    if (totalTimeoutMs !== undefined) schedule();
+
+    const runBounded = (limit: number) => {
+      let next = 0;
+      let failed = false;
+      const worker = async () => {
+        while (next < selected.length) {
+          if (failed || checkCancellation()) return;
+          const key = selected[next++]!;
+          try { await runtime.acquire(key); }
+          catch (cause) {
+            // Stop other workers before rollback begins, even if cleanup waits.
+            failed = true;
+            throw cause;
+          }
+        }
+      };
+      return Promise.all(Array.from({ length: Math.min(limit, selected.length) }, worker));
+    };
+    const runAllAtOnce = () => {
+      const pending: Promise<void>[] = [];
+      for (const key of selected) {
+        if (checkCancellation()) break;
+        pending.push(runtime.acquire(key));
+      }
+      return Promise.all(pending);
+    };
+    const work = maxConcurrentServiceKeys === undefined ? runAllAtOnce() : runBounded(maxConcurrentServiceKeys);
+    void work.then(() => {
+      if (checkCancellation()) return;
+      settled = true;
+      release();
+      resolve();
+    }, async cause => {
+      if (checkCancellation()) return;
+      let disposalError: unknown;
+      try { await runtime.close(cause); }
+      catch (error) { disposalError = error; }
+      if (checkCancellation()) return;
+      settled = true;
+      release();
+      reject(new DiBagServiceReadinessError(cause, disposalError instanceof DiBagCleanupError ? disposalError.failures : [], disposalError));
+    });
   });
 }
 

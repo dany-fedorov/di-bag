@@ -30,7 +30,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#bag
 close(options?: CloseOptions): Promise<void>;
 ```
 
-Defined in: [di-bag.ts:325](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L325)
+Defined in: [di-bag.ts:355](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L355)
 
 Close this bag, drain in-flight work, and dispose owned resources once.
 Dependents are disposed before dependencies; remaining independent acquisitions use
@@ -159,6 +159,56 @@ const app = DiBag.createBuilder().register({ requestId: () => Math.random() }).b
 const request = app.createScope();
 const id: number = request.resolve('requestId');
 await request.close();
+```
+
+***
+
+### ensureServicesReady()
+
+```ts
+ensureServicesReady<const K extends readonly unknown[]>(serviceKeys: K & Selection<ServiceRegistrations, K, 'ensureServicesReady'>, options?: EnsureServicesReadyOptions): Promise<this>;
+```
+
+Defined in: [di-bag.ts:328](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L328)
+
+Make the listed services ready before continuing, then resolve to this same bag.
+Each listed service is acquired now, with whatever its factory reads, and the call waits until it is ready;
+every other service stays lazy. List the services whose readiness you need before the next line runs, such as
+a database pool or a cache client. Works on a built bag, a child scope, and a fork, and may be called again.
+A failed factory, an aborted signal, or an elapsed deadline closes this bag: a child scope closes only itself,
+never its parent or a service it borrows.
+
+#### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `K` | - |
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `serviceKeys` | A finite tuple of existing names or typed tokens to wait for; an empty tuple is valid. |
+| `options?` | An optional abort signal, a deadline for the whole call, and a bound on how many listed keys are acquired at once. |
+
+#### Returns
+
+A promise for this bag once every listed service is ready.
+
+#### Throws
+
+[DiBagServiceReadinessError](../classes/DiBagServiceReadinessError.md) (`DI_BAG_SERVICE_READINESS_FAILED`) after this bag has closed because a factory failed;
+[DiBagServiceReadinessCancelledError](../classes/DiBagServiceReadinessCancelledError.md) (`DI_BAG_SERVICE_READINESS_CANCELLED`) promptly on abort or timeout, naming what was still pending;
+`DI_BAG_INVALID_STARTUP` for malformed keys or options and `DI_BAG_INVALID_TOKEN` for a bad token, both before any factory runs and with this bag left open;
+`DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`. Each arrives as a rejection.
+
+#### Example
+
+```ts
+const bag = await DiBag.createBuilder()
+  .register({ db: async () => ({ ping: () => true }) })
+  .build()
+  .ensureServicesReady(['db'], { totalTimeoutMs: 5_000 });
 ```
 
 ***
