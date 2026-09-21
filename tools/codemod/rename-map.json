@@ -2,7 +2,7 @@
   "$schema": "./rename-map.schema.json",
   "version": 1,
   "methods": [
-    { "owner": "Builder", "from": "buildAndStart", "to": "ensureServicesReady", "transform": "build-and-start" }
+    { "owner": "Builder", "from": "buildAndStart", "to": "ensureServicesReady", "transform": "build-and-start", "transformNames": { "concurrency": "maxConcurrentServiceKeys" } }
   ],
   "options": [
     { "owner": "Bag", "method": "close", "argument": 0, "from": "signal", "to": "abortSignal" },

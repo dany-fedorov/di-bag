@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 /**
  * @typedef {{ kind: 'bag', names: string[], trailing?: { mode: 'merge' | 'keep' | 'drop', keys?: Record<string, string> } } | { kind: 'array' }} ArgumentShape
- * @typedef {{ owner: string, from: string, to: string, arity?: number[], arguments?: ArgumentShape, transform?: string }} MethodEntry
+ * @typedef {{ owner: string, from: string, to: string, arity?: number[], arguments?: ArgumentShape, transform?: string, transformNames?: Record<string, string> }} MethodEntry
  * @typedef {{ owner: string, method: string, argument: number, path?: string[], from: string, to: string }} OptionEntry
  * @typedef {{ owner: string, method: string, argument: number, path?: string[], from: string, to: string } | { owner: string, property: string, from: string, to: string }} ValueEntry
  * @typedef {{ owner: string, from: string, to: string } | { owner: string, from: string, manual: string }} PropertyEntry
@@ -25,7 +25,7 @@ const stableValue = value => {
   if (!isObject(value)) return value;
   return Object.fromEntries(Object.keys(value).sort().map(key => [key, stableValue(value[key])]));
 };
-const sameEffectiveMethod = (left, right) => JSON.stringify(stableValue({ to: left.to, arguments: left.arguments, transform: left.transform })) === JSON.stringify(stableValue({ to: right.to, arguments: right.arguments, transform: right.transform }));
+const sameEffectiveMethod = (left, right) => JSON.stringify(stableValue({ to: left.to, arguments: left.arguments, transform: left.transform, transformNames: left.transformNames })) === JSON.stringify(stableValue({ to: right.to, arguments: right.arguments, transform: right.transform, transformNames: right.transformNames }));
 const aritiesOverlap = (left, right) => left === undefined || right === undefined || left.some(value => right.includes(value));
 const importResult = (entry, specifier) => {
   if (entry.from !== undefined) return specifier === entry.from ? entry.to : undefined;
@@ -54,11 +54,19 @@ export function validateRenameMap(map, transformIds = []) {
   const entries = section => Array.isArray(map[section]) ? map[section] : [];
   entries('methods').forEach((entry, index) => {
     if (!isObject(entry)) return bad('methods', index, 'entry must be an object');
-    rejectUnknown('methods', index, entry, ['owner', 'from', 'to', 'arity', 'arguments', 'transform']);
+    rejectUnknown('methods', index, entry, ['owner', 'from', 'to', 'arity', 'arguments', 'transform', 'transformNames']);
     if (!isString(entry.owner) || !isString(entry.from) || !isString(entry.to)) bad('methods', index, 'owner, from and to are required strings');
     if (entry.arity !== undefined && !(Array.isArray(entry.arity) && entry.arity.every(value => Number.isInteger(value) && value >= 0))) bad('methods', index, 'arity must be an array of non-negative integers');
     if (entry.transform !== undefined && !transformIds.includes(entry.transform)) bad('methods', index, `unknown transform ${entry.transform}`);
     if (has(entry, 'transform') && has(entry, 'arguments')) bad('methods', index, 'use either transform or arguments');
+    if (entry.transformNames !== undefined) {
+      const names = entry.transformNames;
+      if (entry.transform === undefined) bad('methods', index, 'transformNames requires transform');
+      if (typeof names !== 'object' || names === null || Array.isArray(names)
+          || Object.keys(names).length === 0 || !Object.values(names).every(isString)) {
+        bad('methods', index, 'transformNames must map at least one role to a non-empty string');
+      }
+    }
     const shape = entry.arguments;
     if (shape !== undefined) {
       if (!isObject(shape)) bad('methods', index, 'arguments must be an object');

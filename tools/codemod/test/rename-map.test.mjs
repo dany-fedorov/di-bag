@@ -23,6 +23,39 @@ test('loading a broken map throws one error that lists every problem', () => {
 test('the schema file lists the same sections the validator accepts', () => {
   const schema = JSON.parse(readFileSync(join(packageRoot, 'rename-map.schema.json'), 'utf8'));
   assert.deepEqual(Object.keys(schema.properties).sort(), ['$schema', 'codes', 'imports', 'methods', 'options', 'properties', 'types', 'values', 'version']);
+  assert.deepEqual(schema.properties.methods.items.properties.transformNames, {
+    type: 'object',
+    minProperties: 1,
+    additionalProperties: { type: 'string', minLength: 1 },
+  });
+});
+
+test('custom-transform role names survive loading the shipped map', () => {
+  const loaded = loadRenameMap(join(packageRoot, 'rename-map.json'), ['build-and-start']);
+  const entry = loaded.methods.find(method => method.owner === 'Builder' && method.from === 'buildAndStart');
+  assert.deepEqual(entry.transformNames, { concurrency: 'maxConcurrentServiceKeys' });
+});
+
+test('custom-transform role names require a transform and non-empty targets', () => {
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    methods: [{ owner: 'Builder', from: 'buildAndStart', to: 'ensureServicesReady', transformNames: { concurrency: '' } }],
+  }, ['build-and-start']), [
+    'methods[0]: transformNames requires transform',
+    'methods[0]: transformNames must map at least one role to a non-empty string',
+  ]);
+});
+
+test('method conflicts include custom-transform role names', () => {
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    methods: [
+      { owner: 'Builder', from: 'buildAndStart', to: 'ensureServicesReady', transform: 'build-and-start', transformNames: { concurrency: 'limit' } },
+      { owner: 'Builder', from: 'buildAndStart', to: 'ensureServicesReady', transform: 'build-and-start', transformNames: { concurrency: 'capacity' } },
+    ],
+  }, ['build-and-start']), [
+    'methods[1]: conflicts with methods[0] for Builder.buildAndStart',
+  ]);
 });
 
 test('validation names every problem', () => {

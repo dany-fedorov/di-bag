@@ -48,7 +48,12 @@
               }
             ]
           },
-          "transform": { "type": "string", "description": "Id of a custom transform in lib/transforms/index.mjs. Excludes `arguments`." }
+          "transform": { "type": "string", "description": "Id of a custom transform in lib/transforms/index.mjs. Excludes `arguments`." },
+          "transformNames": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": { "type": "string", "minLength": 1 }
+          }
         }
       }
     },

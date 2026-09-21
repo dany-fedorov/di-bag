@@ -24,8 +24,10 @@ export function rewriteSourceFile({ ts, checker, sourceFile, library, index, tra
 
   /** The transformed text of a node without its leading trivia. */
   function text(node) {
+    if (skip.has(node)) return slice(start(node), node.end);
     const replaced = rewriteNode(node);
     if (replaced !== undefined) { rewrites++; return replaced; }
+    if (skip.has(node)) return slice(start(node), node.end);
     return assemble(node, []);
   }
 
@@ -192,8 +194,15 @@ export function rewriteSourceFile({ ts, checker, sourceFile, library, index, tra
     if (receiver.flags & ts.TypeFlags.Any) manual(callee, `the receiver of ${name} has type any, so this call cannot be checked; migrate it by hand if it is a DI Bag call`);
   }
 
-  function transformApi(member) {
-    return { ts, checker, sourceFile, member, text, slice, start, assemble, objectLiteral, quote, manual, nameOf: index.nameOf };
+  function transformApi(member, entry) {
+    return {
+      ts, checker, sourceFile, member, text, slice, start, assemble, objectLiteral, quote, manual, nameOf: index.nameOf,
+      nameForRole(role) {
+        const value = entry?.transformNames?.[role];
+        if (value === undefined) throw new Error(`transform ${entry?.transform ?? '<unknown>'} has no name for role ${role}`);
+        return value;
+      },
+    };
   }
 
   const partialReason = name => `${name} resolves to both DI Bag and non-library declarations; migrate this use by hand`;
@@ -240,8 +249,8 @@ export function rewriteSourceFile({ ts, checker, sourceFile, library, index, tra
       return undefined;
     }
     if (entry?.transform) {
-      const result = transforms[entry.transform](call, transformApi(member));
-      if (result === undefined) skip.add(callee);
+      const result = transforms[entry.transform](call, transformApi(member, entry));
+      if (result === undefined) skip.add(call);
       return result;
     }
     const replacements = [];
