@@ -2752,28 +2752,207 @@ git commit -m "feat(codemod): migrate collection tokens" -m "Co-Authored-By: Cla
 - Modify: `tests/contributions.test.ts`, `tests/contributions-runtime-fixture.ts`, `tests/observers-runtime-fixture.ts`, `tests/plugins-runtime-fixture.ts`, `tests/final-adversarial-runtime-fixture.ts`, `tests/acquisition-retention.node.mjs`
 - Modify: `tests/enterprise-integration.test.ts`, `tests/fixtures/enterprise-feature.ts`, `tests/inspect-graph.test.ts`, `tests/nested-modules.test.ts`, `tests/observers.test.ts`, `tests/persistent-graph.test.ts`, `tests/persistent-module.test.ts`, `tests/plugins.test.ts`
 - Modify: `tests/types/contributions-consumer.ts`, `tests/types/contributions.ts`, `tests/types/negative/contributions.ts`, `tests/types/negative/nested-modules.ts`, `tests/types/nested-modules.ts`, `tests/types/plugins.ts`
-- Create then delete: `/tmp/phase04-codemod-report.json`
+- Verify and preserve: `tests/types/negative/startup.ts` (the two rejected old `close` option statements must remain byte-identical; modify only if the inclusive proof first exposes a legitimate collection migration, and then only in the separate preparation commit below)
+- Create then delete: `/tmp/phase-04-codemod-dry-run-report.json`, `/tmp/phase-04-negative-startup-before.ts`, `/tmp/phase-04-all-negative-files.txt`, `/tmp/phase-04-codemod-write-negative-files.txt`, `/tmp/phase-04-codemod-write-command.sh`, `/tmp/phase-04-codemod-write-report.json`, `/tmp/phase-04-codemod-generated-files.txt`, `/tmp/phase-04-codemod-working-tree-files.txt`, `/tmp/phase-04-codemod-staged-files.txt`, `/tmp/phase-04-codemod-untracked-files.txt`, optional `/tmp/phase-04-codemod-preparation-files.txt`, `/tmp/phase-04-codemod-commit-message.txt`
 - Create: `scripts/phase05-strings.py`
 
 **Interfaces:**
 - Consumes: Task 6 codemod and Task 4's expand compatibility overload; Task 8 tightens admission after every call site is migrated.
-- Produces: no old collection API uses in executable TypeScript/JavaScript; explicit two-token composite control.
+- Produces: a green pure mechanical commit from the report's exact generated-file inventory, followed by a separate green hand/string migration commit; no old collection API uses in executable TypeScript/JavaScript; explicit two-token composite control.
 
-- [ ] **Step 1: Build, dry-run, then apply the codemod exactly once**
+- [ ] **Step 1: Build, prove the inclusive result, then apply the codemod exactly once**
+
+Keep the dry run inclusive so it exercises every compiler-negative fixture. The accumulated map still
+contains Phase 3's `Bag.close` option renames, so the inclusive result must also prove exactly what it
+would do to the two deliberately rejected old-close statements in
+`tests/types/negative/startup.ts`:
 
 ```bash
 npm run build
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --report /tmp/phase04-codemod-report.json
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --write --report /tmp/phase04-codemod-report.json
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --report /tmp/phase-04-codemod-dry-run-report.json
+node - <<'JS'
+const report = require('/tmp/phase-04-codemod-dry-run-report.json');
+const skipped = report.manual.filter(item => item.reason.startsWith('this file was left untouched'));
+const startup = report.files.filter(item => item.file === 'tests/types/negative/startup.ts');
+console.log({ files: report.files.length, rewrites: report.files.reduce((sum, item) => sum + item.rewrites, 0), manual: report.manual.length, skipped: skipped.length, startup });
+if (report.written !== false || skipped.length !== 0 || startup.length !== 1) process.exit(1);
+JS
 ```
 
-Expected: safe collection declarations and reads are rewritten. Read every manual item. Mixed-channel uses are split; declarations outside the program and parameters are migrated by tracing their callers/types, never guessed.
+Expected: the report says `written: false`, `skipped: 0`, and contains one entry for
+`tests/types/negative/startup.ts`. Do not pin its internal rewrite count: the exact proposed source
+text is the contract. Read every manual item. Mixed-channel uses are split; declarations outside the
+program and parameters are migrated by tracing their callers/types, never guessed.
 
-- [ ] **Step 2: Split the accidental-merging control into two tokens**
+Prove read-only that the omitted fixture's complete proposed text differs only at the two inherited
+old-close controls, then save its original bytes:
+
+```bash
+node --input-type=module <<'JS'
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { loadTypeScript, runCodemod } from './tools/codemod/lib/codemod.mjs';
+const root = process.cwd();
+const file = 'tests/types/negative/startup.ts';
+const before = readFileSync(file, 'utf8');
+const replacements = [
+  ['closable.close({ timeoutMs: 1 });', 'closable.close({ waitTimeoutMs: 1 });'],
+  ['closable.close({ signal: new AbortController().signal });', 'closable.close({ abortSignal: new AbortController().signal });'],
+];
+let expected = before;
+for (const [from, to] of replacements) {
+  assert.equal(expected.split(from).length - 1, 1, `expected one control: ${from}`);
+  expected = expected.replace(from, to);
+}
+const compiler = loadTypeScript(root);
+const result = runCodemod({
+  typescript: compiler.ts,
+  root,
+  project: 'tsconfig.json',
+  extraFiles: ['tests/types/negative/*.ts'],
+  libraryRoots: ['src', 'dist'],
+  only: [file],
+});
+assert.equal(result.files.length, 1);
+assert.equal(result.files[0].file, file);
+assert.equal(result.files[0].text, expected);
+assert.equal(result.manual.filter(item => item.reason.startsWith('this file was left untouched')).length, 0);
+writeFileSync('/tmp/phase-04-negative-startup-before.ts', before);
+console.log('phase 4 negative startup preview: exactly two inherited close controls; original bytes saved');
+JS
+```
+
+If this proof exposes a legitimate collection edit in that fixture, do not exclude or overwrite it.
+Likewise, if inspection of any manual item shows that the generated tree cannot pass the type,
+codemod, or affected-runtime checks below without a hand precondition, make that coherent migration
+while both collection surfaces exist. Preserve the two old-close controls. Record the exact
+preparation paths, run the green checks, and make a prior preparation commit with adjacent trailers:
+
+```bash
+git diff --name-only | LC_ALL=C sort -u > /tmp/phase-04-codemod-preparation-files.txt
+test -s /tmp/phase-04-codemod-preparation-files.txt
+bun test tests/types.test.ts -t startup
+npm run typecheck
+npm run codemod:check
+bun test tests/collection-tokens.test.ts tests/contributions.test.ts tests/nested-modules.test.ts tests/persistent-module.test.ts tests/plugins.test.ts tests/inspect-graph.test.ts tests/observers.test.ts tests/enterprise-integration.test.ts tests/persistent-graph.test.ts tests/final-adversarial-integration.test.ts
+bun examples/contributions.ts
+git diff --check
+git add --pathspec-from-file=/tmp/phase-04-codemod-preparation-files.txt
+git commit -F - <<'MSG'
+refactor: prepare manual collection migrations
+
+Resolve coherent codemod preconditions so the following generated rewrite is
+green while retaining the two rejected old-close controls.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
+```
+
+Then rebuild and repeat the inclusive report and exact-text proof until the only proposed changes are
+the two old-close controls. Omit this preparation commit only when neither a legitimate collection
+edit in the fixture nor any other manual precondition is needed to keep the generated boundary green.
+Do not use a red exception, change the accumulated map, or fold a hand edit into the mechanical commit.
+
+For the one actual write, keep the project and both library roots, but replace the negative glob with
+an explicit sorted inventory that omits exactly `tests/types/negative/startup.ts`:
+
+```bash
+rg --files tests/types/negative -g '*.ts' | LC_ALL=C sort > /tmp/phase-04-all-negative-files.txt
+grep -vxF 'tests/types/negative/startup.ts' /tmp/phase-04-all-negative-files.txt > /tmp/phase-04-codemod-write-negative-files.txt
+python3 - <<'PY'
+from pathlib import Path
+all_files = Path('/tmp/phase-04-all-negative-files.txt').read_text().splitlines()
+write_files = Path('/tmp/phase-04-codemod-write-negative-files.txt').read_text().splitlines()
+assert all_files == sorted(set(all_files)), 'full negative-fixture inventory is not sorted and unique'
+assert write_files == sorted(set(write_files)), 'write inventory is not sorted and unique'
+assert [item for item in all_files if item not in write_files] == ['tests/types/negative/startup.ts']
+assert write_files == [item for item in all_files if item != 'tests/types/negative/startup.ts']
+print(f'phase 4 write inventory: {len(write_files)} sorted unique negative fixtures; only startup.ts omitted')
+PY
+mapfile -t negative_extra_files < /tmp/phase-04-codemod-write-negative-files.txt
+negative_extra_args=()
+for file in "${negative_extra_files[@]}"; do negative_extra_args+=(--extra-files "$file"); done
+write_command=(node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist "${negative_extra_args[@]}" --write --report /tmp/phase-04-codemod-write-report.json)
+printf '%q ' "${write_command[@]}" > /tmp/phase-04-codemod-write-command.sh
+printf '\n' >> /tmp/phase-04-codemod-write-command.sh
+"${write_command[@]}"
+node - <<'JS'
+const { writeFileSync } = require('node:fs');
+const report = require('/tmp/phase-04-codemod-write-report.json');
+const skipped = report.manual.filter(item => item.reason.startsWith('this file was left untouched'));
+const startup = report.files.filter(item => item.file === 'tests/types/negative/startup.ts');
+const generated = report.files.filter(item => item.rewrites > 0).map(item => item.file).sort();
+console.log({ files: report.files.length, rewrites: report.files.reduce((sum, item) => sum + item.rewrites, 0), manual: report.manual.length, skipped: skipped.length, startup: startup.length, generated: generated.length });
+if (report.written !== true || skipped.length !== 0 || startup.length !== 0 || generated.length === 0 || new Set(generated).size !== generated.length) process.exit(1);
+writeFileSync('/tmp/phase-04-codemod-generated-files.txt', `${generated.join('\n')}\n`);
+JS
+cmp --silent tests/types/negative/startup.ts /tmp/phase-04-negative-startup-before.ts
+bun test tests/types.test.ts -t startup
+npm run typecheck
+npm run codemod:check
+bun test tests/collection-tokens.test.ts tests/contributions.test.ts tests/nested-modules.test.ts tests/persistent-module.test.ts tests/plugins.test.ts tests/inspect-graph.test.ts tests/observers.test.ts tests/enterprise-integration.test.ts tests/persistent-graph.test.ts tests/final-adversarial-integration.test.ts
+bun examples/contributions.ts
+git diff --check
+```
+
+Expected: the inventory includes every current negative TypeScript fixture except exactly
+`tests/types/negative/startup.ts`. The write report says `written: true`, `skipped: 0`, and has no
+entry for the omitted fixture. The byte comparison and focused compiler check prove the fixture and
+its two old-close rejection controls remain intact. Typecheck, the complete codemod gate and the
+named affected runtime/example gate all pass on the generated tree. If one fails because a reported
+manual item needs a coherent precondition, restore exactly the generated paths with
+`git restore --pathspec-from-file=/tmp/phase-04-codemod-generated-files.txt`, verify the mechanical
+diff is gone with `git diff --exit-code`, make the prior green preparation commit above, rebuild, and
+repeat the inclusive proof and actual write. Do not restore unrelated work and do not commit a red
+mechanical tree. There is no restoration after the successful write.
+
+- [ ] **Step 2: Commit only the generated rewrite as the mechanical boundary**
+
+Derive the staged file inventory from the successful write report and prove it is exactly the current
+tracked diff. No hand split, source-string migration, or manual-item repair from the later steps may
+be present yet:
+
+```bash
+git diff --name-only | LC_ALL=C sort > /tmp/phase-04-codemod-working-tree-files.txt
+cmp --silent /tmp/phase-04-codemod-generated-files.txt /tmp/phase-04-codemod-working-tree-files.txt
+git ls-files --others --exclude-standard > /tmp/phase-04-codemod-untracked-files.txt
+test ! -s /tmp/phase-04-codemod-untracked-files.txt
+git diff --cached --quiet
+git add --pathspec-from-file=/tmp/phase-04-codemod-generated-files.txt
+git diff --cached --name-only | LC_ALL=C sort > /tmp/phase-04-codemod-staged-files.txt
+cmp --silent /tmp/phase-04-codemod-generated-files.txt /tmp/phase-04-codemod-staged-files.txt
+printf '%s\n' \
+  'refactor!: mechanically migrate collection call sites' \
+  '' \
+  'Exact producing command:' > /tmp/phase-04-codemod-commit-message.txt
+cat /tmp/phase-04-codemod-write-command.sh >> /tmp/phase-04-codemod-commit-message.txt
+printf '%s\n' '' 'Explicit sorted --extra-files inventory:' >> /tmp/phase-04-codemod-commit-message.txt
+cat /tmp/phase-04-codemod-write-negative-files.txt >> /tmp/phase-04-codemod-commit-message.txt
+printf '%s\n' '' 'Generated files staged from the write report:' >> /tmp/phase-04-codemod-commit-message.txt
+cat /tmp/phase-04-codemod-generated-files.txt >> /tmp/phase-04-codemod-commit-message.txt
+printf '%s\n' \
+  '' \
+  'The inclusive dry run covered startup.ts; the write omitted exactly that' \
+  'deliberate rejected-old-close fixture and preserved its bytes.' \
+  '' \
+  'Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>' \
+  'Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL' \
+  >> /tmp/phase-04-codemod-commit-message.txt
+git commit -F /tmp/phase-04-codemod-commit-message.txt
+```
+
+Expected: both comparisons print nothing, there is no untracked repository file, and the commit
+contains exactly the generated paths named by the write report. Save the exact expanded command,
+negative-fixture inventory, generated-file inventory, both report totals, manual-item accounting,
+byte-proof result and mechanical hash for the Task 9 controller report. This commit is green and is
+the only commit described as mechanical.
+
+- [ ] **Step 3: Split the accidental-merging control into two tokens**
 
 In `tests/contributions.test.ts` and its runtime fixture, replace the one token that was both registered and contributed to with `singularItem = DiBag.token(Symbol('singular item')).of<Item>()` and `items = DiBag.token(itemKey).forCollectionOf<Item>()`. Register/resolve only `singularItem`; contribute/resolve the list only through `items`. Preserve the intent: singular resolution stays singular and never merges into the list.
 
-- [ ] **Step 3: Add the counted migration script for source strings**
+- [ ] **Step 4: Add the counted migration script for source strings**
 
 Create `scripts/phase05-strings.py` with an `EDITS` map and a two-pass guard: first verify every old string has exactly the expected count; only then write. Required counts:
 
@@ -2863,7 +3042,7 @@ print('no resolveAll, inspectAll or all( is left in the five files')
 
 If S5 takes the fallback, change only the replacement strings `".resolve("` and `".inspect("` to `".resolveCollection("` and `".inspectCollection("` before running it; counts and guards remain identical.
 
-- [ ] **Step 4: Run the script and audit every old use**
+- [ ] **Step 5: Run the script and audit every old use**
 
 ```bash
 python3 scripts/phase05-strings.py
@@ -2873,7 +3052,7 @@ rg -n "resolveAll|inspectAll|DiBag\.all\(|CollectionDependency|kind: 'all'|kind 
 
 Expected after the contract task is prepared: matches only in codemod input fixtures, migration documentation, and negative removal fixtures. No generated-source string remains.
 
-- [ ] **Step 5: Check error assertion text explicitly**
+- [ ] **Step 6: Check error assertion text explicitly**
 
 ```bash
 grep -rhoE "toThrow\((/|['\`])[^)]*" tests | grep -iE "\b(all|resolveAll|inspectAll|collection|contribute)\b" | sort | uniq -c
@@ -2881,21 +3060,38 @@ grep -rhoE "toThrow\((/|['\`])[^)]*" tests | grep -iE "\b(all|resolveAll|inspect
 
 Expected at 0.4.0 entry: no lines, so this phase has no pre-existing message-string assertion replacement. New wrong-kind tests assert the exact new message/details. If this command finds a phase-3-added string, replace only retired API wording and record it in the phase report.
 
-- [ ] **Step 6: Run focused migrated runtime suites**
+- [ ] **Step 7: Run the final migrated checks**
 
 ```bash
+npm run typecheck
+npm run codemod:check
 bun test tests/collection-tokens.test.ts tests/contributions.test.ts tests/nested-modules.test.ts tests/persistent-module.test.ts tests/plugins.test.ts tests/inspect-graph.test.ts tests/observers.test.ts tests/enterprise-integration.test.ts tests/persistent-graph.test.ts tests/final-adversarial-integration.test.ts
 bun examples/contributions.ts
+git diff --check
 ```
 
-Expected: all pass; example prints `Hello, DI!`.
+Expected: all pass; example prints `Hello, DI!`. These checks make the later hand/string boundary
+green independently of the already committed mechanical tree.
 
-- [ ] **Step 7: Commit the mechanical migration separately**
+- [ ] **Step 8: Commit the remaining hand and source-string migrations separately**
 
 ```bash
 git add examples tests scripts/phase05-strings.py
-git commit -m "refactor!: migrate collection call sites" -m "Generated with: node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --write" -m "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL"
+git commit -F - <<'MSG'
+refactor!: finish collection call-site migrations
+
+Resolve the codemod's inspected manual items, split the deliberate two-channel
+control, and migrate counted source strings after the pure mechanical commit.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
 ```
+
+Expected: this green commit contains only the post-mechanical hand split, inspected manual-item
+resolutions and counted source-string migration. It does not claim codemod generation and does not
+repeat the producing command. If the optional preparation commit was required, list it separately in
+the phase report as well.
 
 ### Task 8: Remove the old collection channel and finish public documentation
 
@@ -3622,12 +3818,13 @@ git commit -m "test: record collection token evidence" -m "Co-Authored-By: Claud
 
 - [ ] **Step 6: Send the controller report**
 
-Report in at most 60 lines: branch; `git log --oneline next..HEAD`; each gate and last output line; S5 decision and twelve deltas; codemod manual items and how each was resolved; whether fallback ran; any deviation. Do not push, merge, publish, or add removed-API stubs (phase 13 owns stubs).
+Report in at most 60 lines: branch; `git log --oneline next..HEAD`; each gate and last output line; S5 decision and twelve deltas; codemod manual items and how each was resolved; whether fallback ran; any deviation. Give the pure mechanical hash and separate hand-migration hash, plus any preparation hash. Cite `/tmp/phase-04-codemod-dry-run-report.json`, `/tmp/phase-04-codemod-write-report.json`, `/tmp/phase-04-codemod-write-command.sh`, `/tmp/phase-04-codemod-write-negative-files.txt`, `/tmp/phase-04-codemod-generated-files.txt` and the mechanical commit body for the exact expanded command and inventories; do not copy the long inventory into the under-60-line report. State both totals and `skipped: 0`, the exact two-control preview, and the omitted startup fixture's byte proof and focused compiler result. Do not push, merge, publish, or add removed-API stubs (phase 13 owns stubs).
 
 ## Self-review
 
 - Spec coverage: Tasks 1–4 cover identity, wrong-kind errors, reads, empty/fresh/frozen lists, lifetimes, dependencies, aliases, readiness, snapshots, replacements, unsupported sharing and module propagation. Tasks 6–8 cover codemod, repository migration, deletion and the exact four-entry naming-ratchet shrink. Task 5 is the complete S5 fallback. Task 9 covers the required evidence, read-only phase-wide ratchet audit and gates.
 - Expand/migrate/contract: Tasks 1–4 expand, Tasks 6–7 migrate, Task 8 contracts and removes the four now-stale naming findings in the same green commit. Task 5 conditionally replaces only the measured shape and does not affect that exact removal set.
+- Mechanical migration boundary: Task 7 dry-runs every negative fixture but writes through an explicit sorted inventory that omits only `tests/types/negative/startup.ts`. The exact-text preview, byte comparison and focused compiler check preserve its two inherited rejected old-close controls. Any manual precondition needed for green generated output lands first in its own green preparation commit, after which the proof/write repeats. The report-derived generated-file inventory is staged and committed immediately after typecheck, codemod and named affected-runtime checks; only the later separate green commit contains the hand split, manual-item resolutions and counted source-string migration. The mechanical commit records the actual expanded command and both inventories and never claims the unsafe glob produced it.
 - Public signature consistency: `CollectionToken<TokenSymbol, Item>` carries an item; its service value is `readonly Item[]`; contributions output one `Item`; replacement providers output the whole readonly list. `resolve` and `inspect` take the same admission helper. The fallback names are used consistently in its signatures, fixtures and codemod targets.
 - Runtime consistency: contribution storage remains separate. A collection public slot exists only after replacement and wins in resolve, inspect, dependencies, aliases and readiness. Its provider caches/owns the original value, while reads get fresh frozen shallow copies. Empty collections remain valid. Sharing is rejected before lifetime lookup.
 - Identity consistency: each graph persistently claims a symbol's token kind when a binding, contribution, or positional dependency enters it. The fresh 16-test probe proves conflicts fail in both operation orders while two independent graphs may reuse the symbol with different handles. No global strong map retains dynamic symbols.
