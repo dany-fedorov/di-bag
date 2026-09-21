@@ -2,7 +2,7 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / Provider
 
-# Interface: Provider\<F *extends* `Factory`, M *extends* `object` = `Readonly`\<\{ \}\>, A *extends* readonly `unknown`[] = readonly \[\], G *extends* `GraphContract` = [`TokenDependencyContract`](../type-aliases/TokenDependencyContract.md), V = `Awaited`\<`ReturnType`\<`F`\>\>\>
+# Interface: Provider\<ExposedFactory *extends* `Factory`, RegistrationMetadata *extends* `object` = `Readonly`\<\{ \}\>, AcquisitionMetadataFrames *extends* readonly `unknown`[] = readonly \[\], RetainedGraphContract *extends* `GraphContract` = [`TokenDependencyContract`](../type-aliases/TokenDependencyContract.md), AcquiredValue = `Awaited`\<`ReturnType`\<`ExposedFactory`\>\>\>
 
 Defined in: [provider.ts:33](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L33)
 
@@ -24,8 +24,8 @@ https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-mod
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `F` | The exact exposed factory signature, including named dependencies. |
-| `M` | Static registration metadata available before resolution. |
-| `A` | The ordered tuple of acquisition metadata frame payloads. |
-| `G` | The retained token, lifetime, and graph compatibility contract. |
-| `V` | The raw or fulfilled value supplied to an outer disposal stage. |
+| `ExposedFactory` | The exact exposed factory signature, including named dependencies. |
+| `RegistrationMetadata` | Static registration metadata available before resolution. |
+| `AcquisitionMetadataFrames` | The ordered tuple of acquisition metadata frame payloads. |
+| `RetainedGraphContract` | The retained token, lifetime, and graph compatibility contract. |
+| `AcquiredValue` | The raw or fulfilled value supplied to an outer disposal stage. |

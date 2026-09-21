@@ -23,17 +23,17 @@ class ProviderBase {
  *
  * Create providers through {@link DiBagApi.fromFactory}, composition adapters, or provider
  * decorators. This type-only class has no public constructor.
- * @typeParam F - The exact exposed factory signature, including named dependencies.
- * @typeParam M - Static registration metadata available before resolution.
- * @typeParam A - The ordered tuple of acquisition metadata frame payloads.
- * @typeParam G - The retained token, lifetime, and graph compatibility contract.
- * @typeParam V - The raw or fulfilled value supplied to an outer disposal stage.
+ * @typeParam ExposedFactory - The exact exposed factory signature, including named dependencies.
+ * @typeParam RegistrationMetadata - Static registration metadata available before resolution.
+ * @typeParam AcquisitionMetadataFrames - The ordered tuple of acquisition metadata frame payloads.
+ * @typeParam RetainedGraphContract - The retained token, lifetime, and graph compatibility contract.
+ * @typeParam AcquiredValue - The raw or fulfilled value supplied to an outer disposal stage.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
  */
-class Provider<F extends Factory, M extends object = Readonly<{}>, A extends readonly unknown[] = readonly [], G extends GraphContract = TokenDependencyContract, V = Awaited<ReturnType<F>>> extends ProviderBase {
+class Provider<ExposedFactory extends Factory, RegistrationMetadata extends object = Readonly<{}>, AcquisitionMetadataFrames extends readonly unknown[] = readonly [], RetainedGraphContract extends GraphContract = TokenDependencyContract, AcquiredValue = Awaited<ReturnType<ExposedFactory>>> extends ProviderBase {
   // Unlike an ordinary private field, this witness survives declaration emit.
   /** @internal */
-  declare readonly [providerInvariant]: (value: [F, M, A, G, V]) => [F, M, A, G, V];
+  declare readonly [providerInvariant]: (value: [ExposedFactory, RegistrationMetadata, AcquisitionMetadataFrames, RetainedGraphContract, AcquiredValue]) => [ExposedFactory, RegistrationMetadata, AcquisitionMetadataFrames, RetainedGraphContract, AcquiredValue];
 }
 
 /** Internal construction bridge; authentication remains in retainDescription. */

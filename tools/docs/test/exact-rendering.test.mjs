@@ -65,7 +65,7 @@ test('compiler declarations retain syntax that TypeDoc reflections cannot repres
   assert.match(facadeText, /fromClass: <const T extends readonly DependencyReference\[\], C extends new \(/);
   assert.match(facadeText, /M extends AcquisitionMode = 'auto'>/);
   assert.match(facadeText, /callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, \.\.\.options: FactoryOptions<M>/);
-  assert.match(bagText, /inspect<K extends \(keyof R & string\) \| TokenBase>\(token: K & \(\[K\] extends \[string\] \? unknown : TokenMember<R, K>\)\)/);
+  assert.match(bagText, /inspect<K extends \(keyof ServiceRegistrations & string\) \| TokenBase>\(token: K & \(\[K\] extends \[string\] \? unknown : TokenMember<ServiceRegistrations, K>\)\)/);
   assert.match(bagText, /createScope<const S extends readonly unknown\[\]>/);
 });
 
@@ -105,4 +105,16 @@ test('callback parameters in public signatures are named by role', () => {
   assert.match(facadeText, /P extends \(this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>\) =>/);
   assert.doesNotMatch(facadeText, /\(this: void, value:/);
   assert.match(pluginOutputValidator, /type PluginOutputValidator<V> = \(this: void, pluginOutput: unknown\) => pluginOutput is V;/);
+});
+
+test('exported classes name their type parameters by role', () => {
+  assert.match(bag, /^# Interface: Bag\\<ServiceRegistrations \*extends\* `Registrations`, Constraints \*extends\* `NeedConstraint` = `never`\\>$/m);
+  assert.match(builder, /^# Interface: Builder\\<Entries \*extends\* `Entry`, Constraints \*extends\* `NeedConstraint` = `never`\\>$/m);
+  assert.match(moduleInterface, /^# Interface: Module\\<ExportedServices \*extends\* `object`, RequiredServices \*extends\* `object`, Constraints \*extends\* /m);
+  assert.match(provider, /^# Interface: Provider\\<ExposedFactory \*extends\* `Factory`, RegistrationMetadata \*extends\* /m);
+  assert.match(token, /^# Interface: Token\\<TokenSymbol \*extends\* `symbol`, Service\\>$/m);
+  assert.match(bag, /\| `ServiceRegistrations` \| The map from each public service name or token symbol to its registration\. \|/);
+  assert.match(builder, /\| `Entries` \| The union of accepted registration entries, one per public key\. \|/);
+  assert.match(moduleInterface, /\| `RequiredServices` \| The services the installing builder must provide\. \|/);
+  assert.match(token, /\| `TokenSymbol` \| The unique symbol that is this token's runtime identity\. \|/);
 });
