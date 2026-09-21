@@ -17,11 +17,17 @@ const SECTIONS = ['methods', 'options', 'values', 'properties', 'types', 'codes'
 const isObject = value => typeof value === 'object' && value !== null && !Array.isArray(value);
 const isString = value => typeof value === 'string' && value.length > 0;
 const isStrings = value => Array.isArray(value) && value.every(isString);
+const has = (value, key) => Object.hasOwn(value, key);
 
 /** Every problem in a map, as readable sentences. An empty array means the map is valid. */
 export function validateRenameMap(map, transformIds = []) {
   const problems = [];
   const bad = (section, index, message) => problems.push(`${section}[${index}]: ${message}`);
+  const rejectUnknown = (section, index, value, allowed, label = '') => {
+    for (const key of Object.keys(value)) {
+      if (!allowed.includes(key)) bad(section, index, `${label ? `${label} has ` : ''}unknown field ${key}`);
+    }
+  };
   if (typeof map !== 'object' || map === null || Array.isArray(map)) return ['the rename map must be an object'];
   if (map.version !== 1) problems.push('version must be 1');
   for (const key of Object.keys(map)) if (key !== 'version' && key !== '$schema' && !SECTIONS.includes(key)) problems.push(`unknown section ${key}`);
@@ -29,55 +35,72 @@ export function validateRenameMap(map, transformIds = []) {
   const entries = section => Array.isArray(map[section]) ? map[section] : [];
   entries('methods').forEach((entry, index) => {
     if (!isObject(entry)) return bad('methods', index, 'entry must be an object');
+    rejectUnknown('methods', index, entry, ['owner', 'from', 'to', 'arity', 'arguments', 'transform']);
     if (!isString(entry.owner) || !isString(entry.from) || !isString(entry.to)) bad('methods', index, 'owner, from and to are required strings');
     if (entry.arity !== undefined && !(Array.isArray(entry.arity) && entry.arity.every(value => Number.isInteger(value) && value >= 0))) bad('methods', index, 'arity must be an array of non-negative integers');
     if (entry.transform !== undefined && !transformIds.includes(entry.transform)) bad('methods', index, `unknown transform ${entry.transform}`);
-    if (entry.transform !== undefined && entry.arguments !== undefined) bad('methods', index, 'use either transform or arguments');
+    if (has(entry, 'transform') && has(entry, 'arguments')) bad('methods', index, 'use either transform or arguments');
     const shape = entry.arguments;
     if (shape !== undefined) {
       if (!isObject(shape)) bad('methods', index, 'arguments must be an object');
       else if (shape.kind === 'bag') {
+        rejectUnknown('methods', index, shape, ['kind', 'names', 'trailing'], 'arguments');
         if (!isStrings(shape.names) || shape.names.length === 0) bad('methods', index, 'arguments.names must list at least one property name');
         if (shape.trailing !== undefined) {
           if (!isObject(shape.trailing)) bad('methods', index, 'arguments.trailing must be an object');
           else {
+            rejectUnknown('methods', index, shape.trailing, ['mode', 'keys'], 'arguments.trailing');
             if (!['merge', 'keep', 'drop'].includes(shape.trailing.mode)) bad('methods', index, 'arguments.trailing.mode must be merge, keep or drop');
             if (shape.trailing.keys !== undefined && !(isObject(shape.trailing.keys) && Object.values(shape.trailing.keys).every(isString))) bad('methods', index, 'arguments.trailing.keys must map property names to property names');
           }
         }
-      } else if (shape.kind !== 'array') bad('methods', index, 'arguments.kind must be bag or array');
+      } else if (shape.kind === 'array') rejectUnknown('methods', index, shape, ['kind'], 'arguments');
+      else {
+        rejectUnknown('methods', index, shape, ['kind', 'names', 'trailing'], 'arguments');
+        bad('methods', index, 'arguments.kind must be bag or array');
+      }
     }
   });
   entries('options').forEach((entry, index) => {
     if (!isObject(entry)) return bad('options', index, 'entry must be an object');
+    rejectUnknown('options', index, entry, ['owner', 'method', 'argument', 'path', 'from', 'to']);
     if (!isString(entry.owner) || !isString(entry.method) || !isString(entry.from) || !isString(entry.to)) bad('options', index, 'owner, method, argument, from and to are required');
     if (!Number.isInteger(entry.argument) || entry.argument < 0) bad('options', index, 'argument must be a non-negative integer');
     if (entry.path !== undefined && !isStrings(entry.path)) bad('options', index, 'path must be an array of property names');
   });
   entries('values').forEach((entry, index) => {
     if (!isObject(entry)) return bad('values', index, 'entry must be an object');
-    const byArgument = isString(entry.method) && entry.property === undefined;
-    const byProperty = isString(entry.property);
-    if (!isString(entry.owner) || byArgument === byProperty || !isString(entry.from) || !isString(entry.to)) bad('values', index, 'owner, from, to and either method with argument or property are required');
+    rejectUnknown('values', index, entry, ['owner', 'method', 'argument', 'path', 'property', 'from', 'to']);
+    const byArgument = has(entry, 'method') && has(entry, 'argument') && !has(entry, 'property');
+    const byProperty = has(entry, 'property') && !has(entry, 'method') && !has(entry, 'argument') && !has(entry, 'path');
+    if (!isString(entry.owner) || byArgument === byProperty || byArgument && !isString(entry.method) || byProperty && !isString(entry.property) || !isString(entry.from) || !isString(entry.to)) bad('values', index, 'owner, from, to and either method with argument or property are required');
     if (byArgument && (!Number.isInteger(entry.argument) || entry.argument < 0)) bad('values', index, 'argument must be a non-negative integer');
     if (byArgument && entry.path !== undefined && !isStrings(entry.path)) bad('values', index, 'path must be an array of property names');
   });
   entries('properties').forEach((entry, index) => {
     if (!isObject(entry)) return bad('properties', index, 'entry must be an object');
-    if (!isString(entry.owner) || !isString(entry.from) || isString(entry.to) === isString(entry.manual)) bad('properties', index, 'owner, from and exactly one of to or manual are required');
+    rejectUnknown('properties', index, entry, ['owner', 'from', 'to', 'manual']);
+    const hasTo = has(entry, 'to');
+    const hasManual = has(entry, 'manual');
+    if (!isString(entry.owner) || !isString(entry.from) || hasTo === hasManual || hasTo && !isString(entry.to) || hasManual && !isString(entry.manual)) bad('properties', index, 'owner, from and exactly one of to or manual are required');
   });
   entries('types').forEach((entry, index) => {
     if (!isObject(entry)) return bad('types', index, 'entry must be an object');
+    rejectUnknown('types', index, entry, ['from', 'to']);
     if (!isString(entry.from) || !isString(entry.to)) bad('types', index, 'from and to are required');
   });
   entries('codes').forEach((entry, index) => {
     if (!isObject(entry)) return bad('codes', index, 'entry must be an object');
-    if (!isString(entry.from) || !/^DI_BAG_[A-Z_]+$/.test(entry.from) || isString(entry.to) === isString(entry.manual)) bad('codes', index, 'from must be a DI_BAG_ code with exactly one of to or manual');
+    rejectUnknown('codes', index, entry, ['from', 'to', 'manual']);
+    const hasTo = has(entry, 'to');
+    const hasManual = has(entry, 'manual');
+    if (!isString(entry.from) || !/^DI_BAG_[A-Z_]+$/.test(entry.from) || hasTo === hasManual || hasTo && !isString(entry.to) || hasManual && !isString(entry.manual)) bad('codes', index, 'from must be a DI_BAG_ code with exactly one of to or manual');
   });
   entries('imports').forEach((entry, index) => {
     if (!isObject(entry)) return bad('imports', index, 'entry must be an object');
-    const exact = isString(entry.from) && isString(entry.to);
-    const suffix = isString(entry.fromSuffix) && isString(entry.toSuffix);
+    rejectUnknown('imports', index, entry, ['from', 'to', 'fromSuffix', 'toSuffix']);
+    const exact = has(entry, 'from') && has(entry, 'to') && !has(entry, 'fromSuffix') && !has(entry, 'toSuffix') && isString(entry.from) && isString(entry.to);
+    const suffix = !has(entry, 'from') && !has(entry, 'to') && has(entry, 'fromSuffix') && has(entry, 'toSuffix') && isString(entry.fromSuffix) && isString(entry.toSuffix);
     if (exact === suffix) bad('imports', index, 'use either from with to, or fromSuffix with toSuffix');
   });
   return problems;

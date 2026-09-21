@@ -180,3 +180,59 @@ test('path lookups preserve segment identity and test descendants by segment', (
   assert.equal(index.hasEntriesBelow('Bag', 'literalOnly', 0, ['a']), false);
   assert.equal(index.hasEntriesBelow('Bag', 'prefixOnly', 0, ['a']), false);
 });
+
+test('validation rejects unexpected fields at every schema object boundary', () => {
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    methods: [
+      { owner: 'Builder', from: 'a', to: 'b', extra: true },
+      { owner: 'Builder', from: 'c', to: 'd', arguments: { kind: 'bag', names: ['value'], extra: true } },
+      { owner: 'Builder', from: 'e', to: 'f', arguments: { kind: 'bag', names: ['value'], trailing: { mode: 'keep', extra: true } } },
+      { owner: 'Builder', from: 'g', to: 'h', arguments: { kind: 'array', names: ['value'] } },
+    ],
+    options: [{ owner: 'Bag', method: 'close', argument: 0, from: 'a', to: 'b', extra: true }],
+    values: [{ owner: 'Result', property: 'status', from: 'a', to: 'b', extra: true }],
+    properties: [{ owner: 'Token', from: 'key', to: 'symbol', extra: true }],
+    types: [{ from: 'Old', to: 'New', extra: true }],
+    codes: [{ from: 'DI_BAG_OLD', to: 'DI_BAG_NEW', extra: true }],
+    imports: [{ from: 'old', to: 'new', extra: true }],
+  }), [
+    'methods[0]: unknown field extra',
+    'methods[1]: arguments has unknown field extra',
+    'methods[2]: arguments.trailing has unknown field extra',
+    'methods[3]: arguments has unknown field names',
+    'options[0]: unknown field extra',
+    'values[0]: unknown field extra',
+    'properties[0]: unknown field extra',
+    'types[0]: unknown field extra',
+    'codes[0]: unknown field extra',
+    'imports[0]: unknown field extra',
+  ]);
+});
+
+test('validation requires exact field-presence variants', () => {
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    values: [
+      { owner: 'Result', method: 'read', argument: 0, property: 'status', from: 'a', to: 'b' },
+      { owner: 'Result', method: 'read', from: 'a', to: 'b' },
+      { owner: 'Result', property: 'status', path: [], from: 'a', to: 'b' },
+    ],
+    properties: [{ owner: 'Token', from: 'key', to: null, manual: 'choose by hand' }],
+    codes: [{ from: 'DI_BAG_OLD', to: null, manual: 'choose by hand' }],
+    imports: [
+      { from: 'old', to: 'new', fromSuffix: '/old', toSuffix: '/new' },
+      { from: 'old', toSuffix: '/new' },
+      { from: 'old', to: 'new', fromSuffix: null },
+    ],
+  }), [
+    'values[0]: owner, from, to and either method with argument or property are required',
+    'values[1]: owner, from, to and either method with argument or property are required',
+    'values[2]: owner, from, to and either method with argument or property are required',
+    'properties[0]: owner, from and exactly one of to or manual are required',
+    'codes[0]: from must be a DI_BAG_ code with exactly one of to or manual',
+    'imports[0]: use either from with to, or fromSuffix with toSuffix',
+    'imports[1]: use either from with to, or fromSuffix with toSuffix',
+    'imports[2]: use either from with to, or fromSuffix with toSuffix',
+  ]);
+});
