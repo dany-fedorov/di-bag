@@ -29,13 +29,16 @@ The maintainer asked for no questions. Each assumption below was made by the con
 
 1. **Spikes run inside their phase.** The spec lists the eight spikes as one phase. A spike needs the real signature in `src`, so each spike is the expand step of the phase that introduces the shape. Phase 1 builds the codemod and the evidence harness instead.
 2. **Instantiations are the budget metric.** They are deterministic. Compile time and peak memory are recorded but advisory, because the host is shared.
-3. **Guides are rewritten once.** `docs/guides/*.md` and `README.md` are not type-checked, so they are rewritten in one pass in phase 10. `AGENTS.md`, `docs/agent/*.md`, the generated API card and reference are checked by `npm run docs:check` and are updated in every phase that breaks them. Nothing deploys from `next`, so stale guides there are harmless.
-4. **Old names disappear in the contract step of their phase.** Throwing stubs for removed runtime names are generated once, in phase 11, from the codemod's rename map.
+3. **Guides are rewritten once.** `docs/guides/*.md` and `README.md` are not type-checked, so they are rewritten in one pass in phase 12, which also makes their standalone examples part of `npm run docs:check`. `AGENTS.md`, `docs/agent/*.md`, the generated API card and reference are checked by `npm run docs:check` and are updated in every phase that breaks them. Nothing deploys from `next`, so stale guides there are harmless.
+4. **Old names disappear in the contract step of their phase.** Throwing stubs for removed runtime names are generated once, in phase 13, from the codemod's rename map.
 5. **No agent evaluation run.** The spec suggests comparing `scripts/agent-eval` pass rates before and after. Running it launches headless agents, which this environment forbids. `npm run agent-eval:test` still has to pass, and the reference solutions under `scripts/agent-eval/reference` are migrated like any other call site.
-6. **A decision record is written.** Phase 8 adds `docs/adr/0001-singleton-by-default.md`.
+6. **A decision record is written.** Phase 10 adds `docs/adr/0001-singleton-by-default.md`.
 7. **Release without provenance.** 0.5.0 is published from a local archive with an automation token, as 0.2.0 to 0.4.0 were. `di-bag-graph` 0.2.0 and `di-bag-codemod` 0.1.0 are published first.
 8. **Merge by pull request.** `next` is merged into `main` through a pull request after CI is green. If the permission system refuses the merge, the controller stops and reports; it does not push to `main` by another route.
-9. **Heavy scale tests are not part of a phase gate.** `npm run benchmark:types` full matrices and the 1,000-operation cases need up to 17 GB. Phases run the worker cases listed under "Evidence" only. The full matrix runs once, in phase 11.
+9. **Heavy scale tests are not part of a phase gate.** `npm run benchmark:types` full matrices and the 1,000-operation cases need up to 17 GB. Phases run the worker cases listed under "Evidence" only. The full matrix runs once, in phase 13.
+10. **A phase plan may declare a commit that is red on purpose.** A field of a value the library RETURNS cannot be renamed with the old and new name side by side, so phase 11 (Tasks 4, 10 and 11) commits the codemod's rewrite of the readers first and the rename of the declarations directly after it; phase 12 (Task 3) leaves `npm run docs:check` red from the moment the guides' examples are compiled until the guides are rewritten. Only commits that a plan names this way may be red, each says so in its body, and the phase still ends green. `git bisect` must skip them; the phase report lists their hashes.
+11. **Compile-time designs in plans 05 to 11 are uncompiled.** When those plans were written, the machine was short of memory and the TypeScript compiler was not run over `src`. Runtime behavior in them was probed for real; every type-level signature is a proposal. The executor compiles it first, against the positive and negative cases the plan lists; if it does not hold, the executor repairs the signature within the spec's names, and takes the spec's fallback under the "When stuck" rule.
+12. **Gates grow with the program.** From the end of phase 11, `node scripts/error-code-inventory.mjs src` must exit 0. From the end of phase 12, `npm run docs:check` includes the retired-name check of the guides. Phase 13 adds `npm run codemod:acceptance`. A phase runs every gate that exists when it starts, plus its own.
 
 ## Environment
 
@@ -86,7 +89,7 @@ During a task run the narrowest command that proves the step. Run the full gate 
 | `tools/graph/` | the published `di-bag-graph`; `lib/extract.mjs` recognises API calls by name |
 | `tools/codemod/` | created in phase 1 |
 | `docs/agent/`, `AGENTS.md` | shipped in the package; snippets are type-checked |
-| `docs/guides/`, `README.md` | the documentation site; rewritten in phase 10 |
+| `docs/guides/`, `README.md` | the documentation site; rewritten in phase 12 |
 | `examples/` | compiled by `npm run typecheck` and run in CI |
 | `scripts/agent-eval/` | evaluation skeleton and reference solutions; has its own tests |
 
