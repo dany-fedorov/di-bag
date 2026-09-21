@@ -1,0 +1,3 @@
+{
+  "or": ["builder-alias", "dibag-fromfactory", "dibag-withlifetime", "dibag-withmetadata"]
+}

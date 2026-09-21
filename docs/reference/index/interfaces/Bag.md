@@ -348,7 +348,7 @@ resolve<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & 
 
 Defined in: [di-bag.ts:107](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L107)
 
-Resolve a named or typed-token service, acquiring it lazily when needed.
+Resolve a registered service, acquiring it lazily when needed.
 Scoped and root services are cached according to their lifetime; transient services
 create a new acquisition for each call. Promise-valued services keep their identity.
 An async factory's service is its Promise; nothing is awaited for you.

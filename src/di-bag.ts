@@ -88,7 +88,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
   }
 
   /**
-   * Resolve a named or typed-token service, acquiring it lazily when needed.
+   * Resolve a registered service, acquiring it lazily when needed.
    * Scoped and root services are cached according to their lifetime; transient services
    * create a new acquisition for each call. Promise-valued services keep their identity.
    * An async factory's service is its Promise; nothing is awaited for you.
