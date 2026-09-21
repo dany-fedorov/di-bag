@@ -4,11 +4,11 @@
 
 **Goal:** Rename every name in the library that a reader sees but a caller never writes: abbreviated parameter names, callback parameters called `value`, and the single-letter type parameters of the five exported classes, and guard the API card's summaries with a test.
 
-**Architecture:** Nothing a caller types changes, so there is no expand, migrate or contract step and the codemod is not used. Two one-off Python scripts make the mechanical edits; each checks what it expects to find and refuses to write otherwise. Every task starts with a failing assertion in an existing test harness (the reference-rendering test under `tools/docs/test`, a compiler fixture, or a new source scan), then applies the edit, regenerates the API card and reference, and commits.
+**Architecture:** Nothing a caller types changes, so there is no expand, migrate or contract step and the codemod is not used. Two one-off Python scripts make the mechanical edits; each accepts only the complete state before its task or the complete state after it and rejects a partially applied state before writing. Tasks 1 to 4 start with a failing assertion in an existing test harness (the reference-rendering test under `tools/docs/test`, a compiler fixture, or a new source scan), then apply the edit, regenerate the API card and reference, and commit. Task 5 closes the phase with the ratchet, evidence and full gates.
 
 **Tech Stack:** TypeScript 6.0.2 (`tsc6`) and 7.0.2 (`tsc`), Bun 1.4.0 test runner, Node 24.20.0 with `node --test` for `tools/docs`, TypeDoc under `tools/docs`, Python 3 for the two edit scripts.
 
-**Spec:** `docs/superpowers/specs/2026-09-20-swift-api-style.md` (standard rules 5, 7 and 13; section "Exported types", last paragraph; roadmap phase 2). Master plan: `docs/superpowers/plans/2026-09-21-00-swift-api-style-master.md`, phase 2. Read both before starting. The spec wins on names, with the three measured exceptions in "Decisions" below.
+**Spec:** `docs/superpowers/specs/2026-09-20-swift-api-style.md` (standard rules 5, 7 and 13; section "Exported types", last paragraph; roadmap phase 2). Master plan: `docs/superpowers/plans/2026-09-21-00-swift-api-style-master.md`, phase 2. Read both before starting. The controller corrects the exported-generic paragraph in the spec before this phase starts; the entry check asserts the corrected text. The spec then wins on names.
 
 ## Global Constraints
 
@@ -16,7 +16,7 @@ Copied from the master plan. Every task's requirements include them.
 
 - This phase is non-breaking. No public method name, option key, string value, error code, runtime message or behavior changes. If an edit would change what a caller writes or what a program prints, stop and report.
 - The package keeps zero runtime dependencies, and `src/index.ts` must not import a `node:` module.
-- The phase ends green on all of: `npm run check`, `npm run docs:check`, `npm run graph:check`, `npm run typecheck:native`, `npm run build:native`, `npm run check:native`, and every `examples/*.ts` run with Bun.
+- The phase ends green on all of: `npm run check`, `npm run docs:check`, `npm run graph:check`, `npm run codemod:check`, the three Node retention suites in the master plan, `npm run agent-eval:test`, `npm run typecheck:native`, `npm run build:native`, `npm run check:native`, and every `examples/*.ts` run with Bun. The example loop is fail-fast. The authoritative compile-budget command is `node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseline.md`.
 - Compile budget: instantiation counts of the twelve benchmark worker cases stay within +10% of `docs/superpowers/plans/evidence/baseline.md`. Renaming cannot change them, so this phase expects 0%.
 - `AGENTS.md` has a budget of 150 lines and is at 150 lines. Edits there replace text inside a line and never add a line.
 - Commits use Conventional Commits and end with the two attribution lines shown in each commit step. Commit on the phase branch only. Never push, publish, merge, or switch away from the phase branch.
@@ -43,6 +43,7 @@ Phases 0 and 1 are merged into `next`:
 - A naming test, `tests/api-naming*.test.ts`, reads the built declarations and compares what it finds with the ratchet list `tests/api-naming-known-violations.json`.
 - `docs/superpowers/plans/evidence/baseline.md` holds the instantiation counts of the twelve benchmark worker cases.
 - `tools/codemod/` exists. This phase does not use it.
+- The spec's "Exported types" paragraph already names `Provider<ExposedFactory, RegistrationMetadata, AcquisitionMetadataFrames, RetainedGraphContract, AcquiredValue>`, `Container<ServiceRegistrations, Constraints>`, `Builder<Entries, Constraints>`, `Module<ExportedServices, RequiredServices, Constraints, PublicProviders>` and `Token<TokenSymbol, Service>` and explains the three imported-type collisions. The controller owns and lands that correction before this phase; the phase executor never edits or stages the spec.
 - Neither phase touched `src/`. The library source is still the 0.4.0 source, last changed by commit `f8300e2`.
 
 The names this phase meets, verified against the source on 2026-09-21:
@@ -88,7 +89,7 @@ Checked and not affected: `tests/module-declarations.test.ts` (pins private name
 | `RuntimeOptions.isNativePromise(value)` | `candidate` | the value being classified |
 | `PluginOutputValidator` parameter `value` | `pluginOutput` | a type predicate compares parameters by position, so callers that wrote `(value): value is T` still type-check. Verified with `tsc6` |
 
-**Type parameters.** The spec lists `Provider<Factory, …, GraphContract, …>` and `Container<Registrations, Constraints>`. Three of those names are imported types in the same file. A type parameter called `Factory` with the constraint `extends Factory` does not compile: `error TS2313: Type parameter 'Factory' has a circular constraint` (verified with `tsc6`). Those three take a collision-free role name. The spec paragraph is corrected in task 3.
+**Type parameters.** Three obvious role names are imported types in the same file. A type parameter called `Factory` with the constraint `extends Factory` does not compile: `error TS2313: Type parameter 'Factory' has a circular constraint` (verified with `tsc6`). The controller corrects the spec before phase entry to use the collision-free role names below; task 3 asserts that correction and does not edit the spec.
 
 | Class | Today | After |
 | --- | --- | --- |
@@ -100,7 +101,7 @@ Checked and not affected: `tests/module-declarations.test.ts` (pins private name
 
 Only the class declarations and the uses inside each class body change. Type parameters of methods, functions and helper types keep their letters. Inside `Builder`, `installModule` declares its own `R`; it stays.
 
-**Summaries.** Every call summary in the API card already starts with a verb. Five contain "or". `DiBag.fromFactory` and `DiBag.withMetadata` really join two purposes; phases 8 and 9 split those calls, so their summaries stay. `DiBag.withLifetime` lists its values and `builder.alias` lists key kinds; phases 9 and 5 rewrite them with the calls. `bag.resolve` survives to 0.5.0 with the same meaning, so its summary is rewritten now. A new test records the other four as exceptions and fails when a new one appears or a recorded one goes stale.
+**Summaries.** Every call summary in the API card already starts with one of a compact reviewed set of imperative verbs. Five contain "or". `DiBag.fromFactory` and `DiBag.withMetadata` really join two purposes; phases 8 and 9 split those calls, so their summaries stay. `DiBag.withLifetime` lists its values and `builder.alias` lists key kinds; phases 9 and 5 rewrite them with the calls. `bag.resolve` survives to 0.5.0 with the same meaning, so its summary is rewritten now. The master explicitly permits the other four as a staged ratchet: `builder-alias` is removed in phase 5, `dibag-fromfactory` in phase 8, and `dibag-withlifetime` plus `dibag-withmetadata` in phase 9. The test rejects any new exception and any stale recorded exception; final acceptance still requires an empty list.
 
 ## What this phase does not touch
 
@@ -125,7 +126,7 @@ Only the class declarations and the uses inside each class body change. Type par
 | `src/*.ts` (14 files) | modify | the renames |
 | `AGENTS.md`, `docs/agent/recipes.md`, `docs/agent/errors.md` | modify | the same names in prose and snippets |
 | `docs/agent/api-card.md`, `docs/reference/**` | regenerate | output of `npm run docs:generate`; never edit by hand |
-| `docs/superpowers/specs/2026-09-20-swift-api-style.md` | modify one paragraph | the final type parameter names |
+| `docs/superpowers/specs/2026-09-20-swift-api-style.md` | assert only; never modify or stage | controller-owned entry condition: the final type parameter names |
 | `tests/api-naming-known-violations.json` | shrink | the ratchet of phase 0 |
 | `docs/superpowers/plans/evidence/phase-02.md` | create | measurements and the names later phases meet |
 
@@ -154,6 +155,10 @@ git switch -c phase-02-non-breaking-names
 ```bash
 ls docs/guides/api-naming.md tests/api-naming-known-violations.json tools/codemod/cli.mjs docs/superpowers/plans/evidence/baseline.md
 ls tests/api-naming*.test.ts
+node -e "const { scripts } = require('./package.json'); if (!scripts['codemod:check']) throw new Error('phase 1 codemod:check script is missing')"
+grep -F 'Generic parameters get role names: `Provider<ExposedFactory, RegistrationMetadata,' docs/superpowers/specs/2026-09-20-swift-api-style.md
+grep -F '`Container<ServiceRegistrations, Constraints>`, `Builder<Entries, Constraints>`,' docs/superpowers/specs/2026-09-20-swift-api-style.md
+grep -F '`Token<TokenSymbol, Service>`. `Factory`, `GraphContract` and `Registrations` are' docs/superpowers/specs/2026-09-20-swift-api-style.md
 grep -rnE 'factoryCtx|disposerCtx' src | wc -l                                                        # expected: 10
 grep -rnE '\bdeps\b' src | wc -l                                                                     # expected: 24
 grep -nE '\b(factoryCtx|disposerCtx|deps|_deps)\b' AGENTS.md docs/agent/recipes.md docs/agent/errors.md | wc -l   # expected: 13
@@ -161,7 +166,7 @@ grep -cE '\b(factoryCtx|disposerCtx|deps|_deps)\b' docs/agent/api-card.md       
 wc -l AGENTS.md                                                                                       # expected: 150
 ```
 
-Every `ls` must succeed. If a count differs, an earlier phase touched these files: read the difference with `git log --oneline -5 -- src AGENTS.md docs/agent` and report before continuing. The scripts below also check their own expectations and stop without writing when the source differs.
+Every command must succeed. The three spec lines prove that the controller-owned correction landed before the executor branched; do not edit the spec in this phase. If a count differs, an earlier phase touched these files: read the difference with `git log --oneline -5 -- src AGENTS.md docs/agent` and report before continuing. The scripts below also check their own complete before/after states and stop without writing when the source differs or a task is only partly applied.
 
 - [ ] **Step 3: Write the rename script**
 
@@ -195,46 +200,104 @@ def rewrite(path, new_text):
         changed.add(str(path.relative_to(root)))
 
 
-def replace_word(path, old, new, keep=lambda line: False):
+def require_uniform(states, label):
+    kinds = {state for state in states}
+    if kinds == {'before'}:
+        return True
+    if kinds == {'after'}:
+        return False
+    sys.exit(f'{label}: mixed or partially applied state: {states}')
+
+
+def scoped_lines(text, keep_fragment):
+    return [line for line in text.split('\n') if keep_fragment is None or keep_fragment not in line]
+
+
+def word_count(text, word, keep_fragment=None):
+    return sum(len(re.findall(r'\b%s\b' % re.escape(word), line)) for line in scoped_lines(text, keep_fragment))
+
+
+def word_state(rule):
+    name, old, new, expected_old, expected_new_before, keep_fragment = rule
+    text = (root / name).read_text()
+    actual = (word_count(text, old, keep_fragment), word_count(text, new, keep_fragment))
+    before = (expected_old, expected_new_before)
+    after = (0, expected_new_before + expected_old)
+    if actual == before:
+        return 'before'
+    if actual == after:
+        return 'after'
+    sys.exit(f'{name}: expected {old!r}/{new!r} counts {before} before or {after} after, found {actual}')
+
+
+def apply_word_rule(rule):
+    name, old, new, _expected_old, _expected_new_before, keep_fragment = rule
+    path = root / name
     lines = path.read_text().split('\n')
-    rewrite(path, '\n'.join(line if keep(line) else re.sub(r'\b%s\b' % re.escape(old), new, line) for line in lines))
+    rewrite(path, '\n'.join(
+        line if keep_fragment is not None and keep_fragment in line else re.sub(r'\b%s\b' % re.escape(old), new, line)
+        for line in lines
+    ))
 
 
-def replace_exact(path, old, new, count):
-    text = path.read_text()
-    if new in text:
-        return  # already applied
-    found = text.count(old)
-    if found != count:
-        sys.exit(f'{path.relative_to(root)}: expected {count} of {old!r}, found {found}')
-    rewrite(path, text.replace(old, new))
+def exact_state(rule):
+    name, old, new, count = rule
+    text = (root / name).read_text()
+    actual = (text.count(old), text.count(new))
+    before = (count, 0)
+    # Some replacements insert text before an unchanged suffix, so `old` can be a substring of `new`.
+    after = (count * new.count(old), count)
+    if actual == before:
+        return 'before'
+    if actual == after:
+        return 'after'
+    sys.exit(f'{name}: expected exact counts {before} before or {after} after, found {actual} for {old!r}')
+
+
+def apply_exact_rule(rule):
+    name, old, new, _count = rule
+    path = root / name
+    rewrite(path, path.read_text().replace(old, new))
 
 
 def params():
-    for path in sorted(src.glob('*.ts')):
-        replace_word(path, 'factoryCtx', 'factoryContext')
-        replace_word(path, 'disposerCtx', 'disposerContext')
-    # Signatures and JSDoc say `dependencies`.
-    for name in ['acquisition-context.ts', 'alias-types.ts', 'provider.ts', 'types.ts', 'registration.ts', 'di-bag.ts']:
-        replace_word(src / name, 'deps', 'dependencies')
-    # Runtime locals that hold the dependency proxy say `dependencyProxy`. The proxy's `in` trap
-    # quotes "'<key>' in deps" in a runtime message; that text is behavior and stays.
-    for name in ['acquisition.ts', 'provider-execution.ts', 'composition.ts', 'plugins.ts']:
-        replace_word(src / name, 'deps', 'dependencyProxy', keep=lambda line: ' in deps`' in line)
-    # Agent docs: the same names as the user writes them in snippets and prose.
-    for name in ['AGENTS.md', 'docs/agent/recipes.md', 'docs/agent/errors.md']:
-        path = root / name
-        replace_word(path, 'factoryCtx', 'factoryContext')
-        replace_word(path, 'disposerCtx', 'disposerContext')
-        replace_word(path, '_deps', '_dependencies')
-        replace_word(path, 'deps', 'dependencies')
+    # Each tuple is path, old word, new word, old count before, new count before, kept-line fragment.
+    # Existing full words such as `dependencies` are counted rather than assumed absent.
+    rules = [
+        ('src/acquisition-context.ts', 'factoryCtx', 'factoryContext', 5, 0, None),
+        ('src/acquisition-context.ts', 'disposerCtx', 'disposerContext', 2, 0, None),
+        ('src/acquisition.ts', 'disposerCtx', 'disposerContext', 1, 0, None),
+        ('src/provider-execution.ts', 'disposerCtx', 'disposerContext', 3, 0, None),
+        ('src/acquisition-context.ts', 'deps', 'dependencies', 6, 3, None),
+        ('src/alias-types.ts', 'deps', 'dependencies', 1, 0, None),
+        ('src/provider.ts', 'deps', 'dependencies', 2, 5, None),
+        ('src/types.ts', 'deps', 'dependencies', 3, 1, None),
+        ('src/registration.ts', 'deps', 'dependencies', 1, 1, None),
+        ('src/di-bag.ts', 'deps', 'dependencies', 1, 8, None),
+        # The proxy's `in` trap quotes "'<key>' in deps" in behavior and is excluded from both counts and writes.
+        ('src/acquisition.ts', 'deps', 'dependencyProxy', 3, 0, ' in deps`'),
+        ('src/provider-execution.ts', 'deps', 'dependencyProxy', 3, 0, ' in deps`'),
+        ('src/composition.ts', 'deps', 'dependencyProxy', 4, 0, ' in deps`'),
+        ('src/plugins.ts', 'deps', 'dependencyProxy', 2, 0, ' in deps`'),
+        ('AGENTS.md', 'factoryCtx', 'factoryContext', 1, 0, None),
+        ('AGENTS.md', 'disposerCtx', 'disposerContext', 1, 0, None),
+        ('AGENTS.md', 'deps', 'dependencies', 1, 2, None),
+        ('docs/agent/recipes.md', 'factoryCtx', 'factoryContext', 2, 0, None),
+        ('docs/agent/recipes.md', 'disposerCtx', 'disposerContext', 2, 0, None),
+        ('docs/agent/errors.md', 'factoryCtx', 'factoryContext', 9, 0, None),
+        ('docs/agent/errors.md', 'disposerCtx', 'disposerContext', 2, 0, None),
+        ('docs/agent/errors.md', '_deps', '_dependencies', 2, 0, None),
+    ]
+    apply = require_uniform([word_state(rule) for rule in rules], 'params')
+    if apply:
+        for rule in rules:
+            apply_word_rule(rule)
 
 
 def callbacks():
-    for name, old, new, count in [
+    rules = [
         ('src/registration.ts', 'dispose: (this: void, value: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>,', 'dispose: (this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>,', 1),
         ('src/registration.ts', 'dispose: (this: void, value: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>,', 'dispose: (this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>,', 1),
-        ('src/registration.ts', 'dispose: (value: never) => void | Promise<void>,', 'dispose: (acquiredValue: never) => void | Promise<void>,', 1),
         ('src/provider.ts', 'P extends (this: void, value: ProviderOutput<NoInfer<R>>) =>', 'P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) =>', 3),
         ('src/provider.ts', 'P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) =>', 'P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) =>', 3),
         ('src/acquisition-mode.ts', 'readonly isNativePromise: (this: void, value: unknown) => boolean;', 'readonly isNativePromise: (this: void, candidate: unknown) => boolean;', 1),
@@ -247,12 +310,15 @@ def callbacks():
         ('docs/agent/errors.md', "describe: value => ({ 'app:region': value.region }) },", "describe: exposedClient => ({ 'app:region': exposedClient.region }) },", 1),
         ('docs/agent/errors.md', "validate: (value: unknown): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,", "validate: (pluginOutput: unknown): pluginOutput is Handler => typeof pluginOutput === 'object' && pluginOutput !== null && 'handle' in pluginOutput,", 1),
         ('docs/agent/errors.md', "transform: value => value.toUpperCase() });", "transform: text => text.toUpperCase() });", 1),
-    ]:
-        replace_exact(root / name, old, new, count)
+    ]
+    apply = require_uniform([exact_state(rule) for rule in rules], 'callbacks')
+    if apply:
+        for rule in rules:
+            apply_exact_rule(rule)
 
 
 def generics():
-    for name, old, new in [
+    documentation_rules = [
         ('src/provider.ts', ' * @typeParam F - The exact', ' * @typeParam ExposedFactory - The exact'),
         ('src/provider.ts', ' * @typeParam M - Static registration', ' * @typeParam RegistrationMetadata - Static registration'),
         ('src/provider.ts', ' * @typeParam A - The ordered tuple', ' * @typeParam AcquisitionMetadataFrames - The ordered tuple'),
@@ -277,30 +343,51 @@ def generics():
          ' * Create one with `DiBag.token(key).of<Service>()`.\n'
          " * @typeParam TokenSymbol - The unique symbol that is this token's runtime identity.\n"
          ' * @typeParam Service - The service type that bindings must produce and that resolution returns.\n'),
-    ]:
-        replace_exact(root / name, old, new, 1)
-    for name, start, names, counts in [
+    ]
+    class_rules = [
         ('provider.ts', 'class Provider<', {'F': 'ExposedFactory', 'M': 'RegistrationMetadata', 'A': 'AcquisitionMetadataFrames', 'G': 'RetainedGraphContract', 'V': 'AcquiredValue'}, {'F': 4, 'M': 3, 'A': 3, 'G': 3, 'V': 3}),
         ('di-bag.ts', 'class Bag<', {'R': 'ServiceRegistrations', 'C': 'Constraints'}, {'R': 51, 'C': 18}),
         ('di-bag.ts', 'class Builder<', {'E': 'Entries', 'C': 'Constraints'}, {'E': 58, 'C': 31}),
         ('module.ts', 'class Module<', {'P': 'ExportedServices', 'R': 'RequiredServices', 'C': 'Constraints', 'D': 'PublicProviders'}, {'P': 8, 'R': 5, 'C': 5, 'D': 5}),
         ('tokens.ts', 'class Token<', {'K': 'TokenSymbol', 'S': 'Service'}, {'K': 4, 'S': 3}),
-    ]:
+    ]
+    states = [exact_state((*rule, 1)) for rule in documentation_rules]
+    for name, start, names, counts in class_rules:
         path = src / name
         lines = path.read_text().split('\n')
         first = next(i for i, line in enumerate(lines) if line.startswith(start))
         last = next(i for i in range(first, len(lines)) if lines[i] == '}')
-        if lines[first].startswith(start + list(names.values())[0]):
-            continue  # already applied
         body = '\n'.join(lines[first:last + 1])
-        for old, expected in counts.items():
-            found = len(re.findall(r'\b%s\b' % old, body))
-            if found != expected:
-                sys.exit(f'src/{name} {start}: expected {expected} uses of {old}, found {found}')
-        for old, new in names.items():
-            body = re.sub(r'\b%s\b' % old, new, body)
-        lines[first:last + 1] = body.split('\n')
-        rewrite(path, '\n'.join(lines))
+        actual_old = {old: len(re.findall(r'\b%s\b' % re.escape(old), body)) for old in names}
+        actual_new = {new: len(re.findall(r'\b%s\b' % re.escape(new), body)) for new in names.values()}
+        before = actual_old == counts and all(count == 0 for count in actual_new.values())
+        after = all(count == 0 for count in actual_old.values()) and actual_new == {
+            new: counts[old] for old, new in names.items()
+        }
+        if not before and not after:
+            sys.exit(f'src/{name} {start}: mixed type-parameter state: old={actual_old}, new={actual_new}')
+        states.append('before' if before else 'after')
+    apply = require_uniform(states, 'generics')
+    if apply:
+        # Accumulate every edit in one current buffer per file. `di-bag.ts` contains both Bag and
+        # Builder, so writing stale per-class snapshots would discard the documentation edits and
+        # let the later Builder write overwrite the earlier Bag rename.
+        pending = {}
+        for name, old, new in documentation_rules:
+            path = root / name
+            pending[path] = pending.get(path, path.read_text()).replace(old, new)
+        for name, start, names, _counts in class_rules:
+            path = src / name
+            lines = pending.get(path, path.read_text()).split('\n')
+            first = next(i for i, line in enumerate(lines) if line.startswith(start))
+            last = next(i for i in range(first, len(lines)) if lines[i] == '}')
+            body = '\n'.join(lines[first:last + 1])
+            for old, new in names.items():
+                body = re.sub(r'\b%s\b' % re.escape(old), new, body)
+            lines[first:last + 1] = body.split('\n')
+            pending[path] = '\n'.join(lines)
+        for path, new_text in pending.items():
+            rewrite(path, new_text)
 
 
 {'params': params, 'callbacks': callbacks, 'generics': generics}[step]()
@@ -318,7 +405,7 @@ Create `/tmp/di-bag-phase-02/rendering_test_edits.py` with exactly this content:
 """Extends tools/docs/test/exact-rendering.test.mjs for phase 2.
 
 Usage: python3 rendering_test_edits.py <repo-root> <task1|task2|task3>
-Each edit is an exact replacement that must match once. A second run reports that the edit is already there.
+Every task accepts only its complete before-state or complete after-state and rejects a mixed state.
 """
 import pathlib
 import sys
@@ -326,24 +413,39 @@ import sys
 path = pathlib.Path(sys.argv[1]) / 'tools/docs/test/exact-rendering.test.mjs'
 task = sys.argv[2]
 text = path.read_text()
+actions = []
 
 
 def replace(old, new):
-    global text
-    if new in text:
-        print('already applied:', new.strip().split('\n')[0][:70])
-        return
-    if text.count(old) != 1:
-        sys.exit(f'expected exactly one match of {old!r}, found {text.count(old)}')
-    text = text.replace(old, new)
+    actions.append(('replace', old, new))
 
 
 def append(block):
-    global text
-    if block.strip().split('\n')[0] in text:
-        print('already applied:', block.strip().split('\n')[0][:70])
-        return
-    text = text.rstrip('\n') + '\n' + block
+    heading = next((line for line in block.split('\n') if line.startswith("test('")), None)
+    if heading is None:
+        sys.exit('an appended test block must contain a test heading')
+    marker = heading.split("',", 1)[0] + "'"
+    actions.append(('append', block, marker))
+
+
+def action_state(action):
+    kind, old, new = action
+    if kind == 'append':
+        actual = (text.count(old), text.count(new))
+        if actual == (0, 0):
+            return 'before'
+        if actual == (1, 1):
+            return 'after'
+        sys.exit(f'expected appended block/heading counts (0, 0) before or (1, 1) after, found {actual}')
+    actual = (text.count(old), text.count(new))
+    before = (1, 0)
+    # A replacement can retain its old text as an unchanged suffix inside `new`.
+    after = (new.count(old), 1)
+    if actual == before:
+        return 'before'
+    if actual == after:
+        return 'after'
+    sys.exit(f'expected exact counts {before} before or {after} after, found {actual} for {old!r}')
 
 
 if task == 'task1':
@@ -398,8 +500,19 @@ test('exported classes name their type parameters by role', () => {
 else:
     sys.exit('task must be task1, task2 or task3')
 
-path.write_text(text)
-print(task, 'written')
+states = [action_state(action) for action in actions]
+if set(states) == {'before'}:
+    for kind, old, new in actions:
+        if kind == 'replace':
+            text = text.replace(old, new)
+        else:
+            text = text.rstrip('\n') + '\n' + old
+    path.write_text(text)
+    print(task, 'written')
+elif set(states) == {'after'}:
+    print(task, 'already applied')
+else:
+    sys.exit(f'{task}: mixed or partially applied state: {states}')
 ```
 
 - [ ] **Step 5: Check that both scripts parse**
@@ -597,17 +710,19 @@ Expected:
 Run: `python3 /tmp/di-bag-phase-02/phase2_renames.py "$PWD" callbacks`
 Expected: `callbacks: 7 files changed`, naming `docs/agent/errors.md`, `src/acquisition-mode.ts`, `src/di-bag.ts`, `src/errors.ts`, `src/plugins.ts`, `src/provider.ts`, `src/registration.ts`.
 
-The script replaces these exact strings. If it stops with `expected N of …, found M`, open the named file, find how the signature reads now, and make the same rename by hand.
+The script validates every exact string before writing any file. If it reports a mixed or unexpected state, inspect the named text and either restore the whole task to its complete before-state and rerun, or apply every rename in this table by hand and verify the complete after-state. Do not repair one entry and rerun against a mixed task.
 
 | File | Parameter | New name |
 | --- | --- | --- |
-| `src/registration.ts` | `dispose: (this: void, value: …)`, both overloads and the implementation | `acquiredValue` |
+| `src/registration.ts` | `dispose: (this: void, value: …)`, both public overloads | `acquiredValue` |
 | `src/provider.ts` | `P extends (this: void, value: ProviderOutput<NoInfer<R>>) =>`, three times | `exposedService` |
 | `src/provider.ts` | `P extends (this: void, value: Awaited<ProviderOutput<NoInfer<R>>>) =>`, three times | `fulfilledValue` |
 | `src/acquisition-mode.ts` | `isNativePromise: (this: void, value: unknown)` | `candidate` |
 | `src/plugins.ts` | `PluginOutputValidator<V> = (this: void, value: unknown) => value is V` | `pluginOutput` |
 | `src/di-bag.ts`, `src/errors.ts` | the `validate: (value): value is …` in two `@example` blocks | `pluginOutput` |
 | `docs/agent/errors.md` | six snippet callbacks called `value` | `candidate`, `portNumber`, `personName`, `exposedClient`, `pluginOutput`, `text` |
+
+The implementation-only `dispose: (value: never) => …` signature in `withDisposal` stays unchanged, as required by "What this phase does not touch".
 
 - [ ] **Step 4: Run the tests to make sure they pass**
 
@@ -653,7 +768,7 @@ git log --oneline -1
 **Files:**
 - Modify: `tools/docs/test/exact-rendering.test.mjs` (through the script)
 - Modify: `src/provider.ts`, `src/di-bag.ts`, `src/module.ts`, `src/tokens.ts` (through the script)
-- Modify: `docs/superpowers/specs/2026-09-20-swift-api-style.md` (one paragraph)
+- Assert only: `docs/superpowers/specs/2026-09-20-swift-api-style.md` (controller-owned entry condition; never edit or stage)
 - Regenerate: `docs/reference/**`
 
 **Interfaces:**
@@ -685,7 +800,7 @@ Expected:
 Run: `python3 /tmp/di-bag-phase-02/phase2_renames.py "$PWD" generics`
 Expected: `generics: 4 files changed`, naming `src/di-bag.ts`, `src/module.ts`, `src/provider.ts`, `src/tokens.ts`.
 
-What the script does, so that a failure can be finished by hand:
+What the script does after it has verified that every documentation and class-body edit is in the complete before-state:
 
 1. It renames the five `@typeParam` tags above `class Provider` and adds `@typeParam` tags to the JSDoc of `Bag`, `Builder`, `Module` and `Token`, each just above the class's `@see` line.
 2. For each class it takes the lines from `class Name<` to the first line that is exactly `}`, counts the standalone letters, and stops if a count differs: `Provider` F 4, M 3, A 3, G 3, V 3; `Bag` R 51, C 18; `Builder` E 58, C 31; `Module` P 8, R 5, C 5, D 5; `Token` K 4, S 3. Then it replaces each letter, as a whole word, inside that range only.
@@ -707,18 +822,9 @@ node --test tools/docs/test/exact-rendering.test.mjs 2>&1 | grep -E '^ℹ (pass|
 npm run test:fast 2>&1 | tail -5                             # expected: 0 fail
 ```
 
-- [ ] **Step 5: Correct the spec paragraph**
+- [ ] **Step 5: Assert the controller-owned spec correction**
 
-In `docs/superpowers/specs/2026-09-20-swift-api-style.md`, section "Exported types", replace this paragraph:
-
-```text
-Generic parameters get role names: `Provider<Factory, RegistrationMetadata,
-AcquisitionMetadataFrames, GraphContract, AcquiredValue>`, `Container<Registrations,
-Constraints>`, `Module<ExportedServices, RequiredServices, Constraints,
-PublicProviders>`, `Token<TokenSymbol, Service>`. This does not break callers.
-```
-
-with:
+The controller lands this exact paragraph in the spec before phase 2 starts:
 
 ```text
 Generic parameters get role names: `Provider<ExposedFactory, RegistrationMetadata,
@@ -731,7 +837,14 @@ shadow them and make its own constraint circular; those three take another role
 name. This does not break callers.
 ```
 
-This is a correction of fact that the controller wrote into this plan. It changes no decision.
+Assert it without changing the file:
+
+```bash
+sed -n '/Generic parameters get role names:/,/name\. This does not break callers\./p' docs/superpowers/specs/2026-09-20-swift-api-style.md
+git diff --exit-code -- docs/superpowers/specs/2026-09-20-swift-api-style.md
+```
+
+Expected: the first command prints exactly the paragraph above and `git diff` exits 0 with no output. If either check fails, stop and report the missing controller prerequisite; the phase executor never repairs, edits or stages the spec.
 
 - [ ] **Step 6: Regenerate**
 
@@ -747,7 +860,7 @@ Expected: `10`. The class pages `Bag.md`, `Builder.md`, `Module.md`, `Provider.m
 - [ ] **Step 7: Commit**
 
 ```bash
-git add tools/docs/test/exact-rendering.test.mjs src docs/reference docs/superpowers/specs/2026-09-20-swift-api-style.md
+git add tools/docs/test/exact-rendering.test.mjs src docs/reference
 git commit -q -F - <<'MSG'
 refactor(names): role names for the type parameters of the exported classes
 
@@ -773,8 +886,8 @@ git log --oneline -1
 - Regenerate: `docs/agent/api-card.md`, `docs/reference/index/interfaces/Bag.md`
 
 **Interfaces:**
-- Consumes: `docs/agent/api-card.md` as generated by `npm run docs:generate`. Each call is a `### … {#id}` heading followed by one line: the summary, then optionally ` Throws: …`.
-- Produces: a test that later phases meet. When a phase renames or removes a call whose id is in `tools/docs/api-card-summary-exceptions.json`, the test fails with "an exception is stale" and that phase deletes the id. The ids recorded now are `builder-alias` (phase 5), `dibag-fromfactory` (phase 8), `dibag-withlifetime` and `dibag-withmetadata` (phase 9).
+- Consumes: task 3's `src/di-bag.ts`, regenerated `docs/agent/api-card.md` and regenerated `docs/reference/index/interfaces/Bag.md`. Each card call is a `### … {#id}` heading followed by one line: the summary, then optionally ` Throws: …`.
+- Produces: a staged "or" ratchet and an explicit accepted-leading-verb check that later phases meet. When a phase renames or removes a call whose id is in `tools/docs/api-card-summary-exceptions.json`, the test fails with "an exception is stale" and that phase deletes the id. The four controller-authorized ids are `builder-alias` (phase 5), `dibag-fromfactory` (phase 8), `dibag-withlifetime` and `dibag-withmetadata` (phase 9); final acceptance requires none.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -788,7 +901,7 @@ import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 
 // The naming standard (docs/guides/api-naming.md, rule 13): a call whose summary needs "or"
-// between two purposes should be two calls, and a call summary starts with a verb phrase.
+// between two purposes should be two calls. Each current summary starts with a reviewed imperative verb.
 // This reads the generated card, so run `npm run docs:generate` after editing a JSDoc summary.
 const directory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const card = readFileSync(resolve(directory, '../../docs/agent/api-card.md'), 'utf8');
@@ -810,6 +923,11 @@ function callSummaries(markdown) {
 }
 
 const summaries = callSummaries(card);
+const acceptedLeadingVerbs = new Set([
+  'Adapt', 'Add', 'Append', 'Attach', 'Begin', 'Close', 'Create', 'Describe', 'Finish', 'Inspect',
+  'Install', 'Make', 'Replace', 'Report', 'Resolve', 'Return', 'Seal', 'Select', 'Transform', 'Validate',
+]);
+const leadingWord = text => /^([A-Z][a-z]+)\b/.exec(text)?.[1];
 
 test('the card has call summaries to check', () => {
   assert(summaries.length >= 20, `found ${summaries.length} call summaries`);
@@ -823,11 +941,14 @@ test('no call summary needs "or", apart from the recorded exceptions', () => {
     + 'A missing id means an exception is stale: delete it from tools/docs/api-card-summary-exceptions.json.');
 });
 
-test('every call summary starts with a verb phrase, apart from the recorded exceptions', () => {
-  const offenders = summaries
-    .filter(({ text }) => /^(A|An|The|This|It|Its)\b/.test(text) || !/^[A-Z][a-z]+ /.test(text))
-    .map(({ id }) => id).sort();
-  assert.deepEqual(offenders, [...exceptions.verb].sort());
+test('the accepted leading-word set rejects a noun-phrase control', () => {
+  assert.equal(acceptedLeadingVerbs.has(leadingWord('Services remain cached.')), false);
+});
+
+test('every call summary starts with a reviewed imperative verb', () => {
+  const offenders = summaries.filter(({ text }) => !acceptedLeadingVerbs.has(leadingWord(text))).map(({ id }) => id).sort();
+  assert.deepEqual(offenders, [],
+    'A summary must start with a reviewed imperative verb. Add a genuinely new verb to acceptedLeadingVerbs only with its intentional summary.');
 });
 ```
 
@@ -835,8 +956,7 @@ Create `tools/docs/api-card-summary-exceptions.json`:
 
 ```json
 {
-  "or": ["builder-alias", "dibag-fromfactory", "dibag-withlifetime", "dibag-withmetadata"],
-  "verb": []
+  "or": ["builder-alias", "dibag-fromfactory", "dibag-withlifetime", "dibag-withmetadata"]
 }
 ```
 
@@ -845,7 +965,7 @@ Create `tools/docs/api-card-summary-exceptions.json`:
 - [ ] **Step 2: Run it to make sure it fails**
 
 Run: `node --test tools/docs/test/api-card-summaries.test.mjs 2>&1 | grep -E "^✖|^ℹ (pass|fail)|bag-resolve" | sort -u`
-Expected: `ℹ fail 1`, `ℹ pass 2`, the failing test `no call summary needs "or", apart from the recorded exceptions`, and a line showing `'bag-resolve'` in the actual list.
+Expected: `ℹ fail 1`, `ℹ pass 3`, the failing test `no call summary needs "or", apart from the recorded exceptions`, and a line showing `'bag-resolve'` in the actual list. The noun-phrase control passes because `Services` is not an accepted imperative verb.
 
 - [ ] **Step 3: Reword the summary**
 
@@ -870,7 +990,7 @@ The `@param token` line below it already says that the key is a public string na
 
 ```bash
 npm run docs:generate
-node --test tools/docs/test/api-card-summaries.test.mjs 2>&1 | grep -E '^ℹ (pass|fail)'   # expected: ℹ pass 3, ℹ fail 0
+node --test tools/docs/test/api-card-summaries.test.mjs 2>&1 | grep -E '^ℹ (pass|fail)'   # expected: ℹ pass 4, ℹ fail 0
 git status --short docs
 ```
 
@@ -883,9 +1003,10 @@ git add tools/docs/test/api-card-summaries.test.mjs tools/docs/api-card-summary-
 git commit -q -F - <<'MSG'
 test(docs): guard API card summaries with the "or" test and the verb test
 
-A call summary that needs "or" marks a call to split, and a call summary starts
-with a verb phrase. Four summaries are recorded as exceptions until the phases
-that rewrite those calls. bag.resolve loses its "or" now.
+A call summary that needs "or" marks a call to split, and each call summary
+starts with a reviewed imperative verb. Four summaries are recorded as staged
+exceptions until their named phases rewrite those calls. bag.resolve loses its
+"or" now.
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
@@ -902,12 +1023,13 @@ git log --oneline -1
 - Create: `docs/superpowers/plans/evidence/phase-02.md`
 
 **Interfaces:**
-- Consumes: the naming test of phase 0 and `docs/superpowers/plans/evidence/baseline.md`.
+- Consumes: the completed source, tests and generated docs from tasks 1 to 4; the naming test of phase 0; `docs/superpowers/plans/evidence/baseline.md`; and every gate present after phase 1.
 - Produces: the evidence file, which also lists the names later phases meet.
 
 - [ ] **Step 1: Shrink the known-violations list**
 
 ```bash
+set -o pipefail
 npm run build
 ls tests/api-naming*.test.ts
 sed -n 1,30p tests/api-naming*.test.ts
@@ -916,26 +1038,21 @@ bun test tests/api-naming*.test.ts 2>&1 | tail -30
 
 The first lines of the naming test say how to update the list when it has an update command. A ratchet test fails when a recorded violation no longer occurs and names it. Remove exactly the entries it names, by its update command or by deleting those entries from `tests/api-naming-known-violations.json`, then run it again until it passes.
 
-Expected removed entries: those that mention `factoryCtx`, `disposerCtx` or `deps`. Entries about the type parameter letters or about callback parameters called `value` disappear too if phase 0 recorded any. Prove that nothing was added:
+Expected: exactly three removed entries, `abbreviation: parameter factoryCtx`, `abbreviation: parameter disposerCtx` and `abbreviation: parameter deps`. Phase 0 recorded no callback-`value` or one-letter-generic entries. Prove that nothing was added:
 
 ```bash
 git diff tests/api-naming-known-violations.json | grep '^+' | grep -v '^+++'    # expected: no output
 ```
 
-If the test already passes and names nothing, phase 0 does not check these names. Leave the file alone and say so in the report.
+If the test does not name exactly those three stale entries, stop and report an entry-state mismatch before updating the file.
 
 - [ ] **Step 2: Measure the twelve benchmark cases**
 
 ```bash
-N="node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON"
-row='let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log(r.count,r.form,r.instantiations,r.accepted??r.diagnostics.length===0)})'
-for count in 100 500; do
-  for form in bulk chained grouped replacement; do $N scripts/benchmark-types.ts --worker $count $form valid | node -e "$row"; done
-  for form in bindings modules; do $N scripts/check-token-scale.ts $form valid $count | node -e "$row"; done
-done
+node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseline.md
 ```
 
-Expected: twelve lines such as `100 bindings 847247 true`. Every line ends in `true`. Every instantiation count equals the one in `docs/superpowers/plans/evidence/baseline.md`, because a rename changes no type. If a count differs at all, an edit changed a type: stop, find it with `git diff next -- src`, and report.
+This phase-0 helper is authoritative. It runs all twelve cases in fresh processes, checks that each case is accepted, compares every instantiation count with the baseline and exits nonzero over the +10% budget. Expected: a twelve-row Markdown table, every `Accepted` cell is `yes`, every `Change` is `0.0%`, and exit 0. Renaming should change no type; if any count differs at all, stop, find it with `git diff next -- src`, and report even when the difference remains under budget. Use this table for step 3.
 
 - [ ] **Step 3: Write the evidence file**
 
@@ -983,17 +1100,21 @@ Replace each `…` with the measured number. A row reads, for example, `| bindin
 - [ ] **Step 4: Run the full gate list**
 
 ```bash
+set -o pipefail
 npm run check 2>&1 | tail -15
 npm run docs:check 2>&1 | tail -3
 npm run graph:check 2>&1 | tail -5
+npm run codemod:check 2>&1 | tail -5
+node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs tests/graph-retention.node.mjs 2>&1 | tail -8
+npm run agent-eval:test 2>&1 | tail -5
 npm run typecheck:native 2>&1 | tail -3
 npm run build:native 2>&1 | tail -3
 npm run check:native 2>&1 | tail -5
-for example in examples/*.ts; do bun run "$example" > /dev/null || echo "FAILED $example"; done
+for example in examples/*.ts; do bun run "$example" > /dev/null || { echo "FAILED $example"; exit 1; }; done
 npm run build 2>&1 | tail -1
 ```
 
-Expected: every command exits 0, the test lanes report `0 fail`, and the examples loop prints nothing. `npm run check` takes 15 to 30 minutes. The last `npm run build` restores the classic `dist/` after the native build. Keep the last lines of each command for the report.
+Expected: every command exits 0, the test lanes report `0 fail`, the three retention suites pass, and the examples loop prints nothing. `set -o pipefail` makes a failed command visible through each reporting pipe, and the examples loop exits on its first failure. `npm run check` builds classic `dist/` before the retention suites read it. The last `npm run build` restores classic `dist/` after the native build. Keep the last lines of each command for the report.
 
 - [ ] **Step 5: Commit**
 
@@ -1012,15 +1133,15 @@ If `tests/api-naming-known-violations.json` did not change, `git add` of it is h
 
 - [ ] **Step 6: Report to the controller**
 
-Reply in at most 60 lines with: the branch name `phase-02-non-breaking-names`; the output of `git log --oneline next..HEAD`; the last lines of each gate command; the twelve measurements with their change; how many known-violation entries were removed; anything a script refused to do and how it was finished by hand; and any deviation from this plan with its reason. Do not push.
+Reply in at most 60 lines with: the branch name `phase-02-non-breaking-names`; the output of `git log --oneline next..HEAD`; the last lines of each gate command; the twelve measurements with their change; how many known-violation entries were removed; anything a script refused to do and whether the task was restored before rerunning or completed entirely by hand; and any deviation from this plan with its reason. Do not push.
 
 ---
 
 ## Self-Review
 
-**Spec coverage.** Roadmap phase 2 asks for documented parameter names (task 1), callback parameter names (task 2), generic parameter names (task 3), and summaries that pass the "or" test (task 4). Standard rule 5 covers tasks 1 to 3, rule 7 covers task 1, rule 13 covers task 4. The master plan's gate list, evidence rule and report format are task 5. The spec's acceptance item "Every API card summary passes the 'or' test" gets its test here and is completed by phases 5, 8 and 9, which empty the exceptions list.
+**Spec coverage.** Roadmap phase 2 asks for documented parameter names (task 1), callback parameter names (task 2), generic parameter names (task 3), and summaries guarded by the "or" test (task 4). Standard rule 5 covers tasks 1 to 3, rule 7 covers task 1, rule 13 covers task 4. The master plan's gate list, evidence rule and report format are task 5. The controller-authorized staged ratchet records exactly four existing summary exceptions; phases 5, 8 and 9 remove their named ids, and final acceptance still requires the empty list.
 
-**Verified, not assumed.** Both scripts, both new test files and the three red-green cycles of the rendering test were rehearsed on a scratch copy of the 0.4.0 source on 2026-09-21: every step applied, a second run changed nothing, `tsc6` reported no error after each step, TypeDoc accepted the new `@typeParam` tags with warnings treated as errors, `docs:generate` produced the same file set with an unchanged `api-coverage.json`, and the failing tests before each step were exactly those listed. `tests/types.test.ts`, the native checks and the benchmark cases were not run for this plan, because a baseline check was using the machine.
+**Verified, not assumed.** The original edit scripts, both new test files and the three red-green cycles of the rendering test were rehearsed on a scratch copy of the 0.4.0 source on 2026-09-21: every original step applied, `tsc6` reported no error after each step, TypeDoc accepted the new `@typeParam` tags with warnings treated as errors, `docs:generate` produced the same file set with an unchanged `api-coverage.json`, and the failing tests before each step were exactly those listed. The revised scripts' scoped before/after counts were checked mechanically against the current source, including pre-existing `dependencies` identifiers and the method-local `R` that is outside Builder's rename map, but the revised scripts were not executed during this plan repair. Task 0's parse check and each task's first red-green run are their execution verification. `tests/types.test.ts`, the native checks and the benchmark cases were not run while writing this plan.
 
 **Placeholder scan.** The only `…` to fill are the measured numbers of the evidence table, which do not exist before the phase runs.
 
