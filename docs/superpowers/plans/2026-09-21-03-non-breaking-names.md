@@ -4,7 +4,7 @@
 
 **Goal:** Rename every name in the library that a reader sees but a caller never writes: abbreviated parameter names, callback parameters called `value`, and the single-letter type parameters of the five exported classes, and guard the API card's summaries with a test.
 
-**Architecture:** Nothing a caller types changes, so there is no expand, migrate or contract step and the codemod is not used. Two one-off Python scripts make the mechanical edits; each accepts only the complete state before its task or the complete state after it and rejects a partially applied state before writing. Tasks 1 to 4 start with a failing assertion in an existing test harness (the reference-rendering test under `tools/docs/test`, a compiler fixture, or a new source scan), then apply the edit, regenerate the API card and reference, and commit. Task 5 closes the phase with the ratchet, evidence and full gates.
+**Architecture:** Nothing a caller types changes, so there is no expand, migrate or contract step and the codemod is not used. Two one-off Python scripts make the mechanical edits; each accepts only the complete state before its task or the complete state after it and rejects a partially applied state before writing. Tasks 1 to 4 start with a failing assertion in an existing test harness (the reference-rendering test under `tools/docs/test`, a compiler fixture, or a new source scan), then apply the edit, regenerate the API card and reference, and commit. Task 1 shrinks the naming ratchet in the same commit that removes its three abbreviation violations, so every task commit stays green. Task 5 audits that phase-wide ratchet diff, records evidence and runs the full gates.
 
 **Tech Stack:** TypeScript 6.0.2 (`tsc6`) and 7.0.2 (`tsc`), Bun 1.4.0 test runner, Node 24.20.0 with `node --test` for `tools/docs`, TypeDoc under `tools/docs`, Python 3 for the two edit scripts.
 
@@ -127,7 +127,7 @@ Only the class declarations and the uses inside each class body change. Type par
 | `AGENTS.md`, `docs/agent/recipes.md`, `docs/agent/errors.md` | modify | the same names in prose and snippets |
 | `docs/agent/api-card.md`, `docs/reference/**` | regenerate | output of `npm run docs:generate`; never edit by hand |
 | `docs/superpowers/specs/2026-09-20-swift-api-style.md` | assert only; never modify or stage | controller-owned entry condition: the final type parameter names |
-| `tests/api-naming-known-violations.json` | shrink | the ratchet of phase 0 |
+| `tests/api-naming-known-violations.json` | shrink in task 1; audit unchanged in task 5 | the ratchet of phase 0 |
 | `docs/superpowers/plans/evidence/phase-02.md` | create | measurements and the names later phases meet |
 
 ---
@@ -530,12 +530,13 @@ Nothing is committed in this task. The scripts are one-off tools and stay outsid
 - Create: `tests/documented-names.test.ts`
 - Modify: `tools/docs/test/exact-rendering.test.mjs` (through the script)
 - Modify: `tests/types/negative/startup.ts:53`, `tests/types/startup.ts:45`
+- Modify: `tests/api-naming-known-violations.json` (remove exactly the three abbreviation entries)
 - Modify: every `src/*.ts` that contains one of the three names, `AGENTS.md`, `docs/agent/recipes.md`, `docs/agent/errors.md` (through the script)
 - Regenerate: `docs/agent/api-card.md`, `docs/reference/**`
 
 **Interfaces:**
-- Consumes: the two scripts of task 0.
-- Produces: in `src/acquisition-context.ts`, `pushDisposer(this: void, disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>): void` and `type ContextFactory = (this: void, dependencies: never, factoryContext: AcquisitionContext) => unknown`; in `src/registration.ts`, `export type Factory = (this: void, dependencies: never) => unknown`. The test `tests/documented-names.test.ts` keeps these names from coming back.
+- Consumes: the two scripts of task 0 and the phase-0 naming ratchet.
+- Produces: in `src/acquisition-context.ts`, `pushDisposer(this: void, disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>): void` and `type ContextFactory = (this: void, dependencies: never, factoryContext: AcquisitionContext) => unknown`; in `src/registration.ts`, `export type Factory = (this: void, dependencies: never) => unknown`. The test `tests/documented-names.test.ts` keeps these names from coming back. The naming ratchet no longer records `abbreviation: parameter deps`, `abbreviation: parameter disposerCtx` or `abbreviation: parameter factoryCtx`, and records no new entry.
 
 - [ ] **Step 1: Write the failing source scan**
 
@@ -655,16 +656,66 @@ node tools/docs/check-agent-docs.mjs
 
 Expected: `docs:generate` ends with `Generated 112 API Markdown pages with verified public coverage and 273 valid TypeScript blocks.` The changed generated files are `docs/reference/index/interfaces/AcquisitionContext.md`, `docs/reference/index/interfaces/DiBagApi.md`, `docs/reference/index/interfaces/Builder.md`, `docs/reference/index/type-aliases/AliasRegistration.md`, `docs/reference/index/type-aliases/ContextualFactory.md` and `docs/reference/index/type-aliases/OverrideFactoryContext.md`. `docs/agent/api-card.md` and `docs/reference/api-coverage.json` do not change in this task. `check-agent-docs.mjs` prints `Agent docs are consistent: 112 snippets type-check against the emitted declarations.`
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 8: Shrink the naming ratchet while the fresh build is current**
+
+The classic `dist/` built in step 7 contains the renamed declarations. Run the ratchet now, in the same task and commit as the abbreviation removals; leaving the three stale entries until task 5 would make this and the intervening task commits red.
 
 ```bash
-git add tests/documented-names.test.ts tests/types/negative/startup.ts tests/types/startup.ts tools/docs/test/exact-rendering.test.mjs src AGENTS.md docs/agent docs/reference
+set -o pipefail
+bun test tests/api-naming*.test.ts 2>&1 | tail -30
+```
+
+Expected: the public-surface ratchet test fails only because these exact three fixed violations are still listed:
+
+```text
+abbreviation: parameter deps
+abbreviation: parameter disposerCtx
+abbreviation: parameter factoryCtx
+```
+
+There must be no new naming violation. If the stale set differs or another failure appears, stop and report an entry-state mismatch before updating the file.
+
+```bash
+UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming*.test.ts
+bun test tests/api-naming*.test.ts
+python3 - <<'PY'
+import json
+import subprocess
+from pathlib import Path
+
+path = 'tests/api-naming-known-violations.json'
+before = json.loads(subprocess.check_output(['git', 'show', f'HEAD:{path}'], text=True))
+after = json.loads(Path(path).read_text())
+removed = sorted(set(before['violations']) - set(after['violations']))
+added = sorted(set(after['violations']) - set(before['violations']))
+expected = [
+    'abbreviation: parameter deps',
+    'abbreviation: parameter disposerCtx',
+    'abbreviation: parameter factoryCtx',
+]
+if before['note'] != after['note'] or removed != expected or added:
+    raise SystemExit(f'ratchet mismatch: removed={removed!r}, added={added!r}, note_changed={before["note"] != after["note"]}')
+print('removed exactly the three abbreviation entries; added none')
+PY
+if git diff tests/api-naming-known-violations.json | grep '^+' | grep -v '^+++'; then
+  echo 'unexpected addition to the naming ratchet' >&2
+  exit 1
+fi
+```
+
+Expected: the update run and the ordinary rerun pass; the Python audit prints `removed exactly the three abbreviation entries; added none`; the final guard prints nothing and exits 0.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add tests/documented-names.test.ts tests/types/negative/startup.ts tests/types/startup.ts tests/api-naming-known-violations.json tools/docs/test/exact-rendering.test.mjs src AGENTS.md docs/agent docs/reference
 git commit -q -F - <<'MSG'
 refactor(names): spell out factoryContext, disposerContext and dependencies
 
 Signatures, JSDoc and the agent docs no longer abbreviate parameter names.
 Runtime locals that hold the dependency proxy are called dependencyProxy. The
-runtime message "'<key>' in deps" is behavior and keeps its text.
+runtime message "'<key>' in deps" is behavior and keeps its text. The naming
+ratchet drops exactly the three abbreviation entries fixed by this commit.
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
@@ -1019,14 +1070,14 @@ git log --oneline -1
 ### Task 5: Ratchet, evidence, gates and report
 
 **Files:**
-- Modify: `tests/api-naming-known-violations.json` (entries removed only)
+- Audit without modifying: `tests/api-naming-known-violations.json` (task 1 already removed exactly three entries)
 - Create: `docs/superpowers/plans/evidence/phase-02.md`
 
 **Interfaces:**
-- Consumes: the completed source, tests and generated docs from tasks 1 to 4; the naming test of phase 0; `docs/superpowers/plans/evidence/baseline.md`; and every gate present after phase 1.
-- Produces: the evidence file, which also lists the names later phases meet.
+- Consumes: the completed source, tests and generated docs from tasks 1 to 4; task 1's already-shortened naming ratchet; the naming test of phase 0; `docs/superpowers/plans/evidence/baseline.md`; and every gate present after phase 1.
+- Produces: a phase-wide audit proving the ratchet differs from `next` only by task 1's three removals, plus the evidence file, which also lists the names later phases meet.
 
-- [ ] **Step 1: Shrink the known-violations list**
+- [ ] **Step 1: Audit the phase-wide ratchet diff and current green state**
 
 ```bash
 set -o pipefail
@@ -1034,17 +1085,32 @@ npm run build
 ls tests/api-naming*.test.ts
 sed -n 1,30p tests/api-naming*.test.ts
 bun test tests/api-naming*.test.ts 2>&1 | tail -30
+python3 - <<'PY'
+import json
+import subprocess
+from pathlib import Path
+
+path = 'tests/api-naming-known-violations.json'
+before = json.loads(subprocess.check_output(['git', 'show', f'next:{path}'], text=True))
+after = json.loads(Path(path).read_text())
+removed = sorted(set(before['violations']) - set(after['violations']))
+added = sorted(set(after['violations']) - set(before['violations']))
+expected = [
+    'abbreviation: parameter deps',
+    'abbreviation: parameter disposerCtx',
+    'abbreviation: parameter factoryCtx',
+]
+if before['note'] != after['note'] or removed != expected or added:
+    raise SystemExit(f'ratchet mismatch: removed={removed!r}, added={added!r}, note_changed={before["note"] != after["note"]}')
+print('phase-wide ratchet diff removes exactly the three abbreviation entries; added none')
+PY
+if git diff next -- tests/api-naming-known-violations.json | grep '^+' | grep -v '^+++'; then
+  echo 'unexpected addition to the naming ratchet' >&2
+  exit 1
+fi
 ```
 
-The first lines of the naming test say how to update the list when it has an update command. A ratchet test fails when a recorded violation no longer occurs and names it. Remove exactly the entries it names, by its update command or by deleting those entries from `tests/api-naming-known-violations.json`, then run it again until it passes.
-
-Expected: exactly three removed entries, `abbreviation: parameter factoryCtx`, `abbreviation: parameter disposerCtx` and `abbreviation: parameter deps`. Phase 0 recorded no callback-`value` or one-letter-generic entries. Prove that nothing was added:
-
-```bash
-git diff tests/api-naming-known-violations.json | grep '^+' | grep -v '^+++'    # expected: no output
-```
-
-If the test does not name exactly those three stale entries, stop and report an entry-state mismatch before updating the file.
+Expected: the naming tests pass immediately; do not run update mode and do not edit the ratchet in this task. The Python audit prints `phase-wide ratchet diff removes exactly the three abbreviation entries; added none`, and the final guard prints nothing. Phase 0 recorded no callback-`value` or one-letter-generic entries, so tasks 2 and 3 require no further ratchet removal. If the test is red, the phase-wide removal set differs, or any addition appears, stop and report the mismatch; never regenerate or broaden the list here.
 
 - [ ] **Step 2: Measure the twelve benchmark cases**
 
@@ -1119,17 +1185,15 @@ Expected: every command exits 0, the test lanes report `0 fail`, the three reten
 - [ ] **Step 5: Commit**
 
 ```bash
-git add tests/api-naming-known-violations.json docs/superpowers/plans/evidence/phase-02.md
+git add docs/superpowers/plans/evidence/phase-02.md
 git commit -q -F - <<'MSG'
-docs(plans): phase 2 evidence and a shorter known-violations list
+docs(plans): record phase 2 evidence
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
 MSG
 git log --oneline next..HEAD
 ```
-
-If `tests/api-naming-known-violations.json` did not change, `git add` of it is harmless.
 
 - [ ] **Step 6: Report to the controller**
 
@@ -1139,7 +1203,7 @@ Reply in at most 60 lines with: the branch name `phase-02-non-breaking-names`; t
 
 ## Self-Review
 
-**Spec coverage.** Roadmap phase 2 asks for documented parameter names (task 1), callback parameter names (task 2), generic parameter names (task 3), and summaries guarded by the "or" test (task 4). Standard rule 5 covers tasks 1 to 3, rule 7 covers task 1, rule 13 covers task 4. The master plan's gate list, evidence rule and report format are task 5. The controller-authorized staged ratchet records exactly four existing summary exceptions; phases 5, 8 and 9 remove their named ids, and final acceptance still requires the empty list.
+**Spec coverage.** Roadmap phase 2 asks for documented parameter names (task 1), callback parameter names (task 2), generic parameter names (task 3), and summaries guarded by the "or" test (task 4). Standard rule 5 covers tasks 1 to 3, rule 7 covers task 1, rule 13 covers task 4. Task 1 removes the three newly stale abbreviation entries from the phase-0 naming ratchet before its commit, preserving the master's green-commit rule; task 5 audits that exact phase-wide diff without changing the ratchet. The master plan's gate list, evidence rule and report format are otherwise task 5. The controller-authorized staged ratchet records exactly four existing summary exceptions; phases 5, 8 and 9 remove their named ids, and final acceptance still requires the empty list.
 
 **Verified, not assumed.** The original edit scripts, both new test files and the three red-green cycles of the rendering test were rehearsed on a scratch copy of the 0.4.0 source on 2026-09-21: every original step applied, `tsc6` reported no error after each step, TypeDoc accepted the new `@typeParam` tags with warnings treated as errors, `docs:generate` produced the same file set with an unchanged `api-coverage.json`, and the failing tests before each step were exactly those listed. The revised scripts' scoped before/after counts were checked mechanically against the current source, including pre-existing `dependencies` identifiers and the method-local `R` that is outside Builder's rename map, but the revised scripts were not executed during this plan repair. Task 0's parse check and each task's first red-green run are their execution verification. `tests/types.test.ts`, the native checks and the benchmark cases were not run while writing this plan.
 
