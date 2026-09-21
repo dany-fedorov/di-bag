@@ -1191,6 +1191,7 @@ The old API still exists, so the codemod can resolve it. First verify the phase-
 
 **Files:**
 - Verify: `tools/codemod/rename-map.json`, `tools/codemod/rename-map.schema.json`, `tools/codemod/lib/rename-map.mjs`, `tools/codemod/lib/rewrite.mjs`, `tools/codemod/lib/transforms/build-and-start.mjs`
+- Verify without editing: the two lexical controls in `tests/api-naming.test.ts`, the still-live rows in `tests/api-naming-known-violations.json`, and the two statements in `tests/types/negative/startup.ts` that deliberately reject `close({ timeoutMs })` and `close({ signal })`; preserve the rest of that fixture unless an actual migration requires an edit
 - Create: one fixture pair under `tools/codemod/test/fixtures/`
 - Modify: `tests/startup.test.ts`, `tests/startup-runtime-fixture.ts`, `tests/final-adversarial-runtime-fixture.ts`, `tests/runtime-diagnostics.test.ts`, `tests/acquisition-cleanup.test.ts`, `tests/acquisition-mode.test.ts`, `tests/aliases.test.ts`, `tests/contributions.test.ts`, `tests/enterprise-integration.test.ts`, `tests/nested-modules.test.ts`, `tests/observers.test.ts`, `tests/plugins.test.ts`, `tests/react/runtime-owner.test.ts`, `tests/react/project-runtime.test.ts`, `tests/acquisition-retention.node.mjs`, `tests/runtime-scale.node.mjs`
 - Modify: `examples/scopes.ts`, `examples/react/app-runtime.ts`, `examples/react/project-runtime.ts`, `examples/react/runtime-owner.ts`, `examples/react/bootstrap.tsx`, `examples/react/app.tsx`
@@ -1506,28 +1507,66 @@ and import `DiBagServiceReadinessCancelledError` instead of `DiBagStartupCancell
 - [ ] **Step 6: Audit with `grep`**
 
 ```bash
-grep -rnE "buildAndStart|StartupOptions|DiBagStartup|DI_BAG_STARTUP_" tests examples scripts tools/graph AGENTS.md docs/agent/recipes.md
+rg -n "buildAndStart|StartupOptions|DiBagStartup|DI_BAG_STARTUP_" tests examples scripts tools/graph AGENTS.md docs/agent/recipes.md > /tmp/phase-03-retired-startup.txt
+python3 - <<'PY'
+from collections import Counter
+from pathlib import Path
+def normalized(line: str) -> tuple[str, str]:
+    path, line_number, text = line.split(':', 2)
+    assert line_number.isdigit()
+    return path, text
+actual = Counter(normalized(line) for line in Path('/tmp/phase-03-retired-startup.txt').read_text().splitlines())
+expected = Counter({
+    ("tests/api-naming.test.ts", "  expect(words('buildAndStart')).toEqual(['build', 'and', 'start']);"): 1,
+    ("tests/api-naming.test.ts", "  expect(words('DiBagStartupCancelledError')).toEqual(['startup', 'cancelled', 'error']);"): 1,
+    ('tests/api-naming-known-violations.json', '    "retired-word: code DI_BAG_STARTUP_CANCELLED",'): 1,
+    ('tests/api-naming-known-violations.json', '    "retired-word: code DI_BAG_STARTUP_FAILED",'): 1,
+    ('tests/api-naming-known-violations.json', '    "retired-word: code DI_BAG_STARTUP_TIMEOUT",'): 1,
+    ('tests/api-naming-known-violations.json', '    "retired-word: export DiBagStartupCancelledError",'): 1,
+    ('tests/api-naming-known-violations.json', '    "retired-word: export DiBagStartupError",'): 1,
+    ('tests/api-naming-known-violations.json', '    "retired-word: export StartupOptions",'): 1,
+    ('tests/api-naming-known-violations.json', '    "retired-word: member buildAndStart",'): 1,
+    ('tools/graph/lib/extract.mjs', "const TERMINALS = new Set(['build', 'buildAndStart', 'buildModule']);"): 1,
+    ('tools/graph/README.md', 'chain that ends in `build()`, `buildAndStart()`, or `buildModule()`, and reports'): 1,
+    ('tools/graph/README.md', '- **unresolved**: a bag (`build()` or `buildAndStart()`) has a declared'): 1,
+})
+assert actual == expected, f'missing={sorted((expected - actual).elements())}; unexpected={sorted((actual - expected).elements())}'
+PY
 ```
 
-Expected: only `tools/graph/lib/extract.mjs` (the `TERMINALS` set, which keeps the old name on purpose) and `tools/graph/README.md` (Task 6 rewrites it).
+Expected: the exact assertion passes. The two naming-test rows are lexical scanner controls, the seven JSON rows are still-live known violations removed only by the combined Tasks 5–6 contract, and the three graph rows are deliberate compatibility/documentation removed by Task 6. Any other row is an executable caller, generated source, assertion, or document that Task 4 missed. Do not edit any of the twelve controls to make this audit pass.
 
 ```bash
 grep -rnE "startupOrder:" tests examples scripts
 ```
 
-Expected: only the entries that prove the old option is now rejected: `{ startupOrder: 'sequential' }` in the invalid-option lists of `tests/ensure-services-ready.test.ts`, `tests/startup.test.ts` and `tests/runtime-diagnostics.test.ts`, and the two negative cases in `tests/types/negative/startup.ts`. Loop variables named `startupOrder` may stay.
+Expected: only the entries that prove the old option is now rejected: `{ startupOrder: 'sequential' }` in the invalid-option lists of `tests/ensure-services-ready.test.ts`, `tests/startup.test.ts` and `tests/runtime-diagnostics.test.ts`, plus the `ensureServicesReady` negative case in `tests/types/negative/startup.ts`. Loop variables named `startupOrder` may stay. The other deliberate old close-option negatives use `timeoutMs` and `signal` and are pinned by the final audit below.
 
 ```bash
 grep -rnE "cleanupPromise|cleanupFailures|\.cleanupError" tests examples scripts
 ```
 
-Expected: every remaining `cleanupPromise` is read from a `DiBagCloseCancelledError` (in `tests/runtime-diagnostics.test.ts`, `tests/acquisition-cleanup.test.ts` near line 723, `tests/observers.test.ts` only if that error comes from `close`). Open each hit and check which error it is. `cleanupFailures` and `.cleanupError` must not remain; local variables named `cleanupError` in `tests/observers.test.ts`, `tests/observers-runtime-fixture.ts` and `examples/integration/owned-scope.ts` are not the library field and stay.
+Expected: the JSON rows for `retired-word: member cleanupFailures` and `retired-word: member cleanupPromise` remain and must not be edited here. Tasks 5–6 remove `cleanupFailures` when the startup error surface contracts. The shared `cleanupPromise` finding stays after that contraction because `DiBagCloseCancelledError.cleanupPromise` remains public until Phase 11. Every code hit for `cleanupPromise` is read from that close error (in `tests/runtime-diagnostics.test.ts`, `tests/acquisition-cleanup.test.ts` near line 723, `tests/observers.test.ts` only if that error comes from `close`). Open each non-JSON hit and check which error it is. No code hit for `cleanupFailures` or `.cleanupError` may remain; local variables named `cleanupError` in `tests/observers.test.ts`, `tests/observers-runtime-fixture.ts` and `examples/integration/owned-scope.ts` are not the library field and stay.
 
 ```bash
-grep -rnE "close\(\{ ?(timeoutMs|signal)" tests examples scripts
+rg -n "close\(\{ ?(timeoutMs|signal)" tests examples scripts > /tmp/phase-03-old-close-options.txt
+python3 - <<'PY'
+from collections import Counter
+from pathlib import Path
+def normalized(line: str) -> tuple[str, str]:
+    path, line_number, text = line.split(':', 2)
+    assert line_number.isdigit()
+    return path, text
+actual = Counter(normalized(line) for line in Path('/tmp/phase-03-old-close-options.txt').read_text().splitlines())
+expected = Counter({
+    ('tests/types/negative/startup.ts', 'closable.close({ timeoutMs: 1 });'): 1,
+    ('tests/types/negative/startup.ts', 'closable.close({ signal: new AbortController().signal });'): 1,
+})
+assert actual == expected, f'missing={sorted((expected - actual).elements())}; unexpected={sorted((actual - expected).elements())}'
+PY
 ```
 
-Expected: no output.
+Expected: the exact assertion passes. These two compile-time negatives deliberately prove that `CloseOptions` rejects the 0.4 option names. Any other row is a missed executable caller; fix that caller without changing these negative cases.
 
 - [ ] **Step 7: Run the tests**
 
@@ -1964,6 +2003,8 @@ Reply to the controller in the format of the master plan, "Protocol for every ph
 ## Self-review
 
 **Spec coverage.** `ensureServicesReady` on a bag, a child scope and a fork, the same-bag result, close on failure, untouched bag on invalid input, rejections only, repeated calls: the green Tasks 2–3 expand, with tests in `tests/ensure-services-ready.test.ts`. The pending-work report is defined and consumed in that same expand commit. `close` options `abortSignal` and `waitTimeoutMs`: atomic Task 1. `CloseProgress.disposersStillRunning` and `.acquisitionsStillPending`: atomic Task 1. `DiBagServiceReadinessError`, `DiBagServiceReadinessCancelledError`, `disposalFailures`, `disposalError`, `disposalPromise`, the three codes: Tasks 2–3. `buildAndStart` removed, `StartupOptions` renamed and not aliased, old names fail to compile, generated docs contract, graph compatibility, and the exact ten-entry naming-ratchet shrink: the green Tasks 5–6 contract. Codemod data and fixture: Task 4. Evidence and the read-only phase-wide ratchet audit: Task 7.
+
+**Task 4 audit precision.** Migration audits scan every owned consumer path and accept only exact intentional artifacts: two lexical naming-scanner controls, seven still-live startup ratchet rows, three graph compatibility/documentation rows, explicit invalid-option list entries, the two `CloseOptions` negative cases in `tests/types/negative/startup.ts`, and the two still-live cleanup member rows in the ratchet. The exact audits normalize away line numbers but compare `(path, line text)` with multiplicity; they exclude no whole test file, so an additional executable legacy caller fails the comparison. Tasks 5–6, not Task 4, remove the startup ratchet rows, graph compatibility, and `cleanupFailures`; the shared `cleanupPromise` finding remains for the close error until Phase 11.
 
 **Left to later phases on purpose.** `DiBagCloseCancelledError.cleanupPromise`, `DiBagCleanupError`, `CleanupFailure` and the `cleanup-*` events (phase 11). The code `DI_BAG_INVALID_STARTUP` (phase 11 folds it into `DI_BAG_INVALID_ARGUMENT` and `DI_BAG_UNKNOWN_SERVICE_KEY`). The acquisition context's `signal` (phase 8). `build` to `buildContainer` (phase 5), `Bag` to `Container`, `createScope` and `fork` (phase 6); the words "bag", "scope" and "fork" in this phase's messages and comments are renamed with them. The tutorial section on startup and every other guide (phase 12); until then the `@see` URL of `EnsureServicesReadyOptions` points at the existing tutorial heading. Throwing stubs for the removed runtime names and the changelog (phase 13).
 
