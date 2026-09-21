@@ -2548,6 +2548,27 @@ export const transforms = {
 };
 ```
 
+Before running the codemod gate, update its exact registry and package expectations in this same task. Add `tools/codemod/test/transforms.test.mjs`, `tools/codemod/test/rename-map.test.mjs`, and `tools/codemod/test/pack.test.mjs` to the task's modified files and commit staging. Both the `Object.keys(transforms)` expectation and every shipped-map `loadRenameMap` / `validateRenameMap` allowed-transform list are now:
+
+```js
+['build-and-start', 'collection-read', 'collection-reference', 'collection-token']
+```
+
+Preserve all earlier non-transform package entries. Replace only the transform-file portion of the sorted `pack.files` expected list with the entries of this array:
+
+```js
+[
+'lib/transforms/build-and-start.mjs',
+'lib/transforms/collection-read.mjs',
+'lib/transforms/collection-reference.mjs',
+'lib/transforms/collection-token.mjs',
+'lib/transforms/collection-tokens.mjs',
+'lib/transforms/index.mjs',
+]
+```
+
+The helper `collection-tokens.mjs` ships in the archive but is not a callable transform ID. Later phases append their IDs/files to these accumulated expectations; they must never reset the lists to phase 1.
+
 - [ ] **Step 6: Write exact golden output and manual items**
 
 The primary-shape `tools/codemod/test/fixtures/collection-tokens/expected.ts` is exactly:
