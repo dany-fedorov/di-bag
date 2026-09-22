@@ -1852,15 +1852,15 @@ Expected: exit 0; older fixtures still pass, including nested transforms.
 
 ```bash
 npm run build
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --report /tmp/di-bag-phase-06/codemod-report.txt
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'scripts/agent-eval/**/*.ts' --extra-files 'tools/graph/test/fixtures/ready-chain.ts' --extra-files 'tools/graph/test/fixtures/split-builder.ts' --extra-files 'tools/graph/test/fixtures/cross-module/*.ts' --extra-files 'tools/graph/test/fixtures/consumer/src/**/*.ts' --report /tmp/di-bag-phase-06/codemod-report.txt
 ```
 
-Expected: rewrites outside `src`; every manual item has a file, line, and exact Task-5 reason.
+Expected: rewrites outside `src`; every manual item has a file, line, and exact Task-5 reason. The explicit extra-file roots include the 31 agent-eval TypeScript files and 13 current graph fixture files absent from the root project. Preserve `tools/graph/test/fixtures/builder-names-0-4.ts` as the original compatibility input and the already-current `builder-names-0-5.ts`; neither is a write target. Keep `split-builder.ts` and its intentional unresolved-graph semantics in the migrated scope.
 
 - [ ] **Step 2: Apply exactly once and resolve manual items**
 
 ```bash
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --write --report /tmp/di-bag-phase-06/codemod-report.txt
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'scripts/agent-eval/**/*.ts' --extra-files 'tools/graph/test/fixtures/ready-chain.ts' --extra-files 'tools/graph/test/fixtures/split-builder.ts' --extra-files 'tools/graph/test/fixtures/cross-module/*.ts' --extra-files 'tools/graph/test/fixtures/consumer/src/**/*.ts' --write --report /tmp/di-bag-phase-06/codemod-report.txt
 ```
 
 Migrate each reported `ScopeOptions` annotation, receiver typed `any`, spread, or indirect options object at its construction site. Do not rerun the codemod.
@@ -1887,12 +1887,14 @@ Expected: greps show only explicit rejection/codemod inputs; checks pass.
 
 - [ ] **Step 4: Commit the mechanical rewrite by itself**
 
+Preserve the exact checker-written patch before resolving manual items and retain each hand-migration patch separately. Commit the mechanical rewrite separately only if that tree passes its required gates; otherwise review and commit the coherent tested result while reporting the mechanical and hand-written provenance precisely. The heading does not authorize an unverified intermediate source commit or attributing the `inspectCollection` migration to the checker.
+
 ```bash
 git add tests examples scripts/agent-eval tools/graph/test/fixtures tools/codemod/test/fixtures
 git commit -F - <<'MSG'
 refactor!: move typed call sites to container APIs
 
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --write
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'scripts/agent-eval/**/*.ts' --extra-files 'tools/graph/test/fixtures/ready-chain.ts' --extra-files 'tools/graph/test/fixtures/split-builder.ts' --extra-files 'tools/graph/test/fixtures/cross-module/*.ts' --extra-files 'tools/graph/test/fixtures/consumer/src/**/*.ts' --write
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
@@ -2086,16 +2088,17 @@ git commit -m "refactor!: migrate generated and agent container calls"
 
 **Interfaces:**
 - Consumes: migrated call sites and adopted S3 shape.
-- Produces: `Container<ServiceRegistrations, Constraints>` as the only public container type; no `Bag`, `inspect`, `inspectGraph`, `createScope`, `fork`, `ScopeOptions`, `CheckedScopeLifetimes`, or `DisjointScopeSelection` declaration.
+- Produces: `Container<ServiceRegistrations, Constraints>` as the only public container type; no `Bag`, `inspect`, `inspectCollection`, `inspectGraph`, `createScope`, `fork`, `ScopeOptions`, `CheckedScopeLifetimes`, or `DisjointScopeSelection` declaration.
 
 - [ ] **Step 1: Add contract tests before deleting names**
 
 Append to `tests/container-names.test.ts`:
 
 ```ts
-test('retired container members are absent at runtime', () => {
-  const container = DiBag.createBuilder().buildContainer() as unknown as Record<string, unknown>;
-  for (const name of ['inspect', 'inspectGraph', 'createScope', 'fork']) expect(name in container).toBe(false);
+test('retired container members are absent at runtime', async () => {
+  const container = DiBag.createBuilder().buildContainer();
+  for (const name of ['inspect', 'inspectCollection', 'inspectGraph', 'createScope', 'fork']) expect(name in container).toBe(false);
+  await container.close();
 });
 ```
 
@@ -2113,6 +2116,8 @@ import type { DisjointScopeSelection } from '../../../src';
 const retiredContainer = DiBag.createBuilder().buildContainer();
 // diagnostic: does not exist
 retiredContainer.inspect('value');
+// diagnostic: does not exist
+retiredContainer.inspectCollection('value');
 // diagnostic: does not exist
 retiredContainer.inspectGraph();
 // diagnostic: does not exist
@@ -2230,7 +2235,7 @@ let queue: Array<{ event: LifecycleEvent; callbacks: readonly LifecycleObserver[
 private constructor(private readonly callbacks: readonly LifecycleObserver[]) {}
 
 static append(previous: LifecycleObservers | undefined, observer: unknown): LifecycleObservers {
-  if ((typeof observer !== 'object' && typeof observer !== 'function') || observer === null) {
+  if (typeof observer !== 'object' || observer === null) {
     throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
   }
   const onLifecycleEvent = Reflect.get(observer, 'onLifecycleEvent') as unknown;
@@ -2268,7 +2273,7 @@ Expected: no output except event callback type descriptions that do not use reti
 
 ```bash
 bun test tests/container-names.test.ts tests/modules.test.ts tests/observers.test.ts
-bun test tests/types.test.ts --test-name-pattern 'api renaming|observers'
+bun test tests/types.test.ts --test-name-pattern 'api-renaming|observers'
 ```
 
 Expected: tests pass. Continue with all changes unstaged into Task 10.
