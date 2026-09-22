@@ -47,6 +47,10 @@ declare const neverShape: never;
 builder.buildModule(neverShape);
 declare const unresolvedShape: {};
 builder.buildModule(unresolvedShape);
+declare const optionalShape: { exportedServiceKeys?: readonly ['optional'] };
+builder.buildModule(optionalShape);
+declare const arrayOptionalShape: readonly ['array-optional'] & { exportedServiceKeys?: readonly ['array-optional'] };
+builder.buildModule(arrayOptionalShape);
 declare const mixedShape: readonly ['mixed'] | { exportedServiceKeys: readonly ['mixed'] };
 builder.buildModule(mixedShape);
 declare const intersectionShape: readonly ['both'] & { exportedServiceKeys: readonly ['both'] };
@@ -76,13 +80,17 @@ declare const neverShape: never;
 builder.buildModule(neverShape);
 declare const unresolvedShape: {};
 builder.buildModule(unresolvedShape);
+declare const optionalShape: { exportedServiceKeys?: readonly ['optional'] };
+builder.buildModule(optionalShape);
+declare const arrayOptionalShape: readonly ['array-optional'] & { exportedServiceKeys?: readonly ['array-optional'] };
+builder.buildModule(arrayOptionalShape);
 declare const mixedShape: readonly ['mixed'] | { exportedServiceKeys: readonly ['mixed'] };
 builder.buildModule(mixedShape);
 declare const intersectionShape: readonly ['both'] & { exportedServiceKeys: readonly ['both'] };
 builder.buildModule(intersectionShape);
 `;
 
-const expectedManual = [17, 19, 21, 23, 25, 27].map(line => ({
+const expectedManual = [17, 19, 21, 23, 25, 27, 29, 31].map(line => ({
   line,
   reason: 'the argument of buildModule could be either its positional value or an existing options bag; migrate this call by hand',
 }));

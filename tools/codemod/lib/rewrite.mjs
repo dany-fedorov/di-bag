@@ -212,10 +212,12 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
             uncertain: left.uncertain || right.uncertain,
           }), { array: false, bag: false, uncertain: false });
         }
+        const property = checker.getPropertyOfType(candidate, key);
+        const optional = property !== undefined && Boolean(property.flags & ts.SymbolFlags.Optional);
         return {
           array: checker.isArrayType(candidate) || checker.isTupleType(candidate),
-          bag: checker.getPropertyOfType(candidate, key) !== undefined,
-          uncertain: false,
+          bag: property !== undefined && !optional,
+          uncertain: optional,
         };
       };
       const shape = signals(type);
