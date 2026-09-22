@@ -379,6 +379,24 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     return target === null || target === name ? undefined : assemble(node, [{ start: start(node.name), end: node.name.end, text: target }]);
   }
 
+  function rewriteTypeQuery(node) {
+    const expression = node.exprName;
+    if (!ts.isQualifiedName(expression)) return undefined;
+    const nameNode = expression.right;
+    const name = nameNode.text;
+    if (!index.memberNames.has(name)) return undefined;
+    const coverage = library.memberCoverage(library.symbolAt(nameNode));
+    if (coverage.members.length === 0) return undefined;
+    const manualCheckpoint = manualItems.length;
+    const target = memberRename(expression, coverage, name, { called: false });
+    if (target === null) {
+      if (manualItems.length > manualCheckpoint) skip.add(node);
+      return undefined;
+    }
+    if (target === name) return undefined;
+    return assemble(node, [{ start: start(nameNode), end: nameNode.end, text: target }]);
+  }
+
   function rewriteBindingElement(element) {
     if (!ts.isObjectBindingPattern(element.parent)) return undefined;
     const keyNode = element.propertyName ?? element.name;
@@ -491,6 +509,7 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
   }
 
   function rewriteNode(node) {
+    if (ts.isTypeQueryNode(node)) return rewriteTypeQuery(node);
     if (ts.isCallExpression(node)) return rewriteCall(node);
     if (ts.isPropertyAccessExpression(node)) return rewritePropertyAccess(node);
     if (ts.isObjectLiteralExpression(node)) return rewriteObjectLiteral(node);

@@ -62,6 +62,10 @@ leaves unchanged and reports with file, line, column, reason, and source text:
 
 Fix these by hand, then run the compiler.
 
+Qualified members in `typeof` follow the same uncalled-reference rule: a compatible
+plain rename changes the terminal member, while reshaped or ambiguous methods stay
+unchanged and are reported for manual migration.
+
 ## The rename map
 
 `rename-map.json` describes the distance from 0.4.0 to the current API.
