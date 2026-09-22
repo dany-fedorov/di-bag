@@ -2609,6 +2609,7 @@ The repository remains green because the expand commit still exposes compatibili
 
 **Files:**
 - Modify: all codemod-selected TypeScript call sites under `tests`, `examples`, `scripts/agent-eval`, and `tools/graph/test/fixtures`
+- Modify by hand: `tests/benchmarks/runtime-scenarios.ts`, `scripts/runtime-benchmark-child.ts`, `tests/runtime-benchmark-child.test.ts`
 - Modify: `tests/compiler.ts`, `scripts/benchmark-types.ts`, `scripts/check-token-scale.ts`, other generated-source builders reported by the audit
 - Create: `scripts/check-generated-provider-names.mjs`
 - Inspect: `tools/graph/lib/extract.mjs`
@@ -2652,6 +2653,8 @@ MSG
 ```
 
 Verify `git show --stat --oneline HEAD` contains only report-listed mechanical files. Manual reports, generated-source strings, graph fixtures, and docs belong to the next commit.
+
+The runtime benchmark scenario is a deliberate two-version adapter, so it is not an old-name cleanup target. Do not resolve a codemod/manual/audit row by rewriting its pinned-0.4 branch. Extend the lane-selected adapter by hand: the `current` branch creates providers with `createProvider` and maps `raw` to `uninspected` and `nativePromise` to `native-promise`; the `baseline` branch retains `fromFactory` and its 0.4 option values. Keep provider construction outside the measured interval exactly where it is now, keep one provider factory per binding, and make no capability probe. At this phase the existing disposal/lifetime wrapper bridge may remain behind the adapter until plan 10 migrates only its current branch. Run the focused current and exact pinned-`739b509` archive child smokes, including `raw-promise-identity` and `node-native-promise`, and validate the existing factory/disposer counts and identities. Record the exact baseline-branch rows in the old-name allowlist rather than weakening the repository-wide audit.
 
 - [ ] **Step 2: Migrate generated TypeScript strings explicitly**
 
@@ -2975,9 +2978,9 @@ rg -n "\b(fromFactory|fromSyncFactory|fromAsyncFactory|fromFunction|fromClass|fr
   --glob '!tests/types/negative/api-renaming.ts'
 ```
 
-Expected: no output outside the deliberate negative-removal fixture. The generated API card is excluded here because the expand commit still documents the compatibility members it actually exports; Task 5 removes those declarations, regenerates the card, and runs the final unexcluded retired-name audit.
+Expected: no output outside the deliberate negative-removal fixture and the exact pinned-0.4 branch of `tests/benchmarks/runtime-scenarios.ts`. The generated API card is excluded here because the expand commit still documents the compatibility members it actually exports; Task 5 removes those declarations, regenerates the card, and runs the final unexcluded retired-name audit. Record the benchmark branch by path and selected adapter; no other executable consumer is exempt.
 
-Expected: no old source/type/token names. The only allowed `acquisitionMode` hits are `transformService`'s public option key and 0.4 codemod fixture input; its values are final strings. Record every allowed hit explicitly and fail on any unlisted result.
+Expected: no old source/type/token names outside the exact pinned-0.4 benchmark adapter. The only allowed `acquisitionMode` hits are `transformService`'s public option key, 0.4 codemod fixture input, and that baseline adapter's retained `raw`/`nativePromise` options. Current-API values use the final strings. Record every allowed hit by exact path and branch and fail on any unlisted result.
 
 Run the focused runtime, codemod, graph, agent-eval, generated-string, and docs checks from this task. With the applicable controller hold lifted, run `npm run check` and `npm run docs:check`; both must pass while compatibility declarations still exist. Commit the resolved manual items and non-codemod surfaces:
 
@@ -3199,7 +3202,7 @@ rg -n "ScopeOptions<|CreateChildContainerOptions<" src/scope-types.ts src/di-bag
 rg -n "snapshotOptionsBag\(" src/acquisition-context.ts src/composition.ts src/plugins.ts
 ```
 
-Expected: first command has no unlisted output; token-kind propagation, fresh collection views, and the preserved scope generic order remain; every new bag parser calls the accepted helper with four arguments while its optional fifth `inspectValue` parameter remains declared. Inspect every diff hunk touching `runtime.ts` or `module.ts` and reject any deletion of `GraphDescription.tokenKinds` or route around `freshCollectionView`.
+Expected: first command has no unlisted output; its only executable compatibility rows are the exact lane-selected pinned-0.4 benchmark adapter, proved against archive `739b509`. Token-kind propagation, fresh collection views, and the preserved scope generic order remain; every new bag parser calls the accepted helper with four arguments while its optional fifth `inspectValue` parameter remains declared. Inspect every diff hunk touching `runtime.ts` or `module.ts` and reject any deletion of `GraphDescription.tokenKinds` or route around `freshCollectionView`.
 
 - [ ] **Step 2: Run final evidence with the real CLI**
 

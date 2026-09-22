@@ -2160,6 +2160,7 @@ git rev-parse HEAD > /tmp/di-bag-phase-10-lifetime-pin-commit
 
 **Files:**
 - Modify: the exact test files listed below
+- Modify by hand: `tests/benchmarks/runtime-scenarios.ts`, `tests/runtime-benchmark-child.test.ts`
 - Modify: `examples/scopes.ts`, `AGENTS.md`, `docs/agent/recipes.md`
 - Create: `docs/adr/0001-singleton-by-default.md`
 
@@ -2178,7 +2179,6 @@ tests/acquisition-mode.test.ts
 tests/aliases-runtime-fixture.ts
 tests/aliases.test.ts
 tests/api-renaming.test.ts
-tests/benchmarks/runtime-scenarios.ts
 tests/composition-adapters-runtime-fixture.ts
 tests/composition-adapters.test.ts
 tests/contributions-runtime-fixture.ts
@@ -2245,7 +2245,6 @@ tests/acquisition-mode.test.ts
 tests/aliases-runtime-fixture.ts
 tests/aliases.test.ts
 tests/api-renaming.test.ts
-tests/benchmarks/runtime-scenarios.ts
 tests/composition-adapters-runtime-fixture.ts
 tests/composition-adapters.test.ts
 tests/contributions-runtime-fixture.ts
@@ -2309,6 +2308,8 @@ node tools/codemod/cli.mjs --project /tmp/di-bag-phase-10-pin.json --library-roo
 ```
 
 Expected: exit 0. Review `/tmp/di-bag-phase-10-pin-report.json`; every manual row must be resolved in its named test before continuing. No file outside the list and its imported local fixture modules changes. Delete the temporary config after review.
+
+Do not pass `tests/benchmarks/runtime-scenarios.ts` through the lifetime-pin transform. It is a lane-selected executable comparison fixture: applying the accumulated transform to its structural adapter can rewrite or report the pinned-0.4 branch. Update it by hand in the same semantic-migration unit. When the singleton default is adopted, the `current` adapter explicitly applies `.withLifetime('scoped:one-per-container')` to providers for which the scenario previously relied on the scoped default; its explicit warm singleton and transient selections retain their intended full values. The `baseline` adapter retains the 0.4 default and short lifetime values byte-for-byte. Under the S8 fallback, leave the current default-provider path unmarked because scoped remains the default. In either branch, keep provider creation before timing, factory/disposer counts and cleanup order unchanged, and run one focused current plus exact pinned-`739b509` archive child smoke covering child scope identity. This compatibility proof adds no performance matrix.
 
 The explicit empty `include`/`exclude` arrays prevent the root project's inherited globs from
 adding `tests/singleton-default*`; TypeScript still follows imports for checking, while the codemod
@@ -3341,7 +3342,7 @@ grep -rnE "kind: 'root-reach'|policy: 'root'|readonly root:" src tests
 grep -rn "DI_BAG_SINGLETON_REPLACEMENT" src tests docs/agent
 ```
 
-Adopted-path expectations: the naming update passes and produces no known-violations diff because this phase removes no public name; default-scoped grep has no product/documentation hit; old operation grep has only deliberate 0.4 codemod input/removed-API fixtures; old obligation spellings have no hit; the new runtime code appears at its throw, focused tests, and one errors section. Under fallback, the first grep finds only the deliberate scoped-default source/docs and the evidence/ADR explanation.
+Adopted-path expectations: the naming update passes and produces no known-violations diff because this phase removes no public name; default-scoped grep has no product/documentation hit apart from the exact lane-selected pinned-0.4 benchmark branch; old operation grep has only deliberate 0.4 codemod input/removed-API fixtures; old obligation spellings have no hit; the new runtime code appears at its throw, focused tests, and one errors section. The benchmark branch remains accepted only by exact path/adapter and its `739b509` archive smoke; current requests carry the explicit scoped pins described in Task 4. Under fallback, the first grep also finds only the deliberate scoped-default source/docs and the evidence/ADR explanation.
 
 Run the exact assertion inventory again and confirm Task 4's counts are unchanged. Any changed capture assertion is accidental plan-12 work.
 

@@ -1783,7 +1783,7 @@ MSG
 
 **Files:**
 - Modify: `tests/compiler.ts`, package/native/token/release tests, `tests/host-builtin-module.ts`, `tests/*.node.mjs`
-- Modify: `scripts/benchmark-types.ts`, `scripts/compiler-case.ts`, `scripts/benchmark-compiler-ceiling.ts`, `scripts/runtime-benchmark-child.ts`, `scripts/platform-evidence.ts`, `scripts/react-browser-lane.ts`, `scripts/agent-eval/**`
+- Modify: `scripts/benchmark-types.ts`, `scripts/compiler-case.ts`, `scripts/benchmark-compiler-ceiling.ts`, `scripts/runtime-benchmark-child.ts`, `tests/benchmarks/runtime-scenarios.ts`, `tests/runtime-benchmark-child.test.ts`, `scripts/platform-evidence.ts`, `scripts/react-browser-lane.ts`, `scripts/agent-eval/**`
 - Modify: `tools/graph/lib/extract.mjs`, `tools/graph/README.md`, `tools/graph/test/**`
 - Modify: `AGENTS.md`, `docs/agent/recipes.md`, `docs/agent/errors.md`, `tools/docs/api-card-tasks.json`
 - Create: `/tmp/di-bag-phase-06/reshape-untyped.mjs` (untracked migration helper)
@@ -1803,7 +1803,7 @@ const patterns = [
   'tests/**/*.{ts,tsx,mjs}', 'scripts/**/*.{ts,tsx,mjs}',
   'tools/graph/**/*.{ts,tsx,mjs,md}', 'AGENTS.md', 'docs/agent/*.md',
 ];
-const excluded = /(?:api-renaming\.ts|tools\/codemod\/test\/fixtures|tools\/graph\/test\/fixtures\/.*0-4)/;
+const excluded = /(?:api-renaming\.ts|tests\/benchmarks\/runtime-scenarios\.ts|scripts\/runtime-benchmark-child\.ts|tools\/codemod\/test\/fixtures|tools\/graph\/test\/fixtures\/.*0-4)/;
 const files = [...new Set(patterns.flatMap(pattern => globSync(pattern)))].filter(file => !excluded.test(file)).sort();
 const rules = [
   [/(['"])(di-bag\/node)\1/g, (_m, quote) => `${quote}di-bag${quote}`, 'root import'],
@@ -1875,6 +1875,8 @@ Apply only those ten replacements before running `reshape-untyped.mjs`. Then run
 
 In `tests/compiler.ts` and all three compiler scripts, apply the codemod table inside source strings: derivation bags, `Container`, snapshots, module bag, and observer fields. Keep the twelve cases logically identical.
 
+`tests/benchmarks/runtime-scenarios.ts` is a deliberate bilingual executable fixture, not an untyped migration input. Phase 5 selects a current or pinned-0.4 adapter from the child request lane before timing. Exclude this file and `scripts/runtime-benchmark-child.ts` from `reshape-untyped.mjs`; migrate only the current adapter's container operations by hand (`inspect` to `serviceSnapshot` and `createScope` to `createChildContainer`; `resolve` and `close` stay shared because this phase does not rename them). Retain the baseline adapter's 0.4 member names byte-for-byte. Its remaining retired-name rows are exact path/adapter allowlist entries, not permission for another old executable call. Run the focused current and exact pinned-`739b509` archive child smokes after the hand edit; do not add a performance matrix or threshold gate.
+
 ```bash
 node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseline.md --json /tmp/di-bag-phase-06/migrated-generators.json
 ```
@@ -1883,9 +1885,9 @@ Expected: twelve accepted rows and no token diagnostics. Replace Task 1's provis
 
 - [ ] **Step 2: Migrate package/runtime strings**
 
-Apply the same rewrites in `tests/package.test.ts`, `tests/native-package.test.ts`, `tests/token-package.test.ts`, `tests/release-artifacts.test.ts`, `tests/host-builtin-module.ts`, the three `.node.mjs` suites, and generated code under `scripts/`. Every `di-bag/node` import becomes `di-bag`. Compile strings import `type Container`. Keep the runtime assertion that type-only `Container`, `Module`, and `Provider` are not constructible exports. Release-artifact expected entries become `['di-bag']`.
+Apply the same rewrites in `tests/package.test.ts`, `tests/native-package.test.ts`, `tests/token-package.test.ts`, `tests/release-artifacts.test.ts`, `tests/host-builtin-module.ts`, the three `.node.mjs` suites, and generated code under `scripts/`. Every current-API `di-bag/node` import becomes `di-bag`; preserve only the exact baseline native-Promise branch described below. Compile strings import `type Container`. Keep the runtime assertion that type-only `Container`, `Module`, and `Provider` are not constructible exports. Release-artifact expected entries become `['di-bag']`.
 
-`tests/token-package.test.ts` still compares ESM and CJS views of the root package for canonical token identity. `scripts/runtime-benchmark-child.ts` loads `di-bag` in both runtime scenarios. `scripts/platform-evidence.ts` replaces the node-subpath boundary fact with root-entry coverage. Leave the `scripts/react-browser-lane.ts` assertion about `src/node.ts` until Task 10 deletes that file.
+`tests/token-package.test.ts` still compares ESM and CJS views of the root package for canonical token identity. In `scripts/runtime-benchmark-child.ts`, select the entry by both lane and scenario: only the pinned-0.4 `baseline` lane's `node-native-promise` request loads `di-bag/node`; every `current` request and every other baseline scenario loads `di-bag`. This preserves the historical native-promise boundary while proving the current root-only entry. Reject an unknown lane before import/preparation. `scripts/platform-evidence.ts` replaces the node-subpath boundary fact with root-entry coverage. Leave the `scripts/react-browser-lane.ts` assertion about `src/node.ts` until Task 10 deletes that file.
 
 - [ ] **Step 3: Update graph recognition without changing JSON**
 
@@ -2154,6 +2156,7 @@ Expected: tests pass. Continue with all changes unstaged into Task 10.
 - Delete: generated `docs/reference/node/**`
 - Modify: `package.json`, `tsconfig.build.json`, `tools/docs/typedoc.json`, `tools/docs/lib/coverage.mjs`, `tools/docs/vitepress.config.mjs`, `.github/workflows/ci.yml`
 - Modify: package/platform/release tests and `scripts/react-browser-lane.ts`
+- Modify: `scripts/runtime-benchmark-child.ts` only to retain its explicit pinned-baseline entry selection
 - Modify: `src/acquisition-mode.ts`
 
 **Interfaces:**
@@ -2187,7 +2190,7 @@ grep -rnE "di-bag/node|src/node|reference/node|['\"]\./node['\"]" package.json t
 grep -rnE "from ['\"]node:|require\(['\"]node:" src
 ```
 
-Expected: run the two `node` probes with the repository's pinned Node 24.20.0 from `scripts/pin-platform-tools.ts`; both exit 0. Package, portable-host, and browser-worker tests pass. The first grep has only codemod input/expected fixtures that deliberately demonstrate import migration; the second grep has no output. `process.getBuiltinModule('node:util/types')` remains because it is a runtime call, not an import.
+Expected: run the two `node` probes with the repository's pinned Node 24.20.0 from `scripts/pin-platform-tools.ts`; both exit 0. Package, portable-host, and browser-worker tests pass. The first grep has only codemod input/expected fixtures that deliberately demonstrate import migration and the exact `scripts/runtime-benchmark-child.ts` baseline-only `node-native-promise` branch proved against archive `739b509`; current requests never select that subpath. The second grep has no output. `process.getBuiltinModule('node:util/types')` remains because it is a runtime call, not an import.
 
 - [ ] **Step 5: Retain node-entry removals for the contract group**
 
@@ -2292,7 +2295,7 @@ grep -rnE "di-bag/node|src/node|reference/node|['\"]\./node['\"]" package.json t
 grep -rnE "from ['\"]node:|require\(['\"]node:" src
 ```
 
-Expected: no executable old API outside deliberate negative/codemod/graph compatibility fixtures; no `node:` import in `src`. Inspect all `Bag` substring hits: only `DiBag`, `DiBag*`, `DI_BAG_*`, `BagRuntime`, product prose, and the two deferred close-state messages may remain.
+Expected: no executable old API outside deliberate negative/codemod/graph compatibility fixtures and the exact lane-selected benchmark baseline branches in `tests/benchmarks/runtime-scenarios.ts` / `scripts/runtime-benchmark-child.ts`; focused archive smokes prove those branches execute only against `739b509`, while current requests use the final surface and root entry. No `node:` import remains in `src`. Inspect all `Bag` substring hits: only `DiBag`, `DiBag*`, `DI_BAG_*`, `BagRuntime`, product prose, and the two deferred close-state messages may remain.
 
 - [ ] **Step 2: Recount message assertions without changing them**
 

@@ -2798,6 +2798,18 @@ MSG
 
 ---
 
+#### Task 9 benchmark compatibility subunit
+
+The residual typed audit found one additional owner: `tests/benchmarks/runtime-scenarios.ts` supplies the same current fixture to both the current package and the pinned baseline archive. Its `register`/`build` structural interface cannot simply be renamed or exempted. Complete a separate reviewed compatibility commit before Task12 contraction, after the generated-string migration.
+
+Own `tests/benchmarks/runtime-scenarios.ts`, `scripts/runtime-benchmark-child.ts`, and `tests/runtime-benchmark-child.test.ts`; touch `scripts/performance-evidence.ts` or `tests/performance-baseline.test.ts` only if needed to factor existing archive-smoke setup. Use the already known request lane to require an explicit `current` or `0.4` surface during preparation, rejecting an unknown lane. Keep a common factory facade, private legacy/current builder interfaces, and one selected `CreateBag` closure stored on the prepared scenario. Each invocation creates exactly one fresh builder and calls either `withServices`/`buildContainer` or `register`/`build`; replace all five scenario builder chains with that closure. Select and allocate the closure before timing; never probe capabilities inside the timed operation or cache a builder/container. Both lanes incur the same one closure call. This preserves measured work and timing boundaries while adding common adapter-call overhead; do not claim identical absolute timings to the old fixture.
+
+Keep every existing scenario assertion and pass an explicit current surface from direct tests. Add one invalid-request-lane regression at the child-main or lane-selection boundary, proving rejection before preparation or builder work; do not let an unchecked JSON cast fall through to the baseline branch. Add focused instrumented current/legacy checks for the build-close scenario: only the selected pair of methods runs, each timed invocation performs one builder construction, one registration and one build, acquires no provider, and yields a fresh bag on the second invocation. Prove the real current archive and the exact pinned `739b509` baseline archive with a focused child smoke for cold-linear-resolve at ten providers, validating canonical output, factory count and the actual resolved package path. The pinned baseline archive is distinct from the vendored npm 0.4 codemod fixture. Reuse its existing verified build/install machinery and retain identities. Run focused child/protocol tests and the two archive smokes; do not add a full runtime-performance comparison or alter the established phase/release gate scope.
+
+Pin the deliberate legacy builder branch by path, surface and function in retired-name audits; it is a tested compatibility adapter, not an application-call exception. Later container/provider renames must update only the current surface while keeping the pinned baseline branch operational. Defer those future method names until their owning phase. Exact-stage the reviewed subunit, retain truthful documentation status and required trailers, then continue Task10.
+
+---
+
 ### Task 10: Migrate the agent-eval projects
 
 **Files:**
@@ -3215,7 +3227,7 @@ rg -n "\b(BuilderContribute|register|alias|contribute|replace|installModule|veri
 rg -n "operation: ['\"](register|alias|replace|installModule)['\"]" src tests
 ```
 
-Every remaining hit must be one of: codemod 0.4.0 input/map/vendor declarations, `tools/graph`'s deliberately bilingual code and 0.4 fixture, the new negative-renaming fixture, the exact S1/S7 historical comparison branches pinned in Task 9, an unrelated JavaScript method (`String.prototype.replace`), or a guide deferred by the master plan. There must be no retired public declaration, executable repo call, JSDoc example, runtime operation detail or stale test marker.
+Every remaining hit must be one of: codemod 0.4.0 input/map/vendor declarations, `tools/graph`'s deliberately bilingual code and 0.4 fixture, the new negative-renaming fixture, the exact S1/S7 historical comparison branches and tested legacy runtime-benchmark adapter pinned in Task 9, an unrelated JavaScript method (`String.prototype.replace`), or a guide deferred by the master plan. There must be no retired public declaration, executable repo call, JSDoc example, runtime operation detail or stale test marker.
 
 - [ ] **Step 7: Run contract tests, then continue without committing**
 
@@ -3393,7 +3405,7 @@ git status --short
 git diff --check next...HEAD
 ```
 
-Expected: old executable DI Bag call counts are zero outside the explicit codemod/graph/migration fixtures, pinned S1/S7 historical comparison branches and deferred guides; new-name counts account for their replacements; the old assertion inventory is empty; the operation grep is empty outside deliberate old-syntax fixtures; `git diff --check` prints nothing. Put the before and after count tables in the phase report.
+Expected: old executable DI Bag call counts are zero outside the explicit codemod/graph/migration fixtures, pinned S1/S7 historical comparison branches, the tested legacy runtime-benchmark adapter and deferred guides; new-name counts account for their replacements; the old assertion inventory is empty; the operation grep is empty outside deliberate old-syntax fixtures; `git diff --check` prints nothing. Put the before and after count tables in the phase report.
 
 - [ ] **Step 5: Commit evidence and send the report**
 
