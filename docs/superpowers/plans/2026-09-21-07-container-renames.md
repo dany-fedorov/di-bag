@@ -846,6 +846,7 @@ Use these complete bodies:
 
 ```ts
 function replacementPair(options: Record<string, unknown>, operation: string): {
+  readonly present: boolean;
   readonly selected: readonly SelectedKey[];
   readonly providers: unknown;
 } {
@@ -858,17 +859,18 @@ function replacementPair(options: Record<string, unknown>, operation: string): {
     });
   }
   return hasKeys
-    ? { selected: snapshotSelection(options.replacedServiceKeys, operation, 'replacedServiceKeys'), providers: options.replacementProviders }
-    : { selected: [], providers: undefined };
+    ? { present: true, selected: snapshotSelection(options.replacedServiceKeys, operation, 'replacedServiceKeys'), providers: options.replacementProviders }
+    : { present: false, selected: [], providers: undefined };
 }
 
 export function selectIndependentContainer(graph: BindingGraph, options: unknown): BindingGraph {
   if (options === undefined) return graph;
   const bag = snapshotOptionsBag(options, 'createIndependentContainer', [], ['replacedServiceKeys', 'replacementProviders']);
-  const { selected, providers } = replacementPair(bag, 'createIndependentContainer');
-  if (selected.length === 0) return graph;
+  const { present, selected, providers } = replacementPair(bag, 'createIndependentContainer');
+  if (!present) return graph;
   const selectedGraph = claimContainerSelectionTokenKinds(graph, selected, 'createIndependentContainer');
-  return selectedGraph.withPublicBindings(selectedBindings(selectedGraph, 'createIndependentContainer', selected, providers), 'createIndependentContainer');
+  const bindings = selectedBindings(selectedGraph, 'createIndependentContainer', selected, providers);
+  return bindings.length === 0 ? selectedGraph : selectedGraph.withPublicBindings(bindings, 'createIndependentContainer');
 }
 
 export function selectChildContainer(
@@ -880,27 +882,30 @@ export function selectChildContainer(
   const bag = snapshotOptionsBag(options, 'createChildContainer', [], [
     'replacedServiceKeys', 'replacementProviders', 'sharedParentServiceKeys',
   ]);
-  const { selected, providers } = replacementPair(bag, 'createChildContainer');
+  const { present, selected, providers } = replacementPair(bag, 'createChildContainer');
   const selectedGraph = claimContainerSelectionTokenKinds(graph, selected, 'createChildContainer');
   const sharedKeys = Object.hasOwn(bag, 'sharedParentServiceKeys')
     ? snapshotSelection(bag.sharedParentServiceKeys, 'createChildContainer', 'sharedParentServiceKeys')
     : [];
+  const sharedGraph = claimContainerSelectionTokenKinds(selectedGraph, sharedKeys, 'createChildContainer');
   for (const { key, isCollection } of sharedKeys) {
     if (isCollection) throw wrongTokenKind('createChildContainer', 'single-service', key as symbol);
   }
   for (const { key, isCollection } of [...selected, ...sharedKeys]) {
-    if (!isCollection && !selectedGraph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer accepts existing names or typed tokens only: ${String(key)}`, { operation: 'createChildContainer' });
+    if (!isCollection && !sharedGraph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer accepts existing names or typed tokens only: ${String(key)}`, { operation: 'createChildContainer' });
   }
   const selectedSet = new Set(selected.map(entry => entry.key));
   const shared = [...new Set(sharedKeys.map(entry => entry.key))].map(key => {
     if (selectedSet.has(key)) throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer cannot share and replace the same service: ${String(key)}`, { operation: 'createChildContainer' });
     if (isTransient(key)) throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer cannot share transient providers: ${String(key)}`, { operation: 'createChildContainer' });
-    return selectedGraph.publicBinding(key);
+    return sharedGraph.publicBinding(key);
   });
-  const bindings = selected.length === 0 ? [] : selectedBindings(selectedGraph, 'createChildContainer', selected, providers);
-  return { graph: bindings.length === 0 ? selectedGraph : selectedGraph.withPublicBindings(bindings, 'createChildContainer'), shared };
+  const bindings = present ? selectedBindings(sharedGraph, 'createChildContainer', selected, providers) : [];
+  return { graph: bindings.length === 0 ? sharedGraph : sharedGraph.withPublicBindings(bindings, 'createChildContainer'), shared };
 }
 ```
+
+**Entry-source preservation (reviewed during Phase 6 startup).** The explicit replacement-pair presence flag is independent of tuple length. For both new operations, an explicitly supplied empty selection still validates the provider-map shape; `null`, arrays, primitives and functions reject with `DI_BAG_INVALID_ARGUMENT`, while a valid empty selection must not read any unselected provider getter. An omitted pair remains valid. Add focused controls for these cases. The child selector claims token kinds for both replacement and shared selections, preserving the existing `selectScope` contract. Add a control that first installs a collection replacement (so the collection has a public binding), then attempts to share a single-service token made from that same symbol: it must reject with exact `DI_BAG_WRONG_TOKEN_KIND` details before reading replacement provider values. Keep the explicit prohibition on sharing collection tokens. Run the controls through the selected S3 shape, including the positional fallback if chosen.
 
 The existing `DI_BAG_INVALID_SCOPE` / `DI_BAG_INVALID_OVERRIDE` validation sites keep their codes when reworded. The two genuinely new pair-presence and non-array validation sites use `DI_BAG_INVALID_ARGUMENT` and literal `{ operation, argument, expected }`. If Task 0 found no section, copy the `DI_BAG_INVALID_ARGUMENT` section verbatim from plan 12 Task 9 into `docs/agent/errors.md` in this commit.
 
@@ -1354,7 +1359,7 @@ git commit -m "feat!: rename lifecycle observer configuration"
 - Modify: `tools/codemod/test/transforms.test.mjs`
 - Modify: `tools/codemod/test/rename-map.test.mjs`
 - Modify: `tools/codemod/test/pack.test.mjs`
-- Modify: older fixture expected files containing phase-6 names
+- Modify: `tools/codemod/test/fixtures/collection-tokens/expected.ts` and `tools/codemod/test/fixtures/collection-tokens-import/expected.ts` only for the cumulative `inspectCollection` to `serviceSnapshot` target change; preserve their inputs and every custom-map fixture
 
 **Interfaces:**
 - Consumes: phase 1's optional method-entry `transformNames`, entry-bound `nameForRole(role)`, closed map validation, and effective-method conflict comparison; owner strings always name the 0.4.0 declaration.
@@ -1399,6 +1404,8 @@ Merge these entries into their existing arrays; retain every earlier entry:
 Replace the existing `Bag.inspectAll` entry in place; do not append a duplicate. Its phase-4 `collection-read` transform remains, but its target must now be `serviceSnapshot`. The map always spans original0.4 to current0.5; `nameOf` does not transitively follow `inspectAll -> inspect -> serviceSnapshot`.
 
 This remains a direct original-to-final `inspectAll -> serviceSnapshot` mapping under the S5 fallback as well; do not add an intermediate `inspectCollection` map hop.
+
+Update the two existing shipped-map collection goldens listed above to that final target. Fixtures with their own `map.json` (`arguments-to-bag`, `method-rename`, `properties`, `types-and-imports`) exercise separate contracts: leave their maps and expected outputs unchanged unless a concrete engine change requires a separately reviewed regression. Do not apply the shipped map to custom-map expectations.
 
 `CreateIndependentContainerOptions` is new and has no type-map entry. Every `owner` remains an actual 0.4.0 declaration. `transformNames` is method-entry metadata, not a declaration lookup namespace; the transform reads it through the phase-1 engine API. `CreateChildContainerOptions` orders its generics as registrations, shared keys, defaulted constraints, replaced keys, replacement providers. The phase-1 type rename therefore preserves every old `ScopeOptions<R, S>` annotation; phase 4's internal three-argument use remains `CreateChildContainerOptions<R, S, C>`.
 
@@ -1582,10 +1589,17 @@ export default function containerDerivation(call, api) {
 Register the transform without replacing earlier registrations:
 
 ```js
+import buildAndStart from './build-and-start.mjs';
+import collectionRead from './collection-read.mjs';
+import collectionReference from './collection-reference.mjs';
+import collectionToken from './collection-token.mjs';
 import containerDerivation from './container-derivation.mjs';
 
 export const transforms = {
   'build-and-start': buildAndStart,
+  'collection-read': collectionRead,
+  'collection-reference': collectionReference,
+  'collection-token': collectionToken,
   'container-derivation': containerDerivation,
 };
 ```
@@ -1618,7 +1632,8 @@ export const nested = root.fork(['a'], { a: () => DiBag.createBuilder().register
 export type App = Bag<{ a: () => number }>;
 export type ChildOptions = ScopeOptions<{ a: () => number }, readonly ['a']>;
 export type ConstrainedChildOptions = ScopeOptions<{ a: () => number }, readonly ['a'], never>;
-const collection = DiBag.token(Symbol('collection')).of<number>();
+const collectionKey = Symbol('collection');
+const collection = DiBag.token(collectionKey).of<number>();
 const collectionContainer = DiBag.createBuilder().contribute(collection, () => 1).build();
 export const collectionSnapshots = collectionContainer.inspectAll(collection);
 ```
@@ -1650,7 +1665,8 @@ export const nested = root.createIndependentContainer({ replacedServiceKeys: ['a
 export type App = Container<{ a: () => number }>;
 export type ChildOptions = CreateChildContainerOptions<{ a: () => number }, readonly ['a']>;
 export type ConstrainedChildOptions = CreateChildContainerOptions<{ a: () => number }, readonly ['a'], never>;
-const collection = DiBag.token(Symbol('collection')).forCollectionOf<number>();
+const collectionKey = Symbol('collection');
+const collection = DiBag.token(collectionKey).forCollectionOf<number>();
 const collectionContainer = DiBag.createBuilder().withCollectionContribution({ collectionToken: collection, provider: () => 1 }).buildContainer();
 export const collectionSnapshots = collectionContainer.serviceSnapshot(collection);
 ```
