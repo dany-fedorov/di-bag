@@ -3140,7 +3140,7 @@ moduleBuilder.buildModule({ exportedServiceKeys: ['value'], label: 'old' });
 
 The array call still supplies one argument after contraction, so the former printed arity marker was invalid. The `exportedServiceKeys` marker above is a provisional shape expectation, not an observed diagnostic. After removing compatibility, capture the full raw diagnostic for this call and the old `label` property call, verify each is the intended shape/property rejection at that statement, and set its stable marker substring from the actual output. Preserve the pre-deletion failing negative proof; do not change a marker to hide an unrelated error.
 
-Run `bun test tests/types.test.ts -t "api renaming|builder-renames"`. Expected before deletion: the new cases fail their negative-fixture assertions because the old names still compile.
+Run `bun test tests/types.test.ts -t "api-renaming|builder-renames"`. Expected before deletion: the new cases fail their negative-fixture assertions because the removed-member and final-shape diagnostics are absent. Some calls may already produce old admission diagnostics; preserve and report those actual outcomes rather than claiming every old call compiles.
 
 - [ ] **Step 2: Delete old declarations and compatibility dispatch**
 
@@ -3244,7 +3244,7 @@ Every remaining hit must be one of: codemod 0.4.0 input/map/vendor declarations,
 
 ```bash
 bun test tests/builder-renames.test.ts
-bun test tests/types.test.ts -t "api renaming|builder-renames|installed-modules|alias|replacement"
+bun test tests/types.test.ts -t "api-renaming|builder-renames|installed-modules|alias|replacement"
 bun test tests/runtime-diagnostics.test.ts tests/aliases.test.ts tests/contributions.test.ts tests/modules.test.ts tests/nested-modules.test.ts
 ```
 
@@ -3380,7 +3380,7 @@ If any row breaches +10%, first verify the generator uses the final Task 6 shape
 ```bash
 bun test tests/builder-renames.test.ts
 bun test tests/api-naming.test.ts
-bun test tests/types.test.ts -t "0.5.0 builder shapes|builder-renames|installed-modules|api renaming"
+bun test tests/types.test.ts -t "0.5.0 builder shapes|builder-renames|installed-modules|api-renaming"
 node --test tools/codemod/test/rename-map.test.mjs tools/codemod/test/fixtures.test.mjs
 node --test tools/graph/test/builder-names.test.mjs
 npm run agent-eval:test

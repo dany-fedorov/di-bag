@@ -65,7 +65,7 @@ Public names on entry:
 
 - Facade: `DiBag.createBuilder()`, `DiBag.withConfiguration({ runtime, observers })`, `DiBag.token(symbol).of<S>()` and `DiBag.token(symbol).forCollectionOf<Item>()` (phase 4; `createToken` and `forService` arrive in phase 8), `DiBag.fromFactory`, `fromSyncFactory`, `fromAsyncFactory`, `fromFunction`, `fromClass`, `fromPlugin`, `optional`, `lazy`, `withDisposal`, `withLifetime`, `withMetadata`, `transformService`. `DiBag.all` is gone (phase 4).
 - Builder (phase 5): `withServices(providersByName)`, `withTokenService(token, provider)`, `withServiceAlias({ aliasKey, targetServiceKey })`, `withCollectionContribution({ collectionToken, provider })`, `withReplacedService(serviceKey, provider)`, `withInstalledModules(modules)`, `verifyGraphAtCompileTime()`, `buildModule({ exportedServiceKeys, moduleLabel? })`, `buildContainer()`. Phase 5 measured S1 and S7: `withTokenService` and `withReplacedService` take positional fallbacks; alias and contribution retain their bags, and installation retains the list. Read `docs/superpowers/plans/evidence/phase-05.md` and adjust the test code in this plan accordingly. `withServices`, `buildContainer` and `buildModule({ exportedServiceKeys })` do not depend on a spike.
-- The class returned by `buildContainer()` is still called `Bag<ServiceRegistrations, Constraints>` (type parameters renamed in phase 2) and has `resolve`, `inspect`, `inspectGraph`, `createScope` (three overloads), `fork` (two overloads), `close({ abortSignal?, waitTimeoutMs? })`, `ensureServicesReady(serviceKeys, options?)` (phase 3). `resolveAll` and `inspectAll` are gone (phase 4); `resolve(collectionToken)` returns the list and `inspect(collectionToken)` returns a list of snapshots.
+- The class returned by `buildContainer()` is still called `Bag<ServiceRegistrations, Constraints>` (type parameters renamed in phase 2) and has `resolve`, `inspect`, `inspectGraph`, `createScope` (three overloads), `fork` (two overloads), `close({ abortSignal?, waitTimeoutMs? })`, `ensureServicesReady(serviceKeys, options?)` (phase 3). `resolveAll` and `inspectAll` are gone (phase 4). The adopted S5 fallback uses `resolveCollection(collectionToken)` for the list and `inspectCollection(collectionToken)` for the list of snapshots; ordinary `resolve` and `inspect` remain single-service-only.
 - Module: `module.renameExport(oldKey, newKey)`. `module.withRenamedRequirement` does not exist yet (phase 7).
 - Configuration: `ConfigurationOptions { runtime?, observers? }`, `ObserverOptions { onEvent, onError }`.
 - Entry points: `di-bag` and `di-bag/node` (`src/node.ts`).
@@ -167,7 +167,7 @@ mkdir -p /tmp/di-bag-phase-06
 
 - [ ] **Step 2: Run every row of "State on entry"**
 
-Expected: every expectation holds. Write down three facts that later tasks need: whether S1 fell back (positional `withTokenService`), whether S7 fell back (`withInstalledModule`), and whether `docs/agent/errors.md` already has a `DI_BAG_INVALID_ARGUMENT` section.
+Expected: every expectation holds. Record the verified Phase 5 choices: positional `withTokenService` and `withReplacedService`, the selected `withInstalledModules` list with its `BuilderWithInstalledModules` callable facade, and whether `docs/agent/errors.md` already has a `DI_BAG_INVALID_ARGUMENT` section. Do not recreate the rejected singular installation fallback.
 
 - [ ] **Step 3: Build once, so that tests reading `dist/` start from a current build**
 
@@ -1891,7 +1891,7 @@ Apply the same rewrites in `tests/package.test.ts`, `tests/native-package.test.t
 
 - [ ] **Step 3: Update graph recognition without changing JSON**
 
-In `tools/graph/lib/extract.mjs`, recognize `buildContainer` and phase 5's module terminal, while retaining `build`, `buildAndStart`, `buildModule`, and `renameExport` to analyze 0.4.0 projects. Parse `withRenamedExport({ currentExportKey, newExportKey })` beside positional `renameExport`; a spread or nonliteral options bag remains untraceable.
+Preserve Phase 5's reviewed bilingual extractor and tests in `tools/graph`: all old/current terminals, service and alias bags, positional token/replacement calls, module bags, inline/constant ordered module lists, and repeated-contribution omission parity. Extend only renamed-export parsing for this step: read `withRenamedExport({ currentExportKey, newExportKey })` beside positional `renameExport`; a spread or nonliteral options bag remains untraceable. Do not replace the existing broader recognition with a reduced set of branches.
 
 Keep output `kind: 'bag'`. `tools/graph/README.md` must say a source `buildContainer()` emits established schema-v1 `kind: "bag"`. Do not change expected JSON kind values.
 
@@ -2022,7 +2022,7 @@ export type { CreateChildContainerOptions, CreateIndependentContainerOptions, Di
 export type { CheckedLifetimes, CheckedChildContainerLifetimes, LifetimeObligation, Reach } from './lifetime-types';
 ```
 
-Retain the six phase-5 callable facade exports from `./builder-method-types`, including the selected `BuilderWithInstalledModules`, and `BuilderWithCollectionContribution`. The block above changes only the named container/scope/lifetime exports. Keep `builder-renames` registered in the existing physical producer-deletion matrix when removing `src/node.ts`; its source and physical imports migrate to the root entry with the other fixtures, and must continue proving all callable facades and both replacement paths. These future root-entry declarations remain uncompiled until this phase.
+Retain all seven phase-5 callable facades: `BuilderWithServices`, `BuilderWithTokenService`, `BuilderWithServiceAlias`, `BuilderWithReplacedService`, `BuilderBuildModule`, and `BuilderWithInstalledModules` from `./builder-method-types`, plus `BuilderWithCollectionContribution` from `./contribution-types`. The block above changes only the named container/scope/lifetime exports. Keep `builder-renames` registered in the existing physical producer-deletion matrix when removing `src/node.ts`; its source and physical imports migrate to the root entry with the other fixtures, and must continue proving all callable facades and both replacement paths. These future root-entry declarations remain uncompiled until this phase.
 
 No extra sharing-only options type is exported: `CreateChildContainerOptions` covers that overload through its defaulted replacement generics.
 
