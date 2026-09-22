@@ -17,6 +17,8 @@ test('the card covers the runtime surface, links every task, and fits the budget
   const names = runtimeSurface(project).map(item => item.name);
   for (const name of ['DiBag.createBuilder', 'builder.withServices', 'builder.withCollectionContribution', 'container.close', 'DiBagCloseCancelledError']) assert(names.includes(name), name);
   const markdown = renderApiCard(project, tasks);
+  assert.match(markdown, /\| Replace services for a test \| \[`container\.createIndependentContainer\(replacedServiceKeys, replacementProviders\)`\]/);
+  assert.doesNotMatch(markdown, /\| Replace services for a test \| \[`container\.createIndependentContainer\(options\?\)`\]/);
   const { headings } = parseMarkdown(markdown);
   const ids = new Set(headings.map(heading => heading.id));
   for (const [, id] of markdown.matchAll(/\]\(#([^)]+)\)/g)) assert(ids.has(id), `task link #${id}`);

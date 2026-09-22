@@ -30,7 +30,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#container
 close(options?: CloseOptions): Promise<void>;
 ```
 
-Defined in: [di-bag.ts:389](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L389)
+Defined in: [di-bag.ts:394](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L394)
 
 Close this container, drain in-flight work, and dispose owned resources once.
 Dependents are disposed before dependencies; remaining independent acquisitions use
@@ -204,10 +204,10 @@ await parent.close();
 createIndependentContainer(this: Container<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>, options?: CreateIndependentContainerOptions<ServiceRegistrations, Constraints>): Container<UnsharedAliases<ServiceRegistrations>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:317](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L317)
+Defined in: [di-bag.ts:308](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L308)
 
-Create an independent container with fresh instances and optional checked replacements.
-Replacements use positional selected keys and providers; an empty options object remains valid.
+Create an independent container with fresh instances and no replacements.
+Pass no argument, `undefined`, or an empty options object.
 
 ##### Parameters
 
@@ -222,18 +222,7 @@ A container with independent acquisition and ownership state.
 
 ##### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection;
-`DI_BAG_INVALID_REGISTRATION` for a malformed provider; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
-
-##### Example
-
-```ts
-const parent = DiBag.createBuilder().withServices({ clock: () => Date.now() }).buildContainer();
-const independent = parent.createIndependentContainer(['clock'], { clock: () => 0 });
-const now = independent.resolve('clock');
-await independent.close();
-await parent.close();
-```
+`DI_BAG_INVALID_ARGUMENT` for malformed arguments.
 
 #### Call Signature
 
@@ -241,10 +230,9 @@ await parent.close();
 createIndependentContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>>(replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createIndependentContainer'>, replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createIndependentContainer'> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>): Container<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
 ```
 
-Defined in: [di-bag.ts:321](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L321)
+Defined in: [di-bag.ts:326](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L326)
 
-Create an independent container with fresh instances and optional checked replacements.
-Replacements use positional selected keys and providers; an empty options object remains valid.
+Create an independent container with fresh instances and checked replacements.
 
 ##### Type Parameters
 
@@ -287,7 +275,7 @@ await parent.close();
 ensureServicesReady<const K extends readonly unknown[]>(serviceKeys: K & Selection<ServiceRegistrations, Constraints, K, 'ensureServicesReady'>, options?: EnsureServicesReadyOptions): Promise<this>;
 ```
 
-Defined in: [di-bag.ts:362](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L362)
+Defined in: [di-bag.ts:367](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L367)
 
 Make the listed services ready before continuing, then resolve to this same container.
 Each listed service is acquired now, with whatever its factory reads, and the call waits until it is ready;

@@ -23,7 +23,7 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Check the graph on its own line | [`builder.verifyGraphAtCompileTime()`](#builder-verifygraphatcompiletime) |
 | Build a container | [`builder.buildContainer()`](#builder-buildcontainer) |
 | Wait for services before accepting work | [`container.ensureServicesReady(serviceKeys, options?)`](#container-ensureservicesready) |
-| Replace services for a test | [`container.createIndependentContainer(options?)`](#container-createindependentcontainer) |
+| Replace services for a test | [`container.createIndependentContainer(replacedServiceKeys, replacementProviders)`](#container-createindependentcontainer) |
 | Open a child container | [`container.createChildContainer(options?)`](#container-createchildcontainer) |
 | Resolve | [`container.resolve(token)`](#container-resolve) |
 | Resolve a collection | [`container.resolveCollection(token)`](#container-resolvecollection) |
@@ -268,8 +268,8 @@ await child.close();
 await parent.close();
 ```
 
-### `container.createIndependentContainer(options?)` {#container-createindependentcontainer}
-Create an independent container with fresh instances and optional checked replacements. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+### `container.createIndependentContainer(replacedServiceKeys, replacementProviders)` {#container-createindependentcontainer}
+Create an independent container with fresh instances and checked replacements. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const parent = DiBag.createBuilder().withServices({ clock: () => Date.now() }).buildContainer();
 const independent = parent.createIndependentContainer(['clock'], { clock: () => 0 });

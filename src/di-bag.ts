@@ -300,8 +300,17 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
   }
 
   /**
-   * Create an independent container with fresh instances and optional checked replacements.
-   * Replacements use positional selected keys and providers; an empty options object remains valid.
+   * Create an independent container with fresh instances and no replacements.
+   * Pass no argument, `undefined`, or an empty options object.
+   * @returns A container with independent acquisition and ownership state.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments.
+   */
+  createIndependentContainer(
+    this: Container<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>,
+    options?: CreateIndependentContainerOptions<ServiceRegistrations, Constraints>,
+  ): Container<UnsharedAliases<ServiceRegistrations>, Constraints>;
+  /**
+   * Create an independent container with fresh instances and checked replacements.
    * @returns A container with independent acquisition and ownership state.
    * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection;
    * `DI_BAG_INVALID_REGISTRATION` for a malformed provider; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
@@ -314,10 +323,6 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * await parent.close();
    * ```
    */
-  createIndependentContainer(
-    this: Container<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>,
-    options?: CreateIndependentContainerOptions<ServiceRegistrations, Constraints>,
-  ): Container<UnsharedAliases<ServiceRegistrations>, Constraints>;
   createIndependentContainer<
     const ReplacedServiceKeys extends readonly unknown[],
     ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>,

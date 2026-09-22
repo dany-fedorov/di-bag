@@ -4,7 +4,7 @@
 
 # Interface: DiBagApi
 
-Defined in: [di-bag.ts:648](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L648)
+Defined in: [di-bag.ts:653](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L653)
 
 The immutable public entry surface used by [DiBag](../variables/DiBag.md) and derived facades.
 
@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#dibag-facade
 createBuilder: () => Builder<never>;
 ```
 
-Defined in: [di-bag.ts:771](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L771)
+Defined in: [di-bag.ts:776](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L776)
 
 Begin an empty immutable graph; `buildContainer` creates its owning container, `buildModule` seals a reusable module.
 
@@ -41,7 +41,7 @@ fromAsyncFactory: {
 };
 ```
 
-Defined in: [di-bag.ts:693](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L693)
+Defined in: [di-bag.ts:698](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L698)
 
 Describe an asynchronous factory that runs on every host: the service is the returned native Promise and `withDisposal` receives its fulfilled value.
 A non-Promise output is rejected at compile time; a thenable that is not a native Promise fails the acquisition with a `TypeError`.
@@ -120,7 +120,7 @@ const db = DiBag.withDisposal(
 fromClass: <const T extends readonly DependencyReference[], C extends new (...args: TokenArguments<NoInfer<T>>) => unknown, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>> & AutoOutput<InstanceType<NoInfer<C>>, NoInfer<M>>, ...modeOptions: StageOptions<M>) => Provider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>>;
 ```
 
-Defined in: [di-bag.ts:763](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L763)
+Defined in: [di-bag.ts:768](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L768)
 
 Adapt a class whose constructor parameters receive the listed tokens' services.
 
@@ -176,7 +176,7 @@ fromFactory: {
 };
 ```
 
-Defined in: [di-bag.ts:670](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L670)
+Defined in: [di-bag.ts:675](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L675)
 
 Describe a named-dependency factory with an explicit acquisition mode or the acquisition's abort signal.
 A factory that returns a non-Promise object with a `then` method needs `acquisitionMode: 'raw'` or must return `Promise.resolve(value)`.
@@ -259,7 +259,7 @@ fromFunction: {
 };
 ```
 
-Defined in: [di-bag.ts:751](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L751)
+Defined in: [di-bag.ts:756](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L756)
 
 Adapt a positional function whose parameters receive the listed tokens' services.
 
@@ -340,7 +340,7 @@ const stamp = DiBag.fromFunction([clock], source => new Date(source.now()).toISO
 fromPlugin: PluginProviderFactory;
 ```
 
-Defined in: [di-bag.ts:739](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L739)
+Defined in: [di-bag.ts:744](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L744)
 
 Validate an unknown plugin descriptor now and its acquired output at acquisition.
 
@@ -370,7 +370,7 @@ fromSyncFactory: {
 };
 ```
 
-Defined in: [di-bag.ts:680](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L680)
+Defined in: [di-bag.ts:685](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L685)
 
 Describe a synchronous factory that runs on every host: the exact return value is the service and `then` is never read.
 A Promise or thenable output is rejected at compile time; use `fromAsyncFactory`, or `fromFactory` with `acquisitionMode: 'raw'` when the Promise object itself is the service.
@@ -446,7 +446,7 @@ const config = DiBag.fromSyncFactory(() => ({ url: 'memory:' }));
 lazy: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => LazyDependency<T>;
 ```
 
-Defined in: [di-bag.ts:725](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L725)
+Defined in: [di-bag.ts:730](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L730)
 
 Create a positional dependency supplied as a function that resolves the token when called.
 
@@ -490,7 +490,7 @@ const stamp = DiBag.fromFunction([DiBag.lazy(clock)], getClock => () => getClock
 optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & OptionalTokenAdmission<T>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalDependency<T>;
 ```
 
-Defined in: [di-bag.ts:714](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L714)
+Defined in: [di-bag.ts:719](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L719)
 
 Create a positional dependency that yields `undefined` only when the token is unregistered.
 
@@ -537,7 +537,7 @@ token: <const TokenSymbol extends symbol>(key: TokenSymbol & TokenKeyAdmission<T
 };
 ```
 
-Defined in: [di-bag.ts:703](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L703)
+Defined in: [di-bag.ts:708](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L708)
 
 Create a typed-token factory from a unique symbol; `.of<Service>()` selects one service, while `.forCollectionOf<Item>()` selects an ordered collection.
 
@@ -598,7 +598,7 @@ transformService: {
 };
 ```
 
-Defined in: [di-bag.ts:816](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L816)
+Defined in: [di-bag.ts:821](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L821)
 
 Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership.
 
@@ -683,7 +683,7 @@ const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform:
 withConfiguration: (options: ConfigurationOptions) => DiBagApi;
 ```
 
-Defined in: [di-bag.ts:659](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L659)
+Defined in: [di-bag.ts:664](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L664)
 
 Return a facade with inherited runtime settings and appended observers.
 
@@ -716,7 +716,7 @@ withDisposal: {
 };
 ```
 
-Defined in: [di-bag.ts:784](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L784)
+Defined in: [di-bag.ts:789](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L789)
 
 Make the container own a factory's value and run `dispose` on it when the container closes.
 `close()` runs disposers, dependents first; close every child and independent container you create.
@@ -797,7 +797,7 @@ withLifetime: {
 };
 ```
 
-Defined in: [di-bag.ts:796](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L796)
+Defined in: [di-bag.ts:801](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L801)
 
 Select `root`, `scoped` (the default), or `transient` caching for a registration.
 Mark a shared client `root` only when nothing it depends on is scoped.
@@ -911,7 +911,7 @@ withMetadata: {
 };
 ```
 
-Defined in: [di-bag.ts:806](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L806)
+Defined in: [di-bag.ts:811](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L811)
 
 Attach static registration metadata, or per-acquisition metadata in direct or awaited mode.
 
