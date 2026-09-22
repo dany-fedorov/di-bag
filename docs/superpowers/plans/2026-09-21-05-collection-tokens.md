@@ -2320,7 +2320,8 @@ Execute this task only when Task 4's decision rule selects it.
 ### Task 6: Add the collection-token codemod and golden fixtures
 
 **Files:**
-- Modify: `tools/codemod/rename-map.json`, `tools/codemod/lib/rewrite.mjs`, `tools/codemod/lib/transforms/index.mjs`
+- Modify: `tools/codemod/rename-map.json`, `tools/codemod/lib/codemod.mjs`, `tools/codemod/lib/rewrite.mjs`, `tools/codemod/lib/transforms/index.mjs`
+- Modify: `tools/codemod/test/transforms.test.mjs`, `tools/codemod/test/rename-map.test.mjs`, `tools/codemod/test/pack.test.mjs`
 - Create: `tools/codemod/lib/transforms/collection-tokens.mjs`, `collection-token.mjs`, `collection-reference.mjs`, `collection-read.mjs`
 - Create: `tools/codemod/test/fixtures/collection-tokens/input.ts`, `expected.ts`, `expected-manual.json`
 - Create: `tools/codemod/test/fixtures/collection-tokens-import/input.ts`, `expected.ts`, `expected-manual.json`
@@ -2725,14 +2726,16 @@ The alias-only regression uses two independent fixture directories so the source
 
 ```ts
 import { DiBag } from 'di-bag';
-export const importedOnlyItems = DiBag.token(Symbol('imported-only-items')).of<number>();
+const importedOnlyItemsKey = Symbol('imported-only-items');
+export const importedOnlyItems = DiBag.token(importedOnlyItemsKey).of<number>();
 ```
 
 `collection-token-alias-source/expected.ts`:
 
 ```ts
 import { DiBag } from 'di-bag';
-export const importedOnlyItems = DiBag.token(Symbol('imported-only-items')).forCollectionOf<number>();
+const importedOnlyItemsKey = Symbol('imported-only-items');
+export const importedOnlyItems = DiBag.token(importedOnlyItemsKey).forCollectionOf<number>();
 ```
 
 `collection-token-alias-use/input.ts`:
@@ -2762,14 +2765,16 @@ the existing four-item golden. Its `input.ts` and `expected.ts` are byte-for-byt
 import { DiBag } from 'di-bag';
 
 declare const chooseUser: boolean;
-const uncertain = DiBag.token(Symbol('uncertain')).of<number>();
+const uncertainKey = Symbol('uncertain');
+const uncertain = DiBag.token(uncertainKey).of<number>();
 const receiver = chooseUser
   ? DiBag.createBuilder()
   : { userKind: 'user-builder' as const, contribute(_token: unknown, _provider: () => number) { return this; } };
 export const unchangedUse = receiver.contribute(uncertain, () => 1);
 
+const factoryKey = Symbol('factory');
 const tokenFactory = chooseUser
-  ? DiBag.token(Symbol('factory'))
+  ? DiBag.token(factoryKey)
   : { userKind: 'user-token' as const, of<T>() { return undefined as T; } };
 export const unchangedCreation = tokenFactory.of<number>();
 ```
@@ -2778,12 +2783,13 @@ Its `expected-manual.json` is exactly:
 
 ```json
 [
-  { "line": 8, "reason": "contribute resolves to both DI Bag and non-library declarations; migrate this use by hand" },
-  { "line": 13, "reason": "of resolves to both DI Bag and non-library declarations; migrate this use by hand" }
+  { "line": 9, "reason": "contribute resolves to both DI Bag and non-library declarations; migrate this use by hand" },
+  { "line": 15, "reason": "of resolves to both DI Bag and non-library declarations; migrate this use by hand" }
 ]
 ```
 
-Add `'collection-token-partial'` to the fixture-name array in `fixtures.test.mjs`. The first row
+Do not add a fixture registry or edit `fixtures.test.mjs`: `helpers.mjs` auto-discovers every fixture
+directory containing `input.ts`, and the shared original program includes them all. The first row
 proves an incomplete receiver is classified as `other`, so it cannot make `uncertain` a collection
 token; the second proves an incomplete token-factory receiver is not admitted as a token creation.
 Both calls remain byte-for-byte unchanged and receive only the phase-1 partial-declaration report.
@@ -2797,7 +2803,9 @@ npm run codemod:check
 
 Expected: pass; inputs type-check against vendored 0.4.0 declarations; golden output matches; the
 primary fixture has its exact four manual items and `collection-token-partial` has its exact two
-partial-declaration items, with no additional report.
+partial-declaration items, with no additional report. The test output must list the discovered
+`fixture collection-token-alias-source`, `fixture collection-token-alias-use`, and
+`fixture collection-token-partial` subtests; do not add a redundant registry or discovery assertion.
 
 - [ ] **Step 8: Commit**
 
