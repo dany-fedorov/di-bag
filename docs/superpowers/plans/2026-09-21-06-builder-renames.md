@@ -3238,7 +3238,9 @@ rg -n "\b(BuilderContribute|register|alias|contribute|replace|installModule|veri
 rg -n "operation: ['\"](register|alias|replace|installModule)['\"]" src tests
 ```
 
-Every remaining hit must be one of: codemod 0.4.0 input/map/vendor declarations, `tools/graph`'s deliberately bilingual code and 0.4 fixture, the new negative-renaming fixture, the exact S1/S7 historical comparison branches and tested legacy runtime-benchmark adapter pinned in Task 9, an unrelated JavaScript method (`String.prototype.replace`), or a guide deferred by the master plan. There must be no retired public declaration, executable repo call, JSDoc example, runtime operation detail or stale test marker.
+Every remaining hit must be one of: codemod 0.4.0 input/map/vendor declarations, `tools/graph`'s deliberately bilingual code and 0.4 fixture, the new negative-renaming fixture, the exact S1/S7 historical comparison branches and tested legacy runtime-benchmark adapter pinned in Task 9, the exact Phase 4 historical migration literal described below, an unrelated JavaScript method (`String.prototype.replace`), or a guide deferred by the master plan. There must be no retired public declaration, executable repo call, JSDoc example, runtime operation detail or stale test marker.
+
+The historical migration literal is only `scripts/phase05-strings.py`, `EDITS['tests/contributions-runtime-fixture.ts']`, mapping `.register(item, ...)` to `.register(singularItem, ...)` in the Phase 4 transition introduced by commit `21817b0`. Preserve that helper byte-for-byte and pin its exact input/output row in the audit; it is not a current application generator. Do not update its historical target to 0.5 syntax or exempt other Python source. Its unchanged bytes and original commit are the proof for this exception.
 
 - [ ] **Step 7: Run contract tests, then continue without committing**
 
@@ -3416,7 +3418,7 @@ git status --short
 git diff --check next...HEAD
 ```
 
-Expected: old executable DI Bag call counts are zero outside the explicit codemod/graph/migration fixtures, pinned S1/S7 historical comparison branches, the tested legacy runtime-benchmark adapter and deferred guides; new-name counts account for their replacements; the old assertion inventory is empty; the operation grep is empty outside deliberate old-syntax fixtures; `git diff --check` prints nothing. Put the before and after count tables in the phase report.
+Expected: old executable DI Bag call counts are zero outside the explicit codemod/graph/migration fixtures, pinned S1/S7 historical comparison branches, the tested legacy runtime-benchmark adapter, the exact Phase 4 helper literal pinned in Task 12, and deferred guides; new-name counts account for their replacements; the old assertion inventory is empty; the operation grep is empty outside deliberate old-syntax fixtures; `git diff --check` prints nothing. Put the before and after count tables in the phase report.
 
 - [ ] **Step 5: Commit evidence and send the report**
 
