@@ -7,8 +7,8 @@ directory also has the `tsconfig.json` and check command from
 
 ## Add a request-scoped service with cleanup {#add-scoped-service}
 
-Services are scoped by default: each `createScope()` gets its own instance, and
-`withDisposal` releases it when that scope closes.
+Services are scoped by default: each `createChildContainer()` gets its own instance, and
+`withDisposal` releases it when that child container closes.
 
 ```ts
 // src/features/audit/contract.ts
@@ -48,7 +48,7 @@ DiBag.createBuilder()
   .verifyGraphAtCompileTime() satisfies void;
 ```
 
-Open one scope per request and close it when the request ends:
+Open one child container per request and close it when the request ends:
 
 ```ts
 // src/server.ts
@@ -56,19 +56,19 @@ import { composition } from './app.js';
 
 const app = composition.buildContainer();
 export async function handle(path: string) {
-  const scope = app.createScope();
+  const request = app.createChildContainer();
   try {
-    scope.resolve('audit').record(path);
+    request.resolve('audit').record(path);
   } finally {
-    await scope.close(); // runs this request's disposers
+    await request.close(); // runs this request's disposers
   }
 }
 ```
 
-## Write a fixture test with `fork` {#fixture-test}
+## Write a fixture test with an independent container {#fixture-test}
 
 Build the module once with a default for each requirement that fails if used,
-then give each test a fork with its own fixture. Forks are independent: close
+then give each test an independent container with its own fixture. Independent containers are separate: close
 each one.
 
 ```ts
@@ -87,18 +87,18 @@ const fixture = DiBag.createBuilder()
   .buildContainer();
 after(() => fixture.close());
 
-test('closing a scope flushes what it recorded', async () => {
+test('closing a child container flushes what it recorded', async () => {
   const written: string[][] = [];
-  const bag = fixture.fork(['sink'], {
+  const testContainer = fixture.createIndependentContainer(['sink'], {
     sink: (): AuditSink => ({ write: async lines => { written.push([...lines]); } }),
   });
   try {
-    const scope = bag.createScope();
-    scope.resolve('audit').record('GET /');
-    await scope.close();
+    const request = testContainer.createChildContainer();
+    request.resolve('audit').record('GET /');
+    await request.close();
     assert.deepEqual(written, [['GET /']]);
   } finally {
-    await bag.close();
+    await testContainer.close();
   }
 });
 ```
@@ -119,7 +119,7 @@ const loggerSinksKey = Symbol('logger sinks');
 const logger = DiBag.token(loggerKey).of<Logger>();
 const loggerSinks = DiBag.token(loggerSinksKey).forCollectionOf<Logger>();
 
-const bag = DiBag.createBuilder()
+const container = DiBag.createBuilder()
   .withCollectionContribution({ collectionToken: loggerSinks, provider: (): Logger => ({ log: message => console.log(message) }) })
   .withCollectionContribution({ collectionToken: loggerSinks, provider: (): Logger => ({ log: message => { process.stderr.write(`${message}\n`); } }) })
   .withTokenService(
@@ -130,8 +130,8 @@ const bag = DiBag.createBuilder()
   )
   .buildContainer();
 
-bag.resolve(logger).log('ready');
-await bag.close();
+container.resolve(logger).log('ready');
+await container.close();
 ```
 
 A token created with `.of<Service>()` cannot receive contributions, and a token created with `.forCollectionOf<Item>()` cannot hold the composite service.
@@ -228,7 +228,7 @@ the cast rather than adding a registration by trial.
 ## Add and consume an async client {#async-client}
 
 The client is created once for the application (`root`), awaited by
-consumers, and closed with the root bag. Its configuration must be root too.
+consumers, and closed with the root container. Its configuration must be root too.
 
 ```ts
 // src/features/catalog/contract.ts

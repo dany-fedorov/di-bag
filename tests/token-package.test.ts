@@ -38,8 +38,8 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
   test(`installed ${runtime} ${extension} facade shares core tokens, modes and acquisition metadata`, async () => {
     const file = join(consumer, `${runtime}-facade.${extension}`);
     const load = extension === 'cjs'
-      ? "const { DiBag: Core } = require('di-bag'); const { DiBag } = require('di-bag/node');"
-      : "import { DiBag as Core } from 'di-bag'; import { DiBag } from 'di-bag/node';";
+      ? "const { DiBag: Core } = require('di-bag'); const { DiBag } = require('di-bag');"
+      : "import { DiBag as Core } from 'di-bag'; import { DiBag } from 'di-bag';";
     writeFileSync(file, `${load}
       (async () => {
         let release; const resource = { id: 7 };
@@ -53,7 +53,7 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
         const acquired = bag.resolve(token);
         const identity = acquired === pending;
         const nativePromise = acquired instanceof Promise;
-        const metadata = bag.inspect(token).acquisitions[0].acquisitionMetadata;
+        const metadata = bag.serviceSnapshot(token).acquisitions[0].acquisitionMetadata;
         const closing = bag.close(); await Promise.resolve(); await Promise.resolve();
         const before = [...disposed]; release(resource); await closing;
         // Simulate a host without process.getBuiltinModule, where the bare entry must reject automatic stages.
@@ -75,8 +75,8 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
 for (const mode of ['commonjs', 'module'] as const) {
   test(`installed token composition crosses Node ${mode} and the other loader`, async () => {
     const load = mode === 'commonjs'
-      ? "const first = require('di-bag'); const second = await import('di-bag/node');"
-      : "const first = await import('di-bag'); const { createRequire } = await import('node:module'); const second = createRequire(process.cwd() + '/consumer.cjs')('di-bag/node');";
+      ? "const first = require('di-bag'); const second = await import('di-bag');"
+      : "const first = await import('di-bag'); const { createRequire } = await import('node:module'); const second = createRequire(process.cwd() + '/consumer.cjs')('di-bag');";
     const output = await run(['node', `--input-type=${mode}`, '--eval', `
       (async () => {
         ${load}
@@ -92,8 +92,8 @@ for (const mode of ['commonjs', 'module'] as const) {
         const read = first.DiBag.fromFunction([publicToken, privateToken], (value, local) => ({ value: value.answer, privateId: local.id }));
         const promiseValue = first.DiBag.fromFunction([promiseToken], value => value);
         const feature = second.DiBag.createBuilder().withTokenService(privateToken, () => ({ id: ++privateIds })).withServices({ read, promiseValue }).buildModule({ exportedServiceKeys: ['read', 'promiseValue'] });
-        const firstFeature = feature.renameExport('read', 'firstRead').renameExport('promiseValue', 'firstPromise');
-        const secondFeature = feature.renameExport('read', 'secondRead').renameExport('promiseValue', 'secondPromise');
+        const firstFeature = feature.withRenamedExport({ currentExportKey: 'read', newExportKey: 'firstRead' }).withRenamedExport({ currentExportKey: 'promiseValue', newExportKey: 'firstPromise' });
+        const secondFeature = feature.withRenamedExport({ currentExportKey: 'read', newExportKey: 'secondRead' }).withRenamedExport({ currentExportKey: 'promiseValue', newExportKey: 'secondPromise' });
         const publicValue = { answer: 42 };
         const root = second.DiBag.createBuilder().withInstalledModules([firstFeature]).withInstalledModules([secondFeature]).withTokenService(publicToken, () => publicValue).withTokenService(promiseToken, () => raw).buildContainer();
         const rootPublic = root.resolve(samePublicToken);
@@ -101,7 +101,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         const rootSecond = root.resolve('secondRead');
         const rootPromiseIdentity = root.resolve('firstPromise') === raw && root.resolve('secondPromise') === raw;
         const childValue = { answer: 9 };
-        const child = root.fork([samePublicToken], { [publicKey]: () => childValue });
+        const child = root.createIndependentContainer([samePublicToken], { [publicKey]: () => childValue });
         const childFirst = child.resolve('firstRead');
         const childSecond = child.resolve('secondRead');
         const childPromiseIdentity = child.resolve('firstPromise') === raw;

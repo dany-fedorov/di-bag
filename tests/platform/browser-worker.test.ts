@@ -100,7 +100,7 @@ test('browser metafile accepts only the installed root export and package-local 
     ['node facade', { inputs: { ...cleanMetafile(consumer).inputs, 'node_modules/di-bag/dist/node.js': {} }, outputs: cleanMetafile(consumer).outputs }, 'node facade'],
     ['node builtin input', { inputs: { ...cleanMetafile(consumer).inputs, 'node:util/types': {} }, outputs: cleanMetafile(consumer).outputs }, 'node: input'],
     ['node builtin external import', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'node:fs', external: true }] } }, outputs: cleanMetafile(consumer).outputs }, 'node: input'],
-    ['external node facade', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'di-bag/node', external: true }] } }, outputs: cleanMetafile(consumer).outputs }, 'external input'],
+    ['external node facade', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'di-bag', external: true }] } }, outputs: cleanMetafile(consumer).outputs }, 'external input'],
     ['external registry URL', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'https://registry.example/di-bag.js', external: true }] } }, outputs: cleanMetafile(consumer).outputs }, 'external input'],
     ['node builtin output import', { inputs: cleanMetafile(consumer).inputs, outputs: { 'worker.js': { imports: [{ path: 'node:path', external: true }] } } }, 'node: input'],
     ['foreign package input', { inputs: { ...cleanMetafile(consumer).inputs, 'node_modules/other/index.js': {} }, outputs: cleanMetafile(consumer).outputs }, 'outside the installed di-bag archive'],

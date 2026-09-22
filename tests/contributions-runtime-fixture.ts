@@ -39,7 +39,7 @@ export const contributionRuntimeAssertions = `
     const tracked = (factory, lifetime) => DiBag.withLifetime(
       DiBag.withDisposal(factory, value => { cleanup.push(value); }), lifetime);
     const parent = DiBag.createBuilder().withServices({ helper: () => 'parent' }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(() => ({ kind: 'root' }), 'root') }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(({ helper }) => ({ kind: helper }), 'scoped') }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(() => ({ kind: 'transient', id: ++transientCalls }), 'transient') }).withServices({ aggregate: DiBag.fromFunction([lifetimeItem], values => values) }).buildContainer();
-    const child = parent.createScope(['helper'], { helper: () => 'child' }, { share: ['aggregate'] });
+    const child = parent.createChildContainer(['helper'], { helper: () => 'child' }, { sharedParentServiceKeys: ['aggregate'] });
     const borrowed = child.resolve('aggregate');
     assertContribution(borrowed === parent.resolve('aggregate') && borrowed[1].kind === 'parent',
       'shared aggregate escaped its parent contribution graph');

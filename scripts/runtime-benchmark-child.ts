@@ -66,7 +66,7 @@ export async function runtimeBenchmarkChildMain(
 ): Promise<void> {
   const request = parseRuntimeChildRequestArgument(args);
   const surface = runtimeBuilderSurfaceForLane(request.lane);
-  const entry = request.scenario === 'node-native-promise' ? 'di-bag/node' : 'di-bag';
+  const entry = request.lane === 'baseline' && request.scenario === 'node-native-promise' ? 'di-bag/node' : 'di-bag';
   const consumerRequire = createRequire(resolve(process.cwd(), 'package.json'));
   const resolvedDiBag = consumerRequire.resolve(entry);
   const imported = loadFacade === undefined

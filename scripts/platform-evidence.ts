@@ -867,7 +867,7 @@ function writePlatformMatrix(root: string, rows: readonly PlatformRow[]): { json
     '',
     'Historical Node/Bun archive results are not reclassified as current runtime evidence.',
     'Earlier full-suite counts are historical records. This file reports only the executions represented by the rows above.',
-    '`di-bag/node` is outside the portable Deno/browser root-package boundary.',
+    'Current Node, Bun, Deno, and browser consumers use the `di-bag` root entry.',
     '',
   ];
   const markdownPath = join(directory, 'README.md');

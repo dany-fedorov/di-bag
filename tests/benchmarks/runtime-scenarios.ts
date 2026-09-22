@@ -4,8 +4,8 @@ type Registration = unknown;
 type RuntimeBag = object;
 type CurrentRuntimeBag = RuntimeBag & {
   resolve(name: string): unknown;
-  inspect(name: string): { acquisitions: readonly unknown[] };
-  createScope(): RuntimeBag;
+  serviceSnapshot(name: string): { acquisitions: readonly unknown[] };
+  createChildContainer(): RuntimeBag;
   close(): Promise<void>;
 };
 type BaselineRuntimeBag = RuntimeBag & {
@@ -43,7 +43,7 @@ type RuntimeScenarioAdapter = {
   build: CreateBag;
   child(bag: RuntimeBag): RuntimeBag;
   resolve(bag: RuntimeBag, key: string): unknown;
-  inspect(bag: RuntimeBag, key: string): { acquisitions: readonly unknown[] };
+  serviceSnapshot(bag: RuntimeBag, key: string): { acquisitions: readonly unknown[] };
   close(bag: RuntimeBag): Promise<void>;
 };
 
@@ -74,9 +74,9 @@ function selectRuntimeAdapter(suppliedFacade: unknown, surface: RuntimeBuilderSu
       own: (registration, dispose) => current.withDisposal(registration, dispose),
       lifetime: (registration, lifetime) => current.withLifetime(registration, lifetime),
       build: bindings => current.createBuilder().withServices(bindings).buildContainer(),
-      child: bag => (bag as CurrentRuntimeBag).createScope(),
+      child: bag => (bag as CurrentRuntimeBag).createChildContainer(),
       resolve: (bag, key) => (bag as CurrentRuntimeBag).resolve(key),
-      inspect: (bag, key) => (bag as CurrentRuntimeBag).inspect(key),
+      serviceSnapshot: (bag, key) => (bag as CurrentRuntimeBag).serviceSnapshot(key),
       close: bag => (bag as CurrentRuntimeBag).close(),
     };
   }
@@ -91,7 +91,7 @@ function selectRuntimeAdapter(suppliedFacade: unknown, surface: RuntimeBuilderSu
       build: bindings => baseline.begin().add(bindings).end(),
       child: bag => (bag as BaselineRuntimeBag).scope(),
       resolve: (bag, key) => (bag as BaselineRuntimeBag).resolve(key),
-      inspect: (bag, key) => (bag as BaselineRuntimeBag).inspect(key),
+      serviceSnapshot: (bag, key) => (bag as BaselineRuntimeBag).inspect(key),
       close: bag => (bag as BaselineRuntimeBag).close(),
     };
   }
@@ -273,7 +273,7 @@ export function verifyScenario(prepared: PreparedRuntimeScenario, timed: TimedRu
   if (prepared.scenario === 'scope-resolve-close') {
     if (timed.rootValue !== prepared.providers || timed.scopedValue !== prepared.scopedValue
       || timed.values.length !== 2 || timed.values.some((value, index) => value !== prepared.values[index])
-      || prepared.adapter.inspect(prepared.bag!, terminal(prepared)).acquisitions.length !== 1) throw new Error('scope resolution result mismatch');
+      || prepared.adapter.serviceSnapshot(prepared.bag!, terminal(prepared)).acquisitions.length !== 1) throw new Error('scope resolution result mismatch');
   }
   if (prepared.scenario === 'transient-resolve-close'
     && (timed.values.length !== prepared.providers

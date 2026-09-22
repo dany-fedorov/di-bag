@@ -156,7 +156,7 @@ describe('release documentation contract', () => {
     expect(packageManifest.peerDependencies ?? {}).toEqual({});
     expect(packageManifest.optionalDependencies ?? {}).toEqual({});
     expect(packageManifest.bundledDependencies ?? []).toEqual([]);
-    for (const entry of ['di-bag', 'di-bag/node'])
+    for (const entry of ['di-bag'])
       expect(readme).toContain(`\`${entry}\``);
     // The landing page links to the detailed contracts and verification evidence.
     expect(readme).toContain('(docs/guides/api-reference.md)');

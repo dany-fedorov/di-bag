@@ -59,8 +59,8 @@ test('transformService retains earlier ownership and raw output disposal policy'
 
 test('register, acquisition context, modules and immutable observer configuration compose', async () => {
   const order: number[] = [];
-  const observer = (id: number) => ({ onEvent: () => { order.push(id); }, onError: () => {} });
-  const api = DiBag.withConfiguration({ observers: [observer(1)] }).withConfiguration({ observers: [observer(2)] });
+  const observer = (id: number) => ({ onLifecycleEvent: () => { order.push(id); }, onObserverFailure: () => {} });
+  const api = DiBag.withConfiguration({ lifecycleObservers: [observer(1)] }).withConfiguration({ lifecycleObservers: [observer(2)] });
   const configKey = Symbol('config');
   const token = api.token(configKey).of<number>();
   let signal: AbortSignal | undefined;

@@ -10,11 +10,11 @@
   { "task": "Seal a module", "call": "builder.buildModule" },
   { "task": "Install modules", "call": "builder.withInstalledModules" },
   { "task": "Check the graph on its own line", "call": "builder.verifyGraphAtCompileTime" },
-  { "task": "Build a bag", "call": "builder.buildContainer" },
-  { "task": "Wait for services before accepting work", "call": "bag.ensureServicesReady" },
-  { "task": "Replace for a test", "call": "bag.fork" },
-  { "task": "Open a scope", "call": "bag.createScope" },
-  { "task": "Resolve", "call": "bag.resolve" },
-  { "task": "Resolve a collection", "call": "bag.resolveCollection" },
-  { "task": "Close", "call": "bag.close" }
+  { "task": "Build a container", "call": "builder.buildContainer" },
+  { "task": "Wait for services before accepting work", "call": "container.ensureServicesReady" },
+  { "task": "Replace services for a test", "call": "container.createIndependentContainer" },
+  { "task": "Open a child container", "call": "container.createChildContainer" },
+  { "task": "Resolve", "call": "container.resolve" },
+  { "task": "Resolve a collection", "call": "container.resolveCollection" },
+  { "task": "Close", "call": "container.close" }
 ]

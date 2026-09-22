@@ -10,17 +10,17 @@ export const selectedScopeRuntimeAssertions = `
     const selectedFeature = DiBag.createBuilder().withServices({
       privateResource: DiBag.withDisposal(({ config }) => ({ id: config.id }), () => { selectedLog.push('private'); }),
       publicResource: DiBag.withDisposal(({ privateResource }) => ({ privateResource }), () => { selectedLog.push('export'); }),
-    }).buildModule({ exportedServiceKeys: ['publicResource'] }).renameExport('publicResource', 'shared');
+    }).buildModule({ exportedServiceKeys: ['publicResource'] }).withRenamedExport({ currentExportKey: 'publicResource', newExportKey: 'shared' });
     const selectedRoot = DiBag.createBuilder().withInstalledModules([selectedFeature]).withTokenService(selectedToken, () => ({ id: 'parent' })).withServices({
       config: () => ({ id: 'parent' }),
       pending: DiBag.withDisposal(() => selectedPromise, () => { selectedLog.push('pending'); }),
       raw: DiBag.fromFactory(() => selectedPromise, { acquisitionMode: 'raw' }),
       rooted: DiBag.withLifetime(DiBag.withDisposal(({ config }) => ({ id: config.id }), () => { selectedLog.push('root'); }), 'root', { allowScopedDependencies: true }),
     }).buildContainer();
-    const selectedChild = selectedRoot.createScope(['config', selectedToken], {
+    const selectedChild = selectedRoot.createChildContainer(['config', selectedToken], {
       config: () => ({ id: 'child' }), [selectedKey]: () => ({ id: 'child' }),
     }, { share: ['shared', 'pending', 'raw'] });
-    const selectedGrandchild = selectedChild.createScope({ share: ['shared', selectedToken] });
+    const selectedGrandchild = selectedChild.createChildContainer({ sharedParentServiceKeys: ['shared', selectedToken] });
     assertSelected(selectedChild.resolve('config').id === 'child', 'child override missing');
     assertSelected(selectedGrandchild.resolve(selectedToken).id === 'child', 'token share lost override');
     assertSelected(selectedChild.resolve('shared').privateResource.id === 'parent', 'shared private dependency used child graph');
@@ -28,10 +28,10 @@ export const selectedScopeRuntimeAssertions = `
     assertSelected(selectedChild.resolve('pending') === selectedPromise && selectedRoot.resolve('pending') === selectedPromise, 'shared pending identity lost');
     assertSelected(selectedChild.resolve('raw') === selectedPromise, 'raw identity lost');
     assertSelected(selectedChild.resolve('rooted').id === 'parent', 'inherited root used child context');
-    const anchored = selectedChild.createScope(['rooted'], {
+    const anchored = selectedChild.createChildContainer(['rooted'], {
       rooted: DiBag.withLifetime(DiBag.withDisposal(({ config }) => ({ id: config.id }), () => { selectedLog.push('anchored'); }), 'root', { allowScopedDependencies: true }),
     });
-    const anchoredGrandchild = anchored.createScope(['config'], { config: () => ({ id: 'grandchild' }) });
+    const anchoredGrandchild = anchored.createChildContainer(['config'], { config: () => ({ id: 'grandchild' }) });
     assertSelected(anchoredGrandchild.resolve('rooted').id === 'child', 'child root anchor lost');
     assertSelected(anchoredGrandchild.resolve('rooted') === anchored.resolve('rooted'), 'child root identity lost');
     settleSelected(42);

@@ -116,10 +116,10 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i3Error = new Error('I3 snapshot');
   const i3StartedIds: symbol[] = [];
   let i3ObservedAbsentError: unknown;
-  const i3Observed = DiBag.withConfiguration({ observers: [{ onEvent(event: any) {
+  const i3Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: any) {
     if (event.kind === 'acquisition-started' && ['absent', 'present', 'failing'].includes(event.label)) i3StartedIds.push(event.acquisitionId);
     if (event.kind === 'acquisition-failed' && event.label === 'absent') i3ObservedAbsentError = event.error;
-  }, onError() {} }] });
+  }, onObserverFailure() {} }] });
   const i3Failing = DiBag.withDisposal(() => ({ get metadata(): object { throw i3Error; } }), () => { i3Dispose.push('source'); });
   const i3Bag = i3Observed.createBuilder().withServices({
     absent: DiBag.transformService(() => i3AbsentRecord, { mode: 'direct', transform: (presence: typeof i3AbsentRecord) => {
@@ -183,10 +183,10 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i5DirectDispose: string[] = [];
   let i5SecondCalls = 0;
   const i5StartedIds: symbol[] = []; let i5FailedId: symbol | undefined;
-  const i5Observed = DiBag.withConfiguration({ observers: [{ onEvent(event: any) {
+  const i5Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: any) {
     if (event.kind === 'acquisition-started') i5StartedIds.push(event.acquisitionId);
     if (event.kind === 'acquisition-failed' && event.error === i5Error) i5FailedId = event.acquisitionId;
-  }, onError() {} }] });
+  }, onObserverFailure() {} }] });
   let i5LazyCalls = 0;
   const i5DependencyPlugin = i5Observed.fromPlugin([i5Required, i5Observed.optional(i5Optional), i5Observed.lazy(i5Lazy), i5Token], {
     apiVersion: 1, create(required: unknown, optional: unknown, lazy: () => unknown, all: readonly unknown[]) {
@@ -221,7 +221,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i6Dispose: string[] = [];
   let i6Created = 0;
   const i6Started: any[] = [];
-  const i6Observed = DiBag.withConfiguration({ observers: [{ onEvent(event: any) { if (event.kind === 'acquisition-started') i6Started.push(event); }, onError() {} }] });
+  const i6Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: any) { if (event.kind === 'acquisition-started') i6Started.push(event); }, onObserverFailure() {} }] });
   const i6Feature = i6Observed.createBuilder().withServices({ privatePlugin: i6Observed.fromPlugin([], {
     apiVersion: 1, create: () => ({ id: ++i6Created }), dispose: (value: any) => { i6Dispose.push(`installation-${value.id}`); },
   }, { acquisitionMode: 'raw', validate: (value: unknown): value is { id: number } => typeof value === 'object' && value !== null }) }).withServiceAlias({ aliasKey: 'publicPlugin', targetServiceKey: 'privatePlugin' }).buildModule({ exportedServiceKeys: ['publicPlugin'] });
@@ -252,7 +252,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i7Token = DiBag.token(Symbol('I7')).forCollectionOf();
   let i7Root = 0; let i7Scoped = 0; let i7Transient = 0; let i7Contributions = 0; let i7Independent = 0;
   const i7Events: any[] = [];
-  const i7Observed = DiBag.withConfiguration({ observers: [{ onEvent(event: any) { i7Events.push(event); }, onError() {} }] });
+  const i7Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: any) { i7Events.push(event); }, onObserverFailure() {} }] });
   const owned = (kind: string, failing = false) => DiBag.withDisposal(DiBag.withMetadata(() => ({ kind }), { dynamic: { mode: 'direct', describe: () => ({ kind }) } }), () => {
     i7Independent++; if (failing) throw i7Error;
   });
@@ -283,12 +283,12 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const never = new Promise<void>(() => {});
   const selected = (event: any) => event.bindingId === i8BindingId && event.acquisitionId === i8AcquisitionId
     && (event.kind === 'acquisition-ready' || event.kind === 'cleanup-completed');
-  const i8Observed = DiBag.withConfiguration({ observers: [{
-    onEvent(event: any) { if (!selected(event)) return; i8Order.push(`A:${event.kind}`); if (event.kind === 'acquisition-ready') { i8ReadyEvent = event; throw i8ObserverError; } },
-    onError(failure: any) { i8AErrors++; i8Failure = failure; },
-  }] }).withConfiguration({ observers: [{
-    onEvent(event: any) { if (!selected(event)) return; i8Order.push(`B:${event.kind}`); return never; },
-    onError() { i8BErrors++; },
+  const i8Observed = DiBag.withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event: any) { if (!selected(event)) return; i8Order.push(`A:${event.kind}`); if (event.kind === 'acquisition-ready') { i8ReadyEvent = event; throw i8ObserverError; } },
+    onObserverFailure(failure: any) { i8AErrors++; i8Failure = failure; },
+  }] }).withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event: any) { if (!selected(event)) return; i8Order.push(`B:${event.kind}`); return never; },
+    onObserverFailure() { i8BErrors++; },
   }] });
   const i8Gate = deferred<{ id: string }>();
   const i8Bag = i8Observed.createBuilder().withServices({ late: i8Observed.withDisposal(i8Observed.fromFactory(() => i8Gate.promise, { acquisitionMode: 'nativePromise' }), () => { i8LateDisposals++; }) }).buildContainer();
@@ -337,7 +337,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   invariant(await i10AwaitedBag.resolve('value') === 10, 'I10', 'async projection changed'); await i10AwaitedBag.close();
   const i10Error = new Error('I10 classifier'); let i10Disposers = 0;
   const i10Events: any[] = [];
-  const i10Configured = PortableDiBag.withConfiguration({ runtime: { isNativePromise() { throw i10Error; } } }).withConfiguration({ observers: [{ onEvent(event: any) { i10Events.push(event); }, onError() {} }] });
+  const i10Configured = PortableDiBag.withConfiguration({ runtime: { isNativePromise() { throw i10Error; } } }).withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: any) { i10Events.push(event); }, onObserverFailure() {} }] });
   let i10Failure: unknown;
   const i10FailingBag = i10Configured.createBuilder().withServices({ value: i10Configured.withDisposal(() => Promise.resolve(1), () => { i10Disposers++; }) }).buildContainer();
   try { i10FailingBag.resolve('value'); } catch (error) { i10Failure = error; }
@@ -349,7 +349,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   // I11: failed metadata attempts are evicted and upstream ownership remains accountable.
   const i11Error = new Error('I11 snapshot'); const i11Dispose: string[] = []; let i11Calls = 0;
   const i11Events: any[] = [];
-  const i11Observed = DiBag.withConfiguration({ observers: [{ onEvent(event: any) { i11Events.push(event); }, onError() {} }] });
+  const i11Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: any) { i11Events.push(event); }, onObserverFailure() {} }] });
   const i11Source = DiBag.withDisposal(() => {
     i11Calls++;
     return { id: 'valid', get metadata(): object { if (i11Calls === 1) throw i11Error; return { source: 'valid' }; } };
@@ -374,10 +374,10 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i12Items = DiBag.token(Symbol('I12-items')).forCollectionOf();
   const i12CleanupEvents: any[] = [];
   let i12OwnerScope: symbol | undefined;
-  const i12Observed = DiBag.withConfiguration({ observers: [{ onEvent(event: any) {
+  const i12Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: any) {
     if (event.kind === 'scope-opened' && !('parentScopeId' in event)) i12OwnerScope = event.scopeId;
     if (event.kind === 'cleanup-completed') i12CleanupEvents.push(event);
-  }, onError() {} }] });
+  }, onObserverFailure() {} }] });
   const i12Starting = i12Observed.createBuilder().withServices({
     adapter: i12Observed.withDisposal(DiBag.withMetadata(() => ({ id: 'immediate' }), { dynamic: { mode: 'direct', describe: () => ({ source: 'immediate' }) } }), () => { i12Dispose.push('immediate'); }),
     plugin: i12Observed.fromPlugin([], { apiVersion: 1, create: () => ({ id: 'plugin' }) },
@@ -472,10 +472,10 @@ export const finalAdversarialRuntimeAssertions = `
 /** Build a dependency-free consumer program using only published package subpaths. */
 export function finalAdversarialPackageRuntimeSource(mode: 'commonjs' | 'module'): string {
   const imports = mode === 'commonjs'
-    ? `const { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } = require('di-bag/node');
+    ? `const { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } = require('di-bag');
 const { DiBag: PortableDiBag } = require('di-bag');
 `
-    : `import { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } from 'di-bag/node';
+    : `import { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } from 'di-bag';
 import { DiBag as PortableDiBag } from 'di-bag';
 `;
   return `${imports}\n${finalAdversarialRuntimeAssertions}`;

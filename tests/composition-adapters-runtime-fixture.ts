@@ -27,7 +27,7 @@ export const compositionAdapterRuntimeAssertions = `
     );
     assertAdapter(created === 0, 'adapter eagerly constructed service');
     const adapterRoot = DiBag.createBuilder().withTokenService(portToken, DiBag.withLifetime(() => 8080, 'root')).withTokenService(pendingToken, () => pendingValue).withServices({ client: classProvider, multiply: functionProvider, raw: rawProvider }).buildContainer();
-    const adapterChild = adapterRoot.createScope({ share: ['raw'] });
+    const adapterChild = adapterRoot.createChildContainer({ sharedParentServiceKeys: ['raw'] });
     const client = adapterChild.resolve('client');
     assertAdapter(client instanceof Client && client.constructedAs === Client && client.read() === 8080, 'class semantics changed');
     assertAdapter(adapterRoot.resolve('client') === client && created === 1, 'class root identity changed');
