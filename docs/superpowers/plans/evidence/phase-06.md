@@ -1,7 +1,8 @@
 # Phase 06 compile-shape evidence
 
-Measured with Node v24.20.0 and TypeScript 6.0.3 on the final Task 7 candidate
-based on `f352736`. Every compiler command ran under the resource guard.
+Measured with Node v24.20.0 and classic TypeScript 6.0.3 on the final Phase 6
+candidate at `4fed62c`. The complete gate also passed native TypeScript 7.0.2.
+Every compiler command ran under the resource guard.
 
 ## S3 container derivation
 
@@ -26,29 +27,29 @@ Command:
 
 ```sh
 node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseline.md \
-  --json /tmp/di-bag-phase-06/migrated-generators.json
+  --json /tmp/di-bag-phase-06/final.json
 ```
 
 The accepted final JSON SHA-256 is
-`248b161db054622a800924da1f834b5a40c4989c15df3b6966d27a12a61ce90a`.
+`6b5d4afcf8f573d1d7abec517ef46c1d95364c991412d803c21840027a5eebb7`.
 Every row had no diagnostics and remained within the unchanged cumulative 10%
 limit. The earlier accepted `s3-fallback.json` predates the reviewed
 optional-`never` empty-bag correction and is retained as superseded evidence.
 
 | Case | Count | Baseline | Phase 06 | Change |
 | --- | ---: | ---: | ---: | ---: |
-| bulk | 100 | 159,001 | 159,887 | +0.6% |
-| chained | 100 | 787,814 | 783,354 | -0.6% |
-| grouped | 100 | 166,348 | 167,180 | +0.5% |
-| replacement | 100 | 1,031,260 | 1,032,346 | +0.1% |
-| bindings | 100 | 847,247 | 847,092 | -0.0% |
-| modules | 100 | 1,241,644 | 806,384 | -35.1% |
-| bulk | 500 | 806,601 | 809,087 | +0.3% |
-| chained | 500 | 13,956,214 | 13,931,754 | -0.2% |
-| grouped | 500 | 1,060,372 | 1,062,372 | +0.2% |
-| replacement | 500 | 21,767,660 | 21,771,146 | +0.0% |
-| bindings | 500 | 12,153,047 | 12,150,092 | -0.0% |
-| modules | 500 | 19,719,044 | 10,539,784 | -46.6% |
+| bulk | 100 | 159,001 | 145,644 | -8.4% |
+| chained | 100 | 787,814 | 769,111 | -2.4% |
+| grouped | 100 | 166,348 | 152,937 | -8.1% |
+| replacement | 100 | 1,031,260 | 1,018,103 | -1.3% |
+| bindings | 100 | 847,247 | 832,894 | -1.7% |
+| modules | 100 | 1,241,644 | 792,186 | -36.2% |
+| bulk | 500 | 806,601 | 794,844 | -1.5% |
+| chained | 500 | 13,956,214 | 13,917,511 | -0.3% |
+| grouped | 500 | 1,060,372 | 1,048,129 | -1.2% |
+| replacement | 500 | 21,767,660 | 21,756,903 | -0.0% |
+| bindings | 500 | 12,153,047 | 12,135,894 | -0.1% |
+| modules | 500 | 19,719,044 | 10,525,586 | -46.6% |
 
 The focused final candidate passes 21 runtime tests with 49 assertions, three
 compiler fixtures with 11 assertions, both TypeScript source checks, and
@@ -80,3 +81,16 @@ consumers. The twelve compiler-budget cases above have no diagnostics, no
 TS2589, and remain within the cumulative 10% ceiling. Guard receipts are
 `phase06-task7-package-native-token-release-final-design` and
 `phase06-task7-compiler-budget-final2`.
+
+## Final phase gate
+
+The final serial gate ran with Bun 1.4.0, Node 24.20.0, npm 11.19.0,
+classic TypeScript 6.0.3, native TypeScript 7.0.2, `GOMAXPROCS=2`, and the
+notifier disabled. `npm run check`, `docs:check`, `graph:check`,
+`codemod:check`, `typecheck:native`, `build:native`, `check:native`, the final
+classic `npm run build`, all three Node retention suites, `agent-eval:test`,
+and the fail-fast `examples/*.ts` loop passed. The clean published-0.4 codemod
+fixtures were then rerun with `npm run codemod:check` and
+`node --test tools/codemod/test/fixtures.test.mjs tools/codemod/test/transforms.test.mjs`;
+their transformed text matched byte-for-byte and their literal manual reports
+deep-matched the checked-in JSON.
