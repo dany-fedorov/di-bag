@@ -574,8 +574,9 @@ const stamp = DiBag.fromFunction([DiBag.optional(clock)], source => source?.now(
 ### token
 
 ```ts
-token: <const K extends symbol>(key: K & TokenKeyAdmission<K>, ...invalid: [K] extends [never] ? [TokenKeyAdmission<K>] : []) => {
-    readonly of: <S>() => Token<K, S>;
+token: <const TokenSymbol extends symbol>(key: TokenSymbol & TokenKeyAdmission<TokenSymbol>, ...invalid: [TokenSymbol] extends [never] ? [TokenKeyAdmission<TokenSymbol>] : []) => {
+    readonly of: <Service>() => Token<TokenSymbol, Service>;
+    readonly forCollectionOf: <Item>() => CollectionToken<TokenSymbol, Item>;
 };
 ```
 
@@ -591,7 +592,7 @@ objects are rejected at runtime.
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `K` | - |
+| `TokenSymbol` | - |
 
 #### Parameters
 

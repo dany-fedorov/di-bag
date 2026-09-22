@@ -130,6 +130,24 @@ Re-exports [CollectionDependency](../index/type-aliases/CollectionDependency.md)
 
 ***
 
+### CollectionItem
+
+Re-exports [CollectionItem](../index/type-aliases/CollectionItem.md)
+
+***
+
+### CollectionToken
+
+Re-exports [CollectionToken](../index/interfaces/CollectionToken.md)
+
+***
+
+### CollectionTokenBase
+
+Re-exports [CollectionTokenBase](../index/interfaces/CollectionTokenBase.md)
+
+***
+
 ### CompositionArguments
 
 Re-exports [CompositionArguments](../index/type-aliases/CompositionArguments.md)
@@ -631,6 +649,12 @@ Re-exports [TokenDependencyContract](../index/type-aliases/TokenDependencyContra
 ### TokenKey
 
 Re-exports [TokenKey](../index/type-aliases/TokenKey.md)
+
+***
+
+### TokenKind
+
+Re-exports [TokenKind](../index/type-aliases/TokenKind.md)
 
 ***
 

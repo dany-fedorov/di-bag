@@ -77,7 +77,7 @@ test('canonical signatures are followed by comment-only parameter details', () =
 });
 
 test('source declarations preserve aliases and property modifiers exactly', () => {
-  assert.match(compact(tokenKey), /type TokenKey<T> = T extends infer U & \{\} \? U extends Token<infer K, infer _S> \? K : never : never;/);
+  assert.match(compact(tokenKey), /type TokenKey<T> = T extends infer U & \{\} \? U extends Token<infer K, infer _S> \? K : U extends CollectionToken<infer K, infer _Item> \? K : never : never;/);
   assert.match(runtimeOptions, /readonly isNativePromise: \(this: void, candidate: unknown\) => boolean;/);
   assert.match(readinessError, /readonly disposalError\?: unknown;/);
   assert.doesNotMatch(readinessError, /readonly optional/);

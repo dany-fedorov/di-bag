@@ -3,11 +3,11 @@ import { createProvider } from './provider';
 import { retainDescription, sourceDescription } from './provider-operations';
 import type { Registration } from './registration';
 import type { BindingKey } from './runtime';
-import { readTokenKey } from './tokens';
+import { readSingleServiceKey, readTokenKey } from './tokens';
 
 /** Authenticate both selections before constructing any retained registration. */
 export function aliasEntry(destination: unknown, target: unknown, hasKey: (key: BindingKey) => boolean): readonly [BindingKey, Registration] {
-  const key = typeof destination === 'string' ? destination : readTokenKey(destination);
+  const key = typeof destination === 'string' ? destination : readSingleServiceKey(destination, 'alias');
   const targetKey = typeof target === 'string' ? target : readTokenKey(target);
   if (hasKey(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'alias', key });
   if (typeof target === 'string' && !hasKey(targetKey)) throw libraryError('DI_BAG_INVALID_ALIAS', 'alias requires an existing named target', { operation: 'alias', target: targetKey });

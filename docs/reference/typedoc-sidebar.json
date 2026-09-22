@@ -71,6 +71,14 @@
             "link": "/reference/index/interfaces/CloseProgress.md"
           },
           {
+            "text": "CollectionToken",
+            "link": "/reference/index/interfaces/CollectionToken.md"
+          },
+          {
+            "text": "CollectionTokenBase",
+            "link": "/reference/index/interfaces/CollectionTokenBase.md"
+          },
+          {
             "text": "ConfigurationOptions",
             "link": "/reference/index/interfaces/ConfigurationOptions.md"
           },
@@ -195,6 +203,10 @@
           {
             "text": "CollectionDependency",
             "link": "/reference/index/type-aliases/CollectionDependency.md"
+          },
+          {
+            "text": "CollectionItem",
+            "link": "/reference/index/type-aliases/CollectionItem.md"
           },
           {
             "text": "CompositionArguments",
@@ -435,6 +447,10 @@
           {
             "text": "TokenKey",
             "link": "/reference/index/type-aliases/TokenKey.md"
+          },
+          {
+            "text": "TokenKind",
+            "link": "/reference/index/type-aliases/TokenKind.md"
           },
           {
             "text": "TokenMember",

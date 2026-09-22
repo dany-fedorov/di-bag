@@ -1150,3 +1150,7 @@ disabled through `DiBagPolicy` or bypassed by a cast.
 `acquisitionMode: 'raw'`.
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
+
+### DI_BAG_WRONG_TOKEN_KIND {#di-bag-wrong-token-kind}
+
+A genuine typed token was used in an operation that requires the other token kind. A token is either a single-service token or a collection token and cannot serve both roles. Read `details.operation`, `details.expectedKind`, and `details.receivedKind`; create the token with `.of<Service>()` for one service or `.forCollectionOf<Item>()` for a collection. Split an old token that used both channels into two tokens.

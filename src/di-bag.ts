@@ -28,7 +28,7 @@ import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
 import type { ProviderRegistrationMetadata, ProviderAcquisitionMetadata } from './provider';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
-import { token, readTokenKey } from './tokens';
+import { token, readSingleServiceKey, readTokenKey } from './tokens';
 import { fromPlugin } from './plugins';
 import type { PluginProviderFactory } from './plugins';
 import type { TokenBase, TokenKey, TokenService } from './tokens';
@@ -420,7 +420,7 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
       const snapshot = snapshotAdd(moreOrToken, key => this.#graph.hasPublic(key));
       return new Builder(this.#graph.withPublicRegistrations(snapshot), this.context);
     }
-    const key = readTokenKey(moreOrToken);
+    const key = readSingleServiceKey(moreOrToken, 'register');
     if (this.#graph.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'register', key });
     return new Builder(this.#graph.withPublicBinding(key, withTokenBinding(moreOrToken as never, registration as never)), this.context);
   }

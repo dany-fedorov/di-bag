@@ -12,7 +12,7 @@ export type { Lifetime } from './lifetime';
 export type { AcquisitionContext, ContextualFactory, DisposerContext } from './acquisition-context';
 export type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 export type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases, SharedAliasProviders } from './scope-types';
-export type { Token, TokenBase, TokenKey, TokenService } from './tokens';
+export type { CollectionItem, CollectionToken, CollectionTokenBase, Token, TokenBase, TokenKey, TokenKind, TokenService } from './tokens';
 export type { TokenBinding, TokenMember, TokenDependencyContract, ReboundProviders, ReboundSelection, SelectionKey } from './token-types';
 export type { CheckedLifetimes, CheckedScopeLifetimes, LifetimeObligation, Reach } from './lifetime-types';
 export type { DiBagPolicy } from './types';
