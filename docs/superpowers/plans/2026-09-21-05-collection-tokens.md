@@ -3735,9 +3735,10 @@ test('one graph cannot use the same symbol for both token kinds', async () => {
   const service = DiBag.token(key).of<number>();
   const collection = DiBag.token(key).forCollectionOf<number>();
 
+  const registered = DiBag.createBuilder().register(service, () => 1);
+  // Deliberately bypass admission for this runtime-only rejection check.
   const collectionAfterService = thrown(() =>
-    DiBag.createBuilder().register(service, () => 1)
-      .contribute(collection, () => 2),
+    (registered as any).contribute(collection, () => 2),
   );
   expect(collectionAfterService.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   expect(collectionAfterService.details).toEqual({
@@ -3746,9 +3747,9 @@ test('one graph cannot use the same symbol for both token kinds', async () => {
     receivedKind: 'collection',
   });
 
+  const contributed = DiBag.createBuilder().contribute(collection, () => 2);
   const serviceAfterCollection = thrown(() =>
-    DiBag.createBuilder().contribute(collection, () => 2)
-      .register(service, () => 1),
+    (contributed as any).register(service, () => 1),
   );
   expect(serviceAfterCollection.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   expect(serviceAfterCollection.details).toEqual({
