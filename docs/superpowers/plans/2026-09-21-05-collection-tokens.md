@@ -2327,6 +2327,7 @@ Execute this task only when Task 4's decision rule selects it.
 - Create: `tools/codemod/test/fixtures/collection-tokens-import/input.ts`, `expected.ts`, `expected-manual.json`
 - Create: `tools/codemod/test/fixtures/collection-token-alias-source/{input.ts,expected.ts,expected-manual.json}` and `collection-token-alias-use/{input.ts,expected.ts,expected-manual.json}`
 - Create: `tools/codemod/test/fixtures/collection-token-partial/{input.ts,expected.ts,expected-manual.json}`
+- Create: `tools/codemod/test/fixtures/collection-token-untraceable/{input.ts,expected.ts,expected-manual.json}`
 
 **Interfaces:**
 - Consumes: phase-1 `api.nameOf`, `api.nameForRole`, `api.assemble`, `api.text`, `api.manual`, entry-bound custom dispatch, library-symbol resolution and one original TypeScript program.
@@ -2575,6 +2576,8 @@ export default function collectionToken(call, api) {
   }
   if (use.state === 'mixed') {
     api.manual(call, `${use.name} is used as a collection and as a single service (${locate(use.otherUse)}); a 0.5 token is one or the other, so create a second token for the list with ${api.nameOf(api.member.owner, api.member.name)} and move the collection uses to it`);
+  } else if (use.state === 'untraceable') {
+    api.manual(call, `token creation cannot be traced to an identifier binding; if it is used as a collection, create a named token with ${api.nameOf(api.member.owner, api.member.name)} and move the collection uses to it`);
   }
   return undefined;
 }
@@ -2796,6 +2799,31 @@ manual row at line 15 proves the incomplete token-factory receiver is not admitt
 creation. Both calls remain byte-for-byte unchanged. Preserve the phase-1 rule that partial-owner
 reports require a relevant map entry; do not add a no-op or future-phase entry to force a report.
 
+Also add `collection-token-untraceable` to cover complete library ownership with an inline creation
+that the whole-program variable classifier cannot follow. Its `input.ts` and `expected.ts` are
+byte-for-byte identical:
+
+```ts
+import { DiBag } from 'di-bag';
+
+const inlineKey = Symbol('inline');
+const builder = DiBag.createBuilder();
+export const inline = builder.contribute(DiBag.token(inlineKey).of<number>(), () => 1);
+```
+
+Its `expected-manual.json` is exactly:
+
+```json
+[
+  { "line": 5, "reason": "token creation cannot be traced to an identifier binding; if it is used as a collection, create a named token with forCollectionOf and move the collection uses to it" }
+]
+```
+
+The complete-library creation invokes the transform and reports its untraceable state; ordinary
+traceable single-service creations remain silent. Keep the entire call unchanged. This fulfills the
+task's conservative manual-report contract without guessing whether an unknown creation is a
+collection or adding a `contribute` map entry early.
+
 - [ ] **Step 7: Run codemod tests**
 
 ```bash
@@ -2807,7 +2835,8 @@ Expected: pass; inputs type-check against vendored 0.4.0 declarations; golden ou
 primary fixture has its exact four manual items and `collection-token-partial` has exactly the one
 line-15 partial-declaration item, with no additional report. The test output must list the discovered
 `fixture collection-token-alias-source`, `fixture collection-token-alias-use`, and
-`fixture collection-token-partial` subtests; do not add a redundant registry or discovery assertion.
+`fixture collection-token-partial` subtests, plus `fixture collection-token-untraceable` with exactly
+its line-5 manual; do not add a redundant registry or discovery assertion.
 
 - [ ] **Step 8: Commit**
 
