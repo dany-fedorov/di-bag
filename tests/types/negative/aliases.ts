@@ -109,11 +109,11 @@ const moduleAlias = moduleHistory.withServiceAlias({ aliasKey: 'copy', targetSer
 // diagnostic: not assignable
 const erasedModuleHistory: typeof moduleHistory = moduleAlias;
 // diagnostic: not assignable
-const forgedDestination: Parameters<typeof base.alias>[0] = 'copy';
+const forgedDestination: Parameters<typeof base.withServiceAlias>[0]['aliasKey'] = 'copy';
 // diagnostic: not assignable
-const forgedTarget: Parameters<typeof base.alias>[1] = 'value';
+const forgedTarget: Parameters<typeof base.withServiceAlias>[0]['targetServiceKey'] = 'value';
 // diagnostic: Expected 2 arguments
 base.withServiceAlias<'copy', never>({ aliasKey: 'copy', targetServiceKey: 'value' as never });
-declare const reflectedBuilder: ReturnType<typeof base.alias>;
+declare const reflectedBuilder: ReturnType<typeof base.withServiceAlias>;
 // diagnostic: not assignable
 reflectedBuilder.buildContainer().resolve('copy');

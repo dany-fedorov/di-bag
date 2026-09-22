@@ -4,7 +4,7 @@ const builder = DiBag.createBuilder().withServices({
   value: () => 1,
   consumer: ({ value }: { value: number }) => value + 1,
 });
-type View = ReturnType<typeof builder.replace>;
+type View = ReturnType<typeof builder.withReplacedService>;
 // diagnostic: is not assignable to type
 const view: View = builder;
 
@@ -18,7 +18,7 @@ const moduleBuilder = DiBag.createBuilder().withServices({
   consumer: ({ value }: { value: number }) => value + 1,
 });
 // diagnostic: is not assignable to type
-const moduleView: ReturnType<typeof moduleBuilder.replace> = moduleBuilder;
+const moduleView: ReturnType<typeof moduleBuilder.withReplacedService> = moduleBuilder;
 const value = DiBag.createBuilder().withInstalledModules([moduleBuilder.buildModule({ exportedServiceKeys: ['consumer'] })]).buildContainer().resolve('consumer');
 // diagnostic: Type 'number' is not assignable to type 'string'.
 const wrong: string = value;

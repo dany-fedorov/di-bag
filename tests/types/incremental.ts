@@ -58,7 +58,7 @@ export type CachedTokenBoundaryContracts = [
 // A string index in a manually annotated history also covers numeric keys.
 // Keep the duplicate-key rejection alongside the named-key admission failure.
 declare const broadKeys: Builder<{ key: string; registration: () => number }>;
-type NumericDuplicateParameter = Parameters<typeof broadKeys.register<{ 1: () => number }>>[0];
+type NumericDuplicateParameter = Parameters<typeof broadKeys.withServices<{ 1: () => number }>>[0];
 type BroadHistoryDuplicate = Assert<Equal<NumericDuplicateParameter, never>>;
 
 // Retained token checks must preserve manual histories and generic empty keys.

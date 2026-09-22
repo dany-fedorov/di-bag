@@ -89,7 +89,7 @@ const collectionReflected: import('../../../src').CollectionTokenBase = numbers;
 builder.buildContainer().resolveCollection(collectionReflected);
 // diagnostic: finite tuple
 DiBag.fromFunction([collectionReflected], values => values);
-declare const reflected: ReturnType<typeof builder.contribute>;
+declare const reflected: ReturnType<typeof builder.withCollectionContribution>;
 // diagnostic: required service registrations are missing
 reflected.buildContainer();
 // diagnostic: not assignable
@@ -121,7 +121,7 @@ DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withCollection
 // diagnostic: incompatible
 DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: DiBag.fromFunction([wrong], values => values.length) }).buildModule({ exportedServiceKeys: [] })]).withCollectionContribution({ collectionToken: numbers, provider: () => 1 });
 // diagnostic: not assignable
-const forgedToken: Parameters<typeof builder.contribute>[0] = numbers;
+const forgedToken: Parameters<typeof builder.withCollectionContribution>[0]['collectionToken'] = numbers;
 // diagnostic: Expected 2 arguments
 builder.buildContainer().resolveCollection<never>(numbers as never);
 // diagnostic: Expected 2 arguments

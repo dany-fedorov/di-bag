@@ -8,8 +8,8 @@ const moduleBuilder = DiBag.createBuilder().withServices({
   value: () => 1,
   consumer: ({ value }: { value: number }) => value + 1,
 });
-type BuilderView = ReturnType<typeof builder.replace>;
-type ModuleView = ReturnType<typeof moduleBuilder.replace>;
+type BuilderView = ReturnType<typeof builder.withReplacedService>;
+type ModuleView = ReturnType<typeof moduleBuilder.withReplacedService>;
 
 // diagnostic: is not assignable to type
 const builderView: BuilderView = builder;

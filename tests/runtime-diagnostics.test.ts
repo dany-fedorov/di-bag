@@ -6,7 +6,7 @@ import { withoutBuiltinModule } from './host-builtin-module';
 
 // Dynamic graphs below are cast past the compiler on purpose: these tests pin runtime labels.
 type LooseBag = { resolve(key: string): unknown; inspectGraph(): GraphSnapshot; close(): Promise<void> };
-const buildLoose = (builder: unknown) => (builder as { build(): unknown }).build() as LooseBag;
+const buildLoose = (builder: unknown) => (builder as { buildContainer(): unknown }).buildContainer() as LooseBag;
 
 const page = 'https://dany-fedorov.github.io/di-bag/agent/errors.html';
 const caught = (run: () => unknown): Error & { code: string; details: Record<string, unknown> } => {

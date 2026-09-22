@@ -48,17 +48,17 @@ type ConcreteUtilities = [
 ];
 
 type ReflectedMethodsStayChecked = [
-  Assert<Equal<IsAny<ReturnType<typeof named.replace>>, false>>,
-  Assert<Equal<IsAny<ReturnType<typeof tokenBuilder.replace>>, false>>,
-  Assert<Equal<IsAny<ReturnType<typeof namedModule.replace>>, false>>,
-  Assert<Equal<IsAny<ReturnType<typeof tokenModule.replace>>, false>>,
+  Assert<Equal<IsAny<ReturnType<typeof named.withReplacedService>>, false>>,
+  Assert<Equal<IsAny<ReturnType<typeof tokenBuilder.withReplacedService>>, false>>,
+  Assert<Equal<IsAny<ReturnType<typeof namedModule.withReplacedService>>, false>>,
+  Assert<Equal<IsAny<ReturnType<typeof tokenModule.withReplacedService>>, false>>,
 ];
 
 const dependentModule = DiBag.createBuilder().withServices({
   value: () => 1,
   consumer: ({ value }: { value: number }) => value + 1,
 });
-type DependentModuleView = ReturnType<typeof dependentModule.replace>;
+type DependentModuleView = ReturnType<typeof dependentModule.withReplacedService>;
 const reflectedFeature = dependentModule.buildModule({ exportedServiceKeys: ['value', 'consumer'] });
 const reflectedBag = DiBag.createBuilder().withInstalledModules([reflectedFeature]).buildContainer();
 const reflectedValue = reflectedBag.resolve('value');

@@ -4,8 +4,8 @@ import { deferred } from './helpers';
 import { AcquisitionFamily } from '../src/acquisition-family';
 import type { AttemptIdentity } from '../src/acquisition-family';
 
-// Deliberate JS boundary: only invalid captive fixtures bypass Builder.build checks.
-function uncheckedRuntimeGraph(builder: { build: Function }) { return builder.build(); }
+// Deliberate JS boundary: only invalid captive fixtures bypass Builder.buildContainer checks.
+function uncheckedRuntimeGraph(builder: { buildContainer: Function }) { return builder.buildContainer(); }
 
 test('root, scoped and transient identity have distinct ownership', async () => {
   const log: string[] = [];
