@@ -936,7 +936,7 @@ Under the S3 fallback, use the exact `positionalChildOptions`, `positionalIndepe
 ```bash
 bun test tests/container-derivation.test.ts
 bun test tests/scopes.test.ts tests/selected-scopes.test.ts tests/runtime-diagnostics.test.ts
-bun test tests/types.test.ts --test-name-pattern 'container derivation'
+bun test tests/types.test.ts --test-name-pattern 'container derivation|container-derivation'
 npm run typecheck
 npm run typecheck:native
 ```
@@ -2065,7 +2065,7 @@ Expected: `10 ...bag is closing` and `5 ...bag is closed`. No replacement comman
 
 ```bash
 bun test tests/container-names.test.ts
-bun test tests/types.test.ts --test-name-pattern 'api renaming|container derivation'
+bun test tests/types.test.ts --test-name-pattern 'api-renaming|container derivation|container-derivation'
 grep -rnE '^class Bag\b|export type \{[^}]*\bBag\b|\b(ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
 grep -rnE '\.(createScope|fork|inspect|inspectGraph|renameExport)\(' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
 grep -rnE "operation: '(inspect|inspectGraph|createScope|fork|renameExport)'|\b(observers|onEvent|onError)\s*:" src tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
