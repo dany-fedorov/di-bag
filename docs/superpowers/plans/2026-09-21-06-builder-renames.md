@@ -2193,12 +2193,19 @@ MSG
 **Files:**
 - Modify: typed `.ts` call sites under `tests/`, `examples/`, and root `scripts/` included by `tsconfig.json`
 - Modify: `tests/types/isolated/thenable-policy.ts`
+- Prepare and preserve until Task 12: the three positional-label compatibility calls in `tests/runtime-diagnostics.test.ts`; retain the dynamic legacy controls in `tests/nested-modules.test.ts`
 - Verify and preserve: `tests/types/negative/startup.ts` (migrate its legitimate builder calls in the prior preparation commit; its two rejected old-close controls, `timeoutMs: 1` and `signal: new AbortController().signal`, remain byte-identical)
 - Create temporarily, then delete: `/tmp/di-bag-phase-05/codemod-dry-run-report.json`, `/tmp/di-bag-phase-05/codemod-manual-classification.json`, `/tmp/di-bag-phase-05/negative-startup-before.ts`, `/tmp/di-bag-phase-05/negative-startup-prepared.ts`, `/tmp/di-bag-phase-05/all-negative-files.txt`, `/tmp/di-bag-phase-05/codemod-write-negative-files.txt`, `/tmp/di-bag-phase-05/codemod-write-command.sh`, `/tmp/di-bag-phase-05/codemod-write-report.json`, `/tmp/di-bag-phase-05/codemod-generated-files.txt`, `/tmp/di-bag-phase-05/codemod-working-tree-files.txt`, `/tmp/di-bag-phase-05/codemod-manual-files.txt`, the Task 8 documentation status/log/inventory files, and the three commit-message files below
 
 **Interfaces:**
 - Consumes: Task 7's shipped map, phase 1's CLI, and Phase 4's preserved rejected old-close controls. The accumulated map still contains Phase 3's `Bag.close` option renames.
 - Produces: a compiler/runtime-green preparation commit for the coherent `startup.ts` builder projection, a pure report-generated mechanical commit, and a separate compiler/runtime-green hand commit when manual items exist. All checker-resolvable 0.4.0 builder calls in the main project use the Task 6 decision; the two old-close controls remain rejected. Generated text, JavaScript, Markdown, graph fixtures and agent-eval projects remain for later tasks.
+
+**Controller ruling from the real Tasks 1–6 tree.** At `16d24f2`, there are 24 already-new inline `buildModule` calls in the typed input: 15 in `tests/builder-renames.test.ts`, four in `tests/types/builder-renames.ts`, two in `tests/types/negative/builder-renames.ts`, and three in `tests/types/negative/installed-modules.ts`. Twenty-three are library-authenticated; the final loose runtime probe at `tests/builder-renames.test.ts:289` is deliberately unauthenticated and must remain byte-identical/unreported. Save original paths/lines before edits, verify all 24 in the preview, and do not claim real-tree named/typed bag coverage (Task 7's separate harness supplies that). Generated source strings and JSDoc are later-owned, not additional typed-input calls.
+
+The three `buildModule` calls in the `buildModule rejects malformed label options` runtime test deliberately exercise the positional compatibility branch. Preserve that branch's bad-options rejection and both valid-options controls until Task 12. In the preparation commit, make only those three calls explicit runtime controls using the established `(builder.buildModule as Function)(...)` form; retain every argument and assertion. This prevents an automatic literal-options rewrite from silently moving a valid compatibility control to the new branch. Classify the resulting uncalled-member manual rows as Task 12. Preserve the existing dynamic key-tuple/forged-module controls in `tests/nested-modules.test.ts` under that same owner; do not add another write-excluded file. Task 12 converts these controls and their assertions together when it removes compatibility.
+
+Task 8 never edits `src/**`: fail if a report-generated, preparation or hand-stage inventory contains such a path. The six public callable facades, class fields/private implementations and exports remain the reviewed Tasks 5–6 source until Task 12. A source hit requires controller inspection, not automatic staging.
 
 - [ ] **Step 1: Build declarations and preview every negative fixture**
 
@@ -2470,6 +2477,8 @@ npm run codemod:check
 bun test tests/builder-renames.test.ts
 git diff --check
 ```
+
+Before treating the generated tree as compiler/runtime green, also derive verification inputs from its report-generated file inventory. Run every changed negative fixture through `tests/types.test.ts`, selecting its exact escaped basename in the `type rejection: <file>` test name; the broad semantic-name filter alone misses unrelated negative files whose builder calls changed. Retain the selected file/name inventory and run the phase's affected positive compiler checks as well. Execute every changed runtime `.test.ts` file once, using the report-derived list and excluding compiler-lane files already handled by the compiler checks; alternatively use the established fast lane once when it is the authoritative complete set. Preserve the one-heavy-lane guard. Do not repeat an unchanged green subset just because it is printed twice in the plan. If a fixture fails because bag/list reshaping moves a diagnostic or changes an assertion, retain the failed projection and restore only report-generated paths; prepare the needed non-generated repair in a separate green prerequisite before trying the mechanical write again. Marker wording remains the current shared wording until Task 12.
 
 Every command above must pass. A manual item may remain because the old builder surface is still
 present, but it may not make this boundary compiler/runtime red. If one is a prerequisite for green,
@@ -3056,6 +3065,8 @@ export type { BuilderWithCollectionContribution } from './contribution-types';
 In `src/builder-method-types.ts`, remove only the deprecated positional overload from `BuilderBuildModule`; keep the options-bag signature and all other adopted callable facades. Apply admission wording changes to the shared underlying helpers as planned. The private `#buildModule` runtime implementation loses its positional branch while the public field retains its portable facade. Preserve both replacement overloads and all Task 5 physical declaration coverage.
 
 In `src/module.ts`, delete `ModuleOptions.label` and `positionalModuleLabel`. `sealModule` keeps `(graph, keys, moduleLabel?)`; `moduleGraph` accepts only the selected Task 6 operation (`withInstalledModules` plus `index`, or singular `withInstalledModule`). In `src/runtime.ts`, `withInstallation` reports that same new operation without an old-name default.
+
+In the same contract unit, migrate the Task 8-preserved runtime controls in `tests/runtime-diagnostics.test.ts` and `tests/nested-modules.test.ts`. Remove the temporary positional-call wrappers and exercise the final options-bag/module-list validation with equivalent invalid-key, malformed-label and forged-module cases. Update expected codes/details/messages from the actual final validation paths, retaining the rejection behavior and valid controls; do not delete the tests to make contraction green. Their Task 8 manual rows must disappear when the corresponding old surface is removed.
 
 - [ ] **Step 3: Collapse shared runtime helpers onto the new operation names**
 
