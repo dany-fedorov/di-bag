@@ -3236,8 +3236,8 @@ the phase report as well.
 ### Task 8: Remove the old collection channel and finish public documentation
 
 **Files:**
-- Modify: `src/dependency-references.ts`, `src/acquisition.ts`, `src/runtime.ts`, `src/startup.ts`, `src/scope-selection.ts`, `src/module.ts`, `src/module-types.ts`, `src/contributions.ts`, `src/contribution-types.ts`, `src/token-types.ts`, `src/provider.ts`, `src/tokens.ts`, `src/di-bag.ts`, `src/index.ts`
-- Modify: `tests/collection-tokens.test.ts`, `tests/types/negative/collection-tokens.ts`, `tests/types/negative/contributions.ts`, `tests/types/negative/api-renaming.ts`, `tests/inspect-graph.test.ts`
+- Modify: `src/dependency-references.ts`, `src/acquisition.ts`, `src/runtime.ts`, `src/inspection.ts`, `src/startup.ts`, `src/scope-selection.ts`, `src/module.ts`, `src/module-types.ts`, `src/contributions.ts`, `src/contribution-types.ts`, `src/token-types.ts`, `src/provider.ts`, `src/tokens.ts`, `src/di-bag.ts`, `src/index.ts`
+- Modify: `tests/collection-tokens.test.ts`, `tests/contributions.test.ts`, `tests/types/negative/collection-tokens.ts`, `tests/types/negative/contributions.ts`, `tests/types/negative/api-renaming.ts`, `tests/inspect-graph.test.ts`
 - Modify: `tests/api-naming-known-violations.json` (remove exactly four legacy-collection findings)
 - Modify: `docs/agent/errors.md`, `docs/agent/recipes.md`, `docs/agent/api-card.md`, `docs/guides/api-reference.md`, `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs`
 - Delete: `docs/reference/index/type-aliases/CollectionDependency.md`
@@ -3274,9 +3274,13 @@ adapter syntax. Record all five dispositions for review alongside the removed-`a
 Do not silently delete these checks or retain the adapter through a compatibility stub. In particular,
 erased collection handles must not become valid positional dependencies through this migration.
 
+Preserve the existing forged-provider runtime checks in `tests/contributions.test.ts`: the two calls that pass `{ ...provider }` and `{}` must use the already-declared valid `collection` handle, not the old single-service `token`. After contraction a single-service argument fails kind validation before the provider is inspected, masking provider authentication. Keep the fake-token/reference loop and effects assertions unchanged; verify the contribution suite after this targeted test correction.
+
 - [ ] **Step 2: Remove the old runtime and type surface**
 
 Delete `all`, `CollectionDependency`, the `'all'` generic branch and reference kind; delete `resolveAll`/`inspectAll` from `Bag`, `BagRuntime`, and `ScopeAcquisitions`; remove `all` from `DiBagApi` and `facade`; remove the export from `src/index.ts`. Rename remaining private helpers to contribution-specific names so no deleted public term survives accidentally.
+
+In `src/inspection.ts`, remove the obsolete `'all'` variant from `BindingSnapshot.tokenDependencies` and its JSDoc. Bare collection dependencies continue to appear as `'required'`. This declaration cleanup is required for the fourth naming-ratchet removal; rebuild and regenerate after it.
 
 In `src/token-types.ts`, delete `LegacyAllTokens` and the legacy `all` projection from `ReferenceGraph`; retain the required/optional/collection routing and the plain single-token tuple fast path. In `src/provider.ts`, delete only the legacy `{ readonly all: ... }` arm from `ProviderCollectionTokens`; retain its projection from the fourth `TokenDependencyContract` member. These are the declaration owners consumed by the module and lifetime checks, so omitting either leaves the legacy channel in the contracted public type graph.
 
@@ -3889,7 +3893,7 @@ Run the focused compiler fixtures and full source typecheck before any final S5 
 ```bash
 bun test tests/types.test.ts -t 'collection tokens|collection-tokens|contributions|api-renaming'
 npm run typecheck
-bun test tests/collection-tokens.test.ts
+bun test tests/collection-tokens.test.ts tests/contributions.test.ts
 ```
 
 Expected: both collection fixtures and every selected contribution/API-removal fixture pass. The collection positive fixture retains the same-handle sealed-module
