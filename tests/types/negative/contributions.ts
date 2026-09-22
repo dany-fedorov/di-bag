@@ -58,10 +58,10 @@ const erasedModuleBuilder: ReturnType<typeof DiBag.createBuilder> = DiBag.create
 builder.build().resolveCollection({});
 // diagnostic: optional requires a single-service token
 DiBag.optional(numbers);
-// diagnostic: Expected 3 arguments
-builder.contribute<never, () => number>(numbers as never, () => 1);
-// diagnostic: Expected 3 arguments
-builder.contribute<typeof numbers, never>(numbers, undefined as never);
+// diagnostic: Expected 2 arguments
+builder.withCollectionContribution<never, () => number>({ collectionToken: numbers as never, provider: () => 1 });
+// diagnostic: Expected 2 arguments
+builder.withCollectionContribution<typeof numbers, never>({ collectionToken: numbers, provider: undefined as never });
 declare const erased: import('../../../src').Registration;
 // diagnostic: not assignable
 builder.contribute(numbers, erased);

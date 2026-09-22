@@ -6,8 +6,8 @@ const annotated: Module<ModuleExportedServices<typeof feature>, ModuleRequiredSe
 const fewer: Module<{ handler: { run(): number } }, {}> = feature;
 // diagnostic: missing
 const fake: typeof feature = {};
-// diagnostic: nominal
-DiBag.createBuilder().installModule({ ...feature });
+// diagnostic: withInstalledModules requires a finite tuple of genuine modules
+DiBag.createBuilder().withInstalledModules([{ ...feature }]);
 const builder = DiBag.createBuilder().installModule(feature).register({ logger: () => ({ log(_message: string) {} }) });
 const plain = DiBag.createBuilder().register({
   service: () => ({ read() { return 1; }, extra() { return true; } }),

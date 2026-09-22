@@ -42,8 +42,8 @@ base.alias(Symbol('fake'), 'value');
 base.alias('copy', DiBag.optional(target));
 // diagnostic: singleton
 base.alias<'one' | 'two', 'value'>('one', 'value');
-// diagnostic: Expected 3 arguments
-base.alias<never, 'value'>('one' as never, 'value');
+// diagnostic: Expected 2 arguments
+base.withServiceAlias<never, 'value'>({ aliasKey: 'one' as never, targetServiceKey: 'value' });
 const root = DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root');
 // diagnostic: root lifetime cannot capture scoped dependency
 base.alias('copy', 'value').register({ root }).build();
@@ -112,8 +112,8 @@ const erasedModuleHistory: typeof moduleHistory = moduleAlias;
 const forgedDestination: Parameters<typeof base.alias>[0] = 'copy';
 // diagnostic: not assignable
 const forgedTarget: Parameters<typeof base.alias>[1] = 'value';
-// diagnostic: Expected 3 arguments
-base.alias<'copy', never>('copy', 'value' as never);
+// diagnostic: Expected 2 arguments
+base.withServiceAlias<'copy', never>({ aliasKey: 'copy', targetServiceKey: 'value' as never });
 declare const reflectedBuilder: ReturnType<typeof base.alias>;
 // diagnostic: not assignable
 reflectedBuilder.build().resolve('copy');

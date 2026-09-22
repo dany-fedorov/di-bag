@@ -14,7 +14,7 @@ service satisfies typeof service;
 // diagnostic: register requires a single-service token
 DiBag.createBuilder().register(collection, () => [1]);
 // diagnostic: alias destination requires a single-service token
-DiBag.createBuilder().register({ value: () => 1 }).alias(collection, 'value');
+DiBag.createBuilder().register({ value: (): readonly number[] => [] }).alias(collection, 'value');
 // diagnostic: optional requires a single-service token
 DiBag.optional(collection);
 // diagnostic: createScope cannot share a collection token
