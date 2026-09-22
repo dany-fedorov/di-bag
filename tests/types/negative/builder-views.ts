@@ -1,7 +1,7 @@
 import { DiBag, type Bag } from '../../../src';
 
 const empty = DiBag.createBuilder();
-const actual = empty.register({
+const actual = empty.withServices({
   value: () => 1,
   read: ({ value }: { value: number }) => value.toFixed(),
 });
@@ -17,9 +17,9 @@ const widened: ReturnType<typeof widenedAdd> = actual;
 
 // Already-rejecting neighborhood controls, not new bug claims.
 // diagnostic: not assignable
-const erasedBag: Bag<{ value: () => number | string; read: () => string }> = actual.build();
+const erasedBag: Bag<{ value: () => number | string; read: () => string }> = actual.buildContainer();
 const emptyModule = DiBag.createBuilder();
-const actualModule = emptyModule.register({
+const actualModule = emptyModule.withServices({
   value: () => 1,
   read: ({ value }: { value: number }) => value.toFixed(),
 });

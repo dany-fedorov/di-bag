@@ -44,7 +44,7 @@ const remoteFlag = DiBag.transformService(
 );
 
 async function main() {
-  const bag = DiBag.createBuilder().register({ connectionPresence, remoteFlag }).build();
+  const bag = DiBag.createBuilder().withServices({ connectionPresence, remoteFlag }).buildContainer();
   try {
     const acquired = bag.resolve('connectionPresence');
     if (acquired.present) console.log('answer:', acquired.value.read());

@@ -23,13 +23,13 @@ const number = DiBag.token(numberKey).of<number>();
 // diagnostic: composition arguments must match the declared parameter tuple
 DiBag.fromFunction([number], () => 1);
 // diagnostic: token binding output is not assignable to its service
-DiBag.createBuilder().register(number, () => 'wrong');
+DiBag.createBuilder().withTokenService(number, () => 'wrong');
 // diagnostic: does not exist
 DiBag.begin();
 // diagnostic: does not exist
 DiBag.fromTokens([number], (_number: number) => 1);
 // diagnostic: does not exist
-DiBag.createBuilder().register({ value: () => 1 }).buildAndStart(['value']);
+DiBag.createBuilder().withServices({ value: () => 1 }).buildAndStart(['value']);
 // diagnostic: has no exported member
 type RemovedStartupOptions = import('../../../src').StartupOptions;
 // diagnostic: has no exported member
@@ -38,7 +38,7 @@ type RemovedStartupError = import('../../../src').DiBagStartupError;
 type RemovedStartupCancelledError = import('../../../src').DiBagStartupCancelledError;
 const removedCollectionKey = Symbol('removed collection');
 const removedCollection = DiBag.token(removedCollectionKey).forCollectionOf<number>();
-const removedBag = DiBag.createBuilder().contribute(removedCollection, () => 1).build();
+const removedBag = DiBag.createBuilder().withCollectionContribution({ collectionToken: removedCollection, provider: () => 1 }).buildContainer();
 // diagnostic: Property 'all' does not exist
 DiBag.all(removedCollection);
 // diagnostic: Property 'resolveAll' does not exist

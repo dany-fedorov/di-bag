@@ -52,28 +52,28 @@ const provider = fromFunction([token], value => value.value);
 // diagnostic: not assignable
 const erased: Provider<() => number> = provider;
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ provider }).build();
+DiBag.createBuilder().withServices({ provider }).buildContainer();
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().installModule(DiBag.createBuilder().register({ provider }).buildModule(['provider'])).build();
+DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ provider }).buildModule({ exportedServiceKeys: ['provider'] })]).buildContainer();
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ value: () => 1 }).replace('value', provider).build();
+DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService('value', provider).buildContainer();
 // diagnostic: not assignable
 withTokenBinding(token, () => 'wrong');
 declare const erasedProvider: ProviderBase;
 // diagnostic: factory dependencies must be finite
-DiBag.createBuilder().register({ erasedProvider });
+DiBag.createBuilder().withServices({ erasedProvider });
 // diagnostic: finite tuple
 DiBag.fromFunction([token] as typeof token[], () => 1);
 // diagnostic: finite tuple
 fromFunction<readonly TokenBase[], () => number>([token], () => 1);
 declare const graphErased: Provider<() => number, {}, readonly [], import('../../../src/token-types').OpaqueGraph>;
 // diagnostic: incompatible or opaque
-DiBag.createBuilder().register({ graphErased });
+DiBag.createBuilder().withServices({ graphErased });
 // diagnostic: not assignable
-DiBag.createBuilder().register({ value: () => 1 }).build().fork(['value'], { value: provider });
+DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer().fork(['value'], { value: provider });
 const bound = withTokenBinding(token, () => ({ value: 1 }));
 // diagnostic: duplicates
-DiBag.createBuilder().register(token, bound).register(token, bound);
+DiBag.createBuilder().withTokenService(token, bound).withTokenService(token, bound);
 // diagnostic: not assignable
 fromFunction([token], (value: string) => value);
 // diagnostic: not assignable

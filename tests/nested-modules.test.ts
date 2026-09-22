@@ -6,12 +6,12 @@ import { DiBag } from '../src/node';
 // depth, lexical name resolution, and host visibility of exports only.
 
 test('one builder value yields both a bag and a module, and later operations leave the module unchanged', async () => {
-  const builder = DiBag.createBuilder().register({ value: () => 1, read: ({ value }: { value: number }) => value * 10 });
-  const bag = builder.build();
-  const module = builder.buildModule(['read']);
-  const changed = builder.replace('value', () => 5);
-  const host = DiBag.createBuilder().installModule(module).build();
-  const changedBag = changed.build();
+  const builder = DiBag.createBuilder().withServices({ value: () => 1, read: ({ value }: { value: number }) => value * 10 });
+  const bag = builder.buildContainer();
+  const module = builder.buildModule({ exportedServiceKeys: ['read'] });
+  const changed = builder.withReplacedService('value', () => 5);
+  const host = DiBag.createBuilder().withInstalledModules([module]).buildContainer();
+  const changedBag = changed.buildContainer();
   expect(bag.resolve('read')).toBe(10);
   expect(host.resolve('read')).toBe(10);
   expect(changedBag.resolve('read')).toBe(50);
@@ -22,17 +22,17 @@ test('one builder value yields both a bag and a module, and later operations lea
 test('nested installations receive fresh private identities and ownership at every depth', async () => {
   const events: string[] = [];
   let next = 0;
-  const inner = DiBag.createBuilder().register({
+  const inner = DiBag.createBuilder().withServices({
     state: DiBag.withDisposal(() => ({ id: ++next }), state => { events.push(`state${state.id}`); }),
     read: ({ state }: { state: { id: number } }) => state.id,
-  }).buildModule(['read']);
-  const outer = DiBag.createBuilder().installModule(inner).register({
+  }).buildModule({ exportedServiceKeys: ['read'] });
+  const outer = DiBag.createBuilder().withInstalledModules([inner]).withServices({
     wrap: DiBag.withDisposal(({ read }: { read: number }) => ({ read }), wrap => { events.push(`wrap${wrap.read}`); }),
-  }).buildModule(['wrap']);
+  }).buildModule({ exportedServiceKeys: ['wrap'] });
   const host = DiBag.createBuilder()
-    .installModule(outer.renameExport('wrap', 'left'))
-    .installModule(outer.renameExport('wrap', 'right'))
-    .build();
+    .withInstalledModules([outer.renameExport('wrap', 'left')])
+    .withInstalledModules([outer.renameExport('wrap', 'right')])
+    .buildContainer();
   expect(host.resolve('left')).toEqual({ read: 1 });
   expect(host.resolve('right')).toEqual({ read: 2 });
   expect(host.resolve('left')).toBe(host.resolve('left'));
@@ -47,19 +47,19 @@ test('nested installations receive fresh private identities and ownership at eve
 });
 
 test('names resolve lexically: inner scope, then the enclosing module, then the host', async () => {
-  const inner = DiBag.createBuilder().register({
+  const inner = DiBag.createBuilder().withServices({
     connection: () => 'inner-connection',
     service: ({ connection, logger, clock }: { connection: string; logger: string; clock: string }) => [connection, logger, clock],
-  }).buildModule(['service']);
+  }).buildModule({ exportedServiceKeys: ['service'] });
   const outer = DiBag.createBuilder()
-    .installModule(inner)
-    .register({ connection: () => 'outer-connection', logger: () => 'outer-logger' })
-    .register({ outerView: ({ connection, service }: { connection: string; service: string[] }) => [connection, ...service] })
-    .buildModule(['service', 'outerView']);
+    .withInstalledModules([inner])
+    .withServices({ connection: () => 'outer-connection', logger: () => 'outer-logger' })
+    .withServices({ outerView: ({ connection, service }: { connection: string; service: string[] }) => [connection, ...service] })
+    .buildModule({ exportedServiceKeys: ['service', 'outerView'] });
   const host = DiBag.createBuilder()
-    .installModule(outer)
-    .register({ connection: () => 'host-connection', logger: () => 'host-logger', clock: () => 'host-clock' })
-    .build();
+    .withInstalledModules([outer])
+    .withServices({ connection: () => 'host-connection', logger: () => 'host-logger', clock: () => 'host-clock' })
+    .buildContainer();
   expect(host.resolve('service')).toEqual(['inner-connection', 'outer-logger', 'host-clock']);
   expect(host.resolve('outerView')).toEqual(['outer-connection', 'inner-connection', 'outer-logger', 'host-clock']);
   expect(host.resolve('connection')).toBe('host-connection');
@@ -67,13 +67,13 @@ test('names resolve lexically: inner scope, then the enclosing module, then the 
 });
 
 test('host replacements, forks and scopes of an outer export reach inner consumers through the public slot', async () => {
-  const inner = DiBag.createBuilder().register({
+  const inner = DiBag.createBuilder().withServices({
     service: ({ config }: { config: { mode: string } }) => `service:${config.mode}`,
-  }).buildModule(['service']);
-  const outer = DiBag.createBuilder().installModule(inner).register({ config: () => ({ mode: 'outer' }) }).buildModule(['service', 'config']);
-  const builder = DiBag.createBuilder().installModule(outer);
-  const root = builder.build();
-  const replaced = builder.replace('config', () => ({ mode: 'replaced' })).build();
+  }).buildModule({ exportedServiceKeys: ['service'] });
+  const outer = DiBag.createBuilder().withInstalledModules([inner]).withServices({ config: () => ({ mode: 'outer' }) }).buildModule({ exportedServiceKeys: ['service', 'config'] });
+  const builder = DiBag.createBuilder().withInstalledModules([outer]);
+  const root = builder.buildContainer();
+  const replaced = builder.withReplacedService('config', () => ({ mode: 'replaced' })).buildContainer();
   const fork = root.fork(['config'], { config: () => ({ mode: 'fork' }) });
   const scope = root.createScope(['config'], { config: () => ({ mode: 'scope' }) });
   expect(root.resolve('service')).toBe('service:outer');
@@ -84,16 +84,16 @@ test('host replacements, forks and scopes of an outer export reach inner consume
 });
 
 test('renaming a nested export at the outer level keeps inner references and the inner rename intact', async () => {
-  const inner = DiBag.createBuilder().register({
+  const inner = DiBag.createBuilder().withServices({
     base: () => 2,
     doubled: ({ base }: { base: number }) => base * 2,
-  }).buildModule(['base', 'doubled']).renameExport('base', 'innerBase');
+  }).buildModule({ exportedServiceKeys: ['base', 'doubled'] }).renameExport('base', 'innerBase');
   const outer = DiBag.createBuilder()
-    .installModule(inner)
-    .register({ sum: ({ innerBase, doubled }: { innerBase: number; doubled: number }) => innerBase + doubled })
-    .buildModule(['innerBase', 'sum'])
+    .withInstalledModules([inner])
+    .withServices({ sum: ({ innerBase, doubled }: { innerBase: number; doubled: number }) => innerBase + doubled })
+    .buildModule({ exportedServiceKeys: ['innerBase', 'sum'] })
     .renameExport('innerBase', 'hostBase');
-  const host = DiBag.createBuilder().installModule(outer).register({ base: () => 100, innerBase: () => 200 }).build();
+  const host = DiBag.createBuilder().withInstalledModules([outer]).withServices({ base: () => 100, innerBase: () => 200 }).buildContainer();
   expect(host.resolve('hostBase')).toBe(2);
   expect(host.resolve('sum')).toBe(6);
   // The inner base is exported, so a host override of its final name reaches inner consumers too.
@@ -106,21 +106,21 @@ test('contributions inside nested modules install in declaration order and resol
   const groupKey = Symbol('group');
   const group = DiBag.token(groupKey).forCollectionOf<string>();
   const inner = DiBag.createBuilder()
-    .register({ secret: () => 'inner-secret' })
-    .contribute(group, ({ secret }: { secret: string }) => `inner:${secret}`)
-    .buildModule([]);
+    .withServices({ secret: () => 'inner-secret' })
+    .withCollectionContribution({ collectionToken: group, provider: ({ secret }: { secret: string }) => `inner:${secret}` })
+    .buildModule({ exportedServiceKeys: [] });
   const outer = DiBag.createBuilder()
-    .contribute(group, () => 'outer-first')
-    .installModule(inner)
-    .register({ secret: () => 'outer-secret' })
-    .contribute(group, ({ secret }: { secret: string }) => `outer:${secret}`)
-    .buildModule([]);
+    .withCollectionContribution({ collectionToken: group, provider: () => 'outer-first' })
+    .withInstalledModules([inner])
+    .withServices({ secret: () => 'outer-secret' })
+    .withCollectionContribution({ collectionToken: group, provider: ({ secret }: { secret: string }) => `outer:${secret}` })
+    .buildModule({ exportedServiceKeys: [] });
   const host = DiBag.createBuilder()
-    .contribute(group, () => 'host-first')
-    .installModule(outer)
-    .register({ secret: () => 'host-secret' })
-    .contribute(group, ({ secret }: { secret: string }) => `host:${secret}`)
-    .build();
+    .withCollectionContribution({ collectionToken: group, provider: () => 'host-first' })
+    .withInstalledModules([outer])
+    .withServices({ secret: () => 'host-secret' })
+    .withCollectionContribution({ collectionToken: group, provider: ({ secret }: { secret: string }) => `host:${secret}` })
+    .buildContainer();
   expect(host.resolveCollection(group)).toEqual(['host-first', 'outer-first', 'inner:inner-secret', 'outer:outer-secret', 'host:host-secret']);
   expect(host.inspectCollection(group)).toHaveLength(5);
   await host.close();
@@ -128,15 +128,15 @@ test('contributions inside nested modules install in declaration order and resol
 
 test('aliases survive nesting whether their target is exported or private', async () => {
   const inner = DiBag.createBuilder()
-    .register({ target: () => 'value' })
-    .alias('innerAlias', 'target')
-    .buildModule(['innerAlias']);
+    .withServices({ target: () => 'value' })
+    .withServiceAlias({ aliasKey: 'innerAlias', targetServiceKey: 'target' })
+    .buildModule({ exportedServiceKeys: ['innerAlias'] });
   const outer = DiBag.createBuilder()
-    .installModule(inner)
-    .alias('outerAlias', 'innerAlias')
-    .register({ consumer: ({ outerAlias }: { outerAlias: string }) => `${outerAlias}!` })
-    .buildModule(['outerAlias', 'consumer']);
-  const host = DiBag.createBuilder().installModule(outer).build();
+    .withInstalledModules([inner])
+    .withServiceAlias({ aliasKey: 'outerAlias', targetServiceKey: 'innerAlias' })
+    .withServices({ consumer: ({ outerAlias }: { outerAlias: string }) => `${outerAlias}!` })
+    .buildModule({ exportedServiceKeys: ['outerAlias', 'consumer'] });
+  const host = DiBag.createBuilder().withInstalledModules([outer]).buildContainer();
   expect(host.resolve('outerAlias')).toBe('value');
   expect(host.resolve('consumer')).toBe('value!');
   expect(() => (host.resolve as Function)('innerAlias')).toThrow('is not registered');
@@ -144,13 +144,13 @@ test('aliases survive nesting whether their target is exported or private', asyn
 });
 
 test('three nesting levels forward unmet requirements outward and keep replaced history private', async () => {
-  const leaf = DiBag.createBuilder().register({
+  const leaf = DiBag.createBuilder().withServices({
     leafValue: ({ external }: { external: number }) => external + 1,
-  }).buildModule(['leafValue']);
-  const middleBuilder = DiBag.createBuilder().installModule(leaf).register({ middleValue: ({ leafValue }: { leafValue: number }) => leafValue * 2 });
-  const middle = middleBuilder.replace('middleValue', ({ leafValue }: { leafValue: number }) => leafValue * 3).buildModule(['middleValue']);
-  const top = DiBag.createBuilder().installModule(middle).register({ topValue: ({ middleValue }: { middleValue: number }) => middleValue + 100 }).buildModule(['topValue']);
-  const host = DiBag.createBuilder().installModule(top).register({ external: () => 1 }).build();
+  }).buildModule({ exportedServiceKeys: ['leafValue'] });
+  const middleBuilder = DiBag.createBuilder().withInstalledModules([leaf]).withServices({ middleValue: ({ leafValue }: { leafValue: number }) => leafValue * 2 });
+  const middle = middleBuilder.withReplacedService('middleValue', ({ leafValue }: { leafValue: number }) => leafValue * 3).buildModule({ exportedServiceKeys: ['middleValue'] });
+  const top = DiBag.createBuilder().withInstalledModules([middle]).withServices({ topValue: ({ middleValue }: { middleValue: number }) => middleValue + 100 }).buildModule({ exportedServiceKeys: ['topValue'] });
+  const host = DiBag.createBuilder().withInstalledModules([top]).withServices({ external: () => 1 }).buildContainer();
   expect(host.resolve('topValue')).toBe(106);
   const missing = (DiBag.createBuilder().installModule as Function)(top).build();
   expect(() => missing.resolve('topValue')).toThrow('dependency "external" is not registered');
@@ -160,9 +160,9 @@ test('three nesting levels forward unmet requirements outward and keep replaced 
 test('an outer module with no exports still installs nested contributions and nothing else', async () => {
   const groupKey = Symbol('group');
   const group = DiBag.token(groupKey).forCollectionOf<number>();
-  const inner = DiBag.createBuilder().register({ hidden: () => 1 }).contribute(group, ({ hidden }: { hidden: number }) => hidden).buildModule(['hidden']);
-  const outer = DiBag.createBuilder().installModule(inner).buildModule([]);
-  const host = DiBag.createBuilder().installModule(outer).build();
+  const inner = DiBag.createBuilder().withServices({ hidden: () => 1 }).withCollectionContribution({ collectionToken: group, provider: ({ hidden }: { hidden: number }) => hidden }).buildModule({ exportedServiceKeys: ['hidden'] });
+  const outer = DiBag.createBuilder().withInstalledModules([inner]).buildModule({ exportedServiceKeys: [] });
+  const host = DiBag.createBuilder().withInstalledModules([outer]).buildContainer();
   expect(host.resolveCollection(group)).toEqual([1]);
   expect(() => (host.resolve as Function)('hidden')).toThrow('is not registered');
   await host.close();
@@ -170,13 +170,13 @@ test('an outer module with no exports still installs nested contributions and no
 
 test('startup and child scopes acquire nested exports through the host runtime', async () => {
   const events: string[] = [];
-  const inner = DiBag.createBuilder().register({
+  const inner = DiBag.createBuilder().withServices({
     resource: DiBag.withDisposal(async () => { events.push('open'); return 'ready'; }, () => { events.push('close'); }),
-  }).buildModule(['resource']);
-  const outer = DiBag.createBuilder().installModule(inner).register({
+  }).buildModule({ exportedServiceKeys: ['resource'] });
+  const outer = DiBag.createBuilder().withInstalledModules([inner]).withServices({
     scoped: DiBag.withLifetime(({ resource }: { resource: Promise<string> }) => resource, 'scoped'),
-  }).buildModule(['resource', 'scoped']);
-  const host = await DiBag.createBuilder().installModule(outer).build().ensureServicesReady(['resource']);
+  }).buildModule({ exportedServiceKeys: ['resource', 'scoped'] });
+  const host = await DiBag.createBuilder().withInstalledModules([outer]).buildContainer().ensureServicesReady(['resource']);
   expect(events).toEqual(['open']);
   const child = host.createScope({ share: ['resource'] });
   expect(await child.resolve('scoped')).toBe('ready');
@@ -186,10 +186,10 @@ test('startup and child scopes acquire nested exports through the host runtime',
 });
 
 test('sealing rejects unknown keys and forged modules exactly as before', () => {
-  const builder = DiBag.createBuilder().register({ a: () => 1 });
+  const builder = DiBag.createBuilder().withServices({ a: () => 1 });
   expect(() => (builder.buildModule as Function)(['missing'])).toThrow('existing names or typed tokens only');
   expect(() => (builder.buildModule as Function)('a')).toThrow('key tuple');
-  const module = builder.buildModule(['a']);
+  const module = builder.buildModule({ exportedServiceKeys: ['a'] });
   expect(() => (DiBag.createBuilder().installModule as Function)({ ...module })).toThrow('genuine module');
-  expect(() => (DiBag.createBuilder().register({ a: () => 2 }).installModule as Function)(module)).toThrow('duplicate registration: a');
+  expect(() => (DiBag.createBuilder().withServices({ a: () => 2 }).installModule as Function)(module)).toThrow('duplicate registration: a');
 });

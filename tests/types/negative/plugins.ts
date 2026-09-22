@@ -18,19 +18,19 @@ declare const broad: readonly [typeof number, ...typeof number[]];
 DiBag.fromPlugin(broad, unknownPlugin, { acquisitionMode: 'raw', validate: valid });
 const requiredPlugin = DiBag.fromPlugin([number], unknownPlugin, { acquisitionMode: 'raw', validate: valid });
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ requiredPlugin }).build();
+DiBag.createBuilder().withServices({ requiredPlugin }).buildContainer();
 const rootPlugin = DiBag.withLifetime(requiredPlugin, 'root');
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register(number, () => 1).register({ rootPlugin }).build();
+DiBag.createBuilder().withTokenService(number, () => 1).withServices({ rootPlugin }).buildContainer();
 const raw = DiBag.fromPlugin([], unknownPlugin, { acquisitionMode: 'raw', validate: valid });
 const native = DiBag.fromPlugin([], unknownPlugin, { acquisitionMode: 'nativePromise', validate: valid });
 // diagnostic: No overload matches
 DiBag.withDisposal(raw, (value: Promise<{ run(): number }>) => { void value; });
 // diagnostic: No overload matches
 DiBag.withDisposal(native, (value: Promise<{ run(): number }>) => { void value; });
-const privateFeature = DiBag.createBuilder().register(number, () => 1).register({ privatePlugin: requiredPlugin }).buildModule(['privatePlugin']);
+const privateFeature = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ privatePlugin: requiredPlugin }).buildModule({ exportedServiceKeys: ['privatePlugin'] });
 // diagnostic: not assignable
-DiBag.createBuilder().installModule(privateFeature).build().resolve(number);
+DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer().resolve(number);
 declare const erased: ProviderBase;
 declare const erasedOutput: ProviderOutput<typeof erased>;
 // diagnostic: not assignable

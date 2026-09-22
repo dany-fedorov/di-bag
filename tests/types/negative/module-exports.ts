@@ -1,23 +1,23 @@
 import { DiBag } from '../../../src';
-const module = DiBag.createBuilder().register({ a: () => 1, b: () => 2 });
+const module = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 });
 // diagnostic: existing names or typed tokens only
-module.buildModule(['missing']);
+module.buildModule({ exportedServiceKeys: ['missing'] });
 const widened = ['a'];
 // diagnostic: finite tuple
-module.buildModule(widened);
+module.buildModule({ exportedServiceKeys: widened });
 declare const union: 'a' | 'b';
 // diagnostic: finite tuple
-module.buildModule([union]);
+module.buildModule({ exportedServiceKeys: [union] });
 declare const optional: readonly ['a'?];
 // diagnostic: finite tuple
-module.buildModule(optional);
+module.buildModule({ exportedServiceKeys: optional });
 declare const variadic: readonly ['a', ...'b'[]];
 // diagnostic: finite tuple
-module.buildModule(variadic);
+module.buildModule({ exportedServiceKeys: variadic });
 declare const template: `prefix:${string}`;
 // diagnostic: finite tuple
-module.buildModule([template]);
+module.buildModule({ exportedServiceKeys: [template] });
 // diagnostic: finite tuple
-module.buildModule([Symbol('a')]);
+module.buildModule({ exportedServiceKeys: [Symbol('a')] });
 // diagnostic: register introduces new names or typed tokens only
-DiBag.createBuilder().installModule(module.buildModule(['a'])).installModule(module.buildModule(['a']));
+DiBag.createBuilder().withInstalledModules([module.buildModule({ exportedServiceKeys: ['a'] })]).withInstalledModules([module.buildModule({ exportedServiceKeys: ['a'] })]);

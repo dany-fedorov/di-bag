@@ -11,10 +11,10 @@ export type Exact = [Assert<Equal<typeof result, Promise<{ value: number }>>>,
   Assert<Equal<ProviderRegistrationMetadata<typeof provider>, Readonly<{ team: 'core' }>>>,
   Assert<Equal<ReturnType<typeof inferredObserver>, typeof observed>>,
   Assert<Equal<typeof inspected.registrationMetadata, Readonly<{ team: 'core' }>>>];
-begin().installModule(feature).build().resolve('value');
-begin().register({ value: provider }).buildModule(['value']);
-installed.resolve('value'); fork.resolve('copy'); builder.build();
-composed.createBuilder().build(); configured.createBuilder().build();
+begin().withInstalledModules([feature]).buildContainer().resolve('value');
+begin().withServices({ value: provider }).buildModule({ exportedServiceKeys: ['value'] });
+installed.resolve('value'); fork.resolve('copy'); builder.buildContainer();
+composed.createBuilder().buildContainer(); configured.createBuilder().buildContainer();
 // @ts-expect-error provider output remains exact through observed facade declarations
 bag.fork(['value'], { value: () => 1 });
 // @ts-expect-error required error callback survives inference and physical declarations

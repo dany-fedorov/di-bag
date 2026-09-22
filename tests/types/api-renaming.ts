@@ -19,12 +19,12 @@ type _RegisterReflection = Assert<Equal<Parameters<typeof empty.register>['lengt
 // Explicit interface arguments can supply the required index through an intersection.
 interface InterfaceRegistrations { value: () => number }
 declare const interfaceRegistrations: InterfaceRegistrations & Record<string, Registration>;
-const interfaceValue = empty.register<InterfaceRegistrations>(interfaceRegistrations).build().resolve('value');
+const interfaceValue = empty.withServices<InterfaceRegistrations>(interfaceRegistrations).buildContainer().resolve('value');
 type _InterfaceRegistration = Assert<Equal<typeof interfaceValue, number>>;
 const numberKey = Symbol('number');
 const numberToken = api.token(numberKey).of<number>();
 const provider = api.fromFactory(({ number }: { number: number }, context) => ({ number, signal: context.signal }), { context: 'acquisition' });
-const bag = empty.register(numberToken, () => 1).register({ number: () => 2, provider }).build();
+const bag = empty.withTokenService(numberToken, () => 1).withServices({ number: () => 2, provider }).buildContainer();
 const output: number = bag.resolve('provider').number;
 const pluginFactory: PluginProviderFactory = api.fromPlugin;
 void output; void pluginFactory;

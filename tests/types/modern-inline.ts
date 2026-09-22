@@ -23,7 +23,7 @@ const providers = {
   service: () => ({ read() { return Number(1); }, extra() { return true; } }),
   promised: async () => 7,
 };
-const root = DiBag.createBuilder().register(providers).build();
+const root = DiBag.createBuilder().withServices(providers).buildContainer();
 const overrides = {
   service: () => ({ read() { return 3; }, extra() { return true; }, richer() { return 9; } }),
   promised: async ({service}: {service: {richer(): number}}) => service.richer(),

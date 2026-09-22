@@ -1,12 +1,12 @@
 import { DiBag } from '../../../src';
 // diagnostic: fork accepts existing names or typed tokens only
-DiBag.createBuilder().register({
+DiBag.createBuilder().withServices({
     clock: () => ({
       now() {
         return 42;
       },
     }),
-  }).build().fork(['newClock'], {
+  }).buildContainer().fork(['newClock'], {
     newClock: () => ({
       now() {
         return 7;

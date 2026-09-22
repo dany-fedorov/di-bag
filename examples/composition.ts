@@ -33,19 +33,19 @@ async function main() {
   const label = DiBag.token(labelKey).of<string>();
   const clientAlias = DiBag.token(clientAliasKey).of<Client>();
   const bag = DiBag.createBuilder()
-    .register(port, () => 8080)
-    .register(client, DiBag.fromClass([port], Client))
-    .alias(clientAlias, client)
-    .register(path, () => 'health')
-    .register({
+    .withTokenService(port, () => 8080)
+    .withTokenService(client, DiBag.fromClass([port], Client))
+    .withServiceAlias({ aliasKey: clientAlias, targetServiceKey: client })
+    .withTokenService(path, () => 'health')
+    .withServices({
       endpoint: DiBag.fromFunction([client, path], endpoint),
       reporter: DiBag.fromClass(
         [DiBag.lazy(clientAlias), DiBag.optional(label)],
         Reporter,
       ),
     })
-    .alias('report', 'reporter')
-    .build();
+    .withServiceAlias({ aliasKey: 'report', targetServiceKey: 'reporter' })
+    .buildContainer();
   const url = bag.resolve('endpoint');
   assert.equal(url, 'http://localhost:8080/health');
   assert.equal(bag.resolve('reporter').describe(), 'service at localhost:8080');

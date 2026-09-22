@@ -7,14 +7,14 @@ test('destructuring, direct reads, and positional adapters keep working', async 
   const key = Symbol('logger');
   const loggerToken = DiBag.token(key).of<Logger>();
   const bag = DiBag.createBuilder()
-    .register(loggerToken, () => ({ log() {} }))
-    .register({
+    .withTokenService(loggerToken, () => ({ log() {} }))
+    .withServices({
       logger: (): Logger => ({ log() {} }),
       direct: (deps: { logger: Logger }) => typeof deps.logger.log,
       destructured: ({ logger }: { logger: Logger }) => typeof logger.log,
       positional: DiBag.fromFunction([loggerToken], logger => typeof logger.log),
     })
-    .build();
+    .buildContainer();
   expect(bag.resolve('direct')).toBe('function');
   expect(bag.resolve('destructured')).toBe('function');
   expect(bag.resolve('positional')).toBe('function');
@@ -31,10 +31,10 @@ const accesses: ReadonlyArray<readonly [string, (deps: object) => unknown, strin
 
 for (const [name, access, fragment] of accesses) test(`${name} on the dependency object throws DI_BAG_INVALID_DEPENDENCY_ACCESS`, async () => {
   let calls = 0;
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     logger: (): Logger => ({ log() {} }),
     probe: (deps: { logger: Logger }) => { calls++; return access(deps); },
-  }).build();
+  }).buildContainer();
   let caught: unknown;
   try { bag.resolve('probe'); } catch (error) { caught = error; }
   expect(caught).toBeInstanceOf(Error);
@@ -51,7 +51,7 @@ for (const [name, access, fragment] of accesses) test(`${name} on the dependency
 });
 
 test('enumeration inside a fork override is rejected the same way', async () => {
-  const root = DiBag.createBuilder().register({ value: () => 1, reader: ({ value }: { value: number }) => value }).build();
+  const root = DiBag.createBuilder().withServices({ value: () => 1, reader: ({ value }: { value: number }) => value }).buildContainer();
   const fork = root.fork(['reader'], { reader: (deps: { value: number }) => Object.keys(deps).length });
   expect(() => fork.resolve('reader')).toThrow('enumeration (Object.keys, spread, JSON.stringify) is not supported');
   await fork.close();

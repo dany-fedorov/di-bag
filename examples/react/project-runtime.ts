@@ -12,7 +12,7 @@ export interface ProjectRuntime {
  * the exclusive resource: two runtimes for one project cannot hold it at once.
  */
 export function createProjectBuilder(app: AppServices, projectId: string) {
-  return DiBag.createBuilder().register({
+  return DiBag.createBuilder().withServices({
     projectId: DiBag.fromSyncFactory(() => projectId),
     storage: DiBag.fromSyncFactory((): Storage => app.storage),
     transport: DiBag.fromSyncFactory((): Transport => app.transport),
@@ -50,7 +50,7 @@ export function createProjectBuilder(app: AppServices, projectId: string) {
 
 /** Start a project runtime; `options.abortSignal` cancels the wait and releases what was acquired. */
 export async function createProjectRuntime(app: AppServices, projectId: string, options?: EnsureServicesReadyOptions): Promise<ProjectRuntime> {
-  const bag = await createProjectBuilder(app, projectId).build().ensureServicesReady(['lock', 'manifest', 'documents'], options);
+  const bag = await createProjectBuilder(app, projectId).buildContainer().ensureServicesReady(['lock', 'manifest', 'documents'], options);
   const [manifest, documents] = await Promise.all([bag.resolve('manifest'), bag.resolve('documents')]);
   const services: ProjectServices = { projectId, name: manifest.name, documents };
   return { services, close: closeOptions => bag.close(closeOptions) };

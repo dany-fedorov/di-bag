@@ -4,14 +4,14 @@ const key: unique symbol = Symbol('token');
 const missingKey: unique symbol = Symbol('token');
 const token = DiBag.token(key).of<{ id: number }>();
 const missingToken = DiBag.token(missingKey).of<{ id: number }>();
-const feature = DiBag.createBuilder().register({
+const feature = DiBag.createBuilder().withServices({
   hidden: ({ config }: { config: { id: string } }) => config.id,
   service: ({ hidden }: { hidden: string }) => hidden,
-}).buildModule(['service']);
-const parent = DiBag.createBuilder().installModule(feature).register(token, () => ({ id: 1 })).register({
+}).buildModule({ exportedServiceKeys: ['service'] });
+const parent = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(token, () => ({ id: 1 })).withServices({
   config: () => ({ id: 'parent' }),
   transient: DiBag.withLifetime(() => 1, 'transient'),
-}).build();
+}).buildContainer();
 
 // diagnostic: createScope share accepts existing names or typed tokens only
 parent.createScope({ share: ['missing'] });
@@ -57,10 +57,10 @@ parent.createScope<readonly ['config'], {}>(['config'], {});
 // diagnostic: Object literal may only specify known properties
 parent.createScope({ share: [], extra: true });
 
-const roots = DiBag.createBuilder().register({
+const roots = DiBag.createBuilder().withServices({
   config: DiBag.withLifetime(() => ({ id: 'root' }), 'root'),
   service: DiBag.withLifetime(({ config }: { config: { id: string } }) => config.id, 'root'),
-}).build();
+}).buildContainer();
 const child = roots.createScope(['config'], { config: () => ({ id: 'child' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
 child.fork();

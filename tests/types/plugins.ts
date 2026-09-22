@@ -31,8 +31,8 @@ export const references = DiBag.fromPlugin([number, DiBag.optional(optional), Di
 });
 export const rawOwned = DiBag.withDisposal(raw, value => { const exact: Handler = value; void exact; });
 export const nativeOwned = DiBag.withDisposal(native, value => { const exact: Handler = value; void exact; });
-export const feature = DiBag.createBuilder().register(handler, raw).buildModule([handler]);
-export const bag = DiBag.createBuilder().register(number, DiBag.fromFactory(() => 7, { acquisitionMode: 'raw' })).installModule(feature).build();
+export const feature = DiBag.createBuilder().withTokenService(handler, raw).buildModule({ exportedServiceKeys: [handler] });
+export const bag = DiBag.createBuilder().withTokenService(number, DiBag.fromFactory(() => 7, { acquisitionMode: 'raw' })).withInstalledModules([feature]).buildContainer();
 export const value = bag.resolve(handler);
 export const fromPlugin = DiBag.fromPlugin;
 export const extracted = fromPlugin([], selected, {
@@ -45,8 +45,8 @@ export const privatePlugin = DiBag.fromPlugin([privateToken], selected, {
   acquisitionMode: 'raw',
   validate: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
 });
-export const privateFeature = DiBag.createBuilder().register(privateToken, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).register({ privatePlugin }).buildModule(['privatePlugin']);
-export const privateBag = DiBag.createBuilder().installModule(privateFeature).build();
+export const privateFeature = DiBag.createBuilder().withTokenService(privateToken, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).withServices({ privatePlugin }).buildModule({ exportedServiceKeys: ['privatePlugin'] });
+export const privateBag = DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();
 export type Exact = [
   Assert<Equal<typeof value, Handler>>,
   Assert<Equal<ProviderOutput<typeof raw>, Handler>>,

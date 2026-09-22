@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-const root = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).build();
+const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildContainer();
 declare const widened: ('a' | 'b')[];
 declare const variadic: readonly ['a', ...'b'[]];
 declare const optional: readonly ['a', 'b'?];

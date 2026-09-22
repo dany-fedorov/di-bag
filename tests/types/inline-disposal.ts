@@ -1,7 +1,7 @@
 import { DiBag } from '../../src';
 import type { Assert, Equal } from './assert';
 
-const bag = DiBag.createBuilder().register({
+const bag = DiBag.createBuilder().withServices({
     clock: () => ({
       now() {
         return 42;
@@ -27,7 +27,7 @@ const bag = DiBag.createBuilder().register({
         resource.close();
       },
     ),
-  }).build();
+  }).buildContainer();
 
 const resource = bag.resolve('resource');
 type Resource = Assert<

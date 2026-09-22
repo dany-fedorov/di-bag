@@ -6,7 +6,7 @@ const tokenKey = Symbol('token');
 export const tokenService = DiBag.token(tokenKey).of<{ id: number }>();
 
 export const feature = DiBag.createBuilder()
-  .register({
+  .withServices({
     privateCache: DiBag.withLifetime((): PrivateCacheShape => ({ entries: new Map() }), 'root'),
     // Private root with an external need: its key survives only as a quoted `consumer` and `root` value.
     privateHelper: DiBag.withLifetime(({ privateCache, clock }: { privateCache: PrivateCacheShape; clock: () => number }) => (key: string) => (privateCache.entries.get(key) ?? 0) + clock(), 'root'),
@@ -17,5 +17,5 @@ export const feature = DiBag.createBuilder()
     // Private consumer of an export: a checked constraint the host must keep satisfying.
     privateConsumer: ({ service }: { service: { read(key: string): number } }) => service.read('x'),
   })
-  .register(tokenService, () => ({ id: 1 }))
-  .buildModule(['service', 'passthrough', tokenService]);
+  .withTokenService(tokenService, () => ({ id: 1 }))
+  .buildModule({ exportedServiceKeys: ['service', 'passthrough', tokenService] });

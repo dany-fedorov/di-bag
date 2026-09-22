@@ -5,13 +5,13 @@ import { DiBag } from '../src/node';
 test('inspectGraph lists public bindings in registration order without acquiring', async () => {
   let created = 0;
   const bag = DiBag.createBuilder()
-    .register({
+    .withServices({
       config: DiBag.withLifetime(() => { created++; return { url: 'x' }; }, 'root'),
       db: DiBag.withLifetime(DiBag.withDisposal(({ config }: { config: { url: string } }) => { created++; return { url: config.url }; }, () => {}), 'root'),
     })
-    .register({ handler: DiBag.withMetadata(({ db }: { db: { url: string } }) => () => db.url, { static: { 'app:kind': 'http' } }) })
-    .alias('client', 'db')
-    .build();
+    .withServices({ handler: DiBag.withMetadata(({ db }: { db: { url: string } }) => () => db.url, { static: { 'app:kind': 'http' } }) })
+    .withServiceAlias({ aliasKey: 'client', targetServiceKey: 'db' })
+    .buildContainer();
   const graph = bag.inspectGraph();
   expect(created).toBe(0);
   expect(Object.isFrozen(graph)).toBe(true);
@@ -32,14 +32,14 @@ test('inspectGraph reports observed edges, contributions, private module binding
   const toolsKey = Symbol('tools');
   const tools = DiBag.token(toolsKey).forCollectionOf<string>();
   const feature = DiBag.createBuilder()
-    .register({ secret: () => 'hidden', exported: ({ secret }: { secret: string }) => secret.length })
-    .contribute(tools, () => 'a')
-    .buildModule(['exported']);
+    .withServices({ secret: () => 'hidden', exported: ({ secret }: { secret: string }) => secret.length })
+    .withCollectionContribution({ collectionToken: tools, provider: () => 'a' })
+    .buildModule({ exportedServiceKeys: ['exported'] });
   const bag = DiBag.createBuilder()
-    .installModule(feature)
-    .contribute(tools, ({ exported }: { exported: number }) => `b${exported}`)
-    .register({ reader: DiBag.fromFunction([tools, DiBag.optional(tool)], (values, _maybe) => values.length) })
-    .build();
+    .withInstalledModules([feature])
+    .withCollectionContribution({ collectionToken: tools, provider: ({ exported }: { exported: number }) => `b${exported}` })
+    .withServices({ reader: DiBag.fromFunction([tools, DiBag.optional(tool)], (values, _maybe) => values.length) })
+    .buildContainer();
 
   const before = bag.inspectGraph();
   const labels = before.bindings.map(binding => binding.label);
@@ -73,7 +73,7 @@ test('inspectGraph reports observed edges, contributions, private module binding
 });
 
 test('a child scope reports its own scope id and the family edges', async () => {
-  const root = DiBag.createBuilder().register({ shared: DiBag.withLifetime(() => 1, 'root'), local: ({ shared }: { shared: number }) => shared + 1 }).build();
+  const root = DiBag.createBuilder().withServices({ shared: DiBag.withLifetime(() => 1, 'root'), local: ({ shared }: { shared: number }) => shared + 1 }).buildContainer();
   const child = root.createScope();
   expect(child.inspectGraph().scopeId).not.toBe(root.inspectGraph().scopeId);
   expect(child.resolve('local')).toBe(2);

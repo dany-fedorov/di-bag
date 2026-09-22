@@ -12,9 +12,9 @@ DiBag.transformService(source, { mode: 'direct', transform: function (this: { pr
 DiBag.transformService(source, { mode: 'awaited', transform: function (this: { prefix: string }, value) { return this.prefix + value.value; } });
 const mapped = DiBag.transformService(source, { mode: 'direct', transform: value => value.value });
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ mapped }).build();
+DiBag.createBuilder().withServices({ mapped }).buildContainer();
 // diagnostic: consumer dependency
-DiBag.createBuilder().register({ mapped, clock: () => 'wrong' });
+DiBag.createBuilder().withServices({ mapped, clock: () => 'wrong' });
 // diagnostic: not assignable
 DiBag.withDisposal(mapped, (value: string) => {});
 // diagnostic: not assignable
@@ -29,28 +29,28 @@ DiBag.transformService(opaque, { mode: 'direct', transform: (value: number) => v
 DiBag.transformService(opaque, { mode: 'awaited', transform: (value: number) => value });
 // diagnostic: factory dependencies must be finite
 // diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ mapped: DiBag.transformService(opaque, { mode: 'direct', transform: () => 1 }) }).build();
+DiBag.createBuilder().withServices({ mapped: DiBag.transformService(opaque, { mode: 'direct', transform: () => 1 }) }).buildContainer();
 // diagnostic: factory dependencies must be finite
 // diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ mapped: DiBag.transformService(opaque, { mode: 'awaited', transform: () => 1 }) }).build();
+DiBag.createBuilder().withServices({ mapped: DiBag.transformService(opaque, { mode: 'awaited', transform: () => 1 }) }).buildContainer();
 // diagnostic: factory dependencies must be finite
 // diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ mapped: DiBag.withDisposal(DiBag.transformService(opaque, { mode: 'direct', transform: () => 1 }), () => {}) }).build();
+DiBag.createBuilder().withServices({ mapped: DiBag.withDisposal(DiBag.transformService(opaque, { mode: 'direct', transform: () => 1 }), () => {}) }).buildContainer();
 // diagnostic: factory dependencies must be finite
 // diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ mapped: DiBag.transformService(DiBag.withDisposal(opaque, () => {}), { mode: 'awaited', transform: () => 1 }) }).build();
+DiBag.createBuilder().withServices({ mapped: DiBag.transformService(DiBag.withDisposal(opaque, () => {}), { mode: 'awaited', transform: () => 1 }) }).buildContainer();
 declare const wrapped: NoInfer<Registration>;
 // diagnostic: factory dependencies must be finite
 // diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ mapped: DiBag.transformService(wrapped, { mode: 'direct', transform: () => 1 }) }).build();
+DiBag.createBuilder().withServices({ mapped: DiBag.transformService(wrapped, { mode: 'direct', transform: () => 1 }) }).buildContainer();
 // diagnostic: factory dependencies must be finite
 // diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ mapped: DiBag.transformService(wrapped, { mode: 'awaited', transform: () => 1 }) }).build();
+DiBag.createBuilder().withServices({ mapped: DiBag.transformService(wrapped, { mode: 'awaited', transform: () => 1 }) }).buildContainer();
 // diagnostic: factory dependencies must be finite
 // diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ mapped: DiBag.withDisposal(wrapped, () => {}) }).build();
+DiBag.createBuilder().withServices({ mapped: DiBag.withDisposal(wrapped, () => {}) }).buildContainer();
 // diagnostic: factory dependencies must be finite
-DiBag.createBuilder().register({ mapped: DiBag.withDisposal(DiBag.transformService(wrapped, { mode: 'awaited', transform: () => 1 }), () => {}) }).buildModule(['mapped']);
+DiBag.createBuilder().withServices({ mapped: DiBag.withDisposal(DiBag.transformService(wrapped, { mode: 'awaited', transform: () => 1 }), () => {}) }).buildModule({ exportedServiceKeys: ['mapped'] });
 // diagnostic: read-only
 DiBag.withDisposal(() => 1, () => {}).create = () => 2;
 // diagnostic: not assignable

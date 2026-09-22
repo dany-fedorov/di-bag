@@ -168,10 +168,10 @@ test('pruning the last positional token reference releases its kind only in the 
   expect(() => original.withTokenKind(key, 'single-service', 'register'))
     .toThrow('DI_BAG_WRONG_TOKEN_KIND');
 
-  const originalBuilder = DiBag.createBuilder().register({
+  const originalBuilder = DiBag.createBuilder().withServices({
     consumer: DiBag.fromFunction([collection], values => values.length),
   });
-  const updatedBuilder = originalBuilder.replace('consumer', () => 0);
+  const updatedBuilder = originalBuilder.withReplacedService('consumer', () => 0);
   expect(() => (updatedBuilder as any).register(service, () => 1)).not.toThrow();
   expect(() => (originalBuilder as any).register(service, () => 1))
     .toThrow('DI_BAG_WRONG_TOKEN_KIND');

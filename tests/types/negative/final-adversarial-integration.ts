@@ -1,10 +1,10 @@
 import { DiBag } from '../../../src';
 
 const annotatedValue = { annotated: true as const, port: 8080 };
-const base = DiBag.createBuilder().register({
+const base = DiBag.createBuilder().withServices({
   annotated: () => annotatedValue,
   plugin: () => ({ plugin: true as const, port: 8080 }),
-}).build();
+}).buildContainer();
 
 // diagnostic: createScope cannot share and override the same token
 base.createScope(['annotated'], { annotated: () => annotatedValue }, { share: ['annotated'] });

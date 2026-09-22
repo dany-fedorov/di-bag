@@ -22,7 +22,7 @@ test('metadata is lazy, ordered, copied with hidden symbols, and retained after 
     return metadata;
   } } });
   const value = DiBag.transformService(DiBag.withMetadata(first, { dynamic: { mode: 'direct', describe: result => ({ second: result.origin }) } }), { mode: 'direct', transform: result => result.value });
-  const bag = DiBag.createBuilder().register({ value }).build();
+  const bag = DiBag.createBuilder().withServices({ value }).buildContainer();
   expect(calls).toBe(0);
   expect(bag.inspect('value').acquisitions).toEqual([]);
   expect(bag.resolve('value')).toBe(payload);
@@ -55,7 +55,7 @@ test('immediate metadata retains raw Promise identity, policy, and outer dispose
   const raw = PortableDiBag.fromFactory(() => gate.promise, { acquisitionMode: 'raw' });
   const source = PortableDiBag.withMetadata(PortableDiBag.transformService(raw, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'raw' } }), { static: { team: 'native' } });
   const annotated = PortableDiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: value => ({ exact: value }) } });
-  const bag = PortableDiBag.createBuilder().register({ value: PortableDiBag.withDisposal(annotated, value => { disposed = value; }) }).build();
+  const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.withDisposal(annotated, value => { disposed = value; }) }).buildContainer();
   expect(bag.resolve('value')).toBe(gate.promise);
   expect(bag.inspect('value').acquisitions[0]!.state).toBe('ready');
   await bag.close();
@@ -67,7 +67,7 @@ test('immediate metadata retains raw Promise identity, policy, and outer dispose
 test('async metadata awaits raw thenables and exposes a native Promise', async () => {
   const raw = { then(resolve: (value: { origin: string }) => unknown) { return resolve({ origin: 'remote' }); } };
   const source = PortableDiBag.fromFactory(() => raw, { acquisitionMode: 'raw' });
-  const bag = PortableDiBag.createBuilder().register({ value: PortableDiBag.withMetadata(source, { dynamic: { mode: 'awaited', describe: result => ({ origin: result.origin }) } }) }).build();
+  const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.withMetadata(source, { dynamic: { mode: 'awaited', describe: result => ({ origin: result.origin }) } }) }).buildContainer();
   const value = bag.resolve('value');
   expect(value).toBeInstanceOf(Promise);
   expect(bag.inspect('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: false }]);
@@ -80,9 +80,9 @@ test('native acquisition remains pending and disposes fulfilled values after imm
   const gate = deferred<number>();
   const disposed: number[] = [];
   const source = PortableDiBag.fromFactory(() => gate.promise, { acquisitionMode: 'nativePromise' });
-  const bag = PortableDiBag.createBuilder().register({ value: PortableDiBag.withDisposal(
+  const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.withDisposal(
     PortableDiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: promise => ({ promise }) } }), value => { disposed.push(value); },
-  ) }).build();
+  ) }).buildContainer();
   expect(bag.resolve('value')).toBe(gate.promise);
   expect(bag.inspect('value').acquisitions[0]!.state).toBe('pending');
   const closing = bag.close();
@@ -99,7 +99,7 @@ test('annotation errors preserve original failures, cleanup, and independent ret
     if (value === 1) throw cause;
     return { attempt: value };
   } } });
-  const bag = DiBag.createBuilder().register({ service }).build();
+  const bag = DiBag.createBuilder().withServices({ service }).buildContainer();
   let failure: unknown;
   try { bag.resolve('service'); } catch (error) { failure = error; }
   expect(failure).toBe(cause);
@@ -117,10 +117,10 @@ test('async annotation rejection cleans source ownership and skips failed source
   const cause = new Error('annotation');
   const disposed: number[] = [];
   let called = false;
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     annotation: DiBag.withMetadata(DiBag.withDisposal(async () => 1, value => { disposed.push(value); }), { dynamic: { mode: 'awaited', describe: () => { throw cause; } } }),
     source: DiBag.withMetadata(() => { throw cause; }, { dynamic: { mode: 'awaited', describe: () => { called = true; return {}; } } }),
-  }).build();
+  }).buildContainer();
   await expect(bag.resolve('annotation')).rejects.toBe(cause);
   await expect(bag.resolve('source')).rejects.toBe(cause);
   await bag.close();
@@ -135,7 +135,7 @@ test('metadata callbacks and returned records reject malformed and asynchronous 
       : DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: callback } });
     expect(() => decorate(null as never)).toThrow();
     for (const invalid of [null, undefined, 1, 'metadata', [], () => ({}), Promise.resolve({}), { then() {} }, Object.create({ then() {} })]) {
-      const bag = DiBag.createBuilder().register({ value: decorate((() => invalid) as never) }).build();
+      const bag = DiBag.createBuilder().withServices({ value: decorate((() => invalid) as never) }).buildContainer();
       if (!async) expect(() => bag.resolve('value')).toThrow();
       else await expect(bag.resolve('value')).rejects.toThrow();
       await bag.close();
@@ -146,9 +146,9 @@ test('metadata callbacks and returned records reject malformed and asynchronous 
 test('annotations retain present undefined values and add no ownership', async () => {
   let disposed = false;
   const value = { present: true as const, value: undefined, dispose() { disposed = true; } };
-  const bag = DiBag.withConfiguration({ observers: [{ onEvent() {}, onError() {} }] }).createBuilder().register({
+  const bag = DiBag.withConfiguration({ observers: [{ onEvent() {}, onError() {} }] }).createBuilder().withServices({
     value: DiBag.withMetadata(() => value, { dynamic: { mode: 'direct', describe: result => ({ presence: result.present, payload: result.value }) } }),
-  }).build();
+  }).buildContainer();
   expect(bag.resolve('value')).toBe(value);
   expect(bag.inspect('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { presence: true, payload: undefined } }]);
   await bag.close();
@@ -162,7 +162,7 @@ test('rejecting accidentally async metadata observes its rejected Promise in bot
     const value = async
       ? DiBag.withMetadata(() => 1, { dynamic: { mode: 'awaited', describe: describe } })
       : DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: describe } });
-    const bag = DiBag.createBuilder().register({ value }).build();
+    const bag = DiBag.createBuilder().withServices({ value }).buildContainer();
     if (async) await expect(bag.resolve('value')).rejects.toBeInstanceOf(TypeError);
     else expect(() => bag.resolve('value')).toThrow(TypeError);
     await bag.close();
@@ -181,13 +181,13 @@ test('metadata requires plain records and accepts records without a prototype', 
       ? DiBag.withMetadata(() => 1, { dynamic: { mode: 'awaited', describe: describe } })
       : DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: describe } });
     for (const invalid of [new Date(), new Origin()]) {
-      const bag = DiBag.createBuilder().register({ value: decorate(() => invalid) }).build();
+      const bag = DiBag.createBuilder().withServices({ value: decorate(() => invalid) }).buildContainer();
       if (async) await expect(bag.resolve('value')).rejects.toBeInstanceOf(TypeError);
       else expect(() => bag.resolve('value')).toThrow(TypeError);
       await bag.close();
     }
     const record = Object.assign(Object.create(null), { source: 'remote' });
-    const bag = DiBag.createBuilder().register({ value: decorate(() => record) }).build();
+    const bag = DiBag.createBuilder().withServices({ value: decorate(() => record) }).buildContainer();
     expect(await bag.resolve('value')).toBe(1);
     expect(bag.inspect('value').acquisitions[0]!.acquisitionMetadata).toEqual([
       { present: true, value: { source: 'remote' } },
@@ -199,7 +199,7 @@ test('metadata requires plain records and accepts records without a prototype', 
 test('metadata getters are captured exactly once, including an ordinary then field', async () => {
   let reads = 0;
   const metadata = { get then() { return ++reads; } };
-  const bag = DiBag.createBuilder().register({ value: DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => metadata } }) }).build();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => metadata } }) }).buildContainer();
   expect(bag.resolve('value')).toBe(1);
   expect(reads).toBe(1);
   expect(bag.inspect('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { then: 1 } }]);
@@ -214,7 +214,7 @@ test('metadata retains typed token dependencies and root and transient lifetime 
   const root = DiBag.withMetadata(DiBag.withLifetime(source, 'root'), { dynamic: { mode: 'direct', describe: value => ({ count: ++captures, dependency: value.dependency }) } });
   const transient = DiBag.withMetadata(DiBag.withLifetime(() => ++captures, 'transient'), { dynamic: { mode: 'direct', describe: value => ({ count: value }) } });
   const dependency = { value: 42 };
-  const bag = DiBag.createBuilder().register(token, DiBag.withLifetime(() => dependency, 'root')).register({ root, transient }).build();
+  const bag = DiBag.createBuilder().withTokenService(token, DiBag.withLifetime(() => dependency, 'root')).withServices({ root, transient }).buildContainer();
   const child = bag.createScope();
   expect(child.resolve('root')).toBe(bag.resolve('root'));
   expect(child.resolve('root').dependency).toBe(dependency);

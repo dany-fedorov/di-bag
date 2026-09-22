@@ -11,13 +11,13 @@ const descriptor: unknown = {
   create: () => (text: string) => text.toUpperCase(),
   dispose: () => { disposals.push('plugin'); },
 };
-export const feature = DiBag.createBuilder().register(plugin, DiBag.fromPlugin([], descriptor, {
+export const feature = DiBag.createBuilder().withTokenService(plugin, DiBag.fromPlugin([], descriptor, {
   acquisitionMode: 'raw',
   validate: (value: unknown): value is (text: string) => string => typeof value === 'function',
-})).register({
+})).withServices({
   prefix: DiBag.withDisposal(() => 'private:', () => { disposals.push('private'); }),
-}).contribute(steps, ({ prefix }: { prefix: string }) => (text: string) => prefix + text).contribute(steps, () => (text: string) => text + '!').register({
+}).withCollectionContribution({ collectionToken: steps, provider: ({ prefix }: { prefix: string }) => (text: string) => prefix + text }).withCollectionContribution({ collectionToken: steps, provider: () => (text: string) => text + '!' }).withServices({
     handler: DiBag.withDisposal(DiBag.fromFunction([plugin, steps], (transform, operations) =>
       (text: string) => operations.reduce((value, step) => step(value), transform(text))),
     () => { disposals.push('handler'); }),
-  }).buildModule(['handler']);
+  }).buildModule({ exportedServiceKeys: ['handler'] });

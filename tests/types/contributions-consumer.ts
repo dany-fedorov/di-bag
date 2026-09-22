@@ -7,16 +7,16 @@ const reflectedSnapshots = inspectCollectionMethod(numbers);
 export type Exact = [Assert<Equal<typeof values, ReadonlyArray<number>>>,
   Assert<Equal<typeof reflectedValues, ReadonlyArray<number>>>,
   Assert<Equal<typeof reflectedSnapshots, ReadonlyArray<RegistrationSnapshot<object, readonly unknown[]>>>>];
-contribute(numbers, () => 4).build();
-DiBag.createBuilder().installModule(feature).build().resolveCollection(numbers);
+contribute(numbers, () => 4).buildContainer();
+DiBag.createBuilder().withInstalledModules([feature]).buildContainer().resolveCollection(numbers);
 import { aggregate, privateHost, needsHost, renamedHost, moduleContribute, key, promiseBag, promised, rootedHelper, allProvider } from './contributions';
-needsHost.register({ helper: () => 1 }).build(); privateHost.resolveCollection(numbers); renamedHost.resolveCollection(numbers);
-moduleContribute(numbers, () => 4).register({ helper: () => 1 }).buildModule([]);
+needsHost.withServices({ helper: () => 1 }).buildContainer(); privateHost.resolveCollection(numbers); renamedHost.resolveCollection(numbers);
+moduleContribute(numbers, () => 4).withServices({ helper: () => 1 }).buildModule({ exportedServiceKeys: [] });
 // @ts-expect-error exportless contribution dependencies remain required after declaration emission
-needsHost.build();
+needsHost.buildContainer();
 const wrong = DiBag.token(key).forCollectionOf<string>();
 // @ts-expect-error present groups validate all references after source deletion
-aggregate.contribute(wrong, () => 'wrong');
+aggregate.withCollectionContribution({ collectionToken: wrong, provider: () => 'wrong' });
 // @ts-expect-error public export renames retain each contribution's lexical shape
 renamedHost.fork(['renamed'], { renamed: () => 'wrong' });
 // @ts-expect-error physical reflected callable keeps token output checking

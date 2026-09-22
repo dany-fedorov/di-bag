@@ -1,7 +1,7 @@
 import { DiBag } from '../src';
 
 const logging = DiBag.createBuilder()
-  .register({
+  .withServices({
     prefix: () => '[modules]',
     logger: ({ prefix }: { prefix: string }) => ({
       log(message: string) {
@@ -9,10 +9,10 @@ const logging = DiBag.createBuilder()
       },
     }),
   })
-  .buildModule(['logger']);
+  .buildModule({ exportedServiceKeys: ['logger'] });
 
 const feature = DiBag.createBuilder()
-  .register({
+  .withServices({
     connection: DiBag.withDisposal(
       () => ({ open: true }),
       (connection) => {
@@ -37,13 +37,13 @@ const feature = DiBag.createBuilder()
       () =>
         service.read(),
   })
-  .buildModule(['service', 'handler']);
+  .buildModule({ exportedServiceKeys: ['service', 'handler'] });
 
 async function main() {
   const root = DiBag.createBuilder()
-    .installModule(feature)
-    .installModule(logging)
-    .build();
+    .withInstalledModules([feature])
+    .withInstalledModules([logging])
+    .buildContainer();
   const child = root.fork(['service'], {
     service: () => ({
       read() {
