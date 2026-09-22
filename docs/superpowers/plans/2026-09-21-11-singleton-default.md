@@ -79,6 +79,8 @@ const permissive = DiBag.providerWithLifetime({
 Use this exact option-bag form in source, fixtures, docs, and goldens; never emit a provider method
 when the recorded phase-10 public surface is the facade fallback.
 
+Before executing any task, also read the final `docs/superpowers/plans/evidence/phase-04.md`. A selected but budget-unverified S5 fallback is not adopted evidence. If it records `Decision: fallback`, collection reads use `resolveCollection` while named and single-service-token calls remain on `resolve`; Phase 4's four-entry ratchet result is unchanged.
+
 No public identifier is renamed or removed in this phase, so the naming known-violations list should not shrink. The new `DI_BAG_SINGLETON_REPLACEMENT` code and `--pin-lifetimes` flag comply with the naming rules and must never be added to the violations file.
 
 ## File Structure
@@ -117,6 +119,8 @@ No public identifier is renamed or removed in this phase, so the naming known-vi
 - Produces: public default `singleton:one-per-container-tree`, internal `BagRuntime.lifetimeOf(key): LifetimeKind`, and `DI_BAG_SINGLETON_REPLACEMENT` with `{ operation: 'createChildContainer', serviceKey }`.
 
 - [ ] **Step 1: Write the focused runtime contract**
+
+If final Phase 4 evidence records the S5 fallback, substitute `child.resolveCollection(items)` for all three `child.resolve(items)` expressions in the printed collection replacement test. Do not change adjacent named-service reads.
 
 Create `tests/singleton-default.test.ts` exactly as follows:
 
@@ -2945,6 +2949,8 @@ test('aliases follow explicit singleton targets while collection replacement rem
 
 Delete the three `tests/types/*singleton-default*` fixtures. Create
 `tests/types/child-singleton-replacement.ts`:
+
+When final Phase 4 evidence records the S5 fallback, use `child.resolveCollection(items)` in the restored runtime collection assertion immediately above and `collectionChild.resolveCollection(items)` in this positive compiler fixture. These substitutions change only the read method; replacement and lifetime semantics remain identical.
 
 ```ts
 import { DiBag } from '../../src';

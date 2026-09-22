@@ -44,6 +44,8 @@ grep -n "withRenamedRequirement" src/module.ts || true
 
 Expected: the first seven commands find phase-2/4/5/6 declarations; the last prints nothing. `Module<ExportedServices, RequiredServices, Constraints, PublicProviders>` has only `withRenamedExport({ currentExportKey, newExportKey })`. Builders install through `withInstalledModules([...])` unless phase-5 evidence selected its named singular fallback, and seal through `buildModule({ exportedServiceKeys, moduleLabel? })`. `GraphDescription` includes optional `tokenKinds`; every complete graph copy below retains it. `CreateChildContainerOptions` is phase 6's rename of phase 4's `ScopeOptions<ServiceRegistrations, SharedKeys, Constraints = never>` and remains untouched.
 
+Before executing Task 1, read the final `docs/superpowers/plans/evidence/phase-04.md`. A selected but budget-unverified S5 fallback is not adopted evidence. If it records `Decision: fallback`, change only the collection assertion in the printed Task 1 fixture from `container.resolve(values)` to `container.resolveCollection(values)`. Named and single-service reads remain `resolve`; Phase 4's four-entry ratchet result is unchanged.
+
 Use the recorded S1/S7 choices consistently in every implementation, runtime/type fixture, documentation example and generated source in this plan. When S7 selected its singular fallback, a literal `.withInstalledModules([a, b])` becomes `.withInstalledModule(a).withInstalledModule(b)` in the same order, and an empty list is omitted. The Task 5 string generator has its exact singular variant below. For the two-input replacement example, use the recorded S1 positional form if required; no new S1 decision is made here.
 
 No 0.4.0 name is retired by this phase, so the naming ratchet is expected not to shrink. The new name follows the naming rules and must never be added as a known violation.
@@ -82,7 +84,7 @@ No 0.4.0 name is retired by this phase, so the naming ratchet is expected not to
 
 - [ ] **Step 1: Write the failing runtime test**
 
-Create `tests/requirement-renaming.test.ts` exactly as follows (if S7 selected the singular fallback, mechanically replace each `.withInstalledModules([x, y])` by ordered `.withInstalledModule(x).withInstalledModule(y)` calls):
+Create `tests/requirement-renaming.test.ts` exactly as follows (if S7 selected the singular fallback, mechanically replace each `.withInstalledModules([x, y])` by ordered `.withInstalledModule(x).withInstalledModule(y)` calls; apply the evidence-conditioned S5 collection-read substitution stated in State on entry):
 
 ```ts
 import { describe, expect, test } from 'bun:test';

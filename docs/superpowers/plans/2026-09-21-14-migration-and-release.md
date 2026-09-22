@@ -36,6 +36,8 @@ grep -c "DI_BAG_REMOVED_API" docs/agent/errors.md src/*.ts | grep -v ":0"       
 
 If the first line shows other versions, or the ratchet is not empty, an earlier phase is incomplete: stop and report.
 
+Also read the final `docs/superpowers/plans/evidence/phase-04.md` before executing any task. A selected but budget-unverified S5 fallback is not adopted evidence. If it records `Decision: fallback`, final user-facing collection reads and replacement text use `resolveCollection`; ordinary `resolve` remains single-service-only. The accumulated map still spans original 0.4.0 directly to final names, and Phase 4's four-entry ratchet shrink is not changed here.
+
 ## File Structure
 
 | File | Responsibility |
@@ -67,6 +69,8 @@ Which `methods` entries get a stub. An entry whose `from` differs from its `to`:
 This generator, its fixture and its test were run when the plan was written: red with the script absent (`0 pass`, both tests report `Expected: 0`, `Received: 1`), then `2 pass`. The generated module was also loaded next to the real `src/errors.ts` in a scratch copy and behaved: the message, the frozen details, a live member never replaced, stubs not enumerable on a frozen plain object.
 
 - [ ] **Step 1: The fixture map**
+
+If final Phase 4 evidence records the S5 fallback, the `resolveAll` fixture's manual replacement printed below and its exact assertion must say `resolveCollection(collectionToken)`. Keep the old key `resolveAll`: it describes the original 0.4.0 call.
 
 `tests/fixtures/removed-api/map.json`:
 
@@ -462,6 +466,8 @@ The generator, its two fixtures and its test were run when the plan was written:
 
 - [ ] **Step 1: The fixtures**
 
+If final Phase 4 evidence records the S5 fallback, make this fixture's `resolveAll` manual text explicitly say `resolveCollection(collectionToken)` and update the exact generated-row assertion accordingly. Do not rewrite the 0.4.0 column.
+
 `tests/fixtures/migration-guide/map.json`:
 
 ```json
@@ -689,6 +695,8 @@ const app = DiBag.createBuilder()
 for (const write of app.resolve(sinks)) write('ready');
 await app.close();
 ```
+
+When writing this Task 4 guide from a recorded S5 fallback, replace only the collection-read prose and example above with `resolveCollection(collectionToken)` and `app.resolveCollection(sinks)`. A collection token listed as a dependency remains bare and unchanged.
 
 **There is one entry point.** `di-bag/node` is removed. Import everything from
 `di-bag`; the package finds the host's Promise classifier by itself, and
@@ -961,6 +969,8 @@ grep -rn "0\.4\.0" --include='*.ts' --include='*.mjs' --include='*.json' --inclu
 At the 0.4.0 source that search listed four lines of `PUBLISHING.md` and one assertion, `version: '0.4.0'` in `tests/release-artifacts.test.ts`; the 0.4.0 release commit changed exactly those. Change each to `0.5.0`. Everything under `tools/codemod/` that says 0.4.0 is the vendored old package or a statement about it, and stays.
 
 - [ ] **Step 2: The changelog**
+
+When final Phase 4 evidence records the S5 fallback, the collection bullet in the changelog text below must say `resolveCollection(collectionToken)`; keep ordinary dependency wording and the statements that `resolveAll`/`inspectAll` were removed.
 
 Insert above `## 0.4.0` in `CHANGELOG.md`. Replace the two bracketed counts with the numbers from your tree (`node scripts/error-code-inventory.mjs src 2>/dev/null | cut -f4 | tr '|' '\n' | sort -u | wc -l` for the codes); everything else is final text.
 

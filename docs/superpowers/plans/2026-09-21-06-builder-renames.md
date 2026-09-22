@@ -68,6 +68,8 @@ The planner worked under a memory guard that forbade running the TypeScript comp
 
 Phases 0 to 4 are merged into `next`. The code the planner read was still the 0.4.0 source, so every line below is derived from the master plan's phase table and the plans of phases 0 to 3, and must be confirmed with its command before Task 1. If a name differs, find the real one with `grep` and adjust only that reference; do not guess. The plan of phase 4 (`2026-09-21-05-collection-tokens.md`) was a header without tasks when this plan was written, so what phase 4 did to `contribute`, to the token-kind check and to the codemod map is confirmed here by `grep`, not by reading its plan.
 
+Before executing any task, read the final `docs/superpowers/plans/evidence/phase-04.md`. A selected but budget-unverified S5 fallback is not adopted evidence. If that final evidence records `Decision: fallback`, collection tokens are read with `resolveCollection` and inspected with `inspectCollection`; ordinary `resolve` and `inspect` remain single-service-only. Preserve Phase 4's accumulated `resolveAll -> resolveCollection` and `inspectAll -> inspectCollection` map entries and its exact four-entry naming-ratchet shrink.
+
 | Expectation | Command | Expected |
 | --- | --- | --- |
 | A clean phase branch | `git switch next && git switch -c phase-05-builder-renames && git status --short` | no output |
@@ -305,6 +307,8 @@ The helper has no caller yet, and the checked error-page example uses the expand
 - [ ] **Step 1: Write the failing test**
 
 Create `tests/builder-renames.test.ts`. It uses the API as it is on entry to this phase: `DiBag.token(key).of<S>()` and `forCollectionOf<Item>()`, `bag.resolve(collectionToken)` for a list, `bag.inspectGraph()`, `import ... from '../src/node'` (phase 6 moves the import). An adapted copy (`of<string>()` for `forCollectionOf<string>()`, `resolveAll(tools)` for `resolve(tools)`) passed against the planner's prototype: 11 pass, 175 `expect()` calls. This file itself was never run.
+
+If the final Phase 4 evidence records the S5 fallback, substitute `resolveCollection` only for the printed collection-token reads: `app.resolve(tools)` (including both fresh-view reads), `listed`/`reversed`/`separate.resolve(tools)`, the positive-fixture `app`/`listed.resolve(tools)`, and the evidence worker's `graph.resolve(items)`. Keep every named-service and single-service-token call on `resolve`; do not change the historical 0.4.0 description above.
 
 ```ts
 // tests/builder-renames.test.ts
@@ -1355,6 +1359,8 @@ The `toThrow` inventory sees only `toThrow(` followed by a string or a regular e
 
 **Only the positive fixture compiled in the recovered prototype.** Both negative fixtures were excluded and have never run. How a negative fixture proves WHERE an error lands: `tests/diagnostic-markers.ts` accepts a diagnostic for a `// diagnostic:` marker only when its line is at or after the marker's line and before the next marker's line, and `tests/types.test.ts` fails on any diagnostic no marker claims. Each call below is written over several lines with the marker directly above the offending property or list element. A diagnostic reported on the call's first line, above the marker, is unclaimed and fails the fixture. So: if a fixture fails with an unexpected diagnostic on the line of `.withInstalledModules([` or of the method name, the shape does NOT report on the element, which is a spike failure, not a marker to move. If it fails because the MESSAGE differs (for instance the compiler prints the outer `No overload matches this call` for `withReplacedService`, which has two overloads), read the full flattened message with the command in Step 4 and correct the marker text to a substring the diagnostic really contains. Never delete a case.
 
+Apply the State-on-entry S5 substitution to the positive fixture's two collection reads only; the service-token reads stay on `resolve`.
+
 - [ ] **Step 1: The positive fixture**
 
 Create `tests/types/builder-renames.ts`:
@@ -1642,6 +1648,8 @@ MSG
 - Produces: the decision for each of the four bag methods and for the module list, BEFORE any call site moves. The decision cannot wait for the contract step: the codemod maps 0.4.0 names, so once it has rewritten 2,000 call sites into bags there is no map that takes them back.
 
 Why the expand state is the right place to measure: old and new methods exist side by side, so the same graph written both ways is compiled against the same `src`, and the RATIO new/old is the cost of the shape alone. Absolute numbers in this state are inflated by the doubled `Builder` surface and are not compared with the baseline.
+
+For an adopted S5 fallback, the contribution worker reads `items` with `resolveCollection` in both compared builder shapes; this phase is measuring builder-call shape, not reopening the Phase 4 read decision.
 
 - [ ] **Step 1: Add the module-list generator**
 

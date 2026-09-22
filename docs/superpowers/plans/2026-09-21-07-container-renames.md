@@ -59,6 +59,8 @@ Execution prerequisite: the active heavy-command hold must be lifted before runn
 
 Phases 0 to 5 are merged into `next`. The code this plan was written against still had the 0.4.0 names, so the names below are DERIVED from the master plan's phase table, the spec and plans 01 to 04. Confirm every row before Task 1. When a row differs, find the real name with `grep`, use it wherever this plan uses the expected one, and say so in the phase report. Do not guess.
 
+Before executing any task, read the final `docs/superpowers/plans/evidence/phase-04.md`. A selected but budget-unverified S5 fallback is not adopted evidence. If it records `Decision: fallback`, collection reads use `resolveCollection`, collection inspection enters this phase as `inspectCollection`, and ordinary `resolve`/`inspect` remain single-service-only. Phase 4's exact four-entry naming-ratchet shrink remains unchanged.
+
 Public names on entry:
 
 - Facade: `DiBag.createBuilder()`, `DiBag.withConfiguration({ runtime, observers })`, `DiBag.token(symbol).of<S>()` and `DiBag.token(symbol).forCollectionOf<Item>()` (phase 4; `createToken` and `forService` arrive in phase 8), `DiBag.fromFactory`, `fromSyncFactory`, `fromAsyncFactory`, `fromFunction`, `fromClass`, `fromPlugin`, `optional`, `lazy`, `withDisposal`, `withLifetime`, `withMetadata`, `transformService`. `DiBag.all` is gone (phase 4).
@@ -241,6 +243,8 @@ void collection; void annotation; void emptyChildBag; void emptyIndependentBag;
 These three unannotated destructuring parameters are deliberate contextual-inference probes: named service with keys first, token service with providers first, and collection token with keys first. Keep both property orders. If inference fails, record it as an S3 failure; do not add annotations that hide it.
 
 If phase 5 chose the positional fallback for S1, change only the two builder calls to that recorded syntax.
+
+If the final Phase 4 evidence records the S5 fallback, change only collection-token reads in these fixtures: `child.resolve(clocks)` and both `independent.resolve(clocks)` calls become `resolveCollection`. Keep `resolve(clock)` and all named-service reads unchanged.
 
 - [ ] **Step 2: Write the negative fixture**
 
@@ -582,6 +586,8 @@ Confirm `git diff --name-only` contains only the Task 1 files listed above, then
 - Produces: `selectChildContainer(graph, options, isTransient)` returning `{ graph, shared }`; `selectIndependentContainer(graph, options)` returning a `BindingGraph`; direct runtime implementations of both public calls.
 
 - [ ] **Step 1: Write the runtime tests**
+
+Apply the State-on-entry S5 substitution to both printed `independent.resolve(clocks)` expressions; the adjacent `resolve(clock)` service-token call stays unchanged.
 
 Create `tests/container-derivation.test.ts`:
 
@@ -1025,7 +1031,7 @@ Expected: missing-method failures.
 
 - [ ] **Step 3: Add every snapshot overload with the exact existing return types**
 
-Use the full post-phase-4 primary signature (if phase 4 evidence records its fallback, rename `inspectCollection` to `serviceSnapshot` with that fallback's exact signature instead):
+Use the full post-phase-4 primary signature (if final Phase 4 evidence records its fallback, rename `inspectCollection` to `serviceSnapshot` with that fallback's exact signature instead):
 
 ```ts
 serviceSnapshot<ServiceKey extends (keyof ServiceRegistrations & string) | TokenBase>(
@@ -1388,6 +1394,8 @@ Merge these entries into their existing arrays; retain every earlier entry:
 ```
 
 Replace the existing `Bag.inspectAll` entry in place; do not append a duplicate. Its phase-4 `collection-read` transform remains, but its target must now be `serviceSnapshot`. The map always spans original0.4 to current0.5; `nameOf` does not transitively follow `inspectAll -> inspect -> serviceSnapshot`.
+
+This remains a direct original-to-final `inspectAll -> serviceSnapshot` mapping under the S5 fallback as well; do not add an intermediate `inspectCollection` map hop.
 
 `CreateIndependentContainerOptions` is new and has no type-map entry. Every `owner` remains an actual 0.4.0 declaration. `transformNames` is method-entry metadata, not a declaration lookup namespace; the transform reads it through the phase-1 engine API. `CreateChildContainerOptions` orders its generics as registrations, shared keys, defaulted constraints, replaced keys, replacement providers. The phase-1 type rename therefore preserves every old `ScopeOptions<R, S>` annotation; phase 4's internal three-argument use remains `CreateChildContainerOptions<R, S, C>`.
 

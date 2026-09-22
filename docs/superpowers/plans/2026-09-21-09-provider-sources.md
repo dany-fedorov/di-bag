@@ -33,6 +33,8 @@
 
 Phases 0–7 are merged. Builder, container, and module calls use their 0.5 names. Requirement renaming exists. Provider-source names remain at 0.4.0: `fromFactory`, `fromSyncFactory`, `fromAsyncFactory`, `fromFunction`, `fromClass`, `fromPlugin`, `token(symbol).of<Service>()`, `AcquisitionMode`, `AcquisitionContext`, and `BindingSnapshot.acquisitionMode`. Provider decorators remain facade functions until phase 9.
 
+Before executing any task, read the final `docs/superpowers/plans/evidence/phase-04.md`. A selected but budget-unverified S5 fallback is not adopted evidence. If it records `Decision: fallback`, collection reads use `resolveCollection`; ordinary `resolve` remains single-service-only. Preserve the accumulated map, including plan 07's final `inspectAll -> serviceSnapshot` target, and Phase 4's exact four-entry naming-ratchet shrink.
+
 Run these checks before changing source:
 
 ```bash
@@ -2161,6 +2163,8 @@ Its `expected-manual.json` is:
 The transform scopes this rewrite to checker-resolved provider-source calls, so identical literal type arguments on unrelated generic functions remain untouched. Literal and literal-union return kinds map in place while all preceding explicit arguments remain byte-for-byte; a nonliteral return-kind argument is preserved, participates in the ordinary `AcquisitionMode` type rename, and emits the exact manual row.
 
 Create `tools/codemod/test/fixtures/provider-token-classification/input.ts`:
+
+The two `input.ts` files below model original 0.4.0 and must retain `resolveAll`/`inspectAll`. If final Phase 4 evidence records the S5 fallback, change only the two printed expected collection reads (`bag.resolve(collection)` and `bag.resolve(importedList)`) to `resolveCollection`. Keep the imported expected inspection as `serviceSnapshot`: plan 07 preserves the direct original `inspectAll -> serviceSnapshot` mapping.
 
 ```ts
 import { DiBag } from 'di-bag';
