@@ -20,7 +20,7 @@ const privateCollision = DiBag.createBuilder().withServices({ db: () => 1, bridg
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([privateCollision]).withServices({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
-const renamed = DiBag.createBuilder().withServices({ bridge: withLifetime(({ external }: { external: number }) => external, 'transient') }).buildModule({ exportedServiceKeys: ['bridge'] }).renameExport('bridge', 'external');
+const renamed = DiBag.createBuilder().withServices({ bridge: withLifetime(({ external }: { external: number }) => external, 'transient') }).buildModule({ exportedServiceKeys: ['bridge'] }).withRenamedExport({ currentExportKey: 'bridge', newExportKey: 'external' });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([renamed]).withReplacedService('external', () => 1).withServices({ root: withLifetime(({ external }: { external: number }) => external, 'root') }).buildContainer();
 
@@ -40,7 +40,7 @@ DiBag.createBuilder().withServices({ db: () => 1, a: withLifetime(({ b, db }: { 
 
 const valid = DiBag.createBuilder().withServices({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ db }: { db: number }) => db, 'root') }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
-valid.fork(['db'], { db: () => 1 });
+valid.createIndependentContainer(['db'], { db: () => 1 });
 
 declare const bool: boolean;
 // diagnostic: root lifetime cannot capture scoped dependency
@@ -71,7 +71,7 @@ DiBag.createBuilder().withServices({ db: erased, root: withLifetime(({ db }: { d
 const erasedRoot: Provider<() => number> = withLifetime(() => 1, 'root');
 void erasedRoot;
 
-const exportedTransient = DiBag.createBuilder().withServices({ db: () => 1, bridge: withLifetime(({ db, external }: { db: number; external: number }) => db + external, 'transient') }).buildModule({ exportedServiceKeys: ['db', 'bridge'] }).renameExport('db', 'external');
+const exportedTransient = DiBag.createBuilder().withServices({ db: () => 1, bridge: withLifetime(({ db, external }: { db: number; external: number }) => db + external, 'transient') }).buildModule({ exportedServiceKeys: ['db', 'bridge'] }).withRenamedExport({ currentExportKey: 'db', newExportKey: 'external' });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([exportedTransient]).withServices({ root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
@@ -81,7 +81,7 @@ DiBag.createBuilder().withInstalledModules([privateToken]).withTokenService(dbTo
 
 const tokenRoot = DiBag.createBuilder().withTokenService(dbToken, withLifetime(() => 1, 'root')).withServices({ root: withLifetime(DiBag.fromFunction([dbToken], value => value), 'root') }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
-tokenRoot.fork([dbToken], { [key]: () => 1 });
+tokenRoot.createIndependentContainer([dbToken], { [key]: () => 1 });
 
 const mixedExport = DiBag.createBuilder().withServices({ db: () => 1, api: Math.random() ? withLifetime(({ db }: { db: number }) => db, 'root') : ({ db }: { db: number }) => db }).buildModule({ exportedServiceKeys: ['api'] });
 // diagnostic: root lifetime cannot capture scoped dependency
@@ -94,7 +94,7 @@ declare const mixedOpaque: NoInfer<ProviderBase | typeof union>;
 // diagnostic: factory dependencies must be finite string-keyed objects
 DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(mixedOpaque, 'root') });
 
-const renamePrivateRoot = DiBag.createBuilder().withServices({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule({ exportedServiceKeys: ['db'] }).renameExport('db', 'database');
+const renamePrivateRoot = DiBag.createBuilder().withServices({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule({ exportedServiceKeys: ['db'] }).withRenamedExport({ currentExportKey: 'db', newExportKey: 'database' });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([renamePrivateRoot]).buildContainer();
 

@@ -8,8 +8,8 @@ export const graph = DiBag.createBuilder().withServices({
   db: withLifetime(() => ({ query: () => 1 }), 'root'),
   repo: withLifetime(({ db }: { db: { query(): number } }) => db.query(), 'root'),
 }).buildContainer();
-export const scoped = graph.createScope();
-export const independent = graph.fork();
+export const scoped = graph.createChildContainer();
+export const independent = graph.createIndependentContainer();
 export const raw = withLifetime(DiBag.fromFactory(() => Promise.resolve({ id: 1 }), { acquisitionMode: 'raw' }), 'root');
 export const native = withLifetime(DiBag.fromFactory(() => Promise.resolve({ id: 1 }), { acquisitionMode: 'nativePromise' }), 'transient');
 export const metadata = DiBag.withMetadata(DiBag.withDisposal(raw, value => { const exact: Promise<{ id: number }> = value; void exact; }), { static: { owner: 'app' as const } });
@@ -22,14 +22,14 @@ export const privateValid = DiBag.createBuilder().withServices({ db: withLifetim
 export const privateBag = DiBag.createBuilder().withInstalledModules([privateValid]).withServices({ db: () => 1, root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 export const replacedRoot = DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule({ exportedServiceKeys: ['root'] });
 export const replacedBag = DiBag.createBuilder().withInstalledModules([replacedRoot]).withReplacedService('root', () => 1).buildContainer();
-export const renamedRoot = DiBag.createBuilder().withServices({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule({ exportedServiceKeys: ['db', 'root'] }).renameExport('db', 'database');
+export const renamedRoot = DiBag.createBuilder().withServices({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule({ exportedServiceKeys: ['db', 'root'] }).withRenamedExport({ currentExportKey: 'db', newExportKey: 'database' });
 export const renamedBag = DiBag.createBuilder().withInstalledModules([renamedRoot]).buildContainer();
 export const key: unique symbol = Symbol('root');
 export const token = DiBag.token(key).of<number>();
 export const bound = withTokenBinding(token, withLifetime(() => 1, 'root'));
 export const rebound = withTokenBinding(token, DiBag.transformService(bound, { mode: 'direct', transform: value => value }));
 export const tokenBag = DiBag.createBuilder().withTokenService(token, rebound).withServices({ root: withLifetime(DiBag.fromFunction([token], value => value), 'root') }).buildContainer();
-export const tokenFork = tokenBag.fork([token], { [key]: withLifetime(() => 2, 'root') });
+export const tokenFork = tokenBag.createIndependentContainer([token], { [key]: withLifetime(() => 2, 'root') });
 export const frames = DiBag.withMetadata(raw, { dynamic: { mode: 'direct', describe: () => ({ frame: 1 }) } });
 export const asyncFrames = DiBag.withMetadata(withLifetime(() => 1, 'transient'), { dynamic: { mode: 'awaited', describe: () => ({}) } });
 export const capability = DiBag.transformService(withLifetime(() => ({ read: () => Promise.resolve(1) }), 'root'), { mode: 'direct', transform: value => value.read(), ...{ acquisitionMode: 'raw' } });
@@ -46,10 +46,10 @@ export const wrappedMixed = withLifetime(mixed, 'transient');
 export const scopedCycle = DiBag.createBuilder().withServices({ a: ({ b }: { b: number }): number => b, b: withLifetime(({ a }: { a: number }): number => a, 'transient') }).buildContainer();
 export const pureCycleRoot = DiBag.createBuilder().withServices({ a: withLifetime(({ b }: { b: number }): number => b, 'transient'), b: withLifetime(({ a }: { a: number }): number => a, 'transient'), root: withLifetime(({ a }: { a: number }) => a, 'root') }).buildContainer();
 export const exportlessValid = DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ privateRoot: withLifetime(() => 1, 'root') }).buildModule({ exportedServiceKeys: [] })]).buildContainer();
-export const renameCollisionValid = DiBag.createBuilder().withServices({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ db, publicDb }: { db: number; publicDb: number }) => db + publicDb, 'root') }).buildModule({ exportedServiceKeys: ['db', 'root'] }).renameExport('db', 'publicDb');
+export const renameCollisionValid = DiBag.createBuilder().withServices({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ db, publicDb }: { db: number; publicDb: number }) => db + publicDb, 'root') }).buildModule({ exportedServiceKeys: ['db', 'root'] }).withRenamedExport({ currentExportKey: 'db', newExportKey: 'publicDb' });
 export const renameCollisionBag = DiBag.createBuilder().withInstalledModules([renameCollisionValid]).buildContainer();
-export const reflectedScope = graph.createScope;
-export const reflectedFork = graph.fork;
+export const reflectedScope = graph.createChildContainer;
+export const reflectedFork = graph.createIndependentContainer;
 export const resetPolicy = withLifetime(withLifetime(() => 1, 'root', { allowScopedDependencies: true }), 'scoped');
-export const replacedPrivateExport = DiBag.createBuilder().withServices({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule({ exportedServiceKeys: ['db'] }).renameExport('db', 'database');
+export const replacedPrivateExport = DiBag.createBuilder().withServices({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule({ exportedServiceKeys: ['db'] }).withRenamedExport({ currentExportKey: 'db', newExportKey: 'database' });
 export const replacedPrivateBag = DiBag.createBuilder().withInstalledModules([replacedPrivateExport]).withReplacedService('database', withLifetime(() => 1, 'root')).buildContainer();

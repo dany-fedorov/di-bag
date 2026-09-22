@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { DiBag as PortableDiBag } from '../src/di-bag';
 import { deferred } from './helpers';
 
@@ -12,7 +12,7 @@ test('metadata is lazy, ordered, copied with hidden symbols, and retained after 
   let calls = 0;
   let during: unknown;
   const source = () => {
-    during = bag.inspect('value').acquisitions[0]!.acquisitionMetadata;
+    during = bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata;
     return { value: payload, origin: 'source' };
   };
   const first = DiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: function (this: void, result) {
@@ -24,12 +24,12 @@ test('metadata is lazy, ordered, copied with hidden symbols, and retained after 
   const value = DiBag.transformService(DiBag.withMetadata(first, { dynamic: { mode: 'direct', describe: result => ({ second: result.origin }) } }), { mode: 'direct', transform: result => result.value });
   const bag = DiBag.createBuilder().withServices({ value }).buildContainer();
   expect(calls).toBe(0);
-  expect(bag.inspect('value').acquisitions).toEqual([]);
+  expect(bag.serviceSnapshot('value').acquisitions).toEqual([]);
   expect(bag.resolve('value')).toBe(payload);
   expect(bag.resolve('value')).toBe(payload);
   expect(calls).toBe(1);
   expect(during).toEqual([{ present: false }, { present: false }]);
-  const frames = bag.inspect('value').acquisitions[0]!.acquisitionMetadata;
+  const frames = bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata;
   expect(frames[1]).toEqual({ present: true, value: { second: 'source' } });
   const frame = frames[0];
   expect(frame.present).toBe(true);
@@ -57,7 +57,7 @@ test('immediate metadata retains raw Promise identity, policy, and outer dispose
   const annotated = PortableDiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: value => ({ exact: value }) } });
   const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.withDisposal(annotated, value => { disposed = value; }) }).buildContainer();
   expect(bag.resolve('value')).toBe(gate.promise);
-  expect(bag.inspect('value').acquisitions[0]!.state).toBe('ready');
+  expect(bag.serviceSnapshot('value').acquisitions[0]!.state).toBe('ready');
   await bag.close();
   expect(disposed).toBe(gate.promise);
   expect(thenReads).toBe(0);
@@ -70,9 +70,9 @@ test('async metadata awaits raw thenables and exposes a native Promise', async (
   const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.withMetadata(source, { dynamic: { mode: 'awaited', describe: result => ({ origin: result.origin }) } }) }).buildContainer();
   const value = bag.resolve('value');
   expect(value).toBeInstanceOf(Promise);
-  expect(bag.inspect('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: false }]);
+  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: false }]);
   await expect(value).resolves.toEqual({ origin: 'remote' });
-  expect(bag.inspect('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { origin: 'remote' } }]);
+  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { origin: 'remote' } }]);
   await bag.close();
 });
 
@@ -84,7 +84,7 @@ test('native acquisition remains pending and disposes fulfilled values after imm
     PortableDiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: promise => ({ promise }) } }), value => { disposed.push(value); },
   ) }).buildContainer();
   expect(bag.resolve('value')).toBe(gate.promise);
-  expect(bag.inspect('value').acquisitions[0]!.state).toBe('pending');
+  expect(bag.serviceSnapshot('value').acquisitions[0]!.state).toBe('pending');
   const closing = bag.close();
   gate.resolve(7);
   await closing;
@@ -104,10 +104,10 @@ test('annotation errors preserve original failures, cleanup, and independent ret
   try { bag.resolve('service'); } catch (error) { failure = error; }
   expect(failure).toBe(cause);
   expect(bag.resolve('service')).toBe(2);
-  const child = bag.createScope();
+  const child = bag.createChildContainer();
   expect(child.resolve('service')).toBe(3);
-  expect(bag.inspect('service').acquisitions.at(-1)!.acquisitionMetadata).toEqual([{ present: true, value: { attempt: 2 } }]);
-  expect(child.inspect('service').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { attempt: 3 } }]);
+  expect(bag.serviceSnapshot('service').acquisitions.at(-1)!.acquisitionMetadata).toEqual([{ present: true, value: { attempt: 2 } }]);
+  expect(child.serviceSnapshot('service').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { attempt: 3 } }]);
   await child.close();
   await bag.close();
   expect(disposed).toEqual([1, 3, 2]);
@@ -146,11 +146,11 @@ test('metadata callbacks and returned records reject malformed and asynchronous 
 test('annotations retain present undefined values and add no ownership', async () => {
   let disposed = false;
   const value = { present: true as const, value: undefined, dispose() { disposed = true; } };
-  const bag = DiBag.withConfiguration({ observers: [{ onEvent() {}, onError() {} }] }).createBuilder().withServices({
+  const bag = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent() {}, onObserverFailure() {} }] }).createBuilder().withServices({
     value: DiBag.withMetadata(() => value, { dynamic: { mode: 'direct', describe: result => ({ presence: result.present, payload: result.value }) } }),
   }).buildContainer();
   expect(bag.resolve('value')).toBe(value);
-  expect(bag.inspect('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { presence: true, payload: undefined } }]);
+  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { presence: true, payload: undefined } }]);
   await bag.close();
   expect(disposed).toBe(false);
 });
@@ -189,7 +189,7 @@ test('metadata requires plain records and accepts records without a prototype', 
     const record = Object.assign(Object.create(null), { source: 'remote' });
     const bag = DiBag.createBuilder().withServices({ value: decorate(() => record) }).buildContainer();
     expect(await bag.resolve('value')).toBe(1);
-    expect(bag.inspect('value').acquisitions[0]!.acquisitionMetadata).toEqual([
+    expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([
       { present: true, value: { source: 'remote' } },
     ]);
     await bag.close();
@@ -202,7 +202,7 @@ test('metadata getters are captured exactly once, including an ordinary then fie
   const bag = DiBag.createBuilder().withServices({ value: DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: () => metadata } }) }).buildContainer();
   expect(bag.resolve('value')).toBe(1);
   expect(reads).toBe(1);
-  expect(bag.inspect('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { then: 1 } }]);
+  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { then: 1 } }]);
   await bag.close();
 });
 
@@ -215,12 +215,12 @@ test('metadata retains typed token dependencies and root and transient lifetime 
   const transient = DiBag.withMetadata(DiBag.withLifetime(() => ++captures, 'transient'), { dynamic: { mode: 'direct', describe: value => ({ count: value }) } });
   const dependency = { value: 42 };
   const bag = DiBag.createBuilder().withTokenService(token, DiBag.withLifetime(() => dependency, 'root')).withServices({ root, transient }).buildContainer();
-  const child = bag.createScope();
+  const child = bag.createChildContainer();
   expect(child.resolve('root')).toBe(bag.resolve('root'));
   expect(child.resolve('root').dependency).toBe(dependency);
   expect(bag.resolve('transient')).toBe(2);
   expect(bag.resolve('transient')).toBe(3);
-  expect(bag.inspect('transient').acquisitions.map(attempt => attempt.acquisitionMetadata)).toEqual([
+  expect(bag.serviceSnapshot('transient').acquisitions.map(attempt => attempt.acquisitionMetadata)).toEqual([
     [{ present: true, value: { count: 2 } }], [{ present: true, value: { count: 3 } }],
   ]);
   await child.close();

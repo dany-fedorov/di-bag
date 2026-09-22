@@ -28,8 +28,8 @@ const overrides = {
   service: () => ({ read() { return 3; }, extra() { return true; }, richer() { return 9; } }),
   promised: async ({service}: {service: {richer(): number}}) => service.richer(),
 };
-const predeclaredFork = root.fork(['service', 'promised'], overrides);
-const inlineFork = root.fork(['service', 'promised'], {
+const predeclaredFork = root.createIndependentContainer(['service', 'promised'], overrides);
+const inlineFork = root.createIndependentContainer(['service', 'promised'], {
   service: () => ({ read() { return 3; }, extra() { return true; }, richer() { return 9; } }),
   promised: async ({service}: {service: {richer(): number}}) => service.richer(),
 });

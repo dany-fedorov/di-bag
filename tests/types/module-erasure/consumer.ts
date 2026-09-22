@@ -26,7 +26,7 @@ export const rootHost = DiBag.createBuilder().withInstalledModules([feature]).wi
 }).buildContainer();
 
 // Renaming keeps the carrier obligation attached to the new name.
-export const renamedHost = DiBag.createBuilder().withInstalledModules([feature.renameExport('passthrough', 'through')]).withServices({
+export const renamedHost = DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'passthrough', newExportKey: 'through' })]).withServices({
   external: DiBag.withLifetime(() => 'x', 'root'),
   clock,
   api: DiBag.withLifetime(({ through }: { through: () => number }) => through(), 'root'),

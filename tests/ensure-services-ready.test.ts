@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { getEventListeners } from 'node:events';
-import { DiBag, DiBagCleanupError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from '../src/node';
+import { DiBag, DiBagCleanupError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from '../src';
 import { deferred } from './helpers';
 
 const turn = () => new Promise<void>(resolve => setImmediate(resolve));
@@ -78,7 +78,7 @@ test('an omitted bound acquires every listed service at once', async () => {
 
 test('a child scope is made ready and resolves to that scope', async () => {
   const parent = DiBag.createBuilder().withServices({ session: () => ({ id: Math.random() }) }).buildContainer();
-  const child = parent.createScope();
+  const child = parent.createChildContainer();
   expect(await child.ensureServicesReady(['session'])).toBe(child);
   expect(child.resolve('session')).not.toBe(parent.resolve('session'));
   await parent.close();
@@ -94,7 +94,7 @@ test('a failed readiness call on a child scope closes that scope only', async ()
     broken: (): number => { throw cause; },
   }).buildContainer();
   const parentCache = parent.resolve('cache');
-  const child = parent.createScope({ share: ['cache'] });
+  const child = parent.createChildContainer({ sharedParentServiceKeys: ['cache'] });
   const error: unknown = await child.ensureServicesReady(['session', 'cache', 'broken'], { maxConcurrentServiceKeys: 1 }).catch(caught => caught);
   expect(error).toBeInstanceOf(DiBagServiceReadinessError);
   if (!(error instanceof DiBagServiceReadinessError)) throw error;
@@ -112,7 +112,7 @@ test('an independent fork is made ready and closed on its own', async () => {
     clock: () => ({ now: () => 42 }),
     stamp: ({ clock }: { clock: { now(): number } }) => clock.now(),
   }).buildContainer();
-  const forked = app.fork(['clock'], { clock: () => ({ now: () => 7 }) });
+  const forked = app.createIndependentContainer(['clock'], { clock: () => ({ now: () => 7 }) });
   expect(await forked.ensureServicesReady(['stamp'])).toBe(forked);
   expect(forked.resolve('stamp')).toBe(7);
   await forked.close();

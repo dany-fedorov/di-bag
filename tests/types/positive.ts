@@ -5,7 +5,7 @@ const bag = DiBag.createBuilder().withServices({
   }).withServices({ value: async () => 21, sync: () => 7 }).buildContainer();
 const asyncValue: Promise<number> = bag.resolve('result');
 const syncValue: number = bag.resolve('sync');
-const forkValue: Promise<number> = bag.fork(['value'], { value: async () => 10 }).resolve('result');
+const forkValue: Promise<number> = bag.createIndependentContainer(['value'], { value: async () => 10 }).resolve('result');
 void [asyncValue, syncValue, forkValue];
 
 const owned = DiBag.createBuilder().withServices({
@@ -19,7 +19,7 @@ const owned = DiBag.createBuilder().withServices({
     ),
   }).buildContainer();
 const resource: Promise<{ answer: number }> = owned.resolve('resource');
-const borrowed: Promise<{ answer: number }> = owned.fork(['resource'], {
+const borrowed: Promise<{ answer: number }> = owned.createIndependentContainer(['resource'], {
     resource: async () => ({ answer: 7 }),
   }).resolve('resource');
 const empty = DiBag.createBuilder().buildContainer();

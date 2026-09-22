@@ -40,7 +40,7 @@ type Resource = Assert<
   >
 >;
 
-const borrowed = bag.fork(['resource'], {
+const borrowed = bag.createIndependentContainer(['resource'], {
     resource: async () => ({
       stamp() {
         return 7;

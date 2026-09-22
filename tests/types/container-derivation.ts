@@ -1,4 +1,4 @@
-import { DiBag, type Bag } from '../../src';
+import { DiBag, type Container } from '../../src';
 import type { Assert, Equal } from './assert';
 
 type Clock = { now(): number };
@@ -34,6 +34,6 @@ export const child = root.createChildContainer(
   { sharedParentServiceKeys: ['value'] },
 );
 const collection: readonly Clock[] = child.resolveCollection(clocks);
-const annotation: Bag<{ value: () => number }> = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+const annotation: Container<{ value: () => number }> = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 void collection; void annotation; void emptyChildBag; void emptyIndependentBag;
 export type { Inline };

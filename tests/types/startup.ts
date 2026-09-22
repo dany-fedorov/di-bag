@@ -15,7 +15,7 @@ export const raw = DiBag.withDisposal(DiBag.fromFactory((_deps: {}, _factoryCtx)
 const feature = DiBag.createBuilder().withServices({
   hidden: DiBag.fromFactory((deps: { input: { readonly label: 'exact' } }, factoryCtx) => ({ label: deps.input.label, signal: factoryCtx.signal }), { context: 'acquisition' }),
   exported: (deps: { hidden: { label: 'exact'; signal: AbortSignal } }) => deps.hidden,
-}).buildModule({ exportedServiceKeys: ['exported'] }).renameExport('exported', 'renamed');
+}).buildModule({ exportedServiceKeys: ['exported'] }).withRenamedExport({ currentExportKey: 'exported', newExportKey: 'renamed' });
 export const builder = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(selectedToken, DiBag.fromFactory((_deps: {}, _factoryCtx) => ({ value: 42 as const }), { context: 'acquisition' })).withServices({ input: () => ({ label: 'exact' as const }), contextual: DiBag.withMetadata(contextual, { static: { owner: 'startup' as const } }), raw });
 export const lazy = builder.buildContainer();
 export const started = lazy.ensureServicesReady(['contextual', selectedToken, 'raw', 'renamed']);
@@ -29,9 +29,9 @@ export const pushed = DiBag.fromFactory((_deps: {}, factoryCtx) => {
   factoryCtx.pushDisposer(async disposerCtx => { const reason: DisposerContext['reason'] = disposerCtx.reason; void reason; });
   return 'owned' as const;
 }, { context: 'acquisition' });
-const readyChild = lazy.createScope();
+const readyChild = lazy.createChildContainer();
 export const readyInChild = readyChild.ensureServicesReady(['contextual']);
-const readyFork = lazy.fork();
+const readyFork = lazy.createIndependentContainer();
 export const readyInFork = readyFork.ensureServicesReady([selectedToken]);
 export type ReadinessContracts = [
   Assert<Equal<Awaited<typeof readyInChild>, typeof readyChild>>,
@@ -60,7 +60,7 @@ export type Contracts = [
 const closeBag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 export const closed = closeBag.close();
 export const boundedClose = closeBag.close({ waitTimeoutMs: 100, abortSignal: new AbortController().signal });
-export const scopeClosed = closeBag.createScope().close({ waitTimeoutMs: 1 });
+export const scopeClosed = closeBag.createChildContainer().close({ waitTimeoutMs: 1 });
 export const labeledModule = DiBag.createBuilder().withServices({ hidden: () => 1, shown: ({ hidden }: { hidden: number }) => hidden }).buildModule({ exportedServiceKeys: ['shown'], moduleLabel: 'feature' });
 export const unlabeledModule = DiBag.createBuilder().withServices({ hidden: () => 1, shown: ({ hidden }: { hidden: number }) => hidden }).buildModule({ exportedServiceKeys: ['shown'] });
 export type CloseContracts = [

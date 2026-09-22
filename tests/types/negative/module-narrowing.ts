@@ -1,4 +1,4 @@
-import { DiBag, type Bag, type Module, type ModuleExportedServices, type ModuleRequiredServices } from '../../../src';
+import { DiBag, type Container, type Module, type ModuleExportedServices, type ModuleRequiredServices } from '../../../src';
 import { feature } from '../modules/feature';
 // diagnostic: not assignable
 const annotated: Module<ModuleExportedServices<typeof feature>, ModuleRequiredServices<typeof feature>> = feature;
@@ -17,11 +17,11 @@ const plain = DiBag.createBuilder().withServices({
 // diagnostic: not assignable
 const erasedBuilder: typeof plain = builder;
 // diagnostic: not assignable
-const erasedBag: Bag<{ service: () => { read(): number; extra(): boolean }; handler: () => { run(): number }; promised: () => Promise<number>; logger: () => { log(message: string): void } }> = builder.buildContainer();
+const erasedBag: Container<{ service: () => { read(): number; extra(): boolean }; handler: () => { run(): number }; promised: () => Promise<number>; logger: () => { log(message: string): void } }> = builder.buildContainer();
 // diagnostic: provided service does not satisfy its consumer dependency
 builder.withReplacedService('service', () => ({ read() { return 2; } }));
 // diagnostic: not assignable
-builder.buildContainer().fork(['service'], { service: () => ({ read() { return 2; } }) });
+builder.buildContainer().createIndependentContainer(['service'], { service: () => ({ read() { return 2; } }) });
 const open = DiBag.createBuilder().withServices({ service: () => 1, hidden: ({ missing }: { missing: number }) => missing });
 const publicOnly = DiBag.createBuilder().withServices({ service: () => 1 });
 // diagnostic: not assignable

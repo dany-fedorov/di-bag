@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 test('exported tokens retarget private module consumers in forks', async () => {
   const key = Symbol('database');
@@ -7,7 +7,7 @@ test('exported tokens retarget private module consumers in forks', async () => {
   const feature = DiBag.createBuilder().withTokenService(database, () => ({ read: () => 1 })).withServices({ privateHandler: DiBag.fromFunction([database], db => ({ run: () => db.read() })),
       handler: ({ privateHandler }: { privateHandler: { run(): number } }) => privateHandler }).buildModule({ exportedServiceKeys: [database, 'handler'] });
   const root = DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
-  const child = root.fork([database], { [database.key]: () => ({ read: () => 9 }) });
+  const child = root.createIndependentContainer([database], { [database.key]: () => ({ read: () => 9 }) });
   expect(root.resolve('handler').run()).toBe(1);
   expect(child.resolve('handler').run()).toBe(9);
   expect(child.resolve(database).read()).toBe(9);
@@ -18,7 +18,7 @@ test('private tokens get independent installations and dependency ordered cleanu
   const key = Symbol('private'); const resource = DiBag.token(key).of<{ id: number }>();
   const closed: string[] = []; let id = 0;
   const feature = DiBag.createBuilder().withTokenService(resource, DiBag.withDisposal(() => ({ id: ++id }), value => { closed.push(`resource:${value.id}`); })).withServices({ handler: DiBag.withDisposal(DiBag.fromFunction([resource], value => ({ id: value.id })), value => { closed.push(`handler:${value.id}`); }) }).buildModule({ exportedServiceKeys: ['handler'] });
-  const bag = DiBag.createBuilder().withInstalledModules([feature.renameExport('handler', 'first')]).withInstalledModules([feature.renameExport('handler', 'second')]).buildContainer();
+  const bag = DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'handler', newExportKey: 'first' })]).withInstalledModules([feature.withRenamedExport({ currentExportKey: 'handler', newExportKey: 'second' })]).buildContainer();
   expect(bag.resolve('first').id).toBe(1);
   expect(bag.resolve('second').id).toBe(2);
   await bag.close();
@@ -37,7 +37,7 @@ test('token bindings preserve source reuse, promise identity and public replacem
   expect(bag.resolve(same)).toBe(replacement);
   expect(bag.resolve('consume')).toBe(replacement);
   expect(bag.resolve(second)).toBe(promise);
-  expect(bag.inspect(second).registrationMetadata.owner).toBe('team');
+  expect(bag.serviceSnapshot(second).registrationMetadata.owner).toBe('team');
   await bag.close();
 });
 
@@ -49,12 +49,12 @@ test('fork snapshots mixed selection indices and reads only selected own overrid
   Object.defineProperty(keys, Symbol.iterator, { value: function* () { yield 'unselected'; } });
   const overrides = { [key]: () => 7, named: () => 8,
     get unselected() { unselectedReads++; throw new Error('must not read'); } };
-  const child = bag.fork(keys, overrides);
+  const child = bag.createIndependentContainer(keys, overrides);
   expect(child.resolve(value)).toBe(7); expect(child.resolve('named')).toBe(8); expect(unselectedReads).toBe(0);
   await Promise.all([bag.close(), child.close()]);
 });
 
-test('duplicate mixed overrides keep getter order and route final values through private consumers', async () => {
+test('duplicate mixed overrides read each provider once and route its value through private consumers', async () => {
   const key = Symbol('resource'); const resource = DiBag.token(key).of<{ read(): number }>();
   const closed: string[] = [];
   const feature = DiBag.createBuilder().withTokenService(resource, () => ({ read: () => 1 })).withServices({
@@ -79,16 +79,16 @@ test('duplicate mixed overrides keep getter order and route final values through
       return DiBag.withDisposal(() => value, () => { closed.push(`named:${value}`); });
     },
   };
-  const child = root.fork([resource, 'named', resource, 'named'], overrides);
-  expect(reads).toEqual(['token', 'named', 'token', 'named']);
-  expect(child.resolve('handler')).toEqual({ token: 4, named: 5 });
+  const child = root.createIndependentContainer([resource, 'named', resource, 'named'], overrides);
+  expect(reads).toEqual(['token', 'named']);
+  expect(child.resolve('handler')).toEqual({ token: 2, named: 3 });
   expect(root.resolve('handler')).toEqual({ token: 1, named: 2 });
   await child.close();
-  expect(closed[0]).toBe('handler:4:5');
-  expect(closed).toContain('token:4');
-  expect(closed).toContain('named:5');
-  expect(closed).not.toContain('token:2');
-  expect(closed).not.toContain('named:3');
+  expect(closed[0]).toBe('handler:2:3');
+  expect(closed).toContain('token:2');
+  expect(closed).toContain('named:3');
+  expect(closed).not.toContain('token:4');
+  expect(closed).not.toContain('named:5');
   await root.close();
 });
 
@@ -96,9 +96,9 @@ test('invalid token selections preflight before any selected override getter', a
   const key = Symbol('value'); const token = DiBag.token(key).of<number>();
   const bag = DiBag.createBuilder().withTokenService(token, () => 1).buildContainer(); let reads = 0;
   const overrides = { get [key]() { reads++; return () => 2; } };
-  expect(() => Reflect.apply(bag.fork, bag, [[token, { ...token }], overrides])).toThrow('invalid token');
+  expect(() => Reflect.apply(bag.createIndependentContainer, bag, [[token, { ...token }], overrides])).toThrow('invalid token');
   expect(reads).toBe(0);
-  expect(() => Reflect.apply(bag.fork, bag, [[token], Object.create(overrides)])).toThrow('missing override');
+  expect(() => Reflect.apply(bag.createIndependentContainer, bag, [[token], Object.create(overrides)])).toThrow('missing createIndependentContainer replacement provider');
   expect(reads).toBe(0);
   expect(bag.resolve(token)).toBe(1); await bag.close();
 });

@@ -4,7 +4,7 @@ const clock = DiBag.withLifetime(() => () => 0, 'root');
 // diagnostic: root lifetime cannot capture scoped dependency: api -> external; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
 DiBag.createBuilder().withInstalledModules([feature]).withServices({ external: () => 'x', clock, api: DiBag.withLifetime(({ passthrough }: { passthrough: () => number }) => passthrough(), 'root') }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency: api -> external; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
-DiBag.createBuilder().withInstalledModules([feature.renameExport('passthrough', 'through')]).withServices({ external: () => 'x', clock, api: DiBag.withLifetime(({ through }: { through: () => number }) => through(), 'root') }).buildContainer();
+DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'passthrough', newExportKey: 'through' })]).withServices({ external: () => 'x', clock, api: DiBag.withLifetime(({ through }: { through: () => number }) => through(), 'root') }).buildContainer();
 const helper = DiBag.createBuilder().withServices({ helper: () => 1, api: DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'root') });
 // diagnostic: root lifetime cannot capture scoped dependency: api -> helper; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
 helper.buildModule({ exportedServiceKeys: [] });

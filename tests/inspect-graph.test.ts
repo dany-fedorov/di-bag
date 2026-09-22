@@ -1,6 +1,6 @@
 // tests/inspect-graph.test.ts
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 test('inspectGraph lists public bindings in registration order without acquiring', async () => {
   let created = 0;
@@ -12,7 +12,7 @@ test('inspectGraph lists public bindings in registration order without acquiring
     .withServices({ handler: DiBag.withMetadata(({ db }: { db: { url: string } }) => () => db.url, { static: { 'app:kind': 'http' } }) })
     .withServiceAlias({ aliasKey: 'client', targetServiceKey: 'db' })
     .buildContainer();
-  const graph = bag.inspectGraph();
+  const graph = bag.graphSnapshot();
   expect(created).toBe(0);
   expect(Object.isFrozen(graph)).toBe(true);
   expect(graph.bindings.map(binding => binding.keys)).toEqual([['config'], ['db'], ['handler'], ['client']]);
@@ -41,7 +41,7 @@ test('inspectGraph reports observed edges, contributions, private module binding
     .withServices({ reader: DiBag.fromFunction([tools, DiBag.optional(tool)], (values, _maybe) => values.length) })
     .buildContainer();
 
-  const before = bag.inspectGraph();
+  const before = bag.graphSnapshot();
   const labels = before.bindings.map(binding => binding.label);
   expect(labels).toContain('secret');
   expect(before.bindings.find(binding => binding.label === 'secret')!.keys).toEqual([]);
@@ -54,7 +54,7 @@ test('inspectGraph reports observed edges, contributions, private module binding
   ]);
 
   expect(bag.resolve('reader')).toBe(2);
-  const after = bag.inspectGraph();
+  const after = bag.graphSnapshot();
   const id = (label: string) => after.bindings.find(binding => binding.label === label)!.bindingId;
   const edges = after.observedEdges.map(edge => [after.bindings.find(b => b.bindingId === edge.from)!.label, after.bindings.find(b => b.bindingId === edge.to)!.label]);
   expect(edges).toContainEqual(['reader', `contribution:${String(toolsKey)}`]);
@@ -67,17 +67,17 @@ test('inspectGraph reports observed edges, contributions, private module binding
   void id;
 
   await bag.close();
-  const closed = bag.inspectGraph();
+  const closed = bag.graphSnapshot();
   expect(closed.bindings.every(binding => binding.acquisitions.length === 0)).toBe(true);
   expect(closed.observedEdges).toEqual([]);
 });
 
 test('a child scope reports its own scope id and the family edges', async () => {
   const root = DiBag.createBuilder().withServices({ shared: DiBag.withLifetime(() => 1, 'root'), local: ({ shared }: { shared: number }) => shared + 1 }).buildContainer();
-  const child = root.createScope();
-  expect(child.inspectGraph().scopeId).not.toBe(root.inspectGraph().scopeId);
+  const child = root.createChildContainer();
+  expect(child.graphSnapshot().scopeId).not.toBe(root.graphSnapshot().scopeId);
   expect(child.resolve('local')).toBe(2);
-  expect(child.inspectGraph().observedEdges).toHaveLength(1);
-  expect(root.inspectGraph().observedEdges).toHaveLength(1);
+  expect(child.graphSnapshot().observedEdges).toHaveLength(1);
+  expect(root.graphSnapshot().observedEdges).toHaveLength(1);
   await root.close();
 });

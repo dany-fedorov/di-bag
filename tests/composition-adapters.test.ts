@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { DiBag as Core } from '../src';
 import { withoutBuiltinModule } from './host-builtin-module';
 
@@ -151,10 +151,10 @@ test('module token graphs and selected sharing keep ownership and parent depende
   const disposed: unknown[] = [];
   const feature = DiBag.createBuilder().withServices({ source: DiBag.withDisposal(DiBag.fromClass([port], Client), value => { disposed.push(value); }) }).buildModule({ exportedServiceKeys: ['source'] });
   const bag = DiBag.createBuilder().withTokenService(port, () => 80).withInstalledModules([feature]).buildContainer();
-  const child = bag.createScope([port], { [portKey]: () => 90 }, { share: ['source'] });
+  const child = bag.createChildContainer([port], { [portKey]: () => 90 }, { sharedParentServiceKeys: ['source'] });
   const shared = child.resolve('source'); expect(shared.port).toBe(80); expect(shared).toBe(bag.resolve('source'));
   expect(child.resolve(port)).toBe(90); await child.close(); expect(disposed).toEqual([]);
-  const fork = bag.fork([port], { [portKey]: () => 99 }); expect(fork.resolve('source').port).toBe(99);
+  const fork = bag.createIndependentContainer([port], { [portKey]: () => 99 }); expect(fork.resolve('source').port).toBe(99);
   await fork.close(); await bag.close(); expect(disposed).toHaveLength(2); expect(disposed).toContain(shared);
 });
 
@@ -162,7 +162,7 @@ test('strict root class adapters retain root dependencies through child override
   const bag = DiBag.createBuilder().withTokenService(port, DiBag.withLifetime(() => 80, 'root')).withServices({
     source: DiBag.withLifetime(DiBag.fromClass([port], Client), 'root'),
   }).buildContainer();
-  const child = bag.createScope([port], { [portKey]: () => 90 });
+  const child = bag.createChildContainer([port], { [portKey]: () => 90 });
   expect(child.resolve('source')).toBe(bag.resolve('source')); expect(child.resolve('source').port).toBe(80);
   await bag.close();
 });

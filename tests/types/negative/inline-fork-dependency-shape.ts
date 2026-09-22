@@ -11,7 +11,7 @@ DiBag.createBuilder().withServices({
         return 42;
       },
     }),
-  }).buildContainer().fork(['service'], {
+  }).buildContainer().createIndependentContainer(['service'], {
     service: ({ clock }: { clock: { now(): number } }) => ({
       stamp() {
         return clock.now();

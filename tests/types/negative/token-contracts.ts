@@ -70,7 +70,7 @@ declare const graphErased: Provider<() => number, {}, readonly [], import('../..
 // diagnostic: incompatible or opaque
 DiBag.createBuilder().withServices({ graphErased });
 // diagnostic: not assignable
-DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer().fork(['value'], { value: provider });
+DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer().createIndependentContainer(['value'], { value: provider });
 const bound = withTokenBinding(token, () => ({ value: 1 }));
 // diagnostic: duplicates
 DiBag.createBuilder().withTokenService(token, bound).withTokenService(token, bound);

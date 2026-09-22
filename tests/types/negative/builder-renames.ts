@@ -1,4 +1,4 @@
-import { DiBag } from '../../../src/node';
+import { DiBag } from '../../../src';
 
 type Clock = { now(): number };
 const clockKey = Symbol('clock');

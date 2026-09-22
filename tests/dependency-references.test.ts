@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { DiBag as Core } from '../src';
 
 const key = Symbol('number');
@@ -15,7 +15,7 @@ test('optional absence is distinct from a present undefined acquisition', async 
   const disposed: string[] = [];
   const bag = DiBag.createBuilder().withTokenService(empty, DiBag.withDisposal(() => undefined, () => { disposed.push('target'); })).withServices({ optional: DiBag.withDisposal(DiBag.fromFunction([DiBag.optional(empty)], value => value), () => { disposed.push('consumer'); }) }).buildContainer();
   expect(bag.resolve('optional')).toBeUndefined();
-  expect(bag.inspect(empty).acquisitions).toHaveLength(1);
+  expect(bag.serviceSnapshot(empty).acquisitions).toHaveLength(1);
   await bag.close(); expect(disposed).toEqual(['consumer', 'target']);
   await absent.close(); await present.close();
 });
@@ -42,7 +42,7 @@ for (const lifetime of ['scoped', 'root', 'transient'] as const) {
       : lifetime === 'transient' ? DiBag.withLifetime(owned, 'transient') : owned;
     const bag = DiBag.createBuilder().withTokenService(target, registration).withServices({ lazy: DiBag.withDisposal(lazy, () => { disposed.push('consumer'); }) }).buildContainer();
     const consumer = bag.resolve('lazy'); expect(calls).toBe(0);
-    expect(bag.inspect(target).acquisitions).toHaveLength(0);
+    expect(bag.serviceSnapshot(target).acquisitions).toHaveLength(0);
     const first = consumer.get(); const second = consumer.get();
     expect(first).toEqual({ id: 1 });
     if (lifetime === 'transient') { expect(second).toEqual({ id: 2 }); expect(second).not.toBe(first); }
@@ -84,7 +84,7 @@ test('lazy reads preserve lexical private tokens, export renames and external op
   const feature = DiBag.createBuilder().withTokenService(number, () => 3).withServices({
     client: DiBag.fromFunction([DiBag.optional(number), DiBag.lazy(number)], (value, get) => ({ value, get })),
     forwarding: ({ client }: { client: { value: number | undefined; get: () => number } }) => client,
-  }).buildModule({ exportedServiceKeys: ['client', 'forwarding'] }).renameExport('client', 'renamed');
+  }).buildModule({ exportedServiceKeys: ['client', 'forwarding'] }).withRenamedExport({ currentExportKey: 'client', newExportKey: 'renamed' });
   const bag = DiBag.createBuilder().withTokenService(number, () => 100).withInstalledModules([feature]).buildContainer();
   expect(bag.resolve('renamed').value).toBe(3); expect(bag.resolve('forwarding').get()).toBe(3);
   const external = DiBag.createBuilder().withServices({ optional: DiBag.fromFunction([DiBag.optional(number)], value => value) }).buildModule({ exportedServiceKeys: ['optional'] });
@@ -94,15 +94,15 @@ test('lazy reads preserve lexical private tokens, export renames and external op
 
 test('lazy closures use shared/root owner context and independent fork overrides', async () => {
   const bag = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ source: DiBag.fromFunction([DiBag.lazy(number)], get => ({ get })) }).buildContainer();
-  const child = bag.createScope([number], { [key]: () => 2 }, { share: ['source'] });
+  const child = bag.createChildContainer([number], { [key]: () => 2 }, { sharedParentServiceKeys: ['source'] });
   const shared = child.resolve('source'); expect(shared.get()).toBe(1); expect(child.resolve(number)).toBe(2);
   await child.close(); expect(shared.get()).toBe(1);
-  const fork = bag.fork([number], { [key]: () => 3 }); expect(fork.resolve('source').get()).toBe(3);
+  const fork = bag.createIndependentContainer([number], { [key]: () => 3 }); expect(fork.resolve('source').get()).toBe(3);
   await fork.close(); await bag.close(); expect(shared.get).toThrow('closed');
   const root = DiBag.createBuilder().withTokenService(number, DiBag.withLifetime(() => 4, 'root')).withServices({
     source: DiBag.withLifetime(DiBag.fromFunction([DiBag.lazy(number)], get => ({ get })), 'root'),
   }).buildContainer();
-  const scoped = root.createScope([number], { [key]: () => 5 }); expect(scoped.resolve('source').get()).toBe(4);
+  const scoped = root.createChildContainer([number], { [key]: () => 5 }); expect(scoped.resolve('source').get()).toBe(4);
   await root.close();
 });
 
@@ -178,7 +178,7 @@ test('a pending projection does not extend a lazy source shutdown admission', as
 test('root explicit capture and optional reads retain the root lexical context', async () => {
   const source = DiBag.withLifetime(DiBag.fromFunction([DiBag.optional(number), DiBag.lazy(number)], (value, get) => ({ value, get })), 'root', { allowScopedDependencies: true });
   const bag = DiBag.createBuilder().withTokenService(number, () => 6).withServices({ source }).buildContainer();
-  const child = bag.createScope([number], { [key]: () => 7 });
+  const child = bag.createChildContainer([number], { [key]: () => 7 });
   expect(child.resolve('source').value).toBe(6); expect(child.resolve('source').get()).toBe(6); await bag.close();
   const strict = DiBag.withLifetime(DiBag.fromFunction([DiBag.optional(number)], value => value), 'root');
   const builder = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ strict });

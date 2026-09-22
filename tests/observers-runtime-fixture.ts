@@ -26,7 +26,7 @@ export const observerRuntimeAssertions = `
     const rootAttempt = parent.inspect('resource').acquisitions[0].acquisitionId;
     child.resolveCollection(item);
     child.resolveCollection(item);
-    const contributionAttempts = child.inspectCollection(item)[0].acquisitions.map(attempt => attempt.acquisitionId);
+    const contributionAttempts = child.serviceSnapshot(item)[0].acquisitions.map(attempt => attempt.acquisitionId);
     const independent = parent.fork();
     const independentValue = independent.resolve('resourceAlias');
     const independentAttempt = independent.inspect('resource').acquisitions[0].acquisitionId;

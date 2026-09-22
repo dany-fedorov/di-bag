@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError, DiBagServiceReadinessError } from '../src/node';
+import { DiBag, DiBagCleanupError, DiBagServiceReadinessError } from '../src';
 import { withOwnedScope } from '../examples/integration/owned-scope';
 
 test('overlapping requests isolate private dependencies and release scopes before the shared root', async () => {
@@ -25,7 +25,7 @@ test('overlapping requests isolate private dependencies and release scopes befor
   let release!: () => void;
   const bothEntered = new Promise<void>(resolve => { release = resolve; });
   const run = (id: string) => withOwnedScope(
-    () => root.createScope(['request'], { request: () => ({ id }) }),
+    () => root.createChildContainer(['request'], { request: () => ({ id }) }),
     async scope => {
       const handler = scope.resolve('handler');
       if (++entered === 2) release();

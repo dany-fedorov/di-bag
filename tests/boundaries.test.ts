@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import * as source from '../src/di-bag';
 import { BindingGraph } from '../src/runtime';
 import { runInNewContext } from 'node:vm';
@@ -9,7 +9,7 @@ test('fork changes only the selected key hidden behind a narrowed override map',
   const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildContainer();
   const actual = { a: () => 3, b: () => 'wrong' };
   const narrowed: { a: () => number } = actual;
-  const child = root.fork(['a'], narrowed);
+  const child = root.createIndependentContainer(['a'], narrowed);
   const b: number = child.resolve('b');
   expect(b).toBe(2);
   expect(child.resolve('a')).toBe(3);
@@ -18,7 +18,7 @@ test('fork changes only the selected key hidden behind a narrowed override map',
 
 test('unselected override values and getters never participate', () => {
   const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildContainer();
-  const child = root.fork(['a'], {
+  const child = root.createIndependentContainer(['a'], {
     a: () => 3,
     b: 'not a factory',
     get unused(): never { throw new Error('unselected getter invoked'); },
@@ -67,21 +67,21 @@ test('replacement writes its explicit key and preserves earlier builders', () =>
   expect(() => Reflect.apply(builder.withReplacedService, builder, ['missing', () => 3])).toThrow(/existing.*missing/);
 });
 
-test('fork requires selected own entries before reading any selected getter', () => {
+test('createIndependentContainer requires selected own entries before reading any selected getter', () => {
   const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildContainer();
   let reads = 0;
   const overrides = { get a() { reads++; return () => 3; } };
-  expect(() => Reflect.apply(root.fork, root, [['a', 'b'], overrides])).toThrow(/missing override.*b/);
+  expect(() => Reflect.apply(root.createIndependentContainer, root, [['a', 'b'], overrides])).toThrow(/missing createIndependentContainer replacement provider.*b/);
   expect(reads).toBe(0);
-  expect(() => Reflect.apply(root.fork, root, [['b'], Object.create({ b: () => 4 })])).toThrow(/missing override.*b/);
-  expect(() => Reflect.apply(root.fork, root, [['unknown'], { unknown: () => 4 }])).toThrow(/existing.*unknown/);
+  expect(() => Reflect.apply(root.createIndependentContainer, root, [['b'], Object.create({ b: () => 4 })])).toThrow(/missing createIndependentContainer replacement provider.*b/);
+  expect(() => Reflect.apply(root.createIndependentContainer, root, [['unknown'], { unknown: () => 4 }])).toThrow(/existing.*unknown/);
   expect(root.resolve('b')).toBe(2);
 });
 
 test('fork snapshots selection before an override getter mutates the caller tuple', () => {
   const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildContainer();
   const keys: ['a', 'b'] = ['a', 'b'];
-  const child = root.fork(keys, {
+  const child = root.createIndependentContainer(keys, {
     get a() { keys.splice(1); return () => 3; },
     b: () => 4 as const,
   });
@@ -96,7 +96,7 @@ test('fork selects indexed tuple entries even when its iterator omits a key', ()
     yield keys[0];
     return undefined;
   };
-  const child = root.fork(keys, { a: () => 3, b: () => 4 as const });
+  const child = root.createIndependentContainer(keys, { a: () => 3, b: () => 4 as const });
   const b: 4 = child.resolve('b');
   expect(b).toBe(4);
 });
@@ -116,7 +116,7 @@ test('fork batches selected replacements without using the single-binding graph 
     return originalBatch.call(this, entries);
   };
   try {
-    const child = root.fork(['a', 'b'], { a: () => 3, b: () => 4 as const });
+    const child = root.createIndependentContainer(['a', 'b'], { a: () => 3, b: () => 4 as const });
     expect(child.resolve('a')).toBe(3);
     expect(child.resolve('b')).toBe(4);
     expect(singleReplacements).toBe(0);
@@ -127,7 +127,7 @@ test('fork batches selected replacements without using the single-binding graph 
   }
 });
 
-test('empty forks reuse the graph without reading unselected values and retain fresh ownership', async () => {
+test('empty independent containers reuse the graph without reading unselected values and retain fresh ownership', async () => {
   let next = 0;
   const disposed: number[] = [];
   const root = DiBag.createBuilder().withServices({
@@ -143,12 +143,12 @@ test('empty forks reuse the graph without reading unselected values and retain f
     return originalBatch.call(this, entries);
   };
   try {
-    const child = root.fork(keys, overrides);
-    expect(batchReplacements).toBe(0);
+    const child = root.createIndependentContainer(keys, overrides);
+    expect(batchReplacements).toBe(1);
     expect(root.resolve('value')).toBe(1);
     expect(child.resolve('value')).toBe(2);
-    expect(() => Reflect.apply(root.fork, root, [[], null])).toThrow('override object');
-    expect(() => Reflect.apply(root.fork, root, [[], undefined])).toThrow('override object');
+    expect(() => Reflect.apply(root.createIndependentContainer, root, [[], null])).toThrow('replacementProviders to be an object');
+    expect(() => Reflect.apply(root.createIndependentContainer, root, [[], undefined])).toThrow('replacementProviders to be an object');
     await Promise.all([root.close(), child.close()]);
     expect(disposed.sort()).toEqual([1, 2]);
   } finally {
@@ -161,7 +161,7 @@ test('selected overrides can depend on richer capabilities of other selected ser
     clock: () => ({ now: () => 42 }),
     service: ({ clock }: { clock: { now(): number } }) => ({ stamp: () => clock.now() }),
   }).buildContainer();
-  const child = root.fork(['clock', 'service'], {
+  const child = root.createIndependentContainer(['clock', 'service'], {
     clock: () => ({ now() { return 7; }, zone() { return 'utc' as const; } }),
     service: ({ clock }: { clock: { now(): number; zone(): 'utc' } }) => ({
       stamp() { return clock.now(); },

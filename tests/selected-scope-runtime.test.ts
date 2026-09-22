@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { isPromise } from 'node:util/types';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { BindingGraph, BagRuntime } from '../src/runtime';
 import type { AcquisitionContext } from '../src/acquisition-context';
 import { deferred } from './helpers';

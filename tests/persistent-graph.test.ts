@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { BindingGraph } from '../src/runtime';
 import type { BindingDescription, BindingRef } from '../src/runtime';
 import { BagRuntime } from './runtime-context';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { withoutBuiltinModule } from './host-builtin-module';
 
 const binding = (id: symbol, value: number, localNames: ReadonlyMap<string | symbol, BindingRef> = new Map()): BindingDescription =>

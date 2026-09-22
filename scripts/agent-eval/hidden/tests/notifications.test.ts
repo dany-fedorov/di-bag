@@ -20,13 +20,13 @@ const base = DiBag.createBuilder()
   .buildContainer();
 after(() => base.close());
 
-const shop = (events: Event[]) => base.fork(['mailConfig'], { mailConfig: mailConfig(events) });
+const shop = (events: Event[]) => base.createIndependentContainer(['mailConfig'], { mailConfig: mailConfig(events) });
 
 test('orderPlaced mails operations', async () => {
   const events: Event[] = [];
   const bag = shop(events);
   try {
-    await bag.createScope().resolve('notifier').orderPlaced({ orderId: 'o-7', totalCents: 2100 });
+    await bag.createChildContainer().resolve('notifier').orderPlaced({ orderId: 'o-7', totalCents: 2100 });
     assert.deepEqual(events, ['connect', { to: 'ops@shop.test', subject: 'Order o-7 placed', body: 'Total: 2100 cents' }]);
   } finally {
     await bag.close();
@@ -36,8 +36,8 @@ test('orderPlaced mails operations', async () => {
 test('scopes share one transport, closed once with the application and not with a scope', async () => {
   const events: Event[] = [];
   const bag = shop(events);
-  const first = bag.createScope();
-  const second = bag.createScope();
+  const first = bag.createChildContainer();
+  const second = bag.createChildContainer();
   await first.resolve('notifier').orderPlaced({ orderId: 'o-1', totalCents: 1 });
   await second.resolve('notifier').orderPlaced({ orderId: 'o-2', totalCents: 2 });
   await first.close();
@@ -52,7 +52,7 @@ test('scopes share one transport, closed once with the application and not with 
 test('an application that never resolves notifier never connects', async () => {
   const events: Event[] = [];
   const bag = shop(events);
-  await bag.createScope().close();
+  await bag.createChildContainer().close();
   await bag.close();
   assert.deepEqual(events, []);
 });

@@ -28,7 +28,7 @@ bag.resolve(other);
 // diagnostic: token must match an existing binding contract; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 bag.resolve(conflict);
 // diagnostic: token must match an existing binding contract; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
-bag.inspect(conflict);
+bag.serviceSnapshot(conflict);
 // diagnostic: not assignable
 builder.withReplacedService(token, () => ({ value: 'wrong' }));
 // diagnostic: required service registrations are missing
@@ -38,20 +38,20 @@ DiBag.createBuilder().withTokenService(token, ({ name }: { name: string }) => ({
 // diagnostic: consumer dependency
 DiBag.createBuilder().withServices({ name: () => 1 }).withTokenService(token, ({ name }: { name: string }) => ({ value: name.length }));
 // diagnostic: not assignable
-bag.fork([token], { [key]: () => ({ value: 2 }) });
+bag.createIndependentContainer([token], { [key]: () => ({ value: 2 }) });
 // diagnostic: does not exist
-bag.fork([token], { [otherKey]: () => ({ value: 2, extra: true }) });
+bag.createIndependentContainer([token], { [otherKey]: () => ({ value: 2, extra: true }) });
 // diagnostic: Property '[key]' is missing
-bag.fork<readonly [typeof token], {}>([token], {});
+bag.createIndependentContainer<readonly [typeof token], {}>([token], {});
 declare const selection: readonly [typeof token] | readonly [];
 // diagnostic: finite tuple
-bag.fork(selection, { [key]: () => ({ value: 2, extra: true }) });
+bag.createIndependentContainer(selection, { [key]: () => ({ value: 2, extra: true }) });
 declare const broad: readonly typeof token[];
 // diagnostic: finite tuple
-bag.fork(broad, { [key]: () => ({ value: 2, extra: true }) });
+bag.createIndependentContainer(broad, { [key]: () => ({ value: 2, extra: true }) });
 declare const optional: readonly [typeof token?];
 // diagnostic: finite tuple
-bag.fork(optional, { [key]: () => ({ value: 2, extra: true }) });
+bag.createIndependentContainer(optional, { [key]: () => ({ value: 2, extra: true }) });
 declare const erased: TokenBase;
 // diagnostic: not assignable
 bag.resolve(erased);
@@ -64,19 +64,19 @@ declare const opaqueBinding: Provider<() => number, {}, readonly [], TokenDepend
 // diagnostic: incompatible
 DiBag.createBuilder().withServices({ opaqueBinding });
 // diagnostic: not assignable
-bag.fork([token], { [key]: opaque });
+bag.createIndependentContainer([token], { [key]: opaque });
 // diagnostic: required service registrations are missing
-bag.fork([token], { [key]: DiBag.fromFunction([other], (_dependency0) => ({ value: 2, extra: true })) });
+bag.createIndependentContainer([token], { [key]: DiBag.fromFunction([other], (_dependency0) => ({ value: 2, extra: true })) });
 declare const unionToken: typeof token | typeof other;
 // diagnostic: not assignable
 bag.resolve(unionToken);
 const secondKey = Symbol('second'); const second = DiBag.token(secondKey).of<number>();
 const pair = DiBag.createBuilder().withTokenService(token, () => ({ value: 1, extra: true })).withTokenService(second, () => 1).buildContainer();
 // diagnostic: not assignable
-pair.fork([token, second], { [key]: ({ named }: { named: string }) => ({ value: named.length, extra: true }), [secondKey]: () => 1 });
+pair.createIndependentContainer([token, second], { [key]: ({ named }: { named: string }) => ({ value: named.length, extra: true }), [secondKey]: () => 1 });
 const namedPair = DiBag.createBuilder().withTokenService(token, () => ({ value: 1 })).withServices({ named: () => ({ count: 1 }) }).buildContainer();
 const wrongEdges = { [key]: ({ named }: { named: { extra: boolean } }) => ({ value: named.extra ? 1 : 0 }), named: () => ({ count: 2 }) };
 // diagnostic: not assignable
-namedPair.fork([token, 'named'], wrongEdges);
+namedPair.createIndependentContainer([token, 'named'], wrongEdges);
 // diagnostic: consumer dependency
 DiBag.createBuilder().withTokenService(token, () => ({ value: 1, extra: true })).withServices({ consumer: ({ named }: { named: string }) => named }).withServices({ named: () => 1 });

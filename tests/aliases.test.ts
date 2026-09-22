@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { DiBag as Portable } from '../src';
 
 test('named aliases preserve exact canonical object and immutable history', async () => {
@@ -44,19 +44,19 @@ test('transient aliases add no ownership and record actual target disposal edges
   expect(bag.resolve('consumer').copy.id).toBe(1);
   expect(bag.resolve('copy').id).toBe(2);
   expect(bag.resolve('value').id).toBe(3);
-  expect(bag.inspect('copy').acquisitions).toHaveLength(3);
-  expect(bag.inspect('copy').acquisitions).toEqual(bag.inspect('value').acquisitions);
+  expect(bag.serviceSnapshot('copy').acquisitions).toHaveLength(3);
+  expect(bag.serviceSnapshot('copy').acquisitions).toEqual(bag.serviceSnapshot('value').acquisitions);
   await bag.close();
   expect(disposed.filter(v => v === 'value:1')).toHaveLength(1);
   expect(disposed.indexOf('consumer')).toBeLessThan(disposed.indexOf('value:1'));
 });
 
 test('module aliases retain private targets and export renames under host collisions', async () => {
-  const module = DiBag.createBuilder().withServices({ value: () => ({ id: 'private' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['copy'] }).renameExport('copy', 'public');
+  const module = DiBag.createBuilder().withServices({ value: () => ({ id: 'private' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['copy'] }).withRenamedExport({ currentExportKey: 'copy', newExportKey: 'public' });
   const bag = DiBag.createBuilder().withServices({ value: () => ({ id: 'host' }) }).withInstalledModules([module]).buildContainer();
   expect(bag.resolve('public')).toEqual({ id: 'private' });
   expect(bag.resolve('value')).toEqual({ id: 'host' });
-  const child = bag.createScope(['value'], { value: () => ({ id: 'child' }) });
+  const child = bag.createChildContainer(['value'], { value: () => ({ id: 'child' }) });
   expect(child.resolve('public')).toEqual({ id: 'private' });
   expect(child.resolve('public')).not.toBe(bag.resolve('public'));
   await bag.close();
@@ -64,15 +64,15 @@ test('module aliases retain private targets and export renames under host collis
 
 test('selected sharing routes alias through parent graph while independent overrides follow child graph', async () => {
   const bag = DiBag.createBuilder().withServices({ value: () => ({ id: 1 }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
-  const child = bag.createScope(['value'], { value: () => ({ id: 2 }) });
+  const child = bag.createChildContainer(['value'], { value: () => ({ id: 2 }) });
   expect(child.resolve('copy')).toBe(child.resolve('value'));
-  const shared = bag.createScope(['value'], { value: () => ({ id: 3 }) }, { share: ['copy'] });
+  const shared = bag.createChildContainer(['value'], { value: () => ({ id: 3 }) }, { sharedParentServiceKeys: ['copy'] });
   expect(shared.resolve('copy')).toBe(bag.resolve('value'));
   expect(shared.resolve('value').id).toBe(3);
-  const replaced = bag.createScope(['copy'], { copy: () => ({ id: 4 }) });
+  const replaced = bag.createChildContainer(['copy'], { copy: () => ({ id: 4 }) });
   expect(replaced.resolve('copy').id).toBe(4);
   expect(replaced.resolve('value').id).toBe(1);
-  const fork = bag.fork();
+  const fork = bag.createIndependentContainer();
   expect(fork.resolve('copy')).toBe(fork.resolve('value'));
   expect(fork.resolve('copy')).not.toBe(bag.resolve('value'));
   await fork.close(); await bag.close();
@@ -81,7 +81,7 @@ test('selected sharing routes alias through parent graph while independent overr
 test('runtime rejects transient sharing and root captures through aliases before invoking target', async () => {
   let calls = 0;
   const bag = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => ++calls, 'transient') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
-  expect(() => Reflect.apply(bag.createScope, bag, [{ share: ['copy'] }])).toThrow('cannot share transient');
+  expect(() => Reflect.apply(bag.createChildContainer, bag, [{ sharedParentServiceKeys: ['copy'] }])).toThrow('cannot share transient');
   const builder = DiBag.createBuilder().withServices({ value: () => ++calls }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServices({
     root: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root'),
   });
@@ -94,11 +94,11 @@ test('runtime rejects transient sharing and root captures through aliases before
 test('alias inspection reports direct target and canonical attempts without stale target metadata', async () => {
   const builder = DiBag.createBuilder().withServices({ value: DiBag.withMetadata(() => 1, { static: { old: true } }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServiceAlias({ aliasKey: 'chain', targetServiceKey: 'copy' });
   const bag = builder.withReplacedService('value', () => 2).buildContainer();
-  expect(bag.inspect('chain').aliasTarget).toEqual({ bindingId: bag.inspect('copy').bindingId, label: 'copy' });
-  expect(bag.inspect('copy').registrationMetadata).toEqual({});
-  expect(Object.isFrozen(bag.inspect('chain').aliasTarget)).toBe(true);
+  expect(bag.serviceSnapshot('chain').aliasTarget).toEqual({ bindingId: bag.serviceSnapshot('copy').bindingId, label: 'copy' });
+  expect(bag.serviceSnapshot('copy').registrationMetadata).toEqual({});
+  expect(Object.isFrozen(bag.serviceSnapshot('chain').aliasTarget)).toBe(true);
   bag.resolve('chain');
-  expect(bag.inspect('chain').acquisitions).toEqual(bag.inspect('value').acquisitions);
+  expect(bag.serviceSnapshot('chain').acquisitions).toEqual(bag.serviceSnapshot('value').acquisitions);
   await bag.close();
 });
 
@@ -140,19 +140,19 @@ test('startup through an alias waits for final readiness and retries failed cano
 
 test('shared alias inspection identifies its parent target despite a child override', async () => {
   const bag = DiBag.createBuilder().withServices({ value: () => ({ id: 1 }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
-  const child = bag.createScope(['value'], { value: () => ({ id: 2 }) }, { share: ['copy'] });
+  const child = bag.createChildContainer(['value'], { value: () => ({ id: 2 }) }, { sharedParentServiceKeys: ['copy'] });
   child.resolve('copy');
-  expect(child.inspect('copy').aliasTarget?.bindingId).toBe(bag.inspect('value').bindingId);
-  expect(child.inspect('copy').aliasTarget?.bindingId).not.toBe(child.inspect('value').bindingId);
-  expect(child.inspect('copy').acquisitions).toEqual(bag.inspect('value').acquisitions);
+  expect(child.serviceSnapshot('copy').aliasTarget?.bindingId).toBe(bag.serviceSnapshot('value').bindingId);
+  expect(child.serviceSnapshot('copy').aliasTarget?.bindingId).not.toBe(child.serviceSnapshot('value').bindingId);
+  expect(child.serviceSnapshot('copy').acquisitions).toEqual(bag.serviceSnapshot('value').acquisitions);
   await bag.close();
 });
 
 test('aliases of root targets retain the root graph under child overrides', async () => {
   const bag = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => ({ id: 1 }), 'root') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
-  const child = bag.createScope();
+  const child = bag.createChildContainer();
   expect(child.resolve('copy')).toBe(bag.resolve('value'));
-  const override = bag.createScope(['value'], { value: () => ({ id: 2 }) });
+  const override = bag.createChildContainer(['value'], { value: () => ({ id: 2 }) });
   expect(override.resolve('copy')).toBe(override.resolve('value'));
   expect(override.resolve('copy').id).toBe(2);
   await bag.close();
@@ -186,11 +186,11 @@ test('module token aliases preserve private identity and external host requireme
 });
 
 test('exported target replacements and renames remain visible through module aliases', async () => {
-  const module = DiBag.createBuilder().withServices({ value: () => ({ id: 1 }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['value', 'copy'] }).renameExport('value', 'renamed');
+  const module = DiBag.createBuilder().withServices({ value: () => ({ id: 1 }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['value', 'copy'] }).withRenamedExport({ currentExportKey: 'value', newExportKey: 'renamed' });
   const bag = DiBag.createBuilder().withInstalledModules([module]).withReplacedService('renamed', () => ({ id: 2 })).buildContainer();
   expect(bag.resolve('copy')).toBe(bag.resolve('renamed'));
   expect(bag.resolve('copy').id).toBe(2);
-  const child = bag.createScope(['renamed'], { renamed: () => ({ id: 3 }) });
+  const child = bag.createChildContainer(['renamed'], { renamed: () => ({ id: 3 }) });
   expect(child.resolve('copy')).toBe(child.resolve('renamed'));
   expect(child.resolve('copy').id).toBe(3);
   await bag.close();
@@ -198,16 +198,16 @@ test('exported target replacements and renames remain visible through module ali
 
 test('re-sharing aliases keeps parent policy while fresh grandchildren and forks use local targets', async () => {
   const base = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => ({ id: 1 }), 'root') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
-  const shared = base.createScope(['value'], { value: DiBag.withLifetime(() => ({ id: 2 }), 'transient') }, { share: ['copy'] });
-  const borrowed = shared.createScope({ share: ['copy'] });
+  const shared = base.createChildContainer(['value'], { value: DiBag.withLifetime(() => ({ id: 2 }), 'transient') }, { sharedParentServiceKeys: ['copy'] });
+  const borrowed = shared.createChildContainer({ sharedParentServiceKeys: ['copy'] });
   expect(borrowed.resolve('copy')).toBe(base.resolve('value'));
-  expect(borrowed.inspect('copy').aliasTarget?.bindingId).toBe(base.inspect('value').bindingId);
-  const fresh = shared.createScope(); const fork = shared.fork();
+  expect(borrowed.serviceSnapshot('copy').aliasTarget?.bindingId).toBe(base.serviceSnapshot('value').bindingId);
+  const fresh = shared.createChildContainer(); const fork = shared.createIndependentContainer();
   expect(fresh.resolve('copy').id).toBe(2);
   expect(fork.resolve('copy').id).toBe(2);
   expect(fresh.resolve('copy')).not.toBe(fresh.resolve('copy'));
-  expect(() => Reflect.apply(fresh.createScope, fresh, [{ share: ['copy'] }])).toThrow('cannot share transient');
-  expect(() => Reflect.apply(fork.createScope, fork, [{ share: ['copy'] }])).toThrow('cannot share transient');
+  expect(() => Reflect.apply(fresh.createChildContainer, fresh, [{ sharedParentServiceKeys: ['copy'] }])).toThrow('cannot share transient');
+  expect(() => Reflect.apply(fork.createChildContainer, fork, [{ sharedParentServiceKeys: ['copy'] }])).toThrow('cannot share transient');
   await fork.close(); await base.close();
 });
 
@@ -217,11 +217,11 @@ test('strict roots use the effective shared alias policy in both lifetime direct
     const initial = DiBag.createBuilder().withServices({ value: rootTarget ? DiBag.withLifetime(source, 'root') : source,
       consumer: ({ copy }: { copy: { id: number } }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
     const override = () => ({ id: 2 });
-    const child = initial.createScope(['value'], { value: rootTarget ? override : DiBag.withLifetime(override, 'root') }, { share: ['copy'] });
+    const child = initial.createChildContainer(['value'], { value: rootTarget ? override : DiBag.withLifetime(override, 'root') }, { sharedParentServiceKeys: ['copy'] });
     const consumer = DiBag.withLifetime(({ copy }: { copy: { id: number } }) => copy, 'root');
-    const shared = Reflect.apply(child.createScope, child, [['consumer'], { consumer }, { share: ['copy'] }]);
-    const fresh = Reflect.apply(child.createScope, child, [['consumer'], { consumer }]);
-    const fork = Reflect.apply(child.fork, child, [['consumer'], { consumer }]);
+    const shared = Reflect.apply(child.createChildContainer, child, [['consumer'], { consumer }, { sharedParentServiceKeys: ['copy'] }]);
+    const fresh = Reflect.apply(child.createChildContainer, child, [['consumer'], { consumer }]);
+    const fork = Reflect.apply(child.createIndependentContainer, child, [['consumer'], { consumer }]);
     if (rootTarget) {
       expect(shared.resolve('consumer')).toBe(initial.resolve('value'));
       expect(() => fresh.resolve('consumer')).toThrow('root lifetime cannot capture scoped');

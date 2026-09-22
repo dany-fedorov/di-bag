@@ -7,7 +7,7 @@ const providers = {
 const root = DiBag.createBuilder().withServices(providers).buildContainer();
 
 // diagnostic: not assignable
-root.fork(['service', 'promised'], {
+root.createIndependentContainer(['service', 'promised'], {
   service: () => ({ read() { return 3; }, extra() { return true; } }),
   promised: async ({service}: {service: {richer(): number}}) => service.richer(),
 });

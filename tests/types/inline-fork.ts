@@ -8,7 +8,7 @@ const root = DiBag.createBuilder().withServices({
     }),
   }).buildContainer();
 
-const scoped = root.fork(['clock', 'service'], {
+const scoped = root.createIndependentContainer(['clock', 'service'], {
   clock: () => ({
     now() {
       return 7;
@@ -37,7 +37,7 @@ type Service = Assert<
 >;
 type Clock = Assert<Equal<typeof clock, { now(): number }>>;
 
-const nested = scoped.fork(['clock'], {
+const nested = scoped.createIndependentContainer(['clock'], {
     clock() {
       return {
         now() {

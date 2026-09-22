@@ -11,13 +11,13 @@ const fixture = DiBag.createBuilder()
 after(() => fixture.close());
 
 test('finds products and shares one catalog across scopes', async () => {
-  const bag = fixture.fork(['catalogData'], {
+  const bag = fixture.createIndependentContainer(['catalogData'], {
     catalogData: DiBag.withLifetime((): CatalogData => ({ products: [{ sku: 'tea', name: 'Tea', priceCents: 450 }] }), 'root'),
   });
   try {
-    const catalog = bag.createScope().resolve('catalog');
+    const catalog = bag.createChildContainer().resolve('catalog');
     assert.equal(catalog.find('tea')?.priceCents, 450);
-    assert.equal(bag.createScope().resolve('catalog'), catalog);
+    assert.equal(bag.createChildContainer().resolve('catalog'), catalog);
   } finally {
     await bag.close();
   }

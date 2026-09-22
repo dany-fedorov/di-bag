@@ -1,9 +1,9 @@
 // tools/graph/test/fixtures/ready-chain.ts
-import { DiBag } from '../../../../src/node';
+import { DiBag } from '../../../../src';
 export const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     db: async () => ({ ping: () => true }),
     report: ({ db }: { db: Promise<{ ping(): boolean }> }) => db,
   })
-  .build()
+  .buildContainer()
   .ensureServicesReady(['db']);

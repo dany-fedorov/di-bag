@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { deferred } from './helpers';
 
 test('selected sharing keeps parent dependencies while child overrides stay local', async () => {
@@ -8,11 +8,11 @@ test('selected sharing keeps parent dependencies while child overrides stay loca
     config: () => ({ id: 'parent' }),
     service: DiBag.withDisposal(({ config }: { config: { id: string } }) => ({ config }), () => { released.push('parent'); }),
   }).buildContainer();
-  const child = root.createScope(['config'], { config: () => ({ id: 'child', extra: true }) }, { share: ['service'] });
+  const child = root.createChildContainer(['config'], { config: () => ({ id: 'child', extra: true }) }, { sharedParentServiceKeys: ['service'] });
   expect(child.resolve('config')).toEqual({ id: 'child', extra: true });
   expect(child.resolve('service').config.id).toBe('parent');
   expect(child.resolve('service')).toBe(root.resolve('service'));
-  expect(child.inspect('service').acquisitions).toEqual(root.inspect('service').acquisitions);
+  expect(child.serviceSnapshot('service').acquisitions).toEqual(root.serviceSnapshot('service').acquisitions);
   await child.close();
   expect(released).toEqual([]);
   await root.close();
@@ -24,7 +24,7 @@ test('mixed token selections retain exact borrowed pending values and override b
   const token = DiBag.token(key).of<{ id: number }>();
   const gate = deferred<number>();
   const root = DiBag.createBuilder().withTokenService(token, () => ({ id: 1 })).withServices({ pending: () => gate.promise }).buildContainer();
-  const child = root.createScope([token], { [key]: () => ({ id: 2, added: true }) }, { share: ['pending'] });
+  const child = root.createChildContainer([token], { [key]: () => ({ id: 2, added: true }) }, { sharedParentServiceKeys: ['pending'] });
   expect(child.resolve(token)).toEqual({ id: 2, added: true });
   expect(child.resolve('pending')).toBe(gate.promise);
   expect(root.resolve('pending')).toBe(gate.promise);
@@ -43,29 +43,29 @@ test('scope snapshots selections and ignores unselected override getters and tup
     get a() { reads++; keys[0] = 'c' as 'a'; shared[0] = 'c' as 'b'; return () => 10; },
     get c(): () => number { throw new Error('unselected'); },
   };
-  const child = root.createScope(keys, overrides, { share: shared });
+  const child = root.createChildContainer(keys, overrides, { sharedParentServiceKeys: shared });
   expect(reads).toBe(1);
   expect(child.resolve('a')).toBe(10);
   expect(child.resolve('b')).toBe(2);
   expect(child.resolve('c')).toBe(3);
-  expect(child.inspect('b').acquisitions).toEqual(root.inspect('b').acquisitions);
+  expect(child.serviceSnapshot('b').acquisitions).toEqual(root.serviceSnapshot('b').acquisitions);
   await root.close();
 });
 
 test('invalid selections reject before override values or provider effects', async () => {
   let calls = 0;
   const root = DiBag.createBuilder().withServices({ a: () => { calls++; return 1; }, transient: DiBag.withLifetime(() => 2, 'transient') }).buildContainer();
-  const scope = root.createScope.bind(root) as (...args: unknown[]) => unknown;
+  const scope = root.createChildContainer.bind(root) as (...args: unknown[]) => unknown;
   const overrides = { get a() { calls++; return () => 10; } };
   for (const args of [
-    [undefined], [null], [{}], [{ share: [] }, {}],
-    [{ share: ['missing'] }], [{ share: ['transient'] }],
-    [{ share: [], other: true }], [Object.create({ share: [] })],
-    [['a'], overrides, { share: ['a'] }],
+    [null], [{ sharedParentServiceKeys: [] }, {}],
+    [{ sharedParentServiceKeys: ['missing'] }], [{ sharedParentServiceKeys: ['transient'] }],
+    [{ sharedParentServiceKeys: [], other: true }], [Object.create({ sharedParentServiceKeys: [] })],
+    [['a'], overrides, { sharedParentServiceKeys: ['a'] }],
     [['a', 'missing'], overrides], [['a'], {}],
-    [['a'], overrides, { share: [Symbol('forged')] }],
-    [['a'], overrides, { share: [], unexpected: true }],
-    [['a'], overrides, { share: ['transient'] }],
+    [['a'], overrides, { sharedParentServiceKeys: [Symbol('forged')] }],
+    [['a'], overrides, { sharedParentServiceKeys: [], unexpected: true }],
+    [['a'], overrides, { sharedParentServiceKeys: ['transient'] }],
     [['a'], overrides, undefined, 'extra'],
   ]) expect(() => scope(...args)).toThrow();
   expect(calls).toBe(0);
@@ -75,13 +75,13 @@ test('invalid selections reject before override values or provider effects', asy
 test('empty selections are lazy and duplicates read each override once', async () => {
   let calls = 0;
   const root = DiBag.createBuilder().withServices({ a: () => ({ id: ++calls }) }).buildContainer();
-  const empty = root.createScope([], { get a(): () => { id: number } { throw new Error('unselected'); } }, { share: [] });
-  const sharing = root.createScope({ share: ['a', 'a'] });
+  const empty = root.createChildContainer([], { get a(): () => { id: number } { throw new Error('unselected'); } }, { sharedParentServiceKeys: [] });
+  const sharing = root.createChildContainer({ sharedParentServiceKeys: ['a', 'a'] });
   expect(calls).toBe(0);
   expect(sharing.resolve('a')).toBe(root.resolve('a'));
   expect(empty.resolve('a')).not.toBe(root.resolve('a'));
   let reads = 0;
-  const overridden = root.createScope(['a', 'a'], { get a() { reads++; return () => ({ id: 9 }); } });
+  const overridden = root.createChildContainer(['a', 'a'], { get a() { reads++; return () => ({ id: 9 }); } });
   expect(overridden.resolve('a').id).toBe(9);
   expect(reads).toBe(1);
   await root.close();
@@ -92,7 +92,7 @@ test('inherited strict roots keep their graph when a child overrides a dependenc
     config: DiBag.withLifetime(() => ({ id: 'parent' }), 'root'),
     service: DiBag.withLifetime(({ config }: { config: { id: string } }) => ({ config }), 'root'),
   }).buildContainer();
-  const child = root.createScope(['config'], { config: () => ({ id: 'child' }) });
+  const child = root.createChildContainer(['config'], { config: () => ({ id: 'child' }) });
   expect(child.resolve('config').id).toBe('child');
   expect(child.resolve('service').config.id).toBe('parent');
   expect(child.resolve('service')).toBe(root.resolve('service'));

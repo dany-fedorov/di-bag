@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 // One builder seals modules and builds bags, so a module can install modules.
 // These tests pin the runtime rules for nesting: fresh identities at every
@@ -30,15 +30,15 @@ test('nested installations receive fresh private identities and ownership at eve
     wrap: DiBag.withDisposal(({ read }: { read: number }) => ({ read }), wrap => { events.push(`wrap${wrap.read}`); }),
   }).buildModule({ exportedServiceKeys: ['wrap'] });
   const host = DiBag.createBuilder()
-    .withInstalledModules([outer.renameExport('wrap', 'left')])
-    .withInstalledModules([outer.renameExport('wrap', 'right')])
+    .withInstalledModules([outer.withRenamedExport({ currentExportKey: 'wrap', newExportKey: 'left' })])
+    .withInstalledModules([outer.withRenamedExport({ currentExportKey: 'wrap', newExportKey: 'right' })])
     .buildContainer();
   expect(host.resolve('left')).toEqual({ read: 1 });
   expect(host.resolve('right')).toEqual({ read: 2 });
   expect(host.resolve('left')).toBe(host.resolve('left'));
   expect(() => (host.resolve as Function)('read')).toThrow('is not registered');
   expect(() => (host.resolve as Function)('wrap')).toThrow('is not registered');
-  const fork = host.fork();
+  const fork = host.createIndependentContainer();
   expect(fork.resolve('right')).toEqual({ read: 3 });
   await host.close();
   expect(events).toEqual(['wrap2', 'state2', 'wrap1', 'state1']);
@@ -74,8 +74,8 @@ test('host replacements, forks and scopes of an outer export reach inner consume
   const builder = DiBag.createBuilder().withInstalledModules([outer]);
   const root = builder.buildContainer();
   const replaced = builder.withReplacedService('config', () => ({ mode: 'replaced' })).buildContainer();
-  const fork = root.fork(['config'], { config: () => ({ mode: 'fork' }) });
-  const scope = root.createScope(['config'], { config: () => ({ mode: 'scope' }) });
+  const fork = root.createIndependentContainer(['config'], { config: () => ({ mode: 'fork' }) });
+  const scope = root.createChildContainer(['config'], { config: () => ({ mode: 'scope' }) });
   expect(root.resolve('service')).toBe('service:outer');
   expect(replaced.resolve('service')).toBe('service:replaced');
   expect(fork.resolve('service')).toBe('service:fork');
@@ -87,17 +87,17 @@ test('renaming a nested export at the outer level keeps inner references and the
   const inner = DiBag.createBuilder().withServices({
     base: () => 2,
     doubled: ({ base }: { base: number }) => base * 2,
-  }).buildModule({ exportedServiceKeys: ['base', 'doubled'] }).renameExport('base', 'innerBase');
+  }).buildModule({ exportedServiceKeys: ['base', 'doubled'] }).withRenamedExport({ currentExportKey: 'base', newExportKey: 'innerBase' });
   const outer = DiBag.createBuilder()
     .withInstalledModules([inner])
     .withServices({ sum: ({ innerBase, doubled }: { innerBase: number; doubled: number }) => innerBase + doubled })
     .buildModule({ exportedServiceKeys: ['innerBase', 'sum'] })
-    .renameExport('innerBase', 'hostBase');
+    .withRenamedExport({ currentExportKey: 'innerBase', newExportKey: 'hostBase' });
   const host = DiBag.createBuilder().withInstalledModules([outer]).withServices({ base: () => 100, innerBase: () => 200 }).buildContainer();
   expect(host.resolve('hostBase')).toBe(2);
   expect(host.resolve('sum')).toBe(6);
   // The inner base is exported, so a host override of its final name reaches inner consumers too.
-  const fork = host.fork(['hostBase'], { hostBase: () => 10 });
+  const fork = host.createIndependentContainer(['hostBase'], { hostBase: () => 10 });
   expect(fork.resolve('sum')).toBe(30);
   await fork.close(); await host.close();
 });
@@ -122,7 +122,7 @@ test('contributions inside nested modules install in declaration order and resol
     .withCollectionContribution({ collectionToken: group, provider: ({ secret }: { secret: string }) => `host:${secret}` })
     .buildContainer();
   expect(host.resolveCollection(group)).toEqual(['host-first', 'outer-first', 'inner:inner-secret', 'outer:outer-secret', 'host:host-secret']);
-  expect(host.inspectCollection(group)).toHaveLength(5);
+  expect(host.serviceSnapshot(group)).toHaveLength(5);
   await host.close();
 });
 
@@ -178,7 +178,7 @@ test('startup and child scopes acquire nested exports through the host runtime',
   }).buildModule({ exportedServiceKeys: ['resource', 'scoped'] });
   const host = await DiBag.createBuilder().withInstalledModules([outer]).buildContainer().ensureServicesReady(['resource']);
   expect(events).toEqual(['open']);
-  const child = host.createScope({ share: ['resource'] });
+  const child = host.createChildContainer({ sharedParentServiceKeys: ['resource'] });
   expect(await child.resolve('scoped')).toBe('ready');
   await child.close();
   await host.close();

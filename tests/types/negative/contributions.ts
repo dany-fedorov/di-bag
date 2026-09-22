@@ -1,4 +1,4 @@
-import { DiBag, type Builder, type Bag } from '../../../src';
+import { DiBag, type Builder, type Container } from '../../../src';
 const key = Symbol('numbers'); const numbers = DiBag.token(key).forCollectionOf<number>();
 const wrong = DiBag.token(key).forCollectionOf<string>();
 // diagnostic: collection contribution output is not assignable to its item
@@ -9,13 +9,13 @@ builder.withCollectionContribution({ collectionToken: wrong, provider: () => 'wr
 // diagnostic: incompatible
 builder.buildContainer().resolveCollection(wrong);
 // diagnostic: incompatible
-builder.buildContainer().inspectCollection(wrong);
+builder.buildContainer().serviceSnapshot(wrong);
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: ({ missing }: { missing: number }) => missing }).buildContainer();
 // diagnostic: not assignable
 const erasedBuilder: Builder<never> = builder;
 // diagnostic: not assignable
-const erasedBag: Bag<{}> = builder.buildContainer();
+const erasedBag: Container<{}> = builder.buildContainer();
 const all = numbers;
 const rootAll = DiBag.withLifetime(DiBag.fromFunction([all], values => values), 'root');
 // diagnostic: root lifetime cannot capture scoped dependency
@@ -72,18 +72,18 @@ builder.withCollectionContribution({ collectionToken: union, provider: () => 1 }
 // diagnostic: finite tuple
 builder.buildContainer().resolveCollection(union);
 // diagnostic: finite tuple
-builder.buildContainer().inspectCollection(union);
+builder.buildContainer().serviceSnapshot(union);
 declare const incompatibleUnion: typeof numbers | typeof wrong;
 // diagnostic: finite tuple
 builder.buildContainer().resolveCollection(incompatibleUnion);
 // diagnostic: finite tuple
-builder.buildContainer().inspectCollection(incompatibleUnion);
+builder.buildContainer().serviceSnapshot(incompatibleUnion);
 const otherWrong = DiBag.token(key).forCollectionOf<boolean>();
 declare const allIncompatibleUnion: typeof wrong | typeof otherWrong;
 // diagnostic: finite tuple
 builder.buildContainer().resolveCollection(allIncompatibleUnion);
 // diagnostic: finite tuple
-builder.buildContainer().inspectCollection(allIncompatibleUnion);
+builder.buildContainer().serviceSnapshot(allIncompatibleUnion);
 const collectionReflected: import('../../../src').CollectionTokenBase = numbers;
 // diagnostic: individually known
 builder.buildContainer().resolveCollection(collectionReflected);
@@ -93,16 +93,16 @@ declare const reflected: ReturnType<typeof builder.withCollectionContribution>;
 // diagnostic: required service registrations are missing
 reflected.buildContainer();
 // diagnostic: not assignable
-const badInspection: readonly { metadata: { label: string } }[] = builder.buildContainer().inspectCollection(numbers);
+const badInspection: readonly { metadata: { label: string } }[] = builder.buildContainer().serviceSnapshot(numbers);
 
 const privateTransientHelper = DiBag.createBuilder().withServices({ leaf: () => 1, helper: DiBag.withLifetime(({ leaf }: { leaf: number }) => leaf, 'transient') }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'transient') }).buildModule({ exportedServiceKeys: [] });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([privateTransientHelper]).withServices({ rootAll }).buildContainer();
 const scopedBag = builder.withServices({ consumer: DiBag.fromFunction([all], values => values) }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
-scopedBag.createScope(['consumer'], { consumer: rootAll });
+scopedBag.createChildContainer(['consumer'], { consumer: rootAll });
 // diagnostic: root lifetime cannot capture scoped dependency
-scopedBag.fork(['consumer'], { consumer: rootAll });
+scopedBag.createIndependentContainer(['consumer'], { consumer: rootAll });
 const scopedAliasFeature = DiBag.createBuilder().withServices({ helper: () => 1 }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'helper' }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient') }).buildModule({ exportedServiceKeys: [] });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([scopedAliasFeature]).withServices({ rootAll }).buildContainer();
@@ -125,16 +125,16 @@ const forgedToken: Parameters<typeof builder.withCollectionContribution>[0]['col
 // diagnostic: Expected 2 arguments
 builder.buildContainer().resolveCollection<never>(numbers as never);
 // diagnostic: Expected 2 arguments
-builder.buildContainer().inspectCollection<never>(numbers as never);
+builder.buildContainer().serviceSnapshot<never>(numbers as never);
 // diagnostic: Expected 2 arguments
 builder.buildContainer().serviceSnapshot<never>(numbers as never);
 const rooted = DiBag.withLifetime(() => 1, 'root');
 const sharedAliasBase = DiBag.createBuilder().withServices({ helper: () => 1, consumer: DiBag.fromFunction([all], values => values) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'helper' }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient') }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
-sharedAliasBase.createScope(['helper', 'consumer'], { helper: rooted, consumer: rootAll }, { share: ['copy'] });
+sharedAliasBase.createChildContainer(['helper', 'consumer'], { helper: rooted, consumer: rootAll }, { sharedParentServiceKeys: ['copy'] });
 const sharedRootAliasBase = DiBag.createBuilder().withServices({ helper: rooted, consumer: DiBag.fromFunction([all], values => values) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'helper' }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient') }).buildContainer();
-const sharedRootAlias = sharedRootAliasBase.createScope(['helper', 'consumer'], { helper: () => 2, consumer: rootAll }, { share: ['copy'] });
+const sharedRootAlias = sharedRootAliasBase.createChildContainer(['helper', 'consumer'], { helper: () => 2, consumer: rootAll }, { sharedParentServiceKeys: ['copy'] });
 // diagnostic: root lifetime cannot capture scoped dependency
-sharedRootAlias.fork();
+sharedRootAlias.createIndependentContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: rooted }).withCollectionContribution({ collectionToken: numbers, provider: () => 1 }).withServices({ rootAll }).buildContainer();

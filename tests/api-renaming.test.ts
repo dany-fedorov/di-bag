@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError } from '../src/node';
+import { DiBag, DiBagCleanupError } from '../src';
 
 function caught(callback: () => unknown): any {
   try { callback(); } catch (error) { return error; }
@@ -17,10 +17,10 @@ test('combined metadata retains static descriptions and ordered direct/awaited f
     dynamic: { mode: 'awaited', describe: item => ({ id: item.id, payload: undefined }) },
   });
   const bag = DiBag.createBuilder().withServices({ direct, annotated }).buildContainer();
-  expect(bag.inspect('annotated').registrationMetadata).toEqual({ module: 'billing' });
+  expect(bag.serviceSnapshot('annotated').registrationMetadata).toEqual({ module: 'billing' });
   expect(bag.resolve('direct')).toBe(value);
   expect(await bag.resolve('annotated')).toEqual({ id: 7 });
-  expect(bag.inspect('annotated').acquisitions[0]!.acquisitionMetadata).toEqual([
+  expect(bag.serviceSnapshot('annotated').acquisitions[0]!.acquisitionMetadata).toEqual([
     { present: true, value: { same: true } },
     { present: true, value: { id: 7, payload: undefined } },
   ]);
@@ -64,13 +64,13 @@ test('register, acquisition context, modules and immutable observer configuratio
   const configKey = Symbol('config');
   const token = api.token(configKey).of<number>();
   let signal: AbortSignal | undefined;
-  const module = api.createBuilder().withServices({ internal: () => 3 }).buildModule({ exportedServiceKeys: ['internal'] }).renameExport('internal', 'number');
+  const module = api.createBuilder().withServices({ internal: () => 3 }).buildModule({ exportedServiceKeys: ['internal'] }).withRenamedExport({ currentExportKey: 'internal', newExportKey: 'number' });
   const bag = api.createBuilder().withTokenService(token, () => 4).withInstalledModules([module]).withServices({
     contextual: api.fromFactory(({ number }: { number: number }, context) => { signal = context.signal; return number; }, { context: 'acquisition' }),
   }).buildContainer();
   expect(bag.resolve(token)).toBe(4);
   expect(bag.resolve('contextual')).toBe(3);
-  const child = bag.createScope();
+  const child = bag.createChildContainer();
   await bag.close();
   expect(signal!.aborted).toBe(true);
   expect(caught(() => child.resolve('number')).message).toContain('closed');
@@ -115,10 +115,10 @@ test('missing dependency diagnostics identify consumer and complete resolution p
 test('closed facades distinguish closed from closing across fork and createScope', async () => {
   const bag = DiBag.createBuilder().buildContainer();
   const closing = bag.close();
-  expect(caught(() => bag.fork())).toMatchObject({ code: 'DI_BAG_CLOSING', details: { state: 'closing' } });
+  expect(caught(() => bag.createIndependentContainer())).toMatchObject({ code: 'DI_BAG_CLOSING', details: { state: 'closing' } });
   await closing;
-  expect(caught(() => bag.fork())).toMatchObject({ code: 'DI_BAG_CLOSED', details: { state: 'closed' } });
-  expect(caught(() => bag.createScope())).toMatchObject({ code: 'DI_BAG_CLOSED', details: { state: 'closed' } });
+  expect(caught(() => bag.createIndependentContainer())).toMatchObject({ code: 'DI_BAG_CLOSED', details: { state: 'closed' } });
+  expect(caught(() => bag.createChildContainer())).toMatchObject({ code: 'DI_BAG_CLOSED', details: { state: 'closed' } });
 });
 
 test('metadata rejects inherited top-level options before reading or executing them', () => {
@@ -159,6 +159,6 @@ test('metadata snapshots dynamic mode and callback once before static getters ru
   expect(modeReads).toBe(1);
   expect(callbackReads).toBe(1);
   expect(optionsReads).toBe(1);
-  expect(bag.inspect('provider').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { value: 7 } }]);
+  expect(bag.serviceSnapshot('provider').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { value: 7 } }]);
   await bag.close();
 });

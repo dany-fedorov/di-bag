@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 type Logger = { log(message: string): void };
 
@@ -46,13 +46,13 @@ for (const [name, access, fragment] of accesses) test(`${name} on the dependency
   expect(message).toContain(fragment);
   // The failed attempt is evicted: a corrected factory would run again on the next resolve.
   expect(calls).toBe(1);
-  expect(bag.inspect('probe').acquisitions).toEqual([]);
+  expect(bag.serviceSnapshot('probe').acquisitions).toEqual([]);
   await bag.close();
 });
 
 test('enumeration inside a fork override is rejected the same way', async () => {
   const root = DiBag.createBuilder().withServices({ value: () => 1, reader: ({ value }: { value: number }) => value }).buildContainer();
-  const fork = root.fork(['reader'], { reader: (deps: { value: number }) => Object.keys(deps).length });
+  const fork = root.createIndependentContainer(['reader'], { reader: (deps: { value: number }) => Object.keys(deps).length });
   expect(() => fork.resolve('reader')).toThrow('enumeration (Object.keys, spread, JSON.stringify) is not supported');
   await fork.close();
   await root.close();

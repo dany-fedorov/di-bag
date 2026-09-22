@@ -25,19 +25,19 @@ async function main() {
     .buildContainer()
     .ensureServicesReady(['client']);
 
-  const child = root.createScope(
+  const child = root.createChildContainer(
     ['config'],
     {
       config: () => ({ region: 'us' }),
     },
-    { share: ['session'] },
+    { sharedParentServiceKeys: ['session'] },
   );
   assert.equal(child.resolve('config').region, 'us');
   assert.equal(child.resolve('client').region, 'eu');
   assert.equal(child.resolve('session').region, 'eu');
   assert.equal(child.resolve('session'), root.resolve('session'));
 
-  const grandchild = child.createScope({ share: ['session'] });
+  const grandchild = child.createChildContainer({ sharedParentServiceKeys: ['session'] });
   assert.equal(grandchild.resolve('session'), root.resolve('session'));
   await child.close();
   assert.deepEqual(released, []);

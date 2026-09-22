@@ -8,7 +8,7 @@ export const contributionRuntimeAssertions = `
     const empty = DiBag.createBuilder().buildContainer();
     const absent = empty.resolveCollection(item);
     assertContribution(absent.length === 0 && Object.isFrozen(absent), 'empty contribution read changed');
-    assertContribution(empty.inspectCollection(item).length === 0, 'empty contribution inspection changed');
+    assertContribution(empty.serviceSnapshot(item).length === 0, 'empty contribution inspection changed');
     await empty.close();
 
     let privateCalls = 0;
@@ -17,7 +17,7 @@ export const contributionRuntimeAssertions = `
       privateHelper: DiBag.withDisposal(() => ({ id: ++privateCalls }), value => { privateCleanup.push(value.id); }),
     }).withCollectionContribution({ collectionToken: item, provider: ({ privateHelper }) => privateHelper }).buildModule({ exportedServiceKeys: [] });
     const ordered = DiBag.createBuilder().withCollectionContribution({ collectionToken: item, provider: () => ({ id: 'first' }) }).withInstalledModules([feature]).withCollectionContribution({ collectionToken: item, provider: () => ({ id: 'middle' }) }).withInstalledModules([feature]).withTokenService(singularItem, () => ({ id: 'singular' })).buildContainer();
-    const descriptions = ordered.inspectCollection(item);
+    const descriptions = ordered.serviceSnapshot(item);
     assertContribution(descriptions.length === 4 && Object.isFrozen(descriptions)
       && descriptions.every(view => Object.isFrozen(view) && view.acquisitions.length === 0)
       && privateCalls === 0, 'collection inspection acquired or exposed mutable state');

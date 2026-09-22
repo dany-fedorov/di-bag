@@ -1,11 +1,11 @@
 // tools/graph/test/fixtures/cross-module/parts.ts
-import { DiBag } from '../../../../../src/node';
-export const clockModule = DiBag.createBuilder().register({ clock: () => 0 }).buildModule(['clock']);
-export const loopModule = DiBag.createBuilder().register({
+import { DiBag } from '../../../../../src';
+export const clockModule = DiBag.createBuilder().withServices({ clock: () => 0 }).buildModule({ exportedServiceKeys: ['clock'] });
+export const loopModule = DiBag.createBuilder().withServices({
   x: ({ y }: { y: number }) => y,
   y: ({ x }: { x: number }) => x,
-}).buildModule(['x']);
-export const labeledModule = DiBag.createBuilder().register({
+}).buildModule({ exportedServiceKeys: ['x'] });
+export const labeledModule = DiBag.createBuilder().withServices({
   inner: ({ outerNeed }: { outerNeed: number }) => outerNeed,
   labeled: ({ inner }: { inner: number }) => inner,
-}).buildModule(['labeled'], { label: 'orders' });
+}).buildModule({ exportedServiceKeys: ['labeled'], moduleLabel: 'orders' });

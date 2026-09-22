@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 test('sync diamond dependencies are created once and stay synchronous', () => {
   let creations = 0;
@@ -53,7 +53,7 @@ test('a creating undefined-valued factory cannot be returned through reentrant r
 
 test('forward registration and forks use independent memoization', () => {
   const bag = DiBag.createBuilder().withServices({ doubled: ({ value }: { value: number }) => ({ value: value * 2 }) }).withServices({ value: () => 3 }).buildContainer();
-  const fork = bag.fork(['value'], { value: () => 7 });
+  const fork = bag.createIndependentContainer(['value'], { value: () => 7 });
   expect(bag.resolve('doubled').value).toBe(6);
   expect(fork.resolve('doubled').value).toBe(14);
   expect(bag.resolve('doubled')).not.toBe(fork.resolve('doubled'));
@@ -82,7 +82,7 @@ test('ending one builder twice and forking create fresh owned roots', async () =
   });
   const first = builder.buildContainer();
   const second = builder.buildContainer();
-  const fork = first.fork();
+  const fork = first.createIndependentContainer();
   expect(first.resolve('resource')).toEqual({ id: 1 });
   expect(second.resolve('resource')).toEqual({ id: 2 });
   expect(fork.resolve('resource')).toEqual({ id: 3 });

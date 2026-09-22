@@ -1,17 +1,17 @@
-import { DiBag, type Bag, type FactoryWithDisposal } from '../../src';
+import { DiBag, type Container, type FactoryWithDisposal } from '../../src';
 import type { Assert, Equal } from './assert';
 
 const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildContainer();
 const actual = { a: () => 3, b: () => 'wrong', other: false };
 const narrowed: { a: () => number } = actual;
-const child = root.fork(['a'], narrowed);
+const child = root.createIndependentContainer(['a'], narrowed);
 type Untouched = Assert<Equal<ReturnType<typeof child.resolve<'b'>>, number>>;
-const selected = root.fork(['a', 'b'], { a: () => 3, b: () => 4, ignored: true });
+const selected = root.createIndependentContainer(['a', 'b'], { a: () => 3, b: () => 4, ignored: true });
 type SelectedRegistrations = Assert<Equal<ReturnType<typeof selected.resolve<'a'>>, number>>;
-const empty: typeof root = root.fork();
-const noSelection: typeof root = root.fork([], { ignored: 'not a factory' });
+const empty: typeof root = root.createIndependentContainer();
+const noSelection: typeof root = root.createIndependentContainer([], { ignored: 'not a factory' });
 const keys = ['a', 'b'] as const;
-const fromConstTuple = root.fork(keys, { a: () => 5, b: () => 6 });
+const fromConstTuple = root.createIndependentContainer(keys, { a: () => 5, b: () => 6 });
 type FromConstTuple = Assert<Equal<ReturnType<typeof fromConstTuple.resolve<'b'>>, number>>;
 
 const extended = DiBag.createBuilder().withServices({
@@ -29,7 +29,7 @@ type ExactCreate = Assert<Equal<typeof owned.create, typeof create>>;
 const annotated: FactoryWithDisposal<typeof create> = owned;
 const ownedBag = DiBag.createBuilder().withServices({ a: () => 1, owned }).buildContainer();
 type OwnedValue = Assert<Equal<ReturnType<typeof ownedBag.resolve<'owned'>>, ReturnType<typeof create>>>;
-const acceptsBag = <R extends { a: () => number }>(bag: Bag<R>) => bag;
+const acceptsBag = <R extends { a: () => number }>(bag: Container<R>) => bag;
 void [empty, noSelection, annotated, acceptsBag(root)];
 
 const clockRoot = DiBag.createBuilder().withServices({
@@ -38,7 +38,7 @@ const clockRoot = DiBag.createBuilder().withServices({
     stamp: () => clock.now(),
   }),
 }).buildContainer();
-const richChild = clockRoot.fork(['clock', 'service'], {
+const richChild = clockRoot.createIndependentContainer(['clock', 'service'], {
   clock: () => ({ now() { return 7; }, zone() { return 'utc' as const; } }),
   service: ({ clock }: { clock: { now(): number; zone(): 'utc' } }) => ({
     stamp() { return clock.now(); },
@@ -49,7 +49,7 @@ type RichService = Assert<Equal<
   ReturnType<typeof richChild.resolve<'service'>>,
   { stamp(): number; zone(): 'utc' }
 >>;
-const ownedChild = clockRoot.fork(['clock'], {
+const ownedChild = clockRoot.createIndependentContainer(['clock'], {
   clock: DiBag.withDisposal(
     () => ({ now: () => 7 as const, scope() { return 'owned' as const; } }),
     value => { const scope: 'owned' = value.scope(); void scope; },

@@ -255,7 +255,7 @@ test('plugin composition retains module privacy, aliases, contributions and sele
   const parent = bag.resolve('plugin');
   expect(bag.resolve('copy')).toBe(parent);
   expect(bag.resolveCollection(collection).map(value => value.id)).toEqual([1]);
-  const child = bag.createScope([dependency], { [dependencyKey]: DiBag.fromFactory(() => 2, { acquisitionMode: 'raw' }) }, { share: ['plugin'] });
+  const child = bag.createChildContainer([dependency], { [dependencyKey]: DiBag.fromFactory(() => 2, { acquisitionMode: 'raw' }) }, { sharedParentServiceKeys: ['plugin'] });
   expect(child.resolve('plugin')).toBe(parent);
   expect(created).toBe(2);
   await child.close(); await bag.close();
@@ -271,7 +271,7 @@ test('plugin composition retains module privacy, aliases, contributions and sele
 
 test('plugin observers retain the canonical acquisition and cleanup events', async () => {
   const events: string[] = [];
-  const observed = DiBag.withConfiguration({ observers: [{ onEvent(event) { events.push(event.kind); }, onError() {} }] });
+  const observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { events.push(event.kind); }, onObserverFailure() {} }] });
   const plugin = observed.fromPlugin([], {
     apiVersion: 1, create: () => ({ id: 1 }), dispose: () => {},
   }, { acquisitionMode: 'raw', validate: (value): value is { id: number } => typeof value === 'object' && value !== null });
@@ -349,13 +349,13 @@ test('plugin validation errors survive one failed retirement cleanup', async () 
 
 test('plugin observer lifecycle events identify its canonical acquisition', async () => {
   const events: LifecycleEvent[] = [];
-  const observed = DiBag.withConfiguration({ observers: [{ onEvent(event) { events.push(event); }, onError() {} }] });
+  const observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { events.push(event); }, onObserverFailure() {} }] });
   const plugin = observed.fromPlugin([], {
     apiVersion: 1, create: () => ({ id: 1 }), dispose: () => {},
   }, { acquisitionMode: 'raw', validate: (value): value is { id: number } => typeof value === 'object' && value !== null });
   const bag = observed.createBuilder().withServices({ plugin }).buildContainer();
   bag.resolve('plugin');
-  const inspection = bag.inspect('plugin');
+  const inspection = bag.serviceSnapshot('plugin');
   const id = inspection.acquisitions[0]!.acquisitionId;
   await bag.close();
   await Promise.resolve(); await Promise.resolve();

@@ -6,7 +6,7 @@ const promiseKey = Symbol('promise'); const promiseToken = DiBag.token(promiseKe
 const promised = Promise.resolve(3);
 const source = DiBag.withMetadata(() => ({ value: 1, rich: true as const }), { static: { owner: 'team' } });
 const bag = DiBag.createBuilder().withTokenService(token, source).withTokenService(promiseToken, () => promised).withServices({ read: DiBag.fromFunction([rewrapped, promiseToken], (value, promise) => ({ value: value.value, promise })) }).buildContainer();
-const value = bag.resolve(rewrapped); const promise = bag.resolve(promiseToken); const inspection = bag.inspect(token);
+const value = bag.resolve(rewrapped); const promise = bag.resolve(promiseToken); const inspection = bag.serviceSnapshot(token);
 type Exact = [Assert<Equal<typeof value, { value: number; rich: true }>>, Assert<Equal<typeof promise, Promise<number>>>,
   Assert<Equal<typeof inspection.registrationMetadata, Readonly<{ owner: string }>>>];
 const module = DiBag.createBuilder().withTokenService(token, source).buildModule({ exportedServiceKeys: [token] });
@@ -24,12 +24,12 @@ const plainProvider: Provider<() => number> = DiBag.fromFunction([], () => 1);
 const frameSource = DiBag.fromFunction([promiseToken], promise => promise);
 const framed = DiBag.withMetadata(frameSource, { dynamic: { mode: 'direct', describe: () => ({ source: 'frame' }) } });
 const frameBag = DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ framed }).buildModule({ exportedServiceKeys: ['framed'] })]).withTokenService(promiseToken, () => promised).buildContainer();
-const frameInspection = frameBag.inspect('framed');
+const frameInspection = frameBag.serviceSnapshot('framed');
 type Frames = [Assert<Equal<ProviderOutput<typeof framed>, Promise<number>>>, Assert<Equal<typeof frameInspection.acquisitions[number]['acquisitionMetadata'], AcquisitionMetadataPresence<ProviderAcquisitionMetadata<typeof framed>>>>];
 const framedKey = Symbol('framed'); const framedToken = DiBag.token(framedKey).of<Promise<number>>();
-const boundFrames = DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withTokenService(framedToken, framed).buildModule({ exportedServiceKeys: [framedToken] })]).withTokenService(promiseToken, () => promised).buildContainer().inspect(framedToken);
+const boundFrames = DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withTokenService(framedToken, framed).buildModule({ exportedServiceKeys: [framedToken] })]).withTokenService(promiseToken, () => promised).buildContainer().serviceSnapshot(framedToken);
 type BoundFrames = Assert<Equal<typeof boundFrames.acquisitions[number]['acquisitionMetadata'], AcquisitionMetadataPresence<ProviderAcquisitionMetadata<typeof framed>>>>;
 const tokenOverride = DiBag.fromFunction([promiseToken], promise => ({ value: 2, rich: true as const }));
-const child = bag.fork([token], { [key]: tokenOverride });
+const child = bag.createIndependentContainer([token], { [key]: tokenOverride });
 type Child = Assert<Equal<ReturnType<typeof child.resolve<typeof token>>, { value: number; rich: true }>>;
 void [plainModule, plainProvider];

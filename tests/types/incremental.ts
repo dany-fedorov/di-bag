@@ -28,7 +28,7 @@ const frameSource = DiBag.withMetadata(DiBag.fromFunction([token], value => Prom
 const framed = DiBag.withMetadata(frameSource, { dynamic: { mode: 'direct', describe: () => ({ stage: 'framed' as const }) } });
 const framedBag = DiBag.createBuilder().withServices({ framed }).withTokenService(token, () => ({ value: 1 })).withReplacedService('framed', framed).buildContainer();
 const framedValue = framedBag.resolve('framed');
-const inspection = framedBag.inspect('framed');
+const inspection = framedBag.serviceSnapshot('framed');
 type Frames = [Assert<Equal<typeof framedValue, Promise<number>>>,
   Assert<Equal<ProviderGraphContract<typeof framed>, TokenDependencyContract<readonly [typeof token]>>>,
   Assert<Equal<typeof inspection.registrationMetadata, ProviderRegistrationMetadata<typeof framed>>>,

@@ -1,7 +1,7 @@
 import { DiBag, type Module, type ModuleExportedServices, type ModuleRequiredServices, type Provider } from '../../../src';
 const decorated = DiBag.withMetadata(({ clock }: { clock: { now(): number } }) => ({ read: () => clock.now() }), { static: { owner: 'team' } });
 const unit = DiBag.createBuilder().withServices({ service: decorated }).buildModule({ exportedServiceKeys: ['service'] });
-const renamed = unit.renameExport('service', 'client');
+const renamed = unit.withRenamedExport({ currentExportKey: 'service', newExportKey: 'client' });
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().withInstalledModules([renamed]).buildContainer();
 // diagnostic: consumer dependency

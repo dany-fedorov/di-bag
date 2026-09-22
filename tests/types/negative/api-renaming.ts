@@ -1,4 +1,4 @@
-import { DiBag } from '../../../src/node';
+import { DiBag } from '../../../src';
 // diagnostic: no exported member
 import type { BuilderContribute } from '../../../src';
 const base = DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' });

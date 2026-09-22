@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { DiBag as Core } from '../src';
 import { isPromise } from 'node:util/types';
 import { runInNewContext } from 'node:vm';
@@ -47,8 +47,8 @@ test('bare entry resolves automatic async factories through the host classifier'
   expect(await bag.resolve('answer')).toBe(42);
   expect(bag.resolve('same')).toBe(pending);
   expect(bag.resolve('thenable')).toBe(thenable);
-  const scope = bag.createScope();
-  const fork = bag.fork();
+  const scope = bag.createChildContainer();
+  const fork = bag.createIndependentContainer();
   // Scopes and forks reuse the classifier resolved at build.
   withoutBuiltinModule(() => { expect(scope.resolve('same')).toBe(pending); expect(fork.resolve('same')).toBe(pending); });
   await Promise.all([scope.close(), fork.close()]);
@@ -118,7 +118,7 @@ test('facades snapshot and isolate their predicate, carrying it through builders
   const provider = Core.fromFactory(() => pending, { acquisitionMode: 'auto' });
   const feature = Core.createBuilder().withTokenService(key, provider).buildModule({ exportedServiceKeys: [key] });
   const bag = configured.createBuilder().withInstalledModules([feature]).buildContainer();
-  const forks = [bag.fork(), bag.fork([key], { [key.key]: () => pending })];
+  const forks = [bag.createIndependentContainer(), bag.createIndependentContainer([key], { [key.key]: () => pending })];
   for (const item of [bag, ...forks]) { expect(item.resolve(key)).toBe(pending); await item.close(); }
   expect(() => withoutBuiltinModule(() => Core.createBuilder().withServices({ value: () => 1 }).buildContainer())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   const failure = new Error('predicate failure');
@@ -204,7 +204,7 @@ test('async metadata retains a native output contract without a portable classif
   const source = Core.fromFactory(() => Promise.resolve(7), { acquisitionMode: 'nativePromise' });
   const bag = Core.createBuilder().withServices({ value: Core.withMetadata(source, { dynamic: { mode: 'awaited', describe: value => ({ result: value }) } }) }).buildContainer();
   expect(await bag.resolve('value')).toBe(7);
-  expect(bag.inspect('value').acquisitions[0]?.acquisitionMetadata).toEqual([{ present: true, value: { result: 7 } }]);
+  expect(bag.serviceSnapshot('value').acquisitions[0]?.acquisitionMetadata).toEqual([{ present: true, value: { result: 7 } }]);
   await bag.close();
 });
 

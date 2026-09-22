@@ -28,4 +28,4 @@ DiBag.createBuilder().withTokenService(database, () => ({ read: () => 1 })).buil
 // diagnostic: not assignable
 DiBag.createBuilder().withInstalledModules([publicFeature]).withReplacedService(database, () => ({ write() {} }));
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().withInstalledModules([feature.renameExport('handler', 'renamed')]).buildContainer();
+DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'handler', newExportKey: 'renamed' })]).buildContainer();
