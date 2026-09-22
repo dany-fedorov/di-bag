@@ -418,7 +418,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
  * @typeParam Constraints - The requirements, contributions and lifetime obligations that installed modules retain on this graph.
  * @see https://dany-fedorov.github.io/di-bag/agent/api-card.html#builder
  */
-class Builder<Entries extends Entry, Constraints extends NeedConstraint = never> {
+class Builder<in out Entries extends Entry, in out Constraints extends NeedConstraint = never> {
   // Preserve accepted registration history and module constraints through views.
   /** @internal */
   declare readonly [constraintInvariant]:
