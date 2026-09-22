@@ -59,7 +59,11 @@ export class BindingGraph {
   // registrations remain available to whole-graph preflight.
   #obsolete = new PersistentMap<true>();
   #contributions = new PersistentMap<Sequence<BindingId>>();
+  // Counts cover retained positional bindings plus one direct owner for any
+  // public token slot or contribution group; only positional owners are pruned.
   #tokenKinds = new PersistentMap<TokenKind>();
+  #tokenKindOwners = new PersistentMap<number>();
+  #directTokenKinds = new PersistentMap<true>();
   // First public registration order by key, for module snapshots. Keys are
   // never unregistered, so this retains nothing a graph would otherwise drop.
   #publicOrder: Sequence<BindingKey> | undefined;
@@ -70,9 +74,7 @@ export class BindingGraph {
   #explicitlyClassified = false;
 
   constructor(description: GraphDescription = { bindings: new Map(), publicSlots: new Map() }) {
-    for (const [key, kind] of description.tokenKinds ?? []) {
-      this.claimTokenKind(key, kind, 'installModule');
-    }
+    const declaredKinds = description.tokenKinds ?? new Map<symbol, TokenKind>();
     const lexicalSnapshots = new Map<BindingDescription['localNames'], LexicalSnapshot>();
     for (const [id, binding] of description.bindings) {
       let lexical = lexicalSnapshots.get(binding.localNames);
@@ -89,18 +91,25 @@ export class BindingGraph {
         for (const target of privateIds) this.#privateReferences = this.#privateReferences.set(target, (this.#privateReferences.get(target) ?? 0) + 1);
       }
       this.#lexicalUsers = this.#lexicalUsers.set(lexical.id, (this.#lexicalUsers.get(lexical.id) ?? 0) + 1);
-      this.#bindings = this.#bindings.set(id, {
+      const entry: BindingEntry = {
         lexical,
         description: Object.freeze({ id: binding.id, label: binding.label, registration: binding.registration, localNames: lexical.names }),
         normalized: Object.freeze(normalize(binding.registration)),
-      });
+      };
+      this.retainBindingTokenKinds(entry, 'installModule');
+      this.#bindings = this.#bindings.set(id, entry);
     }
     for (const [key, id] of description.publicSlots) {
+      if (typeof key === 'symbol') {
+        const kind = declaredKinds.get(key);
+        if (kind !== undefined) this.claimTokenKind(key, kind, 'installModule');
+      }
       this.#publicOrder = append(this.#publicOrder, { values: [key] });
       this.#publicSlots = this.#publicSlots.set(key, id);
       this.#publicReferences = this.#publicReferences.set(id, (this.#publicReferences.get(id) ?? 0) + 1);
     }
     for (const [key, ids] of description.contributions ?? []) {
+      this.claimTokenKind(key, 'collection', 'installModule');
       const snapshot = Object.freeze([...ids]);
       this.#contributions = this.#contributions.set(key, { values: snapshot });
       for (const id of snapshot) this.#contributed = this.#contributed.set(id, true);
@@ -119,6 +128,8 @@ export class BindingGraph {
     graph.#obsolete = this.#obsolete;
     graph.#contributions = this.#contributions;
     graph.#tokenKinds = this.#tokenKinds;
+    graph.#tokenKindOwners = this.#tokenKindOwners;
+    graph.#directTokenKinds = this.#directTokenKinds;
     graph.#publicOrder = this.#publicOrder;
     return graph;
   }
@@ -138,7 +149,7 @@ export class BindingGraph {
     return id;
   }
 
-  private claimTokenKind(
+  private retainTokenKind(
     key: symbol,
     receivedKind: TokenKind,
     operation: string,
@@ -148,6 +159,48 @@ export class BindingGraph {
       throw wrongTokenKind(operation, expectedKind, key);
     }
     this.#tokenKinds = this.#tokenKinds.set(key, receivedKind);
+    this.#tokenKindOwners = this.#tokenKindOwners.set(
+      key,
+      (this.#tokenKindOwners.get(key) ?? 0) + 1,
+    );
+  }
+
+  private releaseTokenKind(key: symbol): void {
+    const owners = this.#tokenKindOwners.get(key);
+    if (owners === undefined) return;
+    if (owners > 1) {
+      this.#tokenKindOwners = this.#tokenKindOwners.set(key, owners - 1);
+      return;
+    }
+    this.#tokenKindOwners = this.#tokenKindOwners.delete(key);
+    this.#tokenKinds = this.#tokenKinds.delete(key);
+  }
+
+  private claimTokenKind(
+    key: symbol,
+    receivedKind: TokenKind,
+    operation: string,
+  ): void {
+    this.assertTokenKind(key, receivedKind, operation);
+    if (this.#directTokenKinds.has(key)) return;
+    this.retainTokenKind(key, receivedKind, operation);
+    this.#directTokenKinds = this.#directTokenKinds.set(key, true);
+  }
+
+  private retainBindingTokenKinds(entry: BindingEntry, operation: string): void {
+    for (const reference of entry.normalized.references) {
+      this.retainTokenKind(
+        reference.key,
+        reference.isCollection ? 'collection' : 'single-service',
+        operation,
+      );
+    }
+  }
+
+  private releaseBindingTokenKinds(entry: BindingEntry): void {
+    for (const reference of entry.normalized.references) {
+      this.releaseTokenKind(reference.key);
+    }
   }
 
   assertTokenKind(
@@ -167,7 +220,7 @@ export class BindingGraph {
     operation: string,
   ): BindingGraph {
     this.assertTokenKind(key, kind, operation);
-    if (this.#tokenKinds.get(key) === kind) return this;
+    if (this.#directTokenKinds.has(key)) return this;
     const graph = this.copy();
     graph.claimTokenKind(key, kind, operation);
     return graph;
@@ -180,17 +233,12 @@ export class BindingGraph {
   ): BindingId {
     const id = Symbol(label);
     const normalized = Object.freeze(normalize(registration));
-    for (const reference of normalized.references) {
-      this.claimTokenKind(
-        reference.key,
-        reference.isCollection ? 'collection' : 'single-service',
-        operation,
-      );
-    }
-    this.#bindings = this.#bindings.set(id, {
+    const entry: BindingEntry = {
       description: Object.freeze({ id, label, registration, localNames: emptyNames }),
       normalized,
-    });
+    };
+    this.retainBindingTokenKinds(entry, operation);
+    this.#bindings = this.#bindings.set(id, entry);
     return id;
   }
 
@@ -342,7 +390,10 @@ export class BindingGraph {
       const entry = this.#bindings.get(id);
       this.#bindings = this.#bindings.delete(id);
       this.#obsolete = this.#obsolete.delete(id);
-      if (entry) this.releaseLexical(entry, pending);
+      if (entry) {
+        this.releaseBindingTokenKinds(entry);
+        this.releaseLexical(entry, pending);
+      }
     }
   }
 
@@ -412,23 +463,34 @@ export class BindingGraph {
       this.assertTokenKind(key as symbol, kind, 'installModule');
     }
     const graph = this.copy();
-    for (const [key, kind] of installation.#tokenKinds) {
-      graph.#tokenKinds = graph.#tokenKinds.set(key, kind);
-    }
     const pending: BindingId[] = [];
     // Publish all incoming protection before releasing overwritten descriptions.
     for (const [id, count] of installation.#lexicalUsers) graph.#lexicalUsers = graph.#lexicalUsers.set(id, count);
     for (const [id, count] of installation.#privateReferences) graph.#privateReferences = graph.#privateReferences.set(id, (graph.#privateReferences.get(id) ?? 0) + count);
     for (const [id] of installation.#contributed) graph.#contributed = graph.#contributed.set(id, true);
-    for (const [key, id] of installation.#publicSlots) { graph.#publicOrder = append(graph.#publicOrder, { values: [key] }); graph.#publicSlots = graph.#publicSlots.set(key, id); }
+    for (const [key, id] of installation.#publicSlots) {
+      if (typeof key === 'symbol') {
+        const kind = installation.#tokenKinds.get(key);
+        if (kind !== undefined) graph.claimTokenKind(key, kind, 'installModule');
+      }
+      graph.#publicOrder = append(graph.#publicOrder, { values: [key] });
+      graph.#publicSlots = graph.#publicSlots.set(key, id);
+    }
     for (const [id, count] of installation.#publicReferences) graph.#publicReferences = graph.#publicReferences.set(id, (graph.#publicReferences.get(id) ?? 0) + count);
     for (const [id, entry] of installation.#bindings) {
       const previous = graph.#bindings.get(id);
-      if (previous) graph.releaseLexical(previous, pending);
+      if (previous) {
+        graph.releaseBindingTokenKinds(previous);
+        graph.releaseLexical(previous, pending);
+      }
+      graph.retainBindingTokenKinds(entry, 'installModule');
       graph.#bindings = graph.#bindings.set(id, entry);
       graph.#obsolete = graph.#obsolete.delete(id);
     }
-    for (const [key, sequence] of installation.#contributions) graph.#contributions = graph.#contributions.set(key, append(graph.#contributions.get(key), sequence));
+    for (const [key, sequence] of installation.#contributions) {
+      graph.claimTokenKind(key as symbol, 'collection', 'installModule');
+      graph.#contributions = graph.#contributions.set(key, append(graph.#contributions.get(key), sequence));
+    }
     graph.prune(pending);
     return graph;
   }

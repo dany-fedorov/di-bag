@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { DiBag } from '../src/node';
 import { moduleGraph } from '../src/module';
+import { BindingGraph } from '../src/runtime';
 
 // Count real native-map entry visits to catch a whole-table copy during one
 // incremental update. The original iterator remains responsible for all values.
@@ -38,4 +39,24 @@ test('module updates preserve declaration positions, earlier builders and rename
   expect(later.resolve(token)).toBe(3);
   expect(later.resolveCollection(group)).toEqual([4, 5]);
   await earlier.close(); await later.close();
+});
+
+test('module snapshots and installation retain positional token kinds until their binding is pruned', () => {
+  const key = Symbol('module collection');
+  const collection = DiBag.token(key).forCollectionOf<number>();
+  const service = DiBag.token(key).of<number>();
+  const module = DiBag.createBuilder()
+    .register({ total: DiBag.fromFunction([collection], values => values.length) })
+    .buildModule(['total']);
+  const description = moduleGraph(module);
+  const graph = new BindingGraph().withInstallation(description);
+  expect(() => graph.withTokenKind(key, 'single-service', 'register'))
+    .toThrow('DI_BAG_WRONG_TOKEN_KIND');
+  const replaced = graph.withPublicBinding('total', () => 0);
+  expect(() => replaced.withTokenKind(key, 'single-service', 'register')).not.toThrow();
+  expect(() => new BindingGraph(description)
+    .withTokenKind(key, 'single-service', 'register')).toThrow('DI_BAG_WRONG_TOKEN_KIND');
+
+  expect(() => DiBag.createBuilder().installModule(module).register(service, () => 1))
+    .toThrow('DI_BAG_WRONG_TOKEN_KIND');
 });

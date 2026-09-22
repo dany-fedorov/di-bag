@@ -153,3 +153,79 @@ test('contribution protection uses the once-read input snapshot through public r
   expect(runtime.resolveCollection(group)).toEqual([1]);
   await runtime.close();
 });
+
+test('pruning the last positional token reference releases its kind only in the derived graph', () => {
+  const key = Symbol('reused');
+  const collection = DiBag.token(key).forCollectionOf<number>();
+  const service = DiBag.token(key).of<number>();
+  const original = new BindingGraph().withPublicBinding(
+    'consumer',
+    DiBag.fromFunction([collection], values => values.length),
+  );
+
+  const updated = original.withPublicBinding('consumer', () => 0);
+  expect(() => updated.withTokenKind(key, 'single-service', 'register')).not.toThrow();
+  expect(() => original.withTokenKind(key, 'single-service', 'register'))
+    .toThrow('DI_BAG_WRONG_TOKEN_KIND');
+
+  const originalBuilder = DiBag.createBuilder().register({
+    consumer: DiBag.fromFunction([collection], values => values.length),
+  });
+  const updatedBuilder = originalBuilder.replace('consumer', () => 0);
+  expect(() => (updatedBuilder as any).register(service, () => 1)).not.toThrow();
+  expect(() => (originalBuilder as any).register(service, () => 1))
+    .toThrow('DI_BAG_WRONG_TOKEN_KIND');
+});
+
+test('token kind remains while another public or contributed binding owns it', () => {
+  const key = Symbol('retained');
+  const collection = DiBag.token(key).forCollectionOf<number>();
+  const consumer = () => DiBag.fromFunction([collection], values => values.length);
+  const shared = new BindingGraph()
+    .withPublicBinding('first', consumer())
+    .withPublicBinding('second', consumer());
+  const oneReplaced = shared.withPublicBinding('first', () => 0);
+  expect(() => oneReplaced.withTokenKind(key, 'single-service', 'register'))
+    .toThrow('DI_BAG_WRONG_TOKEN_KIND');
+  expect(() => oneReplaced.withPublicBinding('second', () => 0)
+    .withTokenKind(key, 'single-service', 'register')).not.toThrow();
+
+  const directContribution = new BindingGraph()
+    .withPublicBinding('consumer', consumer())
+    .withContribution(key, () => 1)
+    .withPublicBinding('consumer', () => 0);
+  expect(() => directContribution.withTokenKind(key, 'single-service', 'register'))
+    .toThrow('DI_BAG_WRONG_TOKEN_KIND');
+
+  const contributionKey = Symbol('other contributions');
+  const positionalContribution = new BindingGraph()
+    .withPublicBinding('consumer', consumer())
+    .withContribution(contributionKey, consumer())
+    .withPublicBinding('consumer', () => 0);
+  expect(() => positionalContribution.withTokenKind(key, 'single-service', 'register'))
+    .toThrow('DI_BAG_WRONG_TOKEN_KIND');
+});
+
+test('private lexical retention keeps and then releases positional token ownership', () => {
+  const key = Symbol('private dependency');
+  const collection = DiBag.token(key).forCollectionOf<number>();
+  const target = Symbol('target'), first = Symbol('first'), second = Symbol('second');
+  const names = new Map<string, BindingRef>([['target', { kind: 'private', id: target }]]);
+  const original = new BindingGraph({
+    bindings: new Map([
+      [target, { ...binding(target, 1), registration: DiBag.fromFunction([collection], values => values.length) }],
+      [first, binding(first, 2, names)],
+      [second, binding(second, 3, names)],
+    ]),
+    publicSlots: new Map([['target', target], ['first', first], ['second', second]]),
+    tokenKinds: new Map([[key, 'collection']]),
+  });
+
+  const retained = original.withPublicBinding('target', () => 0).withPublicBinding('first', () => 0);
+  expect(() => retained.withTokenKind(key, 'single-service', 'register'))
+    .toThrow('DI_BAG_WRONG_TOKEN_KIND');
+  const released = retained.withPublicBinding('second', () => 0);
+  expect(() => released.withTokenKind(key, 'single-service', 'register')).not.toThrow();
+  expect(() => original.withTokenKind(key, 'single-service', 'register'))
+    .toThrow('DI_BAG_WRONG_TOKEN_KIND');
+});
