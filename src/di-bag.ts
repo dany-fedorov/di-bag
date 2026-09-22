@@ -828,7 +828,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
 
 }
 
-export type { Bag, Builder };
+export type { Bag, Bag as Container, Builder };
 
 /**
  * Immutable facade configuration. Observers append in the supplied order.

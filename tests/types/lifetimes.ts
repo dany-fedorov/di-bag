@@ -1,7 +1,8 @@
 import { DiBag } from '../../src';
 const { withLifetime } = DiBag;
-import type { Provider, Module, Bag } from '../../src';
+import type { Provider, Module, Bag as LegacyContainer, Container } from '../../src';
 import { withTokenBinding } from '../../src/provider';
+import type { Assert, Equal } from './assert';
 
 export const graph = DiBag.createBuilder().withServices({
   db: withLifetime(() => ({ query: () => 1 }), 'root'),
@@ -37,7 +38,9 @@ export const asyncMapped = DiBag.transformService(metadata, { mode: 'awaited', t
 export const explicitDefault = withLifetime(() => 1, 'scoped');
 export const defaultProvider: Provider<() => number> = explicitDefault;
 export const defaultModule: Module<{ value: number }, Readonly<{}>> = DiBag.createBuilder().withServices({ value: explicitDefault }).buildModule({ exportedServiceKeys: ['value'] });
-export const defaultBag: Bag<{ value: () => number }> = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+export const defaultBag: Container<{ value: () => number }> = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+type ContainerAliasIdentity = Assert<Equal<LegacyContainer<{ value: () => number }>, Container<{ value: () => number }>>>;
+type ContainerAliasValue = Assert<Equal<ReturnType<typeof defaultBag.resolve<'value'>>, number>>;
 export const mixed = Math.random() ? withLifetime(() => 1, 'root') : () => 1;
 export const wrappedMixed = withLifetime(mixed, 'transient');
 export const scopedCycle = DiBag.createBuilder().withServices({ a: ({ b }: { b: number }): number => b, b: withLifetime(({ a }: { a: number }): number => a, 'transient') }).buildContainer();
