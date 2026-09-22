@@ -2021,8 +2021,8 @@ The singular facade remains uncompiled until this fallback is actually needed an
 ### Task 7: Teach the codemod every 0.4.0 builder call (migrate, data first)
 
 **Files:**
-- Modify: `tools/codemod/rename-map.json`
-- Create: `tools/codemod/test/fixtures/builder-renames/input.ts`, `expected.ts`, `expected-manual.json`
+- Modify: `tools/codemod/rename-map.json`, `lib/rename-map.mjs`, `lib/rewrite.mjs`, the rename-map JSON schema and README
+- Create: `tools/codemod/test/fixtures/builder-renames/input.ts`, `expected.ts`, `expected-manual.json`, and a separate focused mixed-generation test harness
 - Modify: every shipped-map fixture `expected.ts` found by Task 0, especially `build-and-start/expected.ts`
 - Test: `tools/codemod/test/fixtures.test.mjs`, `tools/codemod/test/rename-map.test.mjs`
 
@@ -2044,7 +2044,7 @@ Merge these entries into the existing arrays; do not replace entries from phases
     { "owner": "Builder", "from": "replace", "to": "withReplacedService", "arguments": { "kind": "bag", "names": ["serviceKey", "provider"] } },
     { "owner": "Builder", "from": "installModule", "to": "withInstalledModules", "arguments": { "kind": "array" } },
     { "owner": "Builder", "from": "verifyGraph", "to": "verifyGraphAtCompileTime" },
-    { "owner": "Builder", "from": "buildModule", "to": "buildModule", "arguments": { "kind": "bag", "names": ["exportedServiceKeys"], "trailing": { "mode": "merge", "keys": { "label": "moduleLabel" } } } },
+    { "owner": "Builder", "from": "buildModule", "to": "buildModule", "arguments": { "kind": "bag", "names": ["exportedServiceKeys"], "alreadyBag": true, "trailing": { "mode": "merge", "keys": { "label": "moduleLabel" } } } },
     { "owner": "Builder", "from": "build", "to": "buildContainer" }
   ],
   "properties": [
@@ -2129,7 +2129,7 @@ Create `expected-manual.json` with the exact input-source line numbers and reaso
 ```json
 [
   {
-    "line": 21,
+    "line": 19,
     "reason": "the last argument of buildModule is not an object literal; merge it into the buildModule bag by hand"
   },
   {
@@ -2139,7 +2139,21 @@ Create `expected-manual.json` with the exact input-source line numbers and reaso
 ]
 ```
 
-The expected source keeps `buildModule(['value'], deferredOptions)` and `builder.contribute` unchanged, while the child `.register({ value: ... })` still becomes `.withServices({ value: ... })` because recursive child rewrites compose even when the parent call is manual. If the fixture input above is deliberately reformatted, update these two numbers from the fixture runner in the same edit.
+The expected source keeps `buildModule(['value'], deferredOptions)` and `builder.contribute` unchanged, while the child `.register({ value: ... })` still becomes `.withServices({ value: ... })` because recursive child rewrites compose even when the parent call is manual. The manual location is the start of the chained call expression (line 19), not the method name on line 21. If the fixture input above is deliberately reformatted, update these two numbers from the fixture runner in the same edit.
+
+**Controller ruling: mixed generations at the same method name.** The shipped engine authenticates `Builder.buildModule` by its member declaration, not by which overload accepted the call. Its unconditional bag transform would double-wrap calls already introduced by Tasks 1–6. Before applying the map to repository files, add the explicit `arguments.alreadyBag: true` flag shown above. This is a bounded same-name guard, not a claim that the whole accumulated migration is idempotent.
+
+Validate the optional flag in both the JavaScript map validator and JSON schema, document its semantics, and reject unsupported values. It is valid only for a same-name bag entry with exactly one positional name. With one argument, use compiler evidence to classify the original expression: an array/tuple without the bag key is the old form; an object with the required bag key and without an array/tuple shape is the completed form. A union is decidable only when every constituent has the same classification. `any`, `unknown`, `never`, unresolved shape, mixed bag/array unions and intersections admitting both forms remain manual; do not infer a bag from any arbitrary object or guess from the method spelling. Two arguments retain the existing legacy trailing-options handling. A completed call gets no outer argument rewrite or parent rewrite count, while ordinary nested rewrites still run. An ambiguous call retains its outer name/arguments and receives one precise manual reason; independent children may still migrate under the explicit traversal rules below.
+
+Preserve the existing shared fixture invariant that every `fixtures/*/input.ts` compiles against the vendored 0.4.0 library. Add mixed-generation cases in a separate focused harness with authenticated declarations exposing both forms, rather than changing the vendored archive or suppressing diagnostics. Cover already-new inline, inferred named and explicitly typed bags; old inline/named readonly tuples; old tuples plus literal labels; a new bag containing an old builder call; and ambiguous `any`/`unknown`/mixed-union/array-plus-bag cases. Pin exact rewritten text and manual rows. Run a focused second pass and prove no additional outer `buildModule` rewrite or diagnostic occurs for completed forms; intentionally ambiguous controls retain their diagnostics. Existing old-source fixtures and other map transforms keep their original guarantees. Task 8 must also check real current-declaration calls before its write boundary.
+
+**Controller ruling: three distinct preservation boundaries.** The new shipped map exposed two composition defects and one expected new manual item; preserve these distinctions:
+
+1. A generic bag/array reshape that cannot be performed preserves only the parent call shape and permits independently decidable receiver/argument children to migrate. For the nonliteral `buildModule` trailing options, `.register` must become `.withServices` and the parent stays positional. Do not skip the whole callee in this path. Preflight predictable reshape failures before rendering any child, or otherwise prevent duplicated child rewrites/manual rows and inflated counts when the parent falls back to normal assembly.
+2. Partial or conflicting library ownership still freezes the ambiguous callee subtree. The new `collection-token-partial` line-9 `contribute` manual is expected, alongside its existing line-15 `of` manual; preserve its uncertain contribution text exactly. Do not relax ownership authentication to eliminate the new row.
+3. The existing untraceable inline token fixture must preserve the entire enclosing contribution call byte-for-byte, with its one original line-5 manual and zero rewrites. Its old token creation cannot be safely composed into a newly reshaped contribution. Give that custom transform a narrowly scoped way to abort its affected parent reshape, and roll back rewrite counts for rendered child text discarded with that parent. Limit the signal to the enclosing authenticated contribution whose token argument is the uncertain creation; do not block arbitrary ancestors or globally turn every manual item into a subtree freeze. Preserve independent safe-child behavior from item 1, and pin it with a regression control. Keep non-library and existing custom-map behavior unchanged.
+
+Record red/green regression evidence for the engine fixes, then run the complete codemod gate. The author owns the small implementation mechanism; the required text, manual rows, ownership boundaries and accurate counts above are the acceptance contract.
 
 - [ ] **Step 3: Update composed fixtures and run the codemod tests**
 
@@ -2240,6 +2254,8 @@ if (rows.some(row => !owners.has(row.owner) || typeof row.resolution !== 'string
 console.log(rows.map(({ file, line, reason, owner }) => ({ file, line, reason, owner })));
 JS
 ```
+
+Before any repository write, inspect the in-memory preview for every already-new `buildModule` call introduced in Tasks 1–6. Compare the original and output AST shapes: the outer call still has one options argument, whose `exportedServiceKeys` value has not been wrapped in a second `exportedServiceKeys` object. Named/typed bags remain the same outer argument. Nested legitimate builder rewrites may differ. Retain a path/line inventory and assertions with the preview report. Counts alone are insufficient; do not write if any completed call is rewrapped. This is the real-library integration proof for Task 7's mixed-generation guard.
 
 The inclusive preview deliberately finds both kinds of change in
 `tests/types/negative/startup.ts`: legitimate builder rewrites and the accumulated map's two
