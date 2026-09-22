@@ -994,6 +994,9 @@ Omit `docs/guides/api-naming.md` if the preferred bag succeeds. The commit conta
 - Modify: `src/module.ts`
 - Modify: `src/module-types.ts`
 - Create: `tests/container-names.test.ts`
+- Modify: `tests/types/contributions.ts`
+- Modify: `tests/types/contributions-consumer.ts`
+- Modify: `tests/types/negative/contributions.ts`
 
 **Interfaces:**
 - Consumes: the existing `inspect` overloads, `inspectGraph`, and `Module.renameExport` implementation.
@@ -1033,12 +1036,38 @@ describe('0.5 container names', () => {
     await container.close();
   });
 
-  test('module rename snapshots the option bag and reports the new operation', () => {
+  test('module rename snapshots the option bag once and classifies bag and export failures', () => {
     const feature = DiBag.createBuilder().withServices({ value: () => 1 })
       .buildModule({ exportedServiceKeys: ['value'] });
-    expect(() => feature.withRenamedExport({ currentExportKey: 'missing', newExportKey: 'answer' })).toThrow('withRenamedExport requires an existing export');
-    try { feature.withRenamedExport({ currentExportKey: 'missing', newExportKey: 'answer' }); }
-    catch (error: any) { expect(error.details.operation).toBe('withRenamedExport'); }
+    let currentReads = 0;
+    let newReads = 0;
+    const options = Object.defineProperties({}, {
+      currentExportKey: { enumerable: true, get() { currentReads++; return 'value'; } },
+      newExportKey: { enumerable: true, get() { newReads++; return 'answer'; } },
+    }) as { currentExportKey: 'value'; newExportKey: 'answer' };
+    const renamed = feature.withRenamedExport(options);
+    expect({ currentReads, newReads }).toEqual({ currentReads: 1, newReads: 1 });
+    expect(renamed).not.toBe(feature);
+    const callRename = feature.withRenamedExport as unknown as (options: unknown) => unknown;
+
+    try {
+      callRename({ currentExportKey: 'value', newExportKey: 'answer', extra: true });
+      throw new Error('expected malformed bag rejection');
+    } catch (error: any) {
+      expect(error).toMatchObject({ code: 'DI_BAG_INVALID_ARGUMENT', details: {
+        operation: 'withRenamedExport', argument: 'options',
+        expected: 'only the own properties: currentExportKey, newExportKey',
+      } });
+    }
+    try {
+      callRename({ currentExportKey: 'missing', newExportKey: 'answer' });
+      throw new Error('expected missing export rejection');
+    } catch (error: any) {
+      expect(error).toMatchObject({ code: 'DI_BAG_INVALID_EXPORT', details: {
+        operation: 'withRenamedExport', currentExportKey: 'missing', newExportKey: 'answer',
+      } });
+      expect(error.message).toContain('withRenamedExport requires an existing export');
+    }
   });
 });
 ```
@@ -1053,18 +1082,21 @@ Expected: missing-method failures.
 
 - [ ] **Step 3: Add every snapshot overload with the exact existing return types**
 
-Use the full post-phase-4 primary signature (if final Phase 4 evidence records its fallback, rename `inspectCollection` to `serviceSnapshot` with that fallback's exact signature instead): The adopted fallback must retain `CollectionTokenMember<Constraints, T>` and its never-rest guard in the collection overload; the ordinary snapshot overload retains `SingleServiceTokenMember<ServiceRegistrations, K>`. Both are public declaration facades. Preserve `TokenMember<R,T>` as the original general two-argument helper, and prove the uncalled renamed snapshot methods emit portable package declarations.
+Phase 4 selected its S5 fallback. Merge the two existing public methods under the final name without restoring the rejected conditional `ServiceKeyMember` signature. The ordinary overload retains `SingleServiceTokenMember<ServiceRegistrations, ServiceKey>` and the collection overload retains `CollectionTokenMember<Constraints, CollectionToken>`, its exact array return, and never-rest guard. Because both overloads now share one method name and explicit generic arity, put the same never-rest guard on the ordinary overload too: otherwise `serviceSnapshot<never>(collection as never)` can bypass the collection overload through the ordinary overload. This changes no inhabited call. Preserve `TokenMember<R,T>` as the original general helper used elsewhere.
 
 ```ts
 serviceSnapshot<ServiceKey extends (keyof ServiceRegistrations & string) | TokenBase>(
-  serviceKey: ServiceKey & ([ServiceKey] extends [string] ? unknown : ServiceKeyMember<ServiceRegistrations, Constraints, ServiceKey>),
-): ServiceKey extends CollectionTokenBase
-  ? readonly RegistrationSnapshot[]
-  : RegistrationSnapshot<
-      ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>,
-      ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>
-    >;
-serviceSnapshot(serviceKey: unknown): unknown {
+  serviceKey: ServiceKey & ([ServiceKey] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, ServiceKey>),
+  ...invalid: [ServiceKey] extends [never] ? [never] : []
+): RegistrationSnapshot<
+  ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>,
+  ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>
+>;
+serviceSnapshot<CollectionToken extends CollectionTokenBase>(
+  collectionToken: CollectionToken & CollectionTokenMember<Constraints, CollectionToken>,
+  ...invalid: [CollectionToken] extends [never] ? [never] : []
+): readonly RegistrationSnapshot<object, readonly unknown[]>[];
+serviceSnapshot(serviceKey: unknown, ..._invalid: unknown[]): unknown {
   if (typeof serviceKey === 'string') return this.#runtime.inspect(serviceKey);
   const { key, kind } = readGraphToken(this.#graph, serviceKey, 'serviceSnapshot');
   return kind === 'collection'
@@ -1075,22 +1107,33 @@ serviceSnapshot(serviceKey: unknown): unknown {
 graphSnapshot(): GraphSnapshot { return this.#runtime.inspectGraph(); }
 ```
 
-Update the new JSDoc examples and `@param` names, but retain the old methods until Task 8.
+Update the new JSDoc examples and overload-specific `@param` names, but retain the old methods until Task 8. Keep imports on the two public facade names; do not substitute private token admissions into either public signature.
 
 - [ ] **Step 4: Add the module options bag and method**
 
-In `src/module-types.ts`, change `InvalidRename` text to `withRenamedExport requires an existing export and a noncolliding singleton string-literal name`. In `src/module.ts`, add:
+Do not change the shared rename diagnostic globally while `renameExport` remains public. In `src/module-types.ts`, parameterize the existing admission with an operation whose default preserves the old method:
+
+```ts
+export type RenameKeys<P, Old extends string, New extends string, Operation extends 'renameExport' | 'withRenamedExport' = 'renameExport'> =
+  Singleton<Old> extends true ? Singleton<New> extends true
+    ? Old extends keyof P ? New extends Exclude<keyof P, Old> ? InvalidRename<Operation> : unknown
+      : InvalidRename<Operation> : InvalidRename<Operation> : InvalidRename<Operation>;
+type InvalidRename<Operation extends 'renameExport' | 'withRenamedExport'> =
+  Unsatisfied<`${Operation} requires an existing export and a noncolliding singleton string-literal name`, {}>;
+```
+
+The old two-argument `renameExport` keeps using `RenameKeys<ExportedServices, Old, New>` and therefore retains all existing negative markers during expand. In `src/module.ts`, add the new method with its explicit operation:
 
 ```ts
 withRenamedExport<const CurrentExportKey extends string, const NewExportKey extends string>(
   options: {
-    readonly currentExportKey: CurrentExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey>;
-    readonly newExportKey: NewExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey>;
+    readonly currentExportKey: CurrentExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey, 'withRenamedExport'>;
+    readonly newExportKey: NewExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey, 'withRenamedExport'>;
   },
 ): Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
 ```
 
-Implement it with `snapshotOptionsBag(options, 'withRenamedExport', ['currentExportKey', 'newExportKey'])`. Validate strings/absence/collision exactly as `renameExport` does, but use the new message, detail keys `currentExportKey` and `newExportKey`, and `details.operation: 'withRenamedExport'`. This is a reshaped existing site, so it retains `DI_BAG_INVALID_EXPORT`.
+Implement it with `snapshotOptionsBag(options, 'withRenamedExport', ['currentExportKey', 'newExportKey'])`. Bag-shape failures (non-object, missing/unknown/inherited/symbol properties) are new malformed-argument sites and retain the helper's `DI_BAG_INVALID_ARGUMENT` with `{ operation, argument, expected }`. After the snapshot succeeds, validate string types, absent exports and collisions exactly as `renameExport` does, but use the new message, detail keys `currentExportKey` and `newExportKey`, and `details.operation: 'withRenamedExport'`; those semantic export failures retain `DI_BAG_INVALID_EXPORT`.
 
 Use this complete body after the signature:
 
@@ -1124,19 +1167,61 @@ Use this complete body after the signature:
 }
 ```
 
+Extend the already registered `contributions` declaration producer/consumer instead of creating another harness. Preserve its old `inspectCollectionMethod` and `renamedFeature` exports until Task 6 migrates them. In `tests/types/contributions.ts`, immediately after `aggregateBag` is created, add:
+
+```ts
+export const serviceSnapshotMethod = aggregateBag.serviceSnapshot;
+```
+
+Immediately after `moduleBuilder` is declared, add:
+
+```ts
+export const renamedFeatureCurrent = moduleBuilder.withServices({ helper: () => 1 })
+  .buildModule({ exportedServiceKeys: ['helper'] })
+  .withRenamedExport({ currentExportKey: 'helper', newExportKey: 'renamedCurrent' });
+```
+
+In `tests/types/contributions-consumer.ts`, add both names to the existing import and append:
+
+```ts
+const namedSnapshot = serviceSnapshotMethod('values');
+const collectionSnapshots = serviceSnapshotMethod(numbers);
+const namedMetadata: object = namedSnapshot.registrationMetadata;
+const exactCollectionSnapshots: ReadonlyArray<RegistrationSnapshot<object, readonly unknown[]>> = collectionSnapshots;
+const renamedCurrent = DiBag.createBuilder().withInstalledModules([renamedFeatureCurrent]).buildContainer();
+const renamedCurrentValue: number = renamedCurrent.resolve('renamedCurrent');
+// @ts-expect-error reflected overloads retain the explicit-never rejection after declaration emission
+serviceSnapshotMethod<never>(numbers as never);
+void namedMetadata; void exactCollectionSnapshots; void renamedCurrentValue;
+```
+
+`contributions` is already in the local declaration-consumption array in `tests/types.test.ts` and the classic/native installed-package producer-deletion matrix in `tests/native-package.test.ts`; do not add a duplicate fixture or a second source-deletion harness. These additions make both snapshot overloads and the new module method cross the existing declaration boundary while preserving every old control for the later mechanical migration.
+
+In `tests/types/negative/contributions.ts`, preserve the existing old-method control at line 128 and append the direct new-method control beside it:
+
+```ts
+// diagnostic: Expected 2 arguments
+builder.buildContainer().serviceSnapshot<never>(numbers as never);
+```
+
+Task 6 migrates the old call through the shipped map, so two byte-identical adjacent direct controls may temporarily remain. Task 8 removes one duplicate together with the old snapshot declarations, after the direct and reflected declaration gates have passed; it retains one direct control and the reflected consumer control.
+
 - [ ] **Step 5: Run narrow tests**
 
 ```bash
 bun test tests/container-names.test.ts tests/inspect-graph.test.ts tests/modules.test.ts
 npm run typecheck
+bun test tests/types.test.ts -t 'contributions retain exact inferred cross-file contracts|contributions inferred exports survive declaration consumption|type rejection: contributions.ts|type rejection: module-rename.ts'
+npm run build
+bun test tests/native-package.test.ts -t 'native installed contracts and physical downstream declarations'
 ```
 
-Expected: pass and no diagnostics.
+Expected: pass and no diagnostics. The focused `types.test.ts` command exercises the existing in-memory declaration emit with the producer source hidden from the consumer. The native-package command exercises the existing classic/native emitters and CTS/MTS consumers after deleting the copied producer source. It is the promised physical package proof; do not describe the ordinary cross-file compile alone as source deletion.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/di-bag.ts src/module.ts src/module-types.ts tests/container-names.test.ts
+git add src/di-bag.ts src/module.ts src/module-types.ts tests/container-names.test.ts tests/types/contributions.ts tests/types/contributions-consumer.ts tests/types/negative/contributions.ts
 git commit -m "feat!: add container snapshot and module names"
 ```
 
@@ -1145,7 +1230,7 @@ git commit -m "feat!: add container snapshot and module names"
 ### Task 4: Expand lifecycle observer configuration names
 
 **Files:**
-- Modify: `src/observers.ts`
+- Modify: `src/observers.ts`, `src/index.ts`
 - Modify: `src/di-bag.ts`
 - Modify: `tests/container-names.test.ts`
 - Modify: `tests/types/observers.ts`
@@ -1229,7 +1314,7 @@ type ObserverRecord = {
 };
 
 static appendLegacy(current: LifecycleObservers | undefined, observer: unknown): LifecycleObservers {
-  if ((typeof observer !== 'object' && typeof observer !== 'function') || observer === null) {
+  if (typeof observer !== 'object' || observer === null) {
     throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
   }
   const onEvent = Reflect.get(observer, 'onEvent') as unknown;
@@ -1237,11 +1322,11 @@ static appendLegacy(current: LifecycleObservers | undefined, observer: unknown):
   if (typeof onEvent !== 'function' || typeof onError !== 'function') {
     throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
   }
-  return new LifecycleObservers([...(current?.callbacks ?? []), { onEvent: onEvent as ObserverCallback, onError: onError as ObserverErrorCallback }]);
+  return new LifecycleObservers([...(current?.callbacks ?? []), Object.freeze({ onEvent: onEvent as ObserverCallback, onError: onError as ObserverErrorCallback })]);
 }
 
 static append(current: LifecycleObservers | undefined, observer: unknown): LifecycleObservers {
-  if ((typeof observer !== 'object' && typeof observer !== 'function') || observer === null) {
+  if (typeof observer !== 'object' || observer === null) {
     throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
   }
   const onLifecycleEvent = Reflect.get(observer, 'onLifecycleEvent') as unknown;
@@ -1249,14 +1334,14 @@ static append(current: LifecycleObservers | undefined, observer: unknown): Lifec
   if (typeof onLifecycleEvent !== 'function' || typeof onObserverFailure !== 'function') {
     throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
   }
-  return new LifecycleObservers([...(current?.callbacks ?? []), {
+  return new LifecycleObservers([...(current?.callbacks ?? []), Object.freeze({
     onEvent: onLifecycleEvent as ObserverCallback,
     onError: onObserverFailure as ObserverErrorCallback,
-  }]);
+  })]);
 }
 ```
 
-Keep the queue over `ObserverRecord` and its existing `onEvent`/`onError` destructuring. This is private compatibility storage, not a public retired name. Retain event kinds/fields and `ScopeEventFields` until plan 12, phase 11.
+Export `LifecycleObserver` from `src/index.ts` in this expand step so the new producer/consumer imports resolve; retain `ObserverOptions` until Task 9. Preserve the existing object-only callback-record validation and frozen snapshots in both append paths. Add a runtime rejection control for a function object carrying both callback properties, and a getter-count/mutation control for the renamed callbacks. Keep the queue over `ObserverRecord` and its existing `onEvent`/`onError` destructuring. This is private compatibility storage, not a public retired name. Retain event kinds/fields and `ScopeEventFields` until plan 12, phase 11.
 
 - [ ] **Step 3: Add `ConfigurationOptions.lifecycleObservers` beside `observers`**
 
@@ -1275,7 +1360,7 @@ withConfiguration: (options: ConfigurationOptions): DiBagApi => {
   const lifecycleObservers = (usesLifecycleNames ? bag.lifecycleObservers : bag.observers) as readonly unknown[] | undefined;
   let configured = runtime === undefined ? context : runtimeContext(runtime, context);
   if (lifecycleObservers !== undefined) {
-    if (!Array.isArray(lifecycleObservers)) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers must be an array', { operation: 'withConfiguration' });
+    if (!Array.isArray(lifecycleObservers)) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', usesLifecycleNames ? 'withConfiguration lifecycleObservers must be an array' : 'withConfiguration observers must be an array', { operation: 'withConfiguration' });
     for (const observer of lifecycleObservers) {
       configured = Object.freeze({
         ...configured,
@@ -1356,7 +1441,7 @@ Expected: pass; the old and new configuration names both work during expand.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/observers.ts src/di-bag.ts tests/container-names.test.ts tests/types/observers.ts tests/types/observers-consumer.ts tests/types/negative/observers.ts
+git add src/observers.ts src/index.ts src/di-bag.ts tests/container-names.test.ts tests/types/observers.ts tests/types/observers-consumer.ts tests/types/negative/observers.ts
 git commit -m "feat!: rename lifecycle observer configuration"
 ```
 
@@ -2046,7 +2131,7 @@ Keep `BagRuntime`: it is an internal runtime/ownership engine, never exported, a
 
 - [ ] **Step 3: Remove old methods and support types**
 
-Delete `inspect`, `inspectGraph`, all `createScope` overloads/body, all `fork` overloads/body, `selectScope`, `ScopeOptions`, `CheckedScopeLifetimes`, and `DisjointScopeSelection`. Remove their imports and old JSDoc. Export these exact phase-6 types from `src/index.ts`:
+Delete `inspect`, `inspectCollection`, `inspectGraph`, all `createScope` overloads/body, all `fork` overloads/body, `selectScope`, `ScopeOptions`, `CheckedScopeLifetimes`, and `DisjointScopeSelection`. Remove their imports and old JSDoc. If Task 6 produced two adjacent byte-identical direct `serviceSnapshot<never>` controls from the expand-old and expand-new lines, delete one now; retain one direct control and the reflected declaration-consumer control. Export these exact phase-6 types from `src/index.ts`:
 
 ```ts
 export type { Container, Builder, DiBagApi, ConfigurationOptions } from './di-bag';
@@ -2126,7 +2211,7 @@ Append a runtime check that `renameExport` is absent from a built module. Run th
 
 - [ ] **Step 2: Remove old declarations and expand-only branches**
 
-Delete `Module.renameExport`; remove old `InvalidRename` wording. Remove `ObserverOptions`, `ConfigurationOptions.observers`, the both-fields conflict branch, and `LifecycleObservers.appendLegacy`. Replace the expand-only private record with `readonly LifecycleObserver[]`; make `append(previous, observer)` validate/read `onLifecycleEvent` and `onObserverFailure` once as in Task 4, freeze that new-shape pair, and make the queue destructure/call those two names. This removes every internal `onEvent`/`onError` access together with the public declarations. Export `LifecycleObserver` from `src/index.ts`. Keep `ObserverCallback`, `ObserverErrorCallback`, and `ObserverFailure` unchanged, per spec. Keep event kinds, `ScopeEventFields`, and event field names for plan 12, master phase 11.
+Delete `Module.renameExport`. Change `RenameKeys`'s default `Operation` from `'renameExport'` to `'withRenamedExport'`, then remove `'renameExport'` from the operation constraint and remove the old diagnostic spelling; keep the explicit fourth argument on `withRenamedExport` so its emitted signature stays stable across contraction. Remove `ObserverOptions`, `ConfigurationOptions.observers`, the both-fields conflict branch, and `LifecycleObservers.appendLegacy`. Replace the expand-only private record with `readonly LifecycleObserver[]`; make `append(previous, observer)` validate/read `onLifecycleEvent` and `onObserverFailure` once as in Task 4, freeze that new-shape pair, and make the queue destructure/call those two names. This removes every internal `onEvent`/`onError` access together with the public declarations. Export `LifecycleObserver` from `src/index.ts`. Keep `ObserverCallback`, `ObserverErrorCallback`, and `ObserverFailure` unchanged, per spec. Keep event kinds, `ScopeEventFields`, and event field names for plan 12, master phase 11.
 
 The contracted storage and delivery edits are exact:
 
