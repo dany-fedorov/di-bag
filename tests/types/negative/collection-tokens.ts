@@ -17,7 +17,7 @@ DiBag.createBuilder().withTokenService(collection, () => [1]);
 DiBag.createBuilder().withServices({ value: (): readonly number[] => [] }).withServiceAlias({ aliasKey: collection, targetServiceKey: 'value' });
 // diagnostic: optional requires a single-service token
 DiBag.optional(collection);
-// diagnostic: createScope cannot share a collection token
+// diagnostic: createChildContainer cannot share a collection token
 builder.buildContainer().createChildContainer({ sharedParentServiceKeys: [collection] as const });
 // diagnostic: buildModule cannot export a collection token
 builder.buildModule({ exportedServiceKeys: [collection] as const });
