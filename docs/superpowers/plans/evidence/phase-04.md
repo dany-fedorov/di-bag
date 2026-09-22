@@ -75,3 +75,52 @@ v24.20.0, TypeScript 6.0.3.
 | modules | 500 | 19,766,739 | 19,719,044 | +0.2% | 15,954 | 2,316 | yes |
 
 Decision: keep fallback with ordered finite-token admission
+
+## Contract
+
+The contracted public surface keeps the explicit `resolveCollection` and
+`inspectCollection` fallback with ordered finite-token admission. The final
+reviewed source at `fd5b72a` measured all twelve cases within the cumulative
+10% budget using Node v24.20.0 and TypeScript 6.0.3.
+
+| Case | Count | Instantiations | Baseline | Change | Milliseconds | Max RSS MiB | Accepted |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| bulk | 100 | 168,599 | 159,001 | +6.0% | 1,127 | 357 | yes |
+| chained | 100 | 797,412 | 787,814 | +1.2% | 1,522 | 406 | yes |
+| grouped | 100 | 175,946 | 166,348 | +5.8% | 1,062 | 359 | yes |
+| replacement | 100 | 1,040,858 | 1,031,260 | +0.9% | 1,504 | 414 | yes |
+| bindings | 100 | 862,860 | 847,247 | +1.8% | 1,897 | 455 | yes |
+| modules | 100 | 1,258,088 | 1,241,644 | +1.3% | 2,315 | 575 | yes |
+| bulk | 500 | 816,199 | 806,601 | +1.2% | 1,678 | 435 | yes |
+| chained | 500 | 13,965,812 | 13,956,214 | +0.1% | 10,424 | 1,713 | yes |
+| grouped | 500 | 1,069,970 | 1,060,372 | +0.9% | 1,680 | 421 | yes |
+| replacement | 500 | 21,777,258 | 21,767,660 | +0.0% | 12,588 | 2,261 | yes |
+| bindings | 500 | 12,192,660 | 12,153,047 | +0.3% | 10,139 | 1,746 | yes |
+| modules | 500 | 19,762,688 | 19,719,044 | +0.2% | 16,996 | 2,287 | yes |
+
+Decision: fallback retained
+
+### Final repaired contract
+
+The declaration-portability repair at `b22f2b3` moved reflected signatures
+behind their exported facades and restored the 2,425-byte empty-module shape.
+The fallback behavior and ordered finite-token admission are unchanged. This is
+the final reviewed-source measurement; the preceding `fd5b72a` table is retained
+as history from the failed complete-check boundary.
+
+| Case | Count | Instantiations | Baseline | Change | Milliseconds | Max RSS MiB | Accepted |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| bulk | 100 | 168,543 | 159,001 | +6.0% | 1,081 | 368 | yes |
+| chained | 100 | 791,812 | 787,814 | +0.5% | 1,518 | 422 | yes |
+| grouped | 100 | 175,834 | 166,348 | +5.7% | 1,088 | 369 | yes |
+| replacement | 100 | 1,040,802 | 1,031,260 | +0.9% | 1,476 | 423 | yes |
+| bindings | 100 | 856,447 | 847,247 | +1.1% | 1,870 | 463 | yes |
+| modules | 100 | 1,250,231 | 1,241,644 | +0.7% | 2,248 | 560 | yes |
+| bulk | 500 | 817,743 | 806,601 | +1.4% | 1,670 | 432 | yes |
+| chained | 500 | 13,939,412 | 13,956,214 | -0.1% | 11,133 | 1,747 | yes |
+| grouped | 500 | 1,071,010 | 1,060,372 | +1.0% | 1,741 | 429 | yes |
+| replacement | 500 | 21,778,802 | 21,767,660 | +0.1% | 11,819 | 2,242 | yes |
+| bindings | 500 | 12,162,247 | 12,153,047 | +0.1% | 10,073 | 1,794 | yes |
+| modules | 500 | 19,725,231 | 19,719,044 | +0.0% | 16,537 | 2,274 | yes |
+
+Decision: fallback retained after declaration repair
