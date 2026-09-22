@@ -3214,7 +3214,7 @@ the phase report as well.
 
 **Files:**
 - Modify: `src/dependency-references.ts`, `src/acquisition.ts`, `src/runtime.ts`, `src/startup.ts`, `src/scope-selection.ts`, `src/module.ts`, `src/module-types.ts`, `src/contributions.ts`, `src/contribution-types.ts`, `src/token-types.ts`, `src/provider.ts`, `src/tokens.ts`, `src/di-bag.ts`, `src/index.ts`
-- Modify: `tests/collection-tokens.test.ts`, `tests/types/negative/collection-tokens.ts`, `tests/types/negative/api-renaming.ts`, `tests/inspect-graph.test.ts`
+- Modify: `tests/collection-tokens.test.ts`, `tests/types/negative/collection-tokens.ts`, `tests/types/negative/contributions.ts`, `tests/types/negative/api-renaming.ts`, `tests/inspect-graph.test.ts`
 - Modify: `tests/api-naming-known-violations.json` (remove exactly four legacy-collection findings)
 - Modify: `docs/agent/errors.md`, `docs/agent/recipes.md`, `docs/agent/api-card.md`, `docs/guides/api-reference.md`, `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs`
 - Delete: `docs/reference/index/type-aliases/CollectionDependency.md`
@@ -3241,6 +3241,15 @@ removedBag.inspectAll(removedCollection);
 ```
 
 Add a type-only import/use marker showing `CollectionDependency` is no longer exported, matching the fixture's established import-diagnostic style.
+
+The five legacy adapter negative controls retained in `tests/types/negative/contributions.ts` also
+belong to this contraction: malformed `DiBag.all({})`, optional-handle input, explicit-never input,
+the erased/reflected adapter assignment, and that reflected value's finite-tuple use. For each,
+preserve its rejection invariant with a new collection-token/read counterpart or cite the exact
+existing counterpart that already covers it; add any missing counterpart before removing obsolete
+adapter syntax. Record all five dispositions for review alongside the removed-`all` property case.
+Do not silently delete these checks or retain the adapter through a compatibility stub. In particular,
+erased collection handles must not become valid positional dependencies through this migration.
 
 - [ ] **Step 2: Remove the old runtime and type surface**
 
