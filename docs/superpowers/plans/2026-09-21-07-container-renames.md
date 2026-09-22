@@ -245,6 +245,10 @@ void collection; void annotation; void emptyChildBag; void emptyIndependentBag;
 
 These three unannotated destructuring parameters are deliberate contextual-inference probes: named service with keys first, token service with providers first, and collection token with keys first. Keep both property orders. If inference fails, record it as an S3 failure; do not add annotations that hide it.
 
+**Reviewed fallback boundary (Phase 6 execution).** All three preferred-bag candidates failed and their original probes remain evidence. A same-tree control proves the existing positional `fork` and `createScope` also reject unannotated dependency destructuring with TS7031. Under the selected positional fallback only, annotate these three parameters with `{ value: number }` and the missing-dependency negative with `{ missing: number }`. Preserve every exact richer-output assertion, invalid expression and admission check. This records the established positional contract; it does not repair or accept a failed preferred-bag candidate. The independent audit is `/tmp/di-bag-resume-20260921/phase06-fallback-type-audit.md`; retain the legacy-control log with phase evidence.
+
+The positional contextual bound also rejects four invalid providers before the preferred bag's graph-message intersections. Independent review permits only these observed, source-specific marker replacements: wrong named output `Type '() => string' is not assignable to type`; missing selected provider `Property 'b' is missing`; wrong token output `Type of computed property's value is '() => { now: string; }'`; missing dependency `Type '({ missing }: { missing: number; }) => number' is not assignable to type`. Keep the invalid calls and all other graph, overlap and lifetime markers unchanged. These are recorded fallback diagnostic priorities, not accepted preferred-shape results.
+
 If phase 5 chose the positional fallback for S1, change only the two builder calls to that recorded syntax.
 
 If the final Phase 4 evidence records the S5 fallback, change only collection-token reads in these fixtures: `child.resolve(clocks)` and both `independent.resolve(clocks)` calls become `resolveCollection`. Keep `resolve(clock)` and all named-service reads unchanged.
@@ -443,18 +447,18 @@ Do not run a compiler, evidence command, declaration-consumer command, or commit
 
 Do not apply this step yet. Task 2 first installs the adopted direct parser, then its Step 5 runs the first compiler check. If that check rejects S3, Task 2 Step 6 applies everything below as one bounded substitution.
 
-Keep no-argument and share-only overloads. Change replacement forms to:
+Keep the existing no-replacement optional-bag overloads: both methods still accept no arguments, `{}` and explicit `undefined`, while child containers also accept a sharing-only bag. S3 changes only the replacement pair. Change replacement forms to:
 
 ```ts
 createChildContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>, const SharedParentServiceKeys extends readonly unknown[] = readonly []>(
   replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createChildContainer'>,
-  replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedChildContainerLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>>, NoInfer<ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>,
-  options?: { readonly sharedParentServiceKeys?: SharedParentServiceKeys & Selection<ServiceRegistrations, Constraints, SharedParentServiceKeys, 'createChildContainer sharedParentServiceKeys'> & ScopeShareAdmission<SharedParentServiceKeys> } & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>,
+  replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createChildContainer'> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedChildContainerLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>>, NoInfer<ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>,
+  options?: Pick<CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>, 'sharedParentServiceKeys'> & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>,
 ): Bag<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
 
 createIndependentContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>>(
   replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createIndependentContainer'>,
-  replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>,
+  replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createIndependentContainer'> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>,
 ): Bag<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
 ```
 
@@ -463,9 +467,11 @@ Under this fallback only, replace the public implementations from Task 2 Step 4 
 ```ts
 function positionalChildOptions(args: readonly unknown[]): unknown {
   if (args.length === 0) return undefined;
-  if (args.length === 1) return args[0];
+  if (args.length === 1) return args[0] === undefined
+    ? undefined
+    : snapshotOptionsBag(args[0], 'createChildContainer', [], ['sharedParentServiceKeys']);
   if (args.length !== 2 && args.length !== 3) {
-    throw libraryError('DI_BAG_INVALID_ARGUMENT', 'createChildContainer accepts zero, one, two, or three arguments in the measured fallback', {
+    throw libraryError('DI_BAG_INVALID_ARGUMENT', 'createChildContainer accepts zero, one, two, or three arguments', {
       operation: 'createChildContainer', argument: 'arguments.length', expected: "one of: '0', '1', '2', '3'",
     });
   }
@@ -484,9 +490,12 @@ function positionalChildOptions(args: readonly unknown[]): unknown {
 
 function positionalIndependentOptions(args: readonly unknown[]): unknown {
   if (args.length === 0) return undefined;
+  if (args.length === 1) return args[0] === undefined
+    ? undefined
+    : snapshotOptionsBag(args[0], 'createIndependentContainer', [], []);
   if (args.length !== 2) {
-    throw libraryError('DI_BAG_INVALID_ARGUMENT', 'createIndependentContainer accepts zero or two arguments in the measured fallback', {
-      operation: 'createIndependentContainer', argument: 'arguments.length', expected: "one of: '0', '2'",
+    throw libraryError('DI_BAG_INVALID_ARGUMENT', 'createIndependentContainer accepts zero arguments, undefined, an empty options object, or selected keys and replacement providers', {
+      operation: 'createIndependentContainer', argument: 'arguments.length', expected: "one of: '0', '1', '2'",
     });
   }
   return { replacedServiceKeys: args[0], replacementProviders: args[1] };
@@ -525,6 +534,8 @@ test('positional fallback normalizes every supported child and independent form'
     { sharedParentServiceKeys: ['shared'] },
   );
   const emptyIndependent = root.createIndependentContainer();
+  const emptyIndependentBag = root.createIndependentContainer({});
+  const undefinedIndependent = root.createIndependentContainer(undefined);
   const independent = root.createIndependentContainer(['value'], { value: () => 5 });
   expect(emptyChild.resolve('value')).toBe(1);
   expect(shareOnly.resolve('shared')).toBe(parentShared);
@@ -533,16 +544,19 @@ test('positional fallback normalizes every supported child and independent form'
   expect(replacedAndShared.resolve('value')).toBe(4);
   expect(replacedAndShared.resolve('shared')).toBe(parentShared);
   expect(emptyIndependent.resolve('value')).toBe(1);
+  expect(emptyIndependentBag.resolve('value')).toBe(1);
+  expect(undefinedIndependent.resolve('value')).toBe(1);
   expect(independent.resolve('value')).toBe(5);
   await Promise.all([
     emptyChild.close(), shareOnly.close(), replaced.close(), explicitUndefined.close(),
-    replacedAndShared.close(), emptyIndependent.close(), independent.close(), root.close(),
+    replacedAndShared.close(), emptyIndependent.close(), emptyIndependentBag.close(),
+    undefinedIndependent.close(), independent.close(), root.close(),
   ]);
 });
 
 test.each([
   ['createChildContainer', [[], {}, {}, {}], "one of: '0', '1', '2', '3'"],
-  ['createIndependentContainer', [[]], "one of: '0', '2'"],
+  ['createIndependentContainer', [[], {}, {}], "one of: '0', '1', '2'"],
 ] as const)('positional fallback rejects malformed arity for %s', (operation, args, expected) => {
   const root = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
   try {
@@ -567,7 +581,7 @@ test('positional fallback snapshots selected indices before a provider getter ru
 });
 ```
 
-These cases cover argument-count handling, explicit `undefined`, third-bag validation through `snapshotOptionsBag`, selection snapshot order, operation details, sharing, and both ownership forms. They are skipped entirely when S3 adopts the bag.
+These cases cover argument-count handling, explicit `undefined`, third-bag validation through `snapshotOptionsBag`, selection snapshot order, operation details, sharing, and both ownership forms. Also retain the original empty-bag positives, and add precise negatives for transient parent sharing, unknown third-bag keys and one-argument replacement bags. The child third bag exposes only the checked sharing property (including transient and collection guards); the one-argument paths reject replacement fields before any provider getter is read. Assert renamed operation details and exactly-once caller getter reads. Both positional `Overrides` applications pass their new operation explicitly instead of inheriting the old `fork` default. They are skipped entirely when S3 adopts the bag.
 
 Rewrite all fixture calls to the positional pair followed by `{ sharedParentServiceKeys }`, change the codemod expected output and transform in Task 5 accordingly, rerun Task 2 Steps 5–7, record `Decision: positional fallback` and all failed attempts in phase evidence, and append the exception to `docs/guides/api-naming.md`.
 
@@ -1466,20 +1480,20 @@ Adding the container roles must not drop or overwrite earlier transform metadata
 
 Export the default transform `containerDerivation(call, api)` and register its id. Read `call.expression.name.text` as the 0.4.0 method and ask `api.nameOf('Bag', oldName)` for the emitted method name; never hardcode it. Apply this table:
 
-| 0.4 call | Adopted output |
+| 0.4 call | Selected positional output |
 | --- | --- |
 | `createScope()` | `createChildContainer()` |
 | `createScope({ share })` | `createChildContainer({ sharedParentServiceKeys: share })` |
-| `createScope(keys, providers)` | `createChildContainer({ replacedServiceKeys: keys, replacementProviders: providers })` |
-| `createScope(keys, providers, { share })` | `createChildContainer({ replacedServiceKeys: keys, replacementProviders: providers, sharedParentServiceKeys: share })` |
+| `createScope(keys, providers)` | `createChildContainer(keys, providers)` |
+| `createScope(keys, providers, { share })` | `createChildContainer(keys, providers, { sharedParentServiceKeys: share })` |
 | `fork()` | `createIndependentContainer()` |
-| `fork(keys, providers)` | `createIndependentContainer({ replacedServiceKeys: keys, replacementProviders: providers })` |
+| `fork(keys, providers)` | `createIndependentContainer(keys, providers)` |
 
 Use `api.assemble(call, replacements)` so nested phase transforms compose and untouched comments, whitespace, trailing commas, and multiline layout survive. Accept scope options only when it is an object literal containing the sole syntactic key `share` and no spread/computed key. Ask `api.nameOf` for the method and `api.nameForRole` for every emitted field name. Render each role target with the transform-local `propertyName` helper printed below; do not extend the shared transform API. Otherwise call `api.manual(call, 'the createScope options are not an object literal; rewrite it to createChildContainer by hand')` and return `undefined`. Spread call arguments are reported by the engine.
 
 Under the S3 fallback, emit `createChildContainer(keys, providers, { sharedParentServiceKeys: share })` and `createIndependentContainer(keys, providers)`; zero-argument and share-only output remains unchanged.
 
-Under the S3 positional fallback, replace only the three adopted branches with these source-preserving variants:
+The S3 positional fallback is selected. Replace the three historical preferred-bag branches printed in Step 3 with these source-preserving variants; compiler-budget verification remains required:
 
 ```js
 if (oldName === 'fork' && args.length === 2) {
@@ -1494,11 +1508,11 @@ if (oldName === 'createScope' && args.length === 3) {
 }
 ```
 
-Place these before the adopted branches they replace; do not leave both versions reachable. Update `expected.ts` lines for `child2`, `child3`, and `fork1` to the exact positional output and keep the same literal manual report.
+Place these before the adopted branches they replace; do not leave both versions reachable. The `expected.ts` below already uses the selected positional output for every replacement call, including multiline and nested calls. Keep the same literal manual report.
 
 - [ ] **Step 3: Pin composition with a fixture**
 
-Create `tools/codemod/lib/transforms/container-derivation.mjs` with this complete adopted-shape implementation:
+Create `tools/codemod/lib/transforms/container-derivation.mjs` from this historical preferred-bag implementation, applying the three selected positional branches in Step 2 before running it:
 
 ```js
 // tools/codemod/lib/transforms/container-derivation.mjs
@@ -1638,7 +1652,7 @@ const collectionContainer = DiBag.createBuilder().contribute(collection, () => 1
 export const collectionSnapshots = collectionContainer.inspectAll(collection);
 ```
 
-The adopted `expected.ts` is:
+The selected positional `expected.ts` is:
 
 ```ts
 import { DiBag, type Container, type LifecycleObserver, type CreateChildContainerOptions } from 'di-bag';
@@ -1652,16 +1666,16 @@ export const a = root.serviceSnapshot('a');
 export const graph = root.graphSnapshot();
 export const child0 = root.createChildContainer();
 export const child1 = root.createChildContainer({ sharedParentServiceKeys: ['b'] });
-export const child2 = root.createChildContainer({ replacedServiceKeys: keys, replacementProviders: replacements });
-export const child3 = root.createChildContainer({ replacedServiceKeys: keys /* k */, replacementProviders: replacements /* p */, sharedParentServiceKeys: ['b'], });
+export const child2 = root.createChildContainer(keys, replacements);
+export const child3 = root.createChildContainer(keys /* k */, replacements /* p */, { sharedParentServiceKeys: ['b'], });
 export const manual = root.createScope(keys, replacements, sharing);
 export const fork0 = root.createIndependentContainer();
-export const fork1 = root.createIndependentContainer({ replacedServiceKeys: keys, replacementProviders: replacements });
+export const fork1 = root.createIndependentContainer(keys, replacements);
 export const preserved = root.createChildContainer(
-  { replacedServiceKeys: keys, // selected keys stay commented
-  replacementProviders: replacements }, // providers keep the trailing comma
+  keys, // selected keys stay commented
+  replacements, // providers keep the trailing comma
 );
-export const nested = root.createIndependentContainer({ replacedServiceKeys: ['a'], replacementProviders: { a: () => DiBag.createBuilder().withServices({ inner: () => 1 }).buildContainer() } });
+export const nested = root.createIndependentContainer(['a'], { a: () => DiBag.createBuilder().withServices({ inner: () => 1 }).buildContainer() });
 export type App = Container<{ a: () => number }>;
 export type ChildOptions = CreateChildContainerOptions<{ a: () => number }, readonly ['a']>;
 export type ConstrainedChildOptions = CreateChildContainerOptions<{ a: () => number }, readonly ['a'], never>;
@@ -1686,10 +1700,10 @@ For the shown input, create this exact `expected-manual.json` (line 14 is the `m
 
 If formatting changes the fixture line, use the actual 1-based line printed by `nl -ba input.ts`; the reason string is exact. The harness uses deep equality on literal `{ line, reason }` objects; it does not accept patterns.
 
-In `tools/codemod/test/transforms.test.mjs`, update the pinned registry keys to `['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation']`. Add a test through the real `runCodemod` helper and vendored 0.4.0 declarations, using the fixture's exact `root.createScope(keys /* k */, replacements /* p */, { share: ['b'], })` call and an alternate method entry whose `to` is `spawnChild` and whose `transformNames` targets are `chosen-keys`, `providerMap`, and `parentKeys`. The non-identifier first target proves safe role rendering. The exact transformed line is:
+In `tools/codemod/test/transforms.test.mjs`, update the pinned registry keys to `['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation']`. Add a test through the real `runCodemod` helper and vendored 0.4.0 declarations, using the fixture's exact `root.createScope(keys /* k */, replacements /* p */, { share: ['b'], })` call and an alternate method entry whose `to` is `spawnChild` and whose `transformNames` targets are `chosenKeys`, `providerMap`, and `parent-keys`. The non-identifier sharing target proves safe role rendering for the field actually emitted by the positional transform. The exact transformed line is:
 
 ```ts
-export const child3 = root.spawnChild({ "chosen-keys": keys /* k */, providerMap: replacements /* p */, parentKeys: ['b'], });
+export const child3 = root.spawnChild(keys /* k */, replacements /* p */, { "parent-keys": ['b'], });
 ```
 
 Use the original-program checker path; do not invoke `containerDerivation` directly and do not mock `assemble`. Append this complete test, adding `runCodemod`, `defaultMapFile`, `readFileSync`, `fixturesRoot`, and `fixturesProgram` to the file's existing imports where absent:
@@ -1703,7 +1717,7 @@ test('container derivation uses mapped role names and preserves three-argument t
       ? {
           ...entry,
           to: 'spawnChild',
-          transformNames: { keys: 'chosen-keys', providers: 'providerMap', sharing: 'parentKeys' },
+          transformNames: { keys: 'chosenKeys', providers: 'providerMap', sharing: 'parent-keys' },
         }
       : entry),
   };
@@ -1715,10 +1729,10 @@ test('container derivation uses mapped role names and preserves three-argument t
   };
   const alternateResult = runCodemod({ ...common, map: alternate });
   assert.match(alternateResult.files[0].text,
-    /export const child3 = root\.spawnChild\(\{ "chosen-keys": keys \/\* k \*\/, providerMap: replacements \/\* p \*\/, parentKeys: \['b'\], \}\);/);
+    /export const child3 = root\.spawnChild\(keys \/\* k \*\/, replacements \/\* p \*\/, \{ "parent-keys": \['b'\], \}\);/);
   const shippedResult = runCodemod({ ...common, map: shipped });
   assert.match(shippedResult.files[0].text,
-    /export const child3 = root\.createChildContainer\(\{ replacedServiceKeys: keys \/\* k \*\/, replacementProviders: replacements \/\* p \*\/, sharedParentServiceKeys: \['b'\], \}\);/);
+    /export const child3 = root\.createChildContainer\(keys \/\* k \*\/, replacements \/\* p \*\/, \{ sharedParentServiceKeys: \['b'\], \}\);/);
 });
 ```
 
@@ -1842,7 +1856,7 @@ const inventory = { before: {}, changes: {}, after: {} };
 const retired = /\.(?:createScope|fork|inspect|inspectGraph|renameExport)\(|\b(?:ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b|\b(?:observers|onEvent|onError)\s*:/g;
 for (const file of files) {
   const unresolved = readFileSync(file, 'utf8').match(/\.(?:createScope|fork)\s*\(/g) ?? [];
-  if (unresolved.length) throw new Error(`${file}: ${unresolved.length} derivation call(s) require an explicit one-bag reshape before this script writes anything`);
+  if (unresolved.length) throw new Error(`${file}: ${unresolved.length} derivation call(s) require an explicit migration to the selected container signature before this script writes anything`);
 }
 for (const file of files) {
   let text = readFileSync(file, 'utf8');
@@ -1865,7 +1879,7 @@ writeFileSync('/tmp/di-bag-phase-06/untyped-inventory.json', `${JSON.stringify(i
 if (Object.values(inventory.after).some(count => count !== 0)) throw new Error('retired names remain; inspect untyped-inventory.json');
 ```
 
-Run it after the exact derivation-bag edits in Steps 1 through 4. Expected before inventory: every nonzero file belongs to the explicit file groups in this task. Expected after inventory: every value is `0`. Review `changes` file by file; reject an empty change record for a nonzero input. The script deliberately aborts on a positional derivation call; edit that specific source string to one of the two canonical bags shown below, then rerun from the task commit's clean starting tree. Do not add a permissive regex.
+Run it after the exact derivation-call edits in Steps 1 through 4. Expected before inventory: every nonzero file belongs to the explicit file groups in this task. Expected after inventory: every value is `0`. Review `changes` file by file; reject an empty change record for a nonzero input. The script deliberately aborts on a retired `createScope` or `fork` call; edit that specific source string to one of the selected signatures shown below, then rerun from the task commit's clean starting tree. Do not add a permissive regex.
 
 Before editing, capture the positional derivation inventory from the phase entry tree:
 
@@ -1881,16 +1895,16 @@ The expected ten calls and their exact replacements are:
 | --- | ---: | --- | --- |
 | `tests/runtime-scale.node.mjs` | 1 | `bag.createScope()` | `bag.createChildContainer()` |
 | `tests/native-package.test.ts` generated source | 2 | `parent.createScope()`; `child.fork()` | `parent.createChildContainer()`; `child.createIndependentContainer()` |
-| `tests/token-package.test.ts` generated source | 1 | `root.fork([samePublicToken], { [publicKey]: () => childValue })` | `root.createIndependentContainer({ replacedServiceKeys: [samePublicToken], replacementProviders: { [publicKey]: () => childValue } })` |
+| `tests/token-package.test.ts` generated source | 1 | `root.fork([samePublicToken], { [publicKey]: () => childValue })` | `root.createIndependentContainer([samePublicToken], { [publicKey]: () => childValue })` |
 | `tests/package.test.ts` generated source | 2 | `parent.createScope()`; `scope.fork()` | `parent.createChildContainer()`; `scope.createIndependentContainer()` |
-| `tests/package.test.ts` generated source | 1 | multiline `bag.fork(['clock'], { ... })` | `bag.createIndependentContainer({ replacedServiceKeys: ['clock'], replacementProviders: { ... } })` with the provider object and its indentation unchanged |
+| `tests/package.test.ts` generated source | 1 | multiline `bag.fork(['clock'], { ... })` | `bag.createIndependentContainer(['clock'], { ... })` with the provider object and its indentation unchanged |
 | `tests/package.test.ts` generated source | 1 | `bag.fork()` | `bag.createIndependentContainer()` |
-| `tests/package.test.ts` generated source | 1 | `composed.fork(['clock'], { clock: () => ({ ... }) })` | `composed.createIndependentContainer({ replacedServiceKeys: ['clock'], replacementProviders: { clock: () => ({ ... }) } })` |
-| `tests/package.test.ts` generated source | 1 | `composed.fork(['clock', 'promised'], asyncOverrides)` | `composed.createIndependentContainer({ replacedServiceKeys: ['clock', 'promised'], replacementProviders: asyncOverrides })` |
+| `tests/package.test.ts` generated source | 1 | `composed.fork(['clock'], { clock: () => ({ ... }) })` | `composed.createIndependentContainer(['clock'], { clock: () => ({ ... }) })` |
+| `tests/package.test.ts` generated source | 1 | `composed.fork(['clock', 'promised'], asyncOverrides)` | `composed.createIndependentContainer(['clock', 'promised'], asyncOverrides)` |
 
 Apply only those ten replacements before running `reshape-untyped.mjs`. Then run the same `rg` into `/tmp/di-bag-phase-06/untyped-derivations.after.txt`; expected output is empty and `test ! -s` passes. `scripts/agent-eval/**` is excluded because Task 6 sends those real TypeScript calls through the checker-backed codemod. The graph tool's 0.4 fixtures remain deliberately excluded compatibility inputs.
 
-In `tests/compiler.ts` and all three compiler scripts, apply the codemod table inside source strings: derivation bags, `Container`, snapshots, module bag, and observer fields. Keep the twelve cases logically identical.
+In `tests/compiler.ts` and all three compiler scripts, apply the codemod table inside source strings: positional replacement pairs with optional checked sharing bags, `Container`, snapshots, module bag, and observer fields. Keep the twelve cases logically identical.
 
 `tests/benchmarks/runtime-scenarios.ts` is a deliberate bilingual executable fixture, not an untyped migration input. Phase 5 selects a current or pinned-739b509 adapter from the child request lane before timing. Exclude this file and `scripts/runtime-benchmark-child.ts` from `reshape-untyped.mjs`; migrate only the current adapter's container operations by hand (`inspect` to `serviceSnapshot` and `createScope` to `createChildContainer`; `resolve` and `close` stay shared because this phase does not rename them). Retain the actual pinned-739b509 adapter members byte-for-byte: `begin`/`add`/`end`, `factory` with `acquisition`, and container `scope`/`inspect`. Its remaining retired-name rows are exact path/adapter allowlist entries, not permission for another old executable call. Run the focused current and exact pinned-`739b509` archive child smokes after the hand edit; do not add a performance matrix or threshold gate.
 
@@ -1921,15 +1935,15 @@ Expected: exit 0; every unit kind remains `bag` or `module`.
 Migrate `scripts/agent-eval/reference/**`, `scripts/agent-eval/skeleton/**`, `AGENTS.md`, and `docs/agent/*.md`. Use these canonical shapes:
 
 ```ts
-const child = container.createChildContainer({
-  replacedServiceKeys: ['request'],
-  replacementProviders: { request: () => requestContext },
-  sharedParentServiceKeys: ['client'],
-});
-const testContainer = container.createIndependentContainer({
-  replacedServiceKeys: ['clock'],
-  replacementProviders: { clock: (): Clock => ({ now: () => 0 }) },
-});
+const child = container.createChildContainer(
+  ['request'],
+  { request: () => requestContext },
+  { sharedParentServiceKeys: ['client'] },
+);
+const testContainer = container.createIndependentContainer(
+  ['clock'],
+  { clock: (): Clock => ({ now: () => 0 }) },
+);
 ```
 
 Update `tools/docs/api-card-tasks.json` rows exactly:
@@ -2382,7 +2396,7 @@ The planner ran one Bun 1.4.0 file against the private archived 0.4.0 tree `/tmp
 
 **Exact message inventory.** This phase intentionally replaces none of the measured assertion strings. The exact inventory is 10 occurrences of `'bag is closing'` and 5 of `'bag is closed'`; common-plan obligations move them in plan 12 (`2026-09-21-12-observability-and-errors.md`, phase 11). The plan supplies both count commands and guards the three source sites.
 
-**Type consistency.** The one-bag overloads consistently use `Selection<ServiceRegistrations, Constraints, Keys, Operation>`, `Overrides<R,O,K>`, `SelectedRegistrations`, `ReboundSelection`, and `OverrideRegistrations`; their fields are `replacedServiceKeys`, `replacementProviders`, and `sharedParentServiceKeys`. `CreateChildContainerOptions` preserves the original registrations/shared-keys generic positions, appends defaulted constraints third, and appends replacement generics after it. Return types use `CheckedChildContainerLifetimes` and `DisjointChildContainerSelection`. The module bag always uses `currentExportKey`/`newExportKey`. Observer types always use `LifecycleObserver`, `lifecycleObservers`, `onLifecycleEvent`, and `onObserverFailure`. Codemod owners intentionally remain the 0.4.0 names.
+**Type consistency.** The historical preferred-bag probes and selected positional replacement overloads use `Selection<ServiceRegistrations, Constraints, Keys, Operation>`, `Overrides<R,O,K,Operation>`, `SelectedRegistrations`, `ReboundSelection`, and `OverrideRegistrations`; the selected public replacement parameters are `replacedServiceKeys` and `replacementProviders`, with `sharedParentServiceKeys` in the optional child third bag. No-argument, empty-bag, explicit-undefined and child sharing-only overloads remain supported. The exported normalized option types do not restore a public replacement-bag overload. `CreateChildContainerOptions` preserves the original registrations/shared-keys generic positions, appends defaulted constraints third, and appends replacement generics after it. Return types use `CheckedChildContainerLifetimes` and `DisjointChildContainerSelection`. The module bag always uses `currentExportKey`/`newExportKey`. Observer types always use `LifecycleObserver`, `lifecycleObservers`, `onLifecycleEvent`, and `onObserverFailure`. Codemod owners intentionally remain the 0.4.0 names.
 
 **Placeholder scan.** The executor must substitute measured numeric evidence because planning was forbidden to run compilers; the procedure, decision rule, table columns, and fallback are complete. No implementation step delegates unspecified error handling or tests. Any `if S1/S7/S3` branch is tied to a prior evidence file and includes the exact alternative syntax.
 
