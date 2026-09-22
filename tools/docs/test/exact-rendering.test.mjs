@@ -79,6 +79,8 @@ test('compiler declarations retain syntax that TypeDoc reflections cannot repres
   assert.match(containerText, /createChildContainer<const SharedParentServiceKeys extends readonly unknown\[\]>/);
   assert.match(containerText, /createIndependentContainer<const ReplacedServiceKeys extends readonly unknown\[\]/);
   assert.match(compact(moduleInterface), /withRenamedExport<const CurrentExportKey extends string, const NewExportKey extends string>/);
+  assert.match(builder, /graphSnapshot\(\)/);
+  assert.doesNotMatch(builder, /inspectGraph\(\)/);
   assert.match(compact(configurationOptions), /readonly lifecycleObservers\?: readonly LifecycleObserver\[\]/);
   assert.match(lifecycleObserver, /readonly onLifecycleEvent: ObserverCallback;/);
   assert.match(lifecycleObserver, /readonly onObserverFailure: ObserverErrorCallback;/);

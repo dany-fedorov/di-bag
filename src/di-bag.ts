@@ -592,7 +592,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * become requirements of the module. Installed modules nest: their private
    * bindings and retained constraints are re-scoped inside this module.
    * @param options - `exportedServiceKeys` is a finite tuple of existing names or tokens, and may be empty. `moduleLabel` is optional;
-   * each installation names its private bindings `<moduleLabel>/<key>` in error messages, cycle paths, `inspectGraph()`, and observer events.
+   * each installation names its private bindings `<moduleLabel>/<key>` in error messages, cycle paths, `graphSnapshot()`, and observer events.
    * @returns An immutable module that can be renamed or installed in another builder.
    * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_EXPORT` if the selection is not a tuple,
    * contains an absent name or token, or the label is not a non-empty string; `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token;
@@ -603,7 +603,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    *   .withServices({ repository: () => new Map<string, number>() })
    *   .withServices({ placeOrder: ({ repository }: { repository: Map<string, number> }) => (id: string) => repository.set(id, 1) })
    *   .buildModule({ exportedServiceKeys: ['placeOrder'], moduleLabel: 'orders' });
-   * // Errors and inspectGraph() name the private binding 'orders/repository'.
+   * // Errors and graphSnapshot() name the private binding 'orders/repository'.
    * const app = DiBag.createBuilder().withInstalledModules([orders]).buildContainer();
    * ```
    */

@@ -213,7 +213,7 @@ const orders = DiBag.createBuilder()
   .withServices({ repository: () => new Map<string, number>() })
   .withServices({ placeOrder: ({ repository }: { repository: Map<string, number> }) => (id: string) => repository.set(id, 1) })
   .buildModule({ exportedServiceKeys: ['placeOrder'], moduleLabel: 'orders' });
-// Errors and inspectGraph() name the private binding 'orders/repository'.
+// Errors and graphSnapshot() name the private binding 'orders/repository'.
 const app = DiBag.createBuilder().withInstalledModules([orders]).buildContainer();
 ```
 

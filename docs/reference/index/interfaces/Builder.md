@@ -43,7 +43,7 @@ bindings and retained constraints are re-scoped inside this module.
 **options**
 
 `exportedServiceKeys` is a finite tuple of existing names or tokens, and may be empty. `moduleLabel` is optional;
-each installation names its private bindings `<moduleLabel>/<key>` in error messages, cycle paths, `inspectGraph()`, and observer events.
+each installation names its private bindings `<moduleLabel>/<key>` in error messages, cycle paths, `graphSnapshot()`, and observer events.
 
 #### Returns
 
@@ -62,7 +62,7 @@ const orders = DiBag.createBuilder()
   .withServices({ repository: () => new Map<string, number>() })
   .withServices({ placeOrder: ({ repository }: { repository: Map<string, number> }) => (id: string) => repository.set(id, 1) })
   .buildModule({ exportedServiceKeys: ['placeOrder'], moduleLabel: 'orders' });
-// Errors and inspectGraph() name the private binding 'orders/repository'.
+// Errors and graphSnapshot() name the private binding 'orders/repository'.
 const app = DiBag.createBuilder().withInstalledModules([orders]).buildContainer();
 ```
 
