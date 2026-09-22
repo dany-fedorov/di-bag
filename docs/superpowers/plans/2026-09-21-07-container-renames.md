@@ -2098,7 +2098,7 @@ git commit -m "refactor!: migrate generated and agent container calls"
 **Files:**
 - Modify: `src/di-bag.ts`, `src/scope-selection.ts`, `src/scope-types.ts`, `src/lifetime-types.ts`, `src/types.ts`, `src/startup.ts`, `src/index.ts`
 - Modify: `tests/container-names.test.ts`
-- Modify: `tests/types/negative/api-renaming.ts`
+- Modify: `tests/types/negative/api-renaming.ts`, `tests/types/lifetimes.ts`
 - Modify: `tests/package.test.ts`
 
 **Interfaces:**
@@ -2305,7 +2305,7 @@ Expected: tests pass. Continue with all changes unstaged into Task 10.
 - Delete: `src/node.ts`
 - Delete: generated `docs/reference/node/**`
 - Modify: `package.json`, `tsconfig.build.json`, `tools/docs/typedoc.json`, `tools/docs/lib/coverage.mjs`, `tools/docs/vitepress.config.mjs`, `.github/workflows/ci.yml`
-- Modify: package/platform/release tests and `scripts/react-browser-lane.ts`
+- Modify: package/platform/release tests, `scripts/verify-release-artifacts.ts`, and `scripts/react-browser-lane.ts`
 - Modify: `scripts/runtime-benchmark-child.ts` only to retain its explicit pinned-baseline entry selection
 - Modify: `src/acquisition-mode.ts`
 
@@ -2317,11 +2317,15 @@ Expected: tests pass. Continue with all changes unstaged into Task 10.
 
 In `tests/package.test.ts`, retain its packed temporary consumer and make its ESM script import `DiBag` from `di-bag`, build `{ promised: () => Promise.resolve(42) }`, await `resolve('promised')`, assert `42`, and close. Add the same assertions to its CommonJS script with `const { DiBag } = require('di-bag')`. In both scripts, assert importing/requiring `di-bag/node` rejects with `ERR_PACKAGE_PATH_NOT_EXPORTED`. Update `tests/native-package.test.ts` and `tests/token-package.test.ts` to import both ESM and CJS views from the root while preserving their compiler/token-identity assertions. Update `tests/release-artifacts.test.ts` to assert there is no `node.js`, `node.d.ts`, node condition, or `./node` export.
 
+In `tests/package.test.ts`, require both `dist/index.js` and `dist/index.d.ts` in the packed archive and explicitly reject `dist/node.js` and `dist/node.d.ts`; retain the removed-adapter checks. Preserve the release verifier's missing-public-export negative by deleting `package/dist/index.d.ts` instead of the retired node declaration and updating its artifact label. Exercise the removed-entry negative cases for each of `node`, `sas-box`, and `val-box` with both `.js` and `.d.ts` archive files; neither obsolete node files nor a stale node export map may pass verification.
+
 The runtime fact behind this change was probed on Bun 1.4.0 during planning: the main `src/index` entry automatically classified `Promise.resolve(42)` and closed successfully. The executor must additionally run the package test under Node 24 after rebuilding.
 
 - [ ] **Step 2: Delete the entry and packaging references**
 
 Delete `src/node.ts`. In `package.json`, remove the complete `exports['./node']` object and any node-specific `files`/script item. Change `tsconfig.build.json` include to only `src/index.ts`. Remove the node entry from TypeDoc, coverage roots, VitePress labels/navigation, and CI/package loops. Delete generated `docs/reference/node/` only after confirming the index reference tree exists.
+
+Contract `scripts/verify-release-artifacts.ts` with the manifest: require the `index` JavaScript/declaration pair only, add `node` to the forbidden removed-entry names beside `sas-box` and `val-box`, and require the exact root-only exports object `{ '.': { types: './dist/index.d.ts', default: './dist/index.js' } }`. Keep archive-byte verification, dependency checks, missing-file diagnostics, and all unrelated release controls unchanged.
 
 In `src/acquisition-mode.ts`, update only the comment to state that the root entry self-configures through `process.getBuiltinModule`; do not change `hostClassifier`. No file reachable from `src/index.ts` gains a `node:` import.
 
@@ -2392,7 +2396,7 @@ npm run docs:generate
 
 Expected: TypeDoc creates `Container`, `CreateChildContainerOptions`, `CreateIndependentContainerOptions`, `CheckedChildContainerLifetimes`, `DisjointChildContainerSelection`, and `LifecycleObserver` pages; it removes the corresponding old pages and all `docs/reference/node/**` pages.
 
-Update only the affected rows in `docs/guides/api-reference.md` so their links point at those new files. Do not rewrite guide prose; phase 12 owns it. Never hand-edit generated `docs/reference/**` or `docs/agent/api-card.md`.
+Update only the affected rows in `docs/guides/api-reference.md` so their links point at those new files. Delete the `di-bag/node` entry-table row whose target `../reference/node/index.md` no longer exists; do not repoint that retired entry to the root reference. Do not rewrite guide prose; phase 12 owns it. Never hand-edit generated `docs/reference/**` or `docs/agent/api-card.md`.
 
 - [ ] **Step 3: Shrink the known-violation list through its ratchet**
 
