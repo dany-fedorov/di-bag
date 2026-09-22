@@ -25,6 +25,7 @@
 - `AGENTS.md` is at its 150-line budget. An edit there must not add a line.
 - The package keeps zero runtime dependencies, and `src/index.ts` must not import a `node:` module.
 - Compile budget: each of the twelve evidence cases stays within +10% of `docs/superpowers/plans/evidence/baseline.md`, cumulatively over all phases.
+- Execution resource ruling from Task 8: whole-project codemod previews, writes and checker-backed proofs require at least 12 GiB available at launch, like the full `npm run check`. The observed post-prerequisite preview reached 7.97 GiB minimum before recovering to 15.26 GiB; keep one heavy lane and the existing sustained-pressure stop rule. Ordinary focused gates retain their 8 GiB launch floor. Never lower the guard or interrupt unrelated workloads.
 - Never delete, skip or weaken a test or a negative fixture to get green. Most caught errors in tests are typed `any`, so the compiler does not flag a missed rename of `details.operation` or of a message: use the audit greps in each task.
 - Environment for every command (master plan, "Environment"):
 
