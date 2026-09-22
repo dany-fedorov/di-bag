@@ -29,7 +29,7 @@ test('reset releases parsed sources and preserves diagnostics for a new virtual 
 });
 
 test('a batch program reports the same per-file diagnostics as a single-root program', () => {
-  const single = diagnostics(fixture).map(describeDiagnostic);
+  const single = diagnosticsByFile([fixture]).get(fixture)!.map(describeDiagnostic);
   const batch = diagnosticsByFile([fixture, sibling]);
   expect(batch.get(fixture)!.map(describeDiagnostic)).toEqual(single);
   expect(batch.get(sibling)!.length).toBeGreaterThan(0);

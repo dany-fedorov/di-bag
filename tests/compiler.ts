@@ -8,7 +8,6 @@ export const options: ts.CompilerOptions = {
   skipLibCheck: true,
   noUncheckedIndexedAccess: true,
   exactOptionalPropertyTypes: true,
-  noErrorTruncation: true,
   target: ts.ScriptTarget.ES2022,
   module: ts.ModuleKind.NodeNext,
   moduleResolution: ts.ModuleResolutionKind.NodeNext,
@@ -47,8 +46,8 @@ function host(): ts.CompilerHost {
   return sharedHost = created;
 }
 
-function program(roots: readonly string[]): ts.Program {
-  return previousProgram = ts.createProgram([...roots], options, host(), previousProgram);
+function program(roots: readonly string[], compilerOptions: ts.CompilerOptions = options): ts.Program {
+  return previousProgram = ts.createProgram([...roots], compilerOptions, host(), previousProgram);
 }
 
 export function compilerProgram(path: string, source?: string): ts.Program {
@@ -69,7 +68,7 @@ export function diagnostics(path: string, source?: string): readonly ts.Diagnost
 /** Compile many independent fixtures in one program; each path keeps only its own file's diagnostics. */
 export function diagnosticsByFile(paths: readonly string[]): Map<string, readonly ts.Diagnostic[]> {
   for (const path of paths) virtualSources.delete(path);
-  const compiled = program(paths);
+  const compiled = program(paths, { ...options, noErrorTruncation: true });
   return new Map(paths.map(path => [path, ts.getPreEmitDiagnostics(compiled, compiled.getSourceFile(path))]));
 }
 
