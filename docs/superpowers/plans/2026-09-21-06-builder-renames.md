@@ -479,7 +479,15 @@ test('withInstalledModules installs in list order, and contributions follow that
   expect(listed.resolve(tools)).toEqual(['first', 'second', 'third']);
   expect(reversed.resolve(tools)).toEqual(['third', 'second', 'first']);
   expect(separate.resolve(tools)).toEqual(['first', 'second', 'third']);
-  expect(listed.inspectGraph().bindings.map(binding => binding.label)).toEqual(separate.inspectGraph().bindings.map(binding => binding.label));
+  // Snapshot order is public bindings, contribution groups, then private members;
+  // only the private suffix is unordered because it follows persistent-map storage.
+  for (const container of [listed, separate]) {
+    const labels = container.inspectGraph().bindings.map(binding => binding.label);
+    expect(labels.slice(0, 3)).toEqual([
+      'first/contribution:Symbol(tools)', 'second/contribution:Symbol(tools)', 'third/contribution:Symbol(tools)',
+    ]);
+    expect(labels.slice(3).sort()).toEqual(['first/firstName', 'second/secondName', 'third/thirdName']);
+  }
   await Promise.all([listed.close(), reversed.close(), separate.close()]);
 });
 
@@ -1370,6 +1378,9 @@ The `toThrow` inventory sees only `toThrow(` followed by a string or a regular e
 - Create: `tests/types/builder-renames.ts`, `tests/types/negative/builder-renames.ts`, `tests/types/negative/installed-modules.ts`
 - Modify: `tests/types.test.ts` (one `test(...)` block for the positive fixture; negative fixtures are discovered by directory listing)
 
+- Create: `tests/types/builder-renames-consumer.ts`
+- Modify: `tests/native-package.test.ts` (physical declaration producer/consumer registration)
+
 **Interfaces:**
 - Consumes: the signatures of Tasks 2 to 4.
 - Produces: the evidence for criterion 1 of spikes S1 and S7 (spec, "Shapes decided by measurement": every fixture passes and each diagnostic lands on the offending property).
@@ -1467,6 +1478,55 @@ test('the 0.5.0 builder shapes infer the same contracts as the 0.4.0 forms', () 
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 ```
+
+The Phase4 declaration repair exposed a separate portability boundary: source-present calls and annotated service exports do not prove that uncalled generic methods can be emitted by an installed consumer. Extend this producer with all seven newly shaped generic methods, without annotating their inferred method types:
+
+```ts
+export type PhysicalClock = { now(): number };
+const physicalClockKey = Symbol('physical-clock');
+const physicalToolsKey = Symbol('physical-tools');
+export const physicalClock = DiBag.token(physicalClockKey).of<PhysicalClock>();
+export const physicalTools = DiBag.token(physicalToolsKey).forCollectionOf<string>();
+export const withServicesMethod = DiBag.createBuilder().withServices;
+export const withTokenServiceMethod = DiBag.createBuilder().withTokenService;
+export const withServiceAliasMethod = DiBag.createBuilder().withServices({ target: () => 1 }).withServiceAlias;
+export const withCollectionContributionMethod = DiBag.createBuilder().withCollectionContribution;
+export const withReplacedServiceMethod = DiBag.createBuilder()
+  .withServices({ base: () => 1, derived: ({ base }: { base: number }) => base + 1 }).withReplacedService;
+export const buildModuleMethod = DiBag.createBuilder().withServices({ moduleValue: () => true }).buildModule;
+export const physicalLogging = logging;
+export const physicalFeature = feature;
+export const withInstalledModulesMethod = DiBag.createBuilder().withInstalledModules;
+```
+
+Create `tests/types/builder-renames-consumer.ts` with inferred results and exact type assertions. This is a compile-only consumer; its unbound method calls exercise declaration contracts, not runtime binding:
+
+```ts
+import { buildModuleMethod, physicalClock, physicalFeature, physicalLogging, physicalTools,
+  withCollectionContributionMethod, withInstalledModulesMethod, withReplacedServiceMethod,
+  withServiceAliasMethod, withServicesMethod, withTokenServiceMethod } from './builder-renames';
+import type { Assert, Equal } from './assert';
+const named = withServicesMethod({ named: () => 1 }).buildContainer().resolve('named');
+const clock = withTokenServiceMethod({ token: physicalClock, provider: () => ({ now: () => 1 }) }).buildContainer().resolve(physicalClock);
+const alias = withServiceAliasMethod({ aliasKey: 'copy', targetServiceKey: 'target' }).buildContainer().resolve('copy');
+const tools = withCollectionContributionMethod({ collectionToken: physicalTools, provider: () => 'search' }).buildContainer().resolveCollection(physicalTools);
+const replacedFast = withReplacedServiceMethod({ serviceKey: 'base', provider: () => 2 }).buildContainer().resolve('base');
+const replacedGeneral = withReplacedServiceMethod({ serviceKey: 'derived', provider: ({ base }: { base: number }) => base * 2 }).buildContainer().resolve('derived');
+const physicalModule = buildModuleMethod({ exportedServiceKeys: ['moduleValue'] });
+const installed = withInstalledModulesMethod([physicalFeature, physicalLogging, physicalModule]).buildContainer();
+const installedService = installed.resolve('service');
+const installedModuleValue = installed.resolve('moduleValue');
+export type Exact = [
+  Assert<Equal<typeof named, number>>, Assert<Equal<typeof clock, { now(): number }>>,
+  Assert<Equal<typeof alias, number>>, Assert<Equal<typeof tools, readonly string[]>>,
+  Assert<Equal<typeof replacedFast, number>>, Assert<Equal<typeof replacedGeneral, number>>,
+  Assert<Equal<typeof installedService, { read(): string }>>, Assert<Equal<typeof installedModuleValue, boolean>>,
+];
+```
+
+Register a direct source-consumer test named `0.5.0 builder shapes retain declaration contracts` in `tests/types.test.ts`, using the same diagnostics helper as the positive test. Register `builder-renames` in all three inventories in `tests/native-package.test.ts`: its producer/consumer feature list, the classic6 manual-emission condition, and the consumer import-route alternation. Reuse the existing physical matrix (classic6/native7, CTS/MTS) and its deletion of producer source before downstream compilation. Do not add a second harness or weaken any declaration assertion. Both replacement overloads and a module requirement satisfied by a later list element must survive the emitted declarations. Terminal methods need no extra unbound exports: their unchanged public result paths and explicit `this` are exercised on the inferred returned builders above.
+
+These new fixture snippets remain uncompiled until execution. A private-name failure returns the affected Tasks2–4 signature for repair before Task6; it does not authorize exporting admission/fold helpers or annotating away inference.
 
 - [ ] **Step 2: The negative fixture for the bags**
 
@@ -1614,7 +1674,9 @@ DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
 - [ ] **Step 4: Run them**
 
 Run: `bun test tests/types.test.ts -t "0.5.0 builder shapes|builder-renames|installed-modules"`
-Expected: `3 pass`, `0 fail`.
+Expected: `4 pass`, `0 fail`, including the new direct declaration consumer.
+
+After a fresh build for the current source (reuse Task4's successful build if source is unchanged), run `bun test tests/native-package.test.ts -t "native installed contracts and physical downstream declarations"` through the resource guard. Both emitter tests must pass all four producer/consumer combinations with no inaccessible names or private package paths. This proof precedes the Task5 commit and Task6 measurements.
 
 To see every diagnostic of one fixture with its line and full text:
 
@@ -1634,7 +1696,7 @@ What decides the spikes here: for S7, cases one to three of `installed-modules.t
 - [ ] **Step 5: Commit**
 
 ```bash
-git add tests/types tests/types.test.ts
+git add tests/types/builder-renames.ts tests/types/builder-renames-consumer.ts tests/types/negative/builder-renames.ts tests/types/negative/installed-modules.ts tests/types.test.ts tests/native-package.test.ts
 git commit -F - <<'MSG'
 test(types): fixtures for the builder bags and the module list
 
