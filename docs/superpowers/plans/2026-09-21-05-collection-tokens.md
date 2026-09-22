@@ -2257,7 +2257,9 @@ resolve<Key extends (keyof ServiceRegistrations & string) | TokenBase>(
 ): ServicesOf<ServiceRegistrations>[SelectionKey<Key> & keyof ServiceRegistrations];
 
 resolveCollection<Token extends CollectionTokenBase>(
-  collectionToken: Token & CollectionMember<Token, Constraints>,
+  collectionToken: Token & (unknown extends TokenTupleAdmission<readonly [Token]>
+    ? CollectionMember<Token, Constraints>
+    : TokenTupleAdmission<readonly [Token]>),
   ...invalid: [Token] extends [never] ? [never] : []
 ): readonly CollectionItem<Token>[];
 
@@ -2266,10 +2268,14 @@ inspect<Key extends (keyof ServiceRegistrations & string) | TokenBase>(
 ): RegistrationSnapshot<ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<Key> & keyof ServiceRegistrations]>, ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<Key> & keyof ServiceRegistrations]>>;
 
 inspectCollection<Token extends CollectionTokenBase>(
-  collectionToken: Token & CollectionMember<Token, Constraints>,
+  collectionToken: Token & (unknown extends TokenTupleAdmission<readonly [Token]>
+    ? CollectionMember<Token, Constraints>
+    : TokenTupleAdmission<readonly [Token]>),
   ...invalid: [Token] extends [never] ? [never] : []
 ): readonly RegistrationSnapshot[];
 ```
+
+Both fallback reads preserve the existing finite, individually known token admission. Check `TokenTupleAdmission` before `CollectionMember` so a union receives the finite-tuple diagnostic even when incompatible contract arms would otherwise mask it or intersect competing error discriminants. Retain the never-rest guard.
 
 All other phase behavior stays: bare collection dependency entries, alias targets, readiness and replacement. Change positive fixtures and runtime tests to call the fallback names only for direct reads/inspection.
 
@@ -2848,6 +2854,9 @@ git commit -m "feat(codemod): migrate collection tokens" -m "Co-Authored-By: Cla
 ### Task 7: Migrate all repository call sites and split the two-channel control
 
 **Files:**
+- Modify for bounded fallback admission repair: `src/di-bag.ts`, `tests/types/negative/collection-tokens.ts`, `tools/docs/test/exact-rendering.test.mjs`, `docs/superpowers/plans/evidence/phase-04.md`
+- Regenerate after admission repair: `docs/reference/`, `docs/agent/api-card.md`
+- Create and retain through evidence archival: `/tmp/phase-04-migration-admission-rows.json`, `/tmp/phase-04-migration-admission-table.md`
 - Modify: `examples/contributions.ts`
 - Modify: `tests/contributions.test.ts`, `tests/contributions-runtime-fixture.ts`, `tests/observers-runtime-fixture.ts`, `tests/plugins-runtime-fixture.ts`, `tests/final-adversarial-runtime-fixture.ts`, `tests/acquisition-retention.node.mjs`
 - Modify: `tests/enterprise-integration.test.ts`, `tests/fixtures/enterprise-feature.ts`, `tests/inspect-graph.test.ts`, `tests/nested-modules.test.ts`, `tests/observers.test.ts`, `tests/persistent-graph.test.ts`, `tests/persistent-module.test.ts`, `tests/plugins.test.ts`
@@ -2858,7 +2867,7 @@ git commit -m "feat(codemod): migrate collection tokens" -m "Co-Authored-By: Cla
 
 **Interfaces:**
 - Consumes: Task 6 codemod and Task 4's expand compatibility overload; Task 8 tightens admission after every call site is migrated.
-- Produces: a green pure mechanical commit from the report's exact generated-file inventory, followed by a separate green hand/string migration commit; no old collection API uses in executable TypeScript/JavaScript; explicit two-token composite control.
+- Produces: a green pure mechanical commit from the report's exact generated-file inventory, followed by a separate green hand/string migration and bounded fallback admission-repair commit with fresh source, documentation and compiler-budget proof; no old collection API uses outside the explicitly retained legacy rejection controls; explicit two-token composite control.
 
 - [ ] **Step 1: Build, prove the inclusive result, then apply the codemod exactly once**
 
@@ -3175,6 +3184,8 @@ grep -rhoE "toThrow\((/|['\`])[^)]*" tests | grep -iE "\b(all|resolveAll|inspect
 
 Expected at 0.4.0 entry: no lines, so this phase has no pre-existing message-string assertion replacement. New wrong-kind tests assert the exact new message/details. If this command finds a phase-3-added string, replace only retired API wording and record it in the phase report.
 
+**Execution correction: preserve fallback read admission.** The migrated negative contribution fixture exposed a missing finite-tuple rejection on `resolveCollection`. The Task 5 signatures above and Task 8 bodies now include ordered tuple admission on both collection reads. Include that bounded repair in this post-mechanical hand boundary, preserving the pure generated commit unchanged. Extend ownership to `src/di-bag.ts`, `tests/types/negative/collection-tokens.ts`, strict rendering tests, generated reference/card files and phase-04 evidence when required. Keep the existing resolve union marker and add inspection plus incompatible-arm union controls; a single valid handle must retain its exact collection-contract diagnostic. Keep all five legacy adapter controls until their explicit Task 8 replacement. This repairs the selected fallback; it is not a fourth primary experiment.
+
 - [ ] **Step 7: Run the final migrated checks**
 
 ```bash
@@ -3182,8 +3193,16 @@ npm run typecheck
 npm run codemod:check
 bun test tests/collection-tokens.test.ts tests/contributions.test.ts tests/nested-modules.test.ts tests/persistent-module.test.ts tests/plugins.test.ts tests/inspect-graph.test.ts tests/observers.test.ts tests/enterprise-integration.test.ts tests/persistent-graph.test.ts tests/final-adversarial-integration.test.ts
 bun examples/contributions.ts
+bun test tests/types.test.ts -t 'contributions|nested-modules|nested modules|plugins|collection tokens|collection-tokens'
+npm run build
+npm run docs:generate
+npm run docs:check
+bun test tests/api-naming.test.ts tests/documented-names.test.ts
+node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseline.md --json /tmp/phase-04-migration-admission-rows.json > /tmp/phase-04-migration-admission-table.md
 git diff --check
 ```
+
+The public-signature repair requires fresh source validity, exact rendering and all twelve accepted S5 cases within +10% before this boundary is green. Retain the historical expand measurements and append the new result with its source provenance. The unchanged codemod gate from Task 6 may be reused after confirming its inputs have not changed; record reuse rather than claiming a new run. Every heavy command uses the guarded single lane with at least 8 GiB available at launch.
 
 Expected: all pass; example prints `Hello, DI!`. These checks make the later hand/string boundary
 green independently of the already committed mechanical tree.
@@ -3191,12 +3210,15 @@ green independently of the already committed mechanical tree.
 - [ ] **Step 8: Commit the remaining hand and source-string migrations separately**
 
 ```bash
-git add examples tests scripts/phase05-strings.py
+# Stage the exact changed owned paths, including admission repair and derived files.
+# Derive this inventory from git diff; never stage examples/tests wholesale.
+git add src/di-bag.ts tests/acquisition-retention.node.mjs tests/contributions-runtime-fixture.ts tests/contributions.test.ts tests/final-adversarial-runtime-fixture.ts tests/inspect-graph.test.ts tests/observers-runtime-fixture.ts tests/persistent-graph.test.ts tests/plugins-runtime-fixture.ts tests/types/contributions-consumer.ts tests/types/contributions.ts tests/types/negative/contributions.ts tests/types/negative/collection-tokens.ts tests/types/plugins.ts scripts/phase05-strings.py tools/docs/test/exact-rendering.test.mjs docs/reference docs/agent/api-card.md docs/superpowers/plans/evidence/phase-04.md
 git commit -F - <<'MSG'
-refactor!: finish collection call-site migrations
+fix!: migrate collection calls and preserve finite-token admission
 
 Resolve the Task 7-owned collection manual items, split the deliberate two-channel
-control, and migrate counted source strings after the pure mechanical commit.
+control, migrate counted source strings, and restore ordered finite-token
+admission on both collection reads after the pure mechanical commit.
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
@@ -3204,7 +3226,8 @@ MSG
 ```
 
 Expected: this green commit contains only the post-mechanical hand split, Task 7-owned collection
-manual-item resolutions and counted source-string migration. The four exact inherited nonliteral
+manual-item resolutions, counted source-string migration, and the bounded fallback read-admission
+repair with its tests, derived documentation and fresh S5 evidence. The four exact inherited nonliteral
 `close` path/reason rows remain classified pass-throughs, and every other retained row has an explicit
 later task owner. The commit does not claim codemod generation and does not
 repeat the producing command. If the optional preparation commit was required, list it separately in
@@ -3655,7 +3678,9 @@ resolve(serviceKey: unknown): unknown {
 }
 
 resolveCollection<T extends CollectionTokenBase>(
-  token: T & CollectionMember<T, Constraints>,
+  token: T & (unknown extends TokenTupleAdmission<readonly [T]>
+    ? CollectionMember<T, Constraints>
+    : TokenTupleAdmission<readonly [T]>),
   ...invalid: [T] extends [never] ? [never] : []
 ): readonly CollectionItem<T>[] {
   const { key, kind } = readGraphToken(
@@ -3681,7 +3706,9 @@ inspect(serviceKey: unknown): unknown {
 }
 
 inspectCollection<T extends CollectionTokenBase>(
-  token: T & CollectionMember<T, Constraints>,
+  token: T & (unknown extends TokenTupleAdmission<readonly [T]>
+    ? CollectionMember<T, Constraints>
+    : TokenTupleAdmission<readonly [T]>),
   ...invalid: [T] extends [never] ? [never] : []
 ): readonly RegistrationSnapshot<object, readonly unknown[]>[] {
   const { key, kind } = readGraphToken(
