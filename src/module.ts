@@ -3,6 +3,7 @@ import type { BindingDescription, BindingGraph, BindingId, BindingKey, BindingRe
 import type { Registrations } from './registration';
 import type { NeedConstraint, PublicRegistrations, Renamed, RenamedConstraints, RenamedProviders, RenameKeys } from './module-types';
 import { readSingleServiceKey } from './tokens';
+import { snapshotOptionsBag } from './options-bag';
 
 interface ModuleDescription {
   /** The sealed graph: every binding that was retained when the builder sealed. */
@@ -69,6 +70,51 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
     const localName = exports.get(oldKey)!;
     exports.delete(oldKey);
     exports.set(newKey, localName);
+    return new Module({ graph: description.graph, exports, label: description.label });
+  }
+
+  /**
+   * Return a module view with one string-named export renamed through an options bag.
+   * @param options - The current export and its noncolliding new name.
+   * @returns A new sealed module, or the same instance when both names are equal.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options bag or `DI_BAG_INVALID_EXPORT` for invalid export names.
+   * @example
+   * ```ts
+   * const feature = DiBag.createBuilder().withServices({ service: () => 1 })
+   *   .buildModule({ exportedServiceKeys: ['service'] });
+   * const renamed = feature.withRenamedExport({ currentExportKey: 'service', newExportKey: 'featureService' });
+   * ```
+   */
+  withRenamedExport<const CurrentExportKey extends string, const NewExportKey extends string>(
+    options: {
+      readonly currentExportKey: CurrentExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey, 'withRenamedExport'>;
+      readonly newExportKey: NewExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey, 'withRenamedExport'>;
+    },
+  ): Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>> {
+    const { currentExportKey, newExportKey } = snapshotOptionsBag(
+      options, 'withRenamedExport', ['currentExportKey', 'newExportKey'],
+    );
+    const description = descriptions.get(this)!;
+    if (typeof currentExportKey !== 'string' || !description.exports.has(currentExportKey)) {
+      throw libraryError('DI_BAG_INVALID_EXPORT', 'withRenamedExport requires an existing export', {
+        operation: 'withRenamedExport', currentExportKey, newExportKey,
+      });
+    }
+    if (typeof newExportKey !== 'string') {
+      throw libraryError('DI_BAG_INVALID_EXPORT', 'withRenamedExport requires a string new export key', {
+        operation: 'withRenamedExport', currentExportKey, newExportKey,
+      });
+    }
+    if (currentExportKey === newExportKey) return this as unknown as Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
+    if (description.exports.has(newExportKey)) {
+      throw libraryError('DI_BAG_INVALID_EXPORT', `duplicate export: ${newExportKey}`, {
+        operation: 'withRenamedExport', currentExportKey, newExportKey,
+      });
+    }
+    const exports = new Map(description.exports);
+    const localName = exports.get(currentExportKey)!;
+    exports.delete(currentExportKey);
+    exports.set(newExportKey, localName);
     return new Module({ graph: description.graph, exports, label: description.label });
   }
 }

@@ -246,6 +246,52 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
   }
 
   /**
+   * Inspect a named service, single-service token, or collection token without resolving it.
+   * @param serviceKey - The public service name or typed token to inspect.
+   * @returns The service snapshot, or one snapshot per collection contribution.
+   * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad handle or kind.
+   * @example
+   * ```ts
+   * const bag = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+   * const snapshot = bag.serviceSnapshot('greeting');
+   * await bag.close();
+   * ```
+   */
+  serviceSnapshot<ServiceKey extends (keyof ServiceRegistrations & string) | TokenBase>(
+    serviceKey: ServiceKey & ([ServiceKey] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, ServiceKey>),
+    ...invalid: [ServiceKey] extends [never] ? [never] : []
+  ): RegistrationSnapshot<
+    ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>,
+    ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>
+  >;
+  /**
+   * Inspect every contribution to a collection without resolving it.
+   * @param collectionToken - The typed collection token to inspect.
+   * @returns One service snapshot per collection contribution.
+   * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad handle or kind.
+   * @example
+   * ```ts
+   * const handlers = DiBag.token(Symbol('handlers')).forCollectionOf<() => void>();
+   * const bag = DiBag.createBuilder()
+   *   .withCollectionContribution({ collectionToken: handlers, provider: () => () => {} })
+   *   .buildContainer();
+   * const snapshots = bag.serviceSnapshot(handlers);
+   * await bag.close();
+   * ```
+   */
+  serviceSnapshot<CollectionToken extends CollectionTokenBase>(
+    collectionToken: CollectionToken & CollectionTokenMember<Constraints, CollectionToken>,
+    ...invalid: [CollectionToken] extends [never] ? [never] : []
+  ): readonly RegistrationSnapshot<object, readonly unknown[]>[];
+  serviceSnapshot(serviceKey: unknown, ..._invalid: unknown[]): unknown {
+    if (typeof serviceKey === 'string') return this.#runtime.inspect(serviceKey);
+    const { key, kind } = readGraphToken(this.#graph, serviceKey, 'serviceSnapshot');
+    return kind === 'collection'
+      ? this.#runtime.inspectCollection(key)
+      : this.#runtime.inspect(key);
+  }
+
+  /**
    * Describe every binding this bag can resolve and the dependency edges observed so far.
    * Nothing is acquired. Named dependencies declared on factory parameters are not visible
    * until the factory runs; the static graph tool reports them from source.
@@ -257,6 +303,18 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * ```
    */
   inspectGraph(): GraphSnapshot { return this.#runtime.inspectGraph(); }
+
+  /**
+   * Describe every resolvable binding and the dependency edges observed so far.
+   * @returns A frozen point-in-time graph snapshot without acquiring services.
+   * @example
+   * ```ts
+   * const bag = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+   * const labels = bag.graphSnapshot().bindings.map(binding => binding.label);
+   * await bag.close();
+   * ```
+   */
+  graphSnapshot(): GraphSnapshot { return this.#runtime.inspectGraph(); }
 
   /**
    * Create a tracked child container with fresh ownership for unshared services.

@@ -171,11 +171,12 @@ export type RenamedConstraints<C extends NeedConstraint, Old extends string, New
   C extends LifetimeObligation ? RenamedObligation<C, Old, New> : C extends { readonly kind: 'export'; readonly consumer: string | symbol; readonly needs: object }
     ? { readonly consumer: C['consumer']; readonly needs: Renamed<C['needs'], Old, New>; readonly kind: 'export' }
     : C;
-export type RenameKeys<P, Old extends string, New extends string> =
+export type RenameKeys<P, Old extends string, New extends string, Operation extends 'renameExport' | 'withRenamedExport' = 'renameExport'> =
   Singleton<Old> extends true ? Singleton<New> extends true
-    ? Old extends keyof P ? New extends Exclude<keyof P, Old> ? InvalidRename : unknown
-      : InvalidRename : InvalidRename : InvalidRename;
-type InvalidRename = Unsatisfied<'renameExport requires an existing export and a noncolliding singleton string-literal name', {}>;
+    ? Old extends keyof P ? New extends Exclude<keyof P, Old> ? InvalidRename<Operation> : unknown
+      : InvalidRename<Operation> : InvalidRename<Operation> : InvalidRename<Operation>;
+type InvalidRename<Operation extends 'renameExport' | 'withRenamedExport'> =
+  Unsatisfied<`${Operation} requires an existing export and a noncolliding singleton string-literal name`, {}>;
 
 /**
  * Re-scope every constraint a builder retained from installed modules and

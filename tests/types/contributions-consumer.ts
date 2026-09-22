@@ -1,9 +1,18 @@
 import { DiBag, type RegistrationSnapshot } from '../../src';
-import { bag, numbers, contribute, feature, resolveCollectionMethod, inspectCollectionMethod } from './contributions';
+import { bag, numbers, contribute, feature, resolveCollectionMethod, inspectCollectionMethod, serviceSnapshotMethod, renamedFeatureCurrent } from './contributions';
 import type { Assert, Equal } from './assert';
 const values = bag.resolveCollection(numbers);
 const reflectedValues = resolveCollectionMethod(numbers);
 const reflectedSnapshots = inspectCollectionMethod(numbers);
+const namedSnapshot = serviceSnapshotMethod('values');
+const collectionSnapshots = serviceSnapshotMethod(numbers);
+const namedMetadata: object = namedSnapshot.registrationMetadata;
+const exactCollectionSnapshots: ReadonlyArray<RegistrationSnapshot<object, readonly unknown[]>> = collectionSnapshots;
+const renamedCurrent = DiBag.createBuilder().withInstalledModules([renamedFeatureCurrent]).buildContainer();
+const renamedCurrentValue: number = renamedCurrent.resolve('renamedCurrent');
+// @ts-expect-error reflected overloads retain the explicit-never rejection after declaration emission
+serviceSnapshotMethod<never>(numbers as never);
+void namedMetadata; void exactCollectionSnapshots; void renamedCurrentValue;
 export type Exact = [Assert<Equal<typeof values, ReadonlyArray<number>>>,
   Assert<Equal<typeof reflectedValues, ReadonlyArray<number>>>,
   Assert<Equal<typeof reflectedSnapshots, ReadonlyArray<RegistrationSnapshot<object, readonly unknown[]>>>>];

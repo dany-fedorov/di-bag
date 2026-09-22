@@ -18,7 +18,11 @@ export const all = numbers;
 export const allProvider = DiBag.fromFunction([all], values => values);
 export const aggregate = DiBag.createBuilder().withServices({ values: allProvider });
 export const aggregateBag = aggregate.withCollectionContribution({ collectionToken: numbers, provider: () => 1 }).buildContainer();
+export const serviceSnapshotMethod = aggregateBag.serviceSnapshot;
 export const moduleBuilder = DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: ({ helper }: { helper: number }) => helper });
+export const renamedFeatureCurrent = moduleBuilder.withServices({ helper: () => 1 })
+  .buildModule({ exportedServiceKeys: ['helper'] })
+  .withRenamedExport({ currentExportKey: 'helper', newExportKey: 'renamedCurrent' });
 export const moduleContribute = moduleBuilder.withCollectionContribution;
 export const privateFeature = moduleBuilder.withServices({ helper: () => 1 }).buildModule({ exportedServiceKeys: [] });
 export const privateHost = DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();

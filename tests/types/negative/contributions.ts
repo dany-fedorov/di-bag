@@ -126,6 +126,8 @@ const forgedToken: Parameters<typeof builder.withCollectionContribution>[0]['col
 builder.buildContainer().resolveCollection<never>(numbers as never);
 // diagnostic: Expected 2 arguments
 builder.buildContainer().inspectCollection<never>(numbers as never);
+// diagnostic: Expected 2 arguments
+builder.buildContainer().serviceSnapshot<never>(numbers as never);
 const rooted = DiBag.withLifetime(() => 1, 'root');
 const sharedAliasBase = DiBag.createBuilder().withServices({ helper: () => 1, consumer: DiBag.fromFunction([all], values => values) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'helper' }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient') }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
