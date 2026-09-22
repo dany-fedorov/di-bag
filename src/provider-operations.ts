@@ -64,16 +64,16 @@ export function retainDescription(handle: object, description: ProviderDescripti
   Object.freeze(handle);
 }
 
-export function describe(registration: unknown): ProviderDescription {
+export function describe(registration: unknown, operation = 'register'): ProviderDescription {
   if (typeof registration === 'function') return sourceDescription(registration as Factory);
   if (typeof registration === 'object' && registration !== null) {
     const description = descriptions.get(registration);
     if (description) return description;
   }
-  throw libraryError('DI_BAG_INVALID_REGISTRATION', 'invalid factory registration', { operation: 'register' });
+  throw libraryError('DI_BAG_INVALID_REGISTRATION', 'invalid factory registration', { operation });
 }
 
-export function normalize(registration: unknown): {
+export function normalize(registration: unknown, operation = 'register'): {
   lifetime: LifetimePolicy;
   alias?: string | symbol;
   create: Factory;
@@ -85,7 +85,7 @@ export function normalize(registration: unknown): {
   metadata: Readonly<object>;
   operations: readonly ProviderOperation[];
 } {
-  const description = describe(registration);
+  const description = describe(registration, operation);
   const { create, dispose, tokenKeys, references, acquisitionMode, contextual } = description.source;
   const { metadata, operations, lifetime } = description;
   const alias = description.alias === undefined ? {} : { alias: description.alias };

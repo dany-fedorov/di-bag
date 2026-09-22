@@ -593,6 +593,33 @@ const app = DiBag.createBuilder()
 
 **Recipe:** none.
 
+### DI_BAG_INVALID_ARGUMENT {#di-bag-invalid-argument}
+
+**When:** a call receives an argument of the wrong shape: a factory that is not a
+function, an options bag that is not an object or holds an unknown property, an
+option of the wrong type, a value outside a fixed set. Every public method
+raises it, some as a `TypeError`.
+
+**Cause:** the call site is not type-checked, or a cast silenced the compiler,
+which rejects every one of these. `details` says exactly what was wrong:
+`operation` is the method, `argument` is the parameter or option (a dotted path
+for a nested option, `[]` for an element of a list), and `expected` completes
+the sentence "must be ...".
+
+**Fix:** branch on `details.argument`, not on the message. Remove the cast and
+let the compiler point at the argument.
+
+```ts
+import { DiBag } from 'di-bag';
+
+try {
+  DiBag.createBuilder().withInstalledModules('not a list' as never);
+} catch (error) {
+  const { operation, argument, expected } = (error as { details: Record<string, unknown> }).details;
+  console.error(`${String(operation)}: ${String(argument)} must be ${String(expected)}`);
+}
+```
+
 ### DI_BAG_INVALID_CLASSIFIER_RESULT {#di-bag-invalid-classifier-result}
 
 **When:** a factory runs under a configured `runtime.isNativePromise` that

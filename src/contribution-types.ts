@@ -112,3 +112,28 @@ export type BuilderContribute<
   Entries,
   Constraints | Contribution<TokenHandle, Provider>
 >;
+
+/**
+ * The checked generic `withCollectionContribution` callable exposed by a builder.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
+ */
+export type BuilderWithCollectionContribution<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends Registration>(
+  options: {
+    readonly collectionToken: T & (
+      unknown extends TokenTupleAdmission<readonly [T]>
+        ? CollectionTokenAdmission<RegistrationsFromEntries<E>, T>
+        : TokenTupleAdmission<readonly [T]>
+    );
+    readonly provider: V & Registration & (
+      unknown extends TokenTupleAdmission<readonly [NoInfer<T>]>
+        ? unknown extends CollectionTokenAdmission<RegistrationsFromEntries<E>, NoInfer<T>>
+          ? NoInfer<T> extends CollectionTokenBase
+            ? CollectionBindingOutput<NoInfer<T>, NoInfer<V>>
+              & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>
+            : never
+          : unknown
+        : unknown
+    );
+  },
+  ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []
+) => import('./di-bag').Builder<E, C | Contribution<T, V>>;

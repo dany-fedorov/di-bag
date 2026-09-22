@@ -454,13 +454,13 @@ export class BindingGraph {
   }
 
   /** Install disjoint public slots atomically, retaining lexical private refs. */
-  withInstallation(description: GraphDescription): BindingGraph {
+  withInstallation(description: GraphDescription, operation: 'installModule' | 'withInstalledModules' = 'installModule'): BindingGraph {
     for (const key of description.publicSlots.keys()) {
-      if (this.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'installModule', key });
+      if (this.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation, key });
     }
     const installation = new BindingGraph(description);
     for (const [key, kind] of installation.#tokenKinds) {
-      this.assertTokenKind(key as symbol, kind, 'installModule');
+      this.assertTokenKind(key as symbol, kind, operation);
     }
     const graph = this.copy();
     const pending: BindingId[] = [];

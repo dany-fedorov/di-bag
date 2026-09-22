@@ -134,10 +134,11 @@ export function withTokenBinding<T extends TokenBase, R extends Registration>(
   token: T & TokenTupleAdmission<readonly [T]>,
   registration: R & Registration & ([ProviderOutput<NoInfer<R>>] extends [TokenService<NoInfer<T>>] ? unknown
     : Unsatisfied<'token binding output is not assignable to its service', { token: TokenKey<T>; expected: TokenService<T>; provided: ProviderOutput<R> }>),
+  operation = 'register',
 ): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraphContract<R>, T>, ProviderAcquiredValue<R>> {
   readTokenKey(token);
   const handle = new Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraphContract<R>, T>, ProviderAcquiredValue<R>>();
-  retainDescription(handle, describe(registration));
+  retainDescription(handle, describe(registration, operation));
   return handle;
 }
 

@@ -11,12 +11,12 @@ const collectionAliasLifetime = Object.freeze({
 });
 
 /** Authenticate both selections before constructing any retained registration. */
-export function aliasEntry(destination: unknown, target: unknown, hasKey: (key: BindingKey) => boolean): readonly [BindingKey, Registration] {
-  const key = typeof destination === 'string' ? destination : readSingleServiceKey(destination, 'alias');
+export function aliasEntry(destination: unknown, target: unknown, hasKey: (key: BindingKey) => boolean, operation: 'alias' | 'withServiceAlias' = 'alias'): readonly [BindingKey, Registration] {
+  const key = typeof destination === 'string' ? destination : readSingleServiceKey(destination, operation);
   const targetToken = typeof target === 'string' ? undefined : readToken(target);
   const targetKey = targetToken === undefined ? target as string : targetToken.key;
-  if (hasKey(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'alias', key });
-  if (typeof target === 'string' && !hasKey(targetKey)) throw libraryError('DI_BAG_INVALID_ALIAS', 'alias requires an existing named target', { operation: 'alias', target: targetKey });
+  if (hasKey(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation, key });
+  if (typeof target === 'string' && !hasKey(targetKey)) throw libraryError('DI_BAG_INVALID_ALIAS', `${operation} requires an existing named target`, { operation, target: targetKey });
   const handle = createProvider();
   if (targetToken?.kind === 'collection') {
     const reference = Object.freeze({
