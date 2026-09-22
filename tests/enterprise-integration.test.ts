@@ -89,7 +89,7 @@ test('a dynamically imported module starts private providers and unloads contrib
   const result = await withOwnedScope(
     () => DiBag.createBuilder().installModule(feature).build().ensureServicesReady(['handler']),
     scope => {
-      expect(scope.resolveAll(steps).map(step => step('x'))).toEqual(['private:x', 'x!']);
+      expect(scope.resolveCollection(steps).map(step => step('x'))).toEqual(['private:x', 'x!']);
       return scope.resolve('handler')('ok');
     },
   );
