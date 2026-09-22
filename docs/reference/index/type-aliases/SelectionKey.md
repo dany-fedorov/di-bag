@@ -8,7 +8,7 @@
 type SelectionKey<T> = T extends string ? T : TokenKey<T>;
 ```
 
-Defined in: [token-types.ts:77](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L77)
+Defined in: [token-types.ts:69](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L69)
 
 Convert a string selection to itself or a typed token to its symbol key.
 

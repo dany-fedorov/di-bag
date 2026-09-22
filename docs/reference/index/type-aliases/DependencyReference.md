@@ -8,7 +8,7 @@
 type DependencyReference = TokenBase | ReferenceBase;
 ```
 
-Defined in: [dependency-references.ts:32](https://github.com/dany-fedorov/di-bag/blob/main/src/dependency-references.ts#L32)
+Defined in: [dependency-references.ts:27](https://github.com/dany-fedorov/di-bag/blob/main/src/dependency-references.ts#L27)
 
 A typed token or one of the positional dependency-reference handles.
 

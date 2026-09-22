@@ -65,7 +65,10 @@ test('compiler declarations retain syntax that TypeDoc reflections cannot repres
   assert.match(facadeText, /fromClass: <const T extends readonly DependencyReference\[\], C extends new \(/);
   assert.match(facadeText, /M extends AcquisitionMode = 'auto'>/);
   assert.match(facadeText, /callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, \.\.\.options: FactoryOptions<M>/);
+  assert.match(bagText, /resolve<K extends \(keyof ServiceRegistrations & string\) \| TokenBase>\(token: K & \(\[K\] extends \[string\] \? unknown : SingleServiceTokenMember<ServiceRegistrations, K>\)\)/);
   assert.match(bagText, /inspect<K extends \(keyof ServiceRegistrations & string\) \| TokenBase>\(token: K & \(\[K\] extends \[string\] \? unknown : SingleServiceTokenMember<ServiceRegistrations, K>\)\)/);
+  assert.match(bagText, /resolveCollection<T extends CollectionTokenBase>\(token: T & \(unknown extends TokenTupleAdmission<readonly \[T\]> \? CollectionMember<T, Constraints> : TokenTupleAdmission<readonly \[T\]>\), \.\.\.invalid: \[T\] extends \[never\] \? \[never\] : \[\]\): readonly CollectionItem<T>\[\];/);
+  assert.match(bagText, /inspectCollection<T extends CollectionTokenBase>\(token: T & \(unknown extends TokenTupleAdmission<readonly \[T\]> \? CollectionMember<T, Constraints> : TokenTupleAdmission<readonly \[T\]>\), \.\.\.invalid: \[T\] extends \[never\] \? \[never\] : \[\]\): readonly RegistrationSnapshot<object, readonly unknown\[\]>\[\];/);
   assert.match(bagText, /createScope<const S extends readonly unknown\[\]>/);
 });
 
@@ -81,10 +84,13 @@ test('source declarations preserve aliases and property modifiers exactly', () =
   assert.match(runtimeOptions, /readonly isNativePromise: \(this: void, candidate: unknown\) => boolean;/);
   assert.match(readinessError, /readonly disposalError\?: unknown;/);
   assert.doesNotMatch(readinessError, /readonly optional/);
-  const builderContribute = readFileSync(join(output, 'index/interfaces/BuilderContribute.md'), 'utf8');
-  assert.match(compact(builderContribute), /<T extends CollectionTokenBase, V extends Registration>/);
-  assert.match(compact(builderContribute), /<T extends TokenBase, V extends Registration>/);
-  assert.match(compact(builderContribute), /Builder<E, C \| Contribution<T, V>>;/);
+  const builderContribute = readFileSync(join(output, 'index/type-aliases/BuilderContribute.md'), 'utf8');
+  const builderContributeText = compact(builderContribute);
+  assert.match(builderContribute, /^# Type Alias: BuilderContribute/m);
+  assert.match(builderContributeText, /<TokenHandle extends TokenBase, Provider extends Registration>/);
+  assert.match(builderContributeText, /unknown extends TokenTupleAdmission<readonly \[TokenHandle\]> \? CollectionTokenAdmission<RegistrationsFromEntries<Entries>, TokenHandle> : TokenTupleAdmission<readonly \[TokenHandle\]>/);
+  assert.match(builderContributeText, /NoInfer<TokenHandle> extends CollectionTokenBase \? CollectionBindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>> & CheckedConstraints/);
+  assert.match(builderContributeText, /Builder<Entries, Constraints \| Contribution<TokenHandle, Provider>>;/);
 });
 
 test('plugin factory is a callable type alias rather than a type-only function export', () => {

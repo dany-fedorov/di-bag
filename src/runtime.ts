@@ -10,6 +10,7 @@ import type { Registration, Registrations } from './registration';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
 import { classifierRequired, resolveClassifier } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
+import { wrongTokenKind, type TokenKind } from './tokens';
 
 export type BindingId = symbol;
 export type BindingKey = string | symbol;
@@ -28,6 +29,7 @@ export interface GraphDescription {
   readonly bindings: ReadonlyMap<BindingId, BindingDescription>;
   readonly publicSlots: ReadonlyMap<BindingKey, BindingId>;
   readonly contributions?: ReadonlyMap<symbol, readonly BindingId[]>;
+  readonly tokenKinds?: ReadonlyMap<symbol, TokenKind>;
 }
 
 type Normalized = Readonly<ReturnType<typeof normalize>>;
@@ -57,6 +59,7 @@ export class BindingGraph {
   // registrations remain available to whole-graph preflight.
   #obsolete = new PersistentMap<true>();
   #contributions = new PersistentMap<Sequence<BindingId>>();
+  #tokenKinds = new PersistentMap<TokenKind>();
   // First public registration order by key, for module snapshots. Keys are
   // never unregistered, so this retains nothing a graph would otherwise drop.
   #publicOrder: Sequence<BindingKey> | undefined;
@@ -67,6 +70,9 @@ export class BindingGraph {
   #explicitlyClassified = false;
 
   constructor(description: GraphDescription = { bindings: new Map(), publicSlots: new Map() }) {
+    for (const [key, kind] of description.tokenKinds ?? []) {
+      this.claimTokenKind(key, kind, 'installModule');
+    }
     const lexicalSnapshots = new Map<BindingDescription['localNames'], LexicalSnapshot>();
     for (const [id, binding] of description.bindings) {
       let lexical = lexicalSnapshots.get(binding.localNames);
@@ -112,6 +118,7 @@ export class BindingGraph {
     graph.#contributed = this.#contributed;
     graph.#obsolete = this.#obsolete;
     graph.#contributions = this.#contributions;
+    graph.#tokenKinds = this.#tokenKinds;
     graph.#publicOrder = this.#publicOrder;
     return graph;
   }
@@ -131,11 +138,58 @@ export class BindingGraph {
     return id;
   }
 
-  private addBinding(label: string, registration: Registration): BindingId {
+  private claimTokenKind(
+    key: symbol,
+    receivedKind: TokenKind,
+    operation: string,
+  ): void {
+    const expectedKind = this.#tokenKinds.get(key);
+    if (expectedKind !== undefined && expectedKind !== receivedKind) {
+      throw wrongTokenKind(operation, expectedKind, key);
+    }
+    this.#tokenKinds = this.#tokenKinds.set(key, receivedKind);
+  }
+
+  assertTokenKind(
+    key: symbol,
+    receivedKind: TokenKind,
+    operation: string,
+  ): void {
+    const expectedKind = this.#tokenKinds.get(key);
+    if (expectedKind !== undefined && expectedKind !== receivedKind) {
+      throw wrongTokenKind(operation, expectedKind, key);
+    }
+  }
+
+  withTokenKind(
+    key: symbol,
+    kind: TokenKind,
+    operation: string,
+  ): BindingGraph {
+    this.assertTokenKind(key, kind, operation);
+    if (this.#tokenKinds.get(key) === kind) return this;
+    const graph = this.copy();
+    graph.claimTokenKind(key, kind, operation);
+    return graph;
+  }
+
+  private addBinding(
+    label: string,
+    registration: Registration,
+    operation: string,
+  ): BindingId {
     const id = Symbol(label);
+    const normalized = Object.freeze(normalize(registration));
+    for (const reference of normalized.references) {
+      this.claimTokenKind(
+        reference.key,
+        reference.isCollection ? 'collection' : 'single-service',
+        operation,
+      );
+    }
     this.#bindings = this.#bindings.set(id, {
       description: Object.freeze({ id, label, registration, localNames: emptyNames }),
-      normalized: Object.freeze(normalize(registration)),
+      normalized,
     });
     return id;
   }
@@ -151,9 +205,14 @@ export class BindingGraph {
     return ids;
   }
 
-  withContribution(key: symbol, registration: Registration): BindingGraph {
+  withContribution(
+    key: symbol,
+    registration: Registration,
+    operation = 'contribute',
+  ): BindingGraph {
     const graph = this.copy();
-    const id = graph.addBinding(`contribution:${String(key)}`, registration);
+    graph.claimTokenKind(key, 'collection', operation);
+    const id = graph.addBinding(`contribution:${String(key)}`, registration, operation);
     graph.#contributions = graph.#contributions.set(key, append(graph.#contributions.get(key), { values: [id] }));
     graph.#contributed = graph.#contributed.set(id, true);
     return graph;
@@ -218,18 +277,27 @@ export class BindingGraph {
 
   label(id: BindingId): string { return (this.#bindingCache.get(id) ?? this.entry(id)?.description)?.label ?? String(id); }
 
-  withPublicRegistrations(registrations: Registrations): BindingGraph {
-    return this.withPublicBindings(Object.keys(registrations).map(key => [key, registrations[key]!]));
+  withPublicRegistrations(
+    registrations: Registrations,
+    operation = 'register',
+  ): BindingGraph {
+    return this.withPublicBindings(
+      Object.keys(registrations).map(key => [key, registrations[key]!] as const),
+      operation,
+    );
   }
 
   /** Replace ordered slots and prune only unreferenced public replacement history. */
-  withPublicBindings(entries: readonly (readonly [BindingKey, Registration])[]): BindingGraph {
+  withPublicBindings(
+    entries: readonly (readonly [BindingKey, Registration])[],
+    operation = 'register',
+  ): BindingGraph {
     if (entries.length === 0) return this;
     const graph = this.copy();
     for (const [key, registration] of entries) {
       const previous = graph.#publicSlots.get(key);
       if (previous === undefined) graph.#publicOrder = append(graph.#publicOrder, { values: [key] });
-      const id = graph.addBinding(String(key), registration);
+      const id = graph.addBinding(String(key), registration, operation);
       graph.#publicSlots = graph.#publicSlots.set(key, id);
       graph.#publicReferences = graph.#publicReferences.set(id, 1);
       if (previous !== undefined) {
@@ -245,8 +313,12 @@ export class BindingGraph {
     return graph;
   }
 
-  withPublicBinding(key: BindingKey, registration: Registration): BindingGraph {
-    return this.withPublicBindings([[key, registration]]);
+  withPublicBinding(
+    key: BindingKey,
+    registration: Registration,
+    operation = 'register',
+  ): BindingGraph {
+    return this.withPublicBindings([[key, registration]], operation);
   }
 
   private releaseLexical(entry: BindingEntry, pending: BindingId[]): void {
@@ -303,7 +375,11 @@ export class BindingGraph {
     for (const [id] of this.#bindings) take(id as BindingId);
     const publicSlots = new Map<BindingKey, BindingId>();
     for (const [key, id] of this.#publicSlots) publicSlots.set(key, id);
-    return { bindings, publicSlots, contributions };
+    const tokenKinds = new Map<symbol, TokenKind>();
+    for (const [key, kind] of this.#tokenKinds) {
+      tokenKinds.set(key as symbol, kind);
+    }
+    return { bindings, publicSlots, contributions, tokenKinds };
   }
 
   /** Every retained binding in `describe()` order, with the public keys that select it. */
@@ -332,7 +408,13 @@ export class BindingGraph {
       if (this.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'installModule', key });
     }
     const installation = new BindingGraph(description);
+    for (const [key, kind] of installation.#tokenKinds) {
+      this.assertTokenKind(key as symbol, kind, 'installModule');
+    }
     const graph = this.copy();
+    for (const [key, kind] of installation.#tokenKinds) {
+      graph.#tokenKinds = graph.#tokenKinds.set(key, kind);
+    }
     const pending: BindingId[] = [];
     // Publish all incoming protection before releasing overwritten descriptions.
     for (const [id, count] of installation.#lexicalUsers) graph.#lexicalUsers = graph.#lexicalUsers.set(id, count);
@@ -378,14 +460,8 @@ export class BagRuntime {
     return this.acquisitions.resolve(key);
   }
 
-  resolveAll(key: symbol): readonly unknown[] { return this.acquisitions.resolveAll(key); }
-
   resolveCollection(key: symbol): unknown {
     return this.acquisitions.resolveCollection(key);
-  }
-
-  inspectAll(key: symbol): readonly RegistrationSnapshot<object, readonly unknown[]>[] {
-    return Object.freeze(this.graph.contributionBindings(key).map(bindingId => this.inspectBinding(bindingId)));
   }
 
   inspectCollection(

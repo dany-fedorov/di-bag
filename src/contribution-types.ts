@@ -1,6 +1,6 @@
 import type { Registration, Registrations } from './registration';
 import type { CollectionItem, CollectionTokenBase, TokenBase, TokenKey, TokenService } from './tokens';
-import type { ValidToken, TokenTupleAdmission, BindingOutput, CollectionBindingOutput } from './token-types';
+import type { ValidToken, TokenTupleAdmission, CollectionBindingOutput } from './token-types';
 import type { CheckDependencyCompatibility, CheckDependencyCompleteness, SeeErrors, Unsatisfied, Entry, RegistrationsFromEntries } from './types';
 import type { BoundToken, ProviderCollectionTokens } from './provider';
 import type { Module } from './module';
@@ -47,9 +47,13 @@ type ContributionFailures<C, A extends Registrations> = C extends ContributionCo
   : never;
 type MissingProvider<C, A extends Registrations> = C extends ContributionConstraint
   ? unknown extends CheckDependencyCompleteness<ContributionGraph<A, C['registration']>> ? never : C : never;
-type AllNeeds<C, A extends Registrations> = ProviderCollectionTokens<A[keyof A]>
-  | (C extends ContributionConstraint ? ProviderCollectionTokens<C['registration']> : C extends { kind: 'all'; token: infer T } ? T : never);
-type GroupErrors<C, A extends Registrations> = WrongGroup<Groups<C>['token'] | AllNeeds<C, A>, C>;
+type CollectionNeeds<C, A extends Registrations> = ProviderCollectionTokens<A[keyof A]>
+  | (C extends ContributionConstraint
+      ? ProviderCollectionTokens<C['registration']>
+      : C extends { kind: 'collection'; token: infer T }
+        ? T
+        : never);
+type GroupErrors<C, A extends Registrations> = WrongGroup<Groups<C>['token'] | CollectionNeeds<C, A>, C>;
 export type CheckedContributions<C, A extends Registrations> = [Groups<C>] extends [never] ? unknown
   : [GroupErrors<C, A>] extends [never] ? [WrongProvider<C, A>] extends [never] ? unknown
     : Unsatisfied<`contribution service is incompatible with its consumer dependency contract${SeeErrors<'unsatisfied-consumer'>}`, { readonly failures: ContributionFailures<WrongProvider<C, A>, A> }>
@@ -76,16 +80,35 @@ export type ModuleContributions<M> = M extends Module<infer _P, infer _R, infer 
  * The checked generic `contribute` callable exposed by a builder.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
  */
-export interface BuilderContribute<E extends Entry, C extends NeedConstraint> {
-  <T extends CollectionTokenBase, V extends Registration>(
-    token: T & TokenTupleAdmission<readonly [T]> & CollectionTokenAdmission<RegistrationsFromEntries<E>, T>,
-    registration: V & Registration & CollectionBindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>,
-    ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []
-  ): import('./di-bag').Builder<E, C | Contribution<T, V>>;
-  /** @deprecated Expand-only compatibility; removed in this phase's contract step. */
-  <T extends TokenBase, V extends Registration>(
-    token: T & TokenTupleAdmission<readonly [T]>,
-    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>,
-    ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []
-  ): import('./di-bag').Builder<E, C | Contribution<T, V>>;
-}
+export type BuilderContribute<
+  Entries extends Entry,
+  Constraints extends NeedConstraint,
+> = <
+  TokenHandle extends TokenBase,
+  Provider extends Registration,
+>(
+  token: TokenHandle & (
+    unknown extends TokenTupleAdmission<readonly [TokenHandle]>
+      ? CollectionTokenAdmission<RegistrationsFromEntries<Entries>, TokenHandle>
+      : TokenTupleAdmission<readonly [TokenHandle]>
+  ),
+  registration: Provider & Registration & (
+    unknown extends TokenTupleAdmission<readonly [NoInfer<TokenHandle>]>
+      ? unknown extends CollectionTokenAdmission<RegistrationsFromEntries<Entries>, NoInfer<TokenHandle>>
+        ? NoInfer<TokenHandle> extends CollectionTokenBase
+          ? CollectionBindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>>
+            & CheckedConstraints<
+                Constraints | Contribution<NoInfer<TokenHandle>, NoInfer<Provider>>,
+                RegistrationsFromEntries<Entries>
+              >
+          : never
+        : unknown
+      : unknown
+  ),
+  ...invalid: [TokenHandle] extends [never]
+    ? [never]
+    : [Provider] extends [never] ? [never] : []
+) => import('./di-bag').Builder<
+  Entries,
+  Constraints | Contribution<TokenHandle, Provider>
+>;

@@ -33,3 +33,20 @@ DiBag.createBuilder().contribute(sharedCollection, () => 2).register(sharedServi
 emptyBag.resolve(collection);
 // diagnostic: operation requires a single-service token
 emptyBag.inspect(collection);
+// diagnostic: contribute requires a collection token
+DiBag.createBuilder().contribute(service, () => 1);
+
+const sealedCollectionKey = Symbol('sealed collection');
+const sealedNumbers = DiBag.token(sealedCollectionKey).forCollectionOf<number>();
+const sealedStrings = DiBag.token(sealedCollectionKey).forCollectionOf<string>();
+const sealedConsumer = DiBag.createBuilder()
+  .register({ count: DiBag.fromFunction([sealedNumbers], values => values.length) })
+  .buildModule(['count']);
+// diagnostic: collection token has an incompatible or opaque contract
+DiBag.createBuilder().installModule(sealedConsumer).contribute(sealedStrings, () => 'wrong');
+
+const nestedSealedConsumer = DiBag.createBuilder()
+  .installModule(sealedConsumer)
+  .buildModule(['count']);
+// diagnostic: collection token has an incompatible or opaque contract
+DiBag.createBuilder().installModule(nestedSealedConsumer).contribute(sealedStrings, () => 'wrong');

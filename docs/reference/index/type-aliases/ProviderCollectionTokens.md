@@ -5,9 +5,7 @@
 # Type Alias: ProviderCollectionTokens\<R\>
 
 ```ts
-type ProviderCollectionTokens<R> = ProviderGraphContract<R> extends infer G ? CollectionTokens<G> | (G extends {
-    readonly all: infer T extends readonly TokenBase[];
-} ? T[number] : never) : never;
+type ProviderCollectionTokens<R> = ProviderGraphContract<R> extends infer G ? CollectionTokens<G> : never;
 ```
 
 Defined in: [provider.ts:117](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L117)

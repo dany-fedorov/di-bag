@@ -1,6 +1,8 @@
 [
   { "task": "Start a graph", "call": "DiBag.createBuilder" },
   { "task": "Register a service", "call": "builder.register" },
+  { "task": "Create a collection token", "call": "DiBag.token" },
+  { "task": "Contribute a collection member", "call": "builder.contribute" },
   { "task": "Register a synchronous factory for a browser or worker", "call": "DiBag.fromSyncFactory" },
   { "task": "Register an async factory for a browser or worker", "call": "DiBag.fromAsyncFactory" },
   { "task": "Attach cleanup", "call": "DiBag.withDisposal" },
@@ -13,5 +15,6 @@
   { "task": "Replace for a test", "call": "bag.fork" },
   { "task": "Open a scope", "call": "bag.createScope" },
   { "task": "Resolve", "call": "bag.resolve" },
+  { "task": "Resolve a collection", "call": "bag.resolveCollection" },
   { "task": "Close", "call": "bag.close" }
 ]

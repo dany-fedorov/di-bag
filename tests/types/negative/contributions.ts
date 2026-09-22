@@ -1,8 +1,7 @@
 import { DiBag, type Builder, type Bag } from '../../../src';
 const key = Symbol('numbers'); const numbers = DiBag.token(key).forCollectionOf<number>();
-const legacyNumbers = DiBag.token(key).of<number>();
 const wrong = DiBag.token(key).forCollectionOf<string>();
-// diagnostic: service
+// diagnostic: collection contribution output is not assignable to its item
 DiBag.createBuilder().contribute(numbers, () => 'wrong');
 const builder = DiBag.createBuilder().contribute(numbers, () => 1);
 // diagnostic: incompatible
@@ -11,8 +10,6 @@ builder.contribute(wrong, () => 'wrong');
 builder.build().resolveCollection(wrong);
 // diagnostic: incompatible
 builder.build().inspectCollection(wrong);
-// diagnostic: existing
-builder.build().resolve(legacyNumbers);
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().contribute(numbers, ({ missing }: { missing: number }) => missing).build();
 // diagnostic: not assignable
@@ -20,7 +17,6 @@ const erasedBuilder: Builder<never> = builder;
 // diagnostic: not assignable
 const erasedBag: Bag<{}> = builder.build();
 const all = numbers;
-const legacyAll = DiBag.all(legacyNumbers);
 const rootAll = DiBag.withLifetime(DiBag.fromFunction([all], values => values), 'root');
 // diagnostic: root lifetime cannot capture scoped dependency
 builder.register({ rootAll }).build();
@@ -59,11 +55,9 @@ const erasedModule: ReturnType<ReturnType<typeof DiBag.createBuilder>['buildModu
 // diagnostic: not assignable
 const erasedModuleBuilder: ReturnType<typeof DiBag.createBuilder> = DiBag.createBuilder().contribute(numbers, () => 1);
 // diagnostic: not assignable
-DiBag.all({});
-// diagnostic: not assignable
-DiBag.all(DiBag.optional(numbers));
-// diagnostic: Expected 2 arguments
-DiBag.all<never>(numbers as never);
+builder.build().resolveCollection({});
+// diagnostic: optional requires a single-service token
+DiBag.optional(numbers);
 // diagnostic: Expected 3 arguments
 builder.contribute<never, () => number>(numbers as never, () => 1);
 // diagnostic: Expected 3 arguments
@@ -90,10 +84,11 @@ declare const allIncompatibleUnion: typeof wrong | typeof otherWrong;
 builder.build().resolveCollection(allIncompatibleUnion);
 // diagnostic: finite tuple
 builder.build().inspectCollection(allIncompatibleUnion);
-// diagnostic: not assignable
-const allReflected: ReturnType<typeof DiBag.all> = legacyAll;
+const collectionReflected: import('../../../src').CollectionTokenBase = numbers;
+// diagnostic: individually known
+builder.build().resolveCollection(collectionReflected);
 // diagnostic: finite tuple
-DiBag.fromFunction([allReflected], values => values);
+DiBag.fromFunction([collectionReflected], values => values);
 declare const reflected: ReturnType<typeof builder.contribute>;
 // diagnostic: required service registrations are missing
 reflected.build();

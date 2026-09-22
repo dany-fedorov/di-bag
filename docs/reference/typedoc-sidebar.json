@@ -59,10 +59,6 @@
             "link": "/reference/index/interfaces/Builder.md"
           },
           {
-            "text": "BuilderContribute",
-            "link": "/reference/index/interfaces/BuilderContribute.md"
-          },
-          {
             "text": "CleanupFailure",
             "link": "/reference/index/interfaces/CleanupFailure.md"
           },
@@ -185,6 +181,10 @@
             "link": "/reference/index/type-aliases/AliasRegistration.md"
           },
           {
+            "text": "BuilderContribute",
+            "link": "/reference/index/type-aliases/BuilderContribute.md"
+          },
+          {
             "text": "CheckDependencyCompatibility",
             "link": "/reference/index/type-aliases/CheckDependencyCompatibility.md"
           },
@@ -199,10 +199,6 @@
           {
             "text": "CheckedScopeLifetimes",
             "link": "/reference/index/type-aliases/CheckedScopeLifetimes.md"
-          },
-          {
-            "text": "CollectionDependency",
-            "link": "/reference/index/type-aliases/CollectionDependency.md"
           },
           {
             "text": "CollectionItem",

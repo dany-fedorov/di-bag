@@ -132,6 +132,9 @@ export function ensureRuntimeReady(runtime: BagRuntime, graph: BindingGraph, key
   for (let index = 0; index < length; index++) {
     const value: unknown = keys[index];
     const token = typeof value === 'string' ? undefined : readToken(value);
+    if (token !== undefined) {
+      graph.assertTokenKind(token.key, token.kind, 'ensureServicesReady');
+    }
     const key = token === undefined ? value as string : token.key;
     const isCollection = token?.kind === 'collection';
     if (!isCollection && !graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_STARTUP', `ensureServicesReady accepts existing names or typed tokens only: ${String(key)}`, { operation: 'ensureServicesReady' });

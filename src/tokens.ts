@@ -69,7 +69,7 @@ const tokens = new WeakMap<TokenBase, Readonly<{ key: symbol; kind: TokenKind }>
  * Reusing the same key and service type produces compatible handles; copied or fabricated
  * objects are rejected at runtime.
  * @param key - An individually known unique symbol used as the runtime binding identity.
- * @returns An object whose `of<Service>()` method creates an immutable typed token.
+ * @returns A factory whose `.of<Service>()` creates a single-service token and whose `.forCollectionOf<Item>()` creates a collection token.
  * @example
  * ```ts
  * const clockKey = Symbol('clock');

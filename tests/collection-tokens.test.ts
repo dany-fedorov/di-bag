@@ -265,3 +265,74 @@ test('share and buildModule reject a collection token as the wrong kind', async 
   await serviceBag.close();
   await replaced.close(); await bag.close();
 });
+
+test('one graph cannot use the same symbol for both token kinds', async () => {
+  const key = Symbol('shared');
+  const service = DiBag.token(key).of<number>();
+  const collection = DiBag.token(key).forCollectionOf<number>();
+
+  const registered = DiBag.createBuilder().register(service, () => 1);
+  const collectionAfterService = thrown(() =>
+    (registered as any).contribute(collection, () => 2),
+  );
+  expect(collectionAfterService.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
+  expect(collectionAfterService.details).toEqual({
+    operation: 'contribute',
+    expectedKind: 'single-service',
+    receivedKind: 'collection',
+  });
+
+  const contributed = DiBag.createBuilder().contribute(collection, () => 2);
+  const serviceAfterCollection = thrown(() =>
+    (contributed as any).register(service, () => 1),
+  );
+  expect(serviceAfterCollection.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
+  expect(serviceAfterCollection.details).toEqual({
+    operation: 'register',
+    expectedKind: 'collection',
+    receivedKind: 'single-service',
+  });
+
+  const serviceBag = DiBag.createBuilder().register(service, () => 1).build();
+  const collectionBag = DiBag.createBuilder()
+    .contribute(collection, () => 2)
+    .build();
+  expect(serviceBag.resolve(service)).toBe(1);
+  expect(collectionBag.resolveCollection(collection)).toEqual([2]);
+  await serviceBag.close();
+  await collectionBag.close();
+});
+
+test('module installation preserves token kinds through nested sealing', () => {
+  const key = Symbol('module-shared');
+  const service = DiBag.token(key).of<number>();
+  const collection = DiBag.token(key).forCollectionOf<number>();
+  const collectionModule = DiBag.createBuilder()
+    .contribute(collection, () => 2).buildModule([]);
+  const nested = DiBag.createBuilder()
+    .installModule(collectionModule).buildModule([]);
+  for (const module of [collectionModule, nested]) {
+    const host = DiBag.createBuilder().register(service, () => 1);
+    const error = thrown(() => (host as any).installModule(module));
+    expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
+    expect(error.details).toEqual({
+      operation: 'installModule', expectedKind: 'single-service', receivedKind: 'collection',
+    });
+  }
+  const serviceModule = DiBag.createBuilder()
+    .register(service, () => 1).buildModule([service]);
+  const host = DiBag.createBuilder().contribute(collection, () => 2);
+  const error = thrown(() => (host as any).installModule(serviceModule));
+  expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
+  expect(error.details).toEqual({
+    operation: 'installModule', expectedKind: 'collection', receivedKind: 'single-service',
+  });
+});
+
+test('contribute rejects a single-service token as the wrong kind, before it reads the provider', () => {
+  const serviceKey = Symbol('service');
+  const service = DiBag.token(serviceKey).of<number>();
+  const error = thrown(() => (DiBag.createBuilder().contribute as Function)(service, 'not a provider'));
+  expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
+  expect(error.details).toEqual({ operation: 'contribute', expectedKind: 'collection', receivedKind: 'single-service' });
+});

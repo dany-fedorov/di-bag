@@ -129,8 +129,8 @@ test('forged tokens references and providers reject before provider effects', as
     expect(() => (DiBag.optional as Function)(fake)).toThrow();
   }
   const provider = DiBag.fromFunction([], () => { effects++; return 1; });
-  expect(() => (DiBag.createBuilder().contribute as Function)(token, { ...provider })).toThrow();
-  expect(() => (DiBag.createBuilder().contribute as Function)(token, {})).toThrow();
+  expect(() => (DiBag.createBuilder().contribute as Function)(collection, { ...provider })).toThrow();
+  expect(() => (DiBag.createBuilder().contribute as Function)(collection, {})).toThrow();
   const refs = [collection]; refs[Symbol.iterator] = function* () { throw new Error('iterator'); };
   const bag = DiBag.createBuilder().contribute(collection, () => 1).register({ list: DiBag.fromFunction(refs as [typeof refs[0]], values => values) }).build();
   expect(bag.resolve('list')).toEqual([1]); expect(effects).toBe(0); await bag.close();

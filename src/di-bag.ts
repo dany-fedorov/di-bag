@@ -5,7 +5,7 @@ import { contributionEntry } from './contributions';
 import type { BuilderContribute, CollectionMember, RegisterTokenAdmission } from './contribution-types';
 import { aliasEntry } from './aliases';
 import type { AliasSelection, AliasAdmission, AliasDestinationAdmission, AliasTarget, AliasDestination, AliasEntry, AliasEntries } from './alias-types';
-import { optional, lazy, all } from './dependency-references';
+import { optional, lazy } from './dependency-references';
 import { normalize, snapshotAdd, withDisposal } from './registration';
 import type { FactoryWithDisposal, Factory, Registration, Registrations } from './registration';
 import { BindingGraph, BagRuntime } from './runtime';
@@ -28,10 +28,10 @@ import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
 import type { ProviderRegistrationMetadata, ProviderAcquisitionMetadata } from './provider';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
-import { token, readSingleServiceKey, readToken, readTokenKey, wrongTokenKind } from './tokens';
+import { token, readSingleServiceKey, readToken, wrongTokenKind } from './tokens';
 import { fromPlugin } from './plugins';
 import type { PluginProviderFactory } from './plugins';
-import type { CollectionItem, CollectionTokenBase, TokenBase, TokenKey, TokenService } from './tokens';
+import type { CollectionItem, CollectionTokenBase, TokenBase, TokenKey, TokenKind } from './tokens';
 import type { TokenBinding, BindingOutput, SingleServiceTokenMember, TokenMember, TokenTupleAdmission, SelectionKey } from './token-types';
 import type { BuilderReplacementRegistration, ReplacementAdmission, ReplacedEntries, ZeroDependencyAdmission } from './replacement-types';
 import type {
@@ -66,6 +66,30 @@ type ReplacementFactory<O> = (this: void) => O;
 // A public member under an unexported symbol retains its type in .d.ts output;
 // TypeScript strips the types of ordinary private fields during declaration emit.
 declare const constraintInvariant: unique symbol;
+
+function readGraphToken(
+  graph: BindingGraph,
+  value: unknown,
+  operation: string,
+): Readonly<{ key: symbol; kind: TokenKind }> {
+  const token = readToken(value);
+  graph.assertTokenKind(token.key, token.kind, operation);
+  return token;
+}
+
+function claimSelectedTokenKinds(
+  graph: BindingGraph,
+  values: readonly unknown[],
+  operation: string,
+): BindingGraph {
+  let claimed = graph;
+  for (const value of values) {
+    if (typeof value === 'string') continue;
+    const token = readToken(value);
+    claimed = claimed.withTokenKind(token.key, token.kind, operation);
+  }
+  return claimed;
+}
 
 /**
  * A resolving container with lazy acquisition, caching, and independent resource ownership.
@@ -110,15 +134,22 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    */
   resolve<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, K>)): ServicesOf<ServiceRegistrations>[SelectionKey<K> & keyof ServiceRegistrations];
   resolve(serviceKey: unknown): unknown {
-    return this.#runtime.resolve(typeof serviceKey === 'string'
-      ? serviceKey
-      : readSingleServiceKey(serviceKey, 'resolve'));
+    if (typeof serviceKey === 'string') {
+      return this.#runtime.resolve(serviceKey);
+    }
+    const { key, kind } = readGraphToken(this.#graph, serviceKey, 'resolve');
+    if (kind !== 'single-service') {
+      throw wrongTokenKind('resolve', 'single-service', key);
+    }
+    return this.#runtime.resolve(key);
   }
 
   /**
    * Resolve every contribution for a collection token as a fresh frozen list.
    * @param token - The collection token to read.
    * @returns Contributions in declaration order, or an empty list.
+   * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad handle or kind;
+   * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after close begins; or a contribution's acquisition errors as listed for {@link Bag.resolve}.
    * @example
    * ```ts
    * const toolsKey = Symbol('tools');
@@ -130,45 +161,16 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
   resolveCollection<T extends CollectionTokenBase>(token: T & (unknown extends TokenTupleAdmission<readonly [T]>
     ? CollectionMember<T, Constraints> : TokenTupleAdmission<readonly [T]>),
     ...invalid: [T] extends [never] ? [never] : []): readonly CollectionItem<T>[] {
-    const { key, kind } = readToken(token);
-    if (kind !== 'collection') throw wrongTokenKind('resolveCollection', 'collection', key);
+    const { key, kind } = readGraphToken(
+      this.#graph,
+      token,
+      'resolveCollection',
+    );
+    if (kind !== 'collection') {
+      throw wrongTokenKind('resolveCollection', 'collection', key);
+    }
     return this.#runtime.resolveCollection(key) as readonly CollectionItem<T>[];
   }
-
-  /**
-   * Resolve every contribution for a typed token in declaration and installation order.
-   * @param token - The collection token whose contributions to acquire.
-   * @returns A fresh frozen array; an unpopulated collection returns an empty array.
-   * @throws `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_INVALID_TOKEN` for a bad token;
-   * a contribution's acquisition errors as listed for {@link Bag.resolve}.
-   * @example
-   * ```ts
-   * const toolsKey = Symbol('tools');
-   * const tools = DiBag.token(toolsKey).of<string>();
-   * const bag = DiBag.createBuilder().contribute(tools, () => 'search').contribute(tools, () => 'fetch').build();
-   * const names: readonly string[] = bag.resolveAll(tools);
-   * ```
-   */
-  resolveAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, Constraints>,
-    ...invalid: [T] extends [never] ? [never] : []): ReadonlyArray<TokenService<T>>;
-  resolveAll(token: unknown): readonly unknown[] { return this.#runtime.resolveAll(readTokenKey(token)); }
-
-  /**
-   * Inspect every contribution for a token without running its factories.
-   * @param token - The collection token to inspect.
-   * @returns Frozen snapshots in contribution order.
-   * @throws `DI_BAG_INVALID_TOKEN` for a bad token.
-   * @example
-   * ```ts
-   * const toolsKey = Symbol('tools');
-   * const tools = DiBag.token(toolsKey).of<string>();
-   * const bag = DiBag.createBuilder().contribute(tools, () => 'search').build();
-   * const labels = bag.inspectAll(tools).map(snapshot => snapshot.label);
-   * ```
-   */
-  inspectAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, Constraints>,
-    ...invalid: [T] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[];
-  inspectAll(token: unknown): readonly RegistrationSnapshot<object, readonly unknown[]>[] { return this.#runtime.inspectAll(readTokenKey(token)); }
 
   /**
    * Inspect static metadata and copied acquisition state without resolving a service.
@@ -183,15 +185,21 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    */
   inspect<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, K>)): RegistrationSnapshot<ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>, ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>>;
   inspect(serviceKey: unknown): unknown {
-    return this.#runtime.inspect(typeof serviceKey === 'string'
-      ? serviceKey
-      : readSingleServiceKey(serviceKey, 'inspect'));
+    if (typeof serviceKey === 'string') {
+      return this.#runtime.inspect(serviceKey);
+    }
+    const { key, kind } = readGraphToken(this.#graph, serviceKey, 'inspect');
+    if (kind !== 'single-service') {
+      throw wrongTokenKind('inspect', 'single-service', key);
+    }
+    return this.#runtime.inspect(key);
   }
 
   /**
    * Inspect every provider attached to a collection token without resolving it.
    * @param token - The collection token to inspect.
    * @returns One snapshot per contribution in declaration order.
+   * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad handle or kind.
    * @example
    * ```ts
    * const toolsKey = Symbol('tools');
@@ -203,8 +211,14 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
   inspectCollection<T extends CollectionTokenBase>(token: T & (unknown extends TokenTupleAdmission<readonly [T]>
     ? CollectionMember<T, Constraints> : TokenTupleAdmission<readonly [T]>),
     ...invalid: [T] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[] {
-    const { key, kind } = readToken(token);
-    if (kind !== 'collection') throw wrongTokenKind('inspectCollection', 'collection', key);
+    const { key, kind } = readGraphToken(
+      this.#graph,
+      token,
+      'inspectCollection',
+    );
+    if (kind !== 'collection') {
+      throw wrongTokenKind('inspectCollection', 'collection', key);
+    }
     return this.#runtime.inspectCollection(key);
   }
 
@@ -336,6 +350,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
       selectedKeys[index] = keys[index];
     }
     if (selectedKeys.length === 0) return new Bag(this.#graph, this.context);
+    const graph = claimSelectedTokenKinds(this.#graph, selectedKeys, 'fork');
     const collectionKeys = new Set<BindingKey>();
     const publicKeys = selectedKeys.map(value => {
       if (typeof value === 'string') return value;
@@ -344,7 +359,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
       return key;
     });
     for (const key of publicKeys) {
-      if (!collectionKeys.has(key) && !this.#graph.hasPublic(key)) {
+      if (!collectionKeys.has(key) && !graph.hasPublic(key)) {
         throw libraryError('DI_BAG_INVALID_OVERRIDE', `fork accepts existing names or typed tokens only: ${String(key)}`, { operation: 'fork' });
       }
       if (!Object.hasOwn(overrides, key)) {
@@ -357,7 +372,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
       normalize(registration);
       selectedBindings.push([key, registration as Registration]);
     }
-    return new Bag(this.#graph.withPublicBindings(selectedBindings), this.context);
+    return new Bag(graph.withPublicBindings(selectedBindings, 'fork'), this.context);
   }
 
   /**
@@ -475,11 +490,12 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
   register(moreOrToken: unknown, registration?: Registration): unknown {
     if (arguments.length === 1) {
       const snapshot = snapshotAdd(moreOrToken, key => this.#graph.hasPublic(key));
-      return new Builder(this.#graph.withPublicRegistrations(snapshot), this.context);
+      return new Builder(this.#graph.withPublicRegistrations(snapshot, 'register'), this.context);
     }
     const key = readSingleServiceKey(moreOrToken, 'register');
-    if (this.#graph.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'register', key });
-    return new Builder(this.#graph.withPublicBinding(key, withTokenBinding(moreOrToken as never, registration as never)), this.context);
+    const graph = this.#graph.withTokenKind(key, 'single-service', 'register');
+    if (graph.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation: 'register', key });
+    return new Builder(graph.withPublicBinding(key, withTokenBinding(moreOrToken as never, registration as never), 'register'), this.context);
   }
 
   /**
@@ -502,8 +518,14 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
         ? IncrementalChecked<Entries, AliasEntries<RegistrationsFromEntries<Entries>, NoInfer<D>, NoInfer<T>>> & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, AliasEntries<RegistrationsFromEntries<Entries>, NoInfer<D>, NoInfer<T>>>> : unknown),
     ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []
   ): Builder<Entries | AliasEntry<RegistrationsFromEntries<Entries>, D, T>, Constraints> {
-    const [key, registration] = aliasEntry(destination, target, key => this.#graph.hasPublic(key));
-    return new Builder(this.#graph.withPublicBinding(key, registration), this.context);
+    let graph = this.#graph;
+    for (const value of [destination, target]) {
+      if (typeof value === 'string') continue;
+      const selected = readToken(value);
+      graph = graph.withTokenKind(selected.key, selected.kind, 'alias');
+    }
+    const [key, registration] = aliasEntry(destination, target, candidate => graph.hasPublic(candidate));
+    return new Builder(graph.withPublicBinding(key, registration, 'alias'), this.context);
   }
 
   /**
@@ -515,15 +537,20 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * @example
    * ```ts
    * const toolsKey = Symbol('tools');
-   * const tools = DiBag.token(toolsKey).of<string>();
+   * const tools = DiBag.token(toolsKey).forCollectionOf<string>();
    * const builder = DiBag.createBuilder().contribute(tools, () => 'search').contribute(tools, () => 'fetch');
    * ```
    */
   // A named callable keeps extracted generic methods nameable in consumer declarations.
   readonly contribute: BuilderContribute<Entries, Constraints> = ((token: unknown, registration: Registration) => {
     const [key, value] = contributionEntry(token, registration);
-    return new Builder(this.#graph.withContribution(key, value), this.context);
-  }) as unknown as BuilderContribute<Entries, Constraints>;
+    return new Builder(
+      this.#graph
+        .withTokenKind(key, 'collection', 'contribute')
+        .withContribution(key, value, 'contribute'),
+      this.context,
+    );
+  }) as BuilderContribute<Entries, Constraints>;
 
 
 
@@ -565,11 +592,14 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
       ? undefined
       : readToken(selection);
     const key = selected === undefined ? selection as string : selected.key;
-    if (selected?.kind !== 'collection' && !this.#graph.hasPublic(key)) {
+    const graph = selected === undefined
+      ? this.#graph
+      : this.#graph.withTokenKind(selected.key, selected.kind, 'replace');
+    if (selected?.kind !== 'collection' && !graph.hasPublic(key)) {
       throw libraryError('DI_BAG_INVALID_REPLACEMENT', `replace accepts existing names or typed tokens only: ${String(key)}`, { operation: 'replace', key });
     }
     normalize(registration);
-    return new Builder(this.#graph.withPublicBinding(key, registration), this.context);
+    return new Builder(graph.withPublicBinding(key, registration, 'replace'), this.context);
   }
 
   /**
@@ -721,7 +751,7 @@ export interface DiBagApi {
    */
   fromAsyncFactory: typeof fromAsyncFactory;
   /**
-   * Create a typed token from a unique symbol; `.of<Service>()` fixes its service type.
+   * Create a typed-token factory from a unique symbol; `.of<Service>()` selects one service, while `.forCollectionOf<Item>()` selects an ordered collection.
    * @throws `DI_BAG_INVALID_TOKEN` when the key is not a symbol.
    * @example
    * ```ts
@@ -752,17 +782,6 @@ export interface DiBagApi {
    * ```
    */
   lazy: typeof lazy;
-  /**
-   * Create a positional dependency containing every contribution to a collection token, in order.
-   * @throws `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token.
-   * @example
-   * ```ts
-   * const toolsKey = Symbol('tools');
-   * const tools = DiBag.token(toolsKey).of<string>();
-   * const menu = DiBag.fromFunction([DiBag.all(tools)], names => names.join(', '));
-   * ```
-   */
-  all: typeof all;
   /**
    * Validate an unknown plugin descriptor now and its acquired output at acquisition.
    * @throws `DI_BAG_INVALID_TOKEN` for a malformed dependency tuple; `DI_BAG_INVALID_PLUGIN_OPTIONS` for malformed options;
@@ -866,7 +885,7 @@ function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
     }
     return facade(configured);
   },
-  fromFactory, fromSyncFactory, fromAsyncFactory, token, optional, lazy, all, fromPlugin, fromFunction, fromClass,
+  fromFactory, fromSyncFactory, fromAsyncFactory, token, optional, lazy, fromPlugin, fromFunction, fromClass,
   createBuilder: (): Builder<never> => new Builder(new BindingGraph(), context),
   withDisposal, withLifetime, withMetadata, transformService,
 }); }

@@ -81,11 +81,6 @@ export class ScopeAcquisitions {
     return this.takeExposed(this.resolveBinding(this.graph.publicBinding(key)));
   }
 
-  resolveAll(key: symbol): readonly unknown[] {
-    this.assertOpen();
-    return this.resolveContributions(key);
-  }
-
   private resolveContributions(key: symbol, from?: Acquisition): readonly unknown[] {
     return Object.freeze(this.graph.contributionBindings(key).map(id => this.takeExposed(this.resolveBinding(id, from))));
   }
@@ -295,14 +290,12 @@ export class ScopeAcquisitions {
     const read = (
       key: BindingKey,
       optional = false,
-      all = false,
       isCollection = false,
     ): unknown => {
       // Only this attempt's in-flight factory can discover dependencies in close.
       if (this.state === 'closed' || (this.state === 'closing' && !attempt.execution.sourceInFlight)) {
         throw libraryError(this.state === 'closing' ? 'DI_BAG_CLOSING' : 'DI_BAG_CLOSED', `bag is ${this.state}`, { state: this.state });
       }
-      if (all) return this.resolveContributions(key as symbol, attempt);
       const target = this.graph.findDependency(bindingId, key);
       if (isCollection) {
         return target === undefined
@@ -330,11 +323,10 @@ export class ScopeAcquisitions {
         const reference = typeof key === 'symbol' ? references.get(key) : undefined;
         if (reference) {
           return reference.kind === 'lazy'
-            ? () => read(reference.key, false, false, reference.isCollection)
+            ? () => read(reference.key, false, reference.isCollection)
             : read(
                 reference.key,
                 reference.kind === 'optional',
-                reference.kind === 'all',
                 reference.isCollection,
               );
         }

@@ -12,6 +12,8 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | --- | --- |
 | Start a graph | [`DiBag.createBuilder()`](#dibag-createbuilder) |
 | Register a service | [`builder.register(more)`](#builder-register) |
+| Create a collection token | [`DiBag.token(key)`](#dibag-token) |
+| Contribute a collection member | [`builder.contribute(token, registration)`](#builder-contribute) |
 | Register a synchronous factory for a browser or worker | [`DiBag.fromSyncFactory(callback, options)`](#dibag-fromsyncfactory) |
 | Register an async factory for a browser or worker | [`DiBag.fromAsyncFactory(callback, options)`](#dibag-fromasyncfactory) |
 | Attach cleanup | [`DiBag.withDisposal(create, dispose)`](#dibag-withdisposal) |
@@ -24,6 +26,7 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Replace for a test | [`bag.fork(keys, overrides)`](#bag-fork) |
 | Open a scope | [`bag.createScope()`](#bag-createscope) |
 | Resolve | [`bag.resolve(token)`](#bag-resolve) |
+| Resolve a collection | [`bag.resolveCollection(token)`](#bag-resolvecollection) |
 | Close | [`bag.close(options?)`](#bag-close) |
 
 ## DiBag facade {#dibag-facade}
@@ -59,7 +62,7 @@ const db = DiBag.withDisposal(
 ```
 
 ### `DiBag.token(key)` {#dibag-token}
-Create a typed token from a unique symbol; `.of<Service>()` fixes its service type. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
+Create a typed-token factory from a unique symbol; `.of<Service>()` selects one service, while `.forCollectionOf<Item>()` selects an ordered collection. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
 ```ts
 const clockKey = Symbol('clock');
 const clock = DiBag.token(clockKey).of<{ now(): number }>();
@@ -79,14 +82,6 @@ Create a positional dependency supplied as a function that resolves the token wh
 const clockKey = Symbol('clock');
 const clock = DiBag.token(clockKey).of<{ now(): number }>();
 const stamp = DiBag.fromFunction([DiBag.lazy(clock)], getClock => () => getClock().now());
-```
-
-### `DiBag.all(token)` {#dibag-all}
-Create a positional dependency containing every contribution to a collection token, in order. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
-```ts
-const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).of<string>();
-const menu = DiBag.fromFunction([DiBag.all(tools)], names => names.join(', '));
 ```
 
 ### `DiBag.fromPlugin(dependencies, plugin, options)` {#dibag-fromplugin}
@@ -171,7 +166,7 @@ const builder = DiBag.createBuilder().register({ clock: () => Date.now() }).alia
 Append a provider to a typed-token collection. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
 ```ts
 const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).of<string>();
+const tools = DiBag.token(toolsKey).forCollectionOf<string>();
 const builder = DiBag.createBuilder().contribute(tools, () => 'search').contribute(tools, () => 'fetch');
 ```
 
@@ -225,30 +220,12 @@ const greeting: string = bag.resolve('greeting');
 ```
 
 ### `bag.resolveCollection(token)` {#bag-resolvecollection}
-Resolve every contribution for a collection token as a fresh frozen list.
+Resolve every contribution for a collection token as a fresh frozen list. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed).
 ```ts
 const toolsKey = Symbol('tools');
 const tools = DiBag.token(toolsKey).forCollectionOf<string>();
 const bag = DiBag.createBuilder().build();
 const names: readonly string[] = bag.resolveCollection(tools);
-```
-
-### `bag.resolveAll(token)` {#bag-resolveall}
-Resolve every contribution for a typed token in declaration and installation order. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
-```ts
-const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).of<string>();
-const bag = DiBag.createBuilder().contribute(tools, () => 'search').contribute(tools, () => 'fetch').build();
-const names: readonly string[] = bag.resolveAll(tools);
-```
-
-### `bag.inspectAll(token)` {#bag-inspectall}
-Inspect every contribution for a token without running its factories. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
-```ts
-const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).of<string>();
-const bag = DiBag.createBuilder().contribute(tools, () => 'search').build();
-const labels = bag.inspectAll(tools).map(snapshot => snapshot.label);
 ```
 
 ### `bag.inspect(token)` {#bag-inspect}
@@ -259,7 +236,7 @@ const acquired = bag.inspect('greeting').acquisitions.length;
 ```
 
 ### `bag.inspectCollection(token)` {#bag-inspectcollection}
-Inspect every provider attached to a collection token without resolving it.
+Inspect every provider attached to a collection token without resolving it. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const toolsKey = Symbol('tools');
 const tools = DiBag.token(toolsKey).forCollectionOf<string>();

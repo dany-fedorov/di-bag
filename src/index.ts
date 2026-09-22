@@ -20,7 +20,7 @@ export type { DiBagPolicy } from './types';
 export type { CheckDependencyCompatibility, CheckDependencyCompleteness, RegistrationEntries, OverrideFactoryContext, RegistrationsFromEntries, OverrideRegistrations, Overrides, ServicesOf, SelectedRegistrations, Selection } from './types';
 export type { Presence, AcquisitionMetadataPresence, AcquisitionSnapshot, RegistrationSnapshot, BindingSnapshot, GraphSnapshot } from './inspection';
 export type { CompositionArguments, CompositionFunction } from './composition';
-export type { OptionalDependency, LazyDependency, CollectionDependency, DependencyReference } from './dependency-references';
+export type { OptionalDependency, LazyDependency, DependencyReference } from './dependency-references';
 export type { PluginProviderFactory, PluginAcquisitionMode, PluginOptions, PluginOutputValidator, PluginProvider } from './plugins';
 
 export type { AliasRegistration, AliasEntries, AliasOutput } from './alias-types';

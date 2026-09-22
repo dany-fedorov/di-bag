@@ -7,7 +7,7 @@ declare const referenceInvariant: unique symbol;
 class ReferenceBase {
   declare private readonly nominal: void;
 }
-class DependencyHandle<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'> extends ReferenceBase {
+class DependencyHandle<T extends TokenBase, K extends 'optional' | 'lazy'> extends ReferenceBase {
   declare readonly [referenceInvariant]: (value: [T, K]) => [T, K];
 }
 /**
@@ -15,11 +15,6 @@ class DependencyHandle<T extends TokenBase, K extends 'optional' | 'lazy' | 'all
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#declare-optional-and-lazy-dependencies
  */
 export type OptionalDependency<T extends TokenBase> = DependencyHandle<T, 'optional'>;
-/**
- * A positional dependency that yields all contributions for a token as a readonly array.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
- */
-export type CollectionDependency<T extends TokenBase> = DependencyHandle<T, 'all'>;
 /**
  * A positional dependency that yields a function which resolves the token on demand.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#declare-optional-and-lazy-dependencies
@@ -36,23 +31,23 @@ export type DependencyToken<R> = R extends TokenBase ? R : ReferenceParts<R>[0];
 export type DependencyKind<R> = R extends TokenBase ? 'required' : ReferenceParts<R>[1];
 export type DependencyValue<R> = R extends TokenBase ? TokenValue<R>
   : ReferenceParts<R> extends [infer T, infer K] ? K extends 'optional' ? TokenService<T> | undefined
-    : K extends 'lazy' ? () => TokenValue<T> : K extends 'all' ? ReadonlyArray<TokenService<T>> : never : never;
+    : K extends 'lazy' ? () => TokenValue<T> : never : never;
 export type ValidDependency<R> = [R] extends [never] ? false : ValidToken<R> extends true ? true
   : R extends ReferenceBase ? ValidToken<DependencyToken<R>> : false;
 
 export interface ArgumentReference {
   readonly slot: symbol;
   readonly key: symbol;
-  readonly kind: 'required' | 'optional' | 'lazy' | 'all';
+  readonly kind: 'required' | 'optional' | 'lazy';
   readonly isCollection: boolean;
 }
 const references = new WeakMap<object, Readonly<{
   key: symbol;
-  kind: 'required' | 'optional' | 'lazy' | 'all';
+  kind: 'required' | 'optional' | 'lazy';
   isCollection: boolean;
 }>>();
 
-function reference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'>(token: T, kind: K): DependencyHandle<T, K> {
+function reference<T extends TokenBase, K extends 'optional' | 'lazy'>(token: T, kind: K): DependencyHandle<T, K> {
   const { key, kind: tokenKind } = readToken(token);
   const isCollection = tokenKind === 'collection';
   if (isCollection && kind === 'optional') {
@@ -61,7 +56,7 @@ function reference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'>(t
   const handle = new DependencyHandle<T, K>();
   references.set(handle, Object.freeze({
     key,
-    kind: isCollection && kind === 'all' ? 'required' : kind,
+    kind,
     isCollection,
   }));
   Object.freeze(handle);
@@ -87,15 +82,6 @@ export function optional<T extends TokenBase>(token: T & TokenTupleAdmission<rea
 export function lazy<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>,
   ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []
 ): LazyDependency<T> { return reference<T, 'lazy'>(token, 'lazy'); }
-
-/**
- * Describe a positional dependency containing every contribution for a token.
- * @param token - The genuine collection token.
- * @returns An immutable reference that supplies a fresh frozen array, including when empty.
- */
-export function all<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>,
-  ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []
-): CollectionDependency<T> { return reference<T, 'all'>(token, 'all'); }
 
 /** Indexed snapshots ignore tuple iterators and retain only authenticated records. */
 export function snapshotReferences(value: unknown): readonly ArgumentReference[] {

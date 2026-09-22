@@ -169,10 +169,10 @@ Static registration metadata; application-owned payload values retain their iden
 ```ts
 readonly tokenDependencies: readonly {
     readonly key: symbol;
-    readonly kind: 'required' | 'optional' | 'lazy' | 'all';
+    readonly kind: 'required' | 'optional' | 'lazy';
 }[];
 ```
 
 Defined in: [inspection.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L60)
 
-Typed-token dependencies declared positionally through tokens, `optional`, `lazy`, or `all` references.
+Typed-token dependencies declared positionally through service tokens, collection tokens, `optional`, or `lazy` references.

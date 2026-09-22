@@ -37,23 +37,15 @@ export type DependencyTupleAdmission<T extends readonly unknown[]> = true extend
     ? [InvalidDependencies<T>] extends [never] ? unknown : InvalidTuple : InvalidTuple;
 export type TokenArguments<T extends readonly DependencyReference[]> = { -readonly [I in keyof T]: DependencyValue<T[I]> };
 type ReferenceRoute<R extends DependencyReference> = DependencyKind<R> extends 'optional' ? 'optional'
-  : DependencyKind<R> extends 'all' ? 'collection'
   : DependencyToken<R> extends CollectionTokenBase ? 'collection' : 'required';
 type ReferenceTokens<T extends readonly DependencyReference[], Kind extends 'required' | 'optional' | 'collection', SelectedRegistrations extends readonly TokenBase[] = readonly []> = T extends readonly [infer H extends DependencyReference, ...infer Rest extends readonly DependencyReference[]]
   ? ReferenceRoute<H> extends Kind
     ? ReferenceTokens<Rest, Kind, readonly [...SelectedRegistrations, DependencyToken<H>]> : ReferenceTokens<Rest, Kind, SelectedRegistrations>
   : SelectedRegistrations;
-type LegacyAllTokens<T extends readonly DependencyReference[], Selected extends readonly TokenBase[] = readonly []> =
-  T extends readonly [infer H extends DependencyReference, ...infer Rest extends readonly DependencyReference[]]
-    ? DependencyKind<H> extends 'all'
-      ? DependencyToken<H> extends CollectionTokenBase ? LegacyAllTokens<Rest, Selected>
-        : LegacyAllTokens<Rest, readonly [...Selected, DependencyToken<H>]>
-      : LegacyAllTokens<Rest, Selected>
-    : Selected;
 type RoutedReferenceGraph<T extends readonly DependencyReference[]> = TokenDependencyContract<
   ReferenceTokens<T, 'required'>, never, ReferenceTokens<T, 'optional'>,
   Extract<ReferenceTokens<T, 'collection'>, readonly CollectionTokenBase[]>
-> & (LegacyAllTokens<T> extends readonly [] ? unknown : { readonly all: LegacyAllTokens<T> });
+>;
 export type ReferenceGraph<T extends readonly DependencyReference[]> = T extends readonly TokenBase[]
   ? [Extract<T[number], CollectionTokenBase>] extends [never] ? TokenDependencyContract<T> : RoutedReferenceGraph<T>
   : RoutedReferenceGraph<T>;

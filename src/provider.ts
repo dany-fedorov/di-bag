@@ -115,7 +115,7 @@ type CollectionTokens<G> = G extends TokenDependencyContract<readonly TokenBase[
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections
  */
 export type ProviderCollectionTokens<R> = ProviderGraphContract<R> extends infer G
-  ? CollectionTokens<G> | (G extends { readonly all: infer T extends readonly TokenBase[] } ? T[number] : never)
+  ? CollectionTokens<G>
   : never;
 /**
  * Extract optional typed-token requirements from a registration.

@@ -9,6 +9,23 @@ type SelectedKey = {
   readonly isCollection: boolean;
 };
 
+function claimSelectedTokenKinds(
+  graph: BindingGraph,
+  values: readonly SelectedKey[],
+  operation: string,
+): BindingGraph {
+  let claimed = graph;
+  for (const value of values) {
+    if (typeof value.key === 'string') continue;
+    claimed = claimed.withTokenKind(
+      value.key,
+      value.isCollection ? 'collection' : 'single-service',
+      operation,
+    );
+  }
+  return claimed;
+}
+
 function snapshot(selection: unknown): SelectedKey[] {
   if (!Array.isArray(selection)) throw libraryError('DI_BAG_INVALID_SCOPE', 'createScope requires a selected key array', { operation: 'createScope' });
   const values: unknown[] = [];
@@ -47,16 +64,21 @@ export function selectScope(graph: BindingGraph, args: readonly unknown[], isTra
     sharedSelection = snapshot(Reflect.get(options, 'share'));
     shareKeys = sharedSelection.map(entry => entry.key);
   }
+  const workingGraph = claimSelectedTokenKinds(
+    claimSelectedTokenKinds(graph, selectedKeys, 'createScope'),
+    sharedSelection,
+    'createScope',
+  );
   for (const { key, isCollection } of sharedSelection) {
     if (isCollection) throw wrongTokenKind('createScope', 'single-service', key as symbol);
   }
   for (const { key, isCollection } of [...selectedKeys, ...sharedSelection]) {
-    if (!isCollection && !graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_SCOPE', `createScope accepts existing names or typed tokens only: ${String(key)}`, { operation: 'createScope' });
+    if (!isCollection && !workingGraph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_SCOPE', `createScope accepts existing names or typed tokens only: ${String(key)}`, { operation: 'createScope' });
   }
   const selectedSet = new Set(selected);
   const shared = [...new Set(shareKeys)].map(key => {
     if (selectedSet.has(key)) throw libraryError('DI_BAG_INVALID_SCOPE', `createScope cannot share and override the same token: ${String(key)}`, { operation: 'createScope' });
-    const id = graph.publicBinding(key);
+    const id = workingGraph.publicBinding(key);
     if (isTransient(key)) throw libraryError('DI_BAG_INVALID_SCOPE', `createScope cannot share transient providers: ${String(key)}`, { operation: 'createScope' });
     return id;
   });
@@ -69,5 +91,5 @@ export function selectScope(graph: BindingGraph, args: readonly unknown[], isTra
     normalize(registration);
     bindings.push([key, registration as Registration]);
   }
-  return { graph: graph.withPublicBindings(bindings), shared };
+  return { graph: workingGraph.withPublicBindings(bindings, 'createScope'), shared };
 }
