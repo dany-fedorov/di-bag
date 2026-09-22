@@ -91,8 +91,8 @@ test('rename preserves original parameter names even when an export takes a priv
 test('invalid installations and export views fail atomically and reject forged modules', async () => {
   const module = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildModule({ exportedServiceKeys: ['a', 'b'] });
   const builder = DiBag.createBuilder().withServices({ b: () => 9 });
-  expect(() => (builder.installModule as Function)(module)).toThrow('duplicate registration: b');
-  expect(() => (DiBag.createBuilder().installModule as Function)({ ...module })).toThrow('module');
+  expect(() => (builder.withInstalledModules as Function)([module])).toThrow('duplicate registration: b');
+  expect(() => (DiBag.createBuilder().withInstalledModules as Function)([{ ...module }])).toThrow('module');
   expect(() => (module.renameExport as Function)('a', 'b')).toThrow('duplicate export');
   expect(() => (module.renameExport as Function)('absent', 'x')).toThrow('existing export');
   const root = builder.withInstalledModules([module.renameExport('b', 'c')]).buildContainer();
@@ -106,13 +106,13 @@ test('exports use indexed tuple snapshots and preserve hidden local registration
   const all = { publicValue: () => 4, hidden: () => 8 };
   const visible: { publicValue: () => number } = all;
   const builder = DiBag.createBuilder().withServices(visible);
-  expect(() => (builder.register as Function)({ hidden: () => 9 })).toThrow('duplicate registration');
+  expect(() => (builder.withServices as Function)({ hidden: () => 9 })).toThrow('duplicate registration');
   const keys = ['publicValue'] as const;
   Object.defineProperty(keys, Symbol.iterator, { value: function* () { yield 'hidden'; } });
   const root = DiBag.createBuilder().withInstalledModules([builder.buildModule({ exportedServiceKeys: keys })]).buildContainer();
   expect(root.resolve('publicValue')).toBe(4);
   expect(() => (root.resolve as Function)('hidden')).toThrow('is not registered');
-  expect(() => (builder.buildModule as Function)(['missing'])).toThrow('existing');
+  expect(() => (builder.buildModule as Function)({ exportedServiceKeys: ['missing'] })).toThrow('existing');
   await root.close();
 });
 

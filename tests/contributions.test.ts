@@ -125,12 +125,12 @@ test('forged tokens references and providers reject before provider effects', as
   const key = Symbol('real'); const token = DiBag.token(key).of<number>(); let effects = 0;
   const collectionKey = Symbol('collection'); const collection = DiBag.token(collectionKey).forCollectionOf<number>();
   for (const fake of [key, {}, Object.create(token), { ...token }, DiBag.optional(token), DiBag.lazy(token)]) {
-    expect(() => (DiBag.createBuilder().contribute as Function)(fake, () => { effects++; return 1; })).toThrow();
+    expect(() => (DiBag.createBuilder().withCollectionContribution as Function)({ collectionToken: fake, provider: () => { effects++; return 1; } })).toThrow();
     expect(() => (DiBag.optional as Function)(fake)).toThrow();
   }
   const provider = DiBag.fromFunction([], () => { effects++; return 1; });
-  expect(() => (DiBag.createBuilder().contribute as Function)(collection, { ...provider })).toThrow();
-  expect(() => (DiBag.createBuilder().contribute as Function)(collection, {})).toThrow();
+  expect(() => (DiBag.createBuilder().withCollectionContribution as Function)({ collectionToken: collection, provider: { ...provider } })).toThrow();
+  expect(() => (DiBag.createBuilder().withCollectionContribution as Function)({ collectionToken: collection, provider: {} })).toThrow();
   const refs = [collection]; refs[Symbol.iterator] = function* () { throw new Error('iterator'); };
   const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: collection, provider: () => 1 }).withServices({ list: DiBag.fromFunction(refs as [typeof refs[0]], values => values) }).buildContainer();
   expect(bag.resolve('list')).toEqual([1]); expect(effects).toBe(0); await bag.close();

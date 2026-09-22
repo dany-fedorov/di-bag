@@ -104,8 +104,8 @@ test('plugin snapshots dependencies, options and callbacks before later mutation
   dependencies[0] = two;
   descriptor.create = () => 2;
   const builder = DiBag.createBuilder().withTokenService(one, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).withTokenService(two, DiBag.fromFactory(() => 2, { acquisitionMode: 'raw' }));
-  const added = Reflect.apply(builder.register, builder, [{ provider }]);
-  const bag = Reflect.apply(added.build, added, []) as { resolve(key: string): unknown; close(): Promise<void> };
+  const added = Reflect.apply(builder.withServices, builder, [{ provider }]);
+  const bag = Reflect.apply(added.buildContainer, added, []) as { resolve(key: string): unknown; close(): Promise<void> };
   expect(bag.resolve('provider')).toBe(1);
   await bag.close();
 });

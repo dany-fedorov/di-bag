@@ -172,8 +172,8 @@ test('pruning the last positional token reference releases its kind only in the 
     consumer: DiBag.fromFunction([collection], values => values.length),
   });
   const updatedBuilder = originalBuilder.withReplacedService('consumer', () => 0);
-  expect(() => (updatedBuilder as any).register(service, () => 1)).not.toThrow();
-  expect(() => (originalBuilder as any).register(service, () => 1))
+  expect(() => (updatedBuilder as any).withTokenService(service, () => 1)).not.toThrow();
+  expect(() => (originalBuilder as any).withTokenService(service, () => 1))
     .toThrow('DI_BAG_WRONG_TOKEN_KIND');
 });
 

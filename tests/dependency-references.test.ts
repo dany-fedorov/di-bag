@@ -76,8 +76,8 @@ test('all adapters snapshot mixed references by index and authenticate every han
       expect(() => Reflect.apply(wrapper, undefined, [invalid])).toThrow('token');
     }
   }
-  expect(() => Reflect.apply(DiBag.createBuilder().register, DiBag.createBuilder(), [optional, () => 1])).toThrow('token');
-  expect(() => Reflect.apply(DiBag.createBuilder().register, DiBag.createBuilder(), [{ invalid: lazy }])).toThrow('registration');
+  expect(() => Reflect.apply(DiBag.createBuilder().withTokenService, DiBag.createBuilder(), [optional, () => 1])).toThrow('token');
+  expect(() => Reflect.apply(DiBag.createBuilder().withServices, DiBag.createBuilder(), [{ invalid: lazy }])).toThrow('registration');
 });
 
 test('lazy reads preserve lexical private tokens, export renames and external optional absence', async () => {

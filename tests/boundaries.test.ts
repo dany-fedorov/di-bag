@@ -178,7 +178,7 @@ test('runtime registration validation rejects cloned and forged owned handles', 
   expect(Object.isFrozen(owned)).toBe(true);
   const builder = DiBag.createBuilder();
   for (const value of [{ ...owned }, { ...owned, create: () => 'wrong' }, Object.create(owned)]) {
-    expect(() => Reflect.apply(builder.register, builder, [{ value }])).toThrow(/invalid.*registration/);
+    expect(() => Reflect.apply(builder.withServices, builder, [{ value }])).toThrow(/invalid.*registration/);
   }
   expect(builder.withServices({ value: owned }).buildContainer().resolve('value')).toBe(1);
 });
@@ -200,6 +200,6 @@ test('unchecked source Bag construction is not exported', () => {
 test('plain registration maps from another realm retain their own factories', () => {
   const builder = DiBag.createBuilder();
   const foreign = runInNewContext('({ value: () => 42 })');
-  const bag = Reflect.apply(builder.register, builder, [foreign]).build();
+  const bag = Reflect.apply(builder.withServices, builder, [foreign]).buildContainer();
   expect(bag.resolve('value')).toBe(42);
 });

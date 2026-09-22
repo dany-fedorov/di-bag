@@ -67,7 +67,7 @@ test('metadata additions preserve symbol keys and snapshot accessors once', () =
 
 test('runtime rejects copied and forged provider registrations', () => {
   const provider = DiBag.withMetadata(() => 42, { static: { owner: 'platform' } });
-  const add = DiBag.createBuilder().register.bind(DiBag.createBuilder()) as (value: unknown) => unknown;
+  const add = DiBag.createBuilder().withServices.bind(DiBag.createBuilder()) as (value: unknown) => unknown;
   expect(() => add({ service: { ...provider } })).toThrow('invalid factory registration');
   expect(() => add({ service: Object.create(Object.getPrototypeOf(provider)) })).toThrow('invalid factory registration');
 });

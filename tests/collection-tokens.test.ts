@@ -19,18 +19,18 @@ test('forCollectionOf creates a frozen genuine handle next to of', () => {
   expect(Object.isFrozen(numbers)).toBe(true);
   expect(numbers).not.toBe(factory.forCollectionOf<number>());
   for (const fake of [{ ...numbers }, Object.create(numbers), { key }]) {
-    expect(thrown(() => (DiBag.createBuilder().contribute as Function)(fake, () => 1)).code).toBe('DI_BAG_INVALID_TOKEN');
+    expect(thrown(() => (DiBag.createBuilder().withCollectionContribution as Function)({ collectionToken: fake, provider: () => 1 })).code).toBe('DI_BAG_INVALID_TOKEN');
   }
 });
 
-test('register rejects a collection token as the wrong kind, before it reads the provider', () => {
+test('withTokenService rejects a collection token as the wrong kind, before it reads the provider', () => {
   const key = Symbol('numbers');
   const numbers = DiBag.token(key).forCollectionOf<number>();
-  const error = thrown(() => (DiBag.createBuilder().register as Function)(numbers, 'not a provider'));
+  const error = thrown(() => (DiBag.createBuilder().withTokenService as Function)(numbers, 'not a provider'));
   expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
-  expect(error.details).toEqual({ operation: 'register', expectedKind: 'single-service', receivedKind: 'collection' });
+  expect(error.details).toEqual({ operation: 'withTokenService', expectedKind: 'single-service', receivedKind: 'collection' });
   expect(Object.isFrozen(error.details)).toBe(true);
-  expect(error.message).toBe('DI_BAG_WRONG_TOKEN_KIND: register requires a single-service token, but Symbol(numbers) is a collection token; see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-wrong-token-kind');
+  expect(error.message).toBe('DI_BAG_WRONG_TOKEN_KIND: withTokenService requires a single-service token, but Symbol(numbers) is a collection token; see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-wrong-token-kind');
 });
 
 test('resolve of a collection token returns a fresh frozen list in contribution order, and an empty list is valid', async () => {
@@ -157,9 +157,9 @@ test('an alias gives the list a name, so a named factory reaches it', async () =
 test('an alias destination rejects a collection token as the wrong kind', () => {
   const numbersKey = Symbol('numbers');
   const numbers = DiBag.token(numbersKey).forCollectionOf<number>();
-  const error = thrown(() => (DiBag.createBuilder().withServices({ value: () => 1 }).alias as Function)(numbers, 'value'));
+  const error = thrown(() => (DiBag.createBuilder().withServices({ value: () => 1 }).withServiceAlias as Function)({ aliasKey: numbers, targetServiceKey: 'value' }));
   expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
-  expect(error.details).toEqual({ operation: 'alias', expectedKind: 'single-service', receivedKind: 'collection' });
+  expect(error.details).toEqual({ operation: 'withServiceAlias', expectedKind: 'single-service', receivedKind: 'collection' });
 });
 
 test('a single-service token and a collection token never merge', async () => {
@@ -243,7 +243,7 @@ test('share and buildModule reject a collection token as the wrong kind', async 
   const numbers = DiBag.token(numbersKey).forCollectionOf<number>();
   const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: () => 1 });
   const wrong = (operation: string) => ({ operation, expectedKind: 'single-service', receivedKind: 'collection' });
-  const exported = thrown(() => (builder.buildModule as Function)([numbers]));
+  const exported = thrown(() => (builder.buildModule as Function)({ exportedServiceKeys: [numbers] }));
   expect(exported.code).toBe('DI_BAG_WRONG_TOKEN_KIND'); expect(exported.details).toEqual(wrong('buildModule'));
   const bag = builder.buildContainer();
   const shared = thrown(() => (bag.createScope as Function)({ share: [numbers] }));
@@ -273,22 +273,22 @@ test('one graph cannot use the same symbol for both token kinds', async () => {
 
   const registered = DiBag.createBuilder().withTokenService(service, () => 1);
   const collectionAfterService = thrown(() =>
-    (registered as any).contribute(collection, () => 2),
+    (registered as any).withCollectionContribution({ collectionToken: collection, provider: () => 2 }),
   );
   expect(collectionAfterService.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   expect(collectionAfterService.details).toEqual({
-    operation: 'contribute',
+    operation: 'withCollectionContribution',
     expectedKind: 'single-service',
     receivedKind: 'collection',
   });
 
   const contributed = DiBag.createBuilder().withCollectionContribution({ collectionToken: collection, provider: () => 2 });
   const serviceAfterCollection = thrown(() =>
-    (contributed as any).register(service, () => 1),
+    (contributed as any).withTokenService(service, () => 1),
   );
   expect(serviceAfterCollection.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   expect(serviceAfterCollection.details).toEqual({
-    operation: 'register',
+    operation: 'withTokenService',
     expectedKind: 'collection',
     receivedKind: 'single-service',
   });
@@ -313,26 +313,26 @@ test('module installation preserves token kinds through nested sealing', () => {
     .withInstalledModules([collectionModule]).buildModule({ exportedServiceKeys: [] });
   for (const module of [collectionModule, nested]) {
     const host = DiBag.createBuilder().withTokenService(service, () => 1);
-    const error = thrown(() => (host as any).installModule(module));
+    const error = thrown(() => (host as any).withInstalledModules([module]));
     expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
     expect(error.details).toEqual({
-      operation: 'installModule', expectedKind: 'single-service', receivedKind: 'collection',
+      operation: 'withInstalledModules', expectedKind: 'single-service', receivedKind: 'collection',
     });
   }
   const serviceModule = DiBag.createBuilder()
     .withTokenService(service, () => 1).buildModule({ exportedServiceKeys: [service] });
   const host = DiBag.createBuilder().withCollectionContribution({ collectionToken: collection, provider: () => 2 });
-  const error = thrown(() => (host as any).installModule(serviceModule));
+  const error = thrown(() => (host as any).withInstalledModules([serviceModule]));
   expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   expect(error.details).toEqual({
-    operation: 'installModule', expectedKind: 'collection', receivedKind: 'single-service',
+    operation: 'withInstalledModules', expectedKind: 'collection', receivedKind: 'single-service',
   });
 });
 
-test('contribute rejects a single-service token as the wrong kind, before it reads the provider', () => {
+test('withCollectionContribution rejects a single-service token as the wrong kind, before it reads the provider', () => {
   const serviceKey = Symbol('service');
   const service = DiBag.token(serviceKey).of<number>();
-  const error = thrown(() => (DiBag.createBuilder().contribute as Function)(service, 'not a provider'));
+  const error = thrown(() => (DiBag.createBuilder().withCollectionContribution as Function)({ collectionToken: service, provider: 'not a provider' }));
   expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
-  expect(error.details).toEqual({ operation: 'contribute', expectedKind: 'collection', receivedKind: 'single-service' });
+  expect(error.details).toEqual({ operation: 'withCollectionContribution', expectedKind: 'collection', receivedKind: 'single-service' });
 });

@@ -5,8 +5,8 @@ const actual = empty.withServices({
   value: () => 1,
   read: ({ value }: { value: number }) => value.toFixed(),
 });
-const erasedAdd = empty.register<{ value: () => number; read: () => string }>;
-const widenedAdd = empty.register<{
+const erasedAdd = empty.withServices<{ value: () => number; read: () => string }>;
+const widenedAdd = empty.withServices<{
   value: () => number | string;
   read: (deps: { value: number }) => string;
 }>;
@@ -23,6 +23,6 @@ const actualModule = emptyModule.withServices({
   value: () => 1,
   read: ({ value }: { value: number }) => value.toFixed(),
 });
-const erasedModuleAdd = emptyModule.register<{ value: () => number; read: () => string }>;
+const erasedModuleAdd = emptyModule.withServices<{ value: () => number; read: () => string }>;
 // diagnostic: not assignable
 const erasedModule: ReturnType<typeof erasedModuleAdd> = actualModule;

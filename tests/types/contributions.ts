@@ -8,7 +8,7 @@ export const bag = builder.withInstalledModules([feature]).buildContainer();
 export const values = bag.resolveCollection(numbers);
 export const resolveCollectionMethod = bag.resolveCollection;
 export const inspectCollectionMethod = bag.inspectCollection;
-export const contribute = builder.contribute;
+export const contribute = builder.withCollectionContribution;
 export type ReflectedContribution = ReturnType<typeof contribute>;
 export type Exact = [Assert<Equal<typeof values, ReadonlyArray<number>>>,
   Assert<Equal<ModuleContributions<typeof feature>, Readonly<{ [key]: ReadonlyArray<number> }>>>];
@@ -19,7 +19,7 @@ export const allProvider = DiBag.fromFunction([all], values => values);
 export const aggregate = DiBag.createBuilder().withServices({ values: allProvider });
 export const aggregateBag = aggregate.withCollectionContribution({ collectionToken: numbers, provider: () => 1 }).buildContainer();
 export const moduleBuilder = DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: ({ helper }: { helper: number }) => helper });
-export const moduleContribute = moduleBuilder.contribute;
+export const moduleContribute = moduleBuilder.withCollectionContribution;
 export const privateFeature = moduleBuilder.withServices({ helper: () => 1 }).buildModule({ exportedServiceKeys: [] });
 export const privateHost = DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();
 export const needsFeature = moduleBuilder.buildModule({ exportedServiceKeys: [] });
@@ -45,7 +45,7 @@ export function inferredContribution() { return builder.withCollectionContributi
 export function explicitContribution() { return builder.withCollectionContribution<typeof numbers, () => number>({ collectionToken: numbers, provider: () => 4 }); }
 type IsAny<T> = 0 extends (1 & T) ? true : false;
 export type ReflectedExact = [Assert<Equal<IsAny<ReturnType<typeof contribute>>, false>>,
-  Assert<Equal<IsAny<Parameters<typeof contribute>[1]>, false>>,
+  Assert<Equal<IsAny<Parameters<typeof contribute>[0]['provider']>, false>>,
   Assert<Equal<ReturnType<typeof inferredContribution>, ReturnType<typeof explicitContribution>>>];
 export const promisedKey = Symbol('promise'); export const promised = DiBag.token(promisedKey).forCollectionOf<Promise<number>>();
 export const promiseBag = DiBag.createBuilder().withCollectionContribution({ collectionToken: promised, provider: DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' }) }).buildContainer();

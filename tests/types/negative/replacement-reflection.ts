@@ -9,7 +9,7 @@ type View = ReturnType<typeof builder.replace>;
 const view: View = builder;
 
 const empty = DiBag.createBuilder();
-const erasedAdd = empty.register<{ value: () => number; consumer: () => number }>;
+const erasedAdd = empty.withServices<{ value: () => number; consumer: () => number }>;
 // diagnostic: is not assignable to type
 const erased: ReturnType<typeof erasedAdd> = builder;
 

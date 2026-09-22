@@ -112,11 +112,11 @@ test('alias cycles retain a useful lexical path', async () => {
 
 test('runtime rejects invalid alias selections without changing the builder', () => {
   const builder = DiBag.createBuilder().withServices({ value: () => 1 });
-  const alias = (...args: unknown[]) => Reflect.apply(builder.alias, builder, args);
-  expect(() => alias('value', 'value')).toThrow('duplicate registration');
-  expect(() => alias('copy', 'missing')).toThrow('existing');
-  expect(() => alias(Symbol('fake'), 'value')).toThrow('invalid token');
-  expect(() => alias('copy', { key: Symbol('fake') })).toThrow('invalid token');
+  const alias = (...args: unknown[]) => Reflect.apply(builder.withServiceAlias, builder, args);
+  expect(() => alias({ aliasKey: 'value', targetServiceKey: 'value' })).toThrow('duplicate registration');
+  expect(() => alias({ aliasKey: 'copy', targetServiceKey: 'missing' })).toThrow('existing');
+  expect(() => alias({ aliasKey: Symbol('fake'), targetServiceKey: 'value' })).toThrow('invalid token');
+  expect(() => alias({ aliasKey: 'copy', targetServiceKey: { key: Symbol('fake') } })).toThrow('invalid token');
   expect(builder.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer().resolve('copy')).toBe(1);
 });
 

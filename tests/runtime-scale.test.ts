@@ -29,7 +29,8 @@ test('closing a deep graph disposes every dependent before its dependency exactl
   ]));
   // The generated JavaScript-shaped graph exercises runtime depth independently
   // of TypeScript's finite-key admission. Every dependency is registered.
-  const bag = Reflect.apply(DiBag.createBuilder().register, DiBag.createBuilder(), [registrations]).build();
+  const added: any = Reflect.apply(DiBag.createBuilder().withServices, DiBag.createBuilder(), [registrations]);
+  const bag: any = Reflect.apply(added.buildContainer, added, []);
   const nodes = Array.from({ length: count }, (_, index) => bag.resolve(`p${index}`));
   for (let index = 0; index < count - 1; index++) nodes[index].link();
   const closing = bag.close();

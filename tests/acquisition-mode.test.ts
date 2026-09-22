@@ -135,7 +135,7 @@ test('invalid configuration, modes and classifier results fail explicitly', asyn
     expect(() => Reflect.apply(Core.fromFactory, undefined, [() => 1, options])).toThrow('acquisition');
   }
   const bad = Reflect.apply(Core.withConfiguration, undefined, [{ runtime: { isNativePromise: () => 'yes' } }]);
-  const bag = bad.createBuilder().register({ value: () => 1 }).build();
+  const bag = bad.createBuilder().withServices({ value: () => 1 }).buildContainer();
   expect(() => bag.resolve('value')).toThrow('boolean');
   await bag.close();
 });

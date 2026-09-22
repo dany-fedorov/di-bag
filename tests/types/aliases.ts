@@ -21,11 +21,11 @@ export const promisedKey = Symbol('promise'); export const promised = DiBag.toke
 export const promiseBag = DiBag.createBuilder().withServiceAlias({ aliasKey: 'promise', targetServiceKey: promised }).withTokenService(promised, DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' })).buildContainer();
 const promise = promiseBag.resolve('promise');
 export type PromiseExact = Assert<Equal<typeof promise, Promise<number>>>;
-const aliasMethod: typeof base.alias = base.alias;
-export const reflected = aliasMethod('other', 'value');
+const aliasMethod: typeof base.withServiceAlias = base.withServiceAlias;
+export const reflected = aliasMethod({ aliasKey: 'other', targetServiceKey: 'value' });
 export const explicit = base.withServiceAlias<'explicit', 'value'>({ aliasKey: 'explicit', targetServiceKey: 'value' });
-export type ReflectedParameters = Parameters<typeof base.alias>;
-export type ReflectedReturn = ReturnType<typeof base.alias>;
+export type ReflectedParameters = Parameters<typeof base.withServiceAlias>;
+export type ReflectedReturn = ReturnType<typeof base.withServiceAlias>;
 const root = DiBag.withLifetime(() => ({ id: 1 }), 'root');
 const rootConsumer = DiBag.withLifetime(({ copy }: { copy: { id: number } }) => copy, 'root');
 export const rootBag = DiBag.createBuilder().withServices({ root }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'root' }).withServices({ rootConsumer }).buildContainer();
@@ -56,11 +56,11 @@ const transientOverride = rootedTarget.createScope(['value'], { value: DiBag.wit
 transientOverride.createScope({ share: ['copy'] });
 
 type IsAny<T> = 0 extends (1 & T) ? true : false;
-export type ReflectedExact = [Assert<Equal<IsAny<ReturnType<typeof base.alias>>, false>>,
-  Assert<Equal<ReturnType<typeof base.alias>, typeof base>>];
+export type ReflectedExact = [Assert<Equal<IsAny<ReturnType<typeof base.withServiceAlias>>, false>>,
+  Assert<Equal<ReturnType<typeof base.withServiceAlias>, typeof base>>];
 const moduleBase = DiBag.createBuilder().withServices({ value: () => 1 });
-export type ModuleReflectedExact = [Assert<Equal<IsAny<ReturnType<typeof moduleBase.alias>>, false>>,
-  Assert<Equal<ReturnType<typeof moduleBase.alias>, typeof moduleBase>>];
+export type ModuleReflectedExact = [Assert<Equal<IsAny<ReturnType<typeof moduleBase.withServiceAlias>>, false>>,
+  Assert<Equal<ReturnType<typeof moduleBase.withServiceAlias>, typeof moduleBase>>];
 export function inferredAlias() { return base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }); }
 export function explicitAlias() { return base.withServiceAlias<'copy', 'value'>({ aliasKey: 'copy', targetServiceKey: 'value' }); }
 export type ConcreteUtilities = [Assert<Equal<ReturnType<typeof inferredAlias>, typeof named>>,
