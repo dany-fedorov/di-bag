@@ -44,9 +44,9 @@ beforeAll(async () => {
   await run(['npm', 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-package-lock', archive], classicPackageConsumer);
 });
 
-test('standalone archive contains root and node entries without removed adapters', () => {
-  for (const entry of ['dist/index.d.ts', 'dist/index.js', 'dist/node.d.ts', 'dist/node.js']) expect(packageArchiveFiles).toContain(entry);
-  expect(packageArchiveFiles.some(path => /(?:^|\/)(?:sas-box|val-box)\.(?:d\.ts|js)$/.test(path))).toBe(false);
+test('standalone archive contains only the root entry without removed package entries', () => {
+  for (const entry of ['dist/index.d.ts', 'dist/index.js']) expect(packageArchiveFiles).toContain(entry);
+  expect(packageArchiveFiles.some(path => /(?:^|\/)(?:node|sas-box|val-box)\.(?:d\.ts|js)$/.test(path))).toBe(false);
 });
 
 afterAll(() => {
@@ -95,7 +95,7 @@ test('feature library inferred token exports survive declaration emission', () =
 });
 
 for (const mode of ['commonjs', 'module'] as const) {
-  test(`classic installed ${mode} archive rejects removed box package entry points`, async () => {
+  test(`classic installed ${mode} archive rejects removed package entry points`, async () => {
     expect(existsSync(join(classicPackageConsumer, 'node_modules/sas-box'))).toBe(false);
     expect(existsSync(join(classicPackageConsumer, 'node_modules/val-box'))).toBe(false);
     const load = mode === 'commonjs'
@@ -103,10 +103,10 @@ for (const mode of ['commonjs', 'module'] as const) {
       : "async specifier => { try { await import(specifier); } catch (error) { return error.code; } }";
     const stdout = await run(['node', `--input-type=${mode}`, '--eval', `
       const load = ${load};
-      Promise.all(['di-bag/sas-box', 'di-bag/val-box'].map(load))
+      Promise.all(['di-bag/node', 'di-bag/sas-box', 'di-bag/val-box'].map(load))
         .then(codes => console.log(JSON.stringify(codes)));
     `], classicPackageConsumer);
-    expect(JSON.parse(stdout)).toEqual(['ERR_PACKAGE_PATH_NOT_EXPORTED', 'ERR_PACKAGE_PATH_NOT_EXPORTED']);
+    expect(JSON.parse(stdout)).toEqual(['ERR_PACKAGE_PATH_NOT_EXPORTED', 'ERR_PACKAGE_PATH_NOT_EXPORTED', 'ERR_PACKAGE_PATH_NOT_EXPORTED']);
   });
 
   test(`classic installed ${mode} archive returns the full adversarial oracle`, async () => {
@@ -123,13 +123,13 @@ for (const mode of ['commonjs', 'module'] as const) {
     const load = mode === 'commonjs' ? "const { DiBag } = require('di-bag');" : "import { DiBag } from 'di-bag';";
     const stdout = await run(['node', `--input-type=${mode}`, '--eval', `${load}
       (async () => {
-        const bag = DiBag.createBuilder().withServices({ answer: async () => 42, same: () => Promise.resolve(1) }).buildContainer();
-        const answer = await bag.resolve('answer');
-        await bag.close();
-        console.log(JSON.stringify({ answer }));
+        const container = DiBag.createBuilder().withServices({ promised: () => Promise.resolve(42) }).buildContainer();
+        const promised = await container.resolve('promised');
+        await container.close();
+        console.log(JSON.stringify({ promised }));
       })();
     `], classicPackageConsumer);
-    expect(JSON.parse(stdout)).toEqual({ answer: 42 });
+    expect(JSON.parse(stdout)).toEqual({ promised: 42 });
   });
 
   test(`Node ${mode} consumers can resolve and dispose through the public package`, async () => {

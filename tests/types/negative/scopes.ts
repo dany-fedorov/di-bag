@@ -29,7 +29,7 @@ const exportless = DiBag.createBuilder().withServices({
 const constrainedChild = DiBag.createBuilder().withInstalledModules([exportless]).withServices({
   external: () => ({ exact: true as const }),
 }).buildContainer().createChildContainer();
-// diagnostic: is not assignable to type 'Bag
+// diagnostic: is not assignable to type 'Container
 const lostConstraint: Container<{ external: () => { readonly exact: true } }> = constrainedChild;
 void token;
 void lostConstraint;

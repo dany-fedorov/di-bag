@@ -6,7 +6,7 @@
 
 Defined in: [inspection.ts:69](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L69)
 
-A frozen description of every binding a bag can resolve, plus the edges observed so far.
+A frozen description of every binding a container can resolve, plus the edges observed so far.
 Named dependencies read from a factory's object parameter are not knowable until the factory
 runs; `observedEdges` records them after acquisition. Use the static graph tool for declared edges.
 
@@ -52,7 +52,7 @@ readonly observedEdges: readonly {
 
 Defined in: [inspection.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L75)
 
-Consumer-to-dependency edges recorded by acquisitions in this bag's ownership family.
+Consumer-to-dependency edges recorded by acquisitions in this container's ownership family.
 
 ***
 

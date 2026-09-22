@@ -144,7 +144,7 @@ test('close({ waitTimeoutMs }) rejects naming the never-settling disposer and ke
   expect(error.code).toBe('DI_BAG_CLOSE_TIMEOUT');
   expect(error.reason).toBe('timeout');
   expect(error.details).toEqual({ operation: 'close', reason: 'timeout', waitTimeoutMs: 1, disposersStillRunning: ['stuck'], acquisitionsStillPending: [] });
-  expect(error.message).toBe(`DI_BAG_CLOSE_TIMEOUT: Bag close timed out after 1ms; disposers still running: stuck; see ${page}#di-bag-close-timeout`);
+  expect(error.message).toBe(`DI_BAG_CLOSE_TIMEOUT: Container close timed out after 1ms; disposers still running: stuck; see ${page}#di-bag-close-timeout`);
   expect(error.cause.name).toBe('TimeoutError');
   expect(error.cause.code).toBe('DI_BAG_CLOSE_TIMEOUT');
   expect(() => bag.resolve('fast')).toThrow('DI_BAG_CLOSING');

@@ -47,10 +47,6 @@
             "link": "/reference/index/interfaces/AcquisitionSnapshot.md"
           },
           {
-            "text": "Bag",
-            "link": "/reference/index/interfaces/Bag.md"
-          },
-          {
             "text": "BindingSnapshot",
             "link": "/reference/index/interfaces/BindingSnapshot.md"
           },
@@ -91,6 +87,10 @@
             "link": "/reference/index/interfaces/ConfigurationOptions.md"
           },
           {
+            "text": "Container",
+            "link": "/reference/index/interfaces/Container.md"
+          },
+          {
             "text": "DiBagApi",
             "link": "/reference/index/interfaces/DiBagApi.md"
           },
@@ -119,6 +119,10 @@
             "link": "/reference/index/interfaces/GraphSnapshot.md"
           },
           {
+            "text": "LifecycleObserver",
+            "link": "/reference/index/interfaces/LifecycleObserver.md"
+          },
+          {
             "text": "Module",
             "link": "/reference/index/interfaces/Module.md"
           },
@@ -129,10 +133,6 @@
           {
             "text": "ObserverFailure",
             "link": "/reference/index/interfaces/ObserverFailure.md"
-          },
-          {
-            "text": "ObserverOptions",
-            "link": "/reference/index/interfaces/ObserverOptions.md"
           },
           {
             "text": "PluginOptions",
@@ -217,12 +217,12 @@
             "link": "/reference/index/type-aliases/CheckDependencyCompleteness.md"
           },
           {
-            "text": "CheckedLifetimes",
-            "link": "/reference/index/type-aliases/CheckedLifetimes.md"
+            "text": "CheckedChildContainerLifetimes",
+            "link": "/reference/index/type-aliases/CheckedChildContainerLifetimes.md"
           },
           {
-            "text": "CheckedScopeLifetimes",
-            "link": "/reference/index/type-aliases/CheckedScopeLifetimes.md"
+            "text": "CheckedLifetimes",
+            "link": "/reference/index/type-aliases/CheckedLifetimes.md"
           },
           {
             "text": "CollectionItem",
@@ -257,6 +257,14 @@
             "link": "/reference/index/type-aliases/ContributionConstraint.md"
           },
           {
+            "text": "CreateChildContainerOptions",
+            "link": "/reference/index/type-aliases/CreateChildContainerOptions.md"
+          },
+          {
+            "text": "CreateIndependentContainerOptions",
+            "link": "/reference/index/type-aliases/CreateIndependentContainerOptions.md"
+          },
+          {
             "text": "DependencyReference",
             "link": "/reference/index/type-aliases/DependencyReference.md"
           },
@@ -265,8 +273,8 @@
             "link": "/reference/index/type-aliases/DiBagErrorCode.md"
           },
           {
-            "text": "DisjointScopeSelection",
-            "link": "/reference/index/type-aliases/DisjointScopeSelection.md"
+            "text": "DisjointChildContainerSelection",
+            "link": "/reference/index/type-aliases/DisjointChildContainerSelection.md"
           },
           {
             "text": "LazyDependency",
@@ -433,10 +441,6 @@
             "link": "/reference/index/type-aliases/ScopedAliases.md"
           },
           {
-            "text": "ScopeOptions",
-            "link": "/reference/index/type-aliases/ScopeOptions.md"
-          },
-          {
             "text": "SealedConstraints",
             "link": "/reference/index/type-aliases/SealedConstraints.md"
           },
@@ -501,23 +505,6 @@
           {
             "text": "DiBag",
             "link": "/reference/index/variables/DiBag.md"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "text": "node",
-    "link": "/reference/node/",
-    "collapsed": true,
-    "items": [
-      {
-        "text": "Variables",
-        "collapsed": true,
-        "items": [
-          {
-            "text": "DiBag",
-            "link": "/reference/node/variables/DiBag.md"
           }
         ]
       }

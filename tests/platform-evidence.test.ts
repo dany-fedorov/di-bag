@@ -223,12 +223,11 @@ test('tool verification rejects malformed pins and unavailable executables befor
 const packageDocument = {
   exports: {
     '.': { types: './dist/index.d.ts', default: './dist/index.js' },
-    './node': { types: './dist/node.d.ts', default: './dist/node.js' },
   },
 };
 const packedFiles = [
   'package.json', 'README.md', 'LICENSE',
-  'dist/index.d.ts', 'dist/index.js', 'dist/node.d.ts', 'dist/node.js',
+  'dist/index.d.ts', 'dist/index.js',
   'dist/internal.js',
 ];
 
@@ -285,9 +284,9 @@ test('packed archive validation catches a missing archive, changed bytes and sta
   writeFileSync(archivePath, 'not an archive');
   const fake = { ...archive, sha256: hash('not an archive') };
   expect(() => validatePackedArchive(fake)).toThrow('not a gzip tar archive');
-  const missingActual = tarArchive(Object.fromEntries(Object.entries(contents).filter(([path]) => path !== 'dist/node.js')));
+  const missingActual = tarArchive(Object.fromEntries(Object.entries(contents).filter(([path]) => path !== 'dist/index.js')));
   writeFileSync(archivePath, missingActual);
-  expect(() => validatePackedArchive({ ...archive, sha256: createHash('sha256').update(missingActual).digest('hex') })).toThrow('archive bytes are missing dist/node.js');
+  expect(() => validatePackedArchive({ ...archive, sha256: createHash('sha256').update(missingActual).digest('hex') })).toThrow('archive bytes are missing dist/index.js');
   const paxOverride = tarArchiveEntries([
     ...Object.entries(contents).filter(([path]) => path !== 'dist/index.js').map(([path, entryContents]) => ({
       path, contents: entryContents,
@@ -398,7 +397,7 @@ test('platform command writes one sorted matrix and executes every provisioned l
     { lane: 'browser-worker-minified', status: browserReady ? 'pass' : 'unavailable' },
   ]);
   expect((result.rows[0].archive as { files: readonly string[] }).files).toEqual(expect.arrayContaining([
-    'dist/index.js', 'dist/node.js',
+    'dist/index.js',
   ]));
   expect(result.rows[0]).toMatchObject({
     tools: {

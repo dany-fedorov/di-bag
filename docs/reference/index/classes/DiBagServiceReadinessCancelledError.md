@@ -6,7 +6,7 @@
 
 Defined in: [errors.ts:151](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L151)
 
-`ensureServicesReady` stopped waiting on abort or timeout; this bag is closing and `disposalPromise` settles when it has closed.
+`ensureServicesReady` stopped waiting on abort or timeout; this container is closing and `disposalPromise` settles when it has closed.
 `details` names what was still in progress. On timeout, `cause` carries `DI_BAG_SERVICE_READINESS_TIMEOUT`.
 
 ## Example
@@ -14,9 +14,9 @@ Defined in: [errors.ts:151](https://github.com/dany-fedorov/di-bag/blob/main/src
 ```ts
 import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
 
-const bag = DiBag.createBuilder().withServices({ db: () => new Promise<number>(() => {}) }).buildContainer();
+const container = DiBag.createBuilder().withServices({ db: () => new Promise<number>(() => {}) }).buildContainer();
 try {
-  await bag.ensureServicesReady(['db'], { totalTimeoutMs: 1_000 });
+  await container.ensureServicesReady(['db'], { totalTimeoutMs: 1_000 });
 } catch (error) {
   if (error instanceof DiBagServiceReadinessCancelledError) console.error(error.details.acquisitionsStillPending);
 }
@@ -42,7 +42,7 @@ Defined in: [errors.ts:161](https://github.com/dany-fedorov/di-bag/blob/main/src
 | ------ | ------ |
 | `reason` | Whether an external abort or the deadline cancelled the wait. |
 | `cause` | The abort reason or the generated timeout error. |
-| `disposalPromise` | Eventual shutdown of this bag; cancellation does not await it. |
+| `disposalPromise` | Eventual shutdown of this container; cancellation does not await it. |
 | `progress` | Labels still in progress when the wait stopped. |
 | `totalTimeoutMs?` | The deadline that elapsed, for `reason: 'timeout'`. |
 
@@ -86,7 +86,7 @@ readonly disposalPromise: Promise<void>;
 
 Defined in: [errors.ts:164](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L164)
 
-Eventual shutdown of this bag; cancellation does not await it.
+Eventual shutdown of this container; cancellation does not await it.
 
 ***
 

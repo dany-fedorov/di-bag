@@ -12,11 +12,10 @@ return types, and links to source declarations.
 | Entry point | What it exposes |
 | --- | --- |
 | [`di-bag`](../reference/index/index.md) | Portable facade, public types, and structured library errors. |
-| [`di-bag/node`](../reference/node/index.md) | The same API with Node/Bun native-Promise detection configured. |
 
 Start with the [`DiBagApi`](../reference/index/interfaces/DiBagApi.md),
 [`Builder`](../reference/index/interfaces/Builder.md), and
-[`Bag`](../reference/index/interfaces/Bag.md). The same builder seals a reusable
+[`Container`](../reference/index/interfaces/Container.md). The same builder seals a reusable
 [`Module`](../reference/index/interfaces/Module.md). The reference represents
 these type-only exports as interfaces; construct values through `DiBag`.
 
@@ -182,7 +181,7 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | --- | --- |
 | [`DiBagApi`](../reference/index/interfaces/DiBagApi.md) | The complete `DiBag` method surface, including configured and observed facades. |
 | [`ConfigurationOptions`](../reference/index/interfaces/ConfigurationOptions.md) | Runtime classification and observer options for `withConfiguration`. |
-| [`Builder`](../reference/index/interfaces/Builder.md), [`Bag`](../reference/index/interfaces/Bag.md) | A checked immutable builder and a resolving/owning bag. |
+| [`Builder`](../reference/index/interfaces/Builder.md), [`Container`](../reference/index/interfaces/Container.md) | A checked immutable builder and a resolving/owning bag. |
 | [`Module`](../reference/index/interfaces/Module.md) | A sealed export view of a builder graph, installable in other builders. |
 | [`Registration`](../reference/index/type-aliases/Registration.md), [`FactoryWithDisposal`](../reference/index/interfaces/FactoryWithDisposal.md) | Accepted registration shapes and an owned factory description. |
 | [`Provider`](../reference/index/interfaces/Provider.md) | A provider description retaining its factory, metadata, frames, graph contracts, and acquired-value type. |
@@ -190,7 +189,7 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | [`Lifetime`](../reference/index/type-aliases/Lifetime.md) | The `'root'`, `'scoped'`, and `'transient'` caching choices. |
 | [`AcquisitionContext`](../reference/index/interfaces/AcquisitionContext.md), [`ContextualFactory`](../reference/index/type-aliases/ContextualFactory.md) | Factory cancellation context (`signal`) and the adapted contextual factory signature. |
 | [`EnsureServicesReadyOptions`](../reference/index/interfaces/EnsureServicesReadyOptions.md) | Optional `abortSignal`, `totalTimeoutMs`, and `maxConcurrentServiceKeys` fields for `ensureServicesReady`. |
-| [`ScopeOptions`](../reference/index/type-aliases/ScopeOptions.md) | The checked `share` selection accepted by `createScope`. |
+| [`CreateChildContainerOptions`](../reference/index/type-aliases/CreateChildContainerOptions.md), [`CreateIndependentContainerOptions`](../reference/index/type-aliases/CreateIndependentContainerOptions.md) | Checked selections accepted when deriving child and independent containers. |
 | [`Token`](../reference/index/interfaces/Token.md), [`TokenBase`](../reference/index/interfaces/TokenBase.md), [`TokenKey`](../reference/index/type-aliases/TokenKey.md), [`TokenService`](../reference/index/type-aliases/TokenService.md) | Typed token identity, its common handle type, and key/service projections. |
 | [`OptionalDependency`](../reference/index/type-aliases/OptionalDependency.md), [`LazyDependency`](../reference/index/type-aliases/LazyDependency.md), [`DependencyReference`](../reference/index/type-aliases/DependencyReference.md) | The token reference forms accepted in positional dependency tuples. |
 | [`CompositionArguments`](../reference/index/type-aliases/CompositionArguments.md), [`CompositionFunction`](../reference/index/type-aliases/CompositionFunction.md) | Positional argument compatibility and callback signatures for function/constructor adaptation. |
@@ -199,7 +198,7 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | `GraphSnapshot`, `BindingSnapshot` | The frozen result of `inspectGraph()` and its per-binding entries. |
 | [`CleanupFailure`](../reference/index/interfaces/CleanupFailure.md) | The detached acquisition identity, label, and original cleanup error. |
 | [`DiBagErrorCode`](../reference/index/type-aliases/DiBagErrorCode.md), [`DiBagDiagnostic`](../reference/index/interfaces/DiBagDiagnostic.md) | Stable library error codes and their structured diagnostic fields. |
-| [`ObserverOptions`](../reference/index/interfaces/ObserverOptions.md), [`ObserverCallback`](../reference/index/type-aliases/ObserverCallback.md), [`ObserverErrorCallback`](../reference/index/type-aliases/ObserverErrorCallback.md) | Observer configuration and its event/failure callbacks. |
+| [`LifecycleObserver`](../reference/index/interfaces/LifecycleObserver.md), [`ObserverCallback`](../reference/index/type-aliases/ObserverCallback.md), [`ObserverErrorCallback`](../reference/index/type-aliases/ObserverErrorCallback.md) | Observer configuration and its event/failure callbacks. |
 | [`LifecycleEvent`](../reference/index/type-aliases/LifecycleEvent.md), [`ObserverFailure`](../reference/index/interfaces/ObserverFailure.md), [`ScopeEventFields`](../reference/index/interfaces/ScopeEventFields.md), [`AcquisitionEventFields`](../reference/index/interfaces/AcquisitionEventFields.md) | Discriminated lifecycle events and observer failure context. |
 | [`PluginAcquisitionMode`](../reference/index/type-aliases/PluginAcquisitionMode.md), [`PluginOptions`](../reference/index/interfaces/PluginOptions.md), [`PluginOutputValidator`](../reference/index/type-aliases/PluginOutputValidator.md), [`PluginProvider`](../reference/index/type-aliases/PluginProvider.md) | Plugin mode, validation options, output predicate, and resulting provider. |
 | [`PluginProviderFactory`](../reference/index/type-aliases/PluginProviderFactory.md) | The callable type of `DiBag.fromPlugin`; use it directly as a type. |
@@ -239,13 +238,13 @@ contracts; they do not perform runtime validation.
 | [`Contribution`](../reference/index/type-aliases/Contribution.md), [`ContributionConstraint`](../reference/index/type-aliases/ContributionConstraint.md) | Describe an ordered contribution and its retained requirements. |
 | [`ModuleContributions`](../reference/index/type-aliases/ModuleContributions.md), [`ModuleContributionConstraints`](../reference/index/type-aliases/ModuleContributionConstraints.md) | Preserve contributions and their requirements in modules. |
 | [`BuilderWithCollectionContribution`](../reference/index/type-aliases/BuilderWithCollectionContribution.md) | The checked collection-contribution callable on the builder. |
-| [`DisjointScopeSelection`](../reference/index/type-aliases/DisjointScopeSelection.md) | Enforce separate override and sharing selections. |
+| [`DisjointChildContainerSelection`](../reference/index/type-aliases/DisjointChildContainerSelection.md) | Enforce separate override and sharing selections. |
 | [`UnsharedAliases`](../reference/index/type-aliases/UnsharedAliases.md), [`ScopedAliases`](../reference/index/type-aliases/ScopedAliases.md), [`SharedAliasProviders`](../reference/index/type-aliases/SharedAliasProviders.md) | Preserve alias contracts as scopes inherit or explicitly share services. |
-| [`CheckedLifetimes`](../reference/index/type-aliases/CheckedLifetimes.md), [`CheckedScopeLifetimes`](../reference/index/type-aliases/CheckedScopeLifetimes.md) | Check root capture and lifetime compatibility in completed graphs and scope overrides. |
+| [`CheckedLifetimes`](../reference/index/type-aliases/CheckedLifetimes.md), [`CheckedChildContainerLifetimes`](../reference/index/type-aliases/CheckedChildContainerLifetimes.md) | Check root capture and lifetime compatibility in completed graphs and scope overrides. |
 | [`LifetimeObligation`](../reference/index/type-aliases/LifetimeObligation.md), [`Reach`](../reference/index/type-aliases/Reach.md) | Compact seal-time lifetime records a module retains instead of its private registrations. |
 
 The authoritative export lists are [`src/index.ts`](../../src/index.ts) and
-[`src/node.ts`](../../src/node.ts).
+`src/node.ts`.
 Internal helpers in other source files are not package exports.
 
 ## Boundaries

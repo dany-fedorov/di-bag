@@ -22,7 +22,7 @@ readonly signal: AbortSignal;
 
 Defined in: [acquisition-context.ts:31](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L31)
 
-Aborted when the acquisition's owning scope begins closing.
+Aborted when the acquisition's owning container begins closing.
 
 ## Methods
 

@@ -24,8 +24,8 @@ function freshCollectionView(value: unknown): readonly unknown[] {
 /**
  * The reason a close() without a cause aborts with. Built once at load: an error
  * created inside close() keeps an unformatted stack whose frames retain the
- * closing callbacks, and through them the scope and its graph, on every signal an
- * application kept after the bag closed. It stays a plain `AbortError`, so its
+ * closing callbacks, and through them the owning container and its graph, on every signal an
+ * application kept after the container closed. It stays a plain `AbortError`, so its
  * legacy numeric `code` is what an automatic abort reason had; the message names
  * the diagnostic.
  */
@@ -186,7 +186,7 @@ export class ScopeAcquisitions {
     return this.closing;
   }
 
-  /** Labels of this scope's running disposers and of acquisitions close is still draining. */
+  /** Labels of this container's running disposers and of acquisitions close is still draining. */
   collectProgress(pending: string[], acquiring: string[]): void {
     for (const attempt of this.attempts.values()) {
       if (attempt.state === 'disposing' || this.retired.has(attempt.id) || attempt.execution.rollingBack) pending.push(attempt.label);
@@ -194,7 +194,7 @@ export class ScopeAcquisitions {
     }
   }
 
-  /** One controller per scope; every acquisition observes the same cancellation. */
+  /** One controller per container; every acquisition observes the same cancellation. */
   private cancellationSignal(): AbortSignal {
     if (!this.controller) {
       this.controller = new AbortController();
@@ -204,12 +204,12 @@ export class ScopeAcquisitions {
   }
 
   /**
-   * The signal is scope-wide; deferred cleanup is local to this attempt, so each
+   * The signal is container-wide; deferred cleanup is local to this attempt, so each
    * contextual acquisition receives its own frozen context. The context captures
-   * only its disposer stack, never the execution or this scope, so an
+   * only its disposer stack, never the execution or this container, so an
    * application that retains it past `close()` retains nothing else. Built here
    * rather than in `resolveBinding` for the same reason: every closure of a
-   * function shares one scope, and a factory can retain the dependency proxy.
+   * function shares one owning container, and a factory can retain the dependency proxy.
    */
   private acquisitionContext(disposers: DisposerStack): AcquisitionContext {
     return Object.freeze({

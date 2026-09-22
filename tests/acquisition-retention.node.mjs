@@ -7,7 +7,7 @@ import { test } from 'node:test';
 // WeakRef targets survive their current job. Always yield before forcing GC.
 // Run: node --expose-gc --test --test-isolation=none tests/acquisition-retention.node.mjs
 const require = createRequire(import.meta.url);
-const entry = resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/node.js');
+const entry = resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/index.js');
 const { DiBag } = require(entry);
 assert.equal(typeof globalThis.gc, 'function', 'this suite requires --expose-gc');
 const transient = provider => DiBag.withLifetime(provider, 'transient');

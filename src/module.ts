@@ -21,7 +21,7 @@ interface ModuleDescription {
 export interface ModuleOptions {
   /**
    * Name each installation's private bindings `<moduleLabel>/<key>` in error messages, cycle paths,
-   * `inspectGraph()`, and observer events. Nested labels compose: `outer/inner/key`.
+   * `graphSnapshot()`, and observer events. Nested labels compose: `outer/inner/key`.
    * Exported bindings keep their bare key.
    */
   readonly moduleLabel?: string;
@@ -48,29 +48,6 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
   constructor(description: ModuleDescription) {
     descriptions.set(this, { graph: description.graph, exports: new Map(description.exports), label: description.label });
     Object.freeze(this);
-  }
-
-  /**
-   * Return a module view with one string-named export renamed.
-   * Factory dependency names and private identities remain unchanged.
-   * @param oldKey - An existing public string export.
-   * @param newKey - A noncolliding string-literal export name.
-   * @returns A new sealed module, or the same instance when both names are equal.
-   * @throws If runtime input names are invalid, absent, or collide.
-   */
-  renameExport<const Old extends string, const New extends string>(
-    oldKey: Old & RenameKeys<ExportedServices, Old, New>, newKey: New & RenameKeys<ExportedServices, Old, New>,
-  ): Module<Renamed<ExportedServices, Old, New>, RequiredServices, RenamedConstraints<Constraints, Old, New>, RenamedProviders<PublicProviders, Old, New>> {
-    const description = descriptions.get(this)!;
-    if (typeof oldKey !== 'string' || !description.exports.has(oldKey)) throw libraryError('DI_BAG_INVALID_EXPORT', 'renameExport requires an existing export', { operation: 'renameExport', oldKey, newKey });
-    if (typeof newKey !== 'string') throw libraryError('DI_BAG_INVALID_EXPORT', 'renameExport requires a string name', { operation: 'renameExport', oldKey, newKey });
-    if (oldKey as string === newKey) return this as unknown as Module<Renamed<ExportedServices, Old, New>, RequiredServices, RenamedConstraints<Constraints, Old, New>, RenamedProviders<PublicProviders, Old, New>>;
-    if (description.exports.has(newKey)) throw libraryError('DI_BAG_INVALID_EXPORT', `duplicate export: ${newKey}`, { operation: 'renameExport', oldKey, newKey });
-    const exports = new Map(description.exports);
-    const localName = exports.get(oldKey)!;
-    exports.delete(oldKey);
-    exports.set(newKey, localName);
-    return new Module({ graph: description.graph, exports, label: description.label });
   }
 
   /**

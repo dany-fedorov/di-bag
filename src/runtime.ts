@@ -271,7 +271,7 @@ export class BindingGraph {
 
   /**
    * Return the context acquisitions use, resolving the host classifier before any factory runs.
-   * Immutable graphs need explicit-mode validation only once; configured forks are O(1).
+   * Immutable graphs need explicit-mode validation only once; configured independent containers are O(1).
    * A host without a classifier gets every automatic registration named, so the fix is one pass.
    */
   preflight(context: RuntimeContext): RuntimeContext {

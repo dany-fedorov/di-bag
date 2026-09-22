@@ -232,7 +232,7 @@ export type Overrides<
   F extends Registrations,
   O extends Registrations,
   K extends readonly unknown[] = readonly [],
-  Operation extends string = 'fork',
+  Operation extends string = 'createIndependentContainer',
 > = unknown extends CollectionOverrideAdmission<K, O>
   ? [Exclude<keyof O, keyof SelectionRegistrations<F, K>>] extends [never]
     ? [BadOverrides<SelectionRegistrations<F, K>, O>] extends [never]
@@ -323,7 +323,7 @@ type MissingSelectionKeys<R extends Registrations, T> = T extends CollectionToke
  * Validate a finite tuple of existing singleton names or genuine typed tokens.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
  */
-export type Selection<R extends Registrations, C, K extends readonly unknown[], Operation extends string = 'fork'> =
+export type Selection<R extends Registrations, C, K extends readonly unknown[], Operation extends string = 'createIndependentContainer'> =
   true extends IsUnion<K>
     ? InvalidSelection<Operation>
     : number extends K['length']
@@ -388,7 +388,7 @@ export type AppliedSelection<R extends Registrations, K extends readonly unknown
 // A graph-compatible bound gives context-sensitive factories a usable first
 // inference pass, while requiring every selected key in explicit type arguments.
 /**
- * Contextual override shape used to infer a selected fork or child-scope graph.
+ * Contextual replacement shape used to infer a selected independent- or child-container graph.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
  */
 export type OverrideFactoryContext<

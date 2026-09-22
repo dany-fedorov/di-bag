@@ -1,5 +1,15 @@
 import { DiBag } from '../../../src';
 // diagnostic: no exported member
+import type { Bag } from '../../../src';
+// diagnostic: no exported member
+import type { ScopeOptions } from '../../../src';
+// diagnostic: no exported member
+import type { CheckedScopeLifetimes } from '../../../src';
+// diagnostic: no exported member
+import type { DisjointScopeSelection } from '../../../src';
+// diagnostic: no exported member
+import type { ObserverOptions } from '../../../src';
+// diagnostic: no exported member
 import type { BuilderContribute } from '../../../src';
 const base = DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' });
 // diagnostic: No overload matches
@@ -67,3 +77,26 @@ retiredBuilder.verifyGraph();
 retiredBuilder.build();
 // diagnostic: exportedServiceKeys
 DiBag.createBuilder().withServices({ value: () => 1 }).buildModule(['value']);
+
+const retiredContainer = DiBag.createBuilder().buildContainer();
+// diagnostic: does not exist
+retiredContainer.inspect('value');
+// diagnostic: does not exist
+retiredContainer.inspectCollection('value');
+// diagnostic: does not exist
+retiredContainer.inspectGraph();
+// diagnostic: does not exist
+retiredContainer.createScope();
+// diagnostic: does not exist
+retiredContainer.fork();
+
+const moduleForRename = DiBag.createBuilder().withServices({ value: () => 1 }).buildModule({ exportedServiceKeys: ['value'] });
+// diagnostic: does not exist
+moduleForRename.renameExport('value', 'other');
+// diagnostic: does not exist
+DiBag.withConfiguration({ observers: [] });
+const lifecycleObserver = { onLifecycleEvent() {}, onObserverFailure() {} } satisfies import('../../../src').LifecycleObserver;
+// diagnostic: does not exist
+lifecycleObserver.onEvent;
+// diagnostic: does not exist
+lifecycleObserver.onError;

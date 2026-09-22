@@ -77,8 +77,8 @@ export class DiBagPluginValidationError extends Error {
  * ```ts
  * import { DiBag, DiBagCleanupError } from 'di-bag';
  *
- * const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
- * await bag.close().catch((error: unknown) => {
+ * const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+ * await container.close().catch((error: unknown) => {
  *   if (error instanceof DiBagCleanupError) for (const failure of error.failures) console.error(failure.label, failure.error);
  * });
  * ```
@@ -100,15 +100,15 @@ export class DiBagCleanupError extends AggregateError {
 }
 
 /**
- * `ensureServicesReady` could not make a listed service ready, and this bag is now closed.
- * `cause` is the original failure and `disposalFailures` lists disposers that failed while the bag closed.
+ * `ensureServicesReady` could not make a listed service ready, and this container is now closed.
+ * `cause` is the original failure and `disposalFailures` lists disposers that failed while the container closed.
  * @example
  * ```ts
  * import { DiBag, DiBagServiceReadinessError } from 'di-bag';
  *
- * const bag = DiBag.createBuilder().withServices({ db: async (): Promise<number> => { throw new Error('offline'); } }).buildContainer();
+ * const container = DiBag.createBuilder().withServices({ db: async (): Promise<number> => { throw new Error('offline'); } }).buildContainer();
  * try {
- *   await bag.ensureServicesReady(['db']);
+ *   await container.ensureServicesReady(['db']);
  * } catch (error) {
  *   if (error instanceof DiBagServiceReadinessError) console.error(error.cause, error.disposalFailures);
  * }
@@ -117,12 +117,12 @@ export class DiBagCleanupError extends AggregateError {
 export class DiBagServiceReadinessError extends Error {
   declare readonly code: 'DI_BAG_SERVICE_READINESS_FAILED';
   declare readonly details: Readonly<Record<string, unknown>>;
-  /** Frozen disposal failures in invocation order, collected while this bag closed. */
+  /** Frozen disposal failures in invocation order, collected while this container closed. */
   readonly disposalFailures: readonly CleanupFailure[];
 
   /**
    * @param cause - The original failure of a listed service or of one of its dependencies.
-   * @param disposalFailures - Structured failures collected while closing the bag.
+   * @param disposalFailures - Structured failures collected while closing the container.
    * @param disposalError - The complete shutdown error, when closing itself rejected.
    */
   constructor(cause: unknown, disposalFailures: readonly CleanupFailure[], readonly disposalError?: unknown) {
@@ -134,15 +134,15 @@ export class DiBagServiceReadinessError extends Error {
 }
 
 /**
- * `ensureServicesReady` stopped waiting on abort or timeout; this bag is closing and `disposalPromise` settles when it has closed.
+ * `ensureServicesReady` stopped waiting on abort or timeout; this container is closing and `disposalPromise` settles when it has closed.
  * `details` names what was still in progress. On timeout, `cause` carries `DI_BAG_SERVICE_READINESS_TIMEOUT`.
  * @example
  * ```ts
  * import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
  *
- * const bag = DiBag.createBuilder().withServices({ db: () => new Promise<number>(() => {}) }).buildContainer();
+ * const container = DiBag.createBuilder().withServices({ db: () => new Promise<number>(() => {}) }).buildContainer();
  * try {
- *   await bag.ensureServicesReady(['db'], { totalTimeoutMs: 1_000 });
+ *   await container.ensureServicesReady(['db'], { totalTimeoutMs: 1_000 });
  * } catch (error) {
  *   if (error instanceof DiBagServiceReadinessCancelledError) console.error(error.details.acquisitionsStillPending);
  * }
@@ -154,7 +154,7 @@ export class DiBagServiceReadinessCancelledError extends Error {
   /**
    * @param reason - Whether an external abort or the deadline cancelled the wait.
    * @param cause - The abort reason or the generated timeout error.
-   * @param disposalPromise - Eventual shutdown of this bag; cancellation does not await it.
+   * @param disposalPromise - Eventual shutdown of this container; cancellation does not await it.
    * @param progress - Labels still in progress when the wait stopped.
    * @param totalTimeoutMs - The deadline that elapsed, for `reason: 'timeout'`.
    */
@@ -196,9 +196,9 @@ export interface CloseProgress {
  * ```ts
  * import { DiBag, DiBagCloseCancelledError } from 'di-bag';
  *
- * const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+ * const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
  * try {
- *   await bag.close({ waitTimeoutMs: 5_000 });
+ *   await container.close({ waitTimeoutMs: 5_000 });
  * } catch (error) {
  *   if (error instanceof DiBagCloseCancelledError) console.error(error.details.disposersStillRunning);
  *   throw error;
@@ -211,7 +211,7 @@ export class DiBagCloseCancelledError extends Error {
   /**
    * @param reason - Whether an external abort or the close deadline stopped the wait.
    * @param cause - The abort reason, or a `TimeoutError` DOMException for the deadline.
-   * @param cleanupPromise - The bag's shared shutdown promise; it settles when cleanup eventually finishes.
+   * @param cleanupPromise - The container's shared shutdown promise; it settles when cleanup eventually finishes.
    * @param progress - Labels still in progress when the wait stopped.
    * @param waitTimeoutMs - The deadline that elapsed, for `reason: 'timeout'`.
    */
@@ -225,7 +225,7 @@ export class DiBagCloseCancelledError extends Error {
     const code = reason === 'timeout' ? 'DI_BAG_CLOSE_TIMEOUT' : 'DI_BAG_CLOSE_ABORTED';
     const waiting = progress.disposersStillRunning.length ? `; disposers still running: ${progress.disposersStillRunning.join(', ')}`
       : progress.acquisitionsStillPending.length ? `; acquisitions still pending: ${progress.acquisitionsStillPending.join(', ')}` : '';
-    super(diagnosticMessage(code, `Bag close ${reason === 'timeout' ? `timed out after ${waitTimeoutMs}ms` : 'aborted'}${waiting}`), { cause });
+    super(diagnosticMessage(code, `Container close ${reason === 'timeout' ? `timed out after ${waitTimeoutMs}ms` : 'aborted'}${waiting}`), { cause });
     this.name = 'DiBagCloseCancelledError';
     diagnostic(this, code, {
       operation: 'close', reason, ...(waitTimeoutMs === undefined ? {} : { waitTimeoutMs }),

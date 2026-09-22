@@ -14,8 +14,8 @@ One or more disposers failed during `close()`; every cleanup was still attempted
 ```ts
 import { DiBag, DiBagCleanupError } from 'di-bag';
 
-const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
-await bag.close().catch((error: unknown) => {
+const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+await container.close().catch((error: unknown) => {
   if (error instanceof DiBagCleanupError) for (const failure of error.failures) console.error(failure.label, failure.error);
 });
 ```

@@ -6,7 +6,7 @@
 
 Defined in: [inspection.ts:52](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L52)
 
-One binding of a bag's graph, described without acquiring it.
+One binding of a container's graph, described without acquiring it.
 
 ## See
 

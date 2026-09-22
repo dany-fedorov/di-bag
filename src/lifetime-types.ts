@@ -186,19 +186,16 @@ export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> 
       ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}${SeeErrors<'root-capture'>}`, { readonly captives: Captives<R, C> }>
       : unknown;
 // Inherited roots construct in their already-validated ancestor graph. Only
-// roots newly introduced by this scope can capture its overridden dependencies.
+// roots newly introduced by this child container can capture its replaced dependencies.
 type OverrideCaptives<R extends Registrations, O extends Registrations, C> = RootCaptives<R, C, keyof O & keyof R>;
 /**
- * Reject root providers introduced by a scope override when they capture scoped dependencies.
+ * Reject root providers introduced by a child-container replacement when they capture scoped dependencies.
  * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
  */
 export type CheckedChildContainerLifetimes<R extends Registrations, O extends Registrations, C = never> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
   : [OverrideCaptives<R, O, C>] extends [never] ? unknown
     : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}${SeeErrors<'root-capture'>}`, { readonly captives: OverrideCaptives<R, O, C> }>;
 
-/** @deprecated Use CheckedChildContainerLifetimes. Removed after the codemod migration. */
-export type CheckedScopeLifetimes<R extends Registrations, O extends Registrations, C = never> =
-  CheckedChildContainerLifetimes<R, O, C>;
 
 // Sharing needs the current canonical policy, including public replacements and
 // parent sharing routes. Alias cycles terminate without inventing a policy.

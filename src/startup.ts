@@ -5,7 +5,7 @@ import { DiBagCleanupError, DiBagCloseCancelledError, DiBagServiceReadinessCance
 import type { DiBagErrorCode } from './errors';
 
 /**
- * Bounds the wait of {@link Bag.close}; cleanup itself keeps running after either fires.
+ * Bounds the wait of {@link Container.close}; cleanup itself keeps running after either fires.
  * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-close-timeout
  */
 export interface CloseOptions {
@@ -16,13 +16,13 @@ export interface CloseOptions {
 }
 
 /**
- * Options of {@link Bag.ensureServicesReady}.
+ * Options of {@link Container.ensureServicesReady}.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
  */
 export interface EnsureServicesReadyOptions {
-  /** Aborting it stops the wait and closes this bag. */
+  /** Aborting it stops the wait and closes this container. */
   readonly abortSignal?: AbortSignal;
-  /** A finite positive deadline in milliseconds for the whole call, until every listed service is ready. It is not per service. On expiry this bag is closed. */
+  /** A finite positive deadline in milliseconds for the whole call, until every listed service is ready. It is not per service. On expiry this container is closed. */
   readonly totalTimeoutMs?: number;
   /** How many entries of `serviceKeys` are acquired at once, in tuple order. Omitted means all at once, `1` means one after another. It does not limit the dependencies a factory reads. */
   readonly maxConcurrentServiceKeys?: number;
@@ -32,7 +32,7 @@ export interface EnsureServicesReadyOptions {
 /**
  * Format a timeout error's stack before handing it on. An unformatted stack keeps
  * the frames that created it alive, and these are closures over the runtime; a
- * readiness timeout also becomes the reason on every signal the bag handed out.
+ * readiness timeout also becomes the reason on every signal the container handed out.
  */
 function formatted<E extends Error>(error: E): E {
   void error.stack;
@@ -87,7 +87,7 @@ export function closeRuntime(runtime: BagRuntime, options: CloseOptions | undefi
     const schedule = () => {
       if (settled || timeoutMs === undefined) return;
       if (performance.now() - began >= timeoutMs) {
-        cancel('timeout', formatted(diagnostic(new DOMException(diagnosticMessage('DI_BAG_CLOSE_TIMEOUT', 'Bag close timed out'), 'TimeoutError'), 'DI_BAG_CLOSE_TIMEOUT', { operation: 'close', waitTimeoutMs: timeoutMs })));
+        cancel('timeout', formatted(diagnostic(new DOMException(diagnosticMessage('DI_BAG_CLOSE_TIMEOUT', 'Container close timed out'), 'TimeoutError'), 'DI_BAG_CLOSE_TIMEOUT', { operation: 'close', waitTimeoutMs: timeoutMs })));
         return;
       }
       // Long deadlines must not wrap into an immediate timer on Node/Bun.

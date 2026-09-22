@@ -10,7 +10,7 @@ type ReboundSelection<R extends Registrations, K extends readonly unknown[], O e
 ] extends [never] ? O : ReboundProviders<R, K, O>;
 ```
 
-Defined in: [types.ts:378](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L378)
+Defined in: [types.ts:379](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L379)
 
 Preserve named overrides while rebinding selected symbol-keyed providers.
 

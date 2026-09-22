@@ -14,9 +14,9 @@ A `close({ waitTimeoutMs, abortSignal })` wait stopped before cleanup finished; 
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
-const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 try {
-  await bag.close({ waitTimeoutMs: 5_000 });
+  await container.close({ waitTimeoutMs: 5_000 });
 } catch (error) {
   if (error instanceof DiBagCloseCancelledError) console.error(error.details.disposersStillRunning);
   throw error;
@@ -43,7 +43,7 @@ Defined in: [errors.ts:218](https://github.com/dany-fedorov/di-bag/blob/main/src
 | ------ | ------ |
 | `reason` | Whether an external abort or the close deadline stopped the wait. |
 | `cause` | The abort reason, or a `TimeoutError` DOMException for the deadline. |
-| `cleanupPromise` | The bag's shared shutdown promise; it settles when cleanup eventually finishes. |
+| `cleanupPromise` | The container's shared shutdown promise; it settles when cleanup eventually finishes. |
 | `progress` | Labels still in progress when the wait stopped. |
 | `waitTimeoutMs?` | The deadline that elapsed, for `reason: 'timeout'`. |
 
@@ -63,7 +63,7 @@ readonly cleanupPromise: Promise<void>;
 
 Defined in: [errors.ts:221](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L221)
 
-The bag's shared shutdown promise; it settles when cleanup eventually finishes.
+The container's shared shutdown promise; it settles when cleanup eventually finishes.
 
 ***
 

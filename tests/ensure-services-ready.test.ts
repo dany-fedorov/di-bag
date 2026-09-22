@@ -268,7 +268,7 @@ test('the readiness errors carry their code, their details and a message that sa
 });
 
 test('the 0.4 startup names are gone at run time', async () => {
-  const api = await import('../src/node.js') as Record<string, unknown>;
+  const api = await import('../src/index.js') as Record<string, unknown>;
   expect('buildAndStart' in DiBag.createBuilder()).toBe(false);
   expect(api.DiBagStartupError).toBeUndefined();
   expect(api.DiBagStartupCancelledError).toBeUndefined();

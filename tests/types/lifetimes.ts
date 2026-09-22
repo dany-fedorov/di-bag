@@ -1,6 +1,6 @@
 import { DiBag } from '../../src';
 const { withLifetime } = DiBag;
-import type { Provider, Module, Bag as LegacyContainer, Container } from '../../src';
+import type { Provider, Module, Container } from '../../src';
 import { withTokenBinding } from '../../src/provider';
 import type { Assert, Equal } from './assert';
 
@@ -39,7 +39,6 @@ export const explicitDefault = withLifetime(() => 1, 'scoped');
 export const defaultProvider: Provider<() => number> = explicitDefault;
 export const defaultModule: Module<{ value: number }, Readonly<{}>> = DiBag.createBuilder().withServices({ value: explicitDefault }).buildModule({ exportedServiceKeys: ['value'] });
 export const defaultBag: Container<{ value: () => number }> = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
-type ContainerAliasIdentity = Assert<Equal<LegacyContainer<{ value: () => number }>, Container<{ value: () => number }>>>;
 type ContainerAliasValue = Assert<Equal<ReturnType<typeof defaultBag.resolve<'value'>>, number>>;
 export const mixed = Math.random() ? withLifetime(() => 1, 'root') : () => 1;
 export const wrappedMixed = withLifetime(mixed, 'transient');

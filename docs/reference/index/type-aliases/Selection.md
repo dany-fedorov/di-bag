@@ -2,15 +2,15 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / Selection
 
-# Type Alias: Selection\<R *extends* `Registrations`, C, K *extends* readonly `unknown`[], Operation *extends* `string` = `"fork"`\>
+# Type Alias: Selection\<R *extends* `Registrations`, C, K *extends* readonly `unknown`[], Operation *extends* `string` = `"createIndependentContainer"`\>
 
 ```ts
-type Selection<R extends Registrations, C, K extends readonly unknown[], Operation extends string = 'fork'> = true extends IsUnion<K> ? InvalidSelection<Operation> : number extends K['length'] ? InvalidSelection<Operation> : K extends Required<K> ? [InvalidSelectionElements<K>] extends [never] ? [MissingSelectionKeys<R, K[number]> | InvalidSelectionMembers<R, C, K[number]>] extends [never] ? unknown : Unsatisfied<`${Operation} accepts existing names or typed tokens only: unknown ${NameText<MissingSelectionKeys<R, K[number]> | InvalidSelectionMembers<R, C, K[number]>>}${SeeErrors<'unknown-key'>}`, {
+type Selection<R extends Registrations, C, K extends readonly unknown[], Operation extends string = 'createIndependentContainer'> = true extends IsUnion<K> ? InvalidSelection<Operation> : number extends K['length'] ? InvalidSelection<Operation> : K extends Required<K> ? [InvalidSelectionElements<K>] extends [never] ? [MissingSelectionKeys<R, K[number]> | InvalidSelectionMembers<R, C, K[number]>] extends [never] ? unknown : Unsatisfied<`${Operation} accepts existing names or typed tokens only: unknown ${NameText<MissingSelectionKeys<R, K[number]> | InvalidSelectionMembers<R, C, K[number]>>}${SeeErrors<'unknown-key'>}`, {
     extra: MissingSelectionKeys<R, K[number]> | InvalidSelectionMembers<R, C, K[number]>;
 }> : InvalidSelection<Operation> : InvalidSelection<Operation>;
 ```
 
-Defined in: [types.ts:325](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L325)
+Defined in: [types.ts:326](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L326)
 
 Validate a finite tuple of existing singleton names or genuine typed tokens.
 

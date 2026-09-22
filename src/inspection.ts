@@ -29,7 +29,7 @@ export interface AcquisitionSnapshot<A extends readonly unknown[] = readonly []>
 }
 
 /**
- * A frozen registration description and copied acquisition state returned by bag inspection.
+ * A frozen registration description and copied acquisition state returned by container inspection.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
  */
 export interface RegistrationSnapshot<M = Readonly<{}>, A extends readonly unknown[] = readonly []> {
@@ -46,7 +46,7 @@ export interface RegistrationSnapshot<M = Readonly<{}>, A extends readonly unkno
 }
 
 /**
- * One binding of a bag's graph, described without acquiring it.
+ * One binding of a container's graph, described without acquiring it.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
  */
 export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] = readonly []> extends RegistrationSnapshot<M, A> {
@@ -61,7 +61,7 @@ export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] 
 }
 
 /**
- * A frozen description of every binding a bag can resolve, plus the edges observed so far.
+ * A frozen description of every binding a container can resolve, plus the edges observed so far.
  * Named dependencies read from a factory's object parameter are not knowable until the factory
  * runs; `observedEdges` records them after acquisition. Use the static graph tool for declared edges.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
@@ -71,6 +71,6 @@ export interface GraphSnapshot {
   /** Public bindings in registration order, then contributions in group order, then remaining private bindings. */
   readonly bindings: readonly BindingSnapshot<object, readonly unknown[]>[];
   readonly contributions: readonly { readonly token: symbol; readonly bindingIds: readonly symbol[] }[];
-  /** Consumer-to-dependency edges recorded by acquisitions in this bag's ownership family. */
+  /** Consumer-to-dependency edges recorded by acquisitions in this container's ownership family. */
   readonly observedEdges: readonly { readonly from: symbol; readonly to: symbol }[];
 }

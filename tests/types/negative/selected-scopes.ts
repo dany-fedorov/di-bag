@@ -68,6 +68,6 @@ child.createIndependentContainer();
 child.createIndependentContainer([], {});
 
 const borrowed = parent.createChildContainer({ sharedParentServiceKeys: ['service'] });
-// diagnostic: is not assignable to type 'Bag
+// diagnostic: is not assignable to type 'Container
 const erased: Container<{ service: () => string; config: () => { id: string }; transient: () => number }> = borrowed;
 void erased;

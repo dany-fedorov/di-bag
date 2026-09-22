@@ -75,7 +75,6 @@ export function assertReactMetafile(value: unknown): void {
   for (const [input, detail] of Object.entries(inputs as Record<string, unknown>)) {
     if (input.startsWith('node:')) throw new Error(`react bundle contains a node: input: ${input}`);
     if (isAbsolute(input) || input.split('/').includes('..')) throw new Error(`react bundle input is outside the repository: ${input}`);
-    if (input === 'src/node.ts') throw new Error('react bundle contains the node facade');
     if (!allowedInputRoots.some(prefix => input.startsWith(prefix))) throw new Error(`react bundle input is outside the allowed roots: ${input}`);
     const imports = (detail as { imports?: unknown } | null)?.imports ?? [];
     if (!Array.isArray(imports)) throw new Error('invalid esbuild metafile');

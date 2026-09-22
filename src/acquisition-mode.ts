@@ -56,8 +56,8 @@ export function acquisitionMode(options: { readonly acquisitionMode?: Acquisitio
   return mode;
 }
 /**
- * Read the host classifier through `process.getBuiltinModule` (Node, Bun, Deno). A call, not an
- * import, keeps `node:` specifiers out of the root entry's module graph for bundlers and browsers.
+ * The root entry self-configures through `process.getBuiltinModule` (Node, Bun, Deno). A call,
+ * not an import, keeps `node:` specifiers out of its module graph for bundlers and browsers.
  */
 function hostClassifier(): RuntimeOptions['isNativePromise'] | undefined {
   const host: unknown = (globalThis as { readonly process?: unknown }).process;

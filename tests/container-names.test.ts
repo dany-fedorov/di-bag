@@ -76,35 +76,20 @@ describe('0.5 container names', () => {
     expect(failures).toHaveLength(1);
   });
 
-  test('keeps legacy observers working throughout expand', async () => {
-    const kinds: string[] = [];
-    const observed = DiBag.withConfiguration({ observers: [{
-      onEvent(event) { kinds.push(`old:${event.kind}`); },
-      onError() {},
-    }] });
-    const container = observed.createBuilder().buildContainer();
-    await container.close();
-    await new Promise<void>(resolve => queueMicrotask(resolve));
-    expect(kinds).toEqual(['old:scope-opened', 'old:scope-closing', 'old:scope-closed']);
-  });
-
-  test('composes legacy and renamed observer configurations', async () => {
-    const kinds: string[] = [];
-    const oldConfigured = DiBag.withConfiguration({ observers: [{
-      onEvent(event) { kinds.push(`old:${event.kind}`); }, onError() {},
-    }] });
-    const mixed = oldConfigured.withConfiguration({ lifecycleObservers: [{
-      onLifecycleEvent(event) { kinds.push(`new:${event.kind}`); }, onObserverFailure() {},
-    }] });
-    const container = mixed.createBuilder().buildContainer();
-    await container.close();
-    await new Promise<void>(resolve => queueMicrotask(resolve));
-    expect(kinds).toContain('old:scope-opened');
-    expect(kinds).toContain('new:scope-opened');
-  });
-
-  test('rejects both observer fields in one options bag', () => {
-    expect(() => DiBag.withConfiguration({ observers: [], lifecycleObservers: [] } as never)).toThrow('observers or lifecycleObservers, not both');
+  test('rejects the retired observers field in the configuration options bag', () => {
+    try {
+      DiBag.withConfiguration({ observers: [], lifecycleObservers: [] } as never);
+      throw new Error('expected retired observers rejection');
+    } catch (error: any) {
+      expect(error).toMatchObject({
+        code: 'DI_BAG_INVALID_ARGUMENT',
+        details: {
+          operation: 'withConfiguration',
+          argument: 'options',
+          expected: 'only the own properties: runtime, lifecycleObservers',
+        },
+      });
+    }
   });
 
   test('snapshots renamed callbacks once and rejects callable observer records', async () => {
@@ -134,5 +119,17 @@ describe('0.5 container names', () => {
 
     const callable = Object.assign(() => {}, { onLifecycleEvent() {}, onObserverFailure() {} });
     expect(() => DiBag.withConfiguration({ lifecycleObservers: [callable as never] })).toThrow('require onLifecycleEvent and onObserverFailure callbacks');
+  });
+
+  test('retired container members are absent at runtime', async () => {
+    const container = DiBag.createBuilder().buildContainer();
+    for (const name of ['inspect', 'inspectCollection', 'inspectGraph', 'createScope', 'fork']) expect(name in container).toBe(false);
+    await container.close();
+  });
+
+  test('retired module members are absent at runtime', () => {
+    const module = DiBag.createBuilder().withServices({ value: () => 1 })
+      .buildModule({ exportedServiceKeys: ['value'] });
+    expect('renameExport' in module).toBe(false);
   });
 });

@@ -11,7 +11,7 @@ type PushedDisposer = (this: void, disposerContext: DisposerContext) => void | P
 /**
  * One factory's pushed disposers. It is held by the frozen acquisition context
  * handed to that factory, so it deliberately references neither the execution
- * nor its scope: a context the application retains must keep nothing but its
+ * nor its owning container: a context the application retains must keep nothing but its
  * own registrations alive.
  */
 export class DisposerStack {
@@ -97,7 +97,7 @@ export class ProviderExecution {
   private readonly stages: AcceptedStage[] = [];
   /** Allocated only for a context-aware factory, which is the only source that can push disposers. */
   readonly disposers: DisposerStack | undefined;
-  // The factory returned, so the bag owns what it pushed, below every accepted stage.
+  // The factory returned, so the container owns what it pushed, below every accepted stage.
   private disposersOwned = false;
   // The failure-path run of the stack, while it is in flight.
   private rollback: Promise<void> | undefined;
@@ -124,7 +124,7 @@ export class ProviderExecution {
 
   /**
    * The source stage settles the stack. A factory that returned hands what it
-   * pushed to the bag; a failed one releases it at once, as pending work of this
+   * pushed to the container; a failed one releases it at once, as pending work of this
    * execution. Anchoring on the source rather than on the attempt's result covers
    * a direct projection that is already ready while its source is still running,
    * which no retirement reaches.

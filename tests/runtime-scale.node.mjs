@@ -7,7 +7,7 @@ import { test } from 'node:test';
 // Run against an emitted runtime: Node's stack limit differs from Bun's.
 // DI_BAG_RUNTIME_ENTRY can select an isolated build without touching dist/.
 const require = createRequire(import.meta.url);
-const { DiBag } = require(resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/node.js'));
+const { DiBag } = require(resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/index.js'));
 const count = 12_000;
 
 function chain(dispose) {
@@ -67,7 +67,7 @@ for (const mode of ['raw', 'auto']) test(`Node cold-resolves 1,000 ${mode} named
       assert.deepEqual(calls, Array(1000).fill(1));
     } finally { await bag.close(); }
   }
-  const entry = resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/node.js');
+  const entry = resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/index.js');
   const child = spawnSync(process.execPath, ['--input-type=module', '--eval', `await (${cold})(${JSON.stringify(entry)}, ${JSON.stringify(mode)})`], { encoding: 'utf8' });
   assert.equal(child.status, 0, child.stderr || child.stdout);
 });

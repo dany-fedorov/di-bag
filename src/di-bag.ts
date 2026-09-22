@@ -1,6 +1,6 @@
 import { libraryError, libraryTypeError } from './errors';
 import { LifecycleObservers } from './observers';
-import type { LifecycleObserver, ObserverOptions } from './observers';
+import type { LifecycleObserver } from './observers';
 import { contributionEntry } from './contributions';
 import type { BuilderWithCollectionContribution } from './contribution-types';
 import type { BuilderBuildModule, BuilderWithInstalledModules, BuilderWithReplacedService, BuilderWithServiceAlias, BuilderWithServices, BuilderWithTokenService } from './builder-method-types';
@@ -10,7 +10,6 @@ import { normalize, snapshotAdd, withDisposal } from './registration';
 import { snapshotOptionsBag } from './options-bag';
 import type { Registration, Registrations } from './registration';
 import { BindingGraph, BagRuntime } from './runtime';
-import type { BindingKey } from './runtime';
 import { moduleGraph, sealModule } from './module';
 import type { CompositionReport } from './composition-report';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
@@ -18,9 +17,9 @@ import type { CheckedLifetimes, WithoutExportObligations } from './lifetime-type
 import { withLifetime } from './lifetime';
 import { fromFactory, fromSyncFactory, fromAsyncFactory } from './acquisition-context';
 import { closeRuntime, ensureRuntimeReady } from './startup';
-import { selectChildContainer, selectIndependentContainer, selectScope } from './scope-selection';
-import type { CreateChildContainerOptions, CreateIndependentContainerOptions, DisjointChildContainerSelection, ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases } from './scope-types';
-import type { CheckedChildContainerLifetimes, CheckedScopeLifetimes } from './lifetime-types';
+import { selectChildContainer, selectIndependentContainer } from './scope-selection';
+import type { CreateChildContainerOptions, CreateIndependentContainerOptions, DisjointChildContainerSelection, UnsharedAliases, ScopedAliases } from './scope-types';
+import type { CheckedChildContainerLifetimes } from './lifetime-types';
 import type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 import { withMetadata, transformService, withTokenBinding } from './provider';
 import { fromFunction, fromClass } from './composition';
@@ -60,20 +59,6 @@ function readGraphToken(
   const token = readToken(value);
   graph.assertTokenKind(token.key, token.kind, operation);
   return token;
-}
-
-function claimSelectedTokenKinds(
-  graph: BindingGraph,
-  values: readonly unknown[],
-  operation: string,
-): BindingGraph {
-  let claimed = graph;
-  for (const value of values) {
-    if (typeof value === 'string') continue;
-    const token = readToken(value);
-    claimed = claimed.withTokenKind(token.key, token.kind, operation);
-  }
-  return claimed;
 }
 
 function positionalChildOptions(args: readonly unknown[]): unknown {
@@ -119,13 +104,13 @@ function positionalIndependentOptions(args: readonly unknown[]): unknown {
 /**
  * A resolving container with lazy acquisition, caching, and independent resource ownership.
  *
- * Create bags through {@link DiBagApi.createBuilder} followed by {@link Builder.buildContainer}, and make services
- * ready ahead of use with {@link Bag.ensureServicesReady}; the class is exported as a type and has no public constructor.
+ * Create containers through {@link DiBagApi.createBuilder} followed by {@link Builder.buildContainer}, and make services
+ * ready ahead of use with {@link Container.ensureServicesReady}; the class is exported as a type and has no public constructor.
  * @typeParam ServiceRegistrations - The map from each public service name or token symbol to its registration.
  * @typeParam Constraints - The requirements, contributions and lifetime obligations that installed modules retain on this graph.
- * @see https://dany-fedorov.github.io/di-bag/agent/api-card.html#bag
+ * @see https://dany-fedorov.github.io/di-bag/agent/api-card.html#container
  */
-class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedConstraint = never> {
+class Container<ServiceRegistrations extends Registrations, Constraints extends NeedConstraint = never> {
   /** @internal */
   declare readonly [constraintInvariant]: (value: Constraints) => Constraints;
   readonly #graph: BindingGraph;
@@ -136,7 +121,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
   constructor(graph: BindingGraph, context: RuntimeContext, runtime?: BagRuntime) {
     this.#graph = graph;
     this.#runtime = runtime ?? new BagRuntime(graph, context);
-    // Scopes and forks reuse the classifier the runtime resolved, so detection runs once per build.
+    // Derived containers reuse the classifier the runtime resolved, so detection runs once per build.
     this.context = this.#runtime.context;
   }
 
@@ -153,8 +138,8 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * or the factory's own error.
    * @example
    * ```ts
-   * const bag = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
-   * const greeting: string = bag.resolve('greeting');
+   * const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+   * const greeting: string = container.resolve('greeting');
    * ```
    */
   resolve<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, K>)): ServicesOf<ServiceRegistrations>[SelectionKey<K> & keyof ServiceRegistrations];
@@ -174,13 +159,13 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * @param token - The collection token to read.
    * @returns Contributions in declaration order, or an empty list.
    * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad handle or kind;
-   * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after close begins; or a contribution's acquisition errors as listed for {@link Bag.resolve}.
+   * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after close begins; or a contribution's acquisition errors as listed for {@link Container.resolve}.
    * @example
    * ```ts
    * const toolsKey = Symbol('tools');
    * const tools = DiBag.token(toolsKey).forCollectionOf<string>();
-   * const bag = DiBag.createBuilder().buildContainer();
-   * const names: readonly string[] = bag.resolveCollection(tools);
+   * const container = DiBag.createBuilder().buildContainer();
+   * const names: readonly string[] = container.resolveCollection(tools);
    * ```
    */
   resolveCollection<T extends CollectionTokenBase>(token: T & CollectionTokenMember<Constraints, T>,
@@ -197,64 +182,15 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
   }
 
   /**
-   * Inspect static metadata and copied acquisition state without resolving a service.
-   * @param token - An existing public string name or typed token.
-   * @returns A frozen point-in-time snapshot. Application-owned metadata payloads are not frozen.
-   * @throws `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_MISSING_REGISTRATION` for a bad selection; `DI_BAG_CYCLE` for an alias cycle.
-   * @example
-   * ```ts
-   * const bag = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
-   * const acquired = bag.inspect('greeting').acquisitions.length;
-   * ```
-   */
-  inspect<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, K>)): RegistrationSnapshot<ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>, ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>>;
-  inspect(serviceKey: unknown): unknown {
-    if (typeof serviceKey === 'string') {
-      return this.#runtime.inspect(serviceKey);
-    }
-    const { key, kind } = readGraphToken(this.#graph, serviceKey, 'inspect');
-    if (kind !== 'single-service') {
-      throw wrongTokenKind('inspect', 'single-service', key);
-    }
-    return this.#runtime.inspect(key);
-  }
-
-  /**
-   * Inspect every provider attached to a collection token without resolving it.
-   * @param token - The collection token to inspect.
-   * @returns One snapshot per contribution in declaration order.
-   * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad handle or kind.
-   * @example
-   * ```ts
-   * const toolsKey = Symbol('tools');
-   * const tools = DiBag.token(toolsKey).forCollectionOf<string>();
-   * const bag = DiBag.createBuilder().buildContainer();
-   * const labels = bag.inspectCollection(tools).map(snapshot => snapshot.label);
-   * ```
-   */
-  inspectCollection<T extends CollectionTokenBase>(token: T & CollectionTokenMember<Constraints, T>,
-    ...invalid: [T] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[] {
-    const { key, kind } = readGraphToken(
-      this.#graph,
-      token,
-      'inspectCollection',
-    );
-    if (kind !== 'collection') {
-      throw wrongTokenKind('inspectCollection', 'collection', key);
-    }
-    return this.#runtime.inspectCollection(key);
-  }
-
-  /**
-   * Inspect a named service, single-service token, or collection token without resolving it.
+   * Inspect a service registration through any supported public key without resolving it.
    * @param serviceKey - The public service name or typed token to inspect.
    * @returns The service snapshot, or one snapshot per collection contribution.
    * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad handle or kind.
    * @example
    * ```ts
-   * const bag = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
-   * const snapshot = bag.serviceSnapshot('greeting');
-   * await bag.close();
+   * const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+   * const snapshot = container.serviceSnapshot('greeting');
+   * await container.close();
    * ```
    */
   serviceSnapshot<ServiceKey extends (keyof ServiceRegistrations & string) | TokenBase>(
@@ -273,11 +209,11 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * ```ts
    * const handlersKey = Symbol('handlers');
    * const handlers = DiBag.token(handlersKey).forCollectionOf<() => void>();
-   * const bag = DiBag.createBuilder()
+   * const container = DiBag.createBuilder()
    *   .withCollectionContribution({ collectionToken: handlers, provider: () => () => {} })
    *   .buildContainer();
-   * const snapshots = bag.serviceSnapshot(handlers);
-   * await bag.close();
+   * const snapshots = container.serviceSnapshot(handlers);
+   * await container.close();
    * ```
    */
   serviceSnapshot<CollectionToken extends CollectionTokenBase>(
@@ -308,34 +244,21 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
   }
 
   /**
-   * Describe every binding this bag can resolve and the dependency edges observed so far.
-   * Nothing is acquired. Named dependencies declared on factory parameters are not visible
-   * until the factory runs; the static graph tool reports them from source.
-   * @returns A frozen point-in-time snapshot; application-owned metadata payloads are not frozen.
-   * @example
-   * ```ts
-   * const bag = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
-   * const labels = bag.inspectGraph().bindings.map(binding => binding.label);
-   * ```
-   */
-  inspectGraph(): GraphSnapshot { return this.#runtime.inspectGraph(); }
-
-  /**
    * Describe every resolvable binding and the dependency edges observed so far.
    * @returns A frozen point-in-time graph snapshot without acquiring services.
    * @example
    * ```ts
-   * const bag = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
-   * const labels = bag.graphSnapshot().bindings.map(binding => binding.label);
-   * await bag.close();
+   * const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+   * const labels = container.graphSnapshot().bindings.map(binding => binding.label);
+   * await container.close();
    * ```
    */
   graphSnapshot(): GraphSnapshot { return this.#runtime.inspectGraph(); }
 
   /**
    * Create a tracked child container with fresh ownership for unshared services.
-   * Share selected non-transient parent acquisitions through the optional bag. To replace services,
-   * pass selected keys and providers first, then the sharing bag.
+   * Share selected non-transient parent acquisitions through the optional options object. To replace services,
+   * pass selected keys and providers first, then the sharing options.
    * @returns A child owned by this container; closing the parent closes the child first.
    * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
    * `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
@@ -350,10 +273,10 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    */
   createChildContainer(
     options?: CreateChildContainerOptions<ServiceRegistrations, readonly [], Constraints>,
-  ): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
+  ): Container<UnsharedAliases<ServiceRegistrations>, Constraints>;
   createChildContainer<const SharedParentServiceKeys extends readonly unknown[]>(
     options: CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>,
-  ): Bag<ScopedAliases<ServiceRegistrations, ServiceRegistrations, SharedParentServiceKeys>, Constraints>;
+  ): Container<ScopedAliases<ServiceRegistrations, ServiceRegistrations, SharedParentServiceKeys>, Constraints>;
   createChildContainer<
     const ReplacedServiceKeys extends readonly unknown[],
     ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>,
@@ -369,16 +292,16 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
       CheckedChildContainerLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>>, NoInfer<ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>,
     options?: Pick<CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>, 'sharedParentServiceKeys'>
       & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>,
-  ): Bag<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
+  ): Container<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
   createChildContainer(...args: unknown[]): unknown {
     this.#runtime.assertOpen();
     const { graph, shared } = selectChildContainer(this.#graph, positionalChildOptions(args), serviceKey => this.#runtime.isTransient(serviceKey));
-    return new Bag(graph, this.context, this.#runtime.scope(graph, shared));
+    return new Container(graph, this.context, this.#runtime.scope(graph, shared));
   }
 
   /**
    * Create an independent container with fresh instances and optional checked replacements.
-   * Replacements use positional selected keys and providers; an empty options bag remains valid.
+   * Replacements use positional selected keys and providers; an empty options object remains valid.
    * @returns A container with independent acquisition and ownership state.
    * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection;
    * `DI_BAG_INVALID_REGISTRATION` for a malformed provider; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
@@ -392,9 +315,9 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * ```
    */
   createIndependentContainer(
-    this: Bag<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>,
+    this: Container<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>,
     options?: CreateIndependentContainerOptions<ServiceRegistrations, Constraints>,
-  ): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
+  ): Container<UnsharedAliases<ServiceRegistrations>, Constraints>;
   createIndependentContainer<
     const ReplacedServiceKeys extends readonly unknown[],
     ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>,
@@ -407,166 +330,30 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
       CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
       CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
       CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>,
-  ): Bag<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
+  ): Container<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
   createIndependentContainer(...args: unknown[]): unknown {
     this.#runtime.assertOpen();
     const graph = selectIndependentContainer(this.#graph, positionalIndependentOptions(args));
-    return new Bag(graph, this.context);
+    return new Container(graph, this.context);
   }
 
   /**
-   * Create a tracked child that borrows selected parent acquisitions.
-   * @param options - A checked selection of non-transient services to share lazily.
-   * @returns A child owned by this bag; closing the parent closes the child first.
-   * @throws `DI_BAG_INVALID_SCOPE` for a malformed or transient share selection; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
-   * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`.
-   */
-  createScope<const S extends readonly unknown[]>(options: ScopeOptions<ServiceRegistrations, S, Constraints>): Bag<ScopedAliases<ServiceRegistrations, ServiceRegistrations, S>, Constraints>;
-  /**
-   * Create a tracked child with selected replacements and optional parent sharing.
-   * @param keys - Existing names or tokens to replace in the child.
-   * @param overrides - Own registration properties for every selected key.
-   * @param options - A disjoint selection of non-transient parent acquisitions to share.
-   * @returns A child with fresh scoped acquisitions and ownership for unshared services.
-   * @throws `DI_BAG_INVALID_SCOPE` for invalid selections, overrides, or sharing; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_INVALID_REGISTRATION`
-   * for malformed input; `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_CLASSIFIER_REQUIRED` as for {@link Builder.buildContainer}.
-   */
-  createScope<
-    const K extends readonly unknown[],
-    O extends OverrideFactoryContext<ServiceRegistrations, K, O>,
-    const S extends readonly unknown[] = readonly [],
-  >(
-    keys: K & Selection<ServiceRegistrations, Constraints, K, 'createScope'>,
-    overrides: O & object & Record<SelectionKey<K[number]>, Registration> &
-      Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>, K> &
-      CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
-      CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
-      CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
-      CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
-      CheckedScopeLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>, ServiceRegistrations, S>>, NoInfer<ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>,
-    options?: ScopeOptions<ServiceRegistrations, S, Constraints> & DisjointScopeSelection<K, S>,
-  ): Bag<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>, ServiceRegistrations, S>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
-  /**
-   * Create a tracked child with the same graph and fresh scoped acquisitions.
-   * Close every scope you create, typically one per request; closing the parent closes its live scopes first.
-   * @returns A child that is closed before its parent finishes closing.
-   * @throws `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`.
-   * @example
-   * ```ts
-   * const app = DiBag.createBuilder().withServices({ requestId: () => Math.random() }).buildContainer();
-   * const request = app.createScope();
-   * const id: number = request.resolve('requestId');
-   * await request.close();
-   * ```
-   */
-  createScope(): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
-  createScope(...args: unknown[]): unknown {
-    this.#runtime.assertOpen();
-    const { graph, shared } = selectScope(this.#graph, args, key => this.#runtime.isTransient(key));
-    return new Bag(graph, this.context, this.#runtime.scope(graph, shared));
-  }
-
-  /**
-   * Create an independent bag with the same graph and fresh instances.
-   * @returns A new ownership family that must be closed separately.
-   * @throws `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`.
-   */
-  fork(this: Bag<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
-  // The graph-aware bound keeps the first inference pass applicable and requires
-  // selected registrations even with explicit generics. The argument's Record
-  // supplies callable context; unselected keys stay outside checks and results.
-  /**
-   * Create an independent bag with selected replacements, the way tests substitute dependencies.
-   * Each override must satisfy the original contract; close the fork, since its parent does not.
-   * @param keys - Existing names or tokens to replace.
-   * @param overrides - Own registration properties for every selected key.
-   * @returns A fresh ownership family whose graph uses the checked replacements.
-   * @throws `DI_BAG_INVALID_OVERRIDE` for an absent key or a missing own override; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_INVALID_REGISTRATION`
-   * for malformed input; `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_CLASSIFIER_REQUIRED` as for {@link Builder.buildContainer}.
-   * @example
-   * ```ts
-   * type Clock = { now(): number };
-   * const app = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now: () => Date.now() }) }).buildContainer();
-   * const test = app.fork(['clock'], { clock: (): Clock => ({ now: () => 0 }) });
-   * await test.close();
-   * ```
-   */
-  fork<
-    const K extends readonly unknown[],
-    O extends OverrideFactoryContext<ServiceRegistrations, K, O>,
-  >(
-    keys: K & Selection<ServiceRegistrations, Constraints, K>,
-    overrides: O & object &
-      Record<SelectionKey<K[number]>, Registration> &
-      Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>, K> &
-      CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
-      CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
-      CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
-      CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
-      CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>,
-  ): Bag<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
-  fork(keys?: readonly unknown[], overrides?: object): unknown {
-    this.#runtime.assertOpen();
-    if (keys === undefined && overrides === undefined) {
-      return new Bag(this.#graph, this.context);
-    }
-    if (
-      !Array.isArray(keys) ||
-      typeof overrides !== 'object' ||
-      overrides === null
-    ) {
-      throw libraryError('DI_BAG_INVALID_OVERRIDE', 'fork requires selected keys and an override object', { operation: 'fork' });
-    }
-    // Snapshot indexed entries before override getters can mutate the tuple.
-    // A tuple's custom iterator need not enumerate its declared indexed keys.
-    const selectedKeys: unknown[] = [];
-    const length = keys.length;
-    for (let index = 0; index < length; index++) {
-      selectedKeys[index] = keys[index];
-    }
-    if (selectedKeys.length === 0) return new Bag(this.#graph, this.context);
-    const graph = claimSelectedTokenKinds(this.#graph, selectedKeys, 'fork');
-    const collectionKeys = new Set<BindingKey>();
-    const publicKeys = selectedKeys.map(value => {
-      if (typeof value === 'string') return value;
-      const { key, kind } = readToken(value);
-      if (kind === 'collection') collectionKeys.add(key);
-      return key;
-    });
-    for (const key of publicKeys) {
-      if (!collectionKeys.has(key) && !graph.hasPublic(key)) {
-        throw libraryError('DI_BAG_INVALID_OVERRIDE', `fork accepts existing names or typed tokens only: ${String(key)}`, { operation: 'fork' });
-      }
-      if (!Object.hasOwn(overrides, key)) {
-        throw libraryError('DI_BAG_INVALID_OVERRIDE', `missing override: ${String(key)}`, { operation: 'fork' });
-      }
-    }
-    const selectedBindings: Array<readonly [BindingKey, Registration]> = [];
-    for (const key of publicKeys) {
-      const registration: unknown = Reflect.get(overrides, key);
-      normalize(registration);
-      selectedBindings.push([key, registration as Registration]);
-    }
-    return new Bag(graph.withPublicBindings(selectedBindings, 'fork'), this.context);
-  }
-
-  /**
-   * Make the listed services ready before continuing, then resolve to this same bag.
+   * Make the listed services ready before continuing, then resolve to this same container.
    * Each listed service is acquired now, with whatever its factory reads, and the call waits until it is ready;
    * every other service stays lazy. List the services whose readiness you need before the next line runs, such as
-   * a database pool or a cache client. Works on a built bag, a child scope, and a fork, and may be called again.
-   * A failed factory, an aborted signal, or an elapsed deadline closes this bag: a child scope closes only itself,
+   * a database pool or a cache client. Works on a built container, a child container, and an independent container, and may be called again.
+   * A failed factory, an aborted signal, or an elapsed deadline closes this container: a child container closes only itself,
    * never its parent or a service it borrows.
    * @param serviceKeys - A finite tuple of existing names or typed tokens to wait for; an empty tuple is valid.
    * @param options - An optional abort signal, a deadline for the whole call, and a bound on how many listed keys are acquired at once.
-   * @returns A promise for this bag once every listed service is ready.
-   * @throws {@link DiBagServiceReadinessError} (`DI_BAG_SERVICE_READINESS_FAILED`) after this bag has closed because a factory failed;
+   * @returns A promise for this container once every listed service is ready.
+   * @throws {@link DiBagServiceReadinessError} (`DI_BAG_SERVICE_READINESS_FAILED`) after this container has closed because a factory failed;
    * {@link DiBagServiceReadinessCancelledError} (`DI_BAG_SERVICE_READINESS_CANCELLED`) promptly on abort or timeout, naming what was still pending;
-   * `DI_BAG_INVALID_STARTUP` for malformed keys or options and `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind, all before any factory runs and with this bag left open;
+   * `DI_BAG_INVALID_STARTUP` for malformed keys or options and `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind, all before any factory runs and with this container left open;
    * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`. Each arrives as a rejection.
    * @example
    * ```ts
-   * const bag = await DiBag.createBuilder()
+   * const container = await DiBag.createBuilder()
    *   .withServices({ db: async () => ({ ping: () => true }) })
    *   .buildContainer()
    *   .ensureServicesReady(['db'], { totalTimeoutMs: 5_000 });
@@ -581,12 +368,12 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
   }
 
   /**
-   * Close this bag, drain in-flight work, and dispose owned resources once.
+   * Close this container, drain in-flight work, and dispose owned resources once.
    * Dependents are disposed before dependencies; remaining independent acquisitions use
    * reverse acquisition order. Without options the promise waits for cleanup however long it
    * takes, and repeated calls return the same promise. With `waitTimeoutMs` or `abortSignal`, cleanup
-   * starts the same way but the returned promise stops waiting when either fires; scopes and
-   * forks accept the same options. Close every scope and fork you create; a parent closes its live scopes, never forks.
+   * starts the same way but the returned promise stops waiting when either fires; child and
+   * independent containers accept the same options. Close every derived container you create; a parent closes its live children, never independent containers.
    * @param options - An optional deadline and abort signal bounding the wait, not the cleanup.
    * @returns The shared shutdown promise, or a bounded wait on it when options are given.
    * @throws {@link DiBagCleanupError} (`DI_BAG_CLEANUP_FAILED`) when one or more disposers fail after all cleanup is attempted;
@@ -595,8 +382,8 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * naming unfinished disposers in `details.disposersStillRunning`; `DI_BAG_INVALID_CLOSE` for malformed options.
    * @example
    * ```ts
-   * const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
-   * await bag.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(15_000) });
+   * const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+   * await container.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(15_000) });
    * ```
    */
   close(options?: CloseOptions): Promise<void> {
@@ -607,7 +394,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
 /**
  * An immutable, type-checked graph builder. Every operation returns a new builder.
  * Create one with {@link DiBagApi.createBuilder}. The same builder value can
- * {@link Builder.buildContainer} a bag once its graph is complete, or
+ * {@link Builder.buildContainer} a container once its graph is complete, or
  * {@link Builder.buildModule} a reusable module whose unmet dependencies become
  * requirements the installing host must satisfy.
  * @typeParam Entries - The union of accepted registration entries, one per public key.
@@ -838,13 +625,13 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * await app.close();
    * ```
    */
-  buildContainer(this: Builder<Entries, Constraints> & CheckDependencyCompleteness<RegistrationsFromEntries<Entries>> & CompleteConstraints<Constraints, RegistrationsFromEntries<Entries>> & CheckedLifetimes<RegistrationsFromEntries<Entries>, Constraints>): Bag<RegistrationsFromEntries<Entries>, Constraints> {
-    return new Bag(this.#graph, this.context);
+  buildContainer(this: Builder<Entries, Constraints> & CheckDependencyCompleteness<RegistrationsFromEntries<Entries>> & CompleteConstraints<Constraints, RegistrationsFromEntries<Entries>> & CheckedLifetimes<RegistrationsFromEntries<Entries>, Constraints>): Container<RegistrationsFromEntries<Entries>, Constraints> {
+    return new Container(this.#graph, this.context);
   }
 
 }
 
-export type { Bag, Bag as Container, Builder };
+export type { Container, Builder };
 
 /**
  * Immutable facade configuration. Observers append in the supplied order.
@@ -852,7 +639,6 @@ export type { Bag, Bag as Container, Builder };
  */
 export interface ConfigurationOptions {
   readonly runtime?: RuntimeOptions;
-  readonly observers?: readonly ObserverOptions[];
   readonly lifecycleObservers?: readonly LifecycleObserver[];
 }
 /**
@@ -866,7 +652,7 @@ export interface DiBagApi {
    * @example
    * ```ts
    * const Observed = DiBag.withConfiguration({
-   *   observers: [{ onEvent: event => console.log(event.kind), onError: failure => console.error(failure.error) }],
+   *   lifecycleObservers: [{ onLifecycleEvent: event => console.log(event.kind), onObserverFailure: failure => console.error(failure.error) }],
    * });
    * ```
    */
@@ -976,23 +762,23 @@ export interface DiBagApi {
    */
   fromClass: typeof fromClass;
   /**
-   * Begin an empty immutable graph; `buildContainer` creates its owning bag, `buildModule` seals a reusable module.
+   * Begin an empty immutable graph; `buildContainer` creates its owning container, `buildModule` seals a reusable module.
    * @example
    * ```ts
-   * const bag = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+   * const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
    * ```
    */
   createBuilder: () => Builder<never>;
   /**
-   * Make the bag own a factory's value and run `dispose` on it when the bag closes.
-   * `close()` runs disposers, dependents first; close every scope and fork you create.
+   * Make the container own a factory's value and run `dispose` on it when the container closes.
+   * `close()` runs disposers, dependents first; close every child and independent container you create.
    * @throws `DI_BAG_INVALID_REGISTRATION` when the registration is neither a function nor a provider.
    * @example
    * ```ts
-   * const bag = DiBag.createBuilder()
+   * const container = DiBag.createBuilder()
    *   .withServices({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) })
    *   .buildContainer();
-   * await bag.close();
+   * await container.close();
    * ```
    */
   withDisposal: typeof withDisposal;
@@ -1002,7 +788,7 @@ export interface DiBagApi {
    * @throws `DI_BAG_INVALID_LIFETIME` for an unknown lifetime or malformed options; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
    * @example
    * ```ts
-   * const bag = DiBag.createBuilder()
+   * const container = DiBag.createBuilder()
    *   .withServices({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') })
    *   .buildContainer();
    * ```
@@ -1031,24 +817,16 @@ export interface DiBagApi {
 }
 function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
   withConfiguration: (options: ConfigurationOptions): DiBagApi => {
-    const bag = snapshotOptionsBag(options, 'withConfiguration', [], ['runtime', 'observers', 'lifecycleObservers']);
-    if (Object.hasOwn(bag, 'observers') && Object.hasOwn(bag, 'lifecycleObservers')) {
-      throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration accepts observers or lifecycleObservers, not both', {
-        operation: 'withConfiguration', argument: 'observers', expected: "absent when lifecycleObservers is 'present'",
-      });
-    }
-    const runtime = bag.runtime as RuntimeOptions | undefined;
-    const usesLifecycleNames = Object.hasOwn(bag, 'lifecycleObservers');
-    const lifecycleObservers = (usesLifecycleNames ? bag.lifecycleObservers : bag.observers) as readonly unknown[] | undefined;
+    const selected = snapshotOptionsBag(options, 'withConfiguration', [], ['runtime', 'lifecycleObservers']);
+    const runtime = selected.runtime as RuntimeOptions | undefined;
+    const lifecycleObservers = selected.lifecycleObservers as readonly unknown[] | undefined;
     let configured = runtime === undefined ? context : runtimeContext(runtime, context);
     if (lifecycleObservers !== undefined) {
-      if (!Array.isArray(lifecycleObservers)) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', usesLifecycleNames ? 'withConfiguration lifecycleObservers must be an array' : 'withConfiguration observers must be an array', { operation: 'withConfiguration' });
+      if (!Array.isArray(lifecycleObservers)) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers must be an array', { operation: 'withConfiguration' });
       for (const observer of lifecycleObservers) {
         configured = Object.freeze({
           ...configured,
-          observers: usesLifecycleNames
-            ? LifecycleObservers.append(configured.observers, observer)
-            : LifecycleObservers.appendLegacy(configured.observers, observer),
+          observers: LifecycleObservers.append(configured.observers, observer),
         });
       }
     }

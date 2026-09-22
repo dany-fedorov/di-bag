@@ -6,7 +6,7 @@
 
 Defined in: [startup.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L22)
 
-Options of [Bag.ensureServicesReady](Bag.md#ensureservicesready).
+Options of [Container.ensureServicesReady](Container.md#ensureservicesready).
 
 ## See
 
@@ -22,7 +22,7 @@ readonly abortSignal?: AbortSignal;
 
 Defined in: [startup.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L24)
 
-Aborting it stops the wait and closes this bag.
+Aborting it stops the wait and closes this container.
 
 ***
 
@@ -46,4 +46,4 @@ readonly totalTimeoutMs?: number;
 
 Defined in: [startup.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L26)
 
-A finite positive deadline in milliseconds for the whole call, until every listed service is ready. It is not per service. On expiry this bag is closed.
+A finite positive deadline in milliseconds for the whole call, until every listed service is ready. It is not per service. On expiry this container is closed.
