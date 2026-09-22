@@ -55,7 +55,7 @@ const privateScoped = DiBag.createBuilder().register({ value: () => 1 }).alias('
 DiBag.createBuilder().installModule(privateScoped).register({ root: DiBag.withLifetime(({ renamed }: { renamed: number }) => renamed, 'root') }).build();
 const privateRootBuilder = DiBag.createBuilder().register({ value: () => 1 }).alias('copy', 'value').register({ root });
 // diagnostic: root lifetime cannot capture scoped dependency: root -> value
-privateRootBuilder.buildModule([]);
+privateRootBuilder.buildModule({ exportedServiceKeys: [] });
 const transientBag = DiBag.createBuilder().register({ value: DiBag.withLifetime(() => 1, 'transient') }).alias('copy', 'value').build();
 // diagnostic: cannot share transient
 transientBag.createScope({ share: ['copy'] });

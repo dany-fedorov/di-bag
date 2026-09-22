@@ -29,7 +29,7 @@ const privateScoped = DiBag.createBuilder().register({ helper: () => 1 }).contri
 DiBag.createBuilder().installModule(privateScoped).register({ rootAll }).build();
 const privateRootBuilder = DiBag.createBuilder().register({ helper: () => 1 }).contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'root'));
 // diagnostic: root lifetime cannot capture scoped dependency: contribution -> helper
-privateRootBuilder.buildModule([]);
+privateRootBuilder.buildModule({ exportedServiceKeys: [] });
 // diagnostic: incompatible
 DiBag.createBuilder().register({ all: DiBag.fromFunction([all], values => values) }).contribute(wrong, () => 'wrong');
 // diagnostic: incompatible

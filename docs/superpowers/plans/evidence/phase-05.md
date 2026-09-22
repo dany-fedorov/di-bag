@@ -60,12 +60,41 @@ Both chain comparisons use `resolveCollection` for collection reads and have no 
 
 Both fallback rows have no diagnostics and stay within the 10% cumulative limit.
 
+## Positional replacement fallback
+
+The object-bag replacement form preserved its diagnostics but lost the inferred
+replacement output once contribution consumers were present. Two bounded type
+shapes retained that regression, so the measured fallback keeps the existing
+two-argument call shape under the new method name.
+
+| Count | Phase-0 baseline | Initial bag | Positional fallback | Fallback vs baseline |
+| --- | ---: | ---: | ---: | ---: |
+| 100 | 1,031,260 | 1,071,799 | 1,114,200 | +8.0426% |
+| 500 | 21,767,660 | 20,842,599 | 21,853,000 | +0.3920% |
+
+Both valid fallback rows have no diagnostics and stay within the 10% cumulative
+limit. The 100-call wrong-shape row reports exactly one TS2769 at generated line
+152, includes `provided service does not satisfy its consumer dependency`, and
+does not report TS2589. The initial bag rows remain the historical Task 6
+measurement; the positional rows use the Task 8 fallback source and generator.
+The accepted rows ran with the pinned Node v24.20.0 and TypeScript 6.0.3. Three
+earlier Bun-launched rows reported the runtime compatibility version v26.3.0 and
+are excluded; the first pinned retry was also excluded after the known sandbox
+`spawnSync git` restriction. Their raw outputs remain preserved.
+
+The same prerequisite puts the deprecated positional `buildModule` overload
+before the current options-bag overload so reflected declarations and rejected
+current bags select the current signature. Four terminal lifetime fixtures were
+projected to the current bag without changing their markers or graph constraints.
+Focused source checks, native7 CTS/MTS consumers, and the combined classic6/native7
+physical matrix preserve both valid forms and all diagnostic controls.
+
 Task 5's post-facade raw compiler proof reported `builder-renames.ts` at lines 14, 19, 25, 32, 37, 43, 49, 56, 62, 70, 75 and 77, and `installed-modules.ts` at 19, 26, 33, 40, 46 and 50. The current-tree proof `phase05-task6-fallback-raw-diagnostics` confirms that after the positional fallback, the first three diagnostics remain on argument lines 14, 19 and 25 with the same named output, duplicate and token-kind messages; every retained bag and module-element location remains unchanged.
 
 - **S1 withServices: adopted.** Old-to-new changes are at most +0.0231% across bulk, chained and grouped.
 - **S1 withTokenService: fallback.** The bag exceeded baseline by +42.39%/+62.27%; the positional form is +9.63%/+0.65%.
 - **S1 withServiceAlias: adopted.** The 100-call bag is 1.55% below the positional form.
 - **S1 withCollectionContribution: adopted.** The 100-call bag is 29.57% below the positional form.
-- **S1 withReplacedService: adopted.** The bag is +3.93%/-4.25% against baseline and retains the zero-dependency fast path.
+- **S1 withReplacedService: fallback.** Two bounded bag-signature repairs retained the unannotated output-inference regression; the positional form is +8.04%/+0.39% against baseline and retains the zero-dependency fast path.
 
 The generated documentation remains under the phase-wide exception: the fully generated tree has 124 pages and 301 snippets, with only the unchanged 417-line API card exceeding its 400-line budget. The generated fallback diff and seven new facade pages are retained at `/tmp/di-bag-resume-20260921/phase05-task6-fallback-generated-docs*` before restoration. After restoration, `phase05-task6-fallback-docs-check-restored` records the expected 27/29 state: the budget and first stale generated-facade link fail; the guard launched above 8 GiB and was not resource-stopped.

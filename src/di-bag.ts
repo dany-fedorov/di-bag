@@ -726,22 +726,21 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
   // retains full checks for parameters, mixed providers and explicit K,V.
   // Keep the fixed history out of replacement-factory inference with NoInfer.
   /**
-   * Replace an existing string-named service with a dependency-free factory.
-   * @param options - `serviceKey` is one existing string-literal service name; `provider` is the replacement, checked against every surviving consumer.
+   * Replace an existing binding with a compatible provider, selecting it by name, service token, collection token.
+   * @param serviceKey - One existing string-literal service name or typed token.
+   * @param provider - The replacement, checked against every surviving consumer.
    * @returns A new builder with the replacement.
-   * @typeParam V - The exact replacement factory or disposable-factory type.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider;
+   * @throws `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider;
    * `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
    * @example
    * ```ts
    * const builder = DiBag.createBuilder()
    *   .withServices({ clock: () => Date.now() })
-   *   .withReplacedService({ serviceKey: 'clock', provider: () => 0 });
+   *   .withReplacedService('clock', () => 0);
    * ```
    */
   readonly withReplacedService: BuilderWithReplacedService<Entries, Constraints> = this.#withReplacedService as BuilderWithReplacedService<Entries, Constraints>;
-  #withReplacedService(options: unknown): unknown {
-    const { serviceKey, provider } = snapshotOptionsBag(options, 'withReplacedService', ['serviceKey', 'provider']);
+  #withReplacedService(serviceKey: unknown, provider: unknown): unknown {
     const selected = typeof serviceKey === 'string' ? undefined : readToken(serviceKey);
     const key = selected === undefined ? serviceKey as string : selected.key;
     const graph = selected === undefined

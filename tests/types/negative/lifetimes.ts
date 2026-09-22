@@ -26,11 +26,11 @@ DiBag.createBuilder().installModule(renamed).replace('external', () => 1).regist
 
 const privateRootBuilder = DiBag.createBuilder().register({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root'), api: () => 1 });
 // diagnostic: root lifetime cannot capture scoped dependency: hidden -> db
-privateRootBuilder.buildModule(['api']);
+privateRootBuilder.buildModule({ exportedServiceKeys: ['api'] });
 
 const exportlessBuilder = DiBag.createBuilder().register({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') });
 // diagnostic: root lifetime cannot capture scoped dependency: hidden -> db
-exportlessBuilder.buildModule([]);
+exportlessBuilder.buildModule({ exportedServiceKeys: [] });
 
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().register({ db: () => 1, permissive: withLifetime(({ db }: { db: number }) => db, 'root', { allowScopedDependencies: true }), a: withLifetime(({ permissive }: { permissive: number }) => permissive, 'root'), c: withLifetime(({ db }: { db: number }) => db, 'root') }).build();

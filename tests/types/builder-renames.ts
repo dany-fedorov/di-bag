@@ -1,5 +1,6 @@
 import { DiBag } from '../../src/node';
 import type { Module } from '../../src/node';
+import type { Assert, Equal } from './assert';
 
 type Clock = { now(): number };
 const clockKey = Symbol('clock');
@@ -13,9 +14,9 @@ const chained = DiBag.createBuilder()
   .withTokenService(clock, (): Clock => ({ now: () => 1 }))
   .withServiceAlias({ aliasKey: 'now', targetServiceKey: clock })
   .withCollectionContribution({ collectionToken: tools, provider: () => 'search' })
-  .withReplacedService({ serviceKey: 'config', provider: () => ({ url: 'y' }) })
-  .withReplacedService({ serviceKey: clock, provider: (): Clock => ({ now: () => 2 }) })
-  .withReplacedService({ serviceKey: tools, provider: (): readonly string[] => ['local'] });
+  .withReplacedService('config', () => ({ url: 'y' }))
+  .withReplacedService(clock, (): Clock => ({ now: () => 2 }))
+  .withReplacedService(tools, (): readonly string[] => ['local']);
 chained.verifyGraphAtCompileTime() satisfies void;
 const app = chained.buildContainer();
 export const aliased: Clock = app.resolve('now');
@@ -30,13 +31,40 @@ export const shorthand: Clock = DiBag.createBuilder().withTokenService(token, pr
 // A replacement with dependencies takes the general overload.
 const derived = DiBag.createBuilder()
   .withServices({ base: () => 1, derived: ({ base }: { base: number }) => base + 1 })
-  .withReplacedService({ serviceKey: 'derived', provider: ({ base }: { base: number }) => base * 2 });
+  .withReplacedService('derived', ({ base }: { base: number }) => base * 2);
 export const derivedValue: number = derived.buildContainer().resolve('derived');
+
+// A zero-dependency replacement keeps independent output inference even when
+// an existing collection contribution consumes the replaced service.
+const inferredReplacement = DiBag.createBuilder()
+  .withServices({ inferredClock: () => ({ now: () => 1, unused: () => true }) })
+  .withCollectionContribution({ collectionToken: tools, provider: ({ inferredClock }: { inferredClock: { now(): number } }) => String(inferredClock.now()) })
+  .withReplacedService('inferredClock', () => ({ now() { return 2; }, extra() { return true; } }))
+  .buildContainer();
+const inferredReplacementModule = DiBag.createBuilder()
+  .withServices({ inferredClock: () => ({ now: () => 1, unused: () => true }) })
+  .withCollectionContribution({ collectionToken: tools, provider: ({ inferredClock }: { inferredClock: { now(): number } }) => String(inferredClock.now()) })
+  .withReplacedService('inferredClock', () => ({ now() { return 2; }, extra() { return true; } }))
+  .buildModule({ exportedServiceKeys: ['inferredClock'] });
+const inferredReplacementModuleBag = DiBag.createBuilder().withInstalledModules([inferredReplacementModule]).buildContainer();
+export type InferredReplacementExact = [
+  Assert<Equal<ReturnType<typeof inferredReplacement.resolve<'inferredClock'>>, { now(): number; extra(): boolean }>>,
+  Assert<Equal<ReturnType<typeof inferredReplacementModuleBag.resolve<'inferredClock'>>, { now(): number; extra(): boolean }>>,
+];
+const asyncReplacement = DiBag.createBuilder()
+  .withServices({ asyncValue: async () => 1 })
+  .withReplacedService('asyncValue', async () => 2)
+  .buildContainer();
+export const asyncReplacementValue: Promise<number> = asyncReplacement.resolve('asyncValue');
+const explicitReplacementProvider = () => 2;
+DiBag.createBuilder()
+  .withServices({ explicitReplacement: () => 1 })
+  .withReplacedService<'explicitReplacement', typeof explicitReplacementProvider>('explicitReplacement', explicitReplacementProvider);
 
 // A disposable factory through the zero-dependency overload, and a token alias of a named service.
 const owned = DiBag.createBuilder()
   .withServices({ connection: DiBag.withDisposal(() => ({ open: true }), connection => { connection.open = false; }) })
-  .withReplacedService({ serviceKey: 'connection', provider: DiBag.withDisposal(() => ({ open: false }), () => {}) })
+  .withReplacedService('connection', DiBag.withDisposal(() => ({ open: false }), () => {}))
   .withServices({ time: (): Clock => ({ now: () => 4 }) })
   .withServiceAlias({ aliasKey: clock, targetServiceKey: 'time' });
 export const viaToken: Clock = owned.buildContainer().resolve(clock);

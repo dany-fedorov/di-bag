@@ -132,7 +132,7 @@ export function scaleSource(
           : scenario === 'wrong-shape' && index === Math.floor(count / 2)
             ? "() => 'wrong'"
             : `() => ${index + 2}`;
-        return bagCalls ? `.withReplacedService({ serviceKey: 'svc${index}', provider: ${factory} })` : `.replace('svc${index}', ${factory})`;
+        return bagCalls ? `.withReplacedService('svc${index}', ${factory})` : `.replace('svc${index}', ${factory})`;
       }).join('\n');
     }
   }

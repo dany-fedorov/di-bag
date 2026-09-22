@@ -57,18 +57,18 @@ DiBag.createBuilder().withCollectionContribution({
 });
 
 // Zero-dependency fast path: the diagnostic must land on serviceKey.
-DiBag.createBuilder().withServices({ a: () => 1 }).withReplacedService({
+DiBag.createBuilder().withServices({ a: () => 1 }).withReplacedService(
   // diagnostic: replace requires one existing singleton string-literal key
-  serviceKey: 'missing',
-  provider: () => 2,
-});
+  'missing',
+  () => 2,
+);
 
 // General replacement path: a dependency-bearing provider cannot use the zero-dependency overload.
-DiBag.createBuilder().withServices({ a: () => 1, b: () => 2, consumer: ({ a }: { a: number }) => a }).withReplacedService({
-  serviceKey: 'a',
+DiBag.createBuilder().withServices({ a: () => 1, b: () => 2, consumer: ({ a }: { a: number }) => a }).withReplacedService(
+  'a',
   // diagnostic: consumer dependency
-  provider: ({ b }: { b: number }) => 'text',
-});
+  ({ b }: { b: number }) => 'text',
+);
 
 // Two overloads while the 0.4.0 form exists: one line each for now. Task 12 spreads these two over several lines.
 // diagnostic: buildModule accepts existing names or typed tokens only
