@@ -162,8 +162,8 @@ const replacementText = {
   'DiBagApi.transformService': 'provider.withTransformedService({ transformService, callbackReceives })',
   'Builder.register': 'withServices({ key: provider }) or withTokenService(token, provider)',
   'Builder.buildAndStart': 'buildContainer(), then container.ensureServicesReady(serviceKeys)',
-  'Bag.fork': 'createIndependentContainer({ replacedServiceKeys, replacementProviders })',
-  'Bag.createScope': 'createChildContainer({ replacedServiceKeys, replacementProviders, sharedParentServiceKeys })',
+  'Bag.fork': 'createIndependentContainer(replacedServiceKeys, replacementProviders)',
+  'Bag.createScope': 'createChildContainer(replacedServiceKeys, replacementProviders, { sharedParentServiceKeys }); use createChildContainer() or createChildContainer({ sharedParentServiceKeys }) when no services are replaced',
 };
 const receiver = { DiBagApi: 'DiBag.', Builder: 'builder.', Bag: 'container.', Module: 'module.', Provider: 'provider.' };
 
@@ -1022,8 +1022,12 @@ behaviors. Run the codemod BEFORE upgrading, then read the
   moduleLabel })`, `buildContainer`. `buildAndStart` is
   `container.ensureServicesReady(serviceKeys, options)`.
 - The container, which was `Bag`: `serviceSnapshot`, `graphSnapshot`,
-  `createChildContainer`, `createIndependentContainer`, each with one options
-  bag, and `close({ abortSignal, waitTimeoutMs })`.
+  `createChildContainer(replacedServiceKeys, replacementProviders, options?)`,
+  `createIndependentContainer(replacedServiceKeys, replacementProviders)`, and
+  `close({ abortSignal, waitTimeoutMs })`. No-argument and empty-bag forms remain
+  available for both derivation methods, the child also accepts a share-only bag,
+  and explicit `undefined` is accepted exactly where the selected phase-6
+  overload permits it.
 - Providers: `DiBag.createProvider`, `createProviderFromFunction`,
   `createProviderFromClass`, `createProviderFromPlugin`, with
   `factoryReturnKind` and `factoryReceivesContext`. Decorators are methods of

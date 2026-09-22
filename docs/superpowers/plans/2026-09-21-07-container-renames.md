@@ -447,7 +447,7 @@ Do not run a compiler, evidence command, declaration-consumer command, or commit
 
 Do not apply this step yet. Task 2 first installs the adopted direct parser, then its Step 5 runs the first compiler check. If that check rejects S3, Task 2 Step 6 applies everything below as one bounded substitution.
 
-Keep the existing no-replacement optional-bag overloads: both methods still accept no arguments, `{}` and explicit `undefined`, while child containers also accept a sharing-only bag. S3 changes only the replacement pair. Change replacement forms to:
+Keep the existing no-replacement optional-bag overloads: both methods still accept no arguments, `{}` and explicit `undefined`, while child containers also accept a sharing-only bag. In the fallback, change the empty branch of `ReplacementOptions` to `{ readonly replacedServiceKeys?: never; readonly replacementProviders?: never }`: under `exactOptionalPropertyTypes`, replacement fields explicitly set to undefined must reject just as the one-argument runtime normalizer rejects their presence. Prove both methods reject those fields and retain valid empty/undefined calls. S3 changes only the replacement pair. Change replacement forms to:
 
 ```ts
 createChildContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>, const SharedParentServiceKeys extends readonly unknown[] = readonly []>(

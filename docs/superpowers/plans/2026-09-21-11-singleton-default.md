@@ -19,6 +19,7 @@
 - Preserve `GraphDescription.tokenKinds` through every description reconstruction and pass the actual public operation to token-kind checks.
 - Preserve phase 7's `RenamedExternalObligation` in every lifetime-obligation branch; a lifetime rename/default change must not erase requirement renaming.
 - Preserve the phase-6 compatibility order `CreateChildContainerOptions<ServiceRegistrations, SharedKeys, Constraints = never>`.
+- When phase 6 verifies the S3 fallback, preserve its positional replacement pair and optional checked sharing bag. No-argument, empty-bag, share-only, and explicit-`undefined` forms remain public exactly as verified there; do not turn normalized internal option objects back into method arguments.
 - Preserve all accumulated codemod map entries and API-card rows. Map owners are their original 0.4.0 declaration names. Custom transforms emit declaration-backed names through `api.nameOf(owner, oldName)` and generated option fields through method-entry `transformNames` plus `api.nameForRole(role)`.
 - Compile-time designs in this plan are uncompiled planning signatures until the executor runs the serialized compiler lane. The executor must prove every positive and property-local negative case before adopting S8.
 - All twelve evidence cases must remain at or below 110% of the phase-0 instantiation baseline; S8 also measures a 100-provider chain whose only scoped service is its final dependency. A measured budget breach takes the complete fallback; a correctness or diagnostic-location failure first receives the master's three serious repair attempts in Task 5.
@@ -158,10 +159,7 @@ test('a child rejects an inherited singleton before reading replacement getters'
 
   let failure: unknown;
   try {
-    (root.createChildContainer as (options: object) => unknown)({
-      replacedServiceKeys: ['value'],
-      replacementProviders,
-    });
+    (root.createChildContainer as (...args: unknown[]) => unknown)(['value'], replacementProviders);
   } catch (error) { failure = error; }
   expect(failure).toBeInstanceOf(Error);
   expect((failure as { code: string }).code).toBe('DI_BAG_SINGLETON_REPLACEMENT');
@@ -176,10 +174,10 @@ test('a child may replace scoped and transient services', async () => {
     scoped: DiBag.createProvider(() => 1).withLifetime('scoped:one-per-container'),
     transient: DiBag.createProvider(() => 2).withLifetime('transient:one-per-resolve'),
   }).buildContainer();
-  const child = root.createChildContainer({
-    replacedServiceKeys: ['scoped', 'transient'],
-    replacementProviders: { scoped: () => 3, transient: () => 4 },
-  });
+  const child = root.createChildContainer(
+    ['scoped', 'transient'],
+    { scoped: () => 3, transient: () => 4 },
+  );
   expect(child.resolve('scoped')).toBe(3);
   expect(child.resolve('transient')).toBe(4);
   await root.close();
@@ -187,10 +185,10 @@ test('a child may replace scoped and transient services', async () => {
 
 test('an independent container may replace a singleton', async () => {
   const root = DiBag.createBuilder().withServices({ value: () => ({ source: 'root' }) }).buildContainer();
-  const independent = root.createIndependentContainer({
-    replacedServiceKeys: ['value'],
-    replacementProviders: { value: () => ({ source: 'independent' }) },
-  });
+  const independent = root.createIndependentContainer(
+    ['value'],
+    { value: () => ({ source: 'independent' }) },
+  );
   expect(independent.resolve('value')).toEqual({ source: 'independent' });
   expect(independent.resolve('value')).not.toBe(root.resolve('value'));
   await independent.close();
@@ -201,16 +199,16 @@ test('a singleton replacement is anchored to the child that introduces it', asyn
   const root = DiBag.createBuilder().withServices({
     value: DiBag.createProvider(() => ({ source: 'root' })).withLifetime('scoped:one-per-container'),
   }).buildContainer();
-  const child = root.createChildContainer({
-    replacedServiceKeys: ['value'],
-    replacementProviders: { value: () => ({ source: 'child' }) },
-  });
+  const child = root.createChildContainer(
+    ['value'],
+    { value: () => ({ source: 'child' }) },
+  );
   const grandchild = child.createChildContainer();
   expect(grandchild.resolve('value')).toBe(child.resolve('value'));
   expect(child.resolve('value')).not.toBe(root.resolve('value'));
-  expect(() => (child.createChildContainer as (options: object) => unknown)({
-    replacedServiceKeys: ['value'], replacementProviders: { value: () => ({ source: 'grandchild' }) },
-  })).toThrow(/cannot replace singleton service 'value'/);
+  expect(() => (child.createChildContainer as (...args: unknown[]) => unknown)(
+    ['value'], { value: () => ({ source: 'grandchild' }) },
+  )).toThrow(/cannot replace singleton service 'value'/);
   await root.close();
 });
 
@@ -218,9 +216,9 @@ test('an alias uses its target singleton lifetime for child replacement', async 
   const root = DiBag.createBuilder().withServices({ target: () => ({ value: 1 }) })
     .withServiceAlias({ aliasKey: 'alias', targetServiceKey: 'target' })
     .buildContainer();
-  expect(() => (root.createChildContainer as (options: object) => unknown)({
-    replacedServiceKeys: ['alias'], replacementProviders: { alias: () => ({ value: 2 }) },
-  })).toThrow(/cannot replace singleton service 'alias'/);
+  expect(() => (root.createChildContainer as (...args: unknown[]) => unknown)(
+    ['alias'], { alias: () => ({ value: 2 }) },
+  )).toThrow(/cannot replace singleton service 'alias'/);
   await root.close();
 });
 
@@ -229,10 +227,10 @@ test('a collection token keeps its fresh replacement view and has no singular li
   const root = DiBag.createBuilder()
     .withCollectionContribution({ collectionToken: items, provider: () => 1 })
     .buildContainer();
-  const child = root.createChildContainer({
-    replacedServiceKeys: [items],
-    replacementProviders: { [items.symbol]: () => [2, 3] },
-  });
+  const child = root.createChildContainer(
+    [items],
+    { [items.symbol]: () => [2, 3] },
+  );
   expect(child.resolve(items)).toEqual([2, 3]);
   expect(child.resolve(items)).not.toBe(child.resolve(items));
   await child.close(); await root.close();
@@ -339,7 +337,7 @@ export function selectChildContainer(
   const bag = snapshotOptionsBag(options, 'createChildContainer', [], [
     'replacedServiceKeys', 'replacementProviders', 'sharedParentServiceKeys',
   ]);
-  const { selected, providers } = replacementPair(bag, 'createChildContainer');
+  const { present, selected, providers } = replacementPair(bag, 'createChildContainer');
   const sharedKeys = Object.hasOwn(bag, 'sharedParentServiceKeys')
     ? snapshotSelection(bag.sharedParentServiceKeys, 'createChildContainer', 'sharedParentServiceKeys')
     : [];
@@ -384,9 +382,9 @@ export function selectChildContainer(
       );
     }
   }
-  const bindings = selected.length === 0
-    ? []
-    : selectedBindings(claimedGraph, 'createChildContainer', selected, providers);
+  const bindings = present
+    ? selectedBindings(claimedGraph, 'createChildContainer', selected, providers)
+    : [];
   return {
     graph: bindings.length === 0
       ? claimedGraph
@@ -411,7 +409,7 @@ Add this complete section to `docs/agent/errors.md` in code order:
 ```md
 ### DI_BAG_SINGLETON_REPLACEMENT {#di-bag-singleton-replacement}
 
-**When:** `container.createChildContainer({ replacedServiceKeys, replacementProviders })`
+**When:** `container.createChildContainer(replacedServiceKeys, replacementProviders)`
 selects a service whose inherited provider has lifetime
 `'singleton:one-per-container-tree'`.
 
@@ -430,10 +428,10 @@ const app = DiBag.createBuilder().withServices({
     .withLifetime('scoped:one-per-container'),
 }).buildContainer();
 
-const requestContainer = app.createChildContainer({
-  replacedServiceKeys: ['request'],
-  replacementProviders: { request: () => ({ id: crypto.randomUUID() }) },
-});
+const requestContainer = app.createChildContainer(
+  ['request'],
+  { request: () => ({ id: crypto.randomUUID() }) },
+);
 await requestContainer.close();
 await app.close();
 ```
@@ -483,15 +481,15 @@ const feature = DiBag.createBuilder().withServices({
   ).withLifetime('scoped:one-per-container'),
 }).buildContainer();
 
-export const child = feature.createChildContainer({
-  replacedServiceKeys: ['request'],
-  replacementProviders: { request: (): Request => ({ id: 'request-1' }) },
-});
+export const child = feature.createChildContainer(
+  ['request'],
+  { request: (): Request => ({ id: 'request-1' }) },
+);
 
-export const independent = feature.createIndependentContainer({
-  replacedServiceKeys: ['repository'],
-  replacementProviders: { repository: () => ({ read: () => 2 }) },
-});
+export const independent = feature.createIndependentContainer(
+  ['repository'],
+  { repository: () => ({ read: () => 2 }) },
+);
 
 const permissive = DiBag.createProvider(
   ({ request }: { request: Request }) => request,
@@ -582,21 +580,21 @@ const root = DiBag.createBuilder().withServices({
   transient: DiBag.createProvider(() => ({ value: 3 })).withLifetime('transient:one-per-resolve'),
 }).buildContainer();
 
-root.createChildContainer({
-  replacedServiceKeys: ['singleton'],
+root.createChildContainer(
+  ['singleton'],
   // diagnostic: createChildContainer cannot replace singleton service: singleton; mark it scoped:one-per-container or use createIndependentContainer
-  replacementProviders: { singleton: () => ({ value: 4 }) },
-});
+  { singleton: () => ({ value: 4 }) },
+);
 
 const singletonToken = DiBag.createToken(Symbol('singleton')).forService<{ value: number }>();
 const tokenRoot = DiBag.createBuilder()
   .withTokenService(singletonToken, () => ({ value: 1 }))
   .buildContainer();
-tokenRoot.createChildContainer({
-  replacedServiceKeys: [singletonToken],
+tokenRoot.createChildContainer(
+  [singletonToken],
   // diagnostic: createChildContainer cannot replace singleton service
-  replacementProviders: { [singletonToken.symbol]: () => ({ value: 2 }) },
-});
+  { [singletonToken.symbol]: () => ({ value: 2 }) },
+);
 
 // diagnostic: root lifetime cannot capture scoped dependency: consumer -> scoped
 DiBag.createBuilder().withServices({
@@ -621,17 +619,17 @@ DiBag.createBuilder().withInstalledModules([throughModule]).withServices({
 }).buildContainer();
 
 // These remain valid and ensure admission is specific to child containers.
-root.createChildContainer({
-  replacedServiceKeys: ['scoped', 'transient'],
-  replacementProviders: { scoped: () => ({ value: 4 }), transient: () => ({ value: 5 }) },
-});
-root.createIndependentContainer({
-  replacedServiceKeys: ['singleton'],
-  replacementProviders: { singleton: () => ({ value: 6 }) },
-});
+root.createChildContainer(
+  ['scoped', 'transient'],
+  { scoped: () => ({ value: 4 }), transient: () => ({ value: 5 }) },
+);
+root.createIndependentContainer(
+  ['singleton'],
+  { singleton: () => ({ value: 6 }) },
+);
 ```
 
-If phase 6 selected its positional S3 fallback, replace only the two child replacement calls with positional arguments and put each diagnostic marker immediately above the second `replacementProviders` argument. Keep the options-bag fixture as a separate direct instantiation of `CreateChildContainerOptions` so property-local admission is still proved:
+If phase 6 verifies its positional S3 fallback, keep every replacement call above positional, and put each diagnostic marker immediately above the second provider-map argument. Keep the options-bag fixture as a separate direct instantiation of `CreateChildContainerOptions` so property-local admission is still proved; this type-level fixture does not restore a replacement one-bag method overload:
 
 ```ts
 const rejectedOptions: import('../../../src').CreateChildContainerOptions<
@@ -1132,8 +1130,8 @@ export const forms = ContainerKit.createBuilder()
 export const untouched = unrelated.createScope();
 
 export const empty = root.createChildContainer();
-export const child = root.createChildContainer({ replacedServiceKeys: ['service'], replacementProviders: { service: (ContainerKit.createProvider(() => 2)).withLifetime('scoped:one-per-container') } });
-export const independent = root.createIndependentContainer({ replacedServiceKeys: ['service'], replacementProviders: { service: (ContainerKit.createProvider(() => 3)).withLifetime('scoped:one-per-container') } });
+export const child = root.createChildContainer(['service'], { service: (ContainerKit.createProvider(() => 2)).withLifetime('scoped:one-per-container') });
+export const independent = root.createIndependentContainer(['service'], { service: (ContainerKit.createProvider(() => 3)).withLifetime('scoped:one-per-container') });
 export const manual = ContainerKit.createBuilder().withServices(shared).buildContainer();
 export const spread = ContainerKit.createBuilder().withServices({ ...shared }).buildContainer();
 export const namespaceFeature = Library.DiBag.createBuilder().withServices({ ns: (ContainerKit.createProvider(() => 1)).withLifetime('scoped:one-per-container') }).buildContainer();
@@ -1172,8 +1170,8 @@ export const forms = ContainerKit.createBuilder()
 export const untouched = unrelated.createScope();
 
 export const empty = root.createChildContainer();
-export const child = root.createChildContainer({ replacedServiceKeys: ['service'], replacementProviders: { service: ContainerKit.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) } });
-export const independent = root.createIndependentContainer({ replacedServiceKeys: ['service'], replacementProviders: { service: ContainerKit.providerWithLifetime({ provider: () => 3, lifetime: 'scoped:one-per-container' }) } });
+export const child = root.createChildContainer(['service'], { service: ContainerKit.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) });
+export const independent = root.createIndependentContainer(['service'], { service: ContainerKit.providerWithLifetime({ provider: () => 3, lifetime: 'scoped:one-per-container' }) });
 export const manual = ContainerKit.createBuilder().withServices(shared).buildContainer();
 export const spread = ContainerKit.createBuilder().withServices({ ...shared }).buildContainer();
 export const namespaceFeature = Library.DiBag.createBuilder()
@@ -1786,7 +1784,7 @@ decision record. The normal `current-lifetime-pin` fixture above still uses only
 actually adopted by phases 5, 6, and 10.
 
 ```js
-test('current lifetime pins accept preferred and measured-fallback arities', () => {
+test('lifetime pinning preserves custom synthetic bag and positional derivation shapes', () => {
   const scratch = mkdtempSync(join(tmpdir(), 'di-bag-lifetime-shapes-'));
   const library = join(scratch, 'library');
   mkdirSync(library);
@@ -1833,6 +1831,8 @@ container.createIndependentContainer(['a'], { a: () => 10 });
     module: compiler.ts.ModuleKind.NodeNext,
     moduleResolution: compiler.ts.ModuleResolutionKind.NodeNext,
   });
+  // This scratch declaration deliberately exposes both shapes to test the lifetime transform.
+  // The bag calls are non-shipped custom input and do not describe the selected public API.
   const preferredMap = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
   const preferredEntries = [
     { owner: 'Builder', from: 'register', to: 'withTokenService', arity: [2], arguments: { kind: 'bag', names: ['token', 'provider'] } },
@@ -2415,10 +2415,10 @@ const app = DiBag.createBuilder().withServices({
 The child replacement remains:
 
 ```ts
-const requestContainer = app.createChildContainer({
-  replacedServiceKeys: ['request'],
-  replacementProviders: { request: (): RequestContext => ({ requestId }) },
-});
+const requestContainer = app.createChildContainer(
+  ['request'],
+  { request: (): RequestContext => ({ requestId }) },
+);
 try {
   await requestContainer.resolve('handler').run();
 } finally {
@@ -2912,12 +2912,10 @@ test('a child rejects only an explicitly marked singleton', async () => {
     singleton: DiBag.createProvider(() => 1).withLifetime('singleton:one-per-container-tree'),
     scoped: () => 2,
   }).buildContainer();
-  expect(() => (root.createChildContainer as (options: object) => unknown)({
-    replacedServiceKeys: ['singleton'], replacementProviders: { singleton: () => 3 },
-  })).toThrow("cannot replace singleton service 'singleton'");
-  const child = root.createChildContainer({
-    replacedServiceKeys: ['scoped'], replacementProviders: { scoped: () => 4 },
-  });
+  expect(() => (root.createChildContainer as (...args: unknown[]) => unknown)(
+    ['singleton'], { singleton: () => 3 },
+  )).toThrow("cannot replace singleton service 'singleton'");
+  const child = root.createChildContainer(['scoped'], { scoped: () => 4 });
   expect(child.resolve('scoped')).toBe(4);
   await root.close();
 });
@@ -2926,9 +2924,7 @@ test('an independent container may replace an explicitly marked singleton', asyn
   const root = DiBag.createBuilder().withServices({
     singleton: DiBag.createProvider(() => 1).withLifetime('singleton:one-per-container-tree'),
   }).buildContainer();
-  const independent = root.createIndependentContainer({
-    replacedServiceKeys: ['singleton'], replacementProviders: { singleton: () => 2 },
-  });
+  const independent = root.createIndependentContainer(['singleton'], { singleton: () => 2 });
   expect(independent.resolve('singleton')).toBe(2);
   await independent.close(); await root.close();
 });
@@ -2942,12 +2938,10 @@ test('aliases follow explicit singleton targets while collection replacement rem
     .withServiceAlias({ aliasKey: 'alias', targetServiceKey: 'target' })
     .withCollectionContribution({ collectionToken: items, provider: () => 1 })
     .buildContainer();
-  expect(() => (root.createChildContainer as (options: object) => unknown)({
-    replacedServiceKeys: ['alias'], replacementProviders: { alias: () => 2 },
-  })).toThrow("cannot replace singleton service 'alias'");
-  const child = root.createChildContainer({
-    replacedServiceKeys: [items], replacementProviders: { [items.symbol]: () => [2] },
-  });
+  expect(() => (root.createChildContainer as (...args: unknown[]) => unknown)(
+    ['alias'], { alias: () => 2 },
+  )).toThrow("cannot replace singleton service 'alias'");
+  const child = root.createChildContainer([items], { [items.symbol]: () => [2] });
   expect(child.resolve(items)).toEqual([2]);
   await child.close(); await root.close();
 });
@@ -2966,19 +2960,13 @@ const root = DiBag.createBuilder().withServices({
   singleton: DiBag.createProvider(() => 2).withLifetime('singleton:one-per-container-tree'),
 }).buildContainer();
 
-export const child = root.createChildContainer({
-  replacedServiceKeys: ['scoped'], replacementProviders: { scoped: () => 3 },
-});
-export const independent = root.createIndependentContainer({
-  replacedServiceKeys: ['singleton'], replacementProviders: { singleton: () => 4 },
-});
+export const child = root.createChildContainer(['scoped'], { scoped: () => 3 });
+export const independent = root.createIndependentContainer(['singleton'], { singleton: () => 4 });
 const items = DiBag.createToken(Symbol('items')).forCollectionOf<number>();
 const collectionRoot = DiBag.createBuilder()
   .withCollectionContribution({ collectionToken: items, provider: () => 1 })
   .buildContainer();
-export const collectionChild = collectionRoot.createChildContainer({
-  replacedServiceKeys: [items], replacementProviders: { [items.symbol]: () => [2] },
-});
+export const collectionChild = collectionRoot.createChildContainer([items], { [items.symbol]: () => [2] });
 const childValue: number = child.resolve('scoped');
 const independentValue: number = independent.resolve('singleton');
 const collectionValue: readonly number[] = collectionChild.resolve(items);
@@ -2994,29 +2982,29 @@ const root = DiBag.createBuilder().withServices({
   singleton: DiBag.createProvider(() => 1).withLifetime('singleton:one-per-container-tree'),
   scoped: () => 2,
 }).buildContainer();
-root.createChildContainer({
-  replacedServiceKeys: ['singleton'],
+root.createChildContainer(
+  ['singleton'],
   // diagnostic: createChildContainer cannot replace singleton service: singleton
-  replacementProviders: { singleton: () => 3 },
-});
+  { singleton: () => 3 },
+);
 
 const token = DiBag.createToken(Symbol('singleton')).forService<number>();
 const tokenRoot = DiBag.createBuilder().withTokenService(token, DiBag.createProvider(() => 1).withLifetime('singleton:one-per-container-tree')).buildContainer();
-tokenRoot.createChildContainer({
-  replacedServiceKeys: [token],
+tokenRoot.createChildContainer(
+  [token],
   // diagnostic: createChildContainer cannot replace singleton service
-  replacementProviders: { [token.symbol]: () => 2 },
-});
+  { [token.symbol]: () => 2 },
+);
 
 const aliasRoot = DiBag.createBuilder()
   .withServices({ target: DiBag.createProvider(() => 1).withLifetime('singleton:one-per-container-tree') })
   .withServiceAlias({ aliasKey: 'alias', targetServiceKey: 'target' })
   .buildContainer();
-aliasRoot.createChildContainer({
-  replacedServiceKeys: ['alias'],
+aliasRoot.createChildContainer(
+  ['alias'],
   // diagnostic: createChildContainer cannot replace singleton service: alias
-  replacementProviders: { alias: () => 2 },
-});
+  { alias: () => 2 },
+);
 ```
 
 In `tests/types.test.ts`, remove the three singleton-default named tests, declaration-array entry,

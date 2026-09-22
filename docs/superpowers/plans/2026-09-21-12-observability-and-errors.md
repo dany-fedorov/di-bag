@@ -13,6 +13,7 @@
 ## Global Constraints
 
 - Names and codes are exactly those in the spec. The spec wins over this plan.
+- When phase 6 verifies the S3 fallback, preserve its positional replacement pair and optional checked sharing bag. No-argument, empty-bag, share-only, and explicit-`undefined` forms remain public; option-shaped objects inside selectors are internal normalization only.
 - Runtime messages keep the format `DI_BAG_CODE: message; see <errors page>#<anchor>`; the anchor derives from the code in `diagnosticMessage` (`src/errors.ts`).
 - `npm run docs:check` enforces, in `tools/docs/lib/agent-docs.mjs` `checkErrorCoverage`: every `'DI_BAG_X'` literal anywhere in `src` has a heading `### DI_BAG_X {#di-bag-x}` in `docs/agent/errors.md`, and every such heading names a code that still appears in `src`. Both directions fail the check, so a code and its section change in the same commit.
 - Each section keeps the page's format: **When**, **Cause**, **Fix**, one `ts` example, optional **Recipe**. Examples are type-checked against the emitted declarations.
@@ -1078,9 +1079,9 @@ check([
   // 0.4.0: builder().replace('absent', () => 1)
   ['a replacement of an unknown key', () => builder().withReplacedService('absent', () => 1), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withReplacedService', serviceKey: 'absent' }],
   // 0.4.0: bag.fork(['absent'], { absent: () => 1 })
-  ['an independent container that replaces an unknown key', () => container().createIndependentContainer({ replacedServiceKeys: ['absent'], replacementProviders: { absent: () => 1 } }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'createIndependentContainer', serviceKey: 'absent' }],
+  ['an independent container that replaces an unknown key', () => container().createIndependentContainer(['absent'], { absent: () => 1 }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'createIndependentContainer', serviceKey: 'absent' }],
   // 0.4.0: bag.createScope(['absent'], { absent: () => 1 })
-  ['a child container that replaces an unknown key', () => container().createChildContainer({ replacedServiceKeys: ['absent'], replacementProviders: { absent: () => 1 } }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'createChildContainer', serviceKey: 'absent' }],
+  ['a child container that replaces an unknown key', () => container().createChildContainer(['absent'], { absent: () => 1 }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'createChildContainer', serviceKey: 'absent' }],
   // 0.4.0: bag.createScope({ share: ['absent'] })
   ['a child container that shares an unknown key', () => container().createChildContainer({ sharedParentServiceKeys: ['absent'] }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'createChildContainer', serviceKey: 'absent' }],
   // 0.4.0: builder().buildAndStart(['absent'])
@@ -1209,11 +1210,11 @@ node scripts/error-code-inventory.mjs src 2>/dev/null | grep -iE 'missing .*(ove
 ```ts
 check([
   // 0.4.0: bag.fork(['config'], {})
-  ['an independent container without the provider for a replaced key', () => container().createIndependentContainer({ replacedServiceKeys: ['config'], replacementProviders: {} }), 'DI_BAG_MISSING_REPLACEMENT_PROVIDER', { operation: 'createIndependentContainer', serviceKey: 'config' }],
+  ['an independent container without the provider for a replaced key', () => container().createIndependentContainer(['config'], {}), 'DI_BAG_MISSING_REPLACEMENT_PROVIDER', { operation: 'createIndependentContainer', serviceKey: 'config' }],
   // 0.4.0: bag.createScope(['config'], {})
-  ['a child container without the provider for a replaced key', () => container().createChildContainer({ replacedServiceKeys: ['config'], replacementProviders: {} }), 'DI_BAG_MISSING_REPLACEMENT_PROVIDER', { operation: 'createChildContainer', serviceKey: 'config' }],
+  ['a child container without the provider for a replaced key', () => container().createChildContainer(['config'], {}), 'DI_BAG_MISSING_REPLACEMENT_PROVIDER', { operation: 'createChildContainer', serviceKey: 'config' }],
   // 0.4.0: bag.createScope(['config'], { config: ... }, { share: ['config'] })
-  ['a key both replaced and shared', () => container().createChildContainer({ replacedServiceKeys: ['config'], replacementProviders: { config: scoped(() => ({ region: 'us' })) }, sharedParentServiceKeys: ['config'] }), 'DI_BAG_CONFLICTING_SERVICE_SELECTION', { operation: 'createChildContainer', serviceKey: 'config', conflict: 'shared-and-replaced' }],
+  ['a key both replaced and shared', () => container().createChildContainer(['config'], { config: scoped(() => ({ region: 'us' })) }, { sharedParentServiceKeys: ['config'] }), 'DI_BAG_CONFLICTING_SERVICE_SELECTION', { operation: 'createChildContainer', serviceKey: 'config', conflict: 'shared-and-replaced' }],
   // 0.4.0: bag.createScope({ share: ['id'] })
   ['a transient service shared with a child', () => container().createChildContainer({ sharedParentServiceKeys: ['id'] }), 'DI_BAG_CONFLICTING_SERVICE_SELECTION', { operation: 'createChildContainer', serviceKey: 'id', conflict: 'shared-transient' }],
 ]);
@@ -1255,11 +1256,11 @@ const parent = DiBag.createBuilder()
     client: DiBag.createProvider(() => ({ id: 1 })).withLifetime(scoped),
   })
   .buildContainer();
-const child = parent.createChildContainer({
-  replacedServiceKeys: ['config'],
-  replacementProviders: { config: () => ({ region: 'us' }) },
-  sharedParentServiceKeys: ['client'],
-});
+const child = parent.createChildContainer(
+  ['config'],
+  { config: () => ({ region: 'us' }) },
+  { sharedParentServiceKeys: ['client'] },
+);
 console.log(child.resolve('config').region);
 await parent.close();
 ```
@@ -1268,12 +1269,13 @@ await parent.close();
 
 ### DI_BAG_MISSING_REPLACEMENT_PROVIDER {#di-bag-missing-replacement-provider}
 
-**When:** `createChildContainer` or `createIndependentContainer` lists a key in
-`replacedServiceKeys` and `replacementProviders` has no own property for it.
+**When:** `createChildContainer` or `createIndependentContainer` receives a key in
+its positional `replacedServiceKeys` argument and the positional
+`replacementProviders` record has no own property for it.
 `details.serviceKey` names the key.
 
-**Cause:** the two options are read together: the list says which services the
-new container replaces, the record says with what.
+**Cause:** the two positional arguments are read together: the list says which
+services the new container replaces, the record says with what.
 
 **Fix:** give one provider for every listed key, or take the key off the list.
 
@@ -1281,10 +1283,10 @@ new container replaces, the record says with what.
 import { DiBag } from 'di-bag';
 
 const parent = DiBag.createBuilder().withServices({ config: () => ({ region: 'eu' }) }).buildContainer();
-const copy = parent.createIndependentContainer({
-  replacedServiceKeys: ['config'],
-  replacementProviders: { config: () => ({ region: 'us' }) },
-});
+const copy = parent.createIndependentContainer(
+  ['config'],
+  { config: () => ({ region: 'us' }) },
+);
 console.log(copy.resolve('config').region);
 await copy.close();
 await parent.close();
@@ -1548,11 +1550,11 @@ check([
   argument('newExportKey is not a string', () => builder().buildModule({ exportedServiceKeys: ['config'] }).withRenamedExport({ currentExportKey: 'config', newExportKey: 1 }), 'withRenamedExport', 'newExportKey', 'a string'),
 
   // Container. 0.4.0: createScope, fork, buildAndStart, close.
-  argument('replacedServiceKeys is not an array', () => container().createChildContainer({ replacedServiceKeys: 'bad', replacementProviders: {} }), 'createChildContainer', 'replacedServiceKeys', 'an array'),
-  argument('replacementProviders is not an object', () => container().createChildContainer({ replacedServiceKeys: ['config'], replacementProviders: 42 }), 'createChildContainer', 'replacementProviders', 'an object'),
-  argument('unknown option', () => container().createChildContainer({ other: [] }), 'createChildContainer', 'options', 'only the own properties: replacedServiceKeys, replacementProviders, sharedParentServiceKeys'),
-  argument('replacedServiceKeys is not an array', () => container().createIndependentContainer({ replacedServiceKeys: 'bad', replacementProviders: {} }), 'createIndependentContainer', 'replacedServiceKeys', 'an array'),
-  argument('replacementProviders is not an object', () => container().createIndependentContainer({ replacedServiceKeys: ['config'], replacementProviders: null }), 'createIndependentContainer', 'replacementProviders', 'an object'),
+  argument('replacedServiceKeys is not an array', () => container().createChildContainer('bad', {}), 'createChildContainer', 'replacedServiceKeys', 'an array'),
+  argument('replacementProviders is not an object', () => container().createChildContainer(['config'], 42), 'createChildContainer', 'replacementProviders', 'an object'),
+  argument('unknown option', () => container().createChildContainer([], {}, { other: [] }), 'createChildContainer', 'options', 'only the own properties: sharedParentServiceKeys'),
+  argument('replacedServiceKeys is not an array', () => container().createIndependentContainer('bad', {}), 'createIndependentContainer', 'replacedServiceKeys', 'an array'),
+  argument('replacementProviders is not an object', () => container().createIndependentContainer(['config'], null), 'createIndependentContainer', 'replacementProviders', 'an object'),
   argument('serviceKeys is not an array', () => container().ensureServicesReady('bad'), 'ensureServicesReady', 'serviceKeys', 'an array'),
   argument('options is not an object', () => container().ensureServicesReady(['config'], 42), 'ensureServicesReady', 'options', 'an object'),
   argument('maxConcurrentServiceKeys is zero', () => container().ensureServicesReady(['config'], { maxConcurrentServiceKeys: 0 }), 'ensureServicesReady', 'maxConcurrentServiceKeys', 'a positive safe integer'),
