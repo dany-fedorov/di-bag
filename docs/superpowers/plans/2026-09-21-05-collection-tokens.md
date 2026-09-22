@@ -2185,9 +2185,9 @@ Before compiling, reconcile imports by owner rather than creating duplicate help
 
 - [ ] **Step 7: Compile only the focused fixtures first**
 
-Run the existing compiler-fixture command used by neighboring entries in `tests/types.test.ts`; if no per-case script exists, run `bun test tests/types.test.ts --test-name-pattern 'collection tokens'`.
+Run the existing compiler-fixture command used by neighboring entries in `tests/types.test.ts`; if no per-case script exists, run `bun test tests/types.test.ts -t 'collection tokens|collection-tokens'`.
 
-Expected: the positive fixture has zero diagnostics; each negative marker matches one diagnostic on the following line.
+Expected: 2 tests pass: `collection tokens retain exact inferred contracts` has zero diagnostics and `type rejection: collection-tokens.ts` matches each negative marker to one diagnostic on the following line. Neither required fixture is filtered away.
 
 This is the first compile attempt for these proposed types. Make at most three serious repairs. Do not erase nominal invariance, turn errors into `never`, weaken the negative fixtures, or move contributions into the ordinary registrations map.
 
@@ -2205,7 +2205,7 @@ Run this step only after the primary S5 table passes. If the three-attempt or bu
 
 ```bash
 bun test tests/collection-tokens.test.ts
-bun test tests/types.test.ts --test-name-pattern 'collection tokens'
+bun test tests/types.test.ts -t 'collection tokens|collection-tokens'
 npm run typecheck
 npm run build
 npm run docs:generate
@@ -2214,7 +2214,7 @@ bun test tests/api-naming.test.ts tests/documented-names.test.ts
 git diff --check
 ```
 
-Expected: the complete Tasks 2–4 runtime and compiler fixtures pass; typecheck, the fresh classic build, generated-document checks, ordinary naming checks and diff check all exit 0. Phase 4 has no compiler- or generated-document-red exception.
+Expected: the complete Tasks 2–4 runtime and compiler fixtures pass; the focused compiler command reports 2 tests passed with neither required fixture filtered away; typecheck, the fresh classic build, generated-document checks, ordinary naming checks and diff check all exit 0. Phase 4 has no compiler- or generated-document-red exception.
 
 Stage exactly the union owned by Tasks 2–4 plus the generated Markdown and S5 evidence:
 
@@ -2291,7 +2291,7 @@ After the focused fixture and twelve-case fallback checks in Step 4 pass, run th
 
 ```bash
 bun test tests/collection-tokens.test.ts
-bun test tests/types.test.ts --test-name-pattern 'collection tokens'
+bun test tests/types.test.ts -t 'collection tokens|collection-tokens'
 npm run typecheck
 npm run build
 npm run docs:generate
@@ -2300,7 +2300,7 @@ bun test tests/api-naming.test.ts tests/documented-names.test.ts
 git diff --check
 ```
 
-Expected: every command exits 0. The failed primary attempts remain evidence text only; no failed-primary commit exists. Stage exactly the Tasks 2–4 union, the fallback guide, generated Markdown and adopted fallback evidence:
+Expected: every command exits 0; the focused compiler command reports 2 tests passed with neither required fixture filtered away. The failed primary attempts remain evidence text only; no failed-primary commit exists. Stage exactly the Tasks 2–4 union, the fallback guide, generated Markdown and adopted fallback evidence:
 
 ```bash
 git add src/acquisition.ts src/runtime.ts src/startup.ts src/dependency-references.ts src/aliases.ts src/di-bag.ts src/contributions.ts src/scope-selection.ts src/module.ts src/tokens.ts src/token-types.ts src/provider.ts src/contribution-types.ts src/types.ts src/replacement-types.ts src/scope-types.ts src/alias-types.ts src/module-types.ts src/index.ts tests/collection-tokens.test.ts tests/types/collection-tokens.ts tests/types/negative/collection-tokens.ts tests/types.test.ts docs/guides/api-naming.md tools/docs/test/exact-rendering.test.mjs docs/reference docs/agent/api-card.md docs/superpowers/plans/evidence/phase-04.md
