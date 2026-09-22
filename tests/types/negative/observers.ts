@@ -37,3 +37,17 @@ if (event.kind === 'cleanup-completed') {
 }
 // diagnostic: does not exist
 event.value;
+// diagnostic: onObserverFailure
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) {} }] });
+// diagnostic: onLifecycleEvent
+DiBag.withConfiguration({ lifecycleObservers: [{ onObserverFailure(failure) {} }] });
+// diagnostic: not assignable
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: 1, onObserverFailure(failure) {} }] });
+// diagnostic: not assignable
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) {}, onObserverFailure: null }] });
+// diagnostic: not assignable
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(this: { owner: string }, event: LifecycleEvent) {}, onObserverFailure(failure) {} }] });
+// diagnostic: not assignable
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) {}, onObserverFailure(this: { owner: string }, failure: ObserverFailure) {} }] });
+// diagnostic: not assignable
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: { kind: 'scope-opened' }) {}, onObserverFailure(failure) {} }] });

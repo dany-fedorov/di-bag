@@ -69,6 +69,21 @@ export interface ObserverOptions {
   /** Receives synchronous throws and rejected results from `onEvent`. */
   readonly onError: ObserverErrorCallback;
 }
+/**
+ * Both callbacks required by {@link DiBagApi.withConfiguration} under the lifecycle names.
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
+ */
+export interface LifecycleObserver {
+  /** Receives events in transition and observer-registration order on a microtask queue. */
+  readonly onLifecycleEvent: ObserverCallback;
+  /** Receives synchronous throws and rejected results from `onLifecycleEvent`. */
+  readonly onObserverFailure: ObserverErrorCallback;
+}
+
+type ObserverRecord = {
+  readonly onEvent: ObserverCallback;
+  readonly onError: ObserverErrorCallback;
+};
 
 const then = Promise.prototype.then<void, void>;
 const ignore = () => {};
@@ -79,15 +94,27 @@ function monitor(result: unknown, failed: (error: unknown) => void): void {
   then.call(pending, ignore, failed);
 }
 // One lazy queue preserves ordering when a callback observes multiple facades.
-let queue: Array<{ event: LifecycleEvent; callbacks: readonly ObserverOptions[] }> | undefined;
+let queue: Array<{ event: LifecycleEvent; callbacks: readonly ObserverRecord[] }> | undefined;
 export class LifecycleObservers {
-  private constructor(private readonly callbacks: readonly ObserverOptions[]) {}
+  private constructor(private readonly callbacks: readonly ObserverRecord[]) {}
 
-  static append(previous: LifecycleObservers | undefined, options: ObserverOptions): LifecycleObservers {
-    if (typeof options !== 'object' || options === null) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
-    const { onEvent, onError } = options;
+  static appendLegacy(previous: LifecycleObservers | undefined, observer: unknown): LifecycleObservers {
+    if (typeof observer !== 'object' || observer === null) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
+    const onEvent = Reflect.get(observer, 'onEvent') as unknown;
+    const onError = Reflect.get(observer, 'onError') as unknown;
     if (typeof onEvent !== 'function' || typeof onError !== 'function') throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
-    return new LifecycleObservers([...(previous?.callbacks ?? []), Object.freeze({ onEvent, onError })]);
+    return new LifecycleObservers([...(previous?.callbacks ?? []), Object.freeze({ onEvent: onEvent as ObserverCallback, onError: onError as ObserverErrorCallback })]);
+  }
+
+  static append(previous: LifecycleObservers | undefined, observer: unknown): LifecycleObservers {
+    if (typeof observer !== 'object' || observer === null) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
+    const onLifecycleEvent = Reflect.get(observer, 'onLifecycleEvent') as unknown;
+    const onObserverFailure = Reflect.get(observer, 'onObserverFailure') as unknown;
+    if (typeof onLifecycleEvent !== 'function' || typeof onObserverFailure !== 'function') throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
+    return new LifecycleObservers([...(previous?.callbacks ?? []), Object.freeze({
+      onEvent: onLifecycleEvent as ObserverCallback,
+      onError: onObserverFailure as ObserverErrorCallback,
+    })]);
   }
 
   emit(event: LifecycleEvent): void {

@@ -1,6 +1,6 @@
 import { libraryError, libraryTypeError } from './errors';
 import { LifecycleObservers } from './observers';
-import type { ObserverOptions } from './observers';
+import type { LifecycleObserver, ObserverOptions } from './observers';
 import { contributionEntry } from './contributions';
 import type { BuilderWithCollectionContribution } from './contribution-types';
 import type { BuilderBuildModule, BuilderWithInstalledModules, BuilderWithReplacedService, BuilderWithServiceAlias, BuilderWithServices, BuilderWithTokenService } from './builder-method-types';
@@ -837,6 +837,7 @@ export type { Bag, Builder };
 export interface ConfigurationOptions {
   readonly runtime?: RuntimeOptions;
   readonly observers?: readonly ObserverOptions[];
+  readonly lifecycleObservers?: readonly LifecycleObserver[];
 }
 /**
  * The immutable public entry surface used by {@link DiBag} and derived facades.
@@ -1014,12 +1015,26 @@ export interface DiBagApi {
 }
 function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
   withConfiguration: (options: ConfigurationOptions): DiBagApi => {
-    if (typeof options !== 'object' || options === null || Array.isArray(options)) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration requires an options object', { operation: 'withConfiguration' });
-    const { runtime, observers } = options;
+    const bag = snapshotOptionsBag(options, 'withConfiguration', [], ['runtime', 'observers', 'lifecycleObservers']);
+    if (Object.hasOwn(bag, 'observers') && Object.hasOwn(bag, 'lifecycleObservers')) {
+      throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration accepts observers or lifecycleObservers, not both', {
+        operation: 'withConfiguration', argument: 'observers', expected: "absent when lifecycleObservers is 'present'",
+      });
+    }
+    const runtime = bag.runtime as RuntimeOptions | undefined;
+    const usesLifecycleNames = Object.hasOwn(bag, 'lifecycleObservers');
+    const lifecycleObservers = (usesLifecycleNames ? bag.lifecycleObservers : bag.observers) as readonly unknown[] | undefined;
     let configured = runtime === undefined ? context : runtimeContext(runtime, context);
-    if (observers !== undefined) {
-      if (!Array.isArray(observers)) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers must be an array', { operation: 'withConfiguration' });
-      for (const observer of observers) configured = Object.freeze({ ...configured, observers: LifecycleObservers.append(configured.observers, observer) });
+    if (lifecycleObservers !== undefined) {
+      if (!Array.isArray(lifecycleObservers)) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', usesLifecycleNames ? 'withConfiguration lifecycleObservers must be an array' : 'withConfiguration observers must be an array', { operation: 'withConfiguration' });
+      for (const observer of lifecycleObservers) {
+        configured = Object.freeze({
+          ...configured,
+          observers: usesLifecycleNames
+            ? LifecycleObservers.append(configured.observers, observer)
+            : LifecycleObservers.appendLegacy(configured.observers, observer),
+        });
+      }
     }
     return facade(configured);
   },

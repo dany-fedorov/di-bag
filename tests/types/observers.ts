@@ -1,4 +1,4 @@
-import { DiBag, type LifecycleEvent, type ObserverFailure, type ObserverOptions, type ConfigurationOptions, type ObserverCallback, type ObserverErrorCallback } from '../../src';
+import { DiBag, type LifecycleEvent, type LifecycleObserver, type ObserverFailure, type ObserverOptions, type ConfigurationOptions, type ObserverCallback, type ObserverErrorCallback } from '../../src';
 import type { Assert, Equal } from './assert';
 export const onEvent = (event: LifecycleEvent) => event.kind;
 export const onError = (failure: ObserverFailure) => failure.error;
@@ -18,6 +18,16 @@ export const fork = bag.fork();
 export const child = bag.createScope({ share: ['copy'] });
 export const value = bag.resolve('copy');
 export function inferredObserver() { return observed.withConfiguration({ observers: [{ onEvent(event) { return event.kind; }, onError(failure) { return failure.error; } }] }); }
+export const onLifecycleEvent = (event: LifecycleEvent) => event.kind;
+export const onObserverFailure = (failure: ObserverFailure) => failure.error;
+export const lifecycleObserver = { onLifecycleEvent, onObserverFailure } satisfies LifecycleObserver;
+export const lifecycleObserved = DiBag.withConfiguration({ lifecycleObservers: [lifecycleObserver] });
+export function inferredLifecycleObserver() {
+  return lifecycleObserved.withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event) { return event.kind; },
+    onObserverFailure(failure) { return failure.error; },
+  }] });
+}
 export type Exact = [Assert<Equal<typeof value, Promise<{ value: number }>>>,
   Assert<Equal<Parameters<typeof observe>, [options: ConfigurationOptions]>>,
   Assert<Equal<Parameters<ObserverCallback>, [event: LifecycleEvent]>>,

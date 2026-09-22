@@ -1,4 +1,4 @@
-import { observed, observe, configure, begin, builder, bag, installed, fork, child, provider, feature, inferredObserver } from './observers';
+import { observed, observe, configure, begin, builder, bag, installed, fork, child, provider, feature, inferredObserver, lifecycleObserved, inferredLifecycleObserver } from './observers';
 import type { Assert, Equal } from './assert';
 import type { ProviderOutput, ProviderAcquiredValue, ProviderRegistrationMetadata, LifecycleEvent, ObserverFailure } from '../../src';
 const composed = observe({ observers: [{ onEvent: async event => event.kind, onError: async failure => failure.error }] }).withConfiguration({ runtime: { isNativePromise: () => false } });
@@ -21,3 +21,14 @@ bag.fork(['value'], { value: () => 1 });
 observe({ observers: [{ onEvent(event: LifecycleEvent) {} }] });
 // @ts-expect-error required receiver is incompatible with observer invocation
 observe({ observers: [{ onEvent(this: { value: number }, event: LifecycleEvent) {}, onError(failure: ObserverFailure) {} }] });
+const lifecycleComposed = lifecycleObserved.withConfiguration({ lifecycleObservers: [{
+  onLifecycleEvent: async event => event.kind,
+  onObserverFailure: async failure => failure.error,
+}] });
+const lifecycleExact: typeof lifecycleObserved = inferredLifecycleObserver();
+lifecycleComposed.createBuilder().buildContainer();
+void lifecycleExact;
+// @ts-expect-error required failure callback survives declaration emission
+lifecycleObserved.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: LifecycleEvent) {} }] });
+// @ts-expect-error observer callbacks have a void receiver
+lifecycleObserved.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(this: { owner: string }, event: LifecycleEvent) {}, onObserverFailure(failure: ObserverFailure) {} }] });
