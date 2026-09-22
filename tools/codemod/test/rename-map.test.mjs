@@ -9,7 +9,7 @@ import { indexRenameMap, loadRenameMap, validateRenameMap } from '../lib/rename-
 const packageRoot = resolve(import.meta.dirname, '..');
 const shipped = JSON.parse(readFileSync(join(packageRoot, 'rename-map.json'), 'utf8'));
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'di-bag-rename-map-'));
-const shippedTransforms = ['build-and-start', 'collection-read', 'collection-reference', 'collection-token'];
+const shippedTransforms = ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation'];
 after(() => rmSync(temporaryRoot, { force: true, recursive: true }));
 
 test('the shipped map is valid', () => {
@@ -66,8 +66,38 @@ test('malformed JSON is framed with the rename-map file path', () => {
 
 test('custom-transform role names survive loading the shipped map', () => {
   const loaded = loadRenameMap(join(packageRoot, 'rename-map.json'), shippedTransforms);
-  const entry = loaded.methods.find(method => method.owner === 'Builder' && method.from === 'buildAndStart');
-  assert.deepEqual(entry.transformNames, { concurrency: 'maxConcurrentServiceKeys' });
+  const buildEntry = loaded.methods.find(method => method.owner === 'Builder' && method.from === 'buildAndStart');
+  assert.deepEqual(buildEntry.transformNames, { concurrency: 'maxConcurrentServiceKeys' });
+  const entry = loaded.methods.find(method => method.owner === 'Bag' && method.from === 'createScope');
+  assert.deepEqual(entry.transformNames, {
+    keys: 'replacedServiceKeys',
+    providers: 'replacementProviders',
+    sharing: 'sharedParentServiceKeys',
+  });
+});
+
+test('phase 6 roles retain closed validation and effective-method conflict checks', () => {
+  const base = {
+    version: 1,
+    methods: [{
+      owner: 'Bag', from: 'createScope', to: 'createChildContainer',
+      transform: 'container-derivation',
+      transformNames: { keys: 'replacedServiceKeys' },
+    }],
+  };
+  assert.deepEqual(validateRenameMap({
+    ...base,
+    methods: [{ ...base.methods[0], inventedRoleField: true }],
+  }, ['container-derivation']), ['methods[0]: unknown field inventedRoleField']);
+  assert.deepEqual(validateRenameMap({
+    ...base,
+    methods: [
+      base.methods[0],
+      { ...base.methods[0], transformNames: { keys: 'chosenKeys' } },
+    ],
+  }, ['container-derivation']), [
+    'methods[1]: conflicts with methods[0] for Bag.createScope',
+  ]);
 });
 
 test('custom-transform role names require a transform and non-empty targets', () => {

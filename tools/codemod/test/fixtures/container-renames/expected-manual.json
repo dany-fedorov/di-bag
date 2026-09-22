@@ -1,0 +1,6 @@
+[
+  {
+    "line": 14,
+    "reason": "the createScope options are not an object literal; rewrite it to createChildContainer by hand"
+  }
+]
