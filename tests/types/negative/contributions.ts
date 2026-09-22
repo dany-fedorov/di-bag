@@ -1,5 +1,6 @@
 import { DiBag, type Builder, type Bag } from '../../../src';
-const key = Symbol('numbers'); const numbers = DiBag.token(key).of<number>();
+const key = Symbol('numbers'); const numbers = DiBag.token(key).forCollectionOf<number>();
+const legacyNumbers = DiBag.token(key).of<number>();
 const wrong = DiBag.token(key).forCollectionOf<string>();
 // diagnostic: service
 DiBag.createBuilder().contribute(numbers, () => 'wrong');
@@ -8,15 +9,18 @@ const builder = DiBag.createBuilder().contribute(numbers, () => 1);
 builder.contribute(wrong, () => 'wrong');
 // diagnostic: incompatible
 builder.build().resolveCollection(wrong);
+// diagnostic: incompatible
+builder.build().inspectCollection(wrong);
 // diagnostic: existing
-builder.build().resolve(numbers);
+builder.build().resolve(legacyNumbers);
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().contribute(numbers, ({ missing }: { missing: number }) => missing).build();
 // diagnostic: not assignable
 const erasedBuilder: Builder<never> = builder;
 // diagnostic: not assignable
 const erasedBag: Bag<{}> = builder.build();
-const all = DiBag.all(numbers);
+const all = numbers;
+const legacyAll = DiBag.all(legacyNumbers);
 const rootAll = DiBag.withLifetime(DiBag.fromFunction([all], values => values), 'root');
 // diagnostic: root lifetime cannot capture scoped dependency
 builder.register({ rootAll }).build();
@@ -67,21 +71,34 @@ builder.contribute<typeof numbers, never>(numbers, undefined as never);
 declare const erased: import('../../../src').Registration;
 // diagnostic: not assignable
 builder.contribute(numbers, erased);
-const otherKey = Symbol('other'); const other = DiBag.token(otherKey).of<number>();
+const otherKey = Symbol('other'); const other = DiBag.token(otherKey).forCollectionOf<number>();
 declare const union: typeof numbers | typeof other;
 // diagnostic: finite tuple
 builder.contribute(union, () => 1);
 // diagnostic: finite tuple
-builder.build().resolveAll(union);
+builder.build().resolveCollection(union);
+// diagnostic: finite tuple
+builder.build().inspectCollection(union);
+declare const incompatibleUnion: typeof numbers | typeof wrong;
+// diagnostic: finite tuple
+builder.build().resolveCollection(incompatibleUnion);
+// diagnostic: finite tuple
+builder.build().inspectCollection(incompatibleUnion);
+const otherWrong = DiBag.token(key).forCollectionOf<boolean>();
+declare const allIncompatibleUnion: typeof wrong | typeof otherWrong;
+// diagnostic: finite tuple
+builder.build().resolveCollection(allIncompatibleUnion);
+// diagnostic: finite tuple
+builder.build().inspectCollection(allIncompatibleUnion);
 // diagnostic: not assignable
-const allReflected: ReturnType<typeof DiBag.all> = all;
+const allReflected: ReturnType<typeof DiBag.all> = legacyAll;
 // diagnostic: finite tuple
 DiBag.fromFunction([allReflected], values => values);
 declare const reflected: ReturnType<typeof builder.contribute>;
 // diagnostic: required service registrations are missing
 reflected.build();
 // diagnostic: not assignable
-const badInspection: readonly { metadata: { label: string } }[] = builder.build().inspectAll(numbers);
+const badInspection: readonly { metadata: { label: string } }[] = builder.build().inspectCollection(numbers);
 
 const privateTransientHelper = DiBag.createBuilder().register({ leaf: () => 1, helper: DiBag.withLifetime(({ leaf }: { leaf: number }) => leaf, 'transient') }).contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'transient')).buildModule([]);
 // diagnostic: root lifetime cannot capture scoped dependency
@@ -111,9 +128,9 @@ DiBag.createBuilder().installModule(DiBag.createBuilder().contribute(numbers, Di
 // diagnostic: not assignable
 const forgedToken: Parameters<typeof builder.contribute>[0] = numbers;
 // diagnostic: Expected 2 arguments
-builder.build().resolveAll<never>(numbers as never);
+builder.build().resolveCollection<never>(numbers as never);
 // diagnostic: Expected 2 arguments
-builder.build().inspectAll<never>(numbers as never);
+builder.build().inspectCollection<never>(numbers as never);
 const rooted = DiBag.withLifetime(() => 1, 'root');
 const sharedAliasBase = DiBag.createBuilder().register({ helper: () => 1, consumer: DiBag.fromFunction([all], values => values) }).alias('copy', 'helper').contribute(numbers, DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient')).build();
 // diagnostic: root lifetime cannot capture scoped dependency

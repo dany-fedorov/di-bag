@@ -17,18 +17,19 @@ test('contributions preserve order, empty reads and array immutability', async (
 
 // These controls catch accidental singular/group merging and deduplication.
 test('host and repeated exportless modules append distinct lexical bindings', async () => {
-  const key = Symbol('items'); const items = DiBag.token(key).of<{ id: number; label: string }>();
+  const itemKey = Symbol('items'); const items = DiBag.token(itemKey).forCollectionOf<{ id: number; label: string }>();
+  const singularItemKey = Symbol('singular item'); const singularItem = DiBag.token(singularItemKey).of<{ id: number; label: string }>();
   let ids = 0; const disposed: number[] = [];
   const sharedHandle = DiBag.withDisposal(({ helper }: { helper: number }) => ({ id: helper, label: 'module' }), value => { disposed.push(value.id); });
   const feature = DiBag.createBuilder().register({ helper: () => ++ids }).contribute(items, sharedHandle).contribute(items, sharedHandle).buildModule([]);
   const base = DiBag.createBuilder().contribute(items, () => ({ id: 0, label: 'host' }));
-  const bag = base.installModule(feature).installModule(feature).register(items, () => ({ id: 99, label: 'singular' })).build();
-  expect(bag.resolveAll(items).map(value => value.id)).toEqual([0, 1, 1, 2, 2]);
-  expect(bag.resolve(items).id).toBe(99);
+  const bag = base.installModule(feature).installModule(feature).register(singularItem, () => ({ id: 99, label: 'singular' })).build();
+  expect(bag.resolveCollection(items).map(value => value.id)).toEqual([0, 1, 1, 2, 2]);
+  expect(bag.resolve(singularItem).id).toBe(99);
   const baseBag = base.build();
-  expect(baseBag.resolveAll(items)).toEqual([{ id: 0, label: 'host' }]);
+  expect(baseBag.resolveCollection(items)).toEqual([{ id: 0, label: 'host' }]);
   await baseBag.close();
-  expect(new Set(bag.inspectAll(items).map(value => value.bindingId)).size).toBe(5);
+  expect(new Set(bag.inspectCollection(items).map(value => value.bindingId)).size).toBe(5);
   await bag.close();
   expect(disposed.sort()).toEqual([1, 1, 2, 2]);
 });
@@ -122,17 +123,18 @@ test('inspection is immutable nonresolving and does not freeze application value
 
 test('forged tokens references and providers reject before provider effects', async () => {
   const key = Symbol('real'); const token = DiBag.token(key).of<number>(); let effects = 0;
-  for (const fake of [key, {}, Object.create(token), { ...token }, DiBag.optional(token), DiBag.all(token)]) {
+  const collectionKey = Symbol('collection'); const collection = DiBag.token(collectionKey).forCollectionOf<number>();
+  for (const fake of [key, {}, Object.create(token), { ...token }, DiBag.optional(token), DiBag.lazy(token)]) {
     expect(() => (DiBag.createBuilder().contribute as Function)(fake, () => { effects++; return 1; })).toThrow();
-    expect(() => (DiBag.all as Function)(fake)).toThrow();
+    expect(() => (DiBag.optional as Function)(fake)).toThrow();
   }
   const provider = DiBag.fromFunction([], () => { effects++; return 1; });
   expect(() => (DiBag.createBuilder().contribute as Function)(token, { ...provider })).toThrow();
   expect(() => (DiBag.createBuilder().contribute as Function)(token, {})).toThrow();
-  const refs = [DiBag.all(token)]; refs[Symbol.iterator] = function* () { throw new Error('iterator'); };
-  const bag = DiBag.createBuilder().contribute(token, () => 1).register({ list: DiBag.fromFunction(refs as [typeof refs[0]], values => values) }).build();
+  const refs = [collection]; refs[Symbol.iterator] = function* () { throw new Error('iterator'); };
+  const bag = DiBag.createBuilder().contribute(collection, () => 1).register({ list: DiBag.fromFunction(refs as [typeof refs[0]], values => values) }).build();
   expect(bag.resolve('list')).toEqual([1]); expect(effects).toBe(0); await bag.close();
-  expect(() => bag.resolveAll(token)).toThrow(/closed|closing/);
+  expect(() => bag.resolveCollection(collection)).toThrow(/closed|closing/);
 });
 
 test('cooperative lazy registries admit late collection reads only for their in-flight source', async () => {
@@ -150,12 +152,12 @@ test('cooperative lazy registries admit late collection reads only for their in-
 });
 
 test('observed strict roots reject cached scoped contributions before owner routing', async () => {
-  const key = Symbol('items'); const items = DiBag.token(key).of<number>();
-  const root = DiBag.withLifetime(DiBag.fromFunction([DiBag.all(items)], values => values), 'root');
+  const key = Symbol('items'); const items = DiBag.token(key).forCollectionOf<number>();
+  const root = DiBag.withLifetime(DiBag.fromFunction([items], values => values), 'root');
   // An unchecked caller must still meet the observed lifetime boundary.
   const builder = DiBag.createBuilder().contribute(items, () => 1).register({ root });
   const bag = (builder.build as Function).call(builder);
-  expect(bag.resolveAll(items)).toEqual([1]);
+  expect(bag.resolveCollection(items)).toEqual([1]);
   expect(() => bag.resolve('root')).toThrow(/root lifetime cannot capture scoped/);
   const child = bag.createScope(); expect(() => child.resolve('root')).toThrow(/root lifetime cannot capture scoped/);
   await bag.close();

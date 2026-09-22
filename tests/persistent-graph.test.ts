@@ -150,6 +150,6 @@ test('contribution protection uses the once-read input snapshot through public r
     .toEqual({ reads: 1, ids: [target], hasTarget: true });
   const runtime = new BagRuntime(updated);
   expect(runtime.resolve('item')).toBe(2);
-  expect(runtime.resolveAll(group)).toEqual([1]);
+  expect(runtime.resolveCollection(group)).toEqual([1]);
   await runtime.close();
 });

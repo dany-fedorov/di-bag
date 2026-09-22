@@ -127,7 +127,8 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * const names: readonly string[] = bag.resolveCollection(tools);
    * ```
    */
-  resolveCollection<T extends CollectionTokenBase>(token: T & CollectionMember<T, Constraints>,
+  resolveCollection<T extends CollectionTokenBase>(token: T & (unknown extends TokenTupleAdmission<readonly [T]>
+    ? CollectionMember<T, Constraints> : TokenTupleAdmission<readonly [T]>),
     ...invalid: [T] extends [never] ? [never] : []): readonly CollectionItem<T>[] {
     const { key, kind } = readToken(token);
     if (kind !== 'collection') throw wrongTokenKind('resolveCollection', 'collection', key);
@@ -199,7 +200,8 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * const labels = bag.inspectCollection(tools).map(snapshot => snapshot.label);
    * ```
    */
-  inspectCollection<T extends CollectionTokenBase>(token: T & CollectionMember<T, Constraints>,
+  inspectCollection<T extends CollectionTokenBase>(token: T & (unknown extends TokenTupleAdmission<readonly [T]>
+    ? CollectionMember<T, Constraints> : TokenTupleAdmission<readonly [T]>),
     ...invalid: [T] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[] {
     const { key, kind } = readToken(token);
     if (kind !== 'collection') throw wrongTokenKind('inspectCollection', 'collection', key);

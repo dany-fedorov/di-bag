@@ -1,12 +1,12 @@
 import { DiBag } from '../../src';
 import { bag, numbers, contribute, feature } from './contributions';
 import type { Assert, Equal } from './assert';
-const values = bag.resolveAll(numbers);
+const values = bag.resolveCollection(numbers);
 export type Exact = Assert<Equal<typeof values, ReadonlyArray<number>>>;
 contribute(numbers, () => 4).build();
-DiBag.createBuilder().installModule(feature).build().resolveAll(numbers);
+DiBag.createBuilder().installModule(feature).build().resolveCollection(numbers);
 import { aggregate, privateHost, needsHost, renamedHost, moduleContribute, key, promiseBag, promised, rootedHelper, allProvider } from './contributions';
-needsHost.register({ helper: () => 1 }).build(); privateHost.resolveAll(numbers); renamedHost.resolveAll(numbers);
+needsHost.register({ helper: () => 1 }).build(); privateHost.resolveCollection(numbers); renamedHost.resolveCollection(numbers);
 moduleContribute(numbers, () => 4).register({ helper: () => 1 }).buildModule([]);
 // @ts-expect-error exportless contribution dependencies remain required after declaration emission
 needsHost.build();
