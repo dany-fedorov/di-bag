@@ -2,7 +2,11 @@
   "$schema": "./rename-map.schema.json",
   "version": 1,
   "methods": [
-    { "owner": "Builder", "from": "buildAndStart", "to": "ensureServicesReady", "transform": "build-and-start", "transformNames": { "concurrency": "maxConcurrentServiceKeys" } }
+    { "owner": "Builder", "from": "buildAndStart", "to": "ensureServicesReady", "transform": "build-and-start", "transformNames": { "concurrency": "maxConcurrentServiceKeys" } },
+    { "owner": "token()", "from": "of", "to": "forCollectionOf", "transform": "collection-token" },
+    { "owner": "DiBagApi", "from": "all", "to": "forCollectionOf", "transform": "collection-reference" },
+    { "owner": "Bag", "from": "resolveAll", "to": "resolveCollection", "transform": "collection-read" },
+    { "owner": "Bag", "from": "inspectAll", "to": "inspectCollection", "transform": "collection-read" }
   ],
   "options": [
     { "owner": "Bag", "method": "close", "argument": 0, "from": "signal", "to": "abortSignal" },

@@ -55,7 +55,11 @@ export function runCodemod({ typescript: ts, root, project, files = [], extraFil
     const fileLabel = relative(root, fileName).replaceAll('\\', '/');
     let result;
     try {
-      result = rewriteSourceFile({ ts, checker, sourceFile, library, index, transforms, manualItems: manual, fileLabel });
+      result = rewriteSourceFile({
+        ts, checker, program: built, sourceFile, library, index, transforms,
+        manualItems: manual,
+        fileLabel,
+      });
     } catch (error) {
       manual.push({ file: fileLabel, line: 1, column: 1, reason: `this file was left untouched: ${error.message}`, text: '' });
       continue;

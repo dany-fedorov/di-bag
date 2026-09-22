@@ -9,11 +9,12 @@ import { indexRenameMap, loadRenameMap, validateRenameMap } from '../lib/rename-
 const packageRoot = resolve(import.meta.dirname, '..');
 const shipped = JSON.parse(readFileSync(join(packageRoot, 'rename-map.json'), 'utf8'));
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'di-bag-rename-map-'));
+const shippedTransforms = ['build-and-start', 'collection-read', 'collection-reference', 'collection-token'];
 after(() => rmSync(temporaryRoot, { force: true, recursive: true }));
 
 test('the shipped map is valid', () => {
-  assert.deepEqual(validateRenameMap(shipped, ['build-and-start']), []);
-  assert.equal(loadRenameMap(join(packageRoot, 'rename-map.json'), ['build-and-start']).version, 1);
+  assert.deepEqual(validateRenameMap(shipped, shippedTransforms), []);
+  assert.equal(loadRenameMap(join(packageRoot, 'rename-map.json'), shippedTransforms).version, 1);
 });
 
 test('loading a broken map throws one error that lists every problem', () => {
@@ -62,7 +63,7 @@ test('malformed JSON is framed with the rename-map file path', () => {
 });
 
 test('custom-transform role names survive loading the shipped map', () => {
-  const loaded = loadRenameMap(join(packageRoot, 'rename-map.json'), ['build-and-start']);
+  const loaded = loadRenameMap(join(packageRoot, 'rename-map.json'), shippedTransforms);
   const entry = loaded.methods.find(method => method.owner === 'Builder' && method.from === 'buildAndStart');
   assert.deepEqual(entry.transformNames, { concurrency: 'maxConcurrentServiceKeys' });
 });
