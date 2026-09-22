@@ -27,6 +27,7 @@
 - Reuse phase 5's `snapshotOptionsBag(options, operation, required, optional?)` from `src/options-bag.ts` for every new bag. Do not duplicate object-shape validation. The helper requires a non-null, non-array object, rejects unknown own keys and supported inherited keys, and reads each allowed own property once after all shape checks pass. It does not restrict the object prototype.
 - `AGENTS.md` is at its 150-line budget, enforced by `npm run docs:check`. Every edit there replaces text inside existing lines; `wc -l AGENTS.md` must print `150` or less after each edit.
 - Compile budget: instantiations of the twelve evidence cases may grow by at most 10% in total against `docs/superpowers/plans/evidence/baseline.md`, cumulatively over all phases.
+- Preserve Phase 5's explicit `in out` variance on both `Builder` type parameters and its existing invariant function witness. Their contract is unchanged; the explicit annotations avoid measured recursive-type checking overhead. Keep erased/widened-builder rejection and `CompositionReport` inference checks when editing builder declarations.
 - Never delete, skip or weaken a test or a negative fixture to get green. Most caught errors in tests are typed `any`, so the compiler does not flag a missed rename of an option key or an error field; use the audit greps in each task.
 - Every command runs from the repository root with this environment:
 

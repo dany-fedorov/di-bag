@@ -3377,6 +3377,8 @@ Expected: twelve rows; every named worker has `accepted: true`; every token work
 
 If any row breaches +10%, first verify the generator uses the final Task 6 shape and the zero-dependency replacement overload. Repair accidental type expansion. If a selected spike shape itself causes the breach, take its Task 6 fallback, update source/codemod/fixtures/docs/graph consistently, rerun all narrow tests, then rerun evidence. Do not change the threshold.
 
+**Execution ruling from the final budget failure.** The first contracted tree at `85ff86e` retained a fixed recursive-type checking cost: bulk100 was 213,689 and grouped100 was 220,982, exceeding the unchanged cumulative limit. Per-source and per-node diagnostics reproduced the stock compiler totals and isolated the declaration cost; the generated workload was unchanged. Explicit `in out` on both `Builder` type parameters, retaining the existing invariant function witness, reduces those cases to 147,709 and 155,002. All twelve repaired cases are below their original baselines. Preserve these variance annotations and the witness together; existing erased/widened-builder rejections, inferred reports, and classic/native physical declaration consumers must remain valid. This is a type-checking optimization of the existing invariant contract, not a method-shape fallback or a benchmark change. Retain the rejected measurements and diagnostic-only probe artifacts as history; acceptance uses the untouched pinned compiler.
+
 - [ ] **Step 2: Run focused phase checks**
 
 ```bash
