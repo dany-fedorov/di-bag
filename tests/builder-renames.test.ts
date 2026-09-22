@@ -22,7 +22,7 @@ const loose = (builder: object) => builder as Record<string, (...args: unknown[]
 test('the renamed builder methods build the same graph as their 0.4.0 forms', async () => {
   const app = DiBag.createBuilder()
     .withServices({ config: () => ({ url: 'memory:' }) })
-    .withTokenService({ token: clock, provider: (): Clock => ({ now: () => 1 }) })
+    .withTokenService(clock, (): Clock => ({ now: () => 1 }))
     .withServiceAlias({ aliasKey: 'now', targetServiceKey: clock })
     .withCollectionContribution({ collectionToken: tools, provider: () => 'search' })
     .withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' })
@@ -81,7 +81,6 @@ test('portable builder callables share prototype functions and preserve a borrow
 test('a two-input builder method rejects a malformed options bag before it reads a value', () => {
   const builder = DiBag.createBuilder().withServices({ value: () => 1 });
   const cases: readonly [string, readonly string[]][] = [
-    ['withTokenService', ['token', 'provider']],
     ['withServiceAlias', ['aliasKey', 'targetServiceKey']],
     ['withCollectionContribution', ['collectionToken', 'provider']],
     ['withReplacedService', ['serviceKey', 'provider']],
@@ -106,12 +105,12 @@ test('a two-input builder method rejects a malformed options bag before it reads
   }
 });
 
-test('an options bag is read once, so an accessor cannot change the call after validation', async () => {
+test('a retained options bag is read once, so an accessor cannot change the call after validation', async () => {
   let reads = 0;
-  const options = { token: clock, get provider() { reads++; return reads === 1 ? (): Clock => ({ now: () => 7 }) : 42; } };
-  const app = loose(DiBag.createBuilder()).withTokenService!(options).buildContainer();
+  const options = { collectionToken: tools, get provider() { reads++; return reads === 1 ? () => 'search' : 42; } };
+  const app = loose(DiBag.createBuilder()).withCollectionContribution!(options).buildContainer();
   expect(reads).toBe(1);
-  expect(app.resolve(clock).now()).toBe(7);
+  expect(app.resolveCollection(tools)).toEqual(['search']);
   await app.close();
 });
 
@@ -123,7 +122,7 @@ test('renamed methods preserve the collection-token kind boundary before reading
   let laterReads = 0;
   const cases: readonly [() => unknown, string, 'single-service' | 'collection', 'single-service' | 'collection', string][] = [
     [
-      () => loose(DiBag.createBuilder()).withTokenService!({ token: collection, get provider() { laterReads++; return () => []; } }),
+      () => loose(DiBag.createBuilder()).withTokenService!(collection, () => []),
       'withTokenService', 'single-service', 'collection', 'Symbol(collection)',
     ],
     [
@@ -147,15 +146,15 @@ test('renamed methods preserve the collection-token kind boundary before reading
 test('the bag methods keep the 0.4.0 codes of the checks they share, under their own operation names', () => {
   const builder = DiBag.createBuilder()
     .withServices({ value: () => 1 })
-    .withTokenService({ token: clock, provider: (): Clock => ({ now: () => 1 }) });
+    .withTokenService(clock, (): Clock => ({ now: () => 1 }));
   const checks: readonly [() => unknown, string, Record<string, unknown>][] = [
     [() => loose(builder).withServices!({ value: () => 2 }), 'DI_BAG_DUPLICATE_REGISTRATION', { operation: 'withServices', key: 'value' }],
     [() => loose(builder).withServices!(42), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withServices' }],
-    [() => loose(builder).withTokenService!({ token: clock, provider: () => ({ now: () => 2 }) }), 'DI_BAG_DUPLICATE_REGISTRATION', { operation: 'withTokenService', key: clockKey }],
+    [() => loose(builder).withTokenService!(clock, () => ({ now: () => 2 })), 'DI_BAG_DUPLICATE_REGISTRATION', { operation: 'withTokenService', key: clockKey }],
     [() => loose(builder).withServiceAlias!({ aliasKey: 'value', targetServiceKey: clock }), 'DI_BAG_DUPLICATE_REGISTRATION', { operation: 'withServiceAlias', key: 'value' }],
     [() => loose(builder).withServiceAlias!({ aliasKey: 'other', targetServiceKey: 'absent' }), 'DI_BAG_INVALID_ALIAS', { operation: 'withServiceAlias', target: 'absent' }],
     [() => loose(builder).withReplacedService!({ serviceKey: 'absent', provider: () => 1 }), 'DI_BAG_INVALID_REPLACEMENT', { operation: 'withReplacedService', key: 'absent' }],
-    [() => loose(DiBag.createBuilder()).withTokenService!({ token: clock, provider: 42 }), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withTokenService' }],
+    [() => loose(DiBag.createBuilder()).withTokenService!(clock, 42), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withTokenService' }],
     [() => loose(DiBag.createBuilder()).withCollectionContribution!({ collectionToken: tools, provider: 42 }), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withCollectionContribution' }],
     [() => loose(builder).withReplacedService!({ serviceKey: 'value', provider: 42 }), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withReplacedService' }],
   ];
@@ -166,7 +165,7 @@ test('the bag methods keep the 0.4.0 codes of the checks they share, under their
   }
   expect(caught(() => loose(builder).withServiceAlias!({ aliasKey: 'other', targetServiceKey: 'absent' })).message).toContain('withServiceAlias requires an existing named target');
   expect(caught(() => loose(builder).withReplacedService!({ serviceKey: 'absent', provider: () => 1 })).message).toContain('withReplacedService accepts existing names or typed tokens only: absent');
-  expect(caught(() => loose(builder).withTokenService!({ token: { key: clockKey }, provider: () => 1 })).code).toBe('DI_BAG_INVALID_TOKEN');
+  expect(caught(() => loose(builder).withTokenService!({ key: clockKey }, () => 1)).code).toBe('DI_BAG_INVALID_TOKEN');
 });
 
 test('withInstalledModules installs in list order, and contributions follow that order', async () => {
@@ -267,7 +266,7 @@ test('module-list token-kind conflicts name the renamed operation', () => {
     .buildModule({ exportedServiceKeys: [] });
   for (const candidate of [module, nested]) {
     const host = DiBag.createBuilder()
-      .withTokenService({ token: single, provider: () => 1 });
+      .withTokenService(single, () => 1);
     const error = caught(() => loose(host).withInstalledModules!([candidate]));
     expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
     expect(error.details).toEqual({

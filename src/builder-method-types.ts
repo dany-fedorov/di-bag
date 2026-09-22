@@ -38,12 +38,10 @@ export type BuilderWithServices<Entries extends Entry, Constraints extends NeedC
 
 /** The checked generic `withTokenService` callable exposed by a builder. */
 export type BuilderWithTokenService<Entries extends Entry, Constraints extends NeedConstraint> = <TokenHandle extends TokenBase, Provider extends Registration>(
-  options: {
-    readonly token: TokenHandle & TokenTupleAdmission<readonly [TokenHandle]> & RegisterTokenAdmission<TokenHandle, Constraints> & IntroducesKeys<EntryKeys<Entries>, TokenKey<TokenHandle>>;
-    readonly provider: Provider & Registration & BindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>> & ThenableAdmission<Record<TokenKey<TokenHandle>, NoInfer<Provider>>> &
-      IncrementalChecked<Entries, Record<TokenKey<TokenHandle>, TokenBinding<NoInfer<TokenHandle>, NoInfer<Provider>>>> &
-      CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<TokenKey<TokenHandle>, TokenBinding<NoInfer<TokenHandle>, NoInfer<Provider>>>>>;
-  },
+  token: TokenHandle & TokenTupleAdmission<readonly [TokenHandle]> & RegisterTokenAdmission<TokenHandle, Constraints> & IntroducesKeys<EntryKeys<Entries>, TokenKey<TokenHandle>>,
+  provider: Provider & Registration & BindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>> & ThenableAdmission<Record<TokenKey<TokenHandle>, NoInfer<Provider>>> &
+    IncrementalChecked<Entries, Record<TokenKey<TokenHandle>, TokenBinding<NoInfer<TokenHandle>, NoInfer<Provider>>>> &
+    CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<TokenKey<TokenHandle>, TokenBinding<NoInfer<TokenHandle>, NoInfer<Provider>>>>>,
 ) => import('./di-bag').Builder<Entries | { key: TokenKey<TokenHandle>; registration: TokenBinding<TokenHandle, Provider> }, Constraints>;
 
 /** The checked generic `withServiceAlias` callable exposed by a builder. */

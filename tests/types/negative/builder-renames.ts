@@ -8,23 +8,23 @@ const toolsKey = Symbol('tools');
 const tool = DiBag.token(toolKey).of<string>();
 const tools = DiBag.token(toolsKey).forCollectionOf<string>();
 
-DiBag.createBuilder().withTokenService({
-  token: clock,
+DiBag.createBuilder().withTokenService(
+  clock,
   // diagnostic: token binding output is not assignable to its service
-  provider: () => ({ now: () => 'late' }),
-});
+  () => ({ now: () => 'late' }),
+);
 
-DiBag.createBuilder().withTokenService({ token: clock, provider: (): Clock => ({ now: () => 1 }) }).withTokenService({
+DiBag.createBuilder().withTokenService(clock, (): Clock => ({ now: () => 1 })).withTokenService(
   // diagnostic: register introduces new names or typed tokens only
-  token: clock,
-  provider: (): Clock => ({ now: () => 2 }),
-});
+  clock,
+  (): Clock => ({ now: () => 2 }),
+);
 
-DiBag.createBuilder().withTokenService({
+DiBag.createBuilder().withTokenService(
   // diagnostic: register requires a single-service token
-  token: tools,
-  provider: () => ['wrong channel'],
-});
+  tools,
+  () => ['wrong channel'],
+);
 
 DiBag.createBuilder().withServices({ a: () => 1 }).withServiceAlias({
   aliasKey: 'b',

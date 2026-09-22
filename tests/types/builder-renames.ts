@@ -10,7 +10,7 @@ const tools = DiBag.token(toolsKey).forCollectionOf<string>();
 // Every bag method in one chain; both overloads of withReplacedService.
 const chained = DiBag.createBuilder()
   .withServices({ config: () => ({ url: 'x' }) })
-  .withTokenService({ token: clock, provider: (): Clock => ({ now: () => 1 }) })
+  .withTokenService(clock, (): Clock => ({ now: () => 1 }))
   .withServiceAlias({ aliasKey: 'now', targetServiceKey: clock })
   .withCollectionContribution({ collectionToken: tools, provider: () => 'search' })
   .withReplacedService({ serviceKey: 'config', provider: () => ({ url: 'y' }) })
@@ -25,7 +25,7 @@ export const names: readonly string[] = app.resolveCollection(tools);
 // A shorthand bag: the property names equal the variable names.
 const token = clock;
 const provider = (): Clock => ({ now: () => 3 });
-export const shorthand: Clock = DiBag.createBuilder().withTokenService({ token, provider }).buildContainer().resolve(clock);
+export const shorthand: Clock = DiBag.createBuilder().withTokenService(token, provider).buildContainer().resolve(clock);
 
 // A replacement with dependencies takes the general overload.
 const derived = DiBag.createBuilder()
@@ -49,7 +49,7 @@ const feature = DiBag.createBuilder()
   .withServices({ service: ({ logger }: { logger: { log(line: string): string } }) => ({ read: () => logger.log('x') }) })
   .buildModule({ exportedServiceKeys: ['service'] });
 const tokenFeature = DiBag.createBuilder()
-  .withTokenService({ token: clock, provider: (): Clock => ({ now: () => 5 }) })
+  .withTokenService(clock, (): Clock => ({ now: () => 5 }))
   .buildModule({ exportedServiceKeys: [clock] });
 const contributing = DiBag.createBuilder()
   .withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' })

@@ -647,24 +647,21 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
 
   /**
    * Add the single service of a typed token.
-   * @param options - `token` is a new single-service token; `provider` is a provider or plain factory whose exposed output satisfies the token's service type.
+   * @param token - A new single-service token.
+   * @param provider - A provider or plain factory whose exposed output satisfies the token's service type.
    * @returns A new builder retaining the provider's metadata, lifetime, dependencies, and ownership stages.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
+   * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
    * `DI_BAG_DUPLICATE_REGISTRATION` when the token already has a service; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
    * @example
    * ```ts
    * const clockKey = Symbol('clock');
    * const clock = DiBag.token(clockKey).of<{ now(): number }>();
-   * const builder = DiBag.createBuilder().withTokenService({ token: clock, provider: () => ({ now: () => Date.now() }) });
+   * const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () => Date.now() }));
    * ```
    */
   readonly withTokenService: BuilderWithTokenService<Entries, Constraints> = this.#withTokenService as BuilderWithTokenService<Entries, Constraints>;
-  #withTokenService(options: unknown): unknown {
-    let key: symbol | undefined;
-    const { token, provider } = snapshotOptionsBag(options, 'withTokenService', ['token', 'provider'], [], (name, value) => {
-      if (name === 'token') key = readSingleServiceKey(value, 'withTokenService');
-    });
-    const serviceKey = key!;
+  #withTokenService(token: unknown, provider: unknown): unknown {
+    const serviceKey = readSingleServiceKey(token, 'withTokenService');
     const graph = this.#graph.withTokenKind(serviceKey, 'single-service', 'withTokenService');
     if (graph.hasPublic(serviceKey)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(serviceKey)}`, { operation: 'withTokenService', key: serviceKey });
     return new Builder(graph.withPublicBinding(serviceKey, withTokenBinding(token as never, provider as never, 'withTokenService'), 'withTokenService'), this.context) as never;
