@@ -2,12 +2,15 @@
 
 Static check for [DI Bag](https://github.com/dany-fedorov/di-bag) builder
 chains. It reads a TypeScript project, finds every `DiBag.createBuilder()`
-chain that ends in `build()` or `buildModule()`; a `build()` followed by
-`ensureServicesReady()` counts, and so does the 0.4 `buildAndStart()`.
+chain that ends in `buildContainer()` or
+`buildModule({ exportedServiceKeys, moduleLabel })`; a `buildContainer()`
+followed by `ensureServicesReady()` counts. The 0.4 `build()`,
+`buildModule(keys, { label })`, and `buildAndStart()` forms remain accepted for
+migration analysis.
 It reports dependency cycles and unresolved names before any factory runs.
 
 It is a merge-review and CI tool, not a code map. To find code, read the module
-directories; to check wiring types, use `verifyGraph()`.
+directories; to check wiring types, use `verifyGraphAtCompileTime()`.
 
 ## Commands
 
@@ -33,10 +36,11 @@ usage or tsconfig error.
 
 - **cycle**: a dependency path returns to its start. Cycles through installed
   modules are found: a module's private nodes appear as `<label>/<key>`, where
-  the label is `buildModule(keys, { label })` when given, as in runtime
-  messages, and otherwise the expression passed to `installModule`. A cycle
-  inside one module is reported once, on that module.
-- **unresolved**: a bag (`build()`) has a declared
+  the label is `buildModule({ exportedServiceKeys, moduleLabel })` when given,
+  as in runtime messages, and otherwise the expression passed to the module
+  install call. `withInstalledModules([...])` expands modules in list order. A
+  cycle inside one module is reported once, on that module.
+- **unresolved**: a bag (`buildContainer()`, or 0.4 `build()`) has a declared
   dependency that no registration, alias, installed module export, or its
   requirement supplier provides. A module's unmet names are not issues; they are
   its `requirements`.
@@ -74,6 +78,8 @@ not run factories.
   contributes no edges.
 - An install that is not a traceable module variable (for example a function
   call) may supply any name, so its host reports no unresolved names.
+- Collection contribution providers and their dependencies are omitted for
+  both API generations.
 
 ## TypeScript
 

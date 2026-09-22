@@ -2,7 +2,7 @@
 import { createRequire } from 'node:module';
 import { dirname, relative, resolve } from 'node:path';
 
-const TERMINALS = new Set(['build', 'buildAndStart', 'buildModule']);
+const TERMINALS = new Set(['buildContainer', 'buildModule', 'build', 'buildAndStart']);
 const WRAPPERS = new Set(['withLifetime', 'withDisposal', 'withMetadata', 'transformService']);
 
 // Set per extraction: the consumer's compiler or the bundled one.
@@ -130,13 +130,51 @@ function keyText(expression) {
   return expression.getText();
 }
 
+function bagProperty(literal, name) {
+  for (const property of literal.properties) {
+    if (ts.isPropertyAssignment(property) && keyText(property.name) === name) return property.initializer;
+    if (ts.isShorthandPropertyAssignment(property) && property.name.text === name) return property.name;
+  }
+  return undefined;
+}
+
+function optionsBag(call) {
+  return call.arguments.length === 1 && ts.isObjectLiteralExpression(call.arguments[0]) ? call.arguments[0] : undefined;
+}
+
+function listedModules(argument, checker) {
+  let expression = skipOuter(argument);
+  if (ts.isIdentifier(expression)) {
+    const initializer = initializerOf(expression, checker);
+    if (initializer && ts.isArrayLiteralExpression(skipOuter(initializer))) expression = skipOuter(initializer);
+  }
+  return ts.isArrayLiteralExpression(expression) ? [...expression.elements] : [argument];
+}
+
 function readUnit(terminal, sourceFile, checker, root) {
   const calls = chainCalls(terminal, checker);
   const nodes = [], installs = [], aliases = [];
   let exports = [], label;
   for (const call of calls) {
     const name = methodName(call);
-    if ((name === 'register' || name === 'replace') && call.arguments.length === 1 && ts.isObjectLiteralExpression(call.arguments[0])) {
+    const bag = optionsBag(call);
+    const pushNode = (keyExpression, providerExpression) => {
+      const { inner, lifetime, owned } = unwrap(providerExpression);
+      const { dependencies, async } = describeFactory(inner, checker);
+      const { line } = sourceFile.getLineAndCharacterOfPosition(call.getStart(sourceFile));
+      nodes.push({ key: keyText(keyExpression), line: line + 1, dependencies, async, lifetime, owned });
+    };
+    if (name === 'withServiceAlias' && bag) {
+      const from = bagProperty(bag, 'aliasKey'), to = bagProperty(bag, 'targetServiceKey');
+      if (from && to) aliases.push({ from: keyText(from), to: keyText(to) });
+    } else if (name === 'withInstalledModules' && call.arguments.length === 1) {
+      installs.push(...listedModules(call.arguments[0], checker));
+    } else if (name === 'buildModule' && bag && !ts.isArrayLiteralExpression(call.arguments[0])) {
+      const keys = bagProperty(bag, 'exportedServiceKeys');
+      if (keys && ts.isArrayLiteralExpression(skipOuter(keys))) exports = skipOuter(keys).elements.map(keyText);
+      const moduleLabel = bagProperty(bag, 'moduleLabel');
+      if (moduleLabel && ts.isStringLiteralLike(moduleLabel)) label = moduleLabel.text;
+    } else if ((name === 'register' || name === 'replace' || name === 'withServices') && call.arguments.length === 1 && ts.isObjectLiteralExpression(call.arguments[0])) {
       for (const property of call.arguments[0].properties) {
         if (!ts.isPropertyAssignment(property)) continue;
         const { inner, lifetime, owned } = unwrap(property.initializer);
@@ -144,14 +182,11 @@ function readUnit(terminal, sourceFile, checker, root) {
         const { line } = sourceFile.getLineAndCharacterOfPosition(property.getStart(sourceFile));
         nodes.push({ key: keyText(property.name), line: line + 1, dependencies, async, lifetime, owned });
       }
-    } else if ((name === 'register' || name === 'replace') && call.arguments.length === 2) {
-      const { inner, lifetime, owned } = unwrap(call.arguments[1]);
-      const { dependencies, async } = describeFactory(inner, checker);
-      const { line } = sourceFile.getLineAndCharacterOfPosition(call.getStart(sourceFile));
-      nodes.push({ key: keyText(call.arguments[0]), line: line + 1, dependencies, async, lifetime, owned });
-    } else if (name === 'alias' && call.arguments.length === 2) {
+    } else if (['register', 'replace', 'withTokenService', 'withReplacedService'].includes(name) && call.arguments.length === 2) {
+      pushNode(call.arguments[0], call.arguments[1]);
+    } else if ((name === 'alias' || name === 'withServiceAlias') && call.arguments.length === 2) {
       aliases.push({ from: keyText(call.arguments[0]), to: keyText(call.arguments[1]) });
-    } else if (name === 'installModule' && call.arguments.length === 1) {
+    } else if ((name === 'installModule' || name === 'withInstalledModule') && call.arguments.length === 1) {
       installs.push(call.arguments[0]);
     } else if (name === 'buildModule' && call.arguments[0] && ts.isArrayLiteralExpression(call.arguments[0])) {
       exports = call.arguments[0].elements.map(keyText);
