@@ -122,12 +122,12 @@ test('nested module labels compose outward and unlabeled modules keep bare keys'
 test('buildModule rejects malformed label options', () => {
   const builder = DiBag.createBuilder().register({ value: () => 1 });
   for (const options of [null, 'orders', [], { label: '' }, { label: 1 }, { label: 'x', other: true }, Object.create({ label: 'x' })]) {
-    const error = caught(() => builder.buildModule(['value'], options as never));
+    const error = caught(() => (builder.buildModule as Function)(['value'], options as never));
     expect(error.code).toBe('DI_BAG_INVALID_EXPORT');
     expect(error.details).toEqual({ operation: 'buildModule', option: 'label' });
   }
-  expect(() => builder.buildModule(['value'], {})).not.toThrow();
-  expect(() => builder.buildModule(['value'], { label: undefined } as never)).not.toThrow();
+  expect(() => (builder.buildModule as Function)(['value'], {})).not.toThrow();
+  expect(() => (builder.buildModule as Function)(['value'], { label: undefined } as never)).not.toThrow();
 });
 
 test('close({ waitTimeoutMs }) rejects naming the never-settling disposer and keeps cleanup awaitable', async () => {
