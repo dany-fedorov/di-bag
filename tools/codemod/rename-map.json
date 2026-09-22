@@ -7,7 +7,7 @@
     { "owner": "Builder", "from": "register", "to": "withTokenService", "arity": [2] },
     { "owner": "Builder", "from": "alias", "to": "withServiceAlias", "arguments": { "kind": "bag", "names": ["aliasKey", "targetServiceKey"] } },
     { "owner": "Builder", "from": "contribute", "to": "withCollectionContribution", "arguments": { "kind": "bag", "names": ["collectionToken", "provider"] } },
-    { "owner": "Builder", "from": "replace", "to": "withReplacedService", "arguments": { "kind": "bag", "names": ["serviceKey", "provider"] } },
+    { "owner": "Builder", "from": "replace", "to": "withReplacedService" },
     { "owner": "Builder", "from": "installModule", "to": "withInstalledModules", "arguments": { "kind": "array" } },
     { "owner": "Builder", "from": "verifyGraph", "to": "verifyGraphAtCompileTime" },
     { "owner": "Builder", "from": "buildModule", "to": "buildModule", "arguments": { "kind": "bag", "names": ["exportedServiceKeys"], "alreadyBag": true, "trailing": { "mode": "merge", "keys": { "label": "moduleLabel" } } } },

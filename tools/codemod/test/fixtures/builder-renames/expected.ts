@@ -13,7 +13,7 @@ const feature = DiBag.createBuilder()
   .withTokenService(clock, () => ({ now: () => 1 }))
   .withServiceAlias({ aliasKey: 'now', targetServiceKey: clock })
   .withCollectionContribution({ collectionToken: tools, provider: () => 'search' })
-  .withReplacedService({ serviceKey: 'name', provider: () => 'Grace' })
+  .withReplacedService('name', () => 'Grace')
   .buildModule({ exportedServiceKeys: ['name', clock], moduleLabel: label });
 
 export const deferred = DiBag.createBuilder()
