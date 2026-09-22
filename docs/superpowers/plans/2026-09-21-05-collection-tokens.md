@@ -4101,6 +4101,8 @@ for file in examples/*.ts; do bun "$file"; done
 
 Expected: every command exits 0. Rebuild precedes the three Node suites because they read `dist/`. A compiler timeout is a flake only under the master plan's stated rerun rule.
 
+Final-gate integration correction: downstream physical declaration emission must keep inferred `tokenFork`, `reflectedScope` and `reflectedFork` portable without new public helper exports or consumer annotations. Keep the scope/fork surfaces behind existing exported selection/context/override aliases. The module-erasure fixture must stay below 2,500 bytes; omit collection graph metadata only for an exact empty tuple, retaining nonempty/broad/erased/never behavior and all extraction contracts. These source fixes belong in a separately reviewed integration commit, with source typecheck, build, the failed physical package/archive/module oracles, focused collection/selection/lifetime fixtures and fresh generated docs before Task 9 reruns final S5 and full gates. Preserve earlier failed runs and accepted pre-fix tables as history; no budget or test weakening.
+
 - [ ] **Step 5: Review the diff and commit evidence**
 
 ```bash
