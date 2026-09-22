@@ -1,0 +1,3 @@
+[
+  { "line": 5, "reason": "token creation cannot be traced to an identifier binding; if it is used as a collection, create a named token with forCollectionOf and move the collection uses to it" }
+]
