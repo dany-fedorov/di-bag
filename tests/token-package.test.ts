@@ -49,7 +49,7 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
         const disposed = [];
         const source = Core.withMetadata(() => pending, { dynamic: { mode: 'direct', describe: value => ({ samePromise: value === pending }) } });
         const owned = Core.withDisposal(source, value => { disposed.push(value === resource ? 'resource' : 'wrong'); });
-        const bag = DiBag.createBuilder().register(token, owned).build();
+        const bag = DiBag.createBuilder().withTokenService(token, owned).buildContainer();
         const acquired = bag.resolve(token);
         const identity = acquired === pending;
         const nativePromise = acquired instanceof Promise;
@@ -59,12 +59,12 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
         // Simulate a host without process.getBuiltinModule, where the bare entry must reject automatic stages.
         const loader = Object.getOwnPropertyDescriptor(process, 'getBuiltinModule');
         Object.defineProperty(process, 'getBuiltinModule', { configurable: true, writable: true, value: undefined });
-        let preflight = false; try { Core.createBuilder().register({ value: () => 1 }).build(); } catch (error) { preflight = error.code === 'DI_BAG_CLASSIFIER_REQUIRED'; }
+        let preflight = false; try { Core.createBuilder().withServices({ value: () => 1 }).buildContainer(); } catch (error) { preflight = error.code === 'DI_BAG_CLASSIFIER_REQUIRED'; }
         finally { Object.defineProperty(process, 'getBuiltinModule', loader); }
-        const detected = Core.createBuilder().register({ value: async () => 1 }).build();
+        const detected = Core.createBuilder().withServices({ value: async () => 1 }).buildContainer();
         preflight = preflight && await detected.resolve('value') === 1; await detected.close();
         const rawDisposed = [];
-        const raw = Core.createBuilder().register({ value: Core.withDisposal(Core.fromFactory(() => pending, { acquisitionMode: 'raw' }), value => { rawDisposed.push(value === pending); }) }).build();
+        const raw = Core.createBuilder().withServices({ value: Core.withDisposal(Core.fromFactory(() => pending, { acquisitionMode: 'raw' }), value => { rawDisposed.push(value === pending); }) }).buildContainer();
         raw.resolve('value'); await raw.close();
         console.log(JSON.stringify({ identity, nativePromise, metadata, before, disposed, preflight, rawDisposed }));
       })().catch(error => { console.error(error); process.exitCode = 1; });`);
@@ -91,11 +91,11 @@ for (const mode of ['commonjs', 'module'] as const) {
         let privateIds = 0;
         const read = first.DiBag.fromFunction([publicToken, privateToken], (value, local) => ({ value: value.answer, privateId: local.id }));
         const promiseValue = first.DiBag.fromFunction([promiseToken], value => value);
-        const feature = second.DiBag.createBuilder().register(privateToken, () => ({ id: ++privateIds })).register({ read, promiseValue }).buildModule(['read', 'promiseValue']);
+        const feature = second.DiBag.createBuilder().withTokenService(privateToken, () => ({ id: ++privateIds })).withServices({ read, promiseValue }).buildModule({ exportedServiceKeys: ['read', 'promiseValue'] });
         const firstFeature = feature.renameExport('read', 'firstRead').renameExport('promiseValue', 'firstPromise');
         const secondFeature = feature.renameExport('read', 'secondRead').renameExport('promiseValue', 'secondPromise');
         const publicValue = { answer: 42 };
-        const root = second.DiBag.createBuilder().installModule(firstFeature).installModule(secondFeature).register(publicToken, () => publicValue).register(promiseToken, () => raw).build();
+        const root = second.DiBag.createBuilder().withInstalledModules([firstFeature]).withInstalledModules([secondFeature]).withTokenService(publicToken, () => publicValue).withTokenService(promiseToken, () => raw).buildContainer();
         const rootPublic = root.resolve(samePublicToken);
         const rootFirst = root.resolve('firstRead');
         const rootSecond = root.resolve('secondRead');

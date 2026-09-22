@@ -1,8 +1,6 @@
 import { resolve, sep } from 'node:path';
 import ts from 'typescript';
 
-/** Spike S1 of phase 5 only: `DI_BAG_SCALE_API=0.5` makes the scale generators emit the 0.5.0 builder calls. Task 9 removes the switch. */
-const bagCalls = process.env.DI_BAG_SCALE_API === '0.5';
 
 export const options: ts.CompilerOptions = {
   strict: true,
@@ -120,11 +118,11 @@ export function scaleSource(
       `const group${index} = {${entries.slice(index * 50, (index + 1) * 50).join(',\n')}};`,
     );
     declarations = groups.join('\n');
-    calls = groups.map((_, index) => `${bagCalls ? '.withServices' : '.register'}(group${index})`).join('\n');
+    calls = groups.map((_, index) => `.withServices(group${index})`).join('\n');
   } else if (form === 'chained') {
-    calls = entries.map(entry => `${bagCalls ? '.withServices' : '.register'}({${entry}})`).join('\n');
+    calls = entries.map(entry => `.withServices({${entry}})`).join('\n');
   } else {
-    calls = `${bagCalls ? '.withServices' : '.register'}({${entries.join(',\n')}})`;
+    calls = `.withServices({${entries.join(',\n')}})`;
     if (form === 'replacement') {
       calls += entries.map((_, index) => {
         const factory = scenario === 'missing' && index === count - 1
@@ -132,13 +130,13 @@ export function scaleSource(
           : scenario === 'wrong-shape' && index === Math.floor(count / 2)
             ? "() => 'wrong'"
             : `() => ${index + 2}`;
-        return bagCalls ? `.withReplacedService('svc${index}', ${factory})` : `.replace('svc${index}', ${factory})`;
+        return `.withReplacedService('svc${index}', ${factory})`;
       }).join('\n');
     }
   }
   return `import { DiBag } from '../src';
 ${declarations}
-const bag = DiBag.createBuilder()${calls}.${bagCalls ? 'buildContainer' : 'build'}();
+const bag = DiBag.createBuilder()${calls}.buildContainer();
 const first: number = bag.resolve('svc0');
 const middle: number = bag.resolve('svc${Math.floor(count / 2)}');
 const last: number = bag.resolve('svc${count - 1}');
@@ -196,20 +194,20 @@ export function tokenScaleSource(
   if (form === 'bindings') {
     const calls = Array.from({ length: count }, (_, index) => {
       const marker = scenario === 'mismatched-invariant-service' && index === count - 1 ? ` ${boundary}` : '';
-      return bagCalls ? `  .withTokenService(token${index}, ${provider(index)})${marker}` : `  .register(token${index}, ${provider(index)})${marker}`;
+      return `  .withTokenService(token${index}, ${provider(index)})${marker}`;
     });
     const graphMarker = scenario === 'missing-final-token' ? ` ${boundary}` : '';
-    graph = `const graph = DiBag.createBuilder()${graphMarker}\n${calls.join('\n')}\n  .${bagCalls ? 'buildContainer' : 'build'}();`;
+    graph = `const graph = DiBag.createBuilder()${graphMarker}\n${calls.join('\n')}\n  .buildContainer();`;
   } else {
     const modules = Array.from({ length: count }, (_, index) =>
-      `const module${index} = DiBag.createBuilder().register(token${index}, ${provider(index)}).buildModule([token${index}]);`,
+      `const module${index} = DiBag.createBuilder().withTokenService(token${index}, ${provider(index)}).buildModule({ exportedServiceKeys: [token${index}] });`,
     );
     const installs = Array.from({ length: count }, (_, index) => {
       const marker = scenario === 'mismatched-invariant-service' && index === count - 1 ? ` ${boundary}` : '';
-      return `  .installModule(module${index})${marker}`;
+      return `  .withInstalledModules([module${index}])${marker}`;
     });
     const graphMarker = scenario === 'missing-final-token' ? ` ${boundary}` : '';
-    graph = `${modules.join('\n')}\nconst graph = DiBag.createBuilder()${graphMarker}\n${installs.join('\n')}\n.build();`;
+    graph = `${modules.join('\n')}\nconst graph = DiBag.createBuilder()${graphMarker}\n${installs.join('\n')}\n.buildContainer();`;
   }
   return `import { DiBag } from '../src';
 ${declarations.join('\n')}
@@ -296,15 +294,15 @@ export function namedModuleScaleSource(count: number, scenario: ScaleCase = 'val
       return `svc${index}: ({ ${dependency} }: { ${dependency}: ${shape} }) => ${shape === 'string' ? `${dependency}.length` : `${dependency} + 1`}`;
     });
     const names = Array.from({ length: size }, (_, offset) => `'svc${group * 50 + offset}'`).join(', ');
-    return `const feature${group} = DiBag.createBuilder().register({ ${entries.join(',\n')} }).buildModule([${names}]);`;
+    return `const feature${group} = DiBag.createBuilder().withServices({ ${entries.join(',\n')} }).buildModule({ exportedServiceKeys: [${names}] });`;
   });
   return `import { DiBag } from '../src';
 ${modules.join('\n')}
-const bag = DiBag.createBuilder()${modules.map((_, index) => `.installModule(feature${index})`).join('\n')}.build();
+const bag = DiBag.createBuilder()${modules.map((_, index) => `.withInstalledModules([feature${index}])`).join('\n')}.buildContainer();
 const first: number = bag.resolve('svc0');
 const middle: number = bag.resolve('svc${Math.floor(count / 2)}');
 const last: number = bag.resolve('svc${count - 1}');
-const reused = DiBag.createBuilder().installModule(feature0).build();
+const reused = DiBag.createBuilder().withInstalledModules([feature0]).buildContainer();
 const reusableResult: number = reused.resolve('svc49');
 `;
 }

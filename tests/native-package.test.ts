@@ -32,12 +32,12 @@ const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
   let rootDisposed = 0;
   let scopedDisposed = 0;
   let transientsDisposed = 0;
-  const parent = DiBag.createBuilder().register({
+  const parent = DiBag.createBuilder().withServices({
     service: DiBag.withDisposal(() => ++id, value => { log.push(value); }),
     root: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'root' }), () => { rootDisposed++; }), 'root'),
     scoped: DiBag.withDisposal(() => ({ owner: 'scope' }), () => { scopedDisposed++; }),
     transient: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'call' }), () => { transientsDisposed++; }), 'transient'),
-  }).build();
+  }).buildContainer();
   const child = parent.createScope();
   const independent = child.fork();
   const childRoot = child.resolve('root');

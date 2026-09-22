@@ -13,13 +13,13 @@ export const observerRuntimeAssertions = `
     let disposed = 0;
     let finishFinal;
     const finalGate = new Promise(resolve => { finishFinal = resolve; });
-    const parent = observed.createBuilder().register({
+    const parent = observed.createBuilder().withServices({
       resource: observed.withMetadata(observed.withLifetime(observed.withDisposal(
         observed.fromFactory(() => ({ id: ++rootCalls }), { acquisitionMode: 'raw' }), () => { disposed++; }), 'root'), { static: { tag: 'root' } }),
       pending: observed.withDisposal(observed.transformService(observed.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'nativePromise' }), { mode: 'awaited', transform: () => finalGate }),
         value => { assertObserver(value === 42, 'observer changed native disposer payload'); disposed++; }),
-    }).alias('resourceAlias', 'resource').contribute(item, observed.withLifetime(observed.withDisposal(
-        observed.fromFactory(() => ({ id: ++transientCalls }), { acquisitionMode: 'raw' }), () => { disposed++; }), 'transient')).build();
+    }).withServiceAlias({ aliasKey: 'resourceAlias', targetServiceKey: 'resource' }).withCollectionContribution({ collectionToken: item, provider: observed.withLifetime(observed.withDisposal(
+        observed.fromFactory(() => ({ id: ++transientCalls }), { acquisitionMode: 'raw' }), () => { disposed++; }), 'transient') }).buildContainer();
     const child = parent.createScope({ share: ['resourceAlias'] });
     const borrowed = child.resolve('resourceAlias');
     assertObserver(borrowed === parent.resolve('resource') && rootCalls === 1, 'observer changed canonical alias ownership');
@@ -70,11 +70,11 @@ export const observerRuntimeAssertions = `
       && (!('registrationMetadata' in event) || Object.isFrozen(event.registrationMetadata))), 'observer snapshots are mutable');
 
     let privateDisposals = 0;
-    const privateFeature = observed.createBuilder().register({ hidden: observed.withDisposal(
-      observed.fromFactory(() => ({ owner: 'private' }), { acquisitionMode: 'raw' }), () => { privateDisposals++; }) }).alias('visible', 'hidden').buildModule(['visible']).renameExport('visible', 'publicView');
-    const moduleBag = observed.createBuilder().installModule(privateFeature).register({
+    const privateFeature = observed.createBuilder().withServices({ hidden: observed.withDisposal(
+      observed.fromFactory(() => ({ owner: 'private' }), { acquisitionMode: 'raw' }), () => { privateDisposals++; }) }).withServiceAlias({ aliasKey: 'visible', targetServiceKey: 'hidden' }).buildModule({ exportedServiceKeys: ['visible'] }).renameExport('visible', 'publicView');
+    const moduleBag = observed.createBuilder().withInstalledModules([privateFeature]).withServices({
       hidden: observed.fromFactory(() => ({ owner: 'host' }), { acquisitionMode: 'raw' }),
-    }).build();
+    }).buildContainer();
     const privateId = moduleBag.inspect('publicView').aliasTarget.bindingId;
     assertObserver(moduleBag.resolve('publicView').owner === 'private', 'observer changed private module alias routing');
     await moduleBag.close();
@@ -84,9 +84,9 @@ export const observerRuntimeAssertions = `
       'observer lost canonical private provider identity through rename');
 
     const cleanupError = new Error('observed cleanup failure');
-    const failed = observed.createBuilder().register({
+    const failed = observed.createBuilder().withServices({
       broken: observed.withDisposal(observed.fromFactory(() => 1, { acquisitionMode: 'raw' }), () => { throw cleanupError; }),
-    }).build();
+    }).buildContainer();
     failed.resolve('broken');
     const brokenAttempt = failed.inspect('broken').acquisitions[0].acquisitionId;
     let closeError;
@@ -114,9 +114,9 @@ export const observerRuntimeAssertions = `
       onError(failure) { callbackFailures.push(failure); return Promise.reject(secondary); },
     }] }).withConfiguration({ runtime: { isNativePromise: value => value instanceof Promise } });
     let monitoredDisposals = 0;
-    const monitoredBag = monitored.createBuilder().register({
+    const monitoredBag = monitored.createBuilder().withServices({
       value: monitored.withDisposal(() => ({ id: 'unchanged' }), () => { monitoredDisposals++; }),
-    }).build();
+    }).buildContainer();
     const monitoredValue = monitoredBag.resolve('value');
     assertObserver(monitoredValue.id === 'unchanged', 'observer result transformed a service');
     await monitoredBag.close();
@@ -141,8 +141,8 @@ export const observerRuntimeAssertions = `
       },
       onError(failure) { reentrantErrors.push(failure); },
     }] });
-    reentrantBag = reentrant.createBuilder().register({ trigger: reentrant.withDisposal(
-      reentrant.fromFactory(() => ({ id: 'reentrant' }), { acquisitionMode: 'raw' }), () => { reentrantDisposed++; }) }).build();
+    reentrantBag = reentrant.createBuilder().withServices({ trigger: reentrant.withDisposal(
+      reentrant.fromFactory(() => ({ id: 'reentrant' }), { acquisitionMode: 'raw' }), () => { reentrantDisposed++; }) }).buildContainer();
     const trigger = reentrantBag.resolve('trigger');
     await turn();
     await reentrantBag.close();
@@ -158,8 +158,8 @@ export const observerRuntimeAssertions = `
     const secondFacade = firstFacade.withConfiguration({ observers: [{ onEvent: event => { secondEvents.push(event); },
       onError: failure => { portableErrors.push(failure); } }] });
     const raw = new Promise(() => {});
-    const firstBag = firstFacade.createBuilder().register({ raw: firstFacade.fromFactory(() => raw, { acquisitionMode: 'raw' }) }).build();
-    const secondBag = secondFacade.createBuilder().register({ raw: secondFacade.fromFactory(() => raw, { acquisitionMode: 'raw' }) }).build();
+    const firstBag = firstFacade.createBuilder().withServices({ raw: firstFacade.fromFactory(() => raw, { acquisitionMode: 'raw' }) }).buildContainer();
+    const secondBag = secondFacade.createBuilder().withServices({ raw: secondFacade.fromFactory(() => raw, { acquisitionMode: 'raw' }) }).buildContainer();
     assertObserver(firstBag.resolve('raw') === raw && secondBag.resolve('raw') === raw,
       'portable observation added classification capability or awaited a raw value');
     await Promise.all([firstBag.close(), secondBag.close()]);
