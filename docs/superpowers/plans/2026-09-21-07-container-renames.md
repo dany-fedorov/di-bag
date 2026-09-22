@@ -1115,13 +1115,15 @@ Update the new JSDoc examples and overload-specific `@param` names, but retain t
 Do not change the shared rename diagnostic globally while `renameExport` remains public. In `src/module-types.ts`, parameterize the existing admission with an operation whose default preserves the old method:
 
 ```ts
-export type RenameKeys<P, Old extends string, New extends string, Operation extends 'renameExport' | 'withRenamedExport' = 'renameExport'> =
+export type RenameKeys<P, Old extends string, New extends string, Operation extends string = 'renameExport'> =
   Singleton<Old> extends true ? Singleton<New> extends true
     ? Old extends keyof P ? New extends Exclude<keyof P, Old> ? InvalidRename<Operation> : unknown
       : InvalidRename<Operation> : InvalidRename<Operation> : InvalidRename<Operation>;
-type InvalidRename<Operation extends 'renameExport' | 'withRenamedExport'> =
+type InvalidRename<Operation extends string> =
   Unsatisfied<`${Operation} requires an existing export and a noncolliding singleton string-literal name`, {}>;
 ```
+
+The `Operation extends string` parameter follows the existing `Selection` / `InvalidSelection` diagnostic-helper contract. Each public method fixes its own operation; the parameter is not an option value supplied to a runtime call. Do not add a camel-case literal union to this constraint or relax the API naming ratchet.
 
 The old two-argument `renameExport` keeps using `RenameKeys<ExportedServices, Old, New>` and therefore retains all existing negative markers during expand. In `src/module.ts`, add the new method with its explicit operation:
 
@@ -2240,7 +2242,7 @@ Append a runtime check that `renameExport` is absent from a built module. Run th
 
 - [ ] **Step 2: Remove old declarations and expand-only branches**
 
-Delete `Module.renameExport`. Change `RenameKeys`'s default `Operation` from `'renameExport'` to `'withRenamedExport'`, then remove `'renameExport'` from the operation constraint and remove the old diagnostic spelling; keep the explicit fourth argument on `withRenamedExport` so its emitted signature stays stable across contraction. Remove `ObserverOptions`, `ConfigurationOptions.observers`, the both-fields conflict branch, and `LifecycleObservers.appendLegacy`. Replace the expand-only private record with `readonly LifecycleObserver[]`; make `append(previous, observer)` validate/read `onLifecycleEvent` and `onObserverFailure` once as in Task 4, freeze that new-shape pair, and make the queue destructure/call those two names. This removes every internal `onEvent`/`onError` access together with the public declarations. Export `LifecycleObserver` from `src/index.ts`. Keep `ObserverCallback`, `ObserverErrorCallback`, and `ObserverFailure` unchanged, per spec. Keep event kinds, `ScopeEventFields`, and event field names for plan 12, master phase 11.
+Delete `Module.renameExport`. Change `RenameKeys`'s default `Operation` from `'renameExport'` to `'withRenamedExport'`, retain `Operation extends string` on both diagnostic helpers and remove the old diagnostic spelling; keep the explicit fourth argument on `withRenamedExport` so its emitted signature stays stable across contraction. Remove `ObserverOptions`, `ConfigurationOptions.observers`, the both-fields conflict branch, and `LifecycleObservers.appendLegacy`. Replace the expand-only private record with `readonly LifecycleObserver[]`; make `append(previous, observer)` validate/read `onLifecycleEvent` and `onObserverFailure` once as in Task 4, freeze that new-shape pair, and make the queue destructure/call those two names. This removes every internal `onEvent`/`onError` access together with the public declarations. Export `LifecycleObserver` from `src/index.ts`. Keep `ObserverCallback`, `ObserverErrorCallback`, and `ObserverFailure` unchanged, per spec. Keep event kinds, `ScopeEventFields`, and event field names for plan 12, master phase 11.
 
 Now retire the two expand-only legacy/mixed observer compatibility cases in `tests/container-names.test.ts` that Tasks6–7 deliberately preserved. Keep all current callback/getter/mutation checks. Replace the both-fields conflict expectation with the contracted rejection of the retired `observers` field: the options-bag boundary rejects it with `DI_BAG_INVALID_ARGUMENT`, `operation: 'withConfiguration'`, `argument: 'options'`, and `expected: 'only the own properties: runtime, lifecycleObservers'`. Preserve the existing invalid payload and assert the actual code/details; the old conflict branch no longer defines this rejection.
 
