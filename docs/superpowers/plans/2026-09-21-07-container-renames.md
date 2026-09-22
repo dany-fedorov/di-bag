@@ -1405,10 +1405,7 @@ void lifecycleExact;
 // @ts-expect-error required failure callback survives declaration emission
 lifecycleObserved.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: LifecycleEvent) {} }] });
 // @ts-expect-error observer callbacks have a void receiver
-lifecycleObserved.withConfiguration({ lifecycleObservers: [{
-  onLifecycleEvent(this: { owner: string }, event: LifecycleEvent) {},
-  onObserverFailure(failure: ObserverFailure) {},
-}] });
+lifecycleObserved.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(this: { owner: string }, event: LifecycleEvent) {}, onObserverFailure(failure: ObserverFailure) {} }] });
 ```
 
 Append these complete negative cases to `tests/types/negative/observers.ts`:
@@ -1728,10 +1725,9 @@ export const preserved = root.createScope(
   keys, // selected keys stay commented
   replacements, // providers keep the trailing comma
 );
-export const nested = root.fork(['a'], { a: () => DiBag.createBuilder().register({ inner: () => 1 }).build() });
+export const nested = root.fork(['a'], { a: () => DiBag.createBuilder().register({ inner: () => 1 }).build().resolve('inner') });
 export type App = Bag<{ a: () => number }>;
 export type ChildOptions = ScopeOptions<{ a: () => number }, readonly ['a']>;
-export type ConstrainedChildOptions = ScopeOptions<{ a: () => number }, readonly ['a'], never>;
 const collectionKey = Symbol('collection');
 const collection = DiBag.token(collectionKey).of<number>();
 const collectionContainer = DiBag.createBuilder().contribute(collection, () => 1).build();
@@ -1761,10 +1757,9 @@ export const preserved = root.createChildContainer(
   keys, // selected keys stay commented
   replacements, // providers keep the trailing comma
 );
-export const nested = root.createIndependentContainer(['a'], { a: () => DiBag.createBuilder().withServices({ inner: () => 1 }).buildContainer() });
+export const nested = root.createIndependentContainer(['a'], { a: () => DiBag.createBuilder().withServices({ inner: () => 1 }).buildContainer().resolve('inner') });
 export type App = Container<{ a: () => number }>;
 export type ChildOptions = CreateChildContainerOptions<{ a: () => number }, readonly ['a']>;
-export type ConstrainedChildOptions = CreateChildContainerOptions<{ a: () => number }, readonly ['a'], never>;
 const collectionKey = Symbol('collection');
 const collection = DiBag.token(collectionKey).forCollectionOf<number>();
 const collectionContainer = DiBag.createBuilder().withCollectionContribution({ collectionToken: collection, provider: () => 1 }).buildContainer();
@@ -1772,6 +1767,10 @@ export const collectionSnapshots = collectionContainer.serviceSnapshot(collectio
 ```
 
 Use the actual phase-5 builder syntax, including its recorded S1 fallback for the appended contribution if selected. The appended collection regression must compose the phase-4 token/read transforms with the final snapshot name in one pass. `expected-manual.json` has one item at the `manual` line with the exact Step-2 reason.
+
+The vendored published 0.4 `ScopeOptions` accepts exactly two type arguments. Do not put the later source-only constraints parameter into this original-version input; the two-argument `ChildOptions` row is the valid migration proof. The new options type retains its current third constraints slot as specified above, independently of the published 0.4 fixture.
+
+The nested builder fixture resolves its numeric inner service, so its replacement still satisfies `a: number` in published 0.4. Returning the nested bag itself would make the input invalid and would not establish a valid migration/composition proof.
 
 For the shown input, create this exact `expected-manual.json` (line 14 is the `manual` declaration in the fixture above):
 
@@ -1926,7 +1925,7 @@ const patterns = [
   'tests/**/*.{ts,tsx,mjs}', 'scripts/**/*.{ts,tsx,mjs}',
   'tools/graph/**/*.{ts,tsx,mjs,md}', 'AGENTS.md', 'docs/agent/*.md',
 ];
-const excluded = /(?:api-renaming\.ts|tests\/benchmarks\/runtime-scenarios\.ts|scripts\/runtime-benchmark-child\.ts|tools\/codemod\/test\/fixtures|tools\/graph\/test\/fixtures\/.*0-4)/;
+const excluded = /(?:api-renaming\.ts|docs\/agent\/api-card\.md$|tests\/benchmarks\/runtime-scenarios\.ts|scripts\/runtime-benchmark-child\.ts|tools\/codemod\/test\/fixtures|tools\/graph\/test\/fixtures\/.*0-4)/;
 const files = [...new Set(patterns.flatMap(pattern => globSync(pattern)))].filter(file => !excluded.test(file)).sort();
 const rules = [
   [/(['"])(di-bag\/node)\1/g, (_m, quote) => `${quote}di-bag${quote}`, 'root import'],
@@ -2027,7 +2026,7 @@ Expected: exit 0; every unit kind remains `bag` or `module`.
 
 - [ ] **Step 4: Migrate agent-eval and shipped agent docs**
 
-Migrate `scripts/agent-eval/reference/**`, `scripts/agent-eval/skeleton/**`, `AGENTS.md`, and `docs/agent/*.md`. Use these canonical shapes:
+Migrate `scripts/agent-eval/reference/**`, `scripts/agent-eval/skeleton/**`, `AGENTS.md`, and authored `docs/agent/*.md`, excluding generated `docs/agent/api-card.md`. The helper excludes that exact file too; Task11 regenerates it from the final declarations. Its old spellings during this intermediate task are documented generated drift, not an unowned executable call. Use these canonical shapes:
 
 ```ts
 const child = container.createChildContainer(
