@@ -2774,10 +2774,11 @@ Rerun the scanner from Step 1 and classify every remaining row. Its lexical matc
 ```bash
 bun test tests/type-scale.test.ts tests/token-scale.test.ts tests/benchmark-types.test.ts tests/compiler-case.test.ts tests/benchmark-compiler-ceiling.test.ts tests/compiler-reuse.test.ts tests/release-artifacts.test.ts
 bun test tests/package.test.ts tests/token-package.test.ts tests/native-package.test.ts
-bun test tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs
+bun test tests/final-adversarial-integration.test.ts
+node --expose-gc --test --test-isolation=none tests/runtime-scale.node.mjs tests/acquisition-retention.node.mjs
 ```
 
-Expected: all tests pass. The `.node.mjs` files are safe here because Bun runs their assertions directly; the final Node command remains in Task 14.
+Expected: all tests pass under their actual runners. The observed Bun combined invocation ran only the final-adversarial test file and ignored the explicit `node:test` MJS suites; preserve that partial result and run the two suites with pinned Node24 as shown. Do not count ignored MJS inputs as covered. The full final Node command remains in Task14 after contraction.
 
 - [ ] **Step 4: Commit**
 
@@ -2807,6 +2808,16 @@ Own `tests/benchmarks/runtime-scenarios.ts`, `scripts/runtime-benchmark-child.ts
 Keep every existing scenario assertion and pass an explicit current surface from direct tests. Add one invalid-request-lane regression at the child-main or lane-selection boundary, proving rejection before preparation or builder work; do not let an unchecked JSON cast fall through to the baseline branch. Add focused instrumented current/legacy checks for the build-close scenario: only the selected pair of methods runs, each timed invocation performs one builder construction, one registration and one build, acquires no provider, and yields a fresh bag on the second invocation. Prove the real current archive and the exact pinned `739b509` baseline archive with a focused child smoke for cold-linear-resolve at ten providers, validating canonical output, factory count and the actual resolved package path. The pinned baseline archive is distinct from the vendored npm 0.4 codemod fixture. Reuse its existing verified build/install machinery and retain identities. Run focused child/protocol tests and the two archive smokes; do not add a full runtime-performance comparison or alter the established phase/release gate scope.
 
 Pin the deliberate legacy builder branch by path, surface and function in retired-name audits; it is a tested compatibility adapter, not an application-call exception. Later container/provider renames must update only the current surface while keeping the pinned baseline branch operational. Defer those future method names until their owning phase. Exact-stage the reviewed subunit, retain truthful documentation status and required trailers, then continue Task10.
+
+---
+
+#### Task 9 codemod qualified-reference repair
+
+The supplemental typed audit exposed a shipped codemod contract gap: 22 `typeof builder.method` references use TypeScript `QualifiedName` nodes, so the current property-access visitor silently ignores them. The README promises to report uncalled reshaped references and has no type-query exclusion. Repair this in a separate tool-only commit after the benchmark subunit; do not alter the migration map, public library signatures, or the reviewed Task8 projections.
+
+Restrict the new handling to qualified entity names within a `TypeQueryNode` expression. Authenticate the terminal identifier through the existing library member coverage and route it through the same uncalled `memberRename` policy as property-access references. A complete unambiguous plain rename replaces only the terminal member identifier. Argument-shape/custom transforms, ambiguous targets and partial/conflicting ownership retain the original type query and produce the existing precise manual report. Do not infer argument positions from `Parameters`, `ReturnType`, type arguments or later indexed access: alias/contribution parameter reflections need manual bag-property changes, while the selected positional replacement rename can remain automatic. Preserve unrelated and unauthenticated names. When the uncalled-member policy emits a manual report and returns null, explicitly skip the enclosing TypeQuery/complete expression-name subtree and retain its original text, preventing generic child assembly from subsequently rewriting a prefix or descendant. Dispatch only the expression-name chain owned by a TypeQuery; do not add a blanket QualifiedName/TypeReference visitor. Indexed-access type spellings are outside this observed repair.
+
+Add meaningful regression fixtures first: a plain qualified build/replacement reference that must rename, reshaped alias/contribution references that remain unchanged with one manual report each, an overloaded register reference that is reported as ambiguous, and unrelated/partial ownership controls. Include a nested partial-ownership type query whose entire original text stays unchanged with exactly one manual report, proving child traversal cannot escape the preservation rule. If supported by the fixture declarations, include a longer namespace entity-name case proving only the authenticated terminal member changes. Verify the pre-fix missing rewrite/report failure, then green focused fixtures and the full codemod check under the existing guard. Add a precise README sentence describing qualified `typeof` handling. Keep map/schema/input-vendor identity unchanged; retain raw red/green outputs and the exact reviewed inventory before committing.
 
 ---
 
