@@ -22,6 +22,7 @@
 - Every library error message keeps the form `DI_BAG_CODE: message; see <errors page>#<anchor>`, and every single-quoted `'DI_BAG_*'` literal in `src/` has exactly one section in `docs/agent/errors.md`. `npm run docs:check` enforces both directions, so the code and its section land in the same commit. Keep the literal on the same line as its `libraryError(` call: the inventory script of phase 11 reads it that way.
 - Compile budget: the twelve evidence cases may grow by at most 10% in total across all phases (master plan). This phase touches hot signatures (`resolve`, `register`, `fromFunction`), so it measures twice: after the expand step, which is spike S5, and after the contract step.
 - Every compile-time signature in this plan is UNCOMPILED (master plan, assumption 11): it was designed by reading the code, and the TypeScript compiler was not run. Each task that changes types lists the positive and negative cases that must hold. Compile them first. When a signature does not hold, repair it within the names above; after three serious attempts, or over budget, take the fallback of Task 5.
+- Confirmed during Task 1 execution: `DiBag.token(Symbol('numbers'))` widens the call argument and violates the singleton unique-symbol admission with TS2345. In every test introduced by this plan, bind an inline symbol first (`const numbersKey = Symbol('numbers'); const numbers = DiBag.token(numbersKey)...`). Apply the same binding correction to later runtime and compiler fixtures before their checks; this is anticipated there from the confirmed Task 1 failure and does not change runtime behavior or the type contract. Existing negative `tests/types/negative/token-contracts.ts` coverage remains unchanged.
 - `AGENTS.md` is at its 150-line budget. This phase does not edit it.
 - The package keeps zero runtime dependencies, and `src/index.ts` must not import a `node:` module.
 - Never delete, skip or weaken a test or a negative fixture to get green. A failing assertion on a message this phase did not touch is a behavior change to report.
@@ -150,8 +151,11 @@ Expected: empty status; the log is the controller's phase-3 merge.
 **Files:**
 - Modify: `src/tokens.ts`
 - Modify: `src/index.ts`
+- Modify: `src/di-bag.ts`, `src/aliases.ts`
 - Create: `tests/collection-tokens.test.ts`
 - Modify: `docs/agent/errors.md`
+- Modify: `tools/docs/test/exact-rendering.test.mjs`
+- Regenerate: `docs/reference/`, `docs/agent/api-card.md`
 
 **Interfaces:**
 - Consumes: `TokenBase`, `Token<K, S>`, and the private `WeakMap` authentication in `src/tokens.ts`.
@@ -323,15 +327,28 @@ The throw site has the literal code and object-literal details on the same line 
 
 In `Builder.register`, call `readSingleServiceKey(moreOrToken, 'register')` before `normalize`. In `aliasEntry`, use `readSingleServiceKey(destination, 'alias')`. Do not reject collection alias targets.
 
-- [ ] **Step 6: Verify and commit the identity boundary**
-
-Run: `bun test tests/collection-tokens.test.ts`
-
-Expected: 2 pass, 0 fail.
+- [ ] **Step 6: Verify generated public docs and commit the identity boundary**
 
 ```bash
-git add src/tokens.ts src/index.ts src/di-bag.ts src/aliases.ts tests/collection-tokens.test.ts docs/agent/errors.md
-git commit -m "feat!: add authenticated collection tokens" -m "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL"
+bun test tests/collection-tokens.test.ts
+npm run typecheck
+npm run build
+npm run docs:generate
+npm run docs:check
+bun test tests/api-naming.test.ts tests/documented-names.test.ts
+git diff --check
+```
+
+Expected: the focused suite reports 2 pass, 0 fail; every remaining command exits 0. The fresh build and generated Markdown bind the newly exported `CollectionToken` surface to this green commit. Do not defer generated files to Task 8.
+
+```bash
+git add src/tokens.ts src/index.ts src/di-bag.ts src/aliases.ts tests/collection-tokens.test.ts docs/agent/errors.md tools/docs/test/exact-rendering.test.mjs docs/reference docs/agent/api-card.md
+git commit -F - <<'MSG'
+feat!: add authenticated collection tokens
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
 ```
 
 ### Task 2: Route collection reads, dependencies, aliases and readiness at run time
@@ -888,16 +905,11 @@ export function ensureRuntimeReady(
 }
 ```
 
-- [ ] **Step 7: Run the focused runtime suite and commit**
+- [ ] **Step 7: Run the focused runtime suite and retain the expanded worktree**
 
 Run: `bun test tests/collection-tokens.test.ts`
 
-Expected: all tests present through this task pass.
-
-```bash
-git add src/acquisition.ts src/runtime.ts src/startup.ts src/dependency-references.ts src/aliases.ts src/di-bag.ts tests/collection-tokens.test.ts
-git commit -m "feat: read collection tokens through ordinary APIs" -m "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL"
-```
+Expected: all tests present through this task pass. This is an intermediate runtime check only: Bun erases the uncast collection calls, while their public TypeScript admission lands in Task 4. Keep every Task 2 change in the worktree and continue directly through Tasks 3 and 4; do not stage or commit this compiler-red intermediate state.
 
 ### Task 3: Enforce single-service positions and whole-list replacement at run time
 
@@ -1339,12 +1351,9 @@ Run: `bun test tests/collection-tokens.test.ts`
 
 Expected after the fresh-view assertions: 15 pass, 0 fail, 95 `expect()` calls. The original archived expand run was 15/89; the independent regression copy proves these six added assertions together with Task 8's kind rule.
 
-- [ ] **Step 5: Commit runtime behavior**
+- [ ] **Step 5: Retain the verified runtime behavior for the typed expand boundary**
 
-```bash
-git add src/contributions.ts src/scope-selection.ts src/module.ts src/di-bag.ts tests/collection-tokens.test.ts
-git commit -m "feat: replace complete token collections" -m "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL"
-```
+The focused runtime result is required evidence, but Task 3 is still compiler-red until Task 4 supplies collection-aware dependency, alias, selection, replacement and module contracts. Keep the Task 2–3 changes unstaged and continue directly to Task 4. There is no authorized red commit at either intermediate boundary.
 
 ### Task 4: Make the collection contract type-safe across builders, modules and containers
 
@@ -1352,6 +1361,8 @@ git commit -m "feat: replace complete token collections" -m "Co-Authored-By: Cla
 - Modify: `src/tokens.ts`, `src/token-types.ts`, `src/contribution-types.ts`, `src/dependency-references.ts`, `src/types.ts`, `src/replacement-types.ts`, `src/scope-types.ts`, `src/alias-types.ts`, `src/module-types.ts`, `src/di-bag.ts`, `src/index.ts`
 - Create: `tests/types/collection-tokens.ts`, `tests/types/negative/collection-tokens.ts`
 - Modify: `tests/types.test.ts`
+- Modify: `tools/docs/test/exact-rendering.test.mjs`
+- Regenerate: `docs/reference/`, `docs/agent/api-card.md`
 
 **Interfaces:**
 - Consumes: contributions in `Constraints`, not `ServiceRegistrations`; phase-2 class generic names.
@@ -2186,11 +2197,33 @@ node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseli
 
 Expected: exit 0, twelve accepted cases, no diagnostics, and each case at most +10% over the baseline. Copy the complete table from `/tmp/phase-04-expand-table.md` into `docs/superpowers/plans/evidence/phase-04.md` under `## Expand (S5)`, then append `Decision: adopted`. The JSON file is raw reproducibility data and stays outside the repository.
 
-- [ ] **Step 9: Commit the adopted primary shape**
+- [ ] **Step 9: If adopted, prove and commit the complete green expand boundary**
+
+Run this step only after the primary S5 table passes. If the three-attempt or budget rule selects the fallback, do not stage or commit the failed primary shape; continue with the same worktree into Task 5 and use its Step 5 instead.
 
 ```bash
-git add src tests/types tests/types.test.ts docs/superpowers/plans/evidence/phase-04.md
-git commit -m "feat: type collection tokens across the graph" -m "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL"
+bun test tests/collection-tokens.test.ts
+bun test tests/types.test.ts --test-name-pattern 'collection tokens'
+npm run typecheck
+npm run build
+npm run docs:generate
+npm run docs:check
+bun test tests/api-naming.test.ts tests/documented-names.test.ts
+git diff --check
+```
+
+Expected: the complete Tasks 2–4 runtime and compiler fixtures pass; typecheck, the fresh classic build, generated-document checks, ordinary naming checks and diff check all exit 0. Phase 4 has no compiler- or generated-document-red exception.
+
+Stage exactly the union owned by Tasks 2–4 plus the generated Markdown and S5 evidence:
+
+```bash
+git add src/acquisition.ts src/runtime.ts src/startup.ts src/dependency-references.ts src/aliases.ts src/di-bag.ts src/contributions.ts src/scope-selection.ts src/module.ts src/tokens.ts src/token-types.ts src/contribution-types.ts src/types.ts src/replacement-types.ts src/scope-types.ts src/alias-types.ts src/module-types.ts src/index.ts tests/collection-tokens.test.ts tests/types/collection-tokens.ts tests/types/negative/collection-tokens.ts tests/types.test.ts tools/docs/test/exact-rendering.test.mjs docs/reference docs/agent/api-card.md docs/superpowers/plans/evidence/phase-04.md
+git commit -F - <<'MSG'
+feat: add typed collection-token reads across the graph
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
 ```
 
 ### Task 5: Apply the complete S5 fallback if the conditional shape fails
@@ -2198,6 +2231,9 @@ git commit -m "feat: type collection tokens across the graph" -m "Co-Authored-By
 **Files:**
 - Modify: the Task 4 files and fixtures
 - Modify: `docs/superpowers/plans/evidence/phase-04.md`
+- Modify on fallback: `docs/guides/api-naming.md`
+- Modify on fallback: `tools/docs/test/exact-rendering.test.mjs`
+- Regenerate: `docs/reference/`, `docs/agent/api-card.md`
 
 **Interfaces:**
 - Consumes: Task 4's three-attempt rule or evidence failure.
@@ -2247,11 +2283,31 @@ node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseli
 
 Expected: fixtures pass; the evidence command exits 0; every case is within the cumulative +10% budget. Replace the failed primary table under `## Expand (S5)` with the fallback table while retaining the failed attempts immediately above it. If even the fallback misses the budget, stop and report to the controller; the spec has no third API shape.
 
-- [ ] **Step 5: Commit the fallback**
+- [ ] **Step 5: Prove and commit the complete green fallback expand boundary**
+
+After the focused fixture and twelve-case fallback checks in Step 4 pass, run the same coherent precommit gate over the accumulated Tasks 2–5 tree:
 
 ```bash
-git add src tests/types tests/collection-tokens.test.ts docs/guides/api-naming.md docs/superpowers/plans/evidence/phase-04.md
-git commit -m "feat: use measured collection read fallback" -m "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL"
+bun test tests/collection-tokens.test.ts
+bun test tests/types.test.ts --test-name-pattern 'collection tokens'
+npm run typecheck
+npm run build
+npm run docs:generate
+npm run docs:check
+bun test tests/api-naming.test.ts tests/documented-names.test.ts
+git diff --check
+```
+
+Expected: every command exits 0. The failed primary attempts remain evidence text only; no failed-primary commit exists. Stage exactly the Tasks 2–4 union, the fallback guide, generated Markdown and adopted fallback evidence:
+
+```bash
+git add src/acquisition.ts src/runtime.ts src/startup.ts src/dependency-references.ts src/aliases.ts src/di-bag.ts src/contributions.ts src/scope-selection.ts src/module.ts src/tokens.ts src/token-types.ts src/contribution-types.ts src/types.ts src/replacement-types.ts src/scope-types.ts src/alias-types.ts src/module-types.ts src/index.ts tests/collection-tokens.test.ts tests/types/collection-tokens.ts tests/types/negative/collection-tokens.ts tests/types.test.ts docs/guides/api-naming.md tools/docs/test/exact-rendering.test.mjs docs/reference docs/agent/api-card.md docs/superpowers/plans/evidence/phase-04.md
+git commit -F - <<'MSG'
+feat: add typed collection-token reads across the graph
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
+MSG
 ```
 
 Execute this task only when Task 4's decision rule selects it.
@@ -3818,18 +3874,18 @@ git commit -m "test: record collection token evidence" -m "Co-Authored-By: Claud
 
 - [ ] **Step 6: Send the controller report**
 
-Report in at most 60 lines: branch; `git log --oneline next..HEAD`; each gate and last output line; S5 decision and twelve deltas; codemod manual items and how each was resolved; whether fallback ran; any deviation. Give the pure mechanical hash and separate hand-migration hash, plus any preparation hash. Cite `/tmp/phase-04-codemod-dry-run-report.json`, `/tmp/phase-04-codemod-write-report.json`, `/tmp/phase-04-codemod-write-command.sh`, `/tmp/phase-04-codemod-write-negative-files.txt`, `/tmp/phase-04-codemod-generated-files.txt` and the mechanical commit body for the exact expanded command and inventories; do not copy the long inventory into the under-60-line report. State both totals and `skipped: 0`, the exact two-control preview, and the omitted startup fixture's byte proof and focused compiler result. Do not push, merge, publish, or add removed-API stubs (phase 13 owns stubs).
+Report in at most 60 lines: branch; `git log --oneline next..HEAD`; each gate and last output line; the one green Tasks 2–4 expanded-boundary hash (or Tasks 2–5 when fallback is selected); S5 decision and twelve deltas; codemod manual items and how each was resolved; whether fallback ran; any deviation. Confirm that no Task 2, Task 3 or failed-primary commit exists. Give the pure mechanical hash and separate hand-migration hash, plus any preparation hash. Cite `/tmp/phase-04-codemod-dry-run-report.json`, `/tmp/phase-04-codemod-write-report.json`, `/tmp/phase-04-codemod-write-command.sh`, `/tmp/phase-04-codemod-write-negative-files.txt`, `/tmp/phase-04-codemod-generated-files.txt` and the mechanical commit body for the exact expanded command and inventories; do not copy the long inventory into the under-60-line report. State both totals and `skipped: 0`, the exact two-control preview, and the omitted startup fixture's byte proof and focused compiler result. Do not push, merge, publish, or add removed-API stubs (phase 13 owns stubs).
 
 ## Self-review
 
 - Spec coverage: Tasks 1–4 cover identity, wrong-kind errors, reads, empty/fresh/frozen lists, lifetimes, dependencies, aliases, readiness, snapshots, replacements, unsupported sharing and module propagation. Tasks 6–8 cover codemod, repository migration, deletion and the exact four-entry naming-ratchet shrink. Task 5 is the complete S5 fallback. Task 9 covers the required evidence, read-only phase-wide ratchet audit and gates.
-- Expand/migrate/contract: Tasks 1–4 expand, Tasks 6–7 migrate, Task 8 contracts and removes the four now-stale naming findings in the same green commit. Task 5 conditionally replaces only the measured shape and does not affect that exact removal set.
+- Expand/migrate/contract: Task 1 is a green identity boundary. Tasks 2 and 3 retain runtime-verified work without intermediate commits; Task 4 supplies the connected type model, fresh generated docs and ordinary naming proof, then commits Tasks 2–4 as one green expand boundary. If selected, Task 5 completes the fallback in that same boundary before its only commit. Tasks 6–7 migrate; Task 8 contracts and removes the four now-stale naming findings in the same green commit.
 - Mechanical migration boundary: Task 7 dry-runs every negative fixture but writes through an explicit sorted inventory that omits only `tests/types/negative/startup.ts`. The exact-text preview, byte comparison and focused compiler check preserve its two inherited rejected old-close controls. Any manual precondition needed for green generated output lands first in its own green preparation commit, after which the proof/write repeats. The report-derived generated-file inventory is staged and committed immediately after typecheck, codemod and named affected-runtime checks; only the later separate green commit contains the hand split, manual-item resolutions and counted source-string migration. The mechanical commit records the actual expanded command and both inventories and never claims the unsafe glob produced it.
 - Public signature consistency: `CollectionToken<TokenSymbol, Item>` carries an item; its service value is `readonly Item[]`; contributions output one `Item`; replacement providers output the whole readonly list. `resolve` and `inspect` take the same admission helper. The fallback names are used consistently in its signatures, fixtures and codemod targets.
 - Runtime consistency: contribution storage remains separate. A collection public slot exists only after replacement and wins in resolve, inspect, dependencies, aliases and readiness. Its provider caches/owns the original value, while reads get fresh frozen shallow copies. Empty collections remain valid. Sharing is rejected before lifetime lookup.
 - Identity consistency: each graph persistently claims a symbol's token kind when a binding, contribution, or positional dependency enters it. The fresh 16-test probe proves conflicts fail in both operation orders while two independent graphs may reuse the symbol with different handles. No global strong map retains dynamic symbols.
 - Error consistency: the only new runtime code is `DI_BAG_WRONG_TOKEN_KIND` with `{ operation, expectedKind, receivedKind }`; its section lands with its first throw. Existing malformed selection codes remain unchanged. No existing message assertion is predicted to break.
-- Docs/tooling: the plan deliberately leaves `AGENTS.md`, `tools/graph`, scale-source generators and agent-eval unchanged because entry greps show no affected call. It updates generated docs, exact rendering, API task rows, the error page, the composite recipe and the dead reference link.
+- Docs/tooling: the plan deliberately leaves `AGENTS.md`, `tools/graph`, scale-source generators and agent-eval unchanged because entry greps show no affected call. Task 1 updates the strict `TokenKey` exact-rendering assertion for both token kinds, and the combined expand boundary keeps strict assertions aligned with the adopted or fallback expanded signatures; neither weakens coverage or a budget. Both boundaries freshly build and regenerate checked public Markdown before committing. Task 8 owns the final contracted exact-rendering assertions, API task rows, error page, composite recipe and dead reference link and regenerates again after contraction.
 - Planning evidence boundary: runtime and isolated codemod behavior were run; all compile-time signatures are explicitly proposed and uncompiled. The executor validates positives, negatives and the twelve evidence cases before adoption.
 - Syntax boundary: all 68 TS/JS plan blocks parse with `ts.createSourceFile`; undefined-name resolution, assignability, declaration emit, and performance remain explicitly uncompiled executor work.
 - Completeness scan: every code-producing step includes its source or an exact signature and decision rule; every test named in a step has a complete body.
