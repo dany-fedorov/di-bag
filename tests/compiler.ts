@@ -8,6 +8,7 @@ export const options: ts.CompilerOptions = {
   skipLibCheck: true,
   noUncheckedIndexedAccess: true,
   exactOptionalPropertyTypes: true,
+  noErrorTruncation: true,
   target: ts.ScriptTarget.ES2022,
   module: ts.ModuleKind.NodeNext,
   moduleResolution: ts.ModuleResolutionKind.NodeNext,

@@ -125,7 +125,7 @@ for (const emitter of ['classic6', 'native7']) {
         for (const fixture of providerContractFixtures) {
           const file = join(consumer, `consumer.${extension}`), source = providerContractSource(fixture);
           writeFileSync(file, source);
-          const result = await compileNative(compiler, consumer, [file]);
+          const result = await compileNative(compiler, consumer, [file], { noErrorTruncation: true });
           expect({ fixture, checked: result.checked, unparsed: result.unparsed }).toEqual({ fixture, checked: true, unparsed: [] });
           const markers = matchNativeDiagnosticMarkers(source, file, result.diagnostics);
           if (!markers.accepted) failures.push({ emitter, extension, fixture, ...markers });

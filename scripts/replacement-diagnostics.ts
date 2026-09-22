@@ -50,7 +50,7 @@ export const replacementDiagnosticExpectations = {
     supplemental: [],
   },
   'negative/module-narrowing.ts': {
-    primary: ['not assignable', 'not assignable', 'missing', 'nominal', 'not assignable',
+    primary: ['not assignable', 'not assignable', 'missing', 'withInstalledModules requires a finite tuple of genuine modules', 'not assignable',
       'not assignable', 'provided service does not satisfy its consumer dependency', 'not assignable',
       'not assignable', 'not assignable', 'not assignable'],
     supplemental: [],

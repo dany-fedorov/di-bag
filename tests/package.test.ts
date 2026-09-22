@@ -416,7 +416,7 @@ for (const mode of ['commonjs', 'module'] as const) {
           type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;`);
       const options: ts.CompilerOptions = {
         strict: true, noEmit: true, noUncheckedIndexedAccess: true,
-        exactOptionalPropertyTypes: true, types: [], target: ts.ScriptTarget.ES2022,
+        exactOptionalPropertyTypes: true, noErrorTruncation: true, types: [], target: ts.ScriptTarget.ES2022,
         module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext,
       };
       const host = ts.createCompilerHost(options);

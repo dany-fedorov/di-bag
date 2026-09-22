@@ -17,7 +17,7 @@ async function main() {
     console.log(JSON.stringify({ compiler, files: files.length }));
     for (const fixture of files) {
       const file = resolve(fixtureRoot, fixture);
-      const result = await compileNative(compiler, directory, [file], { skipLibCheck: true });
+      const result = await compileNative(compiler, directory, [file], { skipLibCheck: true, noErrorTruncation: true });
       const markers = matchNativeDiagnosticMarkers(readFileSync(file, 'utf8'), file, result.diagnostics);
       expected += markers.expected; matched += markers.matched; unexpected += markers.unexpected.length;
       primaryExpected += markers.primaryExpected; primaryMatched += markers.primaryMatched;
