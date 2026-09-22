@@ -1,5 +1,5 @@
 import { DiBag, type Builder, type Provider, type Registration } from '../../../src';
-import type { TokenBase } from '../../../src/tokens';
+import type { Token } from '../../../src/tokens';
 const key = Symbol('source'); const target = DiBag.token(key).of<number>();
 const otherKey = Symbol('other'); const other = DiBag.token(otherKey).of<number>();
 const wrong = DiBag.token(key).of<string>();
@@ -25,7 +25,7 @@ DiBag.createBuilder().register({ value: () => 1 }).alias('copy', 'value').replac
 const exported = DiBag.createBuilder().register({ value: () => 1 }).alias('copy', 'value').buildModule(['value']).renameExport('value', 'renamed');
 // diagnostic: consumer dependency
 DiBag.createBuilder().installModule(exported).replace<'renamed', () => string>('renamed', () => 'bad');
-declare const name: string; declare const names: 'value' | 'copy'; declare const tokens: typeof target | typeof other; declare const erasedToken: TokenBase;
+declare const name: string; declare const names: 'value' | 'copy'; declare const tokens: typeof target | typeof other; declare const erasedToken: Token<symbol, number>;
 // diagnostic: singleton
 base.alias(name, 'value');
 // diagnostic: singleton

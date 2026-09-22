@@ -69,7 +69,7 @@ test('a module label names private bindings in messages, cycle paths, inspectGra
     broken: ({ absent }: { absent: number }) => absent,
   } as never).buildModule(['placeOrder', 'loop', 'broken'] as never, { label: 'orders' });
 
-  const bag = buildLoose(api.createBuilder().installModule(orders as never).register({ database: () => 'db' } as never));
+  const bag = buildLoose(api.createBuilder().withInstalledModules([orders] as never).register({ database: () => 'db' } as never));
   expect(bag.resolve('placeOrder')).toBe('repo:db');
 
   const cycle = caught(() => bag.resolve('loop'));
@@ -95,7 +95,7 @@ test('a private consumer is named with its label when its own dependency is miss
   const feature = DiBag.createBuilder().register({
     worker: ({ absent }: { absent: number }) => absent,
   } as never).register({ run: ({ worker }: { worker: number }) => worker } as never).buildModule(['run'] as never, { label: 'jobs' });
-  const bag = buildLoose(DiBag.createBuilder().installModule(feature as never));
+  const bag = buildLoose(DiBag.createBuilder().withInstalledModules([feature] as never));
   const error = caught(() => bag.resolve('run'));
   expect(error.details.consumer).toBe('jobs/worker');
   expect(error.details.path).toEqual(['run', 'jobs/worker', 'absent']);
