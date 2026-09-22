@@ -2783,16 +2783,18 @@ Its `expected-manual.json` is exactly:
 
 ```json
 [
-  { "line": 9, "reason": "contribute resolves to both DI Bag and non-library declarations; migrate this use by hand" },
   { "line": 15, "reason": "of resolves to both DI Bag and non-library declarations; migrate this use by hand" }
 ]
 ```
 
 Do not add a fixture registry or edit `fixtures.test.mjs`: `helpers.mjs` auto-discovers every fixture
-directory containing `input.ts`, and the shared original program includes them all. The first row
-proves an incomplete receiver is classified as `other`, so it cannot make `uncertain` a collection
-token; the second proves an incomplete token-factory receiver is not admitted as a token creation.
-Both calls remain byte-for-byte unchanged and receive only the phase-1 partial-declaration report.
+directory containing `input.ts`, and the shared original program includes them all. The unchanged
+`uncertain.of()` creation proves the incomplete `contribute` receiver at line 9 is classified as
+`other`, so it cannot make `uncertain` a collection token. That call has no map entry in Phase 4,
+so the existing dispatcher does not report it; Phase 5 owns the `contribute` migration. The sole
+manual row at line 15 proves the incomplete token-factory receiver is not admitted as a token
+creation. Both calls remain byte-for-byte unchanged. Preserve the phase-1 rule that partial-owner
+reports require a relevant map entry; do not add a no-op or future-phase entry to force a report.
 
 - [ ] **Step 7: Run codemod tests**
 
@@ -2802,8 +2804,8 @@ npm run codemod:check
 ```
 
 Expected: pass; inputs type-check against vendored 0.4.0 declarations; golden output matches; the
-primary fixture has its exact four manual items and `collection-token-partial` has its exact two
-partial-declaration items, with no additional report. The test output must list the discovered
+primary fixture has its exact four manual items and `collection-token-partial` has exactly the one
+line-15 partial-declaration item, with no additional report. The test output must list the discovered
 `fixture collection-token-alias-source`, `fixture collection-token-alias-use`, and
 `fixture collection-token-partial` subtests; do not add a redundant registry or discovery assertion.
 
@@ -2840,11 +2842,21 @@ would do to the two deliberately rejected old-close statements in
 npm run build
 node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --report /tmp/phase-04-codemod-dry-run-report.json
 node - <<'JS'
+const assert = require('node:assert/strict');
 const report = require('/tmp/phase-04-codemod-dry-run-report.json');
 const skipped = report.manual.filter(item => item.reason.startsWith('this file was left untouched'));
 const startup = report.files.filter(item => item.file === 'tests/types/negative/startup.ts');
+const closeReason = 'argument 1 of close is not a literal; where it is built, apply: key signal to abortSignal; key timeoutMs to waitTimeoutMs';
+const inheritedClosePaths = [
+  'examples/react/app-runtime.ts',
+  'examples/react/project-runtime.ts',
+  'tests/react/runtime-owner.test.ts',
+  'tests/runtime-diagnostics.test.ts',
+].sort();
+const inheritedClose = report.manual.filter(item => item.reason === closeReason).map(item => item.file).sort();
 console.log({ files: report.files.length, rewrites: report.files.reduce((sum, item) => sum + item.rewrites, 0), manual: report.manual.length, skipped: skipped.length, startup });
 if (report.written !== false || skipped.length !== 0 || startup.length !== 1) process.exit(1);
+assert.deepEqual(inheritedClose, inheritedClosePaths);
 JS
 ```
 
@@ -2852,6 +2864,11 @@ Expected: the report says `written: false`, `skipped: 0`, and contains one entry
 `tests/types/negative/startup.ts`. Do not pin its internal rewrite count: the exact proposed source
 text is the contract. Read every manual item. Mixed-channel uses are split; declarations outside the
 program and parameters are migrated by tracing their callers/types, never guessed.
+The exact four inherited nonliteral-`close` manual rows above are retained Phase 3 pass-throughs:
+their option values were already migrated where they are built. Classify every other row as a Task
+7-owned collection migration or give its exact later task owner and concrete resolution; a later owner
+is valid only when that task's Files/Interfaces own the path and surface. Do not require a blanket zero
+manual count, and record the exact path/reason classification in the Task 9 report.
 
 Prove read-only that the omitted fixture's complete proposed text differs only at the two inherited
 old-close controls, then save its original bytes:
@@ -3019,7 +3036,7 @@ the only commit described as mechanical.
 
 - [ ] **Step 3: Split the accidental-merging control into two tokens**
 
-In `tests/contributions.test.ts` and its runtime fixture, replace the one token that was both registered and contributed to with `singularItem = DiBag.token(Symbol('singular item')).of<Item>()` and `items = DiBag.token(itemKey).forCollectionOf<Item>()`. Register/resolve only `singularItem`; contribute/resolve the list only through `items`. Preserve the intent: singular resolution stays singular and never merges into the list.
+In `tests/contributions.test.ts` and its runtime fixture, replace the one token that was both registered and contributed to. In the typed test bind `const singularItemKey = Symbol('singular item')`, then create `singularItem = DiBag.token(singularItemKey).of<Item>()` and `items = DiBag.token(itemKey).forCollectionOf<Item>()`; the separately executed runtime source string may retain its inline `Symbol` expression. Register/resolve only `singularItem`; contribute and read/inspect the list only through `items`, using `resolve`/`inspect` for the primary S5 shape or `resolveCollection`/`inspectCollection` for the adopted fallback. Preserve the intent: singular resolution stays singular and never merges into the list. The typecheck below must prove the bound typed key remains a singleton symbol.
 
 - [ ] **Step 4: Add the counted migration script for source strings**
 
@@ -3149,7 +3166,7 @@ git add examples tests scripts/phase05-strings.py
 git commit -F - <<'MSG'
 refactor!: finish collection call-site migrations
 
-Resolve the codemod's inspected manual items, split the deliberate two-channel
+Resolve the Task 7-owned collection manual items, split the deliberate two-channel
 control, and migrate counted source strings after the pure mechanical commit.
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
@@ -3157,15 +3174,17 @@ Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
 MSG
 ```
 
-Expected: this green commit contains only the post-mechanical hand split, inspected manual-item
-resolutions and counted source-string migration. It does not claim codemod generation and does not
+Expected: this green commit contains only the post-mechanical hand split, Task 7-owned collection
+manual-item resolutions and counted source-string migration. The four exact inherited nonliteral
+`close` path/reason rows remain classified pass-throughs, and every other retained row has an explicit
+later task owner. The commit does not claim codemod generation and does not
 repeat the producing command. If the optional preparation commit was required, list it separately in
 the phase report as well.
 
 ### Task 8: Remove the old collection channel and finish public documentation
 
 **Files:**
-- Modify: `src/dependency-references.ts`, `src/acquisition.ts`, `src/runtime.ts`, `src/startup.ts`, `src/scope-selection.ts`, `src/module.ts`, `src/contributions.ts`, `src/contribution-types.ts`, `src/di-bag.ts`, `src/index.ts`
+- Modify: `src/dependency-references.ts`, `src/acquisition.ts`, `src/runtime.ts`, `src/startup.ts`, `src/scope-selection.ts`, `src/module.ts`, `src/module-types.ts`, `src/contributions.ts`, `src/contribution-types.ts`, `src/token-types.ts`, `src/provider.ts`, `src/tokens.ts`, `src/di-bag.ts`, `src/index.ts`
 - Modify: `tests/collection-tokens.test.ts`, `tests/types/negative/collection-tokens.ts`, `tests/types/negative/api-renaming.ts`, `tests/inspect-graph.test.ts`
 - Modify: `tests/api-naming-known-violations.json` (remove exactly four legacy-collection findings)
 - Modify: `docs/agent/errors.md`, `docs/agent/recipes.md`, `docs/agent/api-card.md`, `docs/guides/api-reference.md`, `tools/docs/api-card-tasks.json`, `tools/docs/test/exact-rendering.test.mjs`
@@ -3181,7 +3200,8 @@ the phase report as well.
 Append to `tests/types/negative/api-renaming.ts`:
 
 ```ts
-const removedCollection = DiBag.token(Symbol('removed collection')).forCollectionOf<number>();
+const removedCollectionKey = Symbol('removed collection');
+const removedCollection = DiBag.token(removedCollectionKey).forCollectionOf<number>();
 const removedBag = DiBag.createBuilder().contribute(removedCollection, () => 1).build();
 // diagnostic: Property 'all' does not exist
 DiBag.all(removedCollection);
@@ -3197,7 +3217,64 @@ Add a type-only import/use marker showing `CollectionDependency` is no longer ex
 
 Delete `all`, `CollectionDependency`, the `'all'` generic branch and reference kind; delete `resolveAll`/`inspectAll` from `Bag`, `BagRuntime`, and `ScopeAcquisitions`; remove `all` from `DiBagApi` and `facade`; remove the export from `src/index.ts`. Rename remaining private helpers to contribution-specific names so no deleted public term survives accidentally.
 
-Delete `{ kind: 'all' }` from `NeedConstraint`, `AllNeeds`, `RegistrationConstraints`, `SealedConstraints`, and the old `TokenDependencyContract.all`. The graph snapshot `tokenDependencies[].kind` now permits only `'required' | 'optional' | 'lazy'`; a collection dependency is `'required'`. Do not rename snapshot fields; phase 11 owns them.
+In `src/token-types.ts`, delete `LegacyAllTokens` and the legacy `all` projection from `ReferenceGraph`; retain the required/optional/collection routing and the plain single-token tuple fast path. In `src/provider.ts`, delete only the legacy `{ readonly all: ... }` arm from `ProviderCollectionTokens`; retain its projection from the fourth `TokenDependencyContract` member. These are the declaration owners consumed by the module and lifetime checks, so omitting either leaves the legacy channel in the contracted public type graph.
+
+The old `{ kind: 'all' }` module constraint currently carries both the legacy adapter and the new
+collection-token projection. Preserve the latter as an internal collection-consumer obligation while
+removing the legacy route. This is existing contract preservation, not a new public API. Apply these
+complete discriminator changes:
+
+```ts
+// src/module-types.ts
+// Replace the old NeedConstraint member.
+| { readonly kind: 'collection'; readonly token: CollectionTokenBase }
+
+type WrongTokenConstraint<C, A extends Registrations> =
+  C extends { kind: 'contribution' | 'collection' } ? never
+  : C extends { token: infer T } ? WrongToken<T, A>
+  : C extends { kind: 'opaque' } ? 'opaque' : never;
+type MissingTokenConstraint<C, A extends Registrations> =
+  C extends { kind: 'contribution' | 'collection' | 'optional-token-export' | 'optional-token-external' } ? never
+  : C extends { token: infer T } ? MissingToken<T, A>
+  : C extends { kind: 'opaque' } ? 'opaque' : never;
+
+// IncrementalConstraints: replace `all` with `collection` in the existing Extract union.
+Extract<C | MC, {
+  kind: 'contribution' | 'collection' | 'opaque' | 'root-reach'
+    | 'export-reach' | 'contribution-reach';
+}>
+
+// RegistrationConstraints: replace the old ProviderCollectionTokens branch.
+| (ProviderCollectionTokens<V> extends infer T
+    ? T extends CollectionTokenBase
+      ? { readonly kind: 'collection'; readonly token: T }
+      : never
+    : never)
+```
+
+`SealedConstraints` has no explicit legacy branch to delete: its final `: C` passes this obligation
+through direct and nested sealing unchanged. Keep that passthrough. In `src/contribution-types.ts`,
+rename the private `AllNeeds` helper and retain only the new obligation:
+
+```ts
+type CollectionNeeds<C, A extends Registrations> = ProviderCollectionTokens<A[keyof A]>
+  | (C extends ContributionConstraint
+      ? ProviderCollectionTokens<C['registration']>
+      : C extends { kind: 'collection'; token: infer T }
+        ? T
+        : never);
+type GroupErrors<C, A extends Registrations> =
+  WrongGroup<Groups<C>['token'] | CollectionNeeds<C, A>, C>;
+```
+
+In `src/provider.ts`, make `ProviderCollectionTokens` project only `CollectionTokens` from the fourth
+`TokenDependencyContract` member. In `src/token-types.ts`, delete `LegacyAllTokens`, the legacy
+`DependencyKind<R> extends 'all'` routing and `ReferenceGraph.all`, while retaining collection-token
+routing into that fourth member. In `PublicGraph`, clear `'required' | 'optional' | 'collections'` and
+remove only the obsolete `'all'` key. The graph snapshot `tokenDependencies[].kind` now permits only
+`'required' | 'optional' | 'lazy'`; a collection dependency is `'required'`. Do not rename snapshot
+fields; phase 11 owns them. Lifetime traversal must continue to derive `CollectionKeys` from
+`ProviderCollectionTokens` and retain its `Reach`/`HostCollection` handling.
 
 Delete the expand-only single-token `BuilderContribute` overload. Change `contributionEntry` to authenticate with `readToken`, throw `wrongTokenKind('contribute', 'collection', key)` before normalizing the provider, and return the entry. Add these contract checks:
 
@@ -3525,7 +3602,7 @@ function readGraphToken(
 const { key, kind } = readGraphToken(this.#graph, serviceKey, 'resolve');
 ```
 
-The final public read bodies are:
+The adopted S5 fallback remains authoritative during contraction: ordinary `resolve` and `inspect` stay single-service-only, while collection reads remain on `resolveCollection` and `inspectCollection`. Preserve their current public generic signatures, including `SingleServiceTokenMember<ServiceRegistrations, K>` so wrong-kind admission is evaluated before missing membership. Route all four implementation bodies through `readGraphToken` so graph-scoped kind validation precedes channel dispatch. The final public read bodies are:
 
 ```ts
 resolve(serviceKey: unknown): unknown {
@@ -3533,9 +3610,25 @@ resolve(serviceKey: unknown): unknown {
     return this.#runtime.resolve(serviceKey);
   }
   const { key, kind } = readGraphToken(this.#graph, serviceKey, 'resolve');
-  return kind === 'collection'
-    ? this.#runtime.resolveCollection(key)
-    : this.#runtime.resolve(key);
+  if (kind !== 'single-service') {
+    throw wrongTokenKind('resolve', 'single-service', key);
+  }
+  return this.#runtime.resolve(key);
+}
+
+resolveCollection<T extends CollectionTokenBase>(
+  token: T & CollectionMember<T, Constraints>,
+  ...invalid: [T] extends [never] ? [never] : []
+): readonly CollectionItem<T>[] {
+  const { key, kind } = readGraphToken(
+    this.#graph,
+    token,
+    'resolveCollection',
+  );
+  if (kind !== 'collection') {
+    throw wrongTokenKind('resolveCollection', 'collection', key);
+  }
+  return this.#runtime.resolveCollection(key) as readonly CollectionItem<T>[];
 }
 
 inspect(serviceKey: unknown): unknown {
@@ -3543,9 +3636,25 @@ inspect(serviceKey: unknown): unknown {
     return this.#runtime.inspect(serviceKey);
   }
   const { key, kind } = readGraphToken(this.#graph, serviceKey, 'inspect');
-  return kind === 'collection'
-    ? this.#runtime.inspectCollection(key)
-    : this.#runtime.inspect(key);
+  if (kind !== 'single-service') {
+    throw wrongTokenKind('inspect', 'single-service', key);
+  }
+  return this.#runtime.inspect(key);
+}
+
+inspectCollection<T extends CollectionTokenBase>(
+  token: T & CollectionMember<T, Constraints>,
+  ...invalid: [T] extends [never] ? [never] : []
+): readonly RegistrationSnapshot<object, readonly unknown[]>[] {
+  const { key, kind } = readGraphToken(
+    this.#graph,
+    token,
+    'inspectCollection',
+  );
+  if (kind !== 'collection') {
+    throw wrongTokenKind('inspectCollection', 'collection', key);
+  }
+  return this.#runtime.inspectCollection(key);
 }
 ```
 
@@ -3588,7 +3697,7 @@ test('one graph cannot use the same symbol for both token kinds', async () => {
     .contribute(collection, () => 2)
     .build();
   expect(serviceBag.resolve(service)).toBe(1);
-  expect(collectionBag.resolve(collection)).toEqual([2]);
+  expect(collectionBag.resolveCollection(collection)).toEqual([2]);
   await serviceBag.close();
   await collectionBag.close();
 });
@@ -3675,7 +3784,8 @@ export function contributionEntry(
 ```ts
 // tests/collection-tokens.test.ts
 test('contribute rejects a single-service token as the wrong kind, before it reads the provider', () => {
-  const service = DiBag.token(Symbol('service')).of<number>();
+  const serviceKey = Symbol('service');
+  const service = DiBag.token(serviceKey).of<number>();
   const error = thrown(() => (DiBag.createBuilder().contribute as Function)(service, 'not a provider'));
   expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   expect(error.details).toEqual({ operation: 'contribute', expectedKind: 'collection', receivedKind: 'single-service' });
@@ -3686,13 +3796,50 @@ test('contribute rejects a single-service token as the wrong kind, before it rea
 // tests/types/negative/collection-tokens.ts
 // diagnostic: contribute requires a collection token
 DiBag.createBuilder().contribute(service, () => 1);
+
+const sealedCollectionKey = Symbol('sealed collection');
+const sealedNumbers = DiBag.token(sealedCollectionKey).forCollectionOf<number>();
+const sealedStrings = DiBag.token(sealedCollectionKey).forCollectionOf<string>();
+const sealedConsumer = DiBag.createBuilder()
+  .register({ count: DiBag.fromFunction([sealedNumbers], values => values.length) })
+  .buildModule(['count']);
+// diagnostic: collection token has an incompatible or opaque contract
+DiBag.createBuilder().installModule(sealedConsumer).contribute(sealedStrings, () => 'wrong');
+
+const nestedSealedConsumer = DiBag.createBuilder()
+  .installModule(sealedConsumer)
+  .buildModule(['count']);
+// diagnostic: collection token has an incompatible or opaque contract
+DiBag.createBuilder().installModule(nestedSealedConsumer).contribute(sealedStrings, () => 'wrong');
 ```
 
-The focused runtime total after this step is 17 tests and 103 `expect()` calls; Task 3's expand total is 15 tests and 95 calls.
+Run the focused compiler fixtures and full source typecheck before any final S5 measurement:
+
+```bash
+bun test tests/types.test.ts -t 'collection tokens|collection-tokens'
+npm run typecheck
+bun test tests/collection-tokens.test.ts
+```
+
+Expected: both compiler fixtures pass. The positive fixture retains the same-handle sealed-module
+consumer/contribution path and empty collection inference; the negative fixture rejects both direct
+and nested incompatible item handles. Full source typecheck passes, the runtime empty-module consumer
+still receives `[]`, and collection lifetime/disposal behavior remains green. These checks are required
+before Task 9 runs the final twelve-case S5 comparison; they do not relax its +10% limit or authorize a
+different API shape. The positive fixture is reused unchanged, so Task 8 does not own or stage it.
+
+The complete runtime run above must include every approved expand case, including the empty-module and lifetime cases, plus the two named Task 8 runtime regressions above. Record the actual test and assertion totals from the runner; do not hardcode a predicted total. The approved expand boundary is 15 tests and 103 assertions, and Task 8 must retain those cases while adding the contract coverage. Do not repeat the successful runtime run without a relevant change or concrete new failure.
 
 - [ ] **Step 3: Update the agent-facing recipe and API task table**
 
-Add one concrete `docs/agent/recipes.md` recipe, “Build one composite from collection members”, using separate `logger` and `loggerSinks` tokens, bare `[loggerSinks]`, and `bag.resolve(logger)`. Update the API card task row for collections to `DiBag.token(key).forCollectionOf<Item>()`, `builder.contribute(token, provider)`, and `bag.resolve(token)`. Remove old call rows. `AGENTS.md` and `tools/graph` require no edit: the entry census proved they contain no affected names and `AGENTS.md` remains at 150 lines.
+Close the deferred source-documentation findings in this same pass:
+
+- In `src/di-bag.ts`, replace the `DiBagApi.token` summary with: “Create a typed-token factory from a unique symbol; choose `.of<Service>()` for one service or `.forCollectionOf<Item>()` for an ordered collection.”
+- In `src/tokens.ts`, change the `token()` return prose to: “A factory whose `.of<Service>()` creates a single-service token and whose `.forCollectionOf<Item>()` creates a collection token.” Keep the dedicated `Token` and `CollectionToken` summaries specific to their own handle kinds.
+- Add `@throws` to `resolveCollection`: `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad handle/kind; `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after close begins; and contribution acquisition errors as listed for `Bag.resolve`.
+- Add `@throws` to `inspectCollection`: `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad handle/kind. Do not claim a closed-state error: inspection does not acquire and the implemented runtime does not assert open.
+
+Add one concrete `docs/agent/recipes.md` recipe, “Build one composite from collection members”, using separate `logger` and `loggerSinks` tokens, bare `[loggerSinks]`, and `bag.resolve(logger)`. The composite is a single-service token, so that final call remains `bag.resolve(logger)`. Update the API-card collection task rows to `DiBag.token(key).forCollectionOf<Item>()`, `builder.contribute(token, provider)`, and the adopted-fallback read `bag.resolveCollection(token)`; remove old collection call rows. Do not rewrite guide prose: in `docs/guides/api-reference.md`, make only the dead-reference/link adjustment required by removed generated pages. `AGENTS.md` and `tools/graph` require no edit: the entry census proved they contain no affected names and `AGENTS.md` remains at 150 lines.
 
 Insert this exact recipe, adjusting only the heading level to match its neighbors:
 
@@ -3706,8 +3853,10 @@ import { DiBag } from 'di-bag';
 
 type Logger = { log(message: string): void };
 
-const logger = DiBag.token(Symbol('logger')).of<Logger>();
-const loggerSinks = DiBag.token(Symbol('logger sinks')).forCollectionOf<Logger>();
+const loggerKey = Symbol('logger');
+const loggerSinksKey = Symbol('logger sinks');
+const logger = DiBag.token(loggerKey).of<Logger>();
+const loggerSinks = DiBag.token(loggerSinksKey).forCollectionOf<Logger>();
 
 const bag = DiBag.createBuilder()
   .contribute(loggerSinks, () => ({ log: message => console.log(message) }))
@@ -3735,7 +3884,7 @@ npm run docs:generate
 npm run docs:check
 ```
 
-Expected: generated `CollectionToken` reference exists; `CollectionDependency.md` and links to it are gone; error coverage sees exactly one `DI_BAG_WRONG_TOKEN_KIND` section; exact-rendering expectations contain full `resolve`/`inspect` signatures selected by S5. Do not edit generated Markdown by hand.
+Expected: generated `CollectionToken` reference exists; `CollectionDependency.md` and links to it are gone; error coverage sees exactly one `DI_BAG_WRONG_TOKEN_KIND` section; exact-rendering expectations retain the adopted-fallback `resolve`/`inspect` signatures with `SingleServiceTokenMember` priority and the separate `resolveCollection`/`inspectCollection` surface. Do not edit generated Markdown by hand.
 
 - [ ] **Step 5: Audit the final public contract**
 
