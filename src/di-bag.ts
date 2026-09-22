@@ -3,6 +3,7 @@ import { LifecycleObservers } from './observers';
 import type { ObserverOptions } from './observers';
 import { contributionEntry } from './contributions';
 import type { BuilderContribute, BuilderWithCollectionContribution, RegisterTokenAdmission } from './contribution-types';
+import type { BuilderBuildModule, BuilderWithInstalledModules, BuilderWithReplacedService, BuilderWithServiceAlias, BuilderWithServices, BuilderWithTokenService } from './builder-method-types';
 import { aliasEntry } from './aliases';
 import type { AliasSelection, AliasAdmission, AliasDestinationAdmission, AliasTarget, AliasDestination, AliasEntry, AliasEntries } from './alias-types';
 import { optional, lazy } from './dependency-references';
@@ -638,12 +639,8 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    *   .withServices({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
    * ```
    */
-  withServices<N extends { [K in keyof N]: Registration }>(
-    providersByName: N & Registrations & ([N] extends [never]
-      ? never
-      : NamedAdmission<N> & ThenableAdmission<N> & IntroducesKeys<EntryKeys<Entries>, keyof N> & IncrementalChecked<Entries, N> &
-        CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, N>>),
-  ): Builder<Entries | RegistrationEntries<N>, Constraints> {
+  readonly withServices: BuilderWithServices<Entries, Constraints> = this.#withServices as BuilderWithServices<Entries, Constraints>;
+  #withServices(providersByName: unknown): unknown {
     const snapshot = snapshotAdd(providersByName, key => this.#graph.hasPublic(key), 'withServices');
     return new Builder(this.#graph.withPublicRegistrations(snapshot, 'withServices'), this.context);
   }
@@ -661,14 +658,8 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * const builder = DiBag.createBuilder().withTokenService({ token: clock, provider: () => ({ now: () => Date.now() }) });
    * ```
    */
-  withTokenService<T extends TokenBase, V extends Registration>(
-    options: {
-      readonly token: T & TokenTupleAdmission<readonly [T]> & RegisterTokenAdmission<T, Constraints> & IntroducesKeys<EntryKeys<Entries>, TokenKey<T>>;
-      readonly provider: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & ThenableAdmission<Record<TokenKey<T>, NoInfer<V>>> &
-        IncrementalChecked<Entries, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>> &
-        CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>>>;
-    },
-  ): Builder<Entries | { key: TokenKey<T>; registration: TokenBinding<T, V> }, Constraints> {
+  readonly withTokenService: BuilderWithTokenService<Entries, Constraints> = this.#withTokenService as BuilderWithTokenService<Entries, Constraints>;
+  #withTokenService(options: unknown): unknown {
     let key: symbol | undefined;
     const { token, provider } = snapshotOptionsBag(options, 'withTokenService', ['token', 'provider'], [], (name, value) => {
       if (name === 'token') key = readSingleServiceKey(value, 'withTokenService');
@@ -692,16 +683,8 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    *   .withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
    * ```
    */
-  withServiceAlias<const D extends AliasSelection, const T extends AliasSelection>(
-    options: {
-      readonly aliasKey: D & AliasDestinationAdmission<D> & (unknown extends AliasAdmission<D> ? Introduces<RegistrationsFromEntries<Entries>, AliasEntries<RegistrationsFromEntries<Entries>, D, T>> : AliasAdmission<D>);
-      readonly targetServiceKey: T & AliasAdmission<T> & (unknown extends AliasAdmission<T>
-        ? AliasTarget<RegistrationsFromEntries<Entries>, Constraints, T> & AliasDestination<RegistrationsFromEntries<Entries>, NoInfer<D>, T> : unknown) &
-        (unknown extends AliasAdmission<D> & AliasAdmission<T>
-          ? IncrementalChecked<Entries, AliasEntries<RegistrationsFromEntries<Entries>, NoInfer<D>, NoInfer<T>>> & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, AliasEntries<RegistrationsFromEntries<Entries>, NoInfer<D>, NoInfer<T>>>> : unknown);
-    },
-    ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []
-  ): Builder<Entries | AliasEntry<RegistrationsFromEntries<Entries>, D, T>, Constraints> {
+  readonly withServiceAlias: BuilderWithServiceAlias<Entries, Constraints> = this.#withServiceAlias as BuilderWithServiceAlias<Entries, Constraints>;
+  #withServiceAlias(options: unknown): unknown {
     const { aliasKey, targetServiceKey } = snapshotOptionsBag(options, 'withServiceAlias', ['aliasKey', 'targetServiceKey'], [], (name, value) => {
       if (name === 'aliasKey' && typeof value !== 'string') readSingleServiceKey(value, 'withServiceAlias');
     });
@@ -759,26 +742,8 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    *   .withReplacedService({ serviceKey: 'clock', provider: () => 0 });
    * ```
    */
-  withReplacedService<const K extends string, V extends (ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<Entries>>, K, Constraints>>) | FactoryWithDisposal<ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<Entries>>, K, Constraints>>>>(
-    options: {
-      readonly serviceKey: K & ReplacementKeyOf<EntryKeys<Entries>, K>;
-      readonly provider: V & (Factory | FactoryWithDisposal<Factory>) & ZeroDependencyAdmission<NoInfer<V>> &
-        CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<K, NoInfer<V>>>>;
-    },
-  ): Builder<Exclude<Entries, { key: K }> | { key: K; registration: V }, WithoutExportObligations<Constraints, K>>;
-  /**
-   * Replace an existing named or typed-token service.
-   * @param options - `serviceKey` is the single existing name or token to replace; `provider` is a replacement compatible with the token and known consumers.
-   * @returns A new builder with the replacement and its inferred service type.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_INVALID_REGISTRATION` for malformed input.
-   */
-  withReplacedService<const K extends string | TokenBase, V extends Registration>(
-    options: {
-      readonly serviceKey: K & NoInfer<ReplacementAdmission<RegistrationsFromEntries<Entries>, Constraints, K>>;
-      readonly provider: V & Registration & BuilderReplacementRegistration<Entries, Constraints, NoInfer<K>, V>;
-    },
-  ): Builder<ReplacedEntries<Entries, K, V>, WithoutExportObligations<Constraints, SelectionKey<K>>>;
-  withReplacedService(options: unknown): unknown {
+  readonly withReplacedService: BuilderWithReplacedService<Entries, Constraints> = this.#withReplacedService as BuilderWithReplacedService<Entries, Constraints>;
+  #withReplacedService(options: unknown): unknown {
     const { serviceKey, provider } = snapshotOptionsBag(options, 'withReplacedService', ['serviceKey', 'provider']);
     const selected = typeof serviceKey === 'string' ? undefined : readToken(serviceKey);
     const key = selected === undefined ? serviceKey as string : selected.key;
@@ -808,9 +773,8 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * const app = DiBag.createBuilder().withInstalledModules([greeting]).withServices({ name: () => 'Ada' }).buildContainer();
    * ```
    */
-  withInstalledModules<const Modules extends readonly unknown[]>(
-    modules: Modules & InstalledModulesAdmission<Entries, Constraints, Modules>,
-  ): Builder<InstalledModulesEntries<Entries, Constraints, Modules>, InstalledModulesConstraints<Entries, Constraints, Modules>> {
+  readonly withInstalledModules: BuilderWithInstalledModules<Entries, Constraints> = this.#withInstalledModules as BuilderWithInstalledModules<Entries, Constraints>;
+  #withInstalledModules(modules: unknown): unknown {
     if (!Array.isArray(modules)) {
       throw libraryError('DI_BAG_INVALID_ARGUMENT', 'withInstalledModules requires an array of modules', { operation: 'withInstalledModules', argument: 'modules', expected: 'an array' });
     }
@@ -876,27 +840,8 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * const app = DiBag.createBuilder().withInstalledModules([orders]).buildContainer();
    * ```
    */
-  buildModule<const K extends readonly unknown[]>(
-    options: ModuleOptions & {
-      readonly exportedServiceKeys: K & Selection<RegistrationsFromEntries<Entries>, Constraints, K, 'buildModule'> & ModuleExportAdmission<K> & SealAdmission<RegistrationsFromEntries<Entries>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>, Constraints>;
-    },
-  ): Module<
-    ExportedServices<ServicesOf<RegistrationsFromEntries<Entries>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>,
-    ExternalRequirements<ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>>,
-    ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>,
-    ModulePublicProviders<RegistrationsFromEntries<Entries>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>
-  >;
-  /** @deprecated The 0.4.0 form; the contract step of phase 5 removes it. */
-  buildModule<const K extends readonly unknown[]>(
-    keys: K & Selection<RegistrationsFromEntries<Entries>, Constraints, K, 'buildModule'> & ModuleExportAdmission<K> & SealAdmission<RegistrationsFromEntries<Entries>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>, Constraints>,
-    options?: ModuleOptions,
-  ): Module<
-    ExportedServices<ServicesOf<RegistrationsFromEntries<Entries>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>,
-    ExternalRequirements<ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>>,
-    ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>,
-    ModulePublicProviders<RegistrationsFromEntries<Entries>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>
-  >;
-  buildModule(first: unknown, second?: unknown): unknown {
+  readonly buildModule: BuilderBuildModule<Entries, Constraints> = this.#buildModule as BuilderBuildModule<Entries, Constraints>;
+  #buildModule(first: unknown, second?: unknown): unknown {
     // Only a lone plain object is the 0.5.0 bag. Everything else keeps its 0.4.0 meaning and its 0.4.0 errors,
     // including a lone value that is not an array. The contract step of phase 5 removes this branch.
     const isOptionsBag = arguments.length === 1 && typeof first === 'object' && first !== null && !Array.isArray(first);

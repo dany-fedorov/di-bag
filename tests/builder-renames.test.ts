@@ -63,6 +63,21 @@ test('every builder method returns a new builder and leaves the receiver unchang
   await app.close();
 });
 
+test('portable builder callables share prototype functions and preserve a borrowed receiver', async () => {
+  const first = DiBag.createBuilder().withServices({ firstOnly: () => 1 });
+  const second = DiBag.createBuilder().withServices({ secondOnly: () => 2 });
+  for (const operation of ['withServices', 'withTokenService', 'withServiceAlias', 'withReplacedService', 'withInstalledModules', 'buildModule'] as const) {
+    expect(first[operation]).toBe(second[operation]);
+  }
+  const borrowed = loose(first).withServices!;
+  const extended = borrowed.call(second, { added: () => 3 });
+  const app = extended.buildContainer();
+  expect(app.resolve('secondOnly')).toBe(2);
+  expect(app.resolve('added')).toBe(3);
+  expect(() => app.resolve('firstOnly')).toThrow('DI_BAG_MISSING_REGISTRATION');
+  await app.close();
+});
+
 test('a two-input builder method rejects a malformed options bag before it reads a value', () => {
   const builder = DiBag.createBuilder().withServices({ value: () => 1 });
   const cases: readonly [string, readonly string[]][] = [
