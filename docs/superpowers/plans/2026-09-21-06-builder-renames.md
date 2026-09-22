@@ -20,6 +20,7 @@
 - Parameter shape rule (spec, standard rule 4): never two positional parameters. The only exception this phase may take is a measured fallback of spike S1, recorded in `docs/guides/api-naming.md` under "Measured exceptions".
 - Runtime codes do not change in this phase. An existing validation site that is reworded keeps its 0.4.0 code (`DI_BAG_INVALID_REGISTRATION`, `DI_BAG_DUPLICATE_REGISTRATION`, `DI_BAG_INVALID_ALIAS`, `DI_BAG_INVALID_REPLACEMENT`, `DI_BAG_INVALID_EXPORT`, `DI_BAG_INVALID_MODULE`); phase 11 moves it. A NEW validation site that rejects a malformed argument raises `DI_BAG_INVALID_ARGUMENT` with `details: { operation, argument, expected }` written as an object literal at the throw site, with `expected` from the closed vocabulary of plan 12 Task 9.
 - Every `details.operation` value and every message that names a builder method takes the 0.5.0 method name. Two message families are not touched: `bag is closing` / `bag is closed`, and the root-captures-scoped message.
+- Preserve Phase4's reviewed per-call `DI_BAG_WRONG_TOKEN_KIND` coverage when copying old methods into their renamed forms, including retained dependency graph conflicts on named registration/replacement and module installation. The snippets below carry the correction from `7bce085`; `lazy` and calls without an actual kind-rejection path stay unchanged.
 - Every runtime message keeps the form `DI_BAG_CODE: message; see <errors page>#<anchor>`. Every `'DI_BAG_*'` literal in `src/` has exactly one section in `docs/agent/errors.md` and the reverse; `npm run docs:check` enforces both directions.
 - `AGENTS.md` is at its 150-line budget. An edit there must not add a line.
 - The package keeps zero runtime dependencies, and `src/index.ts` must not import a `node:` module.
@@ -788,7 +789,8 @@ In `src/di-bag.ts`, add `import { snapshotOptionsBag } from './options-bag';`, i
    * A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
    * @param providersByName - A finite object whose own string keys are service names and whose values are providers or plain factories.
    * @returns A new builder containing snapshots of the supplied providers.
-   * @throws `DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_REGISTRATION` for a name already registered.
+   * @throws `DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_REGISTRATION` for a name already registered;
+   * `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
    * @example
    * ```ts
    * type Clock = { now(): number };
@@ -811,7 +813,7 @@ In `src/di-bag.ts`, add `import { snapshotOptionsBag } from './options-bag';`, i
    * Add the single service of a typed token.
    * @param options - `token` is a new single-service token; `provider` is a provider or plain factory whose exposed output satisfies the token's service type.
    * @returns A new builder retaining the provider's metadata, lifetime, dependencies, and ownership stages.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` for a bad token;
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
    * `DI_BAG_DUPLICATE_REGISTRATION` when the token already has a service; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
    * @example
    * ```ts
@@ -842,7 +844,7 @@ In `src/di-bag.ts`, add `import { snapshotOptionsBag } from './options-bag';`, i
    * Add another lookup name for an existing service.
    * @param options - `aliasKey` is a new string name or single-service token; `targetServiceKey` is the existing name or token whose canonical acquisition is reused.
    * @returns A new builder; aliases add no cache or ownership of their own.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` for a bad token;
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
    * `DI_BAG_DUPLICATE_REGISTRATION` when the alias key exists; `DI_BAG_INVALID_ALIAS` for an absent named target.
    * @example
    * ```ts
@@ -878,7 +880,7 @@ In `src/di-bag.ts`, add `import { snapshotOptionsBag } from './options-bag';`, i
    * Append a provider to the list of a collection token.
    * @param options - `collectionToken` names the list; `provider` is a provider or plain factory whose output satisfies the token's item type.
    * @returns A new builder preserving contribution order.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` for a bad token; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
    * @example
    * ```ts
    * const toolsKey = Symbol('tools');
@@ -909,7 +911,8 @@ In `src/di-bag.ts`, add `import { snapshotOptionsBag } from './options-bag';`, i
    * @param options - `serviceKey` is one existing string-literal service name; `provider` is the replacement, checked against every surviving consumer.
    * @returns A new builder with the replacement.
    * @typeParam V - The exact replacement factory or disposable-factory type.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider;
+   * `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
    * @example
    * ```ts
    * const builder = DiBag.createBuilder()
@@ -928,7 +931,7 @@ In `src/di-bag.ts`, add `import { snapshotOptionsBag } from './options-bag';`, i
    * Replace an existing named or typed-token service.
    * @param options - `serviceKey` is the single existing name or token to replace; `provider` is a replacement compatible with the token and known consumers.
    * @returns A new builder with the replacement and its inferred service type.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_TOKEN` or `DI_BAG_INVALID_REGISTRATION` for malformed input.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_INVALID_REGISTRATION` for malformed input.
    */
   withReplacedService<const K extends string | TokenBase, V extends Registration>(
     options: {
@@ -1079,7 +1082,8 @@ Import `positionalModuleLabel` from `./module`. Put this overload directly in fr
    * each installation names its private bindings `<moduleLabel>/<key>` in error messages, cycle paths, `inspectGraph()`, and observer events.
    * @returns An immutable module that can be renamed or installed in another builder.
    * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_EXPORT` if the selection is not a tuple,
-   * contains an absent name or token, or the label is not a non-empty string; `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token.
+   * contains an absent name or token, or the label is not a non-empty string; `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token;
+   * `DI_BAG_WRONG_TOKEN_KIND` when an exported token kind conflicts with this graph.
    * @example
    * ```ts
    * const orders = DiBag.createBuilder()
@@ -1268,7 +1272,7 @@ In `src/di-bag.ts`, add `import type { InstalledModulesAdmission, InstalledModul
    * @param modules - A finite list of modules whose public names collide neither with this builder nor with each other.
    * @returns A new builder exposing only the selected exports of each module; contributions keep list order.
    * @throws `DI_BAG_INVALID_ARGUMENT` when `modules` is not an array; `DI_BAG_INVALID_MODULE` for an element not made by `buildModule`;
-   * `DI_BAG_DUPLICATE_REGISTRATION` when an export name is already registered. A rejected list changes nothing.
+   * `DI_BAG_DUPLICATE_REGISTRATION` when an export name is already registered; `DI_BAG_WRONG_TOKEN_KIND` when an installed token kind conflicts with this graph. A rejected list changes nothing.
    * @example
    * ```ts
    * const greeting = DiBag.createBuilder()
