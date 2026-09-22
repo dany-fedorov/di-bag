@@ -94,3 +94,46 @@ fixtures were then rerun with `npm run codemod:check` and
 `node --test tools/codemod/test/fixtures.test.mjs tools/codemod/test/transforms.test.mjs`;
 their transformed text matched byte-for-byte and their literal manual reports
 deep-matched the checked-in JSON.
+
+## Contract audit and deliberate residuals
+
+The final retired-declaration audit was empty, and `src` contains no `node:`
+import or require. Remaining member-name hits are classified: `inspect` is
+private `BagRuntime`/acquisition recursion, public-container delegation to that
+runtime, direct internal-runtime tests, or the pinned `739b509` benchmark
+adapter; `renameExport` is graph/codemod 0.4 compatibility input. The benchmark
+uses `di-bag/node` only for the pinned baseline native-Promise scenario; current
+requests use the root entry. Remaining observer spellings are internal storage,
+negative tests, or naming fixtures, while remaining `Bag` spellings are product
+and error names, a non-export negative, or the deliberately private
+`BagRuntime`. That internal class and file remain by design and are not exported.
+The graph schema-v1 discriminator deliberately remains `kind: "bag"`.
+
+Deferred phase-11 vocabulary is unchanged: tests contain exactly 10
+`bag is closing` and 5 `bag is closed` assertions, and source contains exactly
+three ``bag is ${this.state}`` construction sites (two in `src/acquisition.ts`,
+one in `src/runtime.ts`). Package/error names (`di-bag`, `DiBag*`, `DI_BAG_*`),
+negative inputs, codemod fixtures, and published-0.4 compatibility inputs are
+also intentional residuals.
+
+## Deviations, manual work, and native diagnostics
+
+The first evidence launch was sandbox-blocked by `spawnSync` EPERM for all 12
+workers; the identical escalated run and the final post-repair run passed. An
+initial login-shell probe exposed global Bun 1.4.2 instead of the pin; every gate
+used the intact Bun 1.4.0 binary through the ignored machine-local platform
+manifest. Malformed audit-wrapper attempts were replaced by corrected audits,
+and two launches deferred below the 12 GiB floor before succeeding without a
+lowered threshold or resource stop. Nested package/compiler output used the
+task-local synchronous-stdio preload, npm wrapper, seeded cache, and no tracked
+host-workaround change. The first full check's two stale operation-name markers
+were repaired separately at `4fed62c`; its platform-pin failure was environmental.
+
+All 135 manual rows from the repository migration are accounted for and
+resolved; unresolved repository manual work is zero. The clean 0.4 fixture's
+literal manual rows remain expected test output, not repository work. Native
+TypeScript 7.0.2 accepted 148 fixtures with 813 expectations: 811 direct matches
+plus exactly two reviewed TS2769 overload-quality gaps—
+`negative/portable-factories.ts` (`last-contextual-sync-factory-promise`) and
+`negative/structural-thenable.ts` (`last-contextual-factory-thenable`)—with zero
+unexpected diagnostics and zero failures.
