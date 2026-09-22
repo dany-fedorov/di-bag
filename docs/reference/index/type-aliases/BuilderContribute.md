@@ -2,13 +2,13 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / BuilderContribute
 
-# Type Alias: BuilderContribute\<E *extends* `Entry`, C *extends* `NeedConstraint`\>
+# Type Alias: BuilderContribute\<Entries *extends* `Entry`, Constraints *extends* `NeedConstraint`\>
 
 ```ts
-type BuilderContribute<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends Registration>(token: T & TokenTupleAdmission<readonly [T]>, registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>, ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []) => import('./di-bag').Builder<E, C | Contribution<T, V>>;
+type BuilderContribute<Entries extends Entry, Constraints extends NeedConstraint> = <TokenHandle extends TokenBase, Provider extends Registration>(token: TokenHandle & (unknown extends TokenTupleAdmission<readonly [TokenHandle]> ? CollectionTokenAdmission<RegistrationsFromEntries<Entries>, TokenHandle> : TokenTupleAdmission<readonly [TokenHandle]>), registration: Provider & Registration & (unknown extends TokenTupleAdmission<readonly [NoInfer<TokenHandle>]> ? unknown extends CollectionTokenAdmission<RegistrationsFromEntries<Entries>, NoInfer<TokenHandle>> ? NoInfer<TokenHandle> extends CollectionTokenBase ? CollectionBindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>> & CheckedConstraints<Constraints | Contribution<NoInfer<TokenHandle>, NoInfer<Provider>>, RegistrationsFromEntries<Entries>> : never : unknown : unknown), ...invalid: [TokenHandle] extends [never] ? [never] : [Provider] extends [never] ? [never] : []) => import('./di-bag').Builder<Entries, Constraints | Contribution<TokenHandle, Provider>>;
 ```
 
-Defined in: [contribution-types.ts:67](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L67)
+Defined in: [contribution-types.ts:83](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L83)
 
 The checked generic `contribute` callable exposed by a builder.
 
@@ -16,15 +16,15 @@ The checked generic `contribute` callable exposed by a builder.
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `E` | - |
-| `C` | - |
+| `Entries` | - |
+| `Constraints` | - |
 
 ## Type Parameters
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `T` | - |
-| `V` | - |
+| `TokenHandle` | - |
+| `Provider` | - |
 
 ## Parameters
 

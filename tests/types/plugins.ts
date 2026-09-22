@@ -12,7 +12,7 @@ export const optional = DiBag.token(optionalKey).of<number>();
 export const lazyKey = Symbol('lazy');
 export const lazy = DiBag.token(lazyKey).of<number>();
 export const allKey = Symbol('all');
-export const all = DiBag.token(allKey).of<number>();
+export const all = DiBag.token(allKey).forCollectionOf<number>();
 export const selected: unknown = {
   apiVersion: 1,
   create: (value: number) => ({ handle: (text: string) => `${value}:${text}` }),
@@ -25,7 +25,7 @@ export const native = DiBag.fromPlugin([], selected, {
   acquisitionMode: 'nativePromise',
   validate: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
 });
-export const references = DiBag.fromPlugin([number, DiBag.optional(optional), DiBag.lazy(lazy), DiBag.all(all)], selected, {
+export const references = DiBag.fromPlugin([number, DiBag.optional(optional), DiBag.lazy(lazy), all], selected, {
   acquisitionMode: 'raw',
   validate: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
 });

@@ -2,7 +2,7 @@ import { libraryError } from './errors';
 import type { BindingDescription, BindingGraph, BindingId, BindingKey, BindingRef, GraphDescription } from './runtime';
 import type { Registrations } from './registration';
 import type { NeedConstraint, PublicRegistrations, Renamed, RenamedConstraints, RenamedProviders, RenameKeys } from './module-types';
-import { readTokenKey } from './tokens';
+import { readSingleServiceKey } from './tokens';
 
 interface ModuleDescription {
   /** The sealed graph: every binding that was retained when the builder sealed. */
@@ -87,7 +87,12 @@ export function sealModule(graph: BindingGraph, keys: unknown, options?: unknown
   for (let index = 0; index < length; index++) selected[index] = keys[index];
   const exports = new Map<BindingKey, BindingKey>();
   for (const value of selected) {
-    const key = typeof value === 'string' ? value : readTokenKey(value);
+    const key = typeof value === 'string'
+      ? value
+      : readSingleServiceKey(value, 'buildModule');
+    if (typeof value !== 'string') {
+      graph.assertTokenKind(key as symbol, 'single-service', 'buildModule');
+    }
     if (!graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_EXPORT', 'buildModule accepts existing names or typed tokens only', { operation: 'buildModule' });
     exports.set(key, key);
   }
@@ -155,7 +160,12 @@ export function moduleGraph(value: object): GraphDescription {
   for (const [publicKey, localKey] of exports) publicSlots.set(publicKey, ids.get(graph.publicSlots.get(localKey)!)!);
   const contributions = new Map<symbol, BindingId[]>();
   for (const [key, group] of graph.contributions ?? []) contributions.set(key, group.map(id => ids.get(id)!));
-  return { bindings, publicSlots, contributions };
+  return {
+    bindings,
+    publicSlots,
+    contributions,
+    tokenKinds: new Map(graph.tokenKinds ?? []),
+  };
 }
 
 export type { Module };

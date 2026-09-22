@@ -4,7 +4,7 @@
 
 # Interface: DiBagApi
 
-Defined in: [di-bag.ts:617](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L617)
+Defined in: [di-bag.ts:701](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L701)
 
 The immutable public entry surface used by [DiBag](../variables/DiBag.md) and derived facades.
 
@@ -14,56 +14,13 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#dibag-facade
 
 ## Properties
 
-### all
-
-```ts
-all: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => CollectionDependency<T>;
-```
-
-Defined in: [di-bag.ts:705](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L705)
-
-Create a positional dependency containing every contribution to a collection token, in order.
-
-Describe a positional dependency containing every contribution for a token.
-
-#### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `T` | - |
-
-#### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `token` | The genuine collection token. |
-| `...invalid` | - |
-
-#### Returns
-
-An immutable reference that supplies a fresh frozen array, including when empty.
-
-#### Throws
-
-`DI_BAG_INVALID_TOKEN` for a value that is not a genuine token.
-
-#### Example
-
-```ts
-const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).of<string>();
-const menu = DiBag.fromFunction([DiBag.all(tools)], names => names.join(', '));
-```
-
-***
-
 ### createBuilder
 
 ```ts
 createBuilder: () => Builder<never>;
 ```
 
-Defined in: [di-bag.ts:751](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L751)
+Defined in: [di-bag.ts:824](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L824)
 
 Begin an empty immutable graph; `build` creates its owning bag, `buildModule` seals a reusable module.
 
@@ -84,7 +41,7 @@ fromAsyncFactory: {
 };
 ```
 
-Defined in: [di-bag.ts:662](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L662)
+Defined in: [di-bag.ts:746](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L746)
 
 Describe an asynchronous factory that runs on every host: the service is the returned native Promise and `withDisposal` receives its fulfilled value.
 A non-Promise output is rejected at compile time; a thenable that is not a native Promise fails the acquisition with a `TypeError`.
@@ -163,7 +120,7 @@ const db = DiBag.withDisposal(
 fromClass: <const T extends readonly DependencyReference[], C extends new (...args: TokenArguments<NoInfer<T>>) => unknown, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>> & AutoOutput<InstanceType<NoInfer<C>>, NoInfer<M>>, ...modeOptions: StageOptions<M>) => Provider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>>;
 ```
 
-Defined in: [di-bag.ts:743](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L743)
+Defined in: [di-bag.ts:816](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L816)
 
 Adapt a class whose constructor parameters receive the listed tokens' services.
 
@@ -219,7 +176,7 @@ fromFactory: {
 };
 ```
 
-Defined in: [di-bag.ts:639](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L639)
+Defined in: [di-bag.ts:723](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L723)
 
 Describe a named-dependency factory with an explicit acquisition mode or the acquisition's abort signal.
 A factory that returns a non-Promise object with a `then` method needs `acquisitionMode: 'raw'` or must return `Promise.resolve(value)`.
@@ -302,7 +259,7 @@ fromFunction: {
 };
 ```
 
-Defined in: [di-bag.ts:731](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L731)
+Defined in: [di-bag.ts:804](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L804)
 
 Adapt a positional function whose parameters receive the listed tokens' services.
 
@@ -383,7 +340,7 @@ const stamp = DiBag.fromFunction([clock], source => new Date(source.now()).toISO
 fromPlugin: PluginProviderFactory;
 ```
 
-Defined in: [di-bag.ts:719](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L719)
+Defined in: [di-bag.ts:792](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L792)
 
 Validate an unknown plugin descriptor now and its acquired output at acquisition.
 
@@ -413,7 +370,7 @@ fromSyncFactory: {
 };
 ```
 
-Defined in: [di-bag.ts:649](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L649)
+Defined in: [di-bag.ts:733](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L733)
 
 Describe a synchronous factory that runs on every host: the exact return value is the service and `then` is never read.
 A Promise or thenable output is rejected at compile time; use `fromAsyncFactory`, or `fromFactory` with `acquisitionMode: 'raw'` when the Promise object itself is the service.
@@ -489,7 +446,7 @@ const config = DiBag.fromSyncFactory(() => ({ url: 'memory:' }));
 lazy: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => LazyDependency<T>;
 ```
 
-Defined in: [di-bag.ts:694](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L694)
+Defined in: [di-bag.ts:778](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L778)
 
 Create a positional dependency supplied as a function that resolves the token when called.
 
@@ -530,10 +487,10 @@ const stamp = DiBag.fromFunction([DiBag.lazy(clock)], getClock => () => getClock
 ### optional
 
 ```ts
-optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalDependency<T>;
+optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & OptionalTokenAdmission<T>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalDependency<T>;
 ```
 
-Defined in: [di-bag.ts:683](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L683)
+Defined in: [di-bag.ts:767](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L767)
 
 Create a positional dependency that yields `undefined` only when the token is unregistered.
 
@@ -559,7 +516,7 @@ An immutable reference accepted by positional provider adapters.
 
 #### Throws
 
-`DI_BAG_INVALID_TOKEN` for a value that is not a genuine token.
+`DI_BAG_INVALID_TOKEN` for a value that is not a genuine token; `DI_BAG_WRONG_TOKEN_KIND` when a collection token is used as an optional single-service dependency.
 
 #### Example
 
@@ -574,14 +531,15 @@ const stamp = DiBag.fromFunction([DiBag.optional(clock)], source => source?.now(
 ### token
 
 ```ts
-token: <const K extends symbol>(key: K & TokenKeyAdmission<K>, ...invalid: [K] extends [never] ? [TokenKeyAdmission<K>] : []) => {
-    readonly of: <S>() => Token<K, S>;
+token: <const TokenSymbol extends symbol>(key: TokenSymbol & TokenKeyAdmission<TokenSymbol>, ...invalid: [TokenSymbol] extends [never] ? [TokenKeyAdmission<TokenSymbol>] : []) => {
+    readonly of: <Service>() => Token<TokenSymbol, Service>;
+    readonly forCollectionOf: <Item>() => CollectionToken<TokenSymbol, Item>;
 };
 ```
 
-Defined in: [di-bag.ts:672](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L672)
+Defined in: [di-bag.ts:756](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L756)
 
-Create a typed token from a unique symbol; `.of<Service>()` fixes its service type.
+Create a typed-token factory from a unique symbol; `.of<Service>()` selects one service, while `.forCollectionOf<Item>()` selects an ordered collection.
 
 Create a typed-token factory from the caller's canonical unique symbol.
 Reusing the same key and service type produces compatible handles; copied or fabricated
@@ -591,7 +549,7 @@ objects are rejected at runtime.
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `K` | - |
+| `TokenSymbol` | - |
 
 #### Parameters
 
@@ -602,7 +560,7 @@ objects are rejected at runtime.
 
 #### Returns
 
-An object whose `of<Service>()` method creates an immutable typed token.
+A factory whose `.of<Service>()` creates a single-service token and whose `.forCollectionOf<Item>()` creates a collection token.
 
 #### Example
 
@@ -640,7 +598,7 @@ transformService: {
 };
 ```
 
-Defined in: [di-bag.ts:796](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L796)
+Defined in: [di-bag.ts:869](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L869)
 
 Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership.
 
@@ -725,7 +683,7 @@ const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform:
 withConfiguration: (options: ConfigurationOptions) => DiBagApi;
 ```
 
-Defined in: [di-bag.ts:628](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L628)
+Defined in: [di-bag.ts:712](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L712)
 
 Return a facade with inherited runtime settings and appended observers.
 
@@ -758,7 +716,7 @@ withDisposal: {
 };
 ```
 
-Defined in: [di-bag.ts:764](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L764)
+Defined in: [di-bag.ts:837](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L837)
 
 Make the bag own a factory's value and run `dispose` on it when the bag closes.
 `close()` runs disposers, dependents first; close every scope and fork you create.
@@ -839,7 +797,7 @@ withLifetime: {
 };
 ```
 
-Defined in: [di-bag.ts:776](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L776)
+Defined in: [di-bag.ts:849](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L849)
 
 Select `root`, `scoped` (the default), or `transient` caching for a registration.
 Mark a shared client `root` only when nothing it depends on is scoped.
@@ -953,7 +911,7 @@ withMetadata: {
 };
 ```
 
-Defined in: [di-bag.ts:786](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L786)
+Defined in: [di-bag.ts:859](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L859)
 
 Attach static registration metadata, or per-acquisition metadata in direct or awaited mode.
 

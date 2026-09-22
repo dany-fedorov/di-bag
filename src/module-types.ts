@@ -4,16 +4,22 @@ import type { Registration, Registrations } from './registration';
 import type { Entry, Intersect, NameText, Needs, Resolved, RegistrationsFromEntries, SeeErrors, ServicesOf, Singleton, Unsatisfied, WrongShapeMessage } from './types';
 import type { MetadataKeyUnion, Provider, ProviderFactory, ProviderOutput, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens, BoundToken } from './provider';
 import type { GraphContract, TokenDependencyContract, WrongToken, MissingToken } from './token-types';
-import type { TokenBase, TokenKey, TokenService } from './tokens';
+import type { CollectionTokenBase, TokenBase, TokenKey, TokenService } from './tokens';
 import type { LifetimeObligation, RenamedObligation, SealedLifetimes } from './lifetime-types';
 
 export type NeedConstraint =
   | LifetimeObligation
   | ContributionConstraint
-  | { readonly kind: 'all'; readonly token: TokenBase }
+  | { readonly kind: 'collection'; readonly token: CollectionTokenBase }
   | { readonly kind: 'export' | 'external'; readonly consumer: string | symbol; readonly needs: object }
   | { readonly kind: 'token-export' | 'token-external' | 'optional-token-export' | 'optional-token-external'; readonly consumer: string | symbol; readonly token: TokenBase }
   | { readonly kind: 'opaque' };
+
+export type ModuleExportAdmission<Keys extends readonly unknown[]> =
+  [Extract<Keys[number], CollectionTokenBase>] extends [never] ? unknown
+    : Unsatisfied<'buildModule cannot export a collection token', {
+        tokens: TokenKey<Extract<Keys[number], CollectionTokenBase>>;
+      }>;
 
 type WrongConstraint<C extends NeedConstraint, A extends Registrations> =
   C extends { readonly needs: object; readonly consumer: string | symbol }
@@ -27,9 +33,9 @@ type WrongConstraint<C extends NeedConstraint, A extends Registrations> =
 type MissingConstraint<C extends NeedConstraint, Available extends object> =
   C extends { readonly needs: object } ? Exclude<keyof C['needs'], keyof Available> : never;
 
-type WrongTokenConstraint<C, A extends Registrations> = C extends { kind: 'contribution' | 'all' } ? never : C extends { token: infer T } ? WrongToken<T, A>
+type WrongTokenConstraint<C, A extends Registrations> = C extends { kind: 'contribution' | 'collection' } ? never : C extends { token: infer T } ? WrongToken<T, A>
   : C extends { kind: 'opaque' } ? 'opaque' : never;
-type MissingTokenConstraint<C, A extends Registrations> = C extends { kind: 'contribution' | 'all' | 'optional-token-export' | 'optional-token-external' } ? never : C extends { token: infer T } ? MissingToken<T, A>
+type MissingTokenConstraint<C, A extends Registrations> = C extends { kind: 'contribution' | 'collection' | 'optional-token-export' | 'optional-token-external' } ? never : C extends { token: infer T } ? MissingToken<T, A>
   : C extends { kind: 'opaque' } ? 'opaque' : never;
 
 type ConstraintRelationships<C, A extends object> = C extends { readonly consumer: infer Consumer; readonly needs: infer N }
@@ -47,7 +53,7 @@ export type IncrementalConstraints<
   MC extends NeedConstraint,
   Old extends Registrations,
   Incoming extends Registrations,
-> = [Extract<C | MC, { kind: 'contribution' | 'all' | 'opaque' | 'root-reach' | 'export-reach' | 'contribution-reach' }>] extends [never]
+> = [Extract<C | MC, { kind: 'contribution' | 'collection' | 'opaque' | 'root-reach' | 'export-reach' | 'contribution-reach' }>] extends [never]
   ? unknown extends CheckedConstraints<C, Incoming>
     ? CheckedConstraints<MC, import('./types').OverrideRegistrations<Old, Incoming>>
     : CheckedConstraints<C, Incoming>
@@ -67,10 +73,10 @@ type Constraint<K extends string | symbol, N, Keys extends keyof N, Kind extends
 export type RegistrationConstraints<V extends Registrations[string], R extends Registrations, Public extends keyof R, K extends string | symbol = string | symbol> = [V] extends [unknown]
   ? | Constraint<K, Needs<V>, Extract<keyof Needs<V>, Public>, 'export'>
     | Constraint<K, Needs<V>, Exclude<keyof Needs<V>, keyof R>, 'external'>
-    | (ProviderCollectionTokens<V> extends infer T ? T extends TokenBase ? { readonly kind: 'all'; readonly token: T } : never : never)
+    | (ProviderCollectionTokens<V> extends infer T ? T extends CollectionTokenBase ? { readonly kind: 'collection'; readonly token: T } : never : never)
     | TokenConstraint<K, ProviderRequiredTokens<V>, R, Public>
     | TokenConstraint<K, ProviderOptionalTokens<V>, R, Public, true>
-    | ([ProviderGraphContract<V>] extends [TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? never : { readonly kind: 'opaque' })
+    | ([ProviderGraphContract<V>] extends [{ readonly kind: 'tokens'; readonly required: readonly TokenBase[]; readonly bound: TokenBase; readonly optional: readonly TokenBase[] }] ? never : { readonly kind: 'opaque' })
   : never;
 /**
  * Retained requirements of a module's public and private registrations.
@@ -102,7 +108,7 @@ export type PublicRegistrations<P extends object> = { [K in keyof P]: () => P[K]
 // union member before deciding whether the legacy synthetic default is enough.
 export type PublicProvider<R> = R extends Registrations[string]
   ? unknown extends ProviderNamedDependencies<R> ? R
-    : [ProviderGraphContract<R>] extends [TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[]>] ? [Extract<ProviderGraphContract<R>, { readonly lifetime: unknown } | { readonly alias: PropertyKey }>] extends [never] ? [MetadataKeyUnion<ProviderRegistrationMetadata<R>> | BoundToken<R>] extends [never]
+    : [ProviderGraphContract<R>] extends [{ readonly kind: 'tokens'; readonly required: readonly TokenBase[]; readonly bound: TokenBase; readonly optional: readonly TokenBase[] }] ? [Extract<ProviderGraphContract<R>, { readonly lifetime: unknown } | { readonly alias: PropertyKey }>] extends [never] ? [MetadataKeyUnion<ProviderRegistrationMetadata<R>> | BoundToken<R>] extends [never]
       ? ProviderAcquisitionMetadata<R> extends readonly []
         ? [ProviderAcquiredValue<R>] extends [Awaited<ProviderOutput<R>>]
           ? [Awaited<ProviderOutput<R>>] extends [ProviderAcquiredValue<R>] ? OutputFactory<ProviderOutput<R>> : RetainedPublicProvider<R>
@@ -112,7 +118,7 @@ export type PublicProvider<R> = R extends Registrations[string]
     : RetainedPublicProvider<R>
     : R
   : never;
-type PublicGraph<G> = G extends TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[]> ? { [K in keyof G]: K extends 'required' | 'optional' | 'all' ? readonly [] : G[K] } : never;
+type PublicGraph<G> = G extends { readonly kind: 'tokens'; readonly required: readonly TokenBase[]; readonly bound: TokenBase; readonly optional: readonly TokenBase[] } ? { [K in keyof G]: K extends 'required' | 'optional' | 'collections' ? readonly [] : G[K] } : never;
 type RetainedPublicProvider<R extends Registrations[string]> = Provider<OutputFactory<ProviderOutput<R>>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, PublicGraph<ProviderGraphContract<R>>, ProviderAcquiredValue<R>>;
 /**
  * Project registrations to dependency-free public descriptions while retaining behavioral contracts.

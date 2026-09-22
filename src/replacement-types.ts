@@ -2,8 +2,9 @@ import type { NeedConstraint, CheckedConstraints } from './module-types';
 import type { ProviderFactory } from './provider';
 import type { Registration, Registrations } from './registration';
 import type { TokenBinding, BindingOutput, TokenMember } from './token-types';
-import type { TokenBase, TokenKey } from './tokens';
-import type { Entry, RegistrationsFromEntries, IncrementalChecked, OverrideRegistrations, ReplacementKey } from './types';
+import type { CollectionTokenBase, TokenBase, TokenKey } from './tokens';
+import type { CollectionMember } from './contribution-types';
+import type { Entry, RegistrationsFromEntries, IncrementalChecked, OverrideRegistrations, ReplacementKey, SelectionRegistrations } from './types';
 
 type DependencyBearingRegistration<R extends Registration> = R extends unknown
   ? Parameters<ProviderFactory<R>> extends [] ? never : R
@@ -12,8 +13,8 @@ type DependencyBearingRegistration<R extends Registration> = R extends unknown
 export type ZeroDependencyAdmission<R extends Registration> =
   [DependencyBearingRegistration<R>] extends [never] ? unknown : never;
 
-export type ReplacementAdmission<R extends Registrations, K extends string | TokenBase> =
-  [K] extends [string] ? ReplacementKey<R, K> : TokenMember<R, K>;
+export type ReplacementAdmission<R extends Registrations, C, K extends string | TokenBase> =
+  [K] extends [string] ? ReplacementKey<R, K> : K extends CollectionTokenBase ? CollectionMember<K, C> : TokenMember<R, K>;
 
 export type BuilderReplacementRegistration<
   E extends Entry,
@@ -26,7 +27,10 @@ export type BuilderReplacementRegistration<
   : [K] extends [TokenBase]
     ? BindingOutput<NoInfer<K>, NoInfer<V>>
       & IncrementalChecked<E, Record<TokenKey<K>, TokenBinding<NoInfer<K>, NoInfer<V>>>>
-      & CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<TokenKey<K>, TokenBinding<NoInfer<K>, NoInfer<V>>>>>
+      & CheckedConstraints<C, OverrideRegistrations<
+          SelectionRegistrations<RegistrationsFromEntries<E>, readonly [K]>,
+          Record<TokenKey<K>, TokenBinding<NoInfer<K>, NoInfer<V>>>
+        >>
     : never;
 
 type ReflectedEntry = { key: never; registration: TokenBinding<TokenBase, Registration> };

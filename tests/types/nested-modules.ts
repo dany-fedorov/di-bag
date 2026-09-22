@@ -70,9 +70,9 @@ export const rootHost = DiBag.createBuilder().installModule(rootOuter).build();
 
 // Nested contributions are projected through every level.
 const groupKey = Symbol('group');
-const group = DiBag.token(groupKey).of<number>();
+const group = DiBag.token(groupKey).forCollectionOf<number>();
 const contributing = DiBag.createBuilder().register({ hidden: () => 1 }).contribute(group, ({ hidden }: { hidden: number }) => hidden).buildModule([]);
 const wrapped = DiBag.createBuilder().installModule(contributing).contribute(group, () => 2).buildModule([]);
 type WrappedContributions = Assert<Equal<ModuleContributions<typeof wrapped>, Readonly<{ [groupKey]: readonly number[] }>>>;
 export const contributionHost = DiBag.createBuilder().installModule(wrapped).build();
-type ContributionExact = Assert<Equal<ReturnType<typeof contributionHost.resolveAll<typeof group>>, readonly number[]>>;
+type ContributionExact = Assert<Equal<ReturnType<typeof contributionHost.resolveCollection<typeof group>>, readonly number[]>>;

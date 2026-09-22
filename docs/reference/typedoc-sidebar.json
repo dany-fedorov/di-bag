@@ -71,6 +71,14 @@
             "link": "/reference/index/interfaces/CloseProgress.md"
           },
           {
+            "text": "CollectionToken",
+            "link": "/reference/index/interfaces/CollectionToken.md"
+          },
+          {
+            "text": "CollectionTokenBase",
+            "link": "/reference/index/interfaces/CollectionTokenBase.md"
+          },
+          {
             "text": "ConfigurationOptions",
             "link": "/reference/index/interfaces/ConfigurationOptions.md"
           },
@@ -193,8 +201,12 @@
             "link": "/reference/index/type-aliases/CheckedScopeLifetimes.md"
           },
           {
-            "text": "CollectionDependency",
-            "link": "/reference/index/type-aliases/CollectionDependency.md"
+            "text": "CollectionItem",
+            "link": "/reference/index/type-aliases/CollectionItem.md"
+          },
+          {
+            "text": "CollectionTokenMember",
+            "link": "/reference/index/type-aliases/CollectionTokenMember.md"
           },
           {
             "text": "CompositionArguments",
@@ -425,6 +437,10 @@
             "link": "/reference/index/type-aliases/SharedAliasProviders.md"
           },
           {
+            "text": "SingleServiceTokenMember",
+            "link": "/reference/index/type-aliases/SingleServiceTokenMember.md"
+          },
+          {
             "text": "TokenBinding",
             "link": "/reference/index/type-aliases/TokenBinding.md"
           },
@@ -435,6 +451,10 @@
           {
             "text": "TokenKey",
             "link": "/reference/index/type-aliases/TokenKey.md"
+          },
+          {
+            "text": "TokenKind",
+            "link": "/reference/index/type-aliases/TokenKind.md"
           },
           {
             "text": "TokenMember",

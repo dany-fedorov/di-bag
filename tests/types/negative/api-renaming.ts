@@ -36,3 +36,14 @@ type RemovedStartupOptions = import('../../../src').StartupOptions;
 type RemovedStartupError = import('../../../src').DiBagStartupError;
 // diagnostic: has no exported member
 type RemovedStartupCancelledError = import('../../../src').DiBagStartupCancelledError;
+const removedCollectionKey = Symbol('removed collection');
+const removedCollection = DiBag.token(removedCollectionKey).forCollectionOf<number>();
+const removedBag = DiBag.createBuilder().contribute(removedCollection, () => 1).build();
+// diagnostic: Property 'all' does not exist
+DiBag.all(removedCollection);
+// diagnostic: Property 'resolveAll' does not exist
+removedBag.resolveAll(removedCollection);
+// diagnostic: Property 'inspectAll' does not exist
+removedBag.inspectAll(removedCollection);
+// diagnostic: has no exported member
+type RemovedCollectionDependency = import('../../../src').CollectionDependency;

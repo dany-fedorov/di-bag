@@ -25,6 +25,11 @@ test('contributions retain exact inferred cross-file contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('collection tokens retain exact inferred contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/collection-tokens.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('aliases retain exact inferred cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/aliases-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

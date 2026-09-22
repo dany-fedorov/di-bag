@@ -16,7 +16,12 @@ test('the package contains only the CLI, the library, the map, its schema and it
   assert.deepEqual(pack.files.map(file => file.path).sort(), [
     'LICENSE', 'README.md', 'cli.mjs',
     'lib/codemod.mjs', 'lib/glob.mjs', 'lib/library.mjs', 'lib/load-typescript.mjs', 'lib/rename-map.mjs', 'lib/rewrite.mjs',
-    'lib/transforms/build-and-start.mjs', 'lib/transforms/index.mjs',
+    'lib/transforms/build-and-start.mjs',
+    'lib/transforms/collection-read.mjs',
+    'lib/transforms/collection-reference.mjs',
+    'lib/transforms/collection-token.mjs',
+    'lib/transforms/collection-tokens.mjs',
+    'lib/transforms/index.mjs',
     'package.json', 'rename-map.json', 'rename-map.schema.json',
   ]);
   // npm marks bin targets executable in the archive.

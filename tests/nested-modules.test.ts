@@ -104,7 +104,7 @@ test('renaming a nested export at the outer level keeps inner references and the
 
 test('contributions inside nested modules install in declaration order and resolve their private dependencies', async () => {
   const groupKey = Symbol('group');
-  const group = DiBag.token(groupKey).of<string>();
+  const group = DiBag.token(groupKey).forCollectionOf<string>();
   const inner = DiBag.createBuilder()
     .register({ secret: () => 'inner-secret' })
     .contribute(group, ({ secret }: { secret: string }) => `inner:${secret}`)
@@ -121,8 +121,8 @@ test('contributions inside nested modules install in declaration order and resol
     .register({ secret: () => 'host-secret' })
     .contribute(group, ({ secret }: { secret: string }) => `host:${secret}`)
     .build();
-  expect(host.resolveAll(group)).toEqual(['host-first', 'outer-first', 'inner:inner-secret', 'outer:outer-secret', 'host:host-secret']);
-  expect(host.inspectAll(group)).toHaveLength(5);
+  expect(host.resolveCollection(group)).toEqual(['host-first', 'outer-first', 'inner:inner-secret', 'outer:outer-secret', 'host:host-secret']);
+  expect(host.inspectCollection(group)).toHaveLength(5);
   await host.close();
 });
 
@@ -159,11 +159,11 @@ test('three nesting levels forward unmet requirements outward and keep replaced 
 
 test('an outer module with no exports still installs nested contributions and nothing else', async () => {
   const groupKey = Symbol('group');
-  const group = DiBag.token(groupKey).of<number>();
+  const group = DiBag.token(groupKey).forCollectionOf<number>();
   const inner = DiBag.createBuilder().register({ hidden: () => 1 }).contribute(group, ({ hidden }: { hidden: number }) => hidden).buildModule(['hidden']);
   const outer = DiBag.createBuilder().installModule(inner).buildModule([]);
   const host = DiBag.createBuilder().installModule(outer).build();
-  expect(host.resolveAll(group)).toEqual([1]);
+  expect(host.resolveCollection(group)).toEqual([1]);
   expect(() => (host.resolve as Function)('hidden')).toThrow('is not registered');
   await host.close();
 });

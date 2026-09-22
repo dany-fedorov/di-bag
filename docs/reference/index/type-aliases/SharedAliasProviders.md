@@ -12,7 +12,7 @@ type SharedAliasProviders<R extends Registrations, Parent extends Registrations,
 };
 ```
 
-Defined in: [scope-types.ts:57](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L57)
+Defined in: [scope-types.ts:62](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L62)
 
 Named mapping keeps reflected package declarations inside this checked generic boundary.
 

@@ -96,8 +96,8 @@ export const pluginRuntimeAssertions = `
     const required = DiBag.token(requiredKey).of();
     const optional = DiBag.token(optionalKey).of();
     const lazy = DiBag.token(lazyKey).of();
-    const all = DiBag.token(allKey).of();
-    const dependencyProvider = DiBag.fromPlugin([required, DiBag.optional(optional), DiBag.lazy(lazy), DiBag.all(all)], {
+    const all = DiBag.token(allKey).forCollectionOf();
+    const dependencyProvider = DiBag.fromPlugin([required, DiBag.optional(optional), DiBag.lazy(lazy), all], {
       apiVersion: 1,
       create: (requiredValue, optionalValue, getLazy, allValues) => ({
         summary: [requiredValue, optionalValue, getLazy(), allValues.join(',')].join('|'),

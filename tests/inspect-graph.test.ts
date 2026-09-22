@@ -29,14 +29,16 @@ test('inspectGraph lists public bindings in registration order without acquiring
 test('inspectGraph reports observed edges, contributions, private module bindings, and attempts', async () => {
   const toolKey = Symbol('tool');
   const tool = DiBag.token(toolKey).of<string>();
+  const toolsKey = Symbol('tools');
+  const tools = DiBag.token(toolsKey).forCollectionOf<string>();
   const feature = DiBag.createBuilder()
     .register({ secret: () => 'hidden', exported: ({ secret }: { secret: string }) => secret.length })
-    .contribute(tool, () => 'a')
+    .contribute(tools, () => 'a')
     .buildModule(['exported']);
   const bag = DiBag.createBuilder()
     .installModule(feature)
-    .contribute(tool, ({ exported }: { exported: number }) => `b${exported}`)
-    .register({ reader: DiBag.fromFunction([DiBag.all(tool), DiBag.optional(tool)], (tools, _maybe) => tools.length) })
+    .contribute(tools, ({ exported }: { exported: number }) => `b${exported}`)
+    .register({ reader: DiBag.fromFunction([tools, DiBag.optional(tool)], (values, _maybe) => values.length) })
     .build();
 
   const before = bag.inspectGraph();
@@ -45,17 +47,17 @@ test('inspectGraph reports observed edges, contributions, private module binding
   expect(before.bindings.find(binding => binding.label === 'secret')!.keys).toEqual([]);
   expect(before.bindings.find(binding => binding.label === 'exported')!.keys).toEqual(['exported']);
   expect(before.contributions).toHaveLength(1);
-  expect(before.contributions[0]!.token).toBe(toolKey);
+  expect(before.contributions[0]!.token).toBe(toolsKey);
   expect(before.contributions[0]!.bindingIds).toHaveLength(2);
   expect(before.bindings.find(binding => binding.label === 'reader')!.tokenDependencies).toEqual([
-    { key: toolKey, kind: 'all' }, { key: toolKey, kind: 'optional' },
+    { key: toolsKey, kind: 'required' }, { key: toolKey, kind: 'optional' },
   ]);
 
   expect(bag.resolve('reader')).toBe(2);
   const after = bag.inspectGraph();
   const id = (label: string) => after.bindings.find(binding => binding.label === label)!.bindingId;
   const edges = after.observedEdges.map(edge => [after.bindings.find(b => b.bindingId === edge.from)!.label, after.bindings.find(b => b.bindingId === edge.to)!.label]);
-  expect(edges).toContainEqual(['reader', `contribution:${String(toolKey)}`]);
+  expect(edges).toContainEqual(['reader', `contribution:${String(toolsKey)}`]);
   expect(edges).toContainEqual(['exported', 'secret']);
   expect(after.bindings.find(binding => binding.label === 'exported')!.acquisitions.map(attempt => attempt.state)).toEqual(['ready']);
   // Symbols with equal descriptions stringify alike; compare edge identities pairwise.

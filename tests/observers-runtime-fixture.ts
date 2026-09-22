@@ -7,7 +7,7 @@ export const observerRuntimeAssertions = `
     const errors = [];
     const observed = DiBag.withConfiguration({ observers: [{ onEvent: event => { events.push(event); }, onError: failure => { errors.push(failure); } }] });
     const itemKey = Symbol('observed contribution');
-    const item = DiBag.token(itemKey).of();
+    const item = DiBag.token(itemKey).forCollectionOf();
     let rootCalls = 0;
     let transientCalls = 0;
     let disposed = 0;
@@ -24,9 +24,9 @@ export const observerRuntimeAssertions = `
     const borrowed = child.resolve('resourceAlias');
     assertObserver(borrowed === parent.resolve('resource') && rootCalls === 1, 'observer changed canonical alias ownership');
     const rootAttempt = parent.inspect('resource').acquisitions[0].acquisitionId;
-    child.resolveAll(item);
-    child.resolveAll(item);
-    const contributionAttempts = child.inspectAll(item)[0].acquisitions.map(attempt => attempt.acquisitionId);
+    child.resolveCollection(item);
+    child.resolveCollection(item);
+    const contributionAttempts = child.inspectCollection(item)[0].acquisitions.map(attempt => attempt.acquisitionId);
     const independent = parent.fork();
     const independentValue = independent.resolve('resourceAlias');
     const independentAttempt = independent.inspect('resource').acquisitions[0].acquisitionId;

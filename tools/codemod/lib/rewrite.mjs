@@ -10,7 +10,7 @@ const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
  * assembled bottom-up, so a rewritten call may contain other rewritten calls.
  * @returns {{ text: string, rewrites: number }}
  */
-export function rewriteSourceFile({ ts, checker, sourceFile, library, index, transforms, manualItems, fileLabel }) {
+export function rewriteSourceFile({ ts, checker, program, sourceFile, library, index, transforms, manualItems, fileLabel }) {
   const source = sourceFile.text;
   const start = node => node.getStart(sourceFile);
   const slice = (from, to) => source.slice(from, to);
@@ -197,7 +197,9 @@ export function rewriteSourceFile({ ts, checker, sourceFile, library, index, tra
 
   function transformApi(member, entry) {
     return {
-      ts, checker, sourceFile, member, text, slice, start, assemble, objectLiteral, quote, manual, nameOf: index.nameOf,
+      ts, checker, program, library, sourceFile, member,
+      text, slice, start, assemble, objectLiteral, quote, manual,
+      nameOf: index.nameOf,
       nameForRole(role) {
         const value = entry?.transformNames?.[role];
         if (value === undefined) throw new Error(`transform ${entry?.transform ?? '<unknown>'} has no name for role ${role}`);

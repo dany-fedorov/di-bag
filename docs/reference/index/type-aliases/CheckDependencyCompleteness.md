@@ -15,7 +15,7 @@ type CheckDependencyCompleteness<R extends Registrations> = [
 }>;
 ```
 
-Defined in: [types.ts:210](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L210)
+Defined in: [types.ts:213](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L213)
 
 Compile-time admission requiring every named and typed-token dependency to be bound.
 

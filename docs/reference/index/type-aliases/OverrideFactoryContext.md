@@ -6,11 +6,11 @@
 
 ```ts
 type OverrideFactoryContext<R extends Registrations, K extends readonly unknown[], O> = {
-    [P in Extract<SelectionKey<K[number]>, keyof R>]: ((this: void, dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P]) | FactoryWithDisposal<(this: void, dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P]> | ProviderContext<(this: void, dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P], P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract>;
+    [P in Extract<SelectionKey<K[number]>, keyof SelectionRegistrations<R, K>>]: ((this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>) | FactoryWithDisposal<(this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>> | ProviderContext<(this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>, P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract>;
 };
 ```
 
-Defined in: [types.ts:350](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L350)
+Defined in: [types.ts:393](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L393)
 
 Contextual override shape used to infer a selected fork or child-scope graph.
 

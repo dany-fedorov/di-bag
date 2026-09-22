@@ -1,22 +1,22 @@
 import { DiBag, type Builder, type Bag } from '../../../src';
-const key = Symbol('numbers'); const numbers = DiBag.token(key).of<number>();
-const wrong = DiBag.token(key).of<string>();
-// diagnostic: service
+const key = Symbol('numbers'); const numbers = DiBag.token(key).forCollectionOf<number>();
+const wrong = DiBag.token(key).forCollectionOf<string>();
+// diagnostic: collection contribution output is not assignable to its item
 DiBag.createBuilder().contribute(numbers, () => 'wrong');
 const builder = DiBag.createBuilder().contribute(numbers, () => 1);
 // diagnostic: incompatible
 builder.contribute(wrong, () => 'wrong');
 // diagnostic: incompatible
-builder.build().resolveAll(wrong);
-// diagnostic: existing
-builder.build().resolve(numbers);
+builder.build().resolveCollection(wrong);
+// diagnostic: incompatible
+builder.build().inspectCollection(wrong);
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().contribute(numbers, ({ missing }: { missing: number }) => missing).build();
 // diagnostic: not assignable
 const erasedBuilder: Builder<never> = builder;
 // diagnostic: not assignable
 const erasedBag: Bag<{}> = builder.build();
-const all = DiBag.all(numbers);
+const all = numbers;
 const rootAll = DiBag.withLifetime(DiBag.fromFunction([all], values => values), 'root');
 // diagnostic: root lifetime cannot capture scoped dependency
 builder.register({ rootAll }).build();
@@ -33,14 +33,14 @@ privateRootBuilder.buildModule([]);
 // diagnostic: incompatible
 DiBag.createBuilder().register({ all: DiBag.fromFunction([all], values => values) }).contribute(wrong, () => 'wrong');
 // diagnostic: incompatible
-builder.register({ all: DiBag.fromFunction([DiBag.all(wrong)], values => values) });
+builder.register({ all: DiBag.fromFunction([wrong], values => values) });
 const privateAll = DiBag.createBuilder().register({ privateAll: DiBag.fromFunction([all], values => values) }).buildModule([]);
 // diagnostic: incompatible
 DiBag.createBuilder().installModule(privateAll).contribute(wrong, () => 'wrong');
 // diagnostic: incompatible
 DiBag.createBuilder().contribute(wrong, () => 'wrong').installModule(privateAll);
 // diagnostic: incompatible
-DiBag.createBuilder().contribute(numbers, () => 1).register({ all: DiBag.fromFunction([DiBag.all(wrong)], values => values) });
+DiBag.createBuilder().contribute(numbers, () => 1).register({ all: DiBag.fromFunction([wrong], values => values) });
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().installModule(DiBag.createBuilder().contribute(numbers, ({ missing }: { missing: number }) => missing).buildModule([])).build();
 // diagnostic: contribution service is incompatible with its consumer dependency contract; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer
@@ -55,11 +55,9 @@ const erasedModule: ReturnType<ReturnType<typeof DiBag.createBuilder>['buildModu
 // diagnostic: not assignable
 const erasedModuleBuilder: ReturnType<typeof DiBag.createBuilder> = DiBag.createBuilder().contribute(numbers, () => 1);
 // diagnostic: not assignable
-DiBag.all({});
-// diagnostic: not assignable
-DiBag.all(DiBag.optional(numbers));
-// diagnostic: Expected 2 arguments
-DiBag.all<never>(numbers as never);
+builder.build().resolveCollection({});
+// diagnostic: optional requires a single-service token
+DiBag.optional(numbers);
 // diagnostic: Expected 3 arguments
 builder.contribute<never, () => number>(numbers as never, () => 1);
 // diagnostic: Expected 3 arguments
@@ -67,21 +65,35 @@ builder.contribute<typeof numbers, never>(numbers, undefined as never);
 declare const erased: import('../../../src').Registration;
 // diagnostic: not assignable
 builder.contribute(numbers, erased);
-const otherKey = Symbol('other'); const other = DiBag.token(otherKey).of<number>();
+const otherKey = Symbol('other'); const other = DiBag.token(otherKey).forCollectionOf<number>();
 declare const union: typeof numbers | typeof other;
 // diagnostic: finite tuple
 builder.contribute(union, () => 1);
 // diagnostic: finite tuple
-builder.build().resolveAll(union);
-// diagnostic: not assignable
-const allReflected: ReturnType<typeof DiBag.all> = all;
+builder.build().resolveCollection(union);
 // diagnostic: finite tuple
-DiBag.fromFunction([allReflected], values => values);
+builder.build().inspectCollection(union);
+declare const incompatibleUnion: typeof numbers | typeof wrong;
+// diagnostic: finite tuple
+builder.build().resolveCollection(incompatibleUnion);
+// diagnostic: finite tuple
+builder.build().inspectCollection(incompatibleUnion);
+const otherWrong = DiBag.token(key).forCollectionOf<boolean>();
+declare const allIncompatibleUnion: typeof wrong | typeof otherWrong;
+// diagnostic: finite tuple
+builder.build().resolveCollection(allIncompatibleUnion);
+// diagnostic: finite tuple
+builder.build().inspectCollection(allIncompatibleUnion);
+const collectionReflected: import('../../../src').CollectionTokenBase = numbers;
+// diagnostic: individually known
+builder.build().resolveCollection(collectionReflected);
+// diagnostic: finite tuple
+DiBag.fromFunction([collectionReflected], values => values);
 declare const reflected: ReturnType<typeof builder.contribute>;
 // diagnostic: required service registrations are missing
 reflected.build();
 // diagnostic: not assignable
-const badInspection: readonly { metadata: { label: string } }[] = builder.build().inspectAll(numbers);
+const badInspection: readonly { metadata: { label: string } }[] = builder.build().inspectCollection(numbers);
 
 const privateTransientHelper = DiBag.createBuilder().register({ leaf: () => 1, helper: DiBag.withLifetime(({ leaf }: { leaf: number }) => leaf, 'transient') }).contribute(numbers, DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'transient')).buildModule([]);
 // diagnostic: root lifetime cannot capture scoped dependency
@@ -107,13 +119,13 @@ DiBag.createBuilder().contribute(numbers, DiBag.fromFunction([DiBag.lazy(require
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().installModule(DiBag.createBuilder().contribute(numbers, DiBag.fromFunction([required], value => value)).buildModule([])).build();
 // diagnostic: incompatible
-DiBag.createBuilder().installModule(DiBag.createBuilder().contribute(numbers, DiBag.fromFunction([DiBag.all(wrong)], values => values.length)).buildModule([])).contribute(numbers, () => 1);
+DiBag.createBuilder().installModule(DiBag.createBuilder().contribute(numbers, DiBag.fromFunction([wrong], values => values.length)).buildModule([])).contribute(numbers, () => 1);
 // diagnostic: not assignable
 const forgedToken: Parameters<typeof builder.contribute>[0] = numbers;
 // diagnostic: Expected 2 arguments
-builder.build().resolveAll<never>(numbers as never);
+builder.build().resolveCollection<never>(numbers as never);
 // diagnostic: Expected 2 arguments
-builder.build().inspectAll<never>(numbers as never);
+builder.build().inspectCollection<never>(numbers as never);
 const rooted = DiBag.withLifetime(() => 1, 'root');
 const sharedAliasBase = DiBag.createBuilder().register({ helper: () => 1, consumer: DiBag.fromFunction([all], values => values) }).alias('copy', 'helper').contribute(numbers, DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient')).build();
 // diagnostic: root lifetime cannot capture scoped dependency

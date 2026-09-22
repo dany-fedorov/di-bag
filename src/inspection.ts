@@ -56,8 +56,8 @@ export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] 
   readonly acquisitionMode: AcquisitionMode;
   /** True when some stage of the provider accepts ownership through a disposer. */
   readonly owned: boolean;
-  /** Typed-token dependencies declared positionally through tokens, `optional`, `lazy`, or `all` references. */
-  readonly tokenDependencies: readonly { readonly key: symbol; readonly kind: 'required' | 'optional' | 'lazy' | 'all' }[];
+  /** Typed-token dependencies declared positionally through service tokens, collection tokens, `optional`, or `lazy` references. */
+  readonly tokenDependencies: readonly { readonly key: symbol; readonly kind: 'required' | 'optional' | 'lazy' }[];
 }
 
 /**

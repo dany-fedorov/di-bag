@@ -120,15 +120,15 @@ test('reentrant observer resolution runs outside factory ancestry and respects p
 test('canonical owners distinguish shared roots, independent forks, contributions and transients', async () => {
   const { events, observed } = recording();
   const raw = observed.fromFactory(() => ({}), { acquisitionMode: 'raw' });
-  const key = Symbol('collection'); const token = observed.token(key).of<object>();
+  const key = Symbol('collection'); const token = observed.token(key).forCollectionOf<object>();
   const bag = observed.createBuilder().register({ root: observed.withLifetime(raw, 'root'), shared: raw, fresh: observed.withLifetime(raw, 'transient') }).alias('copy', 'shared').contribute(token, raw).contribute(token, raw).build();
   const child = bag.createScope({ share: ['copy'] });
   const fork = bag.fork();
   child.resolve('root'); child.resolve('copy'); child.resolve('fresh'); child.resolve('fresh');
-  child.resolveAll(token);
+  child.resolveCollection(token);
   fork.resolve('root');
   const rootInspection = bag.inspect('root'); const sharedInspection = bag.inspect('shared');
-  const contributionIds = child.inspectAll(token).map(item => item.acquisitions[0]!.acquisitionId);
+  const contributionIds = child.inspectCollection(token).map(item => item.acquisitions[0]!.acquisitionId);
   await flush();
   const opened = events.filter(event => event.kind === 'scope-opened');
   const started = events.filter(event => event.kind === 'acquisition-started');

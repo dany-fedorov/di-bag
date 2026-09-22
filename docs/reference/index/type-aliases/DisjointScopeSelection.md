@@ -12,7 +12,7 @@ type DisjointScopeSelection<K extends readonly unknown[], S extends readonly unk
 }>;
 ```
 
-Defined in: [scope-types.ts:27](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L27)
+Defined in: [scope-types.ts:32](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L32)
 
 Reject a child-scope key selected for both replacement and parent sharing.
 

@@ -114,8 +114,8 @@ test('plugin routes required optional lazy and all dependency references positio
   const requiredKey = Symbol('required'); const required = DiBag.token(requiredKey).of<number>();
   const absentKey = Symbol('absent'); const absent = DiBag.token(absentKey).of<number>();
   const lazyKey = Symbol('lazy'); const lazy = DiBag.token(lazyKey).of<number>();
-  const collectedKey = Symbol('collected'); const collected = DiBag.token(collectedKey).of<number>();
-  const provider = DiBag.fromPlugin([required, DiBag.optional(absent), DiBag.lazy(lazy), DiBag.all(collected)], {
+  const collectedKey = Symbol('collected'); const collected = DiBag.token(collectedKey).forCollectionOf<number>();
+  const provider = DiBag.fromPlugin([required, DiBag.optional(absent), DiBag.lazy(lazy), collected], {
     apiVersion: 1,
     create: (value: number, maybe: number | undefined, get: () => number, all: readonly number[]) => ({ value, maybe, get, all }),
   }, {
@@ -244,7 +244,7 @@ test('plugin callbacks use no receiver and preserve factory and validator failur
 
 test('plugin composition retains module privacy, aliases, contributions and selected sharing', async () => {
   const dependencyKey = Symbol('dependency'); const dependency = DiBag.token(dependencyKey).of<number>();
-  const collectionKey = Symbol('collection'); const collection = DiBag.token(collectionKey).of<{ id: number }>();
+  const collectionKey = Symbol('collection'); const collection = DiBag.token(collectionKey).forCollectionOf<{ id: number }>();
   let created = 0;
   const plugin = DiBag.fromPlugin([dependency], {
     apiVersion: 1,
@@ -254,7 +254,7 @@ test('plugin composition retains module privacy, aliases, contributions and sele
   const bag = DiBag.createBuilder().register(dependency, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).installModule(feature).build();
   const parent = bag.resolve('plugin');
   expect(bag.resolve('copy')).toBe(parent);
-  expect(bag.resolveAll(collection).map(value => value.id)).toEqual([1]);
+  expect(bag.resolveCollection(collection).map(value => value.id)).toEqual([1]);
   const child = bag.createScope([dependency], { [dependencyKey]: DiBag.fromFactory(() => 2, { acquisitionMode: 'raw' }) }, { share: ['plugin'] });
   expect(child.resolve('plugin')).toBe(parent);
   expect(created).toBe(2);

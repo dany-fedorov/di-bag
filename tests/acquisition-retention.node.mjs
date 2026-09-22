@@ -33,19 +33,19 @@ for (const route of ['resolve', 'alias', 'dependency', 'collection', 'startup'])
       refs.push(new WeakRef(value));
       return value;
     }));
-    const token = DiBag.token(Symbol('arrays')).of();
+    const token = DiBag.token(Symbol('arrays')).forCollectionOf();
     const builder = route === 'collection' ? DiBag.createBuilder().contribute(token, provider)
       : DiBag.createBuilder().register({ value: provider, reader: raw(deps => () => deps.value.length) }).alias('copy', 'value');
     const bag = route === 'startup' ? await builder.build().ensureServicesReady(['copy']) : builder.build();
     try {
       if (route !== 'startup') for (let index = 0; index < 16; index++) {
-        if (route === 'collection') assert.equal(bag.resolveAll(token)[0].length, 256);
+        if (route === 'collection') assert.equal(bag.resolveCollection(token)[0].length, 256);
         else if (route === 'dependency') assert.equal(bag.resolve('reader')(), 256);
         else assert.equal(bag.resolve(route === 'alias' ? 'copy' : 'value')[0], index + 1);
       }
       assert.equal(calls, route === 'startup' ? 1 : 16);
       await collected(refs);
-      const inspection = route === 'collection' ? bag.inspectAll(token)[0] : bag.inspect('copy');
+      const inspection = route === 'collection' ? bag.inspectCollection(token)[0] : bag.inspect('copy');
       assert.equal(inspection.acquisitions.length, calls);
       assert.ok(inspection.acquisitions.every(attempt => attempt.state === 'ready'));
       assert.equal(new Set(inspection.acquisitions.map(attempt => attempt.acquisitionId)).size, calls);

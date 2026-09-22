@@ -124,9 +124,27 @@ Re-exports [CloseProgress](../index/interfaces/CloseProgress.md)
 
 ***
 
-### CollectionDependency
+### CollectionItem
 
-Re-exports [CollectionDependency](../index/type-aliases/CollectionDependency.md)
+Re-exports [CollectionItem](../index/type-aliases/CollectionItem.md)
+
+***
+
+### CollectionToken
+
+Re-exports [CollectionToken](../index/interfaces/CollectionToken.md)
+
+***
+
+### CollectionTokenBase
+
+Re-exports [CollectionTokenBase](../index/interfaces/CollectionTokenBase.md)
+
+***
+
+### CollectionTokenMember
+
+Re-exports [CollectionTokenMember](../index/type-aliases/CollectionTokenMember.md)
 
 ***
 
@@ -604,6 +622,12 @@ Re-exports [SharedAliasProviders](../index/type-aliases/SharedAliasProviders.md)
 
 ***
 
+### SingleServiceTokenMember
+
+Re-exports [SingleServiceTokenMember](../index/type-aliases/SingleServiceTokenMember.md)
+
+***
+
 ### Token
 
 Re-exports [Token](../index/interfaces/Token.md)
@@ -631,6 +655,12 @@ Re-exports [TokenDependencyContract](../index/type-aliases/TokenDependencyContra
 ### TokenKey
 
 Re-exports [TokenKey](../index/type-aliases/TokenKey.md)
+
+***
+
+### TokenKind
+
+Re-exports [TokenKind](../index/type-aliases/TokenKind.md)
 
 ***
 

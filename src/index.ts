@@ -12,14 +12,15 @@ export type { Lifetime } from './lifetime';
 export type { AcquisitionContext, ContextualFactory, DisposerContext } from './acquisition-context';
 export type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 export type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases, SharedAliasProviders } from './scope-types';
-export type { Token, TokenBase, TokenKey, TokenService } from './tokens';
-export type { TokenBinding, TokenMember, TokenDependencyContract, ReboundProviders, ReboundSelection, SelectionKey } from './token-types';
+export type { CollectionItem, CollectionToken, CollectionTokenBase, Token, TokenBase, TokenKey, TokenKind, TokenService } from './tokens';
+export type { CollectionTokenMember, SingleServiceTokenMember, TokenBinding, TokenMember, TokenDependencyContract, SelectionKey } from './token-types';
+export type { ReboundProviders, ReboundSelection } from './types';
 export type { CheckedLifetimes, CheckedScopeLifetimes, LifetimeObligation, Reach } from './lifetime-types';
 export type { DiBagPolicy } from './types';
 export type { CheckDependencyCompatibility, CheckDependencyCompleteness, RegistrationEntries, OverrideFactoryContext, RegistrationsFromEntries, OverrideRegistrations, Overrides, ServicesOf, SelectedRegistrations, Selection } from './types';
 export type { Presence, AcquisitionMetadataPresence, AcquisitionSnapshot, RegistrationSnapshot, BindingSnapshot, GraphSnapshot } from './inspection';
 export type { CompositionArguments, CompositionFunction } from './composition';
-export type { OptionalDependency, LazyDependency, CollectionDependency, DependencyReference } from './dependency-references';
+export type { OptionalDependency, LazyDependency, DependencyReference } from './dependency-references';
 export type { PluginProviderFactory, PluginAcquisitionMode, PluginOptions, PluginOutputValidator, PluginProvider } from './plugins';
 
 export type { AliasRegistration, AliasEntries, AliasOutput } from './alias-types';

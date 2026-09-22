@@ -36,6 +36,7 @@ test('a sealed module declaration names private registrations only inside quoted
 test('a sealed module declaration is compact', () => {
   const declaration = emitDeclaration();
   console.log(`module-erasure feature.d.ts: ${declaration.length} bytes`);
+  expect(declaration).not.toContain('readonly collections: readonly [];');
   expect(declaration.length).toBeLessThan(2_500);
 });
 

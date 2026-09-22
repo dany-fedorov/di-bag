@@ -8,7 +8,7 @@ import { compiler, fixturesProgram, fixturesRoot } from './helpers.mjs';
 test('every transform the shipped map names exists in the registry', () => {
   const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
   assert.deepEqual(validateRenameMap(shipped, Object.keys(transforms)), []);
-  assert.deepEqual(Object.keys(transforms), ['build-and-start']);
+  assert.deepEqual(Object.keys(transforms), ['build-and-start', 'collection-read', 'collection-reference', 'collection-token']);
 });
 
 test('a map that names an unknown transform is refused before any file is read', () => {

@@ -101,6 +101,37 @@ test('closing a scope flushes what it recorded', async () => {
 
 Run it with the module's [fast check](../../AGENTS.md#fast-check).
 
+## Build one composite from collection members
+
+Use separate identities for the composite service and its ordered members. A collection token supplies a fresh frozen list directly in a positional dependency.
+
+```ts
+import { DiBag } from 'di-bag';
+
+type Logger = { log(message: string): void };
+
+const loggerKey = Symbol('logger');
+const loggerSinksKey = Symbol('logger sinks');
+const logger = DiBag.token(loggerKey).of<Logger>();
+const loggerSinks = DiBag.token(loggerSinksKey).forCollectionOf<Logger>();
+
+const bag = DiBag.createBuilder()
+  .contribute(loggerSinks, (): Logger => ({ log: message => console.log(message) }))
+  .contribute(loggerSinks, (): Logger => ({ log: message => { process.stderr.write(`${message}\n`); } }))
+  .register(
+    logger,
+    DiBag.fromFunction([loggerSinks], sinks => ({
+      log(message: string) { for (const sink of sinks) sink.log(message); },
+    })),
+  )
+  .build();
+
+bag.resolve(logger).log('ready');
+await bag.close();
+```
+
+A token created with `.of<Service>()` cannot receive contributions, and a token created with `.forCollectionOf<Item>()` cannot hold the composite service.
+
 ## Split a feature into a module with private services {#split-module}
 
 1. Create `src/features/billing/` and move the types other code uses into

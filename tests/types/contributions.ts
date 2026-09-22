@@ -1,18 +1,20 @@
 import { DiBag, type ModuleContributions } from '../../src';
 import type { Assert, Equal } from './assert';
 export const key = Symbol('numbers');
-export const numbers = DiBag.token(key).of<number>();
+export const numbers = DiBag.token(key).forCollectionOf<number>();
 export const builder = DiBag.createBuilder().contribute(numbers, () => 1).contribute(numbers, () => 2);
 export const feature = DiBag.createBuilder().contribute(numbers, () => 3).buildModule([]);
 export const bag = builder.installModule(feature).build();
-export const values = bag.resolveAll(numbers);
+export const values = bag.resolveCollection(numbers);
+export const resolveCollectionMethod = bag.resolveCollection;
+export const inspectCollectionMethod = bag.inspectCollection;
 export const contribute = builder.contribute;
 export type ReflectedContribution = ReturnType<typeof contribute>;
 export type Exact = [Assert<Equal<typeof values, ReadonlyArray<number>>>,
   Assert<Equal<ModuleContributions<typeof feature>, Readonly<{ [key]: ReadonlyArray<number> }>>>];
-const empty = DiBag.createBuilder().build().resolveAll(numbers);
+const empty = DiBag.createBuilder().build().resolveCollection(numbers);
 export type Empty = Assert<Equal<typeof empty, ReadonlyArray<number>>>;
-export const all = DiBag.all(numbers);
+export const all = numbers;
 export const allProvider = DiBag.fromFunction([all], values => values);
 export const aggregate = DiBag.createBuilder().register({ values: allProvider });
 export const aggregateBag = aggregate.contribute(numbers, () => 1).build();
@@ -36,7 +38,7 @@ class Collection { constructor(readonly values: readonly number[]) {} }
 const classProvider = DiBag.fromClass([all], Collection);
 const functionProvider = DiBag.fromFunction([all], values => values);
 export const adapters = DiBag.createBuilder().register({ classProvider, functionProvider }).build();
-export type MoreExact = [Assert<Equal<ReturnType<typeof bag.resolveAll<typeof numbers>>, readonly number[]>>,
+export type MoreExact = [Assert<Equal<ReturnType<typeof bag.resolveCollection<typeof numbers>>, readonly number[]>>,
   Assert<Equal<ModuleContributions<ReturnType<ReturnType<typeof DiBag.createBuilder>['buildModule']>>, Readonly<{}>>>,
   Assert<Equal<ReturnType<typeof aggregateBag.resolve<'values'>>, readonly number[]>>];
 export function inferredContribution() { return builder.contribute(numbers, () => 4); }
@@ -45,9 +47,9 @@ type IsAny<T> = 0 extends (1 & T) ? true : false;
 export type ReflectedExact = [Assert<Equal<IsAny<ReturnType<typeof contribute>>, false>>,
   Assert<Equal<IsAny<Parameters<typeof contribute>[1]>, false>>,
   Assert<Equal<ReturnType<typeof inferredContribution>, ReturnType<typeof explicitContribution>>>];
-export const promisedKey = Symbol('promise'); export const promised = DiBag.token(promisedKey).of<Promise<number>>();
+export const promisedKey = Symbol('promise'); export const promised = DiBag.token(promisedKey).forCollectionOf<Promise<number>>();
 export const promiseBag = DiBag.createBuilder().contribute(promised, DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' })).build();
-const promisedValues = promiseBag.resolveAll(promised);
+const promisedValues = promiseBag.resolveCollection(promised);
 export type PromiseExact = Assert<Equal<typeof promisedValues, readonly Promise<number>[]>>;
 const rootAliasFeature = DiBag.createBuilder().register({ helper: rooted }).alias('copy', 'helper').contribute(numbers, DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient')).buildModule([]);
 DiBag.createBuilder().installModule(rootAliasFeature).register({ rootAll }).build();
