@@ -2201,7 +2201,7 @@ MSG
 - Consumes: Task 7's shipped map, phase 1's CLI, and Phase 4's preserved rejected old-close controls. The accumulated map still contains Phase 3's `Bag.close` option renames.
 - Produces: a compiler/runtime-green preparation commit for the coherent `startup.ts` builder projection, a pure report-generated mechanical commit, and a separate compiler/runtime-green hand commit when manual items exist. All checker-resolvable 0.4.0 builder calls in the main project use the Task 6 decision; the two old-close controls remain rejected. Generated text, JavaScript, Markdown, graph fixtures and agent-eval projects remain for later tasks.
 
-**Controller ruling from the real Tasks 1–6 tree.** At `16d24f2`, there are 24 already-new inline `buildModule` calls in the typed input: 15 in `tests/builder-renames.test.ts`, four in `tests/types/builder-renames.ts`, two in `tests/types/negative/builder-renames.ts`, and three in `tests/types/negative/installed-modules.ts`. Twenty-three are library-authenticated; the final loose runtime probe at `tests/builder-renames.test.ts:289` is deliberately unauthenticated and must remain byte-identical/unreported. Save original paths/lines before edits, verify all 24 in the preview, and do not claim real-tree named/typed bag coverage (Task 7's separate harness supplies that). Generated source strings and JSDoc are later-owned, not additional typed-input calls.
+**Controller ruling from the real Tasks 1–6 tree.** At `16d24f2`, there are 25 already-new inline `buildModule` calls in the typed input: 16 in `tests/builder-renames.test.ts`, four in `tests/types/builder-renames.ts`, two in `tests/types/negative/builder-renames.ts`, and three in `tests/types/negative/installed-modules.ts`. Twenty-four are library-authenticated; the final loose runtime probe at `tests/builder-renames.test.ts:289` is deliberately unauthenticated and must remain byte-identical/unreported. Save original paths/lines before edits, verify all 25 in the preview, and do not claim real-tree named/typed bag coverage (Task 7's separate harness supplies that). Generated source strings and JSDoc are later-owned, not additional typed-input calls.
 
 The three `buildModule` calls in the `buildModule rejects malformed label options` runtime test deliberately exercise the positional compatibility branch. Preserve that branch's bad-options rejection and both valid-options controls until Task 12. In the preparation commit, make only those three calls explicit runtime controls using the established `(builder.buildModule as Function)(...)` form; retain every argument and assertion. This prevents an automatic literal-options rewrite from silently moving a valid compatibility control to the new branch. Classify the resulting uncalled-member manual rows as Task 12. Preserve the existing dynamic key-tuple/forged-module controls in `tests/nested-modules.test.ts` under that same owner; do not add another write-excluded file. Task 12 converts these controls and their assertions together when it removes compatibility.
 
@@ -2785,7 +2785,7 @@ MSG
 
 **Interfaces:**
 - Consumes: both the 0.4.0 calls and Task 6's 0.5.0 adopted/fallback shapes.
-- Produces: extraction of `buildContainer`, builder bags, module-list elements (inline or through a `const`), and the `buildModule` bag while retaining every 0.4.0 syntax. The extractor remains syntactic and does not execute getters.
+- Produces: extraction of `buildContainer`, builder bags, module-list elements (inline or through a `const`), and the `buildModule` bag while retaining every 0.4.0 syntax. The extractor remains syntactic and does not execute getters. Bilingual parity covers the existing extracted service/alias/replacement/module surfaces; contribution providers remain an explicit limitation in both generations.
 
 - [ ] **Step 1: Add the two equivalent fixtures**
 
@@ -2869,6 +2869,8 @@ test('options bags are read by property name, and a module list by element, inli
   assert.deepEqual(extract('builder-names-0-5.ts').issues.map(issue => issue.dependency), ['normalize']);
 });
 ```
+
+**Controller scope ruling:** The existing extractor has never emitted contribution providers or their dependency edges. The spec requires new chain endings/module lists while keeping old syntax; it does not require a new contribution-node identity model in this rename phase. Keep that existing limitation, document it plainly in the README ("Collection contribution providers and their dependencies are omitted for both API generations"), and add a third parity test with two contributions to the same token, each declaring a distinct dependency. Assert that both old and new contribution spellings are omitted equally, while surrounding ordinary services still extract. Do not add token-keyed contribution nodes: repeated contributions would collide in the current graph map. The paired fixtures may be separate small files or extend the existing pair without weakening their ordinary-node assertions. This explicitly limits the bilingual claim rather than silently suggesting complete contribution analysis.
 
 - [ ] **Step 3: Extend `extract.mjs`**
 
@@ -2971,7 +2973,7 @@ node --test tools/graph/test/builder-names.test.mjs
 npm run graph:check
 ```
 
-Expected: first command `pass 2`, `fail 0`; full graph check exits 0. The finishing planner reran the first command against the historical prototype with pinned Bun 1.4.0 and observed exactly that result.
+Expected after adding the contribution-limitation parity case: first command `pass 3`, `fail 0`; full graph check exits 0. The historical two-test prototype had `pass 2`; it predates this explicit limitation regression and is not proof of the final three-test suite.
 
 - [ ] **Step 5: Commit**
 
@@ -3023,7 +3025,7 @@ retiredBuilder.installModule({});
 retiredBuilder.verifyGraph();
 // diagnostic: does not exist
 retiredBuilder.build();
-// diagnostic: Expected 1 arguments
+// diagnostic: exportedServiceKeys
 DiBag.createBuilder().withServices({ value: () => 1 }).buildModule(['value']);
 ```
 
@@ -3041,6 +3043,8 @@ const moduleBuilder = DiBag.createBuilder().withServices({ value: () => 1 });
 // diagnostic: Object literal may only specify known properties
 moduleBuilder.buildModule({ exportedServiceKeys: ['value'], label: 'old' });
 ```
+
+The array call still supplies one argument after contraction, so the former printed arity marker was invalid. The `exportedServiceKeys` marker above is a provisional shape expectation, not an observed diagnostic. After removing compatibility, capture the full raw diagnostic for this call and the old `label` property call, verify each is the intended shape/property rejection at that statement, and set its stable marker substring from the actual output. Preserve the pre-deletion failing negative proof; do not change a marker to hide an unrelated error.
 
 Run `bun test tests/types.test.ts -t "api renaming|builder-renames"`. Expected before deletion: the new cases fail their negative-fixture assertions because the old names still compile.
 
@@ -3150,6 +3154,8 @@ bun test tests/runtime-diagnostics.test.ts tests/aliases.test.ts tests/contribut
 
 Expected: all pass. This is the first required compile of the final signatures. If the positive/negative cases fail, make up to three serious repairs without changing spec names, then take Task 6's applicable fallback and update every later artifact consistently.
 
+Before the combined contract/docs commit, re-run the focused physical builder-renames declaration producer/consumer proof against the contracted tree: classic and native emitters, CTS and MTS output, both downstream consumers after producer-source removal. Reuse the retained Task 5/6 harness with paths explicitly updated to the current candidate, preserve its emitted files/commands, and keep the full matrix in Task 14's required gates. Verify the exact retained public inventory: `BuilderWithServices`, `BuilderWithTokenService`, `BuilderWithServiceAlias`, `BuilderWithReplacedService`, `BuilderWithInstalledModules`, `BuilderBuildModule`, and `BuilderWithCollectionContribution`. Assert that token service remains positional, replacement keeps both checked overloads, and `BuilderBuildModule` has exactly its one checked bag overload; do not export private helpers or annotate the inferred producer to obtain a pass.
+
 Do not commit yet: checked snippets and generated API files still name the removed methods. Continue directly to Task 13 and make one green contract-plus-docs commit after `npm run docs:check` passes.
 
 ---
@@ -3232,6 +3238,8 @@ test "$(wc -l < docs/agent/api-card.md)" -le 400
 
 Expected: all commands exit 0; `AGENTS.md` is at most 150 lines; the contracted API card is at most the unchanged 400-line limit; `docs/reference/index/type-aliases/BuilderContribute.md` is gone and `BuilderWithCollectionContribution.md` exists. The current generator writes to a temporary tree, then removes `docs/reference` recursively before copying that tree into place, so successful generation necessarily deletes the old page. If the old page remains, treat that as a failed or bypassed generation: rerun `npm run docs:generate` and investigate its exit/output. Never remove or hand-edit one generated Markdown page as a substitute for a successful full-tree generation.
 
+Extend the exact rendering/export audit to pin all seven retained callable-facade pages after full generation: under `docs/reference/index/type-aliases/`, `BuilderWithServices.md`, `BuilderWithTokenService.md`, `BuilderWithServiceAlias.md`, `BuilderWithInstalledModules.md`, and `BuilderWithCollectionContribution.md`; under `docs/reference/index/interfaces/`, `BuilderWithReplacedService.md` and `BuilderBuildModule.md`. Their signatures must reflect the positional token fallback, retained replacement overloads and sole module bag form. The retired `BuilderContribute` export/page must disappear. This preserves the portability surface rather than accidentally deleting it while shrinking the card. The combined commit still requires the unchanged card limit and complete docs checks.
+
 - [ ] **Step 5: Commit the contract and documentation together**
 
 ```bash
@@ -3282,7 +3290,7 @@ node --test tools/graph/test/builder-names.test.mjs
 npm run agent-eval:test
 ```
 
-Expected: every command exits 0. The graph test reports `pass 2`, `fail 0`.
+Expected: every command exits 0. The graph test reports `pass 3`, `fail 0`, including the explicit equal-omission contribution regression.
 
 - [ ] **Step 3: Run the complete phase gate in master-plan order**
 
