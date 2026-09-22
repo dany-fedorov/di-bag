@@ -1380,6 +1380,8 @@ The `toThrow` inventory sees only `toThrow(` followed by a string or a regular e
 
 - Create: `tests/types/builder-renames-consumer.ts`
 - Modify: `tests/native-package.test.ts` (physical declaration producer/consumer registration)
+- Create for the observed portability repair: `src/builder-method-types.ts`
+- Modify for that repair: `src/di-bag.ts`, `src/index.ts`, `tests/builder-renames.test.ts`
 
 **Interfaces:**
 - Consumes: the signatures of Tasks 2 to 4.
@@ -1528,6 +1530,15 @@ Register a direct source-consumer test named `0.5.0 builder shapes retain declar
 
 These new fixture snippets remain uncompiled until execution. A private-name failure returns the affected Tasks2–4 signature for repair before Task6; it does not authorize exporting admission/fold helpers or annotating away inference.
 
+**Execution ruling from actual physical declaration failure.** The first source fixture run, after documented setup repairs, passes all four cases. The physical installed-package matrix then rejects six extracted methods with private-name diagnostics in classic6/native7; only `withCollectionContribution`, already named by a public callable facade, is portable. Raw evidence is retained as `phase05-task5-physical` in the resume scratch gate directory. This is an observed failure, not a claim that the repair below compiles.
+
+Create exactly six public callable facades in `src/builder-method-types.ts`: `BuilderWithServices`, `BuilderWithTokenService`, `BuilderWithServiceAlias`, `BuilderWithReplacedService`, `BuilderBuildModule`, and `BuilderWithInstalledModules`, each parameterized by `Entries` and `Constraints`. Export them from `src/index.ts`. Move the corresponding Tasks 2–4 signatures verbatim into these types, preserving generic order, `const`, `NoInfer`, never guards, admission positions, returns and both overload orders. The replacement facade keeps its dependency-free fast overload first; the module facade keeps the temporary positional overload until Task 12. Underlying admission, synthesis, fold and diagnostic helpers remain private.
+
+Each public member becomes a readonly field typed by its facade and assigned the shared private prototype implementation with a localized assertion. Private runtime bodies accept runtime-level inputs and retain existing code, including `buildModule`'s `arguments.length` check. Do not allocate per-instance arrow closures or bind methods, duplicate the generic signatures on private bodies, annotate the producer fixture, or weaken inferred consumer results. The change adds six function-reference fields per builder, with shared function identity and dynamic receiver behavior; descriptor/prototype layout is not a documented API promise. Add focused runtime checks for shared identity and borrowing `withServices` onto a different builder.
+
+Prove the repaired source fixtures, focused runtime checks, source typecheck and fresh build. Then use a targeted installed producer/consumer probe for these seven methods under classic6/native7 and CTS/MTS, retaining emitted declarations and their import inventory. The inferred extracted values must name public callable facades. After that probe passes, run the required existing full physical matrix once. Regenerate documentation from the fresh build and save the generated diff, including new files, before restoring artifacts under the existing exception. Verify callable signatures, examples and all per-call error codes; only actually observed generated budget/drift failures remain exempt. Task 6 retains its unchanged measurement rules; no performance claim is borrowed from the old signatures.
+
+
 - [ ] **Step 2: The negative fixture for the bags**
 
 Create `tests/types/negative/builder-renames.ts`. The marker texts are the messages of the checks each signature reuses, as they read in `src` at 0.4.0.
@@ -1573,7 +1584,7 @@ DiBag.createBuilder().withServices({ a: () => 1 }).withServiceAlias({
   targetServiceKey: 'a',
 });
 
-DiBag.createBuilder().withServices({ a: () => 1 }).withServiceAlias({
+DiBag.createBuilder().withServices({ a: (): readonly string[] => [] }).withServiceAlias({
   // diagnostic: alias destination requires a single-service token
   aliasKey: tools,
   targetServiceKey: 'a',
@@ -1643,7 +1654,7 @@ DiBag.createBuilder().withInstalledModules([
 ]);
 
 // A module export collides with the builder.
-DiBag.createBuilder().withServices({ logger: () => 1 }).withInstalledModules([
+DiBag.createBuilder().withServices({ logger: () => ({ log: (line: string) => line }) }).withInstalledModules([
   feature,
   // diagnostic: register introduces new names or typed tokens only
   logging,
@@ -1698,9 +1709,9 @@ What decides the spikes here: for S7, cases one to three of `installed-modules.t
 - [ ] **Step 5: Commit**
 
 ```bash
-git add tests/types/builder-renames.ts tests/types/builder-renames-consumer.ts tests/types/negative/builder-renames.ts tests/types/negative/installed-modules.ts tests/types.test.ts tests/native-package.test.ts
+git add tests/types/builder-renames.ts tests/types/builder-renames-consumer.ts tests/types/negative/builder-renames.ts tests/types/negative/installed-modules.ts tests/types.test.ts tests/native-package.test.ts src/builder-method-types.ts src/di-bag.ts src/index.ts tests/builder-renames.test.ts
 git commit -F - <<'MSG'
-test(types): fixtures for the builder bags and the module list
+fix(types): preserve builder methods in consumer declarations
 
 Negative cases put their marker on the offending property or list element, so
 a diagnostic reported on the whole call fails the fixture.
@@ -1954,10 +1965,12 @@ MSG
 
 #### Fallback for S1, per method: two positional parameters
 
+After the Task 5 portability repair, change the checked public signature in `src/builder-method-types.ts` (or `src/contribution-types.ts` for the contribution), and its corresponding private runtime implementation in `src/di-bag.ts`. Keep the callable facade and physical declaration fixture portable. The steps below describe the same parameter/body changes at those owners; do not restore a private-name-leaking public method signature.
+
 Take it only for a method that failed its rule, and keep the bag for the others. For a failed method `M` with positional names `(first, second)`: `withTokenService(token, provider)`, `withServiceAlias(aliasKey, targetServiceKey)`, `withCollectionContribution(collectionToken, provider)`, `withReplacedService(serviceKey, provider)`.
 
-1. In `src/di-bag.ts` (for the contribution, in `src/contribution-types.ts`), replace the parameter `options: { readonly first: A; readonly second: B }` by the two parameters `first: A, second: B` with the SAME types `A` and `B`. This is exactly the 0.4.0 signature under the new name. Keep the `...invalid` rest parameter where the method has one.
-2. In the body, delete the `snapshotOptionsBag` line and use the parameters directly. The method then has no new validation site and raises no `DI_BAG_INVALID_ARGUMENT`.
+1. In the callable facade in `src/builder-method-types.ts` (for the contribution, in `src/contribution-types.ts`), replace the checked parameter `options: { readonly first: A; readonly second: B }` by `first: A, second: B` with the SAME types `A` and `B`. Preserve generic order, overload order and the `...invalid` rest parameter where present. Keep the class field typed by this facade.
+2. In `src/di-bag.ts`, change only the corresponding runtime implementation to two runtime-level parameters, delete its `snapshotOptionsBag` call and use those parameters directly. The contribution keeps its existing callable implementation style; the other methods keep their shared private implementations. The operation then has no options-bag validation site and raises no `DI_BAG_INVALID_ARGUMENT`.
 3. In the JSDoc, write one `@param` per parameter, remove `DI_BAG_INVALID_ARGUMENT` from `@throws`, and make the example positional.
 4. In `tests/builder-renames.test.ts`: remove the method's row from the `cases` list of `a two-input builder method rejects a malformed options bag...`, and call it positionally everywhere else. For `withTokenService` also rewrite `an options bag is read once...` against a method that kept its bag, or delete that test if none did.
 5. In the fixtures of Task 5, call the method positionally; the markers stay on the offending ARGUMENT line.
@@ -1967,18 +1980,31 @@ Take it only for a method that failed its rule, and keep the bag for the others.
 
 #### Fallback for S7: the singular `withInstalledModule(module)`
 
+After the Task 5 portability repair, replace `BuilderWithInstalledModules` with `BuilderWithInstalledModule` in `src/builder-method-types.ts` and its index export; put the singular signature below inside that callable facade. Rename the public field and shared private implementation together. Update the physical producer/consumer fixture to extract and exercise the singular facade; do not delete this portability proof.
+
 1. Delete `src/install-types.ts` and its import.
-2. In `src/di-bag.ts`, replace `withInstalledModules` by the method below. Its signature is `installModule`'s, under the new name:
+2. In `src/builder-method-types.ts`, replace the list facade by this singular callable. Its checked signature is `installModule`'s, under the new name:
 
 ```ts
-  withInstalledModule<P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(
+export type BuilderWithInstalledModule<Entries extends Entry, Constraints extends NeedConstraint> =
+  <P extends object, R extends object, MC extends NeedConstraint, D extends Registrations>(
     module: Module<P, R, MC, D> & IntroducesKeys<EntryKeys<Entries>, keyof D> &
       IncrementalChecked<Entries, D> &
       IncrementalConstraints<Constraints, MC, RegistrationsFromEntries<Entries>, D>,
-  ): Builder<Entries | RegistrationEntries<D>, Constraints | MC> {
+  ) => import('./di-bag').Builder<Entries | RegistrationEntries<D>, Constraints | MC>;
+```
+
+In `src/di-bag.ts`, rename the public field and replace the list runtime implementation only:
+
+```ts
+  readonly withInstalledModule: BuilderWithInstalledModule<Entries, Constraints> =
+    this.#withInstalledModule as BuilderWithInstalledModule<Entries, Constraints>;
+  #withInstalledModule(module: unknown): unknown {
     return new Builder(this.#graph.withInstallation(moduleGraph(module, 'withInstalledModule'), 'withInstalledModule'), this.context);
   }
 ```
+
+The singular facade remains uncompiled until this fallback is actually needed and tested; retain the Task 5 physical proof.
 
    Its JSDoc is the one of `withInstalledModules` with "a sealed module" for "sealed modules in list order", without the sentence about the list, without `DI_BAG_INVALID_ARGUMENT`, and with the example calling `.withInstalledModule(greeting)`.
 3. In `src/module.ts` and `src/runtime.ts`, the operation union becomes `'installModule' | 'withInstalledModule'`, `moduleGraph` loses its `index` parameter, and its message for the new operation is `withInstalledModule requires a genuine module`.
@@ -2941,13 +2967,13 @@ MSG
 ### Task 12: Remove the 0.4.0 builder surface (contract)
 
 **Files:**
-- Modify: `src/di-bag.ts`, `src/contribution-types.ts`, `src/index.ts`, `src/module.ts`, `src/registration.ts`, `src/aliases.ts`, `src/runtime.ts`, `src/provider-operations.ts`, `src/types.ts`, `src/alias-types.ts`
+- Modify: `src/di-bag.ts`, `src/contribution-types.ts`, `src/index.ts`, `src/module.ts`, `src/registration.ts`, `src/aliases.ts`, `src/runtime.ts`, `src/provider-operations.ts`, `src/types.ts`, `src/alias-types.ts`, `src/builder-method-types.ts`
 - Modify: `tests/types/negative/api-renaming.ts`, `tests/types/negative/builder-renames.ts`, `tests/api-naming-known-violations.json`
 - Modify: migrated compiler markers and runtime assertions under `tests/`
 
 **Interfaces:**
 - Consumes: Task 6's recorded choice. The target signatures are exactly the full signatures in Tasks 2–4, or the corresponding complete fallback in Task 6.
-- Produces: `Builder` exposes only `withServices`, `withTokenService`, `withServiceAlias`, `withCollectionContribution`, `withReplacedService`, `withInstalledModules`, `verifyGraphAtCompileTime`, `buildModule({ exportedServiceKeys, moduleLabel? })`, and `buildContainer`. It exports only `BuilderWithCollectionContribution`.
+- Produces: `Builder` exposes only `withServices`, `withTokenService`, `withServiceAlias`, `withCollectionContribution`, `withReplacedService`, `withInstalledModules`, `verifyGraphAtCompileTime`, `buildModule({ exportedServiceKeys, moduleLabel? })`, and `buildContainer`. It removes `BuilderContribute`, retains `BuilderWithCollectionContribution`, and retains the six public callable facades required by Task 5 (using singular `BuilderWithInstalledModule` if S7 falls back).
 
 - [ ] **Step 1: Add negative coverage before deleting declarations**
 
@@ -2992,22 +3018,12 @@ Run `bun test tests/types.test.ts -t "api renaming|builder-renames"`. Expected b
 
 - [ ] **Step 2: Delete old declarations and compatibility dispatch**
 
-In `src/di-bag.ts`, remove both `register` overloads and implementation, `alias`, `contribute`, both `replace` overloads and implementation, `installModule`, both `verifyGraph` declarations, `build`, the positional `buildModule` overload, and every old JSDoc example. Replace the dual `buildModule` implementation with the single body:
+In `src/di-bag.ts`, remove both `register` overloads and implementation, `alias`, `contribute`, both `replace` overloads and implementation, `installModule`, both `verifyGraph` declarations, `build`, and every old builder JSDoc example. Remove the positional `buildModule` overload only from `BuilderBuildModule` in `src/builder-method-types.ts`; retain its existing checked options-bag signature. Keep the public field typed by that facade, and replace only the private dual runtime implementation:
 
 ```ts
-  buildModule<const ExportedServiceKeys extends readonly unknown[]>(
-    options: ModuleOptions & {
-      readonly exportedServiceKeys: ExportedServiceKeys & Selection<RegistrationsFromEntries<Entries>, Constraints, ExportedServiceKeys, 'buildModule'> & ModuleExportAdmission<ExportedServiceKeys> &
-        SealAdmission<RegistrationsFromEntries<Entries>, Extract<SelectionKey<ExportedServiceKeys[number]>, keyof RegistrationsFromEntries<Entries>>, Constraints>;
-    },
-  ): Module<
-    ExportedServices<ServicesOf<RegistrationsFromEntries<Entries>>, Extract<SelectionKey<ExportedServiceKeys[number]>, keyof RegistrationsFromEntries<Entries>>>,
-    ExternalRequirements<ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<ExportedServiceKeys[number]>, keyof RegistrationsFromEntries<Entries>>>>,
-    ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<ExportedServiceKeys[number]>, keyof RegistrationsFromEntries<Entries>>>,
-    ModulePublicProviders<RegistrationsFromEntries<Entries>, Extract<SelectionKey<ExportedServiceKeys[number]>, keyof RegistrationsFromEntries<Entries>>>
-  > {
+  #buildModule(options: unknown): unknown {
     const { exportedServiceKeys, moduleLabel } = snapshotOptionsBag(options, 'buildModule', ['exportedServiceKeys'], ['moduleLabel']);
-    return sealModule(this.#graph, exportedServiceKeys, moduleLabel) as never;
+    return sealModule(this.#graph, exportedServiceKeys, moduleLabel);
   }
 ```
 
@@ -3018,6 +3034,8 @@ In `src/contribution-types.ts`, delete `BuilderContribute`. In `src/index.ts`, r
 ```ts
 export type { BuilderWithCollectionContribution } from './contribution-types';
 ```
+
+In `src/builder-method-types.ts`, remove only the deprecated positional overload from `BuilderBuildModule`; keep the options-bag signature and all other adopted callable facades. Apply admission wording changes to the shared underlying helpers as planned. The private `#buildModule` runtime implementation loses its positional branch while the public field retains its portable facade. Preserve both replacement overloads and all Task 5 physical declaration coverage.
 
 In `src/module.ts`, delete `ModuleOptions.label` and `positionalModuleLabel`. `sealModule` keeps `(graph, keys, moduleLabel?)`; `moduleGraph` accepts only the selected Task 6 operation (`withInstalledModules` plus `index`, or singular `withInstalledModule`). In `src/runtime.ts`, `withInstallation` reports that same new operation without an old-name default.
 
