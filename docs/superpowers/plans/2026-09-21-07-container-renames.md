@@ -1048,7 +1048,8 @@ describe('0.5 container names', () => {
     const renamed = feature.withRenamedExport(options);
     expect({ currentReads, newReads }).toEqual({ currentReads: 1, newReads: 1 });
     expect(renamed).not.toBe(feature);
-    const callRename = feature.withRenamedExport as unknown as (options: unknown) => unknown;
+    const callRename = (options: unknown): unknown =>
+      (feature.withRenamedExport as unknown as (options: unknown) => unknown)(options);
 
     try {
       callRename({ currentExportKey: 'value', newExportKey: 'answer', extra: true });
@@ -1865,13 +1866,19 @@ node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-
 
 Migrate each reported `ScopeOptions` annotation, receiver typed `any`, spread, or indirect options object at its construction site. Do not rerun the codemod.
 
+**Selected S5 spelling requires an explicit hand migration.** The shipped map remains original-0.4 `Bag.inspectAll -> serviceSnapshot`. The engine's initial name gates use only `from` spellings, so current `inspectCollection` calls and references are neither rewritten nor reported. Do not add a fictional 0.4 map entry or a transitive map hop. Capture a separate exact `inspectCollection` inventory before the write, then retain its hand-edit diff separately from the checker report. The reviewed Phase 6 entry inventory has 26 textual rows in eleven typed files: seven in `tests/collection-tokens.test.ts` (including an operation literal), two in `tests/contributions-runtime-fixture.ts`, three in `tests/contributions.test.ts`, and one each in `tests/final-adversarial-runtime-fixture.ts`, `tests/nested-modules.test.ts`, `tests/observers-runtime-fixture.ts`, `tests/observers.test.ts`, and `tests/types/collection-tokens.ts`; six in `tests/types/negative/contributions.ts`; and three old reflected-binding rows across `tests/types/contributions.ts` and its consumer. Recount at execution and explain any delta.
+
+Migrate those member uses to `serviceSnapshot`, preserving all other negative markers and output assertions. Preserve the old collection-only reflected producer context: rename its binding to `collectionSnapshotMethod`, assign `bag.serviceSnapshot`, and update its existing consumer import/call without deleting the `reflectedSnapshots` exact assertion. Keep Task3's separate `serviceSnapshotMethod` on `aggregateBag`; that fixture additionally proves named snapshots in a different registration context.
+
+The two old method-specific wrong-kind checks in `tests/collection-tokens.test.ts` need a deliberate semantic adaptation: `inspect(collection)` and `inspectCollection(single)` both become valid `serviceSnapshot` calls. Assert lazy collection-array and single-service snapshots for those valid calls, then retain two genuine token-kind rejections by passing a forged single-service token for the collection graph's symbol and a forged collection token for the single-service graph's symbol. Both must assert `DI_BAG_WRONG_TOKEN_KIND` and exact `serviceSnapshot` operation/kind details. Keep the separate `resolve` and `resolveCollection` wrong-kind assertions unchanged. This follows the specified snapshot consolidation and does not waive graph-kind validation.
+
 - [ ] **Step 3: Audit and test**
 
 ```bash
 git diff --check
 git diff --stat
 git diff -- tests/types/negative
-grep -rnE '\.(createScope|fork|inspect|inspectGraph|renameExport)\(' tests examples scripts/agent-eval tools/graph/test/fixtures --include='*.ts' --include='*.tsx'
+grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(' tests examples scripts/agent-eval tools/graph/test/fixtures --include='*.ts' --include='*.tsx'
 grep -rnE "from ['\"](di-bag/node|.*src/node)['\"]" tests examples scripts/agent-eval tools/graph/test/fixtures --include='*.ts' --include='*.tsx'
 npm run typecheck
 bun test tests/container-derivation.test.ts tests/container-names.test.ts tests/scopes.test.ts tests/selected-scopes.test.ts tests/modules.test.ts tests/observers.test.ts
@@ -1929,6 +1936,7 @@ const rules = [
   [/\bScopeOptions\b/g, 'CreateChildContainerOptions', 'child options type'],
   [/\bObserverOptions\b/g, 'LifecycleObserver', 'observer type'],
   [/\.inspectGraph\(/g, '.graphSnapshot(', 'graph snapshot'],
+  [/\.inspectCollection\(/g, '.serviceSnapshot(', 'collection snapshot'],
   [/\.inspect\(/g, '.serviceSnapshot(', 'service snapshot'],
   [/\.renameExport\(\s*([^,()]+?)\s*,\s*([^,()]+?)\s*\)/g, '.withRenamedExport({ currentExportKey: $1, newExportKey: $2 })', 'module export bag'],
   [/\bobservers\s*:/g, 'lifecycleObservers:', 'observer list field'],
@@ -1938,7 +1946,7 @@ const rules = [
   [/\bonError\s*\(/g, 'onObserverFailure(', 'observer failure method'],
 ];
 const inventory = { before: {}, changes: {}, after: {} };
-const retired = /\.(?:createScope|fork|inspect|inspectGraph|renameExport)\(|\b(?:ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b|\b(?:observers|onEvent|onError)\s*:/g;
+const retired = /\.(?:createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(|\b(?:ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b|\b(?:observers|onEvent|onError)\s*:/g;
 for (const file of files) {
   const unresolved = readFileSync(file, 'utf8').match(/\.(?:createScope|fork)\s*\(/g) ?? [];
   if (unresolved.length) throw new Error(`${file}: ${unresolved.length} derivation call(s) require an explicit migration to the selected container signature before this script writes anything`);
@@ -1988,6 +1996,8 @@ The expected ten calls and their exact replacements are:
 | `tests/package.test.ts` generated source | 1 | `composed.fork(['clock', 'promised'], asyncOverrides)` | `composed.createIndependentContainer(['clock', 'promised'], asyncOverrides)` |
 
 Apply only those ten replacements before running `reshape-untyped.mjs`. Then run the same `rg` into `/tmp/di-bag-phase-06/untyped-derivations.after.txt`; expected output is empty and `test ! -s` passes. `scripts/agent-eval/**` is excluded because Task 6 sends those real TypeScript calls through the checker-backed codemod. The graph tool's 0.4 fixtures remain deliberately excluded compatibility inputs.
+
+The separate S5 untyped snapshot inventory has one current executable call: `tests/acquisition-retention.node.mjs` uses `bag.inspectCollection(token)[0]`. Its explicit collection-snapshot rule changes this to `bag.serviceSnapshot(token)[0]` while preserving every retention assertion. The private `BagRuntime.inspectCollection` channel remains unchanged. `scripts/phase05-strings.py` is historical migration evidence, outside this script's input globs: do not execute or rewrite its old replacement literals, and distinguish that exact file in residual textual audits.
 
 In `tests/compiler.ts` and all three compiler scripts, apply the codemod table inside source strings: positional replacement pairs with optional checked sharing bags, `Container`, snapshots, module bag, and observer fields. Keep the twelve cases logically identical.
 
@@ -2047,7 +2057,7 @@ node /tmp/di-bag-phase-06/reshape-untyped.mjs
 cat /tmp/di-bag-phase-06/untyped-inventory.json
 rg -n '\.(createScope|fork)\(' tests/*.node.mjs tests/compiler.ts tests/package.test.ts tests/native-package.test.ts tests/token-package.test.ts tests/release-artifacts.test.ts tests/host-builtin-module.ts scripts --glob '!scripts/agent-eval/**' > /tmp/di-bag-phase-06/untyped-derivations.after.txt
 test ! -s /tmp/di-bag-phase-06/untyped-derivations.after.txt
-grep -rnE '\.(createScope|fork|inspect|inspectGraph|renameExport)\(' tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
+grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(' tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
 grep -rnE '\b(Bag|ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b' tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
 grep -rnE '\b(observers|onEvent|onError)\s*:' tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
 wc -l AGENTS.md
@@ -2166,7 +2176,7 @@ Expected: `10 ...bag is closing` and `5 ...bag is closed`. No replacement comman
 bun test tests/container-names.test.ts
 bun test tests/types.test.ts --test-name-pattern 'api-renaming|container derivation|container-derivation'
 grep -rnE '^class Bag\b|export type \{[^}]*\bBag\b|\b(ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
-grep -rnE '\.(createScope|fork|inspect|inspectGraph|renameExport)\(' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
+grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
 grep -rnE "operation: '(inspect|inspectGraph|createScope|fork|renameExport)'|\b(observers|onEvent|onError)\s*:" src tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
 ```
 
@@ -2406,7 +2416,7 @@ This one commit owns Tasks 8 through 11: removal of old container/module/observe
 
 ```bash
 grep -rnE '^class Bag\b|export type \{[^}]*\bBag\b|\b(ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
-grep -rnE '\.(createScope|fork|inspect|inspectGraph|renameExport)\(' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
+grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
 grep -rnE "operation: '(inspect|inspectGraph|createScope|fork|renameExport)'|\b(observers|onEvent|onError)\s*:" src tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
 grep -rnE "di-bag/node|src/node|reference/node|['\"]\./node['\"]" package.json tsconfig.build.json src tests examples scripts tools .github AGENTS.md docs/agent --exclude-dir='container-renames'
 grep -rnE "from ['\"]node:|require\(['\"]node:" src
