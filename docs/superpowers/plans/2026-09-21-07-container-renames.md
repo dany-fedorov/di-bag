@@ -2156,7 +2156,7 @@ export type { Container, Builder };
 
 Every `new Bag`, return type, `this` type, builder `buildContainer` return, JSDoc `{@link Bag...}`, example variable, and public-facing prose becomes `Container`/`container`. Audit identifier names matching `BuildBag|BagBuild|BuiltBag` and rename any phase-5 helper to the equivalent `BuildContainer|ContainerBuild|BuiltContainer` form. Export `Container` from `src/index.ts` and remove `Bag`.
 
-Remove Task6's temporary `Bag as Container` export alias while renaming the class; the final declaration exports only the renamed `Container` and `Builder` types. Preserve the alias prerequisite's migrated consumer assertions.
+Remove Task6's temporary `Bag as Container` export alias while renaming the class; the final declaration exports only the renamed `Container` and `Builder` types. In `tests/types/lifetimes.ts`, retire only the expand-only `Bag as LegacyContainer` import and `ContainerAliasIdentity` equality. Do not turn that equality into a tautological comparison of `Container` with itself. Retain exported `defaultBag: Container`, `ContainerAliasValue`, producer-hidden declaration consumption, and the reflected-method wrapper assertions.
 
 Keep `BagRuntime`: it is an internal runtime/ownership engine, never exported, and renaming it would add churn without changing user vocabulary. Keep `DiBag`, every `DiBag*Error`, the package name, and `DI_BAG_*` codes because the spec explicitly preserves them.
 
