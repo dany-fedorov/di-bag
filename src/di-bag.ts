@@ -119,7 +119,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * An async factory's service is its Promise; nothing is awaited for you.
    * @param token - An existing public string name or typed token.
    * @returns The service exposed by the selected registration.
-   * @throws `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_INVALID_TOKEN` or `DI_BAG_MISSING_REGISTRATION` for a bad selection;
+   * @throws `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_MISSING_REGISTRATION` for a bad selection;
    * during acquisition `DI_BAG_MISSING_DEPENDENCY`, `DI_BAG_CYCLE`, `DI_BAG_LIFETIME_DEPENDENCY`, `DI_BAG_INVALID_DEPENDENCY_ACCESS`,
    * `DI_BAG_STRUCTURAL_THENABLE`, `DI_BAG_INVALID_CLASSIFIER_RESULT`, `DI_BAG_INVALID_METADATA`, `DI_BAG_PLUGIN_VALIDATION`,
    * or the factory's own error.
@@ -172,7 +172,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * Inspect static metadata and copied acquisition state without resolving a service.
    * @param token - An existing public string name or typed token.
    * @returns A frozen point-in-time snapshot. Application-owned metadata payloads are not frozen.
-   * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_MISSING_REGISTRATION` for a bad selection; `DI_BAG_CYCLE` for an alias cycle.
+   * @throws `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_MISSING_REGISTRATION` for a bad selection; `DI_BAG_CYCLE` for an alias cycle.
    * @example
    * ```ts
    * const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
@@ -234,7 +234,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * Create a tracked child that borrows selected parent acquisitions.
    * @param options - A checked selection of non-transient services to share lazily.
    * @returns A child owned by this bag; closing the parent closes the child first.
-   * @throws `DI_BAG_INVALID_SCOPE` for a malformed or transient share selection; `DI_BAG_INVALID_TOKEN` for a bad token;
+   * @throws `DI_BAG_INVALID_SCOPE` for a malformed or transient share selection; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
    * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`.
    */
   createScope<const S extends readonly unknown[]>(options: ScopeOptions<ServiceRegistrations, S, Constraints>): Bag<ScopedAliases<ServiceRegistrations, ServiceRegistrations, S>, Constraints>;
@@ -244,7 +244,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * @param overrides - Own registration properties for every selected key.
    * @param options - A disjoint selection of non-transient parent acquisitions to share.
    * @returns A child with fresh scoped acquisitions and ownership for unshared services.
-   * @throws `DI_BAG_INVALID_SCOPE` for invalid selections, overrides, or sharing; `DI_BAG_INVALID_TOKEN` or `DI_BAG_INVALID_REGISTRATION`
+   * @throws `DI_BAG_INVALID_SCOPE` for invalid selections, overrides, or sharing; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_INVALID_REGISTRATION`
    * for malformed input; `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_CLASSIFIER_REQUIRED` as for {@link Builder.build}.
    */
   createScope<
@@ -297,7 +297,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * @param keys - Existing names or tokens to replace.
    * @param overrides - Own registration properties for every selected key.
    * @returns A fresh ownership family whose graph uses the checked replacements.
-   * @throws `DI_BAG_INVALID_OVERRIDE` for an absent key or a missing own override; `DI_BAG_INVALID_TOKEN` or `DI_BAG_INVALID_REGISTRATION`
+   * @throws `DI_BAG_INVALID_OVERRIDE` for an absent key or a missing own override; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_INVALID_REGISTRATION`
    * for malformed input; `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_CLASSIFIER_REQUIRED` as for {@link Builder.build}.
    * @example
    * ```ts
@@ -378,7 +378,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * @returns A promise for this bag once every listed service is ready.
    * @throws {@link DiBagServiceReadinessError} (`DI_BAG_SERVICE_READINESS_FAILED`) after this bag has closed because a factory failed;
    * {@link DiBagServiceReadinessCancelledError} (`DI_BAG_SERVICE_READINESS_CANCELLED`) promptly on abort or timeout, naming what was still pending;
-   * `DI_BAG_INVALID_STARTUP` for malformed keys or options and `DI_BAG_INVALID_TOKEN` for a bad token, both before any factory runs and with this bag left open;
+   * `DI_BAG_INVALID_STARTUP` for malformed keys or options and `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind, all before any factory runs and with this bag left open;
    * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`. Each arrives as a rejection.
    * @example
    * ```ts
@@ -449,7 +449,8 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
    * @param more - A finite object whose own string keys are service names and values are registrations.
    * @returns A new builder containing snapshots of the supplied registrations.
-   * @throws `DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_REGISTRATION` for a name already registered.
+   * @throws `DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_REGISTRATION` for a name already registered;
+   * `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
    * @example
    * ```ts
    * type Clock = { now(): number };
@@ -469,7 +470,7 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * @param token - A new typed token identity.
    * @param registration - A registration whose exposed output satisfies the token service type.
    * @returns A new builder retaining the provider's metadata, lifetime, dependencies, and ownership stages.
-   * @throws `DI_BAG_INVALID_TOKEN` for a bad token; `DI_BAG_DUPLICATE_REGISTRATION` when it is already registered;
+   * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind; `DI_BAG_DUPLICATE_REGISTRATION` when it is already registered;
    * `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
    */
   register<T extends TokenBase, V extends Registration>(
@@ -494,7 +495,7 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * @param destination - A new string name or typed token.
    * @param target - The existing name or token whose canonical acquisition is reused.
    * @returns A new builder; aliases add no cache or ownership of their own.
-   * @throws `DI_BAG_INVALID_TOKEN` for a bad token; `DI_BAG_DUPLICATE_REGISTRATION` when the destination exists;
+   * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind; `DI_BAG_DUPLICATE_REGISTRATION` when the destination exists;
    * `DI_BAG_INVALID_ALIAS` for an absent named target.
    * @example
    * ```ts
@@ -524,7 +525,7 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * @param token - The collection's typed token.
    * @param registration - A registration whose output satisfies the token service type.
    * @returns A new builder preserving contribution order.
-   * @throws `DI_BAG_INVALID_TOKEN` for a bad token; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
+   * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
    * @example
    * ```ts
    * const toolsKey = Symbol('tools');
@@ -556,7 +557,8 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * @param registration - The replacement, checked against every surviving consumer.
    * @returns A new builder with the replacement.
    * @typeParam V - The exact replacement factory or disposable-factory type.
-   * @throws `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
+   * @throws `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid registration;
+   * `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
    * @example
    * ```ts
    * const builder = DiBag.createBuilder().register({ clock: () => Date.now() }).replace('clock', () => 0);
@@ -572,7 +574,7 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * @param key - The single existing name or token to replace.
    * @param registration - A replacement compatible with the token and known consumers.
    * @returns A new builder with the replacement and its inferred service type.
-   * @throws `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_TOKEN` or `DI_BAG_INVALID_REGISTRATION` for malformed input.
+   * @throws `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_INVALID_REGISTRATION` for malformed input.
    */
   replace<const K extends string | TokenBase, V extends Registration>(
     key: K & NoInfer<ReplacementAdmission<RegistrationsFromEntries<Entries>, Constraints, K>>,
@@ -598,7 +600,8 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * The installing host must register every requirement the module does not register itself.
    * @param module - A module whose public names do not collide and whose external requirements remain checkable.
    * @returns A new builder exposing only the module's selected exports.
-   * @throws `DI_BAG_INVALID_MODULE` for a value not made by `buildModule`; `DI_BAG_DUPLICATE_REGISTRATION` when an export name is already registered.
+   * @throws `DI_BAG_INVALID_MODULE` for a value not made by `buildModule`; `DI_BAG_DUPLICATE_REGISTRATION` when an export name is already registered;
+   * `DI_BAG_WRONG_TOKEN_KIND` when an installed token kind conflicts with this graph.
    * @example
    * ```ts
    * const greeting = DiBag.createBuilder()
@@ -640,7 +643,7 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * error messages, cycle paths, `inspectGraph()`, and observer events, and nested labels compose as `outer/inner/key`.
    * @returns An immutable module that can be renamed or installed in another builder.
    * @throws `DI_BAG_INVALID_EXPORT` if the selection is not a tuple, contains an absent name or token, or the label is not a non-empty string;
-   * `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token.
+   * `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token; `DI_BAG_WRONG_TOKEN_KIND` when an exported token kind conflicts with this graph.
    * @example
    * ```ts
    * const orders = DiBag.createBuilder()
@@ -753,7 +756,7 @@ export interface DiBagApi {
   token: typeof token;
   /**
    * Create a positional dependency that yields `undefined` only when the token is unregistered.
-   * @throws `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token.
+   * @throws `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token; `DI_BAG_WRONG_TOKEN_KIND` when a collection token is used as an optional single-service dependency.
    * @example
    * ```ts
    * const clockKey = Symbol('clock');

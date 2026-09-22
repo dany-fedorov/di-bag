@@ -69,7 +69,7 @@ const clock = DiBag.token(clockKey).of<{ now(): number }>();
 ```
 
 ### `DiBag.optional(token)` {#dibag-optional}
-Create a positional dependency that yields `undefined` only when the token is unregistered. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
+Create a positional dependency that yields `undefined` only when the token is unregistered. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const clockKey = Symbol('clock');
 const clock = DiBag.token(clockKey).of<{ now(): number }>();
@@ -148,7 +148,7 @@ const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform:
 ## Builder {#builder}
 
 ### `builder.register(more)` {#builder-register}
-Add new string-named registrations. Throws: [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
+Add new string-named registrations. Throws: [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
 ```ts
 type Clock = { now(): number };
 const builder = DiBag.createBuilder()
@@ -157,13 +157,13 @@ const builder = DiBag.createBuilder()
 ```
 
 ### `builder.alias(destination, target)` {#builder-alias}
-Add another lookup name or token for an existing service. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_INVALID_ALIAS`](errors.md#di-bag-invalid-alias).
+Add another lookup name or token for an existing service. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_INVALID_ALIAS`](errors.md#di-bag-invalid-alias).
 ```ts
 const builder = DiBag.createBuilder().register({ clock: () => Date.now() }).alias('now', 'clock');
 ```
 
 ### `builder.contribute(token, registration)` {#builder-contribute}
-Append a provider to a typed-token collection. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+Append a provider to a typed-token collection. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
 ```ts
 const toolsKey = Symbol('tools');
 const tools = DiBag.token(toolsKey).forCollectionOf<string>();
@@ -171,13 +171,13 @@ const builder = DiBag.createBuilder().contribute(tools, () => 'search').contribu
 ```
 
 ### `builder.replace(key, registration)` {#builder-replace}
-Replace an existing string-named registration with a dependency-free factory. Throws: [`DI_BAG_INVALID_REPLACEMENT`](errors.md#di-bag-invalid-replacement), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
+Replace an existing string-named registration with a dependency-free factory. Throws: [`DI_BAG_INVALID_REPLACEMENT`](errors.md#di-bag-invalid-replacement), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
 ```ts
 const builder = DiBag.createBuilder().register({ clock: () => Date.now() }).replace('clock', () => 0);
 ```
 
 ### `builder.installModule(module)` {#builder-installmodule}
-Install a sealed module, allocating fresh private bindings for this installation. Throws: [`DI_BAG_INVALID_MODULE`](errors.md#di-bag-invalid-module), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration).
+Install a sealed module, allocating fresh private bindings for this installation. Throws: [`DI_BAG_INVALID_MODULE`](errors.md#di-bag-invalid-module), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const greeting = DiBag.createBuilder()
   .register({ greet: ({ name }: { name: string }) => `hello, ${name}` })
@@ -193,7 +193,7 @@ builder.verifyGraph() satisfies void;
 ```
 
 ### `builder.buildModule(keys, options?)` {#builder-buildmodule}
-Seal this graph as a reusable module and select its public names and typed tokens. Throws: [`DI_BAG_INVALID_EXPORT`](errors.md#di-bag-invalid-export), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
+Seal this graph as a reusable module and select its public names and typed tokens. Throws: [`DI_BAG_INVALID_EXPORT`](errors.md#di-bag-invalid-export), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const orders = DiBag.createBuilder()
   .register({ repository: () => new Map<string, number>() })
@@ -213,7 +213,7 @@ await bag.close();
 ## Bag {#bag}
 
 ### `bag.resolve(token)` {#bag-resolve}
-Resolve a registered service, acquiring it lazily when needed. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_MISSING_REGISTRATION`](errors.md#di-bag-missing-registration), [`DI_BAG_MISSING_DEPENDENCY`](errors.md#di-bag-missing-dependency), [`DI_BAG_CYCLE`](errors.md#di-bag-cycle), [`DI_BAG_LIFETIME_DEPENDENCY`](errors.md#di-bag-lifetime-dependency), [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](errors.md#di-bag-invalid-dependency-access), [`DI_BAG_STRUCTURAL_THENABLE`](errors.md#di-bag-structural-thenable), [`DI_BAG_INVALID_CLASSIFIER_RESULT`](errors.md#di-bag-invalid-classifier-result), [`DI_BAG_INVALID_METADATA`](errors.md#di-bag-invalid-metadata), [`DI_BAG_PLUGIN_VALIDATION`](errors.md#di-bag-plugin-validation).
+Resolve a registered service, acquiring it lazily when needed. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_MISSING_REGISTRATION`](errors.md#di-bag-missing-registration), [`DI_BAG_MISSING_DEPENDENCY`](errors.md#di-bag-missing-dependency), [`DI_BAG_CYCLE`](errors.md#di-bag-cycle), [`DI_BAG_LIFETIME_DEPENDENCY`](errors.md#di-bag-lifetime-dependency), [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](errors.md#di-bag-invalid-dependency-access), [`DI_BAG_STRUCTURAL_THENABLE`](errors.md#di-bag-structural-thenable), [`DI_BAG_INVALID_CLASSIFIER_RESULT`](errors.md#di-bag-invalid-classifier-result), [`DI_BAG_INVALID_METADATA`](errors.md#di-bag-invalid-metadata), [`DI_BAG_PLUGIN_VALIDATION`](errors.md#di-bag-plugin-validation).
 ```ts
 const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
 const greeting: string = bag.resolve('greeting');
@@ -229,7 +229,7 @@ const names: readonly string[] = bag.resolveCollection(tools);
 ```
 
 ### `bag.inspect(token)` {#bag-inspect}
-Inspect static metadata and copied acquisition state without resolving a service. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_MISSING_REGISTRATION`](errors.md#di-bag-missing-registration), [`DI_BAG_CYCLE`](errors.md#di-bag-cycle).
+Inspect static metadata and copied acquisition state without resolving a service. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_MISSING_REGISTRATION`](errors.md#di-bag-missing-registration), [`DI_BAG_CYCLE`](errors.md#di-bag-cycle).
 ```ts
 const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
 const acquired = bag.inspect('greeting').acquisitions.length;
@@ -252,7 +252,7 @@ const labels = bag.inspectGraph().bindings.map(binding => binding.label);
 ```
 
 ### `bag.createScope()` {#bag-createscope}
-Create a tracked child with the same graph and fresh scoped acquisitions. Throws: [`DI_BAG_INVALID_SCOPE`](errors.md#di-bag-invalid-scope), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
+Create a tracked child with the same graph and fresh scoped acquisitions. Throws: [`DI_BAG_INVALID_SCOPE`](errors.md#di-bag-invalid-scope), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
 ```ts
 const app = DiBag.createBuilder().register({ requestId: () => Math.random() }).build();
 const request = app.createScope();
@@ -261,7 +261,7 @@ await request.close();
 ```
 
 ### `bag.fork(keys, overrides)` {#bag-fork}
-Create an independent bag with selected replacements, the way tests substitute dependencies. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
+Create an independent bag with selected replacements, the way tests substitute dependencies. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
 ```ts
 type Clock = { now(): number };
 const app = DiBag.createBuilder().register({ clock: (): Clock => ({ now: () => Date.now() }) }).build();
@@ -270,7 +270,7 @@ await test.close();
 ```
 
 ### `bag.ensureServicesReady(serviceKeys, options?)` {#bag-ensureservicesready}
-Make the listed services ready before continuing, then resolve to this same bag. Throws: [`DI_BAG_SERVICE_READINESS_FAILED`](errors.md#di-bag-service-readiness-failed), [`DI_BAG_SERVICE_READINESS_CANCELLED`](errors.md#di-bag-service-readiness-cancelled), [`DI_BAG_INVALID_STARTUP`](errors.md#di-bag-invalid-startup), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed).
+Make the listed services ready before continuing, then resolve to this same bag. Throws: [`DI_BAG_SERVICE_READINESS_FAILED`](errors.md#di-bag-service-readiness-failed), [`DI_BAG_SERVICE_READINESS_CANCELLED`](errors.md#di-bag-service-readiness-cancelled), [`DI_BAG_INVALID_STARTUP`](errors.md#di-bag-invalid-startup), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed).
 ```ts
 const bag = await DiBag.createBuilder()
   .register({ db: async () => ({ ping: () => true }) })
