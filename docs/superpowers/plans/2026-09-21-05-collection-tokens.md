@@ -3881,12 +3881,12 @@ DiBag.createBuilder().installModule(nestedSealedConsumer).contribute(sealedStrin
 Run the focused compiler fixtures and full source typecheck before any final S5 measurement:
 
 ```bash
-bun test tests/types.test.ts -t 'collection tokens|collection-tokens'
+bun test tests/types.test.ts -t 'collection tokens|collection-tokens|contributions|api-renaming'
 npm run typecheck
 bun test tests/collection-tokens.test.ts
 ```
 
-Expected: both compiler fixtures pass. The positive fixture retains the same-handle sealed-module
+Expected: both collection fixtures and every selected contribution/API-removal fixture pass. The collection positive fixture retains the same-handle sealed-module
 consumer/contribution path and empty collection inference; the negative fixture rejects both direct
 and nested incompatible item handles. Full source typecheck passes, the runtime empty-module consumer
 still receives `[]`, and collection lifetime/disposal behavior remains green. These checks are required
