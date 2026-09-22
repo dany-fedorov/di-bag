@@ -2,15 +2,15 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / OverrideFactoryContext
 
-# Type Alias: OverrideFactoryContext\<R *extends* `Registrations`, K *extends* readonly `unknown`[], O, Base *extends* `Registrations` = `SelectionRegistrations`\<`R`, `K`\>, Applied *extends* `Registrations` = `AppliedSelection`\<`R`, `K`, `O`\>\>
+# Type Alias: OverrideFactoryContext\<R *extends* `Registrations`, K *extends* readonly `unknown`[], O\>
 
 ```ts
-type OverrideFactoryContext<R extends Registrations, K extends readonly unknown[], O, Base extends Registrations = SelectionRegistrations<R, K>, Applied extends Registrations = AppliedSelection<R, K, O>> = {
-    [P in Extract<SelectionKey<K[number]>, keyof Base>]: ((this: void, dependencies: ServicesOf<Applied>) => OverrideOutput<Base, K, P>) | FactoryWithDisposal<(this: void, dependencies: ServicesOf<Applied>) => OverrideOutput<Base, K, P>> | ProviderContext<(this: void, dependencies: ServicesOf<Applied>) => OverrideOutput<Base, K, P>, P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract>;
+type OverrideFactoryContext<R extends Registrations, K extends readonly unknown[], O> = {
+    [P in Extract<SelectionKey<K[number]>, keyof SelectionRegistrations<R, K>>]: ((this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>) | FactoryWithDisposal<(this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>> | ProviderContext<(this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>, P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract>;
 };
 ```
 
-Defined in: [types.ts:389](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L389)
+Defined in: [types.ts:393](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L393)
 
 Contextual override shape used to infer a selected fork or child-scope graph.
 
@@ -21,8 +21,6 @@ Contextual override shape used to infer a selected fork or child-scope graph.
 | `R` | - |
 | `K` | - |
 | `O` | - |
-| `Base` | - |
-| `Applied` | - |
 
 ## See
 

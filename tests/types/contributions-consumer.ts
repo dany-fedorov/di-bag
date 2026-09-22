@@ -1,8 +1,12 @@
-import { DiBag } from '../../src';
-import { bag, numbers, contribute, feature } from './contributions';
+import { DiBag, type RegistrationSnapshot } from '../../src';
+import { bag, numbers, contribute, feature, resolveCollectionMethod, inspectCollectionMethod } from './contributions';
 import type { Assert, Equal } from './assert';
 const values = bag.resolveCollection(numbers);
-export type Exact = Assert<Equal<typeof values, ReadonlyArray<number>>>;
+const reflectedValues = resolveCollectionMethod(numbers);
+const reflectedSnapshots = inspectCollectionMethod(numbers);
+export type Exact = [Assert<Equal<typeof values, ReadonlyArray<number>>>,
+  Assert<Equal<typeof reflectedValues, ReadonlyArray<number>>>,
+  Assert<Equal<typeof reflectedSnapshots, ReadonlyArray<RegistrationSnapshot<object, readonly unknown[]>>>>];
 contribute(numbers, () => 4).build();
 DiBag.createBuilder().installModule(feature).build().resolveCollection(numbers);
 import { aggregate, privateHost, needsHost, renamedHost, moduleContribute, key, promiseBag, promised, rootedHelper, allProvider } from './contributions';

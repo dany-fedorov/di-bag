@@ -67,8 +67,8 @@ test('compiler declarations retain syntax that TypeDoc reflections cannot repres
   assert.match(facadeText, /callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, \.\.\.options: FactoryOptions<M>/);
   assert.match(bagText, /resolve<K extends \(keyof ServiceRegistrations & string\) \| TokenBase>\(token: K & \(\[K\] extends \[string\] \? unknown : SingleServiceTokenMember<ServiceRegistrations, K>\)\)/);
   assert.match(bagText, /inspect<K extends \(keyof ServiceRegistrations & string\) \| TokenBase>\(token: K & \(\[K\] extends \[string\] \? unknown : SingleServiceTokenMember<ServiceRegistrations, K>\)\)/);
-  assert.match(bagText, /resolveCollection<T extends CollectionTokenBase>\(token: T & \(unknown extends TokenTupleAdmission<readonly \[T\]> \? CollectionMember<T, Constraints> : TokenTupleAdmission<readonly \[T\]>\), \.\.\.invalid: \[T\] extends \[never\] \? \[never\] : \[\]\): readonly CollectionItem<T>\[\];/);
-  assert.match(bagText, /inspectCollection<T extends CollectionTokenBase>\(token: T & \(unknown extends TokenTupleAdmission<readonly \[T\]> \? CollectionMember<T, Constraints> : TokenTupleAdmission<readonly \[T\]>\), \.\.\.invalid: \[T\] extends \[never\] \? \[never\] : \[\]\): readonly RegistrationSnapshot<object, readonly unknown\[\]>\[\];/);
+  assert.match(bagText, /resolveCollection<T extends CollectionTokenBase>\(token: T & CollectionTokenMember<Constraints, T>, \.\.\.invalid: \[T\] extends \[never\] \? \[never\] : \[\]\): readonly CollectionItem<T>\[\];/);
+  assert.match(bagText, /inspectCollection<T extends CollectionTokenBase>\(token: T & CollectionTokenMember<Constraints, T>, \.\.\.invalid: \[T\] extends \[never\] \? \[never\] : \[\]\): readonly RegistrationSnapshot<object, readonly unknown\[\]>\[\];/);
   assert.match(bagText, /createScope<const S extends readonly unknown\[\]>/);
 });
 

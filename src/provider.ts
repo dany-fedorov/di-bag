@@ -106,10 +106,10 @@ export type ProviderGraphContract<R> = ProviderBase extends R ? OpaqueGraph
 type GraphOf<R> = R extends Provider<infer _F, infer _M, infer _A, infer G, infer _V> ? G
   : R extends Factory | FactoryWithDisposal<Factory> ? TokenDependencyContract
     : R extends ProviderContext<Factory, infer G> ? G : OpaqueGraph;
-type RequiredTokens<G> = G extends TokenDependencyContract<infer T, TokenBase, readonly TokenBase[], readonly CollectionTokenBase[]> ? T[number] : TokenBase;
-type Bound<G> = G extends TokenDependencyContract<readonly TokenBase[], infer B, readonly TokenBase[], readonly CollectionTokenBase[]> ? B : TokenBase;
-type OptionalTokens<G> = G extends TokenDependencyContract<readonly TokenBase[], TokenBase, infer O, readonly CollectionTokenBase[]> ? O[number] : TokenBase;
-type CollectionTokens<G> = G extends TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[], infer C> ? C[number] : never;
+type RequiredTokens<G> = G extends { readonly kind: 'tokens'; readonly required: infer T extends readonly TokenBase[] } ? T[number] : TokenBase;
+type Bound<G> = G extends { readonly kind: 'tokens'; readonly bound: infer B extends TokenBase } ? B : TokenBase;
+type OptionalTokens<G> = G extends { readonly kind: 'tokens'; readonly optional: infer O extends readonly TokenBase[] } ? O[number] : TokenBase;
+type CollectionTokens<G> = G extends { readonly kind: 'tokens'; readonly collections: infer C extends readonly CollectionTokenBase[] } ? C[number] : never;
 /**
  * Extract token collection requirements from a registration.
  * @see https://dany-fedorov.github.io/di-bag/guides/api-reference.html#provider-and-module-projections

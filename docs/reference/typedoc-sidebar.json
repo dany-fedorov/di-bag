@@ -205,6 +205,10 @@
             "link": "/reference/index/type-aliases/CollectionItem.md"
           },
           {
+            "text": "CollectionTokenMember",
+            "link": "/reference/index/type-aliases/CollectionTokenMember.md"
+          },
+          {
             "text": "CompositionArguments",
             "link": "/reference/index/type-aliases/CompositionArguments.md"
           },
@@ -431,6 +435,10 @@
           {
             "text": "SharedAliasProviders",
             "link": "/reference/index/type-aliases/SharedAliasProviders.md"
+          },
+          {
+            "text": "SingleServiceTokenMember",
+            "link": "/reference/index/type-aliases/SingleServiceTokenMember.md"
           },
           {
             "text": "TokenBinding",

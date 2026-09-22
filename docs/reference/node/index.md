@@ -142,6 +142,12 @@ Re-exports [CollectionTokenBase](../index/interfaces/CollectionTokenBase.md)
 
 ***
 
+### CollectionTokenMember
+
+Re-exports [CollectionTokenMember](../index/type-aliases/CollectionTokenMember.md)
+
+***
+
 ### CompositionArguments
 
 Re-exports [CompositionArguments](../index/type-aliases/CompositionArguments.md)
@@ -613,6 +619,12 @@ Re-exports [ServicesOf](../index/type-aliases/ServicesOf.md)
 ### SharedAliasProviders
 
 Re-exports [SharedAliasProviders](../index/type-aliases/SharedAliasProviders.md)
+
+***
+
+### SingleServiceTokenMember
+
+Re-exports [SingleServiceTokenMember](../index/type-aliases/SingleServiceTokenMember.md)
 
 ***
 

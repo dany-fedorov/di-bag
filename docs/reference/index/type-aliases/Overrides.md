@@ -2,16 +2,14 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / Overrides
 
-# Type Alias: Overrides\<F *extends* `Registrations`, O *extends* `Registrations`\>
+# Type Alias: Overrides\<F *extends* `Registrations`, O *extends* `Registrations`, K *extends* readonly `unknown`[] = readonly \[\]\>
 
 ```ts
-type Overrides<F extends Registrations, O extends Registrations> = [
-    Exclude<keyof O, keyof F>
-] extends [never] ? [BadOverrides<F, O>] extends [never] ? unknown : Unsatisfied<`override value is not assignable to the original token: ${NameText<BadOverrides<F, O>>}${SeeErrors<'wrong-override'>}`, {
-    tokens: BadOverrides<F, O>;
-}> : Unsatisfied<`fork accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof F>>}${SeeErrors<'unknown-key'>}`, {
-    extra: Exclude<keyof O, keyof F>;
-}>;
+type Overrides<F extends Registrations, O extends Registrations, K extends readonly unknown[] = readonly []> = unknown extends CollectionOverrideAdmission<K, O> ? [Exclude<keyof O, keyof SelectionRegistrations<F, K>>] extends [never] ? [BadOverrides<SelectionRegistrations<F, K>, O>] extends [never] ? unknown : Unsatisfied<`override value is not assignable to the original token: ${NameText<BadOverrides<SelectionRegistrations<F, K>, O>>}${SeeErrors<'wrong-override'>}`, {
+    tokens: BadOverrides<SelectionRegistrations<F, K>, O>;
+}> : Unsatisfied<`fork accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof SelectionRegistrations<F, K>>>}${SeeErrors<'unknown-key'>}`, {
+    extra: Exclude<keyof O, keyof SelectionRegistrations<F, K>>;
+}> : CollectionOverrideAdmission<K, O>;
 ```
 
 Defined in: [types.ts:231](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L231)
@@ -24,6 +22,7 @@ Admit overrides only for existing keys whose service values remain assignable.
 | ------ | ------ |
 | `F` | - |
 | `O` | - |
+| `K` | - |
 
 ## See
 

@@ -1,5 +1,5 @@
 import { fromFunction } from '../../src/composition';
-import { DiBag, type Token, type TokenKey, type TokenService, type Provider, type ProviderRequiredTokens, type ProviderNamedDependencies, type ProviderOutput, type ProviderRegistrationMetadata, type ProviderAcquisitionMetadata } from '../../src';
+import { DiBag, type CollectionTokenBase, type Overrides, type SingleServiceTokenMember, type Token, type TokenKey, type TokenMember, type TokenService, type Provider, type ProviderCollectionTokens, type ProviderRequiredTokens, type ProviderNamedDependencies, type ProviderOutput, type ProviderRegistrationMetadata, type ProviderAcquisitionMetadata } from '../../src';
 import { withTokenBinding, type ProviderGraphContract, type BoundToken, type ProviderFactory, type ProviderBase } from '../../src/provider';
 import type { TokenDependencyContract, OpaqueGraph } from '../../src/token-types';
 import type { TokenBase } from '../../src/tokens';
@@ -18,12 +18,43 @@ type Identity = [Assert<Equal<typeof token, Token<typeof key, number>>>, Assert<
   Assert<Equal<ProviderRequiredTokens<typeof source>, typeof token | typeof other>>,
   Assert<Equal<ProviderFactory<typeof source>, () => { value: number; promise: Promise<string> }>>,
   Assert<Equal<ProviderNamedDependencies<typeof source>, Record<never, never>>>, Assert<Equal<BoundToken<typeof source>, never>>];
+type EmptyCollectionGraph = TokenDependencyContract;
+type BroadCollectionGraph = TokenDependencyContract<readonly [], never, readonly [], readonly CollectionTokenBase[]>;
+type NonemptyCollectionGraph = TokenDependencyContract<readonly [], never, readonly [], readonly [CollectionTokenBase]>;
+type NeverCollectionGraph = TokenDependencyContract<readonly [], never, readonly [], never>;
+type BroadCollectionProvider = Provider<() => number, {}, readonly [], BroadCollectionGraph>;
+type NonemptyCollectionProvider = Provider<() => number, {}, readonly [], NonemptyCollectionGraph>;
+type NeverCollectionProvider = Provider<() => number, {}, readonly [], NeverCollectionGraph>;
+type CollectionMetadataContracts = [
+  Assert<Equal<Extract<keyof EmptyCollectionGraph, 'collections'>, never>>,
+  Assert<Equal<Extract<keyof BroadCollectionGraph, 'collections'>, 'collections'>>,
+  Assert<Equal<Extract<keyof NonemptyCollectionGraph, 'collections'>, 'collections'>>,
+  Assert<Equal<Extract<keyof NeverCollectionGraph, 'collections'>, 'collections'>>,
+  Assert<Equal<ProviderCollectionTokens<BroadCollectionProvider>, CollectionTokenBase>>,
+  Assert<Equal<ProviderCollectionTokens<NonemptyCollectionProvider>, CollectionTokenBase>>,
+  Assert<Equal<ProviderCollectionTokens<NeverCollectionProvider>, never>>,
+];
+type OverrideFacadeContracts = [
+  Assert<Equal<Overrides<{ port: () => number }, { port: () => 1 }>, unknown>>,
+  Assert<Equal<unknown extends Overrides<{ port: () => number }, { extra: () => number }> ? true : false, false>>,
+  Assert<Equal<unknown extends Overrides<{ port: () => number }, { port: () => string }> ? true : false, false>>,
+];
 const annotated = DiBag.withMetadata(source, { static: { owner: 'team' } });
 const owned = DiBag.withDisposal(annotated, value => { type Value = Assert<Equal<typeof value, { value: number; promise: Promise<string> }>>; });
 const sync = DiBag.transformService(owned, { mode: 'direct', transform: value => value.promise });
 const async = DiBag.transformService(sync, { mode: 'awaited', transform: value => { type Value = Assert<Equal<typeof value, string>>; return value.length; } });
 const bindingKey = Symbol('binding'); const binding = DiBag.token(bindingKey).of<{ value: number; promise: Promise<string> }>();
 const bound = withTokenBinding(binding, owned);
+const collectionMemberKey = Symbol('collection member');
+const collectionMember = DiBag.token(collectionMemberKey).forCollectionOf<number>();
+type CollectionRegistration = import('../../src').TokenBinding<typeof collectionMember, () => readonly number[]>;
+type TokenMemberFacadeContracts = [
+  Assert<Equal<TokenMember<{ [bindingKey]: typeof bound }, typeof binding>, unknown>>,
+  Assert<Equal<SingleServiceTokenMember<{ [bindingKey]: typeof bound }, typeof binding>, unknown>>,
+  Assert<Equal<TokenMember<{ [collectionMemberKey]: CollectionRegistration }, typeof collectionMember>, unknown>>,
+  Assert<Equal<unknown extends SingleServiceTokenMember<{ [collectionMemberKey]: CollectionRegistration }, typeof collectionMember> ? true : false, false>>,
+  Assert<Equal<unknown extends TokenMember<{}, never> ? true : false, false>>,
+];
 type Retention = [Assert<Equal<ProviderGraphContract<typeof annotated>, SourceGraph>>, Assert<Equal<ProviderGraphContract<typeof owned>, SourceGraph>>,
   Assert<Equal<ProviderGraphContract<typeof sync>, SourceGraph>>, Assert<Equal<ProviderGraphContract<typeof async>, SourceGraph>>,
   Assert<Equal<ProviderGraphContract<typeof bound>, TokenDependencyContract<readonly [typeof token, typeof other], typeof binding>>>,

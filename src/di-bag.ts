@@ -2,7 +2,7 @@ import { libraryError, libraryTypeError } from './errors';
 import { LifecycleObservers } from './observers';
 import type { ObserverOptions } from './observers';
 import { contributionEntry } from './contributions';
-import type { BuilderContribute, CollectionMember, RegisterTokenAdmission } from './contribution-types';
+import type { BuilderContribute, RegisterTokenAdmission } from './contribution-types';
 import { aliasEntry } from './aliases';
 import type { AliasSelection, AliasAdmission, AliasDestinationAdmission, AliasTarget, AliasDestination, AliasEntry, AliasEntries } from './alias-types';
 import { optional, lazy } from './dependency-references';
@@ -32,7 +32,7 @@ import { token, readSingleServiceKey, readToken, wrongTokenKind } from './tokens
 import { fromPlugin } from './plugins';
 import type { PluginProviderFactory } from './plugins';
 import type { CollectionItem, CollectionTokenBase, TokenBase, TokenKey, TokenKind } from './tokens';
-import type { TokenBinding, BindingOutput, SingleServiceTokenMember, TokenMember, TokenTupleAdmission, SelectionKey } from './token-types';
+import type { CollectionTokenMember, SingleServiceTokenMember, TokenBinding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey } from './token-types';
 import type { BuilderReplacementRegistration, ReplacementAdmission, ReplacedEntries, ZeroDependencyAdmission } from './replacement-types';
 import type {
   CheckDependencyCompatibility,
@@ -48,10 +48,7 @@ import type {
   IntroducesKeys,
   OverrideRegistrations,
   Overrides,
-  AppliedSelection,
-  CollectionOverrideAdmission,
-  ReboundSelected,
-  SelectionRegistrations,
+  ReboundSelection,
   ServicesOf,
   ReplacementKeyOf,
   ReplacementOutput,
@@ -158,8 +155,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * const names: readonly string[] = bag.resolveCollection(tools);
    * ```
    */
-  resolveCollection<T extends CollectionTokenBase>(token: T & (unknown extends TokenTupleAdmission<readonly [T]>
-    ? CollectionMember<T, Constraints> : TokenTupleAdmission<readonly [T]>),
+  resolveCollection<T extends CollectionTokenBase>(token: T & CollectionTokenMember<Constraints, T>,
     ...invalid: [T] extends [never] ? [never] : []): readonly CollectionItem<T>[] {
     const { key, kind } = readGraphToken(
       this.#graph,
@@ -208,8 +204,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * const labels = bag.inspectCollection(tools).map(snapshot => snapshot.label);
    * ```
    */
-  inspectCollection<T extends CollectionTokenBase>(token: T & (unknown extends TokenTupleAdmission<readonly [T]>
-    ? CollectionMember<T, Constraints> : TokenTupleAdmission<readonly [T]>),
+  inspectCollection<T extends CollectionTokenBase>(token: T & CollectionTokenMember<Constraints, T>,
     ...invalid: [T] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[] {
     const { key, kind } = readGraphToken(
       this.#graph,
@@ -259,16 +254,14 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
   >(
     keys: K & Selection<ServiceRegistrations, Constraints, K, 'createScope'>,
     overrides: O & object & Record<SelectionKey<K[number]>, Registration> &
-      (unknown extends CollectionOverrideAdmission<K, O>
-        ? Overrides<SelectionRegistrations<ServiceRegistrations, K>, ReboundSelected<ServiceRegistrations, K, O>> &
-          CheckDependencyCompatibility<AppliedSelection<ServiceRegistrations, K, O>> &
-          CheckDependencyCompleteness<AppliedSelection<ServiceRegistrations, K, O>> &
-          CheckedConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> &
-          CompleteConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> &
-          CheckedScopeLifetimes<NoInfer<ScopedAliases<AppliedSelection<ServiceRegistrations, K, O>, ServiceRegistrations, S>>, NoInfer<ReboundSelected<ServiceRegistrations, K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>
-        : CollectionOverrideAdmission<K, O>),
+      Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>, K> &
+      CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
+      CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
+      CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
+      CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
+      CheckedScopeLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>, ServiceRegistrations, S>>, NoInfer<ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>,
     options?: ScopeOptions<ServiceRegistrations, S, Constraints> & DisjointScopeSelection<K, S>,
-  ): Bag<ScopedAliases<AppliedSelection<ServiceRegistrations, K, O>, ServiceRegistrations, S>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
+  ): Bag<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>, ServiceRegistrations, S>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
   /**
    * Create a tracked child with the same graph and fresh scoped acquisitions.
    * Close every scope you create, typically one per request; closing the parent closes its live scopes first.
@@ -321,15 +314,13 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
     keys: K & Selection<ServiceRegistrations, Constraints, K>,
     overrides: O & object &
       Record<SelectionKey<K[number]>, Registration> &
-      (unknown extends CollectionOverrideAdmission<K, O>
-        ? Overrides<SelectionRegistrations<ServiceRegistrations, K>, ReboundSelected<ServiceRegistrations, K, O>> &
-          CheckDependencyCompatibility<AppliedSelection<ServiceRegistrations, K, O>> &
-          CheckDependencyCompleteness<AppliedSelection<ServiceRegistrations, K, O>> &
-          CheckedConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> &
-          CompleteConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> &
-          CheckedLifetimes<UnsharedAliases<AppliedSelection<ServiceRegistrations, K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>
-        : CollectionOverrideAdmission<K, O>),
-  ): Bag<UnsharedAliases<AppliedSelection<ServiceRegistrations, K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
+      Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>, K> &
+      CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
+      CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
+      CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
+      CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>> &
+      CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>,
+  ): Bag<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, K, SelectedRegistrations<K, O>>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
   fork(keys?: readonly unknown[], overrides?: object): unknown {
     this.#runtime.assertOpen();
     if (keys === undefined && overrides === undefined) {

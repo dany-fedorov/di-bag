@@ -228,19 +228,23 @@ type BadOverrides<F extends Registrations, O extends Registrations> = {
  * Admit overrides only for existing keys whose service values remain assignable.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
  */
-export type Overrides<F extends Registrations, O extends Registrations> = [
-  Exclude<keyof O, keyof F>,
-] extends [never]
-  ? [BadOverrides<F, O>] extends [never]
-    ? unknown
+export type Overrides<
+  F extends Registrations,
+  O extends Registrations,
+  K extends readonly unknown[] = readonly [],
+> = unknown extends CollectionOverrideAdmission<K, O>
+  ? [Exclude<keyof O, keyof SelectionRegistrations<F, K>>] extends [never]
+    ? [BadOverrides<SelectionRegistrations<F, K>, O>] extends [never]
+      ? unknown
+      : Unsatisfied<
+          `override value is not assignable to the original token: ${NameText<BadOverrides<SelectionRegistrations<F, K>, O>>}${SeeErrors<'wrong-override'>}`,
+          { tokens: BadOverrides<SelectionRegistrations<F, K>, O> }
+        >
     : Unsatisfied<
-        `override value is not assignable to the original token: ${NameText<BadOverrides<F, O>>}${SeeErrors<'wrong-override'>}`,
-        { tokens: BadOverrides<F, O> }
+        `fork accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof SelectionRegistrations<F, K>>>}${SeeErrors<'unknown-key'>}`,
+        { extra: Exclude<keyof O, keyof SelectionRegistrations<F, K>> }
       >
-  : Unsatisfied<
-      `fork accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof F>>}${SeeErrors<'unknown-key'>}`,
-      { extra: Exclude<keyof O, keyof F> }
-    >;
+  : CollectionOverrideAdmission<K, O>;
 
 export type Introduces<F extends Registrations, N extends Registrations> = [
   keyof F & keyof N,
@@ -390,22 +394,20 @@ export type OverrideFactoryContext<
   R extends Registrations,
   K extends readonly unknown[],
   O,
-  Base extends Registrations = SelectionRegistrations<R, K>,
-  Applied extends Registrations = AppliedSelection<R, K, O>,
 > = {
-  [P in Extract<SelectionKey<K[number]>, keyof Base>]:
+  [P in Extract<SelectionKey<K[number]>, keyof SelectionRegistrations<R, K>>]:
     | ((
         this: void,
-        dependencies: ServicesOf<Applied>,
-      ) => OverrideOutput<Base, K, P>)
+        dependencies: ServicesOf<AppliedSelection<R, K, O>>,
+      ) => OverrideOutput<SelectionRegistrations<R, K>, K, P>)
     | FactoryWithDisposal<
         (
           this: void,
-          dependencies: ServicesOf<Applied>,
-        ) => OverrideOutput<Base, K, P>
+          dependencies: ServicesOf<AppliedSelection<R, K, O>>,
+        ) => OverrideOutput<SelectionRegistrations<R, K>, K, P>
       >
     | ProviderContext<
-        (this: void, dependencies: ServicesOf<Applied>) => OverrideOutput<Base, K, P>,
+        (this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>,
         P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract
       >;
 };

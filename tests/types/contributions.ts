@@ -6,6 +6,8 @@ export const builder = DiBag.createBuilder().contribute(numbers, () => 1).contri
 export const feature = DiBag.createBuilder().contribute(numbers, () => 3).buildModule([]);
 export const bag = builder.installModule(feature).build();
 export const values = bag.resolveCollection(numbers);
+export const resolveCollectionMethod = bag.resolveCollection;
+export const inspectCollectionMethod = bag.inspectCollection;
 export const contribute = builder.contribute;
 export type ReflectedContribution = ReturnType<typeof contribute>;
 export type Exact = [Assert<Equal<typeof values, ReadonlyArray<number>>>,

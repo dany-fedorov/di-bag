@@ -10,10 +10,14 @@ import type { CollectionMember } from './contribution-types';
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
  */
 export type TokenDependencyContract<T extends readonly TokenBase[] = readonly [], B extends TokenBase = never, O extends readonly TokenBase[] = readonly [], C extends readonly CollectionTokenBase[] = readonly []> = {
-  readonly kind: 'tokens'; readonly required: T; readonly bound: B; readonly optional: O; readonly collections: C;
-};
+  readonly kind: 'tokens'; readonly required: T; readonly bound: B; readonly optional: O;
+} & ([C] extends [never] ? { readonly collections: C }
+  : [C] extends [readonly []] ? {} : { readonly collections: C });
 export type OpaqueGraph = { readonly kind: 'opaque' };
-export type GraphContract = TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[], readonly CollectionTokenBase[]> | OpaqueGraph;
+type AnyTokenDependencyContract = {
+  readonly kind: 'tokens'; readonly required: readonly TokenBase[]; readonly bound: TokenBase; readonly optional: readonly TokenBase[];
+} & ({ readonly collections?: never } | { readonly collections: readonly CollectionTokenBase[] });
+export type GraphContract = AnyTokenDependencyContract | OpaqueGraph;
 export type TokenKindOf<T> = T extends CollectionTokenBase ? 'collection' : T extends TokenBase ? 'single-service' : never;
 export type TokenValue<T> = T extends CollectionTokenBase ? readonly CollectionItem<T>[] : TokenService<T>;
 export type SingleServiceTokenAdmission<T> = T extends CollectionTokenBase
@@ -50,7 +54,7 @@ export type ReferenceGraph<T extends readonly DependencyReference[]> = T extends
   ? [Extract<T[number], CollectionTokenBase>] extends [never] ? TokenDependencyContract<T> : RoutedReferenceGraph<T>
   : RoutedReferenceGraph<T>;
 export type ReboundGraph<G extends GraphContract, T extends TokenBase> = G extends infer U & {}
-  ? U extends TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[], readonly CollectionTokenBase[]> ? { [K in keyof U]: K extends 'bound' ? T : U[K] } : U extends GraphContract ? U : never
+  ? U extends { readonly kind: 'tokens'; readonly required: readonly TokenBase[]; readonly bound: TokenBase; readonly optional: readonly TokenBase[] } ? { [K in keyof U]: K extends 'bound' ? T : U[K] } : U extends GraphContract ? U : never
   : never;
 
 /**
@@ -82,14 +86,17 @@ export type TokenMember<R extends Registrations, T> = ValidToken<T> extends true
   ? [WrongToken<T, R> | MissingToken<T, R>] extends [never] ? unknown
     : Unsatisfied<`token must match an existing binding contract${SeeErrors<'unknown-key'>}`, {}>
   : Unsatisfied<`token must be an individually known genuine handle${SeeErrors<'unknown-key'>}`, {}>;
+/** Admit a genuine matching token only when it is a single-service handle. */
 export type SingleServiceTokenMember<R extends Registrations, T> = unknown extends SingleServiceTokenAdmission<T>
   ? TokenMember<R, T> : SingleServiceTokenAdmission<T>;
-export type CollectionTokenMember<C, T> = T extends CollectionTokenBase ? CollectionMember<T, C> : never;
+/** Admit a known collection handle compatible with the contribution graph. */
+export type CollectionTokenMember<C, T extends CollectionTokenBase> = unknown extends TokenTupleAdmission<readonly [T]>
+  ? CollectionMember<T, C> : TokenTupleAdmission<readonly [T]>;
 export type ServiceKeyMember<R extends Registrations, C, T> = T extends CollectionTokenBase ? CollectionTokenMember<C, T> : TokenMember<R, T>;
 export type AliasDestinationAdmission<T> = T extends CollectionTokenBase ? Unsatisfied<'alias destination requires a single-service token', {}> : unknown;
 export type OptionalTokenAdmission<T> = T extends CollectionTokenBase ? Unsatisfied<'optional requires a single-service token', {}> : unknown;
 export type InvalidGraphs<R extends Registrations> = {
-  [K in keyof R]: [ProviderGraphContract<R[K]>] extends [TokenDependencyContract<readonly TokenBase[], TokenBase, readonly TokenBase[], readonly CollectionTokenBase[]>]
+  [K in keyof R]: [ProviderGraphContract<R[K]>] extends [{ readonly kind: 'tokens'; readonly required: readonly TokenBase[]; readonly bound: TokenBase; readonly optional: readonly TokenBase[] }]
     ? WrongToken<ProviderRequiredTokens<R[K]> | ProviderOptionalTokens<R[K]>, R> | InvalidBound<BoundToken<R[K]>> : K;
 }[keyof R];
 type InvalidBound<B> = B extends unknown ? ValidToken<B> extends true ? never : 'opaque binding contract' : never;
