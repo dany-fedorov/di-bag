@@ -8,6 +8,8 @@ followed by `ensureServicesReady()` counts. The 0.4 `build()`,
 `buildModule(keys, { label })`, and `buildAndStart()` forms remain accepted for
 migration analysis.
 It reports dependency cycles and unresolved names before any factory runs.
+The established schema remains version 1: a source `buildContainer()` unit is
+emitted with `kind: "bag"`.
 
 It is a merge-review and CI tool, not a code map. To find code, read the module
 directories; to check wiring types, use `verifyGraphAtCompileTime()`.
