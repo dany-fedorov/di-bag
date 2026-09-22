@@ -1,3 +1,4 @@
 [
+  { "line": 9, "reason": "contribute resolves to both DI Bag and non-library declarations; migrate this use by hand" },
   { "line": 15, "reason": "of resolves to both DI Bag and non-library declarations; migrate this use by hand" }
 ]

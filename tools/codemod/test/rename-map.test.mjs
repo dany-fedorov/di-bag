@@ -30,6 +30,8 @@ test('the schema file lists the same sections the validator accepts', () => {
     additionalProperties: { type: 'string', minLength: 1 },
   });
   const method = schema.properties.methods.items;
+  assert.equal(method.properties.arguments.oneOf[0].properties.alreadyBag.const, true);
+  assert.equal(method.properties.arguments.oneOf[0].allOf[0].then.properties.names.maxItems, 1);
   const nonEmpty = [
     schema.properties.$schema,
     method.properties.owner, method.properties.from, method.properties.to, method.properties.transform,
@@ -307,6 +309,27 @@ test('validation rejects unexpected fields at every schema object boundary', () 
     'types[0]: unknown field extra',
     'codes[0]: unknown field extra',
     'imports[0]: unknown field extra',
+  ]);
+});
+
+test('alreadyBag is a closed true-only bag argument flag', () => {
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    methods: [{ owner: 'Builder', from: 'buildModule', to: 'buildModule', arguments: { kind: 'bag', names: ['exportedServiceKeys'], alreadyBag: true } }],
+  }), []);
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    methods: [{ owner: 'Builder', from: 'buildModule', to: 'buildModule', arguments: { kind: 'bag', names: ['exportedServiceKeys'], alreadyBag: false } }],
+  }), ['methods[0]: arguments.alreadyBag must be true when present']);
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    methods: [
+      { owner: 'Builder', from: 'old', to: 'new', arguments: { kind: 'bag', names: ['value'], alreadyBag: true } },
+      { owner: 'Builder', from: 'same', to: 'same', arguments: { kind: 'bag', names: ['first', 'second'], alreadyBag: true } },
+    ],
+  }), [
+    'methods[0]: arguments.alreadyBag requires a same-name method with exactly one argument name',
+    'methods[1]: arguments.alreadyBag requires a same-name method with exactly one argument name',
   ]);
 });
 

@@ -34,6 +34,7 @@ export function runFixture(name) {
   return {
     text: result.files[0]?.text ?? readFileSync(join(fixturesRoot, name, 'input.ts'), 'utf8'),
     manual: result.manual.map(({ line, reason }) => ({ line, reason })),
+    rewrites: result.files[0]?.rewrites ?? 0,
   };
 }
 

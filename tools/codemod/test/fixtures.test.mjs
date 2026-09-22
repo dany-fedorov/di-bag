@@ -18,6 +18,13 @@ for (const name of fixtureNames) {
   });
 }
 
+test('an untraceable inline collection token preserves its enclosing contribution', () => {
+  const result = runFixture('collection-token-untraceable');
+  assert.equal(result.text, readFixture('collection-token-untraceable', 'input.ts'));
+  assert.equal(result.rewrites, 0);
+  assert.equal(result.manual.length, 1);
+});
+
 test('expected output contains no old spelling for unconditional method renames', () => {
   // The expected files use 0.5 names that the 0.4.0 declarations lack, so only the text-level guarantee is checked:
   // no old method name that the map renames without conditions is left in an expected file.

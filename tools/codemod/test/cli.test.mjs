@@ -70,7 +70,7 @@ test('--library-root rewrites callers of a checked-out library and never the lib
     "import { Builder } from '../src/index.js';",
     '',
     'export async function main(signal: AbortSignal) {',
-    "  const bag = await new Builder().build().ensureServicesReady(['db'], { abortSignal: signal, totalTimeoutMs: 5 });",
+    "  const bag = await new Builder().buildContainer().ensureServicesReady(['db'], { abortSignal: signal, totalTimeoutMs: 5 });",
     '  await bag.close({ waitTimeoutMs: 10 });',
     '}',
     '',
@@ -83,7 +83,7 @@ test('--extra-files adds files the tsconfig excludes', () => {
   const project = copyOf('library-root-fixture');
   const result = run(project, '--project', 'tsconfig.json', '--library-root', 'src', '--extra-files', 'app/excluded/*.ts', '--write');
   assert.equal(result.status, 0, result.stderr);
-  assert.match(readFileSync(join(project, 'app/excluded/extra.ts'), 'utf8'), /new Builder\(\)\.build\(\)\.ensureServicesReady\(\['db'\]\)/);
+  assert.match(readFileSync(join(project, 'app/excluded/extra.ts'), 'utf8'), /new Builder\(\)\.buildContainer\(\)\.ensureServicesReady\(\['db'\]\)/);
   rmSync(project, { recursive: true, force: true });
 });
 
@@ -102,7 +102,7 @@ test('positional files remain a supported input mode', () => {
   const project = copyOf('library-root-fixture');
   const result = run(project, '--library-root', 'src', 'app/main.ts', '--write');
   assert.equal(result.status, 0, result.stderr);
-  assert.match(readFileSync(join(project, 'app/main.ts'), 'utf8'), /new Builder\(\)\.build\(\)\.ensureServicesReady\(\['db'\]/);
+  assert.match(readFileSync(join(project, 'app/main.ts'), 'utf8'), /new Builder\(\)\.buildContainer\(\)\.ensureServicesReady\(\['db'\]/);
   rmSync(project, { recursive: true, force: true });
 });
 

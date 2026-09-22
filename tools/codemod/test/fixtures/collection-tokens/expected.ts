@@ -13,24 +13,24 @@ const loggerKey = Symbol('logger');
 const logger = DiBag.token(loggerKey).of<string>();
 
 const feature = DiBag.createBuilder()
-  .contribute(
-    controllers,
-    () => ({ path: '/users' }),
-  )
-  .buildModule([]);
+  .withCollectionContribution({
+    collectionToken: controllers,
+    provider: () => ({ path: '/users' }),
+  })
+  .buildModule({ exportedServiceKeys: [] });
 
 const builder = DiBag.createBuilder()
-  .installModule(feature)
-  .register(clock, () => ({ now: () => 0 }))
-  .contribute(controllers, () => ({ path: '/orders' }))
-  .contribute(logger, () => 'console')
-  .register(logger, () => 'fan-out')
-  .register({
+  .withInstalledModules([feature])
+  .withTokenService(clock, () => ({ now: () => 0 }))
+  .withCollectionContribution({ collectionToken: controllers, provider: () => ({ path: '/orders' }) })
+  .withCollectionContribution({ collectionToken: logger, provider: () => 'console' })
+  .withTokenService(logger, () => 'fan-out')
+  .withServices({
     router: DiBag.fromFunction([clock, controllers], (time, list) => `${time.now()}:${list.length}`),
     sinks: DiBag.fromFunction([DiBag.all(logger)], list => list.join(',')),
   });
 
-export const bag = builder.build();
+export const bag = builder.buildContainer();
 export const paths = bag.resolveCollection(controllers).map(controller => controller.path);
 export const snapshots = bag.inspectCollection(controllers);
 export const overrides = { [controllers.key]: () => [] };
