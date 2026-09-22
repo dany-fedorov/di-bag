@@ -2228,13 +2228,29 @@ const inherited = new Set([
 for (const key of inherited) {
   if (report.manual.filter(item => `${item.file}\0${item.reason}` === key).length !== 1) throw new Error(`missing or duplicate inherited manual: ${key}`);
 }
-const classified = report.manual.map(item => ({
-  file: item.file,
-  line: item.line,
-  reason: item.reason,
-  owner: inherited.has(`${item.file}\0${item.reason}`) ? 'phase-3-retained-pass-through' : null,
-  resolution: inherited.has(`${item.file}\0${item.reason}`) ? 'already migrated where the nonliteral CloseOptions value is built; retain this exact pass-through report' : null,
-}));
+const retainedPhase4 = new Map([
+  ['tests/final-adversarial-runtime-fixture.ts\0the receiver of of has type any, so this call cannot be checked; migrate it by hand if it is a DI Bag call', 6],
+  ['tests/tokens.test.ts\0of is destructured; calls through the local name are not rewritten, migrate them by hand', 1],
+  ['tests/tokens.test.ts\0of is referenced without being called; rewrite this reference to forCollectionOf by hand', 1],
+  ['tests/tokens.test.ts\0token creation cannot be traced to an identifier binding; if it is used as a collection, create a named token with forCollectionOf and move the collection uses to it', 1],
+  ['tests/types/negative/collection-tokens.ts\0service is used as a collection and as a single service (negative/collection-tokens.ts:13); a 0.5 token is one or the other, so create a second token for the list with forCollectionOf and move the collection uses to it', 1],
+]);
+const currentMethod = 'tests/types/builder-renames.ts\0buildModule is referenced without being called; rewrite this reference to buildModule by hand';
+for (const [key, count] of [...retainedPhase4, [currentMethod, 1]]) {
+  if (report.manual.filter(item => `${item.file}\0${item.reason}` === key).length !== count) throw new Error(`retained input count differs: ${key}`);
+}
+const classified = report.manual.map(item => {
+  const key = `${item.file}\0${item.reason}`;
+  const oldClose = inherited.has(key), oldToken = retainedPhase4.has(key), current = key === currentMethod;
+  return {
+    file: item.file, line: item.line, reason: item.reason,
+    owner: oldClose ? 'phase-3-retained-pass-through' : oldToken ? 'phase-4-retained-pass-through' : current ? 'phase-5-current-method-reference' : null,
+    resolution: oldClose ? 'already migrated where the nonliteral CloseOptions value is built; retain this exact pass-through report'
+      : oldToken ? 'preserve the already-correct single-service token expression or deliberate wrong-kind fixture; this is not a builder rename'
+      : current ? 'retain the inferred uncalled buildModule producer without annotations or wrappers; physical portability proof requires it' : null,
+    expectedAfterMigration: !(oldToken && item.file === 'tests/types/negative/collection-tokens.ts'),
+  };
+});
 writeFileSync('/tmp/di-bag-phase-05/codemod-manual-classification.json', `${JSON.stringify(classified, null, 2)}\n`);
 console.log({ written: report.written, skipped: skipped.length, startup: startup.length, manuals: classified.length });
 JS
@@ -2247,7 +2263,7 @@ pass its runtime/compiler checks, or a post-mechanical hand migration. Never fol
 mechanical commit.
 
 The classification file pins every row by exact path, line and reason. The script preclassifies the
-four inherited Phase 3 `close` pass-through rows by exact path/reason. Fill every remaining `null`
+four inherited Phase 3 `close` pass-through rows, ten Phase 4 token rows and one already-current inferred method reference by exact path/reason/count. Fill every remaining `null`
 with `task-8-prerequisite`, `task-8-post-mechanical`, or the exact later task number and a concrete
 resolution. A later owner is valid only when that task's Files/Interfaces explicitly own the path and
 surface. Before continuing, assert that no `null` remains and record the classification in the Task 8
@@ -2256,11 +2272,13 @@ report; do not treat an inherited or later-owned manual as an unresolved Task 8 
 ```bash
 node - <<'JS'
 const rows = require('/tmp/di-bag-phase-05/codemod-manual-classification.json');
-const owners = new Set(['phase-3-retained-pass-through', 'task-8-prerequisite', 'task-8-post-mechanical', 'task-9', 'task-10', 'task-11', 'task-12', 'task-13']);
+const owners = new Set(['phase-3-retained-pass-through', 'phase-4-retained-pass-through', 'phase-5-current-method-reference', 'task-8-prerequisite', 'task-8-post-mechanical', 'task-9', 'task-10', 'task-11', 'task-12', 'task-13']);
 if (rows.some(row => !owners.has(row.owner) || typeof row.resolution !== 'string' || row.resolution.length === 0)) process.exit(1);
 console.log(rows.map(({ file, line, reason, owner }) => ({ file, line, reason, owner })));
 JS
 ```
+
+**Observed retained-manual ruling.** The ten initial Phase 4 rows above comprise six single-token adversarial runtime calls, three receiver-free token identity controls, and one deliberate wrong-kind negative fixture. Preserve those token expressions and the negative marker. Keep the current `buildModule` method export in `tests/types/builder-renames.ts` unannotated and unwrapped so physical declaration proof remains meaningful. These are retained inputs, not Task 9/12 migration work. Only the mixed-token warning in `tests/types/negative/collection-tokens.ts` is expected to disappear naturally: after the legitimate `contribute` call becomes a `withCollectionContribution` bag, the 0.4-only collection-use classifier no longer sees an old collection position. Thus the final retained report must contain nine Phase 4 rows and one current-reference row. The sole `expectedAfterMigration: false` exception above requires exact proof that the single-service token, wrong-kind contribution, and its diagnostic marker remain semantically intact; do not edit the token or suppress a diagnostic to manipulate the count. Every other retained row stays exact. Keep immutable input and final classifications, including newly observed preparation rows.
 
 Before any repository write, inspect the in-memory preview for every already-new `buildModule` call introduced in Tasks 1–6. Compare the original and output AST shapes: the outer call still has one options argument, whose `exportedServiceKeys` value has not been wrapped in a second `exportedServiceKeys` object. Named/typed bags remain the same outer argument. Nested legitimate builder rewrites may differ. Retain a path/line inventory and assertions with the preview report. Counts alone are insufficient; do not write if any completed call is rewrapped. This is the real-library integration proof for Task 7's mixed-generation guard.
 
@@ -2306,6 +2324,8 @@ writeFileSync(file, prepared);
 console.log('startup preparation: codemod projection with exactly two old-close controls restored');
 JS
 ```
+
+**Observed preparation diagnostic correction:** The first migrated `startup.ts` fixture reports TS2769 at the final unknown-`name` module call: the intended excess property is now rejected against `ModuleOptions & { readonly exportedServiceKeys: ... }`. The old marker `does not exist in type 'ModuleOptions'` no longer occurs contiguously. After preserving the raw projected fixture, change only that marker to `'name' does not exist in type 'ModuleOptions &`, exactly as observed in `phase05-task8-startup-fixture-raw.log`. Record the preparation as the codemod projection with two old-close controls restored plus this one authorized comment correction. This is a shape-derived diagnostic correction, not an early rename of the nine shared admission messages. Keep the bad `name` call, all other negative cases, and both close controls intact; refresh the prepared snapshot after the focused check passes.
 
 Run the focused negative fixture, the full typecheck, codemod checks, and the applicable narrow
 runtime tests. If a classified manual prerequisite is required to make the generated boundary pass,
@@ -2478,7 +2498,7 @@ bun test tests/builder-renames.test.ts
 git diff --check
 ```
 
-Before treating the generated tree as compiler/runtime green, also derive verification inputs from its report-generated file inventory. Run every changed negative fixture through `tests/types.test.ts`, selecting its exact escaped basename in the `type rejection: <file>` test name; the broad semantic-name filter alone misses unrelated negative files whose builder calls changed. Retain the selected file/name inventory and run the phase's affected positive compiler checks as well. Execute every changed runtime `.test.ts` file once, using the report-derived list and excluding compiler-lane files already handled by the compiler checks; alternatively use the established fast lane once when it is the authoritative complete set. Preserve the one-heavy-lane guard. Do not repeat an unchanged green subset just because it is printed twice in the plan. If a fixture fails because bag/list reshaping moves a diagnostic or changes an assertion, retain the failed projection and restore only report-generated paths; prepare the needed non-generated repair in a separate green prerequisite before trying the mechanical write again. Marker wording remains the current shared wording until Task 12.
+Before treating the generated tree as compiler/runtime green, also derive verification inputs from its report-generated file inventory. Run every changed negative fixture through `tests/types.test.ts`, selecting its exact escaped basename in the `type rejection: <file>` test name; the broad semantic-name filter alone misses unrelated negative files whose builder calls changed. Retain the selected file/name inventory and run the phase's affected positive compiler checks as well. Execute every changed runtime `.test.ts` file once, using the report-derived list and excluding compiler-lane files already handled by the compiler checks; alternatively use the established fast lane once when it is the authoritative complete set. Preserve the one-heavy-lane guard. Do not repeat an unchanged green subset just because it is printed twice in the plan. If a fixture fails because bag/list reshaping moves a diagnostic or changes an assertion, retain the failed projection and restore only report-generated paths; prepare the needed non-generated repair in a separate green prerequisite before trying the mechanical write again. The nine shared admission-message markers retain their current wording until Task 12; the sole observed startup shape-marker correction is the explicit Step 1 exception.
 
 Every command above must pass. A manual item may remain because the old builder surface is still
 present, but it may not make this boundary compiler/runtime red. If one is a prerequisite for green,
@@ -2539,7 +2559,8 @@ const addTool = (collectionToken: typeof tools, provider: () => string) =>
 ```
 
 The expanded old and new builder methods still share the existing admission types. Therefore keep
-the current diagnostic marker text byte-for-byte in Task 8. The following nine replacements are the
+the nine shared admission-message marker texts byte-for-byte in Task 8. The sole observed startup
+shape-marker correction authorized in Step 1 is recorded separately; it changes no shared message name. The following nine replacements are the
 Task 12 contract edit, when source diagnostics and fixtures change atomically; audit them now, but do
 not apply them early:
 
@@ -2590,7 +2611,12 @@ const startup = report.files.filter(item => item.file === 'tests/types/negative/
 const outside = report.files.filter(item => item.file !== 'tests/types/negative/startup.ts' && item.rewrites !== 0);
 const key = item => `${item.file}\0${item.reason}`;
 const counts = rows => [...rows.reduce((map, row) => map.set(key(row), (map.get(key(row)) ?? 0) + 1), new Map())].sort(([a], [b]) => a.localeCompare(b));
-const allowed = classified.filter(item => !item.owner.startsWith('task-8'));
+const allowed = classified.filter(item => !item.owner.startsWith('task-8') && item.expectedAfterMigration !== false);
+const absent = classified.filter(item => item.expectedAfterMigration === false);
+assert.equal(absent.length, 1);
+assert.equal(absent[0].owner, 'phase-4-retained-pass-through');
+assert.equal(absent[0].file, 'tests/types/negative/collection-tokens.ts');
+assert.equal(absent[0].reason, 'service is used as a collection and as a single service (negative/collection-tokens.ts:13); a 0.5 token is one or the other, so create a second token for the list with forCollectionOf and move the collection uses to it');
 assert.equal(report.written, false);
 assert.equal(skipped.length, 0);
 assert.equal(startup.length, 1);
@@ -3334,7 +3360,7 @@ Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
 MSG
 ```
 
-Report to the controller in at most 60 lines: branch `phase-05-builder-renames`; `git log --oneline next..HEAD`; each gate and its last summary line; each S1 method decision and S7 decision with the deciding number; all twelve cumulative percentages; before/after call-site counts; any manual codemod items; any fallback or deviation and why. Add a table naming the exact hashes produced by Tasks 4, 5, 6, 7, Task 8's preparation, pure mechanical and optional hand commits, and Tasks 9, 10 and 11. For Task 8, cite the exact expanded write command, full and write negative-fixture inventories, report-generated staged inventory, startup exact-text/byte proof, focused compiler result, exact path/reason/owner manual classification, and the fact that marker text stayed unchanged for Task 12. Mark every listed commit with its actually observed `green` or `generated-documentation only` status, include the `docs:generate` outcome/diff, restored-tree `docs:check` outcome and exact failures for each red commit, and give the exact `git bisect skip <hash>...` command covering only those red hashes. Confirm that the Task 12-13 contract/docs commit and HEAD pass both `npm run docs:generate`/clean-tree comparison and `npm run docs:check` with the unchanged 400-line budget. Never push, publish or merge.
+Report to the controller in at most 60 lines: branch `phase-05-builder-renames`; `git log --oneline next..HEAD`; each gate and its last summary line; each S1 method decision and S7 decision with the deciding number; all twelve cumulative percentages; before/after call-site counts; any manual codemod items; any fallback or deviation and why. Add a table naming the exact hashes produced by Tasks 4, 5, 6, 7, Task 8's preparation, pure mechanical and optional hand commits, and Tasks 9, 10 and 11. For Task 8, cite the exact expanded write command, full and write negative-fixture inventories, report-generated staged inventory, startup exact-text/byte proof, focused compiler result, exact path/reason/owner manual classification, and the fact that the nine shared admission-message markers stayed unchanged for Task 12, separately documenting the one observed startup shape-marker correction. Mark every listed commit with its actually observed `green` or `generated-documentation only` status, include the `docs:generate` outcome/diff, restored-tree `docs:check` outcome and exact failures for each red commit, and give the exact `git bisect skip <hash>...` command covering only those red hashes. Confirm that the Task 12-13 contract/docs commit and HEAD pass both `npm run docs:generate`/clean-tree comparison and `npm run docs:check` with the unchanged 400-line budget. Never push, publish or merge.
 
 ---
 
