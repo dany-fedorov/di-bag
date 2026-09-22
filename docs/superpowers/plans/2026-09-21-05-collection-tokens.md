@@ -2189,6 +2189,8 @@ Run the existing compiler-fixture command used by neighboring entries in `tests/
 
 Expected: 2 tests pass: `collection tokens retain exact inferred contracts` has zero diagnostics and `type rejection: collection-tokens.ts` matches each negative marker to one diagnostic on the following line. Neither required fixture is filtered away.
 
+Then run `npm run typecheck` and require exit 0 before Step 8. The focused fixture harness excludes library-source diagnostics, so passing fixtures alone does not establish a valid source tree for the measurements. Repair declaration errors and preserve the old contribution APIs throughout expansion; do not classify counts from rejected worker cases as the cost of a working API.
+
 This is the first compile attempt for these proposed types. Make at most three serious repairs. Do not erase nominal invariance, turn errors into `never`, weaken the negative fixtures, or move contributions into the ordinary registrations map.
 
 - [ ] **Step 8: Run spike S5 measurements and decide**
@@ -2280,10 +2282,11 @@ The `Bag.resolveAll` map entry targets `resolveCollection`; `Bag.inspectAll` tar
 Run the focused fixture command from Task 4 Step 7, then:
 
 ```bash
+npm run typecheck
 node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseline.md --json /tmp/phase-04-fallback-rows.json > /tmp/phase-04-fallback-table.md
 ```
 
-Expected: fixtures pass; the evidence command exits 0; every case is within the cumulative +10% budget. Replace the failed primary table under `## Expand (S5)` with the fallback table while retaining the failed attempts immediately above it. If even the fallback misses the budget, stop and report to the controller; the spec has no third API shape.
+Run the evidence command only after typecheck exits 0; the fixture harness alone does not check library-source diagnostics. Expected: fixtures and full typecheck pass; the evidence command exits 0; every case is within the cumulative +10% budget. Replace the failed primary table under `## Expand (S5)` with the fallback table while retaining the failed attempts immediately above it. If even the valid fallback misses the budget, stop and report to the controller; the spec has no third API shape. Preserve rejected invalid-source runs as failed evidence rather than an adopted budget table.
 
 - [ ] **Step 5: Prove and commit the complete green fallback expand boundary**
 
