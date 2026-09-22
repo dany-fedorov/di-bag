@@ -2577,13 +2577,14 @@ marker edit, or unrelated file.
 
 - [ ] **Step 5: Resolve manual items separately and preserve current diagnostics**
 
-Resolve every remaining manual item in files owned by this task. For a reshaped extracted reference,
-use an explicitly typed wrapper, for example:
+Resolve every remaining manual item in files owned by this task and the direct consumers of any reshaped extracted reference. Preserve unannotated exported references that test declaration inference: `builder.withCollectionContribution` and `moduleBuilder.withCollectionContribution` stay direct exports, with no wrapper or added producer annotation. For a convenience reference that does not test inferred callable portability, an explicitly typed wrapper is appropriate, for example:
 
 ```ts
 const addTool = (collectionToken: typeof tools, provider: () => string) =>
   builder.withCollectionContribution({ collectionToken, provider });
 ```
+
+**Observed hand-unit dependency correction.** The 46 report-owned manual rows span 16 files, but changing the two direct contribution exports also requires three identifier calls in `tests/types/contributions-consumer.ts` to take the current bag. Include this seventeenth hand file; the unchanged report cannot discover calls through those exported identifiers. Preserve the wrong-output rejection and update the reflected provider assertion to `Parameters<typeof contribute>[0]['provider']`, so it still checks the provider for `any` rather than merely checking the enclosing bag. The intentionally JavaScript-shaped `runtime-scale.test.ts` reflected call may use a local erased intermediate; preserve all dependency and disposal assertions. Retain the initial typecheck/runtime failures and verify the corrected positive cross-file and declaration-consumer tests explicitly.
 
 The expanded old and new builder methods still share the existing admission types. Therefore keep
 the nine shared admission-message marker texts byte-for-byte in Task 8. The observed startup
@@ -2626,6 +2627,10 @@ grep -rhoE "toThrow\((/|['\`])[^)]*" tests | grep -iE "\b(register|alias|contrib
 ```
 
 - [ ] **Step 6: Prove and commit the hand migration separately**
+
+**Observed final hand-inventory ruling.** The immutable attempt3 input classification has 130 rows. All 46 Task8-owned cases are migrated, but three same-name `buildModule` calls remain conservatively reported after migration: `tests/collection-tokens.test.ts:246` (wrong-kind probe), `tests/modules.test.ts:115` (missing-export probe), and `tests/platform/portable/contract.ts:74` (the intentionally checker-opaque portable chain). Their actual calls now take exactly one current `exportedServiceKeys` bag. Preserve the original path/reason multiplicities and runtime assertions; do not add wrappers or type annotations merely to suppress these reports. A separate derived final classification records each row's original Task8 owner and its resolved-current-call proof. The exact final multiset is 86 rows: 60 Task9, 9 Task12, 9 Phase4, 4 Phase3, the original current method reference and these 3 current calls. Thus 43 Task8 report rows and the one expected mixed-token Phase4 row disappear; no new unclassified rows are accepted. Use this reviewed exact multiset instead of the earlier predicted 83-row filter below, while retaining the original input artifact unchanged.
+
+The observed final preview deliberately uses the explicit 84-negative write inventory and excludes only protected `startup.ts`; it reports zero files and zero rewrites. Its final proof composes with the retained attempt3 inclusive/startup proof: verify byte identity of current startup with the archived prepared input and unchanged source/declarations/codemod/map, retain the original five proposed rewrite counts affecting exactly the two protected close controls, and audit that the 84-file inventory excludes no other negative. This composition fulfills the inclusive final obligation without repeating a whole-project compiler-backed preview; label the new report startup-excluded, never inclusive. Preserve both commands/reports and the hash inventory together. If any prerequisite byte identity fails, use the inclusive command below afresh under the 12 GiB guard.
 
 ```bash
 node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'tests/types/isolated/*.ts' --report /tmp/di-bag-phase-05/codemod-dry-run-report.json
@@ -2696,7 +2701,7 @@ Keep every runtime/compiler check green.
 
 **Interfaces:**
 - Consumes: Task 6's adopted/fallback shapes.
-- Produces: every generated TypeScript program and untyped runtime chain uses the 0.5.0 builder calls; `scaleSource` and `tokenScaleSource` no longer need `DI_BAG_SCALE_API`.
+- Produces: every current generated TypeScript program and untyped runtime chain uses the 0.5.0 builder calls; `scaleSource` and `tokenScaleSource` no longer need `DI_BAG_SCALE_API`. The explicitly pinned S1/S7 historical comparison branches retain their original syntax and labels.
 
 - [ ] **Step 1: Audit strings before editing**
 
@@ -2743,11 +2748,11 @@ Apply these syntax rules to template/string contents and to the two `.node.mjs` 
 | `.buildModule(keys, { label: value })` | `.buildModule({ exportedServiceKeys: keys, moduleLabel: value })` |
 | `.build()` | `.buildContainer()` |
 
-For multiline generated fragments, keep interpolation expressions byte-for-byte and change only the surrounding syntax. `tests/compiler.ts` must remove `bagCalls` and emit 0.5.0 unconditionally in `scaleSource`, `tokenScaleSource`, `namedModuleScaleSource`, and `moduleListScaleSource`; keep `separate-0.4` only in the S7 evidence generator because it is an explicit comparison form. Migrate `namedModuleScaleSource` to the selected module bag/list shapes while retaining grouping and reuse semantics, and update its exact-output assertions in `tests/benchmark-compiler-ceiling.test.ts`. Preserve `controlScaleSource` byte-for-byte: its structural `register`/`build` object never calls DI Bag and is a deliberate performance control pinned by that same ceiling test.
+For multiline generated fragments, keep interpolation expressions byte-for-byte and change only the surrounding syntax. `tests/compiler.ts` must remove `bagCalls` and emit 0.5.0 unconditionally in `scaleSource`, `tokenScaleSource`, `namedModuleScaleSource`, and `moduleListScaleSource`; retain the S7 `moduleListScaleSource` `separate-0.4` branch and the S1 `scripts/check-builder-bag-scale.ts` `positional-0.4` branches as explicit historical comparisons. Preserve their syntax and comparison labels; do not relabel current syntax as a historical measurement. Migrate `namedModuleScaleSource` to the selected module bag/list shapes while retaining grouping and reuse semantics, and update its exact-output assertions in `tests/benchmark-compiler-ceiling.test.ts`. Preserve `controlScaleSource` byte-for-byte: its structural `register`/`build` object never calls DI Bag and is a deliberate performance control pinned by that same ceiling test.
 
 - [ ] **Step 3: Prove no hidden generated call remains**
 
-Rerun the scanner from Step 1 and classify every remaining row. Its lexical matcher also sees current `buildModule` bags and unrelated JavaScript methods, so do not assert zero raw rows. Permit only proven current bag syntax, the exact library-free `controlScaleSource` declaration/calls, the intentional `separate-0.4` branch of `moduleListScaleSource`, and proven non-library literals. Pin exceptions by path/function and source evidence rather than a global spelling allowlist. Literal migration fixtures under `tools/codemod` are outside this scan. Expected: zero unclassified retired library calls. Then run the affected generated-program owners before the existing package/runtime gates:
+Rerun the scanner from Step 1 and classify every remaining row. Its lexical matcher also sees current `buildModule` bags and unrelated JavaScript methods, so do not assert zero raw rows. Permit only proven current bag syntax, the exact library-free `controlScaleSource` declaration/calls, the intentional `separate-0.4` branch of `moduleListScaleSource`, the `positional-0.4` branches of `aliasChain` and `contributionChain` in `scripts/check-builder-bag-scale.ts`, and proven non-library literals. The S1 worker remains evidence-owned: pin its four historical scanner hits by exact function/shape, preserve its already-current bag branches, and document that historical branches are run against the recorded expand-state commit, before old API removal. No current application/test generator is exempted. Pin exceptions by path/function and source evidence rather than a global spelling allowlist. Literal migration fixtures under `tools/codemod` are outside this scan. Expected: zero unclassified retired library calls. Then run the affected generated-program owners before the existing package/runtime gates:
 
 ```bash
 bun test tests/type-scale.test.ts tests/token-scale.test.ts tests/benchmark-types.test.ts tests/compiler-case.test.ts tests/benchmark-compiler-ceiling.test.ts tests/compiler-reuse.test.ts tests/release-artifacts.test.ts
@@ -3371,7 +3376,7 @@ git status --short
 git diff --check next...HEAD
 ```
 
-Expected: old executable DI Bag call counts are zero outside the explicit codemod/graph/migration fixtures and deferred guides; new-name counts account for their replacements; the old assertion inventory is empty; the operation grep is empty outside deliberate old-syntax fixtures; `git diff --check` prints nothing. Put the before and after count tables in the phase report.
+Expected: old executable DI Bag call counts are zero outside the explicit codemod/graph/migration fixtures, pinned S1/S7 historical comparison branches and deferred guides; new-name counts account for their replacements; the old assertion inventory is empty; the operation grep is empty outside deliberate old-syntax fixtures; `git diff --check` prints nothing. Put the before and after count tables in the phase report.
 
 - [ ] **Step 5: Commit evidence and send the report**
 
