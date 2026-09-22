@@ -760,7 +760,7 @@ export type BuilderWithCollectionContribution<E extends Entry, C extends NeedCon
 ) => import('./di-bag').Builder<E, C | Contribution<T, V>>;
 ```
 
-Import `CollectionTokenAdmission` from its phase-4 owner in this file. In `src/index.ts`, export the callable next to the old one: `export type { BuilderContribute, BuilderWithCollectionContribution } from './contribution-types';`
+Use the existing local `CollectionTokenAdmission` type declared in `src/contribution-types.ts`; do not import it into its own defining file. In `src/index.ts`, export the callable next to the old one: `export type { BuilderContribute, BuilderWithCollectionContribution } from './contribution-types';`
 
 - [ ] **Step 5: Add the methods to `class Builder`**
 
