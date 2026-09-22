@@ -232,6 +232,7 @@ export type Overrides<
   F extends Registrations,
   O extends Registrations,
   K extends readonly unknown[] = readonly [],
+  Operation extends string = 'fork',
 > = unknown extends CollectionOverrideAdmission<K, O>
   ? [Exclude<keyof O, keyof SelectionRegistrations<F, K>>] extends [never]
     ? [BadOverrides<SelectionRegistrations<F, K>, O>] extends [never]
@@ -241,7 +242,7 @@ export type Overrides<
           { tokens: BadOverrides<SelectionRegistrations<F, K>, O> }
         >
     : Unsatisfied<
-        `fork accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof SelectionRegistrations<F, K>>>}${SeeErrors<'unknown-key'>}`,
+        `${Operation} accepts existing names or typed tokens only: unknown ${NameText<Exclude<keyof O, keyof SelectionRegistrations<F, K>>>}${SeeErrors<'unknown-key'>}`,
         { extra: Exclude<keyof O, keyof SelectionRegistrations<F, K>> }
       >
   : CollectionOverrideAdmission<K, O>;

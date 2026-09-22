@@ -33,6 +33,51 @@ export type DisjointScopeSelection<K extends readonly unknown[], S extends reado
   [SelectionKey<K[number]> & SelectionKey<S[number]>] extends [never] ? unknown
     : Unsatisfied<'createScope cannot share and override the same token', { tokens: SelectionKey<K[number]> & SelectionKey<S[number]> }>;
 
+type ReplacementOptions<
+  ServiceRegistrations extends Registrations,
+  Constraints extends NeedConstraint,
+  ReplacedServiceKeys extends readonly unknown[],
+  ReplacementProviders,
+  Operation extends string,
+> = [ReplacedServiceKeys[number]] extends [never]
+  ? { readonly replacedServiceKeys?: never; readonly replacementProviders?: never }
+  : {
+      readonly replacedServiceKeys: ReplacedServiceKeys
+        & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, Operation>;
+      readonly replacementProviders: ReplacementProviders;
+    };
+
+/** Options for creating an independent container with selected replacements. */
+export type CreateIndependentContainerOptions<
+  ServiceRegistrations extends Registrations,
+  Constraints extends NeedConstraint = never,
+  ReplacedServiceKeys extends readonly unknown[] = readonly [],
+  ReplacementProviders = never,
+> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders, 'createIndependentContainer'>;
+
+/** Options for creating a tracked child container with replacement and sharing selections. */
+export type CreateChildContainerOptions<
+  ServiceRegistrations extends Registrations,
+  SharedParentServiceKeys extends readonly unknown[],
+  Constraints extends NeedConstraint = never,
+  ReplacedServiceKeys extends readonly unknown[] = readonly [],
+  ReplacementProviders = never,
+> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders, 'createChildContainer'> & {
+  readonly sharedParentServiceKeys?: SharedParentServiceKeys
+    & Selection<ServiceRegistrations, Constraints, SharedParentServiceKeys, 'createChildContainer sharedParentServiceKeys'>
+    & ScopeShareAdmission<SharedParentServiceKeys> & (
+      [Transients<ServiceRegistrations, SharedParentServiceKeys>] extends [never] ? unknown
+        : Unsatisfied<'createChildContainer cannot share transient providers', { tokens: Transients<ServiceRegistrations, SharedParentServiceKeys> }>
+    );
+} & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>;
+
+/** Reject a child-container key selected for both replacement and parent sharing. */
+export type DisjointChildContainerSelection<ReplacedServiceKeys extends readonly unknown[], SharedParentServiceKeys extends readonly unknown[]> =
+  [SelectionKey<ReplacedServiceKeys[number]> & SelectionKey<SharedParentServiceKeys[number]>] extends [never] ? unknown
+    : Unsatisfied<'createChildContainer cannot share and replace the same service', {
+        tokens: SelectionKey<ReplacedServiceKeys[number]> & SelectionKey<SharedParentServiceKeys[number]>;
+      }>;
+
 // Selected sharing belongs to one runtime. Retain alias-only parent routing for
 // its checks, then clear it when constructing an independent fork or fresh scope.
 type SharedKeys<R extends Registrations> = {

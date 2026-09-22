@@ -18,9 +18,9 @@ import type { CheckedLifetimes, WithoutExportObligations } from './lifetime-type
 import { withLifetime } from './lifetime';
 import { fromFactory, fromSyncFactory, fromAsyncFactory } from './acquisition-context';
 import { closeRuntime, ensureRuntimeReady } from './startup';
-import { selectScope } from './scope-selection';
-import type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases } from './scope-types';
-import type { CheckedScopeLifetimes } from './lifetime-types';
+import { selectChildContainer, selectIndependentContainer, selectScope } from './scope-selection';
+import type { CreateChildContainerOptions, CreateIndependentContainerOptions, DisjointChildContainerSelection, ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases } from './scope-types';
+import type { CheckedChildContainerLifetimes, CheckedScopeLifetimes } from './lifetime-types';
 import type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 import { withMetadata, transformService, withTokenBinding } from './provider';
 import { fromFunction, fromClass } from './composition';
@@ -74,6 +74,46 @@ function claimSelectedTokenKinds(
     claimed = claimed.withTokenKind(token.key, token.kind, operation);
   }
   return claimed;
+}
+
+function positionalChildOptions(args: readonly unknown[]): unknown {
+  if (args.length === 0) return undefined;
+  if (args.length === 1) {
+    return args[0] === undefined
+      ? undefined
+      : snapshotOptionsBag(args[0], 'createChildContainer', [], ['sharedParentServiceKeys']);
+  }
+  if (args.length !== 2 && args.length !== 3) {
+    throw libraryError('DI_BAG_INVALID_ARGUMENT', 'createChildContainer accepts zero, one, two, or three arguments', {
+      operation: 'createChildContainer', argument: 'arguments.length', expected: "one of: '0', '1', '2', '3'",
+    });
+  }
+  const sharing = args.length === 3 && args[2] !== undefined
+    ? snapshotOptionsBag(args[2], 'createChildContainer', [], ['sharedParentServiceKeys'])
+    : Object.create(null) as Record<string, unknown>;
+  const options: Record<string, unknown> = {
+    replacedServiceKeys: args[0],
+    replacementProviders: args[1],
+  };
+  if (Object.hasOwn(sharing, 'sharedParentServiceKeys')) {
+    options.sharedParentServiceKeys = sharing.sharedParentServiceKeys;
+  }
+  return options;
+}
+
+function positionalIndependentOptions(args: readonly unknown[]): unknown {
+  if (args.length === 0) return undefined;
+  if (args.length === 1) {
+    return args[0] === undefined
+      ? undefined
+      : snapshotOptionsBag(args[0], 'createIndependentContainer', [], []);
+  }
+  if (args.length !== 2) {
+    throw libraryError('DI_BAG_INVALID_ARGUMENT', 'createIndependentContainer accepts zero arguments, undefined, an empty options object, or selected keys and replacement providers', {
+      operation: 'createIndependentContainer', argument: 'arguments.length', expected: "one of: '0', '1', '2'",
+    });
+  }
+  return { replacedServiceKeys: args[0], replacementProviders: args[1] };
 }
 
 /**
@@ -217,6 +257,88 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * ```
    */
   inspectGraph(): GraphSnapshot { return this.#runtime.inspectGraph(); }
+
+  /**
+   * Create a tracked child container with fresh ownership for unshared services.
+   * Share selected non-transient parent acquisitions through the optional bag. To replace services,
+   * pass selected keys and providers first, then the sharing bag.
+   * @returns A child owned by this container; closing the parent closes the child first.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
+   * `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
+   * @example
+   * ```ts
+   * const parent = DiBag.createBuilder().withServices({ config: () => ({ port: 3000 }) }).buildContainer();
+   * const child = parent.createChildContainer({ sharedParentServiceKeys: ['config'] });
+   * const config = child.resolve('config');
+   * await child.close();
+   * await parent.close();
+   * ```
+   */
+  createChildContainer(
+    options?: CreateChildContainerOptions<ServiceRegistrations, readonly [], Constraints>,
+  ): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
+  createChildContainer<const SharedParentServiceKeys extends readonly unknown[]>(
+    options: CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>,
+  ): Bag<ScopedAliases<ServiceRegistrations, ServiceRegistrations, SharedParentServiceKeys>, Constraints>;
+  createChildContainer<
+    const ReplacedServiceKeys extends readonly unknown[],
+    ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>,
+    const SharedParentServiceKeys extends readonly unknown[] = readonly [],
+  >(
+    replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createChildContainer'>,
+    replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> &
+      Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createChildContainer'> &
+      CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+      CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+      CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+      CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+      CheckedChildContainerLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>>, NoInfer<ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>,
+    options?: Pick<CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>, 'sharedParentServiceKeys'>
+      & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>,
+  ): Bag<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
+  createChildContainer(...args: unknown[]): unknown {
+    this.#runtime.assertOpen();
+    const { graph, shared } = selectChildContainer(this.#graph, positionalChildOptions(args), serviceKey => this.#runtime.isTransient(serviceKey));
+    return new Bag(graph, this.context, this.#runtime.scope(graph, shared));
+  }
+
+  /**
+   * Create an independent container with fresh instances and optional checked replacements.
+   * Replacements use positional selected keys and providers; an empty options bag remains valid.
+   * @returns A container with independent acquisition and ownership state.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection;
+   * `DI_BAG_INVALID_REGISTRATION` for a malformed provider; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
+   * @example
+   * ```ts
+   * const parent = DiBag.createBuilder().withServices({ clock: () => Date.now() }).buildContainer();
+   * const independent = parent.createIndependentContainer(['clock'], { clock: () => 0 });
+   * const now = independent.resolve('clock');
+   * await independent.close();
+   * await parent.close();
+   * ```
+   */
+  createIndependentContainer(
+    this: Bag<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>,
+    options?: CreateIndependentContainerOptions<ServiceRegistrations, Constraints>,
+  ): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
+  createIndependentContainer<
+    const ReplacedServiceKeys extends readonly unknown[],
+    ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>,
+  >(
+    replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createIndependentContainer'>,
+    replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> &
+      Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createIndependentContainer'> &
+      CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+      CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+      CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+      CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+      CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>,
+  ): Bag<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
+  createIndependentContainer(...args: unknown[]): unknown {
+    this.#runtime.assertOpen();
+    const graph = selectIndependentContainer(this.#graph, positionalIndependentOptions(args));
+    return new Bag(graph, this.context);
+  }
 
   /**
    * Create a tracked child that borrows selected parent acquisitions.
