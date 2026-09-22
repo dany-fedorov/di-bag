@@ -126,7 +126,9 @@ No commit: this task is read-only inventory.
 ### Task 1: Add provider prototype methods with retained contracts
 
 **Files:**
-- Modify: `src/provider.ts`, `src/lifetime.ts`, `src/lifetime-types.ts`, `src/registration.ts`, `src/provider-operations.ts`, `src/acquisition-mode.ts`, `src/acquisition.ts`, `src/runtime.ts`, `src/inspection.ts`, `src/observers.ts`, `src/module-types.ts`
+- Modify: `src/provider.ts`, `src/lifetime.ts`, `src/lifetime-types.ts`, `src/registration.ts`, `src/provider-operations.ts`, `src/acquisition-mode.ts`, `src/acquisition.ts`, `src/runtime.ts`, `src/inspection.ts`, `src/observers.ts`, `src/module-types.ts`, `src/builder-method-types.ts`
+- Modify: `tests/types/builder-renames.ts`, `tests/types/builder-renames-consumer.ts`
+- Create: `tests/types/negative/provider-replacement-output.ts`
 - Create: `tests/provider-methods.test.ts`, `tests/types/provider-methods.ts`, `tests/types/negative/provider-methods.ts`
 - Modify: `tests/types.test.ts`
 
@@ -408,16 +410,44 @@ export type Registration = Factory | FactoryWithDisposal<Factory> | ProviderBase
 export type Registrations = Record<string, Registration>;
 ```
 
-Keep every `FactoryWithDisposal` projection branch and the old facade overload until Task 6, so all pre-migration tests stay green. Add the new fast overload before the legacy and general overloads:
+Keep every `FactoryWithDisposal` projection branch and the old facade overload until Task 6, so all pre-migration tests stay green. Phase 5 moved the checked replacement signatures into `BuilderWithReplacedService` in `src/builder-method-types.ts`; `src/di-bag.ts` owns only its typed field and shared private runtime implementation. Add the following private output admission and put the new call signature first in that existing callable interface, before its legacy fast and general overloads. Import `ProviderOutput`, `ReplacementOutput`, `WrongShapeMessage` and the other existing helpers internally; do not export the private admission from the package.
 
 ```ts
-withReplacedService<const ServiceKey extends keyof ServiceRegistrations, Replacement extends ProviderOrFactory>(options: {
-  readonly serviceKey: ServiceKey;
-  readonly provider: Replacement & ZeroDependencyAdmission<NoInfer<Replacement>> & BuilderReplacementRegistration<ServiceRegistrations, Constraints, NoInfer<ServiceKey>, Replacement>;
-}): Builder<ReplacedEntries<Entries, ServiceKey, Replacement>, ReplacedConstraints<Constraints, ServiceKey, Replacement>>;
+type FastReplacementOutputAdmission<Entries extends Entry, Constraints extends NeedConstraint, ServiceKey extends string, Replacement extends ProviderOrFactory> =
+  [ProviderOutput<NoInfer<Replacement>>] extends [ReplacementOutput<NoInfer<RegistrationsFromEntries<Entries>>, ServiceKey, Constraints>]
+    ? unknown
+    : Unsatisfied<WrongShapeMessage, {
+        dependency: ServiceKey;
+        expected: ReplacementOutput<RegistrationsFromEntries<Entries>, ServiceKey, Constraints>;
+        provided: ProviderOutput<Replacement>;
+      }>;
+
+// First call signature inside BuilderWithReplacedService<Entries, Constraints>:
+<const ServiceKey extends string, Replacement extends ProviderOrFactory>(options: {
+  readonly serviceKey: ServiceKey & ReplacementKeyOf<EntryKeys<Entries>, ServiceKey>;
+  readonly provider: Replacement & ZeroDependencyAdmission<NoInfer<Replacement>>
+    & FastReplacementOutputAdmission<Entries, Constraints, NoInfer<ServiceKey>, NoInfer<Replacement>>
+    & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<ServiceKey, NoInfer<Replacement>>>>;
+}): import('./di-bag').Builder<ReplacedEntries<Entries, ServiceKey, Replacement>, WithoutExportObligations<Constraints, ServiceKey>>;
 ```
 
-This admits a plain zero-dependency factory and `createProvider(factory).withDisposal(...)`; the general overload follows it and retains all phase-4 collection-token checks.
+This preserves the two-part fast algorithm: output admission against surviving consumer requirements and `CheckedConstraints`, without the `IncrementalChecked` history rescan in the general replacement helper. It is an **uncompiled future-state proposal**, including its diagnostic details; it does not claim that provider inference or performance has passed. Prove plain-factory and provider-object inference, property diagnostics, overload order, physical nameability and the unchanged S2 budget before adopting it. Keep the general string/token overload and all phase-4 collection admissions.
+
+Create `tests/types/negative/provider-replacement-output.ts` separately from the twelve-case provider-method fixture:
+
+```ts
+import { DiBag } from '../../../src';
+DiBag.createBuilder().withServices({
+  value: () => 1,
+  consumer: ({ value }: { value: number }) => value,
+}).withReplacedService({
+  serviceKey: 'value',
+  // diagnostic: provided service does not satisfy its consumer dependency
+  provider: DiBag.createProvider(() => 'wrong'),
+});
+```
+
+The error must remain on `provider`, and the existing twelve provider-method cases remain intact. Extend the existing builder physical producer with an unannotated exported zero-dependency numeric provider, then consume it through the emitted `withReplacedServiceMethod` and assert the inferred result is exactly `number`. Keep the original factory-fast and dependency-bearing calls. Run the focused builder source/negative fixtures and existing classic6/native7 CTS/MTS producer-deletion matrix before the combined Task 2 expand commit, and again after Task 6 contraction. No new physical harness or producer method annotation is needed.
 
 - [ ] **Step 5: Add complete type fixtures**
 
@@ -448,7 +478,7 @@ const framedReplacement = DiBag.createProvider(() => Promise.resolve(2), { facto
 DiBag.createBuilder().withServices({ value: () => Promise.resolve(1) }).withReplacedService({ serviceKey: 'value', provider: framedReplacement });
 const numberToken = DiBag.createToken(Symbol('number')).forService<number>();
 const tokenProvider = DiBag.createProvider(() => 3).withLifetime('transient:one-per-resolve');
-DiBag.createBuilder().withTokenService({ token: numberToken, provider: tokenProvider }).buildContainer().resolve(numberToken) satisfies number;
+DiBag.createBuilder().withTokenService(numberToken, tokenProvider).buildContainer().resolve(numberToken) satisfies number;
 ```
 
 Create `tests/types/negative/provider-methods.ts`:
@@ -1731,6 +1761,7 @@ Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
 
 **Files:**
 - Modify/delete: old facade members/helpers, exports, generated reference pages, naming violation list
+- Modify: `src/builder-method-types.ts`, `tests/types/builder-renames.ts`, `tests/types/builder-renames-consumer.ts`, `tests/types/negative/provider-replacement-output.ts`
 - Verify: all phase-owned files
 
 **Interfaces:**
@@ -1741,6 +1772,8 @@ Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
 Delete the four `DiBagApi` members and exported free functions. Delete public `FactoryWithDisposal` and `Registration`; export `ProviderOrFactory`. Keep private implementation helpers unexported. Remove old generated reference pages/links and old API-card ids in the same commit.
 
 Concretely, remove `selectLegacyLifetime`, `LegacyLifetime`, `compatibilityProvider`, the compatibility overloads that admit `FactoryWithDisposal`, and every `ProviderFactory`/metadata/frames/graph/acquired conditional branch whose checked type is `FactoryWithDisposal`. Change `Registrations` to `Record<string, ProviderOrFactory>` and every builder/module/contribution generic constraint from `Registration` to `ProviderOrFactory`. Delete the `FactoryWithDisposal` interface/type export and its disposer-symbol runtime branch only after the mechanical migration has removed every constructed wrapper. Keep `describe`'s function-or-provider normalization and the new zero-dependency replacement fast overload. If fallback won, remove only the four old decorators and retain the five `providerWith*` calls; if preferred won, export only the five provider prototype methods.
+
+Apply the builder changes explicitly to every callable facade in `src/builder-method-types.ts`: migrate `Registration` constraints to `ProviderOrFactory`, remove the `FactoryWithDisposal` import and compatibility-only branch/overload, and preserve the selected fast and general replacement paths with their original property admissions. Retain all six facade exports and generated pages plus `BuilderWithCollectionContribution`; they are not retired provider compatibility contracts. The builder source/negative fixtures and physical producer-deletion proof from Task 1 must pass on the contracted signatures before this commit.
 
 - [ ] **Step 2: Run contract greps**
 

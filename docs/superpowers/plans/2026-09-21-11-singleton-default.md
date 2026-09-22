@@ -590,7 +590,7 @@ root.createChildContainer({
 
 const singletonToken = DiBag.createToken(Symbol('singleton')).forService<{ value: number }>();
 const tokenRoot = DiBag.createBuilder()
-  .withTokenService({ token: singletonToken, provider: () => ({ value: 1 }) })
+  .withTokenService(singletonToken, () => ({ value: 1 }))
   .buildContainer();
 tokenRoot.createChildContainer({
   replacedServiceKeys: [singletonToken],
@@ -1126,7 +1126,7 @@ export const root = ContainerKit.createBuilder()
   .buildContainer();
 
 export const forms = ContainerKit.createBuilder()
-  .withTokenService({ token: item, provider: (ContainerKit.createProvider(() => 1)).withLifetime('scoped:one-per-container') })
+  .withTokenService(item, (ContainerKit.createProvider(() => 1)).withLifetime('scoped:one-per-container'))
   .withCollectionContribution({ collectionToken: items, provider: (ContainerKit.createProvider(() => 2)).withLifetime('scoped:one-per-container') })
   .withReplacedService({ serviceKey: items, provider: (ContainerKit.createProvider(() => [3])).withLifetime('scoped:one-per-container') });
 export const untouched = unrelated.createScope();
@@ -1166,7 +1166,7 @@ export const root = ContainerKit.createBuilder()
   .buildContainer();
 
 export const forms = ContainerKit.createBuilder()
-  .withTokenService({ token: item, provider: ContainerKit.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) })
+  .withTokenService(item, ContainerKit.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }))
   .withCollectionContribution({ collectionToken: items, provider: ContainerKit.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) })
   .withReplacedService({ serviceKey: items, provider: ContainerKit.providerWithLifetime({ provider: () => [3], lifetime: 'scoped:one-per-container' }) });
 export const untouched = unrelated.createScope();
@@ -1767,7 +1767,7 @@ test('lifetime pins compose with provider, role, alias, and container transforms
   const text = result.files[0].text;
   assert.match(text, /ContainerKit\.createProvider\(clock\)\.withLifetime\('scoped:one-per-container'\)/);
   assert.match(text, /decorated: \(decorated\)\.withLifetime\('scoped:one-per-container'\)/);
-  assert.match(text, /withTokenService\(\{ token: item, provider: ContainerKit\.createProvider/);
+  assert.match(text, /withTokenService\(item, ContainerKit\.createProvider/);
   assert.match(text, /withCollectionContribution\(\{ collectionToken: items, provider: ContainerKit\.createProvider/);
   assert.match(text, /withReplacedService\(\{ serviceKey: items, provider: ContainerKit\.createProvider/);
   assert.match(text, /Library\.DiBag\.createBuilder\(\)\.withServices\(\{ ns: \(ContainerKit\.createProvider/);
@@ -2032,7 +2032,7 @@ import { DiBag as Alias } from '../../../../src/index.js';
 const token = Alias.createToken(Symbol('value')).forService<number>();
 export const container = Alias.createBuilder()
   .withServices({ named: () => 1 })
-  .withTokenService({ token, provider: () => 2 })
+  .withTokenService(token, () => 2)
   .buildContainer();
 ```
 
@@ -2043,7 +2043,7 @@ import { DiBag as Alias } from '../../../../src/index.js';
 const token = Alias.createToken(Symbol('value')).forService<number>();
 export const container = Alias.createBuilder()
   .withServices({ named: (Alias.createProvider(() => 1)).withLifetime('scoped:one-per-container') })
-  .withTokenService({ token, provider: (Alias.createProvider(() => 2)).withLifetime('scoped:one-per-container') })
+  .withTokenService(token, (Alias.createProvider(() => 2)).withLifetime('scoped:one-per-container'))
   .buildContainer();
 ```
 
@@ -2084,7 +2084,7 @@ test('explicit lifetime pin recognizes authenticated current phase-10 calls', ()
 For S2 fallback, replace the first five `assert.match` lines with assertions for
 `ContainerKit.providerWithLifetime({ provider: clock`,
 `decorated: ContainerKit.providerWithLifetime({ provider: decorated`,
-`withTokenService({ token: item, provider: ContainerKit.providerWithLifetime`,
+`withTokenService(item, ContainerKit.providerWithLifetime`,
 `withCollectionContribution({ collectionToken: items, provider: ContainerKit.providerWithLifetime`,
 and `withReplacedService({ serviceKey: items, provider: ContainerKit.providerWithLifetime`.
 The unrelated-call and literal manual-row assertions are identical.
@@ -2996,10 +2996,7 @@ root.createChildContainer({
 });
 
 const token = DiBag.createToken(Symbol('singleton')).forService<number>();
-const tokenRoot = DiBag.createBuilder().withTokenService({
-  token,
-  provider: DiBag.createProvider(() => 1).withLifetime('singleton:one-per-container-tree'),
-}).buildContainer();
+const tokenRoot = DiBag.createBuilder().withTokenService(token, DiBag.createProvider(() => 1).withLifetime('singleton:one-per-container-tree')).buildContainer();
 tokenRoot.createChildContainer({
   replacedServiceKeys: [token],
   // diagnostic: createChildContainer cannot replace singleton service

@@ -789,13 +789,10 @@ export const lines: string[] = [];
 export const loggingModule = DiBag.createBuilder()
   .withCollectionContribution({ collectionToken: loggerSinksToken, provider: (): Logger => ({ log: line => { console.log(line); } }) })
   .withCollectionContribution({ collectionToken: loggerSinksToken, provider: (): Logger => ({ log: line => { lines.push(line); } }) })
-  .withTokenService({
-    token: loggerToken,
-    provider: DiBag.createProviderFromFunction({
-      dependencies: [loggerSinksToken],
-      factoryFunction: (sinks: readonly Logger[]): Logger => ({ log: line => { for (const sink of sinks) sink.log(line); } }),
-    }),
-  })
+  .withTokenService(loggerToken, DiBag.createProviderFromFunction({
+    dependencies: [loggerSinksToken],
+    factoryFunction: (sinks: readonly Logger[]): Logger => ({ log: line => { for (const sink of sinks) sink.log(line); } }),
+  }))
   .buildModule({ exportedServiceKeys: [loggerToken], moduleLabel: 'logging' });
 ```
 

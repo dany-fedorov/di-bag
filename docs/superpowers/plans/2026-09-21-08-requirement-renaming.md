@@ -174,7 +174,7 @@ describe('module requirement renaming', () => {
     const serviceToken = DiBag.token(key).of<number>();
     const collectionToken = DiBag.token(key).forCollectionOf<number>();
     const inner = DiBag.createBuilder()
-      .withTokenService({ token: serviceToken, provider: ({ config }: { config: OrdersConfig }) => config.currency.length })
+      .withTokenService(serviceToken, ({ config }: { config: OrdersConfig }) => config.currency.length)
       .buildModule({ exportedServiceKeys: [serviceToken] })
       .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'innerConfig' });
     const outer = DiBag.createBuilder().withInstalledModules([inner])

@@ -935,8 +935,8 @@ test('positional function appends FactoryContext after required, optional, lazy,
     },
   });
   const container = DiBag.createBuilder()
-    .withTokenService({ token: required, provider: () => 1 })
-    .withTokenService({ token: lazy, provider: () => 2 })
+    .withTokenService(required, () => 1)
+    .withTokenService(lazy, () => 2)
     .withCollectionContribution({ collectionToken: items, provider: () => 3 })
     .withCollectionContribution({ collectionToken: items, provider: () => 4 })
     .withServices({ provider })
@@ -955,7 +955,7 @@ test('class adapter constructs with new and never receives FactoryContext', asyn
   }
   const provider = DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client, factoryReturnKind: 'sync-value' });
   const container = DiBag.createBuilder()
-    .withTokenService({ token: port, provider: () => 8080 })
+    .withTokenService(port, () => 8080)
     .withServices({ provider })
     .buildContainer();
   const client = container.resolve('provider');
@@ -979,7 +979,7 @@ test('plugin adapter snapshots its bag, validates output, and preserves source o
     isValidPluginOutput: (value: unknown): value is typeof valid => value === valid,
   });
   const container = DiBag.createBuilder()
-    .withTokenService({ token: dependency, provider: () => 7 })
+    .withTokenService(dependency, () => 7)
     .withServices({ provider })
     .buildContainer();
   expect(container.resolve('provider')).toBe(valid);
@@ -1059,7 +1059,7 @@ test('createToken publishes symbol and both exclusive token constructors', () =>
   expect(Object.isFrozen(service)).toBe(true);
   expect(Object.isFrozen(collection)).toBe(true);
   const builder = DiBag.createBuilder();
-  expect(() => Reflect.apply(builder.withTokenService, builder, [{ token: collection, provider: () => 1 }])).toThrow('DI_BAG_WRONG_TOKEN_KIND');
+  expect(() => Reflect.apply(builder.withTokenService, builder, [collection, () => 1])).toThrow('DI_BAG_WRONG_TOKEN_KIND');
 });
 ```
 
@@ -2196,9 +2196,9 @@ export const mixed = DiBag.createToken(Symbol('mixed')).of<number>();
 export const aliasOnly = DiBag.createToken(Symbol('alias-only')).forCollectionOf<number>();
 
 const builder = DiBag.createBuilder()
-  .withTokenService({ token: single, provider: () => 1 })
+  .withTokenService(single, () => 1)
   .withCollectionContribution({ collectionToken: collection, provider: () => 2 })
-  .withTokenService({ token: mixed, provider: () => 3 })
+  .withTokenService(mixed, () => 3)
   .withCollectionContribution({ collectionToken: mixed, provider: () => 4 })
   .withCollectionContribution({ collectionToken: DiBag.createToken(Symbol('inline')).of<number>(), provider: () => 5 })
   .withServices({ total: DiBag.createProviderFromFunction({ dependencies: [collection], factoryFunction: values => values.length }) });
@@ -2761,7 +2761,7 @@ Create `tools/graph/test/fixtures/provider-sources-0-5.ts` using the phase-5 bui
 import { DiBag } from 'di-bag';
 const clock = DiBag.createToken(Symbol('clock')).forService<{ now(): number }>();
 export const app = DiBag.createBuilder()
-  .withTokenService({ token: clock, provider: () => ({ now: () => 1 }) })
+  .withTokenService(clock, () => ({ now: () => 1 }))
   .withServices({
     config: () => ({ prefix: 'v' }),
     stamp: DiBag.createProviderFromFunction({ dependencies: [clock], factoryFunction: async value => value.now() }),

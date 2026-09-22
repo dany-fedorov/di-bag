@@ -64,7 +64,7 @@ Before executing any task, read the final `docs/superpowers/plans/evidence/phase
 Public names on entry:
 
 - Facade: `DiBag.createBuilder()`, `DiBag.withConfiguration({ runtime, observers })`, `DiBag.token(symbol).of<S>()` and `DiBag.token(symbol).forCollectionOf<Item>()` (phase 4; `createToken` and `forService` arrive in phase 8), `DiBag.fromFactory`, `fromSyncFactory`, `fromAsyncFactory`, `fromFunction`, `fromClass`, `fromPlugin`, `optional`, `lazy`, `withDisposal`, `withLifetime`, `withMetadata`, `transformService`. `DiBag.all` is gone (phase 4).
-- Builder (phase 5): `withServices(providersByName)`, `withTokenService({ token, provider })`, `withServiceAlias({ aliasKey, targetServiceKey })`, `withCollectionContribution({ collectionToken, provider })`, `withReplacedService({ serviceKey, provider })`, `withInstalledModules(modules)`, `verifyGraphAtCompileTime()`, `buildModule({ exportedServiceKeys, moduleLabel? })`, `buildContainer()`. Spikes S1 and S7 belong to phase 5: if S1 fell back, the two-input builder methods are positional (`withTokenService(token, provider)`); if S7 fell back, the install call is `withInstalledModule(module)`. Read `docs/superpowers/plans/evidence/phase-05.md` and adjust the test code in this plan accordingly. `withServices`, `buildContainer` and `buildModule({ exportedServiceKeys })` do not depend on a spike.
+- Builder (phase 5): `withServices(providersByName)`, `withTokenService(token, provider)`, `withServiceAlias({ aliasKey, targetServiceKey })`, `withCollectionContribution({ collectionToken, provider })`, `withReplacedService({ serviceKey, provider })`, `withInstalledModules(modules)`, `verifyGraphAtCompileTime()`, `buildModule({ exportedServiceKeys, moduleLabel? })`, `buildContainer()`. Phase 5 measured S1 and S7: only `withTokenService` takes the positional fallback; the other three two-input methods retain their bags and installation retains the list. Read `docs/superpowers/plans/evidence/phase-05.md` and adjust the test code in this plan accordingly. `withServices`, `buildContainer` and `buildModule({ exportedServiceKeys })` do not depend on a spike.
 - The class returned by `buildContainer()` is still called `Bag<ServiceRegistrations, Constraints>` (type parameters renamed in phase 2) and has `resolve`, `inspect`, `inspectGraph`, `createScope` (three overloads), `fork` (two overloads), `close({ abortSignal?, waitTimeoutMs? })`, `ensureServicesReady(serviceKeys, options?)` (phase 3). `resolveAll` and `inspectAll` are gone (phase 4); `resolve(collectionToken)` returns the list and `inspect(collectionToken)` returns a list of snapshots.
 - Module: `module.renameExport(oldKey, newKey)`. `module.withRenamedRequirement` does not exist yet (phase 7).
 - Configuration: `ConfigurationOptions { runtime?, observers? }`, `ObserverOptions { onEvent, onError }`.
@@ -213,7 +213,7 @@ const clocks = DiBag.token(clocksKey).forCollectionOf<Clock>();
 
 const root = DiBag.createBuilder()
   .withServices({ value: () => 1, clock: (): Clock => ({ now: () => 1 }) })
-  .withTokenService({ token: clock, provider: (): Clock => ({ now: () => 2 }) })
+  .withTokenService(clock, (): Clock => ({ now: () => 2 }))
   .withCollectionContribution({ collectionToken: clocks, provider: (): Clock => ({ now: () => 3 }) })
   .buildContainer();
 
@@ -258,7 +258,7 @@ import { DiBag } from '../../../src';
 const key = Symbol('clock');
 const clock = DiBag.token(key).of<{ now(): number }>();
 const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 'b' })
-  .withTokenService({ token: clock, provider: () => ({ now: () => 1 }) }).buildContainer();
+  .withTokenService(clock, () => ({ now: () => 1 })).buildContainer();
 
 // diagnostic: replacementProviders are required when replacedServiceKeys are present
 root.createIndependentContainer({ replacedServiceKeys: ['a'] });
@@ -638,7 +638,7 @@ describe('container derivation option bags', () => {
     const clock = DiBag.token(key).of<{ now(): number }>();
     const clocks = DiBag.token(listKey).forCollectionOf<{ now(): number }>();
     const root = DiBag.createBuilder()
-      .withTokenService({ token: clock, provider: () => ({ now: () => 1 }) })
+      .withTokenService(clock, () => ({ now: () => 1 }))
       .withCollectionContribution({ collectionToken: clocks, provider: () => ({ now: () => 2 }) })
       .buildContainer();
     const replacement = [{ now: () => 4 }];
@@ -674,7 +674,7 @@ describe('container derivation option bags', () => {
     const single = tokenFactory.of<number>();
     const collection = tokenFactory.forCollectionOf<number>();
     const root = graphKind === 'single-service'
-      ? DiBag.createBuilder().withTokenService({ token: single, provider: () => 1 }).buildContainer()
+      ? DiBag.createBuilder().withTokenService(single, () => 1).buildContainer()
       : DiBag.createBuilder().withCollectionContribution({ collectionToken: collection, provider: () => 1 }).buildContainer();
     const selected = selectedKind === 'single-service' ? single : collection;
     let providerReads = 0;
@@ -994,7 +994,7 @@ describe('0.5 container names', () => {
     const token = DiBag.token(tokenKey).of<number>();
     const list = DiBag.token(listKey).forCollectionOf<number>();
     const container = DiBag.createBuilder().withServices({ named: () => 1 })
-      .withTokenService({ token, provider: () => 2 })
+      .withTokenService(token, () => 2)
       .withCollectionContribution({ collectionToken: list, provider: () => 3 })
       .buildContainer();
     expect(container.serviceSnapshot('named').acquisitions).toEqual([]);
@@ -2019,6 +2019,8 @@ export type { Container, Builder, DiBagApi, ConfigurationOptions } from './di-ba
 export type { CreateChildContainerOptions, CreateIndependentContainerOptions, DisjointChildContainerSelection, UnsharedAliases, ScopedAliases, SharedAliasProviders } from './scope-types';
 export type { CheckedLifetimes, CheckedChildContainerLifetimes, LifetimeObligation, Reach } from './lifetime-types';
 ```
+
+Retain the six phase-5 callable facade exports from `./builder-method-types`, including the selected `BuilderWithInstalledModules`, and `BuilderWithCollectionContribution`. The block above changes only the named container/scope/lifetime exports. Keep `builder-renames` registered in the existing physical producer-deletion matrix when removing `src/node.ts`; its source and physical imports migrate to the root entry with the other fixtures, and must continue proving all callable facades and both replacement paths. These future root-entry declarations remain uncompiled until this phase.
 
 No extra sharing-only options type is exported: `CreateChildContainerOptions` covers that overload through its defaulted replacement generics.
 

@@ -1730,6 +1730,8 @@ MSG
 
 ### Task 6: Measure spikes S1 and S7, decide, and the two fallbacks
 
+**Execution decision:** the initial guarded measurements select only the S1 token-service fallback: `withTokenService(token, provider)`. The bag used 1,206,389 instantiations at 100 bindings (+42.3893% over baseline 847,247) and 19,720,389 at 500 (+62.2670% over 12,153,047). All cases compiled, so cost decides this fallback. The other three S1 bags and S7 list satisfy their initial criteria. Preserve these original rows. Before the fallback commit, prove the positional callable's source/runtime/physical/docs contracts and measure bindings 100/500 plus the S7 rows again on its actual source and generators. No unrelated successful S1 comparison needs repetition absent a concrete concern; Task 14 still requires all final cumulative cases. Remaining tasks use the selected positional token-service form in their nonhistorical examples and map entries. This paragraph records a measured decision; fallback implementation and refreshed proof are not claimed complete.
+
 **Files:**
 - Modify: `tests/compiler.ts` (the `moduleListScaleSource` generator)
 - Create: `scripts/check-module-list-scale.ts`, `scripts/check-builder-bag-scale.ts`, `docs/superpowers/plans/evidence/phase-05.md`
@@ -1815,7 +1817,7 @@ console.log(JSON.stringify({
   milliseconds: Math.round(performance.now() - start),
   maxRssMiB: Math.round(process.resourceUsage().maxRSS / 1024),
   boundaryLine: boundary === 0 ? undefined : boundary,
-  diagnostics: diagnostics.map(item => ({ code: item.code, line: item.line, message: item.message.slice(0, 160) })),
+  diagnostics: diagnostics.map(item => ({ code: item.code, line: item.line, message: item.message })),
   instantiations: program.getInstantiationCount(),
 }));
 ```
@@ -1920,7 +1922,7 @@ console.log(JSON.stringify({
   form, shape, count, typescript: ts.version, node: process.version,
   milliseconds: Math.round(performance.now() - start),
   maxRssMiB: Math.round(process.resourceUsage().maxRSS / 1024),
-  diagnostics: diagnostics.map(item => ({ code: item.code, line: item.line, message: item.message.slice(0, 160) })),
+  diagnostics: diagnostics.map(item => ({ code: item.code, line: item.line, message: item.message })),
   instantiations: program.getInstantiationCount(),
 }));
 ```
@@ -2036,7 +2038,7 @@ Merge these entries into the existing arrays; do not replace entries from phases
 {
   "methods": [
     { "owner": "Builder", "from": "register", "to": "withServices", "arity": [1] },
-    { "owner": "Builder", "from": "register", "to": "withTokenService", "arity": [2], "arguments": { "kind": "bag", "names": ["token", "provider"] } },
+    { "owner": "Builder", "from": "register", "to": "withTokenService", "arity": [2] },
     { "owner": "Builder", "from": "alias", "to": "withServiceAlias", "arguments": { "kind": "bag", "names": ["aliasKey", "targetServiceKey"] } },
     { "owner": "Builder", "from": "contribute", "to": "withCollectionContribution", "arguments": { "kind": "bag", "names": ["collectionToken", "provider"] } },
     { "owner": "Builder", "from": "replace", "to": "withReplacedService", "arguments": { "kind": "bag", "names": ["serviceKey", "provider"] } },
@@ -2104,7 +2106,7 @@ const deferredOptions: ModuleOptions = options;
 
 const feature = DiBag.createBuilder()
   .withServices({ name: () => 'Ada' })
-  .withTokenService({ token: clock, provider: () => ({ now: () => 1 }) })
+  .withTokenService(clock, () => ({ now: () => 1 }))
   .withServiceAlias({ aliasKey: 'now', targetServiceKey: clock })
   .withCollectionContribution({ collectionToken: tools, provider: () => 'search' })
   .withReplacedService({ serviceKey: 'name', provider: () => 'Grace' })
@@ -2653,7 +2655,7 @@ Apply these syntax rules to template/string contents and to the two `.node.mjs` 
 | 0.4.0 source | 0.5.0 source |
 | --- | --- |
 | `.register({ ... })` | `.withServices({ ... })` |
-| `.register(token, provider)` | `.withTokenService({ token, provider })` |
+| `.register(token, provider)` | `.withTokenService(token, provider)` |
 | `.alias(destination, target)` | `.withServiceAlias({ aliasKey: destination, targetServiceKey: target })` |
 | `.contribute(token, provider)` | `.withCollectionContribution({ collectionToken: token, provider })` |
 | `.replace(key, provider)` | `.withReplacedService({ serviceKey: key, provider })` |
@@ -2794,7 +2796,7 @@ const retrieval = DiBag.createBuilder().withServices({
   normalize: () => (question: string) => question.trim(),
   retrieve: ({ search, normalize }: { search: Search; normalize: (question: string) => string }) => async (question: string) => search.find(normalize(question)),
 }).buildModule({ exportedServiceKeys: ['retrieve'], moduleLabel: 'retrieval' });
-const clocks = DiBag.createBuilder().withTokenService({ token: clock, provider: () => ({ now: () => 0 }) }).buildModule({ exportedServiceKeys: [clock] });
+const clocks = DiBag.createBuilder().withTokenService(clock, () => ({ now: () => 0 })).buildModule({ exportedServiceKeys: [clock] });
 const modules = [retrieval, clocks] as const;
 export const app = DiBag.createBuilder()
   .withInstalledModules(modules)

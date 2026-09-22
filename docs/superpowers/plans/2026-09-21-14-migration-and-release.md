@@ -160,7 +160,7 @@ const replacementText = {
   'DiBagApi.withLifetime': 'DiBag.createProvider(factory).withLifetime(lifetime)',
   'DiBagApi.withMetadata': 'provider.withRegistrationMetadata(registrationMetadata) or provider.withAcquisitionMetadata({ describeAcquisition, callbackReceives })',
   'DiBagApi.transformService': 'provider.withTransformedService({ transformService, callbackReceives })',
-  'Builder.register': 'withServices({ key: provider }) or withTokenService({ token, provider })',
+  'Builder.register': 'withServices({ key: provider }) or withTokenService(token, provider)',
   'Builder.buildAndStart': 'buildContainer(), then container.ensureServicesReady(serviceKeys)',
   'Bag.fork': 'createIndependentContainer({ replacedServiceKeys, replacementProviders })',
   'Bag.createScope': 'createChildContainer({ replacedServiceKeys, replacementProviders, sharedParentServiceKeys })',

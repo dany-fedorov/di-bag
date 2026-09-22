@@ -1772,7 +1772,7 @@ function scenario() {
   const pluginsKey = Symbol('plugins');
   const plugins = DiBag.createToken(pluginsKey).forCollectionOf<string>();
   const app = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { events.push(event); }, onObserverFailure: () => {} }] }).createBuilder()
-    .withTokenService({ token: clock, provider: DiBag.createProvider(() => ({ now: () => 0 })).withDisposal(() => { throw new Error('boom'); }) })
+    .withTokenService(clock, DiBag.createProvider(() => ({ now: () => 0 })).withDisposal(() => { throw new Error('boom'); }))
     .withServices({
       reader: DiBag.createProviderFromFunction({ dependencies: [clock], factoryFunction: (dependency: { now(): number }) => dependency.now() })
         .withAcquisitionMetadata({ describeAcquisition: () => ({ tag: 1 }), callbackReceives: 'exposed-service' }),
