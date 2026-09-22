@@ -91,6 +91,7 @@ Facts about the code that the tasks rely on, all read on 2026-09-21:
 | --- | --- | --- |
 | `src/tokens.ts` | modify | define/authenticate `CollectionToken`; expose token kind readers and the one wrong-kind error helper |
 | `src/token-types.ts` | modify | distinguish token kinds, collection values, collection admission, dependency graph routing, and replacement slots |
+| `src/provider.ts` | modify | project required, bound, optional and collection tokens from the complete dependency contract |
 | `src/contribution-types.ts` | modify | admit only `CollectionToken`, project lists, and keep module contributions checked |
 | `src/dependency-references.ts` | modify | make bare/lazy collection tokens yield lists; reject `optional`; remove `CollectionDependency` and `'all'` |
 | `src/types.ts`, `src/replacement-types.ts`, `src/scope-types.ts`, `src/alias-types.ts`, `src/module-types.ts` | modify | propagate collection slots through selection, replacement, alias and module contracts |
@@ -1358,7 +1359,7 @@ The focused runtime result is required evidence, but Task 3 is still compiler-re
 ### Task 4: Make the collection contract type-safe across builders, modules and containers
 
 **Files:**
-- Modify: `src/tokens.ts`, `src/token-types.ts`, `src/contribution-types.ts`, `src/dependency-references.ts`, `src/types.ts`, `src/replacement-types.ts`, `src/scope-types.ts`, `src/alias-types.ts`, `src/module-types.ts`, `src/di-bag.ts`, `src/index.ts`
+- Modify: `src/tokens.ts`, `src/token-types.ts`, `src/provider.ts`, `src/contribution-types.ts`, `src/dependency-references.ts`, `src/types.ts`, `src/replacement-types.ts`, `src/scope-types.ts`, `src/alias-types.ts`, `src/module-types.ts`, `src/di-bag.ts`, `src/index.ts`
 - Create: `tests/types/collection-tokens.ts`, `tests/types/negative/collection-tokens.ts`
 - Modify: `tests/types.test.ts`
 - Modify: `tools/docs/test/exact-rendering.test.mjs`
@@ -2175,6 +2176,7 @@ Before compiling, reconcile imports by owner rather than creating duplicate help
 
 - `src/tokens.ts` owns and exports `CollectionTokenBase`, `CollectionToken`, `CollectionItem`, `TokenKind`, `readToken`, `readSingleServiceKey`, and `wrongTokenKind`.
 - `src/token-types.ts` owns `TokenValue`, `CollectionBindingOutput`, `CollectionTokenMember`, `ServiceKeyMember`, `AliasDestinationAdmission`, `OptionalTokenAdmission`, the four-member `TokenDependencyContract`, and `ReferenceGraph`; it imports the collection classes/extractor from `./tokens`.
+- `src/provider.ts` owns the existing `RequiredTokens`, `Bound`, `OptionalTokens` and `ProviderCollectionTokens` projections; update them to the complete four-member contract using the prescribed `CollectionTokens` helper in this same file. Module and lifetime types consume these projections; do not duplicate them in another owner.
 - `src/contribution-types.ts` owns `Contribution`, `ContributionConstraint`, `CollectionMember`, `RegisterTokenAdmission`, `CollectionTokenAdmission`, and `ModuleContributions`; it imports `CollectionTokenBase` and `CollectionItem` from `./tokens`, plus `BoundToken` and `CollectionBindingOutput` from `./token-types`.
 - `src/types.ts` owns `Selection`, `CollectionSelection`, `SelectionRegistrations`, `SelectedRegistrations`, `ReboundProviders`, `ReboundSelection`, `ReboundSelected`, `AppliedSelection`, and `OverrideFactoryContext`; it imports `CollectionMember` and the collection token helpers, while reusing its existing private `Intersect`.
 - `src/alias-types.ts` owns every `Alias*` declaration printed above; it imports `CollectionMember`, `TokenValue`, and `TokenDependencyContract`.
@@ -2217,7 +2219,7 @@ Expected: the complete Tasks 2–4 runtime and compiler fixtures pass; typecheck
 Stage exactly the union owned by Tasks 2–4 plus the generated Markdown and S5 evidence:
 
 ```bash
-git add src/acquisition.ts src/runtime.ts src/startup.ts src/dependency-references.ts src/aliases.ts src/di-bag.ts src/contributions.ts src/scope-selection.ts src/module.ts src/tokens.ts src/token-types.ts src/contribution-types.ts src/types.ts src/replacement-types.ts src/scope-types.ts src/alias-types.ts src/module-types.ts src/index.ts tests/collection-tokens.test.ts tests/types/collection-tokens.ts tests/types/negative/collection-tokens.ts tests/types.test.ts tools/docs/test/exact-rendering.test.mjs docs/reference docs/agent/api-card.md docs/superpowers/plans/evidence/phase-04.md
+git add src/acquisition.ts src/runtime.ts src/startup.ts src/dependency-references.ts src/aliases.ts src/di-bag.ts src/contributions.ts src/scope-selection.ts src/module.ts src/tokens.ts src/token-types.ts src/provider.ts src/contribution-types.ts src/types.ts src/replacement-types.ts src/scope-types.ts src/alias-types.ts src/module-types.ts src/index.ts tests/collection-tokens.test.ts tests/types/collection-tokens.ts tests/types/negative/collection-tokens.ts tests/types.test.ts tools/docs/test/exact-rendering.test.mjs docs/reference docs/agent/api-card.md docs/superpowers/plans/evidence/phase-04.md
 git commit -F - <<'MSG'
 feat: add typed collection-token reads across the graph
 
@@ -2301,7 +2303,7 @@ git diff --check
 Expected: every command exits 0. The failed primary attempts remain evidence text only; no failed-primary commit exists. Stage exactly the Tasks 2–4 union, the fallback guide, generated Markdown and adopted fallback evidence:
 
 ```bash
-git add src/acquisition.ts src/runtime.ts src/startup.ts src/dependency-references.ts src/aliases.ts src/di-bag.ts src/contributions.ts src/scope-selection.ts src/module.ts src/tokens.ts src/token-types.ts src/contribution-types.ts src/types.ts src/replacement-types.ts src/scope-types.ts src/alias-types.ts src/module-types.ts src/index.ts tests/collection-tokens.test.ts tests/types/collection-tokens.ts tests/types/negative/collection-tokens.ts tests/types.test.ts docs/guides/api-naming.md tools/docs/test/exact-rendering.test.mjs docs/reference docs/agent/api-card.md docs/superpowers/plans/evidence/phase-04.md
+git add src/acquisition.ts src/runtime.ts src/startup.ts src/dependency-references.ts src/aliases.ts src/di-bag.ts src/contributions.ts src/scope-selection.ts src/module.ts src/tokens.ts src/token-types.ts src/provider.ts src/contribution-types.ts src/types.ts src/replacement-types.ts src/scope-types.ts src/alias-types.ts src/module-types.ts src/index.ts tests/collection-tokens.test.ts tests/types/collection-tokens.ts tests/types/negative/collection-tokens.ts tests/types.test.ts docs/guides/api-naming.md tools/docs/test/exact-rendering.test.mjs docs/reference docs/agent/api-card.md docs/superpowers/plans/evidence/phase-04.md
 git commit -F - <<'MSG'
 feat: add typed collection-token reads across the graph
 
