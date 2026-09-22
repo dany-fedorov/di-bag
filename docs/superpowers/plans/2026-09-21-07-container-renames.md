@@ -1853,6 +1853,8 @@ Expected: exit 0; older fixtures still pass, including nested transforms.
 
 Commit this prerequisite separately after a meaningful missing-export RED and focused source/emitted-declaration GREEN, source typecheck/build, emitted-JavaScript identity check, and the existing classic/native CTS/MTS physical producer-deletion proof. Use an already registered producer/consumer, preserving its existing assertions. To prove both names without creating duplicate locals after migration, import `Bag as LegacyContainer` beside `Container` and assert exact identity/assignability. Re-run the corrected preview after the alias; compare original-owner rewrites and manual items, explaining any fixture-only deltas. Task8 replaces the temporary alias export with the final renamed class export. The existing precise generated-doc exception remains bounded through Task7; record any observed additional alias-related generated drift rather than predicting it.
 
+Integrate the independently reviewed graph parser unit from Task7 Step3 before writing current graph fixtures. Those fixtures will use `withRenamedExport`, so their applicable graph gate must run against the updated parser. This is a dependency-order correction, not permission to migrate the old-version compatibility inputs. Retain the final preview/report comparison across the disjoint graph integration.
+
 - [ ] **Step 1: Rebuild, preview, and read every manual item**
 
 ```bash
@@ -1889,6 +1891,8 @@ bun test tests/container-derivation.test.ts tests/container-names.test.ts tests/
 ```
 
 Expected: greps show only explicit rejection/codemod inputs; checks pass.
+
+Derive the affected compiler and runtime test inventory from the actual write report plus the separate hand-migration inventory. Run every changed negative fixture using its exact `type rejection: <file>` name in `tests/types.test.ts`, because the root typecheck excludes that directory; retain the relevant positive and emitted-declaration consumer checks as well. Run every changed runtime `.test.ts` file once, or use the established fast lane when it covers that complete inventory. Keep original invalid expressions and semantic rejection assertions; capture actual diagnostics before making any necessary operation-name or shape-derived marker correction. Record preserved compatibility/rejection inputs and expand-only legacy controls by exact path and purpose. Do not repeat an unchanged green subset merely because it also appears in the short command block above.
 
 - [ ] **Step 4: Commit the mechanical rewrite by itself**
 
@@ -2024,6 +2028,8 @@ Apply the same rewrites in `tests/package.test.ts`, `tests/native-package.test.t
 - [ ] **Step 3: Update graph recognition without changing JSON**
 
 Preserve Phase 5's reviewed bilingual extractor and tests in `tools/graph`: all old/current terminals, service and alias bags, positional token/replacement calls, module bags, inline/constant ordered module lists, and repeated-contribution omission parity. Extend only renamed-export parsing for this step: read `withRenamedExport({ currentExportKey, newExportKey })` beside positional `renameExport`; a spread or nonliteral options bag remains untraceable. Do not replace the existing broader recognition with a reduced set of branches.
+
+For the new method, trace only statically known string values; a shorthand or identifier value must never be interpreted as its identifier's spelling. Leaving those values opaque is acceptable and keeps this parser bounded. A same-name rename is an identity operation: unwrap it without deleting the export in the rename map. Keep discriminating controls for literal mixed chains, same-name identity, shorthand constants and unknown-value opacity; preserve the existing positional parser.
 
 Keep output `kind: 'bag'`. `tools/graph/README.md` must say a source `buildContainer()` emits established schema-v1 `kind: "bag"`. Do not change expected JSON kind values.
 
@@ -2191,7 +2197,7 @@ grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExpo
 grep -rnE "operation: '(inspect|inspectGraph|createScope|fork|renameExport)'|\b(observers|onEvent|onError)\s*:" src tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
 ```
 
-Expected: tests pass. At this contract point, the first two greps show only the Task-9 observer/module expand declarations and explicit negative/codemod-input fixtures; the operation grep has no container-operation hit. Record every allowed path, and require the final Task-12 rerun to have only its explicitly excluded fixtures. `BagRuntime`, `DiBag*`, package names, codes, and graph `kind: "bag"` do not match these declaration/member patterns and remain intentionally.
+Expected: tests pass. At this contract point, the first two greps show only the Task-9 observer/module expand declarations, explicit negative/codemod-input fixtures, and the preserved private inspection channels: `this.#runtime.inspect`, `inspectCollection` and `inspectGraph` in `src/di-bag.ts`, acquisition-owner `inspect` calls in `src/acquisition.ts`, and `this.acquisitions.inspect` in `src/runtime.ts`. These internal calls are not retired public container members. The operation grep has no public container-operation hit. Record every allowed path and receiver, and carry the same precise internal-channel classification into the final Task-12 audit. `BagRuntime`, `DiBag*`, package names, codes, and graph `kind: "bag"` remain intentionally.
 
 - [ ] **Step 6: Keep the checked contract changes uncommitted**
 
@@ -2433,7 +2439,7 @@ grep -rnE "di-bag/node|src/node|reference/node|['\"]\./node['\"]" package.json t
 grep -rnE "from ['\"]node:|require\(['\"]node:" src
 ```
 
-Expected: no executable old API outside deliberate negative/codemod/graph compatibility fixtures and the exact lane-selected benchmark baseline branches in `tests/benchmarks/runtime-scenarios.ts` / `scripts/runtime-benchmark-child.ts`; focused archive smokes prove those branches execute only against `739b509`, while current requests use the final surface and root entry. No `node:` import remains in `src`. Inspect all `Bag` substring hits: only `DiBag`, `DiBag*`, `DI_BAG_*`, `BagRuntime`, product prose, and the two deferred close-state messages may remain.
+Expected: no executable old public API outside deliberate negative/codemod/graph compatibility fixtures and the exact lane-selected benchmark baseline branches in `tests/benchmarks/runtime-scenarios.ts` / `scripts/runtime-benchmark-child.ts`; focused archive smokes prove those branches execute only against `739b509`, while current requests use the final surface and root entry. Retain and classify the precise private runtime/acquisition inspection channels listed in Task8; do not rename those internal methods to silence a lexical scan. No `node:` import remains in `src`. Inspect all `Bag` substring hits: only `DiBag`, `DiBag*`, `DI_BAG_*`, `BagRuntime`, product prose, and the two deferred close-state messages may remain.
 
 - [ ] **Step 2: Recount message assertions without changing them**
 

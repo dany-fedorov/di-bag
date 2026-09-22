@@ -20,7 +20,7 @@
 - Preserve lazy factory execution. Never execute factories to discover requirements and never parse factory source.
 - Runtime cannot know the complete erased requirement set. Compile-time admission owns general unknown-name and unobserved-collision rejection; runtime validates the options bag, string keys, known exports, recorded rename collisions, and reports unknown services if resolution later fails.
 - New malformed-argument failures use `DI_BAG_INVALID_ARGUMENT` with literal details `{ operation, argument, expected }`. Unknown and duplicate service keys use `DI_BAG_UNKNOWN_SERVICE_KEY` / `DI_BAG_DUPLICATE_SERVICE_KEY` with literal details `{ operation, serviceKey }`.
-- Preserve phase 4's `GraphDescription.tokenKinds` through every description copy and preserve phase 4's `ScopeOptions<ServiceRegistrations, SharedKeys, Constraints = never>` contract.
+- Preserve phase 4's `GraphDescription.tokenKinds` through every description copy and the final phase-6 `CreateChildContainerOptions` generic order and contract, including inherited registrations/shared-keys positions, defaulted constraints third, and later defaulted replacement generics. Do not restore the retired `ScopeOptions` name.
 - Preserve accumulated codemod behavior. Map owners are their original 0.4.0 declaration names and transforms obtain emitted names through `api.nameOf`.
 - All twelve evidence cases must remain at or below 110% of the phase-0 instantiation baseline. Spike S6 additionally measures 20 modules with renamed requirements; if its type shape breaches the rule, execute the complete fallback task and drop the feature.
 - Each declared commit must be green. Tasks 1–4 form one implementation/test/docs commit; their intermediate states remain uncommitted. This phase has no generated-documentation exception.
@@ -35,7 +35,7 @@ Phases 0–6 have landed. Confirm the entry tree before editing:
 grep -n "class Module<ExportedServices extends object, RequiredServices extends object" src/module.ts
 grep -n "withRenamedExport<const CurrentExportKey extends string" src/module.ts
 grep -n "withInstalledModules" src/di-bag.ts
-grep -n "buildModule<const ExportedServiceKeys" src/di-bag.ts
+grep -n "readonly buildModule: BuilderBuildModule" src/di-bag.ts
 grep -n "snapshotOptionsBag" src/options-bag.ts
 grep -n "readonly tokenKinds" src/runtime.ts
 grep -n "export type CreateChildContainerOptions" src/scope-types.ts
@@ -62,6 +62,7 @@ No 0.4.0 name is retired by this phase, so the naming ratchet is expected not to
 | `tests/types/negative/requirement-renaming.ts` | create | property-local unknown/collision/wrong-shape diagnostics |
 | `tests/types.test.ts` | modify | register the positive and declaration-consumer fixtures |
 | `tools/graph/lib/extract.mjs`, `tools/graph/test/cross-module.test.mjs`, `tools/graph/test/fixtures/cross-module/*` | modify | follow export and requirement view chains in either order |
+| `tools/graph/test/renamed-exports.test.mjs` | preserve and extend | retain phase-6 literal/opacity/identity coverage while adding requirement-view parity |
 | `docs/agent/errors.md` | modify | first sections for the two final 0.5.0 key codes |
 | `AGENTS.md`, `docs/agent/recipes.md` | modify | concise rule and the two-config recipe |
 | `tools/docs/api-card-tasks.json`, `tools/docs/test/*.test.mjs` | modify | add and pin the public method without removing prior rows |
@@ -655,6 +656,7 @@ Leave these changes uncommitted. Continue through Task 4 and commit the verified
 - Modify: `tools/graph/lib/extract.mjs`
 - Modify: `tools/graph/test/fixtures/cross-module/app.ts`
 - Modify: `tools/graph/test/cross-module.test.mjs`
+- Preserve and extend: `tools/graph/test/renamed-exports.test.mjs`
 
 **Interfaces:**
 - Produces: ordered `exportRenames` and `requirementRenames` for literal `withRenamedExport` / `withRenamedRequirement` bags while retaining positional `renameExport` support for 0.4.0 projects.
@@ -738,16 +740,25 @@ Expected: the new unit reports unresolved dependency `shipping`.
 
 - [ ] **Step 2: Implement literal view-chain extraction**
 
-Add these complete helpers and use them from `resolveInstalls`:
+Generalize phase6's final strict `renamedExportPair` into `literalBagPair` below, retaining its existing `optionsBag` and `literalString` helpers. Use the generalized parser from `moduleView` and `resolveInstalls`. Preserve all phase6 graph regressions, and add equivalent requirement-bag controls for closed literal values, outer-expression unwrapping, same-name identity, and whole-view opacity for shorthand/identifier/spread/nonliteral inputs. Never interpret a variable name as its string value or accept duplicate/extra keys:
 
 ```js
 function literalBagPair(call, currentName, newName) {
-  const bag = call.arguments[0];
-  if (!bag || !ts.isObjectLiteralExpression(bag) || bag.properties.some(property => !ts.isPropertyAssignment(property) || ts.isComputedPropertyName(property.name))) return undefined;
-  const property = name => bag.properties.find(candidate => keyText(candidate.name) === name);
-  const current = property(currentName), next = property(newName);
-  if (!current || !next || !ts.isStringLiteralLike(current.initializer) || !ts.isStringLiteralLike(next.initializer)) return undefined;
-  return [current.initializer.text, next.initializer.text];
+  const bag = optionsBag(call);
+  if (!bag || bag.properties.length !== 2) return undefined;
+  const values = new Map();
+  for (const property of bag.properties) {
+    if (!ts.isPropertyAssignment(property) || ts.isComputedPropertyName(property.name)
+        || !(ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) return undefined;
+    const name = property.name.text;
+    if (![currentName, newName].includes(name) || values.has(name)) return undefined;
+    const value = literalString(property.initializer);
+    if (value === undefined) return undefined;
+    values.set(name, value);
+  }
+  const current = values.get(currentName), next = values.get(newName);
+  if (current === undefined || next === undefined) return undefined;
+  return current === next ? [] : [current, next];
 }
 
 function moduleView(expression) {
@@ -755,16 +766,17 @@ function moduleView(expression) {
   let current = skipOuter(expression);
   while (ts.isCallExpression(current) && ts.isPropertyAccessExpression(current.expression)) {
     const name = methodName(current);
-    if (name === 'renameExport' && current.arguments.length === 2) {
-      exportRenames.unshift([keyText(current.arguments[0]), keyText(current.arguments[1])]);
+    if (name === 'renameExport') {
+      const [from, to] = current.arguments;
+      if (from && to) exportRenames.unshift([keyText(from), keyText(to)]);
     } else if (name === 'withRenamedExport') {
       const pair = literalBagPair(current, 'currentExportKey', 'newExportKey');
       if (!pair) break;
-      exportRenames.unshift(pair);
+      if (pair.length > 0) exportRenames.unshift(pair);
     } else if (name === 'withRenamedRequirement') {
       const pair = literalBagPair(current, 'currentRequirementKey', 'newRequirementKey');
       if (!pair) break;
-      requirementRenames.unshift(pair);
+      if (pair.length > 0) requirementRenames.unshift(pair);
     } else break;
     current = skipOuter(current.expression.expression);
   }
@@ -930,7 +942,7 @@ npm run docs:check
 Expected: pass; generated reference and API card contain the new method and both new error anchors; `wc -l AGENTS.md` is at most 150.
 
 ```bash
-git add src/module.ts src/module-types.ts src/lifetime-types.ts tests/requirement-renaming.test.ts tests/types.test.ts tests/types/requirement-renaming.ts tests/types/requirement-renaming-consumer.ts tests/types/negative/requirement-renaming.ts tools/graph/lib/extract.mjs tools/graph/test/fixtures/cross-module/app.ts tools/graph/test/cross-module.test.mjs AGENTS.md docs/agent docs/reference tools/docs
+git add src/module.ts src/module-types.ts src/lifetime-types.ts tests/requirement-renaming.test.ts tests/types.test.ts tests/types/requirement-renaming.ts tests/types/requirement-renaming-consumer.ts tests/types/negative/requirement-renaming.ts tools/graph/lib/extract.mjs tools/graph/test/fixtures/cross-module/app.ts tools/graph/test/cross-module.test.mjs tools/graph/test/renamed-exports.test.mjs AGENTS.md docs/agent docs/reference tools/docs
 git commit -m "feat: add checked module requirement renaming" -m "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL"
 ```
 
@@ -1031,7 +1043,7 @@ git commit -m "test(evidence): record requirement rename cost" -m "Co-Authored-B
 
 - [ ] **Step 1: Remove the feature coherently**
 
-Delete `tests/requirement-renaming.test.ts`, all three requirement-renaming type fixtures, `scripts/check-requirement-rename-scale.ts`, and `requirementRenameScaleSource`. Remove the method, map, helper types, imports, graph extractor handling and fixture/assertion, AGENTS sentence, recipe, API-card task/test, generated reference entry, and only this phase's two new key-code sections if no source site anywhere under `src` still uses their codes. Preserve the pre-existing INVALID_ARGUMENT section and its earlier callers. Regenerate docs. Leave every phase-0–6 row and declaration unchanged.
+Delete `tests/requirement-renaming.test.ts`, all three requirement-renaming type fixtures, `scripts/check-requirement-rename-scale.ts`, and `requirementRenameScaleSource`. Remove the method, map, helper types, imports, graph extractor handling and fixture/assertion, AGENTS sentence, recipe, API-card task/test, generated reference entry, and only this phase's two new key-code sections if no source site anywhere under `src` still uses their codes. Preserve the pre-existing INVALID_ARGUMENT section and its earlier callers. Remove only requirement-view branches and their new controls from the generalized graph parser; retain phase6's exact export-view literal/opacity/identity behavior and every original `renamed-exports.test.mjs` regression. Regenerate docs. Leave every phase-0–6 row and declaration unchanged.
 
 - [ ] **Step 2: Record and verify fallback**
 
