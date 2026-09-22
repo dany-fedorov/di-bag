@@ -10,7 +10,7 @@ type ServicesOf<R extends Registrations> = {
 };
 ```
 
-Defined in: [types.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L16)
+Defined in: [types.ts:19](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L19)
 
 Map registrations to the exact service values they expose.
 

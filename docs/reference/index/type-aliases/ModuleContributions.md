@@ -6,11 +6,11 @@
 
 ```ts
 type ModuleContributions<M> = M extends Module<infer _P, infer _R, infer C, infer _D> ? Readonly<{
-    [T in Groups<C>['token'] as TokenKey<T>]: ReadonlyArray<TokenService<T>>;
+    [T in Groups<C>['token'] as TokenKey<T>]: T extends CollectionTokenBase ? readonly CollectionItem<T>[] : ReadonlyArray<TokenService<T>>;
 }> : never;
 ```
 
-Defined in: [contribution-types.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L60)
+Defined in: [contribution-types.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L72)
 
 Project a module's typed-token collections as readonly service arrays.
 

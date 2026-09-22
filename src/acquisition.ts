@@ -17,6 +17,10 @@ interface Acquisition extends AttemptIdentity {
   execution: ProviderExecution | CompletedExecution;
 }
 
+function freshCollectionView(value: unknown): readonly unknown[] {
+  return Object.freeze([...(value as readonly unknown[])]);
+}
+
 /**
  * The reason a close() without a cause aborts with. Built once at load: an error
  * created inside close() keeps an unformatted stack whose frames retain the
@@ -79,11 +83,22 @@ export class ScopeAcquisitions {
 
   resolveAll(key: symbol): readonly unknown[] {
     this.assertOpen();
-    return this.resolveCollection(key);
+    return this.resolveContributions(key);
   }
 
-  private resolveCollection(key: symbol, from?: Acquisition): readonly unknown[] {
+  private resolveContributions(key: symbol, from?: Acquisition): readonly unknown[] {
     return Object.freeze(this.graph.contributionBindings(key).map(id => this.takeExposed(this.resolveBinding(id, from))));
+  }
+
+  resolveCollection(key: symbol): readonly unknown[] {
+    this.assertOpen();
+    return this.graph.hasPublic(key)
+      ? freshCollectionView(
+          this.takeExposed(
+            this.resolveBinding(this.graph.publicBinding(key)),
+          ),
+        )
+      : this.resolveContributions(key);
   }
 
   async acquire(key: BindingKey): Promise<void> {
@@ -91,6 +106,17 @@ export class ScopeAcquisitions {
     const attempt = this.resolveBinding(this.graph.publicBinding(key));
     this.takeExposed(attempt);
     await attempt.execution.ready();
+  }
+
+  async acquireCollection(key: symbol): Promise<void> {
+    this.assertOpen();
+    const ids = this.graph.hasPublic(key) ? [this.graph.publicBinding(key)] : this.graph.contributionBindings(key);
+    const attempts = ids.map(id => {
+      const attempt = this.resolveBinding(id);
+      this.takeExposed(attempt);
+      return attempt;
+    });
+    await Promise.all(attempts.map(attempt => attempt.execution.ready()));
   }
 
   private takeExposed(attempt: Acquisition): unknown {
@@ -266,13 +292,25 @@ export class ScopeAcquisitions {
     this.attempts.set(attempt.id, attempt);
     this.family.add(attempt);
     if (from) this.family.recordEdge(from, attempt);
-    const read = (key: BindingKey, optional = false, all = false): unknown => {
+    const read = (
+      key: BindingKey,
+      optional = false,
+      all = false,
+      isCollection = false,
+    ): unknown => {
       // Only this attempt's in-flight factory can discover dependencies in close.
       if (this.state === 'closed' || (this.state === 'closing' && !attempt.execution.sourceInFlight)) {
         throw libraryError(this.state === 'closing' ? 'DI_BAG_CLOSING' : 'DI_BAG_CLOSED', `bag is ${this.state}`, { state: this.state });
       }
-      if (all) return this.resolveCollection(key as symbol, attempt);
+      if (all) return this.resolveContributions(key as symbol, attempt);
       const target = this.graph.findDependency(bindingId, key);
+      if (isCollection) {
+        return target === undefined
+          ? this.resolveContributions(key as symbol, attempt)
+          : freshCollectionView(
+              this.takeExposed(this.resolveBinding(target, attempt)),
+            );
+      }
       if (target === undefined && !optional) {
         const path = this.family.dependencyPath(attempt, String(key));
         throw libraryError('DI_BAG_MISSING_DEPENDENCY', `Cannot resolve ${JSON.stringify(attempt.label)}: dependency ${JSON.stringify(String(key))} is not registered. Resolution path: ${path.join(' -> ')}.`, { operation: 'resolve', consumer: attempt.label, dependency: key, path });
@@ -290,8 +328,16 @@ export class ScopeAcquisitions {
         // JSON.stringify probes toJSON through get before enumerating; name the real operation.
         if (key === 'toJSON') throw invalidAccess('JSON.stringify');
         const reference = typeof key === 'symbol' ? references.get(key) : undefined;
-        if (reference) return reference.kind === 'lazy' ? () => read(reference.key)
-          : read(reference.key, reference.kind === 'optional', reference.kind === 'all');
+        if (reference) {
+          return reference.kind === 'lazy'
+            ? () => read(reference.key, false, false, reference.isCollection)
+            : read(
+                reference.key,
+                reference.kind === 'optional',
+                reference.kind === 'all',
+                reference.isCollection,
+              );
+        }
         if (typeof key === 'symbol' && !description.tokenKeys.includes(key)) return undefined;
         return read(key);
       },

@@ -1,6 +1,6 @@
 import { diagnostic, diagnosticMessage, libraryError } from './errors';
 import type { BagRuntime, BindingGraph, BindingKey } from './runtime';
-import { readTokenKey } from './tokens';
+import { readToken } from './tokens';
 import { DiBagCleanupError, DiBagCloseCancelledError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from './errors';
 import type { DiBagErrorCode } from './errors';
 
@@ -119,18 +119,28 @@ function snapshotReadinessOptions(options: EnsureServicesReadyOptions | undefine
  * failure, an abort, or the deadline closes this runtime; never assimilate an exposed service
  * to establish readiness.
  */
+type SelectedReadinessEntry = Readonly<{
+  key: BindingKey;
+  isCollection: boolean;
+}>;
+
 export function ensureRuntimeReady(runtime: BagRuntime, graph: BindingGraph, keys: readonly unknown[], options?: EnsureServicesReadyOptions): Promise<void> {
   runtime.assertOpen();
   if (!Array.isArray(keys)) throw libraryError('DI_BAG_INVALID_STARTUP', 'ensureServicesReady requires a tuple of service keys', { operation: 'ensureServicesReady' });
-  const selected: BindingKey[] = [];
+  const selected: SelectedReadinessEntry[] = [];
   const length = keys.length;
   for (let index = 0; index < length; index++) {
     const value: unknown = keys[index];
-    const key = typeof value === 'string' ? value : readTokenKey(value);
-    if (!graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_STARTUP', `ensureServicesReady accepts existing names or typed tokens only: ${String(key)}`, { operation: 'ensureServicesReady' });
-    selected.push(key);
+    const token = typeof value === 'string' ? undefined : readToken(value);
+    const key = token === undefined ? value as string : token.key;
+    const isCollection = token?.kind === 'collection';
+    if (!isCollection && !graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_STARTUP', `ensureServicesReady accepts existing names or typed tokens only: ${String(key)}`, { operation: 'ensureServicesReady' });
+    selected.push({ key, isCollection });
   }
   const { abortSignal, totalTimeoutMs, maxConcurrentServiceKeys } = snapshotReadinessOptions(options);
+  const acquire = (entry: SelectedReadinessEntry): Promise<void> => entry.isCollection
+    ? runtime.acquireCollection(entry.key as symbol)
+    : runtime.acquire(entry.key);
   return new Promise<void>((resolve, reject) => {
     let settled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -170,8 +180,8 @@ export function ensureRuntimeReady(runtime: BagRuntime, graph: BindingGraph, key
       const worker = async () => {
         while (next < selected.length) {
           if (failed || checkCancellation()) return;
-          const key = selected[next++]!;
-          try { await runtime.acquire(key); }
+          const entry = selected[next++]!;
+          try { await acquire(entry); }
           catch (cause) {
             // Stop other workers before rollback begins, even if cleanup waits.
             failed = true;
@@ -183,9 +193,9 @@ export function ensureRuntimeReady(runtime: BagRuntime, graph: BindingGraph, key
     };
     const runAllAtOnce = () => {
       const pending: Promise<void>[] = [];
-      for (const key of selected) {
+      for (const entry of selected) {
         if (checkCancellation()) break;
-        pending.push(runtime.acquire(key));
+        pending.push(acquire(entry));
       }
       return Promise.all(pending);
     };

@@ -226,5 +226,4 @@ one row here, added by the change that takes the fallback.
 
 | Shape in the design note | Fallback taken | Measurement that forced it | Recorded in |
 | --- | --- | --- | --- |
-
-No exception has been recorded.
+| Collection-token branches on `resolve` and `inspect` | Explicit `resolveCollection` and `inspectCollection` methods | The bounded compiler fixture repairs exhausted three attempts before S5 measurement; contextual collection replacement diagnostics remained unstable | [Phase 04 evidence](../superpowers/plans/evidence/phase-04.md) |

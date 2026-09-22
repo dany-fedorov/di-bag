@@ -2,9 +2,9 @@ import { libraryError, libraryTypeError } from './errors';
 import { LifecycleObservers } from './observers';
 import type { ObserverOptions } from './observers';
 import { contributionEntry } from './contributions';
-import type { BuilderContribute, CollectionMember } from './contribution-types';
+import type { BuilderContribute, CollectionMember, RegisterTokenAdmission } from './contribution-types';
 import { aliasEntry } from './aliases';
-import type { AliasSelection, AliasAdmission, AliasTarget, AliasDestination, AliasEntry, AliasEntries } from './alias-types';
+import type { AliasSelection, AliasAdmission, AliasDestinationAdmission, AliasTarget, AliasDestination, AliasEntry, AliasEntries } from './alias-types';
 import { optional, lazy, all } from './dependency-references';
 import { normalize, snapshotAdd, withDisposal } from './registration';
 import type { FactoryWithDisposal, Factory, Registration, Registrations } from './registration';
@@ -13,7 +13,7 @@ import type { BindingKey } from './runtime';
 import { moduleGraph, sealModule } from './module';
 import type { Module, ModuleOptions } from './module';
 import type { CompositionReport } from './composition-report';
-import type { CheckedConstraints, CompleteConstraints, ExternalRequirements, IncrementalConstraints, ModulePublicProviders, ModuleSealedConstraints, NeedConstraint } from './module-types';
+import type { CheckedConstraints, CompleteConstraints, ExternalRequirements, IncrementalConstraints, ModuleExportAdmission, ModulePublicProviders, ModuleSealedConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes, SealAdmission, WithoutExportObligations } from './lifetime-types';
 import { withLifetime } from './lifetime';
 import { fromFactory, fromSyncFactory, fromAsyncFactory } from './acquisition-context';
@@ -28,11 +28,11 @@ import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
 import type { ProviderRegistrationMetadata, ProviderAcquisitionMetadata } from './provider';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
-import { token, readSingleServiceKey, readTokenKey } from './tokens';
+import { token, readSingleServiceKey, readToken, readTokenKey, wrongTokenKind } from './tokens';
 import { fromPlugin } from './plugins';
 import type { PluginProviderFactory } from './plugins';
-import type { TokenBase, TokenKey, TokenService } from './tokens';
-import type { TokenBinding, BindingOutput, TokenMember, TokenTupleAdmission, SelectionKey, ReboundSelection } from './token-types';
+import type { CollectionItem, CollectionTokenBase, TokenBase, TokenKey, TokenService } from './tokens';
+import type { TokenBinding, BindingOutput, SingleServiceTokenMember, TokenMember, TokenTupleAdmission, SelectionKey } from './token-types';
 import type { BuilderReplacementRegistration, ReplacementAdmission, ReplacedEntries, ZeroDependencyAdmission } from './replacement-types';
 import type {
   CheckDependencyCompatibility,
@@ -48,6 +48,10 @@ import type {
   IntroducesKeys,
   OverrideRegistrations,
   Overrides,
+  AppliedSelection,
+  CollectionOverrideAdmission,
+  ReboundSelected,
+  SelectionRegistrations,
   ServicesOf,
   ReplacementKeyOf,
   ReplacementOutput,
@@ -104,9 +108,30 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * const greeting: string = bag.resolve('greeting');
    * ```
    */
-  resolve<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<ServiceRegistrations, K>)): ServicesOf<ServiceRegistrations>[SelectionKey<K> & keyof ServiceRegistrations];
-  resolve(token: unknown): unknown {
-    return this.#runtime.resolve(typeof token === 'string' ? token : readTokenKey(token));
+  resolve<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, K>)): ServicesOf<ServiceRegistrations>[SelectionKey<K> & keyof ServiceRegistrations];
+  resolve(serviceKey: unknown): unknown {
+    return this.#runtime.resolve(typeof serviceKey === 'string'
+      ? serviceKey
+      : readSingleServiceKey(serviceKey, 'resolve'));
+  }
+
+  /**
+   * Resolve every contribution for a collection token as a fresh frozen list.
+   * @param token - The collection token to read.
+   * @returns Contributions in declaration order, or an empty list.
+   * @example
+   * ```ts
+   * const toolsKey = Symbol('tools');
+   * const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+   * const bag = DiBag.createBuilder().build();
+   * const names: readonly string[] = bag.resolveCollection(tools);
+   * ```
+   */
+  resolveCollection<T extends CollectionTokenBase>(token: T & CollectionMember<T, Constraints>,
+    ...invalid: [T] extends [never] ? [never] : []): readonly CollectionItem<T>[] {
+    const { key, kind } = readToken(token);
+    if (kind !== 'collection') throw wrongTokenKind('resolveCollection', 'collection', key);
+    return this.#runtime.resolveCollection(key) as readonly CollectionItem<T>[];
   }
 
   /**
@@ -155,9 +180,30 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * const acquired = bag.inspect('greeting').acquisitions.length;
    * ```
    */
-  inspect<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<ServiceRegistrations, K>)): RegistrationSnapshot<ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>, ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>>;
-  inspect(token: unknown): unknown {
-    return this.#runtime.inspect(typeof token === 'string' ? token : readTokenKey(token));
+  inspect<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, K>)): RegistrationSnapshot<ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>, ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>>;
+  inspect(serviceKey: unknown): unknown {
+    return this.#runtime.inspect(typeof serviceKey === 'string'
+      ? serviceKey
+      : readSingleServiceKey(serviceKey, 'inspect'));
+  }
+
+  /**
+   * Inspect every provider attached to a collection token without resolving it.
+   * @param token - The collection token to inspect.
+   * @returns One snapshot per contribution in declaration order.
+   * @example
+   * ```ts
+   * const toolsKey = Symbol('tools');
+   * const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+   * const bag = DiBag.createBuilder().build();
+   * const labels = bag.inspectCollection(tools).map(snapshot => snapshot.label);
+   * ```
+   */
+  inspectCollection<T extends CollectionTokenBase>(token: T & CollectionMember<T, Constraints>,
+    ...invalid: [T] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[] {
+    const { key, kind } = readToken(token);
+    if (kind !== 'collection') throw wrongTokenKind('inspectCollection', 'collection', key);
+    return this.#runtime.inspectCollection(key);
   }
 
   /**
@@ -180,7 +226,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * @throws `DI_BAG_INVALID_SCOPE` for a malformed or transient share selection; `DI_BAG_INVALID_TOKEN` for a bad token;
    * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`.
    */
-  createScope<const S extends readonly unknown[]>(options: ScopeOptions<ServiceRegistrations, S>): Bag<ScopedAliases<ServiceRegistrations, ServiceRegistrations, S>, Constraints>;
+  createScope<const S extends readonly unknown[]>(options: ScopeOptions<ServiceRegistrations, S, Constraints>): Bag<ScopedAliases<ServiceRegistrations, ServiceRegistrations, S>, Constraints>;
   /**
    * Create a tracked child with selected replacements and optional parent sharing.
    * @param keys - Existing names or tokens to replace in the child.
@@ -195,16 +241,18 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
     O extends OverrideFactoryContext<ServiceRegistrations, K, O>,
     const S extends readonly unknown[] = readonly [],
   >(
-    keys: K & Selection<ServiceRegistrations, K, 'createScope'>,
+    keys: K & Selection<ServiceRegistrations, Constraints, K, 'createScope'>,
     overrides: O & object & Record<SelectionKey<K[number]>, Registration> &
-      Overrides<ServiceRegistrations, SelectedRegistrations<K, O>> &
-      CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
-      CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
-      CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
-      CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
-      CheckedScopeLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>, ServiceRegistrations, S>>, NoInfer<SelectedRegistrations<K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>,
-    options?: ScopeOptions<ServiceRegistrations, S> & DisjointScopeSelection<K, S>,
-  ): Bag<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>, ServiceRegistrations, S>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
+      (unknown extends CollectionOverrideAdmission<K, O>
+        ? Overrides<SelectionRegistrations<ServiceRegistrations, K>, ReboundSelected<ServiceRegistrations, K, O>> &
+          CheckDependencyCompatibility<AppliedSelection<ServiceRegistrations, K, O>> &
+          CheckDependencyCompleteness<AppliedSelection<ServiceRegistrations, K, O>> &
+          CheckedConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> &
+          CompleteConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> &
+          CheckedScopeLifetimes<NoInfer<ScopedAliases<AppliedSelection<ServiceRegistrations, K, O>, ServiceRegistrations, S>>, NoInfer<ReboundSelected<ServiceRegistrations, K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>
+        : CollectionOverrideAdmission<K, O>),
+    options?: ScopeOptions<ServiceRegistrations, S, Constraints> & DisjointScopeSelection<K, S>,
+  ): Bag<ScopedAliases<AppliedSelection<ServiceRegistrations, K, O>, ServiceRegistrations, S>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
   /**
    * Create a tracked child with the same graph and fresh scoped acquisitions.
    * Close every scope you create, typically one per request; closing the parent closes its live scopes first.
@@ -254,17 +302,18 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
     const K extends readonly unknown[],
     O extends OverrideFactoryContext<ServiceRegistrations, K, O>,
   >(
-    keys: K & Selection<ServiceRegistrations, K>,
-    overrides: O &
-      object &
+    keys: K & Selection<ServiceRegistrations, Constraints, K>,
+    overrides: O & object &
       Record<SelectionKey<K[number]>, Registration> &
-      Overrides<ServiceRegistrations, SelectedRegistrations<K, O>> &
-      CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
-      CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
-      CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
-      CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> &
-      CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>,
-  ): Bag<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
+      (unknown extends CollectionOverrideAdmission<K, O>
+        ? Overrides<SelectionRegistrations<ServiceRegistrations, K>, ReboundSelected<ServiceRegistrations, K, O>> &
+          CheckDependencyCompatibility<AppliedSelection<ServiceRegistrations, K, O>> &
+          CheckDependencyCompleteness<AppliedSelection<ServiceRegistrations, K, O>> &
+          CheckedConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> &
+          CompleteConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> &
+          CheckedLifetimes<UnsharedAliases<AppliedSelection<ServiceRegistrations, K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>
+        : CollectionOverrideAdmission<K, O>),
+  ): Bag<UnsharedAliases<AppliedSelection<ServiceRegistrations, K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
   fork(keys?: readonly unknown[], overrides?: object): unknown {
     this.#runtime.assertOpen();
     if (keys === undefined && overrides === undefined) {
@@ -285,20 +334,26 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
       selectedKeys[index] = keys[index];
     }
     if (selectedKeys.length === 0) return new Bag(this.#graph, this.context);
-    const publicKeys = selectedKeys.map(value => typeof value === 'string' ? value : readTokenKey(value));
-    for (const token of publicKeys) {
-      if (!this.#graph.hasPublic(token)) {
-        throw libraryError('DI_BAG_INVALID_OVERRIDE', `fork accepts existing names or typed tokens only: ${String(token)}`, { operation: 'fork' });
+    const collectionKeys = new Set<BindingKey>();
+    const publicKeys = selectedKeys.map(value => {
+      if (typeof value === 'string') return value;
+      const { key, kind } = readToken(value);
+      if (kind === 'collection') collectionKeys.add(key);
+      return key;
+    });
+    for (const key of publicKeys) {
+      if (!collectionKeys.has(key) && !this.#graph.hasPublic(key)) {
+        throw libraryError('DI_BAG_INVALID_OVERRIDE', `fork accepts existing names or typed tokens only: ${String(key)}`, { operation: 'fork' });
       }
-      if (!Object.hasOwn(overrides, token)) {
-        throw libraryError('DI_BAG_INVALID_OVERRIDE', `missing override: ${String(token)}`, { operation: 'fork' });
+      if (!Object.hasOwn(overrides, key)) {
+        throw libraryError('DI_BAG_INVALID_OVERRIDE', `missing override: ${String(key)}`, { operation: 'fork' });
       }
     }
     const selectedBindings: Array<readonly [BindingKey, Registration]> = [];
-    for (const token of publicKeys) {
-      const registration: unknown = Reflect.get(overrides, token);
+    for (const key of publicKeys) {
+      const registration: unknown = Reflect.get(overrides, key);
       normalize(registration);
-      selectedBindings.push([token, registration as Registration]);
+      selectedBindings.push([key, registration as Registration]);
     }
     return new Bag(this.#graph.withPublicBindings(selectedBindings), this.context);
   }
@@ -326,7 +381,7 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * ```
    */
   async ensureServicesReady<const K extends readonly unknown[]>(
-    serviceKeys: K & Selection<ServiceRegistrations, K, 'ensureServicesReady'>,
+    serviceKeys: K & Selection<ServiceRegistrations, Constraints, K, 'ensureServicesReady'>,
     options?: EnsureServicesReadyOptions,
   ): Promise<this> {
     await ensureRuntimeReady(this.#runtime, this.#graph, serviceKeys, options);
@@ -410,7 +465,7 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
    */
   register<T extends TokenBase, V extends Registration>(
-    token: T & TokenTupleAdmission<readonly [T]> & IntroducesKeys<EntryKeys<Entries>, TokenKey<T>>,
+    token: T & TokenTupleAdmission<readonly [T]> & RegisterTokenAdmission<T, Constraints> & IntroducesKeys<EntryKeys<Entries>, TokenKey<T>>,
     registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & ThenableAdmission<Record<TokenKey<T>, NoInfer<V>>> &
       IncrementalChecked<Entries, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>> &
       CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<TokenKey<T>, TokenBinding<NoInfer<T>, NoInfer<V>>>>>,
@@ -438,9 +493,9 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * ```
    */
   alias<const D extends AliasSelection, const T extends AliasSelection>(
-    destination: D & (unknown extends AliasAdmission<D> ? Introduces<RegistrationsFromEntries<Entries>, AliasEntries<RegistrationsFromEntries<Entries>, D, T>> : AliasAdmission<D>),
+    destination: D & AliasDestinationAdmission<D> & (unknown extends AliasAdmission<D> ? Introduces<RegistrationsFromEntries<Entries>, AliasEntries<RegistrationsFromEntries<Entries>, D, T>> : AliasAdmission<D>),
     target: T & AliasAdmission<T> & (unknown extends AliasAdmission<T>
-      ? AliasTarget<RegistrationsFromEntries<Entries>, T> & AliasDestination<RegistrationsFromEntries<Entries>, NoInfer<D>, T> : unknown) &
+      ? AliasTarget<RegistrationsFromEntries<Entries>, Constraints, T> & AliasDestination<RegistrationsFromEntries<Entries>, NoInfer<D>, T> : unknown) &
       (unknown extends AliasAdmission<D> & AliasAdmission<T>
         ? IncrementalChecked<Entries, AliasEntries<RegistrationsFromEntries<Entries>, NoInfer<D>, NoInfer<T>>> & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, AliasEntries<RegistrationsFromEntries<Entries>, NoInfer<D>, NoInfer<T>>>> : unknown),
     ...invalid: [D] extends [never] ? [never] : [T] extends [never] ? [never] : []
@@ -466,7 +521,7 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
   readonly contribute: BuilderContribute<Entries, Constraints> = ((token: unknown, registration: Registration) => {
     const [key, value] = contributionEntry(token, registration);
     return new Builder(this.#graph.withContribution(key, value), this.context);
-  }) as BuilderContribute<Entries, Constraints>;
+  }) as unknown as BuilderContribute<Entries, Constraints>;
 
 
 
@@ -500,12 +555,15 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * @throws `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_TOKEN` or `DI_BAG_INVALID_REGISTRATION` for malformed input.
    */
   replace<const K extends string | TokenBase, V extends Registration>(
-    key: K & NoInfer<ReplacementAdmission<RegistrationsFromEntries<Entries>, K>>,
+    key: K & NoInfer<ReplacementAdmission<RegistrationsFromEntries<Entries>, Constraints, K>>,
     registration: V & Registration & BuilderReplacementRegistration<Entries, Constraints, NoInfer<K>, V>,
   ): Builder<ReplacedEntries<Entries, K, V>, WithoutExportObligations<Constraints, SelectionKey<K>>>;
   replace(selection: string | TokenBase, registration: Registration): unknown {
-    const key = typeof selection === 'string' ? selection : readTokenKey(selection);
-    if (!this.#graph.hasPublic(key)) {
+    const selected = typeof selection === 'string'
+      ? undefined
+      : readToken(selection);
+    const key = selected === undefined ? selection as string : selected.key;
+    if (selected?.kind !== 'collection' && !this.#graph.hasPublic(key)) {
       throw libraryError('DI_BAG_INVALID_REPLACEMENT', `replace accepts existing names or typed tokens only: ${String(key)}`, { operation: 'replace', key });
     }
     normalize(registration);
@@ -571,7 +629,7 @@ class Builder<Entries extends Entry, Constraints extends NeedConstraint = never>
    * ```
    */
   buildModule<const K extends readonly unknown[]>(
-    keys: K & Selection<RegistrationsFromEntries<Entries>, K, 'buildModule'> & SealAdmission<RegistrationsFromEntries<Entries>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>, Constraints>,
+    keys: K & Selection<RegistrationsFromEntries<Entries>, Constraints, K, 'buildModule'> & ModuleExportAdmission<K> & SealAdmission<RegistrationsFromEntries<Entries>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>, Constraints>,
     options?: ModuleOptions,
   ): Module<
     ExportedServices<ServicesOf<RegistrationsFromEntries<Entries>>, Extract<SelectionKey<K[number]>, keyof RegistrationsFromEntries<Entries>>>,

@@ -4,7 +4,7 @@
 
 # Interface: Bag\<ServiceRegistrations *extends* `Registrations`, Constraints *extends* `NeedConstraint` = `never`\>
 
-Defined in: [di-bag.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L75)
+Defined in: [di-bag.ts:79](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L79)
 
 A resolving container with lazy acquisition, caching, and independent resource ownership.
 
@@ -30,7 +30,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#bag
 close(options?: CloseOptions): Promise<void>;
 ```
 
-Defined in: [di-bag.ts:355](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L355)
+Defined in: [di-bag.ts:410](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L410)
 
 Close this bag, drain in-flight work, and dispose owned resources once.
 Dependents are disposed before dependencies; remaining independent acquisitions use
@@ -70,10 +70,10 @@ await bag.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(15_000
 #### Call Signature
 
 ```ts
-createScope<const S extends readonly unknown[]>(options: ScopeOptions<ServiceRegistrations, S>): Bag<ScopedAliases<ServiceRegistrations, ServiceRegistrations, S>, Constraints>;
+createScope<const S extends readonly unknown[]>(options: ScopeOptions<ServiceRegistrations, S, Constraints>): Bag<ScopedAliases<ServiceRegistrations, ServiceRegistrations, S>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:183](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L183)
+Defined in: [di-bag.ts:229](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L229)
 
 Create a tracked child that borrows selected parent acquisitions.
 
@@ -101,10 +101,10 @@ A child owned by this bag; closing the parent closes the child first.
 #### Call Signature
 
 ```ts
-createScope<const K extends readonly unknown[], O extends OverrideFactoryContext<ServiceRegistrations, K, O>, const S extends readonly unknown[] = readonly []>(keys: K & Selection<ServiceRegistrations, K, 'createScope'>, overrides: O & object & Record<SelectionKey<K[number]>, Registration> & Overrides<ServiceRegistrations, SelectedRegistrations<K, O>> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> & CheckedScopeLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>, ServiceRegistrations, S>>, NoInfer<SelectedRegistrations<K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>, options?: ScopeOptions<ServiceRegistrations, S> & DisjointScopeSelection<K, S>): Bag<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>, ServiceRegistrations, S>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
+createScope<const K extends readonly unknown[], O extends OverrideFactoryContext<ServiceRegistrations, K, O>, const S extends readonly unknown[] = readonly []>(keys: K & Selection<ServiceRegistrations, Constraints, K, 'createScope'>, overrides: O & object & Record<SelectionKey<K[number]>, Registration> & (unknown extends CollectionOverrideAdmission<K, O> ? Overrides<SelectionRegistrations<ServiceRegistrations, K>, ReboundSelected<ServiceRegistrations, K, O>> & CheckDependencyCompatibility<AppliedSelection<ServiceRegistrations, K, O>> & CheckDependencyCompleteness<AppliedSelection<ServiceRegistrations, K, O>> & CheckedConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> & CompleteConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> & CheckedScopeLifetimes<NoInfer<ScopedAliases<AppliedSelection<ServiceRegistrations, K, O>, ServiceRegistrations, S>>, NoInfer<ReboundSelected<ServiceRegistrations, K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>> : CollectionOverrideAdmission<K, O>), options?: ScopeOptions<ServiceRegistrations, S, Constraints> & DisjointScopeSelection<K, S>): Bag<ScopedAliases<AppliedSelection<ServiceRegistrations, K, O>, ServiceRegistrations, S>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
 ```
 
-Defined in: [di-bag.ts:193](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L193)
+Defined in: [di-bag.ts:239](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L239)
 
 Create a tracked child with selected replacements and optional parent sharing.
 
@@ -139,7 +139,7 @@ for malformed input; `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BA
 createScope(): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:221](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L221)
+Defined in: [di-bag.ts:269](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L269)
 
 Create a tracked child with the same graph and fresh scoped acquisitions.
 Close every scope you create, typically one per request; closing the parent closes its live scopes first.
@@ -166,10 +166,10 @@ await request.close();
 ### ensureServicesReady()
 
 ```ts
-ensureServicesReady<const K extends readonly unknown[]>(serviceKeys: K & Selection<ServiceRegistrations, K, 'ensureServicesReady'>, options?: EnsureServicesReadyOptions): Promise<this>;
+ensureServicesReady<const K extends readonly unknown[]>(serviceKeys: K & Selection<ServiceRegistrations, Constraints, K, 'ensureServicesReady'>, options?: EnsureServicesReadyOptions): Promise<this>;
 ```
 
-Defined in: [di-bag.ts:328](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L328)
+Defined in: [di-bag.ts:383](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L383)
 
 Make the listed services ready before continuing, then resolve to this same bag.
 Each listed service is acquired now, with whatever its factory reads, and the call waits until it is ready;
@@ -221,7 +221,7 @@ const bag = await DiBag.createBuilder()
 fork(this: Bag<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>): Bag<UnsharedAliases<ServiceRegistrations>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:233](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L233)
+Defined in: [di-bag.ts:281](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L281)
 
 Create an independent bag with the same graph and fresh instances.
 
@@ -242,10 +242,10 @@ A new ownership family that must be closed separately.
 #### Call Signature
 
 ```ts
-fork<const K extends readonly unknown[], O extends OverrideFactoryContext<ServiceRegistrations, K, O>>(keys: K & Selection<ServiceRegistrations, K>, overrides: O & object & Record<SelectionKey<K[number]>, Registration> & Overrides<ServiceRegistrations, SelectedRegistrations<K, O>> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>> & CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>): Bag<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, SelectedRegistrations<K, O>>>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
+fork<const K extends readonly unknown[], O extends OverrideFactoryContext<ServiceRegistrations, K, O>>(keys: K & Selection<ServiceRegistrations, Constraints, K>, overrides: O & object & Record<SelectionKey<K[number]>, Registration> & (unknown extends CollectionOverrideAdmission<K, O> ? Overrides<SelectionRegistrations<ServiceRegistrations, K>, ReboundSelected<ServiceRegistrations, K, O>> & CheckDependencyCompatibility<AppliedSelection<ServiceRegistrations, K, O>> & CheckDependencyCompleteness<AppliedSelection<ServiceRegistrations, K, O>> & CheckedConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> & CompleteConstraints<Constraints, AppliedSelection<ServiceRegistrations, K, O>> & CheckedLifetimes<UnsharedAliases<AppliedSelection<ServiceRegistrations, K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>> : CollectionOverrideAdmission<K, O>)): Bag<UnsharedAliases<AppliedSelection<ServiceRegistrations, K, O>>, WithoutExportObligations<Constraints, SelectionKey<K[number]>>>;
 ```
 
-Defined in: [di-bag.ts:253](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L253)
+Defined in: [di-bag.ts:301](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L301)
 
 Create an independent bag with selected replacements, the way tests substitute dependencies.
 Each override must satisfy the original contract; close the fork, since its parent does not.
@@ -287,10 +287,10 @@ await test.close();
 ### inspect()
 
 ```ts
-inspect<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<ServiceRegistrations, K>)): RegistrationSnapshot<ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>, ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>>;
+inspect<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, K>)): RegistrationSnapshot<ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>, ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<K> & keyof ServiceRegistrations]>>;
 ```
 
-Defined in: [di-bag.ts:158](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L158)
+Defined in: [di-bag.ts:183](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L183)
 
 Inspect static metadata and copied acquisition state without resolving a service.
 
@@ -329,7 +329,7 @@ const acquired = bag.inspect('greeting').acquisitions.length;
 inspectAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, Constraints>, ...invalid: [T] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[];
 ```
 
-Defined in: [di-bag.ts:143](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L143)
+Defined in: [di-bag.ts:168](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L168)
 
 Inspect every contribution for a token without running its factories.
 
@@ -365,13 +365,51 @@ const labels = bag.inspectAll(tools).map(snapshot => snapshot.label);
 
 ***
 
+### inspectCollection()
+
+```ts
+inspectCollection<T extends CollectionTokenBase>(token: T & CollectionMember<T, Constraints>, ...invalid: [T] extends [never] ? [never] : []): readonly RegistrationSnapshot<object, readonly unknown[]>[];
+```
+
+Defined in: [di-bag.ts:202](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L202)
+
+Inspect every provider attached to a collection token without resolving it.
+
+#### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `T` | - |
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `token` | The collection token to inspect. |
+| `...invalid` | - |
+
+#### Returns
+
+One snapshot per contribution in declaration order.
+
+#### Example
+
+```ts
+const toolsKey = Symbol('tools');
+const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+const bag = DiBag.createBuilder().build();
+const labels = bag.inspectCollection(tools).map(snapshot => snapshot.label);
+```
+
+***
+
 ### inspectGraph()
 
 ```ts
 inspectGraph(): GraphSnapshot;
 ```
 
-Defined in: [di-bag.ts:174](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L174)
+Defined in: [di-bag.ts:220](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L220)
 
 Describe every binding this bag can resolve and the dependency edges observed so far.
 Nothing is acquired. Named dependencies declared on factory parameters are not visible
@@ -393,10 +431,10 @@ const labels = bag.inspectGraph().bindings.map(binding => binding.label);
 ### resolve()
 
 ```ts
-resolve<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : TokenMember<ServiceRegistrations, K>)): ServicesOf<ServiceRegistrations>[SelectionKey<K> & keyof ServiceRegistrations];
+resolve<K extends (keyof ServiceRegistrations & string) | TokenBase>(token: K & ([K] extends [string] ? unknown : SingleServiceTokenMember<ServiceRegistrations, K>)): ServicesOf<ServiceRegistrations>[SelectionKey<K> & keyof ServiceRegistrations];
 ```
 
-Defined in: [di-bag.ts:107](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L107)
+Defined in: [di-bag.ts:111](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L111)
 
 Resolve a registered service, acquiring it lazily when needed.
 Scoped and root services are cached according to their lifetime; transient services
@@ -441,7 +479,7 @@ const greeting: string = bag.resolve('greeting');
 resolveAll<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & CollectionMember<T, Constraints>, ...invalid: [T] extends [never] ? [never] : []): ReadonlyArray<TokenService<T>>;
 ```
 
-Defined in: [di-bag.ts:126](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L126)
+Defined in: [di-bag.ts:151](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L151)
 
 Resolve every contribution for a typed token in declaration and installation order.
 
@@ -474,4 +512,42 @@ const toolsKey = Symbol('tools');
 const tools = DiBag.token(toolsKey).of<string>();
 const bag = DiBag.createBuilder().contribute(tools, () => 'search').contribute(tools, () => 'fetch').build();
 const names: readonly string[] = bag.resolveAll(tools);
+```
+
+***
+
+### resolveCollection()
+
+```ts
+resolveCollection<T extends CollectionTokenBase>(token: T & CollectionMember<T, Constraints>, ...invalid: [T] extends [never] ? [never] : []): readonly CollectionItem<T>[];
+```
+
+Defined in: [di-bag.ts:130](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L130)
+
+Resolve every contribution for a collection token as a fresh frozen list.
+
+#### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `T` | - |
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `token` | The collection token to read. |
+| `...invalid` | - |
+
+#### Returns
+
+Contributions in declaration order, or an empty list.
+
+#### Example
+
+```ts
+const toolsKey = Symbol('tools');
+const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+const bag = DiBag.createBuilder().build();
+const names: readonly string[] = bag.resolveCollection(tools);
 ```

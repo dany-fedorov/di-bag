@@ -8,7 +8,7 @@
 type ScopedAliases<R extends Registrations, Parent extends Registrations, S extends readonly unknown[]> = SharedAliasProviders<UnsharedAliases<R>, Parent, S>;
 ```
 
-Defined in: [scope-types.ts:64](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L64)
+Defined in: [scope-types.ts:69](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L69)
 
 The registration map visible in a child after clearing and applying selected sharing routes.
 

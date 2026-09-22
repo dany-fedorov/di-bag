@@ -8,7 +8,7 @@
 type TokenMember<R extends Registrations, T> = ValidToken<T> extends true ? [WrongToken<T, R> | MissingToken<T, R>] extends [never] ? unknown : Unsatisfied<`token must match an existing binding contract${SeeErrors<'unknown-key'>}`, {}> : Unsatisfied<`token must be an individually known genuine handle${SeeErrors<'unknown-key'>}`, {}>;
 ```
 
-Defined in: [token-types.ts:68](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L68)
+Defined in: [token-types.ts:89](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L89)
 
 Admit a genuine token only when it exactly matches an existing binding contract.
 

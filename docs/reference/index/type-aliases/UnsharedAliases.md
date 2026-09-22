@@ -10,7 +10,7 @@ type UnsharedAliases<R extends Registrations> = [SharedKeys<R>] extends [never] 
 };
 ```
 
-Defined in: [scope-types.ts:43](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L43)
+Defined in: [scope-types.ts:48](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L48)
 
 Remove parent-sharing routes when creating a fresh scope or independent fork.
 

@@ -78,7 +78,7 @@ Re-exports [Builder](../index/interfaces/Builder.md)
 
 ### BuilderContribute
 
-Re-exports [BuilderContribute](../index/type-aliases/BuilderContribute.md)
+Re-exports [BuilderContribute](../index/interfaces/BuilderContribute.md)
 
 ***
 

@@ -2,18 +2,19 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / TokenDependencyContract
 
-# Type Alias: TokenDependencyContract\<T *extends* readonly [`TokenBase`](../interfaces/TokenBase.md)[] = readonly \[\], B *extends* [`TokenBase`](../interfaces/TokenBase.md) = `never`, O *extends* readonly [`TokenBase`](../interfaces/TokenBase.md)[] = readonly \[\]\>
+# Type Alias: TokenDependencyContract\<T *extends* readonly [`TokenBase`](../interfaces/TokenBase.md)[] = readonly \[\], B *extends* [`TokenBase`](../interfaces/TokenBase.md) = `never`, O *extends* readonly [`TokenBase`](../interfaces/TokenBase.md)[] = readonly \[\], C *extends* readonly [`CollectionTokenBase`](../interfaces/CollectionTokenBase.md)[] = readonly \[\]\>
 
 ```ts
-type TokenDependencyContract<T extends readonly TokenBase[] = readonly [], B extends TokenBase = never, O extends readonly TokenBase[] = readonly []> = {
+type TokenDependencyContract<T extends readonly TokenBase[] = readonly [], B extends TokenBase = never, O extends readonly TokenBase[] = readonly [], C extends readonly CollectionTokenBase[] = readonly []> = {
     readonly kind: 'tokens';
     readonly required: T;
     readonly bound: B;
     readonly optional: O;
+    readonly collections: C;
 };
 ```
 
-Defined in: [token-types.ts:11](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L11)
+Defined in: [token-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L12)
 
 A provider's retained required, bound, and optional typed-token contracts.
 
@@ -28,6 +29,7 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-
 | `T` | - |
 | `B` | - |
 | `O` | - |
+| `C` | - |
 
 ## Properties
 
@@ -37,7 +39,17 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-
 readonly bound: B;
 ```
 
-Defined in: [token-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L12)
+Defined in: [token-types.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L13)
+
+***
+
+### collections
+
+```ts
+readonly collections: C;
+```
+
+Defined in: [token-types.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L13)
 
 ***
 
@@ -47,7 +59,7 @@ Defined in: [token-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main
 readonly kind: 'tokens';
 ```
 
-Defined in: [token-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L12)
+Defined in: [token-types.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L13)
 
 ***
 
@@ -57,7 +69,7 @@ Defined in: [token-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main
 readonly optional: O;
 ```
 
-Defined in: [token-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L12)
+Defined in: [token-types.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L13)
 
 ***
 
@@ -67,4 +79,4 @@ Defined in: [token-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main
 readonly required: T;
 ```
 
-Defined in: [token-types.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L12)
+Defined in: [token-types.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L13)

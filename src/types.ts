@@ -5,7 +5,10 @@ import type {
   Registrations,
 } from './registration';
 import type { ProviderContext, ProviderNamedDependencies, ProviderOutput, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens } from './provider';
-import type { InvalidGraphs, MissingTokens, SelectionKey, TokenMember, ValidToken, TokenDependencyContract, WrongToken } from './token-types';
+import type { BindingOutput, InvalidGraphs, MissingTokens, SelectionKey, TokenBinding, TokenMember, TokenDependencyContract, TokenValue, ValidToken, WrongToken } from './token-types';
+import type { CollectionTokenBase, TokenBase, TokenKey } from './tokens';
+import type { CollectionMember } from './contribution-types';
+import type { BoundToken } from './provider';
 
 export type Needs<R extends Registration> = ProviderNamedDependencies<R>;
 
@@ -303,27 +306,30 @@ export type ReplacementOutput<R extends Registrations, K extends PropertyKey, C 
 
 // Validate each tuple element, not K[number]: a multi-key tuple is valid even
 // though the union of all of its elements is not itself a singleton.
-type InvalidElements<K extends readonly unknown[]> = {
+type InvalidSelectionElements<K extends readonly unknown[]> = {
   [I in keyof K]-?: Singleton<K[I]> extends true ? never : ValidToken<K[I]> extends true ? never : I;
 }[number];
-type InvalidMembers<R extends Registrations, T> = T extends string ? never : unknown extends TokenMember<R, T> ? never : T;
+type InvalidSelectionMembers<R extends Registrations, C, T> = T extends string ? never
+  : T extends CollectionTokenBase ? unknown extends CollectionMember<T, C> ? never : T
+  : unknown extends TokenMember<R, T> ? never : T;
+type MissingSelectionKeys<R extends Registrations, T> = T extends CollectionTokenBase ? never : Exclude<SelectionKey<T>, keyof R>;
 
 /**
  * Validate a finite tuple of existing singleton names or genuine typed tokens.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
  */
-export type Selection<R extends Registrations, K extends readonly unknown[], Operation extends string = 'fork'> =
+export type Selection<R extends Registrations, C, K extends readonly unknown[], Operation extends string = 'fork'> =
   true extends IsUnion<K>
     ? InvalidSelection<Operation>
     : number extends K['length']
       ? InvalidSelection<Operation>
       : K extends Required<K>
-        ? [InvalidElements<K>] extends [never]
-          ? [Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>] extends [never]
+        ? [InvalidSelectionElements<K>] extends [never]
+          ? [MissingSelectionKeys<R, K[number]> | InvalidSelectionMembers<R, C, K[number]>] extends [never]
             ? unknown
             : Unsatisfied<
-                `${Operation} accepts existing names or typed tokens only: unknown ${NameText<Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]>>}${SeeErrors<'unknown-key'>}`,
-                { extra: Exclude<SelectionKey<K[number]>, keyof R> | InvalidMembers<R, K[number]> }
+                `${Operation} accepts existing names or typed tokens only: unknown ${NameText<MissingSelectionKeys<R, K[number]> | InvalidSelectionMembers<R, C, K[number]>>}${SeeErrors<'unknown-key'>}`,
+                { extra: MissingSelectionKeys<R, K[number]> | InvalidSelectionMembers<R, C, K[number]> }
               >
           : InvalidSelection<Operation>
         : InvalidSelection<Operation>;
@@ -340,6 +346,39 @@ type InvalidSelection<Operation extends string> = Unsatisfied<
 export type SelectedRegistrations<K extends readonly unknown[], O> = {
   [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], Registration>;
 };
+type CollectionSelectionMember<V> = V extends CollectionTokenBase ? Record<TokenKey<V>, () => TokenValue<V>> : never;
+export type CollectionSelection<K extends readonly unknown[]> = [Extract<K[number], CollectionTokenBase>] extends [never] ? {}
+  : Intersect<CollectionSelectionMember<K[number]>> extends infer Exact extends object
+    ? { [P in keyof Exact]: Extract<Exact[P], Registration> }
+    : never;
+export type SelectionRegistrations<R extends Registrations, K extends readonly unknown[]> =
+  Extract<Omit<R, keyof CollectionSelection<K>> & CollectionSelection<K>, Registrations>;
+type SelectedTokenForKey<K extends readonly unknown[], P extends PropertyKey> = K[number] extends infer V ? V extends TokenBase ? TokenKey<V> extends P ? V : never : never : never;
+type OverrideOutput<Base extends Registrations, K extends readonly unknown[], P extends keyof Base> =
+  P extends TokenKey<Extract<K[number], CollectionTokenBase>>
+    ? unknown
+    : ServicesOf<Base>[P];
+type CollectionOverrideMember<O, T> = T extends CollectionTokenBase
+  ? TokenKey<T> extends keyof O ? BindingOutput<T, Extract<O[TokenKey<T>], Registration>> : unknown
+  : unknown;
+export type CollectionOverrideAdmission<K extends readonly unknown[], O> = Intersect<
+  K[number] extends infer T ? CollectionOverrideMember<O, T> : never
+>;
+/** Rebind selected symbol-keyed overrides to their original typed-token contracts. */
+export type ReboundProviders<R extends Registrations, K extends readonly unknown[], O extends Registrations> = {
+  [P in keyof O]: P extends symbol ? SelectedTokenForKey<K, P> extends infer T extends TokenBase
+    ? [T] extends [never] ? P extends keyof R ? TokenBinding<BoundToken<R[P]>, O[P]> : O[P]
+      : TokenBinding<T, O[P]> : never : O[P];
+};
+/** Preserve named overrides while rebinding selected symbol-keyed providers. */
+export type ReboundSelection<R extends Registrations, K extends readonly unknown[], O extends Registrations> =
+  [Extract<keyof O, symbol>] extends [never] ? O : ReboundProviders<R, K, O>;
+export type ReboundSelected<R extends Registrations, K extends readonly unknown[], O> = ReboundSelection<
+  SelectionRegistrations<R, K>, K, SelectedRegistrations<K, O>
+>;
+export type AppliedSelection<R extends Registrations, K extends readonly unknown[], O> = OverrideRegistrations<
+  SelectionRegistrations<R, K>, ReboundSelected<R, K, O>
+>;
 
 // A graph-compatible bound gives context-sensitive factories a usable first
 // inference pass, while requiring every selected key in explicit type arguments.
@@ -351,20 +390,22 @@ export type OverrideFactoryContext<
   R extends Registrations,
   K extends readonly unknown[],
   O,
+  Base extends Registrations = SelectionRegistrations<R, K>,
+  Applied extends Registrations = AppliedSelection<R, K, O>,
 > = {
-  [P in Extract<SelectionKey<K[number]>, keyof R>]:
+  [P in Extract<SelectionKey<K[number]>, keyof Base>]:
     | ((
         this: void,
-        dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>,
-      ) => ServicesOf<R>[P])
+        dependencies: ServicesOf<Applied>,
+      ) => OverrideOutput<Base, K, P>)
     | FactoryWithDisposal<
         (
           this: void,
-          dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>,
-        ) => ServicesOf<R>[P]
+          dependencies: ServicesOf<Applied>,
+        ) => OverrideOutput<Base, K, P>
       >
     | ProviderContext<
-        (this: void, dependencies: ServicesOf<OverrideRegistrations<R, SelectedRegistrations<K, O>>>) => ServicesOf<R>[P],
+        (this: void, dependencies: ServicesOf<Applied>) => OverrideOutput<Base, K, P>,
         P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract
       >;
 };

@@ -13,7 +13,8 @@ export type { AcquisitionContext, ContextualFactory, DisposerContext } from './a
 export type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 export type { ScopeOptions, DisjointScopeSelection, UnsharedAliases, ScopedAliases, SharedAliasProviders } from './scope-types';
 export type { CollectionItem, CollectionToken, CollectionTokenBase, Token, TokenBase, TokenKey, TokenKind, TokenService } from './tokens';
-export type { TokenBinding, TokenMember, TokenDependencyContract, ReboundProviders, ReboundSelection, SelectionKey } from './token-types';
+export type { TokenBinding, TokenMember, TokenDependencyContract, SelectionKey } from './token-types';
+export type { ReboundProviders, ReboundSelection } from './types';
 export type { CheckedLifetimes, CheckedScopeLifetimes, LifetimeObligation, Reach } from './lifetime-types';
 export type { DiBagPolicy } from './types';
 export type { CheckDependencyCompatibility, CheckDependencyCompleteness, RegistrationEntries, OverrideFactoryContext, RegistrationsFromEntries, OverrideRegistrations, Overrides, ServicesOf, SelectedRegistrations, Selection } from './types';

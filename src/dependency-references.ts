@@ -1,7 +1,7 @@
 import { libraryError } from './errors';
-import { readTokenKey } from './tokens';
+import { readToken, wrongTokenKind } from './tokens';
 import type { TokenBase, TokenService } from './tokens';
-import type { TokenTupleAdmission, ValidToken } from './token-types';
+import type { OptionalTokenAdmission, TokenTupleAdmission, TokenValue, ValidToken } from './token-types';
 
 declare const referenceInvariant: unique symbol;
 class ReferenceBase {
@@ -34,9 +34,9 @@ export type DependencyReference = TokenBase | ReferenceBase;
 type ReferenceParts<R> = R extends { readonly [referenceInvariant]: (...args: never[]) => [infer T extends TokenBase, infer K] } ? [T, K] : never;
 export type DependencyToken<R> = R extends TokenBase ? R : ReferenceParts<R>[0];
 export type DependencyKind<R> = R extends TokenBase ? 'required' : ReferenceParts<R>[1];
-export type DependencyValue<R> = R extends TokenBase ? TokenService<R>
+export type DependencyValue<R> = R extends TokenBase ? TokenValue<R>
   : ReferenceParts<R> extends [infer T, infer K] ? K extends 'optional' ? TokenService<T> | undefined
-    : K extends 'lazy' ? () => TokenService<T> : K extends 'all' ? ReadonlyArray<TokenService<T>> : never : never;
+    : K extends 'lazy' ? () => TokenValue<T> : K extends 'all' ? ReadonlyArray<TokenService<T>> : never : never;
 export type ValidDependency<R> = [R] extends [never] ? false : ValidToken<R> extends true ? true
   : R extends ReferenceBase ? ValidToken<DependencyToken<R>> : false;
 
@@ -44,13 +44,26 @@ export interface ArgumentReference {
   readonly slot: symbol;
   readonly key: symbol;
   readonly kind: 'required' | 'optional' | 'lazy' | 'all';
+  readonly isCollection: boolean;
 }
-const references = new WeakMap<object, Readonly<{ key: symbol; kind: 'optional' | 'lazy' | 'all' }>>();
+const references = new WeakMap<object, Readonly<{
+  key: symbol;
+  kind: 'required' | 'optional' | 'lazy' | 'all';
+  isCollection: boolean;
+}>>();
 
 function reference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'>(token: T, kind: K): DependencyHandle<T, K> {
-  const key = readTokenKey(token);
+  const { key, kind: tokenKind } = readToken(token);
+  const isCollection = tokenKind === 'collection';
+  if (isCollection && kind === 'optional') {
+    throw wrongTokenKind('optional', 'single-service', key);
+  }
   const handle = new DependencyHandle<T, K>();
-  references.set(handle, Object.freeze({ key, kind }));
+  references.set(handle, Object.freeze({
+    key,
+    kind: isCollection && kind === 'all' ? 'required' : kind,
+    isCollection,
+  }));
   Object.freeze(handle);
   return handle;
 }
@@ -61,7 +74,7 @@ function reference<T extends TokenBase, K extends 'optional' | 'lazy' | 'all'>(t
  * @param token - The genuine typed token to read optionally.
  * @returns An immutable reference accepted by positional provider adapters.
  */
-export function optional<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>,
+export function optional<T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & OptionalTokenAdmission<T>,
   ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []
 ): OptionalDependency<T> { return reference<T, 'optional'>(token, 'optional'); }
 
@@ -86,12 +99,30 @@ export function all<T extends TokenBase>(token: T & TokenTupleAdmission<readonly
 
 /** Indexed snapshots ignore tuple iterators and retain only authenticated records. */
 export function snapshotReferences(value: unknown): readonly ArgumentReference[] {
-  if (!Array.isArray(value)) throw libraryError('DI_BAG_INVALID_TOKEN', 'tokens must be a tuple', { operation: 'token' });
+  if (!Array.isArray(value)) {
+    throw libraryError('DI_BAG_INVALID_TOKEN', 'tokens must be a tuple', {
+      operation: 'token',
+    });
+  }
   const selected: unknown[] = [];
   const length = value.length;
   for (let index = 0; index < length; index++) selected[index] = value[index];
   return Object.freeze(selected.map(handle => {
     const retained = typeof handle === 'object' && handle !== null ? references.get(handle) : undefined;
-    return Object.freeze({ slot: Symbol('argument'), key: retained?.key ?? readTokenKey(handle), kind: retained?.kind ?? 'required' });
+    if (retained) {
+      return Object.freeze({
+        slot: Symbol('argument'),
+        key: retained.key,
+        kind: retained.kind,
+        isCollection: retained.isCollection,
+      });
+    }
+    const { key, kind } = readToken(handle);
+    return Object.freeze({
+      slot: Symbol('argument'),
+      key,
+      kind: 'required' as const,
+      isCollection: kind === 'collection',
+    });
   }));
 }

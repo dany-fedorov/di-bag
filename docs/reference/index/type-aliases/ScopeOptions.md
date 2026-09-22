@@ -2,11 +2,11 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / ScopeOptions
 
-# Type Alias: ScopeOptions\<R *extends* `Registrations`, S *extends* readonly `unknown`[]\>
+# Type Alias: ScopeOptions\<R *extends* `Registrations`, S *extends* readonly `unknown`[], C *extends* `NeedConstraint` = `never`\>
 
 ```ts
-type ScopeOptions<R extends Registrations, S extends readonly unknown[]> = {
-    readonly share: S & Selection<R, S, 'createScope share'> & ([
+type ScopeOptions<R extends Registrations, S extends readonly unknown[], C extends NeedConstraint = never> = {
+    readonly share: S & Selection<R, C, S, 'createScope share'> & ScopeShareAdmission<S> & ([
         Transients<R, S>
     ] extends [never] ? unknown : Unsatisfied<'createScope cannot share transient providers', {
         tokens: Transients<R, S>;
@@ -14,13 +14,9 @@ type ScopeOptions<R extends Registrations, S extends readonly unknown[]> = {
 };
 ```
 
-Defined in: [scope-types.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L15)
+Defined in: [scope-types.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L20)
 
-CheckDependencyCompatibility options for borrowing selected non-transient parent acquisitions in a child scope.
-
-## See
-
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+Options for borrowing selected non-transient parent acquisitions in a child scope.
 
 ## Type Parameters
 
@@ -28,19 +24,20 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-
 | ------ | ------ |
 | `R` | - |
 | `S` | - |
+| `C` | - |
 
 ## Properties
 
 ### share
 
 ```ts
-readonly share: S & Selection<R, S, 'createScope share'> & ([
+readonly share: S & Selection<R, C, S, 'createScope share'> & ScopeShareAdmission<S> & ([
     Transients<R, S>
 ] extends [never] ? unknown : Unsatisfied<'createScope cannot share transient providers', {
     tokens: Transients<R, S>;
 }>);
 ```
 
-Defined in: [scope-types.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L17)
+Defined in: [scope-types.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/scope-types.ts#L22)
 
 Existing names or tokens to resolve through the parent's acquisition and ownership context.

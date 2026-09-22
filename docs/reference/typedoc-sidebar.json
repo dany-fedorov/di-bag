@@ -59,6 +59,10 @@
             "link": "/reference/index/interfaces/Builder.md"
           },
           {
+            "text": "BuilderContribute",
+            "link": "/reference/index/interfaces/BuilderContribute.md"
+          },
+          {
             "text": "CleanupFailure",
             "link": "/reference/index/interfaces/CleanupFailure.md"
           },
@@ -179,10 +183,6 @@
           {
             "text": "AliasRegistration",
             "link": "/reference/index/type-aliases/AliasRegistration.md"
-          },
-          {
-            "text": "BuilderContribute",
-            "link": "/reference/index/type-aliases/BuilderContribute.md"
           },
           {
             "text": "CheckDependencyCompatibility",

@@ -2,23 +2,22 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / ReboundSelection
 
-# Type Alias: ReboundSelection\<R *extends* `Registrations`, O *extends* `Registrations`\>
+# Type Alias: ReboundSelection\<R *extends* `Registrations`, K *extends* readonly `unknown`[], O *extends* `Registrations`\>
 
 ```ts
-type ReboundSelection<R extends Registrations, O extends Registrations> = [Extract<keyof O, symbol>] extends [never] ? O : ReboundProviders<R, O>;
+type ReboundSelection<R extends Registrations, K extends readonly unknown[], O extends Registrations> = [
+    Extract<keyof O, symbol>
+] extends [never] ? O : ReboundProviders<R, K, O>;
 ```
 
-Defined in: [token-types.ts:93](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L93)
+Defined in: [types.ts:374](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L374)
 
-Preserve named overrides and rebind any symbol-keyed override providers.
+Preserve named overrides while rebinding selected symbol-keyed providers.
 
 ## Type Parameters
 
 | Type Parameter | Description |
 | ------ | ------ |
 | `R` | - |
+| `K` | - |
 | `O` | - |
-
-## See
-
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection

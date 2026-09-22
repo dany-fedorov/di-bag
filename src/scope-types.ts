@@ -3,6 +3,8 @@ import type { Provider, ProviderGraphContract, ProviderFactory, ProviderRegistra
 import type { Registration, Registrations } from './registration';
 import type { SelectionKey } from './token-types';
 import type { Selection, Unsatisfied } from './types';
+import type { CollectionTokenBase, TokenKey } from './tokens';
+import type { NeedConstraint } from './module-types';
 
 type Transients<R extends Registrations, S extends readonly unknown[]> = {
   [K in SelectionKey<S[number]> & keyof R]: 'transient' extends CanonicalLifetime<R, K> ? K : never;
@@ -12,9 +14,12 @@ type Transients<R extends Registrations, S extends readonly unknown[]> = {
  * CheckDependencyCompatibility options for borrowing selected non-transient parent acquisitions in a child scope.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
  */
-export type ScopeOptions<R extends Registrations, S extends readonly unknown[]> = {
+export type ScopeShareAdmission<S extends readonly unknown[]> = [Extract<S[number], CollectionTokenBase>] extends [never] ? unknown
+  : Unsatisfied<'createScope cannot share a collection token', { tokens: TokenKey<Extract<S[number], CollectionTokenBase>> }>;
+/** Options for borrowing selected non-transient parent acquisitions in a child scope. */
+export type ScopeOptions<R extends Registrations, S extends readonly unknown[], C extends NeedConstraint = never> = {
   /** Existing names or tokens to resolve through the parent's acquisition and ownership context. */
-  readonly share: S & Selection<R, S, 'createScope share'> & (
+  readonly share: S & Selection<R, C, S, 'createScope share'> & ScopeShareAdmission<S> & (
     [Transients<R, S>] extends [never] ? unknown
       : Unsatisfied<'createScope cannot share transient providers', { tokens: Transients<R, S> }>
   );

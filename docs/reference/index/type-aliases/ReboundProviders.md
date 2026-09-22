@@ -2,25 +2,22 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / ReboundProviders
 
-# Type Alias: ReboundProviders\<R *extends* `Registrations`, O *extends* `Registrations`\>
+# Type Alias: ReboundProviders\<R *extends* `Registrations`, K *extends* readonly `unknown`[], O *extends* `Registrations`\>
 
 ```ts
-type ReboundProviders<R extends Registrations, O extends Registrations> = {
-    [K in keyof O]: K extends keyof R ? K extends symbol ? TokenBinding<BoundToken<R[K]>, O[K]> : O[K] : O[K];
+type ReboundProviders<R extends Registrations, K extends readonly unknown[], O extends Registrations> = {
+    [P in keyof O]: P extends symbol ? SelectedTokenForKey<K, P> extends infer T extends TokenBase ? [T] extends [never] ? P extends keyof R ? TokenBinding<BoundToken<R[P]>, O[P]> : O[P] : TokenBinding<T, O[P]> : never : O[P];
 };
 ```
 
-Defined in: [token-types.ts:85](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L85)
+Defined in: [types.ts:368](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L368)
 
-Rebind symbol-keyed override registrations to the original typed-token contracts.
+Rebind selected symbol-keyed overrides to their original typed-token contracts.
 
 ## Type Parameters
 
 | Type Parameter | Description |
 | ------ | ------ |
 | `R` | - |
+| `K` | - |
 | `O` | - |
-
-## See
-
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection

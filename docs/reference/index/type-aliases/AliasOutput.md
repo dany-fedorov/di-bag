@@ -5,10 +5,10 @@
 # Type Alias: AliasOutput\<R *extends* `Registrations`, T\>
 
 ```ts
-type AliasOutput<R extends Registrations, T> = T extends string ? T extends keyof R ? ProviderOutput<R[T]> : never : TokenService<T>;
+type AliasOutput<R extends Registrations, T> = T extends string ? T extends keyof R ? ProviderOutput<R[T]> : never : TokenValue<T>;
 ```
 
-Defined in: [alias-types.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/alias-types.ts#L17)
+Defined in: [alias-types.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/alias-types.ts#L20)
 
 Resolve the service type exposed by a possible alias target.
 

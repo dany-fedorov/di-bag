@@ -224,6 +224,15 @@ const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
 const greeting: string = bag.resolve('greeting');
 ```
 
+### `bag.resolveCollection(token)` {#bag-resolvecollection}
+Resolve every contribution for a collection token as a fresh frozen list.
+```ts
+const toolsKey = Symbol('tools');
+const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+const bag = DiBag.createBuilder().build();
+const names: readonly string[] = bag.resolveCollection(tools);
+```
+
 ### `bag.resolveAll(token)` {#bag-resolveall}
 Resolve every contribution for a typed token in declaration and installation order. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
 ```ts
@@ -247,6 +256,15 @@ Inspect static metadata and copied acquisition state without resolving a service
 ```ts
 const bag = DiBag.createBuilder().register({ greeting: () => 'hello' }).build();
 const acquired = bag.inspect('greeting').acquisitions.length;
+```
+
+### `bag.inspectCollection(token)` {#bag-inspectcollection}
+Inspect every provider attached to a collection token without resolving it.
+```ts
+const toolsKey = Symbol('tools');
+const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+const bag = DiBag.createBuilder().build();
+const labels = bag.inspectCollection(tools).map(snapshot => snapshot.label);
 ```
 
 ### `bag.inspectGraph()` {#bag-inspectgraph}

@@ -1,8 +1,8 @@
 import type { Registration, Registrations } from './registration';
-import type { TokenBase, TokenKey, TokenService } from './tokens';
-import type { ValidToken, TokenTupleAdmission, BindingOutput } from './token-types';
+import type { CollectionItem, CollectionTokenBase, TokenBase, TokenKey, TokenService } from './tokens';
+import type { ValidToken, TokenTupleAdmission, BindingOutput, CollectionBindingOutput } from './token-types';
 import type { CheckDependencyCompatibility, CheckDependencyCompleteness, SeeErrors, Unsatisfied, Entry, RegistrationsFromEntries } from './types';
-import type { ProviderCollectionTokens } from './provider';
+import type { BoundToken, ProviderCollectionTokens } from './provider';
 import type { Module } from './module';
 import type { RegistrationConstraints, PublicProvider, NeedConstraint, CheckedConstraints } from './module-types';
 
@@ -24,8 +24,20 @@ type Same<A, B> = [A] extends [B] ? [B] extends [A] ? true : false : false;
 type WrongMember<T, G> = G extends ContributionConstraint ? TokenKey<T> extends TokenKey<G['token']>
   ? Same<T, G['token']> extends true ? never : TokenKey<T> : never : never;
 export type WrongGroup<T, C> = T extends unknown ? ValidToken<T> extends true ? WrongMember<T, Groups<C>> : 'opaque collection contract' : never;
-export type CollectionMember<T, C> = [WrongGroup<T, C>] extends [never] ? unknown
+export type CollectionMember<T, C> = T extends TokenBase
+  ? [WrongGroup<T, C>] extends [never] ? unknown : Unsatisfied<'collection token has an incompatible or opaque contract', {}>
   : Unsatisfied<'collection token has an incompatible or opaque contract', {}>;
+type RetainedCollectionKeys<C> = TokenKey<Extract<Extract<C, ContributionConstraint>['token'], CollectionTokenBase>>;
+export type RegisterTokenAdmission<T, C> = T extends CollectionTokenBase
+  ? Unsatisfied<'register requires a single-service token', {}>
+  : TokenKey<T> extends RetainedCollectionKeys<C>
+    ? Unsatisfied<'token symbol is already a collection in this graph', {}> : unknown;
+export type CollectionTokenAdmission<R extends Registrations, T> = T extends CollectionTokenBase
+  ? TokenKey<T> extends keyof R
+    ? BoundToken<R[TokenKey<T>]> extends CollectionTokenBase ? unknown
+      : Unsatisfied<'token symbol is already a single service in this graph', {}>
+    : unknown
+  : Unsatisfied<'contribute requires a collection token', {}>;
 type ContributionGraph<A extends Registrations, V extends Registration> = A & Record<typeof contributionSite, V>;
 type WrongProvider<C, A extends Registrations> = C extends ContributionConstraint
   ? unknown extends CheckDependencyCompatibility<ContributionGraph<A, C['registration']>> ? never : C : never;
@@ -58,14 +70,22 @@ export type ModuleContributionConstraints<C, R extends Registrations, P extends 
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
  */
 export type ModuleContributions<M> = M extends Module<infer _P, infer _R, infer C, infer _D>
-  ? Readonly<{ [T in Groups<C>['token'] as TokenKey<T>]: ReadonlyArray<TokenService<T>> }> : never;
+  ? Readonly<{ [T in Groups<C>['token'] as TokenKey<T>]: T extends CollectionTokenBase ? readonly CollectionItem<T>[] : ReadonlyArray<TokenService<T>> }> : never;
 
 /**
  * The checked generic `contribute` callable exposed by a builder.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
  */
-export type BuilderContribute<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends Registration>(
-  token: T & TokenTupleAdmission<readonly [T]>,
-  registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>,
-  ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []
-) => import('./di-bag').Builder<E, C | Contribution<T, V>>;
+export interface BuilderContribute<E extends Entry, C extends NeedConstraint> {
+  <T extends CollectionTokenBase, V extends Registration>(
+    token: T & TokenTupleAdmission<readonly [T]> & CollectionTokenAdmission<RegistrationsFromEntries<E>, T>,
+    registration: V & Registration & CollectionBindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>,
+    ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []
+  ): import('./di-bag').Builder<E, C | Contribution<T, V>>;
+  /** @deprecated Expand-only compatibility; removed in this phase's contract step. */
+  <T extends TokenBase, V extends Registration>(
+    token: T & TokenTupleAdmission<readonly [T]>,
+    registration: V & Registration & BindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>,
+    ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []
+  ): import('./di-bag').Builder<E, C | Contribution<T, V>>;
+}

@@ -380,12 +380,31 @@ export class BagRuntime {
 
   resolveAll(key: symbol): readonly unknown[] { return this.acquisitions.resolveAll(key); }
 
+  resolveCollection(key: symbol): unknown {
+    return this.acquisitions.resolveCollection(key);
+  }
+
   inspectAll(key: symbol): readonly RegistrationSnapshot<object, readonly unknown[]>[] {
     return Object.freeze(this.graph.contributionBindings(key).map(bindingId => this.inspectBinding(bindingId)));
   }
 
+  inspectCollection(
+    key: symbol,
+  ): readonly RegistrationSnapshot<object, readonly unknown[]>[] {
+    const bindingIds = this.graph.hasPublic(key)
+      ? [this.graph.publicBinding(key)]
+      : this.graph.contributionBindings(key);
+    return Object.freeze(
+      bindingIds.map(bindingId => this.inspectBinding(bindingId)),
+    );
+  }
+
   acquire(key: BindingKey): Promise<void> {
     return this.acquisitions.acquire(key);
+  }
+
+  acquireCollection(key: symbol): Promise<void> {
+    return this.acquisitions.acquireCollection(key);
   }
 
   isTransient(key: BindingKey): boolean {
