@@ -1783,7 +1783,7 @@ MSG
 
 **Files:**
 - Modify: `tests/compiler.ts`, package/native/token/release tests, `tests/host-builtin-module.ts`, `tests/*.node.mjs`
-- Modify: `scripts/benchmark-types.ts`, `scripts/compiler-case.ts`, `scripts/benchmark-compiler-ceiling.ts`, `scripts/runtime-benchmark-child.ts`, `tests/benchmarks/runtime-scenarios.ts`, `tests/runtime-benchmark-child.test.ts`, `scripts/platform-evidence.ts`, `scripts/react-browser-lane.ts`, `scripts/agent-eval/**`
+- Modify: `scripts/benchmark-types.ts`, `scripts/compiler-case.ts`, `scripts/benchmark-compiler-ceiling.ts`, `scripts/runtime-benchmark-child.ts`, `scripts/performance-evidence.ts`, `tests/benchmarks/runtime-scenarios.ts`, `tests/runtime-benchmark-child.test.ts`, `scripts/platform-evidence.ts`, `scripts/react-browser-lane.ts`, `scripts/agent-eval/**`
 - Modify: `tools/graph/lib/extract.mjs`, `tools/graph/README.md`, `tools/graph/test/**`
 - Modify: `AGENTS.md`, `docs/agent/recipes.md`, `docs/agent/errors.md`, `tools/docs/api-card-tasks.json`
 - Create: `/tmp/di-bag-phase-06/reshape-untyped.mjs` (untracked migration helper)
@@ -1887,7 +1887,7 @@ Expected: twelve accepted rows and no token diagnostics. Replace Task 1's provis
 
 Apply the same rewrites in `tests/package.test.ts`, `tests/native-package.test.ts`, `tests/token-package.test.ts`, `tests/release-artifacts.test.ts`, `tests/host-builtin-module.ts`, the three `.node.mjs` suites, and generated code under `scripts/`. Every current-API `di-bag/node` import becomes `di-bag`; preserve only the exact baseline native-Promise branch described below. Compile strings import `type Container`. Keep the runtime assertion that type-only `Container`, `Module`, and `Provider` are not constructible exports. Release-artifact expected entries become `['di-bag']`.
 
-`tests/token-package.test.ts` still compares ESM and CJS views of the root package for canonical token identity. In `scripts/runtime-benchmark-child.ts`, select the entry by both lane and scenario: only the pinned-739b509 `baseline` lane's `node-native-promise` request loads `di-bag/node`; every `current` request and every other baseline scenario loads `di-bag`. This preserves the historical native-promise boundary while proving the current root-only entry. Reject an unknown lane before import/preparation. `scripts/platform-evidence.ts` replaces the node-subpath boundary fact with root-entry coverage. Leave the `scripts/react-browser-lane.ts` assertion about `src/node.ts` until Task 10 deletes that file.
+`tests/token-package.test.ts` still compares ESM and CJS views of the root package for canonical token identity. In `scripts/runtime-benchmark-child.ts`, select the entry by both lane and scenario: only the pinned-739b509 `baseline` lane's `node-native-promise` request loads `di-bag/node`; every `current` request and every other baseline scenario loads `di-bag`. This preserves the historical native-promise boundary while proving the current root-only entry. Reject an unknown lane before import/preparation. Update `runRuntimeArchiveSmoke` in `scripts/performance-evidence.ts` and its assertions in `tests/runtime-benchmark-child.test.ts` to use the same lane-and-scenario entry rule: only baseline native-Promise expects `dist/node.js`; every other row expects `dist/index.js`. The direct current scenario tests must use root `DiBag` for every scenario and remove their old `NodeDiBag` import/selection. Preserve all seven paired archive scenarios, the exact baseline commit assertion, archive identities and canonical results. `scripts/platform-evidence.ts` replaces the node-subpath boundary fact with root-entry coverage. Leave the `scripts/react-browser-lane.ts` assertion about `src/node.ts` until Task 10 deletes that file.
 
 - [ ] **Step 3: Update graph recognition without changing JSON**
 
@@ -1937,6 +1937,7 @@ grep -rnE '\b(observers|onEvent|onError)\s*:' tests examples scripts tools/graph
 wc -l AGENTS.md
 npm run agent-eval:test
 npm run graph:check
+bun test tests/runtime-benchmark-child.test.ts
 ```
 
 Expected: only deliberate compatibility/rejection fixtures remain; line count is 150 or less; both suites pass.
