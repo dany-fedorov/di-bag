@@ -4,7 +4,7 @@ import type { Inventory, StockLevels } from './contract.js';
 import { createHolds, createLedger, type Holds, type Ledger } from './ledger.js';
 
 export const inventoryModule = DiBag.createBuilder()
-  .register({
+  .withServices({
     ledger: DiBag.withLifetime(({ stockLevels }: { stockLevels: StockLevels }) => createLedger(stockLevels), 'root'),
     holds: DiBag.withDisposal(({ ledger }: { ledger: Ledger }) => createHolds(ledger), holds => holds.release()),
     inventory: ({ catalog, ledger, holds }: { catalog: Catalog; ledger: Ledger; holds: Holds }): Inventory => ({
@@ -13,4 +13,4 @@ export const inventoryModule = DiBag.createBuilder()
       commit: () => holds.commit(),
     }),
   })
-  .buildModule(['inventory'], { label: 'inventory' });
+  .buildModule({ exportedServiceKeys: ['inventory'], moduleLabel: 'inventory' });

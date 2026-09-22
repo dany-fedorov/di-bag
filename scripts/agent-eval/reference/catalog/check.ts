@@ -3,6 +3,6 @@ import type { CatalogData } from './contract.js';
 import { catalogModule } from './module.js';
 
 DiBag.createBuilder()
-  .installModule(catalogModule)
-  .register({ catalogData: DiBag.withLifetime((): CatalogData => ({ products: [] }), 'root') })
-  .verifyGraph() satisfies void;
+  .withInstalledModules([catalogModule])
+  .withServices({ catalogData: DiBag.withLifetime((): CatalogData => ({ products: [] }), 'root') })
+  .verifyGraphAtCompileTime() satisfies void;

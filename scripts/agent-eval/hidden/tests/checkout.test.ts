@@ -9,14 +9,14 @@ const products = [
 ];
 const unused = () => { throw new Error('fixture not supplied'); };
 const base = DiBag.createBuilder()
-  .installModule(checkoutModule)
-  .register({
+  .withInstalledModules([checkoutModule])
+  .withServices({
     catalog: DiBag.withLifetime(() => ({ find: unused, list: unused }), 'root'),
     inventory: () => ({ available: unused, reserve: unused, commit: unused }),
     payments: () => ({ charge: unused }),
     notifier: () => ({ orderPlaced: unused }),
   })
-  .build();
+  .buildContainer();
 after(() => base.close());
 
 function shop({ inStock = true, charge = async (cents: number) => `ch-${cents}` } = {}) {

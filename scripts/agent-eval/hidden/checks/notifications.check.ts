@@ -4,13 +4,13 @@ import type { MailConfig, Notifier } from '../../src/features/notifications/cont
 import { notificationsModule } from '../../src/features/notifications/module.js';
 
 const builder = DiBag.createBuilder()
-  .installModule(notificationsModule)
-  .register({
+  .withInstalledModules([notificationsModule])
+  .withServices({
     mailConfig: DiBag.withLifetime((): MailConfig => ({
       opsAddress: 'ops@example.com',
       connect: async () => ({ send: async () => {}, close: async () => {} }),
     }), 'root'),
   });
 
-builder.verifyGraph() satisfies void;
-export const exported = (): Notifier => builder.build().resolve('notifier');
+builder.verifyGraphAtCompileTime() satisfies void;
+export const exported = (): Notifier => builder.buildContainer().resolve('notifier');

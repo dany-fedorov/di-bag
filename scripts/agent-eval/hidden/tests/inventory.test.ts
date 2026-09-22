@@ -9,9 +9,9 @@ const catalogOf = (skus: string[]) => DiBag.withLifetime(() => ({
 }), 'root');
 const stock = (levels: Record<string, number>) => DiBag.withLifetime(() => levels, 'root');
 const base = DiBag.createBuilder()
-  .installModule(inventoryModule)
-  .register({ stockLevels: stock({}), catalog: catalogOf([]) })
-  .build();
+  .withInstalledModules([inventoryModule])
+  .withServices({ stockLevels: stock({}), catalog: catalogOf([]) })
+  .buildContainer();
 after(() => base.close());
 
 const shop = (levels: Record<string, number>, skus: string[]) =>

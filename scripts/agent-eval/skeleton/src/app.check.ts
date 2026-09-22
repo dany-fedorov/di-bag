@@ -1,3 +1,3 @@
 import { composition } from './app.js';
 
-composition.verifyGraph() satisfies void;
+composition.verifyGraphAtCompileTime() satisfies void;

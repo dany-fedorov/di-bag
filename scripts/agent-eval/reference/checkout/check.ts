@@ -6,11 +6,11 @@ import type { PaymentGateway } from './contract.js';
 import { checkoutModule } from './module.js';
 
 DiBag.createBuilder()
-  .installModule(checkoutModule)
-  .register({
+  .withInstalledModules([checkoutModule])
+  .withServices({
     catalog: DiBag.withLifetime((): Catalog => ({ find: () => undefined, list: () => [] }), 'root'),
     inventory: (): Inventory => ({ available: () => 0, reserve: () => false, commit: () => {} }),
     payments: (): PaymentGateway => ({ charge: async () => 'charge' }),
     notifier: (): Notifier => ({ orderPlaced: async () => {} }),
   })
-  .verifyGraph() satisfies void;
+  .verifyGraphAtCompileTime() satisfies void;

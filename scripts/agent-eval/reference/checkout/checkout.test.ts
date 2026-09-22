@@ -9,14 +9,14 @@ import { checkoutModule } from './module.js';
 
 const unused = () => { throw new Error('supply a fixture'); };
 const fixture = DiBag.createBuilder()
-  .installModule(checkoutModule)
-  .register({
+  .withInstalledModules([checkoutModule])
+  .withServices({
     catalog: DiBag.withLifetime((): Catalog => ({ find: () => ({ sku: 'tea', name: 'Tea', priceCents: 450 }), list: () => [] }), 'root'),
     inventory: (): Inventory => ({ available: () => 0, reserve: () => true, commit: () => {} }),
     payments: (): PaymentGateway => ({ charge: unused }),
     notifier: (): Notifier => ({ orderPlaced: async () => {} }),
   })
-  .build();
+  .buildContainer();
 after(() => fixture.close());
 
 test('a declined charge rejects the order without committing', async () => {

@@ -9,11 +9,13 @@ import type { MailConfig } from './features/notifications/contract.js';
 import { notificationsModule } from './features/notifications/module.js';
 
 export const composition = DiBag.createBuilder()
-  .installModule(catalogModule)
-  .installModule(inventoryModule)
-  .installModule(checkoutModule)
-  .installModule(notificationsModule)
-  .register({
+  .withInstalledModules([
+    catalogModule,
+    inventoryModule,
+    checkoutModule,
+    notificationsModule,
+  ])
+  .withServices({
     catalogData: DiBag.withLifetime((): CatalogData => ({
       products: [
         { sku: 'tea', name: 'Green tea', priceCents: 450 },

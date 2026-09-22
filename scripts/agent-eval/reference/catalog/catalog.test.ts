@@ -5,9 +5,9 @@ import type { CatalogData } from './contract.js';
 import { catalogModule } from './module.js';
 
 const fixture = DiBag.createBuilder()
-  .installModule(catalogModule)
-  .register({ catalogData: DiBag.withLifetime((): CatalogData => ({ products: [] }), 'root') })
-  .build();
+  .withInstalledModules([catalogModule])
+  .withServices({ catalogData: DiBag.withLifetime((): CatalogData => ({ products: [] }), 'root') })
+  .buildContainer();
 after(() => fixture.close());
 
 test('finds products and shares one catalog across scopes', async () => {

@@ -14,7 +14,10 @@ function mailConfig(events: Event[]) {
     },
   }), 'root');
 }
-const base = DiBag.createBuilder().installModule(notificationsModule).register({ mailConfig: mailConfig([]) }).build();
+const base = DiBag.createBuilder()
+  .withInstalledModules([notificationsModule])
+  .withServices({ mailConfig: mailConfig([]) })
+  .buildContainer();
 after(() => base.close());
 
 const shop = (events: Event[]) => base.fork(['mailConfig'], { mailConfig: mailConfig(events) });
