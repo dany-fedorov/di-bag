@@ -1,0 +1,22 @@
+[
+  {
+    "line": 12,
+    "reason": "alias is referenced without being called; rewrite this reference to withServiceAlias by hand"
+  },
+  {
+    "line": 13,
+    "reason": "contribute is referenced without being called; rewrite this reference to withCollectionContribution by hand"
+  },
+  {
+    "line": 14,
+    "reason": "register has incompatible arity-specific rename-map entries; migrate this reference by hand"
+  },
+  {
+    "line": 27,
+    "reason": "build resolves to both DI Bag and non-library declarations; migrate this use by hand"
+  },
+  {
+    "line": 31,
+    "reason": "register resolves to both DI Bag and non-library declarations; migrate this use by hand"
+  }
+]

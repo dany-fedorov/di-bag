@@ -1,68 +1,68 @@
 import { DiBag, type Builder, type Provider, type Registration } from '../../../src';
-import type { TokenBase } from '../../../src/tokens';
+import type { Token } from '../../../src/tokens';
 const key = Symbol('source'); const target = DiBag.token(key).of<number>();
 const otherKey = Symbol('other'); const other = DiBag.token(otherKey).of<number>();
 const wrong = DiBag.token(key).of<string>();
-const base = DiBag.createBuilder().register({ value: () => 1 });
+const base = DiBag.createBuilder().withServices({ value: () => 1 });
 // diagnostic: new names or typed tokens only
-base.alias('value', 'value');
+base.withServiceAlias({ aliasKey: 'value', targetServiceKey: 'value' });
 // diagnostic: existing
-base.alias('copy', 'missing');
+base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'missing' });
 // diagnostic: service
-base.alias(wrong, 'value');
+base.withServiceAlias({ aliasKey: wrong, targetServiceKey: 'value' });
 // diagnostic: incompatible
-DiBag.createBuilder().register(wrong, () => 'bad').alias('copy', target);
+DiBag.createBuilder().withTokenService(wrong, () => 'bad').withServiceAlias({ aliasKey: 'copy', targetServiceKey: target });
 // diagnostic: incompatible
-DiBag.createBuilder().alias('copy', target).register(wrong, () => 'bad');
+DiBag.createBuilder().withServiceAlias({ aliasKey: 'copy', targetServiceKey: target }).withTokenService(wrong, () => 'bad');
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().alias('copy', target).build();
+DiBag.createBuilder().withServiceAlias({ aliasKey: 'copy', targetServiceKey: target }).buildContainer();
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().installModule(DiBag.createBuilder().alias('copy', target).buildModule([])).build();
+DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServiceAlias({ aliasKey: 'copy', targetServiceKey: target }).buildModule({ exportedServiceKeys: [] })]).buildContainer();
 // diagnostic: consumer dependency
-base.alias('copy', 'value').replace<'value', () => string>('value', () => 'bad');
+base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withReplacedService<'value', () => string>('value', () => 'bad');
 // diagnostic: consumer dependency
-DiBag.createBuilder().register({ value: () => 1 }).alias('copy', 'value').replace<'value', () => string>('value', () => 'bad');
-const exported = DiBag.createBuilder().register({ value: () => 1 }).alias('copy', 'value').buildModule(['value']).renameExport('value', 'renamed');
+DiBag.createBuilder().withServices({ value: () => 1 }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withReplacedService<'value', () => string>('value', () => 'bad');
+const exported = DiBag.createBuilder().withServices({ value: () => 1 }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['value'] }).renameExport('value', 'renamed');
 // diagnostic: consumer dependency
-DiBag.createBuilder().installModule(exported).replace<'renamed', () => string>('renamed', () => 'bad');
-declare const name: string; declare const names: 'value' | 'copy'; declare const tokens: typeof target | typeof other; declare const erasedToken: TokenBase;
+DiBag.createBuilder().withInstalledModules([exported]).withReplacedService<'renamed', () => string>('renamed', () => 'bad');
+declare const name: string; declare const names: 'value' | 'copy'; declare const tokens: typeof target | typeof other; declare const erasedToken: Token<symbol, number>;
 // diagnostic: singleton
-base.alias(name, 'value');
+base.withServiceAlias({ aliasKey: name, targetServiceKey: 'value' });
 // diagnostic: singleton
-base.alias('copy', name);
+base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: name });
 // diagnostic: singleton
-base.alias(names, 'value');
+base.withServiceAlias({ aliasKey: names, targetServiceKey: 'value' });
 // diagnostic: singleton
-base.alias('copy', tokens);
+base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: tokens });
 // diagnostic: singleton
-base.alias(erasedToken, 'value');
+base.withServiceAlias({ aliasKey: erasedToken, targetServiceKey: 'value' });
 // diagnostic: not assignable
-base.alias(Symbol('fake'), 'value');
+base.withServiceAlias({ aliasKey: Symbol('fake'), targetServiceKey: 'value' });
 // diagnostic: not assignable
-base.alias('copy', DiBag.optional(target));
+base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: DiBag.optional(target) });
 // diagnostic: singleton
-base.alias<'one' | 'two', 'value'>('one', 'value');
-// diagnostic: Expected 3 arguments
-base.alias<never, 'value'>('one' as never, 'value');
+base.withServiceAlias<'one' | 'two', 'value'>({ aliasKey: 'one', targetServiceKey: 'value' });
+// diagnostic: Expected 2 arguments
+base.withServiceAlias<never, 'value'>({ aliasKey: 'one' as never, targetServiceKey: 'value' });
 const root = DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root');
 // diagnostic: root lifetime cannot capture scoped dependency
-base.alias('copy', 'value').register({ root }).build();
+base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServices({ root }).buildContainer();
 const transient = DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient');
 // diagnostic: root lifetime cannot capture scoped dependency
-base.alias('copy', 'value').register({ transient, root: DiBag.withLifetime(({ transient }: { transient: number }) => transient, 'root') }).build();
-const privateScoped = DiBag.createBuilder().register({ value: () => 1 }).alias('copy', 'value').buildModule(['copy']).renameExport('copy', 'renamed');
+base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServices({ transient, root: DiBag.withLifetime(({ transient }: { transient: number }) => transient, 'root') }).buildContainer();
+const privateScoped = DiBag.createBuilder().withServices({ value: () => 1 }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['copy'] }).renameExport('copy', 'renamed');
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(privateScoped).register({ root: DiBag.withLifetime(({ renamed }: { renamed: number }) => renamed, 'root') }).build();
-const privateRootBuilder = DiBag.createBuilder().register({ value: () => 1 }).alias('copy', 'value').register({ root });
+DiBag.createBuilder().withInstalledModules([privateScoped]).withServices({ root: DiBag.withLifetime(({ renamed }: { renamed: number }) => renamed, 'root') }).buildContainer();
+const privateRootBuilder = DiBag.createBuilder().withServices({ value: () => 1 }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServices({ root });
 // diagnostic: root lifetime cannot capture scoped dependency: root -> value
-privateRootBuilder.buildModule([]);
-const transientBag = DiBag.createBuilder().register({ value: DiBag.withLifetime(() => 1, 'transient') }).alias('copy', 'value').build();
+privateRootBuilder.buildModule({ exportedServiceKeys: [] });
+const transientBag = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => 1, 'transient') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
 // diagnostic: cannot share transient
 transientBag.createScope({ share: ['copy'] });
-const privateTransient = DiBag.createBuilder().register({ value: DiBag.withLifetime(() => 1, 'transient') }).alias('copy', 'value').buildModule(['copy']);
+const privateTransient = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => 1, 'transient') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['copy'] });
 // diagnostic: cannot share transient
-DiBag.createBuilder().installModule(privateTransient).build().createScope({ share: ['copy'] });
-const original = base.alias('copy', 'value');
+DiBag.createBuilder().withInstalledModules([privateTransient]).buildContainer().createScope({ share: ['copy'] });
+const original = base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' });
 // diagnostic: not assignable
 const erasedHistory: typeof base = original;
 // diagnostic: not assignable
@@ -70,15 +70,15 @@ const erasedEmpty: Builder<never> = original;
 declare const provider: Provider<() => number>;
 declare const union: typeof provider | (() => string);
 // diagnostic: consumer dependency
-original.replace<'value', typeof union>('value', union);
+original.withReplacedService<'value', typeof union>('value', union);
 declare const erased: Registration;
 // diagnostic: finite string-keyed
-original.replace<'value', typeof erased>('value', erased);
-const sharingBase = DiBag.createBuilder().register({ value: () => 1, consumer: ({ copy }: { copy: number }) => copy }).alias('copy', 'value').build();
+original.withReplacedService<'value', typeof erased>('value', erased);
+const sharingBase = DiBag.createBuilder().withServices({ value: () => 1, consumer: ({ copy }: { copy: number }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
 const parentScoped = sharingBase.createScope(['value'], { value: DiBag.withLifetime(() => 2, 'root') }, { share: ['copy'] });
 // diagnostic: root lifetime cannot capture scoped dependency
 parentScoped.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { share: ['copy'] });
-const rootedTarget = DiBag.createBuilder().register({ value: DiBag.withLifetime(() => 1, 'root'), consumer: ({ copy }: { copy: number }) => copy }).alias('copy', 'value').build();
+const rootedTarget = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => 1, 'root'), consumer: ({ copy }: { copy: number }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
 const parentRoot = rootedTarget.createScope(['value'], { value: () => 2 }, { share: ['copy'] });
 // diagnostic: root lifetime cannot capture scoped dependency
 parentRoot.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
@@ -98,22 +98,22 @@ const aliasKey = Symbol('alias'); const aliasToken = DiBag.token(aliasKey).of<nu
 const rootOptional = DiBag.withLifetime(DiBag.fromFunction([DiBag.optional(aliasToken)], value => value), 'root');
 const rootLazy = DiBag.withLifetime(DiBag.fromFunction([DiBag.lazy(aliasToken)], get => get()), 'root');
 // diagnostic: root lifetime cannot capture scoped dependency
-base.alias(aliasToken, 'value').register({ rootOptional }).build();
+base.withServiceAlias({ aliasKey: aliasToken, targetServiceKey: 'value' }).withServices({ rootOptional }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
-base.alias(aliasToken, 'value').register({ rootLazy }).build();
-const externalPrivate = DiBag.createBuilder().alias(aliasToken, target).register({ rootLazy }).buildModule([]);
+base.withServiceAlias({ aliasKey: aliasToken, targetServiceKey: 'value' }).withServices({ rootLazy }).buildContainer();
+const externalPrivate = DiBag.createBuilder().withServiceAlias({ aliasKey: aliasToken, targetServiceKey: target }).withServices({ rootLazy }).buildModule({ exportedServiceKeys: [] });
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register(target, () => 1).installModule(externalPrivate).build();
-const moduleHistory = DiBag.createBuilder().register({ value: () => 1 });
-const moduleAlias = moduleHistory.alias('copy', 'value');
+DiBag.createBuilder().withTokenService(target, () => 1).withInstalledModules([externalPrivate]).buildContainer();
+const moduleHistory = DiBag.createBuilder().withServices({ value: () => 1 });
+const moduleAlias = moduleHistory.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' });
 // diagnostic: not assignable
 const erasedModuleHistory: typeof moduleHistory = moduleAlias;
 // diagnostic: not assignable
-const forgedDestination: Parameters<typeof base.alias>[0] = 'copy';
+const forgedDestination: Parameters<typeof base.withServiceAlias>[0]['aliasKey'] = 'copy';
 // diagnostic: not assignable
-const forgedTarget: Parameters<typeof base.alias>[1] = 'value';
-// diagnostic: Expected 3 arguments
-base.alias<'copy', never>('copy', 'value' as never);
-declare const reflectedBuilder: ReturnType<typeof base.alias>;
+const forgedTarget: Parameters<typeof base.withServiceAlias>[0]['targetServiceKey'] = 'value';
+// diagnostic: Expected 2 arguments
+base.withServiceAlias<'copy', never>({ aliasKey: 'copy', targetServiceKey: 'value' as never });
+declare const reflectedBuilder: ReturnType<typeof base.withServiceAlias>;
 // diagnostic: not assignable
-reflectedBuilder.build().resolve('copy');
+reflectedBuilder.buildContainer().resolve('copy');

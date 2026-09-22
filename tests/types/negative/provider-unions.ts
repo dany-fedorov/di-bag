@@ -19,7 +19,7 @@ DiBag.withMetadata(mixed, { static: { owner: 'duplicate' } });
 // diagnostic: duplicate metadata
 DiBag.withMetadata(reversed, { static: { owner: 'duplicate' } });
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ mapped: DiBag.transformService(mixed, { mode: 'direct', transform: value => value.read() }) }).build();
+DiBag.createBuilder().withServices({ mapped: DiBag.transformService(mixed, { mode: 'direct', transform: value => value.read() }) }).buildContainer();
 
 type Registration = Parameters<typeof DiBag.withMetadata>[0];
 type Opaque = Exclude<Registration, ((...args: never[]) => unknown) | { create: unknown }>;
@@ -30,4 +30,4 @@ DiBag.transformService(opaqueMixed, { mode: 'direct', transform: (value: number)
 DiBag.withDisposal(opaqueMixed, (value: number) => {});
 // diagnostic: factory dependencies must be finite
 // diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ mapped: DiBag.transformService(opaqueMixed, { mode: 'direct', transform: () => 42 }) }).build();
+DiBag.createBuilder().withServices({ mapped: DiBag.transformService(opaqueMixed, { mode: 'direct', transform: () => 42 }) }).buildContainer();

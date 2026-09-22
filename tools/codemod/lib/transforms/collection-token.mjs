@@ -14,6 +14,7 @@ export default function collectionToken(call, api) {
   }
   if (use.state === 'untraceable') {
     api.manual(call, `token creation cannot be traced to an identifier binding; if it is used as a collection, create a named token with ${api.nameOf(api.member.owner, api.member.name)} and move the collection uses to it`);
+    api.abortParentReshape(call, { owner: 'Builder', name: 'contribute', argument: 0 });
   }
   return undefined;
 }

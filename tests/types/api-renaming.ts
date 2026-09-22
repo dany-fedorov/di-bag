@@ -14,17 +14,17 @@ const mapped = DiBag.transformService(raw, { mode: 'direct', acquisitionMode: 'r
 type _Mapped = Assert<Equal<ProviderAcquiredValue<typeof mapped>, Promise<{ id: number }>>>;
 const api: DiBagApi = DiBag.withConfiguration({});
 const empty: Builder<never> = api.createBuilder();
-// Fast token overload selection must retain the reflected token call shape.
-type _RegisterReflection = Assert<Equal<Parameters<typeof empty.register>['length'], 2>>;
+// The positional token-service facade must retain its reflected two-parameter call shape.
+type _RegisterReflection = Assert<Equal<Parameters<typeof empty.withTokenService>['length'], 2>>;
 // Explicit interface arguments can supply the required index through an intersection.
 interface InterfaceRegistrations { value: () => number }
 declare const interfaceRegistrations: InterfaceRegistrations & Record<string, Registration>;
-const interfaceValue = empty.register<InterfaceRegistrations>(interfaceRegistrations).build().resolve('value');
+const interfaceValue = empty.withServices<InterfaceRegistrations>(interfaceRegistrations).buildContainer().resolve('value');
 type _InterfaceRegistration = Assert<Equal<typeof interfaceValue, number>>;
 const numberKey = Symbol('number');
 const numberToken = api.token(numberKey).of<number>();
 const provider = api.fromFactory(({ number }: { number: number }, context) => ({ number, signal: context.signal }), { context: 'acquisition' });
-const bag = empty.register(numberToken, () => 1).register({ number: () => 2, provider }).build();
+const bag = empty.withTokenService(numberToken, () => 1).withServices({ number: () => 2, provider }).buildContainer();
 const output: number = bag.resolve('provider').number;
 const pluginFactory: PluginProviderFactory = api.fromPlugin;
 void output; void pluginFactory;

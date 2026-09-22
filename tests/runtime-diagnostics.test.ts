@@ -6,7 +6,7 @@ import { withoutBuiltinModule } from './host-builtin-module';
 
 // Dynamic graphs below are cast past the compiler on purpose: these tests pin runtime labels.
 type LooseBag = { resolve(key: string): unknown; inspectGraph(): GraphSnapshot; close(): Promise<void> };
-const buildLoose = (builder: unknown) => (builder as { build(): unknown }).build() as LooseBag;
+const buildLoose = (builder: unknown) => (builder as { buildContainer(): unknown }).buildContainer() as LooseBag;
 
 const page = 'https://dany-fedorov.github.io/di-bag/agent/errors.html';
 const caught = (run: () => unknown): Error & { code: string; details: Record<string, unknown> } => {
@@ -16,18 +16,18 @@ const caught = (run: () => unknown): Error & { code: string; details: Record<str
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 
 test('library messages carry the code, the original text, and the errors-page section', async () => {
-  const missing = caught(() => (DiBag.createBuilder().register({ a: () => 1 }).build().resolve as Function)('absent'));
+  const missing = caught(() => (DiBag.createBuilder().withServices({ a: () => 1 }).buildContainer().resolve as Function)('absent'));
   expect(missing.code).toBe('DI_BAG_MISSING_REGISTRATION');
   expect(missing.message).toBe(`DI_BAG_MISSING_REGISTRATION: Service "absent" is not registered.; see ${page}#di-bag-missing-registration`);
   expect(missing.details).toEqual({ operation: 'resolve', key: 'absent' });
 
-  const cycle = caught(() => DiBag.createBuilder().register({
+  const cycle = caught(() => DiBag.createBuilder().withServices({
     a: ({ b }: { b: number }) => b, b: ({ a }: { a: number }) => a,
-  } as never).build().resolve('a' as never));
+  } as never).buildContainer().resolve('a' as never));
   expect(cycle.message).toBe(`DI_BAG_CYCLE: cycle: a -> b -> a; see ${page}#di-bag-cycle`);
   expect(cycle.details.path).toEqual(['a', 'b', 'a']);
 
-  const classifier = caught(() => withoutBuiltinModule(() => Core.createBuilder().register({ value: () => 1 }).build()));
+  const classifier = caught(() => withoutBuiltinModule(() => Core.createBuilder().withServices({ value: () => 1 }).buildContainer()));
   expect(classifier.message).toBe(`DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule; 1 registration uses automatic acquisition: "value"; use DiBag.fromSyncFactory or DiBag.fromAsyncFactory (or an explicit acquisitionMode) for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } }); see ${page}#di-bag-classifier-required`);
 
   const typeError = caught(() => DiBag.withConfiguration(null as never));
@@ -37,13 +37,13 @@ test('library messages carry the code, the original text, and the errors-page se
   const plugin = new DiBagPluginValidationError('output', 'rejected');
   expect(plugin.message).toBe(`DI_BAG_PLUGIN_VALIDATION: Invalid plugin output: rejected; see ${page}#di-bag-plugin-validation`);
 
-  const bag = DiBag.createBuilder().register({ value: DiBag.withDisposal(() => 1, () => { throw new Error('boom'); }) }).build();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(() => 1, () => { throw new Error('boom'); }) }).buildContainer();
   bag.resolve('value');
   const cleanup = await bag.close().catch(error => error);
   expect(cleanup).toBeInstanceOf(DiBagCleanupError);
   expect(cleanup.message).toBe(`DI_BAG_CLEANUP_FAILED: Failed to run 1 disposal callback(s); see ${page}#di-bag-cleanup-failed`);
 
-  const readiness = await DiBag.createBuilder().register({ slow: () => new Promise(() => {}) }).build().ensureServicesReady(['slow'], { totalTimeoutMs: 1 }).catch(error => error);
+  const readiness = await DiBag.createBuilder().withServices({ slow: () => new Promise(() => {}) }).buildContainer().ensureServicesReady(['slow'], { totalTimeoutMs: 1 }).catch(error => error);
   expect(readiness).toBeInstanceOf(DiBagServiceReadinessCancelledError);
   expect(readiness.message).toBe(`DI_BAG_SERVICE_READINESS_CANCELLED: The listed services were not ready: the wait timed out after 1ms; acquisitions still pending: slow; this bag is closing; see ${page}#di-bag-service-readiness-cancelled`);
   expect(readiness.cause.message).toBe(`DI_BAG_SERVICE_READINESS_TIMEOUT: The listed services were not ready before the deadline; see ${page}#di-bag-service-readiness-timeout`);
@@ -51,7 +51,7 @@ test('library messages carry the code, the original text, and the errors-page se
 
 test('application errors keep their message untouched', () => {
   const original = new Error('application failure');
-  const bag = DiBag.createBuilder().register({ value: () => { throw original; } }).build();
+  const bag = DiBag.createBuilder().withServices({ value: () => { throw original; } }).buildContainer();
   expect(caught(() => bag.resolve('value')) as unknown).toBe(original);
   expect(original.message).toBe('application failure');
 });
@@ -59,17 +59,17 @@ test('application errors keep their message untouched', () => {
 test('a module label names private bindings in messages, cycle paths, inspectGraph, and observers', async () => {
   const events: LifecycleEvent[] = [];
   const api = DiBag.withConfiguration({ observers: [{ onEvent: event => { events.push(event); }, onError() {} }] });
-  const orders = api.createBuilder().register({
+  const orders = api.createBuilder().withServices({
     repository: ({ database }: { database: string }) => `repo:${database}`,
     left: ({ right }: { right: number }) => right,
     right: ({ left }: { left: number }) => left,
-  }).register({
+  }).withServices({
     placeOrder: ({ repository }: { repository: string }) => repository,
     loop: ({ left }: { left: number }) => left,
     broken: ({ absent }: { absent: number }) => absent,
-  } as never).buildModule(['placeOrder', 'loop', 'broken'] as never, { label: 'orders' });
+  } as never).buildModule({ exportedServiceKeys: ['placeOrder', 'loop', 'broken'] as never, moduleLabel: 'orders' });
 
-  const bag = buildLoose(api.createBuilder().installModule(orders as never).register({ database: () => 'db' } as never));
+  const bag = buildLoose(api.createBuilder().withInstalledModules([orders] as never).withServices({ database: () => 'db' } as never));
   expect(bag.resolve('placeOrder')).toBe('repo:db');
 
   const cycle = caught(() => bag.resolve('loop'));
@@ -92,10 +92,10 @@ test('a module label names private bindings in messages, cycle paths, inspectGra
 });
 
 test('a private consumer is named with its label when its own dependency is missing', async () => {
-  const feature = DiBag.createBuilder().register({
+  const feature = DiBag.createBuilder().withServices({
     worker: ({ absent }: { absent: number }) => absent,
-  } as never).register({ run: ({ worker }: { worker: number }) => worker } as never).buildModule(['run'] as never, { label: 'jobs' });
-  const bag = buildLoose(DiBag.createBuilder().installModule(feature as never));
+  } as never).withServices({ run: ({ worker }: { worker: number }) => worker } as never).buildModule({ exportedServiceKeys: ['run'] as never, moduleLabel: 'jobs' });
+  const bag = buildLoose(DiBag.createBuilder().withInstalledModules([feature] as never));
   const error = caught(() => bag.resolve('run'));
   expect(error.details.consumer).toBe('jobs/worker');
   expect(error.details.path).toEqual(['run', 'jobs/worker', 'absent']);
@@ -104,39 +104,39 @@ test('a private consumer is named with its label when its own dependency is miss
 });
 
 test('nested module labels compose outward and unlabeled modules keep bare keys', async () => {
-  const inner = DiBag.createBuilder().register({ state: () => 1, read: ({ state }: { state: number }) => state }).buildModule(['read'], { label: 'inner' });
-  const outer = DiBag.createBuilder().installModule(inner).register({ wrap: ({ read }: { read: number }) => read + 1 }).buildModule(['wrap'], { label: 'outer' });
-  const labeled = DiBag.createBuilder().installModule(outer).build();
+  const inner = DiBag.createBuilder().withServices({ state: () => 1, read: ({ state }: { state: number }) => state }).buildModule({ exportedServiceKeys: ['read'], moduleLabel: 'inner' });
+  const outer = DiBag.createBuilder().withInstalledModules([inner]).withServices({ wrap: ({ read }: { read: number }) => read + 1 }).buildModule({ exportedServiceKeys: ['wrap'], moduleLabel: 'outer' });
+  const labeled = DiBag.createBuilder().withInstalledModules([outer]).buildContainer();
   expect(labeled.resolve('wrap')).toBe(2);
   expect(labeled.inspectGraph().bindings.map(binding => binding.label).sort()).toEqual(['outer/inner/state', 'outer/read', 'wrap']);
 
-  const unlabeledOuter = DiBag.createBuilder().installModule(inner).register({ wrap: ({ read }: { read: number }) => read }).buildModule(['wrap']);
-  const mixed = DiBag.createBuilder().installModule(unlabeledOuter.renameExport('wrap', 'renamed')).build();
+  const unlabeledOuter = DiBag.createBuilder().withInstalledModules([inner]).withServices({ wrap: ({ read }: { read: number }) => read }).buildModule({ exportedServiceKeys: ['wrap'] });
+  const mixed = DiBag.createBuilder().withInstalledModules([unlabeledOuter.renameExport('wrap', 'renamed')]).buildContainer();
   expect(mixed.inspectGraph().bindings.map(binding => binding.label).sort()).toEqual(['inner/state', 'read', 'wrap']);
 
-  const plain = DiBag.createBuilder().installModule(DiBag.createBuilder().register({ state: () => 1, read: ({ state }: { state: number }) => state }).buildModule(['read'])).build();
+  const plain = DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ state: () => 1, read: ({ state }: { state: number }) => state }).buildModule({ exportedServiceKeys: ['read'] })]).buildContainer();
   expect(plain.inspectGraph().bindings.map(binding => binding.label).sort()).toEqual(['read', 'state']);
   await Promise.all([labeled.close(), mixed.close(), plain.close()]);
 });
 
 test('buildModule rejects malformed label options', () => {
-  const builder = DiBag.createBuilder().register({ value: () => 1 });
-  for (const options of [null, 'orders', [], { label: '' }, { label: 1 }, { label: 'x', other: true }, Object.create({ label: 'x' })]) {
-    const error = caught(() => builder.buildModule(['value'], options as never));
+  const builder = DiBag.createBuilder().withServices({ value: () => 1 });
+  for (const moduleLabel of ['', 1, null, {}]) {
+    const error = caught(() => (builder.buildModule as Function)({ exportedServiceKeys: ['value'], moduleLabel }));
     expect(error.code).toBe('DI_BAG_INVALID_EXPORT');
-    expect(error.details).toEqual({ operation: 'buildModule', option: 'label' });
+    expect(error.details).toEqual({ operation: 'buildModule', option: 'moduleLabel' });
   }
-  expect(() => builder.buildModule(['value'], {})).not.toThrow();
-  expect(() => builder.buildModule(['value'], { label: undefined } as never)).not.toThrow();
+  expect(() => (builder.buildModule as Function)({ exportedServiceKeys: ['value'] })).not.toThrow();
+  expect(() => (builder.buildModule as Function)({ exportedServiceKeys: ['value'], moduleLabel: undefined })).not.toThrow();
 });
 
 test('close({ waitTimeoutMs }) rejects naming the never-settling disposer and keeps cleanup awaitable', async () => {
   let release!: () => void;
   const disposed: string[] = [];
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     fast: DiBag.withDisposal(() => 'fast', () => { disposed.push('fast'); }),
     stuck: DiBag.withDisposal(({ fast }: { fast: string }) => fast, () => new Promise<void>(resolve => { release = resolve; })),
-  }).build();
+  }).buildContainer();
   bag.resolve('stuck');
   const error = await bag.close({ waitTimeoutMs: 1 }).catch(caughtError => caughtError);
   expect(error).toBeInstanceOf(DiBagCloseCancelledError);
@@ -161,7 +161,7 @@ test('close({ waitTimeoutMs }) rejects naming the never-settling disposer and ke
 });
 
 test('close deadline reports pending acquisitions when cleanup is still draining them', async () => {
-  const bag = DiBag.createBuilder().register({ slow: () => new Promise<number>(() => {}) }).build();
+  const bag = DiBag.createBuilder().withServices({ slow: () => new Promise<number>(() => {}) }).buildContainer();
   void bag.resolve('slow');
   const error = await bag.close({ waitTimeoutMs: 1 }).catch(caughtError => caughtError);
   expect(error.details.disposersStillRunning).toEqual([]);
@@ -171,9 +171,9 @@ test('close deadline reports pending acquisitions when cleanup is still draining
 
 test('close({ abortSignal }) stops the wait on abort with DI_BAG_CLOSE_ABORTED and removes its listener', async () => {
   let release!: () => void;
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     stuck: DiBag.withDisposal(() => 1, () => new Promise<void>(resolve => { release = resolve; })),
-  }).build();
+  }).buildContainer();
   bag.resolve('stuck');
   const controller = new AbortController();
   const reason = new Error('shutdown budget spent');
@@ -193,7 +193,7 @@ test('close({ abortSignal }) stops the wait on abort with DI_BAG_CLOSE_ABORTED a
 
 test('an already aborted signal still starts cleanup and rejects immediately', async () => {
   const disposed: number[] = [];
-  const bag = DiBag.createBuilder().register({ value: DiBag.withDisposal(() => 1, value => { disposed.push(value); }) }).build();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(() => 1, value => { disposed.push(value); }) }).buildContainer();
   bag.resolve('value');
   const controller = new AbortController();
   controller.abort('now');
@@ -204,23 +204,23 @@ test('an already aborted signal still starts cleanup and rejects immediately', a
 });
 
 test('bounded close resolves or rejects with the ordinary outcome when cleanup finishes first', async () => {
-  const bag = DiBag.createBuilder().register({ value: DiBag.withDisposal(() => 1, () => {}) }).build();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(() => 1, () => {}) }).buildContainer();
   bag.resolve('value');
   const controller = new AbortController();
   await bag.close({ waitTimeoutMs: 1_000, abortSignal: controller.signal });
   expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
   expect(await bag.close({ waitTimeoutMs: 1 })).toBeUndefined();
 
-  const failing = DiBag.createBuilder().register({ value: DiBag.withDisposal(() => 1, () => { throw new Error('boom'); }) }).build();
+  const failing = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(() => 1, () => { throw new Error('boom'); }) }).buildContainer();
   failing.resolve('value');
   expect(await failing.close({ waitTimeoutMs: 1_000 }).catch(error => error)).toBeInstanceOf(DiBagCleanupError);
 });
 
 test('scopes and forks accept close options; a child deadline names the child disposer', async () => {
   let release!: () => void;
-  const root = DiBag.createBuilder().register({
+  const root = DiBag.createBuilder().withServices({
     session: DiBag.withDisposal(() => 1, () => new Promise<void>(resolve => { release = resolve; })),
-  }).build();
+  }).buildContainer();
   const child = root.createScope();
   child.resolve('session');
   const childError = await child.close({ waitTimeoutMs: 1 }).catch(error => error);
@@ -243,7 +243,7 @@ test('scopes and forks accept close options; a child deadline names the child di
 });
 
 test('close rejects malformed options without starting cleanup', async () => {
-  const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+  const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
   for (const options of [null, [], { waitTimeoutMs: 0 }, { waitTimeoutMs: Infinity }, { waitTimeoutMs: '1' }, { abortSignal: {} }, { timeoutMs: 1 }, { signal: new AbortController().signal }, { startupOrder: 'sequential' }, Object.create({ waitTimeoutMs: 1 })]) {
     const error = await bag.close(options as never).catch(caughtError => caughtError);
     expect(error.code).toBe('DI_BAG_INVALID_CLOSE');

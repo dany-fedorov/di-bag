@@ -82,13 +82,13 @@ export type NameText<K> = K extends string ? K : K extends number ? `${K}` : 'ty
 export type ErrorsPage = 'https://dany-fedorov.github.io/di-bag/agent/errors.html';
 /** Message suffix naming the errors-page section of a compile-time message family. */
 export type SeeErrors<Family extends string> = `; see ${ErrorsPage}#${Family}`;
-// Per-call wrong-shape sites stay unnamed for compiler cost; that section tells the reader to call verifyGraph().
+// Per-call wrong-shape sites stay unnamed for compiler cost; that section tells the reader to call verifyGraphAtCompileTime().
 export type WrongShapeMessage = `provided service does not satisfy its consumer dependency${SeeErrors<'wrong-shape'>}`;
 declare const diBagTypeError: unique symbol;
 export type Unsatisfied<Message extends string, Details> = {
   readonly [diBagTypeError]: Message;
 } & Details;
-// verifyGraph() prints the details a wrong-shape report points to, so its report names the unsatisfied-consumer section instead.
+// verifyGraphAtCompileTime() prints the details a wrong-shape report points to, so its report names the unsatisfied-consumer section instead.
 export type ConsumerReport<Check> = Check extends { readonly [diBagTypeError]: WrongShapeMessage }
   ? Unsatisfied<`provided service does not satisfy its consumer dependency${SeeErrors<'unsatisfied-consumer'>}`, Omit<Check, typeof diBagTypeError>>
   : Check;
@@ -196,7 +196,7 @@ export type IncrementalChecked<E extends Entry, N extends Registrations> = unkno
   : CheckDependencyCompatibility<N>;
 
 export type NamedAdmission<R> = [NonFiniteKeys<R> | Exclude<keyof R, string>] extends [never] ? unknown
-  : Unsatisfied<'register requires finite string-keyed registration objects', { keys: NonFiniteKeys<R> | Exclude<keyof R, string> }>;
+  : Unsatisfied<'withServices requires finite string-keyed provider objects', { keys: NonFiniteKeys<R> | Exclude<keyof R, string> }>;
 
 type RequiredOf<R extends Registrations> = {
   [K in keyof R]: keyof Needs<R[K]>;
@@ -251,7 +251,7 @@ export type Introduces<F extends Registrations, N extends Registrations> = [
 ] extends [never]
   ? unknown
   : Unsatisfied<
-      'register introduces new names or typed tokens only',
+      'withServices and withTokenService introduce new names or typed tokens only',
       { duplicates: keyof F & keyof N }
     >;
 
@@ -261,7 +261,7 @@ export type EntryKeys<E extends Entry> = string extends E['key'] ? keyof Registr
 
 // Duplicate admission needs keys, independently of registration values.
 export type IntroducesKeys<Known extends PropertyKey, New extends PropertyKey> = [Known & New] extends [never]
- ? unknown : Unsatisfied<'register introduces new names or typed tokens only', { duplicates: Known & New }>;
+ ? unknown : Unsatisfied<'withServices and withTokenService introduce new names or typed tokens only', { duplicates: Known & New }>;
 
 export type Singleton<K> = [K] extends [never]
   ? false
@@ -277,15 +277,15 @@ export type ReplacementKey<R extends Registrations, K extends string> =
   Singleton<K> extends true
     ? K extends keyof R
       ? unknown
-      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>
-    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>;
+      : Unsatisfied<`withReplacedService requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>
+    : Unsatisfied<`withReplacedService requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>;
 
 export type ReplacementKeyOf<Keys extends PropertyKey, K extends string> =
   Singleton<K> extends true
     ? K extends Keys
       ? unknown
-      : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>
-    : Unsatisfied<`replace requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>;
+      : Unsatisfied<`withReplacedService requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>
+    : Unsatisfied<`withReplacedService requires one existing singleton string-literal key: ${NameText<K>}${SeeErrors<'unknown-key'>}`, { key: K }>;
 
 // Context needs one compatible output per surviving consumer. Intersect their
 // callback parameters, not their value unions: string | number in one consumer

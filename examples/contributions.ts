@@ -7,27 +7,27 @@ async function main() {
 
   // An exportless module can contribute a service using a private helper.
   const prefixFeature = DiBag.createBuilder()
-    .register({ prefix: () => 'Hello, ' })
-    .contribute(
-      steps,
-      ({ prefix }: { prefix: string }): Step =>
+    .withServices({ prefix: () => 'Hello, ' })
+    .withCollectionContribution({
+      collectionToken: steps,
+      provider: ({ prefix }: { prefix: string }): Step =>
         (text) =>
           prefix + text,
-    )
-    .buildModule([]);
+    })
+    .buildModule({ exportedServiceKeys: [] });
 
   const bag = DiBag.createBuilder()
-    .contribute(steps, (): Step => (text) => text.trim())
-    .installModule(prefixFeature)
-    .contribute(steps, (): Step => (text) => text + '!')
-    .register({
+    .withCollectionContribution({ collectionToken: steps, provider: (): Step => (text) => text.trim() })
+    .withInstalledModules([prefixFeature])
+    .withCollectionContribution({ collectionToken: steps, provider: (): Step => (text) => text + '!' })
+    .withServices({
       pipeline: DiBag.fromFunction(
         [steps],
         (operations) => (text: string) =>
           operations.reduce((value, step) => step(value), text),
       ),
     })
-    .build();
+    .buildContainer();
 
   try {
     const result = bag.resolve('pipeline')('  DI  ');

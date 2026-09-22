@@ -17,7 +17,7 @@ export const pluginRuntimeAssertions = `
       acquisitionMode: 'raw',
       validate: item => item === value,
     });
-    const bag = DiBag.createBuilder().register({ plugin: provider }).build();
+    const bag = DiBag.createBuilder().withServices({ plugin: provider }).buildContainer();
     assertPlugin(bag.resolve('plugin') === value, 'plugin identity changed');
     await bag.close();
     assertPlugin(released === 1, 'plugin cleanup was not once-only');
@@ -45,7 +45,7 @@ export const pluginRuntimeAssertions = `
         return invalidDisposal;
       },
     }, { acquisitionMode: 'raw', validate: () => false });
-    const invalidBag = DiBag.createBuilder().register({ invalidPlugin: invalidProvider }).build();
+    const invalidBag = DiBag.createBuilder().withServices({ invalidPlugin: invalidProvider }).buildContainer();
     let outputError;
     try { invalidBag.resolve('invalidPlugin'); } catch (error) { outputError = error; }
     let invalidClosed = false;
@@ -73,7 +73,7 @@ export const pluginRuntimeAssertions = `
         return nativeDisposal;
       },
     }, { acquisitionMode: 'nativePromise', validate: item => item === nativeValue });
-    const nativeBag = DiBag.createBuilder().register({ nativePlugin: nativeProvider }).build();
+    const nativeBag = DiBag.createBuilder().withServices({ nativePlugin: nativeProvider }).buildContainer();
     const nativeResult = nativeBag.resolve('nativePlugin');
     assertPlugin(nativeBag.resolve('nativePlugin') === nativeResult, 'native plugin validation promise was not cached');
     let nativeClosed = false;
@@ -103,7 +103,7 @@ export const pluginRuntimeAssertions = `
         summary: [requiredValue, optionalValue, getLazy(), allValues.join(',')].join('|'),
       }),
     }, { acquisitionMode: 'raw', validate: item => typeof item === 'object' && item !== null && typeof item.summary === 'string' });
-    const dependencyBag = DiBag.createBuilder().register(required, DiBag.fromFactory(() => 3, { acquisitionMode: 'raw' })).register(lazy, DiBag.fromFactory(() => 4, { acquisitionMode: 'raw' })).contribute(all, DiBag.fromFactory(() => 5, { acquisitionMode: 'raw' })).contribute(all, DiBag.fromFactory(() => 6, { acquisitionMode: 'raw' })).register({ dependencyPlugin: dependencyProvider }).build();
+    const dependencyBag = DiBag.createBuilder().withTokenService(required, DiBag.fromFactory(() => 3, { acquisitionMode: 'raw' })).withTokenService(lazy, DiBag.fromFactory(() => 4, { acquisitionMode: 'raw' })).withCollectionContribution({ collectionToken: all, provider: DiBag.fromFactory(() => 5, { acquisitionMode: 'raw' }) }).withCollectionContribution({ collectionToken: all, provider: DiBag.fromFactory(() => 6, { acquisitionMode: 'raw' }) }).withServices({ dependencyPlugin: dependencyProvider }).buildContainer();
     assertPlugin(dependencyBag.resolve('dependencyPlugin').summary === '3||4|5,6',
       'plugin dependencies lost required, optional, lazy or all routing');
     await dependencyBag.close();
@@ -114,8 +114,8 @@ export const pluginRuntimeAssertions = `
       apiVersion: 1,
       create: secret => ({ secret }),
     }, { acquisitionMode: 'raw', validate: item => typeof item === 'object' && item !== null && item.secret === 17 });
-    const privateFeature = DiBag.createBuilder().register(privateToken, DiBag.fromFactory(() => 17, { acquisitionMode: 'raw' })).register({ privatePlugin: privateProvider }).alias('pluginAlias', 'privatePlugin').buildModule(['pluginAlias']).renameExport('pluginAlias', 'publicPlugin');
-    const privateBag = DiBag.createBuilder().installModule(privateFeature).build();
+    const privateFeature = DiBag.createBuilder().withTokenService(privateToken, DiBag.fromFactory(() => 17, { acquisitionMode: 'raw' })).withServices({ privatePlugin: privateProvider }).withServiceAlias({ aliasKey: 'pluginAlias', targetServiceKey: 'privatePlugin' }).buildModule({ exportedServiceKeys: ['pluginAlias'] }).renameExport('pluginAlias', 'publicPlugin');
+    const privateBag = DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();
     const sharedPlugin = privateBag.resolve('publicPlugin');
     const sharedChild = privateBag.createScope({ share: ['publicPlugin'] });
     assertPlugin(sharedChild.resolve('publicPlugin') === sharedPlugin && sharedPlugin.secret === 17,
@@ -140,14 +140,14 @@ export const pluginRuntimeAssertions = `
     }] });
     const observedValue = { id: 'observed' };
     let observedReleased = 0;
-    const observedBag = observed.createBuilder().register({ observedPlugin: observed.fromPlugin([], {
+    const observedBag = observed.createBuilder().withServices({ observedPlugin: observed.fromPlugin([], {
       apiVersion: 1,
       create: () => observedValue,
       dispose(acquired) {
         if (acquired !== observedValue) throw new Error('observer plugin ownership changed');
         observedReleased++;
       },
-    }, { acquisitionMode: 'raw', validate: item => item === observedValue }) }).build();
+    }, { acquisitionMode: 'raw', validate: item => item === observedValue }) }).buildContainer();
     assertPlugin(observedBag.resolve('observedPlugin') === observedValue, 'observer changed plugin value');
     const observedAttempt = observedBag.inspect('observedPlugin').acquisitions[0].acquisitionId;
     const observedBinding = observedBag.inspect('observedPlugin').bindingId;
@@ -170,7 +170,7 @@ export const pluginRuntimeAssertions = `
       apiVersion: 1,
       create: () => portableValue,
     }, { acquisitionMode: 'raw', validate: item => item === portableValue });
-    const portableBag = PortablePluginBag.createBuilder().register({ portablePlugin: portableProvider }).build();
+    const portableBag = PortablePluginBag.createBuilder().withServices({ portablePlugin: portableProvider }).buildContainer();
     assertPlugin(portableBag.resolve('portablePlugin') === portableValue,
       'portable core required a classifier for explicit raw plugin mode');
     await portableBag.close();

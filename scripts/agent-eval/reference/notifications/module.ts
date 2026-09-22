@@ -2,7 +2,7 @@ import { DiBag } from 'di-bag';
 import type { MailConfig, MailTransport, Notifier } from './contract.js';
 
 export const notificationsModule = DiBag.createBuilder()
-  .register({
+  .withServices({
     transport: DiBag.withLifetime(
       DiBag.withDisposal(({ mailConfig }: { mailConfig: MailConfig }) => mailConfig.connect(), transport => transport.close()),
       'root',
@@ -13,4 +13,4 @@ export const notificationsModule = DiBag.createBuilder()
       },
     }), 'root'),
   })
-  .buildModule(['notifier'], { label: 'notifications' });
+  .buildModule({ exportedServiceKeys: ['notifier'], moduleLabel: 'notifications' });

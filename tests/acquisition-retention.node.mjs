@@ -34,9 +34,9 @@ for (const route of ['resolve', 'alias', 'dependency', 'collection', 'startup'])
       return value;
     }));
     const token = DiBag.token(Symbol('arrays')).forCollectionOf();
-    const builder = route === 'collection' ? DiBag.createBuilder().contribute(token, provider)
-      : DiBag.createBuilder().register({ value: provider, reader: raw(deps => () => deps.value.length) }).alias('copy', 'value');
-    const bag = route === 'startup' ? await builder.build().ensureServicesReady(['copy']) : builder.build();
+    const builder = route === 'collection' ? DiBag.createBuilder().withCollectionContribution({ collectionToken: token, provider: provider })
+      : DiBag.createBuilder().withServices({ value: provider, reader: raw(deps => () => deps.value.length) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' });
+    const bag = route === 'startup' ? await builder.buildContainer().ensureServicesReady(['copy']) : builder.buildContainer();
     try {
       if (route !== 'startup') for (let index = 0; index < 16; index++) {
         if (route === 'collection') assert.equal(bag.resolveCollection(token)[0].length, 256);
@@ -72,7 +72,7 @@ for (const mapped of [false, true]) {
       refs.push(new WeakRef(output));
       return output;
     } }) : source;
-    const bag = DiBag.createBuilder().register({ value: transient(provider) }).build();
+    const bag = DiBag.createBuilder().withServices({ value: transient(provider) }).buildContainer();
     try {
       await (async () => {
         for (let index = 0; index < 16; index++) {
@@ -98,7 +98,7 @@ test('borrowed mapped payloads are collectible while independent inspection fram
     return { value };
   });
   const annotated = DiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: () => ({ metadata: frame }) } });
-  const bag = DiBag.createBuilder().register({ value: transient(DiBag.transformService(annotated, { mode: 'direct', transform: source => source.value, ...{ acquisitionMode: 'raw' } })) }).build();
+  const bag = DiBag.createBuilder().withServices({ value: transient(DiBag.transformService(annotated, { mode: 'direct', transform: source => source.value, ...{ acquisitionMode: 'raw' } })) }).buildContainer();
   try {
     for (let index = 0; index < 16; index++) assert.equal(bag.resolve('value')[0], 11);
     const before = bag.inspect('value');
@@ -127,7 +127,7 @@ test('transient owned source and mapped identities survive GC until reverse stag
     refs[1] = new WeakRef(result);
     return result;
   } }), 1);
-  const bag = DiBag.createBuilder().register({ value: transient(mapped) }).build();
+  const bag = DiBag.createBuilder().withServices({ value: transient(mapped) }).buildContainer();
   await bag.resolve('value');
   await setImmediate();
   globalThis.gc();
@@ -144,10 +144,10 @@ test('closing releases compacted frame payloads even when a dependency proxy is 
     refs.push(new WeakRef(frame));
     return { metadata: frame };
   }
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     other: raw(() => 42),
     value: transient(DiBag.withMetadata(raw(deps => () => deps.other), { dynamic: { mode: 'direct', describe: describe } })),
-  }).build();
+  }).buildContainer();
   const read = bag.resolve('value');
   assert.equal(read(), 42);
   await setImmediate();
@@ -168,9 +168,9 @@ test('a retained acquisition context releases the frame payloads of its own atte
   // Reading factoryCtx.signal later is the documented use, so a factory that keeps
   // the whole context must not keep its attempt's payloads alive.
   const contextual = create => DiBag.fromFactory(create, { context: 'acquisition' });
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     value: transient(DiBag.withMetadata(contextual((_deps, factoryCtx) => () => factoryCtx.signal.aborted), { dynamic: { mode: 'direct', describe: describe } })),
-  }).build();
+  }).buildContainer();
   const read = bag.resolve('value');
   assert.equal(read(), false);
   await setImmediate();
@@ -197,14 +197,14 @@ test('a ready borrowed projection drops its payload while pending source ownersh
     assert.equal(value.root, 42);
     disposed.push('source');
   });
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     root: DiBag.withLifetime(DiBag.withDisposal(raw(() => 42), () => { disposed.push('root'); }), 'root'),
     value: transient(DiBag.transformService(source, { mode: 'direct', transform: () => {
       const value = Array(256).fill(3);
       outputs.push(new WeakRef(value));
       return value;
     }, ...{ acquisitionMode: 'raw' } })),
-  }).build();
+  }).buildContainer();
   assert.equal(bag.resolve('value')[0], 3);
   assert.equal(bag.inspect('value').acquisitions[0].state, 'ready');
   try { await collected(outputs); } finally {
@@ -218,7 +218,7 @@ test('a ready borrowed projection drops its payload while pending source ownersh
 test('pushed disposer closures live until close and are collectible afterwards even with the context retained', async () => {
   const refs = [];
   let kept;
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     value: DiBag.fromFactory((_deps, factoryCtx) => {
       kept = factoryCtx;
       const payload = Array(256).fill(1);
@@ -226,7 +226,7 @@ test('pushed disposer closures live until close and are collectible afterwards e
       factoryCtx.pushDisposer(() => payload.length);
       return 1;
     }, { context: 'acquisition' }),
-  }).build();
+  }).buildContainer();
   bag.resolve('value');
   await setImmediate();
   globalThis.gc();
@@ -243,13 +243,13 @@ function graphBag(refs, keep) {
   const graphPayload = Array(4096).fill('graph');
   const depPayload = Array(4096).fill('dep');
   refs.push(new WeakRef(graphPayload), new WeakRef(depPayload));
-  return DiBag.createBuilder().register({
+  return DiBag.createBuilder().withServices({
     dep: () => depPayload,
     value: DiBag.fromFactory((deps, factoryCtx) => {
       keep(factoryCtx);
       return deps.dep.length + graphPayload.length;
     }, { context: 'acquisition' }),
-  }).build();
+  }).buildContainer();
 }
 
 for (const [label, pick] of [['context', factoryCtx => factoryCtx], ['signal', factoryCtx => factoryCtx.signal]]) {
@@ -278,7 +278,7 @@ test('a signal kept past a timed-out startup does not keep the runtime alive onc
   const slowBuilder = () => {
     const graphPayload = Array(4096).fill('graph');
     refs.push(new WeakRef(graphPayload));
-    return DiBag.createBuilder().register({
+    return DiBag.createBuilder().withServices({
       value: DiBag.fromFactory(async (_deps, factoryCtx) => {
         kept = factoryCtx.signal;
         await gate;
@@ -286,7 +286,7 @@ test('a signal kept past a timed-out startup does not keep the runtime alive onc
       }, { context: 'acquisition' }),
     });
   };
-  let failure = await slowBuilder().build().ensureServicesReady(['value'], { totalTimeoutMs: 1 }).then(() => undefined, error => error);
+  let failure = await slowBuilder().buildContainer().ensureServicesReady(['value'], { totalTimeoutMs: 1 }).then(() => undefined, error => error);
   assert.equal(failure.name, 'DiBagServiceReadinessCancelledError');
   open();
   await failure.disposalPromise.catch(() => {});

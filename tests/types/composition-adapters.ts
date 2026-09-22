@@ -11,9 +11,9 @@ export const source = DiBag.fromClass([port], Client);
 export const fn = DiBag.fromFunction([port], value => ({ port: value, literal: true as const }));
 export const native = DiBag.fromFunction([], () => Promise.resolve({ id: 1 }), { acquisitionMode: 'nativePromise' });
 export const raw = DiBag.fromFunction([], () => Promise.resolve({ id: 1 }), { acquisitionMode: 'raw' });
-export const feature = DiBag.createBuilder().register({ source, fn }).buildModule(['source', 'fn']);
-export const builder = DiBag.createBuilder().installModule(feature);
-export const bag = builder.register(port, () => 8080).build();
+export const feature = DiBag.createBuilder().withServices({ source, fn }).buildModule({ exportedServiceKeys: ['source', 'fn'] });
+export const builder = DiBag.createBuilder().withInstalledModules([feature]);
+export const bag = builder.withTokenService(port, () => 8080).buildContainer();
 const value = bag.resolve('source');
 export type Exact = [Assert<Equal<typeof value, Client>>, Assert<Equal<ProviderOutput<typeof source>, Client>>,
   Assert<Equal<ProviderAcquiredValue<typeof source>, Client>>, Assert<Equal<ProviderRequiredTokens<typeof source>, typeof port>>,

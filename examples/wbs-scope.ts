@@ -130,7 +130,7 @@ export function createRoot(
   now: () => number = Date.now,
 ) {
   return DiBag.createBuilder()
-    .register({
+    .withServices({
       source: () => source, // Borrowed from startup; no disposal declaration.
       clock: () => ({ now }),
       replayBuffer: DiBag.withDisposal(
@@ -156,7 +156,7 @@ export function createRoot(
         },
       }),
     })
-    .build();
+    .buildContainer();
 }
 
 export function createBatch(

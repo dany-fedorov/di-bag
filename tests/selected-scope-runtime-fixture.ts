@@ -7,16 +7,16 @@ export const selectedScopeRuntimeAssertions = `
     const selectedToken = DiBag.token(selectedKey).of();
     let settleSelected;
     const selectedPromise = new Promise(resolve => { settleSelected = resolve; });
-    const selectedFeature = DiBag.createBuilder().register({
+    const selectedFeature = DiBag.createBuilder().withServices({
       privateResource: DiBag.withDisposal(({ config }) => ({ id: config.id }), () => { selectedLog.push('private'); }),
       publicResource: DiBag.withDisposal(({ privateResource }) => ({ privateResource }), () => { selectedLog.push('export'); }),
-    }).buildModule(['publicResource']).renameExport('publicResource', 'shared');
-    const selectedRoot = DiBag.createBuilder().installModule(selectedFeature).register(selectedToken, () => ({ id: 'parent' })).register({
+    }).buildModule({ exportedServiceKeys: ['publicResource'] }).renameExport('publicResource', 'shared');
+    const selectedRoot = DiBag.createBuilder().withInstalledModules([selectedFeature]).withTokenService(selectedToken, () => ({ id: 'parent' })).withServices({
       config: () => ({ id: 'parent' }),
       pending: DiBag.withDisposal(() => selectedPromise, () => { selectedLog.push('pending'); }),
       raw: DiBag.fromFactory(() => selectedPromise, { acquisitionMode: 'raw' }),
       rooted: DiBag.withLifetime(DiBag.withDisposal(({ config }) => ({ id: config.id }), () => { selectedLog.push('root'); }), 'root', { allowScopedDependencies: true }),
-    }).build();
+    }).buildContainer();
     const selectedChild = selectedRoot.createScope(['config', selectedToken], {
       config: () => ({ id: 'child' }), [selectedKey]: () => ({ id: 'child' }),
     }, { share: ['shared', 'pending', 'raw'] });

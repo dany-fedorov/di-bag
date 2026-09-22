@@ -11,8 +11,8 @@ const connection = DiBag.token(connectionKey).of<{
 let nextConnectionId = 0;
 
 export const feature = DiBag.createBuilder()
-  .register(clock, () => ({ now: () => 42 }))
-  .register(
+  .withTokenService(clock, () => ({ now: () => 42 }))
+  .withTokenService(
     connection,
     DiBag.withDisposal(
       () => ({
@@ -24,7 +24,7 @@ export const feature = DiBag.createBuilder()
       (value) => value.close(),
     ),
   )
-  .register({
+  .withServices({
     service: DiBag.fromFunction(
       [clock, connection],
       (selectedClock, selectedConnection) => ({
@@ -34,10 +34,10 @@ export const feature = DiBag.createBuilder()
       }),
     ),
   })
-  .buildModule([clock, 'service']);
+  .buildModule({ exportedServiceKeys: [clock, 'service'] });
 
 async function main() {
-  const root = DiBag.createBuilder().installModule(feature).build();
+  const root = DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
   const child = root.fork([clock], { [clockKey]: () => ({ now: () => 7 }) });
   try {
     console.log('root:', root.resolve('service').read());

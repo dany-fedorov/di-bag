@@ -4,7 +4,7 @@ import { DiBag } from '../src';
 async function main() {
   const released: string[] = [];
   const root = await DiBag.createBuilder()
-    .register({
+    .withServices({
       config: DiBag.withLifetime(() => ({ region: 'eu' }), 'root'),
       client: DiBag.withLifetime(
         DiBag.withDisposal(
@@ -22,7 +22,7 @@ async function main() {
         },
       ),
     })
-    .build()
+    .buildContainer()
     .ensureServicesReady(['client']);
 
   const child = root.createScope(

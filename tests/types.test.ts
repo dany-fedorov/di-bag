@@ -175,6 +175,16 @@ test('consolidated API preserves exact mode-dependent contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('the 0.5.0 builder shapes infer the same contracts as the 0.4.0 forms', () => {
+  expect(diagnostics(resolve(__dirname, 'types/builder-renames.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('0.5.0 builder shapes retain declaration contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/builder-renames-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('native acquisition metadata preserves exact outputs, requirements and frames', () => {
   expect(diagnostics(resolve(__dirname, 'types/acquisition-metadata.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);

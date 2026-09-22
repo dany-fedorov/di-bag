@@ -33,11 +33,11 @@ declare const opaque: OpaqueRegistration;
 DiBag.withMetadata(opaque, { dynamic: { mode: 'direct', describe: (value: number) => ({ value }) } });
 // diagnostic: factory dependencies must be finite
 // diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ value: DiBag.withMetadata(opaque, { dynamic: { mode: 'direct', describe: value => ({ value }) } }) }).build();
+DiBag.createBuilder().withServices({ value: DiBag.withMetadata(opaque, { dynamic: { mode: 'direct', describe: value => ({ value }) } }) }).buildContainer();
 const annotated = DiBag.withMetadata(({ dep }: { dep: number }) => dep, { dynamic: { mode: 'direct', describe: value => ({ value }) } });
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ annotated }).build();
+DiBag.createBuilder().withServices({ annotated }).buildContainer();
 // diagnostic: consumer dependency
-DiBag.createBuilder().register({ annotated, dep: () => 'wrong' });
+DiBag.createBuilder().withServices({ annotated, dep: () => 'wrong' });
 // diagnostic: read-only
-DiBag.createBuilder().register({ value: DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: value => ({ value }) } }) }).build().inspect('value').acquisitions[0]!.acquisitionMetadata[0] = { present: false };
+DiBag.createBuilder().withServices({ value: DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: value => ({ value }) } }) }).buildContainer().inspect('value').acquisitions[0]!.acquisitionMetadata[0] = { present: false };

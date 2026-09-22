@@ -1,12 +1,12 @@
 import { DiBag } from '../../src';
 import type { Assert, Equal } from './assert';
 
-const root = DiBag.createBuilder().register({
+const root = DiBag.createBuilder().withServices({
     clock: () => ({ now: () => 42 }),
     service: ({ clock }: { clock: { now(): number } }) => ({
       stamp: () => clock.now(),
     }),
-  }).build();
+  }).buildContainer();
 
 const scoped = root.fork(['clock', 'service'], {
   clock: () => ({

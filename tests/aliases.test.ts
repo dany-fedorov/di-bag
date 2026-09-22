@@ -4,12 +4,12 @@ import { DiBag as Portable } from '../src';
 
 test('named aliases preserve exact canonical object and immutable history', async () => {
   let calls = 0;
-  const initial = DiBag.createBuilder().register({ value: () => ({ id: ++calls }) });
-  const bag = initial.alias('copy', 'value').alias('chain', 'copy').build();
+  const initial = DiBag.createBuilder().withServices({ value: () => ({ id: ++calls }) });
+  const bag = initial.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServiceAlias({ aliasKey: 'chain', targetServiceKey: 'copy' }).buildContainer();
   expect(bag.resolve('copy')).toBe(bag.resolve('value'));
   expect(bag.resolve('chain')).toBe(bag.resolve('value'));
   expect(bag.resolve('copy')).toEqual({ id: 1 });
-  expect(() => initial.build().resolve('copy' as never)).toThrow('is not registered');
+  expect(() => initial.buildContainer().resolve('copy' as never)).toThrow('is not registered');
   await bag.close();
 });
 
@@ -18,7 +18,7 @@ test('all token and name combinations and forward token requirements route ident
   const a = DiBag.token(aKey).of<{ id: number }>();
   const b = DiBag.token(bKey).of<{ id: number }>();
   const c = DiBag.token(cKey).of<{ id: number }>();
-  const bag = DiBag.createBuilder().alias('forward', a).alias(b, a).register({ value: () => ({ id: 1, extra: true }) }).alias(c, 'value').register(a, () => ({ id: 2 })).build();
+  const bag = DiBag.createBuilder().withServiceAlias({ aliasKey: 'forward', targetServiceKey: a }).withServiceAlias({ aliasKey: b, targetServiceKey: a }).withServices({ value: () => ({ id: 1, extra: true }) }).withServiceAlias({ aliasKey: c, targetServiceKey: 'value' }).withTokenService(a, () => ({ id: 2 })).buildContainer();
   expect(bag.resolve('forward')).toBe(bag.resolve(a));
   expect(bag.resolve(b)).toBe(bag.resolve(a));
   expect(bag.resolve(c)).toBe(bag.resolve('value'));
@@ -27,8 +27,8 @@ test('all token and name combinations and forward token requirements route ident
 
 test('aliases preserve explicit raw and native promises without classification', async () => {
   const pending = Promise.resolve({ id: 1 });
-  const raw = Portable.createBuilder().register({ value: Portable.fromFactory(() => pending, { acquisitionMode: 'raw' }) }).alias('copy', 'value').build();
-  const native = Portable.createBuilder().register({ value: Portable.fromFactory(() => pending, { acquisitionMode: 'nativePromise' }) }).alias('copy', 'value').build();
+  const raw = Portable.createBuilder().withServices({ value: Portable.fromFactory(() => pending, { acquisitionMode: 'raw' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
+  const native = Portable.createBuilder().withServices({ value: Portable.fromFactory(() => pending, { acquisitionMode: 'nativePromise' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   expect(raw.resolve('copy')).toBe(pending);
   expect(native.resolve('copy')).toBe(pending);
   await raw.close(); await native.close();
@@ -36,11 +36,11 @@ test('aliases preserve explicit raw and native promises without classification',
 
 test('transient aliases add no ownership and record actual target disposal edges', async () => {
   let calls = 0; const disposed: string[] = [];
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     value: DiBag.withLifetime(DiBag.withDisposal(() => ({ id: ++calls }), v => { disposed.push(`value:${v.id}`); }), 'transient'),
-  }).alias('copy', 'value').register({
+  }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServices({
     consumer: DiBag.withDisposal(({ copy }: { copy: { id: number } }) => ({ copy }), () => { disposed.push('consumer'); }),
-  }).build();
+  }).buildContainer();
   expect(bag.resolve('consumer').copy.id).toBe(1);
   expect(bag.resolve('copy').id).toBe(2);
   expect(bag.resolve('value').id).toBe(3);
@@ -52,8 +52,8 @@ test('transient aliases add no ownership and record actual target disposal edges
 });
 
 test('module aliases retain private targets and export renames under host collisions', async () => {
-  const module = DiBag.createBuilder().register({ value: () => ({ id: 'private' }) }).alias('copy', 'value').buildModule(['copy']).renameExport('copy', 'public');
-  const bag = DiBag.createBuilder().register({ value: () => ({ id: 'host' }) }).installModule(module).build();
+  const module = DiBag.createBuilder().withServices({ value: () => ({ id: 'private' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['copy'] }).renameExport('copy', 'public');
+  const bag = DiBag.createBuilder().withServices({ value: () => ({ id: 'host' }) }).withInstalledModules([module]).buildContainer();
   expect(bag.resolve('public')).toEqual({ id: 'private' });
   expect(bag.resolve('value')).toEqual({ id: 'host' });
   const child = bag.createScope(['value'], { value: () => ({ id: 'child' }) });
@@ -63,7 +63,7 @@ test('module aliases retain private targets and export renames under host collis
 });
 
 test('selected sharing routes alias through parent graph while independent overrides follow child graph', async () => {
-  const bag = DiBag.createBuilder().register({ value: () => ({ id: 1 }) }).alias('copy', 'value').build();
+  const bag = DiBag.createBuilder().withServices({ value: () => ({ id: 1 }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   const child = bag.createScope(['value'], { value: () => ({ id: 2 }) });
   expect(child.resolve('copy')).toBe(child.resolve('value'));
   const shared = bag.createScope(['value'], { value: () => ({ id: 3 }) }, { share: ['copy'] });
@@ -80,20 +80,20 @@ test('selected sharing routes alias through parent graph while independent overr
 
 test('runtime rejects transient sharing and root captures through aliases before invoking target', async () => {
   let calls = 0;
-  const bag = DiBag.createBuilder().register({ value: DiBag.withLifetime(() => ++calls, 'transient') }).alias('copy', 'value').build();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => ++calls, 'transient') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   expect(() => Reflect.apply(bag.createScope, bag, [{ share: ['copy'] }])).toThrow('cannot share transient');
-  const builder = DiBag.createBuilder().register({ value: () => ++calls }).alias('copy', 'value').register({
+  const builder = DiBag.createBuilder().withServices({ value: () => ++calls }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServices({
     root: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root'),
   });
-  const invalid = Reflect.apply(builder.build, builder, []);
+  const invalid = Reflect.apply(builder.buildContainer, builder, []);
   expect(() => invalid.resolve('root')).toThrow('root lifetime cannot capture scoped');
   expect(calls).toBe(0);
   await invalid.close(); await bag.close();
 });
 
 test('alias inspection reports direct target and canonical attempts without stale target metadata', async () => {
-  const builder = DiBag.createBuilder().register({ value: DiBag.withMetadata(() => 1, { static: { old: true } }) }).alias('copy', 'value').alias('chain', 'copy');
-  const bag = builder.replace('value', () => 2).build();
+  const builder = DiBag.createBuilder().withServices({ value: DiBag.withMetadata(() => 1, { static: { old: true } }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServiceAlias({ aliasKey: 'chain', targetServiceKey: 'copy' });
+  const bag = builder.withReplacedService('value', () => 2).buildContainer();
   expect(bag.inspect('chain').aliasTarget).toEqual({ bindingId: bag.inspect('copy').bindingId, label: 'copy' });
   expect(bag.inspect('copy').registrationMetadata).toEqual({});
   expect(Object.isFrozen(bag.inspect('chain').aliasTarget)).toBe(true);
@@ -105,33 +105,33 @@ test('alias inspection reports direct target and canonical attempts without stal
 test('alias cycles retain a useful lexical path', async () => {
   const aKey = Symbol('a'); const bKey = Symbol('b');
   const a = DiBag.token(aKey).of<number>(); const b = DiBag.token(bKey).of<number>();
-  const bag = DiBag.createBuilder().alias(a, b).alias(b, a).build();
+  const bag = DiBag.createBuilder().withServiceAlias({ aliasKey: a, targetServiceKey: b }).withServiceAlias({ aliasKey: b, targetServiceKey: a }).buildContainer();
   expect(() => bag.resolve(a)).toThrow(/cycle:.*Symbol\(a\).*Symbol\(b\).*Symbol\(a\)/);
   await bag.close();
 });
 
 test('runtime rejects invalid alias selections without changing the builder', () => {
-  const builder = DiBag.createBuilder().register({ value: () => 1 });
-  const alias = (...args: unknown[]) => Reflect.apply(builder.alias, builder, args);
-  expect(() => alias('value', 'value')).toThrow('duplicate registration');
-  expect(() => alias('copy', 'missing')).toThrow('existing');
-  expect(() => alias(Symbol('fake'), 'value')).toThrow('invalid token');
-  expect(() => alias('copy', { key: Symbol('fake') })).toThrow('invalid token');
-  expect(builder.alias('copy', 'value').build().resolve('copy')).toBe(1);
+  const builder = DiBag.createBuilder().withServices({ value: () => 1 });
+  const alias = (...args: unknown[]) => Reflect.apply(builder.withServiceAlias, builder, args);
+  expect(() => alias({ aliasKey: 'value', targetServiceKey: 'value' })).toThrow('duplicate registration');
+  expect(() => alias({ aliasKey: 'copy', targetServiceKey: 'missing' })).toThrow('existing');
+  expect(() => alias({ aliasKey: Symbol('fake'), targetServiceKey: 'value' })).toThrow('invalid token');
+  expect(() => alias({ aliasKey: 'copy', targetServiceKey: { key: Symbol('fake') } })).toThrow('invalid token');
+  expect(builder.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer().resolve('copy')).toBe(1);
 });
 
 test('startup through an alias waits for final readiness and retries failed canonical acquisitions', async () => {
   let ready!: () => void;
   const pending = new Promise<void>(resolve => { ready = resolve; });
   let started = false;
-  const start = DiBag.createBuilder().register({ value: async () => { await pending; return 1; } }).alias('copy', 'value').build().ensureServicesReady(['copy']).then(bag => { started = true; return bag; });
+  const start = DiBag.createBuilder().withServices({ value: async () => { await pending; return 1; } }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer().ensureServicesReady(['copy']).then(bag => { started = true; return bag; });
   await Promise.resolve(); expect(started).toBe(false);
   ready(); const bag = await start;
   expect(await bag.resolve('copy')).toBe(1);
   expect(bag.resolve('copy')).toBe(bag.resolve('value'));
   await bag.close();
   let attempts = 0;
-  const retry = DiBag.createBuilder().register({ value: async () => { if (++attempts === 1) throw new Error('retry'); return 2; } }).alias('copy', 'value').build();
+  const retry = DiBag.createBuilder().withServices({ value: async () => { if (++attempts === 1) throw new Error('retry'); return 2; } }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   await expect(retry.resolve('copy')).rejects.toThrow('retry');
   expect(await retry.resolve('value')).toBe(2);
   expect(retry.resolve('copy')).toBe(retry.resolve('value'));
@@ -139,7 +139,7 @@ test('startup through an alias waits for final readiness and retries failed cano
 });
 
 test('shared alias inspection identifies its parent target despite a child override', async () => {
-  const bag = DiBag.createBuilder().register({ value: () => ({ id: 1 }) }).alias('copy', 'value').build();
+  const bag = DiBag.createBuilder().withServices({ value: () => ({ id: 1 }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   const child = bag.createScope(['value'], { value: () => ({ id: 2 }) }, { share: ['copy'] });
   child.resolve('copy');
   expect(child.inspect('copy').aliasTarget?.bindingId).toBe(bag.inspect('value').bindingId);
@@ -149,7 +149,7 @@ test('shared alias inspection identifies its parent target despite a child overr
 });
 
 test('aliases of root targets retain the root graph under child overrides', async () => {
-  const bag = DiBag.createBuilder().register({ value: DiBag.withLifetime(() => ({ id: 1 }), 'root') }).alias('copy', 'value').build();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => ({ id: 1 }), 'root') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   const child = bag.createScope();
   expect(child.resolve('copy')).toBe(bag.resolve('value'));
   const override = bag.createScope(['value'], { value: () => ({ id: 2 }) });
@@ -163,9 +163,9 @@ test('in-flight sources may read aliases while closing and retained reads close 
   const gate = new Promise<void>(resolve => { resume = resolve; });
   let retained!: () => number;
   const events: string[] = [];
-  const bag = DiBag.createBuilder().register({ value: DiBag.withDisposal(() => 7, () => { events.push('value'); }) }).alias('copy', 'value').register({
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(() => 7, () => { events.push('value'); }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServices({
     consumer: DiBag.withDisposal(async (deps: { copy: number }) => { retained = () => deps.copy; await gate; return deps.copy; }, () => { events.push('consumer'); }),
-  }).build();
+  }).buildContainer();
   const value = bag.resolve('consumer');
   const closing = bag.close(); resume();
   expect(await value).toBe(7); await closing;
@@ -175,19 +175,19 @@ test('in-flight sources may read aliases while closing and retained reads close 
 
 test('module token aliases preserve private identity and external host requirements', async () => {
   const key = Symbol('private'); const token = DiBag.token(key).of<{ id: number }>();
-  const privateModule = DiBag.createBuilder().register(token, () => ({ id: 1 })).alias('copy', token).buildModule(['copy']);
-  const bag = DiBag.createBuilder().register(token, () => ({ id: 2 })).installModule(privateModule).build();
+  const privateModule = DiBag.createBuilder().withTokenService(token, () => ({ id: 1 })).withServiceAlias({ aliasKey: 'copy', targetServiceKey: token }).buildModule({ exportedServiceKeys: ['copy'] });
+  const bag = DiBag.createBuilder().withTokenService(token, () => ({ id: 2 })).withInstalledModules([privateModule]).buildContainer();
   expect(bag.resolve('copy').id).toBe(1);
   expect(bag.resolve(token).id).toBe(2);
-  const externalModule = DiBag.createBuilder().alias('external', token).buildModule(['external']);
-  const external = DiBag.createBuilder().installModule(externalModule).register(token, () => ({ id: 3 })).build();
+  const externalModule = DiBag.createBuilder().withServiceAlias({ aliasKey: 'external', targetServiceKey: token }).buildModule({ exportedServiceKeys: ['external'] });
+  const external = DiBag.createBuilder().withInstalledModules([externalModule]).withTokenService(token, () => ({ id: 3 })).buildContainer();
   expect(external.resolve('external')).toBe(external.resolve(token));
   await bag.close(); await external.close();
 });
 
 test('exported target replacements and renames remain visible through module aliases', async () => {
-  const module = DiBag.createBuilder().register({ value: () => ({ id: 1 }) }).alias('copy', 'value').buildModule(['value', 'copy']).renameExport('value', 'renamed');
-  const bag = DiBag.createBuilder().installModule(module).replace('renamed', () => ({ id: 2 })).build();
+  const module = DiBag.createBuilder().withServices({ value: () => ({ id: 1 }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['value', 'copy'] }).renameExport('value', 'renamed');
+  const bag = DiBag.createBuilder().withInstalledModules([module]).withReplacedService('renamed', () => ({ id: 2 })).buildContainer();
   expect(bag.resolve('copy')).toBe(bag.resolve('renamed'));
   expect(bag.resolve('copy').id).toBe(2);
   const child = bag.createScope(['renamed'], { renamed: () => ({ id: 3 }) });
@@ -197,7 +197,7 @@ test('exported target replacements and renames remain visible through module ali
 });
 
 test('re-sharing aliases keeps parent policy while fresh grandchildren and forks use local targets', async () => {
-  const base = DiBag.createBuilder().register({ value: DiBag.withLifetime(() => ({ id: 1 }), 'root') }).alias('copy', 'value').build();
+  const base = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => ({ id: 1 }), 'root') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   const shared = base.createScope(['value'], { value: DiBag.withLifetime(() => ({ id: 2 }), 'transient') }, { share: ['copy'] });
   const borrowed = shared.createScope({ share: ['copy'] });
   expect(borrowed.resolve('copy')).toBe(base.resolve('value'));
@@ -214,8 +214,8 @@ test('re-sharing aliases keeps parent policy while fresh grandchildren and forks
 test('strict roots use the effective shared alias policy in both lifetime directions', async () => {
   for (const rootTarget of [false, true]) {
     const source = () => ({ id: 1 });
-    const initial = DiBag.createBuilder().register({ value: rootTarget ? DiBag.withLifetime(source, 'root') : source,
-      consumer: ({ copy }: { copy: { id: number } }) => copy }).alias('copy', 'value').build();
+    const initial = DiBag.createBuilder().withServices({ value: rootTarget ? DiBag.withLifetime(source, 'root') : source,
+      consumer: ({ copy }: { copy: { id: number } }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
     const override = () => ({ id: 2 });
     const child = initial.createScope(['value'], { value: rootTarget ? override : DiBag.withLifetime(override, 'root') }, { share: ['copy'] });
     const consumer = DiBag.withLifetime(({ copy }: { copy: { id: number } }) => copy, 'root');
@@ -238,9 +238,9 @@ test('strict roots use the effective shared alias policy in both lifetime direct
 test('raw aliases do not inspect then getters or add cancellation contexts', async () => {
   let thenReads = 0; let contexts = 0; let signal!: AbortSignal;
   const value = { get then() { ++thenReads; throw new Error('do not assimilate'); } };
-  const bag = Portable.createBuilder().register({ value: Portable.fromFactory((_deps: {}, context) => {
+  const bag = Portable.createBuilder().withServices({ value: Portable.fromFactory((_deps: {}, context) => {
     contexts++; signal = context.signal; return value;
-  }, { context: 'acquisition', ...{ acquisitionMode: 'raw' } }) }).alias('copy', 'value').build();
+  }, { context: 'acquisition', ...{ acquisitionMode: 'raw' } }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   expect(bag.resolve('copy')).toBe(value);
   expect(bag.resolve('value')).toBe(value);
   expect(contexts).toBe(1); expect(thenReads).toBe(0);

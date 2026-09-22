@@ -1,5 +1,5 @@
 import { DiBag } from '../../../src';
-const module = DiBag.createBuilder().register({ a: () => 1, b: () => 2 }).buildModule(['a', 'b']);
+const module = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildModule({ exportedServiceKeys: ['a', 'b'] });
 // diagnostic: renameExport requires
 module.renameExport('missing', 'c');
 // diagnostic: renameExport requires
@@ -13,15 +13,15 @@ module.renameExport(union, 'c');
 declare const template: `prefix:${string}`;
 // diagnostic: renameExport requires
 module.renameExport('a', template);
-const constrained = DiBag.createBuilder().register({
+const constrained = DiBag.createBuilder().withServices({
   value: () => ({ read() { return 1; }, extra() { return true; } }),
   hidden: ({ value }: { value: { extra(): boolean } }) => value.extra(),
-}).buildModule(['value']).renameExport('value', 'renamed');
+}).buildModule({ exportedServiceKeys: ['value'] }).renameExport('value', 'renamed');
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().installModule(constrained).replace('renamed', () => ({ read() { return 2; } }));
-const collision = DiBag.createBuilder().register({
+DiBag.createBuilder().withInstalledModules([constrained]).withReplacedService('renamed', () => ({ read() { return 2; } }));
+const collision = DiBag.createBuilder().withServices({
   value: () => 1,
   hidden: ({ value, external }: { value: number; external: string }) => [value, external],
-}).buildModule(['value']).renameExport('value', 'external');
+}).buildModule({ exportedServiceKeys: ['value'] }).renameExport('value', 'external');
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().installModule(collision);
+DiBag.createBuilder().withInstalledModules([collision]);

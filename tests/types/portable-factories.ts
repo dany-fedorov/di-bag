@@ -20,8 +20,8 @@ export const optionalObject = DiBag.fromSyncFactory((): { id: number } | undefin
 class ServicePromise<T> extends Promise<T> {}
 export const subclass = DiBag.fromAsyncFactory(() => ServicePromise.resolve(1 as const));
 export const projected = DiBag.transformService(config, { mode: 'direct', transform: value => value.url, acquisitionMode: 'raw' });
-export const feature = DiBag.createBuilder().register({ config, db }).buildModule(['db'], { label: 'storage' });
-export const bag = DiBag.createBuilder().installModule(feature).register({ config, contextualSync, contextualAsync, projected }).build();
+export const feature = DiBag.createBuilder().withServices({ config, db }).buildModule({ exportedServiceKeys: ['db'], moduleLabel: 'storage' });
+export const bag = DiBag.createBuilder().withInstalledModules([feature]).withServices({ config, contextualSync, contextualAsync, projected }).buildContainer();
 export const resolved: Promise<Db> = bag.resolve('db');
 export type Checks = [
   Assert<Equal<ProviderOutput<typeof config>, Config>>,

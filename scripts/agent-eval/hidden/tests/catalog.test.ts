@@ -8,7 +8,10 @@ const products = [
   { sku: 'mug', name: 'Mug', priceCents: 1200 },
 ];
 const data = (list: typeof products) => DiBag.withLifetime(() => ({ products: list }), 'root');
-const base = DiBag.createBuilder().installModule(catalogModule).register({ catalogData: data([]) }).build();
+const base = DiBag.createBuilder()
+  .withInstalledModules([catalogModule])
+  .withServices({ catalogData: data([]) })
+  .buildContainer();
 after(() => base.close());
 
 const shop = (list = products) => base.fork(['catalogData'], { catalogData: data(list) });

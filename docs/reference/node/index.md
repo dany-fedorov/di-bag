@@ -76,9 +76,45 @@ Re-exports [Builder](../index/interfaces/Builder.md)
 
 ***
 
-### BuilderContribute
+### BuilderBuildModule
 
-Re-exports [BuilderContribute](../index/type-aliases/BuilderContribute.md)
+Re-exports [BuilderBuildModule](../index/interfaces/BuilderBuildModule.md)
+
+***
+
+### BuilderWithCollectionContribution
+
+Re-exports [BuilderWithCollectionContribution](../index/type-aliases/BuilderWithCollectionContribution.md)
+
+***
+
+### BuilderWithInstalledModules
+
+Re-exports [BuilderWithInstalledModules](../index/type-aliases/BuilderWithInstalledModules.md)
+
+***
+
+### BuilderWithReplacedService
+
+Re-exports [BuilderWithReplacedService](../index/interfaces/BuilderWithReplacedService.md)
+
+***
+
+### BuilderWithServiceAlias
+
+Re-exports [BuilderWithServiceAlias](../index/type-aliases/BuilderWithServiceAlias.md)
+
+***
+
+### BuilderWithServices
+
+Re-exports [BuilderWithServices](../index/type-aliases/BuilderWithServices.md)
+
+***
+
+### BuilderWithTokenService
+
+Re-exports [BuilderWithTokenService](../index/type-aliases/BuilderWithTokenService.md)
 
 ***
 

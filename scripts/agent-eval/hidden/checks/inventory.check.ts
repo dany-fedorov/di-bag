@@ -5,11 +5,11 @@ import type { Inventory, StockLevels } from '../../src/features/inventory/contra
 import { inventoryModule } from '../../src/features/inventory/module.js';
 
 const builder = DiBag.createBuilder()
-  .installModule(inventoryModule)
-  .register({
+  .withInstalledModules([inventoryModule])
+  .withServices({
     stockLevels: DiBag.withLifetime((): StockLevels => ({}), 'root'),
     catalog: DiBag.withLifetime((): Catalog => ({ find: () => undefined, list: () => [] }), 'root'),
   });
 
-builder.verifyGraph() satisfies void;
-export const exported = (): Inventory => builder.build().resolve('inventory');
+builder.verifyGraphAtCompileTime() satisfies void;
+export const exported = (): Inventory => builder.buildContainer().resolve('inventory');

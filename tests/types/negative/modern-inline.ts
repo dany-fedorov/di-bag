@@ -4,7 +4,7 @@ const providers = {
   service: () => ({ read() { return Number(1); }, extra() { return true; } }),
   promised: async () => 7,
 };
-const root = DiBag.createBuilder().register(providers).build();
+const root = DiBag.createBuilder().withServices(providers).buildContainer();
 
 // diagnostic: not assignable
 root.fork(['service', 'promised'], {

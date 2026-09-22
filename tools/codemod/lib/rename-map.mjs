@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 
 /**
- * @typedef {{ kind: 'bag', names: string[], trailing?: { mode: 'merge' | 'keep' | 'drop', keys?: Record<string, string> } } | { kind: 'array' }} ArgumentShape
+ * @typedef {{ kind: 'bag', names: string[], alreadyBag?: true, trailing?: { mode: 'merge' | 'keep' | 'drop', keys?: Record<string, string> } } | { kind: 'array' }} ArgumentShape
  * @typedef {{ owner: string, from: string, to: string, arity?: number[], arguments?: ArgumentShape, transform?: string, transformNames?: Record<string, string> }} MethodEntry
  * @typedef {{ owner: string, method: string, argument: number, path?: string[], from: string, to: string }} OptionEntry
  * @typedef {{ owner: string, method: string, argument: number, path?: string[], from: string, to: string } | { owner: string, property: string, from: string, to: string }} ValueEntry
@@ -85,8 +85,10 @@ export function validateRenameMap(map, transformIds = []) {
     if (shape !== undefined) {
       if (!isObject(shape)) bad('methods', index, 'arguments must be an object');
       else if (shape.kind === 'bag') {
-        rejectUnknown('methods', index, shape, ['kind', 'names', 'trailing'], 'arguments');
+        rejectUnknown('methods', index, shape, ['kind', 'names', 'alreadyBag', 'trailing'], 'arguments');
         if (!isStrings(shape.names) || shape.names.length === 0) bad('methods', index, 'arguments.names must list at least one property name');
+        if (shape.alreadyBag !== undefined && shape.alreadyBag !== true) bad('methods', index, 'arguments.alreadyBag must be true when present');
+        if (shape.alreadyBag === true && (entry.from !== entry.to || shape.names.length !== 1)) bad('methods', index, 'arguments.alreadyBag requires a same-name method with exactly one argument name');
         if (shape.trailing !== undefined) {
           if (!isObject(shape.trailing)) bad('methods', index, 'arguments.trailing must be an object');
           else {
@@ -97,7 +99,7 @@ export function validateRenameMap(map, transformIds = []) {
         }
       } else if (shape.kind === 'array') rejectUnknown('methods', index, shape, ['kind'], 'arguments');
       else {
-        rejectUnknown('methods', index, shape, ['kind', 'names', 'trailing'], 'arguments');
+        rejectUnknown('methods', index, shape, ['kind', 'names', 'alreadyBag', 'trailing'], 'arguments');
         bad('methods', index, 'arguments.kind must be bag or array');
       }
     }

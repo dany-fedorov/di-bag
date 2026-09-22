@@ -30,9 +30,13 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": ["kind", "names"],
+                "allOf": [
+                  { "if": { "required": ["alreadyBag"] }, "then": { "properties": { "names": { "maxItems": 1 } } } }
+                ],
                 "properties": {
                   "kind": { "const": "bag" },
                   "names": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Bag property for each positional argument, in order." },
+                  "alreadyBag": { "const": true, "description": "The one-argument form may already be this bag. The checker must prove whether it is a bag or a legacy positional value; ambiguous calls are left unchanged for manual migration." },
                   "trailing": {
                     "type": "object",
                     "additionalProperties": false,

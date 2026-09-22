@@ -15,7 +15,7 @@ export type Exact = [
   Assert<Equal<ProviderCollectionTokens<typeof references>, typeof import('./plugins').all>>,
   Assert<Equal<ProviderAcquiredValue<typeof rawOwned>, { handle(value: string): string }>>,
 ];
-DiBag.createBuilder().register(number, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).register({ extracted }).build();
+DiBag.createBuilder().withTokenService(number, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).withServices({ extracted }).buildContainer();
 const privateValue = privateBag.resolve('privatePlugin');
 privateValue.handle('private');
 void selected;

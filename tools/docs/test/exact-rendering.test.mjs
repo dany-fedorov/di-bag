@@ -84,13 +84,33 @@ test('source declarations preserve aliases and property modifiers exactly', () =
   assert.match(runtimeOptions, /readonly isNativePromise: \(this: void, candidate: unknown\) => boolean;/);
   assert.match(readinessError, /readonly disposalError\?: unknown;/);
   assert.doesNotMatch(readinessError, /readonly optional/);
-  const builderContribute = readFileSync(join(output, 'index/type-aliases/BuilderContribute.md'), 'utf8');
-  const builderContributeText = compact(builderContribute);
-  assert.match(builderContribute, /^# Type Alias: BuilderContribute/m);
-  assert.match(builderContributeText, /<TokenHandle extends TokenBase, Provider extends Registration>/);
-  assert.match(builderContributeText, /unknown extends TokenTupleAdmission<readonly \[TokenHandle\]> \? CollectionTokenAdmission<RegistrationsFromEntries<Entries>, TokenHandle> : TokenTupleAdmission<readonly \[TokenHandle\]>/);
-  assert.match(builderContributeText, /NoInfer<TokenHandle> extends CollectionTokenBase \? CollectionBindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>> & CheckedConstraints/);
-  assert.match(builderContributeText, /Builder<Entries, Constraints \| Contribution<TokenHandle, Provider>>;/);
+  const collectionContribution = readFileSync(join(output, 'index/type-aliases/BuilderWithCollectionContribution.md'), 'utf8');
+  const collectionContributionText = compact(collectionContribution);
+  assert.match(collectionContribution, /^# Type Alias: BuilderWithCollectionContribution/m);
+  assert.match(collectionContributionText, /readonly collectionToken:/);
+  assert.match(collectionContributionText, /readonly provider:/);
+  assert.match(collectionContributionText, /Builder<E, C \| Contribution<T, V>>;/);
+
+  const callablePages = [
+    ['type-aliases', 'BuilderWithServices'],
+    ['type-aliases', 'BuilderWithTokenService'],
+    ['type-aliases', 'BuilderWithServiceAlias'],
+    ['interfaces', 'BuilderWithReplacedService'],
+    ['type-aliases', 'BuilderWithInstalledModules'],
+    ['interfaces', 'BuilderBuildModule'],
+  ];
+  for (const [kind, name] of callablePages) {
+    const page = readFileSync(join(output, `index/${kind}/${name}.md`), 'utf8');
+    assert.match(page, new RegExp(`^# (?:Type Alias|Interface): ${name}`, 'm'));
+  }
+  const tokenService = compact(readFileSync(join(output, 'index/type-aliases/BuilderWithTokenService.md'), 'utf8'));
+  assert.match(tokenService, /token: TokenHandle/);
+  assert.match(tokenService, /provider: Provider/);
+  const replacement = compact(readFileSync(join(output, 'index/interfaces/BuilderWithReplacedService.md'), 'utf8'));
+  assert.equal((replacement.match(/serviceKey:/g) ?? []).length, 2);
+  const buildModule = compact(readFileSync(join(output, 'index/interfaces/BuilderBuildModule.md'), 'utf8'));
+  assert.match(buildModule, /options: ModuleOptions/);
+  assert.match(buildModule, /readonly exportedServiceKeys:/);
 });
 
 test('plugin factory is a callable type alias rather than a type-only function export', () => {

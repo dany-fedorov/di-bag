@@ -17,10 +17,10 @@ test('plugin validation retains raw source ownership on success and failure', as
       typeof value === 'object' && value !== null &&
       'run' in value && typeof value.run === 'function',
   });
-  const good = DiBag.createBuilder().register({ plugin: wrap(valid) }).build();
+  const good = DiBag.createBuilder().withServices({ plugin: wrap(valid) }).buildContainer();
   expect(good.resolve('plugin')).toBe(valid);
   expect(good.resolve('plugin').run()).toBe(42);
-  const bad = DiBag.createBuilder().register({ plugin: wrap(invalid) }).build();
+  const bad = DiBag.createBuilder().withServices({ plugin: wrap(invalid) }).buildContainer();
   expect(() => bad.resolve('plugin')).toThrow(DiBagPluginValidationError);
   await Promise.all([good.close(), bad.close()]);
   expect(disposed).toHaveLength(2);
@@ -78,7 +78,7 @@ test('plugin descriptor preflight preserves accessor errors and ignores extra ge
     create: () => 1,
     get ignored() { extraReads++; return 'ignored'; },
   }, { acquisitionMode: 'raw', validate: (value): value is number => typeof value === 'number' });
-  const bag = DiBag.createBuilder().register({ provider }).build();
+  const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
   expect(bag.resolve('provider')).toBe(1);
   expect(extraReads).toBe(0);
   return bag.close();
@@ -103,9 +103,9 @@ test('plugin snapshots dependencies, options and callbacks before later mutation
   const provider = Reflect.apply(DiBag.fromPlugin, undefined, [dependencies, descriptor, options]);
   dependencies[0] = two;
   descriptor.create = () => 2;
-  const builder = DiBag.createBuilder().register(one, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).register(two, DiBag.fromFactory(() => 2, { acquisitionMode: 'raw' }));
-  const added = Reflect.apply(builder.register, builder, [{ provider }]);
-  const bag = Reflect.apply(added.build, added, []) as { resolve(key: string): unknown; close(): Promise<void> };
+  const builder = DiBag.createBuilder().withTokenService(one, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).withTokenService(two, DiBag.fromFactory(() => 2, { acquisitionMode: 'raw' }));
+  const added = Reflect.apply(builder.withServices, builder, [{ provider }]);
+  const bag = Reflect.apply(added.buildContainer, added, []) as { resolve(key: string): unknown; close(): Promise<void> };
   expect(bag.resolve('provider')).toBe(1);
   await bag.close();
 });
@@ -122,7 +122,7 @@ test('plugin routes required optional lazy and all dependency references positio
     acquisitionMode: 'raw',
     validate: (value): value is { value: number; maybe: number | undefined; get(): number; all: readonly number[] } => typeof value === 'object' && value !== null,
   });
-  const bag = DiBag.createBuilder().register(required, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).register(lazy, DiBag.fromFactory(() => 2, { acquisitionMode: 'raw' })).contribute(collected, DiBag.fromFactory(() => 3, { acquisitionMode: 'raw' })).contribute(collected, DiBag.fromFactory(() => 4, { acquisitionMode: 'raw' })).register({ provider }).build();
+  const bag = DiBag.createBuilder().withTokenService(required, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).withTokenService(lazy, DiBag.fromFactory(() => 2, { acquisitionMode: 'raw' })).withCollectionContribution({ collectionToken: collected, provider: DiBag.fromFactory(() => 3, { acquisitionMode: 'raw' }) }).withCollectionContribution({ collectionToken: collected, provider: DiBag.fromFactory(() => 4, { acquisitionMode: 'raw' }) }).withServices({ provider }).buildContainer();
   const value = bag.resolve('provider');
   expect(value.value).toBe(1); expect(value.maybe).toBeUndefined(); expect(value.get()).toBe(2); expect(value.all).toEqual([3, 4]);
   await bag.close();
@@ -136,7 +136,7 @@ test('raw plugin validation does not assimilate values or validator results', as
       acquisitionMode: 'raw',
       validate: (candidate): candidate is typeof value => candidate === value,
     });
-    const bag = DiBag.createBuilder().register({ provider }).build();
+    const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
     expect(bag.resolve('provider')).toBe(value);
     await bag.close();
   }
@@ -145,7 +145,7 @@ test('raw plugin validation does not assimilate values or validator results', as
       acquisitionMode: 'raw',
       validate: (() => result) as unknown as (value: unknown) => value is number,
     });
-    const bag = DiBag.createBuilder().register({ provider }).build();
+    const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
     let failure: unknown;
     try { bag.resolve('provider'); } catch (error) { failure = error; }
     expect(failure).toBeInstanceOf(DiBagPluginValidationError);
@@ -165,7 +165,7 @@ test('native plugin validates fulfilled values, caches final output and releases
     acquisitionMode: 'nativePromise',
     validate: (value): value is { id: number } => typeof value === 'object' && value !== null && 'id' in value,
   });
-  const bag = DiBag.createBuilder().register({ provider }).build();
+  const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
   const first = bag.resolve('provider'); const second = bag.resolve('provider');
   expect(first).toBe(second);
   const closing = bag.close();
@@ -180,7 +180,7 @@ test('native plugin rejection and output validation preserve causes and ownershi
   const rejected = DiBag.fromPlugin([], { apiVersion: 1, create: () => Promise.reject(rejection) }, {
     acquisitionMode: 'nativePromise', validate: (value): value is number => typeof value === 'number',
   });
-  const rejectedBag = DiBag.createBuilder().register({ rejected }).build();
+  const rejectedBag = DiBag.createBuilder().withServices({ rejected }).buildContainer();
   await expect(rejectedBag.resolve('rejected')).rejects.toBe(rejection);
   await rejectedBag.close();
   const disposed: unknown[] = [];
@@ -188,7 +188,7 @@ test('native plugin rejection and output validation preserve causes and ownershi
   const invalidProvider = DiBag.fromPlugin([], {
     apiVersion: 1, create: () => Promise.resolve(invalid), dispose: (value: unknown) => { disposed.push(value); },
   }, { acquisitionMode: 'nativePromise', validate: (value): value is { id: number } => typeof value === 'object' && value !== null && (value as { id?: unknown }).id === 1 });
-  const invalidBag = DiBag.createBuilder().register({ invalidProvider }).build();
+  const invalidBag = DiBag.createBuilder().withServices({ invalidProvider }).buildContainer();
   await expect(invalidBag.resolve('invalidProvider')).rejects.toBeInstanceOf(DiBagPluginValidationError);
   await invalidBag.close();
   expect(disposed).toEqual([invalid]);
@@ -200,7 +200,7 @@ test('native plugins require a genuine Promise source', async () => {
     apiVersion: 1,
     create: () => ({ then() { throw new Error('must not assimilate'); } }),
   }, { acquisitionMode: 'nativePromise', validate: (value): value is number => { validated++; return typeof value === 'number'; } });
-  const bag = DiBag.createBuilder().register({ provider }).build();
+  const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
   await expect(bag.resolve('provider')).rejects.toBeInstanceOf(TypeError);
   expect(validated).toBe(0);
   await bag.close();
@@ -212,9 +212,9 @@ test('startup rollback releases an accepted plugin source once', async () => {
   const plugin = DiBag.fromPlugin([], {
     apiVersion: 1, create: () => 5, dispose: (value: unknown) => { if (typeof value === 'number') disposed.push(value); },
   }, { acquisitionMode: 'raw', validate: (value): value is number => typeof value === 'number' });
-  const builder = DiBag.createBuilder().register({ plugin, failure: DiBag.fromFactory(() => { throw failure; }, { acquisitionMode: 'raw' }) });
+  const builder = DiBag.createBuilder().withServices({ plugin, failure: DiBag.fromFactory(() => { throw failure; }, { acquisitionMode: 'raw' }) });
   let caught: unknown;
-  try { await builder.build().ensureServicesReady(['plugin', 'failure']); } catch (error) { caught = error; }
+  try { await builder.buildContainer().ensureServicesReady(['plugin', 'failure']); } catch (error) { caught = error; }
   expect(caught).toBeInstanceOf(DiBagServiceReadinessError);
   expect((caught as DiBagServiceReadinessError).cause).toBe(failure);
   expect(disposed).toEqual([5]);
@@ -226,7 +226,7 @@ test('plugin callbacks use no receiver and preserve factory and validator failur
     apiVersion: 1,
     create(this: undefined) { expect(this).toBeUndefined(); throw factoryFailure; },
   }, { acquisitionMode: 'raw', validate: (value): value is number => typeof value === 'number' });
-  const factoryBag = DiBag.createBuilder().register({ failingFactory }).build();
+  const factoryBag = DiBag.createBuilder().withServices({ failingFactory }).buildContainer();
   expect(() => factoryBag.resolve('failingFactory')).toThrow(factoryFailure);
   await factoryBag.close();
   const validatorFailure = new Error('validator failure');
@@ -236,7 +236,7 @@ test('plugin callbacks use no receiver and preserve factory and validator failur
     create(this: undefined) { expect(this).toBeUndefined(); return 4; },
     dispose(this: undefined, value: number) { expect(this).toBeUndefined(); disposed.push(value); },
   }, { acquisitionMode: 'raw', validate(this: void, _value): _value is number { expect(this).toBeUndefined(); throw validatorFailure; } });
-  const validatorBag = DiBag.createBuilder().register({ failingValidator }).build();
+  const validatorBag = DiBag.createBuilder().withServices({ failingValidator }).buildContainer();
   expect(() => validatorBag.resolve('failingValidator')).toThrow(validatorFailure);
   await validatorBag.close();
   expect(disposed).toEqual([4]);
@@ -250,8 +250,8 @@ test('plugin composition retains module privacy, aliases, contributions and sele
     apiVersion: 1,
     create: (id: number) => ({ id, sequence: ++created }),
   }, { acquisitionMode: 'raw', validate: (value): value is { id: number; sequence: number } => typeof value === 'object' && value !== null });
-  const feature = DiBag.createBuilder().register({ plugin }).alias('copy', 'plugin').contribute(collection, plugin).buildModule(['plugin', 'copy']);
-  const bag = DiBag.createBuilder().register(dependency, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).installModule(feature).build();
+  const feature = DiBag.createBuilder().withServices({ plugin }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'plugin' }).withCollectionContribution({ collectionToken: collection, provider: plugin }).buildModule({ exportedServiceKeys: ['plugin', 'copy'] });
+  const bag = DiBag.createBuilder().withTokenService(dependency, DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' })).withInstalledModules([feature]).buildContainer();
   const parent = bag.resolve('plugin');
   expect(bag.resolve('copy')).toBe(parent);
   expect(bag.resolveCollection(collection).map(value => value.id)).toEqual([1]);
@@ -263,8 +263,8 @@ test('plugin composition retains module privacy, aliases, contributions and sele
   const privatePlugin = DiBag.fromPlugin([privateDependency], {
     apiVersion: 1, create: (id: number) => ({ id }),
   }, { acquisitionMode: 'raw', validate: (value): value is { id: number } => typeof value === 'object' && value !== null });
-  const privateFeature = DiBag.createBuilder().register(privateDependency, DiBag.fromFactory(() => 9, { acquisitionMode: 'raw' })).register({ privatePlugin }).buildModule(['privatePlugin']);
-  const privateBag = DiBag.createBuilder().installModule(privateFeature).build();
+  const privateFeature = DiBag.createBuilder().withTokenService(privateDependency, DiBag.fromFactory(() => 9, { acquisitionMode: 'raw' })).withServices({ privatePlugin }).buildModule({ exportedServiceKeys: ['privatePlugin'] });
+  const privateBag = DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();
   expect(privateBag.resolve('privatePlugin').id).toBe(9);
   await privateBag.close();
 });
@@ -275,7 +275,7 @@ test('plugin observers retain the canonical acquisition and cleanup events', asy
   const plugin = observed.fromPlugin([], {
     apiVersion: 1, create: () => ({ id: 1 }), dispose: () => {},
   }, { acquisitionMode: 'raw', validate: (value): value is { id: number } => typeof value === 'object' && value !== null });
-  const bag = observed.createBuilder().register({ plugin }).build();
+  const bag = observed.createBuilder().withServices({ plugin }).buildContainer();
   bag.resolve('plugin'); await bag.close();
   expect(events.filter(kind => kind === 'acquisition-started')).toHaveLength(1);
   expect(events.filter(kind => kind === 'acquisition-ready')).toHaveLength(1);
@@ -295,7 +295,7 @@ test('native plugin readiness waits for source validation', async () => {
       return typeof value === 'object' && value !== null && 'id' in value;
     },
   });
-  const starting = DiBag.createBuilder().register({ plugin }).build().ensureServicesReady(['plugin']);
+  const starting = DiBag.createBuilder().withServices({ plugin }).buildContainer().ensureServicesReady(['plugin']);
   let ready = false;
   void starting.then(() => { ready = true; });
   await Promise.resolve();
@@ -316,7 +316,7 @@ test('plugin close waits for accepted disposer cleanup exactly once', async () =
     create: () => 1,
     dispose: async () => { disposed++; await gate.promise; },
   }, { acquisitionMode: 'raw', validate: (value): value is number => typeof value === 'number' });
-  const bag = DiBag.createBuilder().register({ plugin }).build();
+  const bag = DiBag.createBuilder().withServices({ plugin }).buildContainer();
   expect(bag.resolve('plugin')).toBe(1);
   const closing = bag.close();
   let closed = false;
@@ -338,7 +338,7 @@ test('plugin validation errors survive one failed retirement cleanup', async () 
     create: () => 1,
     dispose: () => { disposed++; throw cleanupFailure; },
   }, { acquisitionMode: 'raw', validate: (_value: unknown): _value is number => { throw validationFailure; } });
-  const bag = DiBag.createBuilder().register({ plugin }).build();
+  const bag = DiBag.createBuilder().withServices({ plugin }).buildContainer();
   expect(() => bag.resolve('plugin')).toThrow(validationFailure);
   let closeFailure: unknown;
   try { await bag.close(); } catch (error) { closeFailure = error; }
@@ -353,7 +353,7 @@ test('plugin observer lifecycle events identify its canonical acquisition', asyn
   const plugin = observed.fromPlugin([], {
     apiVersion: 1, create: () => ({ id: 1 }), dispose: () => {},
   }, { acquisitionMode: 'raw', validate: (value): value is { id: number } => typeof value === 'object' && value !== null });
-  const bag = observed.createBuilder().register({ plugin }).build();
+  const bag = observed.createBuilder().withServices({ plugin }).buildContainer();
   bag.resolve('plugin');
   const inspection = bag.inspect('plugin');
   const id = inspection.acquisitions[0]!.acquisitionId;

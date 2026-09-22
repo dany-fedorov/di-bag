@@ -59,7 +59,7 @@ export function validatePortableInspection(inspection: unknown): {
  */
 export function automaticAcquisition(DiBag: PortableDiBag): Promise<'resolved' | string> {
   let bag: any;
-  try { bag = DiBag.createBuilder().register({ answer: async () => 42 }).build(); }
+  try { bag = DiBag.createBuilder().withServices({ answer: async () => 42 }).buildContainer(); }
   catch (error) { return Promise.resolve(String((error as { code?: unknown }).code)); }
   return Promise.resolve(bag.resolve('answer')).then(async (value: unknown) => {
     await bag.close();
@@ -71,7 +71,7 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   const cleanupLog: string[] = [];
   const privateHelper = Object.freeze({ source: 'private-module-helper' });
   const exported = DiBag.token(Symbol('portable-export')).of<typeof privateHelper>();
-  const feature = DiBag.createBuilder().register({ helper: DiBag.fromSyncFactory(() => privateHelper) }).register(exported, DiBag.fromSyncFactory(({ helper }: { helper: typeof privateHelper }) => helper)).buildModule([exported]);
+  const feature = DiBag.createBuilder().withServices({ helper: DiBag.fromSyncFactory(() => privateHelper) }).withTokenService(exported, DiBag.fromSyncFactory(({ helper }: { helper: typeof privateHelper }) => helper)).buildModule({ exportedServiceKeys: [exported] });
 
   let rootCalls = 0;
   let scopedCalls = 0;
@@ -79,7 +79,7 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   const rawPromise = Promise.resolve({ value: 'raw' });
   let rawDisposed: unknown;
   let asyncDisposed: { value: string } | undefined;
-  const root = DiBag.createBuilder().installModule(feature).register({
+  const root = DiBag.createBuilder().withInstalledModules([feature]).withServices({
     root: DiBag.withMetadata(DiBag.withLifetime(DiBag.withDisposal(
       DiBag.fromSyncFactory(() => ({ id: ++rootCalls })),
       () => { cleanupLog.push('root'); },
@@ -101,7 +101,7 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
       DiBag.fromAsyncFactory(async () => ({ value: 'async' })),
       (value: { value: string }) => { asyncDisposed = value; },
     ),
-  }).alias('rootAlias', 'root').build();
+  }).withServiceAlias({ aliasKey: 'rootAlias', targetServiceKey: 'root' }).buildContainer();
   const child = root.createScope();
 
   const rootValue = child.resolve('root');

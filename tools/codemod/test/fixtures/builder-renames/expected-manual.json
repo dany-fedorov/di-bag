@@ -1,0 +1,10 @@
+[
+  {
+    "line": 19,
+    "reason": "the last argument of buildModule is not an object literal; merge it into the buildModule bag by hand"
+  },
+  {
+    "line": 26,
+    "reason": "contribute is referenced without being called; rewrite this reference to withCollectionContribution by hand"
+  }
+]

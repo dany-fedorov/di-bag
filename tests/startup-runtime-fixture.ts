@@ -4,11 +4,11 @@ export const startupRuntimeAssertions = `{
   const { DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } = await import('di-bag');
   let lazyCalls = 0;
   const token = DiBag.token(Symbol('startup')).of();
-  const feature = DiBag.createBuilder().register({
+  const feature = DiBag.createBuilder().withServices({
     hidden: DiBag.fromFactory((_deps, context) => context, { context: 'acquisition' }),
     service: ({ hidden }) => hidden,
-  }).buildModule(['service']);
-  const started = await DiBag.createBuilder().installModule(feature).register(token, () => 42).register({ lazy: () => ++lazyCalls }).build().ensureServicesReady(['service', token]);
+  }).buildModule({ exportedServiceKeys: ['service'] });
+  const started = await DiBag.createBuilder().withInstalledModules([feature]).withTokenService(token, () => 42).withServices({ lazy: () => ++lazyCalls }).buildContainer().ensureServicesReady(['service', token]);
   assert.equal(started.resolve(token), 42);
   assert.equal(lazyCalls, 0);
   const context = started.resolve('service');
@@ -26,10 +26,10 @@ export const startupRuntimeAssertions = `{
   Object.defineProperty(native, 'then', { value: undefined });
   const raw = new Promise(() => {});
   const rawDisposed = [];
-  const starting = DiBag.createBuilder().register({
+  const starting = DiBag.createBuilder().withServices({
     native: DiBag.fromFactory((_deps, _context) => native, { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
     raw: DiBag.withDisposal(DiBag.fromFactory(() => raw, { acquisitionMode: 'raw' }), value => { rawDisposed.push(value); }),
-  }).build().ensureServicesReady(['native', 'raw']);
+  }).buildContainer().ensureServicesReady(['native', 'raw']);
   let ready = false;
   void starting.then(() => { ready = true; });
   await new Promise(resolve => setImmediate(resolve));
@@ -42,10 +42,10 @@ export const startupRuntimeAssertions = `{
 
   const setupError = new Error('setup');
   const cleanupError = new Error('cleanup');
-  const failed = await DiBag.createBuilder().register({
+  const failed = await DiBag.createBuilder().withServices({
     owned: DiBag.withDisposal(() => 1, () => { throw cleanupError; }),
     fail: () => { throw setupError; },
-  }).build().ensureServicesReady(['owned', 'fail'], { maxConcurrentServiceKeys: 1 }).catch(error => error);
+  }).buildContainer().ensureServicesReady(['owned', 'fail'], { maxConcurrentServiceKeys: 1 }).catch(error => error);
   assert.ok(failed instanceof DiBagServiceReadinessError);
   assert.equal(failed.cause, setupError);
   assert.equal(failed.disposalFailures[0].error, cleanupError);
@@ -56,14 +56,14 @@ export const startupRuntimeAssertions = `{
     let signal;
     const gate = new Promise(resolve => { finish = resolve; });
     const cleanup = [];
-    const pending = DiBag.createBuilder().register({
+    const pending = DiBag.createBuilder().withServices({
       late: () => 17,
       value: DiBag.withDisposal(DiBag.fromFactory(async (deps, context) => {
         signal = context.signal;
         await gate;
         return deps.late;
       }, { context: 'acquisition' }), value => { cleanup.push(value); }),
-    }).build().ensureServicesReady(['value'], reason === 'aborted' ? { abortSignal: controller.signal } : { totalTimeoutMs: 5 });
+    }).buildContainer().ensureServicesReady(['value'], reason === 'aborted' ? { abortSignal: controller.signal } : { totalTimeoutMs: 5 });
     const outcome = pending.catch(error => error);
     if (reason === 'aborted') controller.abort('stop');
     const cancelled = await outcome;
@@ -86,8 +86,8 @@ export const startupRuntimeAssertions = `{
     const provider = index => DiBag.withDisposal(() => {
       calls.push(index); return gates[index].promise;
     }, value => { disposed.push(value); });
-    const pending = DiBag.createBuilder().register({ a: provider(0), b: provider(1), c: provider(2) })
-      .build().ensureServicesReady(['a', 'b', 'c'], { maxConcurrentServiceKeys: startupOrder });
+    const pending = DiBag.createBuilder().withServices({ a: provider(0), b: provider(1), c: provider(2) })
+      .buildContainer().ensureServicesReady(['a', 'b', 'c'], { maxConcurrentServiceKeys: startupOrder });
     assert.deepEqual(calls, startupOrder === 1 ? [0] : [0, 1]);
     gates[0].release(10);
     await new Promise(resolve => setImmediate(resolve));
@@ -98,9 +98,9 @@ export const startupRuntimeAssertions = `{
     await bag.close(); assert.deepEqual(disposed, [12, 11, 10]);
   }
   let invalidCalls = 0;
-  const boundedBuilder = DiBag.createBuilder().register({ item: () => ++invalidCalls });
+  const boundedBuilder = DiBag.createBuilder().withServices({ item: () => ++invalidCalls });
   for (const startupOrder of [0, -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
-    await assert.rejects(boundedBuilder.build().ensureServicesReady(['item'], { maxConcurrentServiceKeys: startupOrder }), /ensureServicesReady maxConcurrentServiceKeys must be a positive safe integer/);
+    await assert.rejects(boundedBuilder.buildContainer().ensureServicesReady(['item'], { maxConcurrentServiceKeys: startupOrder }), /ensureServicesReady maxConcurrentServiceKeys must be a positive safe integer/);
   }
   assert.equal(invalidCalls, 0);
 }`;

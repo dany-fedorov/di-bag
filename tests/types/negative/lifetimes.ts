@@ -3,48 +3,48 @@ const { withLifetime } = DiBag;
 import type { Provider } from '../../../src';
 import type { ProviderBase } from '../../../src/provider';
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: () => 1, root: withLifetime(({ db }: { db: number }) => db, 'root') }).build();
+DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(({ db }: { db: number }) => db, 'root') }).buildContainer();
 
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: () => 1, bridge: withLifetime(({ db }: { db: number }) => db, 'transient'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).build();
+DiBag.createBuilder().withServices({ db: () => 1, bridge: withLifetime(({ db }: { db: number }) => db, 'transient'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
 const key: unique symbol = Symbol('db');
 const dbToken = DiBag.token(key).of<number>();
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register(dbToken, () => 1).register({ root: withLifetime(DiBag.fromFunction([dbToken], db => db), 'root') }).build();
+DiBag.createBuilder().withTokenService(dbToken, () => 1).withServices({ root: withLifetime(DiBag.fromFunction([dbToken], db => db), 'root') }).buildContainer();
 
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register(dbToken, () => 1).register({ bridge: withLifetime(DiBag.fromFunction([dbToken], db => db), 'transient'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).build();
+DiBag.createBuilder().withTokenService(dbToken, () => 1).withServices({ bridge: withLifetime(DiBag.fromFunction([dbToken], db => db), 'transient'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
-const privateCollision = DiBag.createBuilder().register({ db: () => 1, bridge: withLifetime(({ db }: { db: number }) => db, 'transient') }).buildModule(['bridge']);
+const privateCollision = DiBag.createBuilder().withServices({ db: () => 1, bridge: withLifetime(({ db }: { db: number }) => db, 'transient') }).buildModule({ exportedServiceKeys: ['bridge'] });
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(privateCollision).register({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).build();
+DiBag.createBuilder().withInstalledModules([privateCollision]).withServices({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
-const renamed = DiBag.createBuilder().register({ bridge: withLifetime(({ external }: { external: number }) => external, 'transient') }).buildModule(['bridge']).renameExport('bridge', 'external');
+const renamed = DiBag.createBuilder().withServices({ bridge: withLifetime(({ external }: { external: number }) => external, 'transient') }).buildModule({ exportedServiceKeys: ['bridge'] }).renameExport('bridge', 'external');
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(renamed).replace('external', () => 1).register({ root: withLifetime(({ external }: { external: number }) => external, 'root') }).build();
+DiBag.createBuilder().withInstalledModules([renamed]).withReplacedService('external', () => 1).withServices({ root: withLifetime(({ external }: { external: number }) => external, 'root') }).buildContainer();
 
-const privateRootBuilder = DiBag.createBuilder().register({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root'), api: () => 1 });
+const privateRootBuilder = DiBag.createBuilder().withServices({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root'), api: () => 1 });
 // diagnostic: root lifetime cannot capture scoped dependency: hidden -> db
-privateRootBuilder.buildModule(['api']);
+privateRootBuilder.buildModule({ exportedServiceKeys: ['api'] });
 
-const exportlessBuilder = DiBag.createBuilder().register({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') });
+const exportlessBuilder = DiBag.createBuilder().withServices({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') });
 // diagnostic: root lifetime cannot capture scoped dependency: hidden -> db
-exportlessBuilder.buildModule([]);
+exportlessBuilder.buildModule({ exportedServiceKeys: [] });
 
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: () => 1, permissive: withLifetime(({ db }: { db: number }) => db, 'root', { allowScopedDependencies: true }), a: withLifetime(({ permissive }: { permissive: number }) => permissive, 'root'), c: withLifetime(({ db }: { db: number }) => db, 'root') }).build();
+DiBag.createBuilder().withServices({ db: () => 1, permissive: withLifetime(({ db }: { db: number }) => db, 'root', { allowScopedDependencies: true }), a: withLifetime(({ permissive }: { permissive: number }) => permissive, 'root'), c: withLifetime(({ db }: { db: number }) => db, 'root') }).buildContainer();
 
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: () => 1, a: withLifetime(({ b, db }: { b: number; db: number }): number => b + db, 'transient'), b: withLifetime(({ a }: { a: number }): number => a, 'transient'), root: withLifetime(({ a }: { a: number }) => a, 'root') }).build();
+DiBag.createBuilder().withServices({ db: () => 1, a: withLifetime(({ b, db }: { b: number; db: number }): number => b + db, 'transient'), b: withLifetime(({ a }: { a: number }): number => a, 'transient'), root: withLifetime(({ a }: { a: number }) => a, 'root') }).buildContainer();
 
-const valid = DiBag.createBuilder().register({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ db }: { db: number }) => db, 'root') }).build();
+const valid = DiBag.createBuilder().withServices({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ db }: { db: number }) => db, 'root') }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
 valid.fork(['db'], { db: () => 1 });
 
 declare const bool: boolean;
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: () => 1, root: withLifetime(({ db }: { db: number }) => db, 'root', { allowScopedDependencies: bool }) }).build();
+DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(({ db }: { db: number }) => db, 'root', { allowScopedDependencies: bool }) }).buildContainer();
 
 // diagnostic: withLifetime allowScopedDependencies requires root
 withLifetime(() => 1, 'transient', { allowScopedDependencies: false });
@@ -56,66 +56,66 @@ withLifetime(() => 1, policy);
 
 const union = Math.random() ? withLifetime(({ db }: { db: number }) => db, 'root') : ({ db }: { db: number }) => db;
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: () => 1, root: union }).build();
-const unionModule = DiBag.createBuilder().register({ db: () => 1, bridge: Math.random() ? withLifetime(({ db }: { db: number }) => db, 'transient') : withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule(['bridge']);
+DiBag.createBuilder().withServices({ db: () => 1, root: union }).buildContainer();
+const unionModule = DiBag.createBuilder().withServices({ db: () => 1, bridge: Math.random() ? withLifetime(({ db }: { db: number }) => db, 'transient') : withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule({ exportedServiceKeys: ['bridge'] });
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(unionModule).register({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).build();
+DiBag.createBuilder().withInstalledModules([unionModule]).withServices({ db: withLifetime(() => 1, 'root'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
 declare const opaque: ProviderBase;
 // diagnostic: factory dependencies must be finite string-keyed objects
-DiBag.createBuilder().register({ opaque: withLifetime(opaque, 'root') });
+DiBag.createBuilder().withServices({ opaque: withLifetime(opaque, 'root') });
 declare const erased: Provider<() => number>;
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: erased, root: withLifetime(({ db }: { db: number }) => db, 'root') }).build();
+DiBag.createBuilder().withServices({ db: erased, root: withLifetime(({ db }: { db: number }) => db, 'root') }).buildContainer();
 // diagnostic: not assignable
 const erasedRoot: Provider<() => number> = withLifetime(() => 1, 'root');
 void erasedRoot;
 
-const exportedTransient = DiBag.createBuilder().register({ db: () => 1, bridge: withLifetime(({ db, external }: { db: number; external: number }) => db + external, 'transient') }).buildModule(['db', 'bridge']).renameExport('db', 'external');
+const exportedTransient = DiBag.createBuilder().withServices({ db: () => 1, bridge: withLifetime(({ db, external }: { db: number; external: number }) => db + external, 'transient') }).buildModule({ exportedServiceKeys: ['db', 'bridge'] }).renameExport('db', 'external');
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(exportedTransient).register({ root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).build();
+DiBag.createBuilder().withInstalledModules([exportedTransient]).withServices({ root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
-const privateToken = DiBag.createBuilder().register(dbToken, () => 1).register({ bridge: withLifetime(DiBag.fromFunction([dbToken], db => db), 'transient') }).buildModule(['bridge']);
+const privateToken = DiBag.createBuilder().withTokenService(dbToken, () => 1).withServices({ bridge: withLifetime(DiBag.fromFunction([dbToken], db => db), 'transient') }).buildModule({ exportedServiceKeys: ['bridge'] });
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(privateToken).register(dbToken, withLifetime(() => 1, 'root')).register({ root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).build();
+DiBag.createBuilder().withInstalledModules([privateToken]).withTokenService(dbToken, withLifetime(() => 1, 'root')).withServices({ root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
-const tokenRoot = DiBag.createBuilder().register(dbToken, withLifetime(() => 1, 'root')).register({ root: withLifetime(DiBag.fromFunction([dbToken], value => value), 'root') }).build();
+const tokenRoot = DiBag.createBuilder().withTokenService(dbToken, withLifetime(() => 1, 'root')).withServices({ root: withLifetime(DiBag.fromFunction([dbToken], value => value), 'root') }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
 tokenRoot.fork([dbToken], { [key]: () => 1 });
 
-const mixedExport = DiBag.createBuilder().register({ db: () => 1, api: Math.random() ? withLifetime(({ db }: { db: number }) => db, 'root') : ({ db }: { db: number }) => db }).buildModule(['api']);
+const mixedExport = DiBag.createBuilder().withServices({ db: () => 1, api: Math.random() ? withLifetime(({ db }: { db: number }) => db, 'root') : ({ db }: { db: number }) => db }).buildModule({ exportedServiceKeys: ['api'] });
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(mixedExport).build();
+DiBag.createBuilder().withInstalledModules([mixedExport]).buildContainer();
 declare const noInferUnion: NoInfer<typeof union>;
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: () => 1, root: noInferUnion }).build();
+DiBag.createBuilder().withServices({ db: () => 1, root: noInferUnion }).buildContainer();
 
 declare const mixedOpaque: NoInfer<ProviderBase | typeof union>;
 // diagnostic: factory dependencies must be finite string-keyed objects
-DiBag.createBuilder().register({ db: () => 1, root: withLifetime(mixedOpaque, 'root') });
+DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(mixedOpaque, 'root') });
 
-const renamePrivateRoot = DiBag.createBuilder().register({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule(['db']).renameExport('db', 'database');
+const renamePrivateRoot = DiBag.createBuilder().withServices({ db: () => 1, hidden: withLifetime(({ db }: { db: number }) => db, 'root') }).buildModule({ exportedServiceKeys: ['db'] }).renameExport('db', 'database');
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(renamePrivateRoot).build();
+DiBag.createBuilder().withInstalledModules([renamePrivateRoot]).buildContainer();
 
 const wrappedUnion = DiBag.withMetadata(union, { static: {} });
-const wrappedUnionModule = DiBag.createBuilder().register({ db: () => 1, api: wrappedUnion }).buildModule(['api']);
+const wrappedUnionModule = DiBag.createBuilder().withServices({ db: () => 1, api: wrappedUnion }).buildModule({ exportedServiceKeys: ['api'] });
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(wrappedUnionModule).build();
+DiBag.createBuilder().withInstalledModules([wrappedUnionModule]).buildContainer();
 
-const sameName = DiBag.createBuilder().register({ local: withLifetime(({ db }: { db: number }) => db, 'transient'), api: withLifetime(({ local }: { local: number }) => local, 'transient'), db: () => 1 }).buildModule(['api']);
+const sameName = DiBag.createBuilder().withServices({ local: withLifetime(({ db }: { db: number }) => db, 'transient'), api: withLifetime(({ local }: { local: number }) => local, 'transient'), db: () => 1 }).buildModule({ exportedServiceKeys: ['api'] });
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(sameName).register({ local: withLifetime(({ api }: { api: number }) => api, 'root') }).build();
+DiBag.createBuilder().withInstalledModules([sameName]).withServices({ local: withLifetime(({ api }: { api: number }) => api, 'root') }).buildContainer();
 
-const firstContext = DiBag.createBuilder().register({ hop: withLifetime(({ second }: { second: number }) => second, 'transient'), first: withLifetime(({ hop }: { hop: number }) => hop, 'transient') }).buildModule(['first']);
-const secondContext = DiBag.createBuilder().register({ hop: withLifetime(({ db }: { db: number }) => db, 'transient'), second: withLifetime(({ hop }: { hop: number }) => hop, 'transient'), db: () => 1 }).buildModule(['second']);
+const firstContext = DiBag.createBuilder().withServices({ hop: withLifetime(({ second }: { second: number }) => second, 'transient'), first: withLifetime(({ hop }: { hop: number }) => hop, 'transient') }).buildModule({ exportedServiceKeys: ['first'] });
+const secondContext = DiBag.createBuilder().withServices({ hop: withLifetime(({ db }: { db: number }) => db, 'transient'), second: withLifetime(({ hop }: { hop: number }) => hop, 'transient'), db: () => 1 }).buildModule({ exportedServiceKeys: ['second'] });
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().installModule(firstContext).installModule(secondContext).register({ root: withLifetime(({ first }: { first: number }) => first, 'root') }).build();
+DiBag.createBuilder().withInstalledModules([firstContext]).withInstalledModules([secondContext]).withServices({ root: withLifetime(({ first }: { first: number }) => first, 'root') }).buildContainer();
 
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ db: () => 1, root: withLifetime(({ missing, db }: { missing: number; db: number }) => missing + db, 'root') }).build();
+DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(({ missing, db }: { missing: number; db: number }) => missing + db, 'root') }).buildContainer();
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().register({ db: () => 1, root: withLifetime(({ db }: { db: string }) => db, 'root') }).build();
+DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(({ db }: { db: string }) => db, 'root') }).buildContainer();
 // diagnostic: not assignable
 withLifetime(() => 1, 'unknown');
 declare const unknownPolicy: string;
@@ -125,9 +125,9 @@ withLifetime(() => 1, unknownPolicy);
 withLifetime(() => 1, 'root', { allowScopedDependencies: undefined });
 
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: () => 1, root: DiBag.transformService(withLifetime(({ db }: { db: number }) => db, 'root'), { mode: 'awaited', transform: value => value }) }).build();
+DiBag.createBuilder().withServices({ db: () => 1, root: DiBag.transformService(withLifetime(({ db }: { db: number }) => db, 'root'), { mode: 'awaited', transform: value => value }) }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: () => 1, root: DiBag.withDisposal(withLifetime(({ db }: { db: number }) => db, 'root'), () => {}) }).build();
+DiBag.createBuilder().withServices({ db: () => 1, root: DiBag.withDisposal(withLifetime(({ db }: { db: number }) => db, 'root'), () => {}) }).buildContainer();
 
 declare const unionCapture: Readonly<{}> | { allowScopedDependencies: false };
 // diagnostic: withLifetime allowScopedDependencies requires root
@@ -138,23 +138,23 @@ withLifetime(() => 1, 'root', unionUnknown);
 
 declare const optionalCapture: { allowScopedDependencies: true } | undefined;
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: () => 1, root: withLifetime(({ db }: { db: number }) => db, 'root', optionalCapture) }).build();
+DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(({ db }: { db: number }) => db, 'root', optionalCapture) }).buildContainer();
 declare const optionalField: { allowScopedDependencies?: true };
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().register({ db: () => 1, root: withLifetime(({ db }: { db: number }) => db, 'root', optionalField) }).build();
+DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(({ db }: { db: number }) => db, 'root', optionalField) }).buildContainer();
 // diagnostic: Expected 3 arguments
 withLifetime<() => number, 'root', { allowScopedDependencies: true }>(() => 1, 'root');
 // diagnostic: allowScopedDependencies
 withLifetime<() => number, 'root', { allowScopedDependencies: true }>(() => 1, 'root', {});
 
-const retainedShape = DiBag.createBuilder().register({ hidden: withLifetime(({ host }: { host: string }) => host, 'root') }).buildModule([]);
+const retainedShape = DiBag.createBuilder().withServices({ hidden: withLifetime(({ host }: { host: string }) => host, 'root') }).buildModule({ exportedServiceKeys: [] });
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().installModule(retainedShape).register({ host: () => 1 }).build();
-const retainedMissing = DiBag.createBuilder().register({ hidden: withLifetime(({ missing, db }: { missing: number; db: number }) => missing + db, 'root') }).buildModule([]);
+DiBag.createBuilder().withInstalledModules([retainedShape]).withServices({ host: () => 1 }).buildContainer();
+const retainedMissing = DiBag.createBuilder().withServices({ hidden: withLifetime(({ missing, db }: { missing: number; db: number }) => missing + db, 'root') }).buildModule({ exportedServiceKeys: [] });
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().installModule(retainedMissing).register({ db: () => 1 }).build();
+DiBag.createBuilder().withInstalledModules([retainedMissing]).withServices({ db: () => 1 }).buildContainer();
 
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().installModule(DiBag.createBuilder().register({ db: () => 1, root: withLifetime(({ db }: { db: string }) => db, 'root') }).buildModule(['root'])).build();
+DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(({ db }: { db: string }) => db, 'root') }).buildModule({ exportedServiceKeys: ['root'] })]).buildContainer();
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().installModule(DiBag.createBuilder().register({ db: () => 1, root: withLifetime(({ db }: { db: string }) => db, 'root') }).buildModule([])).build();
+DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(({ db }: { db: string }) => db, 'root') }).buildModule({ exportedServiceKeys: [] })]).buildContainer();

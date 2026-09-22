@@ -4,6 +4,7 @@
 const BUILTIN_MEMBERS = new Set([String.prototype, Array.prototype, Promise.prototype, Promise, Object, Object.prototype, Map.prototype, Set.prototype]
   .flatMap(target => Object.getOwnPropertyNames(target)));
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+const RESHAPE_BLOCKED = Symbol('reshape blocked');
 
 /**
  * Rewrite one source file. Every decision reads the original program; the new text is
@@ -15,6 +16,7 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
   const start = node => node.getStart(sourceFile);
   const slice = (from, to) => source.slice(from, to);
   const skip = new Set();
+  const blockedReshapes = new WeakSet();
   let rewrites = 0;
 
   function manual(node, reason) {
@@ -168,14 +170,19 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     const argumentNodes = [...call.arguments];
     const extra = argumentNodes.slice(names.length);
     if (extra.length > 1 || (extra.length === 1 && !trailing)) { manual(call, `${member.name} has more arguments than the rename map describes; rewrite it to ${entry.to} by hand`); return undefined; }
+    if (extra.length === 1 && trailing.mode === 'merge' && !ts.isObjectLiteralExpression(extra[0])) {
+      manual(call, `the last argument of ${member.name} is not an object literal; merge it into the ${entry.to} bag by hand`);
+      return undefined;
+    }
+    const rewriteCheckpoint = rewrites;
     const parts = argumentNodes.slice(0, names.length).map((argumentNode, position) => {
       const value = argumentText(argumentNode, member, position);
       return value === names[position] && IDENTIFIER.test(names[position]) ? value : `${safeKeyText(names[position])}: ${value}`;
     });
+    if (blockedReshapes.has(call)) { rewrites = rewriteCheckpoint; return RESHAPE_BLOCKED; }
     let after = '';
     if (extra.length === 1 && trailing.mode === 'keep') after = `, ${argumentText(extra[0], member, names.length)}`;
     if (extra.length === 1 && trailing.mode === 'merge') {
-      if (!ts.isObjectLiteralExpression(extra[0])) { manual(call, `the last argument of ${member.name} is not an object literal; merge it into the ${entry.to} bag by hand`); return undefined; }
       const keys = trailing.keys ?? {};
       const merged = objectLiteral(extra[0], { rename: key => keys[key], spreadReason: 'an options object is spread here; rename its keys where that object is built' });
       const inner = merged.text.slice(1, -1).trim().replace(/,$/, '');
@@ -186,6 +193,40 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     if (!multiline) return `{ ${parts.join(', ')} }${after}`;
     const indent = lineIndent(start(call.expression.name));
     return `{\n${parts.map(part => `${indent}  ${part},`).join('\n')}\n${indent}}${after}`;
+  }
+
+  /** Whether one argument is proven to be a legacy positional array or an existing options bag. */
+  function alreadyBagShape(node, key) {
+    const classify = type => {
+      if (type.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.Never)) return 'ambiguous';
+      if (type.isUnion()) {
+        const choices = new Set(type.types.map(classify));
+        return choices.size === 1 ? [...choices][0] : 'ambiguous';
+      }
+      const signals = candidate => {
+        if (candidate.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.Never)) return { array: false, bag: false, uncertain: true };
+        if (candidate.isIntersection()) {
+          return candidate.types.map(signals).reduce((left, right) => ({
+            array: left.array || right.array,
+            bag: left.bag || right.bag,
+            uncertain: left.uncertain || right.uncertain,
+          }), { array: false, bag: false, uncertain: false });
+        }
+        const property = checker.getPropertyOfType(candidate, key);
+        const optional = property !== undefined && Boolean(property.flags & ts.SymbolFlags.Optional);
+        return {
+          array: checker.isArrayType(candidate) || checker.isTupleType(candidate),
+          bag: property !== undefined && !optional,
+          uncertain: optional,
+        };
+      };
+      const shape = signals(type);
+      if (shape.uncertain) return 'ambiguous';
+      if (shape.array && !shape.bag) return 'positional';
+      if (shape.bag && !shape.array) return 'bag';
+      return 'ambiguous';
+    };
+    return classify(checker.getTypeAtLocation(node));
   }
 
   function reportAnyReceiver(callee) {
@@ -204,6 +245,17 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
         const value = entry?.transformNames?.[role];
         if (value === undefined) throw new Error(`transform ${entry?.transform ?? '<unknown>'} has no name for role ${role}`);
         return value;
+      },
+      abortParentReshape(node, expected) {
+        const parent = node.parent;
+        if (!ts.isCallExpression(parent) || parent.arguments[expected.argument] !== node) return;
+        const callee = parent.expression;
+        if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== expected.name) return;
+        const coverage = library.memberCoverage(library.symbolAt(callee.name));
+        if (coverage.complete && coverage.members.length > 0
+            && coverage.members.every(candidate => candidate.owner === expected.owner && candidate.name === expected.name)) {
+          blockedReshapes.add(parent);
+        }
       },
     };
   }
@@ -248,7 +300,7 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     const { member, entry, touched } = relevant[0];
     if ((entry?.arguments || entry?.transform) && call.arguments.some(ts.isSpreadElement)) {
       manual(call, `${name} is called with a spread argument; rewrite it to ${entry.to} by hand`);
-      skip.add(entry.transform ? call : callee);
+      if (entry.transform) skip.add(call);
       return undefined;
     }
     if (entry?.transform) {
@@ -259,13 +311,22 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     const replacements = [];
     if (entry && entry.to !== name) replacements.push({ start: start(callee.name), end: callee.name.end, text: entry.to });
     if (entry?.arguments?.kind === 'bag') {
+      if (entry.arguments.alreadyBag && call.arguments.length === 1) {
+        const shape = alreadyBagShape(call.arguments[0], entry.arguments.names[0]);
+        if (shape === 'bag') return undefined;
+        if (shape === 'ambiguous') {
+          manual(call, `the argument of ${name} could be either its positional value or an existing options bag; migrate this call by hand`);
+          return undefined;
+        }
+      }
       const bag = bagArguments(call, entry, member);
-      if (bag === undefined) { skip.add(callee); return undefined; }
+      if (bag === RESHAPE_BLOCKED) { skip.add(call); return undefined; }
+      if (bag === undefined) return undefined;
       // Up to the closing parenthesis, so a bag written over several lines does not leave `}` and `)` on separate lines.
       const closing = source[call.end - 1] === ')' ? call.end - 1 : call.arguments.end;
       if (call.arguments.pos !== closing || bag !== '') replacements.push({ start: call.arguments.pos, end: closing, text: bag });
     } else if (entry?.arguments?.kind === 'array') {
-      if (call.arguments.length !== 1) { manual(call, `${name} is expected to take one argument; rewrite it to ${entry.to} by hand`); skip.add(callee); return undefined; }
+      if (call.arguments.length !== 1) { manual(call, `${name} is expected to take one argument; rewrite it to ${entry.to} by hand`); return undefined; }
       replacements.push({ start: start(call.arguments[0]), end: call.arguments[0].end, text: `[${argumentText(call.arguments[0], member, 0)}]` });
     } else {
       for (const position of touched) {
@@ -316,6 +377,24 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     const called = ts.isCallExpression(node.parent) && node.parent.expression === node;
     const target = memberRename(node, coverage, name, { called });
     return target === null || target === name ? undefined : assemble(node, [{ start: start(node.name), end: node.name.end, text: target }]);
+  }
+
+  function rewriteTypeQuery(node) {
+    const expression = node.exprName;
+    if (!ts.isQualifiedName(expression)) return undefined;
+    const nameNode = expression.right;
+    const name = nameNode.text;
+    if (!index.memberNames.has(name)) return undefined;
+    const coverage = library.memberCoverage(library.symbolAt(nameNode));
+    if (coverage.members.length === 0) return undefined;
+    const manualCheckpoint = manualItems.length;
+    const target = memberRename(expression, coverage, name, { called: false });
+    if (target === null) {
+      if (manualItems.length > manualCheckpoint) skip.add(node);
+      return undefined;
+    }
+    if (target === name) return undefined;
+    return assemble(node, [{ start: start(nameNode), end: nameNode.end, text: target }]);
   }
 
   function rewriteBindingElement(element) {
@@ -430,6 +509,7 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
   }
 
   function rewriteNode(node) {
+    if (ts.isTypeQueryNode(node)) return rewriteTypeQuery(node);
     if (ts.isCallExpression(node)) return rewriteCall(node);
     if (ts.isPropertyAccessExpression(node)) return rewritePropertyAccess(node);
     if (ts.isObjectLiteralExpression(node)) return rewriteObjectLiteral(node);

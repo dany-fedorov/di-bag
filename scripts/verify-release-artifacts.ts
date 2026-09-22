@@ -207,7 +207,7 @@ async function verifyRuntimeConsumers(manifest: ReleaseManifest, workDir: string
     const corePath = resolve(consumer, `core.${mode === 'commonjs' ? 'cjs' : 'mjs'}`), load = mode === 'commonjs'
       ? `const Module=require('node:module');const old=Module._load;Module._load=function(name,...args){if(name.startsWith('node:'))throw new Error('core imported Node');return old.call(this,name,...args)};const {DiBag}=require('di-bag');`
       : `import Module,{createRequire}from'node:module';const old=Module._load;Module._load=function(name,...args){if(name.startsWith('node:'))throw new Error('core imported Node');return old.call(this,name,...args)};const {DiBag}=await import('di-bag');`;
-    writeFileSync(corePath, `${load}(async()=>{const bag=DiBag.createBuilder().register({answer:DiBag.fromFactory(()=>42,{acquisitionMode:'raw'})}).build();console.log(bag.resolve('answer'));await bag.close()})().catch(e=>{console.error(e);process.exitCode=1});`);
+    writeFileSync(corePath, `${load}(async()=>{const bag=DiBag.createBuilder().withServices({answer:DiBag.fromFactory(()=>42,{acquisitionMode:'raw'})}).buildContainer();console.log(bag.resolve('answer'));await bag.close()})().catch(e=>{console.error(e);process.exitCode=1});`);
     for (const executable of ['node', 'bun']) { const output = await runChecked([executable, corePath], consumer); if (output.trim() !== '42') throw new Error(`root ${mode} ${executable} output mismatch: ${JSON.stringify(output)}`); }
     const fullPath = resolve(consumer, `oracle.${mode === 'commonjs' ? 'cjs' : 'mjs'}`);
     const checkout = manifest.packages.find(record => record.name === 'di-bag')!.checkout.path;

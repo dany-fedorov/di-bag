@@ -29,7 +29,7 @@ export type CollectionMember<T, C> = T extends TokenBase
   : Unsatisfied<'collection token has an incompatible or opaque contract', {}>;
 type RetainedCollectionKeys<C> = TokenKey<Extract<Extract<C, ContributionConstraint>['token'], CollectionTokenBase>>;
 export type RegisterTokenAdmission<T, C> = T extends CollectionTokenBase
-  ? Unsatisfied<'register requires a single-service token', {}>
+  ? Unsatisfied<'withTokenService requires a single-service token', {}>
   : TokenKey<T> extends RetainedCollectionKeys<C>
     ? Unsatisfied<'token symbol is already a collection in this graph', {}> : unknown;
 export type CollectionTokenAdmission<R extends Registrations, T> = T extends CollectionTokenBase
@@ -37,7 +37,7 @@ export type CollectionTokenAdmission<R extends Registrations, T> = T extends Col
     ? BoundToken<R[TokenKey<T>]> extends CollectionTokenBase ? unknown
       : Unsatisfied<'token symbol is already a single service in this graph', {}>
     : unknown
-  : Unsatisfied<'contribute requires a collection token', {}>;
+  : Unsatisfied<'withCollectionContribution requires a collection token', {}>;
 type ContributionGraph<A extends Registrations, V extends Registration> = A & Record<typeof contributionSite, V>;
 type WrongProvider<C, A extends Registrations> = C extends ContributionConstraint
   ? unknown extends CheckDependencyCompatibility<ContributionGraph<A, C['registration']>> ? never : C : never;
@@ -77,38 +77,26 @@ export type ModuleContributions<M> = M extends Module<infer _P, infer _R, infer 
   ? Readonly<{ [T in Groups<C>['token'] as TokenKey<T>]: T extends CollectionTokenBase ? readonly CollectionItem<T>[] : ReadonlyArray<TokenService<T>> }> : never;
 
 /**
- * The checked generic `contribute` callable exposed by a builder.
+ * The checked generic `withCollectionContribution` callable exposed by a builder.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
  */
-export type BuilderContribute<
-  Entries extends Entry,
-  Constraints extends NeedConstraint,
-> = <
-  TokenHandle extends TokenBase,
-  Provider extends Registration,
->(
-  token: TokenHandle & (
-    unknown extends TokenTupleAdmission<readonly [TokenHandle]>
-      ? CollectionTokenAdmission<RegistrationsFromEntries<Entries>, TokenHandle>
-      : TokenTupleAdmission<readonly [TokenHandle]>
-  ),
-  registration: Provider & Registration & (
-    unknown extends TokenTupleAdmission<readonly [NoInfer<TokenHandle>]>
-      ? unknown extends CollectionTokenAdmission<RegistrationsFromEntries<Entries>, NoInfer<TokenHandle>>
-        ? NoInfer<TokenHandle> extends CollectionTokenBase
-          ? CollectionBindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>>
-            & CheckedConstraints<
-                Constraints | Contribution<NoInfer<TokenHandle>, NoInfer<Provider>>,
-                RegistrationsFromEntries<Entries>
-              >
-          : never
+export type BuilderWithCollectionContribution<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends Registration>(
+  options: {
+    readonly collectionToken: T & (
+      unknown extends TokenTupleAdmission<readonly [T]>
+        ? CollectionTokenAdmission<RegistrationsFromEntries<E>, T>
+        : TokenTupleAdmission<readonly [T]>
+    );
+    readonly provider: V & Registration & (
+      unknown extends TokenTupleAdmission<readonly [NoInfer<T>]>
+        ? unknown extends CollectionTokenAdmission<RegistrationsFromEntries<E>, NoInfer<T>>
+          ? NoInfer<T> extends CollectionTokenBase
+            ? CollectionBindingOutput<NoInfer<T>, NoInfer<V>>
+              & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>
+            : never
+          : unknown
         : unknown
-      : unknown
-  ),
-  ...invalid: [TokenHandle] extends [never]
-    ? [never]
-    : [Provider] extends [never] ? [never] : []
-) => import('./di-bag').Builder<
-  Entries,
-  Constraints | Contribution<TokenHandle, Provider>
->;
+    );
+  },
+  ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []
+) => import('./di-bag').Builder<E, C | Contribution<T, V>>;

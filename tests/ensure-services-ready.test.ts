@@ -8,10 +8,10 @@ const turn = () => new Promise<void>(resolve => setImmediate(resolve));
 test('ensureServicesReady resolves to the same bag once the listed services are ready and leaves the rest lazy', async () => {
   const gate = deferred<number>();
   let mailerCalls = 0;
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     db: () => gate.promise,
     mailer: () => ++mailerCalls,
-  }).build();
+  }).buildContainer();
   const ensuring = bag.ensureServicesReady(['db']);
   let ready = false;
   void ensuring.then(() => { ready = true; });
@@ -28,7 +28,7 @@ test('ensureServicesReady accepts typed tokens, duplicates and an empty tuple', 
   const key = Symbol('port');
   const port = DiBag.token(key).of<number>();
   let calls = 0;
-  const bag = DiBag.createBuilder().register(port, () => ++calls).register({ name: () => 'api' }).build();
+  const bag = DiBag.createBuilder().withTokenService(port, () => ++calls).withServices({ name: () => 'api' }).buildContainer();
   expect(await bag.ensureServicesReady([])).toBe(bag);
   expect(calls).toBe(0);
   await bag.ensureServicesReady([port, 'name', port]);
@@ -39,7 +39,7 @@ test('ensureServicesReady accepts typed tokens, duplicates and an empty tuple', 
 
 test('repeated readiness calls reuse cached services and may add more', async () => {
   let calls = 0;
-  const bag = DiBag.createBuilder().register({ a: () => ++calls, b: () => 'b' }).build();
+  const bag = DiBag.createBuilder().withServices({ a: () => ++calls, b: () => 'b' }).buildContainer();
   await bag.ensureServicesReady(['a']);
   await bag.ensureServicesReady(['a', 'b']);
   expect(calls).toBe(1);
@@ -50,10 +50,10 @@ test('repeated readiness calls reuse cached services and may add more', async ()
 test('maxConcurrentServiceKeys 1 acquires the listed services one after another in tuple order', async () => {
   const gate = deferred<number>();
   const calls: string[] = [];
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     first: () => { calls.push('first'); return gate.promise; },
     second: () => { calls.push('second'); return 2; },
-  }).build();
+  }).buildContainer();
   const ensuring = bag.ensureServicesReady(['first', 'second'], { maxConcurrentServiceKeys: 1 });
   expect(calls).toEqual(['first']);
   gate.resolve(1);
@@ -65,10 +65,10 @@ test('maxConcurrentServiceKeys 1 acquires the listed services one after another 
 test('an omitted bound acquires every listed service at once', async () => {
   const gate = deferred<number>();
   const calls: string[] = [];
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     first: () => { calls.push('first'); return gate.promise; },
     second: () => { calls.push('second'); return 2; },
-  }).build();
+  }).buildContainer();
   const ensuring = bag.ensureServicesReady(['first', 'second']);
   expect(calls).toEqual(['first', 'second']);
   gate.resolve(1);
@@ -77,7 +77,7 @@ test('an omitted bound acquires every listed service at once', async () => {
 });
 
 test('a child scope is made ready and resolves to that scope', async () => {
-  const parent = DiBag.createBuilder().register({ session: () => ({ id: Math.random() }) }).build();
+  const parent = DiBag.createBuilder().withServices({ session: () => ({ id: Math.random() }) }).buildContainer();
   const child = parent.createScope();
   expect(await child.ensureServicesReady(['session'])).toBe(child);
   expect(child.resolve('session')).not.toBe(parent.resolve('session'));
@@ -87,12 +87,12 @@ test('a child scope is made ready and resolves to that scope', async () => {
 test('a failed readiness call on a child scope closes that scope only', async () => {
   const cause = new Error('session store offline');
   const disposed: string[] = [];
-  const parent = DiBag.createBuilder().register({
+  const parent = DiBag.createBuilder().withServices({
     pool: DiBag.withDisposal(() => ({ name: 'pool' }), () => { disposed.push('pool'); }),
     cache: DiBag.withDisposal(() => ({ name: 'cache' }), () => { disposed.push('cache'); }),
     session: DiBag.withDisposal(({ pool }: { pool: { name: string } }) => ({ owner: pool.name }), () => { disposed.push('session'); }),
     broken: (): number => { throw cause; },
-  }).build();
+  }).buildContainer();
   const parentCache = parent.resolve('cache');
   const child = parent.createScope({ share: ['cache'] });
   const error: unknown = await child.ensureServicesReady(['session', 'cache', 'broken'], { maxConcurrentServiceKeys: 1 }).catch(caught => caught);
@@ -108,10 +108,10 @@ test('a failed readiness call on a child scope closes that scope only', async ()
 });
 
 test('an independent fork is made ready and closed on its own', async () => {
-  const app = DiBag.createBuilder().register({
+  const app = DiBag.createBuilder().withServices({
     clock: () => ({ now: () => 42 }),
     stamp: ({ clock }: { clock: { now(): number } }) => clock.now(),
-  }).build();
+  }).buildContainer();
   const forked = app.fork(['clock'], { clock: () => ({ now: () => 7 }) });
   expect(await forked.ensureServicesReady(['stamp'])).toBe(forked);
   expect(forked.resolve('stamp')).toBe(7);
@@ -124,11 +124,11 @@ test('a factory failure closes this bag and reports disposal failures', async ()
   const cause = new Error('offline');
   const disposalFailure = new Error('dispose');
   const calls: string[] = [];
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     owned: DiBag.withDisposal(() => { calls.push('owned'); return 1; }, () => { throw disposalFailure; }),
     db: (): number => { calls.push('db'); throw cause; },
     queued: () => { calls.push('queued'); return 3; },
-  }).build();
+  }).buildContainer();
   const error: unknown = await bag.ensureServicesReady(['owned', 'db', 'queued'], { maxConcurrentServiceKeys: 1 }).catch(caught => caught);
   expect(error).toBeInstanceOf(DiBagServiceReadinessError);
   if (!(error instanceof DiBagServiceReadinessError)) throw error;
@@ -147,7 +147,7 @@ test('a factory failure closes this bag and reports disposal failures', async ()
 
 test('a timeout names the services that were still pending and closes the bag', async () => {
   const gate = deferred<number>();
-  const bag = DiBag.createBuilder().register({ fast: () => 1, slow: () => gate.promise }).build();
+  const bag = DiBag.createBuilder().withServices({ fast: () => 1, slow: () => gate.promise }).buildContainer();
   const error: unknown = await bag.ensureServicesReady(['fast', 'slow'], { totalTimeoutMs: 5 }).catch(caught => caught);
   expect(error).toBeInstanceOf(DiBagServiceReadinessCancelledError);
   if (!(error instanceof DiBagServiceReadinessCancelledError)) throw error;
@@ -171,9 +171,9 @@ test('an abort rejects promptly with the abort reason and settles disposalPromis
   const controller = new AbortController();
   const reason = new Error('shutting down');
   const disposed: number[] = [];
-  const bag = DiBag.createBuilder().register({
+  const bag = DiBag.createBuilder().withServices({
     slow: DiBag.withDisposal(() => gate.promise, value => { disposed.push(value); }),
-  }).build();
+  }).buildContainer();
   const outcome = bag.ensureServicesReady(['slow'], { abortSignal: controller.signal }).catch(caught => caught);
   expect(getEventListeners(controller.signal, 'abort')).toHaveLength(1);
   controller.abort(reason);
@@ -195,7 +195,7 @@ test('an already aborted signal closes the bag and runs no factory', async () =>
   const reason = { cancelled: true };
   controller.abort(reason);
   let calls = 0;
-  const bag = DiBag.createBuilder().register({ value: () => ++calls }).build();
+  const bag = DiBag.createBuilder().withServices({ value: () => ++calls }).buildContainer();
   const error: unknown = await bag.ensureServicesReady(['value'], { abortSignal: controller.signal }).catch(caught => caught);
   expect(error).toBeInstanceOf(DiBagServiceReadinessCancelledError);
   if (!(error instanceof DiBagServiceReadinessCancelledError)) throw error;
@@ -207,7 +207,7 @@ test('an already aborted signal closes the bag and runs no factory', async () =>
 
 test('after success the abort listener and the timer are gone and a later abort does not close the bag', async () => {
   const controller = new AbortController();
-  const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+  const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
   await bag.ensureServicesReady(['value'], { abortSignal: controller.signal, totalTimeoutMs: 2 ** 32 });
   expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
   controller.abort();
@@ -217,7 +217,7 @@ test('after success the abort listener and the timer are gone and a later abort 
 
 test('invalid input rejects before any factory runs and leaves the bag usable', async () => {
   let effects = 0;
-  const bag = DiBag.createBuilder().register({ value: () => ++effects }).build();
+  const bag = DiBag.createBuilder().withServices({ value: () => ++effects }).buildContainer();
   const ensure = bag.ensureServicesReady.bind(bag) as (...args: unknown[]) => Promise<unknown>;
   const invalidOptions = [
     null, [], true,
@@ -247,7 +247,7 @@ test('invalid input rejects before any factory runs and leaves the bag usable', 
 });
 
 test('a closing or closed bag rejects with its state code', async () => {
-  const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+  const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
   await bag.close();
   const error = await bag.ensureServicesReady(['value']).catch((caught: unknown) => caught) as { code?: string };
   expect(error.code).toBe('DI_BAG_CLOSED');

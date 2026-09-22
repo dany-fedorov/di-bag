@@ -1,28 +1,57 @@
 import type { RuntimeScenario, RuntimeWorkResult } from '../../scripts/performance-evidence.ts';
 
 type Registration = unknown;
-type RuntimeBag = {
+type RuntimeBag = object;
+type CurrentRuntimeBag = RuntimeBag & {
   resolve(name: string): unknown;
   inspect(name: string): { acquisitions: readonly unknown[] };
   createScope(): RuntimeBag;
   close(): Promise<void>;
 };
-type RuntimeBuilder = {
-  register(bindings: Record<string, Registration>): RuntimeBuilder;
-  build(): RuntimeBag;
+type BaselineRuntimeBag = RuntimeBag & {
+  resolve(name: string): unknown;
+  inspect(name: string): { acquisitions: readonly unknown[] };
+  scope(): RuntimeBag;
+  close(): Promise<void>;
 };
-type RuntimeFacade = {
-  createBuilder(): RuntimeBuilder;
-  fromFactory(create: (dependencies: Record<string, unknown>) => unknown, options?: { acquisitionMode: 'raw' | 'nativePromise' }): Registration;
+type BaselineRuntimeBuilder = {
+  add(bindings: Record<string, Registration>): BaselineRuntimeBuilder;
+  end(): RuntimeBag;
+};
+type CurrentRuntimeBuilder = {
+  withServices(bindings: Record<string, Registration>): CurrentRuntimeBuilder;
+  buildContainer(): RuntimeBag;
+};
+type CurrentRuntimeFacade = {
+  fromFactory(create: (dependencies: Record<string, unknown>) => unknown, options: { acquisitionMode: 'raw' | 'nativePromise' }): Registration;
+  createBuilder(): CurrentRuntimeBuilder;
   withDisposal(registration: Registration, dispose: (value: unknown) => void | Promise<void>): Registration;
   withLifetime(registration: Registration, lifetime: 'root' | 'scoped' | 'transient'): Registration;
+};
+type BaselineRuntimeFacade = {
+  factory(create: (dependencies: Record<string, unknown>) => unknown, options: { acquisition: 'raw' | 'native' }): Registration;
+  begin(): BaselineRuntimeBuilder;
+  withDisposal(registration: Registration, dispose: (value: unknown) => void | Promise<void>): Registration;
+  withLifetime(registration: Registration, lifetime: 'root' | 'scoped' | 'transient'): Registration;
+};
+export type RuntimeBuilderSurface = 'current' | 'baseline';
+type CreateBag = (bindings: Record<string, Registration>) => RuntimeBag;
+type RuntimeScenarioAdapter = {
+  source(create: (dependencies: Record<string, unknown>) => unknown, mode: 'raw' | 'nativePromise'): Registration;
+  own(registration: Registration, dispose: (value: unknown) => void | Promise<void>): Registration;
+  lifetime(registration: Registration, lifetime: 'root' | 'scoped' | 'transient'): Registration;
+  build: CreateBag;
+  child(bag: RuntimeBag): RuntimeBag;
+  resolve(bag: RuntimeBag, key: string): unknown;
+  inspect(bag: RuntimeBag, key: string): { acquisitions: readonly unknown[] };
+  close(bag: RuntimeBag): Promise<void>;
 };
 
 export type PreparedRuntimeScenario = {
   readonly id: object;
   readonly scenario: RuntimeScenario;
   readonly providers: 10 | 100;
-  readonly facade: RuntimeFacade;
+  readonly adapter: RuntimeScenarioAdapter;
   readonly bindings: Record<string, Registration>;
   readonly cleanupLog: string[];
   readonly values: object[];
@@ -36,6 +65,38 @@ export type PreparedRuntimeScenario = {
   scopedValue?: object;
   disposedValue?: unknown;
 };
+
+function selectRuntimeAdapter(suppliedFacade: unknown, surface: RuntimeBuilderSurface): RuntimeScenarioAdapter {
+  if (surface === 'current') {
+    const current = suppliedFacade as CurrentRuntimeFacade;
+    return {
+      source: (create, mode) => current.fromFactory(create, { acquisitionMode: mode }),
+      own: (registration, dispose) => current.withDisposal(registration, dispose),
+      lifetime: (registration, lifetime) => current.withLifetime(registration, lifetime),
+      build: bindings => current.createBuilder().withServices(bindings).buildContainer(),
+      child: bag => (bag as CurrentRuntimeBag).createScope(),
+      resolve: (bag, key) => (bag as CurrentRuntimeBag).resolve(key),
+      inspect: (bag, key) => (bag as CurrentRuntimeBag).inspect(key),
+      close: bag => (bag as CurrentRuntimeBag).close(),
+    };
+  }
+  if (surface === 'baseline') {
+    const baseline = suppliedFacade as BaselineRuntimeFacade;
+    return {
+      source: (create, mode) => baseline.factory(create, {
+        acquisition: mode === 'nativePromise' ? 'native' : 'raw',
+      }),
+      own: (registration, dispose) => baseline.withDisposal(registration, dispose),
+      lifetime: (registration, lifetime) => baseline.withLifetime(registration, lifetime),
+      build: bindings => baseline.begin().add(bindings).end(),
+      child: bag => (bag as BaselineRuntimeBag).scope(),
+      resolve: (bag, key) => (bag as BaselineRuntimeBag).resolve(key),
+      inspect: (bag, key) => (bag as BaselineRuntimeBag).inspect(key),
+      close: bag => (bag as BaselineRuntimeBag).close(),
+    };
+  }
+  throw new Error('runtime builder surface must be current or baseline');
+}
 
 export type TimedRuntimeScenario = {
   readonly preparedId: object;
@@ -54,13 +115,13 @@ function linearBindings(prepared: PreparedRuntimeScenario, lifetime?: 'root'): R
   const bindings: Record<string, Registration> = Object.create(null);
   for (let index = 0; index < prepared.providers; index += 1) {
     const previous = `provider${index - 1}`;
-    const factory = prepared.facade.fromFactory((dependencies: Record<string, unknown>) => {
+    const factory = prepared.adapter.source((dependencies: Record<string, unknown>) => {
       prepared.factories += 1;
       return index === 0 ? 1 : Number(dependencies[previous]) + 1;
-    }, { acquisitionMode: 'raw' });
+    }, 'raw');
     bindings[`provider${index}`] = lifetime === undefined
       ? factory
-      : prepared.facade.withLifetime(factory, lifetime);
+      : prepared.adapter.lifetime(factory, lifetime);
   }
   return bindings;
 }
@@ -92,10 +153,12 @@ export async function prepareScenario(
   scenario: RuntimeScenario,
   providers: number,
   suppliedFacade: unknown,
+  surface: RuntimeBuilderSurface,
 ): Promise<PreparedRuntimeScenario> {
   const count = checkedProviders(providers);
+  const adapter = selectRuntimeAdapter(suppliedFacade, surface);
   const prepared: PreparedRuntimeScenario = {
-    id: Object.freeze({}), scenario, providers: count, facade: suppliedFacade as RuntimeFacade,
+    id: Object.freeze({}), scenario, providers: count, adapter,
     bindings: Object.create(null) as Record<string, Registration>, cleanupLog: [], values: [], factories: 0, disposers: 0,
   };
 
@@ -105,64 +168,64 @@ export async function prepareScenario(
   }
   if (scenario === 'cold-linear-resolve' || scenario === 'warm-root-resolve') {
     Object.assign(prepared.bindings, linearBindings(prepared, scenario === 'warm-root-resolve' ? 'root' : undefined));
-    prepared.bag = prepared.facade.createBuilder().register(prepared.bindings).build();
-    if (scenario === 'warm-root-resolve') prepared.primedValue = prepared.bag.resolve(terminal(prepared));
+    prepared.bag = prepared.adapter.build(prepared.bindings);
+    if (scenario === 'warm-root-resolve') prepared.primedValue = prepared.adapter.resolve(prepared.bag, terminal(prepared));
     return prepared;
   }
   if (scenario === 'scope-resolve-close') {
     Object.assign(prepared.bindings, linearBindings(prepared, 'root'));
-    prepared.bindings.scoped = prepared.facade.withDisposal(prepared.facade.fromFactory(() => {
+    prepared.bindings.scoped = prepared.adapter.own(prepared.adapter.source(() => {
       prepared.factories += 1;
       prepared.scopedValue = { label: 'scoped' };
       return prepared.scopedValue;
-    }, { acquisitionMode: 'raw' }), () => { prepared.disposers += 1; prepared.cleanupLog.push('scoped'); });
-    prepared.bindings.transient = prepared.facade.withLifetime(prepared.facade.withDisposal(prepared.facade.fromFactory(() => {
+    }, 'raw'), () => { prepared.disposers += 1; prepared.cleanupLog.push('scoped'); });
+    prepared.bindings.transient = prepared.adapter.lifetime(prepared.adapter.own(prepared.adapter.source(() => {
       prepared.factories += 1;
       const value = { id: prepared.values.length + 1 };
       prepared.values.push(value);
       return value;
-    }, { acquisitionMode: 'raw' }), value => {
+    }, 'raw'), value => {
       prepared.disposers += 1;
       prepared.cleanupLog.push(`transient-${(value as { id: number }).id}`);
     }), 'transient');
-    prepared.bag = prepared.facade.createBuilder().register(prepared.bindings).build();
+    prepared.bag = prepared.adapter.build(prepared.bindings);
     return prepared;
   }
   if (scenario === 'transient-resolve-close') {
     for (let index = 0; index < count - 1; index += 1) {
-      prepared.bindings[`provider${index}`] = prepared.facade.fromFactory(() => index, { acquisitionMode: 'raw' });
+      prepared.bindings[`provider${index}`] = prepared.adapter.source(() => index, 'raw');
     }
-    prepared.bindings.transient = prepared.facade.withLifetime(prepared.facade.withDisposal(
-      prepared.facade.fromFactory(() => {
+    prepared.bindings.transient = prepared.adapter.lifetime(prepared.adapter.own(
+      prepared.adapter.source(() => {
         prepared.factories += 1;
         const value = { id: prepared.factories };
         prepared.values.push(value);
         return value;
-      }, { acquisitionMode: 'raw' }),
+      }, 'raw'),
       value => { prepared.disposers += 1; prepared.cleanupLog.push(`transient-${(value as { id: number }).id}`); },
     ), 'transient');
-    prepared.bag = prepared.facade.createBuilder().register(prepared.bindings).build();
+    prepared.bag = prepared.adapter.build(prepared.bindings);
     return prepared;
   }
 
   for (let index = 0; index < count - 1; index += 1) {
-    prepared.bindings[`provider${index}`] = prepared.facade.fromFactory(() => index, { acquisitionMode: 'raw' });
+    prepared.bindings[`provider${index}`] = prepared.adapter.source(() => index, 'raw');
   }
   if (scenario === 'raw-promise-identity') {
     prepared.rawPromise = Promise.resolve(Object.freeze({ kind: 'raw' }));
-    prepared.bindings.promise = prepared.facade.withDisposal(
-      prepared.facade.fromFactory(() => { prepared.factories += 1; return prepared.rawPromise; }, { acquisitionMode: 'raw' }),
+    prepared.bindings.promise = prepared.adapter.own(
+      prepared.adapter.source(() => { prepared.factories += 1; return prepared.rawPromise; }, 'raw'),
       value => { prepared.disposers += 1; prepared.disposedValue = value; prepared.cleanupLog.push('raw-promise'); },
     );
   } else {
     prepared.nativeValue = Object.freeze({ kind: 'native' });
     prepared.nativePromise = Promise.resolve(prepared.nativeValue);
-    prepared.bindings.promise = prepared.facade.withDisposal(
-      prepared.facade.fromFactory(() => { prepared.factories += 1; return prepared.nativePromise; }, { acquisitionMode: 'nativePromise' }),
+    prepared.bindings.promise = prepared.adapter.own(
+      prepared.adapter.source(() => { prepared.factories += 1; return prepared.nativePromise; }, 'nativePromise'),
       value => { prepared.disposers += 1; prepared.disposedValue = value; prepared.cleanupLog.push('node-native'); },
     );
   }
-  prepared.bag = prepared.facade.createBuilder().register(prepared.bindings).build();
+  prepared.bag = prepared.adapter.build(prepared.bindings);
   return prepared;
 }
 
@@ -172,24 +235,24 @@ export async function runTimed(prepared: PreparedRuntimeScenario): Promise<Timed
   let scopedValue: unknown;
   let values: readonly object[] = [];
   if (prepared.scenario === 'build-close') {
-    const bag = prepared.facade.createBuilder().register(prepared.bindings).build();
-    await bag.close();
+    const bag = prepared.adapter.build(prepared.bindings);
+    await prepared.adapter.close(bag);
   } else if (prepared.scenario === 'cold-linear-resolve' || prepared.scenario === 'warm-root-resolve') {
-    value = prepared.bag!.resolve(terminal(prepared));
+    value = prepared.adapter.resolve(prepared.bag!, terminal(prepared));
   } else if (prepared.scenario === 'scope-resolve-close') {
-    const child = prepared.bag!.createScope();
-    rootValue = child.resolve(terminal(prepared));
-    scopedValue = child.resolve('scoped');
-    values = [child.resolve('transient'), child.resolve('transient')] as object[];
-    await child.close();
+    const child = prepared.adapter.child(prepared.bag!);
+    rootValue = prepared.adapter.resolve(child, terminal(prepared));
+    scopedValue = prepared.adapter.resolve(child, 'scoped');
+    values = [prepared.adapter.resolve(child, 'transient'), prepared.adapter.resolve(child, 'transient')] as object[];
+    await prepared.adapter.close(child);
   } else if (prepared.scenario === 'transient-resolve-close') {
     const resolved: object[] = [];
-    for (let index = 0; index < prepared.providers; index += 1) resolved.push(prepared.bag!.resolve('transient') as object);
+    for (let index = 0; index < prepared.providers; index += 1) resolved.push(prepared.adapter.resolve(prepared.bag!, 'transient') as object);
     values = resolved;
-    await prepared.bag!.close();
+    await prepared.adapter.close(prepared.bag!);
   } else {
-    value = prepared.bag!.resolve('promise');
-    await prepared.bag!.close();
+    value = prepared.adapter.resolve(prepared.bag!, 'promise');
+    await prepared.adapter.close(prepared.bag!);
   }
   return { preparedId: prepared.id, value, rootValue, scopedValue, values };
 }
@@ -210,7 +273,7 @@ export function verifyScenario(prepared: PreparedRuntimeScenario, timed: TimedRu
   if (prepared.scenario === 'scope-resolve-close') {
     if (timed.rootValue !== prepared.providers || timed.scopedValue !== prepared.scopedValue
       || timed.values.length !== 2 || timed.values.some((value, index) => value !== prepared.values[index])
-      || prepared.bag!.inspect(terminal(prepared)).acquisitions.length !== 1) throw new Error('scope resolution result mismatch');
+      || prepared.adapter.inspect(prepared.bag!, terminal(prepared)).acquisitions.length !== 1) throw new Error('scope resolution result mismatch');
   }
   if (prepared.scenario === 'transient-resolve-close'
     && (timed.values.length !== prepared.providers

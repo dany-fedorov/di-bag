@@ -5,14 +5,14 @@ import type { Mail, MailConfig } from './contract.js';
 import { notificationsModule } from './module.js';
 
 const fixture = DiBag.createBuilder()
-  .installModule(notificationsModule)
-  .register({
+  .withInstalledModules([notificationsModule])
+  .withServices({
     mailConfig: DiBag.withLifetime((): MailConfig => ({
       opsAddress: 'ops@example.com',
       connect: async () => { throw new Error('supply a mail config'); },
     }), 'root'),
   })
-  .build();
+  .buildContainer();
 after(() => fixture.close());
 
 test('mails operations and closes the transport with the application', async () => {

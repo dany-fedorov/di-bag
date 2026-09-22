@@ -5,7 +5,7 @@ import type { Notifier } from '../notifications/contract.js';
 import type { Checkout, PaymentGateway } from './contract.js';
 
 export const checkoutModule = DiBag.createBuilder()
-  .register({
+  .withServices({
     orderIds: DiBag.withLifetime(() => {
       let last = 0;
       return { next: () => `order-${++last}` };
@@ -34,4 +34,4 @@ export const checkoutModule = DiBag.createBuilder()
       },
     }),
   })
-  .buildModule(['checkout'], { label: 'checkout' });
+  .buildModule({ exportedServiceKeys: ['checkout'], moduleLabel: 'checkout' });

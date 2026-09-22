@@ -19,11 +19,11 @@ interface ModuleDescription {
  */
 export interface ModuleOptions {
   /**
-   * Name each installation's private bindings `<label>/<key>` in error messages, cycle paths,
+   * Name each installation's private bindings `<moduleLabel>/<key>` in error messages, cycle paths,
    * `inspectGraph()`, and observer events. Nested labels compose: `outer/inner/key`.
    * Exported bindings keep their bare key.
    */
-  readonly label?: string;
+  readonly moduleLabel?: string;
 }
 const descriptions = new WeakMap<object, ModuleDescription>();
 declare const moduleInvariant: unique symbol;
@@ -78,8 +78,8 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
  * keys must be a tuple of existing public names or typed tokens.
  * @internal
  */
-export function sealModule(graph: BindingGraph, keys: unknown, options?: unknown): Module<never, never, never, never> {
-  const label = moduleLabel(options);
+export function sealModule(graph: BindingGraph, keys: unknown, moduleLabel?: unknown): Module<never, never, never, never> {
+  const label = checkedModuleLabel(moduleLabel);
   if (!Array.isArray(keys)) throw libraryError('DI_BAG_INVALID_EXPORT', 'buildModule requires a key tuple', { operation: 'buildModule' });
   // Snapshot indexed entries before a custom iterator can substitute keys.
   const selected: unknown[] = [];
@@ -99,16 +99,11 @@ export function sealModule(graph: BindingGraph, keys: unknown, options?: unknown
   return new Module({ graph: graph.describe(), exports, label });
 }
 
-function moduleLabel(options: unknown): string | undefined {
-  if (options === undefined) return undefined;
-  const invalid = () => libraryError('DI_BAG_INVALID_EXPORT', 'buildModule options must be { label?: string } with a non-empty label', { operation: 'buildModule', option: 'label' });
-  if (typeof options !== 'object' || options === null || Array.isArray(options)) throw invalid();
-  if (Reflect.ownKeys(options).some(key => key !== 'label') || ('label' in options && !Object.hasOwn(options, 'label'))) throw invalid();
-  if (!Object.hasOwn(options, 'label')) return undefined;
-  const label: unknown = Reflect.get(options, 'label');
-  if (label === undefined) return undefined;
-  if (typeof label !== 'string' || label === '') throw invalid();
-  return label;
+/** The label of a module: absent, or a non-empty string. */
+function checkedModuleLabel(moduleLabel: unknown): string | undefined {
+  if (moduleLabel === undefined) return undefined;
+  if (typeof moduleLabel !== 'string' || moduleLabel === '') throw libraryError('DI_BAG_INVALID_EXPORT', 'buildModule moduleLabel must be a non-empty string', { operation: 'buildModule', option: 'moduleLabel' });
+  return moduleLabel;
 }
 
 /**
@@ -117,9 +112,11 @@ function moduleLabel(options: unknown): string | undefined {
  * (from an inner installation) win, then the module's public names, then the
  * installing host's public slots.
  */
-export function moduleGraph(value: object): GraphDescription {
-  const description = descriptions.get(value);
-  if (!description) throw libraryError('DI_BAG_INVALID_MODULE', 'installModule requires a genuine module', { operation: 'installModule' });
+export function moduleGraph(value: unknown, index?: number): GraphDescription {
+  const description = typeof value === 'object' && value !== null ? descriptions.get(value) : undefined;
+  if (!description) {
+    throw libraryError('DI_BAG_INVALID_MODULE', `withInstalledModules requires genuine modules: element ${index} is not one`, { operation: 'withInstalledModules', index });
+  }
   const { graph, exports, label } = description;
   // Labels are baked per installation, so a nested module's prefix composes outward.
   const exported = new Set<BindingId>();

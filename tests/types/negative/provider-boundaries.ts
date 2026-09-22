@@ -2,9 +2,9 @@ import { DiBag, type Provider } from '../../../src';
 type Registration = Parameters<typeof DiBag.withMetadata>[0];
 const provider = DiBag.withMetadata(({ clock }: { clock: number }) => clock, { static: { owner: 'team' } });
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ provider }).build();
+DiBag.createBuilder().withServices({ provider }).buildContainer();
 // diagnostic: consumer dependency
-DiBag.createBuilder().register({ provider, clock: () => 'wrong' });
+DiBag.createBuilder().withServices({ provider, clock: () => 'wrong' });
 // diagnostic: duplicate metadata
 DiBag.withMetadata(provider, { static: { owner: 'duplicate' } });
 const key = Symbol('owner');
@@ -25,7 +25,7 @@ DiBag.withMetadata(() => 1, { static: templateIndexed });
 // diagnostic: not assignable
 DiBag.withMetadata(function (this: { value: number }) { return this.value; }, { static: {} });
 // diagnostic: not assignable
-DiBag.createBuilder().register({ provider: { ...provider } });
+DiBag.createBuilder().withServices({ provider: { ...provider } });
 // diagnostic: not assignable
 DiBag.withMetadata({ ...provider }, { static: {} });
 // diagnostic: not assignable
@@ -35,12 +35,12 @@ const erasedFactory: Provider<() => number, { readonly owner: string }, readonly
 declare const erased: Registration;
 // diagnostic: factory dependencies must be finite
 // diagnostic-also: TS2684 required service registrations are missing
-DiBag.createBuilder().register({ erased }).build();
+DiBag.createBuilder().withServices({ erased }).buildContainer();
 // diagnostic: factory dependencies must be finite
-DiBag.createBuilder().register({ value: () => 1 }).replace('value', erased).build();
+DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService('value', erased).buildContainer();
 // diagnostic: factory dependencies must be finite
-DiBag.createBuilder().register({ erased }).buildModule(['erased']);
-const bag = DiBag.createBuilder().register({ provider, clock: () => 1 }).build();
+DiBag.createBuilder().withServices({ erased }).buildModule({ exportedServiceKeys: ['erased'] });
+const bag = DiBag.createBuilder().withServices({ provider, clock: () => 1 }).buildContainer();
 // diagnostic: does not exist
 bag.inspect('provider').registrationMetadata.other;
 // diagnostic: does not exist

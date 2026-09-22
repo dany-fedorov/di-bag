@@ -59,6 +59,14 @@
             "link": "/reference/index/interfaces/Builder.md"
           },
           {
+            "text": "BuilderBuildModule",
+            "link": "/reference/index/interfaces/BuilderBuildModule.md"
+          },
+          {
+            "text": "BuilderWithReplacedService",
+            "link": "/reference/index/interfaces/BuilderWithReplacedService.md"
+          },
+          {
             "text": "CleanupFailure",
             "link": "/reference/index/interfaces/CleanupFailure.md"
           },
@@ -181,8 +189,24 @@
             "link": "/reference/index/type-aliases/AliasRegistration.md"
           },
           {
-            "text": "BuilderContribute",
-            "link": "/reference/index/type-aliases/BuilderContribute.md"
+            "text": "BuilderWithCollectionContribution",
+            "link": "/reference/index/type-aliases/BuilderWithCollectionContribution.md"
+          },
+          {
+            "text": "BuilderWithInstalledModules",
+            "link": "/reference/index/type-aliases/BuilderWithInstalledModules.md"
+          },
+          {
+            "text": "BuilderWithServiceAlias",
+            "link": "/reference/index/type-aliases/BuilderWithServiceAlias.md"
+          },
+          {
+            "text": "BuilderWithServices",
+            "link": "/reference/index/type-aliases/BuilderWithServices.md"
+          },
+          {
+            "text": "BuilderWithTokenService",
+            "link": "/reference/index/type-aliases/BuilderWithTokenService.md"
           },
           {
             "text": "CheckDependencyCompatibility",

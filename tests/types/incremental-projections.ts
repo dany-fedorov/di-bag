@@ -2,13 +2,13 @@ import { DiBag, type Builder, type ProviderGraphContract, type TokenDependencyCo
 import type { Assert, Equal } from './assert';
 import type { Entry, RegistrationsFromEntries, ServicesOf } from '../../src/types';
 
-const before = DiBag.createBuilder().register({
+const before = DiBag.createBuilder().withServices({
   value: () => 1,
   read: ({ value }: { value: number }) => value.toFixed(),
 });
 
-export const changed = before.replace('read', () => true).replace('value', () => 'new');
-const finalized = changed.build();
+export const changed = before.withReplacedService('read', () => true).withReplacedService('value', () => 'new');
+const finalized = changed.buildContainer();
 export const synchronous = finalized.resolve('value');
 export const changedRead = finalized.resolve('read');
 
@@ -22,14 +22,14 @@ export type ProjectionCompatibility = [
   Assert<Equal<ProviderGraphContract<ChangedRegistrations['read']>, TokenDependencyContract>>,
 ];
 
-const namedForward = DiBag.createBuilder().register({ unrelated: () => ({ retained: true as const }), value: () => 1 }).register({ read: ({ value }: { value: number }) => value.toFixed() }).build();
-const namedReverse = DiBag.createBuilder().register({ read: ({ value }: { value: number }) => value.toFixed() }).register({ unrelated: () => ({ retained: true as const }), value: () => 1 }).build();
+const namedForward = DiBag.createBuilder().withServices({ unrelated: () => ({ retained: true as const }), value: () => 1 }).withServices({ read: ({ value }: { value: number }) => value.toFixed() }).buildContainer();
+const namedReverse = DiBag.createBuilder().withServices({ read: ({ value }: { value: number }) => value.toFixed() }).withServices({ unrelated: () => ({ retained: true as const }), value: () => 1 }).buildContainer();
 
 const key = Symbol('projection-boundary');
 const token = DiBag.token(key).of<number>();
 const equivalent = DiBag.token(key).of<number>();
-const tokenForward = DiBag.createBuilder().register({ unrelated: () => true }).register(token, () => 1).register({ read: DiBag.fromFunction([equivalent], value => value.toFixed()) }).build();
-const tokenReverse = DiBag.createBuilder().register({ read: DiBag.fromFunction([equivalent], value => value.toFixed()) }).register({ unrelated: () => true }).register(token, () => 1).build();
+const tokenForward = DiBag.createBuilder().withServices({ unrelated: () => true }).withTokenService(token, () => 1).withServices({ read: DiBag.fromFunction([equivalent], value => value.toFixed()) }).buildContainer();
+const tokenReverse = DiBag.createBuilder().withServices({ read: DiBag.fromFunction([equivalent], value => value.toFixed()) }).withServices({ unrelated: () => true }).withTokenService(token, () => 1).buildContainer();
 
 export type IndependentBoundaries = [
   Assert<Equal<ReturnType<typeof namedForward.resolve<'read'>>, string>>,

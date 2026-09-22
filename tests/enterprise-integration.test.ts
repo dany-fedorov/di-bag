@@ -6,7 +6,7 @@ test('overlapping requests isolate private dependencies and release scopes befor
   const released: string[] = [];
   const signals: AbortSignal[] = [];
   let roots = 0;
-  const feature = DiBag.createBuilder().register({
+  const feature = DiBag.createBuilder().withServices({
     privateSession: DiBag.withDisposal(DiBag.fromFactory(({ request }: { request: { id: string } }, context) => {
         signals.push(context.signal);
         return { id: request.id };
@@ -14,13 +14,13 @@ test('overlapping requests isolate private dependencies and release scopes befor
     handler: ({ privateSession, database }: {
       privateSession: { id: string }; database: { serial: number };
     }) => ({ request: privateSession.id, database }),
-  }).buildModule(['handler']);
-  const root = DiBag.createBuilder().installModule(feature).register({
+  }).buildModule({ exportedServiceKeys: ['handler'] });
+  const root = DiBag.createBuilder().withInstalledModules([feature]).withServices({
     request: () => ({ id: 'root' }),
     database: DiBag.withLifetime(DiBag.withDisposal(
       () => ({ serial: ++roots }), () => { released.push('database'); },
     ), 'root'),
-  }).build();
+  }).buildContainer();
   let entered = 0;
   let release!: () => void;
   const bothEntered = new Promise<void>(resolve => { release = resolve; });
@@ -52,10 +52,10 @@ test('owned-scope fixture preserves handler and cleanup failures without closing
   const handlerFailure = new Error('handler');
   const cleanupFailure = new Error('cleanup');
   let closes = 0;
-  const builder = DiBag.createBuilder().register({
+  const builder = DiBag.createBuilder().withServices({
     resource: DiBag.withDisposal(() => 42, () => { closes++; throw cleanupFailure; }),
   });
-  const result = await withOwnedScope(() => builder.build(), scope => {
+  const result = await withOwnedScope(() => builder.buildContainer(), scope => {
     scope.resolve('resource');
     throw handlerFailure;
   }).catch(error => error);
@@ -68,15 +68,15 @@ test('owned-scope fixture preserves handler and cleanup failures without closing
 
 test('test substitutions retain private module contracts and fresh transient instances', async () => {
   let created = 0;
-  const feature = DiBag.createBuilder().register({
+  const feature = DiBag.createBuilder().withServices({
     privateRead: ({ clock }: { clock: { now(): number } }) => clock.now(),
     result: ({ privateRead }: { privateRead: number }) => privateRead,
-  }).buildModule(['result']);
-  const builder = DiBag.createBuilder().installModule(feature).register({
+  }).buildModule({ exportedServiceKeys: ['result'] });
+  const builder = DiBag.createBuilder().withInstalledModules([feature]).withServices({
     clock: () => ({ now: () => Date.now() }),
     attempt: DiBag.withLifetime(() => ({ id: ++created }), 'transient'),
   });
-  await withOwnedScope(() => builder.replace('clock', () => ({ now: () => 7 })).build(), scope => {
+  await withOwnedScope(() => builder.withReplacedService('clock', () => ({ now: () => 7 })).buildContainer(), scope => {
     const value: number = scope.resolve('result');
     expect(value).toBe(7);
     expect(scope.resolve('attempt')).not.toBe(scope.resolve('attempt'));
@@ -87,7 +87,7 @@ test('a dynamically imported module starts private providers and unloads contrib
   const { feature, steps, reset, disposals } = await import('./fixtures/enterprise-feature.ts');
   reset();
   const result = await withOwnedScope(
-    () => DiBag.createBuilder().installModule(feature).build().ensureServicesReady(['handler']),
+    () => DiBag.createBuilder().withInstalledModules([feature]).buildContainer().ensureServicesReady(['handler']),
     scope => {
       expect(scope.resolveCollection(steps).map(step => step('x'))).toEqual(['private:x', 'x!']);
       return scope.resolve('handler')('ok');
@@ -135,14 +135,14 @@ test('a fixture whose startup fails releases acquired resources without admittin
   const failure = new Error('startup');
   let released = 0;
   let work = 0;
-  const builder = DiBag.createBuilder().register({
+  const builder = DiBag.createBuilder().withServices({
     resource: DiBag.withDisposal(() => ({ ready: true }), () => { released++; }),
     handler: ({ resource }: { resource: { ready: boolean } }) => {
       expect(resource.ready).toBe(true);
       throw failure;
     },
   });
-  const result = await withOwnedScope(() => builder.build().ensureServicesReady(['handler']), () => { work++; }).catch(error => error);
+  const result = await withOwnedScope(() => builder.buildContainer().ensureServicesReady(['handler']), () => { work++; }).catch(error => error);
   expect(result).toBeInstanceOf(DiBagServiceReadinessError);
   expect(result.cause).toBe(failure);
   expect(released).toBe(1);

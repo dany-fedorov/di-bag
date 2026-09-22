@@ -26,6 +26,7 @@ export type { PluginProviderFactory, PluginAcquisitionMode, PluginOptions, Plugi
 export type { AliasRegistration, AliasEntries, AliasOutput } from './alias-types';
 
 export type { Contribution, ContributionConstraint, ModuleContributions, ModuleContributionConstraints } from './contribution-types';
-export type { BuilderContribute } from './contribution-types';
+export type { BuilderWithCollectionContribution } from './contribution-types';
+export type { BuilderBuildModule, BuilderWithInstalledModules, BuilderWithReplacedService, BuilderWithServiceAlias, BuilderWithServices, BuilderWithTokenService } from './builder-method-types';
 
 export type { LifecycleEvent, ObserverFailure, ObserverCallback, ObserverErrorCallback, ObserverOptions, ScopeEventFields, AcquisitionEventFields } from './observers';

@@ -28,7 +28,7 @@ type Fakes = {
 function fakeStart(fakes: Fakes) {
   return async (identity: string, signal: AbortSignal): Promise<FakeRuntime> => {
     fakes.log.push(`start:${identity}`);
-    const bag = await DiBag.createBuilder().register({
+    const bag = await DiBag.createBuilder().withServices({
       resource: DiBag.withDisposal(
         DiBag.fromFactory(async () => {
           if (fakes.lock?.has(identity)) throw new Error(`${identity} is held`);
@@ -50,7 +50,7 @@ function fakeStart(fakes: Fakes) {
         if (fakes.failing?.includes(identity)) throw new Error(`${identity} failed`);
         return true;
       }, { acquisitionMode: 'nativePromise' }),
-    }).build().ensureServicesReady(['resource', 'checkpoint'], { abortSignal: signal });
+    }).buildContainer().ensureServicesReady(['resource', 'checkpoint'], { abortSignal: signal });
     fakes.log.push(`ready:${identity}`);
     return { identity, close: options => bag.close(options) };
   };

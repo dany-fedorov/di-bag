@@ -77,7 +77,7 @@ export class DiBagPluginValidationError extends Error {
  * ```ts
  * import { DiBag, DiBagCleanupError } from 'di-bag';
  *
- * const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+ * const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
  * await bag.close().catch((error: unknown) => {
  *   if (error instanceof DiBagCleanupError) for (const failure of error.failures) console.error(failure.label, failure.error);
  * });
@@ -106,7 +106,7 @@ export class DiBagCleanupError extends AggregateError {
  * ```ts
  * import { DiBag, DiBagServiceReadinessError } from 'di-bag';
  *
- * const bag = DiBag.createBuilder().register({ db: async (): Promise<number> => { throw new Error('offline'); } }).build();
+ * const bag = DiBag.createBuilder().withServices({ db: async (): Promise<number> => { throw new Error('offline'); } }).buildContainer();
  * try {
  *   await bag.ensureServicesReady(['db']);
  * } catch (error) {
@@ -140,7 +140,7 @@ export class DiBagServiceReadinessError extends Error {
  * ```ts
  * import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
  *
- * const bag = DiBag.createBuilder().register({ db: () => new Promise<number>(() => {}) }).build();
+ * const bag = DiBag.createBuilder().withServices({ db: () => new Promise<number>(() => {}) }).buildContainer();
  * try {
  *   await bag.ensureServicesReady(['db'], { totalTimeoutMs: 1_000 });
  * } catch (error) {
@@ -196,7 +196,7 @@ export interface CloseProgress {
  * ```ts
  * import { DiBag, DiBagCloseCancelledError } from 'di-bag';
  *
- * const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+ * const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
  * try {
  *   await bag.close({ waitTimeoutMs: 5_000 });
  * } catch (error) {

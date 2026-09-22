@@ -62,6 +62,10 @@ leaves unchanged and reports with file, line, column, reason, and source text:
 
 Fix these by hand, then run the compiler.
 
+Qualified members in `typeof` follow the same uncalled-reference rule: a compatible
+plain rename changes the terminal member, while reshaped or ambiguous methods stay
+unchanged and are reported for manual migration.
+
 ## The rename map
 
 `rename-map.json` describes the distance from 0.4.0 to the current API.
@@ -86,6 +90,11 @@ to that function, such as `fromFactory()`, or method, such as
 `Bag.createScope()`. A custom method transform reads emitted method and existing
 property names from the map. Its optional `transformNames` object supplies
 role-based names for fields that had no declaration in 0.4.
+For a same-name method that accepts both its old positional form and its new
+options-bag form, `arguments.alreadyBag: true` makes the codemod ask the
+TypeScript checker which form a one-argument call uses. It preserves a proven
+bag, converts a proven old value, and reports an ambiguous value for manual
+migration instead of guessing.
 
 ## Limits
 

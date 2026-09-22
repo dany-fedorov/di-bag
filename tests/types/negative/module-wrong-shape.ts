@@ -1,9 +1,9 @@
 import { DiBag } from '../../../src';
-const module = DiBag.createBuilder().register({ value: ({ external }: { external: number }) => external }).buildModule(['value']);
+const module = DiBag.createBuilder().withServices({ value: ({ external }: { external: number }) => external }).buildModule({ exportedServiceKeys: ['value'] });
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().installModule(module).register({ external: () => 'wrong' });
+DiBag.createBuilder().withInstalledModules([module]).withServices({ external: () => 'wrong' });
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().register({ external: () => 'wrong' }).installModule(module);
-const other = DiBag.createBuilder().register({ value2: ({ external }: { external: string }) => external }).buildModule(['value2']);
+DiBag.createBuilder().withServices({ external: () => 'wrong' }).withInstalledModules([module]);
+const other = DiBag.createBuilder().withServices({ value2: ({ external }: { external: string }) => external }).buildModule({ exportedServiceKeys: ['value2'] });
 // diagnostic: provided service does not satisfy its consumer dependency
-DiBag.createBuilder().installModule(module).installModule(other).register({ external: () => 1 });
+DiBag.createBuilder().withInstalledModules([module]).withInstalledModules([other]).withServices({ external: () => 1 });

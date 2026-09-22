@@ -52,12 +52,12 @@ DiBag.fromClass([{ key }], Client);
 // diagnostic: known properties
 DiBag.fromFunction([{ key }], value => value);
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ source: DiBag.fromClass([port], Client) }).build();
+DiBag.createBuilder().withServices({ source: DiBag.fromClass([port], Client) }).buildContainer();
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().register({ source: DiBag.fromFunction([port], value => value) }).build();
+DiBag.createBuilder().withServices({ source: DiBag.fromFunction([port], value => value) }).buildContainer();
 const conflict = DiBag.token(key).of<string>();
 // diagnostic: incompatible
-DiBag.createBuilder().register(conflict, () => 'wrong').register({ source: DiBag.fromClass([port], Client) });
+DiBag.createBuilder().withTokenService(conflict, () => 'wrong').withServices({ source: DiBag.fromClass([port], Client) });
 // diagnostic: not assignable
 DiBag.fromFunction([port], (first: number, ...rest: [number, ...number[]]) => rest);
 // diagnostic: not assignable

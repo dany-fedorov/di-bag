@@ -27,9 +27,9 @@ async function main() {
       typeof value.handle === 'function',
   });
   const feature = DiBag.createBuilder()
-    .register(handler, provider)
-    .buildModule([handler]);
-  const bag = DiBag.createBuilder().installModule(feature).build();
+    .withTokenService(handler, provider)
+    .buildModule({ exportedServiceKeys: [handler] });
+  const bag = DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
 
   try {
     const result = bag.resolve(handler).handle('hello');

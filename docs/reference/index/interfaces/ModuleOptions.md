@@ -14,14 +14,14 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#reuse-named-modules
 
 ## Properties
 
-### label?
+### moduleLabel?
 
 ```ts
-readonly label?: string;
+readonly moduleLabel?: string;
 ```
 
 Defined in: [module.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L26)
 
-Name each installation's private bindings `<label>/<key>` in error messages, cycle paths,
+Name each installation's private bindings `<moduleLabel>/<key>` in error messages, cycle paths,
 `inspectGraph()`, and observer events. Nested labels compose: `outer/inner/key`.
 Exported bindings keep their bare key.

@@ -26,7 +26,7 @@ export const compositionAdapterRuntimeAssertions = `
       value => { assertAdapter(value === pendingValue, 'raw function acquisition changed'); disposed++; },
     );
     assertAdapter(created === 0, 'adapter eagerly constructed service');
-    const adapterRoot = DiBag.createBuilder().register(portToken, DiBag.withLifetime(() => 8080, 'root')).register(pendingToken, () => pendingValue).register({ client: classProvider, multiply: functionProvider, raw: rawProvider }).build();
+    const adapterRoot = DiBag.createBuilder().withTokenService(portToken, DiBag.withLifetime(() => 8080, 'root')).withTokenService(pendingToken, () => pendingValue).withServices({ client: classProvider, multiply: functionProvider, raw: rawProvider }).buildContainer();
     const adapterChild = adapterRoot.createScope({ share: ['raw'] });
     const client = adapterChild.resolve('client');
     assertAdapter(client instanceof Client && client.constructedAs === Client && client.read() === 8080, 'class semantics changed');

@@ -50,7 +50,7 @@ export const replacementDiagnosticExpectations = {
     supplemental: [],
   },
   'negative/module-narrowing.ts': {
-    primary: ['not assignable', 'not assignable', 'missing', 'nominal', 'not assignable',
+    primary: ['not assignable', 'not assignable', 'missing', 'withInstalledModules requires a finite tuple of genuine modules', 'not assignable',
       'not assignable', 'provided service does not satisfy its consumer dependency', 'not assignable',
       'not assignable', 'not assignable', 'not assignable'],
     supplemental: [],
@@ -96,10 +96,10 @@ export const replacementDiagnosticExpectations = {
     supplemental: [],
   },
   'negative/union-replace.ts': {
-    primary: ['replace requires one existing singleton string-literal key',
-      'replace requires one existing singleton string-literal key',
-      'replace requires one existing singleton string-literal key',
-      'replace requires one existing singleton string-literal key'],
+    primary: ['withReplacedService requires one existing singleton string-literal key',
+      'withReplacedService requires one existing singleton string-literal key',
+      'withReplacedService requires one existing singleton string-literal key',
+      'withReplacedService requires one existing singleton string-literal key'],
     supplemental: [],
   },
 } as const satisfies Record<ReplacementDiagnosticFixture, DiagnosticInventory>;

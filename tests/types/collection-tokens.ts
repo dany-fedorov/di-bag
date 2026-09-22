@@ -9,19 +9,19 @@ const empty = DiBag.token(emptySymbol).forCollectionOf<number>();
 controllers satisfies CollectionToken<typeof controllersSymbol, Controller>;
 
 const module = DiBag.createBuilder()
-  .contribute(controllers, () => ({ path: '/users' }))
-  .register({ count: DiBag.fromFunction([controllers], list => list.length) })
-  .buildModule(['count']);
+  .withCollectionContribution({ collectionToken: controllers, provider: () => ({ path: '/users' }) })
+  .withServices({ count: DiBag.fromFunction([controllers], list => list.length) })
+  .buildModule({ exportedServiceKeys: ['count'] });
 
 const builder = DiBag.createBuilder()
-  .installModule(module)
-  .contribute(controllers, () => ({ path: '/orders' }))
-  .alias('controllers', controllers)
-  .register({
+  .withInstalledModules([module])
+  .withCollectionContribution({ collectionToken: controllers, provider: () => ({ path: '/orders' }) })
+  .withServiceAlias({ aliasKey: 'controllers', targetServiceKey: controllers })
+  .withServices({
     first: ({ controllers }: { controllers: readonly Controller[] }) => controllers[0],
     lazy: DiBag.fromFunction([DiBag.lazy(controllers)], get => get),
   });
-const bag = builder.build();
+const bag = builder.buildContainer();
 bag.resolveCollection(controllers) satisfies readonly Controller[];
 bag.resolveCollection(empty) satisfies readonly number[];
 bag.inspectCollection(controllers) satisfies readonly RegistrationSnapshot<object, readonly unknown[]>[];
@@ -41,4 +41,4 @@ bag.fork([controllers, 'first'] as const, {
   first: ({ controllers }: { controllers: readonly Controller[] }) => controllers[0],
 }).resolve('first') satisfies Controller | undefined;
 bag.createScope([controllers] as const, { [controllers.key]: replacement }).resolveCollection(controllers) satisfies readonly Controller[];
-builder.replace(controllers, replacement).build().resolveCollection(controllers) satisfies readonly Controller[];
+builder.withReplacedService(controllers, replacement).buildContainer().resolveCollection(controllers) satisfies readonly Controller[];

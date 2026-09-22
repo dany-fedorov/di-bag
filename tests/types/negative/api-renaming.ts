@@ -1,4 +1,6 @@
 import { DiBag } from '../../../src/node';
+// diagnostic: no exported member
+import type { BuilderContribute } from '../../../src';
 const base = DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' });
 // diagnostic: No overload matches
 DiBag.withMetadata(base, { dynamic: { describe: (_value: Promise<number>) => ({}) } });
@@ -23,13 +25,13 @@ const number = DiBag.token(numberKey).of<number>();
 // diagnostic: composition arguments must match the declared parameter tuple
 DiBag.fromFunction([number], () => 1);
 // diagnostic: token binding output is not assignable to its service
-DiBag.createBuilder().register(number, () => 'wrong');
+DiBag.createBuilder().withTokenService(number, () => 'wrong');
 // diagnostic: does not exist
 DiBag.begin();
 // diagnostic: does not exist
 DiBag.fromTokens([number], (_number: number) => 1);
 // diagnostic: does not exist
-DiBag.createBuilder().register({ value: () => 1 }).buildAndStart(['value']);
+DiBag.createBuilder().withServices({ value: () => 1 }).buildAndStart(['value']);
 // diagnostic: has no exported member
 type RemovedStartupOptions = import('../../../src').StartupOptions;
 // diagnostic: has no exported member
@@ -38,7 +40,7 @@ type RemovedStartupError = import('../../../src').DiBagStartupError;
 type RemovedStartupCancelledError = import('../../../src').DiBagStartupCancelledError;
 const removedCollectionKey = Symbol('removed collection');
 const removedCollection = DiBag.token(removedCollectionKey).forCollectionOf<number>();
-const removedBag = DiBag.createBuilder().contribute(removedCollection, () => 1).build();
+const removedBag = DiBag.createBuilder().withCollectionContribution({ collectionToken: removedCollection, provider: () => 1 }).buildContainer();
 // diagnostic: Property 'all' does not exist
 DiBag.all(removedCollection);
 // diagnostic: Property 'resolveAll' does not exist
@@ -47,3 +49,21 @@ removedBag.resolveAll(removedCollection);
 removedBag.inspectAll(removedCollection);
 // diagnostic: has no exported member
 type RemovedCollectionDependency = import('../../../src').CollectionDependency;
+
+const retiredBuilder = DiBag.createBuilder();
+// diagnostic: does not exist
+retiredBuilder.register({ value: () => 1 });
+// diagnostic: does not exist
+retiredBuilder.alias('other', 'value');
+// diagnostic: does not exist
+retiredBuilder.contribute(number, () => 1);
+// diagnostic: does not exist
+retiredBuilder.replace('value', () => 2);
+// diagnostic: does not exist
+retiredBuilder.installModule({});
+// diagnostic: does not exist
+retiredBuilder.verifyGraph();
+// diagnostic: does not exist
+retiredBuilder.build();
+// diagnostic: exportedServiceKeys
+DiBag.createBuilder().withServices({ value: () => 1 }).buildModule(['value']);

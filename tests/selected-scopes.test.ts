@@ -4,10 +4,10 @@ import { deferred } from './helpers';
 
 test('selected sharing keeps parent dependencies while child overrides stay local', async () => {
   const released: string[] = [];
-  const root = DiBag.createBuilder().register({
+  const root = DiBag.createBuilder().withServices({
     config: () => ({ id: 'parent' }),
     service: DiBag.withDisposal(({ config }: { config: { id: string } }) => ({ config }), () => { released.push('parent'); }),
-  }).build();
+  }).buildContainer();
   const child = root.createScope(['config'], { config: () => ({ id: 'child', extra: true }) }, { share: ['service'] });
   expect(child.resolve('config')).toEqual({ id: 'child', extra: true });
   expect(child.resolve('service').config.id).toBe('parent');
@@ -23,7 +23,7 @@ test('mixed token selections retain exact borrowed pending values and override b
   const key = Symbol('value');
   const token = DiBag.token(key).of<{ id: number }>();
   const gate = deferred<number>();
-  const root = DiBag.createBuilder().register(token, () => ({ id: 1 })).register({ pending: () => gate.promise }).build();
+  const root = DiBag.createBuilder().withTokenService(token, () => ({ id: 1 })).withServices({ pending: () => gate.promise }).buildContainer();
   const child = root.createScope([token], { [key]: () => ({ id: 2, added: true }) }, { share: ['pending'] });
   expect(child.resolve(token)).toEqual({ id: 2, added: true });
   expect(child.resolve('pending')).toBe(gate.promise);
@@ -33,7 +33,7 @@ test('mixed token selections retain exact borrowed pending values and override b
 });
 
 test('scope snapshots selections and ignores unselected override getters and tuple iterators', async () => {
-  const root = DiBag.createBuilder().register({ a: () => 1, b: () => 2, c: () => 3 }).build();
+  const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2, c: () => 3 }).buildContainer();
   const keys: ['a'] = ['a'];
   const shared: ['b'] = ['b'];
   keys[Symbol.iterator] = function* () { throw new Error('override iterator'); };
@@ -54,7 +54,7 @@ test('scope snapshots selections and ignores unselected override getters and tup
 
 test('invalid selections reject before override values or provider effects', async () => {
   let calls = 0;
-  const root = DiBag.createBuilder().register({ a: () => { calls++; return 1; }, transient: DiBag.withLifetime(() => 2, 'transient') }).build();
+  const root = DiBag.createBuilder().withServices({ a: () => { calls++; return 1; }, transient: DiBag.withLifetime(() => 2, 'transient') }).buildContainer();
   const scope = root.createScope.bind(root) as (...args: unknown[]) => unknown;
   const overrides = { get a() { calls++; return () => 10; } };
   for (const args of [
@@ -74,7 +74,7 @@ test('invalid selections reject before override values or provider effects', asy
 
 test('empty selections are lazy and duplicates read each override once', async () => {
   let calls = 0;
-  const root = DiBag.createBuilder().register({ a: () => ({ id: ++calls }) }).build();
+  const root = DiBag.createBuilder().withServices({ a: () => ({ id: ++calls }) }).buildContainer();
   const empty = root.createScope([], { get a(): () => { id: number } { throw new Error('unselected'); } }, { share: [] });
   const sharing = root.createScope({ share: ['a', 'a'] });
   expect(calls).toBe(0);
@@ -88,10 +88,10 @@ test('empty selections are lazy and duplicates read each override once', async (
 });
 
 test('inherited strict roots keep their graph when a child overrides a dependency as scoped', async () => {
-  const root = DiBag.createBuilder().register({
+  const root = DiBag.createBuilder().withServices({
     config: DiBag.withLifetime(() => ({ id: 'parent' }), 'root'),
     service: DiBag.withLifetime(({ config }: { config: { id: string } }) => ({ config }), 'root'),
-  }).build();
+  }).buildContainer();
   const child = root.createScope(['config'], { config: () => ({ id: 'child' }) });
   expect(child.resolve('config').id).toBe('child');
   expect(child.resolve('service').config.id).toBe('parent');
