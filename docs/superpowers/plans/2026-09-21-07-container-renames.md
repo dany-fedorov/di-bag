@@ -1840,6 +1840,7 @@ Expected: exit 0; older fixtures still pass, including nested transforms.
 ### Task 6: Run the codemod once over typed call sites
 
 **Files:**
+- Prerequisite: `src/di-bag.ts`, `src/index.ts`, and an existing physical-declaration producer/consumer fixture
 - Modify: typed `.ts` and `.tsx` files under `tests/`, `examples/`, `scripts/agent-eval/`, and `tools/graph/test/fixtures/`
 - Modify: older codemod expected fixtures that emit a phase-6 name
 - Create: `/tmp/di-bag-phase-06/codemod-report.txt` (untracked)
@@ -1847,6 +1848,10 @@ Expected: exit 0; older fixtures still pass, including nested transforms.
 **Interfaces:**
 - Consumes: dual old/new declarations and Task 5's codemod.
 - Produces: typed code on phase-6 names except explicit negative and codemod-input fixtures.
+
+**Reviewed missing expand prerequisite.** Before the write, export the existing class under both type names: `export type { Bag, Bag as Container, Builder }` from `src/di-bag.ts`, and re-export `Container` alongside `Bag` from `src/index.ts`. The shipped map already rewrites imported `Bag` to `Container`; waiting until Task8 to introduce that export would make the intermediate migration uncompilable. Keep the underlying class named `Bag` so original-owner authentication and class identity remain intact. No runtime export is added.
+
+Commit this prerequisite separately after a meaningful missing-export RED and focused source/emitted-declaration GREEN, source typecheck/build, emitted-JavaScript identity check, and the existing classic/native CTS/MTS physical producer-deletion proof. Use an already registered producer/consumer, preserving its existing assertions. To prove both names without creating duplicate locals after migration, import `Bag as LegacyContainer` beside `Container` and assert exact identity/assignability. Re-run the corrected preview after the alias; compare original-owner rewrites and manual items, explaining any fixture-only deltas. Task8 replaces the temporary alias export with the final renamed class export. The existing precise generated-doc exception remains bounded through Task7; record any observed additional alias-related generated drift rather than predicting it.
 
 - [ ] **Step 1: Rebuild, preview, and read every manual item**
 
@@ -2141,6 +2146,8 @@ export type { Container, Builder };
 
 Every `new Bag`, return type, `this` type, builder `buildContainer` return, JSDoc `{@link Bag...}`, example variable, and public-facing prose becomes `Container`/`container`. Audit identifier names matching `BuildBag|BagBuild|BuiltBag` and rename any phase-5 helper to the equivalent `BuildContainer|ContainerBuild|BuiltContainer` form. Export `Container` from `src/index.ts` and remove `Bag`.
 
+Remove Task6's temporary `Bag as Container` export alias while renaming the class; the final declaration exports only the renamed `Container` and `Builder` types. Preserve the alias prerequisite's migrated consumer assertions.
+
 Keep `BagRuntime`: it is an internal runtime/ownership engine, never exported, and renaming it would add churn without changing user vocabulary. Keep `DiBag`, every `DiBag*Error`, the package name, and `DI_BAG_*` codes because the spec explicitly preserves them.
 
 - [ ] **Step 3: Remove old methods and support types**
@@ -2362,7 +2369,7 @@ withRenamedExport<const CurrentExportKey extends string, const NewExportKey exte
 lifecycleObservers?: readonly LifecycleObserver[]
 ```
 
-Pin `LifecycleObserver`'s two properties too. Remove old exact assertions for `Bag`, `inspect`, `createScope`, `ObserverOptions`, and `src/node`.
+Preserve the existing collection-snapshot exact-rendering coverage by migrating its `inspectCollection` assertion to the second `serviceSnapshot<CollectionToken extends CollectionTokenBase>` overload, including `CollectionTokenMember`, the explicit-never rest guard and readonly snapshot-array return. Pin the explicit-never rest guard on the ordinary overload too, as established by Task3; do not replace both existing snapshot checks with only the short ordinary-signature fragment above. Pin `LifecycleObserver`'s two properties too. Remove old exact assertions for `Bag`, `inspect`, `inspectCollection`, `createScope`, `ObserverOptions`, and `src/node`.
 
 - [ ] **Step 2: Regenerate, then edit only allowed reference links**
 
