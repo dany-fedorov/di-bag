@@ -2693,6 +2693,23 @@ Keep every runtime/compiler check green.
 
 ---
 
+#### Supplemental unit: Migrate unreported type references and structural test helpers
+
+**Observed scope after reviewed hand commit `19012b8`.** The call codemod does not report qualified names inside `typeof` or calls through structurally declared local helpers. The parse-only audit inventories 22 qualified references in nine type fixtures and two helper definitions, across exactly eleven files. Keep this as a separate green supplemental commit; the preceding 17-file hand commit remains the reviewed resolution of its 46 report-owned cases.
+
+- `tests/types/api-renaming.ts`: reflect `empty.withTokenService`, preserving the two-argument assertion.
+- `tests/types/incremental.ts`: reflect `broadKeys.withServices<...>` with the existing generic argument and numeric-key assertion.
+- `tests/types/replacement-reflection.ts`, `replacement-supported.ts`, `replacement-reflection-consumer.ts`, and negative `replacement-reflection.ts`/`replacement-views.ts`: rename the 15 qualified replacement references to `withReplacedService`, preserving every conditional, return, non-any and module-history assertion.
+- `tests/types/negative/aliases.ts`: reflect `withServiceAlias`; its parameter property checks become `[0]['aliasKey']` and `[0]['targetServiceKey']`.
+- `tests/types/negative/contributions.ts`: reflect `withCollectionContribution`; the token parameter check becomes `[0]['collectionToken']`.
+- `tests/lifetimes.test.ts` and `tests/runtime-diagnostics.test.ts`: rename each structural helper member and call to `buildContainer`, preserving the existing `Function`/unknown erasure and every runtime assertion.
+
+Keep all compiler markers byte-identical. Run the affected positive and four negative compiler cases, contribution source/declaration consumption, focused lifetimes/runtime-diagnostics suites, typecheck, and targeted replacement-reflection producer/consumer declaration proof with both emitters/formats. Do not repeat the complete declaration matrix here. Re-run the parse-only residual audit and classify every remaining hit; local variables named `alias`/`contribute` and the library-free control are not retired members. The shared current-versus-baseline runtime benchmark is a separate explicitly owned adaptation, not an allowed unclassified library call.
+
+Preserve the prior 86-row codemod proof at its actual `19012b8` tree and the immutable input artifacts. For this supplemental unit, preserve the three Task12 statements and path/reason rows in `runtime-diagnostics.test.ts` byte-for-byte, rather than claiming the entire file unchanged after its helper rename. The other six Task12 controls in `nested-modules.test.ts` remain whole-file identical. Startup/source/codemod/map remain unchanged. Reuse the prior expensive preview with this exact delta proof; if evidence shows another codemod-relevant shape, classify it explicitly before acceptance. Exact-stage the eleven reviewed files; keep the generated-documentation status truthful and the required commit trailers.
+
+---
+
 ### Task 9: Migrate generated source strings and JavaScript tests
 
 **Files:**
@@ -3198,7 +3215,7 @@ rg -n "\b(BuilderContribute|register|alias|contribute|replace|installModule|veri
 rg -n "operation: ['\"](register|alias|replace|installModule)['\"]" src tests
 ```
 
-Every remaining hit must be one of: codemod 0.4.0 input/map/vendor declarations, `tools/graph`'s deliberately bilingual code and 0.4 fixture, the new negative-renaming fixture, an unrelated JavaScript method (`String.prototype.replace`), or a guide deferred by the master plan. There must be no retired public declaration, executable repo call, JSDoc example, runtime operation detail or stale test marker.
+Every remaining hit must be one of: codemod 0.4.0 input/map/vendor declarations, `tools/graph`'s deliberately bilingual code and 0.4 fixture, the new negative-renaming fixture, the exact S1/S7 historical comparison branches pinned in Task 9, an unrelated JavaScript method (`String.prototype.replace`), or a guide deferred by the master plan. There must be no retired public declaration, executable repo call, JSDoc example, runtime operation detail or stale test marker.
 
 - [ ] **Step 7: Run contract tests, then continue without committing**
 
