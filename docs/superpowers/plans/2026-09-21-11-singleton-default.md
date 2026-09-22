@@ -918,12 +918,13 @@ readonly replacementProviders?: ReplacementProviders &
   object &
   Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> &
   Overrides<
-    SelectionRegistrations<ServiceRegistrations, ReplacedServiceKeys>,
-    ReboundSelected<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>
+    ServiceRegistrations,
+    ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>,
+    ReplacedServiceKeys
   >;
 ```
 
-Retain every existing compatibility, completeness, constraint, and `CheckedChildContainerLifetimes` intersection following that excerpt. Do not add this admission to `CreateIndependentContainerOptions`.
+Retain every existing compatibility, completeness, constraint, and `CheckedChildContainerLifetimes` intersection following that excerpt. This carries forward Phase4's reviewed public declaration facades (`b22f2b3`): keep the third selection argument to `Overrides`, and keep synthetic collection-selection helpers private behind `ReboundSelection`/`OverrideRegistrations`. The new singleton admission still requires this phase's compiler and physical consumer proof. Do not add this admission to `CreateIndependentContainerOptions`.
 
 Replace the complete phase-7 replacement overload, after phase-10 type renames, with:
 
@@ -940,19 +941,19 @@ createChildContainer<
     ReplacedServiceKeys,
     ReplacementProviders & ChildReplacementAdmission<ServiceRegistrations, ReplacedServiceKeys> & object &
       Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> &
-      Overrides<SelectionRegistrations<ServiceRegistrations, ReplacedServiceKeys>, ReboundSelected<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>> &
-      CheckDependencyCompatibility<AppliedSelection<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>> &
-      CheckDependencyCompleteness<AppliedSelection<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>> &
-      CheckedConstraints<Constraints, AppliedSelection<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>> &
-      CompleteConstraints<Constraints, AppliedSelection<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>> &
+      Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys> &
+      CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+      CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+      CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
+      CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
       CheckedChildContainerLifetimes<
-        NoInfer<ScopedAliases<AppliedSelection<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>, ServiceRegistrations, SharedParentServiceKeys>>,
-        NoInfer<ReboundSelected<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>>,
+        NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>>,
+        NoInfer<ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>,
         WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>
       >
   >,
 ): Container<
-  ScopedAliases<AppliedSelection<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>, ServiceRegistrations, SharedParentServiceKeys>,
+  ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>,
   WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>
 >;
 ```
