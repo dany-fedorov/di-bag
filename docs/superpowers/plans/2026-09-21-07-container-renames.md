@@ -1936,7 +1936,7 @@ const patterns = [
   'tests/**/*.{ts,tsx,mjs}', 'scripts/**/*.{ts,tsx,mjs}',
   'tools/graph/**/*.{ts,tsx,mjs,md}', 'AGENTS.md', 'docs/agent/*.md',
 ];
-const excluded = /(?:api-renaming\.ts|docs\/agent\/api-card\.md$|tests\/benchmarks\/runtime-scenarios\.ts|scripts\/runtime-benchmark-child\.ts|tools\/codemod\/test\/fixtures|tools\/graph\/test\/fixtures\/.*0-4)/;
+const excluded = /(?:api-renaming\.ts|docs\/agent\/api-card\.md$|tests\/benchmarks\/runtime-scenarios\.ts|scripts\/runtime-benchmark-child\.ts|tools\/codemod\/test\/fixtures|tools\/graph\/test\/fixtures\/.*0-4|tools\/graph\/test\/renamed-exports\.test\.mjs$|tests\/container-names\.test\.ts$|tests\/fixtures\/api-naming\/)/;
 const files = [...new Set(patterns.flatMap(pattern => globSync(pattern)))].filter(file => !excluded.test(file)).sort();
 const rules = [
   [/(['"])(di-bag\/node)\1/g, (_m, quote) => `${quote}di-bag${quote}`, 'root import'],
@@ -1956,7 +1956,7 @@ const rules = [
   [/\bonError\s*\(/g, 'onObserverFailure(', 'observer failure method'],
 ];
 const inventory = { before: {}, changes: {}, after: {} };
-const retired = /\.(?:createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(|\b(?:ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b|\b(?:observers|onEvent|onError)\s*:/g;
+const retired = /\.(?:createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(|\b(?:ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b|\b(?:observers\s*:|onEvent\s*[:(]|onError\s*[:(])/g;
 for (const file of files) {
   const unresolved = readFileSync(file, 'utf8').match(/\.(?:createScope|fork)\s*\(/g) ?? [];
   if (unresolved.length) throw new Error(`${file}: ${unresolved.length} derivation call(s) require an explicit migration to the selected container signature before this script writes anything`);
@@ -1983,6 +1983,8 @@ if (Object.values(inventory.after).some(count => count !== 0)) throw new Error('
 ```
 
 Run it after the exact derivation-call edits in Steps 1 through 4. Expected before inventory: every nonzero file belongs to the explicit file groups in this task. Expected after inventory: every value is `0`. Review `changes` file by file; reject an empty change record for a nonzero input. The script deliberately aborts on a retired `createScope` or `fork` call; edit that specific source string to one of the selected signatures shown below, then rerun from the task commit's clean starting tree. Do not add a permissive regex.
+
+The exact additional exclusions protect `tools/graph/test/renamed-exports.test.mjs`'s positional/current compatibility chain, the three expand-only legacy/mixed/conflict observer controls in the already migrated `tests/container-names.test.ts`, and the intentionally invalid naming-analysis inputs under `tests/fixtures/api-naming/`. Record those controls and their unchanged file hashes separately; excluded controls are not zero-count migrated inputs. Task9 owns retirement of the observer compatibility controls. Task6 also owns the indirect observer record migration, including the later `options.onLifecycleEvent` mutation in `tests/observers.test.ts`; verify that repair is present instead of relying on the helper's declaration regex to rename a member reference. Callback audits cover both property and method syntax.
 
 Before editing, capture the positional derivation inventory from the phase entry tree:
 
@@ -2071,7 +2073,7 @@ rg -n '\.(createScope|fork)\(' tests/*.node.mjs tests/compiler.ts tests/package.
 test ! -s /tmp/di-bag-phase-06/untyped-derivations.after.txt
 grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(' tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
 grep -rnE '\b(Bag|ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b' tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
-grep -rnE '\b(observers|onEvent|onError)\s*:' tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
+grep -rnE '\b(observers\s*:|onEvent\s*[:(]|onError\s*[:(])' tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
 wc -l AGENTS.md
 npm run agent-eval:test
 npm run graph:check
@@ -2194,7 +2196,7 @@ bun test tests/container-names.test.ts
 bun test tests/types.test.ts --test-name-pattern 'api-renaming|container derivation|container-derivation'
 grep -rnE '^class Bag\b|export type \{[^}]*\bBag\b|\b(ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
 grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
-grep -rnE "operation: '(inspect|inspectGraph|createScope|fork|renameExport)'|\b(observers|onEvent|onError)\s*:" src tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
+grep -rnE "operation: '(inspect|inspectGraph|createScope|fork|renameExport)'|\b(observers\s*:|onEvent\s*[:(]|onError\s*[:(])" src tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
 ```
 
 Expected: tests pass. At this contract point, the first two greps show only the Task-9 observer/module expand declarations, explicit negative/codemod-input fixtures, and the preserved private inspection channels: `this.#runtime.inspect`, `inspectCollection` and `inspectGraph` in `src/di-bag.ts`, acquisition-owner `inspect` calls in `src/acquisition.ts`, and `this.acquisitions.inspect` in `src/runtime.ts`. These internal calls are not retired public container members. The operation grep has no public container-operation hit. Record every allowed path and receiver, and carry the same precise internal-channel classification into the final Task-12 audit. `BagRuntime`, `DiBag*`, package names, codes, and graph `kind: "bag"` remain intentionally.
@@ -2239,6 +2241,8 @@ Append a runtime check that `renameExport` is absent from a built module. Run th
 - [ ] **Step 2: Remove old declarations and expand-only branches**
 
 Delete `Module.renameExport`. Change `RenameKeys`'s default `Operation` from `'renameExport'` to `'withRenamedExport'`, then remove `'renameExport'` from the operation constraint and remove the old diagnostic spelling; keep the explicit fourth argument on `withRenamedExport` so its emitted signature stays stable across contraction. Remove `ObserverOptions`, `ConfigurationOptions.observers`, the both-fields conflict branch, and `LifecycleObservers.appendLegacy`. Replace the expand-only private record with `readonly LifecycleObserver[]`; make `append(previous, observer)` validate/read `onLifecycleEvent` and `onObserverFailure` once as in Task 4, freeze that new-shape pair, and make the queue destructure/call those two names. This removes every internal `onEvent`/`onError` access together with the public declarations. Export `LifecycleObserver` from `src/index.ts`. Keep `ObserverCallback`, `ObserverErrorCallback`, and `ObserverFailure` unchanged, per spec. Keep event kinds, `ScopeEventFields`, and event field names for plan 12, master phase 11.
+
+Now retire the two expand-only legacy/mixed observer compatibility cases in `tests/container-names.test.ts` that Tasks6–7 deliberately preserved. Keep all current callback/getter/mutation checks. Replace the both-fields conflict expectation with the contracted rejection of the retired `observers` field: the options-bag boundary rejects it with `DI_BAG_INVALID_ARGUMENT`, `operation: 'withConfiguration'`, `argument: 'options'`, and `expected: 'only the own properties: runtime, lifecycleObservers'`. Preserve the existing invalid payload and assert the actual code/details; the old conflict branch no longer defines this rejection.
 
 The contracted storage and delivery edits are exact:
 
@@ -2434,7 +2438,7 @@ This one commit owns Tasks 8 through 11: removal of old container/module/observe
 ```bash
 grep -rnE '^class Bag\b|export type \{[^}]*\bBag\b|\b(ScopeOptions|CheckedScopeLifetimes|DisjointScopeSelection|ObserverOptions)\b' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
 grep -rnE '\.(createScope|fork|inspect|inspectCollection|inspectGraph|renameExport)\(' src tests examples scripts tools/graph AGENTS.md docs/agent --exclude='api-renaming.ts' --exclude-dir='container-renames'
-grep -rnE "operation: '(inspect|inspectGraph|createScope|fork|renameExport)'|\b(observers|onEvent|onError)\s*:" src tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
+grep -rnE "operation: '(inspect|inspectGraph|createScope|fork|renameExport)'|\b(observers\s*:|onEvent\s*[:(]|onError\s*[:(])" src tests examples scripts tools/graph AGENTS.md docs/agent --exclude-dir='container-renames'
 grep -rnE "di-bag/node|src/node|reference/node|['\"]\./node['\"]" package.json tsconfig.build.json src tests examples scripts tools .github AGENTS.md docs/agent --exclude-dir='container-renames'
 grep -rnE "from ['\"]node:|require\(['\"]node:" src
 ```
