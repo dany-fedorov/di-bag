@@ -96,20 +96,20 @@ export class BindingGraph {
         description: Object.freeze({ id: binding.id, label: binding.label, registration: binding.registration, localNames: lexical.names }),
         normalized: Object.freeze(normalize(binding.registration)),
       };
-      this.retainBindingTokenKinds(entry, 'installModule');
+      this.retainBindingTokenKinds(entry, 'withInstalledModules');
       this.#bindings = this.#bindings.set(id, entry);
     }
     for (const [key, id] of description.publicSlots) {
       if (typeof key === 'symbol') {
         const kind = declaredKinds.get(key);
-        if (kind !== undefined) this.claimTokenKind(key, kind, 'installModule');
+        if (kind !== undefined) this.claimTokenKind(key, kind, 'withInstalledModules');
       }
       this.#publicOrder = append(this.#publicOrder, { values: [key] });
       this.#publicSlots = this.#publicSlots.set(key, id);
       this.#publicReferences = this.#publicReferences.set(id, (this.#publicReferences.get(id) ?? 0) + 1);
     }
     for (const [key, ids] of description.contributions ?? []) {
-      this.claimTokenKind(key, 'collection', 'installModule');
+      this.claimTokenKind(key, 'collection', 'withInstalledModules');
       const snapshot = Object.freeze([...ids]);
       this.#contributions = this.#contributions.set(key, { values: snapshot });
       for (const id of snapshot) this.#contributed = this.#contributed.set(id, true);
@@ -454,7 +454,8 @@ export class BindingGraph {
   }
 
   /** Install disjoint public slots atomically, retaining lexical private refs. */
-  withInstallation(description: GraphDescription, operation: 'installModule' | 'withInstalledModules' = 'installModule'): BindingGraph {
+  withInstallation(description: GraphDescription): BindingGraph {
+    const operation = 'withInstalledModules';
     for (const key of description.publicSlots.keys()) {
       if (this.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation, key });
     }
@@ -471,7 +472,7 @@ export class BindingGraph {
     for (const [key, id] of installation.#publicSlots) {
       if (typeof key === 'symbol') {
         const kind = installation.#tokenKinds.get(key);
-        if (kind !== undefined) graph.claimTokenKind(key, kind, 'installModule');
+        if (kind !== undefined) graph.claimTokenKind(key, kind, operation);
       }
       graph.#publicOrder = append(graph.#publicOrder, { values: [key] });
       graph.#publicSlots = graph.#publicSlots.set(key, id);
@@ -483,12 +484,12 @@ export class BindingGraph {
         graph.releaseBindingTokenKinds(previous);
         graph.releaseLexical(previous, pending);
       }
-      graph.retainBindingTokenKinds(entry, 'installModule');
+      graph.retainBindingTokenKinds(entry, operation);
       graph.#bindings = graph.#bindings.set(id, entry);
       graph.#obsolete = graph.#obsolete.delete(id);
     }
     for (const [key, sequence] of installation.#contributions) {
-      graph.claimTokenKind(key as symbol, 'collection', 'installModule');
+      graph.claimTokenKind(key as symbol, 'collection', operation);
       graph.#contributions = graph.#contributions.set(key, append(graph.#contributions.get(key), sequence));
     }
     graph.prune(pending);

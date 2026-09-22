@@ -14,7 +14,7 @@ Defined in: [errors.ts:117](https://github.com/dany-fedorov/di-bag/blob/main/src
 ```ts
 import { DiBag, DiBagServiceReadinessError } from 'di-bag';
 
-const bag = DiBag.createBuilder().register({ db: async (): Promise<number> => { throw new Error('offline'); } }).build();
+const bag = DiBag.createBuilder().withServices({ db: async (): Promise<number> => { throw new Error('offline'); } }).buildContainer();
 try {
   await bag.ensureServicesReady(['db']);
 } catch (error) {

@@ -15,7 +15,7 @@ const tasks = JSON.parse(readFileSync(resolve(directory, 'api-card-tasks.json'),
 
 test('the card covers the runtime surface, links every task, and fits the budget', () => {
   const names = runtimeSurface(project).map(item => item.name);
-  for (const name of ['DiBag.createBuilder', 'builder.register', 'builder.contribute', 'bag.close', 'DiBagCloseCancelledError']) assert(names.includes(name), name);
+  for (const name of ['DiBag.createBuilder', 'builder.withServices', 'builder.withCollectionContribution', 'bag.close', 'DiBagCloseCancelledError']) assert(names.includes(name), name);
   const markdown = renderApiCard(project, tasks);
   const { headings } = parseMarkdown(markdown);
   const ids = new Set(headings.map(heading => heading.id));
@@ -37,5 +37,5 @@ test('the card refuses a runtime call without an @example', () => {
 
 test('the task table maps each task to exactly one known call', () => {
   assert.throws(() => renderApiCard(project, [{ task: 'Resolve', call: 'bag.get' }]), /"Resolve" names unknown call bag\.get/);
-  assert.throws(() => renderApiCard(project, [{ task: 'Replace for a test', call: ['bag.fork', 'builder.replace'] }]), /needs a task and exactly one call/);
+  assert.throws(() => renderApiCard(project, [{ task: 'Replace for a test', call: ['bag.fork', 'builder.withReplacedService'] }]), /needs a task and exactly one call/);
 });

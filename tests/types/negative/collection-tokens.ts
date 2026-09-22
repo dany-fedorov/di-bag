@@ -11,9 +11,9 @@ const sharedCollection = DiBag.token(sharedKey).forCollectionOf<number>();
 const emptyBag = DiBag.createBuilder().buildContainer();
 
 service satisfies typeof service;
-// diagnostic: register requires a single-service token
+// diagnostic: withTokenService requires a single-service token
 DiBag.createBuilder().withTokenService(collection, () => [1]);
-// diagnostic: alias destination requires a single-service token
+// diagnostic: withServiceAlias destination requires a single-service token
 DiBag.createBuilder().withServices({ value: (): readonly number[] => [] }).withServiceAlias({ aliasKey: collection, targetServiceKey: 'value' });
 // diagnostic: optional requires a single-service token
 DiBag.optional(collection);
@@ -33,7 +33,7 @@ DiBag.createBuilder().withCollectionContribution({ collectionToken: sharedCollec
 emptyBag.resolve(collection);
 // diagnostic: operation requires a single-service token
 emptyBag.inspect(collection);
-// diagnostic: contribute requires a collection token
+// diagnostic: withCollectionContribution requires a collection token
 DiBag.createBuilder().withCollectionContribution({ collectionToken: service, provider: () => 1 });
 
 const sealedCollectionKey = Symbol('sealed collection');

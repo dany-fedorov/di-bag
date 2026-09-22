@@ -15,37 +15,37 @@ DiBag.createBuilder().withTokenService(
 );
 
 DiBag.createBuilder().withTokenService(clock, (): Clock => ({ now: () => 1 })).withTokenService(
-  // diagnostic: register introduces new names or typed tokens only
+  // diagnostic: withServices and withTokenService introduce new names or typed tokens only
   clock,
   (): Clock => ({ now: () => 2 }),
 );
 
 DiBag.createBuilder().withTokenService(
-  // diagnostic: register requires a single-service token
+  // diagnostic: withTokenService requires a single-service token
   tools,
   () => ['wrong channel'],
 );
 
 DiBag.createBuilder().withServices({ a: () => 1 }).withServiceAlias({
   aliasKey: 'b',
-  // diagnostic: alias requires an existing named target
+  // diagnostic: withServiceAlias requires an existing named target
   targetServiceKey: 'missing',
 });
 
 DiBag.createBuilder().withServices({ a: () => 1 }).withServiceAlias({
-  // diagnostic: register introduces new names or typed tokens only
+  // diagnostic: withServices and withTokenService introduce new names or typed tokens only
   aliasKey: 'a',
   targetServiceKey: 'a',
 });
 
 DiBag.createBuilder().withServices({ a: (): readonly string[] => [] }).withServiceAlias({
-  // diagnostic: alias destination requires a single-service token
+  // diagnostic: withServiceAlias destination requires a single-service token
   aliasKey: tools,
   targetServiceKey: 'a',
 });
 
 DiBag.createBuilder().withCollectionContribution({
-  // diagnostic: contribute requires a collection token
+  // diagnostic: withCollectionContribution requires a collection token
   collectionToken: tool,
   provider: () => 'search',
 });
@@ -58,7 +58,7 @@ DiBag.createBuilder().withCollectionContribution({
 
 // Zero-dependency fast path: the diagnostic must land on serviceKey.
 DiBag.createBuilder().withServices({ a: () => 1 }).withReplacedService(
-  // diagnostic: replace requires one existing singleton string-literal key
+  // diagnostic: withReplacedService requires one existing singleton string-literal key
   'missing',
   () => 2,
 );
@@ -75,3 +75,7 @@ DiBag.createBuilder().withServices({ a: () => 1, b: () => 2, consumer: ({ a }: {
 DiBag.createBuilder().withServices({ a: () => 1 }).buildModule({ exportedServiceKeys: ['missing'] });
 // diagnostic: is not assignable to type 'string'
 DiBag.createBuilder().withServices({ a: () => 1 }).buildModule({ exportedServiceKeys: ['a'], moduleLabel: 1 });
+
+const moduleBuilder = DiBag.createBuilder().withServices({ value: () => 1 });
+// diagnostic: Object literal may only specify known properties
+moduleBuilder.buildModule({ exportedServiceKeys: ['value'], label: 'old' });

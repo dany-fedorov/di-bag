@@ -24,13 +24,13 @@ needs without opening its implementation:
 ```text
 src/features/invoicing/
   contract.ts        # exported service types and the requirements the host must supply
-  module.ts          # buildModule([...]) over the private factories
+  module.ts          # buildModule({ exportedServiceKeys: [...] }) over the private factories
   store.ts           # private services; free to use names other modules also use
   check.ts           # type-checks this module alone; never imported, not built
   tsconfig.json      # extends the root tsconfig and includes only this directory
   invoicing.test.ts
-src/app.ts           # installs every module, one installModule call per line
-src/app.check.ts     # verifyGraph() on the application builder: the merge check
+src/app.ts           # installs modules in one withInstalledModules([...]) list
+src/app.check.ts     # verifyGraphAtCompileTime() on the application builder: the merge check
 ```
 
 - `contract.ts` holds the exported service types and the types of the

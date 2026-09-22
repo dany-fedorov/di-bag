@@ -14,7 +14,7 @@ A `close({ waitTimeoutMs, abortSignal })` wait stopped before cleanup finished; 
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
-const bag = DiBag.createBuilder().register({ value: () => 1 }).build();
+const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 try {
   await bag.close({ waitTimeoutMs: 5_000 });
 } catch (error) {

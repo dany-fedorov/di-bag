@@ -7,10 +7,10 @@ import type { Singleton, Unsatisfied } from './types';
 
 export type AliasSelection = string | TokenBase;
 export type AliasAdmission<T> = Singleton<T> extends true ? unknown : ValidToken<T> extends true ? unknown
-  : Unsatisfied<'alias requires one singleton name or genuine token', {}>;
+  : Unsatisfied<'withServiceAlias requires one singleton name or genuine token', {}>;
 export { type AliasDestinationAdmission } from './token-types';
 export type AliasTarget<R extends Registrations, C, T> = T extends string
-  ? T extends keyof R ? unknown : Unsatisfied<'alias requires an existing named target', {}>
+  ? T extends keyof R ? unknown : Unsatisfied<'withServiceAlias requires an existing named target', {}>
   : T extends CollectionTokenBase ? CollectionMember<T, C>
   : [WrongToken<T, R>] extends [never] ? unknown : Unsatisfied<'token dependency has an incompatible or opaque contract', {}>;
 /**
@@ -21,7 +21,7 @@ export type AliasOutput<R extends Registrations, T> = T extends string
   ? T extends keyof R ? ProviderOutput<R[T]> : never : TokenValue<T>;
 export type AliasDestination<R extends Registrations, D, T> = D extends TokenBase
   ? [AliasOutput<R, T>] extends [TokenValue<D>] ? unknown
-    : Unsatisfied<'alias output is not assignable to destination service', {}> : unknown;
+    : Unsatisfied<'withServiceAlias output is not assignable to alias service', {}> : unknown;
 // The synthetic needs retain replacement/completeness obligations. The marker
 // tells lifetime walks to follow the target without adding a lifetime boundary.
 /**

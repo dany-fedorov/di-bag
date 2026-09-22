@@ -9,28 +9,28 @@ on those. Its message has the form
 where the fragment is the code lower-cased with `_` replaced by `-`. Errors
 thrown by your factories and disposers keep their identity.
 
-A private binding of a module built with `buildModule(keys, { label })` appears
+A private binding of a module built with `buildModule({ exportedServiceKeys: keys, moduleLabel })` appears
 as `<label>/<key>` in messages and `details` paths (`outer/inner/key` when
 nested), which names the module directory to open.
 
 A compile-time rejection is an assignability error whose type reads
 `Unsatisfied<"message", details>`. The message ends with
 `; see https://dany-fedorov.github.io/di-bag/agent/errors.html#<family>`, one of
-the sections below. Put `builder.verifyGraph() satisfies void;` on its own line
+the sections below. Put `builder.verifyGraphAtCompileTime() satisfies void;` on its own line
 to report it there, and set `"noErrorTruncation": true` to print the details.
 
 ## Compile-time messages {#compile-time}
 
 ### Missing service {#missing-service}
 
-**When:** `build()`, `verifyGraph()`, or `check.ts` reports
+**When:** `buildContainer()`, `verifyGraphAtCompileTime()`, or `check.ts` reports
 `required service registrations are missing: <keys>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service`.
 
 **Cause:** a factory declares a dependency that no registration, installed
 module, or host supplies. A module's unmet dependencies become requirements of
 the builder that installs it.
 
-**Fix:** register each listed key in the host, or a typed fixture in `check.ts`
+**Fix:** add each listed key in the host with `withServices`, or add a typed fixture in `check.ts`
 and tests.
 
 ```ts
@@ -38,30 +38,30 @@ and tests.
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
-  .register({ greeter: ({ config }: { config: { greeting: string } }) => config.greeting })
-  .verifyGraph() satisfies void;
+  .withServices({ greeter: ({ config }: { config: { greeting: string } }) => config.greeting })
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
 ```ts
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
-  .register({
+  .withServices({
     config: () => ({ greeting: 'Hello' }),
     greeter: ({ config }: { config: { greeting: string } }) => config.greeting,
   })
-  .verifyGraph() satisfies void;
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
 **Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
 
 ### Unsatisfied consumer {#unsatisfied-consumer}
 
-**When:** `verifyGraph()` reports
+**When:** `verifyGraphAtCompileTime()` reports
 `provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer`,
-with details `{ consumer, dependency, expected, provided }`, or any registering
-call (`contribute`, `installModule`, `register`, `replace`, `fork`,
-`createScope`) and `verifyGraph()` report
+with details `{ consumer, dependency, expected, provided }`, or any builder composition
+call (`withCollectionContribution`, `withInstalledModules`, `withServices`, `withReplacedService`, `fork`,
+`createScope`) and `verifyGraphAtCompileTime()` report
 `contribution service is incompatible with its consumer dependency contract; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer`,
 with details `{ failures: { consumer, diagnostic } }` where `diagnostic` carries
 the same four fields for the contributed service.
@@ -77,11 +77,11 @@ agree; the details name both keys and both types.
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
-  .register({
+  .withServices({
     port: () => 'eighty',
     server: ({ port }: { port: number }) => port + 1,
   })
-  .verifyGraph() satisfies void;
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
 **Recipe:** [review a merge](recipes.md#review-merge).
@@ -102,22 +102,22 @@ bag's instance.
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
-  .register({
+  .withServices({
     config: () => ({ url: 'memory:' }),
     client: DiBag.withLifetime(({ config }: { config: { url: string } }) => config.url, 'root'),
   })
-  .verifyGraph() satisfies void;
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
 ```ts
 import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
-  .register({
+  .withServices({
     config: DiBag.withLifetime(() => ({ url: 'memory:' }), 'root'),
     client: DiBag.withLifetime(({ config }: { config: { url: string } }) => config.url, 'root'),
   })
-  .verifyGraph() satisfies void;
+  .verifyGraphAtCompileTime() satisfies void;
 ```
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
@@ -126,8 +126,8 @@ DiBag.createBuilder()
 
 **When:** `fork accepts existing names or typed tokens only: unknown <key>`, the
 same message for `createScope` and `ensureServicesReady`,
-`replace requires one existing singleton string-literal key: <key>`, or, on
-`resolve`, `inspect`, or `replace`,
+`withReplacedService requires one existing singleton string-literal key: <key>`, or, on
+`resolve`, `inspect`, or `withReplacedService`,
 `token must be an individually known genuine handle` or
 `token must match an existing binding contract`, or
 `<op> requires a finite tuple of singleton string-literal names or typed tokens`
@@ -147,7 +147,7 @@ when the key is new. Pass the selection as a literal tuple
 // expect-error: fork accepts existing names or typed tokens only: unknown host; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ port: () => 80 }).build();
+const app = DiBag.createBuilder().withServices({ port: () => 80 }).buildContainer();
 app.fork(['host'], { host: () => 'localhost' });
 ```
 
@@ -172,7 +172,7 @@ import { DiBag } from 'di-bag';
 
 type Query = { then(onFulfilled: (rows: string[]) => void): void };
 const select = (): Query => ({ then: onFulfilled => onFulfilled([]) });
-DiBag.createBuilder().register({ query: select }).build();
+DiBag.createBuilder().withServices({ query: select }).buildContainer();
 ```
 
 ```ts
@@ -181,11 +181,11 @@ import { DiBag } from 'di-bag';
 type Query = { then(onFulfilled: (rows: string[]) => void): void };
 const select = (): Query => ({ then: onFulfilled => onFulfilled([]) });
 DiBag.createBuilder()
-  .register({
+  .withServices({
     rows: () => new Promise<string[]>(resolve => select().then(resolve)),
     query: DiBag.fromFactory(select, { acquisitionMode: 'raw' }),
   })
-  .build();
+  .buildContainer();
 ```
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
@@ -223,22 +223,22 @@ const ownedPromise = DiBag.fromFactory(() => Promise.resolve({ url: 'memory:' })
 
 ### Wrong shape at a call {#wrong-shape}
 
-**When:** `register`, `installModule`, or `replace` reports
+**When:** `withServices`, `withInstalledModules`, or `withReplacedService` reports
 `provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-shape`.
 
 **Cause:** the same mismatch as an [unsatisfied consumer](#unsatisfied-consumer).
 These call sites keep a short message because naming the keys there costs
 compile time on every valid graph.
 
-**Fix:** add `verifyGraph() satisfies void;` after the call to get the consumer,
+**Fix:** add `verifyGraphAtCompileTime() satisfies void;` after the call to get the consumer,
 dependency, expected type, and provided type.
 
 ```ts
 // expect-error: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-shape
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ port: () => 80 });
-app.register({ server: ({ port }: { port: string }) => port.length });
+const app = DiBag.createBuilder().withServices({ port: () => 80 });
+app.withServices({ server: ({ port }: { port: string }) => port.length });
 ```
 
 **Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
@@ -255,13 +255,13 @@ service but cannot change its contract, and its consumers are typed against the
 original.
 
 **Fix:** return the original service type (or a subtype) from the override. To
-change the contract, change the registration in the builder and re-`build()`.
+change the contract, change the registration in the builder and call `buildContainer()` again.
 
 ```ts
 // expect-error: Type 'string' is not assignable to type 'number'
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ port: () => 80 }).build();
+const app = DiBag.createBuilder().withServices({ port: () => 80 }).buildContainer();
 app.fork(['port'], { port: () => 'eighty' });
 ```
 
@@ -271,7 +271,7 @@ app.fork(['port'], { port: () => 'eighty' });
 
 ### DI_BAG_CLASSIFIER_REQUIRED {#di-bag-classifier-required}
 
-**When:** `build()` completes a graph on a host without
+**When:** `buildContainer()` completes a graph on a host without
 `process.getBuiltinModule`: browsers, Web Workers, and other non-Node runtimes.
 Node, Bun, and Deno never raise it.
 
@@ -281,7 +281,7 @@ every such registration, sorted, with private module services as `<label>/<key>`
 a direct `transformService` without an `acquisitionMode` counts under its
 registration's name.
 
-**Fix:** register each named service with `DiBag.fromSyncFactory` or
+**Fix:** add each named service with `DiBag.fromSyncFactory` or
 `DiBag.fromAsyncFactory`; give `fromFunction`, `fromClass`, and direct
 `transformService` an explicit `acquisitionMode`; or configure a trusted
 classifier with `withConfiguration({ runtime: { isNativePromise } })`.
@@ -290,11 +290,11 @@ classifier with `withConfiguration({ runtime: { isNativePromise } })`.
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     answer: DiBag.fromSyncFactory(() => 42),
     later: DiBag.fromAsyncFactory(async ({ answer }: { answer: number }) => answer * 2),
   })
-  .build();
+  .buildContainer();
 ```
 
 **Recipe:** [make a graph portable to browsers and workers](recipes.md#portable-graph).
@@ -342,7 +342,7 @@ bag is closed; `failures` lists `label` and `error` for each.
 ```ts
 import { DiBag, DiBagCleanupError } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
 try {
   await app.close();
 } catch (error) {
@@ -368,7 +368,7 @@ the named disposer or acquisition if it never settles.
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
 const controller = new AbortController();
 try {
   await app.close({ abortSignal: controller.signal });
@@ -395,7 +395,7 @@ created it.
 ```ts
 import { DiBag, type DiBagDiagnostic } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
 await app.close().catch((error: unknown) => {
   const failures = error instanceof AggregateError ? error.errors : [error];
   for (const failure of failures) console.error((failure as Partial<DiBagDiagnostic>).code, failure);
@@ -420,7 +420,7 @@ finite cleanup.
 ```ts
 import { DiBag, DiBagCloseCancelledError } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
 await app.close({ waitTimeoutMs: 5_000 }).catch((error: unknown) => {
   if (error instanceof DiBagCloseCancelledError) console.error('still running:', error.details.disposersStillRunning);
   throw error;
@@ -443,7 +443,7 @@ and close the scope, not the application bag.
 ```ts
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
 const scope = app.createScope();
 try {
   scope.resolve('answer');
@@ -486,12 +486,12 @@ edge with `DiBag.lazy(token)`.
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     rates: () => ({ vat: 0.2 }),
     prices: ({ rates }: { rates: { vat: number } }) => (cents: number) => cents * (1 + rates.vat),
     invoices: ({ rates }: { rates: { vat: number } }) => (cents: number) => cents * rates.vat,
   })
-  .build();
+  .buildContainer();
 ```
 
 **Recipe:** [review a merge](recipes.md#review-merge) (`di-bag-graph --check`
@@ -519,25 +519,25 @@ const service = DiBag.withMetadata(
 
 ### DI_BAG_DUPLICATE_REGISTRATION {#di-bag-duplicate-registration}
 
-**When:** `register`, `alias`, or `installModule` adds a public key that already
-exists. The compiler reports `register introduces new names or typed tokens only`.
+**When:** `withServices`, `withServiceAlias`, or `withInstalledModules` adds a public key that already
+exists. The compiler reports `withServices and withTokenService introduce new names or typed tokens only`.
 
 **Cause:** two registrations or two installed modules export the same name.
 
-**Fix:** use `replace(key, factory)` to substitute an implementation; install a
+**Fix:** use `withReplacedService(key, factory)` to substitute an implementation; install a
 second copy of a module under another name with `renameExport`.
 
 ```ts
-// expect-error: register introduces new names or typed tokens only
+// expect-error: withServices and withTokenService introduce new names or typed tokens only
 import { DiBag } from 'di-bag';
 
-DiBag.createBuilder().register({ port: () => 80 }).register({ port: () => 81 });
+DiBag.createBuilder().withServices({ port: () => 80 }).withServices({ port: () => 81 });
 ```
 
 ```ts
 import { DiBag } from 'di-bag';
 
-DiBag.createBuilder().register({ port: () => 80 }).replace('port', () => 81).build();
+DiBag.createBuilder().withServices({ port: () => 80 }).withReplacedService('port', () => 81).buildContainer();
 ```
 
 **Recipe:** [split a feature into a module](recipes.md#split-module).
@@ -574,21 +574,21 @@ const handle = DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'r
 
 ### DI_BAG_INVALID_ALIAS {#di-bag-invalid-alias}
 
-**When:** `alias(destination, 'target')` names a string target that is not yet
-registered. The compiler reports `alias requires an existing named target`.
+**When:** `withServiceAlias({ aliasKey: destination, targetServiceKey: 'target' })` names a string target that is not yet
+registered. The compiler reports `withServiceAlias requires an existing named target`.
 
 **Cause:** the alias is declared before its named target.
 
-**Fix:** register the target first, or alias a typed token, which may be bound
+**Fix:** add the target first, or alias a typed token, which may be bound
 later.
 
 ```ts
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({ service: () => ({ port: 8080 }) })
-  .alias('primary', 'service')
-  .build();
+  .withServices({ service: () => ({ port: 8080 }) })
+  .withServiceAlias({ aliasKey: 'primary', targetServiceKey: 'service' })
+  .buildContainer();
 ```
 
 **Recipe:** none.
@@ -677,7 +677,7 @@ deadline.
 ```ts
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ answer: () => 42 }).build();
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
 await app.close({ waitTimeoutMs: 1_000, abortSignal: AbortSignal.timeout(2_000) });
 ```
 
@@ -738,21 +738,21 @@ cannot list its properties.
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     port: () => 80,
     host: () => 'localhost',
     address: ({ host, port }: { host: string; port: number }) => ({ host, port }),
   })
-  .build();
+  .buildContainer();
 ```
 
 **Recipe:** none; see [rule 2](../../AGENTS.md#rules).
 
 ### DI_BAG_INVALID_EXPORT {#di-bag-invalid-export}
 
-**When:** `buildModule(keys, options)` receives a non-array, a key that is not
-registered on that builder, or a `label` that is not a non-empty string
-(`details.option: 'label'`), or `renameExport(old, new)` names a missing export,
+**When:** `buildModule({ exportedServiceKeys, moduleLabel })` receives a non-array key list, a key that is not
+registered on that builder, or a `moduleLabel` that is not a non-empty string
+(`details.option: 'moduleLabel'`), or `renameExport(old, new)` names a missing export,
 a non-string name, or an existing export.
 
 **Cause:** the export list and the registrations disagree.
@@ -762,7 +762,7 @@ a non-string name, or an existing export.
 ```ts
 import { DiBag } from 'di-bag';
 
-const reports = DiBag.createBuilder().register({ service: () => ({ read: () => true }) }).buildModule(['service']);
+const reports = DiBag.createBuilder().withServices({ service: () => ({ read: () => true }) }).buildModule({ exportedServiceKeys: ['service'] });
 const east = reports.renameExport('service', 'eastReports');
 ```
 
@@ -852,7 +852,7 @@ const client = DiBag.withMetadata(() => ({ region: 'eu' }), {
 
 ### DI_BAG_INVALID_MODULE {#di-bag-invalid-module}
 
-**When:** `installModule(value)` receives something that `buildModule` did not
+**When:** an element of `withInstalledModules(values)` is something that `buildModule` did not
 create, such as a copied or proxied module.
 
 **Cause:** the module was cloned, serialized, or constructed by hand.
@@ -862,8 +862,10 @@ create, such as a copied or proxied module.
 ```ts
 import { DiBag } from 'di-bag';
 
-const feature = DiBag.createBuilder().register({ answer: () => 42 }).buildModule(['answer']);
-const app = DiBag.createBuilder().installModule(feature).build();
+const feature = DiBag.createBuilder().withServices({ answer: () => 42 }).buildModule({ exportedServiceKeys: ['answer'] });
+const app = DiBag.createBuilder().withInstalledModules([
+  feature,
+]).buildContainer();
 ```
 
 **Recipe:** [split a feature into a module](recipes.md#split-module).
@@ -883,7 +885,7 @@ override property.
 import { DiBag } from 'di-bag';
 
 type Clock = { now(): number };
-const app = DiBag.createBuilder().register({ clock: (): Clock => ({ now: () => 42 }) }).build();
+const app = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now: () => 42 }) }).buildContainer();
 const testApp = app.fork(['clock'], { clock: () => ({ now: () => 7 }) });
 await testApp.close();
 ```
@@ -915,36 +917,36 @@ const handler = DiBag.fromPlugin([], descriptor, {
 
 ### DI_BAG_INVALID_REGISTRATION {#di-bag-invalid-registration}
 
-**When:** `register` receives a non-object, a record with symbol keys, or a value
+**When:** `withServices` receives a non-object, a record with symbol keys, or a value
 that is neither a factory nor a DiBag provider.
 
 **Cause:** a constant registered directly, or tokens mixed into a name record.
 
-**Fix:** wrap values in factories; register tokens with `register(token, provider)`.
+**Fix:** wrap values in factories; bind tokens with `withTokenService(token, provider)`.
 
 ```ts
 import { DiBag } from 'di-bag';
 
 const portKey = Symbol('port');
 const port = DiBag.token(portKey).of<number>();
-DiBag.createBuilder().register({ host: () => 'localhost' }).register(port, () => 80).build();
+DiBag.createBuilder().withServices({ host: () => 'localhost' }).withTokenService(port, () => 80).buildContainer();
 ```
 
 **Recipe:** none.
 
 ### DI_BAG_INVALID_REPLACEMENT {#di-bag-invalid-replacement}
 
-**When:** `replace(key, registration)` names a key the builder does not expose.
+**When:** `withReplacedService(key, registration)` names a key the builder does not expose.
 The compiler reports [unknown key](#unknown-key).
 
 **Cause:** the key is misspelled, not yet registered, or private to a module.
 
-**Fix:** replace an exported or registered key; register a new one instead.
+**Fix:** replace an exported or registered key; add a new one with `withServices` instead.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-DiBag.createBuilder().register({ port: () => 80 }).replace('port', () => 8080).build();
+DiBag.createBuilder().withServices({ port: () => 80 }).withReplacedService('port', () => 8080).buildContainer();
 ```
 
 **Recipe:** [write a fixture test with `fork`](recipes.md#fixture-test).
@@ -965,8 +967,8 @@ most of these, for example `createScope cannot share transient providers`.
 import { DiBag } from 'di-bag';
 
 const parent = DiBag.createBuilder()
-  .register({ config: () => ({ region: 'eu' }), client: () => ({ id: 1 }) })
-  .build();
+  .withServices({ config: () => ({ region: 'eu' }), client: () => ({ id: 1 }) })
+  .buildContainer();
 const child = parent.createScope(['config'], { config: () => ({ region: 'us' }) }, { share: ['client'] });
 await parent.close();
 ```
@@ -990,8 +992,8 @@ open.
 import { DiBag } from 'di-bag';
 
 const app = await DiBag.createBuilder()
-  .register({ settings: async () => 'ready' })
-  .build()
+  .withServices({ settings: async () => 'ready' })
+  .buildContainer()
   .ensureServicesReady(['settings'], { totalTimeoutMs: 5_000, maxConcurrentServiceKeys: 1 });
 await app.close();
 ```
@@ -1057,7 +1059,7 @@ and `details.path` is the resolution chain.
 **Cause:** a cast, `any`, or JavaScript hid the dependency from the
 [missing service](#missing-service) check.
 
-**Fix:** remove the cast so the compiler reports the key, then register it.
+**Fix:** remove the cast so the compiler reports the key, then add it with `withServices`.
 
 **Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
 
@@ -1075,7 +1077,7 @@ public keys.
 ```ts
 import { DiBag } from 'di-bag';
 
-const app = DiBag.createBuilder().register({ port: () => 80 }).build();
+const app = DiBag.createBuilder().withServices({ port: () => 80 }).buildContainer();
 const keys = app.inspectGraph().bindings.flatMap(binding => binding.keys);
 ```
 
@@ -1111,7 +1113,7 @@ service, and make slow factories honor the acquisition `signal`.
 ```ts
 import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
 
-const bag = DiBag.createBuilder().register({ settings: async () => 'ready' }).build();
+const bag = DiBag.createBuilder().withServices({ settings: async () => 'ready' }).buildContainer();
 try {
   await bag.ensureServicesReady(['settings'], { totalTimeoutMs: 5_000 });
   await bag.close();
@@ -1141,7 +1143,7 @@ the bag closed. A child scope closes only itself, never its parent.
 ```ts
 import { DiBag, DiBagServiceReadinessError } from 'di-bag';
 
-const bag = DiBag.createBuilder().register({ settings: async () => 'ready' }).build();
+const bag = DiBag.createBuilder().withServices({ settings: async () => 'ready' }).buildContainer();
 const app = await bag.ensureServicesReady(['settings']).catch((error: unknown) => {
   throw error instanceof DiBagServiceReadinessError ? error.cause : error;
 });

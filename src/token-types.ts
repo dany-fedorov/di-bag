@@ -93,7 +93,7 @@ export type SingleServiceTokenMember<R extends Registrations, T> = unknown exten
 export type CollectionTokenMember<C, T extends CollectionTokenBase> = unknown extends TokenTupleAdmission<readonly [T]>
   ? CollectionMember<T, C> : TokenTupleAdmission<readonly [T]>;
 export type ServiceKeyMember<R extends Registrations, C, T> = T extends CollectionTokenBase ? CollectionTokenMember<C, T> : TokenMember<R, T>;
-export type AliasDestinationAdmission<T> = T extends CollectionTokenBase ? Unsatisfied<'alias destination requires a single-service token', {}> : unknown;
+export type AliasDestinationAdmission<T> = T extends CollectionTokenBase ? Unsatisfied<'withServiceAlias destination requires a single-service token', {}> : unknown;
 export type OptionalTokenAdmission<T> = T extends CollectionTokenBase ? Unsatisfied<'optional requires a single-service token', {}> : unknown;
 export type InvalidGraphs<R extends Registrations> = {
   [K in keyof R]: [ProviderGraphContract<R[K]>] extends [{ readonly kind: 'tokens'; readonly required: readonly TokenBase[]; readonly bound: TokenBase; readonly optional: readonly TokenBase[] }]

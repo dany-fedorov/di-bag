@@ -292,7 +292,7 @@ test('buildModule takes one bag, and the module label names private bindings', a
 test('buildModule rejects a malformed bag, a malformed key list and a malformed moduleLabel', () => {
   const builder = DiBag.createBuilder().withServices({ value: () => 1 });
   const seal = (options: unknown) => caught(() => loose(builder).buildModule!(options));
-  // A lone value that is not a plain object still means the 0.4.0 form while both forms exist; Task 12 adds that case.
+  // The contracted method accepts only the checked options bag.
   const onlyOwn = { operation: 'buildModule', argument: 'options', expected: 'only the own properties: exportedServiceKeys, moduleLabel' };
   expect(seal({ exportedServiceKeys: ['value'], label: 'orders' }).details).toEqual(onlyOwn);
   expect(seal(Object.create({ exportedServiceKeys: ['value'] })).details).toEqual(onlyOwn);

@@ -96,10 +96,10 @@ export const replacementDiagnosticExpectations = {
     supplemental: [],
   },
   'negative/union-replace.ts': {
-    primary: ['replace requires one existing singleton string-literal key',
-      'replace requires one existing singleton string-literal key',
-      'replace requires one existing singleton string-literal key',
-      'replace requires one existing singleton string-literal key'],
+    primary: ['withReplacedService requires one existing singleton string-literal key',
+      'withReplacedService requires one existing singleton string-literal key',
+      'withReplacedService requires one existing singleton string-literal key',
+      'withReplacedService requires one existing singleton string-literal key'],
     supplemental: [],
   },
 } as const satisfies Record<ReplacementDiagnosticFixture, DiagnosticInventory>;

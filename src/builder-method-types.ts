@@ -69,18 +69,8 @@ export interface BuilderWithReplacedService<Entries extends Entry, Constraints e
   ): import('./di-bag').Builder<ReplacedEntries<Entries, Key, Provider>, WithoutExportObligations<Constraints, SelectionKey<Key>>>;
 }
 
-/** The checked expand-phase overloads of `buildModule` exposed by a builder. */
+/** The checked `buildModule` callable exposed by a builder. */
 export interface BuilderBuildModule<Entries extends Entry, Constraints extends NeedConstraint> {
-  /** @deprecated The 0.4.0 form; the contract step of phase 5 removes it. */
-  <const Keys extends readonly unknown[]>(
-    keys: Keys & Selection<RegistrationsFromEntries<Entries>, Constraints, Keys, 'buildModule'> & ModuleExportAdmission<Keys> & SealAdmission<RegistrationsFromEntries<Entries>, Extract<SelectionKey<Keys[number]>, keyof RegistrationsFromEntries<Entries>>, Constraints>,
-    options?: ModuleOptions,
-  ): Module<
-    ExportedServices<ServicesOf<RegistrationsFromEntries<Entries>>, Extract<SelectionKey<Keys[number]>, keyof RegistrationsFromEntries<Entries>>>,
-    ExternalRequirements<ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<Keys[number]>, keyof RegistrationsFromEntries<Entries>>>>,
-    ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<Keys[number]>, keyof RegistrationsFromEntries<Entries>>>,
-    ModulePublicProviders<RegistrationsFromEntries<Entries>, Extract<SelectionKey<Keys[number]>, keyof RegistrationsFromEntries<Entries>>>
-  >;
   <const Keys extends readonly unknown[]>(
     options: ModuleOptions & {
       readonly exportedServiceKeys: Keys & Selection<RegistrationsFromEntries<Entries>, Constraints, Keys, 'buildModule'> & ModuleExportAdmission<Keys> & SealAdmission<RegistrationsFromEntries<Entries>, Extract<SelectionKey<Keys[number]>, keyof RegistrationsFromEntries<Entries>>, Constraints>;

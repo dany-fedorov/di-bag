@@ -19,5 +19,5 @@ declare const template: `prefix:${string}`;
 module.buildModule({ exportedServiceKeys: [template] });
 // diagnostic: finite tuple
 module.buildModule({ exportedServiceKeys: [Symbol('a')] });
-// diagnostic: register introduces new names or typed tokens only
+// diagnostic: withServices and withTokenService introduce new names or typed tokens only
 DiBag.createBuilder().withInstalledModules([module.buildModule({ exportedServiceKeys: ['a'] })]).withInstalledModules([module.buildModule({ exportedServiceKeys: ['a'] })]);

@@ -24,8 +24,6 @@ export interface ModuleOptions {
    * Exported bindings keep their bare key.
    */
   readonly moduleLabel?: string;
-  /** @deprecated The 0.4.0 name of `moduleLabel`, read only by the positional form; the contract step of phase 5 removes it. */
-  readonly label?: string;
 }
 const descriptions = new WeakMap<object, ModuleDescription>();
 declare const moduleInvariant: unique symbol;
@@ -108,29 +106,15 @@ function checkedModuleLabel(moduleLabel: unknown): string | undefined {
   return moduleLabel;
 }
 
-/** The 0.4.0 positional options `{ label? }`. The contract step of phase 5 removes this function. */
-export function positionalModuleLabel(options: unknown): unknown {
-  if (options === undefined) return undefined;
-  const invalid = () => libraryError('DI_BAG_INVALID_EXPORT', 'buildModule options must be { label?: string } with a non-empty label', { operation: 'buildModule', option: 'label' });
-  if (typeof options !== 'object' || options === null || Array.isArray(options)) throw invalid();
-  if (Reflect.ownKeys(options).some(key => key !== 'label') || ('label' in options && !Object.hasOwn(options, 'label'))) throw invalid();
-  if (!Object.hasOwn(options, 'label')) return undefined;
-  const label: unknown = Reflect.get(options, 'label');
-  if (label === undefined) return undefined;
-  if (typeof label !== 'string' || label === '') throw invalid();
-  return label;
-}
-
 /**
  * Internal normalization: every install receives fresh binding identities at
  * every nesting depth. Names resolve lexically: a binding's own local names
  * (from an inner installation) win, then the module's public names, then the
  * installing host's public slots.
  */
-export function moduleGraph(value: unknown, operation: 'installModule' | 'withInstalledModules' = 'installModule', index?: number): GraphDescription {
+export function moduleGraph(value: unknown, index?: number): GraphDescription {
   const description = typeof value === 'object' && value !== null ? descriptions.get(value) : undefined;
   if (!description) {
-    if (operation === 'installModule') throw libraryError('DI_BAG_INVALID_MODULE', 'installModule requires a genuine module', { operation: 'installModule' });
     throw libraryError('DI_BAG_INVALID_MODULE', `withInstalledModules requires genuine modules: element ${index} is not one`, { operation: 'withInstalledModules', index });
   }
   const { graph, exports, label } = description;

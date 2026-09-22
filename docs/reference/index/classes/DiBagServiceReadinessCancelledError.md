@@ -14,7 +14,7 @@ Defined in: [errors.ts:151](https://github.com/dany-fedorov/di-bag/blob/main/src
 ```ts
 import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
 
-const bag = DiBag.createBuilder().register({ db: () => new Promise<number>(() => {}) }).build();
+const bag = DiBag.createBuilder().withServices({ db: () => new Promise<number>(() => {}) }).buildContainer();
 try {
   await bag.ensureServicesReady(['db'], { totalTimeoutMs: 1_000 });
 } catch (error) {

@@ -5,7 +5,7 @@ incomplete.verifyGraphAtCompileTime() satisfies void;
 const captive = DiBag.createBuilder().withServices({ config: () => 1, db: DiBag.withLifetime(({ config }: { config: number }) => config, 'root') });
 // diagnostic: root lifetime cannot capture scoped dependency: db -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
 captive.verifyGraphAtCompileTime() satisfies void;
-// register reports the generic wrong shape; verifyGraph() prints the details and names the unsatisfied-consumer section.
+// withServices reports the generic wrong shape; verifyGraphAtCompileTime() prints the details and names the unsatisfied-consumer section.
 // diagnostic: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-shape
 const mismatched = DiBag.createBuilder().withServices({ port: () => 'eighty', server: ({ port }: { port: number }) => port + 1 });
 // diagnostic: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer

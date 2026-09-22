@@ -152,7 +152,7 @@ test('three nesting levels forward unmet requirements outward and keep replaced 
   const top = DiBag.createBuilder().withInstalledModules([middle]).withServices({ topValue: ({ middleValue }: { middleValue: number }) => middleValue + 100 }).buildModule({ exportedServiceKeys: ['topValue'] });
   const host = DiBag.createBuilder().withInstalledModules([top]).withServices({ external: () => 1 }).buildContainer();
   expect(host.resolve('topValue')).toBe(106);
-  const missing = (DiBag.createBuilder().installModule as Function)(top).build();
+  const missing = (DiBag.createBuilder().withInstalledModules as Function)([top]).buildContainer();
   expect(() => missing.resolve('topValue')).toThrow('dependency "external" is not registered');
   await host.close(); await missing.close();
 });
@@ -187,9 +187,9 @@ test('startup and child scopes acquire nested exports through the host runtime',
 
 test('sealing rejects unknown keys and forged modules exactly as before', () => {
   const builder = DiBag.createBuilder().withServices({ a: () => 1 });
-  expect(() => (builder.buildModule as Function)(['missing'])).toThrow('existing names or typed tokens only');
-  expect(() => (builder.buildModule as Function)('a')).toThrow('key tuple');
+  expect(() => (builder.buildModule as Function)({ exportedServiceKeys: ['missing'] })).toThrow('existing names or typed tokens only');
+  expect(() => (builder.buildModule as Function)({ exportedServiceKeys: 'a' })).toThrow('key tuple');
   const module = builder.buildModule({ exportedServiceKeys: ['a'] });
-  expect(() => (DiBag.createBuilder().installModule as Function)({ ...module })).toThrow('genuine module');
-  expect(() => (DiBag.createBuilder().withServices({ a: () => 2 }).installModule as Function)(module)).toThrow('duplicate registration: a');
+  expect(() => (DiBag.createBuilder().withInstalledModules as Function)([{ ...module }])).toThrow('withInstalledModules requires genuine modules: element 0 is not one');
+  expect(() => (DiBag.createBuilder().withServices({ a: () => 2 }).withInstalledModules as Function)([module])).toThrow('duplicate registration: a');
 });

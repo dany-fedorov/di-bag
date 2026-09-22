@@ -15,14 +15,14 @@ const numericLogger = DiBag.createBuilder()
 DiBag.createBuilder().withInstalledModules([
   logging,
   feature,
-  // diagnostic: register introduces new names or typed tokens only
+  // diagnostic: withServices and withTokenService introduce new names or typed tokens only
   logging,
 ]);
 
 // A module export collides with the builder.
 DiBag.createBuilder().withServices({ logger: () => ({ log: (line: string) => line }) }).withInstalledModules([
   feature,
-  // diagnostic: register introduces new names or typed tokens only
+  // diagnostic: withServices and withTokenService introduce new names or typed tokens only
   logging,
 ]);
 

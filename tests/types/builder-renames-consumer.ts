@@ -9,7 +9,7 @@ const tools = withCollectionContributionMethod({ collectionToken: physicalTools,
 const replacedFast = withReplacedServiceMethod('base', () => 2).buildContainer().resolve('base');
 const replacedGeneral = withReplacedServiceMethod('derived', ({ base }: { base: number }) => base * 2).buildContainer().resolve('derived');
 const physicalModule = buildModuleMethod({ exportedServiceKeys: ['moduleValue'] });
-const physicalLegacyModule = buildModuleMethod(['moduleValue']);
+const physicalLegacyModule = buildModuleMethod({ exportedServiceKeys: ['moduleValue'] });
 const installed = withInstalledModulesMethod([physicalFeature, physicalLogging, physicalModule]).buildContainer();
 const legacyInstalled = withInstalledModulesMethod([physicalLegacyModule]).buildContainer();
 const installedService = installed.resolve('service');

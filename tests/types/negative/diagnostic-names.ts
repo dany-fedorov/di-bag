@@ -13,7 +13,7 @@ accepted.withServices({ db: ({ config }: { config: { retries: string } }) => con
 const bag = DiBag.createBuilder().withServices({ config: () => 1 }).buildContainer();
 // diagnostic: fork accepts existing names or typed tokens only: unknown missing; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 bag.fork(['missing'], { missing: () => 2 });
-// diagnostic: replace requires one existing singleton string-literal key: absent; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
+// diagnostic: withReplacedService requires one existing singleton string-literal key: absent; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 DiBag.createBuilder().withServices({ config: () => 1 }).withReplacedService('absent', () => 2);
 // diagnostic: root lifetime cannot capture scoped dependency: db -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
 DiBag.createBuilder().withServices({ config: () => 1, db: DiBag.withLifetime(({ config }: { config: number }) => config, 'root') }).buildContainer();

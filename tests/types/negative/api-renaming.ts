@@ -1,4 +1,6 @@
 import { DiBag } from '../../../src/node';
+// diagnostic: no exported member
+import type { BuilderContribute } from '../../../src';
 const base = DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' });
 // diagnostic: No overload matches
 DiBag.withMetadata(base, { dynamic: { describe: (_value: Promise<number>) => ({}) } });
@@ -47,3 +49,21 @@ removedBag.resolveAll(removedCollection);
 removedBag.inspectAll(removedCollection);
 // diagnostic: has no exported member
 type RemovedCollectionDependency = import('../../../src').CollectionDependency;
+
+const retiredBuilder = DiBag.createBuilder();
+// diagnostic: does not exist
+retiredBuilder.register({ value: () => 1 });
+// diagnostic: does not exist
+retiredBuilder.alias('other', 'value');
+// diagnostic: does not exist
+retiredBuilder.contribute(number, () => 1);
+// diagnostic: does not exist
+retiredBuilder.replace('value', () => 2);
+// diagnostic: does not exist
+retiredBuilder.installModule({});
+// diagnostic: does not exist
+retiredBuilder.verifyGraph();
+// diagnostic: does not exist
+retiredBuilder.build();
+// diagnostic: exportedServiceKeys
+DiBag.createBuilder().withServices({ value: () => 1 }).buildModule(['value']);

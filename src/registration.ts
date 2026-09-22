@@ -61,18 +61,19 @@ export function withDisposal(
 }
 
 /** Preflight every own key before reading getters; retain hidden own entries. */
-export function snapshotAdd(more: unknown, hasKey: (key: string) => boolean, operation: 'register' | 'withServices' = 'register'): Registrations {
-  if (typeof more !== 'object' || more === null || Array.isArray(more)) {
+export function snapshotAdd(providersByName: unknown, hasKey: (key: string) => boolean): Registrations {
+  const operation = 'withServices';
+  if (typeof providersByName !== 'object' || providersByName === null || Array.isArray(providersByName)) {
     throw libraryError('DI_BAG_INVALID_REGISTRATION', 'registrations must be a string-keyed object', { operation });
   }
-  const keys = Reflect.ownKeys(more);
+  const keys = Reflect.ownKeys(providersByName);
   for (const key of keys) {
     if (typeof key !== 'string') throw libraryError('DI_BAG_INVALID_REGISTRATION', 'registration keys must be strings', { operation });
     if (hasKey(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${key}`, { operation, key });
   }
   const snapshot: Registrations = Object.create(null);
   for (const key of keys as string[]) {
-    const registration: unknown = Reflect.get(more, key);
+    const registration: unknown = Reflect.get(providersByName, key);
     normalize(registration, operation);
     snapshot[key] = registration as Registration;
   }
