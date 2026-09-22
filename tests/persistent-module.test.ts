@@ -22,7 +22,7 @@ test('one module update does not revisit its existing registration table', () =>
 test('module updates preserve declaration positions, earlier builders and renamed lexical exports', async () => {
   const key = Symbol('same'), token = DiBag.token(key).of<number>();
   const groupKey = Symbol('group');
-  const group = DiBag.token(groupKey).of<number>();
+  const group = DiBag.token(groupKey).forCollectionOf<number>();
   const original = DiBag.createBuilder().register({ zebra: () => 1, apple: () => 2 }).register(token, () => 3)
     .contribute(group, ({ zebra }: { zebra: number }) => zebra);
   const updated = original.replace('zebra', () => 4).alias('alias', 'apple').contribute(group, () => 5);
@@ -32,10 +32,10 @@ test('module updates preserve declaration positions, earlier builders and rename
   const earlier = DiBag.createBuilder().installModule(original.buildModule(['zebra', 'apple', token])).build();
   const later = DiBag.createBuilder().installModule(module).build();
   expect(earlier.resolve('zebra')).toBe(1);
-  expect(earlier.resolveAll(group)).toEqual([1]);
+  expect(earlier.resolveCollection(group)).toEqual([1]);
   expect(later.resolve('renamed')).toBe(4);
   expect(later.resolve('alias')).toBe(2);
   expect(later.resolve(token)).toBe(3);
-  expect(later.resolveAll(group)).toEqual([4, 5]);
+  expect(later.resolveCollection(group)).toEqual([4, 5]);
   await earlier.close(); await later.close();
 });

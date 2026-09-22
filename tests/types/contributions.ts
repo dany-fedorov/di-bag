@@ -45,9 +45,9 @@ type IsAny<T> = 0 extends (1 & T) ? true : false;
 export type ReflectedExact = [Assert<Equal<IsAny<ReturnType<typeof contribute>>, false>>,
   Assert<Equal<IsAny<Parameters<typeof contribute>[1]>, false>>,
   Assert<Equal<ReturnType<typeof inferredContribution>, ReturnType<typeof explicitContribution>>>];
-export const promisedKey = Symbol('promise'); export const promised = DiBag.token(promisedKey).of<Promise<number>>();
+export const promisedKey = Symbol('promise'); export const promised = DiBag.token(promisedKey).forCollectionOf<Promise<number>>();
 export const promiseBag = DiBag.createBuilder().contribute(promised, DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' })).build();
-const promisedValues = promiseBag.resolveAll(promised);
+const promisedValues = promiseBag.resolveCollection(promised);
 export type PromiseExact = Assert<Equal<typeof promisedValues, readonly Promise<number>[]>>;
 const rootAliasFeature = DiBag.createBuilder().register({ helper: rooted }).alias('copy', 'helper').contribute(numbers, DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient')).buildModule([]);
 DiBag.createBuilder().installModule(rootAliasFeature).register({ rootAll }).build();

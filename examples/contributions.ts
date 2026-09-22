@@ -3,7 +3,7 @@ import { DiBag } from '../src';
 type Step = (text: string) => string;
 async function main() {
   const stepKey = Symbol('text pipeline step');
-  const steps = DiBag.token(stepKey).of<Step>();
+  const steps = DiBag.token(stepKey).forCollectionOf<Step>();
 
   // An exportless module can contribute a service using a private helper.
   const prefixFeature = DiBag.createBuilder()
@@ -22,7 +22,7 @@ async function main() {
     .contribute(steps, (): Step => (text) => text + '!')
     .register({
       pipeline: DiBag.fromFunction(
-        [DiBag.all(steps)],
+        [steps],
         (operations) => (text: string) =>
           operations.reduce((value, step) => step(value), text),
       ),
@@ -32,7 +32,7 @@ async function main() {
   try {
     const result = bag.resolve('pipeline')('  DI  ');
     if (result !== 'Hello, DI!') throw new Error(`Unexpected pipeline result: ${result}`);
-    const operations = bag.resolveAll(steps);
+    const operations = bag.resolveCollection(steps);
     if (operations.length !== 3 || !Object.isFrozen(operations)) {
       throw new Error('The pipeline must expose three ordered, immutable entries');
     }

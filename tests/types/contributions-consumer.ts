@@ -10,14 +10,14 @@ needsHost.register({ helper: () => 1 }).build(); privateHost.resolveAll(numbers)
 moduleContribute(numbers, () => 4).register({ helper: () => 1 }).buildModule([]);
 // @ts-expect-error exportless contribution dependencies remain required after declaration emission
 needsHost.build();
-const wrong = DiBag.token(key).of<string>();
+const wrong = DiBag.token(key).forCollectionOf<string>();
 // @ts-expect-error present groups validate all references after source deletion
 aggregate.contribute(wrong, () => 'wrong');
 // @ts-expect-error public export renames retain each contribution's lexical shape
 renamedHost.fork(['renamed'], { renamed: () => 'wrong' });
 // @ts-expect-error physical reflected callable keeps token output checking
 contribute(numbers, () => 'wrong');
-const promisedValues = promiseBag.resolveAll(promised);
+const promisedValues = promiseBag.resolveCollection(promised);
 export type PromiseExact = Assert<Equal<typeof promisedValues, readonly Promise<number>[]>>;
 // @ts-expect-error contribution lifetime walk survives physical producer emission
 rootedHelper.createScope(['helper', 'rootAll'], { helper: () => 2, rootAll: DiBag.withLifetime(allProvider, 'root') });

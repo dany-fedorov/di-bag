@@ -1,13 +1,13 @@
 import { DiBag, type Builder, type Bag } from '../../../src';
 const key = Symbol('numbers'); const numbers = DiBag.token(key).of<number>();
-const wrong = DiBag.token(key).of<string>();
+const wrong = DiBag.token(key).forCollectionOf<string>();
 // diagnostic: service
 DiBag.createBuilder().contribute(numbers, () => 'wrong');
 const builder = DiBag.createBuilder().contribute(numbers, () => 1);
 // diagnostic: incompatible
 builder.contribute(wrong, () => 'wrong');
 // diagnostic: incompatible
-builder.build().resolveAll(wrong);
+builder.build().resolveCollection(wrong);
 // diagnostic: existing
 builder.build().resolve(numbers);
 // diagnostic: required service registrations are missing
@@ -33,14 +33,14 @@ privateRootBuilder.buildModule([]);
 // diagnostic: incompatible
 DiBag.createBuilder().register({ all: DiBag.fromFunction([all], values => values) }).contribute(wrong, () => 'wrong');
 // diagnostic: incompatible
-builder.register({ all: DiBag.fromFunction([DiBag.all(wrong)], values => values) });
+builder.register({ all: DiBag.fromFunction([wrong], values => values) });
 const privateAll = DiBag.createBuilder().register({ privateAll: DiBag.fromFunction([all], values => values) }).buildModule([]);
 // diagnostic: incompatible
 DiBag.createBuilder().installModule(privateAll).contribute(wrong, () => 'wrong');
 // diagnostic: incompatible
 DiBag.createBuilder().contribute(wrong, () => 'wrong').installModule(privateAll);
 // diagnostic: incompatible
-DiBag.createBuilder().contribute(numbers, () => 1).register({ all: DiBag.fromFunction([DiBag.all(wrong)], values => values) });
+DiBag.createBuilder().contribute(numbers, () => 1).register({ all: DiBag.fromFunction([wrong], values => values) });
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().installModule(DiBag.createBuilder().contribute(numbers, ({ missing }: { missing: number }) => missing).buildModule([])).build();
 // diagnostic: contribution service is incompatible with its consumer dependency contract; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer
@@ -107,7 +107,7 @@ DiBag.createBuilder().contribute(numbers, DiBag.fromFunction([DiBag.lazy(require
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().installModule(DiBag.createBuilder().contribute(numbers, DiBag.fromFunction([required], value => value)).buildModule([])).build();
 // diagnostic: incompatible
-DiBag.createBuilder().installModule(DiBag.createBuilder().contribute(numbers, DiBag.fromFunction([DiBag.all(wrong)], values => values.length)).buildModule([])).contribute(numbers, () => 1);
+DiBag.createBuilder().installModule(DiBag.createBuilder().contribute(numbers, DiBag.fromFunction([wrong], values => values.length)).buildModule([])).contribute(numbers, () => 1);
 // diagnostic: not assignable
 const forgedToken: Parameters<typeof builder.contribute>[0] = numbers;
 // diagnostic: Expected 2 arguments

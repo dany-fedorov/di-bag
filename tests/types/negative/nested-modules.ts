@@ -54,7 +54,7 @@ DiBag.createBuilder().installModule(deepBridge).register({ db: () => 1, root: wi
 
 // A root contribution whose private dependency is scoped is rejected when its module seals.
 const groupKey = Symbol('group');
-const group = DiBag.token(groupKey).of<number>();
+const group = DiBag.token(groupKey).forCollectionOf<number>();
 const contributingBuilder = DiBag.createBuilder().register({ hidden: () => 1 }).contribute(group, withLifetime(({ hidden }: { hidden: number }) => hidden, 'root'));
 // diagnostic: root lifetime cannot capture scoped dependency: contribution -> hidden
 contributingBuilder.buildModule([]);
