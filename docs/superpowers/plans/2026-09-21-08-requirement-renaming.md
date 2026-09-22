@@ -380,6 +380,9 @@ Do not copy the 0.4.0 three-field return from current source. In `BindingGraph.w
 
 Create the two key-code sections if absent and otherwise extend their **When** lists; phase 6 already created `DI_BAG_INVALID_ARGUMENT`, so verify its existing section covers options bags and do not duplicate its heading. The target text is below. Do not migrate any old code yet.
 
+Phase 5 selected the measured positional `withReplacedService(serviceKey, provider)` fallback. Keep that
+shape in executable examples; options-bag spellings are historical/custom-map controls only.
+
 ````markdown
 ### DI_BAG_DUPLICATE_SERVICE_KEY {#di-bag-duplicate-service-key}
 
@@ -398,7 +401,7 @@ another key, or rename the module's export before installing it.
 import { DiBag } from 'di-bag';
 
 const base = DiBag.createBuilder().withServices({ clock: () => ({ now: () => 0 }) });
-const app = base.withReplacedService({ serviceKey: 'clock', provider: () => ({ now: () => 1 }) }).buildContainer();
+const app = base.withReplacedService('clock', () => ({ now: () => 1 })).buildContainer();
 console.log(app.resolve('clock').now());
 await app.close();
 ```

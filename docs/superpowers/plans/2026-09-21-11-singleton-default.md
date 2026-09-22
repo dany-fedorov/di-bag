@@ -1128,7 +1128,7 @@ export const root = ContainerKit.createBuilder()
 export const forms = ContainerKit.createBuilder()
   .withTokenService(item, (ContainerKit.createProvider(() => 1)).withLifetime('scoped:one-per-container'))
   .withCollectionContribution({ collectionToken: items, provider: (ContainerKit.createProvider(() => 2)).withLifetime('scoped:one-per-container') })
-  .withReplacedService({ serviceKey: items, provider: (ContainerKit.createProvider(() => [3])).withLifetime('scoped:one-per-container') });
+  .withReplacedService(items, (ContainerKit.createProvider(() => [3])).withLifetime('scoped:one-per-container'));
 export const untouched = unrelated.createScope();
 
 export const empty = root.createChildContainer();
@@ -1168,7 +1168,7 @@ export const root = ContainerKit.createBuilder()
 export const forms = ContainerKit.createBuilder()
   .withTokenService(item, ContainerKit.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }))
   .withCollectionContribution({ collectionToken: items, provider: ContainerKit.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) })
-  .withReplacedService({ serviceKey: items, provider: ContainerKit.providerWithLifetime({ provider: () => [3], lifetime: 'scoped:one-per-container' }) });
+  .withReplacedService(items, ContainerKit.providerWithLifetime({ provider: () => [3], lifetime: 'scoped:one-per-container' }));
 export const untouched = unrelated.createScope();
 
 export const empty = root.createChildContainer();
@@ -1769,7 +1769,7 @@ test('lifetime pins compose with provider, role, alias, and container transforms
   assert.match(text, /decorated: \(decorated\)\.withLifetime\('scoped:one-per-container'\)/);
   assert.match(text, /withTokenService\(item, ContainerKit\.createProvider/);
   assert.match(text, /withCollectionContribution\(\{ collectionToken: items, provider: ContainerKit\.createProvider/);
-  assert.match(text, /withReplacedService\(\{ serviceKey: items, provider: ContainerKit\.createProvider/);
+  assert.match(text, /withReplacedService\(items, ContainerKit\.createProvider/);
   assert.match(text, /Library\.DiBag\.createBuilder\(\)\.withServices\(\{ ns: \(ContainerKit\.createProvider/);
   assert.match(text, /unrelated\.createScope\(\)/);
   assert.deepEqual(result.manual.map(item => item.reason), [
@@ -2081,12 +2081,16 @@ test('explicit lifetime pin recognizes authenticated current phase-10 calls', ()
 });
 ```
 
+Phase 5 selected the positional `withReplacedService(serviceKey, provider)` fallback. The paired bag and
+positional calls and the custom `replace` bag-map entry in the isolated preferred-map fixture above are deliberate
+bilingual transform controls; preserve them rather than treating the bag spelling as current API.
+
 For S2 fallback, replace the first five `assert.match` lines with assertions for
 `ContainerKit.providerWithLifetime({ provider: clock`,
 `decorated: ContainerKit.providerWithLifetime({ provider: decorated`,
 `withTokenService(item, ContainerKit.providerWithLifetime`,
 `withCollectionContribution({ collectionToken: items, provider: ContainerKit.providerWithLifetime`,
-and `withReplacedService({ serviceKey: items, provider: ContainerKit.providerWithLifetime`.
+and `withReplacedService(items, ContainerKit.providerWithLifetime`.
 The unrelated-call and literal manual-row assertions are identical.
 
 The aliased `ContainerKit` and namespace `Library.DiBag` rows prove both builder receiver forms.

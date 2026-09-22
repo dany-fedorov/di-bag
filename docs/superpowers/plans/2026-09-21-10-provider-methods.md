@@ -410,7 +410,7 @@ export type Registration = Factory | FactoryWithDisposal<Factory> | ProviderBase
 export type Registrations = Record<string, Registration>;
 ```
 
-Keep every `FactoryWithDisposal` projection branch and the old facade overload until Task 6, so all pre-migration tests stay green. Phase 5 moved the checked replacement signatures into `BuilderWithReplacedService` in `src/builder-method-types.ts`; `src/di-bag.ts` owns only its typed field and shared private runtime implementation. Add the following private output admission and put the new call signature first in that existing callable interface, before its legacy fast and general overloads. Import `ProviderOutput`, `ReplacementOutput`, `WrongShapeMessage` and the other existing helpers internally; do not export the private admission from the package.
+Keep every `FactoryWithDisposal` projection branch and the old facade overload until Task 6, so all pre-migration tests stay green. Phase 5 moved the checked replacement signatures into `BuilderWithReplacedService` in `src/builder-method-types.ts`; `src/di-bag.ts` owns only its typed field and shared private runtime implementation. Phase 5 selected `withReplacedService(serviceKey, provider)` after two serious options-bag inference repairs failed, so every current and future overload in this plan remains positional with the public `ServiceKey, Replacement` generic pair. Add the following private output admission and put the new positional call signature first in that existing callable interface, before its legacy fast and general positional overloads. Import `ProviderOutput`, `ReplacementOutput`, `WrongShapeMessage` and the other existing helpers internally; do not export the private admission from the package.
 
 ```ts
 type FastReplacementOutputAdmission<Entries extends Entry, Constraints extends NeedConstraint, ServiceKey extends string, Replacement extends ProviderOrFactory> =
@@ -423,15 +423,15 @@ type FastReplacementOutputAdmission<Entries extends Entry, Constraints extends N
       }>;
 
 // First call signature inside BuilderWithReplacedService<Entries, Constraints>:
-<const ServiceKey extends string, Replacement extends ProviderOrFactory>(options: {
-  readonly serviceKey: ServiceKey & ReplacementKeyOf<EntryKeys<Entries>, ServiceKey>;
-  readonly provider: Replacement & ZeroDependencyAdmission<NoInfer<Replacement>>
+<const ServiceKey extends string, Replacement extends ProviderOrFactory>(
+  serviceKey: ServiceKey & ReplacementKeyOf<EntryKeys<Entries>, ServiceKey>,
+  provider: Replacement & ZeroDependencyAdmission<NoInfer<Replacement>>
     & FastReplacementOutputAdmission<Entries, Constraints, NoInfer<ServiceKey>, NoInfer<Replacement>>
-    & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<ServiceKey, NoInfer<Replacement>>>>;
-}): import('./di-bag').Builder<ReplacedEntries<Entries, ServiceKey, Replacement>, WithoutExportObligations<Constraints, ServiceKey>>;
+    & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<ServiceKey, NoInfer<Replacement>>>>,
+): import('./di-bag').Builder<ReplacedEntries<Entries, ServiceKey, Replacement>, WithoutExportObligations<Constraints, ServiceKey>>;
 ```
 
-This preserves the two-part fast algorithm: output admission against surviving consumer requirements and `CheckedConstraints`, without the `IncrementalChecked` history rescan in the general replacement helper. It is an **uncompiled future-state proposal**, including its diagnostic details; it does not claim that provider inference or performance has passed. Prove plain-factory and provider-object inference, property diagnostics, overload order, physical nameability and the unchanged S2 budget before adopting it. Keep the general string/token overload and all phase-4 collection admissions.
+This preserves the two-part fast algorithm: output admission against surviving consumer requirements and `CheckedConstraints`, without the `IncrementalChecked` history rescan in the general replacement helper. It is an **uncompiled future-state proposal**, including its diagnostic details; it does not claim that provider inference or performance has passed. Prove plain-factory and provider-object inference, provider-argument diagnostics, overload order, physical nameability and the unchanged S2 budget before adopting it. Keep the general string/token overload positional with the same two public generic parameters and all phase-4 collection admissions; do not reintroduce a whole-options generic or a deferred options-object admission.
 
 Create `tests/types/negative/provider-replacement-output.ts` separately from the twelve-case provider-method fixture:
 
@@ -440,14 +440,14 @@ import { DiBag } from '../../../src';
 DiBag.createBuilder().withServices({
   value: () => 1,
   consumer: ({ value }: { value: number }) => value,
-}).withReplacedService({
-  serviceKey: 'value',
+}).withReplacedService(
+  'value',
   // diagnostic: provided service does not satisfy its consumer dependency
-  provider: DiBag.createProvider(() => 'wrong'),
-});
+  DiBag.createProvider(() => 'wrong'),
+);
 ```
 
-The error must remain on `provider`, and the existing twelve provider-method cases remain intact. Extend the existing builder physical producer with an unannotated exported zero-dependency numeric provider, then consume it through the emitted `withReplacedServiceMethod` and assert the inferred result is exactly `number`. Keep the original factory-fast and dependency-bearing calls. Run the focused builder source/negative fixtures and existing classic6/native7 CTS/MTS producer-deletion matrix before the combined Task 2 expand commit, and again after Task 6 contraction. No new physical harness or producer method annotation is needed.
+The error must remain on the provider argument, and the existing twelve provider-method cases remain intact. Extend the existing builder physical producer with an unannotated exported zero-dependency numeric provider, then consume it through the emitted `withReplacedServiceMethod` and assert the inferred result is exactly `number`. Keep the original factory-fast and dependency-bearing positional calls. Run the focused builder source/negative fixtures and existing classic6/native7 CTS/MTS producer-deletion matrix before the combined Task 2 expand commit, and again after Task 6 contraction. No new physical harness or producer method annotation is needed.
 
 - [ ] **Step 5: Add complete type fixtures**
 
@@ -469,13 +469,13 @@ type _Metadata = Assert<Equal<ProviderRegistrationMetadata<typeof decorated>, Re
 type _Frames = Assert<Equal<ProviderAcquisitionMetadata<typeof decorated>, readonly [Readonly<{ count: number }> ]>>;
 type _Lifetime = Assert<Equal<ProviderGraphContract<typeof decorated>['lifetime'], Readonly<{ kind: 'singleton'; allowsScopedDependencies: true }>>>;
 const replacement = DiBag.createProvider(() => 2).withDisposal(value => { const n: number = value; void n; });
-DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService({ serviceKey: 'value', provider: replacement });
+DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService('value', replacement);
 const mappedReplacement = DiBag.createProvider(() => 2)
   .withTransformedService({ callbackReceives: 'exposed-service', transformService: value => value + 1 });
-DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService({ serviceKey: 'value', provider: mappedReplacement });
+DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService('value', mappedReplacement);
 const framedReplacement = DiBag.createProvider(() => Promise.resolve(2), { factoryReturnKind: 'native-promise' })
   .withAcquisitionMetadata({ callbackReceives: 'fulfilled-value', describeAcquisition: value => ({ value }) });
-DiBag.createBuilder().withServices({ value: () => Promise.resolve(1) }).withReplacedService({ serviceKey: 'value', provider: framedReplacement });
+DiBag.createBuilder().withServices({ value: () => Promise.resolve(1) }).withReplacedService('value', framedReplacement);
 const numberToken = DiBag.createToken(Symbol('number')).forService<number>();
 const tokenProvider = DiBag.createProvider(() => 3).withLifetime('transient:one-per-resolve');
 DiBag.createBuilder().withTokenService(numberToken, tokenProvider).buildContainer().resolve(numberToken) satisfies number;
@@ -511,7 +511,7 @@ provider.withRegistrationMetadata({ owner: 'one' }).withRegistrationMetadata({ o
 const dependent = DiBag.createProvider(({ value }: { value: number }) => value)
   .withTransformedService({ callbackReceives: 'exposed-service', transformService: value => value + 1 });
 // diagnostic: not assignable to type 'never'
-DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService({ serviceKey: 'value', provider: dependent });
+DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService('value', dependent);
 ```
 
 Append `provider-methods` to the declaration loop's fixture list and create `tests/types/provider-methods-consumer.ts` exactly:
@@ -1428,8 +1428,8 @@ export const providerMethodScalePath = resolve('tests/provider-method-scale.ts')
 export function providerMethodScaleSource(shape: ProviderMethodScaleShape): string {
   const services = Array.from({ length: 100 }, (_, index) => `svc${index}: () => ${index}`).join(',\n');
   const replacements = Array.from({ length: 100 }, (_, index) => shape === 'old'
-    ? `.withReplacedService({ serviceKey: 'svc${index}', provider: DiBag.withLifetime(DiBag.withDisposal(() => ${index + 1}, () => {}), 'scoped') })`
-    : `.withReplacedService({ serviceKey: 'svc${index}', provider: DiBag.createProvider(() => ${index + 1}).withDisposal(() => {}).withLifetime('scoped:one-per-container') })`).join('\n');
+    ? `.withReplacedService('svc${index}', DiBag.withLifetime(DiBag.withDisposal(() => ${index + 1}, () => {}), 'scoped'))`
+    : `.withReplacedService('svc${index}', DiBag.createProvider(() => ${index + 1}).withDisposal(() => {}).withLifetime('scoped:one-per-container'))`).join('\n');
   return `import { DiBag } from '../src';\nDiBag.createBuilder().withServices({${services}})\n${replacements}\n.buildContainer();\n`;
 }
 ```
@@ -1646,7 +1646,7 @@ export const configured = derived.providerWithDisposal({ provider: f, disposeSer
 
 All unchanged/manual/type/value rows equal Task 3's preferred golden and manual JSON, including the combined-metadata manual row. Add a separate static-only and dynamic-only fallback fixture so alternate-name assertions cover `mappedProvider`, `mappedDisposeService`, both metadata facade roles, and `mappedTransformReturnKind`, plus parse diagnostics `[]`.
 
-Create `tests/provider-facades.test.ts` from the four Task-1 runtime tests by replacing each chain stage with the corresponding fallback call, nesting the previous result in `provider`; preserve getter-count, freeze, disposal-order, inherited/symbol rejection, fulfilled/exposed identity, callback-result operation details, and malformed-argument assertions, with operations renamed to the fallback method. Create `tests/types/provider-facades.ts` from the positive fixture with the same five `Equal` assertions and the transformed/framed zero-dependency replacement assertions. Create `tests/types/negative/provider-facades.ts` with the same twelve marker comments and replace only the offending call/property shape: `lifetime`, `allowsScopedDependencies`, `callbackReceives`, `describeAcquisition`, `transformReturnKind`, `transformService`, `registrationMetadata`, and the dependent replacement `provider` remain the diagnostic-bearing properties. Add explicit fallback negatives for scoped and transient lifetimes with `allowsScopedDependencies: false`, scoped with `allowsScopedDependencies: undefined`, singleton with a non-boolean value, and an unknown option key; these replace equivalent general lifetime-fixture rows so the total expected marker count is updated from actual markers rather than hard-coded to eleven. Register these files in the same declaration/negative loops and require `markers.length === errors.length` plus `matchDiagnosticMarkers(...)` with no missing or unexpected rows.
+Create `tests/provider-facades.test.ts` from the four Task-1 runtime tests by replacing each chain stage with the corresponding fallback call, nesting the previous result in `provider`; preserve getter-count, freeze, disposal-order, inherited/symbol rejection, fulfilled/exposed identity, callback-result operation details, and malformed-argument assertions, with operations renamed to the fallback method. Create `tests/types/provider-facades.ts` from the positive fixture with the same five `Equal` assertions and the transformed/framed zero-dependency replacement assertions. Create `tests/types/negative/provider-facades.ts` with the same twelve marker comments and replace only the offending call/property shape: `lifetime`, `allowsScopedDependencies`, `callbackReceives`, `describeAcquisition`, `transformReturnKind`, `transformService`, and `registrationMetadata` remain diagnostic-bearing properties; the dependent replacement marker remains on the positional provider argument. Add explicit fallback negatives for scoped and transient lifetimes with `allowsScopedDependencies: false`, scoped with `allowsScopedDependencies: undefined`, singleton with a non-boolean value, and an unknown option key; these replace equivalent general lifetime-fixture rows so the total expected marker count is updated from actual markers rather than hard-coded to eleven. Register these files in the same declaration/negative loops and require `markers.length === errors.length` plus `matchDiagnosticMarkers(...)` with no missing or unexpected rows.
 
 The fallback lifetime-only negative block is exact; place each marker immediately above the indicated property:
 
@@ -1673,9 +1673,9 @@ For the positive fallback fixture, build each stage as a named constant exactly 
 
 ```ts
 const mappedReplacement = DiBag.providerWithTransformedService({ provider: () => 2, callbackReceives: 'exposed-service', transformService: value => value + 1 });
-DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService({ serviceKey: 'value', provider: mappedReplacement });
+DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService('value', mappedReplacement);
 const framedReplacement = DiBag.providerWithAcquisitionMetadata({ provider: () => Promise.resolve(2), callbackReceives: 'fulfilled-value', describeAcquisition: value => ({ value }) });
-DiBag.createBuilder().withServices({ value: () => Promise.resolve(1) }).withReplacedService({ serviceKey: 'value', provider: framedReplacement });
+DiBag.createBuilder().withServices({ value: () => Promise.resolve(1) }).withReplacedService('value', framedReplacement);
 ```
 
 Fallback API-card calls are `DiBag.providerWithDisposal`, `DiBag.providerWithLifetime`, `DiBag.providerWithRegistrationMetadata`, `DiBag.providerWithAcquisitionMetadata`, and `DiBag.providerWithTransformedService`. Replace the preferred representative recipe with this exact readable fallback recipe:
@@ -1773,7 +1773,7 @@ Delete the four `DiBagApi` members and exported free functions. Delete public `F
 
 Concretely, remove `selectLegacyLifetime`, `LegacyLifetime`, `compatibilityProvider`, the compatibility overloads that admit `FactoryWithDisposal`, and every `ProviderFactory`/metadata/frames/graph/acquired conditional branch whose checked type is `FactoryWithDisposal`. Change `Registrations` to `Record<string, ProviderOrFactory>` and every builder/module/contribution generic constraint from `Registration` to `ProviderOrFactory`. Delete the `FactoryWithDisposal` interface/type export and its disposer-symbol runtime branch only after the mechanical migration has removed every constructed wrapper. Keep `describe`'s function-or-provider normalization and the new zero-dependency replacement fast overload. If fallback won, remove only the four old decorators and retain the five `providerWith*` calls; if preferred won, export only the five provider prototype methods.
 
-Apply the builder changes explicitly to every callable facade in `src/builder-method-types.ts`: migrate `Registration` constraints to `ProviderOrFactory`, remove the `FactoryWithDisposal` import and compatibility-only branch/overload, and preserve the selected fast and general replacement paths with their original property admissions. Retain all six facade exports and generated pages plus `BuilderWithCollectionContribution`; they are not retired provider compatibility contracts. The builder source/negative fixtures and physical producer-deletion proof from Task 1 must pass on the contracted signatures before this commit.
+Apply the builder changes explicitly to every callable facade in `src/builder-method-types.ts`: migrate `Registration` constraints to `ProviderOrFactory`, remove the `FactoryWithDisposal` import and compatibility-only branch/overload, and preserve the selected positional fast and general replacement paths with their provider-argument admissions. Retain all six facade exports and generated pages plus `BuilderWithCollectionContribution`; they are not retired provider compatibility contracts. The builder source/negative fixtures and physical producer-deletion proof from Task 1 must pass on the contracted signatures before this commit.
 
 - [ ] **Step 2: Run contract greps**
 

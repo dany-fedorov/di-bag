@@ -1001,11 +1001,14 @@ another key, or rename the module's export before installing it.
 import { DiBag } from 'di-bag';
 
 const base = DiBag.createBuilder().withServices({ clock: () => ({ now: () => 0 }) });
-const app = base.withReplacedService({ serviceKey: 'clock', provider: () => ({ now: () => 1 }) }).buildContainer();
+const app = base.withReplacedService('clock', () => ({ now: () => 1 })).buildContainer();
 console.log(app.resolve('clock').now());
 await app.close();
 ```
 ````
+
+Phase 5 selected the measured positional `withReplacedService(serviceKey, provider)` fallback. Runtime
+tables, generated examples and exact-call inventories in this plan must use that shape.
 
 The example is type-checked by `npm run docs:check` against the emitted declarations. It was written from the spec and not compiled; if it fails, fix the example, not the check.
 
@@ -1073,7 +1076,7 @@ check([
   // 0.4.0: builder().alias('other', 'absent')
   ['an alias to an unknown key', () => builder().withServiceAlias({ aliasKey: 'other', targetServiceKey: 'absent' }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withServiceAlias', serviceKey: 'absent' }],
   // 0.4.0: builder().replace('absent', () => 1)
-  ['a replacement of an unknown key', () => builder().withReplacedService({ serviceKey: 'absent', provider: () => 1 }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withReplacedService', serviceKey: 'absent' }],
+  ['a replacement of an unknown key', () => builder().withReplacedService('absent', () => 1), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withReplacedService', serviceKey: 'absent' }],
   // 0.4.0: bag.fork(['absent'], { absent: () => 1 })
   ['an independent container that replaces an unknown key', () => container().createIndependentContainer({ replacedServiceKeys: ['absent'], replacementProviders: { absent: () => 1 } }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'createIndependentContainer', serviceKey: 'absent' }],
   // 0.4.0: bag.createScope(['absent'], { absent: () => 1 })

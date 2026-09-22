@@ -956,6 +956,9 @@ git commit -m "feat(graph)!: di-bag-graph 0.2.0 reads 0.5.0 projects; owned beco
 
 ### Task 8: Version 0.5.0 and the changelog
 
+Phase 5 selected the positional replacement fallback; release snippets and scanners must not recreate
+the rejected options bag outside an explicitly historical/custom-map control. Keep this execution instruction outside the changelog payload.
+
 **Files:**
 - Modify: `package.json`, `package-lock.json`, `CHANGELOG.md`, `PUBLISHING.md`, `tests/release-artifacts.test.ts`, `README.md`
 
@@ -1014,7 +1017,7 @@ behaviors. Run the codemod BEFORE upgrading, then read the
 ### Breaking changes: names
 
 - The builder: `withServices`, `withTokenService`, `withServiceAlias`,
-  `withCollectionContribution`, `withReplacedService`, `withInstalledModules`
+  `withCollectionContribution`, `withReplacedService(serviceKey, provider)`, `withInstalledModules`
   (a list), `verifyGraphAtCompileTime`, `buildModule({ exportedServiceKeys,
   moduleLabel })`, `buildContainer`. `buildAndStart` is
   `container.ensureServicesReady(serviceKeys, options)`.
