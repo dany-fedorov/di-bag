@@ -271,7 +271,8 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
    * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad handle or kind.
    * @example
    * ```ts
-   * const handlers = DiBag.token(Symbol('handlers')).forCollectionOf<() => void>();
+   * const handlersKey = Symbol('handlers');
+   * const handlers = DiBag.token(handlersKey).forCollectionOf<() => void>();
    * const bag = DiBag.createBuilder()
    *   .withCollectionContribution({ collectionToken: handlers, provider: () => () => {} })
    *   .buildContainer();
@@ -283,6 +284,21 @@ class Bag<ServiceRegistrations extends Registrations, Constraints extends NeedCo
     collectionToken: CollectionToken & CollectionTokenMember<Constraints, CollectionToken>,
     ...invalid: [CollectionToken] extends [never] ? [never] : []
   ): readonly RegistrationSnapshot<object, readonly unknown[]>[];
+  serviceSnapshot<ServiceKey extends (keyof ServiceRegistrations & string) | TokenBase>(
+    serviceKey: ServiceKey & (
+      [ServiceKey] extends [string] ? unknown
+        : [ServiceKey] extends [CollectionTokenBase] ? CollectionTokenMember<Constraints, ServiceKey>
+          : SingleServiceTokenMember<ServiceRegistrations, ServiceKey>
+    ),
+    ...invalid: [ServiceKey] extends [never] ? [never] : []
+  ): TokenBase extends ServiceKey
+    ? RegistrationSnapshot<object, readonly unknown[]> | readonly RegistrationSnapshot<object, readonly unknown[]>[]
+    : ServiceKey extends CollectionTokenBase
+      ? readonly RegistrationSnapshot<object, readonly unknown[]>[]
+      : RegistrationSnapshot<
+        ProviderRegistrationMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>,
+        ProviderAcquisitionMetadata<ServiceRegistrations[SelectionKey<ServiceKey> & keyof ServiceRegistrations]>
+      >;
   serviceSnapshot(serviceKey: unknown, ..._invalid: unknown[]): unknown {
     if (typeof serviceKey === 'string') return this.#runtime.inspect(serviceKey);
     const { key, kind } = readGraphToken(this.#graph, serviceKey, 'serviceSnapshot');

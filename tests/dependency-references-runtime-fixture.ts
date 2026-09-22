@@ -49,7 +49,7 @@ export const dependencyReferenceRuntimeAssertions = `
     const reader = DiBag.fromClass([DiBag.lazy(service)], Reader);
     const parent = DiBag.createBuilder().withTokenService(service, target).withServices({ reader }).buildContainer();
     const child = parent.createChildContainer([service], { [serviceKey]: () => { overrides++; return { id: -1, owner: 'child' }; } },
-      { share: ['reader'] });
+      { sharedParentServiceKeys: ['reader'] });
     const sharedReader = child.resolve('reader');
     assertReference(sharedReader instanceof Reader && sharedReader === parent.resolve('reader'), 'lazy class reader identity changed');
     assertReference(created === 0 && overrides === 0, 'lazy target acquired before invocation');

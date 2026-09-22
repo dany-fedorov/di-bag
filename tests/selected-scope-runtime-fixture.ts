@@ -19,7 +19,7 @@ export const selectedScopeRuntimeAssertions = `
     }).buildContainer();
     const selectedChild = selectedRoot.createChildContainer(['config', selectedToken], {
       config: () => ({ id: 'child' }), [selectedKey]: () => ({ id: 'child' }),
-    }, { share: ['shared', 'pending', 'raw'] });
+    }, { sharedParentServiceKeys: ['shared', 'pending', 'raw'] });
     const selectedGrandchild = selectedChild.createChildContainer({ sharedParentServiceKeys: ['shared', selectedToken] });
     assertSelected(selectedChild.resolve('config').id === 'child', 'child override missing');
     assertSelected(selectedGrandchild.resolve(selectedToken).id === 'child', 'token share lost override');
