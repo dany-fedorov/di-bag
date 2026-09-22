@@ -744,17 +744,30 @@ The new methods call `contributionEntry(collectionToken, provider as Registratio
 
 - [ ] **Step 4: Add the type of the contribution property**
 
-Append to `src/contribution-types.ts`. Take the two parameter types from `BuilderContribute` AS IT IS ON ENTRY (phase 4 narrowed the token to a collection token); the text below is derived from the 0.4.0 type, where the first parameter is `T & TokenTupleAdmission<readonly [T]>` and the second is the long `V & ...` intersection. If the on-entry type differs, keep its parameter types and only move them into the bag:
+Append to `src/contribution-types.ts`. Move the two on-entry `BuilderContribute` parameters into the bag without changing their admissions. Phase 4 infers against `TokenBase`, checks finite-handle admission before collection kind/graph compatibility, and checks provider output/dependencies only after those pass. This order preserves the named wrong-kind diagnostic and the reflected `Contribution<T, V>` metadata; a `CollectionTokenBase` inference constraint or `Extract` in the return would lose those properties. The bag form below remains subject to this phase's focused compiler fixtures and S1 measurement:
 
 ```ts
 /**
  * The checked generic `withCollectionContribution` callable exposed by a builder.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
  */
-export type BuilderWithCollectionContribution<E extends Entry, C extends NeedConstraint> = <T extends CollectionTokenBase, V extends Registration>(
+export type BuilderWithCollectionContribution<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends Registration>(
   options: {
-    readonly collectionToken: T & TokenTupleAdmission<readonly [T]> & CollectionTokenAdmission<RegistrationsFromEntries<E>, T>;
-    readonly provider: V & Registration & CollectionBindingOutput<NoInfer<T>, NoInfer<V>> & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>;
+    readonly collectionToken: T & (
+      unknown extends TokenTupleAdmission<readonly [T]>
+        ? CollectionTokenAdmission<RegistrationsFromEntries<E>, T>
+        : TokenTupleAdmission<readonly [T]>
+    );
+    readonly provider: V & Registration & (
+      unknown extends TokenTupleAdmission<readonly [NoInfer<T>]>
+        ? unknown extends CollectionTokenAdmission<RegistrationsFromEntries<E>, NoInfer<T>>
+          ? NoInfer<T> extends CollectionTokenBase
+            ? CollectionBindingOutput<NoInfer<T>, NoInfer<V>>
+              & CheckedConstraints<C | Contribution<NoInfer<T>, NoInfer<V>>, RegistrationsFromEntries<E>>
+            : never
+          : unknown
+        : unknown
+    );
   },
   ...invalid: [T] extends [never] ? [never] : [V] extends [never] ? [never] : []
 ) => import('./di-bag').Builder<E, C | Contribution<T, V>>;

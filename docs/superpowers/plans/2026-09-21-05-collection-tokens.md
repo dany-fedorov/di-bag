@@ -3803,29 +3803,34 @@ test('module installation preserves token kinds through nested sealing', () => {
 This added regression and the complete installation propagation have not been run against a final phase-entry prototype. The earlier 16-test probe is narrower evidence, not a claim that this test passed.
 
 
-The final callable and runtime helper are exactly:
+Use the following final callable and runtime helper. Infer the supplied handle against `TokenBase`, then check finite-token admission and collection kind before provider output/dependencies. This preserves the named wrong-kind diagnostic instead of widening an invalid single-service handle to the collection constraint. Keep `Contribution<TokenHandle, Provider>` in the return: extracting a collection there would erase reflected `TokenBase` metadata. The wrong-provider marker now expects `collection contribution output is not assignable to its item`, since contraction removes the old compatibility overload. These changes require focused diagnostic/reflection checks and full source validity; final S5 remains Task 9-owned:
 
 ```ts
 export type BuilderContribute<
   Entries extends Entry,
   Constraints extends NeedConstraint,
 > = <
-  TokenHandle extends CollectionTokenBase,
+  TokenHandle extends TokenBase,
   Provider extends Registration,
 >(
-  token: TokenHandle
-    & TokenTupleAdmission<readonly [TokenHandle]>
-    & CollectionTokenAdmission<
-        RegistrationsFromEntries<Entries>,
-        TokenHandle
-      >,
-  registration: Provider
-    & Registration
-    & CollectionBindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>>
-    & CheckedConstraints<
-        Constraints | Contribution<NoInfer<TokenHandle>, NoInfer<Provider>>,
-        RegistrationsFromEntries<Entries>
-      >,
+  token: TokenHandle & (
+    unknown extends TokenTupleAdmission<readonly [TokenHandle]>
+      ? CollectionTokenAdmission<RegistrationsFromEntries<Entries>, TokenHandle>
+      : TokenTupleAdmission<readonly [TokenHandle]>
+  ),
+  registration: Provider & Registration & (
+    unknown extends TokenTupleAdmission<readonly [NoInfer<TokenHandle>]>
+      ? unknown extends CollectionTokenAdmission<RegistrationsFromEntries<Entries>, NoInfer<TokenHandle>>
+        ? NoInfer<TokenHandle> extends CollectionTokenBase
+          ? CollectionBindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>>
+            & CheckedConstraints<
+                Constraints | Contribution<NoInfer<TokenHandle>, NoInfer<Provider>>,
+                RegistrationsFromEntries<Entries>
+              >
+          : never
+        : unknown
+      : unknown
+  ),
   ...invalid: [TokenHandle] extends [never]
     ? [never]
     : [Provider] extends [never] ? [never] : []
