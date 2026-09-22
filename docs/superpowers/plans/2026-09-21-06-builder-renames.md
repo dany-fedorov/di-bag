@@ -2062,39 +2062,344 @@ MSG
 **Files:**
 - Modify: typed `.ts` call sites under `tests/`, `examples/`, and root `scripts/` included by `tsconfig.json`
 - Modify: `tests/types/isolated/thenable-policy.ts`
-- Create temporarily, then delete: `/tmp/di-bag-phase-05/codemod-report.json`
+- Verify and preserve: `tests/types/negative/startup.ts` (migrate its legitimate builder calls in the prior preparation commit; its two rejected old-close controls, `timeoutMs: 1` and `signal: new AbortController().signal`, remain byte-identical)
+- Create temporarily, then delete: `/tmp/di-bag-phase-05/codemod-dry-run-report.json`, `/tmp/di-bag-phase-05/codemod-manual-classification.json`, `/tmp/di-bag-phase-05/negative-startup-before.ts`, `/tmp/di-bag-phase-05/negative-startup-prepared.ts`, `/tmp/di-bag-phase-05/all-negative-files.txt`, `/tmp/di-bag-phase-05/codemod-write-negative-files.txt`, `/tmp/di-bag-phase-05/codemod-write-command.sh`, `/tmp/di-bag-phase-05/codemod-write-report.json`, `/tmp/di-bag-phase-05/codemod-generated-files.txt`, `/tmp/di-bag-phase-05/codemod-working-tree-files.txt`, `/tmp/di-bag-phase-05/codemod-manual-files.txt`, the Task 8 documentation status/log/inventory files, and the three commit-message files below
 
 **Interfaces:**
-- Consumes: Task 7's shipped map and phase 1's CLI.
-- Produces: all checker-resolvable 0.4.0 builder calls in the main project rewritten to the Task 6 decision. Generated text, JavaScript, Markdown, graph fixtures and agent-eval projects remain for later tasks.
+- Consumes: Task 7's shipped map, phase 1's CLI, and Phase 4's preserved rejected old-close controls. The accumulated map still contains Phase 3's `Bag.close` option renames.
+- Produces: a compiler/runtime-green preparation commit for the coherent `startup.ts` builder projection, a pure report-generated mechanical commit, and a separate compiler/runtime-green hand commit when manual items exist. All checker-resolvable 0.4.0 builder calls in the main project use the Task 6 decision; the two old-close controls remain rejected. Generated text, JavaScript, Markdown, graph fixtures and agent-eval projects remain for later tasks.
 
-- [ ] **Step 1: Build declarations and preview the rewrite**
+- [ ] **Step 1: Build declarations and preview every negative fixture**
 
 ```bash
 npm run build
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'tests/types/isolated/*.ts' --report /tmp/di-bag-phase-05/codemod-report.json
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'tests/types/isolated/*.ts' --report /tmp/di-bag-phase-05/codemod-dry-run-report.json
+node - <<'JS'
+const { writeFileSync } = require('node:fs');
+const report = require('/tmp/di-bag-phase-05/codemod-dry-run-report.json');
+const skipped = report.manual.filter(item => item.reason.startsWith('this file was left untouched'));
+const startup = report.files.filter(item => item.file === 'tests/types/negative/startup.ts');
+if (report.written !== false || skipped.length !== 0 || startup.length !== 1) process.exit(1);
+const closeReason = 'argument 1 of close is not a literal; where it is built, apply: key signal to abortSignal; key timeoutMs to waitTimeoutMs';
+const inherited = new Set([
+  'examples/react/app-runtime.ts',
+  'examples/react/project-runtime.ts',
+  'tests/react/runtime-owner.test.ts',
+  'tests/runtime-diagnostics.test.ts',
+].map(file => `${file}\0${closeReason}`));
+for (const key of inherited) {
+  if (report.manual.filter(item => `${item.file}\0${item.reason}` === key).length !== 1) throw new Error(`missing or duplicate inherited manual: ${key}`);
+}
+const classified = report.manual.map(item => ({
+  file: item.file,
+  line: item.line,
+  reason: item.reason,
+  owner: inherited.has(`${item.file}\0${item.reason}`) ? 'phase-3-retained-pass-through' : null,
+  resolution: inherited.has(`${item.file}\0${item.reason}`) ? 'already migrated where the nonliteral CloseOptions value is built; retain this exact pass-through report' : null,
+}));
+writeFileSync('/tmp/di-bag-phase-05/codemod-manual-classification.json', `${JSON.stringify(classified, null, 2)}\n`);
+console.log({ written: report.written, skipped: skipped.length, startup: startup.length, manuals: classified.length });
+JS
 ```
 
-Expected: exit 0 and a non-zero rewrite count. Read every manual item. For a reshaped extracted reference, rewrite it by hand with an explicitly typed wrapper, for example:
+Expected: exit 0, `written: false`, a non-zero rewrite count, and no file skipped. Read every
+manual item. Do not convert arbitrary `.replace()` or `.build()` calls reported outside a library
+declaration. Classify a manual item as either a prerequisite without which the generated tree cannot
+pass its runtime/compiler checks, or a post-mechanical hand migration. Never fold either into the
+mechanical commit.
+
+The classification file pins every row by exact path, line and reason. The script preclassifies the
+four inherited Phase 3 `close` pass-through rows by exact path/reason. Fill every remaining `null`
+with `task-8-prerequisite`, `task-8-post-mechanical`, or the exact later task number and a concrete
+resolution. A later owner is valid only when that task's Files/Interfaces explicitly own the path and
+surface. Before continuing, assert that no `null` remains and record the classification in the Task 8
+report; do not treat an inherited or later-owned manual as an unresolved Task 8 defect.
+
+```bash
+node - <<'JS'
+const rows = require('/tmp/di-bag-phase-05/codemod-manual-classification.json');
+const owners = new Set(['phase-3-retained-pass-through', 'task-8-prerequisite', 'task-8-post-mechanical', 'task-9', 'task-10', 'task-11', 'task-12', 'task-13']);
+if (rows.some(row => !owners.has(row.owner) || typeof row.resolution !== 'string' || row.resolution.length === 0)) process.exit(1);
+console.log(rows.map(({ file, line, reason, owner }) => ({ file, line, reason, owner })));
+JS
+```
+
+The inclusive preview deliberately finds both kinds of change in
+`tests/types/negative/startup.ts`: legitimate builder rewrites and the accumulated map's two
+forbidden old-close rewrites. Save the entry bytes and apply only the exact codemod projection with
+those two controls restored:
+
+```bash
+node --input-type=module <<'JS'
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { loadTypeScript, runCodemod } from './tools/codemod/lib/codemod.mjs';
+const root = process.cwd();
+const file = 'tests/types/negative/startup.ts';
+const before = readFileSync(file, 'utf8');
+const compiler = loadTypeScript(root);
+const result = runCodemod({
+  typescript: compiler.ts,
+  root,
+  project: 'tsconfig.json',
+  extraFiles: ['tests/types/negative/*.ts', 'tests/types/isolated/*.ts'],
+  libraryRoots: ['src', 'dist'],
+  only: [file],
+});
+assert.equal(result.files.length, 1);
+assert.equal(result.files[0].file, file);
+let prepared = result.files[0].text;
+const controls = [
+  ['closable.close({ timeoutMs: 1 });', 'closable.close({ waitTimeoutMs: 1 });'],
+  ['closable.close({ signal: new AbortController().signal });', 'closable.close({ abortSignal: new AbortController().signal });'],
+];
+for (const [oldText, mappedText] of controls) {
+  assert.equal(before.split(oldText).length - 1, 1, `expected one old-close control: ${oldText}`);
+  assert.equal(prepared.split(oldText).length - 1, 0, `codemod did not map control: ${oldText}`);
+  assert.equal(prepared.split(mappedText).length - 1, 1, `unexpected mapped control count: ${mappedText}`);
+  prepared = prepared.replace(mappedText, oldText);
+}
+assert.notEqual(prepared, before, 'startup fixture has no legitimate builder migration');
+writeFileSync('/tmp/di-bag-phase-05/negative-startup-before.ts', before);
+writeFileSync('/tmp/di-bag-phase-05/negative-startup-prepared.ts', prepared);
+writeFileSync(file, prepared);
+console.log('startup preparation: codemod projection with exactly two old-close controls restored');
+JS
+```
+
+Run the focused negative fixture, the full typecheck, codemod checks, and the applicable narrow
+runtime tests. If a classified manual prerequisite is required to make the generated boundary pass,
+resolve it now and include it in this preparation commit; otherwise leave every manual item for Step
+5. The two old-close statements must remain byte-identical to their entry text.
+
+Apply the global generated-documentation exception to this and the next two Task 8 commits exactly
+as observed. Immediately before each commit, set `task8_docs_label` to `preparation`, `mechanical`, or
+`hand` and run this procedure on the intended commit tree before staging:
+
+```bash
+git diff --name-only | LC_ALL=C sort -u > "/tmp/di-bag-phase-05/docs-intended-tracked-${task8_docs_label}.txt"
+git ls-files --others --exclude-standard | LC_ALL=C sort -u > "/tmp/di-bag-phase-05/docs-intended-untracked-${task8_docs_label}.txt"
+set +e
+npm run docs:generate > "/tmp/di-bag-phase-05/docs-generate-${task8_docs_label}.log" 2>&1
+docs_generate_exit=$?
+set -e
+git diff --name-only | LC_ALL=C sort -u > "/tmp/di-bag-phase-05/docs-after-generate-tracked-${task8_docs_label}.txt"
+git ls-files --others --exclude-standard | LC_ALL=C sort -u > "/tmp/di-bag-phase-05/docs-after-generate-untracked-${task8_docs_label}.txt"
+comm -13 "/tmp/di-bag-phase-05/docs-intended-tracked-${task8_docs_label}.txt" "/tmp/di-bag-phase-05/docs-after-generate-tracked-${task8_docs_label}.txt" > "/tmp/di-bag-phase-05/docs-generated-tracked-${task8_docs_label}.txt"
+comm -13 "/tmp/di-bag-phase-05/docs-intended-untracked-${task8_docs_label}.txt" "/tmp/di-bag-phase-05/docs-after-generate-untracked-${task8_docs_label}.txt" > "/tmp/di-bag-phase-05/docs-generated-untracked-${task8_docs_label}.txt"
+while IFS= read -r file; do
+  [ -z "$file" ] || case "$file" in docs/reference/*|docs/agent/api-card.md) ;; *) echo "unexpected generated path: $file" >&2; exit 1 ;; esac
+done < "/tmp/di-bag-phase-05/docs-generated-tracked-${task8_docs_label}.txt"
+while IFS= read -r file; do
+  [ -z "$file" ] || case "$file" in docs/reference/*|docs/agent/api-card.md) ;; *) echo "unexpected generated path: $file" >&2; exit 1 ;; esac
+done < "/tmp/di-bag-phase-05/docs-generated-untracked-${task8_docs_label}.txt"
+if [ -s "/tmp/di-bag-phase-05/docs-generated-tracked-${task8_docs_label}.txt" ]; then
+  git restore --pathspec-from-file="/tmp/di-bag-phase-05/docs-generated-tracked-${task8_docs_label}.txt"
+fi
+while IFS= read -r file; do [ -z "$file" ] || rm -- "$file"; done < "/tmp/di-bag-phase-05/docs-generated-untracked-${task8_docs_label}.txt"
+git diff --name-only | LC_ALL=C sort -u | cmp --silent "/tmp/di-bag-phase-05/docs-intended-tracked-${task8_docs_label}.txt" -
+git ls-files --others --exclude-standard | LC_ALL=C sort -u | cmp --silent "/tmp/di-bag-phase-05/docs-intended-untracked-${task8_docs_label}.txt" -
+set +e
+npm run docs:check > "/tmp/di-bag-phase-05/docs-check-${task8_docs_label}.log" 2>&1
+docs_check_exit=$?
+set -e
+if [ "$docs_generate_exit" -eq 0 ] && [ ! -s "/tmp/di-bag-phase-05/docs-generated-tracked-${task8_docs_label}.txt" ] && [ ! -s "/tmp/di-bag-phase-05/docs-generated-untracked-${task8_docs_label}.txt" ] && [ "$docs_check_exit" -eq 0 ]; then
+  printf '%s\n' green > "/tmp/di-bag-phase-05/docs-status-${task8_docs_label}.txt"
+else
+  printf '%s\n' candidate-generated-documentation-only > "/tmp/di-bag-phase-05/docs-status-${task8_docs_label}.txt"
+fi
+```
+
+This deliberately runs `docs:check` after restoring only generated documentation, so its result
+describes the tree that will be committed. Inspect both logs and generated-path inventories. Replace
+`candidate-generated-documentation-only` with exactly `generated-documentation-only` only when every
+observed difference/failure is inside the authorized stale-generated-doc or unchanged 400-line
+budget scope; otherwise stop. A clean `docs:check` does not make the commit green when
+`docs:generate` changed tracked or untracked output. Only an exact `green` status omits the exception
+paragraph and bisect skip. Runtime, compiler, codemod, and applicable graph/agent checks remain
+mandatory green.
+
+Record the exact preparation paths and commit only this coherent compiler/runtime-green preparation. The message
+builder makes the documentation paragraph conditional on that observed status:
+
+```bash
+bun test tests/types.test.ts -t startup
+npm run typecheck
+npm run codemod:check
+bun test tests/builder-renames.test.ts
+git diff --name-only | LC_ALL=C sort -u > /tmp/di-bag-phase-05/codemod-manual-files.txt
+test -s /tmp/di-bag-phase-05/codemod-manual-files.txt
+git add --pathspec-from-file=/tmp/di-bag-phase-05/codemod-manual-files.txt
+task8_docs_status=$(cat /tmp/di-bag-phase-05/docs-status-preparation.txt)
+{
+  printf '%s\n' 'refactor!: prepare coherent typed builder migrations' '' 'Migrates the startup fixture’s legitimate builder calls while retaining its' 'two deliberately rejected old-close controls. Any additional path in this' 'commit is a recorded green prerequisite for the generated rewrite.'
+  case "$task8_docs_status" in
+    green) ;;
+    generated-documentation-only) printf '%s\n' '' 'Generated-documentation-only red under the phase-5 exception; the phase' 'evidence records the observed npm run docs:generate and npm run docs:check' 'failures. The unchanged 400-line budget is restored by Tasks 12-13.' ;;
+    *) exit 1 ;;
+  esac
+  printf '%s\n' '' 'Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>' 'Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL'
+} > /tmp/di-bag-phase-05/codemod-preparation-commit-message.txt
+git commit -F /tmp/di-bag-phase-05/codemod-preparation-commit-message.txt
+```
+
+- [ ] **Step 2: Rebuild and prove the post-preparation startup result exactly**
+
+```bash
+npm run build
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'tests/types/isolated/*.ts' --report /tmp/di-bag-phase-05/codemod-dry-run-report.json
+node - <<'JS'
+const report = require('/tmp/di-bag-phase-05/codemod-dry-run-report.json');
+const skipped = report.manual.filter(item => item.reason.startsWith('this file was left untouched'));
+const startup = report.files.filter(item => item.file === 'tests/types/negative/startup.ts');
+if (report.written !== false || skipped.length !== 0 || startup.length !== 1) process.exit(1);
+console.log({ written: report.written, skipped: skipped.length, startup: startup.length, manuals: report.manual.length });
+JS
+node --input-type=module <<'JS'
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { loadTypeScript, runCodemod } from './tools/codemod/lib/codemod.mjs';
+const root = process.cwd();
+const file = 'tests/types/negative/startup.ts';
+const before = readFileSync(file, 'utf8');
+let expected = before;
+const controls = [
+  ['closable.close({ timeoutMs: 1 });', 'closable.close({ waitTimeoutMs: 1 });'],
+  ['closable.close({ signal: new AbortController().signal });', 'closable.close({ abortSignal: new AbortController().signal });'],
+];
+for (const [oldText, mappedText] of controls) {
+  assert.equal(expected.split(oldText).length - 1, 1, `expected one old-close control: ${oldText}`);
+  expected = expected.replace(oldText, mappedText);
+}
+const compiler = loadTypeScript(root);
+const result = runCodemod({
+  typescript: compiler.ts,
+  root,
+  project: 'tsconfig.json',
+  extraFiles: ['tests/types/negative/*.ts', 'tests/types/isolated/*.ts'],
+  libraryRoots: ['src', 'dist'],
+  only: [file],
+});
+assert.equal(result.files.length, 1);
+assert.equal(result.files[0].file, file);
+assert.equal(result.files[0].text, expected);
+assert.equal(result.manual.filter(item => item.reason.startsWith('this file was left untouched')).length, 0);
+writeFileSync('/tmp/di-bag-phase-05/negative-startup-prepared.ts', before);
+console.log('startup preview: exactly two inherited old-close controls remain');
+JS
+```
+
+Expected: the inclusive report still has `written: false`, zero skipped files, and exactly one
+`startup.ts` entry. The exact-text proof rejects any remaining legitimate builder rewrite or any
+third proposed change in that file.
+
+- [ ] **Step 3: Write every typed file except the protected startup fixture**
+
+Replace only the negative glob in the write command with a sorted explicit inventory that omits
+exactly `tests/types/negative/startup.ts`. Retain the project, both library roots, and the isolated
+glob:
+
+```bash
+rg --files tests/types/negative -g '*.ts' | LC_ALL=C sort > /tmp/di-bag-phase-05/all-negative-files.txt
+grep -vxF 'tests/types/negative/startup.ts' /tmp/di-bag-phase-05/all-negative-files.txt > /tmp/di-bag-phase-05/codemod-write-negative-files.txt
+python3 - <<'PY'
+from pathlib import Path
+all_files = Path('/tmp/di-bag-phase-05/all-negative-files.txt').read_text().splitlines()
+write_files = Path('/tmp/di-bag-phase-05/codemod-write-negative-files.txt').read_text().splitlines()
+assert all_files == sorted(set(all_files))
+assert write_files == sorted(set(write_files))
+assert [item for item in all_files if item not in write_files] == ['tests/types/negative/startup.ts']
+assert write_files == [item for item in all_files if item != 'tests/types/negative/startup.ts']
+PY
+git diff --exit-code
+git diff --cached --quiet
+mapfile -t negative_extra_files < /tmp/di-bag-phase-05/codemod-write-negative-files.txt
+negative_extra_args=()
+for file in "${negative_extra_files[@]}"; do negative_extra_args+=(--extra-files "$file"); done
+write_command=(node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist "${negative_extra_args[@]}" --extra-files 'tests/types/isolated/*.ts' --write --report /tmp/di-bag-phase-05/codemod-write-report.json)
+printf '%q ' "${write_command[@]}" > /tmp/di-bag-phase-05/codemod-write-command.sh
+printf '\n' >> /tmp/di-bag-phase-05/codemod-write-command.sh
+"${write_command[@]}"
+node - <<'JS'
+const { writeFileSync } = require('node:fs');
+const report = require('/tmp/di-bag-phase-05/codemod-write-report.json');
+const skipped = report.manual.filter(item => item.reason.startsWith('this file was left untouched'));
+const startup = report.files.filter(item => item.file === 'tests/types/negative/startup.ts');
+const generated = report.files.filter(item => item.rewrites > 0).map(item => item.file).sort();
+if (report.written !== true || skipped.length !== 0 || startup.length !== 0 || generated.length === 0 || new Set(generated).size !== generated.length) process.exit(1);
+writeFileSync('/tmp/di-bag-phase-05/codemod-generated-files.txt', `${generated.join('\n')}\n`);
+console.log({ files: report.files.length, rewrites: report.files.reduce((sum, item) => sum + item.rewrites, 0), manual: report.manual.length, generated: generated.length });
+JS
+cmp --silent tests/types/negative/startup.ts /tmp/di-bag-phase-05/negative-startup-prepared.ts
+bun test tests/types.test.ts -t startup
+npm run typecheck
+npm run codemod:check
+bun test tests/builder-renames.test.ts
+git diff --check
+```
+
+Every command above must pass. A manual item may remain because the old builder surface is still
+present, but it may not make this boundary compiler/runtime red. If one is a prerequisite for green,
+restore only the report-generated paths, make the prerequisite preparation commit described in Step
+1, rebuild, and repeat Steps 2–3. Never change the accumulated map, rewrite either old-close control,
+or use a red compiler/runtime waiver.
+
+The failed-trial restoration is exact and must return to the clean post-preparation tree:
+
+```bash
+git diff --cached --quiet
+git restore --pathspec-from-file=/tmp/di-bag-phase-05/codemod-generated-files.txt
+git diff --exit-code
+git diff --cached --quiet
+```
+
+- [ ] **Step 4: Commit only the report-generated mechanical rewrite**
+
+Prove the successful report's generated inventory is exactly the working-tree diff, then stage only
+that inventory. Reobserve both documentation commands and reset `task8_docs_status` before running
+this block:
+
+```bash
+git diff --cached --quiet
+git diff --name-only | LC_ALL=C sort > /tmp/di-bag-phase-05/codemod-working-tree-files.txt
+cmp --silent /tmp/di-bag-phase-05/codemod-generated-files.txt /tmp/di-bag-phase-05/codemod-working-tree-files.txt
+git add --pathspec-from-file=/tmp/di-bag-phase-05/codemod-generated-files.txt
+git diff --cached --name-only | LC_ALL=C sort | cmp --silent /tmp/di-bag-phase-05/codemod-generated-files.txt -
+task8_docs_status=$(cat /tmp/di-bag-phase-05/docs-status-mechanical.txt)
+{
+  printf '%s\n' 'refactor!: mechanically migrate typed builder calls' '' 'Generated with:'
+  cat /tmp/di-bag-phase-05/codemod-write-command.sh
+  printf '%s\n' '' 'Explicit sorted negative-fixture inventory (startup.ts is the sole omission):'
+  cat /tmp/di-bag-phase-05/codemod-write-negative-files.txt
+  printf '%s\n' '' 'Report-generated staged-file inventory:'
+  cat /tmp/di-bag-phase-05/codemod-generated-files.txt
+  case "$task8_docs_status" in
+    green) ;;
+    generated-documentation-only) printf '%s\n' '' 'Generated-documentation-only red under the phase-5 exception; the phase' 'evidence records the observed npm run docs:generate and npm run docs:check' 'failures. The unchanged 400-line budget is restored by Tasks 12-13.' ;;
+    *) exit 1 ;;
+  esac
+  printf '%s\n' '' 'Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>' 'Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL'
+} > /tmp/di-bag-phase-05/codemod-mechanical-commit-message.txt
+git commit -F /tmp/di-bag-phase-05/codemod-mechanical-commit-message.txt
+```
+
+This is the only Task 8 commit called mechanical. Do not stage a manual resolution, diagnostic
+marker edit, or unrelated file.
+
+- [ ] **Step 5: Resolve manual items separately and preserve current diagnostics**
+
+Resolve every remaining manual item in files owned by this task. For a reshaped extracted reference,
+use an explicitly typed wrapper, for example:
 
 ```ts
 const addTool = (collectionToken: typeof tools, provider: () => string) =>
   builder.withCollectionContribution({ collectionToken, provider });
 ```
 
-Do not convert arbitrary `.replace()` or `.build()` calls reported outside a library declaration.
-
-- [ ] **Step 2: Apply exactly the same command**
-
-```bash
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'tests/types/isolated/*.ts' --write --report /tmp/di-bag-phase-05/codemod-report.json
-```
-
-Expected: exit 0. Resolve every manual item in files owned by this task. Run the preview again; expected: `0 rewrites` and no unresolved manual item in the main project.
-
-- [ ] **Step 3: Repair diagnostic comments and assertions the type-aware pass cannot see**
-
-Apply this exact vocabulary in compiler markers and source-owned text:
+The expanded old and new builder methods still share the existing admission types. Therefore keep
+the current diagnostic marker text byte-for-byte in Task 8. The following nine replacements are the
+Task 12 contract edit, when source diagnostics and fixtures change atomically; audit them now, but do
+not apply them early:
 
 | Old text | New text |
 | --- | --- |
@@ -2108,11 +2413,15 @@ Apply this exact vocabulary in compiler markers and source-owned text:
 | `alias destination requires a single-service token` | `withServiceAlias destination requires a single-service token` |
 | `contribute requires a collection token` | `withCollectionContribution requires a collection token` |
 
-These strings must match the contract edit in Task 12 exactly. Search all marker variants, including `diagnostic-also`:
+Search all marker variants, including `diagnostic-also`, and save the inventory for Task 12:
 
 ```bash
 rg -n "register requires|register introduces|replace requires|alias requires|alias output|contribute requires" tests/types tests/*.test.ts
 ```
+
+If a focused compiler result contradicts the stated shared-type ordering, stop and report the exact
+source diagnostic and fixture rather than changing markers speculatively or accepting a red compiler
+commit.
 
 The runtime assertion inventory for this phase is exactly one 0.4.0 `toThrow(...)` prefix at the planner's source:
 
@@ -2126,32 +2435,61 @@ It occurs in `tests/release-artifacts.test.ts`; rewrite its generated source/ass
 grep -rhoE "toThrow\((/|['\`])[^)]*" tests | grep -iE "\b(register|alias|contribute|replace|installModule|verifyGraph|buildModule|build)\b" | sort | uniq -c
 ```
 
-- [ ] **Step 4: Run narrow tests, then commit the mechanical rewrite**
+- [ ] **Step 6: Prove and commit the hand migration separately**
 
 ```bash
+node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'tests/types/isolated/*.ts' --report /tmp/di-bag-phase-05/codemod-dry-run-report.json
+node - <<'JS'
+const assert = require('node:assert/strict');
+const report = require('/tmp/di-bag-phase-05/codemod-dry-run-report.json');
+const classified = require('/tmp/di-bag-phase-05/codemod-manual-classification.json');
+const skipped = report.manual.filter(item => item.reason.startsWith('this file was left untouched'));
+const startup = report.files.filter(item => item.file === 'tests/types/negative/startup.ts');
+const outside = report.files.filter(item => item.file !== 'tests/types/negative/startup.ts' && item.rewrites !== 0);
+const key = item => `${item.file}\0${item.reason}`;
+const counts = rows => [...rows.reduce((map, row) => map.set(key(row), (map.get(key(row)) ?? 0) + 1), new Map())].sort(([a], [b]) => a.localeCompare(b));
+const allowed = classified.filter(item => !item.owner.startsWith('task-8'));
+assert.equal(report.written, false);
+assert.equal(skipped.length, 0);
+assert.equal(startup.length, 1);
+assert.equal(outside.length, 0);
+assert.deepEqual(counts(report.manual), counts(allowed), 'manual rows differ from exact inherited/later-owner classification');
+console.log({ startupRewrites: startup[0].rewrites, outsideRewrites: outside.length, retainedOrLaterManuals: report.manual.length });
+JS
 bun test tests/types.test.ts -t "builder|module|alias|contribution|replacement|verify"
 bun test tests/builder-renames.test.ts
+npm run typecheck
+npm run codemod:check
+git diff --check
 ```
 
-Expected: all selected tests pass. If the first command's filter still initializes all fixtures, allow its normal runtime; do not weaken markers.
+Expected: the preview has `0 rewrites` outside `startup.ts`; every Task 8-owned manual is gone; each
+remaining manual matches the exact path/reason of a classified inherited pass-through or later owner;
+and the Step 2 exact-text proof still establishes that `startup.ts` proposes only the two protected
+close-control rewrites. Every compiler/runtime command passes. If the first test filter initializes
+all fixtures, allow its normal runtime; do not weaken markers.
+
+Reobserve both documentation commands and reset `task8_docs_status` before running this commit block:
 
 ```bash
-git add tests examples scripts
-git commit -F - <<'MSG'
-refactor!: apply the builder codemod to typed call sites
-
-Generated with:
-node tools/codemod/cli.mjs --project tsconfig.json --library-root src --library-root dist --extra-files 'tests/types/negative/*.ts' --extra-files 'tests/types/isolated/*.ts' --write --report /tmp/di-bag-phase-05/codemod-report.json
-
-Generated-documentation-only red under the phase-5 exception; the phase
-evidence records the observed failures and commands. The 400-line API-card
-budget is unchanged. Skip this commit during git bisect; Tasks 12-13
-contract the surface and restore both documentation checks.
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
-MSG
+git diff --name-only | LC_ALL=C sort -u > /tmp/di-bag-phase-05/codemod-manual-files.txt
+test -s /tmp/di-bag-phase-05/codemod-manual-files.txt
+git add --pathspec-from-file=/tmp/di-bag-phase-05/codemod-manual-files.txt
+task8_docs_status=$(cat /tmp/di-bag-phase-05/docs-status-hand.txt)
+{
+  printf '%s\n' 'refactor!: finish typed builder migrations by hand'
+  case "$task8_docs_status" in
+    green) ;;
+    generated-documentation-only) printf '%s\n' '' 'Generated-documentation-only red under the phase-5 exception; the phase' 'evidence records the observed npm run docs:generate and npm run docs:check' 'failures. The unchanged 400-line budget is restored by Tasks 12-13.' ;;
+    *) exit 1 ;;
+  esac
+  printf '%s\n' '' 'Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>' 'Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL'
+} > /tmp/di-bag-phase-05/codemod-hand-commit-message.txt
+git commit -F /tmp/di-bag-phase-05/codemod-hand-commit-message.txt
 ```
+
+Make this hand commit only when the manual-file inventory is nonempty; never create an empty commit.
+Keep every runtime/compiler check green.
 
 ---
 
@@ -2627,10 +2965,10 @@ Every matching `details.operation` is respectively `withServiceAlias`, `withRepl
 
 - [ ] **Step 4: Rename compiler messages at their definitions**
 
-In `src/types.ts`, `src/alias-types.ts`, `src/contribution-types.ts` and the phase-4 file that defines `RegisterTokenAdmission`, use exactly the nine Task 8 replacements. Change both `Introduces` and `IntroducesKeys`; change both `ReplacementKey` and `ReplacementKeyOf`. In particular, change the string literals inside `RegisterTokenAdmission`, `AliasDestinationAdmission`, and the collection-token admission used by `BuilderWithCollectionContribution`; retain those helper type names and their detail objects. Do not change the error-page anchor fragments. Rerun:
+In `src/types.ts`, `src/alias-types.ts`, `src/contribution-types.ts` and the phase-4 file that defines `RegisterTokenAdmission`, use exactly the nine Task 8 replacements. Change both `Introduces` and `IntroducesKeys`; change both `ReplacementKey` and `ReplacementKeyOf`. In the same uncommitted atomic unit, apply those exact replacements to every matching `diagnostic:`/`diagnostic-also:` marker and source-owned compiler assertion inventoried by Task 8; Task 8 deliberately kept their shared old wording. In particular, change the string literals inside `RegisterTokenAdmission`, `AliasDestinationAdmission`, and the collection-token admission used by `BuilderWithCollectionContribution`; retain those helper type names and their detail objects. Do not change the error-page anchor fragments. Rerun:
 
 ```bash
-rg -n "register requires|register introduces|replace requires|alias requires|alias output|contribute requires" src tests/types docs/agent
+rg -n "register requires|register introduces|replace requires|alias requires|alias output|contribute requires" src tests/types tests/*.test.ts docs/agent
 ```
 
 Expected: no old phrase. Every test marker must equal the new source substring.
@@ -2851,7 +3189,7 @@ Claude-Session: https://claude.ai/code/session_01URAuHKzgTPsPixaqiUvysL
 MSG
 ```
 
-Report to the controller in at most 60 lines: branch `phase-05-builder-renames`; `git log --oneline next..HEAD`; each gate and its last summary line; each S1 method decision and S7 decision with the deciding number; all twelve cumulative percentages; before/after call-site counts; any manual codemod items; any fallback or deviation and why. Add a table naming the exact hashes produced by Tasks 4, 5, 6, 7, 8, 9, 10 and 11, mark each with its observed green or `generated-documentation only` status, and give the exact `git bisect skip <hash>...` command covering only the red hashes. Confirm that the Task 12-13 contract/docs commit and HEAD pass both `npm run docs:generate`/clean-tree comparison and `npm run docs:check` with the unchanged 400-line budget. Never push, publish or merge.
+Report to the controller in at most 60 lines: branch `phase-05-builder-renames`; `git log --oneline next..HEAD`; each gate and its last summary line; each S1 method decision and S7 decision with the deciding number; all twelve cumulative percentages; before/after call-site counts; any manual codemod items; any fallback or deviation and why. Add a table naming the exact hashes produced by Tasks 4, 5, 6, 7, Task 8's preparation, pure mechanical and optional hand commits, and Tasks 9, 10 and 11. For Task 8, cite the exact expanded write command, full and write negative-fixture inventories, report-generated staged inventory, startup exact-text/byte proof, focused compiler result, exact path/reason/owner manual classification, and the fact that marker text stayed unchanged for Task 12. Mark every listed commit with its actually observed `green` or `generated-documentation only` status, include the `docs:generate` outcome/diff, restored-tree `docs:check` outcome and exact failures for each red commit, and give the exact `git bisect skip <hash>...` command covering only those red hashes. Confirm that the Task 12-13 contract/docs commit and HEAD pass both `npm run docs:generate`/clean-tree comparison and `npm run docs:check` with the unchanged 400-line budget. Never push, publish or merge.
 
 ---
 
@@ -2859,7 +3197,9 @@ Report to the controller in at most 60 lines: branch `phase-05-builder-renames`;
 
 **Spec coverage.** Tasks 1–4 expand every builder name and shape; Task 5 pins positive, negative, property-site and list-element diagnostics; Task 6 measures S1 and S7 at the required sizes and gives a complete per-method positional fallback plus the singular-module fallback; Tasks 7–10 migrate the codemod, typed code, generated source, JavaScript and agent-eval; Task 11 keeps the graph tool bilingual; Task 12 removes every old declaration and renames operations/messages; Task 13 updates shipped docs and generated references; Task 14 measures all twelve post-contract cases and runs every master-plan gate. No phase-5 spec item is left without a task.
 
-**Evidence boundary.** The inherited historical prototype ran the Task 1–4 runtime source against adapted 0.4.0 tokens (11 pass), four mutants, and five existing files; the finishing planner independently inspected that diff and reran only the graph-tool prototype test (2 pass). The controller later type-checked the positive prototype and positive `builder-renames.ts` fixture successfully, but the negative fixtures were excluded. The final collection-token form, diagnostic positions, and actual later-phase entry tree remain unverified. The executor's Tasks 2, 4, 5, 6, 12 and 14 are the authoritative checks on that tree.
+**Evidence boundary.** The inherited historical prototype ran the Task 1–4 runtime source against adapted 0.4.0 tokens (11 pass), four mutants, and five existing files; the finishing planner independently inspected that diff and reran only the graph-tool prototype test (2 pass). The controller later type-checked the positive prototype and positive `builder-renames.ts` fixture successfully, but the negative fixtures were excluded. The final collection-token form, diagnostic positions, and actual later-phase entry tree remain unverified. The executor's Tasks 2, 4, 5, 6, 8, 12 and 14 are the authoritative checks on that tree.
+
+**Typed migration boundary.** Task 8 keeps discovery inclusive, asserts both saved-preview predicates, migrates `startup.ts` builder calls in a prior compiler/runtime-green preparation while retaining its two rejected old-close controls, and proves that only those controls remain before omitting exactly that fixture from the write inventory. The mechanical commit starts with an empty index, is staged solely from the write report, and has an exact clean-tree restore path for a failed trial; manual items land separately afterward and inherited/later-owner rows remain only under an exact path/reason classification. Diagnostic markers retain the expanded surface's actual shared admission wording until Task 12 changes source diagnostics, markers and assertions atomically. Documentation status is determined from generation diff plus `docs:check` on the restored commit tree; documentation-only red is recorded only when those commands actually observe it, while runtime and compiler red are never allowed.
 
 **Compiler provenance.** The controller confirmed that the npm `typescript` wrapper package is 6.0.2 while `require('typescript').version` reports the delegated `@typescript/old` 6.0.3 compiler. Evidence rows that record 6.0.3 are consistent with the pinned toolchain.
 
