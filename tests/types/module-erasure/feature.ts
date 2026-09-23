@@ -3,7 +3,7 @@ import { DiBag } from '../../../src';
 /** Private type: must not appear in the emitted declaration, so this file does not export it. */
 type PrivateCacheShape = { entries: Map<string, number> };
 const tokenKey = Symbol('token');
-export const tokenService = DiBag.token(tokenKey).of<{ id: number }>();
+export const tokenService = DiBag.createToken(tokenKey).forService<{ id: number }>();
 
 export const feature = DiBag.createBuilder()
   .withServices({

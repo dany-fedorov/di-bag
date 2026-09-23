@@ -21,9 +21,9 @@ test('one module update does not revisit its existing registration table', () =>
 });
 
 test('module updates preserve declaration positions, earlier builders and renamed lexical exports', async () => {
-  const key = Symbol('same'), token = DiBag.token(key).of<number>();
+  const key = Symbol('same'), token = DiBag.createToken(key).forService<number>();
   const groupKey = Symbol('group');
-  const group = DiBag.token(groupKey).forCollectionOf<number>();
+  const group = DiBag.createToken(groupKey).forCollectionOf<number>();
   const original = DiBag.createBuilder().withServices({ zebra: () => 1, apple: () => 2 }).withTokenService(token, () => 3)
     .withCollectionContribution({ collectionToken: group, provider: ({ zebra }: { zebra: number }) => zebra });
   const updated = original.withReplacedService('zebra', () => 4).withServiceAlias({ aliasKey: 'alias', targetServiceKey: 'apple' }).withCollectionContribution({ collectionToken: group, provider: () => 5 });
@@ -43,10 +43,10 @@ test('module updates preserve declaration positions, earlier builders and rename
 
 test('module snapshots and installation retain positional token kinds until their binding is pruned', () => {
   const key = Symbol('module collection');
-  const collection = DiBag.token(key).forCollectionOf<number>();
-  const service = DiBag.token(key).of<number>();
+  const collection = DiBag.createToken(key).forCollectionOf<number>();
+  const service = DiBag.createToken(key).forService<number>();
   const module = DiBag.createBuilder()
-    .withServices({ total: DiBag.fromFunction([collection], values => values.length) })
+    .withServices({ total: DiBag.createProviderFromFunction({ dependencies: [collection], factoryFunction: values => values.length }) })
     .buildModule({ exportedServiceKeys: ['total'] });
   const description = moduleGraph(module);
   const graph = new BindingGraph().withInstallation(description);

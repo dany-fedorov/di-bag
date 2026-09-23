@@ -3,30 +3,30 @@ import { DiBag, type Token, type Provider } from '../../../src';
 import { withTokenBinding, type ProviderBase } from '../../../src/provider';
 import type { TokenBase } from '../../../src/tokens';
 const key = Symbol('same'); const otherKey = Symbol('same');
-const token = DiBag.token(key).of<{ value: number }>();
-const other = DiBag.token(otherKey).of<{ value: number }>();
+const token = DiBag.createToken(key).forService<{ value: number }>();
+const other = DiBag.createToken(otherKey).forService<{ value: number }>();
 // diagnostic: not assignable
 const wrongKey: typeof token = other;
 // diagnostic: not assignable
 const widerService: Token<typeof key, object> = token;
 // diagnostic: read-only
-token.key = key;
+token.symbol = key;
 declare const broad: symbol;
 // diagnostic: singleton unique-symbol
-DiBag.token(broad);
+DiBag.createToken(broad);
 // diagnostic: singleton unique-symbol
-DiBag.token(Symbol('inline'));
+DiBag.createToken(Symbol('inline'));
 // diagnostic: singleton unique-symbol
-DiBag.token<symbol>(key);
+DiBag.createToken<symbol>(key);
 declare const union: typeof key | typeof otherKey;
 // diagnostic: singleton unique-symbol
-DiBag.token(union);
+DiBag.createToken(union);
 declare const impossible: never;
 // diagnostic: Expected 2 arguments
-DiBag.token<never>(impossible);
+DiBag.createToken<never>(impossible);
 const returnedSymbol = () => Symbol('returned');
 // diagnostic: singleton unique-symbol
-DiBag.token(returnedSymbol());
+DiBag.createToken(returnedSymbol());
 // diagnostic: not assignable
 const widenedIdentity: Token<symbol, { value: number }> = token;
 // diagnostic: not assignable to type 'DependencyReference'
@@ -63,7 +63,8 @@ declare const erasedProvider: ProviderBase;
 // diagnostic: factory dependencies must be finite
 DiBag.createBuilder().withServices({ erasedProvider });
 // diagnostic: finite tuple
-DiBag.fromFunction([token] as typeof token[], () => 1);
+// diagnostic-also: TS2322 positional factory arguments must match the declared parameter tuple
+DiBag.createProviderFromFunction({ dependencies: [token] as typeof token[], factoryFunction: () => 1 });
 // diagnostic: finite tuple
 fromFunction<readonly TokenBase[], () => number>([token], () => 1);
 declare const graphErased: Provider<() => number, {}, readonly [], import('../../../src/token-types').OpaqueGraph>;

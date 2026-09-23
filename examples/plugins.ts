@@ -6,7 +6,7 @@ interface Handler {
 
 async function main() {
   const handlerKey = Symbol('handler');
-  const handler = DiBag.token(handlerKey).of<Handler>();
+  const handler = DiBag.createToken(handlerKey).forService<Handler>();
 
   // An application selects this descriptor from its own configuration/import path.
   const selected: unknown = {
@@ -18,14 +18,11 @@ async function main() {
     },
   };
   let disposals = 0;
-  const provider = DiBag.fromPlugin([], selected, {
-    acquisitionMode: 'raw',
-    validate: (value: unknown): value is Handler =>
+  const provider = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: selected, factoryReturnKind: 'uninspected', isValidPluginOutput: (value: unknown): value is Handler =>
       typeof value === 'object' &&
       value !== null &&
       'handle' in value &&
-      typeof value.handle === 'function',
-  });
+      typeof value.handle === 'function' });
   const feature = DiBag.createBuilder()
     .withTokenService(handler, provider)
     .buildModule({ exportedServiceKeys: [handler] });

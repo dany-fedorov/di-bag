@@ -5,8 +5,8 @@ describe('0.5 container names', () => {
   test('reads named, token, collection, and graph snapshots without acquisition', async () => {
     const tokenKey = Symbol('token');
     const listKey = Symbol('list');
-    const token = DiBag.token(tokenKey).of<number>();
-    const list = DiBag.token(listKey).forCollectionOf<number>();
+    const token = DiBag.createToken(tokenKey).forService<number>();
+    const list = DiBag.createToken(listKey).forCollectionOf<number>();
     const container = DiBag.createBuilder().withServices({ named: () => 1 })
       .withTokenService(token, () => 2)
       .withCollectionContribution({ collectionToken: list, provider: () => 3 })

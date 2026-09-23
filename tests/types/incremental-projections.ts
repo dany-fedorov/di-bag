@@ -26,10 +26,10 @@ const namedForward = DiBag.createBuilder().withServices({ unrelated: () => ({ re
 const namedReverse = DiBag.createBuilder().withServices({ read: ({ value }: { value: number }) => value.toFixed() }).withServices({ unrelated: () => ({ retained: true as const }), value: () => 1 }).buildContainer();
 
 const key = Symbol('projection-boundary');
-const token = DiBag.token(key).of<number>();
-const equivalent = DiBag.token(key).of<number>();
-const tokenForward = DiBag.createBuilder().withServices({ unrelated: () => true }).withTokenService(token, () => 1).withServices({ read: DiBag.fromFunction([equivalent], value => value.toFixed()) }).buildContainer();
-const tokenReverse = DiBag.createBuilder().withServices({ read: DiBag.fromFunction([equivalent], value => value.toFixed()) }).withServices({ unrelated: () => true }).withTokenService(token, () => 1).buildContainer();
+const token = DiBag.createToken(key).forService<number>();
+const equivalent = DiBag.createToken(key).forService<number>();
+const tokenForward = DiBag.createBuilder().withServices({ unrelated: () => true }).withTokenService(token, () => 1).withServices({ read: DiBag.createProviderFromFunction({ dependencies: [equivalent], factoryFunction: value => value.toFixed() }) }).buildContainer();
+const tokenReverse = DiBag.createBuilder().withServices({ read: DiBag.createProviderFromFunction({ dependencies: [equivalent], factoryFunction: value => value.toFixed() }) }).withServices({ unrelated: () => true }).withTokenService(token, () => 1).buildContainer();
 
 export type IndependentBoundaries = [
   Assert<Equal<ReturnType<typeof namedForward.resolve<'read'>>, string>>,

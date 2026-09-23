@@ -3,21 +3,18 @@ import { DiBag } from '../../src';
 export const disposals: string[] = [];
 export function reset() { disposals.length = 0; }
 const stepKey = Symbol('feature-step');
-export const steps = DiBag.token(stepKey).forCollectionOf<(text: string) => string>();
+export const steps = DiBag.createToken(stepKey).forCollectionOf<(text: string) => string>();
 const pluginKey = Symbol('feature-plugin');
-const plugin = DiBag.token(pluginKey).of<(text: string) => string>();
+const plugin = DiBag.createToken(pluginKey).forService<(text: string) => string>();
 const descriptor: unknown = {
   apiVersion: 1,
   create: () => (text: string) => text.toUpperCase(),
   dispose: () => { disposals.push('plugin'); },
 };
-export const feature = DiBag.createBuilder().withTokenService(plugin, DiBag.fromPlugin([], descriptor, {
-  acquisitionMode: 'raw',
-  validate: (value: unknown): value is (text: string) => string => typeof value === 'function',
-})).withServices({
+export const feature = DiBag.createBuilder().withTokenService(plugin, DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: descriptor, factoryReturnKind: 'uninspected', isValidPluginOutput: (value: unknown): value is (text: string) => string => typeof value === 'function' })).withServices({
   prefix: DiBag.withDisposal(() => 'private:', () => { disposals.push('private'); }),
 }).withCollectionContribution({ collectionToken: steps, provider: ({ prefix }: { prefix: string }) => (text: string) => prefix + text }).withCollectionContribution({ collectionToken: steps, provider: () => (text: string) => text + '!' }).withServices({
-    handler: DiBag.withDisposal(DiBag.fromFunction([plugin, steps], (transform, operations) =>
-      (text: string) => operations.reduce((value, step) => step(value), transform(text))),
+    handler: DiBag.withDisposal(DiBag.createProviderFromFunction({ dependencies: [plugin, steps], factoryFunction: (transform, operations) =>
+      (text: string) => operations.reduce((value, step) => step(value), transform(text)) }),
     () => { disposals.push('handler'); }),
   }).buildModule({ exportedServiceKeys: ['handler'] });

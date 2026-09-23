@@ -34,7 +34,7 @@ DiBag.createBuilder().withInstalledModules([renamed]).withServices({
 }).buildContainer();
 
 const configKey = Symbol('config');
-const token = DiBag.token(configKey).of<Config>();
+const token = DiBag.createToken(configKey).forService<Config>();
 module.withRenamedRequirement({
   // diagnostic: not assignable
   currentRequirementKey: token,

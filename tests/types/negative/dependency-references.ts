@@ -1,11 +1,11 @@
 import { DiBag, type Provider } from '../../../src';
 import type { TokenBase } from '../../../src/tokens';
-const key = Symbol('number'); const number = DiBag.token(key).of<number>();
-const otherKey = Symbol('other'); const other = DiBag.token(otherKey).of<number>();
-const wrong = DiBag.token(key).of<string>();
+const key = Symbol('number'); const number = DiBag.createToken(key).forService<number>();
+const otherKey = Symbol('other'); const other = DiBag.createToken(otherKey).forService<number>();
+const wrong = DiBag.createToken(key).forService<string>();
 const optional = DiBag.optional(number); const lazy = DiBag.lazy(number);
-const source = DiBag.fromFunction([optional], value => value);
-const lazySource = DiBag.fromFunction([lazy], get => ({ get }));
+const source = DiBag.createProviderFromFunction({ dependencies: [optional], factoryFunction: value => value });
+const lazySource = DiBag.createProviderFromFunction({ dependencies: [lazy], factoryFunction: get => ({ get }) });
 // diagnostic: incompatible
 DiBag.createBuilder().withTokenService(wrong, () => 'wrong').withServices({ source });
 // diagnostic: incompatible
@@ -49,25 +49,25 @@ declare const broad: readonly typeof optional[];
 declare const maybeTuple: readonly [typeof optional?];
 declare const unionTuple: readonly [typeof optional] | readonly [typeof lazy];
 // diagnostic: finite tuple
-DiBag.fromFunction(broad, (...values: (number | undefined)[]) => values);
+DiBag.createProviderFromFunction({ dependencies: broad, factoryFunction: (...values: (number | undefined)[]) => values });
 // diagnostic: not assignable
-DiBag.fromClass(maybeTuple, class { constructor(value?: number) {} });
+DiBag.createProviderFromClass({ dependencies: maybeTuple, serviceClass: class { constructor(value?: number) {} } });
 // diagnostic: finite tuple
-DiBag.fromFunction(unionTuple, (value: number | undefined | (() => number)) => value);
+DiBag.createProviderFromFunction({ dependencies: unionTuple, factoryFunction: (value: number | undefined | (() => number)) => value });
 // diagnostic: not assignable
-DiBag.fromFunction([optional], (value: number) => value);
+DiBag.createProviderFromFunction({ dependencies: [optional], factoryFunction: (value: number) => value });
 // diagnostic: not assignable
-DiBag.fromFunction([lazy], (value: number) => value);
+DiBag.createProviderFromFunction({ dependencies: [lazy], factoryFunction: (value: number) => value });
 // diagnostic: arguments must match
-DiBag.fromFunction([lazy], () => 1);
+DiBag.createProviderFromFunction({ dependencies: [lazy], factoryFunction: () => 1 });
 // diagnostic: not assignable
-DiBag.fromFunction([lazy], function (this: { id: number }, get: () => number) { return get() + this.id; });
+DiBag.createProviderFromFunction({ dependencies: [lazy], factoryFunction: function (this: { id: number }, get: () => number) { return get() + this.id; } });
 // diagnostic: not assignable
-DiBag.fromFunction([optional], function (this: { id: number }, value) { return this.id; });
+DiBag.createProviderFromFunction({ dependencies: [optional], factoryFunction: function (this: { id: number }, value) { return this.id; } });
 // diagnostic: not assignable
-DiBag.fromClass([optional], class { constructor(value: number) {} });
-// diagnostic: nativePromise acquisition requires a Promise output
-DiBag.fromFunction([optional], value => value, { acquisitionMode: 'nativePromise' });
+DiBag.createProviderFromClass({ dependencies: [optional], serviceClass: class { constructor(value: number) {} } });
+// diagnostic: native-promise factory return kind requires a Promise output
+DiBag.createProviderFromFunction({ dependencies: [optional], factoryFunction: value => value, factoryReturnKind: 'native-promise' });
 const root = DiBag.withLifetime(lazySource, 'root');
 const rootOptional = DiBag.withLifetime(source, 'root');
 // diagnostic: root lifetime cannot capture scoped dependency
@@ -98,14 +98,14 @@ reflectedFunction([optional], value => value);
 // diagnostic: finite tuple
 reflectedClass([lazy], class { constructor(get: () => number) {} });
 // diagnostic: not assignable
-DiBag.fromFunction<readonly [typeof optional], (value: number) => number>([optional], value => value);
-// diagnostic: nativePromise acquisition requires a Promise output
-DiBag.fromFunction<readonly [typeof lazy], (get: () => number) => number, 'nativePromise'>([lazy], get => get(), { acquisitionMode: 'nativePromise' });
+DiBag.createProviderFromFunction<readonly [typeof optional], (value: number) => number>({ dependencies: [optional], factoryFunction: value => value });
+// diagnostic: native-promise factory return kind requires a Promise output
+DiBag.createProviderFromFunction<readonly [typeof lazy], (get: () => number) => number, 'native-promise'>({ dependencies: [lazy], factoryFunction: get => get(), factoryReturnKind: 'native-promise' });
 declare const referenceUnion: typeof optional | typeof lazy;
 // diagnostic: not assignable
-DiBag.fromFunction([referenceUnion], value => value);
+DiBag.createProviderFromFunction({ dependencies: [referenceUnion], factoryFunction: value => value });
 // diagnostic: not assignable to type 'DependencyReference'
-DiBag.fromFunction([{ ...optional }], value => value);
+DiBag.createProviderFromFunction({ dependencies: [{ ...optional }], factoryFunction: value => value });
 // diagnostic: not assignable
 const invariant: import('../../../src').OptionalDependency<import('../../../src').Token<typeof key, number | string>> = optional;
 const rootOptionalModule = DiBag.createBuilder().withServices({ rootOptional }).buildModule({ exportedServiceKeys: ['rootOptional'] }).withRenamedExport({ currentExportKey: 'rootOptional', newExportKey: 'renamed' });
@@ -121,6 +121,6 @@ bound.createChildContainer([number], { [key]: () => 'wrong' });
 
 declare const impossible: never;
 // diagnostic: finite tuple
-DiBag.fromFunction([impossible], value => value);
+DiBag.createProviderFromFunction({ dependencies: [impossible], factoryFunction: value => value });
 // diagnostic: finite tuple
-DiBag.fromFunction<readonly [never], (value: never) => number>([impossible], value => 1);
+DiBag.createProviderFromFunction<readonly [never], (value: never) => number>({ dependencies: [impossible], factoryFunction: value => 1 });

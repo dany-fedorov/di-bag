@@ -4,9 +4,9 @@ import type { Assert, Equal } from './assert';
 
 type Clock = { now(): number };
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<Clock>();
+const clock = DiBag.createToken(clockKey).forService<Clock>();
 const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
 
 // Every bag method in one chain; both overloads of withReplacedService.
 const chained = DiBag.createBuilder()
@@ -102,8 +102,8 @@ DiBag.createBuilder().withInstalledModules([feature]).withServices({ extra: () =
 export type PhysicalClock = { now(): number };
 const physicalClockKey = Symbol('physical-clock');
 const physicalToolsKey = Symbol('physical-tools');
-export const physicalClock = DiBag.token(physicalClockKey).of<PhysicalClock>();
-export const physicalTools = DiBag.token(physicalToolsKey).forCollectionOf<string>();
+export const physicalClock = DiBag.createToken(physicalClockKey).forService<PhysicalClock>();
+export const physicalTools = DiBag.createToken(physicalToolsKey).forCollectionOf<string>();
 export const withServicesMethod = DiBag.createBuilder().withServices;
 export const withTokenServiceMethod = DiBag.createBuilder().withTokenService;
 export const withServiceAliasMethod = DiBag.createBuilder().withServices({ target: () => 1 }).withServiceAlias;

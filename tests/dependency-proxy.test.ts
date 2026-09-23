@@ -5,14 +5,14 @@ type Logger = { log(message: string): void };
 
 test('destructuring, direct reads, and positional adapters keep working', async () => {
   const key = Symbol('logger');
-  const loggerToken = DiBag.token(key).of<Logger>();
+  const loggerToken = DiBag.createToken(key).forService<Logger>();
   const bag = DiBag.createBuilder()
     .withTokenService(loggerToken, () => ({ log() {} }))
     .withServices({
       logger: (): Logger => ({ log() {} }),
       direct: (deps: { logger: Logger }) => typeof deps.logger.log,
       destructured: ({ logger }: { logger: Logger }) => typeof logger.log,
-      positional: DiBag.fromFunction([loggerToken], logger => typeof logger.log),
+      positional: DiBag.createProviderFromFunction({ dependencies: [loggerToken], factoryFunction: logger => typeof logger.log }),
     })
     .buildContainer();
   expect(bag.resolve('direct')).toBe('function');

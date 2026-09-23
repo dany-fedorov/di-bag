@@ -49,7 +49,7 @@ test('options are read once and snapshotted, and replacement clears capture', ()
 test('all provider transformations retain the immutable policy', () => {
   const source = withLifetime(() => 1, 'root');
   const key = Symbol('value');
-  const token = DiBag.token(key).of<ReturnType<ReturnType<typeof normalize>['create']>>();
+  const token = DiBag.createToken(key).forService<ReturnType<ReturnType<typeof normalize>['create']>>();
   const variants = [DiBag.withMetadata(source, { static: { x: 1 } }), DiBag.withDisposal(source, () => {}), DiBag.transformService(source, { mode: 'direct', transform: x => x }), DiBag.transformService(source, { mode: 'awaited', transform: x => x }),
     DiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: value => ({ value }) } }), DiBag.withMetadata(source, { dynamic: { mode: 'awaited', describe: value => ({ value }) } }), withTokenBinding(token, source)];
   for (const variant of variants) expect(normalize(variant).lifetime).toBe(normalize(source).lifetime);

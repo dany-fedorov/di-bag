@@ -86,8 +86,8 @@ test('raw and native lifetimes retain original pending promises and classificati
   const rawDisposed: Promise<object>[] = [];
   const nativeDisposed: object[] = [];
   const bag = DiBag.createBuilder().withServices({
-    raw: DiBag.withLifetime(DiBag.withDisposal(DiBag.fromFactory(() => gate.promise, { acquisitionMode: 'raw' }), value => { rawDisposed.push(value); }), 'root'),
-    native: DiBag.withLifetime(DiBag.withDisposal(DiBag.fromFactory(() => gate.promise, { acquisitionMode: 'nativePromise' }), value => { nativeDisposed.push(value); }), 'transient'),
+    raw: DiBag.withLifetime(DiBag.withDisposal(DiBag.createProvider(() => gate.promise, { factoryReturnKind: 'uninspected' }), value => { rawDisposed.push(value); }), 'root'),
+    native: DiBag.withLifetime(DiBag.withDisposal(DiBag.createProvider(() => gate.promise, { factoryReturnKind: 'native-promise' }), value => { nativeDisposed.push(value); }), 'transient'),
   }).buildContainer();
   const child = bag.createChildContainer();
   expect(child.resolve('raw')).toBe(gate.promise);
@@ -267,10 +267,10 @@ test('strict roots can consume capturing roots without inheriting their permissi
 
 test('token captive reads reject at the observed edge before scoped creation', async () => {
   const key = Symbol('scoped');
-  const token = DiBag.token(key).of<number>();
+  const token = DiBag.createToken(key).forService<number>();
   let factories = 0;
   const bag = uncheckedRuntimeGraph(DiBag.createBuilder().withTokenService(token, () => { factories++; return 42; }).withServices({
-    root: DiBag.withLifetime(DiBag.fromFunction([token], value => value), 'root'),
+    root: DiBag.withLifetime(DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }), 'root'),
   }));
   expect(() => bag.createChildContainer().resolve('root')).toThrow('root lifetime cannot capture scoped dependency');
   expect(factories).toBe(0);
@@ -452,10 +452,10 @@ test('retired transient ancestry does not block a retained proxy from retrying i
 
 test('token roots retain family ownership through a transient token consumer and independent override', async () => {
   const key = Symbol('root');
-  const token = DiBag.token(key).of<object>();
+  const token = DiBag.createToken(key).forService<object>();
   let closed = 0;
   const bag = DiBag.createBuilder().withTokenService(token, DiBag.withLifetime(DiBag.withDisposal(() => ({}), () => { closed++; }), 'root')).withServices({
-    bridge: DiBag.withLifetime(DiBag.fromFunction([token], root => ({ root })), 'transient'),
+    bridge: DiBag.withLifetime(DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: root => ({ root }) }), 'transient'),
   }).buildContainer();
   const child = bag.createChildContainer();
   expect(child.resolve('bridge').root).toBe(bag.resolve(token));

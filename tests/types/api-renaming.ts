@@ -3,14 +3,14 @@ import type { ProviderOutput, ProviderAcquiredValue, ProviderRegistrationMetadat
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
 type Assert<T extends true> = T;
 const pending = Promise.resolve({ id: 1 });
-const raw = DiBag.fromFactory(() => pending, { acquisitionMode: 'raw' });
+const raw = DiBag.createProvider(() => pending, { factoryReturnKind: 'uninspected' });
 const direct = DiBag.withMetadata(raw, { static: { tag: 'x' as const }, dynamic: { mode: 'direct', describe: value => ({ pending: value }) } });
 const awaited = DiBag.withMetadata(direct, { dynamic: { mode: 'awaited', describe: value => ({ id: value.id }) } });
 type _Direct = Assert<Equal<ProviderOutput<typeof direct>, Promise<{ id: number }>>>;
 type _Acquired = Assert<Equal<ProviderAcquiredValue<typeof direct>, Promise<{ id: number }>>>;
 type _Static = Assert<Equal<ProviderRegistrationMetadata<typeof direct>['tag'], 'x'>>;
 type _Frames = Assert<Equal<ProviderAcquisitionMetadata<typeof awaited>, readonly [Readonly<{ pending: Promise<{ id: number }> }>, Readonly<{ id: number }>]>>;
-const mapped = DiBag.transformService(raw, { mode: 'direct', acquisitionMode: 'raw', transform: value => value });
+const mapped = DiBag.transformService(raw, { mode: 'direct', acquisitionMode: 'uninspected', transform: value => value });
 type _Mapped = Assert<Equal<ProviderAcquiredValue<typeof mapped>, Promise<{ id: number }>>>;
 const api: DiBagApi = DiBag.withConfiguration({});
 const empty: Builder<never> = api.createBuilder();
@@ -22,13 +22,13 @@ declare const interfaceRegistrations: InterfaceRegistrations & Record<string, Re
 const interfaceValue = empty.withServices<InterfaceRegistrations>(interfaceRegistrations).buildContainer().resolve('value');
 type _InterfaceRegistration = Assert<Equal<typeof interfaceValue, number>>;
 const numberKey = Symbol('number');
-const numberToken = api.token(numberKey).of<number>();
-const provider = api.fromFactory(({ number }: { number: number }, context) => ({ number, signal: context.signal }), { context: 'acquisition' });
+const numberToken = api.createToken(numberKey).forService<number>();
+const provider = api.createProvider(({ number }: { number: number }, context) => ({ number, signal: context.abortSignal }), { factoryReceivesContext: true });
 const bag = empty.withTokenService(numberToken, () => 1).withServices({ number: () => 2, provider }).buildContainer();
 const output: number = bag.resolve('provider').number;
 const pluginFactory: PluginProviderFactory = api.fromPlugin;
 void output; void pluginFactory;
-export const nativeContext = DiBag.fromFactory((_deps: {}, context) => Promise.reject<never>(context.signal.reason), { context: 'acquisition', acquisitionMode: 'nativePromise' });
+export const nativeContext = DiBag.createProvider((_deps: {}, context) => Promise.reject<never>(context.abortSignal.reason), { factoryReturnKind: 'native-promise', factoryReceivesContext: true });
 type _NativeContext = Assert<Equal<ProviderOutput<typeof nativeContext>, Promise<never>>>;
 
 const optionalDirectOptions: {

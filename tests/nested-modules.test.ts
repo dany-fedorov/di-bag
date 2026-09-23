@@ -104,7 +104,7 @@ test('renaming a nested export at the outer level keeps inner references and the
 
 test('contributions inside nested modules install in declaration order and resolve their private dependencies', async () => {
   const groupKey = Symbol('group');
-  const group = DiBag.token(groupKey).forCollectionOf<string>();
+  const group = DiBag.createToken(groupKey).forCollectionOf<string>();
   const inner = DiBag.createBuilder()
     .withServices({ secret: () => 'inner-secret' })
     .withCollectionContribution({ collectionToken: group, provider: ({ secret }: { secret: string }) => `inner:${secret}` })
@@ -159,7 +159,7 @@ test('three nesting levels forward unmet requirements outward and keep replaced 
 
 test('an outer module with no exports still installs nested contributions and nothing else', async () => {
   const groupKey = Symbol('group');
-  const group = DiBag.token(groupKey).forCollectionOf<number>();
+  const group = DiBag.createToken(groupKey).forCollectionOf<number>();
   const inner = DiBag.createBuilder().withServices({ hidden: () => 1 }).withCollectionContribution({ collectionToken: group, provider: ({ hidden }: { hidden: number }) => hidden }).buildModule({ exportedServiceKeys: ['hidden'] });
   const outer = DiBag.createBuilder().withInstalledModules([inner]).buildModule({ exportedServiceKeys: [] });
   const host = DiBag.createBuilder().withInstalledModules([outer]).buildContainer();

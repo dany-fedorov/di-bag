@@ -8,7 +8,7 @@ export type Exact = [Assert<Equal<typeof value, number | undefined>>, Assert<Equ
   Assert<Equal<ProviderAcquiredValue<typeof native>, number>>, Assert<Equal<ProviderAcquiredValue<typeof raw>, Promise<number> | undefined>>,
   Assert<Equal<ProviderOutput<typeof reflectedProvider>, { maybe: number | undefined; get: () => number }>>];
 emptyBuilder.buildContainer(); DiBag.createBuilder().withInstalledModules([retainedFeature]).buildContainer();
-const wrong = DiBag.token(key).of<string>();
+const wrong = DiBag.createToken(key).forService<string>();
 // @ts-expect-error optional presence preserves its nominal service contract across declarations
 builder.withTokenService(wrong, () => 'wrong');
 // @ts-expect-error exportless module retains its optional obligation

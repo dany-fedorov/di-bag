@@ -16,11 +16,11 @@ const graph = DiBag.createBuilder().withServices({
 graph.withServices({ later: ({ value }: { value: string }) => value });
 
 const key = Symbol('projection-boundary');
-const token = DiBag.token(key).of<number>();
-const wider = DiBag.token(key).of<number | string>();
+const token = DiBag.createToken(key).forService<number>();
+const wider = DiBag.createToken(key).forService<number | string>();
 
 // diagnostic: token dependency has an incompatible or opaque contract
-DiBag.createBuilder().withServices({ unrelated: () => true }).withTokenService(token, () => 1).withServices({ read: DiBag.fromFunction([wider], value => value) });
+DiBag.createBuilder().withServices({ unrelated: () => true }).withTokenService(token, () => 1).withServices({ read: DiBag.createProviderFromFunction({ dependencies: [wider], factoryFunction: value => value }) });
 
 // diagnostic: token dependency has an incompatible or opaque contract
-DiBag.createBuilder().withServices({ read: DiBag.fromFunction([wider], value => value) }).withServices({ unrelated: () => true }).withTokenService(token, () => 1);
+DiBag.createBuilder().withServices({ read: DiBag.createProviderFromFunction({ dependencies: [wider], factoryFunction: value => value }) }).withServices({ unrelated: () => true }).withTokenService(token, () => 1);

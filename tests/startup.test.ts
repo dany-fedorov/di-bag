@@ -8,9 +8,9 @@ const { DiBag, DiBagCleanupError, DiBagServiceReadinessError, DiBagServiceReadin
 
 test('contexts follow acquisition owners through child-first roots and independent forks', async () => {
   const root = DiBag.createBuilder().withServices({
-    scoped: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }),
-    root: DiBag.withLifetime(DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }), 'root'),
-    transient: DiBag.withLifetime(DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }), 'transient'),
+    scoped: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }),
+    root: DiBag.withLifetime(DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), 'root'),
+    transient: DiBag.withLifetime(DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), 'transient'),
   }).buildContainer();
   const child = root.createChildContainer();
   const sibling = root.createChildContainer();
@@ -20,27 +20,27 @@ test('contexts follow acquisition owners through child-first roots and independe
   const siblingContext = sibling.resolve('scoped');
   const forkContext = fork.resolve('root');
   // Each acquisition owns its context object; the cancellation signal is the owner's.
-  expect(rootContext.signal).toBe(root.resolve('scoped').signal);
-  expect(child.resolve('transient').signal).toBe(childContext.signal);
+  expect(rootContext.abortSignal).toBe(root.resolve('scoped').abortSignal);
+  expect(child.resolve('transient').abortSignal).toBe(childContext.abortSignal);
   expect(Object.isFrozen(childContext)).toBe(true);
-  expect(childContext.signal.aborted).toBe(false);
+  expect(childContext.abortSignal.aborted).toBe(false);
   await child.close();
-  expect(childContext.signal.aborted).toBe(true);
-  expect(rootContext.signal.aborted).toBe(false);
-  expect(siblingContext.signal.aborted).toBe(false);
+  expect(childContext.abortSignal.aborted).toBe(true);
+  expect(rootContext.abortSignal.aborted).toBe(false);
+  expect(siblingContext.abortSignal.aborted).toBe(false);
   await root.close();
-  expect(rootContext.signal.aborted).toBe(true);
-  expect(siblingContext.signal.aborted).toBe(true);
-  expect(forkContext.signal.aborted).toBe(false);
+  expect(rootContext.abortSignal.aborted).toBe(true);
+  expect(siblingContext.abortSignal.aborted).toBe(true);
+  expect(forkContext.abortSignal.aborted).toBe(false);
   await fork.close();
 });
 
 test('abort listeners cannot reenter any closing scope admission gate', async () => {
-  const root = DiBag.createBuilder().withServices({ context: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }) }).buildContainer();
+  const root = DiBag.createBuilder().withServices({ context: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }) }).buildContainer();
   const child = root.createChildContainer();
   const sibling = root.createChildContainer();
   let called = false;
-  child.resolve('context').signal.addEventListener('abort', () => {
+  child.resolve('context').abortSignal.addEventListener('abort', () => {
     called = true;
     for (const bag of [root, child, sibling]) expect(() => bag.resolve('context')).toThrow(/clos/);
   });
@@ -75,7 +75,7 @@ test('startup uses native observation with shadowed then and treats raw promises
   const disposed: unknown[] = [];
   const starting = Core.createBuilder().withServices({
     native: Core.fromFactory((_deps: {}, _factoryCtx) => native.promise, { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
-    raw: Core.withDisposal(Core.fromFactory(() => raw.promise, { acquisitionMode: 'raw' }), value => { disposed.push(value); }),
+    raw: Core.withDisposal(Core.createProvider(() => raw.promise, { factoryReturnKind: 'uninspected' }), value => { disposed.push(value); }),
   }).buildContainer().ensureServicesReady(['native', 'raw']);
   let ready = false;
   void starting.then(() => { ready = true; });
@@ -107,9 +107,9 @@ test('a ready native projection starts while its source remains pending until sh
 test('failed native projection aborts a cooperative pending source before cleanup', async () => {
   const cause = new Error('project');
   const disposed: number[] = [];
-  const source = DiBag.withDisposal(DiBag.fromFactory((_deps: {}, factoryCtx) => new Promise<number>(resolve => {
-    factoryCtx.signal.addEventListener('abort', () => resolve(7), { once: true });
-  }), { context: 'acquisition' }), value => { disposed.push(value); });
+  const source = DiBag.withDisposal(DiBag.createProvider((_deps: {}, factoryCtx) => new Promise<number>(resolve => {
+    factoryCtx.abortSignal.addEventListener('abort', () => resolve(7), { once: true });
+  }), { factoryReceivesContext: true }), value => { disposed.push(value); });
   const error: unknown = await DiBag.createBuilder().withServices({
     service: DiBag.transformService(source, { mode: 'direct', transform: () => Promise.reject(cause) }),
   }).buildContainer().ensureServicesReady(['service'], { totalTimeoutMs: 30 }).catch(error => error);
@@ -136,7 +136,7 @@ test('sequential startup waits before invoking the next selection', async () => 
 
 test('startup selects genuine tokens and keeps separate owned transient attempts', async () => {
   const key = Symbol('selected');
-  const token = DiBag.token(key).of<number>();
+  const token = DiBag.createToken(key).forService<number>();
   let calls = 0;
   const disposed: number[] = [];
   const builder = DiBag.createBuilder().withTokenService(token, DiBag.withLifetime(DiBag.withDisposal(() => ++calls, value => { disposed.push(value); }), 'transient'));
@@ -154,7 +154,7 @@ test('startup selects genuine tokens and keeps separate owned transient attempts
 test('late contextual dependencies receive an already aborted owner signal', async () => {
   const gate = deferred<void>();
   const bag = DiBag.createBuilder().withServices({
-    late: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx.signal.aborted, { context: 'acquisition' }),
+    late: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx.abortSignal.aborted, { factoryReceivesContext: true }),
     first: async (deps: { late: boolean }) => { await gate.promise; return deps.late; },
   }).buildContainer();
   const value = bag.resolve('first');
@@ -253,11 +253,11 @@ for (const reason of ['aborted', 'timeout'] as const) test(`${reason} rejects be
   const disposed: number[] = [];
   let signal: AbortSignal | undefined;
   const starting = DiBag.createBuilder().withServices({
-    value: DiBag.withDisposal(DiBag.fromFactory(async (deps: { late: number }, factoryCtx) => {
-      signal = factoryCtx.signal;
+    value: DiBag.withDisposal(DiBag.createProvider(async (deps: { late: number }, factoryCtx) => {
+      signal = factoryCtx.abortSignal;
       await gate.promise;
       return deps.late;
-    }, { context: 'acquisition' }), value => { disposed.push(value); throw cleanupError; }),
+    }, { factoryReceivesContext: true }), value => { disposed.push(value); throw cleanupError; }),
     late: () => 42,
   }).buildContainer().ensureServicesReady(['value'], reason === 'aborted' ? { abortSignal: abort.signal } : { totalTimeoutMs: 5 });
   const outcome = starting.catch(error => error);
@@ -314,11 +314,11 @@ test('successful startup removes external cancellation and snapshots indexed sel
   const keys: ['value'] = ['value'];
   keys[Symbol.iterator] = function* () { throw new Error('do not iterate'); };
   const bag = await DiBag.createBuilder().withServices({
-    value: DiBag.fromFactory((_deps: {}, factoryCtx) => { calls.push('value'); return factoryCtx; }, { context: 'acquisition' }),
+    value: DiBag.createProvider((_deps: {}, factoryCtx) => { calls.push('value'); return factoryCtx; }, { factoryReceivesContext: true }),
     hidden: () => { calls.push('hidden'); return 2; },
   }).buildContainer().ensureServicesReady(keys, { abortSignal: controller.signal, totalTimeoutMs: 2 ** 32 });
   controller.abort();
-  expect(bag.resolve('value').signal.aborted).toBe(false);
+  expect(bag.resolve('value').abortSignal.aborted).toBe(false);
   expect(calls).toEqual(['value']);
   await bag.close();
 });
@@ -375,8 +375,8 @@ test('numeric startup uses final raw readiness while owned sources remain pendin
   const raw = { get then() { thenReads++; throw new Error('raw then'); } };
   const disposed: number[] = [];
   const bag = await Core.createBuilder().withServices({
-    projected: Core.transformService(Core.withDisposal(Core.fromFactory(() => source.promise, { acquisitionMode: 'nativePromise' }), value => { disposed.push(value); }), { mode: 'direct', transform: () => raw, ...{ acquisitionMode: 'raw' } }),
-    later: Core.fromFactory(() => ++later, { acquisitionMode: 'raw' }),
+    projected: Core.transformService(Core.withDisposal(Core.createProvider(() => source.promise, { factoryReturnKind: 'native-promise' }), value => { disposed.push(value); }), { mode: 'direct', transform: () => raw, ...{ acquisitionMode: 'raw' } }),
+    later: Core.createProvider(() => ++later, { factoryReturnKind: 'uninspected' }),
   }).buildContainer().ensureServicesReady(['projected', 'later'], { maxConcurrentServiceKeys: 1 });
   expect(later).toBe(1); expect(thenReads).toBe(0); expect(bag.resolve('projected')).toBe(raw);
   const closing = bag.close(); source.resolve(7); await closing;

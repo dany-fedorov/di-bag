@@ -51,8 +51,8 @@ type TopExact = Assert<Equal<ReturnType<typeof topHost.resolve<'top'>>, boolean>
 
 // Token needs forward the same way.
 const clockKey = Symbol('clock');
-const clockToken = DiBag.token(clockKey).of<{ now(): number }>();
-const tokenInner = DiBag.createBuilder().withServices({ stamp: DiBag.fromFunction([clockToken], clock => clock.now()) }).buildModule({ exportedServiceKeys: ['stamp'] });
+const clockToken = DiBag.createToken(clockKey).forService<{ now(): number }>();
+const tokenInner = DiBag.createBuilder().withServices({ stamp: DiBag.createProviderFromFunction({ dependencies: [clockToken], factoryFunction: clock => clock.now() }) }).buildModule({ exportedServiceKeys: ['stamp'] });
 const tokenOuter = DiBag.createBuilder().withInstalledModules([tokenInner]).buildModule({ exportedServiceKeys: ['stamp'] });
 type TokenRequired = Assert<Equal<ModuleRequiredServices<typeof tokenOuter>, Readonly<{ [clockKey]: { now(): number } }>>>;
 export const tokenHost = DiBag.createBuilder().withInstalledModules([tokenOuter]).withTokenService(clockToken, () => ({ now: () => 4 })).buildContainer();
@@ -70,7 +70,7 @@ export const rootHost = DiBag.createBuilder().withInstalledModules([rootOuter]).
 
 // Nested contributions are projected through every level.
 const groupKey = Symbol('group');
-const group = DiBag.token(groupKey).forCollectionOf<number>();
+const group = DiBag.createToken(groupKey).forCollectionOf<number>();
 const contributing = DiBag.createBuilder().withServices({ hidden: () => 1 }).withCollectionContribution({ collectionToken: group, provider: ({ hidden }: { hidden: number }) => hidden }).buildModule({ exportedServiceKeys: [] });
 const wrapped = DiBag.createBuilder().withInstalledModules([contributing]).withCollectionContribution({ collectionToken: group, provider: () => 2 }).buildModule({ exportedServiceKeys: [] });
 type WrappedContributions = Assert<Equal<ModuleContributions<typeof wrapped>, Readonly<{ [groupKey]: readonly number[] }>>>;

@@ -52,7 +52,7 @@ test('immediate metadata retains raw Promise identity, policy, and outer dispose
   let disposed: unknown;
   let thenReads = 0;
   Object.defineProperty(gate.promise, 'then', { get() { thenReads++; throw new Error('raw then getter'); } });
-  const raw = PortableDiBag.fromFactory(() => gate.promise, { acquisitionMode: 'raw' });
+  const raw = PortableDiBag.createProvider(() => gate.promise, { factoryReturnKind: 'uninspected' });
   const source = PortableDiBag.withMetadata(PortableDiBag.transformService(raw, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'raw' } }), { static: { team: 'native' } });
   const annotated = PortableDiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: value => ({ exact: value }) } });
   const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.withDisposal(annotated, value => { disposed = value; }) }).buildContainer();
@@ -66,7 +66,7 @@ test('immediate metadata retains raw Promise identity, policy, and outer dispose
 
 test('async metadata awaits raw thenables and exposes a native Promise', async () => {
   const raw = { then(resolve: (value: { origin: string }) => unknown) { return resolve({ origin: 'remote' }); } };
-  const source = PortableDiBag.fromFactory(() => raw, { acquisitionMode: 'raw' });
+  const source = PortableDiBag.createProvider(() => raw, { factoryReturnKind: 'uninspected' });
   const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.withMetadata(source, { dynamic: { mode: 'awaited', describe: result => ({ origin: result.origin }) } }) }).buildContainer();
   const value = bag.resolve('value');
   expect(value).toBeInstanceOf(Promise);
@@ -79,7 +79,7 @@ test('async metadata awaits raw thenables and exposes a native Promise', async (
 test('native acquisition remains pending and disposes fulfilled values after immediate annotation', async () => {
   const gate = deferred<number>();
   const disposed: number[] = [];
-  const source = PortableDiBag.fromFactory(() => gate.promise, { acquisitionMode: 'nativePromise' });
+  const source = PortableDiBag.createProvider(() => gate.promise, { factoryReturnKind: 'native-promise' });
   const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.withDisposal(
     PortableDiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: promise => ({ promise }) } }), value => { disposed.push(value); },
   ) }).buildContainer();
@@ -208,9 +208,9 @@ test('metadata getters are captured exactly once, including an ordinary then fie
 
 test('metadata retains typed token dependencies and root and transient lifetime caching', async () => {
   const key = Symbol('metadata dependency');
-  const token = DiBag.token(key).of<{ value: number }>();
+  const token = DiBag.createToken(key).forService<{ value: number }>();
   let captures = 0;
-  const source = DiBag.fromFunction([token], dependency => ({ dependency }));
+  const source = DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: dependency => ({ dependency }) });
   const root = DiBag.withMetadata(DiBag.withLifetime(source, 'root'), { dynamic: { mode: 'direct', describe: value => ({ count: ++captures, dependency: value.dependency }) } });
   const transient = DiBag.withMetadata(DiBag.withLifetime(() => ++captures, 'transient'), { dynamic: { mode: 'direct', describe: value => ({ count: value }) } });
   const dependency = { value: 42 };

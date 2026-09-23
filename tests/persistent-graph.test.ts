@@ -156,11 +156,11 @@ test('contribution protection uses the once-read input snapshot through public r
 
 test('pruning the last positional token reference releases its kind only in the derived graph', () => {
   const key = Symbol('reused');
-  const collection = DiBag.token(key).forCollectionOf<number>();
-  const service = DiBag.token(key).of<number>();
+  const collection = DiBag.createToken(key).forCollectionOf<number>();
+  const service = DiBag.createToken(key).forService<number>();
   const original = new BindingGraph().withPublicBinding(
     'consumer',
-    DiBag.fromFunction([collection], values => values.length),
+    DiBag.createProviderFromFunction({ dependencies: [collection], factoryFunction: values => values.length }),
   );
 
   const updated = original.withPublicBinding('consumer', () => 0);
@@ -169,7 +169,7 @@ test('pruning the last positional token reference releases its kind only in the 
     .toThrow('DI_BAG_WRONG_TOKEN_KIND');
 
   const originalBuilder = DiBag.createBuilder().withServices({
-    consumer: DiBag.fromFunction([collection], values => values.length),
+    consumer: DiBag.createProviderFromFunction({ dependencies: [collection], factoryFunction: values => values.length }),
   });
   const updatedBuilder = originalBuilder.withReplacedService('consumer', () => 0);
   expect(() => (updatedBuilder as any).withTokenService(service, () => 1)).not.toThrow();
@@ -179,8 +179,8 @@ test('pruning the last positional token reference releases its kind only in the 
 
 test('token kind remains while another public or contributed binding owns it', () => {
   const key = Symbol('retained');
-  const collection = DiBag.token(key).forCollectionOf<number>();
-  const consumer = () => DiBag.fromFunction([collection], values => values.length);
+  const collection = DiBag.createToken(key).forCollectionOf<number>();
+  const consumer = () => DiBag.createProviderFromFunction({ dependencies: [collection], factoryFunction: values => values.length });
   const shared = new BindingGraph()
     .withPublicBinding('first', consumer())
     .withPublicBinding('second', consumer());
@@ -208,12 +208,12 @@ test('token kind remains while another public or contributed binding owns it', (
 
 test('private lexical retention keeps and then releases positional token ownership', () => {
   const key = Symbol('private dependency');
-  const collection = DiBag.token(key).forCollectionOf<number>();
+  const collection = DiBag.createToken(key).forCollectionOf<number>();
   const target = Symbol('target'), first = Symbol('first'), second = Symbol('second');
   const names = new Map<string, BindingRef>([['target', { kind: 'private', id: target }]]);
   const original = new BindingGraph({
     bindings: new Map([
-      [target, { ...binding(target, 1), registration: DiBag.fromFunction([collection], values => values.length) }],
+      [target, { ...binding(target, 1), registration: DiBag.createProviderFromFunction({ dependencies: [collection], factoryFunction: values => values.length }) }],
       [first, binding(first, 2, names)],
       [second, binding(second, 3, names)],
     ]),

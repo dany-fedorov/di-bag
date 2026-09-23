@@ -6,8 +6,8 @@ import type { TokenBase } from '../../src/tokens';
 import type { Assert, Equal } from './assert';
 
 const key = Symbol('number'); const otherKey = Symbol('other');
-const token = DiBag.token(key).of<number>();
-const other = DiBag.token(otherKey).of<Promise<string>>();
+const token = DiBag.createToken(key).forService<number>();
+const other = DiBag.createToken(otherKey).forService<Promise<string>>();
 const source = fromFunction([token, other], (value, promise) => {
   type Inputs = [Assert<Equal<typeof value, number>>, Assert<Equal<typeof promise, Promise<string>>>];
   return { value, promise };
@@ -43,10 +43,10 @@ const annotated = DiBag.withMetadata(source, { static: { owner: 'team' } });
 const owned = DiBag.withDisposal(annotated, value => { type Value = Assert<Equal<typeof value, { value: number; promise: Promise<string> }>>; });
 const sync = DiBag.transformService(owned, { mode: 'direct', transform: value => value.promise });
 const async = DiBag.transformService(sync, { mode: 'awaited', transform: value => { type Value = Assert<Equal<typeof value, string>>; return value.length; } });
-const bindingKey = Symbol('binding'); const binding = DiBag.token(bindingKey).of<{ value: number; promise: Promise<string> }>();
+const bindingKey = Symbol('binding'); const binding = DiBag.createToken(bindingKey).forService<{ value: number; promise: Promise<string> }>();
 const bound = withTokenBinding(binding, owned);
 const collectionMemberKey = Symbol('collection member');
-const collectionMember = DiBag.token(collectionMemberKey).forCollectionOf<number>();
+const collectionMember = DiBag.createToken(collectionMemberKey).forCollectionOf<number>();
 type CollectionRegistration = import('../../src').TokenBinding<typeof collectionMember, () => readonly number[]>;
 type TokenMemberFacadeContracts = [
   Assert<Equal<TokenMember<{ [bindingKey]: typeof bound }, typeof binding>, unknown>>,

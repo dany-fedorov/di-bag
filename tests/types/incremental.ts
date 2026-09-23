@@ -14,9 +14,9 @@ const forwardValue = forward.resolve('read');
 type Forward = Assert<Equal<typeof forwardValue, number>>;
 
 const key = Symbol('service');
-const token = DiBag.token(key).of<{ value: number }>();
-const same = DiBag.token(key).of<{ value: number }>();
-const initial = DiBag.createBuilder().withServices({ read: DiBag.fromFunction([same], value => value.value) }).withTokenService(token, () => ({ value: 1, original: true as const }));
+const token = DiBag.createToken(key).forService<{ value: number }>();
+const same = DiBag.createToken(key).forService<{ value: number }>();
+const initial = DiBag.createBuilder().withServices({ read: DiBag.createProviderFromFunction({ dependencies: [same], factoryFunction: value => value.value }) }).withTokenService(token, () => ({ value: 1, original: true as const }));
 const replaced = initial.withReplacedService(token, () => ({ value: 2, richer: true as const })).buildContainer();
 const actual = replaced.resolve(token);
 type Rich = Assert<Equal<typeof actual, { value: number; richer: true }>>;
@@ -24,7 +24,7 @@ type Rich = Assert<Equal<typeof actual, { value: number; richer: true }>>;
 const feature = DiBag.createBuilder().withServices({ hidden: ({ external }: { external: number }) => external }).buildModule({ exportedServiceKeys: [] });
 DiBag.createBuilder().withInstalledModules([feature]).withServices({ external: () => 1 }).withReplacedService('external', () => 2).buildContainer();
 
-const frameSource = DiBag.withMetadata(DiBag.fromFunction([token], value => Promise.resolve(value.value)), { static: { owner: 'fixture' as const } });
+const frameSource = DiBag.withMetadata(DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => Promise.resolve(value.value) }), { static: { owner: 'fixture' as const } });
 const framed = DiBag.withMetadata(frameSource, { dynamic: { mode: 'direct', describe: () => ({ stage: 'framed' as const }) } });
 const framedBag = DiBag.createBuilder().withServices({ framed }).withTokenService(token, () => ({ value: 1 })).withReplacedService('framed', framed).buildContainer();
 const framedValue = framedBag.resolve('framed');
@@ -44,7 +44,7 @@ type Failure<T> = Unsatisfied<'token dependency has an incompatible or opaque co
 type OpaqueRead = import('../../src').Provider<() => number, {}, readonly [], import('../../src/token-types').OpaqueGraph>;
 type OpaqueEntry = { key: 'opaque'; registration: OpaqueRead };
 type ReadWider = import('../../src').Provider<() => number, {}, readonly [], TokenDependencyContract<readonly [typeof widerToken]>>;
-const widerToken = DiBag.token(key).of<{ value: number } | string>();
+const widerToken = DiBag.createToken(key).forService<{ value: number } | string>();
 type Bound = import('../../src/token-types').TokenBinding<typeof token, () => { value: number }>;
 type BoundEntry = { key: typeof key; registration: Bound };
 export type CachedTokenBoundaryContracts = [

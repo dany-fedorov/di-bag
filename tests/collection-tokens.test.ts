@@ -11,11 +11,11 @@ const turn = () => new Promise<void>(resolve => setImmediate(resolve));
 
 test('forCollectionOf creates a frozen genuine handle next to of', () => {
   const key = Symbol('numbers');
-  const factory = DiBag.token(key);
-  expect(Object.keys(factory)).toEqual(['of', 'forCollectionOf']);
+  const factory = DiBag.createToken(key);
+  expect(Object.keys(factory)).toEqual(['forService', 'forCollectionOf', 'of']);
   expect(Object.isFrozen(factory)).toBe(true);
   const numbers = factory.forCollectionOf<number>();
-  expect(numbers.key).toBe(key);
+  expect(numbers.symbol).toBe(key);
   expect(Object.isFrozen(numbers)).toBe(true);
   expect(numbers).not.toBe(factory.forCollectionOf<number>());
   for (const fake of [{ ...numbers }, Object.create(numbers), { key }]) {
@@ -25,7 +25,7 @@ test('forCollectionOf creates a frozen genuine handle next to of', () => {
 
 test('withTokenService rejects a collection token as the wrong kind, before it reads the provider', () => {
   const key = Symbol('numbers');
-  const numbers = DiBag.token(key).forCollectionOf<number>();
+  const numbers = DiBag.createToken(key).forCollectionOf<number>();
   const error = thrown(() => (DiBag.createBuilder().withTokenService as Function)(numbers, 'not a provider'));
   expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   expect(error.details).toEqual({ operation: 'withTokenService', expectedKind: 'single-service', receivedKind: 'collection' });
@@ -35,7 +35,7 @@ test('withTokenService rejects a collection token as the wrong kind, before it r
 
 test('resolve of a collection token returns a fresh frozen list in contribution order, and an empty list is valid', async () => {
   const numbersKey = Symbol('numbers');
-  const numbers = DiBag.token(numbersKey).forCollectionOf<number>();
+  const numbers = DiBag.createToken(numbersKey).forCollectionOf<number>();
   const empty = DiBag.createBuilder().buildContainer();
   const none = empty.resolveCollection(numbers);
   expect(none).toEqual([]); expect(Object.isFrozen(none)).toBe(true);
@@ -48,7 +48,7 @@ test('resolve of a collection token returns a fresh frozen list in contribution 
 
 test('inspect of a collection token returns one snapshot per contribution and runs no factory', async () => {
   const itemsKey = Symbol('items');
-  const items = DiBag.token(itemsKey).forCollectionOf<number>(); let calls = 0;
+  const items = DiBag.createToken(itemsKey).forCollectionOf<number>(); let calls = 0;
   const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: items, provider: DiBag.withMetadata(() => ++calls, { static: { name: 'a' } }) }).withCollectionContribution({ collectionToken: items, provider: () => ++calls }).buildContainer();
   const before = bag.serviceSnapshot(items);
   expect(calls).toBe(0); expect(Object.isFrozen(before)).toBe(true);
@@ -62,7 +62,7 @@ test('inspect of a collection token returns one snapshot per contribution and ru
 
 test('ensureServicesReady waits for every contribution of a collection token', async () => {
   const clientsKey = Symbol('clients');
-  const clients = DiBag.token(clientsKey).forCollectionOf<Promise<string>>();
+  const clients = DiBag.createToken(clientsKey).forCollectionOf<Promise<string>>();
   const slow = deferred<string>(); const started: string[] = [];
   const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: clients, provider: () => { started.push('fast'); return Promise.resolve('fast'); } })
     .withCollectionContribution({ collectionToken: clients, provider: () => { started.push('slow'); return slow.promise; } })
@@ -77,7 +77,7 @@ test('ensureServicesReady waits for every contribution of a collection token', a
 
 test('each contribution keeps its own lifetime and disposer when the list is read through resolve', async () => {
   const objectsKey = Symbol('objects');
-  const objects = DiBag.token(objectsKey).forCollectionOf<{ id: number }>();
+  const objects = DiBag.createToken(objectsKey).forCollectionOf<{ id: number }>();
   let ids = 0; const disposed: number[] = [];
   const create = DiBag.withDisposal(() => ({ id: ++ids }), value => { disposed.push(value.id); });
   const bag = DiBag.createBuilder()
@@ -95,7 +95,7 @@ test('each contribution keeps its own lifetime and disposer when the list is rea
 
 test('ensureServicesReady accepts a collection token nothing contributes to, and closes the bag when a contribution fails', async () => {
   const hooksKey = Symbol('hooks');
-  const hooks = DiBag.token(hooksKey).forCollectionOf<number>();
+  const hooks = DiBag.createToken(hooksKey).forCollectionOf<number>();
   const empty = DiBag.createBuilder().buildContainer();
   expect(await empty.ensureServicesReady([hooks])).toBe(empty); await empty.close();
   const disposed: number[] = [];
@@ -108,14 +108,14 @@ test('ensureServicesReady accepts a collection token nothing contributes to, and
 
 test('a dependency list accepts a collection token, lazy supplies a getter, and optional is the wrong kind', async () => {
   const numbersKey = Symbol('numbers');
-  const numbers = DiBag.token(numbersKey).forCollectionOf<number>();
+  const numbers = DiBag.createToken(numbersKey).forCollectionOf<number>();
   class Total { constructor(readonly values: readonly number[]) {} }
   const plugin: unknown = { apiVersion: 1, create: (values: readonly number[]) => values.length };
   const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: () => 3 }).withCollectionContribution({ collectionToken: numbers, provider: () => 4 }).withServices({
-    sum: DiBag.fromFunction([numbers], values => values.reduce((total, value) => total + value, 0)),
-    total: DiBag.fromClass([numbers], Total),
-    count: DiBag.fromPlugin([numbers], plugin, { acquisitionMode: 'raw', validate: (value): value is number => typeof value === 'number' }),
-    later: DiBag.fromFunction([DiBag.lazy(numbers)], getNumbers => getNumbers),
+    sum: DiBag.createProviderFromFunction({ dependencies: [numbers], factoryFunction: values => values.reduce((total, value) => total + value, 0) }),
+    total: DiBag.createProviderFromClass({ dependencies: [numbers], serviceClass: Total }),
+    count: DiBag.createProviderFromPlugin({ dependencies: [numbers], pluginDescriptor: plugin, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is number => typeof value === 'number' }),
+    later: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(numbers)], factoryFunction: getNumbers => getNumbers }),
   }).buildContainer();
   expect(bag.resolve('sum')).toBe(7); expect(bag.resolve('total').values).toEqual([3, 4]);
   expect(Object.isFrozen(bag.resolve('total').values)).toBe(true); expect(bag.resolve('count')).toBe(2);
@@ -132,8 +132,8 @@ test('a dependency list accepts a collection token, lazy supplies a getter, and 
 
 test('a consumer of an empty collection receives an empty list, also inside a module', async () => {
   const hooksKey = Symbol('hooks');
-  const hooks = DiBag.token(hooksKey).forCollectionOf<() => void>();
-  const feature = DiBag.createBuilder().withServices({ hookCount: DiBag.fromFunction([hooks], list => list.length) }).buildModule({ exportedServiceKeys: ['hookCount'] });
+  const hooks = DiBag.createToken(hooksKey).forCollectionOf<() => void>();
+  const feature = DiBag.createBuilder().withServices({ hookCount: DiBag.createProviderFromFunction({ dependencies: [hooks], factoryFunction: list => list.length }) }).buildModule({ exportedServiceKeys: ['hookCount'] });
   const lonely = DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
   expect(lonely.resolve('hookCount')).toBe(0);
   const host = DiBag.createBuilder().withCollectionContribution({ collectionToken: hooks, provider: () => () => {} }).withInstalledModules([feature]).buildContainer();
@@ -143,7 +143,7 @@ test('a consumer of an empty collection receives an empty list, also inside a mo
 
 test('an alias gives the list a name, so a named factory reaches it', async () => {
   const controllersKey = Symbol('controllers');
-  const controllers = DiBag.token(controllersKey).forCollectionOf<string>();
+  const controllers = DiBag.createToken(controllersKey).forCollectionOf<string>();
   const feature = DiBag.createBuilder().withCollectionContribution({ collectionToken: controllers, provider: () => 'users' }).buildModule({ exportedServiceKeys: [] });
   const bag = DiBag.createBuilder().withInstalledModules([feature]).withCollectionContribution({ collectionToken: controllers, provider: () => 'orders' })
     .withServiceAlias({ aliasKey: 'controllers', targetServiceKey: controllers })
@@ -156,7 +156,7 @@ test('an alias gives the list a name, so a named factory reaches it', async () =
 
 test('an alias destination rejects a collection token as the wrong kind', () => {
   const numbersKey = Symbol('numbers');
-  const numbers = DiBag.token(numbersKey).forCollectionOf<number>();
+  const numbers = DiBag.createToken(numbersKey).forCollectionOf<number>();
   const error = thrown(() => (DiBag.createBuilder().withServices({ value: () => 1 }).withServiceAlias as Function)({ aliasKey: numbers, targetServiceKey: 'value' }));
   expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   expect(error.details).toEqual({ operation: 'withServiceAlias', expectedKind: 'single-service', receivedKind: 'collection' });
@@ -165,17 +165,17 @@ test('an alias destination rejects a collection token as the wrong kind', () => 
 test('a single-service token and a collection token never merge', async () => {
   const loggerKey = Symbol('logger');
   const sinksKey = Symbol('loggerSinks');
-  const logger = DiBag.token(loggerKey).of<string>();
-  const loggerSinks = DiBag.token(sinksKey).forCollectionOf<string>();
+  const logger = DiBag.createToken(loggerKey).forService<string>();
+  const loggerSinks = DiBag.createToken(sinksKey).forCollectionOf<string>();
   const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: loggerSinks, provider: () => 'console' }).withCollectionContribution({ collectionToken: loggerSinks, provider: () => 'file' })
-    .withTokenService(logger, DiBag.fromFunction([loggerSinks], sinks => `fan-out(${sinks.join(',')})`)).buildContainer();
+    .withTokenService(logger, DiBag.createProviderFromFunction({ dependencies: [loggerSinks], factoryFunction: sinks => `fan-out(${sinks.join(',')})` })).buildContainer();
   expect(bag.resolve(logger)).toBe('fan-out(console,file)'); expect(bag.resolveCollection(loggerSinks)).toEqual(['console', 'file']);
-  expect(bag.graphSnapshot().contributions.map(group => group.token)).toEqual([loggerSinks.key]); await bag.close();
+  expect(bag.graphSnapshot().contributions.map(group => group.token)).toEqual([loggerSinks.symbol]); await bag.close();
 });
 
 test('fork replaces a whole list, and the replacement wins for every reader', async () => {
   const controllersKey = Symbol('controllers');
-  const controllers = DiBag.token(controllersKey).forCollectionOf<string>();
+  const controllers = DiBag.createToken(controllersKey).forCollectionOf<string>();
   let real = 0;
   const app = DiBag.createBuilder()
     .withCollectionContribution({ collectionToken: controllers, provider: () => { real++; return 'users'; } })
@@ -183,8 +183,8 @@ test('fork replaces a whole list, and the replacement wins for every reader', as
     .withServiceAlias({ aliasKey: 'controllers', targetServiceKey: controllers })
     .withServices({
       router: ({ controllers }: { controllers: readonly string[] }) => controllers.join(','),
-      count: DiBag.fromFunction([controllers], list => list.length),
-      later: DiBag.fromFunction([DiBag.lazy(controllers)], getList => getList),
+      count: DiBag.createProviderFromFunction({ dependencies: [controllers], factoryFunction: list => list.length }),
+      later: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(controllers)], factoryFunction: getList => getList }),
     }).buildContainer();
   const fake: readonly string[] = ['fake'];
   let disposed: readonly string[] | undefined;
@@ -194,7 +194,7 @@ test('fork replaces a whole list, and the replacement wins for every reader', as
   );
   const testApp = app.createIndependentContainer(
     [controllers],
-    { [controllers.key]: replacement },
+    { [controllers.symbol]: replacement },
   );
   const direct = testApp.resolveCollection(controllers);
   const lazy = testApp.resolve('later')();
@@ -209,11 +209,11 @@ test('fork replaces a whole list, and the replacement wins for every reader', as
   expect(testApp.serviceSnapshot(controllers).map(snapshot => snapshot.acquisitions.length)).toEqual([1]);
   expect(await testApp.ensureServicesReady([controllers])).toBe(testApp); expect(real).toBe(0);
   expect(app.resolveCollection(controllers)).toEqual(['users', 'orders']); expect(app.serviceSnapshot(controllers).length).toBe(2);
-  const again = testApp.createIndependentContainer([controllers], { [controllers.key]: () => ['again'] });
+  const again = testApp.createIndependentContainer([controllers], { [controllers.symbol]: () => ['again'] });
   expect(again.resolveCollection(controllers)).toEqual(['again']);
   const unusedKey = Symbol('unused');
-  const unused = DiBag.token(unusedKey).forCollectionOf<number>();
-  const filled = app.createIndependentContainer([unused], { [unused.key]: () => [1, 2] });
+  const unused = DiBag.createToken(unusedKey).forCollectionOf<number>();
+  const filled = app.createIndependentContainer([unused], { [unused.symbol]: () => [1, 2] });
   expect(filled.resolveCollection(unused)).toEqual([1, 2]);
   expect(thrown(() => (app.createIndependentContainer as Function)([controllers], {})).code).toBe('DI_BAG_INVALID_OVERRIDE');
   await again.close(); await filled.close(); await testApp.close();
@@ -223,11 +223,11 @@ test('fork replaces a whole list, and the replacement wins for every reader', as
 
 test('createScope and builder replace swap a list the same way', async () => {
   const sinksKey = Symbol('sinks');
-  const sinks = DiBag.token(sinksKey).forCollectionOf<string>();
+  const sinks = DiBag.createToken(sinksKey).forCollectionOf<string>();
   const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: sinks, provider: () => 'console' })
-    .withServices({ names: DiBag.fromFunction([sinks], list => list.join('+')) });
+    .withServices({ names: DiBag.createProviderFromFunction({ dependencies: [sinks], factoryFunction: list => list.join('+') }) });
   const app = builder.buildContainer();
-  const child = app.createChildContainer([sinks], { [sinks.key]: () => ['memory'] });
+  const child = app.createChildContainer([sinks], { [sinks.symbol]: () => ['memory'] });
   expect(child.resolveCollection(sinks)).toEqual(['memory']); expect(child.resolve('names')).toBe('memory');
   expect(app.resolve('names')).toBe('console');
   const replaced = builder.withReplacedService(sinks, () => ['file', 'syslog']).buildContainer();
@@ -240,7 +240,7 @@ test('createScope and builder replace swap a list the same way', async () => {
 
 test('share and buildModule reject a collection token as the wrong kind', async () => {
   const numbersKey = Symbol('numbers');
-  const numbers = DiBag.token(numbersKey).forCollectionOf<number>();
+  const numbers = DiBag.createToken(numbersKey).forCollectionOf<number>();
   const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: () => 1 });
   const wrong = (operation: string) => ({ operation, expectedKind: 'single-service', receivedKind: 'collection' });
   const exported = thrown(() => (builder.buildModule as Function)({ exportedServiceKeys: [numbers] }));
@@ -248,22 +248,22 @@ test('share and buildModule reject a collection token as the wrong kind', async 
   const bag = builder.buildContainer();
   const shared = thrown(() => (bag.createChildContainer as Function)({ sharedParentServiceKeys: [numbers] }));
   expect(shared.code).toBe('DI_BAG_WRONG_TOKEN_KIND'); expect(shared.details).toEqual(wrong('createChildContainer'));
-  const replaced = bag.createIndependentContainer([numbers], { [numbers.key]: () => [5] });
+  const replaced = bag.createIndependentContainer([numbers], { [numbers.symbol]: () => [5] });
   expect(thrown(() => (replaced.createChildContainer as Function)({ sharedParentServiceKeys: [numbers] })).code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   const resolved = thrown(() => (replaced.resolve as Function)(numbers));
   expect(resolved.code).toBe('DI_BAG_WRONG_TOKEN_KIND'); expect(resolved.details).toEqual(wrong('resolve'));
   const inspected = replaced.serviceSnapshot(numbers);
   expect(inspected).toHaveLength(1); expect(inspected[0]!.acquisitions).toEqual([]);
   const serviceKey = Symbol('service');
-  const service = DiBag.token(serviceKey).of<number>();
+  const service = DiBag.createToken(serviceKey).forService<number>();
   const serviceBag = DiBag.createBuilder().withTokenService(service, () => 1).buildContainer();
   const collectionWrong = (operation: string) => ({ operation, expectedKind: 'collection', receivedKind: 'single-service' });
   const collectionResolved = thrown(() => (serviceBag.resolveCollection as Function)(service));
   expect(collectionResolved.code).toBe('DI_BAG_WRONG_TOKEN_KIND'); expect(collectionResolved.details).toEqual(collectionWrong('resolveCollection'));
   const collectionInspected = serviceBag.serviceSnapshot(service);
   expect(collectionInspected.acquisitions).toEqual([]);
-  const forgedService = DiBag.token(numbersKey).of<number>();
-  const forgedCollection = DiBag.token(serviceKey).forCollectionOf<number>();
+  const forgedService = DiBag.createToken(numbersKey).forService<number>();
+  const forgedCollection = DiBag.createToken(serviceKey).forCollectionOf<number>();
   const forgedServiceInspected = thrown(() => (replaced.serviceSnapshot as Function)(forgedService));
   expect(forgedServiceInspected.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   expect(forgedServiceInspected.details).toEqual(collectionWrong('serviceSnapshot'));
@@ -276,8 +276,8 @@ test('share and buildModule reject a collection token as the wrong kind', async 
 
 test('one graph cannot use the same symbol for both token kinds', async () => {
   const key = Symbol('shared');
-  const service = DiBag.token(key).of<number>();
-  const collection = DiBag.token(key).forCollectionOf<number>();
+  const service = DiBag.createToken(key).forService<number>();
+  const collection = DiBag.createToken(key).forCollectionOf<number>();
 
   const registered = DiBag.createBuilder().withTokenService(service, () => 1);
   const collectionAfterService = thrown(() =>
@@ -313,8 +313,8 @@ test('one graph cannot use the same symbol for both token kinds', async () => {
 
 test('module installation preserves token kinds through nested sealing', () => {
   const key = Symbol('module-shared');
-  const service = DiBag.token(key).of<number>();
-  const collection = DiBag.token(key).forCollectionOf<number>();
+  const service = DiBag.createToken(key).forService<number>();
+  const collection = DiBag.createToken(key).forCollectionOf<number>();
   const collectionModule = DiBag.createBuilder()
     .withCollectionContribution({ collectionToken: collection, provider: () => 2 }).buildModule({ exportedServiceKeys: [] });
   const nested = DiBag.createBuilder()
@@ -339,7 +339,7 @@ test('module installation preserves token kinds through nested sealing', () => {
 
 test('withCollectionContribution rejects a single-service token as the wrong kind, before it reads the provider', () => {
   const serviceKey = Symbol('service');
-  const service = DiBag.token(serviceKey).of<number>();
+  const service = DiBag.createToken(serviceKey).forService<number>();
   const error = thrown(() => (DiBag.createBuilder().withCollectionContribution as Function)({ collectionToken: service, provider: 'not a provider' }));
   expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   expect(error.details).toEqual({ operation: 'withCollectionContribution', expectedKind: 'collection', receivedKind: 'single-service' });

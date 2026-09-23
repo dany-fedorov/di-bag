@@ -9,12 +9,12 @@ DiBag.createBuilder().withServices({ db: () => 1, root: withLifetime(({ db }: { 
 DiBag.createBuilder().withServices({ db: () => 1, bridge: withLifetime(({ db }: { db: number }) => db, 'transient'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
 const key: unique symbol = Symbol('db');
-const dbToken = DiBag.token(key).of<number>();
+const dbToken = DiBag.createToken(key).forService<number>();
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().withTokenService(dbToken, () => 1).withServices({ root: withLifetime(DiBag.fromFunction([dbToken], db => db), 'root') }).buildContainer();
+DiBag.createBuilder().withTokenService(dbToken, () => 1).withServices({ root: withLifetime(DiBag.createProviderFromFunction({ dependencies: [dbToken], factoryFunction: db => db }), 'root') }).buildContainer();
 
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().withTokenService(dbToken, () => 1).withServices({ bridge: withLifetime(DiBag.fromFunction([dbToken], db => db), 'transient'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
+DiBag.createBuilder().withTokenService(dbToken, () => 1).withServices({ bridge: withLifetime(DiBag.createProviderFromFunction({ dependencies: [dbToken], factoryFunction: db => db }), 'transient'), root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
 const privateCollision = DiBag.createBuilder().withServices({ db: () => 1, bridge: withLifetime(({ db }: { db: number }) => db, 'transient') }).buildModule({ exportedServiceKeys: ['bridge'] });
 // diagnostic: root lifetime cannot capture scoped dependency
@@ -75,11 +75,11 @@ const exportedTransient = DiBag.createBuilder().withServices({ db: () => 1, brid
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([exportedTransient]).withServices({ root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
-const privateToken = DiBag.createBuilder().withTokenService(dbToken, () => 1).withServices({ bridge: withLifetime(DiBag.fromFunction([dbToken], db => db), 'transient') }).buildModule({ exportedServiceKeys: ['bridge'] });
+const privateToken = DiBag.createBuilder().withTokenService(dbToken, () => 1).withServices({ bridge: withLifetime(DiBag.createProviderFromFunction({ dependencies: [dbToken], factoryFunction: db => db }), 'transient') }).buildModule({ exportedServiceKeys: ['bridge'] });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([privateToken]).withTokenService(dbToken, withLifetime(() => 1, 'root')).withServices({ root: withLifetime(({ bridge }: { bridge: number }) => bridge, 'root') }).buildContainer();
 
-const tokenRoot = DiBag.createBuilder().withTokenService(dbToken, withLifetime(() => 1, 'root')).withServices({ root: withLifetime(DiBag.fromFunction([dbToken], value => value), 'root') }).buildContainer();
+const tokenRoot = DiBag.createBuilder().withTokenService(dbToken, withLifetime(() => 1, 'root')).withServices({ root: withLifetime(DiBag.createProviderFromFunction({ dependencies: [dbToken], factoryFunction: value => value }), 'root') }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
 tokenRoot.createIndependentContainer([dbToken], { [key]: () => 1 });
 

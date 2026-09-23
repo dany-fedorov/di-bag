@@ -42,7 +42,7 @@ test('bare entry resolves automatic async factories through the host classifier'
   const bag = Core.createBuilder().withServices({
     answer: async () => 42,
     same: () => pending,
-    thenable: Core.fromFactory(() => thenable, { acquisitionMode: 'raw' }),
+    thenable: Core.createProvider(() => thenable, { factoryReturnKind: 'uninspected' }),
   }).buildContainer();
   expect(await bag.resolve('answer')).toBe(42);
   expect(bag.resolve('same')).toBe(pending);
@@ -77,7 +77,7 @@ test('an explicit classifier wins and explicit graphs never consult the host', a
   const counting = (id: string) => { loads++; return id === 'node:util/types' ? { isPromise } : undefined; };
   const configured = Core.withConfiguration({ runtime: { isNativePromise: value => { classified.push(value); return isPromise(value); } } });
   const [explicit, automatic] = withoutBuiltinModule(() => [
-    Core.createBuilder().withServices({ raw: Core.fromFactory(() => 1, { acquisitionMode: 'raw' }) }).buildContainer(),
+    Core.createBuilder().withServices({ raw: Core.createProvider(() => 1, { factoryReturnKind: 'uninspected' }) }).buildContainer(),
     configured.createBuilder().withServices({ value: () => 2 }).buildContainer(),
   ], counting);
   expect(explicit.resolve('raw')).toBe(1);
@@ -92,7 +92,7 @@ test('an explicit classifier wins and explicit graphs never consult the host', a
 
 test('unconfigured core preflights every stage and private module before any factory effects', () => {
   let calls = 0;
-  const source = Core.fromFactory(() => { calls++; return 1; }, { acquisitionMode: 'raw' });
+  const source = Core.createProvider(() => { calls++; return 1; }, { factoryReturnKind: 'uninspected' });
   const automatic = () => { calls++; return 2; };
   const feature = Core.createBuilder().withServices({ hidden: automatic, public: source }).buildModule({ exportedServiceKeys: ['public'] });
   const cases: Array<[() => unknown, readonly string[]]> = [
@@ -114,11 +114,11 @@ test('facades snapshot and isolate their predicate, carrying it through builders
   options.isNativePromise = () => { throw new Error('mutated options'); };
   const pending = Promise.resolve(7);
   const symbol = Symbol('shared registry');
-  const key = Core.token(symbol).of<Promise<number>>();
-  const provider = Core.fromFactory(() => pending, { acquisitionMode: 'auto' });
+  const key = Core.createToken(symbol).forService<Promise<number>>();
+  const provider = Core.createProvider(() => pending, { factoryReturnKind: 'auto-detect' });
   const feature = Core.createBuilder().withTokenService(key, provider).buildModule({ exportedServiceKeys: [key] });
   const bag = configured.createBuilder().withInstalledModules([feature]).buildContainer();
-  const forks = [bag.createIndependentContainer(), bag.createIndependentContainer([key], { [key.key]: () => pending })];
+  const forks = [bag.createIndependentContainer(), bag.createIndependentContainer([key], { [key.symbol]: () => pending })];
   for (const item of [bag, ...forks]) { expect(item.resolve(key)).toBe(pending); await item.close(); }
   expect(() => withoutBuiltinModule(() => Core.createBuilder().withServices({ value: () => 1 }).buildContainer())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   const failure = new Error('predicate failure');
@@ -154,8 +154,8 @@ test('raw Promise and then-getter values retain exact ownership without observat
   const throwing = { get then(): never { throw new Error('raw getter'); } };
   const disposed: unknown[] = [];
   const bag = Core.createBuilder().withServices({
-    pending: Core.withDisposal(Core.fromFactory(() => pending, { acquisitionMode: 'raw' }), value => { disposed.push(value); }),
-    throwing: Core.withDisposal(Core.fromFactory(() => throwing, { acquisitionMode: 'raw' }), value => { disposed.push(value); }),
+    pending: Core.withDisposal(Core.createProvider(() => pending, { factoryReturnKind: 'uninspected' }), value => { disposed.push(value); }),
+    throwing: Core.withDisposal(Core.createProvider(() => throwing, { factoryReturnKind: 'uninspected' }), value => { disposed.push(value); }),
   }).buildContainer();
   expect(bag.resolve('pending')).toBe(pending);
   expect(bag.resolve('throwing')).toBe(throwing);
@@ -166,9 +166,9 @@ test('raw Promise and then-getter values retain exact ownership without observat
 test('explicit native and async projections work without a classifier and preserve previous owners', async () => {
   const pending = Promise.resolve({ id: 7 });
   const disposed: unknown[] = [];
-  const source = Core.withDisposal(Core.fromFactory(() => pending, { acquisitionMode: 'raw' }), value => { disposed.push(value); });
+  const source = Core.withDisposal(Core.createProvider(() => pending, { factoryReturnKind: 'uninspected' }), value => { disposed.push(value); });
   const native = Core.withDisposal(Core.transformService(source, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'nativePromise' } }), value => { disposed.push(value); });
-  const bag = Core.createBuilder().withServices({ native, mapped: Core.transformService(Core.fromFactory(() => 3, { acquisitionMode: 'raw' }), { mode: 'awaited', transform: value => value + 1 }) }).buildContainer();
+  const bag = Core.createBuilder().withServices({ native, mapped: Core.transformService(Core.createProvider(() => 3, { factoryReturnKind: 'uninspected' }), { mode: 'awaited', transform: value => value + 1 }) }).buildContainer();
   expect(bag.resolve('native')).toBe(pending);
   expect(await bag.resolve('mapped')).toBe(4);
   await bag.close();
@@ -190,7 +190,7 @@ for (const foreign of [false, true]) for (const mode of ['auto', 'nativePromise'
 
 test('native metadata preserves raw presence records and explicit payload projection', async () => {
   const pending = new Promise<number>(() => {});
-  const source = Core.withMetadata(Core.fromFactory(() => ({ present: true as const, value: pending }), { acquisitionMode: 'raw' }), { dynamic: { mode: 'direct', describe: () => ({ source: 'pending' }) } });
+  const source = Core.withMetadata(Core.createProvider(() => ({ present: true as const, value: pending }), { factoryReturnKind: 'uninspected' }), { dynamic: { mode: 'direct', describe: () => ({ source: 'pending' }) } });
   const disposed: unknown[] = [];
   const raw = Core.withDisposal(Core.transformService(source, { mode: 'direct', transform: record => record.value, ...{ acquisitionMode: 'raw' } }), value => { disposed.push(value); });
   const bag = Core.createBuilder().withServices({ presence: source, raw }).buildContainer();
@@ -201,7 +201,7 @@ test('native metadata preserves raw presence records and explicit payload projec
 });
 
 test('async metadata retains a native output contract without a portable classifier', async () => {
-  const source = Core.fromFactory(() => Promise.resolve(7), { acquisitionMode: 'nativePromise' });
+  const source = Core.createProvider(() => Promise.resolve(7), { factoryReturnKind: 'native-promise' });
   const bag = Core.createBuilder().withServices({ value: Core.withMetadata(source, { dynamic: { mode: 'awaited', describe: value => ({ result: value }) } }) }).buildContainer();
   expect(await bag.resolve('value')).toBe(7);
   expect(bag.serviceSnapshot('value').acquisitions[0]?.acquisitionMetadata).toEqual([{ present: true, value: { result: 7 } }]);
@@ -209,14 +209,14 @@ test('async metadata retains a native output contract without a portable classif
 });
 
 test('DI_BAG_CLASSIFIER_REQUIRED names every automatic registration, sorted, and suggests the helpers', () => {
-  const raw = Core.fromFactory(() => 1, { acquisitionMode: 'raw' });
+  const raw = Core.createProvider(() => 1, { factoryReturnKind: 'uninspected' });
   const feature = Core.createBuilder().withServices({ hidden: () => 1, shown: ({ hidden }: { hidden: number }) => hidden }).buildModule({ exportedServiceKeys: ['shown'], moduleLabel: 'billing' });
   const failure = caught(() => withoutBuiltinModule(() => Core.createBuilder().withInstalledModules([feature]).withServices({
     raw,
     plain: () => 2,
     projected: Core.transformService(raw, { mode: 'direct', transform: value => value }),
-    sync: Core.fromSyncFactory(() => 3),
-    pending: Core.fromAsyncFactory(async () => 4),
+    sync: Core.createProvider(() => 3, { factoryReturnKind: 'sync-value' }),
+    pending: Core.createProvider(async () => 4, { factoryReturnKind: 'native-promise' }),
   }).buildContainer()));
   expect(failure.code).toBe('DI_BAG_CLASSIFIER_REQUIRED');
   expect(failure.details).toEqual({ option: 'runtime.isNativePromise', bindings: ['billing/hidden', 'plain', 'projected', 'shown'] });

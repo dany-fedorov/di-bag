@@ -1,8 +1,8 @@
 import { DiBag, type Builder, type Provider, type Registration } from '../../../src';
 import type { Token } from '../../../src/tokens';
-const key = Symbol('source'); const target = DiBag.token(key).of<number>();
-const otherKey = Symbol('other'); const other = DiBag.token(otherKey).of<number>();
-const wrong = DiBag.token(key).of<string>();
+const key = Symbol('source'); const target = DiBag.createToken(key).forService<number>();
+const otherKey = Symbol('other'); const other = DiBag.createToken(otherKey).forService<number>();
+const wrong = DiBag.createToken(key).forService<string>();
 const base = DiBag.createBuilder().withServices({ value: () => 1 });
 // diagnostic: new names or typed tokens only
 base.withServiceAlias({ aliasKey: 'value', targetServiceKey: 'value' });
@@ -94,9 +94,9 @@ const transientOverride = rootedTarget.createChildContainer(['value'], { value: 
 transientOverride.createChildContainer().createChildContainer({ sharedParentServiceKeys: ['copy'] });
 // diagnostic: cannot share transient
 transientOverride.createIndependentContainer().createChildContainer({ sharedParentServiceKeys: ['copy'] });
-const aliasKey = Symbol('alias'); const aliasToken = DiBag.token(aliasKey).of<number>();
-const rootOptional = DiBag.withLifetime(DiBag.fromFunction([DiBag.optional(aliasToken)], value => value), 'root');
-const rootLazy = DiBag.withLifetime(DiBag.fromFunction([DiBag.lazy(aliasToken)], get => get()), 'root');
+const aliasKey = Symbol('alias'); const aliasToken = DiBag.createToken(aliasKey).forService<number>();
+const rootOptional = DiBag.withLifetime(DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(aliasToken)], factoryFunction: value => value }), 'root');
+const rootLazy = DiBag.withLifetime(DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(aliasToken)], factoryFunction: get => get() }), 'root');
 // diagnostic: root lifetime cannot capture scoped dependency
 base.withServiceAlias({ aliasKey: aliasToken, targetServiceKey: 'value' }).withServices({ rootOptional }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency

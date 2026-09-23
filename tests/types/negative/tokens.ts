@@ -4,10 +4,10 @@ import type { OpaqueGraph } from '../../../src/token-types';
 import type { TokenDependencyContract } from '../../../src/token-types';
 import type { TokenBase } from '../../../src/tokens';
 const key = Symbol('same'); const otherKey = Symbol('same');
-const token = DiBag.token(key).of<{ value: number }>();
-const other = DiBag.token(otherKey).of<{ value: number }>();
-const conflict = DiBag.token(key).of<{ extra: boolean }>();
-const source = DiBag.fromFunction([token], value => value.value);
+const token = DiBag.createToken(key).forService<{ value: number }>();
+const other = DiBag.createToken(otherKey).forService<{ value: number }>();
+const conflict = DiBag.createToken(key).forService<{ extra: boolean }>();
+const source = DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => value.value });
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().withServices({ source }).buildContainer();
 // diagnostic: required service registrations are missing
@@ -20,9 +20,9 @@ const builder = DiBag.createBuilder().withTokenService(token, () => ({ value: 1,
 // diagnostic: duplicates
 builder.withTokenService(token, () => ({ value: 2 }));
 // diagnostic: incompatible
-builder.withServices({ conflict: DiBag.fromFunction([conflict], value => value.extra) });
+builder.withServices({ conflict: DiBag.createProviderFromFunction({ dependencies: [conflict], factoryFunction: value => value.extra }) });
 // diagnostic: incompatible
-DiBag.createBuilder().withServices({ conflict: DiBag.fromFunction([conflict], value => value.extra) }).withTokenService(token, () => ({ value: 1, extra: true }));
+DiBag.createBuilder().withServices({ conflict: DiBag.createProviderFromFunction({ dependencies: [conflict], factoryFunction: value => value.extra }) }).withTokenService(token, () => ({ value: 1, extra: true }));
 // diagnostic: not assignable
 bag.resolve(other);
 // diagnostic: token must match an existing binding contract; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
@@ -66,11 +66,11 @@ DiBag.createBuilder().withServices({ opaqueBinding });
 // diagnostic: not assignable
 bag.createIndependentContainer([token], { [key]: opaque });
 // diagnostic: required service registrations are missing
-bag.createIndependentContainer([token], { [key]: DiBag.fromFunction([other], (_dependency0) => ({ value: 2, extra: true })) });
+bag.createIndependentContainer([token], { [key]: DiBag.createProviderFromFunction({ dependencies: [other], factoryFunction: (_dependency0) => ({ value: 2, extra: true }) }) });
 declare const unionToken: typeof token | typeof other;
 // diagnostic: not assignable
 bag.resolve(unionToken);
-const secondKey = Symbol('second'); const second = DiBag.token(secondKey).of<number>();
+const secondKey = Symbol('second'); const second = DiBag.createToken(secondKey).forService<number>();
 const pair = DiBag.createBuilder().withTokenService(token, () => ({ value: 1, extra: true })).withTokenService(second, () => 1).buildContainer();
 // diagnostic: not assignable
 pair.createIndependentContainer([token, second], { [key]: ({ named }: { named: string }) => ({ value: named.length, extra: true }), [secondKey]: () => 1 });

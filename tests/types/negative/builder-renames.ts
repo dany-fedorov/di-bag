@@ -2,11 +2,11 @@ import { DiBag } from '../../../src';
 
 type Clock = { now(): number };
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<Clock>();
+const clock = DiBag.createToken(clockKey).forService<Clock>();
 const toolKey = Symbol('tool');
 const toolsKey = Symbol('tools');
-const tool = DiBag.token(toolKey).of<string>();
-const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+const tool = DiBag.createToken(toolKey).forService<string>();
+const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
 
 DiBag.createBuilder().withTokenService(
   clock,

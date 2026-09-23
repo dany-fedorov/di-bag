@@ -28,9 +28,9 @@ test('inspectGraph lists public bindings in registration order without acquiring
 
 test('inspectGraph reports observed edges, contributions, private module bindings, and attempts', async () => {
   const toolKey = Symbol('tool');
-  const tool = DiBag.token(toolKey).of<string>();
+  const tool = DiBag.createToken(toolKey).forService<string>();
   const toolsKey = Symbol('tools');
-  const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+  const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
   const feature = DiBag.createBuilder()
     .withServices({ secret: () => 'hidden', exported: ({ secret }: { secret: string }) => secret.length })
     .withCollectionContribution({ collectionToken: tools, provider: () => 'a' })
@@ -38,7 +38,7 @@ test('inspectGraph reports observed edges, contributions, private module binding
   const bag = DiBag.createBuilder()
     .withInstalledModules([feature])
     .withCollectionContribution({ collectionToken: tools, provider: ({ exported }: { exported: number }) => `b${exported}` })
-    .withServices({ reader: DiBag.fromFunction([tools, DiBag.optional(tool)], (values, _maybe) => values.length) })
+    .withServices({ reader: DiBag.createProviderFromFunction({ dependencies: [tools, DiBag.optional(tool)], factoryFunction: (values, _maybe) => values.length }) })
     .buildContainer();
 
   const before = bag.graphSnapshot();

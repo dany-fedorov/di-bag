@@ -1,10 +1,10 @@
 import { DiBag } from '../src';
 
 export const clockKey = Symbol('clock');
-export const clock = DiBag.token(clockKey).of<{ now(): number }>();
+export const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
 
 const connectionKey = Symbol('connection');
-const connection = DiBag.token(connectionKey).of<{
+const connection = DiBag.createToken(connectionKey).forService<{
   readonly id: number;
   close(): void;
 }>();
@@ -25,13 +25,12 @@ export const feature = DiBag.createBuilder()
     ),
   )
   .withServices({
-    service: DiBag.fromFunction(
-      [clock, connection],
-      (selectedClock, selectedConnection) => ({
+    service: DiBag.createProviderFromFunction(
+      { dependencies: [clock, connection], factoryFunction: (selectedClock, selectedConnection) => ({
         read() {
           return { value: selectedClock.now(), connectionId: selectedConnection.id };
         },
-      }),
+      }) },
     ),
   })
   .buildModule({ exportedServiceKeys: [clock, 'service'] });

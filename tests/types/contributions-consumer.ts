@@ -23,7 +23,7 @@ needsHost.withServices({ helper: () => 1 }).buildContainer(); privateHost.resolv
 moduleContribute({ collectionToken: numbers, provider: () => 4 }).withServices({ helper: () => 1 }).buildModule({ exportedServiceKeys: [] });
 // @ts-expect-error exportless contribution dependencies remain required after declaration emission
 needsHost.buildContainer();
-const wrong = DiBag.token(key).forCollectionOf<string>();
+const wrong = DiBag.createToken(key).forCollectionOf<string>();
 // @ts-expect-error present groups validate all references after source deletion
 aggregate.withCollectionContribution({ collectionToken: wrong, provider: () => 'wrong' });
 // @ts-expect-error public export renames retain each contribution's lexical shape

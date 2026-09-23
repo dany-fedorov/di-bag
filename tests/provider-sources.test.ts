@@ -276,11 +276,11 @@ test('createToken publishes symbol and both exclusive token constructors', () =>
   const legacyService = factory.of<number>();
   const collection = factory.forCollectionOf<number>();
   expect(service.symbol).toBe(symbol);
-  expect(service.key).toBe(symbol);
+  expect(service.symbol).toBe(symbol);
   expect(legacyService.symbol).toBe(symbol);
-  expect(legacyService.key).toBe(symbol);
+  expect(legacyService.symbol).toBe(symbol);
   expect(collection.symbol).toBe(symbol);
-  expect(collection.key).toBe(symbol);
+  expect(collection.symbol).toBe(symbol);
   expect(Object.isFrozen(service)).toBe(true);
   expect(Object.isFrozen(collection)).toBe(true);
   const builder = DiBag.createBuilder();

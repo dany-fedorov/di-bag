@@ -2,8 +2,8 @@ import { DiBag, type Container } from '../../../src';
 
 const key: unique symbol = Symbol('token');
 const missingKey: unique symbol = Symbol('token');
-const token = DiBag.token(key).of<{ id: number }>();
-const missingToken = DiBag.token(missingKey).of<{ id: number }>();
+const token = DiBag.createToken(key).forService<{ id: number }>();
+const missingToken = DiBag.createToken(missingKey).forService<{ id: number }>();
 const feature = DiBag.createBuilder().withServices({
   hidden: ({ config }: { config: { id: string } }) => config.id,
   service: ({ hidden }: { hidden: string }) => hidden,

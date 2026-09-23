@@ -6,11 +6,11 @@ import { DiBag } from '../src';
 type Clock = { now(): number };
 type Failure = Error & { code?: string; details?: Record<string, unknown> };
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<Clock>();
+const clock = DiBag.createToken(clockKey).forService<Clock>();
 const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
 const toolKey = Symbol('tool');
-const tool = DiBag.token(toolKey).of<string>();
+const tool = DiBag.createToken(toolKey).forService<string>();
 
 function caught(run: () => unknown): Failure {
   try { run(); } catch (error) { return error as Failure; }
@@ -40,7 +40,7 @@ test('withReplacedService preserves fresh frozen collection read views', async (
   const owned: readonly string[] = ['file', 'syslog'];
   const app = DiBag.createBuilder()
     .withCollectionContribution({ collectionToken: tools, provider: () => 'ignored' })
-    .withServices({ joined: DiBag.fromFunction([tools], (list: readonly string[]) => list.join('+')) })
+    .withServices({ joined: DiBag.createProviderFromFunction({ dependencies: [tools], factoryFunction: (list: readonly string[]) => list.join('+') }) })
     .withReplacedService(tools, () => owned)
     .buildContainer();
   const first = app.resolveCollection(tools);
@@ -116,8 +116,8 @@ test('a retained options bag is read once, so an accessor cannot change the call
 test('renamed methods preserve the collection-token kind boundary before reading later properties', () => {
   const singleKey = Symbol('single');
   const collectionKey = Symbol('collection');
-  const single = DiBag.token(singleKey).of<number>();
-  const collection = DiBag.token(collectionKey).forCollectionOf<number>();
+  const single = DiBag.createToken(singleKey).forService<number>();
+  const collection = DiBag.createToken(collectionKey).forCollectionOf<number>();
   let laterReads = 0;
   const cases: readonly [() => unknown, string, 'single-service' | 'collection', 'single-service' | 'collection', string][] = [
     [
@@ -256,8 +256,8 @@ test('withInstalledModules snapshots the list by index, so an iterator or a late
 
 test('module-list token-kind conflicts name the renamed operation', () => {
   const key = Symbol('installed-kind');
-  const single = DiBag.token(key).of<number>();
-  const collection = DiBag.token(key).forCollectionOf<number>();
+  const single = DiBag.createToken(key).forService<number>();
+  const collection = DiBag.createToken(key).forCollectionOf<number>();
   const module = DiBag.createBuilder()
     .withCollectionContribution({ collectionToken: collection, provider: () => 2 })
     .buildModule({ exportedServiceKeys: [] });

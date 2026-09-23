@@ -1,4 +1,4 @@
-import { DiBag, type AcquisitionContext, type DisposerContext } from '../../../src';
+import { DiBag, type FactoryContext, type DisposerContext } from '../../../src';
 
 const builder = DiBag.createBuilder().withServices({ value: () => 1 });
 const ready = builder.buildContainer();
@@ -26,12 +26,12 @@ ready.ensureServicesReady(['value'], { extra: true });
 ready.ensureServicesReady(['value'], { timeoutMs: 1 });
 // diagnostic: does not exist in type 'EnsureServicesReadyOptions'
 ready.ensureServicesReady(['value'], { startupOrder: 'sequential' });
-const missing = DiBag.createBuilder().withServices({ value: DiBag.fromFactory((deps: { absent: number }, _factoryCtx) => deps.absent, { context: 'acquisition' }) });
+const missing = DiBag.createBuilder().withServices({ value: DiBag.createProvider((deps: { absent: number }, _factoryCtx) => deps.absent, { factoryReceivesContext: true }) });
 // diagnostic: required service registrations are missing
 missing.buildContainer().ensureServicesReady([]);
 const captive = DiBag.createBuilder().withServices({
   scoped: () => 1,
-  root: DiBag.withLifetime(DiBag.fromFactory((deps: { scoped: number }, _factoryCtx) => deps.scoped, { context: 'acquisition' }), 'root'),
+  root: DiBag.withLifetime(DiBag.createProvider((deps: { scoped: number }, _factoryCtx) => deps.scoped, { factoryReceivesContext: true }), 'root'),
 });
 // diagnostic: root lifetime cannot capture scoped dependency
 captive.buildContainer().ensureServicesReady(['root']);
@@ -40,20 +40,20 @@ const exportless = DiBag.createBuilder().withServices({ hidden: (deps: { missing
 DiBag.createBuilder().withInstalledModules([exportless]).buildContainer().ensureServicesReady([]);
 const key: unique symbol = Symbol('token');
 const otherKey: unique symbol = Symbol('token');
-const token = DiBag.token(key).of<number>();
-const other = DiBag.token(otherKey).of<number>();
+const token = DiBag.createToken(key).forService<number>();
+const other = DiBag.createToken(otherKey).forService<number>();
 // diagnostic: ensureServicesReady accepts existing names or typed tokens only
 DiBag.createBuilder().withTokenService(token, () => 1).buildContainer().ensureServicesReady([other]);
 // diagnostic: not assignable
-DiBag.fromFactory(function (this: { required: true }, _deps: {}, _factoryCtx) { return 1; }, { context: 'acquisition' });
+DiBag.createProvider(function (this: { required: true }, _deps: {}, _factoryCtx) { return 1; }, { factoryReceivesContext: true });
 // diagnostic: Target signature provides too few arguments
-DiBag.fromFactory((_deps: {}, _factoryCtx: AcquisitionContext, extra: number) => extra, { context: 'acquisition' });
+DiBag.createProvider((_deps: {}, _factoryCtx: FactoryContext, extra: number) => extra, { factoryReceivesContext: true });
 // diagnostic: not assignable
 DiBag.fromFactory((_deps: {}, _factoryCtx) => 1, { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } });
-DiBag.fromFactory((_deps: {}, factoryCtx) => {
-  // diagnostic: Cannot assign to 'signal' because it is a read-only property
-  factoryCtx.signal = new AbortController().signal;
-  // diagnostic: Property 'abort' does not exist on type 'AcquisitionContext'
+DiBag.createProvider((_deps: {}, factoryCtx) => {
+  // diagnostic: Cannot assign to 'abortSignal' because it is a read-only property
+  factoryCtx.abortSignal = new AbortController().signal;
+  // diagnostic: Property 'abort' does not exist on type 'FactoryContext'
   factoryCtx.abort();
   // diagnostic: Argument of type 'number' is not assignable to parameter of type '(this: void, disposerContext: DisposerContext) => void | Promise<void>'
   factoryCtx.pushDisposer(1);
@@ -65,7 +65,7 @@ DiBag.fromFactory((_deps: {}, factoryCtx) => {
     // diagnostic: have no overlap
     if (disposerCtx.reason === 'disposed') return;
   });
-}, { context: 'acquisition' });
+}, { factoryReceivesContext: true });
 const closable = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 // diagnostic: not assignable
 closable.close({ waitTimeoutMs: '1' });

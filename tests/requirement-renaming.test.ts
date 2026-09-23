@@ -69,7 +69,7 @@ describe('module requirement renaming', () => {
 
   test('renames a requirement used by a sealed collection contribution', async () => {
     const valuesKey = Symbol('values');
-    const values = DiBag.token(valuesKey).forCollectionOf<string>();
+    const values = DiBag.createToken(valuesKey).forCollectionOf<string>();
     const feature = DiBag.createBuilder().withCollectionContribution({
       collectionToken: values,
       provider: ({ config }: { config: OrdersConfig }) => config.currency,
@@ -83,8 +83,8 @@ describe('module requirement renaming', () => {
 
   test('preserves token-kind claims through nested requirement-renamed modules', () => {
     const key = Symbol('shared-kind');
-    const serviceToken = DiBag.token(key).of<number>();
-    const collectionToken = DiBag.token(key).forCollectionOf<number>();
+    const serviceToken = DiBag.createToken(key).forService<number>();
+    const collectionToken = DiBag.createToken(key).forCollectionOf<number>();
     const inner = DiBag.createBuilder()
       .withTokenService(serviceToken, ({ config }: { config: OrdersConfig }) => config.currency.length)
       .buildModule({ exportedServiceKeys: [serviceToken] })

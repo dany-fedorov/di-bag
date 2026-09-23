@@ -2,8 +2,8 @@ import { DiBag, type Container } from '../../../src';
 
 const key: unique symbol = Symbol('service');
 const otherKey: unique symbol = Symbol('service');
-const token = DiBag.token(key).of<{ readonly value: number }>();
-const otherToken = DiBag.token(otherKey).of<{ readonly value: number }>();
+const token = DiBag.createToken(key).forService<{ readonly value: number }>();
+const otherToken = DiBag.createToken(otherKey).forService<{ readonly value: number }>();
 const feature = DiBag.createBuilder().withServices({
   hidden: ({ external }: { external: { readonly exact: true } }) => external.exact,
   publicValue: ({ hidden }: { hidden: true }) => hidden,
