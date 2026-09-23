@@ -37,6 +37,29 @@ test('type literal-value and generic rules validate and remain indexed', () => {
   ]);
 });
 
+test('malformed nested generic rules return validation problems', () => {
+  for (const rule of [null, true]) {
+    assert.deepEqual(validateRenameMap({
+      version: 1,
+      types: [{ from: 'A', to: 'B', genericArguments: [rule] }],
+    }, []), [
+      'types[0]: genericArguments must map non-negative indices and string literal values',
+    ]);
+  }
+});
+
+test('nested generic rules reject fields outside the schema', () => {
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    types: [{
+      from: 'A', to: 'B',
+      genericArguments: [{ index: 0, values: { raw: 'uninspected' }, typo: true }],
+    }],
+  }, []), [
+    'types[0]: genericArguments[0] has unknown field typo',
+  ]);
+});
+
 test('loading a broken map throws one error that lists every problem', () => {
   assert.throws(() => loadRenameMap(join(packageRoot, 'package.json'), []), /invalid rename map .*package\.json:\nversion must be 1\nunknown section name/);
 });

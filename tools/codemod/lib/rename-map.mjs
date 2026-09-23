@@ -134,12 +134,16 @@ export function validateRenameMap(map, transformIds = []) {
     if (!isString(entry.from) || !isString(entry.to)) bad('types', index, 'from and to are required');
     if (isString(entry.to) && !isTypeIdentifier(entry.to)) bad('types', index, 'to must be a safe type identifier');
     const rules = entry.genericArguments;
-    if (rules !== undefined && (!Array.isArray(rules) || rules.some(rule =>
-      typeof rule !== 'object' || rule === null || !Number.isInteger(rule.index) || rule.index < 0 ||
-      typeof rule.values !== 'object' || rule.values === null || Array.isArray(rule.values) ||
-      Object.keys(rule.values).length === 0 || !Object.entries(rule.values).every(([from, to]) => isString(from) && isString(to))
-    ))) bad('types', index, 'genericArguments must map non-negative indices and string literal values');
-    if (Array.isArray(rules) && new Set(rules.map(rule => rule.index)).size !== rules.length) bad('types', index, 'genericArguments indices must be unique');
+    const isRuleShape = rule =>
+      isObject(rule) && Number.isInteger(rule.index) && rule.index >= 0 && isObject(rule.values) &&
+      Object.keys(rule.values).length > 0 && Object.entries(rule.values).every(([from, to]) => isString(from) && isString(to));
+    const isValidRule = rule => isRuleShape(rule) && Object.keys(rule).every(key => ['index', 'values'].includes(key));
+    if (Array.isArray(rules)) rules.forEach((rule, ruleIndex) => {
+      if (isObject(rule)) rejectUnknown('types', index, rule, ['index', 'values'], `genericArguments[${ruleIndex}]`);
+    });
+    if (rules !== undefined && (!Array.isArray(rules) || rules.some(rule => !isRuleShape(rule)))) bad('types', index, 'genericArguments must map non-negative indices and string literal values');
+    const validRules = Array.isArray(rules) ? rules.filter(isValidRule) : [];
+    if (new Set(validRules.map(rule => rule.index)).size !== validRules.length) bad('types', index, 'genericArguments indices must be unique');
     const literalValues = entry.literalValues;
     if (literalValues !== undefined && (
       typeof literalValues !== 'object' || literalValues === null || Array.isArray(literalValues) ||
