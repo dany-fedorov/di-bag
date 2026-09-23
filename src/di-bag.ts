@@ -15,21 +15,21 @@ import type { CompositionReport } from './composition-report';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes, WithoutExportObligations } from './lifetime-types';
 import { withLifetime } from './lifetime';
-import { createProvider, fromFactory, fromSyncFactory, fromAsyncFactory } from './acquisition-context';
+import { createProvider } from './acquisition-context';
 import { closeRuntime, ensureRuntimeReady } from './startup';
 import { selectChildContainer, selectIndependentContainer } from './scope-selection';
 import type { CreateChildContainerOptions, CreateIndependentContainerOptions, DisjointChildContainerSelection, UnsharedAliases, ScopedAliases } from './scope-types';
 import type { CheckedChildContainerLifetimes } from './lifetime-types';
 import type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 import { withMetadata, transformService, withTokenBinding } from './provider';
-import { createProviderFromFunction, createProviderFromClass, fromFunction, fromClass } from './composition';
+import { createProviderFromFunction, createProviderFromClass } from './composition';
 import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
 import type { ProviderRegistrationMetadata, ProviderAcquisitionMetadata } from './provider';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
-import { createToken, token, readSingleServiceKey, readToken, wrongTokenKind } from './tokens';
-import { createProviderFromPlugin, fromPlugin } from './plugins';
-import type { CreateProviderFromPlugin, PluginProviderFactory } from './plugins';
+import { createToken, readSingleServiceKey, readToken, wrongTokenKind } from './tokens';
+import { createProviderFromPlugin } from './plugins';
+import type { CreateProviderFromPlugin } from './plugins';
 import type { CollectionItem, CollectionTokenBase, TokenBase, TokenKind } from './tokens';
 import type { CollectionTokenMember, SingleServiceTokenMember, SelectionKey } from './token-types';
 import type {
@@ -163,7 +163,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * @example
    * ```ts
    * const toolsKey = Symbol('tools');
-   * const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+   * const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
    * const container = DiBag.createBuilder().buildContainer();
    * const names: readonly string[] = container.resolveCollection(tools);
    * ```
@@ -208,7 +208,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * @example
    * ```ts
    * const handlersKey = Symbol('handlers');
-   * const handlers = DiBag.token(handlersKey).forCollectionOf<() => void>();
+   * const handlers = DiBag.createToken(handlersKey).forCollectionOf<() => void>();
    * const container = DiBag.createBuilder()
    *   .withCollectionContribution({ collectionToken: handlers, provider: () => () => {} })
    *   .buildContainer();
@@ -449,7 +449,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @example
    * ```ts
    * const clockKey = Symbol('clock');
-   * const clock = DiBag.token(clockKey).of<{ now(): number }>();
+   * const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
    * const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () => Date.now() }));
    * ```
    */
@@ -495,7 +495,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @example
    * ```ts
    * const toolsKey = Symbol('tools');
-   * const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+   * const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
    * const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: tools, provider: () => 'search' }).withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' });
    * ```
    */
@@ -700,57 +700,13 @@ export interface DiBagApi {
    */
   withConfiguration: (options: ConfigurationOptions) => DiBagApi;
   /**
-   * Describe a named-dependency factory with configurable result acquisition and optional acquisition context.
-   * A factory that returns a non-Promise object with a `then` method needs `acquisitionMode: 'raw'` or must return `Promise.resolve(value)`.
-   * @throws `DI_BAG_INVALID_FACTORY` for a non-function or an unknown `context`; `DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode.
-   * @example
-   * ```ts
-   * type Query = { then(done: (rows: string[]) => void): void };
-   * const query = DiBag.fromFactory((): Query => ({ then: done => done([]) }), { acquisitionMode: 'raw' });
-   * ```
-   */
-  fromFactory: typeof fromFactory;
-  /**
-   * Describe a synchronous factory that runs on every host: the exact return value is the service and `then` is never read.
-   * A Promise or thenable output is rejected at compile time; use `fromAsyncFactory`, or `fromFactory` with `acquisitionMode: 'raw'` when the Promise object itself is the service.
-   * @throws `DI_BAG_INVALID_FACTORY` for a non-function, an unknown `context`, or an `acquisitionMode` option.
-   * @example
-   * ```ts
-   * const config = DiBag.fromSyncFactory(() => ({ url: 'memory:' }));
-   * ```
-   */
-  fromSyncFactory: typeof fromSyncFactory;
-  /**
-   * Describe an asynchronous factory that runs on every host: the service is the returned native Promise and `withDisposal` receives its fulfilled value.
-   * A non-Promise output is rejected at compile time; a thenable that is not a native Promise fails the acquisition with a `TypeError`.
-   * @throws `DI_BAG_INVALID_FACTORY` for a non-function, an unknown `context`, or an `acquisitionMode` option.
-   * @example
-   * ```ts
-   * const db = DiBag.withDisposal(
-   *   DiBag.fromAsyncFactory(async ({ config }: { config: { url: string } }) => ({ url: config.url, end: async () => {} })),
-   *   db => db.end(),
-   * );
-   * ```
-   */
-  fromAsyncFactory: typeof fromAsyncFactory;
-  /**
-   * Create a typed-token factory from a unique symbol; `.of<Service>()` selects one service, while `.forCollectionOf<Item>()` selects an ordered collection.
-   * @throws `DI_BAG_INVALID_TOKEN` when the key is not a symbol.
-   * @example
-   * ```ts
-   * const clockKey = Symbol('clock');
-   * const clock = DiBag.token(clockKey).of<{ now(): number }>();
-   * ```
-   */
-  token: typeof token;
-  /**
    * Create a positional dependency that yields `undefined` only when the token is unregistered.
    * @throws `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token; `DI_BAG_WRONG_TOKEN_KIND` when a collection token is used as an optional single-service dependency.
    * @example
    * ```ts
    * const clockKey = Symbol('clock');
-   * const clock = DiBag.token(clockKey).of<{ now(): number }>();
-   * const stamp = DiBag.fromFunction([DiBag.optional(clock)], source => source?.now() ?? 0);
+   * const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
+   * const stamp = DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(clock)], factoryFunction: source => source?.now() ?? 0 });
    * ```
    */
   optional: typeof optional;
@@ -760,49 +716,11 @@ export interface DiBagApi {
    * @example
    * ```ts
    * const clockKey = Symbol('clock');
-   * const clock = DiBag.token(clockKey).of<{ now(): number }>();
-   * const stamp = DiBag.fromFunction([DiBag.lazy(clock)], getClock => () => getClock().now());
+   * const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
+   * const stamp = DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(clock)], factoryFunction: getClock => () => getClock().now() });
    * ```
    */
   lazy: typeof lazy;
-  /**
-   * Validate an unknown plugin descriptor now and its acquired output at acquisition.
-   * @throws `DI_BAG_INVALID_TOKEN` for a malformed dependency tuple; `DI_BAG_INVALID_PLUGIN_OPTIONS` for malformed options;
-   * {@link DiBagPluginValidationError} (`DI_BAG_PLUGIN_VALIDATION`) for an invalid descriptor, or at acquisition for rejected output.
-   * @example
-   * ```ts
-   * declare const descriptor: unknown;
-   * const greeter = DiBag.fromPlugin([], descriptor, {
-   *   acquisitionMode: 'raw',
-   *   validate: (pluginOutput): pluginOutput is () => string => typeof pluginOutput === 'function',
-   * });
-   * ```
-   */
-  fromPlugin: PluginProviderFactory;
-  /**
-   * Adapt a positional function whose parameters receive the listed tokens' services.
-   * @throws `DI_BAG_INVALID_TOKEN` for a malformed token tuple; `DI_BAG_INVALID_FUNCTION` for a non-function;
-   * `DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode.
-   * @example
-   * ```ts
-   * const clockKey = Symbol('clock');
-   * const clock = DiBag.token(clockKey).of<{ now(): number }>();
-   * const stamp = DiBag.fromFunction([clock], source => new Date(source.now()).toISOString());
-   * ```
-   */
-  fromFunction: typeof fromFunction;
-  /**
-   * Adapt a class whose constructor parameters receive the listed tokens' services.
-   * @throws `DI_BAG_INVALID_TOKEN` for a malformed token tuple; `DI_BAG_INVALID_CONSTRUCTOR` for a non-constructable value;
-   * `DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode.
-   * @example
-   * ```ts
-   * class Greeter { constructor(readonly greeting: string) {} }
-   * const greetingKey = Symbol('greeting');
-   * const greeter = DiBag.fromClass([DiBag.token(greetingKey).of<string>()], Greeter);
-   * ```
-   */
-  fromClass: typeof fromClass;
   /**
    * Begin an empty immutable graph; `buildContainer` creates its owning container, `buildModule` seals a reusable module.
    * @example
@@ -871,12 +789,12 @@ function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
     return facade(configured);
   },
   createProvider, createProviderFromFunction, createProviderFromClass, createProviderFromPlugin, createToken,
-  fromFactory, fromSyncFactory, fromAsyncFactory, token, optional, lazy, fromPlugin, fromFunction, fromClass,
+  optional, lazy,
   createBuilder: (): Builder<never> => new Builder(new BindingGraph(), context),
   withDisposal, withLifetime, withMetadata, transformService,
 }); }
 /**
- * The immutable DI Bag facade. `auto` acquisition uses the host classifier where `process.getBuiltinModule`
- * exists; elsewhere wrap factories with `fromSyncFactory` and `fromAsyncFactory`, use explicit modes, or configure a classifier.
+ * The immutable DI Bag facade. `auto-detect` acquisition uses the host classifier where `process.getBuiltinModule`
+ * exists; elsewhere select an explicit `factoryReturnKind` or configure a classifier.
  */
 export const DiBag: DiBagApi = facade(unconfigured);

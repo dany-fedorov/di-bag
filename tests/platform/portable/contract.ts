@@ -13,7 +13,7 @@ export type PortableContractResult = {
   readonly transientDistinct: true;
 };
 
-type PortableToken<T> = { readonly key: symbol; readonly __service?: T };
+type PortableToken<T> = { readonly symbol: symbol; readonly __service?: T };
 
 /** The smallest structural slice of the public root API used by this fixture. */
 export type PortableDiBag = {

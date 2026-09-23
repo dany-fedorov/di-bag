@@ -7,7 +7,7 @@
 Defined in: [tokens.ts:21](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L21)
 
 An immutable typed-token handle pairing a canonical symbol with an invariant service contract.
-Create one with `DiBag.token(key).of<Service>()`.
+Create one with `DiBag.createToken(key).forService<Service>()`.
 
 ## See
 
@@ -26,20 +26,10 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-
 
 ## Properties
 
-### key
-
-```ts
-readonly key: TokenSymbol;
-```
-
-Defined in: [tokens.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L24)
-
-***
-
 ### symbol
 
 ```ts
 readonly symbol: TokenSymbol;
 ```
 
-Defined in: [tokens.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L25)
+Defined in: [tokens.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L24)

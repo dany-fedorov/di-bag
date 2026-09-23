@@ -2,7 +2,7 @@ import { libraryError, libraryTypeError } from './errors';
 import type { normalize } from './provider-operations';
 import type { AcquisitionMetadataPresence, Presence } from './inspection';
 import type { FactoryReturnKind, RuntimeContext } from './acquisition-mode';
-import type { AcquisitionContext, DisposerContext, FactoryContext } from './acquisition-context';
+import type { DisposerContext, FactoryContext } from './acquisition-context';
 
 type RegistrationDescription = ReturnType<typeof normalize>;
 type Disposer = (value: never) => void | Promise<void>;
@@ -207,7 +207,7 @@ export class ProviderExecution {
     if (stage.state === 'failed') throw stage.error;
   }
 
-  evaluate(description: RegistrationDescription, dependencyProxy: unknown, context: FactoryContext & AcquisitionContext | undefined): unknown {
+  evaluate(description: RegistrationDescription, dependencyProxy: unknown, context: FactoryContext | undefined): unknown {
     const { create, dispose } = description;
     let current = this.capture(() => description.contextual
       ? Reflect.apply(create, undefined, [dependencyProxy, context])

@@ -41,6 +41,7 @@ test('plugin descriptor requires own protocol fields before factory effects', ()
     catch (error) { failure = error; }
     expect(failure).toBeInstanceOf(DiBagPluginValidationError);
     expect((failure as DiBagPluginValidationError).phase).toBe('descriptor');
+    expect((failure as DiBagPluginValidationError).details.operation).toBe('createProviderFromPlugin');
   }
   const inherited = Object.create({ apiVersion: 1, create: () => { created++; } });
   expect(() => DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: inherited, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is unknown => value === value })).toThrow(DiBagPluginValidationError);

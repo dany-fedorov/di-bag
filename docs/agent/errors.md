@@ -629,7 +629,8 @@ for a nested option, `[]` for an element of a list), and `expected` completes
 the sentence "must be ...".
 
 **Fix:** branch on `details.argument`, not on the message. Remove the cast and
-let the compiler point at the argument.
+let the compiler point at the argument. When adapting a method with
+`createProviderFromFunction`, bind it to its receiver.
 
 ```ts
 import { DiBag } from 'di-bag';
@@ -723,28 +724,6 @@ const observed = DiBag.withConfiguration({
 
 **Recipe:** none.
 
-### DI_BAG_INVALID_CONSTRUCTOR {#di-bag-invalid-constructor}
-
-**When:** `DiBag.createProviderFromClass({ dependencies, serviceClass })` receives
-something that cannot be called with `new`, such as an arrow function. Final
-malformed option bags report [`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument).
-
-**Cause:** a function passed where a class is expected.
-
-**Fix:** pass the class; adapt a plain function with `createProviderFromFunction`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const portKey = Symbol('port');
-const port = DiBag.createToken(portKey).forService<number>();
-class Client { constructor(readonly port: number) {} }
-const client = DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client });
-const address = DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: portNumber => `localhost:${portNumber}` });
-```
-
-**Recipe:** none.
-
 ### DI_BAG_INVALID_DEPENDENCY_ACCESS {#di-bag-invalid-dependency-access}
 
 **When:** a factory spreads its dependency object, enumerates it
@@ -789,49 +768,6 @@ const east = reports.withRenamedExport({ currentExportKey: 'service', newExportK
 ```
 
 **Recipe:** [split a feature into a module](recipes.md#split-module).
-
-### DI_BAG_INVALID_FACTORY {#di-bag-invalid-factory}
-
-**When:** a provider constructor receives a non-function or malformed options.
-The final `DiBag.createProvider` reports these cases as
-[`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument); this code remains for
-compatibility errors.
-
-**Cause:** a value passed where a factory is expected, or an invalid option bag.
-
-**Fix:** pass a function; use `{ factoryReceivesContext: true }` to receive
-`FactoryContext` as the second argument, and choose a valid `factoryReturnKind`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const settings = DiBag.createProvider(
-  async ({ url }: { url: string }, { abortSignal }) => (await fetch(url, { signal: abortSignal })).text(),
-  { factoryReceivesContext: true },
-);
-```
-
-**Recipe:** [add and consume an async client](recipes.md#async-client).
-
-### DI_BAG_INVALID_FUNCTION {#di-bag-invalid-function}
-
-**When:** `DiBag.createProviderFromFunction({ dependencies, factoryFunction })`
-receives a non-function. The final constructor reports malformed option bags as
-[`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument).
-
-**Cause:** a value passed where the adapted function is expected.
-
-**Fix:** pass the function; bind methods that need their receiver.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const nameKey = Symbol('name');
-const name = DiBag.createToken(nameKey).forService<string>();
-const greeting = DiBag.createProviderFromFunction({ dependencies: [name], factoryFunction: personName => `Hello, ${personName}` });
-```
-
-**Recipe:** none.
 
 ### DI_BAG_INVALID_LIFETIME {#di-bag-invalid-lifetime}
 
@@ -914,29 +850,6 @@ await testApp.close();
 ```
 
 **Recipe:** [write a fixture test with an independent container](recipes.md#fixture-test).
-
-### DI_BAG_INVALID_PLUGIN_OPTIONS {#di-bag-invalid-plugin-options}
-
-**When:** a plugin provider is constructed without an explicit `factoryReturnKind`
-or `isValidPluginOutput` predicate. The final constructor reports malformed
-option bags as [`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument).
-
-**Cause:** plugin output must be validated and its return kind chosen.
-
-**Fix:** pass both options.
-
-```ts
-import { DiBag } from 'di-bag';
-
-type Handler = { handle(text: string): string };
-const descriptor: unknown = { apiVersion: 1, create: () => ({ handle: (text: string) => text }) };
-const handler = DiBag.createProviderFromPlugin({
-  dependencies: [], pluginDescriptor: descriptor, factoryReturnKind: 'uninspected',
-  isValidPluginOutput: (pluginOutput: unknown): pluginOutput is Handler => typeof pluginOutput === 'object' && pluginOutput !== null && 'handle' in pluginOutput,
-});
-```
-
-**Recipe:** none.
 
 ### DI_BAG_INVALID_REGISTRATION {#di-bag-invalid-registration}
 
@@ -1110,11 +1023,12 @@ const keys = app.graphSnapshot().bindings.flatMap(binding => binding.keys);
 `phase: 'descriptor'` or `'output'` and a `reason`.
 
 **Cause:** the descriptor lacks own `apiVersion: 1` and a callable `create`, or
-`validate` did not return exactly `true` for the output.
+`isValidPluginOutput` did not return exactly `true` for the output.
 
-**Fix:** correct the plugin, or reject it before registering; see
-[`DI_BAG_INVALID_PLUGIN_OPTIONS`](#di-bag-invalid-plugin-options) for a valid
-descriptor.
+**Fix:** correct the plugin, or reject it before registering; see the
+[`createProviderFromPlugin` example](api-card.md#dibag-createproviderfromplugin)
+for a valid descriptor and required options. Malformed constructor options
+report [`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument).
 
 **Recipe:** none.
 

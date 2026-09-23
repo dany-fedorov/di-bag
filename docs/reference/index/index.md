@@ -14,7 +14,6 @@
 
 ## Interfaces
 
-- [~~AcquisitionContext~~](interfaces/AcquisitionContext.md)
 - [AcquisitionEventFields](interfaces/AcquisitionEventFields.md)
 - [AcquisitionSnapshot](interfaces/AcquisitionSnapshot.md)
 - [BindingSnapshot](interfaces/BindingSnapshot.md)
@@ -41,7 +40,6 @@
 - [Module](interfaces/Module.md)
 - [ModuleOptions](interfaces/ModuleOptions.md)
 - [ObserverFailure](interfaces/ObserverFailure.md)
-- [~~PluginOptions~~](interfaces/PluginOptions.md)
 - [Provider](interfaces/Provider.md)
 - [RegistrationSnapshot](interfaces/RegistrationSnapshot.md)
 - [RuntimeOptions](interfaces/RuntimeOptions.md)
@@ -52,7 +50,6 @@
 ## Type Aliases
 
 - [AcquisitionMetadataPresence](type-aliases/AcquisitionMetadataPresence.md)
-- [~~AcquisitionMode~~](type-aliases/AcquisitionMode.md)
 - [AliasEntries](type-aliases/AliasEntries.md)
 - [AliasOutput](type-aliases/AliasOutput.md)
 - [AliasRegistration](type-aliases/AliasRegistration.md)
@@ -67,8 +64,6 @@
 - [CheckedLifetimes](type-aliases/CheckedLifetimes.md)
 - [CollectionItem](type-aliases/CollectionItem.md)
 - [CollectionTokenMember](type-aliases/CollectionTokenMember.md)
-- [CompositionArguments](type-aliases/CompositionArguments.md)
-- [CompositionFunction](type-aliases/CompositionFunction.md)
 - [CompositionReport](type-aliases/CompositionReport.md)
 - [ContextualFactory](type-aliases/ContextualFactory.md)
 - [Contribution](type-aliases/Contribution.md)
@@ -97,10 +92,8 @@
 - [OverrideFactoryContext](type-aliases/OverrideFactoryContext.md)
 - [OverrideRegistrations](type-aliases/OverrideRegistrations.md)
 - [Overrides](type-aliases/Overrides.md)
-- [~~PluginAcquisitionMode~~](type-aliases/PluginAcquisitionMode.md)
 - [PluginOutputValidator](type-aliases/PluginOutputValidator.md)
 - [PluginProvider](type-aliases/PluginProvider.md)
-- [~~PluginProviderFactory~~](type-aliases/PluginProviderFactory.md)
 - [PluginReturnKind](type-aliases/PluginReturnKind.md)
 - [PositionalFactoryArguments](type-aliases/PositionalFactoryArguments.md)
 - [PositionalFactoryFunction](type-aliases/PositionalFactoryFunction.md)

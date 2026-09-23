@@ -8,6 +8,6 @@
 type TokenKind = 'single-service' | 'collection';
 ```
 
-Defined in: [tokens.ts:67](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L67)
+Defined in: [tokens.ts:64](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L64)
 
 The authenticated runtime channel carried by a typed-token handle.

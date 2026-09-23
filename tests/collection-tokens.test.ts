@@ -9,13 +9,14 @@ const thrown = (run: () => unknown): Diagnostic => {
 };
 const turn = () => new Promise<void>(resolve => setImmediate(resolve));
 
-test('forCollectionOf creates a frozen genuine handle next to of', () => {
+test('forCollectionOf creates a frozen genuine handle next to forService', () => {
   const key = Symbol('numbers');
   const factory = DiBag.createToken(key);
-  expect(Object.keys(factory)).toEqual(['forService', 'forCollectionOf', 'of']);
+  expect(Object.keys(factory)).toEqual(['forService', 'forCollectionOf']);
   expect(Object.isFrozen(factory)).toBe(true);
   const numbers = factory.forCollectionOf<number>();
   expect(numbers.symbol).toBe(key);
+  expect(Object.hasOwn(numbers, 'key')).toBe(false);
   expect(Object.isFrozen(numbers)).toBe(true);
   expect(numbers).not.toBe(factory.forCollectionOf<number>());
   for (const fake of [{ ...numbers }, Object.create(numbers), { key }]) {

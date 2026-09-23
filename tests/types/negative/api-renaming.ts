@@ -11,6 +11,20 @@ import type { DisjointScopeSelection } from '../../../src';
 import type { ObserverOptions } from '../../../src';
 // diagnostic: no exported member
 import type { BuilderContribute } from '../../../src';
+// diagnostic: no exported member 'AcquisitionContext'
+import type { AcquisitionContext } from '../../../src';
+// diagnostic: no exported member 'AcquisitionMode'
+import type { AcquisitionMode } from '../../../src';
+// diagnostic: no exported member 'CompositionArguments'
+import type { CompositionArguments } from '../../../src';
+// diagnostic: no exported member 'CompositionFunction'
+import type { CompositionFunction } from '../../../src';
+// diagnostic: no exported member 'PluginAcquisitionMode'
+import type { PluginAcquisitionMode } from '../../../src';
+// diagnostic: no exported member 'PluginOptions'
+import type { PluginOptions } from '../../../src';
+// diagnostic: no exported member named 'PluginProviderFactory'
+import type { PluginProviderFactory } from '../../../src';
 const base = DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' });
 // diagnostic: No overload matches
 DiBag.withMetadata(base, { dynamic: { describe: (_value: Promise<number>) => ({}) } });
@@ -100,3 +114,33 @@ const lifecycleObserver = { onLifecycleEvent() {}, onObserverFailure() {} } sati
 lifecycleObserver.onEvent;
 // diagnostic: does not exist
 lifecycleObserver.onError;
+
+// diagnostic: Property 'fromFactory' does not exist
+DiBag.fromFactory;
+// diagnostic: Property 'fromSyncFactory' does not exist
+DiBag.fromSyncFactory;
+// diagnostic: Property 'fromAsyncFactory' does not exist
+DiBag.fromAsyncFactory;
+// diagnostic: Property 'fromFunction' does not exist
+DiBag.fromFunction;
+// diagnostic: Property 'fromClass' does not exist
+DiBag.fromClass;
+// diagnostic: Property 'fromPlugin' does not exist
+DiBag.fromPlugin;
+// diagnostic: Property 'token' does not exist
+DiBag.token;
+
+const serviceSymbol = Symbol('service'); const token = DiBag.createToken(serviceSymbol);
+// diagnostic: Property 'of' does not exist
+token.of<number>();
+const service = token.forService<number>();
+// diagnostic: Property 'key' does not exist
+service.key;
+
+type RemovedContext = AcquisitionContext;
+type RemovedMode = AcquisitionMode;
+type RemovedArguments = CompositionArguments<[], []>;
+type RemovedFunction = CompositionFunction<[]>;
+type RemovedPluginMode = PluginAcquisitionMode;
+type RemovedPluginOptions = PluginOptions<'raw', unknown>;
+type RemovedPluginFactory = PluginProviderFactory;

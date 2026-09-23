@@ -8,8 +8,6 @@ import type { IsAny, SeeErrors, StructuralThenable, Unsatisfied } from './types'
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#portable-mode
  */
 export type FactoryReturnKind = 'auto-detect' | 'sync-value' | 'native-promise' | 'uninspected';
-/** @deprecated Use FactoryReturnKind. */
-export type AcquisitionMode = 'auto' | 'raw' | 'nativePromise';
 /**
  * Portable facade configuration for `auto` acquisition stages.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#portable-mode
@@ -50,29 +48,6 @@ export type SyncOutput<Output, ReturnKind extends FactoryReturnKind = 'sync-valu
 export type AsyncOutput<Output> = [Output] extends [Promise<unknown>] ? unknown
   : Unsatisfied<`native-promise factory return kind requires a Promise output; use 'sync-value' for a synchronous value${SeeErrors<'portable-factory-output'>}`, {}>;
 
-export type LegacyAcquired<Output, Mode extends AcquisitionMode> = Mode extends 'raw' ? Output : Awaited<Output>;
-export type LegacyModeOptions<Mode extends AcquisitionMode> = 'auto' extends Mode
-  ? { readonly acquisitionMode?: Mode } : { readonly acquisitionMode: Mode };
-export type LegacyStageOptions<Mode extends AcquisitionMode> = 'auto' extends Mode
-  ? [options?: { readonly acquisitionMode: Mode }] : [options: { readonly acquisitionMode: Mode }];
-export type LegacyNativeOutput<Output, Mode extends AcquisitionMode> = 'nativePromise' extends Mode
-  ? [Output] extends [Promise<unknown>] ? unknown : Unsatisfied<'nativePromise acquisition requires a Promise output', {}>
-  : unknown;
-export type LegacyAutoOutput<Output, Mode extends AcquisitionMode> = 'auto' extends Mode
-  ? true extends StructuralThenable<Output>
-    ? Unsatisfied<`factory output is a structural thenable; return a native Promise or select acquisitionMode raw or nativePromise${SeeErrors<'structural-thenable'>}`, {}>
-    : unknown
-  : unknown;
-export type LegacySyncOutput<Output> = IsAny<Output> extends true ? unknown
-  : true extends PromiseOutput<Output> | StructuralThenable<Output>
-    ? Unsatisfied<`fromSyncFactory output must not be a Promise or thenable; use fromAsyncFactory for a Promise, or fromFactory with acquisitionMode raw to make the Promise object the service${SeeErrors<'portable-factory-output'>}`, {}>
-    : unknown;
-export type LegacyAsyncOutput<Output> = [Output] extends [Promise<unknown>] ? unknown
-  : Unsatisfied<`fromAsyncFactory requires a Promise output; use fromSyncFactory for a synchronous value${SeeErrors<'portable-factory-output'>}`, {}>;
-/** @deprecated Legacy type-level helpers stay until the contract phase. */
-export type ModeOptions<M extends AcquisitionMode, Default extends AcquisitionMode = 'auto'> = Default extends M
-  ? { readonly acquisitionMode?: M } : { readonly acquisitionMode: M };
-
 const returnKinds: readonly FactoryReturnKind[] = ['auto-detect', 'sync-value', 'native-promise', 'uninspected'];
 export function factoryReturnKind(value: unknown, operation: string, fallback: FactoryReturnKind = 'auto-detect'): FactoryReturnKind {
   const selected = value === undefined ? fallback : value;
@@ -81,20 +56,6 @@ export function factoryReturnKind(value: unknown, operation: string, fallback: F
     { operation, argument: 'factoryReturnKind', expected: "one of: 'auto-detect', 'sync-value', 'native-promise', 'uninspected'" },
   );
   return selected as FactoryReturnKind;
-}
-export function normalizeLegacyMode(mode: AcquisitionMode): FactoryReturnKind {
-  return mode === 'auto' ? 'auto-detect' : mode === 'raw' ? 'uninspected' : 'native-promise';
-}
-export function legacyModeOf(kind: FactoryReturnKind): AcquisitionMode {
-  return kind === 'auto-detect' ? 'auto' : kind === 'native-promise' ? 'nativePromise' : 'raw';
-}
-export function acquisitionMode(options: { readonly acquisitionMode?: AcquisitionMode } | undefined, fallback: AcquisitionMode = 'auto'): AcquisitionMode {
-  if (options === undefined) return fallback;
-  if (typeof options !== 'object' || options === null) throw libraryError('DI_BAG_INVALID_ACQUISITION_MODE', 'invalid acquisition options', { option: 'acquisitionMode' });
-  const selected = options.acquisitionMode;
-  const mode = selected === undefined ? fallback : selected;
-  if (mode !== 'auto' && mode !== 'raw' && mode !== 'nativePromise') throw libraryError('DI_BAG_INVALID_ACQUISITION_MODE', 'invalid acquisitionMode: use auto, raw, or nativePromise', { option: 'acquisitionMode' });
-  return mode;
 }
 /**
  * The root entry self-configures through `process.getBuiltinModule` (Node, Bun, Deno). A call,

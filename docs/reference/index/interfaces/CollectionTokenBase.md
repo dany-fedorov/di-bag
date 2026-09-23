@@ -4,7 +4,7 @@
 
 # Interface: CollectionTokenBase
 
-Defined in: [tokens.ts:29](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L29)
+Defined in: [tokens.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L28)
 
 The common type-only base for genuine collection-token handles.
 

@@ -35,10 +35,6 @@
         "collapsed": true,
         "items": [
           {
-            "text": "AcquisitionContext",
-            "link": "/reference/index/interfaces/AcquisitionContext.md"
-          },
-          {
             "text": "AcquisitionEventFields",
             "link": "/reference/index/interfaces/AcquisitionEventFields.md"
           },
@@ -143,10 +139,6 @@
             "link": "/reference/index/interfaces/ObserverFailure.md"
           },
           {
-            "text": "PluginOptions",
-            "link": "/reference/index/interfaces/PluginOptions.md"
-          },
-          {
             "text": "Provider",
             "link": "/reference/index/interfaces/Provider.md"
           },
@@ -179,10 +171,6 @@
           {
             "text": "AcquisitionMetadataPresence",
             "link": "/reference/index/type-aliases/AcquisitionMetadataPresence.md"
-          },
-          {
-            "text": "AcquisitionMode",
-            "link": "/reference/index/type-aliases/AcquisitionMode.md"
           },
           {
             "text": "AliasEntries",
@@ -239,14 +227,6 @@
           {
             "text": "CollectionTokenMember",
             "link": "/reference/index/type-aliases/CollectionTokenMember.md"
-          },
-          {
-            "text": "CompositionArguments",
-            "link": "/reference/index/type-aliases/CompositionArguments.md"
-          },
-          {
-            "text": "CompositionFunction",
-            "link": "/reference/index/type-aliases/CompositionFunction.md"
           },
           {
             "text": "CompositionReport",
@@ -361,20 +341,12 @@
             "link": "/reference/index/type-aliases/Overrides.md"
           },
           {
-            "text": "PluginAcquisitionMode",
-            "link": "/reference/index/type-aliases/PluginAcquisitionMode.md"
-          },
-          {
             "text": "PluginOutputValidator",
             "link": "/reference/index/type-aliases/PluginOutputValidator.md"
           },
           {
             "text": "PluginProvider",
             "link": "/reference/index/type-aliases/PluginProvider.md"
-          },
-          {
-            "text": "PluginProviderFactory",
-            "link": "/reference/index/type-aliases/PluginProviderFactory.md"
           },
           {
             "text": "PluginReturnKind",

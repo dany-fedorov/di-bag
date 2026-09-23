@@ -8,7 +8,7 @@ import type { CleanupFailure } from './errors';
 import { normalize } from './registration';
 import type { Registration, Registrations } from './registration';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
-import { classifierRequired, legacyModeOf, resolveClassifier } from './acquisition-mode';
+import { classifierRequired, resolveClassifier } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
 import { wrongTokenKind, type TokenKind } from './tokens';
 
@@ -562,7 +562,6 @@ export class BagRuntime {
         keys,
         lifetime: description.lifetime.kind,
         factoryReturnKind: description.factoryReturnKind,
-        acquisitionMode: legacyModeOf(description.factoryReturnKind),
         owned: description.dispose !== undefined || description.operations.some(operation => operation.kind === 'owned'),
         tokenDependencies: Object.freeze(description.references.map(reference => Object.freeze({ key: reference.key, kind: reference.kind }))),
       });

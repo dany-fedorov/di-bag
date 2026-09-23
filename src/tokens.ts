@@ -5,7 +5,7 @@ declare const tokenInvariant: unique symbol;
 declare const collectionTokenInvariant: unique symbol;
 /**
  * The common type-only base for genuine typed-token handles.
- * Create tokens through `DiBag.token`; fabricated structural values are not authenticated.
+ * Create tokens through `DiBag.createToken`; fabricated structural values are not authenticated.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
  */
 class TokenBase {
@@ -13,7 +13,7 @@ class TokenBase {
 }
 /**
  * An immutable typed-token handle pairing a canonical symbol with an invariant service contract.
- * Create one with `DiBag.token(key).of<Service>()`.
+ * Create one with `DiBag.createToken(key).forService<Service>()`.
  * @typeParam TokenSymbol - The unique symbol that is this token's runtime identity.
  * @typeParam Service - The service type that bindings must produce and that resolution returns.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
@@ -21,8 +21,7 @@ class TokenBase {
 class Token<TokenSymbol extends symbol, Service> extends TokenBase {
   /** @internal */
   declare readonly [tokenInvariant]: (value: [TokenSymbol, Service]) => [TokenSymbol, Service];
-  readonly key: TokenSymbol;
-  constructor(readonly symbol: TokenSymbol) { super(); this.key = symbol; }
+  constructor(readonly symbol: TokenSymbol) { super(); }
 }
 
 /** The common type-only base for genuine collection-token handles. */
@@ -32,7 +31,7 @@ class CollectionTokenBase extends TokenBase {
 /**
  * An immutable typed-token handle pairing a canonical symbol with an invariant
  * collection item contract.
- * Create one with `DiBag.token(key).forCollectionOf<Item>()`.
+ * Create one with `DiBag.createToken(key).forCollectionOf<Item>()`.
  * @typeParam TokenSymbol - The unique symbol that is this token's runtime identity.
  * @typeParam Item - The item type accepted by contributions and returned in collection views.
  */
@@ -40,10 +39,8 @@ class CollectionToken<TokenSymbol extends symbol, Item> extends CollectionTokenB
   /** @internal */
   declare readonly [collectionTokenInvariant]:
     (value: [TokenSymbol, Item]) => [TokenSymbol, Item];
-  readonly key: TokenSymbol;
   constructor(readonly symbol: TokenSymbol) {
     super();
-    this.key = symbol;
   }
 }
 
@@ -87,13 +84,6 @@ export function createToken<const TokenSymbol extends symbol>(
 ): {
   /** Declare the invariant service contract carried by this token handle. */
   readonly forService: <Service>() => Token<TokenSymbol, Service>;
-  /**
-   * Declare the invariant service contract carried by this token handle.
-   * @typeParam S - The service type accepted by bindings and returned by resolution.
-   * @returns A genuine immutable token paired with the canonical symbol key.
-   * @deprecated Use forService.
-   */
-  readonly of: <Service>() => Token<TokenSymbol, Service>;
   /** Declare the invariant item contract carried by a collection token handle. */
   readonly forCollectionOf: <Item>() => CollectionToken<TokenSymbol, Item>;
 } {
@@ -112,27 +102,6 @@ export function createToken<const TokenSymbol extends symbol>(
       Object.freeze(handle);
       return handle;
     },
-    of: forService,
-  });
-}
-
-/** @deprecated Use createToken. */
-export function token<const TokenSymbol extends symbol>(
-  symbol: TokenSymbol & TokenKeyAdmission<TokenSymbol>,
-  ...invalid: [TokenSymbol] extends [never] ? [TokenKeyAdmission<TokenSymbol>] : []
-): {
-  /** Declare a legacy single-service token handle. */
-  readonly of: <Service>() => Token<TokenSymbol, Service>;
-  /** Declare a legacy collection token handle. */
-  readonly forCollectionOf: <Item>() => CollectionToken<TokenSymbol, Item>;
-} {
-  if (typeof symbol !== 'symbol') throw libraryError(
-    'DI_BAG_INVALID_TOKEN', 'token key must be a symbol', { operation: 'token' },
-  );
-  const factory = createToken<TokenSymbol>(symbol, ...invalid);
-  return Object.freeze({
-    of: factory.forService,
-    forCollectionOf: factory.forCollectionOf,
   });
 }
 

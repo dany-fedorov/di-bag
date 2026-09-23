@@ -26,13 +26,13 @@ test('the card covers the runtime surface, links every task, and fits the budget
   assert.match(markdown, /Code: \[`DI_BAG_CLOSE_TIMEOUT`\]\(errors\.md#di-bag-close-timeout\), \[`DI_BAG_CLOSE_ABORTED`\]/);
 });
 
-test('provider-source API card renders the expand and compatibility calls', () => {
+test('provider-source API card contains only final task calls', () => {
   const card = renderApiCard(project, tasks);
   for (const name of ['DiBag.createProvider', 'DiBag.createProviderFromFunction', 'DiBag.createProviderFromClass', 'DiBag.createProviderFromPlugin', 'DiBag.createToken']) {
     assert.match(card, new RegExp(name.replace('.', '\\.')));
   }
   for (const name of ['DiBag.fromFactory', 'DiBag.fromSyncFactory', 'DiBag.fromAsyncFactory', 'DiBag.fromFunction', 'DiBag.fromClass', 'DiBag.fromPlugin', 'DiBag.token']) {
-    assert.match(card, new RegExp(name.replace('.', '\\.')));
+    assert.doesNotMatch(card, new RegExp(name.replace('.', '\\.')));
   }
   for (const title of [
     'DiBag.createProvider(factory, options)',

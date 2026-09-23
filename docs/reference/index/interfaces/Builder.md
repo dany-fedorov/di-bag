@@ -96,7 +96,7 @@ A new builder preserving contribution order.
 
 ```ts
 const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
 const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: tools, provider: () => 'search' }).withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' });
 ```
 
@@ -280,7 +280,7 @@ A new builder retaining the provider's metadata, lifetime, dependencies, and own
 
 ```ts
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
 const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () => Date.now() }));
 ```
 

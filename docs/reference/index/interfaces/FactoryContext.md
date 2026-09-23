@@ -12,10 +12,6 @@ Cooperative cancellation and acquisition-local ownership supplied to a context-a
 
 https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
 
-## Extended by
-
-- [`AcquisitionContext`](AcquisitionContext.md)
-
 ## Properties
 
 ### abortSignal

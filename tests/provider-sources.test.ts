@@ -275,9 +275,9 @@ test('createToken publishes symbol and both exclusive token constructors', () =>
   const service = factory.forService<number>();
   const collection = factory.forCollectionOf<number>();
   expect(service.symbol).toBe(symbol);
-  expect(service.symbol).toBe(symbol);
+  expect(Object.hasOwn(service, 'key')).toBe(false);
   expect(collection.symbol).toBe(symbol);
-  expect(collection.symbol).toBe(symbol);
+  expect(Object.hasOwn(collection, 'key')).toBe(false);
   expect(Object.isFrozen(service)).toBe(true);
   expect(Object.isFrozen(collection)).toBe(true);
   const builder = DiBag.createBuilder();

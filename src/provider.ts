@@ -6,8 +6,7 @@ import type { ProviderOperation } from './provider-operations';
 import { readTokenKey } from './tokens';
 import type { CollectionTokenBase, TokenBase, TokenKey, TokenService } from './tokens';
 import type { GraphContract, TokenDependencyContract, OpaqueGraph, TokenTupleAdmission, ReboundGraph } from './token-types';
-import { normalizeLegacyMode } from './acquisition-mode';
-import type { Acquired, AcquisitionMode, FactoryReturnKind, NativeOutput, AutoOutput, SyncOutput } from './acquisition-mode';
+import type { Acquired, FactoryReturnKind, NativeOutput, AutoOutput, SyncOutput } from './acquisition-mode';
 
 declare const providerInvariant: unique symbol;
 
@@ -21,7 +20,7 @@ class ProviderBase {
  * An immutable provider description retaining factory, metadata, inspection-frame,
  * dependency-graph, and acquired-value contracts.
  *
- * Create providers through {@link DiBagApi.fromFactory}, composition adapters, or provider
+ * Create providers through {@link DiBagApi.createProvider}, composition adapters, or provider
  * decorators. This type-only class has no public constructor.
  * @typeParam ExposedFactory - The exact exposed factory signature, including named dependencies.
  * @typeParam RegistrationMetadata - Static registration metadata available before resolution.
@@ -159,21 +158,23 @@ export function transform<R extends Registration, F extends Factory, A extends r
  * @param registration - The source registration whose exact output is transformed.
  * @param options - Direct mode, a transform callback, and optional output acquisitionMode (auto by default).
  * @returns A provider exposing the callback's exact result, with the selected output acquisition policy.
- * @typeParam R - The source registration and its retained contracts.
- * @typeParam P - The exact transform callback signature and output.
- * @typeParam M - The result's auto, raw, or nativePromise acquisition policy.
+ * @typeParam ServiceRegistration - The source registration and its retained contracts.
+ * @typeParam Transform - The exact transform callback signature and output.
+ * @typeParam ReturnKind - The result's return policy.
  */
-type ExpandReturnKind = FactoryReturnKind | AcquisitionMode;
-type NormalizedReturnKind<ReturnKind extends ExpandReturnKind> = ReturnKind extends 'auto' ? 'auto-detect'
-  : ReturnKind extends 'raw' ? 'uninspected' : ReturnKind extends 'nativePromise' ? 'native-promise' : ReturnKind;
-type ExpandTransformOptions<ReturnKind extends ExpandReturnKind> =
-  'auto-detect' extends NormalizedReturnKind<ReturnKind> ? { readonly acquisitionMode?: ReturnKind }
-    : 'auto' extends ReturnKind ? { readonly acquisitionMode?: ReturnKind } : { readonly acquisitionMode: ReturnKind };
-function expandTransformReturnKind(options: { readonly acquisitionMode?: ExpandReturnKind }): FactoryReturnKind {
+type LegacyTransformReturnKindOptions<ReturnKind extends FactoryReturnKind> =
+  'auto-detect' extends ReturnKind
+    ? { readonly acquisitionMode?: ReturnKind }
+    : { readonly acquisitionMode: ReturnKind };
+
+function legacyTransformReturnKind(options: { readonly acquisitionMode?: FactoryReturnKind }): FactoryReturnKind {
   const selected = options.acquisitionMode ?? 'auto-detect';
-  if (selected === 'auto' || selected === 'raw' || selected === 'nativePromise') return normalizeLegacyMode(selected);
-  if (selected === 'auto-detect' || selected === 'sync-value' || selected === 'native-promise' || selected === 'uninspected') return selected;
-  throw libraryError('DI_BAG_INVALID_ACQUISITION_MODE', 'invalid acquisitionMode: use auto, raw, nativePromise, auto-detect, sync-value, native-promise, or uninspected', { option: 'acquisitionMode' });
+  if (selected !== 'auto-detect' && selected !== 'sync-value' && selected !== 'native-promise' && selected !== 'uninspected') throw libraryError(
+    'DI_BAG_INVALID_ACQUISITION_MODE',
+    'invalid acquisitionMode: use auto-detect, sync-value, native-promise, or uninspected',
+    { option: 'acquisitionMode' },
+  );
+  return selected;
 }
 /**
  * Transform the exact exposed service without awaiting the input or callback result.
@@ -183,33 +184,37 @@ function expandTransformReturnKind(options: { readonly acquisitionMode?: ExpandR
  */
 export function transformService<
   ServiceRegistration extends Registration,
-  Transform extends (this: void, exposedService: ProviderOutput<NoInfer<ServiceRegistration>>) => ('native-promise' extends NormalizedReturnKind<ReturnKind> ? Promise<unknown> : unknown),
-  ReturnKind extends ExpandReturnKind = 'auto-detect',
+  Transform extends (this: void, exposedService: ProviderOutput<NoInfer<ServiceRegistration>>) => ('native-promise' extends ReturnKind ? Promise<unknown> : unknown),
+  ReturnKind extends FactoryReturnKind = 'auto-detect',
 >(
   registration: ServiceRegistration & Registration,
-  options: { readonly mode: 'direct'; readonly transform: Transform } & ExpandTransformOptions<ReturnKind>
-    & NativeOutput<ReturnType<NoInfer<Transform>>, NormalizedReturnKind<NoInfer<ReturnKind>>>
-    & AutoOutput<ReturnType<NoInfer<Transform>>, NormalizedReturnKind<NoInfer<ReturnKind>>>
-    & SyncOutput<ReturnType<NoInfer<Transform>>, NormalizedReturnKind<NoInfer<ReturnKind>>>,
-): Provider<MappedFactory<ServiceRegistration, ReturnType<Transform>>, RetainedMetadata<ServiceRegistration>, ProviderAcquisitionMetadata<ServiceRegistration>, ProviderGraphContract<ServiceRegistration>, Acquired<ReturnType<Transform>, NormalizedReturnKind<ReturnKind>>>;
+  options: { readonly mode: 'direct'; readonly transform: Transform } & LegacyTransformReturnKindOptions<ReturnKind>
+    & NativeOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>>
+    & AutoOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>>
+    & SyncOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>>,
+): Provider<MappedFactory<ServiceRegistration, ReturnType<Transform>>, RetainedMetadata<ServiceRegistration>, ProviderAcquisitionMetadata<ServiceRegistration>, ProviderGraphContract<ServiceRegistration>, Acquired<ReturnType<Transform>, ReturnKind>>;
 /**
  * Await the input and adopt the transformed result into a native Promise stage.
  * Retains dependencies, lifetime, metadata, and existing cleanup; adds no result ownership.
  * @param registration - The source registration whose fulfilled value is transformed.
  * @param options - Awaited mode and a transform callback; acquisitionMode cannot be overridden.
  * @returns A provider exposing a Promise of the awaited transform result.
- * @typeParam R - The source registration and retained contracts.
- * @typeParam P - The callback signature; its result may itself be a Promise.
+ * @typeParam ServiceRegistration - The source registration and retained contracts.
+ * @typeParam Transform - The callback signature; its result may itself be a Promise.
  */
-export function transformService<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(
-  registration: R & Registration,
-  options: { readonly mode: 'awaited'; readonly transform: P; readonly acquisitionMode?: never },
-): Provider<MappedFactory<R, Promise<Awaited<ReturnType<P>>>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>>;
-export function transformService(registration: Registration, options: { readonly mode: 'direct' | 'awaited'; readonly transform: (value: never) => unknown; readonly acquisitionMode?: ExpandReturnKind }): ProviderBase {
+export function transformService<ServiceRegistration extends Registration, Transform extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<ServiceRegistration>>>) => unknown>(
+  registration: ServiceRegistration & Registration,
+  options: { readonly mode: 'awaited'; readonly transform: Transform; readonly acquisitionMode?: never },
+): Provider<MappedFactory<ServiceRegistration, Promise<Awaited<ReturnType<Transform>>>>, RetainedMetadata<ServiceRegistration>, ProviderAcquisitionMetadata<ServiceRegistration>, ProviderGraphContract<ServiceRegistration>>;
+export function transformService(registration: Registration, options: { readonly mode: 'direct' | 'awaited'; readonly transform: (exposedService: never) => unknown; readonly acquisitionMode?: FactoryReturnKind }): ProviderBase {
   if (typeof options !== 'object' || options === null || (options.mode !== 'direct' && options.mode !== 'awaited')) throw libraryTypeError('DI_BAG_INVALID_TRANSFORM', 'transformService mode must be direct or awaited', { operation: 'transformService' });
   if (typeof options.transform !== 'function') throw libraryTypeError('DI_BAG_INVALID_TRANSFORM', 'transformService requires a transform callback', { operation: 'transformService' });
   if (options.mode === 'awaited' && 'acquisitionMode' in options) throw libraryTypeError('DI_BAG_INVALID_TRANSFORM', 'transformService awaited mode does not accept acquisitionMode', { operation: 'transformService' });
-  return transform(registration, { kind: options.mode === 'direct' ? 'map-sync' : 'map-async', project: options.transform, factoryReturnKind: options.mode === 'direct' ? expandTransformReturnKind(options) : 'native-promise' });
+  return transform(registration, {
+    kind: options.mode === 'direct' ? 'map-sync' : 'map-async',
+    project: options.transform,
+    factoryReturnKind: options.mode === 'direct' ? legacyTransformReturnKind(options) : 'native-promise',
+  });
 }
 
 type InvalidAcquisitionMetadata<M> = M extends unknown

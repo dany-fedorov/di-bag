@@ -8,7 +8,7 @@
 type ProviderCollectionTokens<R> = ProviderGraphContract<R> extends infer G ? CollectionTokens<G> : never;
 ```
 
-Defined in: [provider.ts:117](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L117)
+Defined in: [provider.ts:116](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L116)
 
 Extract token collection requirements from a registration.
 
