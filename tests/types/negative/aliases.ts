@@ -1,4 +1,4 @@
-import { DiBag, type Builder, type Provider, type Registration } from '../../../src';
+import { DiBag, type Builder, type Provider, type ProviderOrFactory } from '../../../src';
 import type { Token } from '../../../src/tokens';
 const key = Symbol('source'); const target = DiBag.createToken(key).forService<number>();
 const otherKey = Symbol('other'); const other = DiBag.createToken(otherKey).forService<number>();
@@ -44,22 +44,22 @@ base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: DiBag.optional(targe
 base.withServiceAlias<'one' | 'two', 'value'>({ aliasKey: 'one', targetServiceKey: 'value' });
 // diagnostic: Expected 2 arguments
 base.withServiceAlias<never, 'value'>({ aliasKey: 'one' as never, targetServiceKey: 'value' });
-const root = DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root');
+const root = DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' });
 // diagnostic: root lifetime cannot capture scoped dependency
 base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServices({ root }).buildContainer();
-const transient = DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient');
+const transient = DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'transient:one-per-resolve' });
 // diagnostic: root lifetime cannot capture scoped dependency
-base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServices({ transient, root: DiBag.withLifetime(({ transient }: { transient: number }) => transient, 'root') }).buildContainer();
+base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServices({ transient, root: DiBag.providerWithLifetime({ provider: ({ transient }: { transient: number }) => transient, lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
 const privateScoped = DiBag.createBuilder().withServices({ value: () => 1 }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['copy'] }).withRenamedExport({ currentExportKey: 'copy', newExportKey: 'renamed' });
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().withInstalledModules([privateScoped]).withServices({ root: DiBag.withLifetime(({ renamed }: { renamed: number }) => renamed, 'root') }).buildContainer();
+DiBag.createBuilder().withInstalledModules([privateScoped]).withServices({ root: DiBag.providerWithLifetime({ provider: ({ renamed }: { renamed: number }) => renamed, lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
 const privateRootBuilder = DiBag.createBuilder().withServices({ value: () => 1 }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServices({ root });
 // diagnostic: root lifetime cannot capture scoped dependency: root -> value
 privateRootBuilder.buildModule({ exportedServiceKeys: [] });
-const transientBag = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => 1, 'transient') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
+const transientBag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'transient:one-per-resolve' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
 // diagnostic: cannot share transient
 transientBag.createChildContainer({ sharedParentServiceKeys: ['copy'] });
-const privateTransient = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => 1, 'transient') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['copy'] });
+const privateTransient = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'transient:one-per-resolve' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['copy'] });
 // diagnostic: cannot share transient
 DiBag.createBuilder().withInstalledModules([privateTransient]).buildContainer().createChildContainer({ sharedParentServiceKeys: ['copy'] });
 const original = base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' });
@@ -71,32 +71,32 @@ declare const provider: Provider<() => number>;
 declare const union: typeof provider | (() => string);
 // diagnostic: consumer dependency
 original.withReplacedService<'value', typeof union>('value', union);
-declare const erased: Registration;
+declare const erased: ProviderOrFactory;
 // diagnostic: finite string-keyed
 original.withReplacedService<'value', typeof erased>('value', erased);
 const sharingBase = DiBag.createBuilder().withServices({ value: () => 1, consumer: ({ copy }: { copy: number }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
-const parentScoped = sharingBase.createChildContainer(['value'], { value: DiBag.withLifetime(() => 2, 'root') }, { sharedParentServiceKeys: ['copy'] });
+const parentScoped = sharingBase.createChildContainer(['value'], { value: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'singleton:one-per-container-tree' }) }, { sharedParentServiceKeys: ['copy'] });
 // diagnostic: root lifetime cannot capture scoped dependency
-parentScoped.createChildContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { sharedParentServiceKeys: ['copy'] });
-const rootedTarget = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => 1, 'root'), consumer: ({ copy }: { copy: number }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
+parentScoped.createChildContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) }, { sharedParentServiceKeys: ['copy'] });
+const rootedTarget = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }), consumer: ({ copy }: { copy: number }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
 const parentRoot = rootedTarget.createChildContainer(['value'], { value: () => 2 }, { sharedParentServiceKeys: ['copy'] });
 // diagnostic: root lifetime cannot capture scoped dependency
-parentRoot.createChildContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
+parentRoot.createChildContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
-parentRoot.createIndependentContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
+parentRoot.createIndependentContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
-sharingBase.createChildContainer(['value', 'consumer'], { value: DiBag.withLifetime(() => 2, 'root'), consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { sharedParentServiceKeys: ['copy'] });
-const sharedRootConsumer = rootedTarget.createChildContainer(['value', 'consumer'], { value: () => 2, consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { sharedParentServiceKeys: ['copy'] });
+sharingBase.createChildContainer(['value', 'consumer'], { value: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'singleton:one-per-container-tree' }), consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) }, { sharedParentServiceKeys: ['copy'] });
+const sharedRootConsumer = rootedTarget.createChildContainer(['value', 'consumer'], { value: () => 2, consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) }, { sharedParentServiceKeys: ['copy'] });
 // diagnostic: root lifetime cannot capture scoped dependency
 sharedRootConsumer.createIndependentContainer();
-const transientOverride = rootedTarget.createChildContainer(['value'], { value: DiBag.withLifetime(() => 3, 'transient') }, { sharedParentServiceKeys: ['copy'] });
+const transientOverride = rootedTarget.createChildContainer(['value'], { value: DiBag.providerWithLifetime({ provider: () => 3, lifetime: 'transient:one-per-resolve' }) }, { sharedParentServiceKeys: ['copy'] });
 // diagnostic: cannot share transient
 transientOverride.createChildContainer().createChildContainer({ sharedParentServiceKeys: ['copy'] });
 // diagnostic: cannot share transient
 transientOverride.createIndependentContainer().createChildContainer({ sharedParentServiceKeys: ['copy'] });
 const aliasKey = Symbol('alias'); const aliasToken = DiBag.createToken(aliasKey).forService<number>();
-const rootOptional = DiBag.withLifetime(DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(aliasToken)], factoryFunction: value => value }), 'root');
-const rootLazy = DiBag.withLifetime(DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(aliasToken)], factoryFunction: get => get() }), 'root');
+const rootOptional = DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(aliasToken)], factoryFunction: value => value }), lifetime: 'singleton:one-per-container-tree' });
+const rootLazy = DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(aliasToken)], factoryFunction: get => get() }), lifetime: 'singleton:one-per-container-tree' });
 // diagnostic: root lifetime cannot capture scoped dependency
 base.withServiceAlias({ aliasKey: aliasToken, targetServiceKey: 'value' }).withServices({ rootOptional }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency

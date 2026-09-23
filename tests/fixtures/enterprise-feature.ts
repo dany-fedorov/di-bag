@@ -12,9 +12,8 @@ const descriptor: unknown = {
   dispose: () => { disposals.push('plugin'); },
 };
 export const feature = DiBag.createBuilder().withTokenService(plugin, DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: descriptor, factoryReturnKind: 'uninspected', isValidPluginOutput: (value: unknown): value is (text: string) => string => typeof value === 'function' })).withServices({
-  prefix: DiBag.withDisposal(() => 'private:', () => { disposals.push('private'); }),
+  prefix: DiBag.providerWithDisposal({ provider: () => 'private:', disposeService: () => { disposals.push('private'); } }),
 }).withCollectionContribution({ collectionToken: steps, provider: ({ prefix }: { prefix: string }) => (text: string) => prefix + text }).withCollectionContribution({ collectionToken: steps, provider: () => (text: string) => text + '!' }).withServices({
-    handler: DiBag.withDisposal(DiBag.createProviderFromFunction({ dependencies: [plugin, steps], factoryFunction: (transform, operations) =>
-      (text: string) => operations.reduce((value, step) => step(value), transform(text)) }),
-    () => { disposals.push('handler'); }),
+    handler: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromFunction({ dependencies: [plugin, steps], factoryFunction: (transform, operations) =>
+      (text: string) => operations.reduce((value, step) => step(value), transform(text)) }), disposeService: () => { disposals.push('handler'); } }),
   }).buildModule({ exportedServiceKeys: ['handler'] });

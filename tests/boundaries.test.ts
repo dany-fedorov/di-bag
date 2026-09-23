@@ -131,7 +131,7 @@ test('empty independent containers reuse the graph without reading unselected va
   let next = 0;
   const disposed: number[] = [];
   const root = DiBag.createBuilder().withServices({
-    value: DiBag.withDisposal(() => ++next, value => { disposed.push(value); }),
+    value: DiBag.providerWithDisposal({ provider: () => ++next, disposeService: value => { disposed.push(value); } }),
   }).buildContainer();
   const keys: [] = [];
   keys[Symbol.iterator] = function* () { throw new Error('iterator invoked'); };
@@ -174,7 +174,7 @@ test('selected overrides can depend on richer capabilities of other selected ser
 });
 
 test('runtime registration validation rejects cloned and forged owned handles', () => {
-  const owned = DiBag.withDisposal(() => 1, value => { value.toFixed(); });
+  const owned = DiBag.providerWithDisposal({ provider: () => 1, disposeService: value => { value.toFixed(); } });
   expect(Object.isFrozen(owned)).toBe(true);
   const builder = DiBag.createBuilder();
   for (const value of [{ ...owned }, { ...owned, create: () => 'wrong' }, Object.create(owned)]) {
@@ -185,7 +185,7 @@ test('runtime registration validation rejects cloned and forged owned handles', 
 
 test('normalization does not expose mutable ownership registry metadata', async () => {
   let disposed: number | undefined;
-  const owned = DiBag.withDisposal(() => 1, value => { disposed = value; });
+  const owned = DiBag.providerWithDisposal({ provider: () => 1, disposeService: value => { disposed = value; } });
   normalize(owned).create = () => 'wrong';
   const bag = DiBag.createBuilder().withServices({ value: owned }).buildContainer();
   expect(bag.resolve('value')).toBe(1);

@@ -46,7 +46,7 @@ module.withRenamedRequirement({
   newRequirementKey: Symbol('other'),
 });
 const strict = DiBag.createBuilder().withServices({
-  service: DiBag.withLifetime(({ config }: { config: Config }) => config.value, 'root'),
+  service: DiBag.providerWithLifetime({ provider: ({ config }: { config: Config }) => config.value, lifetime: 'singleton:one-per-container-tree' }),
 }).buildModule({ exportedServiceKeys: ['service'] })
   .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'strictConfig' });
 // diagnostic: root lifetime cannot capture scoped dependency

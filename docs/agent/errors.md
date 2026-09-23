@@ -104,7 +104,7 @@ import { DiBag } from 'di-bag';
 DiBag.createBuilder()
   .withServices({
     config: () => ({ url: 'memory:' }),
-    client: DiBag.withLifetime(({ config }: { config: { url: string } }) => config.url, 'root'),
+    client: DiBag.providerWithLifetime({ provider: ({ config }: { config: { url: string } }) => config.url, lifetime: 'singleton:one-per-container-tree' }),
   })
   .verifyGraphAtCompileTime() satisfies void;
 ```
@@ -114,8 +114,8 @@ import { DiBag } from 'di-bag';
 
 DiBag.createBuilder()
   .withServices({
-    config: DiBag.withLifetime(() => ({ url: 'memory:' }), 'root'),
-    client: DiBag.withLifetime(({ config }: { config: { url: string } }) => config.url, 'root'),
+    config: DiBag.providerWithLifetime({ provider: () => ({ url: 'memory:' }), lifetime: 'singleton:one-per-container-tree' }),
+    client: DiBag.providerWithLifetime({ provider: ({ config }: { config: { url: string } }) => config.url, lifetime: 'singleton:one-per-container-tree' }),
   })
   .verifyGraphAtCompileTime() satisfies void;
 ```
@@ -278,12 +278,12 @@ Node, Bun, and Deno never raise it.
 **Cause:** a registration uses automatic acquisition, no native-Promise classifier
 is configured, and the host offers none. The message and `details.bindings` name
 every such registration, sorted, with private module services as `<label>/<key>`;
-a direct `transformService` without an `acquisitionMode` counts under its
+a direct `providerWithTransformedService` without a `transformReturnKind` counts under its
 registration's name.
 
 **Fix:** add each named service with `DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' })`
 or `'native-promise'`; give positional providers an explicit return kind and direct
-`transformService` an explicit `acquisitionMode`; or configure a trusted
+`providerWithTransformedService` an explicit `transformReturnKind`; or configure a trusted
 classifier with `withConfiguration({ runtime: { isNativePromise } })`.
 
 ```ts
@@ -311,20 +311,20 @@ inside a pushed disposer already running. A context belongs to one running
 factory, not to the service it produced.
 
 **Fix:** push inside the factory, immediately after acquiring the resource; own
-the returned value with `DiBag.withDisposal`, and give a pushed disposer for that
+the returned value with `DiBag.providerWithDisposal`, and give a pushed disposer for that
 same value a `reason` check.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-const handle = DiBag.withDisposal(
-  DiBag.createProvider(async (_dependencies: {}, factoryContext) => {
+const handle = DiBag.providerWithDisposal({
+  provider: DiBag.createProvider(async (_dependencies: {}, factoryContext) => {
     const socket = { close: async () => {} };
     factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return socket.close(); });
     return socket;
   }, { factoryReceivesContext: true }),
-  socket => socket.close(),
-);
+  disposeService: socket => socket.close(),
+});
 ```
 
 **Recipe:** [own a resource a factory acquires on the way](recipes.md#partial-acquisition).
@@ -499,7 +499,7 @@ reports cycles before running).
 
 ### DI_BAG_DUPLICATE_METADATA {#di-bag-duplicate-metadata}
 
-**When:** `DiBag.withMetadata(registration, { static })` adds a key the
+**When:** `DiBag.providerWithRegistrationMetadata({ provider, registrationMetadata })` adds a key the
 registration already carries.
 
 **Cause:** two metadata wrappers use the same key.
@@ -509,10 +509,13 @@ registration already carries.
 ```ts
 import { DiBag } from 'di-bag';
 
-const service = DiBag.withMetadata(
-  DiBag.withMetadata(() => 42, { static: { 'app:owner': 'billing' } }),
-  { static: { 'app:node': 'tool' } },
-);
+const service = DiBag.providerWithRegistrationMetadata({
+  provider: DiBag.providerWithRegistrationMetadata({
+    provider: () => 42,
+    registrationMetadata: { 'app:owner': 'billing' },
+  }),
+  registrationMetadata: { 'app:node': 'tool' },
+});
 ```
 
 **Recipe:** none.
@@ -589,7 +592,7 @@ option bags as [`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument).
 ```ts
 import { DiBag } from 'di-bag';
 
-const handle = DiBag.transformService(DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' }), { mode: 'direct', transform: value => value, acquisitionMode: 'uninspected' });
+const handle = DiBag.providerWithTransformedService({ provider: DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' }), callbackReceives: 'exposed-service', transformService: value => value, transformReturnKind: 'uninspected' });
 ```
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
@@ -783,7 +786,7 @@ other than `'root'`, `'scoped'`, or `'transient'`, unknown options, or
 ```ts
 import { DiBag } from 'di-bag';
 
-const config = DiBag.withLifetime(() => ({ region: 'eu' }), 'root');
+const config = DiBag.providerWithLifetime({ provider: () => ({ region: 'eu' }), lifetime: 'singleton:one-per-container-tree' });
 ```
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
@@ -802,8 +805,10 @@ a plain object.
 ```ts
 import { DiBag } from 'di-bag';
 
-const client = DiBag.withMetadata(() => ({ region: 'eu' }), {
-  dynamic: { mode: 'direct', describe: exposedClient => ({ 'app:region': exposedClient.region }) },
+const client = DiBag.providerWithAcquisitionMetadata({
+  provider: () => ({ region: 'eu' }),
+  callbackReceives: 'exposed-service',
+  describeAcquisition: exposedClient => ({ 'app:region': exposedClient.region }),
 });
 ```
 
@@ -967,7 +972,7 @@ export const clock = DiBag.createToken(clockKey).forService<{ now(): number }>()
 ```ts
 import { DiBag } from 'di-bag';
 
-const upper = DiBag.transformService(async () => 'ready', { mode: 'awaited', transform: text => text.toUpperCase() });
+const upper = DiBag.providerWithTransformedService({ provider: async () => 'ready', callbackReceives: 'fulfilled-value', transformService: text => text.toUpperCase() });
 ```
 
 **Recipe:** none.

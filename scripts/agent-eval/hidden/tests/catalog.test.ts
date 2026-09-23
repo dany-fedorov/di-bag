@@ -7,7 +7,7 @@ const products = [
   { sku: 'tea', name: 'Green tea', priceCents: 450 },
   { sku: 'mug', name: 'Mug', priceCents: 1200 },
 ];
-const data = (list: typeof products) => DiBag.withLifetime(() => ({ products: list }), 'root');
+const data = (list: typeof products) => DiBag.providerWithLifetime({ provider: () => ({ products: list }), lifetime: 'singleton:one-per-container-tree' });
 const base = DiBag.createBuilder()
   .withInstalledModules([catalogModule])
   .withServices({ catalogData: data([]) })

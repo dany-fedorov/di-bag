@@ -6,13 +6,13 @@ import { notificationsModule } from '../../src/features/notifications/module.js'
 type Event = string | { to: string; subject: string; body: string };
 
 function mailConfig(events: Event[]) {
-  return DiBag.withLifetime(() => ({
+  return DiBag.providerWithLifetime({ provider: () => ({
     opsAddress: 'ops@shop.test',
     connect: async () => {
       events.push('connect');
       return { send: async (mail: Event) => { events.push(mail); }, close: async () => { events.push('close'); } };
     },
-  }), 'root');
+  }), lifetime: 'singleton:one-per-container-tree' });
 }
 const base = DiBag.createBuilder()
   .withInstalledModules([notificationsModule])

@@ -7,7 +7,7 @@ test('metadata is a snapshot and inspection never starts a factory', async () =>
   let calls = 0;
   const payload = { team: 'platform' };
   const input = { 'app:owner': payload };
-  const provider = DiBag.withMetadata(() => { calls++; return { read: () => 42 }; }, { static: input });
+  const provider = DiBag.providerWithRegistrationMetadata({ provider: () => { calls++; return { read: () => 42 }; }, registrationMetadata: input });
   const bag = DiBag.createBuilder().withServices({ service: provider }).buildContainer();
   input['app:owner'] = { team: 'changed' };
   const before = bag.serviceSnapshot('service');
@@ -40,12 +40,12 @@ test('metadata preflight sees hidden collisions before reading any getters', () 
   const events: string[] = [];
   const initial = { owner: 'platform' };
   Object.defineProperty(initial, 'hidden', { value: 42 });
-  const provider = DiBag.withMetadata(() => 1, { static: initial });
+  const provider = DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: initial });
   const more = {
     get fresh() { events.push('fresh'); return true; },
   };
   Object.defineProperty(more, 'hidden', { get() { events.push('hidden'); return 7; } });
-  expect(() => DiBag.withMetadata(provider, { static: more })).toThrow('duplicate metadata');
+  expect(() => DiBag.providerWithRegistrationMetadata({ provider: provider, registrationMetadata: more })).toThrow('duplicate registration metadata');
   expect(events).toEqual([]);
   const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
   expect(Reflect.get(bag.serviceSnapshot('provider').registrationMetadata, 'hidden')).toBe(42);
@@ -56,8 +56,8 @@ test('metadata additions preserve symbol keys and snapshot accessors once', () =
   const payload = { tag: 'active' };
   let reads = 0;
   const metadata = { get [key]() { reads++; return payload; } };
-  const base = DiBag.withMetadata(() => 42, { static: metadata });
-  const extended = DiBag.withMetadata(base, { static: { owner: 'platform' } });
+  const base = DiBag.providerWithRegistrationMetadata({ provider: () => 42, registrationMetadata: metadata });
+  const extended = DiBag.providerWithRegistrationMetadata({ provider: base, registrationMetadata: { owner: 'platform' } });
   const bag = DiBag.createBuilder().withServices({ base, extended }).buildContainer();
   expect(reads).toBe(1);
   expect(bag.serviceSnapshot('extended').registrationMetadata[key]).toBe(payload);
@@ -66,7 +66,7 @@ test('metadata additions preserve symbol keys and snapshot accessors once', () =
 });
 
 test('runtime rejects copied and forged provider registrations', () => {
-  const provider = DiBag.withMetadata(() => 42, { static: { owner: 'platform' } });
+  const provider = DiBag.providerWithRegistrationMetadata({ provider: () => 42, registrationMetadata: { owner: 'platform' } });
   const add = DiBag.createBuilder().withServices.bind(DiBag.createBuilder()) as (value: unknown) => unknown;
   expect(() => add({ service: { ...provider } })).toThrow('invalid factory registration');
   expect(() => add({ service: Object.create(Object.getPrototypeOf(provider)) })).toThrow('invalid factory registration');
@@ -80,10 +80,7 @@ test('inspection follows pending retries without retaining failed attempts or ch
   const second = new Promise<{ id: number }>(yes => { accept = yes; });
   let calls = 0;
   let disposed: unknown;
-  const bag = DiBag.createBuilder().withServices({ service: DiBag.withMetadata(DiBag.withDisposal(
-    () => calls++ === 0 ? first : second,
-    value => { disposed = value; expect(bag.serviceSnapshot('service').acquisitions[0]?.state).toBe('disposing'); },
-  ), { static: { owner: 'platform' } }) }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ service: DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: () => calls++ === 0 ? first : second, disposeService: value => { disposed = value; expect(bag.serviceSnapshot('service').acquisitions[0]?.state).toBe('disposing'); } }), registrationMetadata: { owner: 'platform' } }) }).buildContainer();
   expect(bag.resolve('service')).toBe(first);
   const pending = bag.serviceSnapshot('service');
   expect(pending.acquisitions[0]?.state).toBe('pending');
@@ -103,10 +100,10 @@ test('inspection follows pending retries without retaining failed attempts or ch
 test('module rename and fork keep metadata with the actual binding', async () => {
   const unit = DiBag.createBuilder().withServices({
     privateValue: () => 42,
-    service: DiBag.withMetadata(({ privateValue }: { privateValue: number }) => privateValue, { static: { owner: 'module' } }),
+    service: DiBag.providerWithRegistrationMetadata({ provider: ({ privateValue }: { privateValue: number }) => privateValue, registrationMetadata: { owner: 'module' } }),
   }).buildModule({ exportedServiceKeys: ['service'] }).withRenamedExport({ currentExportKey: 'service', newExportKey: 'client' });
   const bag = DiBag.createBuilder().withInstalledModules([unit]).buildContainer();
-  const child = bag.createIndependentContainer(['client'], { client: DiBag.withMetadata(() => 7, { static: { child: true } }) });
+  const child = bag.createIndependentContainer(['client'], { client: DiBag.providerWithRegistrationMetadata({ provider: () => 7, registrationMetadata: { child: true } }) });
   expect(bag.serviceSnapshot('client').registrationMetadata.owner).toBe('module');
   expect(bag.serviceSnapshot('client').acquisitions).toEqual([]);
   expect(child.serviceSnapshot('client').registrationMetadata.child).toBe(true);
@@ -131,8 +128,8 @@ test('metadata preserves synchronous ownership and borrowed cleanup methods', as
   const disposed: unknown[] = [];
   const borrowed = { close() { throw new Error('borrowed must not close'); } };
   const bag = DiBag.createBuilder().withServices({
-    owned: DiBag.withMetadata(DiBag.withDisposal(() => raw, value => { disposed.push(value); }), { static: { owner: 'platform' } }),
-    borrowed: DiBag.withMetadata(() => borrowed, { static: { owner: 'external' } }),
+    owned: DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: () => raw, disposeService: value => { disposed.push(value); } }), registrationMetadata: { owner: 'platform' } }),
+    borrowed: DiBag.providerWithRegistrationMetadata({ provider: () => borrowed, registrationMetadata: { owner: 'external' } }),
   }).buildContainer();
   expect(bag.resolve('owned')).toBe(raw);
   expect(bag.resolve('borrowed')).toBe(borrowed);

@@ -6,7 +6,7 @@ import { extractDependencyGraph } from '../lib/extract.mjs';
 
 const root = resolve(import.meta.dirname, '../../..');
 const fixture = resolve(root, 'tools/graph/test/fixtures/split-builder.ts');
-const graph = extractDependencyGraph({ files: [fixture], root });
+const graph = extractDependencyGraph({ project: 'tools/graph/test/fixtures/split-builder.tsconfig.json', root });
 const unit = id => graph.units.find(candidate => candidate.id === id);
 
 test('every builder chain becomes a unit in source order with its kind and exports', () => {
@@ -25,7 +25,7 @@ test('a chain continued from a partial builder collects every registration', () 
   assert.deepEqual(app.nodes.map(node => node.key), ['search', 'run', 'db']);
   assert.deepEqual(app.installs, [graph.units[0].id]);
   const db = app.nodes.find(node => node.key === 'db');
-  assert.deepEqual(db, { key: 'db', line: 15, dependencies: ['search'], async: true, lifetime: 'root', owned: true });
+  assert.deepEqual(db, { key: 'db', line: 15, dependencies: ['search'], async: true, lifetime: 'singleton:one-per-container-tree', owned: true });
   assert.deepEqual(app.edges, [{ from: 'db', to: 'search' }, { from: 'run', to: 'retrieve' }]);
 });
 
@@ -33,7 +33,7 @@ test('declared dependencies come from the factory parameter type', () => {
   const retrieve = graph.units[0].nodes.find(node => node.key === 'retrieve');
   assert.deepEqual(retrieve.dependencies, ['search', 'normalize']);
   assert.equal(retrieve.async, false);
-  assert.equal(retrieve.lifetime, 'scoped');
+  assert.equal(retrieve.lifetime, 'scoped:one-per-container');
 });
 
 test('cycles and unresolved names are reported as issues', () => {
@@ -51,4 +51,27 @@ test('build() is still the end of the chain when ensureServicesReady follows it'
   assert.deepEqual(ready.units.map(candidate => [candidate.kind, candidate.nodes.map(node => node.key)]), [['bag', ['db', 'report']]]);
   assert.deepEqual(ready.units[0].edges, [{ from: 'report', to: 'db' }]);
   assert.deepEqual(ready.issues, []);
+});
+
+test('provider facades are unwrapped only through the exported DiBagApi declaration owner', () => {
+  const providers = extractDependencyGraph({ project: 'tools/graph/test/fixtures/provider-facades.tsconfig.json', root });
+  assert.equal(providers.units.length, 1);
+  assert.deepEqual(providers.units[0].nodes.map(({ key, lifetime, owned }) => ({ key, lifetime, owned })), [
+    { key: 'singleton', lifetime: 'singleton:one-per-container-tree', owned: true },
+    { key: 'scoped', lifetime: 'scoped:one-per-container', owned: false },
+    { key: 'transient', lifetime: 'transient:one-per-resolve', owned: true },
+    { key: 'dynamic', lifetime: 'dynamic', owned: false },
+    { key: 'reset', lifetime: 'scoped:one-per-container', owned: false },
+    { key: 'localProvider', lifetime: 'scoped:one-per-container', owned: false },
+    { key: 'localObject', lifetime: 'scoped:one-per-container', owned: false },
+  ]);
+});
+
+test('vendored 0.4 wrappers retain their independent declaration-owner recognition', () => {
+  const legacy = extractDependencyGraph({ files: [resolve(root, 'tools/graph/test/fixtures/provider-methods-0-4.ts')], root });
+  assert.equal(legacy.units.length, 1);
+  assert.deepEqual(legacy.units[0].nodes.map(({ key, lifetime, owned }) => ({ key, lifetime, owned })), [
+    { key: 'legacy', lifetime: 'singleton:one-per-container-tree', owned: true },
+    { key: 'derivedLegacy', lifetime: 'transient:one-per-resolve', owned: true },
+  ]);
 });

@@ -5,13 +5,10 @@ import { deferred } from './helpers';
 test('a projected service does not replace its source disposer argument', async () => {
   const raw = { id: 'connection' };
   const events: string[] = [];
-  const source = DiBag.withDisposal(() => raw, value => {
+  const source = DiBag.providerWithDisposal({ provider: () => raw, disposeService: value => {
     expect(value).toBe(raw); events.push('raw');
-  });
-  const client = DiBag.withDisposal(
-    DiBag.transformService(source, { mode: 'direct', transform: connection => ({ connection }) }),
-    value => { expect(value.connection).toBe(raw); events.push('client'); },
-  );
+  } });
+  const client = DiBag.providerWithDisposal({ provider: DiBag.providerWithTransformedService({ provider: source, transformService: connection => ({ connection }), callbackReceives: 'exposed-service' }), disposeService: value => { expect(value.connection).toBe(raw); events.push('client'); } });
   const bag = DiBag.createBuilder().withServices({ client }).buildContainer();
   expect(bag.resolve('client').connection).toBe(raw);
   await bag.close();
@@ -21,10 +18,10 @@ test('a projected service does not replace its source disposer argument', async 
 test('an ownership operation on a metadata provider retains earlier ownership', async () => {
   const raw = { id: 'same' };
   const events: string[] = [];
-  const first = DiBag.withDisposal(() => raw, value => { expect(value).toBe(raw); events.push('first'); });
-  const second = DiBag.withDisposal(DiBag.withMetadata(first, { static: { owner: 'team' } }), value => {
+  const first = DiBag.providerWithDisposal({ provider: () => raw, disposeService: value => { expect(value).toBe(raw); events.push('first'); } });
+  const second = DiBag.providerWithDisposal({ provider: DiBag.providerWithRegistrationMetadata({ provider: first, registrationMetadata: { owner: 'team' } }), disposeService: value => {
     expect(value).toBe(raw); events.push('second');
-  });
+  } });
   const bag = DiBag.createBuilder().withServices({ second }).buildContainer();
   expect(bag.resolve('second')).toBe(raw);
   await bag.close();
@@ -35,9 +32,9 @@ test('direct transformService receives and returns exact Promise identities', as
   const source = Promise.resolve({ id: 'raw' });
   const projected = Promise.resolve({ id: 'client' });
   let calls = 0;
-  const bag = DiBag.createBuilder().withServices({ service: DiBag.transformService(() => { calls++; return source; }, { mode: 'direct', transform: value => {
+  const bag = DiBag.createBuilder().withServices({ service: DiBag.providerWithTransformedService({ provider: () => { calls++; return source; }, transformService: value => {
     expect(value).toBe(source); return projected;
-  } }) }).buildContainer();
+  }, callbackReceives: 'exposed-service' }) }).buildContainer();
   expect(bag.resolve('service')).toBe(projected);
   expect(bag.resolve('service')).toBe(projected);
   expect(calls).toBe(1);
@@ -48,8 +45,8 @@ test('awaited transformService rejects source and projector throws with their or
   const sourceCause = { error: 'source' };
   const projectCause = { error: 'project' };
   const bag = DiBag.createBuilder().withServices({
-    source: DiBag.transformService(() => { throw sourceCause; }, { mode: 'awaited', transform: value => value }),
-    project: DiBag.transformService(() => 1, { mode: 'awaited', transform: () => { throw projectCause; } }),
+    source: DiBag.providerWithTransformedService({ provider: () => { throw sourceCause; }, transformService: value => value, callbackReceives: 'fulfilled-value' }),
+    project: DiBag.providerWithTransformedService({ provider: () => 1, transformService: () => { throw projectCause; }, callbackReceives: 'fulfilled-value' }),
   }).buildContainer();
   await expect(bag.resolve('source')).rejects.toBe(sourceCause);
   await expect(bag.resolve('project')).rejects.toBe(projectCause);
@@ -60,9 +57,9 @@ test('awaited transformService awaits recursive projector thenables and source f
   const nested: PromiseLike<PromiseLike<number>> = {
     then(accept) { return Promise.resolve(accept?.(Promise.resolve(42))) as never; },
   };
-  const bag = DiBag.createBuilder().withServices({ service: DiBag.transformService(() => Promise.resolve('raw'), { mode: 'awaited', transform: value => {
+  const bag = DiBag.createBuilder().withServices({ service: DiBag.providerWithTransformedService({ provider: () => Promise.resolve('raw'), transformService: value => {
     expect(value).toBe('raw'); return nested;
-  } }) }).buildContainer();
+  }, callbackReceives: 'fulfilled-value' }) }).buildContainer();
   await expect(bag.resolve('service')).resolves.toBe(42);
   await bag.close();
 });
@@ -71,8 +68,8 @@ test('a failed sync projection releases late source ownership', async () => {
   const gate = deferred<{ id: string }>();
   const cause = new Error('project');
   const events: string[] = [];
-  const raw = DiBag.withDisposal(() => gate.promise, value => { events.push(value.id); });
-  const projected = DiBag.transformService(raw, { mode: 'direct', transform: () => { throw cause; } });
+  const raw = DiBag.providerWithDisposal({ provider: () => gate.promise, disposeService: value => { events.push(value.id); } });
+  const projected = DiBag.providerWithTransformedService({ provider: raw, transformService: () => { throw cause; }, callbackReceives: 'exposed-service' });
   const bag = DiBag.createBuilder().withServices({ projected }).buildContainer();
   expect(() => bag.resolve('projected')).toThrow(cause);
   const closing = bag.close();
@@ -84,7 +81,7 @@ test('a failed sync projection releases late source ownership', async () => {
 test('a synchronous status projection stays cached after its raw Promise rejects', async () => {
   const gate = deferred<number>();
   let calls = 0;
-  const bag = DiBag.createBuilder().withServices({ service: DiBag.transformService(() => { calls++; return gate.promise; }, { mode: 'direct', transform: promise => ({ promise }) }) }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ service: DiBag.providerWithTransformedService({ provider: () => { calls++; return gate.promise; }, transformService: promise => ({ promise }), callbackReceives: 'exposed-service' }) }).buildContainer();
   const status = bag.resolve('service');
   gate.reject('raw failure');
   await gate.promise.catch(() => {});
@@ -98,8 +95,8 @@ test('a synchronous status projection stays cached after its raw Promise rejects
 test('ready outer ownership closes before a raw stage accepted later', async () => {
   const gate = deferred<number>();
   const events: string[] = [];
-  const source = DiBag.withDisposal(() => gate.promise, () => { events.push('raw'); });
-  const outer = DiBag.withDisposal(DiBag.transformService(source, { mode: 'direct', transform: promise => ({ promise }) }), () => { events.push('outer'); });
+  const source = DiBag.providerWithDisposal({ provider: () => gate.promise, disposeService: () => { events.push('raw'); } });
+  const outer = DiBag.providerWithDisposal({ provider: DiBag.providerWithTransformedService({ provider: source, transformService: promise => ({ promise }), callbackReceives: 'exposed-service' }), disposeService: () => { events.push('outer'); } });
   const bag = DiBag.createBuilder().withServices({ outer }).buildContainer();
   bag.resolve('outer');
   const closing = bag.close();
@@ -112,10 +109,10 @@ test('failed projections clean only their stages and preserve cached dependencie
   const events: string[] = [];
   const cause = new Error('projection');
   const dependency = { id: 'dependency' };
-  const source = DiBag.withDisposal(({ dep }: { dep: typeof dependency }) => ({ dep }), () => { events.push('source'); });
+  const source = DiBag.providerWithDisposal({ provider: ({ dep }: { dep: typeof dependency }) => ({ dep }), disposeService: () => { events.push('source'); } });
   const bag = DiBag.createBuilder().withServices({
-    dep: DiBag.withDisposal(() => dependency, () => { events.push('dep'); }),
-    failed: DiBag.transformService(source, { mode: 'direct', transform: () => { throw cause; } }),
+    dep: DiBag.providerWithDisposal({ provider: () => dependency, disposeService: () => { events.push('dep'); } }),
+    failed: DiBag.providerWithTransformedService({ provider: source, transformService: () => { throw cause; }, callbackReceives: 'exposed-service' }),
   }).buildContainer();
   expect(() => bag.resolve('failed')).toThrow(cause);
   expect(events).toEqual(['source']);
@@ -128,8 +125,8 @@ test('sync failure starts asynchronous cleanup without waiting and close drains 
   const gate = deferred<void>();
   const started = deferred<void>();
   const cause = new Error('projection');
-  const source = DiBag.withDisposal(() => 1, async () => { started.resolve(); await gate.promise; });
-  const bag = DiBag.createBuilder().withServices({ failed: DiBag.transformService(source, { mode: 'direct', transform: () => { throw cause; } }) }).buildContainer();
+  const source = DiBag.providerWithDisposal({ provider: () => 1, disposeService: async () => { started.resolve(); await gate.promise; } });
+  const bag = DiBag.createBuilder().withServices({ failed: DiBag.providerWithTransformedService({ provider: source, transformService: () => { throw cause; }, callbackReceives: 'exposed-service' }) }).buildContainer();
   expect(() => bag.resolve('failed')).toThrow(cause);
   await started.promise;
   let closed = false;
@@ -145,12 +142,12 @@ test('late old ownership cannot evict or dispose a successful retry', async () =
   const old = deferred<number>();
   let count = 0;
   const events: number[] = [];
-  const source = DiBag.withDisposal(() => ++count === 1 ? old.promise : Promise.resolve(2), value => { events.push(value); });
+  const source = DiBag.providerWithDisposal({ provider: () => ++count === 1 ? old.promise : Promise.resolve(2), disposeService: value => { events.push(value); } });
   let projections = 0;
-  const bag = DiBag.createBuilder().withServices({ service: DiBag.transformService(source, { mode: 'direct', transform: promise => {
+  const bag = DiBag.createBuilder().withServices({ service: DiBag.providerWithTransformedService({ provider: source, transformService: promise => {
     if (++projections === 1) throw new Error('retry');
     return { promise };
-  } }) }).buildContainer();
+  }, callbackReceives: 'exposed-service' }) }).buildContainer();
   expect(() => bag.resolve('service')).toThrow('retry');
   const success = bag.resolve('service');
   old.resolve(1);
@@ -168,10 +165,10 @@ test('retired cleanup errors keep invocation order and original attempt identiti
   const starts: string[] = [];
   const causeB = new Error('B');
   const ids: symbol[] = [];
-  const bag = DiBag.createBuilder().withServices({ service: DiBag.transformService(DiBag.withDisposal(() => {
+  const bag = DiBag.createBuilder().withServices({ service: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: () => {
     ids.push(bag.serviceSnapshot('service').acquisitions.at(-1)!.acquisitionId);
     return ids.length === 1 ? 'A' : 'B';
-  }, value => { starts.push(value); return value === 'A' ? a.promise : b.promise; }), { mode: 'direct', transform: () => { throw new Error('project'); } }) }).buildContainer();
+  }, disposeService: value => { starts.push(value); return value === 'A' ? a.promise : b.promise; } }), transformService: () => { throw new Error('project'); }, callbackReceives: 'exposed-service' }) }).buildContainer();
   expect(() => bag.resolve('service')).toThrow('project');
   expect(() => bag.resolve('service')).toThrow('project');
   expect(starts).toEqual(['A', 'B']);
@@ -190,12 +187,12 @@ test('retired cleanup errors keep invocation order and original attempt identiti
 test('a pending source can read dependencies in close after an outer projection is ready', async () => {
   const gate = deferred<void>();
   const events: string[] = [];
-  const source = DiBag.withDisposal(async (deps: { dependency: number }) => {
+  const source = DiBag.providerWithDisposal({ provider: async (deps: { dependency: number }) => {
     await gate.promise; return deps.dependency;
-  }, () => { events.push('source'); });
+  }, disposeService: () => { events.push('source'); } });
   const bag = DiBag.createBuilder().withServices({
-    service: DiBag.transformService(source, { mode: 'direct', transform: promise => ({ promise }) }),
-    dependency: DiBag.withDisposal(() => 42, () => { events.push('dependency'); }),
+    service: DiBag.providerWithTransformedService({ provider: source, transformService: promise => ({ promise }), callbackReceives: 'exposed-service' }),
+    dependency: DiBag.providerWithDisposal({ provider: () => 42, disposeService: () => { events.push('dependency'); } }),
   }).buildContainer();
   const service = bag.resolve('service');
   const closing = bag.close();
@@ -209,10 +206,10 @@ test('a pending source can finish dependencies after its outer projection failed
   const gate = deferred<void>();
   const events: string[] = [];
   const bag = DiBag.createBuilder().withServices({
-    service: DiBag.transformService(DiBag.withDisposal(async (deps: { dependency: number }) => {
+    service: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: async (deps: { dependency: number }) => {
       await gate.promise; return deps.dependency;
-    }, value => { events.push(`source:${value}`); }), { mode: 'direct', transform: () => { throw new Error('projection'); } }),
-    dependency: DiBag.withDisposal(() => 42, () => { events.push('dependency'); }),
+    }, disposeService: value => { events.push(`source:${value}`); } }), transformService: () => { throw new Error('projection'); }, callbackReceives: 'exposed-service' }),
+    dependency: DiBag.providerWithDisposal({ provider: () => 42, disposeService: () => { events.push('dependency'); } }),
   }).buildContainer();
   expect(() => bag.resolve('service')).toThrow('projection');
   const closing = bag.close();
@@ -232,7 +229,7 @@ test('completed source proxies cannot borrow a pending projection or retry permi
   };
   let projected = 0;
   const bag = DiBag.createBuilder().withServices({
-    service: DiBag.transformService(source, { mode: 'direct', transform: () => { if (++projected === 1) throw new Error('retry'); return projectionGate.promise; } }),
+    service: DiBag.providerWithTransformedService({ provider: source, transformService: () => { if (++projected === 1) throw new Error('retry'); return projectionGate.promise; }, callbackReceives: 'exposed-service' }),
     dependency: () => 42,
   }).buildContainer();
   expect(() => bag.resolve('service')).toThrow('retry');
@@ -246,8 +243,8 @@ test('completed source proxies cannot borrow a pending projection or retry permi
 
 test('mapped dependencies still reject genuine acquisition cycles', async () => {
   const bag = DiBag.createBuilder().withServices({
-    a: DiBag.transformService((deps: { b: number }) => deps.b, { mode: 'direct', transform: value => value }),
-    b: DiBag.transformService((deps: { a: number }) => deps.a, { mode: 'direct', transform: value => value }),
+    a: DiBag.providerWithTransformedService({ provider: (deps: { b: number }) => deps.b, transformService: value => value, callbackReceives: 'exposed-service' }),
+    b: DiBag.providerWithTransformedService({ provider: (deps: { a: number }) => deps.a, transformService: value => value, callbackReceives: 'exposed-service' }),
   }).buildContainer();
   expect(() => bag.resolve('b')).toThrow('cycle');
   await bag.close();
@@ -256,8 +253,8 @@ test('mapped dependencies still reject genuine acquisition cycles', async () => 
 test('asynchronous mappings preserve post-await cycle detection', async () => {
   const gate = deferred<void>();
   const bag = DiBag.createBuilder().withServices({
-    a: DiBag.transformService(async (deps: { b: Promise<number> }): Promise<number> => { await gate.promise; return deps.b; }, { mode: 'awaited', transform: value => value }),
-    b: DiBag.transformService(async (deps: { a: Promise<number> }): Promise<number> => { await gate.promise; return deps.a; }, { mode: 'awaited', transform: value => value }),
+    a: DiBag.providerWithTransformedService({ provider: async (deps: { b: Promise<number> }): Promise<number> => { await gate.promise; return deps.b; }, transformService: value => value, callbackReceives: 'fulfilled-value' }),
+    b: DiBag.providerWithTransformedService({ provider: async (deps: { a: Promise<number> }): Promise<number> => { await gate.promise; return deps.a; }, transformService: value => value, callbackReceives: 'fulfilled-value' }),
   }).buildContainer();
   const a = bag.resolve('a');
   const b = bag.resolve('b');
@@ -271,7 +268,7 @@ test('a completed source cannot use its still pending asynchronous projector per
   const gate = deferred<number>();
   let escaped!: { dependency: number };
   const bag = DiBag.createBuilder().withServices({
-    service: DiBag.transformService((deps: { dependency: number }) => { escaped = deps; return 1; }, { mode: 'awaited', transform: () => gate.promise }),
+    service: DiBag.providerWithTransformedService({ provider: (deps: { dependency: number }) => { escaped = deps; return 1; }, transformService: () => gate.promise, callbackReceives: 'fulfilled-value' }),
     dependency: () => 42,
   }).buildContainer();
   bag.resolve('service');
@@ -283,14 +280,14 @@ test('a completed source cannot use its still pending asynchronous projector per
 
 test('mapping and added finalizers run receiver-free across metadata operations', async () => {
   const events: string[] = [];
-  const source = DiBag.withMetadata(DiBag.withDisposal(() => 4, () => { events.push('source'); }), { static: { owner: 'team' } });
-  const sync = DiBag.transformService(source, { mode: 'direct', transform: function (this: void, value) { expect(this).toBeUndefined(); return value + 1; } });
-  const async = DiBag.transformService(DiBag.withMetadata(sync, { static: { phase: 'mapped' } }), { mode: 'awaited', transform: function (this: void, value) {
+  const source = DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: () => 4, disposeService: () => { events.push('source'); } }), registrationMetadata: { owner: 'team' } });
+  const sync = DiBag.providerWithTransformedService({ provider: source, transformService: function (this: void, value) { expect(this).toBeUndefined(); return value + 1; }, callbackReceives: 'exposed-service' });
+  const async = DiBag.providerWithTransformedService({ provider: DiBag.providerWithRegistrationMetadata({ provider: sync, registrationMetadata: { phase: 'mapped' } }), transformService: function (this: void, value) {
     expect(this).toBeUndefined(); return { value };
-  } });
-  const service = DiBag.withDisposal(async, function (this: void, value) {
+  }, callbackReceives: 'fulfilled-value' });
+  const service = DiBag.providerWithDisposal({ provider: async, disposeService: function (this: void, value) {
     expect(this).toBeUndefined(); expect(value.value).toBe(5); events.push('outer');
-  });
+  } });
   const bag = DiBag.createBuilder().withServices({ service }).buildContainer();
   expect(bag.serviceSnapshot('service').registrationMetadata).toEqual({ owner: 'team', phase: 'mapped' });
   await expect(bag.resolve('service')).resolves.toEqual({ value: 5 });
@@ -304,17 +301,17 @@ test('failed outer projections retain owned values until a pending projector fin
   const events: string[] = [];
   const raw = { closed: false };
   const cause = new Error('outer projection');
-  const source = DiBag.withDisposal(() => raw, value => {
+  const source = DiBag.providerWithDisposal({ provider: () => raw, disposeService: value => {
     expect(value).toBe(raw); value.closed = true; events.push('close');
-  });
-  const pending = DiBag.transformService(source, { mode: 'awaited', transform: async value => {
+  } });
+  const pending = DiBag.providerWithTransformedService({ provider: source, transformService: async value => {
     entered.resolve();
     await gate.promise;
     expect(value.closed).toBe(false);
     events.push('use');
     return value;
-  } });
-  const bag = DiBag.createBuilder().withServices({ service: DiBag.transformService(pending, { mode: 'direct', transform: () => { throw cause; } }) }).buildContainer();
+  }, callbackReceives: 'fulfilled-value' });
+  const bag = DiBag.createBuilder().withServices({ service: DiBag.providerWithTransformedService({ provider: pending, transformService: () => { throw cause; }, callbackReceives: 'exposed-service' }) }).buildContainer();
   expect(() => bag.resolve('service')).toThrow(cause);
   await entered.promise;
   expect(events).toEqual([]);
@@ -337,16 +334,16 @@ test('failed exposed acquisition abandons incoming edges while its owned source 
   let pending: Promise<{ name: string }> | undefined;
   const events: string[] = [];
   const error = new Error('projection');
-  const source = DiBag.withDisposal((deps: { parent: { name: string } }) => {
+  const source = DiBag.providerWithDisposal({ provider: (deps: { parent: { name: string } }) => {
     pending = (async () => { await gate; return { name: deps.parent.name }; })();
     return pending;
-  }, value => { events.push(value.name); });
+  }, disposeService: value => { events.push(value.name); } });
   const bag = DiBag.createBuilder().withServices({
-    parent: DiBag.withDisposal((deps: { failed: unknown }) => {
+    parent: DiBag.providerWithDisposal({ provider: (deps: { failed: unknown }) => {
       try { void deps.failed; } catch (cause) { if (cause !== error) throw cause; }
       return { name: 'parent' };
-    }, () => { events.push('parent disposal'); }),
-    failed: DiBag.transformService(source, { mode: 'direct', transform: () => { throw error; } }),
+    }, disposeService: () => { events.push('parent disposal'); } }),
+    failed: DiBag.providerWithTransformedService({ provider: source, transformService: () => { throw error; }, callbackReceives: 'exposed-service' }),
   }).buildContainer();
   expect(bag.resolve('parent')).toEqual({ name: 'parent' });
   const closing = bag.close(); release();

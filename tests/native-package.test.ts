@@ -33,10 +33,10 @@ const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
   let scopedDisposed = 0;
   let transientsDisposed = 0;
   const parent = DiBag.createBuilder().withServices({
-    service: DiBag.withDisposal(() => ++id, value => { log.push(value); }),
-    root: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'root' }), () => { rootDisposed++; }), 'root'),
-    scoped: DiBag.withDisposal(() => ({ owner: 'scope' }), () => { scopedDisposed++; }),
-    transient: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'call' }), () => { transientsDisposed++; }), 'transient'),
+    service: DiBag.providerWithDisposal({ provider: () => ++id, disposeService: value => { log.push(value); } }),
+    root: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ owner: 'root' }), disposeService: () => { rootDisposed++; } }), lifetime: 'singleton:one-per-container-tree' }),
+    scoped: DiBag.providerWithDisposal({ provider: () => ({ owner: 'scope' }), disposeService: () => { scopedDisposed++; } }),
+    transient: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ owner: 'call' }), disposeService: () => { transientsDisposed++; } }), lifetime: 'transient:one-per-resolve' }),
   }).buildContainer();
   const child = parent.createChildContainer();
   const independent = child.createIndependentContainer();

@@ -1,4 +1,5 @@
-import { DiBag, type Container, type FactoryWithDisposal } from '../../src';
+import { DiBag, type Container, type Provider } from '../../src';
+import type { ProviderFactory } from '../../src/provider';
 import type { Assert, Equal } from './assert';
 
 const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildContainer();
@@ -24,9 +25,9 @@ const changed = DiBag.createBuilder().withServices({ a: () => 1, result: ({ late
 type Changed = Assert<Equal<ReturnType<typeof changed.resolve<'a'>>, { label(): 'ready' }>>;
 
 const create = ({ a }: { a: number }) => ({ value: a, increment() { return ++this.value; } });
-const owned = DiBag.withDisposal(create, value => { value.increment(); });
-type ExactCreate = Assert<Equal<typeof owned.create, typeof create>>;
-const annotated: FactoryWithDisposal<typeof create> = owned;
+const owned = DiBag.providerWithDisposal({ provider: create, disposeService: value => { value.increment(); } });
+type ExactCreate = Assert<Equal<ProviderFactory<typeof owned>, typeof create>>;
+const annotated: Provider<typeof create> = owned;
 const ownedBag = DiBag.createBuilder().withServices({ a: () => 1, owned }).buildContainer();
 type OwnedValue = Assert<Equal<ReturnType<typeof ownedBag.resolve<'owned'>>, ReturnType<typeof create>>>;
 const acceptsBag = <R extends { a: () => number }>(bag: Container<R>) => bag;
@@ -50,10 +51,7 @@ type RichService = Assert<Equal<
   { stamp(): number; zone(): 'utc' }
 >>;
 const ownedChild = clockRoot.createIndependentContainer(['clock'], {
-  clock: DiBag.withDisposal(
-    () => ({ now: () => 7 as const, scope() { return 'owned' as const; } }),
-    value => { const scope: 'owned' = value.scope(); void scope; },
-  ),
+  clock: DiBag.providerWithDisposal({ provider: () => ({ now: () => 7 as const, scope() { return 'owned' as const; } }), disposeService: value => { const scope: 'owned' = value.scope(); void scope; } }),
 });
 type OwnedClock = Assert<Equal<
   ReturnType<typeof ownedChild.resolve<'clock'>>,

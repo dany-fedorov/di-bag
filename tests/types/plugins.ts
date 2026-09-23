@@ -20,8 +20,8 @@ export const selected: unknown = {
 export const raw = DiBag.createProviderFromPlugin({ dependencies: [number], pluginDescriptor: selected, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value });
 export const native = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: selected, factoryReturnKind: 'native-promise', isValidPluginOutput: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value });
 export const references = DiBag.createProviderFromPlugin({ dependencies: [number, DiBag.optional(optional), DiBag.lazy(lazy), all], pluginDescriptor: selected, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value });
-export const rawOwned = DiBag.withDisposal(raw, value => { const exact: Handler = value; void exact; });
-export const nativeOwned = DiBag.withDisposal(native, value => { const exact: Handler = value; void exact; });
+export const rawOwned = DiBag.providerWithDisposal({ provider: raw, disposeService: value => { const exact: Handler = value; void exact; } });
+export const nativeOwned = DiBag.providerWithDisposal({ provider: native, disposeService: value => { const exact: Handler = value; void exact; } });
 export const feature = DiBag.createBuilder().withTokenService(handler, raw).buildModule({ exportedServiceKeys: [handler] });
 export const bag = DiBag.createBuilder().withTokenService(number, DiBag.createProvider(() => 7, { factoryReturnKind: 'uninspected' })).withInstalledModules([feature]).buildContainer();
 export const value = bag.resolve(handler);

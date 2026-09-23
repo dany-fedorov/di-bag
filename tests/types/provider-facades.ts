@@ -52,3 +52,23 @@ const reorderedNative = DiBag.providerWithTransformedService({ provider: () => 1
 type _ReorderedNative = Assert<Equal<ProviderOutput<typeof reorderedNative>, Promise<string>>>;
 DiBag.providerWithTransformedService<typeof source, (value: { count: number }) => number>({ provider: source, callbackReceives: 'fulfilled-value', transformService: value => value.count });
 DiBag.providerWithTransformedService<() => number, (value: number) => Promise<string>, 'native-promise'>({ provider: () => 1, callbackReceives: 'exposed-service', transformService: value => Promise.resolve(String(value)), transformReturnKind: 'native-promise' });
+
+class QueryBuilder { then(onFulfilled: (rows: number[]) => void) { onFulfilled([]); } }
+const dependentOwned = DiBag.providerWithDisposal({ provider: ({ value }: { value: number }) => ({ value }), disposeService: service => { const exact: number = service.value; void exact; } });
+type _DependentOwned = Assert<Equal<ProviderOutput<typeof dependentOwned>, { value: number }>>;
+const nativeOwned = DiBag.providerWithDisposal({ provider: () => Promise.resolve(1), disposeService: service => { const exact: number = service; void exact; } });
+type _NativeOwned = Assert<Equal<ProviderAcquiredValue<typeof nativeOwned>, number>>;
+const rawQueryProvider = DiBag.createProvider(() => new QueryBuilder(), { factoryReturnKind: 'uninspected' });
+const rawQueryOwned = DiBag.providerWithDisposal({ provider: rawQueryProvider, disposeService: service => { const exact: QueryBuilder = service; void exact; } });
+type _RawQueryOwned = Assert<Equal<ProviderOutput<typeof rawQueryOwned>, QueryBuilder>>;
+const rawPromiseProvider = DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' });
+const rawPromiseFacadeOwned = DiBag.providerWithDisposal({ provider: rawPromiseProvider, disposeService: service => { const exact: Promise<number> = service; void exact; } });
+type _RawPromiseFacadeOwned = Assert<Equal<ProviderOutput<typeof rawPromiseFacadeOwned>, Promise<number>>>;
+DiBag.providerWithLifetime({ provider: rawQueryProvider, lifetime: 'scoped:one-per-container' });
+DiBag.providerWithRegistrationMetadata({ provider: rawQueryProvider, registrationMetadata: {} });
+DiBag.providerWithAcquisitionMetadata({ provider: rawQueryProvider, describeAcquisition: () => ({}), callbackReceives: 'exposed-service' });
+DiBag.providerWithAcquisitionMetadata({ provider: rawQueryProvider, describeAcquisition: () => ({}), callbackReceives: 'fulfilled-value' });
+DiBag.providerWithTransformedService({ provider: rawQueryProvider, transformService: () => 1, callbackReceives: 'exposed-service' });
+DiBag.providerWithTransformedService({ provider: rawQueryProvider, transformService: () => 1, callbackReceives: 'fulfilled-value' });
+declare const anyProvider: any;
+DiBag.providerWithDisposal({ provider: anyProvider, disposeService: () => {} });

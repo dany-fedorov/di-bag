@@ -77,10 +77,10 @@ test('acquisition metadata callback failures name the fallback facade', () => {
 
 test('expand compatibility composes the retained disposal wrapper', async () => {
   const events: number[] = [];
-  const owned = DiBag.withDisposal(() => 2, value => { events.push(value); });
-  const lifetimed = DiBag.withLifetime(owned, 'root');
-  const metadata = DiBag.withMetadata(lifetimed, { static: { legacy: true } });
-  const transformed = DiBag.transformService(metadata, { mode: 'direct', transform: value => value + 1 });
+  const owned = DiBag.providerWithDisposal({ provider: () => 2, disposeService: value => { events.push(value); } });
+  const lifetimed = DiBag.providerWithLifetime({ provider: owned, lifetime: 'singleton:one-per-container-tree' });
+  const metadata = DiBag.providerWithRegistrationMetadata({ provider: lifetimed, registrationMetadata: { legacy: true } });
+  const transformed = DiBag.providerWithTransformedService({ provider: metadata, transformService: value => value + 1, callbackReceives: 'exposed-service' });
   const container = DiBag.createBuilder().withServices({ value: transformed }).buildContainer();
   expect(container.resolve('value')).toBe(3);
   expect(container.serviceSnapshot('value').registrationMetadata).toEqual({ legacy: true });

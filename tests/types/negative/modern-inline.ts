@@ -13,6 +13,6 @@ root.createIndependentContainer(['service', 'promised'], {
 });
 
 // diagnostic: not assignable
-DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: (value: string) => ({ length: value.length }) } });
+DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: (value: string) => ({ length: value.length }), callbackReceives: 'exposed-service' });
 // diagnostic: not assignable
-DiBag.withMetadata(() => 1, { dynamic: { mode: 'direct', describe: function (this: { missing: true }) { return { value: this.missing }; } } });
+DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: function (this: { missing: true }) { return { value: this.missing }; }, callbackReceives: 'exposed-service' });

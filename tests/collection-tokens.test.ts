@@ -50,7 +50,7 @@ test('resolve of a collection token returns a fresh frozen list in contribution 
 test('inspect of a collection token returns one snapshot per contribution and runs no factory', async () => {
   const itemsKey = Symbol('items');
   const items = DiBag.createToken(itemsKey).forCollectionOf<number>(); let calls = 0;
-  const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: items, provider: DiBag.withMetadata(() => ++calls, { static: { name: 'a' } }) }).withCollectionContribution({ collectionToken: items, provider: () => ++calls }).buildContainer();
+  const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: items, provider: DiBag.providerWithRegistrationMetadata({ provider: () => ++calls, registrationMetadata: { name: 'a' } }) }).withCollectionContribution({ collectionToken: items, provider: () => ++calls }).buildContainer();
   const before = bag.serviceSnapshot(items);
   expect(calls).toBe(0); expect(Object.isFrozen(before)).toBe(true);
   expect(before.map(snapshot => snapshot.acquisitions.length)).toEqual([0, 0]);
@@ -80,11 +80,11 @@ test('each contribution keeps its own lifetime and disposer when the list is rea
   const objectsKey = Symbol('objects');
   const objects = DiBag.createToken(objectsKey).forCollectionOf<{ id: number }>();
   let ids = 0; const disposed: number[] = [];
-  const create = DiBag.withDisposal(() => ({ id: ++ids }), value => { disposed.push(value.id); });
+  const create = DiBag.providerWithDisposal({ provider: () => ({ id: ++ids }), disposeService: value => { disposed.push(value.id); } });
   const bag = DiBag.createBuilder()
-    .withCollectionContribution({ collectionToken: objects, provider: DiBag.withLifetime(create, 'root') })
+    .withCollectionContribution({ collectionToken: objects, provider: DiBag.providerWithLifetime({ provider: create, lifetime: 'singleton:one-per-container-tree' }) })
     .withCollectionContribution({ collectionToken: objects, provider: create })
-    .withCollectionContribution({ collectionToken: objects, provider: DiBag.withLifetime(create, 'transient') })
+    .withCollectionContribution({ collectionToken: objects, provider: DiBag.providerWithLifetime({ provider: create, lifetime: 'transient:one-per-resolve' }) })
     .buildContainer();
   const first = bag.resolveCollection(objects); const again = bag.resolveCollection(objects);
   expect(first[0]).toBe(again[0]); expect(first[1]).toBe(again[1]); expect(first[2]).not.toBe(again[2]);
@@ -101,7 +101,7 @@ test('ensureServicesReady accepts a collection token nothing contributes to, and
   expect(await empty.ensureServicesReady([hooks])).toBe(empty); await empty.close();
   const disposed: number[] = [];
   const failing = DiBag.createBuilder()
-    .withCollectionContribution({ collectionToken: hooks, provider: DiBag.withDisposal(() => 1, value => { disposed.push(value); }) })
+    .withCollectionContribution({ collectionToken: hooks, provider: DiBag.providerWithDisposal({ provider: () => 1, disposeService: value => { disposed.push(value); } }) })
     .withCollectionContribution({ collectionToken: hooks, provider: () => { throw new Error('failed contribution'); } }).buildContainer();
   await expect(failing.ensureServicesReady([hooks])).rejects.toThrow();
   expect(disposed).toEqual([1]); expect(thrown(() => failing.resolveCollection(hooks)).code).toBe('DI_BAG_CLOSED');
@@ -189,10 +189,7 @@ test('fork replaces a whole list, and the replacement wins for every reader', as
     }).buildContainer();
   const fake: readonly string[] = ['fake'];
   let disposed: readonly string[] | undefined;
-  const replacement = DiBag.withDisposal(
-    () => fake,
-    value => { disposed = value; },
-  );
+  const replacement = DiBag.providerWithDisposal({ provider: () => fake, disposeService: value => { disposed = value; } });
   const testApp = app.createIndependentContainer(
     [controllers],
     { [controllers.symbol]: replacement },

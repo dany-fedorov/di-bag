@@ -33,4 +33,4 @@ contribute({ collectionToken: numbers, provider: () => 'wrong' });
 const promisedValues = promiseBag.resolveCollection(promised);
 export type PromiseExact = Assert<Equal<typeof promisedValues, readonly Promise<number>[]>>;
 // @ts-expect-error contribution lifetime walk survives physical producer emission
-rootedHelper.createChildContainer(['helper', 'rootAll'], { helper: () => 2, rootAll: DiBag.withLifetime(allProvider, 'root') });
+rootedHelper.createChildContainer(['helper', 'rootAll'], { helper: () => 2, rootAll: DiBag.providerWithLifetime({ provider: allProvider, lifetime: 'singleton:one-per-container-tree' }) });

@@ -7,7 +7,7 @@ import {
 import type { ProviderGraphContract } from '../../src/provider';
 import type { Assert, Equal } from './assert';
 import type { IncrementalChecked, Entry, RegistrationEntries, ReplacementOutput, Unsatisfied } from '../../src/types';
-import type { Builder, Registration } from '../../src';
+import type { Builder, ProviderOrFactory } from '../../src';
 
 const forward = DiBag.createBuilder().withServices({ read: ({ value }: { value: number }) => value }).withServices({ value: () => 1 }).buildContainer();
 const forwardValue = forward.resolve('read');
@@ -24,8 +24,8 @@ type Rich = Assert<Equal<typeof actual, { value: number; richer: true }>>;
 const feature = DiBag.createBuilder().withServices({ hidden: ({ external }: { external: number }) => external }).buildModule({ exportedServiceKeys: [] });
 DiBag.createBuilder().withInstalledModules([feature]).withServices({ external: () => 1 }).withReplacedService('external', () => 2).buildContainer();
 
-const frameSource = DiBag.withMetadata(DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => Promise.resolve(value.value) }), { static: { owner: 'fixture' as const } });
-const framed = DiBag.withMetadata(frameSource, { dynamic: { mode: 'direct', describe: () => ({ stage: 'framed' as const }) } });
+const frameSource = DiBag.providerWithRegistrationMetadata({ provider: DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => Promise.resolve(value.value) }), registrationMetadata: { owner: 'fixture' as const } });
+const framed = DiBag.providerWithAcquisitionMetadata({ provider: frameSource, describeAcquisition: () => ({ stage: 'framed' as const }), callbackReceives: 'exposed-service' });
 const framedBag = DiBag.createBuilder().withServices({ framed }).withTokenService(token, () => ({ value: 1 })).withReplacedService('framed', framed).buildContainer();
 const framedValue = framedBag.resolve('framed');
 const inspection = framedBag.serviceSnapshot('framed');
@@ -39,7 +39,7 @@ DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService<'valu
 
 // Lookup shortcuts must retain opaque errors and the exact invalid-key details,
 // including for structurally valid manually annotated builder histories.
-type Incremental<E extends Entry, N extends { [K in keyof N]: Registration }> = IncrementalChecked<E, N>;
+type Incremental<E extends Entry, N extends { [K in keyof N]: ProviderOrFactory }> = IncrementalChecked<E, N>;
 type Failure<T> = Unsatisfied<'token dependency has an incompatible or opaque contract', { tokens: T }>;
 type OpaqueRead = import('../../src').Provider<() => number, {}, readonly [], import('../../src/token-types').OpaqueGraph>;
 type OpaqueEntry = { key: 'opaque'; registration: OpaqueRead };
@@ -66,12 +66,12 @@ export type RetainedTokenShortcutContracts = [
   Assert<Equal<Incremental<{ key: any; registration: ReadWider }, { [key]: Bound }>, Failure<typeof key>>>,
   Assert<Equal<Incremental<{ key: 'read'; registration: ReadWider | OpaqueRead }, { [key]: Bound }>, Failure<'opaque token contract' | typeof key>>>,
 ];
-function bindFromNeverHistory<R extends Registration>(builder: Builder<{ key: never; registration: R }>) {
+function bindFromNeverHistory<R extends ProviderOrFactory>(builder: Builder<{ key: never; registration: R }>) {
   return builder.withTokenService(token, () => ({ value: 1 }));
 }
 
 // Generic entry construction must remain available for either kind of key.
-function entryFromValues<K extends string | symbol, V extends Registration>(
+function entryFromValues<K extends string | symbol, V extends ProviderOrFactory>(
   key: K, registration: V,
 ): RegistrationEntries<Record<K, V>> {
   return { key, registration };

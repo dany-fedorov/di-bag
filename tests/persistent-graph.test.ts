@@ -104,7 +104,7 @@ test('materialized contributions retain order through append and installation wi
 
 test('root lifetime stays parent-owned after a child overrides one shared public slot', async () => {
   const id = Symbol('root'); let creates = 0;
-  const original = new BindingGraph({ bindings: new Map([[id, { ...binding(id, 1), registration: DiBag.withLifetime(() => ++creates, 'root') }]]), publicSlots: new Map([['a', id], ['b', id]]) });
+  const original = new BindingGraph({ bindings: new Map([[id, { ...binding(id, 1), registration: DiBag.providerWithLifetime({ provider: () => ++creates, lifetime: 'singleton:one-per-container-tree' }) }]]), publicSlots: new Map([['a', id], ['b', id]]) });
   const parent = new BagRuntime(original);
   const child = parent.scope(original.withPublicBinding('a', () => 9));
   expect(child.resolve('b')).toBe(1);

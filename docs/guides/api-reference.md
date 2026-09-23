@@ -183,7 +183,7 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | [`ConfigurationOptions`](../reference/index/interfaces/ConfigurationOptions.md) | Runtime classification and observer options for `withConfiguration`. |
 | [`Builder`](../reference/index/interfaces/Builder.md), [`Container`](../reference/index/interfaces/Container.md) | A checked immutable builder and a resolving/owning bag. |
 | [`Module`](../reference/index/interfaces/Module.md) | A sealed export view of a builder graph, installable in other builders. |
-| [`Registration`](../reference/index/type-aliases/Registration.md), [`FactoryWithDisposal`](../reference/index/interfaces/FactoryWithDisposal.md) | Accepted registration shapes and an owned factory description. |
+| [`Registration`](../reference/index/type-aliases/Registration.md) | Accepted registration shapes. |
 | [`Provider`](../reference/index/interfaces/Provider.md) | A provider description retaining its factory, metadata, frames, graph contracts, and acquired-value type. |
 | [`FactoryReturnKind`](../reference/index/type-aliases/FactoryReturnKind.md), [`RuntimeOptions`](../reference/index/interfaces/RuntimeOptions.md) | Factory return-kind literals and the `isNativePromise` configuration callback. |
 | [`Lifetime`](../reference/index/type-aliases/Lifetime.md) | The `'root'`, `'scoped'`, and `'transient'` caching choices. |

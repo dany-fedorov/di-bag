@@ -16,16 +16,16 @@ export const composition = DiBag.createBuilder()
     notificationsModule,
   ])
   .withServices({
-    catalogData: DiBag.withLifetime((): CatalogData => ({
+    catalogData: DiBag.providerWithLifetime({ provider: (): CatalogData => ({
       products: [
         { sku: 'tea', name: 'Green tea', priceCents: 450 },
         { sku: 'mug', name: 'Mug', priceCents: 1200 },
       ],
-    }), 'root'),
-    stockLevels: DiBag.withLifetime((): StockLevels => ({ tea: 40, mug: 10 }), 'root'),
+    }), lifetime: 'singleton:one-per-container-tree' }),
+    stockLevels: DiBag.providerWithLifetime({ provider: (): StockLevels => ({ tea: 40, mug: 10 }), lifetime: 'singleton:one-per-container-tree' }),
     payments: (): PaymentGateway => ({ charge: async amountCents => `charge-${amountCents}` }),
-    mailConfig: DiBag.withLifetime((): MailConfig => ({
+    mailConfig: DiBag.providerWithLifetime({ provider: (): MailConfig => ({
       opsAddress: 'ops@example.com',
       connect: async () => ({ send: async mail => { console.log(mail.subject); }, close: async () => {} }),
-    }), 'root'),
+    }), lifetime: 'singleton:one-per-container-tree' }),
   });

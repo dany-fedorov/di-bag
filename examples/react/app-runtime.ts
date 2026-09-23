@@ -16,12 +16,9 @@ export interface AppRuntime {
 export function createAppBuilder(adapters: AppAdapters) {
   return DiBag.createBuilder().withServices({
     // Borrowed: IndexedDB-style storage has no close; the bag never disposes it.
-    storage: DiBag.withLifetime(DiBag.createProvider((): Storage => adapters.storage, { factoryReturnKind: 'sync-value' }), 'root'),
+    storage: DiBag.providerWithLifetime({ provider: DiBag.createProvider((): Storage => adapters.storage, { factoryReturnKind: 'sync-value' }), lifetime: 'singleton:one-per-container-tree' }),
     // Owned: bootstrap hands the transport over, and the app bag closes it exactly once.
-    transport: DiBag.withLifetime(
-      DiBag.withDisposal(DiBag.createProvider((): Transport => adapters.transport, { factoryReturnKind: 'sync-value' }), transport => transport.close()),
-      'root',
-    ),
+    transport: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider((): Transport => adapters.transport, { factoryReturnKind: 'sync-value' }), disposeService: transport => transport.close() }), lifetime: 'singleton:one-per-container-tree' }),
   });
 }
 

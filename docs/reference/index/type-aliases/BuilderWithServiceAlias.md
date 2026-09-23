@@ -11,7 +11,7 @@ type BuilderWithServiceAlias<Entries extends Entry, Constraints extends NeedCons
 }, ...invalid: [Destination] extends [never] ? [never] : [Target] extends [never] ? [never] : []) => import('./di-bag').Builder<Entries | AliasEntry<RegistrationsFromEntries<Entries>, Destination, Target>, Constraints>;
 ```
 
-Defined in: [builder-method-types.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L66)
+Defined in: [builder-method-types.ts:67](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L67)
 
 The checked generic `withServiceAlias` callable exposed by a builder.
 

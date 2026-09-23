@@ -15,8 +15,11 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Create a collection token | [`DiBag.createToken(symbol)`](#dibag-createtoken) |
 | Contribute a collection member | [`builder.withCollectionContribution(options)`](#builder-withcollectioncontribution) |
 | Register a portable factory | [`DiBag.createProvider(factory, options)`](#dibag-createprovider) |
-| Attach cleanup | [`DiBag.withDisposal(create, dispose)`](#dibag-withdisposal) |
-| Choose a lifetime | [`DiBag.withLifetime(registration, lifetime)`](#dibag-withlifetime) |
+| Attach disposal | [`DiBag.providerWithDisposal(options)`](#dibag-providerwithdisposal) |
+| Choose a lifetime | [`DiBag.providerWithLifetime(options)`](#dibag-providerwithlifetime) |
+| Attach registration metadata | [`DiBag.providerWithRegistrationMetadata(options)`](#dibag-providerwithregistrationmetadata) |
+| Attach acquisition metadata | [`DiBag.providerWithAcquisitionMetadata(options)`](#dibag-providerwithacquisitionmetadata) |
+| Transform a service | [`DiBag.providerWithTransformedService(options)`](#dibag-providerwithtransformedservice) |
 | Seal a module | [`builder.buildModule(options)`](#builder-buildmodule) |
 | Install modules | [`builder.withInstalledModules(modules)`](#builder-withinstalledmodules) |
 | Rename a module requirement | [`module.withRenamedRequirement(options)`](#module-withrenamedrequirement) |
@@ -96,31 +99,6 @@ const stamp = DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(clock
 Begin an empty immutable graph; `buildContainer` creates its owning container, `buildModule` seals a reusable module.
 ```ts
 const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
-```
-
-### `DiBag.withDisposal(create, dispose)` {#dibag-withdisposal}
-Make the container own a factory's value and run `dispose` on it when the container closes. Throws: [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
-```ts
-const container = DiBag.createBuilder().withServices({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) }).buildContainer();
-await container.close();
-```
-
-### `DiBag.withLifetime(registration, lifetime)` {#dibag-withlifetime}
-Select `root`, `scoped` (the default), or `transient` caching for a registration. Throws: [`DI_BAG_INVALID_LIFETIME`](errors.md#di-bag-invalid-lifetime), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
-```ts
-const container = DiBag.createBuilder().withServices({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') }).buildContainer();
-```
-
-### `DiBag.withMetadata(registration, options)` {#dibag-withmetadata}
-Attach static registration metadata, or per-acquisition metadata in direct or awaited mode. Throws: [`DI_BAG_INVALID_METADATA`](errors.md#di-bag-invalid-metadata), [`DI_BAG_DUPLICATE_METADATA`](errors.md#di-bag-duplicate-metadata), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
-```ts
-const greeting = DiBag.withMetadata(() => 'hello', { static: { owner: 'greeting' } });
-```
-
-### `DiBag.transformService(registration, options)` {#dibag-transformservice}
-Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership. Throws: [`DI_BAG_INVALID_TRANSFORM`](errors.md#di-bag-invalid-transform), [`DI_BAG_INVALID_ACQUISITION_MODE`](errors.md#di-bag-invalid-acquisition-mode), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
-```ts
-const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform: text => text.toUpperCase() });
 ```
 
 ### `DiBag.providerWithDisposal(options)` {#dibag-providerwithdisposal}

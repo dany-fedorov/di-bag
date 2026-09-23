@@ -34,7 +34,6 @@
 - [DisposerContext](interfaces/DisposerContext.md)
 - [EnsureServicesReadyOptions](interfaces/EnsureServicesReadyOptions.md)
 - [FactoryContext](interfaces/FactoryContext.md)
-- [FactoryWithDisposal](interfaces/FactoryWithDisposal.md)
 - [GraphSnapshot](interfaces/GraphSnapshot.md)
 - [LifecycleObserver](interfaces/LifecycleObserver.md)
 - [Module](interfaces/Module.md)

@@ -739,6 +739,7 @@ export interface DiBagApi {
    * const container = DiBag.createBuilder().withServices({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) }).buildContainer();
    * await container.close();
    * ```
+   * @internal
    */
   withDisposal: typeof withDisposal;
   /**
@@ -749,6 +750,7 @@ export interface DiBagApi {
    * ```ts
    * const container = DiBag.createBuilder().withServices({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') }).buildContainer();
    * ```
+   * @internal
    */
   withLifetime: typeof withLifetime;
   /**
@@ -759,6 +761,7 @@ export interface DiBagApi {
    * ```ts
    * const greeting = DiBag.withMetadata(() => 'hello', { static: { owner: 'greeting' } });
    * ```
+   * @internal
    */
   withMetadata: typeof withMetadata;
   /**
@@ -769,6 +772,7 @@ export interface DiBagApi {
    * ```ts
    * const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform: text => text.toUpperCase() });
    * ```
+   * @internal
    */
   transformService: typeof transformService;
   /**

@@ -17,7 +17,7 @@ test('exported tokens retarget private module consumers in forks', async () => {
 test('private tokens get independent installations and dependency ordered cleanup', async () => {
   const key = Symbol('private'); const resource = DiBag.createToken(key).forService<{ id: number }>();
   const closed: string[] = []; let id = 0;
-  const feature = DiBag.createBuilder().withTokenService(resource, DiBag.withDisposal(() => ({ id: ++id }), value => { closed.push(`resource:${value.id}`); })).withServices({ handler: DiBag.withDisposal(DiBag.createProviderFromFunction({ dependencies: [resource], factoryFunction: value => ({ id: value.id }) }), value => { closed.push(`handler:${value.id}`); }) }).buildModule({ exportedServiceKeys: ['handler'] });
+  const feature = DiBag.createBuilder().withTokenService(resource, DiBag.providerWithDisposal({ provider: () => ({ id: ++id }), disposeService: value => { closed.push(`resource:${value.id}`); } })).withServices({ handler: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromFunction({ dependencies: [resource], factoryFunction: value => ({ id: value.id }) }), disposeService: value => { closed.push(`handler:${value.id}`); } }) }).buildModule({ exportedServiceKeys: ['handler'] });
   const bag = DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'handler', newExportKey: 'first' })]).withInstalledModules([feature.withRenamedExport({ currentExportKey: 'handler', newExportKey: 'second' })]).buildContainer();
   expect(bag.resolve('first').id).toBe(1);
   expect(bag.resolve('second').id).toBe(2);
@@ -30,7 +30,7 @@ test('token bindings preserve source reuse, promise identity and public replacem
   const key = Symbol('promise'); const secondKey = Symbol('second');
   const token = DiBag.createToken(key).forService<Promise<number>>(); const second = DiBag.createToken(secondKey).forService<Promise<number>>();
   const same = DiBag.createToken(key).forService<Promise<number>>(); const promise = Promise.resolve(4);
-  const source = DiBag.withMetadata(() => promise, { static: { owner: 'team' } });
+  const source = DiBag.providerWithRegistrationMetadata({ provider: () => promise, registrationMetadata: { owner: 'team' } });
   const feature = DiBag.createBuilder().withTokenService(token, source).withServices({ consume: DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }) }).buildModule({ exportedServiceKeys: [token, 'consume'] });
   const replacement = Promise.resolve(9);
   const bag = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(second, source).withReplacedService(token, () => replacement).buildContainer();
@@ -60,11 +60,8 @@ test('duplicate mixed overrides read each provider once and route its value thro
   const feature = DiBag.createBuilder().withTokenService(resource, () => ({ read: () => 1 })).withServices({
       named: () => 2,
       privateConsumer: DiBag.createProviderFromFunction({ dependencies: [resource], factoryFunction: value => value.read }),
-      handler: DiBag.withDisposal(
-        ({ privateConsumer, named }: { privateConsumer(): number; named: number }) =>
-          ({ token: privateConsumer(), named }),
-        value => { closed.push(`handler:${value.token}:${value.named}`); },
-      ),
+      handler: DiBag.providerWithDisposal({ provider: ({ privateConsumer, named }: { privateConsumer(): number; named: number }) =>
+          ({ token: privateConsumer(), named }), disposeService: value => { closed.push(`handler:${value.token}:${value.named}`); } }),
     }).buildModule({ exportedServiceKeys: [resource, 'named', 'handler'] });
   const root = DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
   const reads: string[] = [];
@@ -72,11 +69,11 @@ test('duplicate mixed overrides read each provider once and route its value thro
   const overrides = {
     get [key]() {
       reads.push('token'); const value = tokenValue; tokenValue += 2;
-      return DiBag.withDisposal(() => ({ read: () => value }), () => { closed.push(`token:${value}`); });
+      return DiBag.providerWithDisposal({ provider: () => ({ read: () => value }), disposeService: () => { closed.push(`token:${value}`); } });
     },
     get named() {
       reads.push('named'); const value = namedValue; namedValue += 2;
-      return DiBag.withDisposal(() => value, () => { closed.push(`named:${value}`); });
+      return DiBag.providerWithDisposal({ provider: () => value, disposeService: () => { closed.push(`named:${value}`); } });
     },
   };
   const child = root.createIndependentContainer([resource, 'named', resource, 'named'], overrides);

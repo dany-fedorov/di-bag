@@ -11,13 +11,14 @@ export type Factory = (this: void, dependencies: never) => unknown;
 /**
  * A nominal registration pairing a factory with fulfilled-value cleanup.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-cleanup-with-withdisposal
+ * @internal
  */
 class FactoryWithDisposal<F extends Factory> {
   declare private readonly nominal: void;
   constructor(readonly create: F) {}
 }
 
-/** A nominal registration pairing a factory with fulfilled-value cleanup. */
+/** @internal A nominal registration pairing a factory with fulfilled-value cleanup. */
 export type { FactoryWithDisposal };
 
 /**

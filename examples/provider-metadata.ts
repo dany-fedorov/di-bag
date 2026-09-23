@@ -15,33 +15,19 @@ const connection = {
   },
 };
 
-const locatedConnection = DiBag.withDisposal(
-  (): Located<typeof connection> => ({
+const locatedConnection = DiBag.providerWithDisposal({ provider: (): Located<typeof connection> => ({
     value: { present: true, value: connection },
     origin: 'DATABASE_URL',
-  }),
-  (result) => {
+  }), disposeService: (result) => {
     if (result.value.present) result.value.value.close();
-  },
-);
+  } });
 
-const connectionPresence = DiBag.transformService(
-  DiBag.withMetadata(locatedConnection, {
-    dynamic: { mode: 'direct', describe: (result) => ({ origin: result.origin }) },
-  }),
-  { mode: 'direct', transform: (result) => result.value },
-);
+const connectionPresence = DiBag.providerWithTransformedService({ provider: DiBag.providerWithAcquisitionMetadata({ provider: locatedConnection, describeAcquisition: (result) => ({ origin: result.origin }), callbackReceives: 'exposed-service' }), transformService: (result) => result.value, callbackReceives: 'exposed-service' });
 
-const remoteFlag = DiBag.transformService(
-  DiBag.withMetadata(
-    async (): Promise<Located<boolean | undefined>> => ({
+const remoteFlag = DiBag.providerWithTransformedService({ provider: DiBag.providerWithAcquisitionMetadata({ provider: async (): Promise<Located<boolean | undefined>> => ({
       value: { present: true, value: undefined },
       origin: 'feature-service',
-    }),
-    { dynamic: { mode: 'awaited', describe: (result) => ({ origin: result.origin }) } },
-  ),
-  { mode: 'awaited', transform: (result) => result.value },
-);
+    }), describeAcquisition: (result) => ({ origin: result.origin }), callbackReceives: 'fulfilled-value' }), transformService: (result) => result.value, callbackReceives: 'fulfilled-value' });
 
 async function main() {
   const bag = DiBag.createBuilder().withServices({ connectionPresence, remoteFlag }).buildContainer();

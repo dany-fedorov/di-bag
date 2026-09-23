@@ -6,7 +6,7 @@ import { inventoryModule } from './module.js';
 DiBag.createBuilder()
   .withInstalledModules([inventoryModule])
   .withServices({
-    stockLevels: DiBag.withLifetime((): StockLevels => ({}), 'root'),
-    catalog: DiBag.withLifetime((): Catalog => ({ find: () => undefined, list: () => [] }), 'root'),
+    stockLevels: DiBag.providerWithLifetime({ provider: (): StockLevels => ({}), lifetime: 'singleton:one-per-container-tree' }),
+    catalog: DiBag.providerWithLifetime({ provider: (): Catalog => ({ find: () => undefined, list: () => [] }), lifetime: 'singleton:one-per-container-tree' }),
   })
   .verifyGraphAtCompileTime() satisfies void;

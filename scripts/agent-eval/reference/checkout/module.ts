@@ -6,10 +6,10 @@ import type { Checkout, PaymentGateway } from './contract.js';
 
 export const checkoutModule = DiBag.createBuilder()
   .withServices({
-    orderIds: DiBag.withLifetime(() => {
+    orderIds: DiBag.providerWithLifetime({ provider: () => {
       let last = 0;
       return { next: () => `order-${++last}` };
-    }, 'root'),
+    }, lifetime: 'singleton:one-per-container-tree' }),
     checkout: ({ catalog, inventory, payments, notifier, orderIds }: {
       catalog: Catalog;
       inventory: Inventory;

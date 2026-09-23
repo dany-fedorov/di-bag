@@ -9,8 +9,8 @@ const { DiBag, DiBagCleanupError, DiBagServiceReadinessError, DiBagServiceReadin
 test('contexts follow acquisition owners through child-first roots and independent forks', async () => {
   const root = DiBag.createBuilder().withServices({
     scoped: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }),
-    root: DiBag.withLifetime(DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), 'root'),
-    transient: DiBag.withLifetime(DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), 'transient'),
+    root: DiBag.providerWithLifetime({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), lifetime: 'singleton:one-per-container-tree' }),
+    transient: DiBag.providerWithLifetime({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), lifetime: 'transient:one-per-resolve' }),
   }).buildContainer();
   const child = root.createChildContainer();
   const sibling = root.createChildContainer();
@@ -75,7 +75,7 @@ test('startup uses native observation with shadowed then and treats raw promises
   const disposed: unknown[] = [];
   const starting = Core.createBuilder().withServices({
     native: Core.createProvider((_deps: {}, _factoryContext) => native.promise, { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } }),
-    raw: Core.withDisposal(Core.createProvider(() => raw.promise, { factoryReturnKind: 'uninspected' }), value => { disposed.push(value); }),
+    raw: Core.providerWithDisposal({ provider: Core.createProvider(() => raw.promise, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }),
   }).buildContainer().ensureServicesReady(['native', 'raw']);
   let ready = false;
   void starting.then(() => { ready = true; });
@@ -92,7 +92,7 @@ test('a ready native projection starts while its source remains pending until sh
   const source = deferred<number>();
   const owned: number[] = [];
   const outcome = await DiBag.createBuilder().withServices({
-    projected: DiBag.transformService(DiBag.withDisposal(() => source.promise, value => { owned.push(value); }), { mode: 'direct', transform: () => Promise.resolve(42) }),
+    projected: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: () => source.promise, disposeService: value => { owned.push(value); } }), transformService: () => Promise.resolve(42), callbackReceives: 'exposed-service' }),
   }).buildContainer().ensureServicesReady(['projected'], { totalTimeoutMs: 30 }).then(bag => ({ bag }), error => ({ error }));
   source.resolve(7);
   if ('error' in outcome) {
@@ -107,11 +107,11 @@ test('a ready native projection starts while its source remains pending until sh
 test('failed native projection aborts a cooperative pending source before cleanup', async () => {
   const cause = new Error('project');
   const disposed: number[] = [];
-  const source = DiBag.withDisposal(DiBag.createProvider((_deps: {}, factoryCtx) => new Promise<number>(resolve => {
+  const source = DiBag.providerWithDisposal({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => new Promise<number>(resolve => {
     factoryCtx.abortSignal.addEventListener('abort', () => resolve(7), { once: true });
-  }), { factoryReceivesContext: true }), value => { disposed.push(value); });
+  }), { factoryReceivesContext: true }), disposeService: value => { disposed.push(value); } });
   const error: unknown = await DiBag.createBuilder().withServices({
-    service: DiBag.transformService(source, { mode: 'direct', transform: () => Promise.reject(cause) }),
+    service: DiBag.providerWithTransformedService({ provider: source, transformService: () => Promise.reject(cause), callbackReceives: 'exposed-service' }),
   }).buildContainer().ensureServicesReady(['service'], { totalTimeoutMs: 30 }).catch(error => error);
   if (error instanceof DiBagServiceReadinessCancelledError) await error.disposalPromise;
   expect(error).toBeInstanceOf(DiBagServiceReadinessError);
@@ -139,7 +139,7 @@ test('startup selects genuine tokens and keeps separate owned transient attempts
   const token = DiBag.createToken(key).forService<number>();
   let calls = 0;
   const disposed: number[] = [];
-  const builder = DiBag.createBuilder().withTokenService(token, DiBag.withLifetime(DiBag.withDisposal(() => ++calls, value => { disposed.push(value); }), 'transient'));
+  const builder = DiBag.createBuilder().withTokenService(token, DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ++calls, disposeService: value => { disposed.push(value); } }), lifetime: 'transient:one-per-resolve' }));
   const bag = await builder.buildContainer().ensureServicesReady([token, token]);
   expect(calls).toBe(2);
   expect(bag.serviceSnapshot(token).acquisitions).toHaveLength(2);
@@ -205,9 +205,9 @@ test('sequential startup stops after failure and waits for cleanup with original
   const disposalError = new Error('dispose');
   const calls: string[] = [];
   const starting = DiBag.createBuilder().withServices({
-    first: DiBag.withDisposal(() => { calls.push('first'); return 1; }, async () => {
+    first: DiBag.providerWithDisposal({ provider: () => { calls.push('first'); return 1; }, disposeService: async () => {
       cleanupStarted.resolve(); await cleanup.promise; throw disposalError;
-    }),
+    } }),
     fail: () => { calls.push('fail'); throw acquisitionError; },
     last: () => { calls.push('last'); return 2; },
   }).buildContainer().ensureServicesReady(['first', 'fail', 'last'], { maxConcurrentServiceKeys: 1 });
@@ -233,7 +233,7 @@ test('parallel startup starts later selections after synchronous failure and cle
   const disposed: number[] = [];
   const starting = DiBag.createBuilder().withServices({
     fail: () => { throw undefined; },
-    later: DiBag.withDisposal(() => { calls++; return gate.promise; }, value => { disposed.push(value); }),
+    later: DiBag.providerWithDisposal({ provider: () => { calls++; return gate.promise; }, disposeService: value => { disposed.push(value); } }),
   }).buildContainer().ensureServicesReady(['fail', 'later']);
   const outcome = starting.catch(error => error);
   expect(calls).toBe(1);
@@ -253,11 +253,11 @@ for (const reason of ['aborted', 'timeout'] as const) test(`${reason} rejects be
   const disposed: number[] = [];
   let signal: AbortSignal | undefined;
   const starting = DiBag.createBuilder().withServices({
-    value: DiBag.withDisposal(DiBag.createProvider(async (deps: { late: number }, factoryCtx) => {
+    value: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async (deps: { late: number }, factoryCtx) => {
       signal = factoryCtx.abortSignal;
       await gate.promise;
       return deps.late;
-    }, { factoryReceivesContext: true }), value => { disposed.push(value); throw cleanupError; }),
+    }, { factoryReceivesContext: true }), disposeService: value => { disposed.push(value); throw cleanupError; } }),
     late: () => 42,
   }).buildContainer().ensureServicesReady(['value'], reason === 'aborted' ? { abortSignal: abort.signal } : { totalTimeoutMs: 5 });
   const outcome = starting.catch(error => error);
@@ -295,7 +295,7 @@ test('cancellation can interrupt cleanup after ordinary startup failure', async 
   const began = deferred<void>();
   const controller = new AbortController();
   const starting = DiBag.createBuilder().withServices({
-    owned: DiBag.withDisposal(() => 1, async () => { began.resolve(); await cleanup.promise; }),
+    owned: DiBag.providerWithDisposal({ provider: () => 1, disposeService: async () => { began.resolve(); await cleanup.promise; } }),
     fail: () => { throw new Error('setup'); },
   }).buildContainer().ensureServicesReady(['owned', 'fail'], { abortSignal: controller.signal });
   const outcome = starting.catch(error => error);
@@ -340,7 +340,7 @@ for (const startupOrder of [1, 2, 20]) test(`numeric startup ${startupOrder} bou
   const gates = [deferred<number>(), deferred<number>(), deferred<number>()];
   const calls: number[] = [];
   const disposed: number[] = [];
-  const provider = (index: number) => DiBag.withDisposal(() => { calls.push(index); return gates[index]!.promise; }, value => { disposed.push(value); });
+  const provider = (index: number) => DiBag.providerWithDisposal({ provider: () => { calls.push(index); return gates[index]!.promise; }, disposeService: value => { disposed.push(value); } });
   const starting = DiBag.createBuilder().withServices({ a: provider(0), b: provider(1), c: provider(2) }).buildContainer().ensureServicesReady(['a', 'b', 'c'], { maxConcurrentServiceKeys: startupOrder });
   const outcome = starting.catch(error => error);
   await new Promise<void>(resolve => setImmediate(resolve));
@@ -361,7 +361,7 @@ for (const startupOrder of [1, 2]) test(`numeric startup ${startupOrder} snapsho
   const disposed: number[] = [];
   const builder = DiBag.createBuilder().withServices({
     scoped: () => ++scoped,
-    transient: DiBag.withLifetime(DiBag.withDisposal(() => ++transient, value => { disposed.push(value); }), 'transient'),
+    transient: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ++transient, disposeService: value => { disposed.push(value); } }), lifetime: 'transient:one-per-resolve' }),
   });
   const bag = await builder.buildContainer().ensureServicesReady(['scoped', 'scoped', 'transient', 'transient'], { get maxConcurrentServiceKeys() { reads++; return startupOrder; } });
   expect(reads).toBe(1); expect(scoped).toBe(1); expect(transient).toBe(2);
@@ -375,7 +375,7 @@ test('numeric startup uses final raw readiness while owned sources remain pendin
   const raw = { get then() { thenReads++; throw new Error('raw then'); } };
   const disposed: number[] = [];
   const bag = await Core.createBuilder().withServices({
-    projected: Core.transformService(Core.withDisposal(Core.createProvider(() => source.promise, { factoryReturnKind: 'native-promise' }), value => { disposed.push(value); }), { mode: 'direct', transform: () => raw, ...{ acquisitionMode: 'uninspected' } }),
+    projected: Core.providerWithTransformedService({ provider: Core.providerWithDisposal({ provider: Core.createProvider(() => source.promise, { factoryReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } }), transformService: () => raw, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }),
     later: Core.createProvider(() => ++later, { factoryReturnKind: 'uninspected' }),
   }).buildContainer().ensureServicesReady(['projected', 'later'], { maxConcurrentServiceKeys: 1 });
   expect(later).toBe(1); expect(thenReads).toBe(0); expect(bag.resolve('projected')).toBe(raw);
@@ -390,8 +390,8 @@ for (const terminal of ['failure', 'aborted', 'timeout'] as const) test(`bounded
   const cause = new Error('failed');
   const cleanupError = new Error('cleanup');
   const starting = DiBag.createBuilder().withServices({
-    a: DiBag.withDisposal(() => { calls.push('a'); return gates[0]!.promise; }, value => { disposed.push(value); }),
-    b: DiBag.withDisposal(() => { calls.push('b'); return gates[1]!.promise; }, value => { disposed.push(value); throw cleanupError; }),
+    a: DiBag.providerWithDisposal({ provider: () => { calls.push('a'); return gates[0]!.promise; }, disposeService: value => { disposed.push(value); } }),
+    b: DiBag.providerWithDisposal({ provider: () => { calls.push('b'); return gates[1]!.promise; }, disposeService: value => { disposed.push(value); throw cleanupError; } }),
     queued: () => { calls.push('queued'); return 3; },
   }).buildContainer().ensureServicesReady(['a', 'b', 'queued'], { maxConcurrentServiceKeys: 2, abortSignal: abort.signal, ...(terminal === 'timeout' ? { totalTimeoutMs: 5 } : {}) });
   const outcome = starting.catch(error => error);
@@ -443,7 +443,7 @@ test('numeric startup stops initial worker admission when a factory aborts synch
   const source = deferred<number>();
   const calls: string[] = [], disposed: number[] = [];
   const outcome = await DiBag.createBuilder().withServices({
-    first: DiBag.withDisposal(() => { calls.push('first'); abort.abort('stop'); return source.promise; }, value => { disposed.push(value); }),
+    first: DiBag.providerWithDisposal({ provider: () => { calls.push('first'); abort.abort('stop'); return source.promise; }, disposeService: value => { disposed.push(value); } }),
     next: () => { calls.push('next'); return 2; },
   }).buildContainer().ensureServicesReady(['first', 'next'], { maxConcurrentServiceKeys: 2, abortSignal: abort.signal }).catch(error => error);
   expect(outcome).toBeInstanceOf(DiBagServiceReadinessCancelledError);

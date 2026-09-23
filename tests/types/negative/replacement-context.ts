@@ -1,4 +1,4 @@
-import { DiBag } from '../../../src';
+import { DiBag, type ProviderOrFactory } from '../../../src';
 const consumers = {
   clock: () => ({ now: () => 1, zone: () => 'utc' }),
   first: ({ clock }: { clock: { now(): number } }) => clock.now(),
@@ -26,11 +26,11 @@ const optional = { value: () => ({ read: () => 1 }), consumer: ({ value }: { val
 DiBag.createBuilder().withServices(optional).withReplacedService('value', () => undefined);
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().withServices(optional).withReplacedService('value', () => undefined);
-type Registration = Parameters<typeof DiBag.withMetadata>[0];
+type Registration = ProviderOrFactory;
 type Opaque = Exclude<Registration, ((...args: never[]) => unknown) | { create: unknown }>;
 declare const opaque: Opaque;
 declare const broad: (this: void, deps: never) => unknown;
-const broadOwned = DiBag.withDisposal(broad, () => {});
+const broadOwned = DiBag.providerWithDisposal({ provider: broad, disposeService: () => {} });
 // diagnostic: factory dependencies must be finite
 builder.withReplacedService('clock', opaque);
 // diagnostic: factory dependencies must be finite

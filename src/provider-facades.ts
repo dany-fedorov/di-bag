@@ -23,8 +23,13 @@ import type {
   ProviderOutput,
   RetainedMetadata,
 } from './provider';
-import type { ProviderOrFactory } from './registration';
+import type { Factory, ProviderOrFactory } from './registration';
 import { describe } from './provider-operations';
+
+type PlainFactoryOutput<R> = R extends infer T & {}
+  ? T extends Factory ? ReturnType<T> : never
+  : never;
+type PlainFactoryAdmission<R> = AutoOutput<PlainFactoryOutput<R>, 'auto-detect'>;
 
 function asProvider(provider: unknown, operation: string): ProviderBase {
   if (typeof provider === 'function') return createProvider(provider as never);
@@ -44,7 +49,7 @@ function asProvider(provider: unknown, operation: string): ProviderBase {
  * ```
  */
 export function providerWithDisposal<ServiceProvider extends ProviderOrFactory>(options: {
-  readonly provider: ServiceProvider;
+  readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
   readonly disposeService: (this: void, service: ProviderAcquiredValue<NoInfer<ServiceProvider>>) => void | Promise<void>;
 }): Provider<ProviderFactory<ServiceProvider>, RetainedMetadata<ServiceProvider>, ProviderAcquisitionMetadata<ServiceProvider>, ProviderGraphContract<ServiceProvider>, ProviderAcquiredValue<ServiceProvider>>;
 export function providerWithDisposal(options: unknown): ProviderBase {
@@ -79,7 +84,7 @@ export function providerWithLifetime<
   const SelectedLifetime extends Lifetime,
   const Options extends object = {},
 >(options: {
-  readonly provider: ServiceProvider;
+  readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
   readonly lifetime: SelectedLifetime & LifetimeAdmission<SelectedLifetime>;
 } & CheckedFacadeLifetimeOptions<NoInfer<SelectedLifetime>, Options>): Provider<ProviderFactory<ServiceProvider>, RetainedMetadata<ServiceProvider>, ProviderAcquisitionMetadata<ServiceProvider>, LifetimeGraph<ProviderGraphContract<ServiceProvider>, SelectedLifetime, Options>, ProviderAcquiredValue<ServiceProvider>>;
 export function providerWithLifetime(options: unknown): ProviderBase {
@@ -101,7 +106,7 @@ export function providerWithLifetime(options: unknown): ProviderBase {
  * ```
  */
 export function providerWithRegistrationMetadata<ServiceProvider extends ProviderOrFactory, AddedMetadata extends object>(options: {
-  readonly provider: ServiceProvider;
+  readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
   readonly registrationMetadata: AddedMetadata & MetadataKeys<NoInfer<ServiceProvider>, AddedMetadata>;
 }): Provider<ProviderFactory<ServiceProvider>, Readonly<RetainedMetadata<ServiceProvider> & AddedMetadata>, ProviderAcquisitionMetadata<ServiceProvider>, ProviderGraphContract<ServiceProvider>, ProviderAcquiredValue<ServiceProvider>>;
 export function providerWithRegistrationMetadata(options: unknown): ProviderBase {
@@ -121,7 +126,7 @@ export function providerWithRegistrationMetadata(options: unknown): ProviderBase
  * ```
  */
 export function providerWithAcquisitionMetadata<ServiceProvider extends ProviderOrFactory, Describe extends (this: void, service: ProviderOutput<NoInfer<ServiceProvider>>) => object>(options: {
-  readonly provider: ServiceProvider;
+  readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
   readonly describeAcquisition: Describe & AcquisitionMetadataAdmission<ReturnType<Describe>>;
   readonly callbackReceives: 'exposed-service';
 }): Provider<ProviderFactory<ServiceProvider>, RetainedMetadata<ServiceProvider>, readonly [...ProviderAcquisitionMetadata<ServiceProvider>, Readonly<ReturnType<Describe>>], ProviderGraphContract<ServiceProvider>, ProviderAcquiredValue<ServiceProvider>>;
@@ -137,7 +142,7 @@ export function providerWithAcquisitionMetadata<ServiceProvider extends Provider
  * ```
  */
 export function providerWithAcquisitionMetadata<ServiceProvider extends ProviderOrFactory, Describe extends (this: void, service: Awaited<ProviderOutput<NoInfer<ServiceProvider>>>) => object>(options: {
-  readonly provider: ServiceProvider;
+  readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
   readonly describeAcquisition: Describe & AcquisitionMetadataAdmission<ReturnType<Describe>>;
   readonly callbackReceives: 'fulfilled-value';
 }): Provider<MappedProviderFactory<ProviderFactory<ServiceProvider>, Promise<Awaited<ProviderOutput<ServiceProvider>>>>, RetainedMetadata<ServiceProvider>, readonly [...ProviderAcquisitionMetadata<ServiceProvider>, Readonly<ReturnType<Describe>>], ProviderGraphContract<ServiceProvider>, Awaited<ProviderOutput<ServiceProvider>>>;
@@ -164,7 +169,7 @@ export function providerWithTransformedService<
     ? Awaited<ProviderOutput<NoInfer<ServiceProvider>>> : ProviderOutput<NoInfer<ServiceProvider>>) => unknown,
   const CallbackReceives extends 'fulfilled-value' | 'exposed-service' = 'fulfilled-value',
 >(options: {
-  readonly provider: ServiceProvider;
+  readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
   readonly transformService: Transform & ([NoInfer<CallbackReceives>] extends ['fulfilled-value'] ? unknown : never);
   readonly callbackReceives: CallbackReceives;
   readonly transformReturnKind?: never;
@@ -186,7 +191,7 @@ export function providerWithTransformedService<
   Transform extends (this: void, service: ProviderOutput<NoInfer<ServiceProvider>>) => any,
   ReturnKind extends FactoryReturnKind = 'auto-detect',
 >(options: {
-  readonly provider: ServiceProvider;
+  readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
   readonly transformService: Transform
     & AutoOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>>;
   readonly callbackReceives: 'exposed-service';

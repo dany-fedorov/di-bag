@@ -8,7 +8,7 @@ import { checkoutModule } from './module.js';
 DiBag.createBuilder()
   .withInstalledModules([checkoutModule])
   .withServices({
-    catalog: DiBag.withLifetime((): Catalog => ({ find: () => undefined, list: () => [] }), 'root'),
+    catalog: DiBag.providerWithLifetime({ provider: (): Catalog => ({ find: () => undefined, list: () => [] }), lifetime: 'singleton:one-per-container-tree' }),
     inventory: (): Inventory => ({ available: () => 0, reserve: () => false, commit: () => {} }),
     payments: (): PaymentGateway => ({ charge: async () => 'charge' }),
     notifier: (): Notifier => ({ orderPlaced: async () => {} }),

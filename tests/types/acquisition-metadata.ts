@@ -1,14 +1,14 @@
-import { DiBag, type ProviderAcquiredValue, type ProviderAcquisitionMetadata, type ProviderGraphContract, type ProviderRegistrationMetadata, type ProviderNamedDependencies, type ProviderOutput } from '../../src';
+import { DiBag, type ProviderAcquiredValue, type ProviderAcquisitionMetadata, type ProviderGraphContract, type ProviderRegistrationMetadata, type ProviderNamedDependencies, type ProviderOrFactory, type ProviderOutput } from '../../src';
 import type { Assert, Equal } from './assert';
 
-const source = DiBag.withMetadata(({ seed }: { seed: number }) => ({ value: seed, origin: 'local' as const }), { static: { owner: 'team' as const } });
-export const first = DiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: result => ({ origin: result.origin }) } });
-export const annotated = DiBag.withMetadata(first, { dynamic: { mode: 'direct', describe: result => ({ value: result.value }) } });
-export const projected = DiBag.transformService(annotated, { mode: 'direct', transform: result => result.value });
-export const asynchronous = DiBag.withMetadata(async () => ({ value: 1 }), { dynamic: { mode: 'awaited', describe: result => ({ value: result.value }) } });
+const source = DiBag.providerWithRegistrationMetadata({ provider: ({ seed }: { seed: number }) => ({ value: seed, origin: 'local' as const }), registrationMetadata: { owner: 'team' as const } });
+export const first = DiBag.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: result => ({ origin: result.origin }), callbackReceives: 'exposed-service' });
+export const annotated = DiBag.providerWithAcquisitionMetadata({ provider: first, describeAcquisition: result => ({ value: result.value }), callbackReceives: 'exposed-service' });
+export const projected = DiBag.providerWithTransformedService({ provider: annotated, transformService: result => result.value, callbackReceives: 'exposed-service' });
+export const asynchronous = DiBag.providerWithAcquisitionMetadata({ provider: async () => ({ value: 1 }), describeAcquisition: result => ({ value: result.value }), callbackReceives: 'fulfilled-value' });
 const raw = DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' });
-export const rawAnnotated = DiBag.withMetadata(raw, { dynamic: { mode: 'direct', describe: promise => ({ promise }) } });
-DiBag.withDisposal(rawAnnotated, promise => { const exact: Promise<number> = promise; void exact; });
+export const rawAnnotated = DiBag.providerWithAcquisitionMetadata({ provider: raw, describeAcquisition: promise => ({ promise }), callbackReceives: 'exposed-service' });
+DiBag.providerWithDisposal({ provider: rawAnnotated, disposeService: promise => { const exact: Promise<number> = promise; void exact; } });
 export type Contracts = [
   Assert<Equal<ProviderOutput<typeof annotated>, { value: number; origin: 'local' }>>,
   Assert<Equal<ProviderAcquiredValue<typeof annotated>, ProviderAcquiredValue<typeof source>>>,
@@ -20,10 +20,10 @@ export type Contracts = [
   Assert<Equal<ProviderAcquiredValue<typeof rawAnnotated>, Promise<number>>>,
 ];
 declare const union: (() => { value: number }) | (() => { value: string });
-const unionAnnotated = DiBag.withMetadata(union, { dynamic: { mode: 'direct', describe: result => ({ value: result.value }) } });
-type OpaqueRegistration = Exclude<Parameters<typeof DiBag.withMetadata>[0], ((...args: never[]) => unknown) | { create: unknown }>;
+const unionAnnotated = DiBag.providerWithAcquisitionMetadata({ provider: union, describeAcquisition: result => ({ value: result.value }), callbackReceives: 'exposed-service' });
+type OpaqueRegistration = Exclude<ProviderOrFactory, ((...args: never[]) => unknown) | { create: unknown }>;
 declare const opaque: OpaqueRegistration;
-const opaqueAnnotated = DiBag.withMetadata(opaque, { dynamic: { mode: 'direct', describe: result => ({ value: result }) } });
+const opaqueAnnotated = DiBag.providerWithAcquisitionMetadata({ provider: opaque, describeAcquisition: result => ({ value: result }), callbackReceives: 'exposed-service' });
 export type ErasedContracts = [
   Assert<Equal<ProviderOutput<typeof unionAnnotated>, { value: number } | { value: string }>>,
   Assert<Equal<ProviderOutput<typeof opaqueAnnotated>, unknown>>,

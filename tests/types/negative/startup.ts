@@ -31,7 +31,7 @@ const missing = DiBag.createBuilder().withServices({ value: DiBag.createProvider
 missing.buildContainer().ensureServicesReady([]);
 const captive = DiBag.createBuilder().withServices({
   scoped: () => 1,
-  root: DiBag.withLifetime(DiBag.createProvider((deps: { scoped: number }, _factoryCtx) => deps.scoped, { factoryReceivesContext: true }), 'root'),
+  root: DiBag.providerWithLifetime({ provider: DiBag.createProvider((deps: { scoped: number }, _factoryCtx) => deps.scoped, { factoryReceivesContext: true }), lifetime: 'singleton:one-per-container-tree' }),
 });
 // diagnostic: root lifetime cannot capture scoped dependency
 captive.buildContainer().ensureServicesReady(['root']);

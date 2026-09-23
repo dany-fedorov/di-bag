@@ -11,7 +11,7 @@ const unused = () => { throw new Error('supply a fixture'); };
 const fixture = DiBag.createBuilder()
   .withInstalledModules([checkoutModule])
   .withServices({
-    catalog: DiBag.withLifetime((): Catalog => ({ find: () => ({ sku: 'tea', name: 'Tea', priceCents: 450 }), list: () => [] }), 'root'),
+    catalog: DiBag.providerWithLifetime({ provider: (): Catalog => ({ find: () => ({ sku: 'tea', name: 'Tea', priceCents: 450 }), list: () => [] }), lifetime: 'singleton:one-per-container-tree' }),
     inventory: (): Inventory => ({ available: () => 0, reserve: () => true, commit: () => {} }),
     payments: (): PaymentGateway => ({ charge: unused }),
     notifier: (): Notifier => ({ orderPlaced: async () => {} }),

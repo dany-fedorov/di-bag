@@ -5,22 +5,13 @@ async function main() {
   const released: string[] = [];
   const root = await DiBag.createBuilder()
     .withServices({
-      config: DiBag.withLifetime(() => ({ region: 'eu' }), 'root'),
-      client: DiBag.withLifetime(
-        DiBag.withDisposal(
-          ({ config }: { config: { region: string } }) => ({ region: config.region }),
-          () => {
+      config: DiBag.providerWithLifetime({ provider: () => ({ region: 'eu' }), lifetime: 'singleton:one-per-container-tree' }),
+      client: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }: { config: { region: string } }) => ({ region: config.region }), disposeService: () => {
             released.push('client');
-          },
-        ),
-        'root',
-      ),
-      session: DiBag.withDisposal(
-        ({ config }: { config: { region: string } }) => ({ region: config.region }),
-        () => {
+          } }), lifetime: 'singleton:one-per-container-tree' }),
+      session: DiBag.providerWithDisposal({ provider: ({ config }: { config: { region: string } }) => ({ region: config.region }), disposeService: () => {
           released.push('session');
-        },
-      ),
+        } }),
     })
     .buildContainer()
     .ensureServicesReady(['client']);

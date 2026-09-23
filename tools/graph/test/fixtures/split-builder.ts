@@ -1,5 +1,5 @@
 // tools/graph/test/fixtures/split-builder.ts
-import { DiBag } from '../../../../src';
+import { DiBag } from 'di-bag';
 type Search = { find(query: string): Promise<readonly string[]> };
 const retrievalModule = DiBag.createBuilder().withServices({
   normalize: () => (question: string) => question.trim(),
@@ -12,7 +12,7 @@ const incomplete = DiBag.createBuilder()
     run: ({ retrieve }: { retrieve: (question: string) => Promise<readonly string[]> }) => retrieve,
   });
 export const app = incomplete.withServices({
-  db: DiBag.withLifetime(DiBag.withDisposal(async ({ search }: { search: Search }) => search, () => {}), 'root'),
+  db: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: async ({ search }: { search: Search }) => search, disposeService: () => {} }), lifetime: 'singleton:one-per-container-tree' }),
 }).buildContainer();
 // A bag with a dependency cycle and an unregistered name. The cycle is not a type error; the
 // missing name is, and the extractor does not require the fixture to type-check.

@@ -11,7 +11,7 @@ const unused = () => { throw new Error('fixture not supplied'); };
 const base = DiBag.createBuilder()
   .withInstalledModules([checkoutModule])
   .withServices({
-    catalog: DiBag.withLifetime(() => ({ find: unused, list: unused }), 'root'),
+    catalog: DiBag.providerWithLifetime({ provider: () => ({ find: unused, list: unused }), lifetime: 'singleton:one-per-container-tree' }),
     inventory: () => ({ available: unused, reserve: unused, commit: unused }),
     payments: () => ({ charge: unused }),
     notifier: () => ({ orderPlaced: unused }),
@@ -22,7 +22,7 @@ after(() => base.close());
 function shop({ inStock = true, charge = async (cents: number) => `ch-${cents}` } = {}) {
   const log: string[] = [];
   const bag = base.createIndependentContainer(['catalog', 'inventory', 'payments', 'notifier'], {
-    catalog: DiBag.withLifetime(() => ({ find: (sku: string) => products.find(product => product.sku === sku), list: () => products }), 'root'),
+    catalog: DiBag.providerWithLifetime({ provider: () => ({ find: (sku: string) => products.find(product => product.sku === sku), list: () => products }), lifetime: 'singleton:one-per-container-tree' }),
     inventory: () => ({
       available: () => 0,
       reserve: (sku: string, quantity: number) => { log.push(`reserve ${sku} ${quantity}`); return inStock; },

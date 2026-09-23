@@ -8,7 +8,7 @@
 type Registration = Factory | FactoryWithDisposal<Factory> | ProviderBase;
 ```
 
-Defined in: [registration.ts:27](https://github.com/dany-fedorov/di-bag/blob/main/src/registration.ts#L27)
+Defined in: [registration.ts:28](https://github.com/dany-fedorov/di-bag/blob/main/src/registration.ts#L28)
 
 A factory, disposable factory, or immutable provider accepted by builders and decorators.
 

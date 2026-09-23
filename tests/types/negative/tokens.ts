@@ -15,7 +15,7 @@ DiBag.createBuilder().withTokenService(other, () => ({ value: 1 })).withServices
 // diagnostic: not assignable
 DiBag.createBuilder().withTokenService(token, () => ({ value: 'wrong' }));
 // diagnostic: not assignable
-DiBag.createBuilder().withTokenService(token, DiBag.transformService(() => 1, { mode: 'direct', transform: () => ({ value: 'wrong' }) }));
+DiBag.createBuilder().withTokenService(token, DiBag.providerWithTransformedService({ provider: () => 1, transformService: () => ({ value: 'wrong' }), callbackReceives: 'exposed-service' }));
 const builder = DiBag.createBuilder().withTokenService(token, () => ({ value: 1, extra: true })); const bag = builder.buildContainer();
 // diagnostic: duplicates
 builder.withTokenService(token, () => ({ value: 2 }));

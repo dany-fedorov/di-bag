@@ -6,10 +6,10 @@ test('inspectGraph lists public bindings in registration order without acquiring
   let created = 0;
   const bag = DiBag.createBuilder()
     .withServices({
-      config: DiBag.withLifetime(() => { created++; return { url: 'x' }; }, 'root'),
-      db: DiBag.withLifetime(DiBag.withDisposal(({ config }: { config: { url: string } }) => { created++; return { url: config.url }; }, () => {}), 'root'),
+      config: DiBag.providerWithLifetime({ provider: () => { created++; return { url: 'x' }; }, lifetime: 'singleton:one-per-container-tree' }),
+      db: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }: { config: { url: string } }) => { created++; return { url: config.url }; }, disposeService: () => {} }), lifetime: 'singleton:one-per-container-tree' }),
     })
-    .withServices({ handler: DiBag.withMetadata(({ db }: { db: { url: string } }) => () => db.url, { static: { 'app:kind': 'http' } }) })
+    .withServices({ handler: DiBag.providerWithRegistrationMetadata({ provider: ({ db }: { db: { url: string } }) => () => db.url, registrationMetadata: { 'app:kind': 'http' } }) })
     .withServiceAlias({ aliasKey: 'client', targetServiceKey: 'db' })
     .buildContainer();
   const graph = bag.graphSnapshot();
@@ -73,7 +73,7 @@ test('inspectGraph reports observed edges, contributions, private module binding
 });
 
 test('a child scope reports its own scope id and the family edges', async () => {
-  const root = DiBag.createBuilder().withServices({ shared: DiBag.withLifetime(() => 1, 'root'), local: ({ shared }: { shared: number }) => shared + 1 }).buildContainer();
+  const root = DiBag.createBuilder().withServices({ shared: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }), local: ({ shared }: { shared: number }) => shared + 1 }).buildContainer();
   const child = root.createChildContainer();
   expect(child.graphSnapshot().scopeId).not.toBe(root.graphSnapshot().scopeId);
   expect(child.resolve('local')).toBe(2);

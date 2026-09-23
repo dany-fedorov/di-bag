@@ -6,10 +6,10 @@ const raw = DiBag.createProvider(() => pending, { factoryReturnKind: 'uninspecte
 const native = DiBag.createProvider(() => pending, { factoryReturnKind: 'native-promise' });
 // diagnostic: native-promise factory return kind requires a Promise output
 DiBag.createProvider(() => 7, { factoryReturnKind: 'native-promise' });
-// diagnostic: No overload matches
-DiBag.withDisposal(raw, (value: { id: number }) => {});
-// diagnostic: No overload matches
-DiBag.withDisposal(native, (value: Promise<{ id: number }>) => {});
+// diagnostic: not assignable
+DiBag.providerWithDisposal({ provider: raw, disposeService: (value: { id: number }) => {} });
+// diagnostic: not assignable
+DiBag.providerWithDisposal({ provider: native, disposeService: (value: Promise<{ id: number }>) => {} });
 // diagnostic: not assignable
 DiBag.createProvider(() => 7, { factoryReturnKind: 'guess' });
 // diagnostic: not assignable
@@ -19,19 +19,19 @@ DiBag.withConfiguration({ runtime: { isNativePromise: (value: Promise<unknown>) 
 // diagnostic: not assignable
 DiBag.withConfiguration({ runtime: { isNativePromise: () => 'yes' } });
 // diagnostic: not assignable
-DiBag.transformService(native, { mode: 'direct', transform: () => 7, ...{ acquisitionMode: 'native-promise' } });
+DiBag.providerWithTransformedService({ provider: native, transformService: () => 7, callbackReceives: 'exposed-service', transformReturnKind: 'native-promise' });
 // diagnostic: not assignable
 DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: () => 7, factoryReturnKind: 'native-promise' });
-// diagnostic: Property 'acquisitionMode' is missing
-DiBag.transformService<typeof native, (value: typeof pending) => typeof pending, 'uninspected'>(native, { mode: 'direct', transform: value => value });
+// diagnostic: Property 'transformReturnKind' is missing
+DiBag.providerWithTransformedService<typeof native, (value: typeof pending) => typeof pending, 'uninspected'>({ provider: native, transformService: value => value, callbackReceives: 'exposed-service' });
 // diagnostic: Property 'factoryReturnKind' is missing
 DiBag.createProviderFromFunction<readonly [], () => typeof pending, 'uninspected'>({ dependencies: [], factoryFunction: () => pending });
 declare const union: typeof raw | typeof native;
-// diagnostic: No overload matches
-DiBag.withDisposal(union, (value: { id: number }) => {});
+// diagnostic: not assignable
+DiBag.providerWithDisposal({ provider: union, disposeService: (value: { id: number }) => {} });
 declare const erased: ProviderBase;
-// diagnostic: No overload matches
-DiBag.withDisposal(erased, (value: Promise<unknown>) => {});
+// diagnostic: not assignable
+DiBag.providerWithDisposal({ provider: erased, disposeService: (value: Promise<unknown>) => {} });
 declare const acquired: ProviderAcquiredValue<ProviderBase>;
 // diagnostic: not assignable
 const number: number = acquired;

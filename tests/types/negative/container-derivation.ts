@@ -36,14 +36,14 @@ const incomplete = DiBag.createBuilder().withServices({
 incomplete.createIndependentContainer(['selected'], { selected: ({ missing }: { missing: number }) => missing });
 
 const lifetime = DiBag.createBuilder().withServices({
-  db: DiBag.withLifetime(() => 1, 'root'),
-  rootService: DiBag.withLifetime(({ db }: { db: number }) => db, 'root'),
+  db: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }),
+  rootService: DiBag.providerWithLifetime({ provider: ({ db }: { db: number }) => db, lifetime: 'singleton:one-per-container-tree' }),
 }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
 lifetime.createIndependentContainer(['db'], { db: () => 2 });
 
 const transient = DiBag.createBuilder().withServices({
-  value: DiBag.withLifetime(() => 1, 'transient'),
+  value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'transient:one-per-resolve' }),
 }).buildContainer();
 // diagnostic: createChildContainer cannot share transient providers
 transient.createChildContainer([], {}, { sharedParentServiceKeys: ['value'] });

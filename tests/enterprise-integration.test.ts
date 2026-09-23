@@ -7,19 +7,17 @@ test('overlapping requests isolate private dependencies and release scopes befor
   const signals: AbortSignal[] = [];
   let roots = 0;
   const feature = DiBag.createBuilder().withServices({
-    privateSession: DiBag.withDisposal(DiBag.createProvider(({ request }: { request: { id: string } }, context) => {
+    privateSession: DiBag.providerWithDisposal({ provider: DiBag.createProvider(({ request }: { request: { id: string } }, context) => {
         signals.push(context.abortSignal);
         return { id: request.id };
-      }, { factoryReceivesContext: true }), session => { released.push(session.id); }),
+      }, { factoryReceivesContext: true }), disposeService: session => { released.push(session.id); } }),
     handler: ({ privateSession, database }: {
       privateSession: { id: string }; database: { serial: number };
     }) => ({ request: privateSession.id, database }),
   }).buildModule({ exportedServiceKeys: ['handler'] });
   const root = DiBag.createBuilder().withInstalledModules([feature]).withServices({
     request: () => ({ id: 'root' }),
-    database: DiBag.withLifetime(DiBag.withDisposal(
-      () => ({ serial: ++roots }), () => { released.push('database'); },
-    ), 'root'),
+    database: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ serial: ++roots }), disposeService: () => { released.push('database'); } }), lifetime: 'singleton:one-per-container-tree' }),
   }).buildContainer();
   let entered = 0;
   let release!: () => void;
@@ -53,7 +51,7 @@ test('owned-scope fixture preserves handler and cleanup failures without closing
   const cleanupFailure = new Error('cleanup');
   let closes = 0;
   const builder = DiBag.createBuilder().withServices({
-    resource: DiBag.withDisposal(() => 42, () => { closes++; throw cleanupFailure; }),
+    resource: DiBag.providerWithDisposal({ provider: () => 42, disposeService: () => { closes++; throw cleanupFailure; } }),
   });
   const result = await withOwnedScope(() => builder.buildContainer(), scope => {
     scope.resolve('resource');
@@ -74,7 +72,7 @@ test('test substitutions retain private module contracts and fresh transient ins
   }).buildModule({ exportedServiceKeys: ['result'] });
   const builder = DiBag.createBuilder().withInstalledModules([feature]).withServices({
     clock: () => ({ now: () => Date.now() }),
-    attempt: DiBag.withLifetime(() => ({ id: ++created }), 'transient'),
+    attempt: DiBag.providerWithLifetime({ provider: () => ({ id: ++created }), lifetime: 'transient:one-per-resolve' }),
   });
   await withOwnedScope(() => builder.withReplacedService('clock', () => ({ now: () => 7 })).buildContainer(), scope => {
     const value: number = scope.resolve('result');
@@ -136,7 +134,7 @@ test('a fixture whose startup fails releases acquired resources without admittin
   let released = 0;
   let work = 0;
   const builder = DiBag.createBuilder().withServices({
-    resource: DiBag.withDisposal(() => ({ ready: true }), () => { released++; }),
+    resource: DiBag.providerWithDisposal({ provider: () => ({ ready: true }), disposeService: () => { released++; } }),
     handler: ({ resource }: { resource: { ready: boolean } }) => {
       expect(resource.ready).toBe(true);
       throw failure;

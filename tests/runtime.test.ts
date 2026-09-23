@@ -75,10 +75,7 @@ test('ending one builder twice and forking create fresh owned roots', async () =
   const disposed: number[] = [];
   let created = 0;
   const builder = DiBag.createBuilder().withServices({
-    resource: DiBag.withDisposal(
-      () => ({ id: ++created }),
-      value => { disposed.push(value.id); },
-    ),
+    resource: DiBag.providerWithDisposal({ provider: () => ({ id: ++created }), disposeService: value => { disposed.push(value.id); } }),
   });
   const first = builder.buildContainer();
   const second = builder.buildContainer();

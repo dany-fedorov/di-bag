@@ -90,7 +90,7 @@ test('canonical signatures are followed by comment-only parameter details', () =
   assert.match(container, /\| Parameter \| Description \|/);
   assert.doesNotMatch(container, /\| Parameter \| Type \|/);
   assert.match(container, /\| Type Parameter \| Description \|/);
-  assert.match(facade, /\| `create` \| The receiver-free service factory\. \|/);
+  assert.match(facade, /\| `options` \| The provider and disposer callback\. \|/);
 });
 
 test('source declarations preserve aliases and property modifiers exactly', () => {
@@ -161,10 +161,9 @@ test('documented parameter names carry no abbreviations', () => {
 
 test('callback parameters in public signatures are named by role', () => {
   const facadeText = compact(facade);
-  assert.match(facadeText, /dispose: \(this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>\) => void \| Promise<void>/);
-  assert.match(facadeText, /dispose: \(this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>\) => void \| Promise<void>/);
-  assert.match(facadeText, /Transform extends \(this: void, exposedService: ProviderOutput<NoInfer<ServiceRegistration>>\) =>/);
-  assert.match(facadeText, /Transform extends \(this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<ServiceRegistration>>>\) =>/);
+  assert.match(facadeText, /disposeService: \(this: void, service: ProviderAcquiredValue<NoInfer<ServiceProvider>>\) => void \| Promise<void>/);
+  assert.match(facadeText, /Transform extends \(this: void, service: NoInfer<CallbackReceives> extends 'fulfilled-value' \? Awaited<ProviderOutput<NoInfer<ServiceProvider>>> : ProviderOutput<NoInfer<ServiceProvider>>\) =>/);
+  assert.match(facadeText, /Transform extends \(this: void, service: ProviderOutput<NoInfer<ServiceProvider>>\) =>/);
   assert.doesNotMatch(facadeText, /\(this: void, value:/);
   assert.match(pluginOutputValidator, /type PluginOutputValidator<V> = \(this: void, pluginOutput: unknown\) => pluginOutput is V;/);
 });

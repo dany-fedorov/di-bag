@@ -6,9 +6,9 @@ import { withTokenBinding } from '../src/provider';
 
 test('lifetime replacement preserves the source and owned stages', () => {
   let calls = 0;
-  const source = DiBag.withDisposal(() => { calls++; return { n: 1 }; }, () => {});
+  const source = DiBag.providerWithDisposal({ provider: () => { calls++; return { n: 1 }; }, disposeService: () => {} });
   const root = withLifetime(source, 'root', { allowScopedDependencies: true });
-  const next = withLifetime(DiBag.withMetadata(root, { static: { owner: 'app' } }), 'transient');
+  const next = withLifetime(DiBag.providerWithRegistrationMetadata({ provider: root, registrationMetadata: { owner: 'app' } }), 'transient');
   expect(calls).toBe(0);
   expect(normalize(root).lifetime).toEqual({ kind: 'singleton', allowsScopedDependencies: true });
   expect(normalize(next).lifetime).toEqual({ kind: 'transient', allowsScopedDependencies: false });
@@ -50,7 +50,7 @@ test('all provider transformations retain the immutable policy', () => {
   const source = withLifetime(() => 1, 'root');
   const key = Symbol('value');
   const token = DiBag.createToken(key).forService<ReturnType<ReturnType<typeof normalize>['create']>>();
-  const variants = [DiBag.withMetadata(source, { static: { x: 1 } }), DiBag.withDisposal(source, () => {}), DiBag.transformService(source, { mode: 'direct', transform: x => x }), DiBag.transformService(source, { mode: 'awaited', transform: x => x }),
-    DiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: value => ({ value }) } }), DiBag.withMetadata(source, { dynamic: { mode: 'awaited', describe: value => ({ value }) } }), withTokenBinding(token, source)];
+  const variants = [DiBag.providerWithRegistrationMetadata({ provider: source, registrationMetadata: { x: 1 } }), DiBag.providerWithDisposal({ provider: source, disposeService: () => {} }), DiBag.providerWithTransformedService({ provider: source, transformService: x => x, callbackReceives: 'exposed-service' }), DiBag.providerWithTransformedService({ provider: source, transformService: x => x, callbackReceives: 'fulfilled-value' }),
+    DiBag.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: value => ({ value }), callbackReceives: 'exposed-service' }), DiBag.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: value => ({ value }), callbackReceives: 'fulfilled-value' }), withTokenBinding(token, source)];
   for (const variant of variants) expect(normalize(variant).lifetime).toBe(normalize(source).lifetime);
 });

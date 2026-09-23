@@ -8,6 +8,6 @@
 type ProviderOrFactory = Factory | ProviderBase;
 ```
 
-Defined in: [registration.ts:29](https://github.com/dany-fedorov/di-bag/blob/main/src/registration.ts#L29)
+Defined in: [registration.ts:30](https://github.com/dany-fedorov/di-bag/blob/main/src/registration.ts#L30)
 
 A plain factory or immutable provider accepted by provider composition facades.

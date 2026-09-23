@@ -115,10 +115,6 @@
             "link": "/reference/index/interfaces/FactoryContext.md"
           },
           {
-            "text": "FactoryWithDisposal",
-            "link": "/reference/index/interfaces/FactoryWithDisposal.md"
-          },
-          {
             "text": "GraphSnapshot",
             "link": "/reference/index/interfaces/GraphSnapshot.md"
           },

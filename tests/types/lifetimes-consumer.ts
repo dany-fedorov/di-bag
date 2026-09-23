@@ -12,7 +12,7 @@ export const db = scoped.resolve('db');
 export const forked = independent.resolve('repo');
 export const installed = moduleBag.resolve('raw');
 export type Checks = [
-  Assert<Equal<typeof repo, number>>, Assert<Equal<typeof db, { query(): number }>>, Assert<Equal<typeof forked, number>>,
+  Assert<Equal<typeof repo, number>>, Assert<Equal<typeof db, { query: () => 1 }>>, Assert<Equal<typeof forked, number>>,
   Assert<Equal<IsAny<typeof installed>, false>>, Assert<Equal<typeof installed, Promise<{ id: number }>>>,
   Assert<Equal<ProviderAcquiredValue<typeof raw>, Promise<{ id: number }>>>, Assert<Equal<ProviderAcquiredValue<typeof native>, { id: number }>>,
   Assert<Equal<ProviderOutput<typeof metadata>, Promise<{ id: number }>>>, Assert<Equal<ProviderRegistrationMetadata<typeof metadata>, Readonly<{ owner: 'app' }>>>,

@@ -14,15 +14,12 @@ export const feature = DiBag.createBuilder()
   .withTokenService(clock, () => ({ now: () => 42 }))
   .withTokenService(
     connection,
-    DiBag.withDisposal(
-      () => ({
+    DiBag.providerWithDisposal({ provider: () => ({
         id: ++nextConnectionId,
         close() {
           console.log(`connection ${this.id} closed`);
         },
-      }),
-      (value) => value.close(),
-    ),
+      }), disposeService: (value) => value.close() }),
   )
   .withServices({
     service: DiBag.createProviderFromFunction(

@@ -1,8 +1,6 @@
 import { DiBag, type ModuleRequiredServices, type ModuleExportedServices, type ModuleContributions } from '../../src';
 import type { Assert, Equal } from './assert';
 
-const withLifetime = DiBag.withLifetime;
-
 // A module installed inside a module: needs satisfied privately are final, needs
 // satisfied by an export stay checkable, and unmet needs are forwarded outward.
 const inner = DiBag.createBuilder().withServices({
@@ -60,11 +58,11 @@ type TokenExact = Assert<Equal<ReturnType<typeof tokenHost.resolve<'stamp'>>, nu
 
 // Root lifetimes inside nested modules are accepted when their dependencies are roots at every level.
 const rootInner = DiBag.createBuilder().withServices({
-  db: withLifetime(() => 1, 'root'),
-  cache: withLifetime(({ db }: { db: number }) => db, 'root'),
+  db: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }),
+  cache: DiBag.providerWithLifetime({ provider: ({ db }: { db: number }) => db, lifetime: 'singleton:one-per-container-tree' }),
 }).buildModule({ exportedServiceKeys: ['cache'] });
 const rootOuter = DiBag.createBuilder().withInstalledModules([rootInner]).withServices({
-  api: withLifetime(({ cache }: { cache: number }) => cache, 'root'),
+  api: DiBag.providerWithLifetime({ provider: ({ cache }: { cache: number }) => cache, lifetime: 'singleton:one-per-container-tree' }),
 }).buildModule({ exportedServiceKeys: ['api'] });
 export const rootHost = DiBag.createBuilder().withInstalledModules([rootOuter]).buildContainer();
 

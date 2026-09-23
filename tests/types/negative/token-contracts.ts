@@ -83,6 +83,6 @@ DiBag.createBuilder().withTokenService(token, bound).withTokenService(token, bou
 // diagnostic: not assignable
 createProviderFromFunction({ dependencies: [token], factoryFunction: (value: string) => value });
 // diagnostic: not assignable
-withTokenBinding(token, DiBag.transformService(() => 1, { mode: 'direct', transform: () => 'wrong' }));
+withTokenBinding(token, DiBag.providerWithTransformedService({ provider: () => 1, transformService: () => 'wrong', callbackReceives: 'exposed-service' }));
 // diagnostic: cannot be used as a value
 new Token(key);

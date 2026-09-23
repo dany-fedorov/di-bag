@@ -63,8 +63,8 @@ DiBag.createBuilder()
 
 // A disposable factory through the zero-dependency overload, and a token alias of a named service.
 const owned = DiBag.createBuilder()
-  .withServices({ connection: DiBag.withDisposal(() => ({ open: true }), connection => { connection.open = false; }) })
-  .withReplacedService('connection', DiBag.withDisposal(() => ({ open: false }), () => {}))
+  .withServices({ connection: DiBag.providerWithDisposal({ provider: () => ({ open: true }), disposeService: connection => { connection.open = false; } }) })
+  .withReplacedService('connection', DiBag.providerWithDisposal({ provider: () => ({ open: false }), disposeService: () => {} }))
   .withServices({ time: (): Clock => ({ now: () => 4 }) })
   .withServiceAlias({ aliasKey: clock, targetServiceKey: 'time' });
 export const viaToken: Clock = owned.buildContainer().resolve(clock);

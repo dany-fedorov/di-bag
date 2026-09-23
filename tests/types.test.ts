@@ -343,3 +343,36 @@ test('provider facade lifetime option controls remain independently rejected', (
     '[extraSymbol]',
   ]);
 });
+
+test('provider facade raw thenables remain rejected at their normalization boundary', () => {
+  const path = resolve(negativeDirectory, 'provider-facade-thenables.ts');
+  const source = readFileSync(path, 'utf8');
+  const markers = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
+  const errors = negativeDiagnostics.get(path)!;
+  expect(markers).toHaveLength(14);
+  expect(errors).toHaveLength(14);
+  const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
+  expect(matched.missing).toEqual([]);
+  expect(matched.unexpected).toEqual([]);
+  expect(errors.slice(0, 12).map(error => source.slice(error.start!, error.start! + error.length!))).toEqual([
+    'provider', 'provider', 'provider', 'provider', 'provider', 'provider',
+    'provider', 'provider', 'exposedAcquisitionOptions', 'provider', 'provider',
+    'fulfilledTransformOptions',
+  ]);
+  expect(errors.slice(12).every(error => source.slice(error.start!, error.start! + error.length!).includes('QueryBuilder'))).toBe(true);
+});
+
+test('provider replacement self admission preserves useful malformed-dependency diagnostics', () => {
+  const path = resolve(negativeDirectory, 'provider-replacement-self-admission.ts');
+  const source = readFileSync(path, 'utf8');
+  const markers = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
+  const errors = negativeDiagnostics.get(path)!;
+  expect(markers).toHaveLength(6);
+  expect(errors).toHaveLength(6);
+  const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
+  expect(matched.missing).toEqual([]);
+  expect(matched.unexpected).toEqual([]);
+  expect(errors.slice(0, 3).every(error => ts.flattenDiagnosticMessageText(error.messageText, '\n').includes("not assignable to parameter of type 'never'"))).toBe(true);
+  expect(errors.slice(3, 5).every(error => ts.flattenDiagnosticMessageText(error.messageText, '\n').includes('factory dependencies must be finite'))).toBe(true);
+  expect(ts.flattenDiagnosticMessageText(errors[5]!.messageText, '\n')).toContain('No overload matches');
+});

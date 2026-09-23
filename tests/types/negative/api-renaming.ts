@@ -27,23 +27,23 @@ import type { PluginOptions } from '../../../src';
 import type { PluginProviderFactory } from '../../../src';
 const base = DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' });
 // diagnostic: No overload matches
-DiBag.withMetadata(base, { dynamic: { describe: (_value: Promise<number>) => ({}) } });
+DiBag.providerWithAcquisitionMetadata({ provider: base, describeAcquisition: (_value: Promise<number>) => ({}) });
 // diagnostic: No overload matches
-DiBag.withMetadata(base, { dynamic: { mode: 'direct', describe: async () => ({}) } });
+DiBag.providerWithAcquisitionMetadata({ provider: base, describeAcquisition: async () => ({}), callbackReceives: 'exposed-service' });
 // diagnostic: No overload matches
-DiBag.withMetadata(base, { dynamic: { mode: 'awaited', describe: async () => ({}) } });
+DiBag.providerWithAcquisitionMetadata({ provider: base, describeAcquisition: async () => ({}), callbackReceives: 'fulfilled-value' });
+// diagnostic: Property 'registrationMetadata' is missing
+DiBag.providerWithRegistrationMetadata({ provider: base });
+// diagnostic: duplicate metadata keys
+DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithRegistrationMetadata({ provider: base, registrationMetadata: { owner: 1 } }), registrationMetadata: { owner: 2 } });
 // diagnostic: No overload matches
-DiBag.withMetadata(base, {});
-// diagnostic: No overload matches
-DiBag.withMetadata(DiBag.withMetadata(base, { static: { owner: 1 } }), { static: { owner: 2 } });
-// diagnostic: No overload matches
-DiBag.transformService(base, { mode: 'awaited', acquisitionMode: 'uninspected', transform: value => value });
+DiBag.providerWithTransformedService({ provider: base, transformService: value => value, callbackReceives: 'fulfilled-value', transformReturnKind: 'uninspected' });
 // diagnostic: No overload matches
 DiBag.createProvider(() => 1, { factoryReturnKind: 'native-promise' });
 // diagnostic: not assignable
 DiBag.createProvider((_deps: {}, _context: { signal: AbortSignal }) => 1);
 // diagnostic: No overload matches
-DiBag.transformService(base, { mode: 'direct', acquisitionMode: 'native-promise', transform: () => 1 });
+DiBag.providerWithTransformedService({ provider: base, transformService: () => 1, callbackReceives: 'exposed-service', transformReturnKind: 'native-promise' });
 const numberKey = Symbol('number');
 const number = DiBag.createToken(numberKey).forService<number>();
 // diagnostic: positional factory arguments must match the declared parameter tuple
@@ -90,7 +90,7 @@ retiredBuilder.verifyGraph();
 // diagnostic: does not exist
 retiredBuilder.build();
 // diagnostic: exportedServiceKeys
-DiBag.createBuilder().withServices({ value: () => 1 }).buildModule(['value']);
+DiBag.createBuilder().withServices({ value: () => 1 })['buildModule'](['value']);
 
 const retiredContainer = DiBag.createBuilder().buildContainer();
 // diagnostic: does not exist
@@ -108,7 +108,7 @@ const moduleForRename = DiBag.createBuilder().withServices({ value: () => 1 }).b
 // diagnostic: does not exist
 moduleForRename.renameExport('value', 'other');
 // diagnostic: does not exist
-DiBag.withConfiguration({ observers: [] });
+DiBag['withConfiguration']({ observers: [] });
 const lifecycleObserver = { onLifecycleEvent() {}, onObserverFailure() {} } satisfies import('../../../src').LifecycleObserver;
 // diagnostic: does not exist
 lifecycleObserver.onEvent;

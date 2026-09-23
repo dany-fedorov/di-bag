@@ -355,19 +355,19 @@ const stamp = DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(c
 ```ts
 readonly providerWithAcquisitionMetadata: {
     <ServiceProvider extends ProviderOrFactory, Describe extends (this: void, service: ProviderOutput<NoInfer<ServiceProvider>>) => object>(options: {
-        readonly provider: ServiceProvider;
+        readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
         readonly describeAcquisition: Describe & AcquisitionMetadataAdmission<ReturnType<Describe>>;
         readonly callbackReceives: 'exposed-service';
     }): Provider<ProviderFactory<ServiceProvider>, RetainedMetadata<ServiceProvider>, readonly [...ProviderAcquisitionMetadata<ServiceProvider>, Readonly<ReturnType<Describe>>], ProviderGraphContract<ServiceProvider>, ProviderAcquiredValue<ServiceProvider>>;
     <ServiceProvider extends ProviderOrFactory, Describe extends (this: void, service: Awaited<ProviderOutput<NoInfer<ServiceProvider>>>) => object>(options: {
-        readonly provider: ServiceProvider;
+        readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
         readonly describeAcquisition: Describe & AcquisitionMetadataAdmission<ReturnType<Describe>>;
         readonly callbackReceives: 'fulfilled-value';
     }): Provider<MappedProviderFactory<ProviderFactory<ServiceProvider>, Promise<Awaited<ProviderOutput<ServiceProvider>>>>, RetainedMetadata<ServiceProvider>, readonly [...ProviderAcquisitionMetadata<ServiceProvider>, Readonly<ReturnType<Describe>>], ProviderGraphContract<ServiceProvider>, Awaited<ProviderOutput<ServiceProvider>>>;
 };
 ```
 
-Defined in: [di-bag.ts:809](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L809)
+Defined in: [di-bag.ts:813](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L813)
 
 Append one synchronous acquisition-metadata frame using the selected callback input.
 
@@ -375,7 +375,7 @@ Append one synchronous acquisition-metadata frame using the selected callback in
 
 ```ts
 <ServiceProvider extends ProviderOrFactory, Describe extends (this: void, service: ProviderOutput<NoInfer<ServiceProvider>>) => object>(options: {
-    readonly provider: ServiceProvider;
+    readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
     readonly describeAcquisition: Describe & AcquisitionMetadataAdmission<ReturnType<Describe>>;
     readonly callbackReceives: 'exposed-service';
 }): Provider<ProviderFactory<ServiceProvider>, RetainedMetadata<ServiceProvider>, readonly [...ProviderAcquisitionMetadata<ServiceProvider>, Readonly<ReturnType<Describe>>], ProviderGraphContract<ServiceProvider>, ProviderAcquiredValue<ServiceProvider>>;
@@ -410,7 +410,7 @@ const observed = DiBag.providerWithAcquisitionMetadata({ provider: () => 1, call
 
 ```ts
 <ServiceProvider extends ProviderOrFactory, Describe extends (this: void, service: Awaited<ProviderOutput<NoInfer<ServiceProvider>>>) => object>(options: {
-    readonly provider: ServiceProvider;
+    readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
     readonly describeAcquisition: Describe & AcquisitionMetadataAdmission<ReturnType<Describe>>;
     readonly callbackReceives: 'fulfilled-value';
 }): Provider<MappedProviderFactory<ProviderFactory<ServiceProvider>, Promise<Awaited<ProviderOutput<ServiceProvider>>>>, RetainedMetadata<ServiceProvider>, readonly [...ProviderAcquisitionMetadata<ServiceProvider>, Readonly<ReturnType<Describe>>], ProviderGraphContract<ServiceProvider>, Awaited<ProviderOutput<ServiceProvider>>>;
@@ -457,12 +457,12 @@ const observed = DiBag.providerWithAcquisitionMetadata({ provider: () => 1, call
 
 ```ts
 readonly providerWithDisposal: <ServiceProvider extends ProviderOrFactory>(options: {
-    readonly provider: ServiceProvider;
+    readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
     readonly disposeService: (this: void, service: ProviderAcquiredValue<NoInfer<ServiceProvider>>) => void | Promise<void>;
 }) => Provider<ProviderFactory<ServiceProvider>, RetainedMetadata<ServiceProvider>, ProviderAcquisitionMetadata<ServiceProvider>, ProviderGraphContract<ServiceProvider>, ProviderAcquiredValue<ServiceProvider>>;
 ```
 
-Defined in: [di-bag.ts:782](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L782)
+Defined in: [di-bag.ts:786](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L786)
 
 Add an ownership stage to a provider input.
 
@@ -507,12 +507,12 @@ const owned = DiBag.providerWithDisposal({ provider: () => ({ close() {} }), dis
 
 ```ts
 readonly providerWithLifetime: <ServiceProvider extends ProviderOrFactory, const SelectedLifetime extends Lifetime, const Options extends object = {}>(options: {
-    readonly provider: ServiceProvider;
+    readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
     readonly lifetime: SelectedLifetime & LifetimeAdmission<SelectedLifetime>;
 } & CheckedFacadeLifetimeOptions<NoInfer<SelectedLifetime>, Options>) => Provider<ProviderFactory<ServiceProvider>, RetainedMetadata<ServiceProvider>, ProviderAcquisitionMetadata<ServiceProvider>, LifetimeGraph<ProviderGraphContract<ServiceProvider>, SelectedLifetime, Options>, ProviderAcquiredValue<ServiceProvider>>;
 ```
 
-Defined in: [di-bag.ts:791](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L791)
+Defined in: [di-bag.ts:795](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L795)
 
 Select a full lifetime for a provider input.
 
@@ -558,12 +558,12 @@ const cached = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'single
 
 ```ts
 readonly providerWithRegistrationMetadata: <ServiceProvider extends ProviderOrFactory, AddedMetadata extends object>(options: {
-    readonly provider: ServiceProvider;
+    readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
     readonly registrationMetadata: AddedMetadata & MetadataKeys<NoInfer<ServiceProvider>, AddedMetadata>;
 }) => Provider<ProviderFactory<ServiceProvider>, Readonly<RetainedMetadata<ServiceProvider> & AddedMetadata>, ProviderAcquisitionMetadata<ServiceProvider>, ProviderGraphContract<ServiceProvider>, ProviderAcquiredValue<ServiceProvider>>;
 ```
 
-Defined in: [di-bag.ts:800](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L800)
+Defined in: [di-bag.ts:804](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L804)
 
 Add noncolliding registration metadata without acquiring the service.
 
@@ -610,20 +610,20 @@ const registered = DiBag.providerWithRegistrationMetadata({ provider: () => 1, r
 ```ts
 readonly providerWithTransformedService: {
     <ServiceProvider extends ProviderOrFactory, Transform extends (this: void, service: NoInfer<CallbackReceives> extends 'fulfilled-value' ? Awaited<ProviderOutput<NoInfer<ServiceProvider>>> : ProviderOutput<NoInfer<ServiceProvider>>) => unknown, const CallbackReceives extends 'fulfilled-value' | 'exposed-service' = 'fulfilled-value'>(options: {
-        readonly provider: ServiceProvider;
+        readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
         readonly transformService: Transform & ([NoInfer<CallbackReceives>] extends ['fulfilled-value'] ? unknown : never);
         readonly callbackReceives: CallbackReceives;
         readonly transformReturnKind?: never;
     }): Provider<MappedProviderFactory<ProviderFactory<ServiceProvider>, Promise<Awaited<ReturnType<Transform>>>>, RetainedMetadata<ServiceProvider>, ProviderAcquisitionMetadata<ServiceProvider>, ProviderGraphContract<ServiceProvider>, Awaited<ReturnType<Transform>>>;
     <ServiceProvider extends ProviderOrFactory, Transform extends (this: void, service: ProviderOutput<NoInfer<ServiceProvider>>) => any, ReturnKind extends FactoryReturnKind = 'auto-detect'>(options: {
-        readonly provider: ServiceProvider;
+        readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
         readonly transformService: Transform & AutoOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>>;
         readonly callbackReceives: 'exposed-service';
     } & CheckedTransformReturnKindOptions<ReturnType<NoInfer<Transform>>, ReturnKind>): Provider<MappedProviderFactory<ProviderFactory<ServiceProvider>, ReturnType<Transform>>, RetainedMetadata<ServiceProvider>, ProviderAcquisitionMetadata<ServiceProvider>, ProviderGraphContract<ServiceProvider>, Acquired<ReturnType<Transform>, ReturnKind>>;
 };
 ```
 
-Defined in: [di-bag.ts:818](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L818)
+Defined in: [di-bag.ts:822](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L822)
 
 Transform the selected callback input while retaining dependencies, metadata, lifetime and ownership stages.
 
@@ -631,7 +631,7 @@ Transform the selected callback input while retaining dependencies, metadata, li
 
 ```ts
 <ServiceProvider extends ProviderOrFactory, Transform extends (this: void, service: NoInfer<CallbackReceives> extends 'fulfilled-value' ? Awaited<ProviderOutput<NoInfer<ServiceProvider>>> : ProviderOutput<NoInfer<ServiceProvider>>) => unknown, const CallbackReceives extends 'fulfilled-value' | 'exposed-service' = 'fulfilled-value'>(options: {
-    readonly provider: ServiceProvider;
+    readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
     readonly transformService: Transform & ([NoInfer<CallbackReceives>] extends ['fulfilled-value'] ? unknown : never);
     readonly callbackReceives: CallbackReceives;
     readonly transformReturnKind?: never;
@@ -668,7 +668,7 @@ const mapped = DiBag.providerWithTransformedService({ provider: async () => 1, c
 
 ```ts
 <ServiceProvider extends ProviderOrFactory, Transform extends (this: void, service: ProviderOutput<NoInfer<ServiceProvider>>) => any, ReturnKind extends FactoryReturnKind = 'auto-detect'>(options: {
-    readonly provider: ServiceProvider;
+    readonly provider: ServiceProvider & PlainFactoryAdmission<NoInfer<ServiceProvider>>;
     readonly transformService: Transform & AutoOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>>;
     readonly callbackReceives: 'exposed-service';
 } & CheckedTransformReturnKindOptions<ReturnType<NoInfer<Transform>>, ReturnKind>): Provider<MappedProviderFactory<ProviderFactory<ServiceProvider>, ReturnType<Transform>>, RetainedMetadata<ServiceProvider>, ProviderAcquisitionMetadata<ServiceProvider>, ProviderGraphContract<ServiceProvider>, Acquired<ReturnType<Transform>, ReturnKind>>;
@@ -712,96 +712,6 @@ const mapped = DiBag.providerWithTransformedService({ provider: () => 1, callbac
 
 ***
 
-### transformService
-
-```ts
-transformService: {
-    <ServiceRegistration extends Registration, Transform extends (this: void, exposedService: ProviderOutput<NoInfer<ServiceRegistration>>) => ('native-promise' extends ReturnKind ? Promise<unknown> : unknown), ReturnKind extends FactoryReturnKind = 'auto-detect'>(registration: ServiceRegistration & Registration, options: {
-        readonly mode: 'direct';
-        readonly transform: Transform;
-    } & LegacyTransformReturnKindOptions<ReturnKind> & NativeOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>> & AutoOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>> & SyncOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>>): Provider<MappedFactory<ServiceRegistration, ReturnType<Transform>>, RetainedMetadata<ServiceRegistration>, ProviderAcquisitionMetadata<ServiceRegistration>, ProviderGraphContract<ServiceRegistration>, Acquired<ReturnType<Transform>, ReturnKind>>;
-    <ServiceRegistration extends Registration, Transform extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<ServiceRegistration>>>) => unknown>(registration: ServiceRegistration & Registration, options: {
-        readonly mode: 'awaited';
-        readonly transform: Transform;
-        readonly acquisitionMode?: never;
-    }): Provider<MappedFactory<ServiceRegistration, Promise<Awaited<ReturnType<Transform>>>>, RetainedMetadata<ServiceRegistration>, ProviderAcquisitionMetadata<ServiceRegistration>, ProviderGraphContract<ServiceRegistration>>;
-};
-```
-
-Defined in: [di-bag.ts:773](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L773)
-
-Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership.
-
-#### Call Signature
-
-```ts
-<ServiceRegistration extends Registration, Transform extends (this: void, exposedService: ProviderOutput<NoInfer<ServiceRegistration>>) => ('native-promise' extends ReturnKind ? Promise<unknown> : unknown), ReturnKind extends FactoryReturnKind = 'auto-detect'>(registration: ServiceRegistration & Registration, options: {
-    readonly mode: 'direct';
-    readonly transform: Transform;
-} & LegacyTransformReturnKindOptions<ReturnKind> & NativeOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>> & AutoOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>> & SyncOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>>): Provider<MappedFactory<ServiceRegistration, ReturnType<Transform>>, RetainedMetadata<ServiceRegistration>, ProviderAcquisitionMetadata<ServiceRegistration>, ProviderGraphContract<ServiceRegistration>, Acquired<ReturnType<Transform>, ReturnKind>>;
-```
-
-Transform the exact exposed service without awaiting the input or callback result.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `ServiceRegistration` | The source registration and retained contracts. |
-| `Transform` | The exact transform callback signature and output. |
-| `ReturnKind` | The result's acquisition policy. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `registration` | - |
-| `options` | - |
-
-#### Call Signature
-
-```ts
-<ServiceRegistration extends Registration, Transform extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<ServiceRegistration>>>) => unknown>(registration: ServiceRegistration & Registration, options: {
-    readonly mode: 'awaited';
-    readonly transform: Transform;
-    readonly acquisitionMode?: never;
-}): Provider<MappedFactory<ServiceRegistration, Promise<Awaited<ReturnType<Transform>>>>, RetainedMetadata<ServiceRegistration>, ProviderAcquisitionMetadata<ServiceRegistration>, ProviderGraphContract<ServiceRegistration>>;
-```
-
-Await the input and adopt the transformed result into a native Promise stage.
-Retains dependencies, lifetime, metadata, and existing cleanup; adds no result ownership.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `ServiceRegistration` | The source registration and retained contracts. |
-| `Transform` | The callback signature; its result may itself be a Promise. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `registration` | The source registration whose fulfilled value is transformed. |
-| `options` | Awaited mode and a transform callback; acquisitionMode cannot be overridden. |
-
-##### Returns
-
-A provider exposing a Promise of the awaited transform result.
-
-#### Throws
-
-`DI_BAG_INVALID_TRANSFORM` for a bad mode or callback; `DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode;
-`DI_BAG_INVALID_REGISTRATION` for an invalid registration.
-
-#### Example
-
-```ts
-const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform: text => text.toUpperCase() });
-```
-
-***
-
 ### withConfiguration
 
 ```ts
@@ -828,387 +738,4 @@ Return a facade with inherited runtime settings and appended observers.
 const Observed = DiBag.withConfiguration({
   lifecycleObservers: [{ onLifecycleEvent: event => console.log(event.kind), onObserverFailure: failure => console.error(failure.error) }],
 });
-```
-
-***
-
-### withDisposal
-
-```ts
-withDisposal: {
-    <F extends Factory>(create: F, dispose: (this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>): FactoryWithDisposal<F>;
-    <R extends Registration>(provider: R & Registration, dispose: (this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-};
-```
-
-Defined in: [di-bag.ts:743](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L743)
-
-Make the container own a factory's value and run `dispose` on it when the container closes.
-`close()` runs disposers, dependents first; close every child and independent container you create.
-
-#### Call Signature
-
-```ts
-<F extends Factory>(create: F, dispose: (this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>): FactoryWithDisposal<F>;
-```
-
-Declare that each acquiring container owns a factory's fulfilled value.
-Neither callback runs until acquisition; cleanup runs once after dependent resources.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `F` | - |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `create` | The receiver-free service factory. |
-| `dispose` | Cleanup for its fulfilled value; it may complete synchronously or asynchronously. |
-
-##### Returns
-
-A nominal disposable registration preserving the factory's exact output.
-
-#### Call Signature
-
-```ts
-<R extends Registration>(provider: R & Registration, dispose: (this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-```
-
-Add an ownership stage to an existing registration.
-Earlier disposal stages remain attached and run after this stage in reverse order.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `R` | - |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `provider` | The registration whose acquired value becomes owned at this stage. |
-| `dispose` | Cleanup for the registration's acquired value. |
-
-##### Returns
-
-A provider retaining output, dependencies, metadata, frames, and earlier ownership.
-
-#### Throws
-
-`DI_BAG_INVALID_REGISTRATION` when the registration is neither a function nor a provider.
-
-#### Example
-
-```ts
-const container = DiBag.createBuilder().withServices({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) }).buildContainer();
-await container.close();
-```
-
-***
-
-### withLifetime
-
-```ts
-withLifetime: {
-    <R extends Registration, const L extends LegacyLifetime>(registration: R & Registration, lifetime: L & (Singleton<L> extends true ? unknown : Unsatisfied<'lifetime requires an individually known policy literal', {}>)): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, LifetimeGraph<ProviderGraphContract<R>, LegacyLifetimeValue<L>, undefined>, ProviderAcquiredValue<R>>;
-    <R extends Registration, const L extends LegacyLifetime, const O extends object | undefined>(registration: R & Registration, lifetime: L & (Singleton<L> extends true ? unknown : Unsatisfied<'lifetime requires an individually known policy literal', {}>), options: O & LegacyOptionsAdmission<NoInfer<L>, NoInfer<O>>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, LifetimeGraph<ProviderGraphContract<R>, LegacyLifetimeValue<L>, LegacyOptions<O>>, ProviderAcquiredValue<R>>;
-};
-```
-
-Defined in: [di-bag.ts:753](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L753)
-
-Select `root`, `scoped` (the default), or `transient` caching for a registration.
-Mark a shared client `root` only when nothing it depends on is scoped.
-
-#### Call Signature
-
-```ts
-<R extends Registration, const L extends LegacyLifetime>(registration: R & Registration, lifetime: L & (Singleton<L> extends true ? unknown : Unsatisfied<'lifetime requires an individually known policy literal', {}>)): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, LifetimeGraph<ProviderGraphContract<R>, LegacyLifetimeValue<L>, undefined>, ProviderAcquiredValue<R>>;
-```
-
-Select family-root caching, per-scope caching, or a fresh owned attempt per read.
-Strict roots cannot capture scoped dependencies. Wrapping preserves the factory,
-acquired value, metadata, frames, and ownership stages.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `R` | - |
-| `L` | - |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `registration` | The registration whose caching policy to replace. |
-| `lifetime` | An individually known `root`, `scoped`, or `transient` literal. |
-
-##### Returns
-
-A provider with the selected lifetime policy.
-
-#### Call Signature
-
-```ts
-<R extends Registration, const L extends LegacyLifetime, const O extends object | undefined>(registration: R & Registration, lifetime: L & (Singleton<L> extends true ? unknown : Unsatisfied<'lifetime requires an individually known policy literal', {}>), options: O & LegacyOptionsAdmission<NoInfer<L>, NoInfer<O>>): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, LifetimeGraph<ProviderGraphContract<R>, LegacyLifetimeValue<L>, LegacyOptions<O>>, ProviderAcquiredValue<R>>;
-```
-
-Select a lifetime and optionally permit a root provider to capture scoped dependencies.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `R` | - |
-| `L` | - |
-| `O` | - |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `registration` | The registration whose caching policy to replace. |
-| `lifetime` | An individually known `root`, `scoped`, or `transient` literal. |
-| `options` | Root-only `{ allowScopedDependencies: boolean }` admission. |
-
-##### Returns
-
-A provider preserving factory, output, metadata, frames, and ownership stages.
-
-#### Throws
-
-`DI_BAG_INVALID_LIFETIME` for an unknown lifetime or malformed options; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
-
-#### Example
-
-```ts
-const container = DiBag.createBuilder().withServices({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') }).buildContainer();
-```
-
-***
-
-### withMetadata
-
-```ts
-withMetadata: {
-    <R extends Registration, M extends object>(registration: R & Registration, options: {
-        readonly static: M & MetadataKeys<NoInfer<R>, M>;
-        readonly dynamic?: never;
-    }): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & M>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-    <R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
-        readonly static: M & MetadataKeys<NoInfer<R>, M>;
-        readonly dynamic: {
-            readonly mode: 'direct';
-            readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
-        };
-    }): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & M>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-    <R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
-        readonly static?: M & MetadataKeys<NoInfer<R>, M>;
-        readonly dynamic: {
-            readonly mode: 'direct';
-            readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
-        };
-    }): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & Partial<M>>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-    <R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
-        readonly static: M & MetadataKeys<NoInfer<R>, M>;
-        readonly dynamic: {
-            readonly mode: 'awaited';
-            readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
-        };
-    }): Provider<MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, Readonly<RetainedMetadata<R> & M>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, Awaited<ProviderOutput<R>>>;
-    <R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
-        readonly static?: M & MetadataKeys<NoInfer<R>, M>;
-        readonly dynamic: {
-            readonly mode: 'awaited';
-            readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
-        };
-    }): Provider<MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, Readonly<RetainedMetadata<R> & Partial<M>>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, Awaited<ProviderOutput<R>>>;
-};
-```
-
-Defined in: [di-bag.ts:763](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L763)
-
-Attach static registration metadata, or per-acquisition metadata in direct or awaited mode.
-
-#### Call Signature
-
-```ts
-<R extends Registration, M extends object>(registration: R & Registration, options: {
-    readonly static: M & MetadataKeys<NoInfer<R>, M>;
-    readonly dynamic?: never;
-}): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & M>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-```
-
-Attach registration metadata without evaluating the source or changing ownership.
-Own keys are copied and frozen; static key collisions reject before getters run.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `R` | The source registration and retained contracts. |
-| `M` | The additional static registration metadata record. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `registration` | The source registration to describe. |
-| `options` | A static record with finite noncolliding string or unique-symbol keys. |
-
-##### Returns
-
-A provider preserving exact output, acquisition policy, and ordered dynamic frames.
-
-#### Call Signature
-
-```ts
-<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
-    readonly static: M & MetadataKeys<NoInfer<R>, M>;
-    readonly dynamic: {
-        readonly mode: 'direct';
-        readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
-    };
-}): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & M>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-```
-
-Describe the exact exposed service with a synchronous plain metadata record.
-Direct mode preserves Promise identity and source acquisition policy, adding no ownership.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `R` | The source registration and retained contracts. |
-| `P` | The synchronous describe callback and its record result. |
-| `M` | The required static metadata record. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `registration` | The source registration whose exact output is described. |
-| `options` | Required static metadata and mandatory direct dynamic mode with a synchronous describe callback. |
-
-##### Returns
-
-A provider with merged registration metadata and one appended acquisition metadata frame.
-
-#### Call Signature
-
-```ts
-<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => object, M extends object = {}>(registration: R & Registration, options: {
-    readonly static?: M & MetadataKeys<NoInfer<R>, M>;
-    readonly dynamic: {
-        readonly mode: 'direct';
-        readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
-    };
-}): Provider<ProviderFactory<R>, Readonly<RetainedMetadata<R> & Partial<M>>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-```
-
-Describe the exact exposed service with a synchronous plain metadata record.
-Direct mode preserves Promise identity and source acquisition policy, adding no ownership.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `R` | The source registration and retained contracts. |
-| `P` | The synchronous describe callback and its record result. |
-| `M` | The optional static metadata record. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `registration` | The source registration whose exact output is described. |
-| `options` | Optional static metadata and mandatory direct dynamic mode with a synchronous describe callback.<br>If the static level may be absent, its added keys remain optional in inspection. |
-
-##### Returns
-
-A provider with merged registration metadata and one appended acquisition metadata frame.
-
-#### Call Signature
-
-```ts
-<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
-    readonly static: M & MetadataKeys<NoInfer<R>, M>;
-    readonly dynamic: {
-        readonly mode: 'awaited';
-        readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
-    };
-}): Provider<MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, Readonly<RetainedMetadata<R> & M>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, Awaited<ProviderOutput<R>>>;
-```
-
-Await the source and append a synchronous metadata record through a native Promise stage.
-Existing ownership and metadata frames remain ordered; annotation adds no ownership.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `R` | The source registration and retained contracts. |
-| `P` | The synchronous describe callback and its record result. |
-| `M` | The required static metadata record. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `registration` | The source registration whose fulfilled value is described. |
-| `options` | Required static metadata and mandatory awaited mode with a synchronous describe callback. |
-
-##### Returns
-
-A provider exposing a Promise of the source value with one appended metadata frame.
-
-#### Call Signature
-
-```ts
-<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => object, M extends object = {}>(registration: R & Registration, options: {
-    readonly static?: M & MetadataKeys<NoInfer<R>, M>;
-    readonly dynamic: {
-        readonly mode: 'awaited';
-        readonly describe: P & AcquisitionMetadataAdmission<ReturnType<P>>;
-    };
-}): Provider<MappedFactory<R, Promise<Awaited<ProviderOutput<R>>>>, Readonly<RetainedMetadata<R> & Partial<M>>, AcquisitionFrames<R, ReturnType<P>>, ProviderGraphContract<R>, Awaited<ProviderOutput<R>>>;
-```
-
-Await the source and append a synchronous metadata record through a native Promise stage.
-Existing ownership and metadata frames remain ordered; annotation adds no ownership.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `R` | The source registration and retained contracts. |
-| `P` | The synchronous describe callback and its record result. |
-| `M` | The optional static metadata record. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `registration` | The source registration whose fulfilled value is described. |
-| `options` | Optional static metadata and mandatory awaited mode with a synchronous describe callback.<br>If the static level may be absent, its added keys remain optional in inspection. |
-
-##### Returns
-
-A provider exposing a Promise of the source value with one appended metadata frame.
-
-#### Throws
-
-`DI_BAG_INVALID_METADATA` for malformed options or, at acquisition, a describe result that is not a plain record;
-`DI_BAG_DUPLICATE_METADATA` for a repeated key; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
-
-#### Example
-
-```ts
-const greeting = DiBag.withMetadata(() => 'hello', { static: { owner: 'greeting' } });
 ```

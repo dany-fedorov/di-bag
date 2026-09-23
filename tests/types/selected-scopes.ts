@@ -9,7 +9,7 @@ const feature = DiBag.createBuilder().withServices({
 export const parent = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(serviceToken, () => ({ read: () => 1 })).withServices({
   config: () => ({ id: 'parent' }),
   asyncValue: async () => ({ read: () => Number(1) }),
-  raw: DiBag.withMetadata(DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' }), { static: { name: 'raw' as const } }),
+  raw: DiBag.providerWithRegistrationMetadata({ provider: DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' }), registrationMetadata: { name: 'raw' as const } }),
 }).buildContainer();
 export const child = parent.createChildContainer(['config', serviceToken, 'asyncValue'], {
   config: () => ({ id: 'child', added: true as const }),
@@ -20,10 +20,10 @@ export const grandchild = child.createChildContainer({ sharedParentServiceKeys: 
 export const fork = child.createIndependentContainer(['config'], { config: () => ({ id: 'fork', added: true as const }) });
 
 export const roots = DiBag.createBuilder().withServices({
-  config: DiBag.withLifetime(() => ({ id: 'parent' }), 'root'),
-  service: DiBag.withLifetime(({ config }: { config: { id: string } }) => ({ config }), 'root'),
+  config: DiBag.providerWithLifetime({ provider: () => ({ id: 'parent' }), lifetime: 'singleton:one-per-container-tree' }),
+  service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => ({ config }), lifetime: 'singleton:one-per-container-tree' }),
 }).buildContainer();
 export const overriddenRootDependency = roots.createChildContainer(['config'], { config: () => ({ id: 'child' }) });
 export const childRoot = roots.createChildContainer(['service'], {
-  service: DiBag.withLifetime(({ config }: { config: { id: string } }) => ({ config, owned: true as const }), 'root'),
+  service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => ({ config, owned: true as const }), lifetime: 'singleton:one-per-container-tree' }),
 });

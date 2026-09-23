@@ -6,10 +6,10 @@ import { notificationsModule } from '../../src/features/notifications/module.js'
 const builder = DiBag.createBuilder()
   .withInstalledModules([notificationsModule])
   .withServices({
-    mailConfig: DiBag.withLifetime((): MailConfig => ({
+    mailConfig: DiBag.providerWithLifetime({ provider: (): MailConfig => ({
       opsAddress: 'ops@example.com',
       connect: async () => ({ send: async () => {}, close: async () => {} }),
-    }), 'root'),
+    }), lifetime: 'singleton:one-per-container-tree' }),
   });
 
 builder.verifyGraphAtCompileTime() satisfies void;

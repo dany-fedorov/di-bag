@@ -16,7 +16,7 @@ export const emptyFeature = DiBag.createBuilder().withServices({ optional }).bui
 export const builder = DiBag.createBuilder().withInstalledModules([feature]);
 export const emptyBuilder = DiBag.createBuilder().withInstalledModules([emptyFeature]);
 export const requiredFeature = DiBag.createBuilder().withServices({ lazy }).buildModule({ exportedServiceKeys: ['lazy'] });
-export const ownedOptional = DiBag.withDisposal(DiBag.withMetadata(optional, { static: { label: 'optional' as const } }), value => { void value; });
+export const ownedOptional = DiBag.providerWithDisposal({ provider: DiBag.providerWithRegistrationMetadata({ provider: optional, registrationMetadata: { label: 'optional' as const } }), disposeService: value => { void value; } });
 export const retainedFeature = DiBag.createBuilder().withServices({ ownedOptional }).buildModule({ exportedServiceKeys: ['ownedOptional'] });
 export const complete = DiBag.createBuilder().withTokenService(number, () => 42).withServices({ lazy, mixed, classProvider }).buildContainer();
 export const defaulted = DiBag.createProviderFromFunction({ dependencies: [optionalHandle], factoryFunction: (value = 3) => value });
@@ -41,11 +41,11 @@ export type Unions = [Assert<Equal<ProviderRequiredTokens<NoInfer<typeof optiona
 builder.buildContainer(); emptyBuilder.buildContainer(); DiBag.createBuilder().withInstalledModules([retainedFeature]).buildContainer();
 const privateFeature = DiBag.createBuilder().withTokenService(number, () => 5).withServices({ optional, lazy }).buildModule({ exportedServiceKeys: ['optional', 'lazy'] }).withRenamedExport({ currentExportKey: 'optional', newExportKey: 'maybe' });
 DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();
-const rootOptional = DiBag.withLifetime(optional, 'root');
+const rootOptional = DiBag.providerWithLifetime({ provider: optional, lifetime: 'singleton:one-per-container-tree' });
 DiBag.createBuilder().withServices({ rootOptional }).buildContainer();
-DiBag.createBuilder().withTokenService(number, DiBag.withLifetime(() => 1, 'root')).withServices({ rootOptional }).buildContainer();
-const rootLazy = DiBag.withLifetime(lazy, 'root');
-const rootBag = DiBag.createBuilder().withTokenService(number, DiBag.withLifetime(() => 1, 'root')).withServices({ rootLazy }).buildContainer();
+DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' })).withServices({ rootOptional }).buildContainer();
+const rootLazy = DiBag.providerWithLifetime({ provider: lazy, lifetime: 'singleton:one-per-container-tree' });
+const rootBag = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' })).withServices({ rootLazy }).buildContainer();
 rootBag.createChildContainer([number], { [key]: () => 2 });
 DiBag.createProviderFromFunction<readonly [typeof optionalHandle], (value: number | undefined) => number | undefined>({ dependencies: [optionalHandle], factoryFunction: value => value });
 DiBag.createProviderFromClass<readonly [typeof optionalHandle, typeof lazyHandle], typeof Client>({ dependencies: [optionalHandle, lazyHandle], serviceClass: Client });

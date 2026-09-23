@@ -42,7 +42,8 @@ type ProviderReplacementSelfAdmission<Key, Replacement> =
   [ProviderBase] extends [Replacement] ? unknown
   : [Replacement extends infer Candidate & {}
       ? Candidate extends ProviderBase
-        ? Key extends keyof ProviderNamedDependencies<Candidate> ? true : never
+        ? [ProviderNamedDependencies<Candidate>] extends [never] ? never
+          : Key extends keyof ProviderNamedDependencies<Candidate> ? true : never
         : never
       : never] extends [never] ? unknown : never;
 

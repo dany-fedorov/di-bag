@@ -11,14 +11,8 @@ test('createProvider preserves every factory return policy', async () => {
   const container = DiBag.createBuilder().withServices({
     automatic: DiBag.createProvider(async () => 1),
     synchronous: DiBag.createProvider((): object => structural, { factoryReturnKind: 'sync-value' }),
-    uninspected: DiBag.withDisposal(
-      DiBag.createProvider((): object => pending, { factoryReturnKind: 'uninspected' }),
-      value => { disposed.push(value); },
-    ),
-    native: DiBag.withDisposal(
-      DiBag.createProvider(() => pending, { factoryReturnKind: 'native-promise' }),
-      value => { disposed.push(value); },
-    ),
+    uninspected: DiBag.providerWithDisposal({ provider: DiBag.createProvider((): object => pending, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }),
+    native: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } }),
   }).buildContainer();
 
   expect(container.resolve('automatic')).toBeInstanceOf(Promise);

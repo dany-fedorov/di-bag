@@ -21,18 +21,18 @@ Task recipes: [docs/agent/recipes.md](docs/agent/recipes.md). Every compiler and
    `dependencies.clock` directly. The object is a Proxy that resolves each property when
    read: spreading it, `Object.keys`, `in`, and `JSON.stringify` throw
    [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](docs/agent/errors.md#di-bag-invalid-dependency-access).
-3. **Lifetimes.** The default is `scoped`: one instance per container or child container.
-   Mark a shared client `DiBag.withLifetime(factory, 'root')` only when nothing
-   it depends on is scoped; otherwise the compiler reports a
+3. **Lifetimes.** The default remains `scoped:one-per-container` in this phase.
+   Select `singleton:one-per-container-tree`, `scoped:one-per-container`, or
+   `transient:one-per-resolve` with `DiBag.providerWithLifetime(...)`; only singleton
+   accepts `allowsScopedDependencies`; otherwise the compiler reports a
    [root capture](docs/agent/errors.md#root-capture) naming both keys.
-   `'transient'` creates an instance on every read.
 4. **Async is explicit.** An async factory's service is its Promise. A consumer
    declares `{ db: Promise<Db> }` and awaits it; nothing is awaited for you.
 5. **No thenables.** A factory that returns a non-Promise object with a `then`
    method (query builders) is [rejected](docs/agent/errors.md#structural-thenable).
    Return `Promise.resolve(builder)` or use `DiBag.createProvider(create, { factoryReturnKind: 'uninspected' })`.
-6. **Ownership.** `DiBag.withDisposal(factory, dispose)` makes the container own the
-   returned value; `close()` runs disposers, dependents first. Close every child and
+6. **Ownership.** Use `DiBag.providerWithDisposal({ provider, disposeService })`.
+   `close()` runs disposers, dependents first. Close every child and
    independent container; a parent closes its live children, never independent containers. Inside a factory,
    [`factoryContext.pushDisposer`](docs/agent/recipes.md#partial-acquisition) owns what it acquires on the way; if that is also the returned value, act only when `disposerContext.reason !== 'service-disposed'`.
 7. **Replace dependencies in tests with `createIndependentContainer(keys, providers)`**; each provider must satisfy the original contract.
