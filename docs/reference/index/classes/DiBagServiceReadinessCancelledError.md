@@ -4,7 +4,7 @@
 
 # Class: DiBagServiceReadinessCancelledError
 
-Defined in: [errors.ts:151](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L151)
+Defined in: [errors.ts:155](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L155)
 
 `ensureServicesReady` stopped waiting on abort or timeout; this container is closing and `disposalPromise` settles when it has closed.
 `details` names what was still in progress. On timeout, `cause` carries `DI_BAG_SERVICE_READINESS_TIMEOUT`.
@@ -34,7 +34,7 @@ try {
 new (reason: "aborted" | "timeout", cause: unknown, disposalPromise: Promise<void>, progress: CloseProgress, totalTimeoutMs?: number): DiBagServiceReadinessCancelledError;
 ```
 
-Defined in: [errors.ts:161](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L161)
+Defined in: [errors.ts:165](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L165)
 
 #### Parameters
 
@@ -60,7 +60,7 @@ Error.constructor
 declare readonly code: 'DI_BAG_SERVICE_READINESS_CANCELLED';
 ```
 
-Defined in: [errors.ts:152](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L152)
+Defined in: [errors.ts:156](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L156)
 
 ***
 
@@ -74,7 +74,7 @@ declare readonly details: Readonly<{
 } & CloseProgress>;
 ```
 
-Defined in: [errors.ts:153](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L153)
+Defined in: [errors.ts:157](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L157)
 
 ***
 
@@ -84,7 +84,7 @@ Defined in: [errors.ts:153](https://github.com/dany-fedorov/di-bag/blob/main/src
 readonly disposalPromise: Promise<void>;
 ```
 
-Defined in: [errors.ts:164](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L164)
+Defined in: [errors.ts:168](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L168)
 
 Eventual shutdown of this container; cancellation does not await it.
 
@@ -96,6 +96,6 @@ Eventual shutdown of this container; cancellation does not await it.
 readonly reason: 'aborted' | 'timeout';
 ```
 
-Defined in: [errors.ts:162](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L162)
+Defined in: [errors.ts:166](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L166)
 
 Whether an external abort or the deadline cancelled the wait.

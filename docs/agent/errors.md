@@ -155,19 +155,19 @@ app.createIndependentContainer(['host'], { host: () => 'localhost' });
 
 ### Structural thenable {#structural-thenable}
 
-**When:** `factory output is a structural thenable: <keys>; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`,
-or on `DiBag.fromFactory`, `fromFunction`, and `fromClass`
-`factory output is a structural thenable; return a native Promise or select acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`.
+**When:** `factory output is a structural thenable: <keys>; return a native Promise or use DiBag.createProvider with factoryReturnKind 'uninspected' or 'native-promise'; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`,
+or at a provider construction site:
+`factory output is a structural thenable; return a native Promise or select factoryReturnKind 'uninspected' or 'native-promise'; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`.
 
 **Cause:** a factory returns an object with a `then` method that is not a native
 Promise, such as a query builder. Automatic acquisition cannot tell whether to
 await it.
 
 **Fix:** convert it to a native Promise, or keep the object as the service with
-`acquisitionMode: 'raw'`.
+`factoryReturnKind: 'uninspected'`.
 
 ```ts
-// expect-error: factory output is a structural thenable: query; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable
+// expect-error: factory output is a structural thenable: query; return a native Promise or use DiBag.createProvider with factoryReturnKind 'uninspected' or 'native-promise'; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable
 import { DiBag } from 'di-bag';
 
 type Query = { then(onFulfilled: (rows: string[]) => void): void };
@@ -183,7 +183,7 @@ const select = (): Query => ({ then: onFulfilled => onFulfilled([]) });
 DiBag.createBuilder()
   .withServices({
     rows: () => new Promise<string[]>(resolve => select().then(resolve)),
-    query: DiBag.fromFactory(select, { acquisitionMode: 'raw' }),
+    query: DiBag.createProvider(select, { factoryReturnKind: 'uninspected' }),
   })
   .buildContainer();
 ```
@@ -192,31 +192,31 @@ DiBag.createBuilder()
 
 ### Portable factory output {#portable-factory-output}
 
-**When:** `fromSyncFactory output must not be a Promise or thenable; use fromAsyncFactory for a Promise, or fromFactory with acquisitionMode raw to make the Promise object the service; see https://dany-fedorov.github.io/di-bag/agent/errors.html#portable-factory-output`,
-or `fromAsyncFactory requires a Promise output; use fromSyncFactory for a synchronous value; see https://dany-fedorov.github.io/di-bag/agent/errors.html#portable-factory-output`.
+**When:** `sync-value output must not be a Promise or thenable; use factoryReturnKind 'native-promise' for a Promise, or 'uninspected' to make the Promise object the service; see https://dany-fedorov.github.io/di-bag/agent/errors.html#portable-factory-output`,
+or `native-promise factory return kind requires a Promise output; use 'sync-value' for a synchronous value; see https://dany-fedorov.github.io/di-bag/agent/errors.html#portable-factory-output`.
 
-**Cause:** the helper fixes the acquisition mode from its name, so the factory's
-declared output must agree with it. `fromSyncFactory` is a `raw` stage that never
+**Cause:** the explicit return kind must agree with the factory's declared output.
+`'sync-value'` never
 reads `then`: an `async` function, a `Promise`-returning function, a union with a
 Promise member, or a thenable such as a query builder cannot be its service.
-`fromAsyncFactory` is a `nativePromise` stage: a plain value, a union, or a
+`'native-promise'` requires a native Promise: a plain value, a union, or a
 `PromiseLike` cannot be its service.
 
-**Fix:** pick the helper that matches the output. When the Promise object itself
-is the service, use `DiBag.fromFactory(create, { acquisitionMode: 'raw' })`.
+**Fix:** pick the return kind that matches the output. When the Promise object itself
+is the service, use `DiBag.createProvider(create, { factoryReturnKind: 'uninspected' })`.
 
 ```ts
-// expect-error: fromSyncFactory output must not be a Promise or thenable
+// expect-error: sync-value output must not be a Promise or thenable
 import { DiBag } from 'di-bag';
 
-const config = DiBag.fromSyncFactory(async () => ({ url: 'memory:' }));
+const config = DiBag.createProvider(async () => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' });
 ```
 
 ```ts
 import { DiBag } from 'di-bag';
 
-const config = DiBag.fromAsyncFactory(async () => ({ url: 'memory:' }));
-const ownedPromise = DiBag.fromFactory(() => Promise.resolve({ url: 'memory:' }), { acquisitionMode: 'raw' });
+const config = DiBag.createProvider(async () => ({ url: 'memory:' }), { factoryReturnKind: 'native-promise' });
+const ownedPromise = DiBag.createProvider(() => Promise.resolve({ url: 'memory:' }), { factoryReturnKind: 'uninspected' });
 ```
 
 **Recipe:** [make a graph portable to browsers and workers](recipes.md#portable-graph).
@@ -281,8 +281,8 @@ every such registration, sorted, with private module services as `<label>/<key>`
 a direct `transformService` without an `acquisitionMode` counts under its
 registration's name.
 
-**Fix:** add each named service with `DiBag.fromSyncFactory` or
-`DiBag.fromAsyncFactory`; give `fromFunction`, `fromClass`, and direct
+**Fix:** add each named service with `DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' })`
+or `'native-promise'`; give positional providers an explicit return kind and direct
 `transformService` an explicit `acquisitionMode`; or configure a trusted
 classifier with `withConfiguration({ runtime: { isNativePromise } })`.
 
@@ -291,8 +291,8 @@ import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
   .withServices({
-    answer: DiBag.fromSyncFactory(() => 42),
-    later: DiBag.fromAsyncFactory(async ({ answer }: { answer: number }) => answer * 2),
+    answer: DiBag.createProvider(() => 42, { factoryReturnKind: 'sync-value' }),
+    later: DiBag.createProvider(async ({ answer }: { answer: number }) => answer * 2, { factoryReturnKind: 'native-promise' }),
   })
   .buildContainer();
 ```
@@ -318,11 +318,11 @@ same value a `reason` check.
 import { DiBag } from 'di-bag';
 
 const handle = DiBag.withDisposal(
-  DiBag.fromFactory(async (_dependencies: {}, factoryContext) => {
+  DiBag.createProvider(async (_dependencies: {}, factoryContext) => {
     const socket = { close: async () => {} };
     factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return socket.close(); });
     return socket;
-  }, { context: 'acquisition' }),
+  }, { factoryReceivesContext: true }),
   socket => socket.close(),
 );
 ```
@@ -578,18 +578,18 @@ stack trace and the smallest graph that reproduces it.
 
 ### DI_BAG_INVALID_ACQUISITION_MODE {#di-bag-invalid-acquisition-mode}
 
-**When:** `fromFactory`, `fromFunction`, `fromClass`, or `transformService`
-receives options that are not an object, or an `acquisitionMode` other than
-`'auto'`, `'raw'`, or `'nativePromise'`.
+**When:** `transformService` receives options that are not an object or an
+unsupported `acquisitionMode`. Final provider constructors report malformed
+option bags as [`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument).
 
 **Cause:** a misspelled mode or options computed at runtime.
 
-**Fix:** pass one of the three literals.
+**Fix:** use a supported transform acquisition policy.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-const handle = DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' });
+const handle = DiBag.transformService(DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' }), { mode: 'direct', transform: value => value, acquisitionMode: 'uninspected' });
 ```
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
@@ -629,7 +629,8 @@ for a nested option, `[]` for an element of a list), and `expected` completes
 the sentence "must be ...".
 
 **Fix:** branch on `details.argument`, not on the message. Remove the cast and
-let the compiler point at the argument.
+let the compiler point at the argument. When adapting a method with
+`createProviderFromFunction`, bind it to its receiver.
 
 ```ts
 import { DiBag } from 'di-bag';
@@ -676,11 +677,11 @@ result of calling the release instead of passing it.
 ```ts
 import { DiBag } from 'di-bag';
 
-const socket = DiBag.fromFactory(async (_dependencies: {}, factoryContext) => {
+const socket = DiBag.createProvider(async (_dependencies: {}, factoryContext) => {
   const handle = { close: async () => {} };
   factoryContext.pushDisposer(() => handle.close());
   return handle;
-}, { context: 'acquisition' });
+}, { factoryReceivesContext: true });
 ```
 
 **Recipe:** [own a resource a factory acquires on the way](recipes.md#partial-acquisition).
@@ -719,27 +720,6 @@ import { DiBag } from 'di-bag';
 const observed = DiBag.withConfiguration({
   lifecycleObservers: [{ onLifecycleEvent: event => console.log(event.kind), onObserverFailure: ({ error }) => console.error(error) }],
 });
-```
-
-**Recipe:** none.
-
-### DI_BAG_INVALID_CONSTRUCTOR {#di-bag-invalid-constructor}
-
-**When:** `DiBag.fromClass(dependencies, value)` receives something that cannot
-be called with `new`, such as an arrow function.
-
-**Cause:** a function passed where a class is expected.
-
-**Fix:** pass the class; adapt a plain function with `fromFunction`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const portKey = Symbol('port');
-const port = DiBag.token(portKey).of<number>();
-class Client { constructor(readonly port: number) {} }
-const client = DiBag.fromClass([port], Client);
-const address = DiBag.fromFunction([port], portNumber => `localhost:${portNumber}`);
 ```
 
 **Recipe:** none.
@@ -788,48 +768,6 @@ const east = reports.withRenamedExport({ currentExportKey: 'service', newExportK
 ```
 
 **Recipe:** [split a feature into a module](recipes.md#split-module).
-
-### DI_BAG_INVALID_FACTORY {#di-bag-invalid-factory}
-
-**When:** `DiBag.fromFactory`, `fromSyncFactory`, or `fromAsyncFactory` receives a
-non-function, or a `context` option other than `'acquisition'`; the two portable
-helpers also refuse an `acquisitionMode` option, because they fix it themselves.
-
-**Cause:** a value passed where a factory is expected, or a mode passed to a
-helper whose name already selects it.
-
-**Fix:** pass a function; use `{ context: 'acquisition' }` to receive the
-acquisition context as the second argument; choose `fromSyncFactory` or
-`fromAsyncFactory` instead of passing a mode to them.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const settings = DiBag.fromFactory(
-  async ({ url }: { url: string }, { signal }) => (await fetch(url, { signal })).text(),
-  { context: 'acquisition' },
-);
-```
-
-**Recipe:** [add and consume an async client](recipes.md#async-client).
-
-### DI_BAG_INVALID_FUNCTION {#di-bag-invalid-function}
-
-**When:** `DiBag.fromFunction(dependencies, callback)` receives a non-function.
-
-**Cause:** a value passed where the adapted function is expected.
-
-**Fix:** pass the function; bind methods that need their receiver.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const nameKey = Symbol('name');
-const name = DiBag.token(nameKey).of<string>();
-const greeting = DiBag.fromFunction([name], personName => `Hello, ${personName}`);
-```
-
-**Recipe:** none.
 
 ### DI_BAG_INVALID_LIFETIME {#di-bag-invalid-lifetime}
 
@@ -913,29 +851,6 @@ await testApp.close();
 
 **Recipe:** [write a fixture test with an independent container](recipes.md#fixture-test).
 
-### DI_BAG_INVALID_PLUGIN_OPTIONS {#di-bag-invalid-plugin-options}
-
-**When:** `DiBag.fromPlugin(dependencies, descriptor, options)` receives options
-without an own `acquisitionMode` of `'raw'` or `'nativePromise'`, or without a
-`validate` function.
-
-**Cause:** plugin output must be validated and its acquisition mode chosen.
-
-**Fix:** pass both options.
-
-```ts
-import { DiBag } from 'di-bag';
-
-type Handler = { handle(text: string): string };
-const descriptor: unknown = { apiVersion: 1, create: () => ({ handle: (text: string) => text }) };
-const handler = DiBag.fromPlugin([], descriptor, {
-  acquisitionMode: 'raw',
-  validate: (pluginOutput: unknown): pluginOutput is Handler => typeof pluginOutput === 'object' && pluginOutput !== null && 'handle' in pluginOutput,
-});
-```
-
-**Recipe:** none.
-
 ### DI_BAG_INVALID_REGISTRATION {#di-bag-invalid-registration}
 
 **When:** `withServices` receives a non-object, a record with symbol keys, or a value
@@ -949,7 +864,7 @@ that is neither a factory nor a DiBag provider.
 import { DiBag } from 'di-bag';
 
 const portKey = Symbol('port');
-const port = DiBag.token(portKey).of<number>();
+const port = DiBag.createToken(portKey).forService<number>();
 DiBag.createBuilder().withServices({ host: () => 'localhost' }).withTokenService(port, () => 80).buildContainer();
 ```
 
@@ -1021,10 +936,10 @@ await app.close();
 
 ### DI_BAG_INVALID_TOKEN {#di-bag-invalid-token}
 
-**When:** `DiBag.token(key)` receives a non-symbol, a token argument is a copied
+**When:** `DiBag.createToken(key)` receives a non-symbol, a token argument is a copied
 or fabricated object, or a dependency list is not an array.
 
-**Cause:** token identity comes from the handle `token(key).of()` returns, not
+**Cause:** token identity comes from the handle `createToken(key).forService()` returns, not
 from its shape.
 
 **Fix:** declare the symbol and token once, export the token, and import it
@@ -1034,7 +949,7 @@ wherever it is used.
 import { DiBag } from 'di-bag';
 
 const clockKey = Symbol('clock');
-export const clock = DiBag.token(clockKey).of<{ now(): number }>();
+export const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
 ```
 
 **Recipe:** none.
@@ -1104,15 +1019,16 @@ const keys = app.graphSnapshot().bindings.flatMap(binding => binding.keys);
 
 ### DI_BAG_PLUGIN_VALIDATION {#di-bag-plugin-validation}
 
-**When:** a `fromPlugin` provider acquires; `DiBagPluginValidationError` with
+**When:** a `createProviderFromPlugin` provider acquires; `DiBagPluginValidationError` with
 `phase: 'descriptor'` or `'output'` and a `reason`.
 
 **Cause:** the descriptor lacks own `apiVersion: 1` and a callable `create`, or
-`validate` did not return exactly `true` for the output.
+`isValidPluginOutput` did not return exactly `true` for the output.
 
-**Fix:** correct the plugin, or reject it before registering; see
-[`DI_BAG_INVALID_PLUGIN_OPTIONS`](#di-bag-invalid-plugin-options) for a valid
-descriptor.
+**Fix:** correct the plugin, or reject it before registering; see the
+[`createProviderFromPlugin` example](api-card.md#dibag-createproviderfromplugin)
+for a valid descriptor and required options. Malformed constructor options
+report [`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument).
 
 **Recipe:** none.
 
@@ -1189,13 +1105,13 @@ the signal so they stop promptly.
 ### DI_BAG_STRUCTURAL_THENABLE {#di-bag-structural-thenable}
 
 **When:** a factory with automatic or native acquisition returns a non-Promise
-object with a callable `then`; a `TypeError` with `details.acquisitionMode`.
+object with a callable `then`; a `TypeError` with `details.factoryReturnKind`.
 
 **Cause:** the compile-time [structural thenable](#structural-thenable) check was
 disabled through `DiBagPolicy` or bypassed by a cast.
 
 **Fix:** as for the compile-time message: return a native Promise or use
-`acquisitionMode: 'raw'`.
+`factoryReturnKind: 'uninspected'`.
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 
@@ -1225,4 +1141,4 @@ await app.close();
 
 ### DI_BAG_WRONG_TOKEN_KIND {#di-bag-wrong-token-kind}
 
-A genuine typed token was used in an operation that requires the other token kind. A token is either a single-service token or a collection token and cannot serve both roles. Read `details.operation`, `details.expectedKind`, and `details.receivedKind`; create the token with `.of<Service>()` for one service or `.forCollectionOf<Item>()` for a collection. Split an old token that used both channels into two tokens.
+A genuine typed token was used in an operation that requires the other token kind. A token is either a single-service token or a collection token and cannot serve both roles. Read `details.operation`, `details.expectedKind`, and `details.receivedKind`; create the token with `.forService<Service>()` for one service or `.forCollectionOf<Item>()` for a collection. Split a token that used both channels into two tokens.

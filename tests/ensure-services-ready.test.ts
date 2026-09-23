@@ -26,7 +26,7 @@ test('ensureServicesReady resolves to the same bag once the listed services are 
 
 test('ensureServicesReady accepts typed tokens, duplicates and an empty tuple', async () => {
   const key = Symbol('port');
-  const port = DiBag.token(key).of<number>();
+  const port = DiBag.createToken(key).forService<number>();
   let calls = 0;
   const bag = DiBag.createBuilder().withTokenService(port, () => ++calls).withServices({ name: () => 'api' }).buildContainer();
   expect(await bag.ensureServicesReady([])).toBe(bag);

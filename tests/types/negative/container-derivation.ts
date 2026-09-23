@@ -1,7 +1,7 @@
 import { DiBag } from '../../../src';
 
 const key = Symbol('clock');
-const clock = DiBag.token(key).of<{ now(): number }>();
+const clock = DiBag.createToken(key).forService<{ now(): number }>();
 const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 'b' })
   .withTokenService(clock, () => ({ now: () => 1 })).buildContainer();
 

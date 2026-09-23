@@ -7,10 +7,10 @@ test('overlapping requests isolate private dependencies and release scopes befor
   const signals: AbortSignal[] = [];
   let roots = 0;
   const feature = DiBag.createBuilder().withServices({
-    privateSession: DiBag.withDisposal(DiBag.fromFactory(({ request }: { request: { id: string } }, context) => {
-        signals.push(context.signal);
+    privateSession: DiBag.withDisposal(DiBag.createProvider(({ request }: { request: { id: string } }, context) => {
+        signals.push(context.abortSignal);
         return { id: request.id };
-      }, { context: 'acquisition' }), session => { released.push(session.id); }),
+      }, { factoryReceivesContext: true }), session => { released.push(session.id); }),
     handler: ({ privateSession, database }: {
       privateSession: { id: string }; database: { serial: number };
     }) => ({ request: privateSession.id, database }),

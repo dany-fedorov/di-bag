@@ -8,7 +8,7 @@ import { ProviderExecution, type DisposerStack, type CompletedExecution } from '
 import type { RuntimeContext } from './acquisition-mode';
 import { AcquisitionFamily } from './acquisition-family';
 import type { AcquisitionId, AttemptIdentity } from './acquisition-family';
-import type { AcquisitionContext, DisposerContext } from './acquisition-context';
+import type { DisposerContext, FactoryContext } from './acquisition-context';
 
 interface Acquisition extends AttemptIdentity {
   readonly strictRoot: string | undefined;
@@ -211,9 +211,10 @@ export class ScopeAcquisitions {
    * rather than in `resolveBinding` for the same reason: every closure of a
    * function shares one owning container, and a factory can retain the dependency proxy.
    */
-  private acquisitionContext(disposers: DisposerStack): AcquisitionContext {
+  private acquisitionContext(disposers: DisposerStack): FactoryContext {
+    const abortSignal = this.cancellationSignal();
     return Object.freeze({
-      signal: this.cancellationSignal(),
+      abortSignal,
       pushDisposer: (disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>) => { disposers.push(disposer); },
     });
   }

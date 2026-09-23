@@ -2,14 +2,14 @@ import { DiBag, type Module, type Provider } from '../../../src';
 import type { NeedConstraint } from '../../../src/module-types';
 import type { TokenDependencyContract } from '../../../src/token-types';
 import type { TokenBase } from '../../../src/tokens';
-const key = Symbol('database'); const database = DiBag.token(key).of<{ read(): number }>();
-const conflict = DiBag.token(key).of<{ write(): void }>();
-const feature = DiBag.createBuilder().withServices({ handler: DiBag.fromFunction([database], db => db.read()) }).buildModule({ exportedServiceKeys: ['handler'] });
+const key = Symbol('database'); const database = DiBag.createToken(key).forService<{ read(): number }>();
+const conflict = DiBag.createToken(key).forService<{ write(): void }>();
+const feature = DiBag.createBuilder().withServices({ handler: DiBag.createProviderFromFunction({ dependencies: [database], factoryFunction: db => db.read() }) }).buildModule({ exportedServiceKeys: ['handler'] });
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().withInstalledModules([feature]).withServices({ ordinary: () => 1 }).buildContainer();
 // diagnostic: not assignable
 DiBag.createBuilder().withInstalledModules([feature]).withTokenService(conflict, () => ({ read: () => 1, write() {} }));
-const publicFeature = DiBag.createBuilder().withTokenService(database, () => ({ read: () => 1 })).withServices({ handler: DiBag.fromFunction([database], db => db.read()) }).buildModule({ exportedServiceKeys: [database, 'handler'] });
+const publicFeature = DiBag.createBuilder().withTokenService(database, () => ({ read: () => 1 })).withServices({ handler: DiBag.createProviderFromFunction({ dependencies: [database], factoryFunction: db => db.read() }) }).buildModule({ exportedServiceKeys: [database, 'handler'] });
 // diagnostic: not assignable
 const erased: Module<{ [key]: { read: () => number }; handler: number }, {}> = publicFeature;
 declare const opaque: Module<{}, {}, NeedConstraint>;
@@ -18,7 +18,7 @@ DiBag.createBuilder().withInstalledModules([opaque]);
 declare const opaqueD: Module<{ value: number }, {}, never, { value: Provider<() => number, {}, readonly [], import('../../../src/token-types').OpaqueGraph> }>;
 // diagnostic: incompatible
 DiBag.createBuilder().withInstalledModules([opaqueD]);
-const privateFeature = DiBag.createBuilder().withTokenService(database, () => ({ read: () => 1 })).withServices({ handler: DiBag.fromFunction([database], db => db.read()) }).buildModule({ exportedServiceKeys: ['handler'] });
+const privateFeature = DiBag.createBuilder().withTokenService(database, () => ({ read: () => 1 })).withServices({ handler: DiBag.createProviderFromFunction({ dependencies: [database], factoryFunction: db => db.read() }) }).buildModule({ exportedServiceKeys: ['handler'] });
 // diagnostic: not assignable
 DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer().resolve(database);
 // diagnostic: not assignable

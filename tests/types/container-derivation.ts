@@ -4,8 +4,8 @@ import type { Assert, Equal } from './assert';
 type Clock = { now(): number };
 const clockKey = Symbol('clock');
 const clocksKey = Symbol('clocks');
-const clock = DiBag.token(clockKey).of<Clock>();
-const clocks = DiBag.token(clocksKey).forCollectionOf<Clock>();
+const clock = DiBag.createToken(clockKey).forService<Clock>();
+const clocks = DiBag.createToken(clocksKey).forCollectionOf<Clock>();
 
 const root = DiBag.createBuilder()
   .withServices({ value: () => 1, clock: (): Clock => ({ now: () => 1 }) })

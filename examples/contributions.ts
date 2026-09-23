@@ -3,7 +3,7 @@ import { DiBag } from '../src';
 type Step = (text: string) => string;
 async function main() {
   const stepKey = Symbol('text pipeline step');
-  const steps = DiBag.token(stepKey).forCollectionOf<Step>();
+  const steps = DiBag.createToken(stepKey).forCollectionOf<Step>();
 
   // An exportless module can contribute a service using a private helper.
   const prefixFeature = DiBag.createBuilder()
@@ -21,10 +21,9 @@ async function main() {
     .withInstalledModules([prefixFeature])
     .withCollectionContribution({ collectionToken: steps, provider: (): Step => (text) => text + '!' })
     .withServices({
-      pipeline: DiBag.fromFunction(
-        [steps],
-        (operations) => (text: string) =>
-          operations.reduce((value, step) => step(value), text),
+      pipeline: DiBag.createProviderFromFunction(
+        { dependencies: [steps], factoryFunction: (operations) => (text: string) =>
+          operations.reduce((value, step) => step(value), text) },
       ),
     })
     .buildContainer();

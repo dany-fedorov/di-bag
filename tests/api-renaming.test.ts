@@ -8,7 +8,7 @@ function caught(callback: () => unknown): any {
 
 test('combined metadata retains static descriptions and ordered direct/awaited frames', async () => {
   const value = Promise.resolve({ id: 7 });
-  const base = DiBag.fromFactory(() => value, { acquisitionMode: 'raw' });
+  const base = DiBag.createProvider(() => value, { factoryReturnKind: 'uninspected' });
   const direct = DiBag.withMetadata(base, {
     static: { module: 'billing' },
     dynamic: { mode: 'direct', describe: pending => ({ same: pending === value }) },
@@ -49,7 +49,7 @@ test('transformService retains earlier ownership and raw output disposal policy'
   const pending = Promise.resolve('result');
   const source = DiBag.withDisposal(() => connection, value => { disposed.push(value); });
   const transformed = DiBag.withDisposal(DiBag.transformService(source, {
-    mode: 'direct', acquisitionMode: 'raw', transform: value => { expect(value).toBe(connection); return pending; },
+    mode: 'direct', acquisitionMode: 'uninspected', transform: value => { expect(value).toBe(connection); return pending; },
   }), value => { disposed.push(value); });
   const bag = DiBag.createBuilder().withServices({ transformed }).buildContainer();
   expect(bag.resolve('transformed')).toBe(pending);
@@ -62,11 +62,11 @@ test('register, acquisition context, modules and immutable observer configuratio
   const observer = (id: number) => ({ onLifecycleEvent: () => { order.push(id); }, onObserverFailure: () => {} });
   const api = DiBag.withConfiguration({ lifecycleObservers: [observer(1)] }).withConfiguration({ lifecycleObservers: [observer(2)] });
   const configKey = Symbol('config');
-  const token = api.token(configKey).of<number>();
+  const token = api.createToken(configKey).forService<number>();
   let signal: AbortSignal | undefined;
   const module = api.createBuilder().withServices({ internal: () => 3 }).buildModule({ exportedServiceKeys: ['internal'] }).withRenamedExport({ currentExportKey: 'internal', newExportKey: 'number' });
   const bag = api.createBuilder().withTokenService(token, () => 4).withInstalledModules([module]).withServices({
-    contextual: api.fromFactory(({ number }: { number: number }, context) => { signal = context.signal; return number; }, { context: 'acquisition' }),
+    contextual: api.createProvider(({ number }: { number: number }, context) => { signal = context.abortSignal; return number; }, { factoryReceivesContext: true }),
   }).buildContainer();
   expect(bag.resolve(token)).toBe(4);
   expect(bag.resolve('contextual')).toBe(3);

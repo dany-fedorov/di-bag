@@ -1,5 +1,5 @@
 [
-  { "line": 13, "reason": "logger is used as a collection and as a single service (collection-tokens/input.ts:27); a 0.5 token is one or the other, so create a second token for the list with forCollectionOf and move the collection uses to it" },
+  { "line": 13, "reason": "logger is used as a collection and as a single service (collection-tokens/input.ts:27); create a second token with forCollectionOf and keep the single token with forService" },
   { "line": 30, "reason": "logger is also used as a single service (collection-tokens/input.ts:27); split it into two tokens, then pass the collection token itself here" },
   { "line": 38, "reason": "logger is also used as a single service (collection-tokens/input.ts:27); split it into two tokens, then write resolveCollection(token) here" },
   { "line": 42, "reason": "resolveAll is removed; create this token as a collection token, then write resolveCollection(token) here" }

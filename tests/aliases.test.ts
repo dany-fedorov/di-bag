@@ -15,9 +15,9 @@ test('named aliases preserve exact canonical object and immutable history', asyn
 
 test('all token and name combinations and forward token requirements route identically', async () => {
   const aKey = Symbol('a'); const bKey = Symbol('b'); const cKey = Symbol('c');
-  const a = DiBag.token(aKey).of<{ id: number }>();
-  const b = DiBag.token(bKey).of<{ id: number }>();
-  const c = DiBag.token(cKey).of<{ id: number }>();
+  const a = DiBag.createToken(aKey).forService<{ id: number }>();
+  const b = DiBag.createToken(bKey).forService<{ id: number }>();
+  const c = DiBag.createToken(cKey).forService<{ id: number }>();
   const bag = DiBag.createBuilder().withServiceAlias({ aliasKey: 'forward', targetServiceKey: a }).withServiceAlias({ aliasKey: b, targetServiceKey: a }).withServices({ value: () => ({ id: 1, extra: true }) }).withServiceAlias({ aliasKey: c, targetServiceKey: 'value' }).withTokenService(a, () => ({ id: 2 })).buildContainer();
   expect(bag.resolve('forward')).toBe(bag.resolve(a));
   expect(bag.resolve(b)).toBe(bag.resolve(a));
@@ -27,8 +27,8 @@ test('all token and name combinations and forward token requirements route ident
 
 test('aliases preserve explicit raw and native promises without classification', async () => {
   const pending = Promise.resolve({ id: 1 });
-  const raw = Portable.createBuilder().withServices({ value: Portable.fromFactory(() => pending, { acquisitionMode: 'raw' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
-  const native = Portable.createBuilder().withServices({ value: Portable.fromFactory(() => pending, { acquisitionMode: 'nativePromise' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
+  const raw = Portable.createBuilder().withServices({ value: Portable.createProvider(() => pending, { factoryReturnKind: 'uninspected' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
+  const native = Portable.createBuilder().withServices({ value: Portable.createProvider(() => pending, { factoryReturnKind: 'native-promise' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   expect(raw.resolve('copy')).toBe(pending);
   expect(native.resolve('copy')).toBe(pending);
   await raw.close(); await native.close();
@@ -104,7 +104,7 @@ test('alias inspection reports direct target and canonical attempts without stal
 
 test('alias cycles retain a useful lexical path', async () => {
   const aKey = Symbol('a'); const bKey = Symbol('b');
-  const a = DiBag.token(aKey).of<number>(); const b = DiBag.token(bKey).of<number>();
+  const a = DiBag.createToken(aKey).forService<number>(); const b = DiBag.createToken(bKey).forService<number>();
   const bag = DiBag.createBuilder().withServiceAlias({ aliasKey: a, targetServiceKey: b }).withServiceAlias({ aliasKey: b, targetServiceKey: a }).buildContainer();
   expect(() => bag.resolve(a)).toThrow(/cycle:.*Symbol\(a\).*Symbol\(b\).*Symbol\(a\)/);
   await bag.close();
@@ -174,7 +174,7 @@ test('in-flight sources may read aliases while closing and retained reads close 
 });
 
 test('module token aliases preserve private identity and external host requirements', async () => {
-  const key = Symbol('private'); const token = DiBag.token(key).of<{ id: number }>();
+  const key = Symbol('private'); const token = DiBag.createToken(key).forService<{ id: number }>();
   const privateModule = DiBag.createBuilder().withTokenService(token, () => ({ id: 1 })).withServiceAlias({ aliasKey: 'copy', targetServiceKey: token }).buildModule({ exportedServiceKeys: ['copy'] });
   const bag = DiBag.createBuilder().withTokenService(token, () => ({ id: 2 })).withInstalledModules([privateModule]).buildContainer();
   expect(bag.resolve('copy').id).toBe(1);
@@ -238,9 +238,9 @@ test('strict roots use the effective shared alias policy in both lifetime direct
 test('raw aliases do not inspect then getters or add cancellation contexts', async () => {
   let thenReads = 0; let contexts = 0; let signal!: AbortSignal;
   const value = { get then() { ++thenReads; throw new Error('do not assimilate'); } };
-  const bag = Portable.createBuilder().withServices({ value: Portable.fromFactory((_deps: {}, context) => {
-    contexts++; signal = context.signal; return value;
-  }, { context: 'acquisition', ...{ acquisitionMode: 'raw' } }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
+  const bag = Portable.createBuilder().withServices({ value: Portable.createProvider((_deps: {}, context) => {
+    contexts++; signal = context.abortSignal; return value;
+  }, { factoryReceivesContext: true, ...{ factoryReturnKind: 'uninspected' as const } }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   expect(bag.resolve('copy')).toBe(value);
   expect(bag.resolve('value')).toBe(value);
   expect(contexts).toBe(1); expect(thenReads).toBe(0);

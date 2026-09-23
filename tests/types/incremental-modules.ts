@@ -13,13 +13,13 @@ export const result = right.resolve('value');
 type Exact = Assert<Equal<typeof result, number>>;
 
 const key = Symbol('value');
-export const token = DiBag.token(key).of<number>();
+export const token = DiBag.createToken(key).forService<number>();
 const tokenNeed = DiBag.createBuilder().withServices({
-  hidden: DiBag.fromFunction([token], value => value),
+  hidden: DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }),
 }).buildModule({ exportedServiceKeys: [] });
 export const tokenGraph = DiBag.createBuilder().withInstalledModules([tokenNeed]).withTokenService(token, () => 1).buildContainer();
 const optionalTokenNeed = DiBag.createBuilder().withServices({
-  hidden: DiBag.fromFunction([DiBag.optional(token)], value => value ?? 0),
+  hidden: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(token)], factoryFunction: value => value ?? 0 }),
 }).buildModule({ exportedServiceKeys: [] });
 export const optionalAbsent = DiBag.createBuilder().withInstalledModules([optionalTokenNeed]).buildContainer();
 export const optionalPresent = DiBag.createBuilder().withTokenService(token, () => 1).withInstalledModules([optionalTokenNeed]).buildContainer();

@@ -35,10 +35,6 @@
         "collapsed": true,
         "items": [
           {
-            "text": "AcquisitionContext",
-            "link": "/reference/index/interfaces/AcquisitionContext.md"
-          },
-          {
             "text": "AcquisitionEventFields",
             "link": "/reference/index/interfaces/AcquisitionEventFields.md"
           },
@@ -91,6 +87,10 @@
             "link": "/reference/index/interfaces/Container.md"
           },
           {
+            "text": "CreateProviderFromPluginOptions",
+            "link": "/reference/index/interfaces/CreateProviderFromPluginOptions.md"
+          },
+          {
             "text": "DiBagApi",
             "link": "/reference/index/interfaces/DiBagApi.md"
           },
@@ -109,6 +109,10 @@
           {
             "text": "EnsureServicesReadyOptions",
             "link": "/reference/index/interfaces/EnsureServicesReadyOptions.md"
+          },
+          {
+            "text": "FactoryContext",
+            "link": "/reference/index/interfaces/FactoryContext.md"
           },
           {
             "text": "FactoryWithDisposal",
@@ -133,10 +137,6 @@
           {
             "text": "ObserverFailure",
             "link": "/reference/index/interfaces/ObserverFailure.md"
-          },
-          {
-            "text": "PluginOptions",
-            "link": "/reference/index/interfaces/PluginOptions.md"
           },
           {
             "text": "Provider",
@@ -171,10 +171,6 @@
           {
             "text": "AcquisitionMetadataPresence",
             "link": "/reference/index/type-aliases/AcquisitionMetadataPresence.md"
-          },
-          {
-            "text": "AcquisitionMode",
-            "link": "/reference/index/type-aliases/AcquisitionMode.md"
           },
           {
             "text": "AliasEntries",
@@ -233,14 +229,6 @@
             "link": "/reference/index/type-aliases/CollectionTokenMember.md"
           },
           {
-            "text": "CompositionArguments",
-            "link": "/reference/index/type-aliases/CompositionArguments.md"
-          },
-          {
-            "text": "CompositionFunction",
-            "link": "/reference/index/type-aliases/CompositionFunction.md"
-          },
-          {
             "text": "CompositionReport",
             "link": "/reference/index/type-aliases/CompositionReport.md"
           },
@@ -265,6 +253,10 @@
             "link": "/reference/index/type-aliases/CreateIndependentContainerOptions.md"
           },
           {
+            "text": "CreateProviderFromPlugin",
+            "link": "/reference/index/type-aliases/CreateProviderFromPlugin.md"
+          },
+          {
             "text": "DependencyReference",
             "link": "/reference/index/type-aliases/DependencyReference.md"
           },
@@ -275,6 +267,10 @@
           {
             "text": "DisjointChildContainerSelection",
             "link": "/reference/index/type-aliases/DisjointChildContainerSelection.md"
+          },
+          {
+            "text": "FactoryReturnKind",
+            "link": "/reference/index/type-aliases/FactoryReturnKind.md"
           },
           {
             "text": "LazyDependency",
@@ -345,10 +341,6 @@
             "link": "/reference/index/type-aliases/Overrides.md"
           },
           {
-            "text": "PluginAcquisitionMode",
-            "link": "/reference/index/type-aliases/PluginAcquisitionMode.md"
-          },
-          {
             "text": "PluginOutputValidator",
             "link": "/reference/index/type-aliases/PluginOutputValidator.md"
           },
@@ -357,8 +349,16 @@
             "link": "/reference/index/type-aliases/PluginProvider.md"
           },
           {
-            "text": "PluginProviderFactory",
-            "link": "/reference/index/type-aliases/PluginProviderFactory.md"
+            "text": "PluginReturnKind",
+            "link": "/reference/index/type-aliases/PluginReturnKind.md"
+          },
+          {
+            "text": "PositionalFactoryArguments",
+            "link": "/reference/index/type-aliases/PositionalFactoryArguments.md"
+          },
+          {
+            "text": "PositionalFactoryFunction",
+            "link": "/reference/index/type-aliases/PositionalFactoryFunction.md"
           },
           {
             "text": "Presence",

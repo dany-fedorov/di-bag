@@ -77,7 +77,7 @@ for (const providers of [10, 100] as const) {
   test(`node-native-promise awaits the native Promise and disposes its fulfillment at ${providers}`, async () => {
     const prepared = await prepareScenario('node-native-promise', providers, DiBag, 'current');
     const timed = await runTimed(prepared);
-    expect(timed.value).toBe(prepared.nativePromise);
+    expect(timed.value).toBe(prepared.nativeResultPromise);
     expect(verifyScenario(prepared, timed)).toEqual({
       checksum: `node-native-${providers}`, factories: 1, disposers: 1, cleanupLog: ['node-native'],
     });
@@ -133,7 +133,7 @@ for (const surface of ['current', 'baseline'] as const) {
         const terminal = { withServices: bindings, buildContainer() { calls.push('buildContainer'); const bag = { close: async () => {} }; bags.push(bag); return bag; } };
         return terminal;
       },
-      fromFactory() { return () => { throw new Error('build-close acquired a provider'); }; },
+      createProvider() { return () => { throw new Error('build-close acquired a provider'); }; },
       withDisposal(value: unknown) { return value; },
       withLifetime(value: unknown) { return value; },
     };
@@ -166,7 +166,7 @@ for (const surface of ['current', 'baseline'] as const) {
   });
 }
 
-test('baseline provider bridge translates raw and nativePromise before timing', async () => {
+test('baseline provider bridge translates final return kinds before timing', async () => {
   const modes: string[] = [];
   const bag = { resolve() {}, inspect() { return { acquisitions: [] }; }, createScope() { return bag; }, close: async () => {} };
   const facade = {
@@ -175,8 +175,25 @@ test('baseline provider bridge translates raw and nativePromise before timing', 
     withDisposal(value: unknown) { return value; },
     withLifetime(value: unknown) { return value; },
   };
-  await prepareScenario('node-native-promise', 10, facade, 'baseline');
+  const prepared = await prepareScenario('node-native-promise', 10, facade, 'baseline');
   expect(modes).toEqual([...Array(9).fill('raw'), 'native']);
+  expect(prepared.factories).toBe(0);
+  expect(prepared.disposers).toBe(0);
+});
+
+test('current provider bridge uses final return kinds before timing', async () => {
+  const kinds: string[] = [];
+  const bag = { resolve() {}, serviceSnapshot() { return { acquisitions: [] }; }, createChildContainer() { return bag; }, close: async () => {} };
+  const facade = {
+    createBuilder() { return { withServices() { return this; }, buildContainer() { return bag; } }; },
+    createProvider(create: unknown, options: { factoryReturnKind: string }) { kinds.push(options.factoryReturnKind); return create; },
+    withDisposal(value: unknown) { return value; },
+    withLifetime(value: unknown) { return value; },
+  };
+  const prepared = await prepareScenario('node-native-promise', 10, facade, 'current');
+  expect(kinds).toEqual([...Array(9).fill('uninspected'), 'native-promise']);
+  expect(prepared.factories).toBe(0);
+  expect(prepared.disposers).toBe(0);
 });
 
 test('child argument parser accepts one exact request and rejects malformed or extra input', () => {

@@ -16,7 +16,13 @@ test('coverage includes consolidated provider overloads and type-only callables'
   const report = verifyApiCoverage(project, root, output);
   assert.equal(report.callableOverloads['index.DiBagApi.withMetadata'], 5);
   assert.equal(report.callableOverloads['index.DiBagApi.transformService'], 2);
-  assert.equal(report.callableOverloads['index.PluginProviderFactory'], 1);
+  assert.equal(report.callableOverloads['index.CreateProviderFromPlugin'], 1);
+  assert.equal(report.callableOverloads['index.PluginProviderFactory'], undefined);
+  assert.equal(report.callableOverloads['index.DiBagApi.createProvider'], 2);
+  assert.equal(report.callableOverloads['index.DiBagApi.createProviderFromFunction'], 1);
+  assert.equal(report.callableOverloads['index.DiBagApi.createProviderFromClass'], 1);
+  assert.equal(report.callableOverloads['index.DiBagApi.createProviderFromPlugin'], 1);
+  assert.equal(report.callableOverloads['index.DiBagApi.createToken'], 1);
   assert.equal(report.callableOverloads['index.DiBagCleanupError.constructor'], 1);
 });
 

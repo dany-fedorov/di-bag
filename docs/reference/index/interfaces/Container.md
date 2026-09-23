@@ -424,7 +424,7 @@ Contributions in declaration order, or an empty list.
 
 ```ts
 const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
 const container = DiBag.createBuilder().buildContainer();
 const names: readonly string[] = container.resolveCollection(tools);
 ```
@@ -507,7 +507,7 @@ One service snapshot per collection contribution.
 
 ```ts
 const handlersKey = Symbol('handlers');
-const handlers = DiBag.token(handlersKey).forCollectionOf<() => void>();
+const handlers = DiBag.createToken(handlersKey).forCollectionOf<() => void>();
 const container = DiBag.createBuilder()
   .withCollectionContribution({ collectionToken: handlers, provider: () => () => {} })
   .buildContainer();

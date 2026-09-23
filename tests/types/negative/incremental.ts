@@ -14,20 +14,20 @@ DiBag.createBuilder().withServices({ value: () => 1, read: ({ value }: { value: 
 DiBag.createBuilder().withServices({ value: () => 1, read: ({ value }: { value: number }) => value }).withReplacedService('read', ({ value }: { value: string }) => value);
 
 const key = Symbol('value');
-const token = DiBag.token(key).of<number>();
-const wider = DiBag.token(key).of<number | string>();
+const token = DiBag.createToken(key).forService<number>();
+const wider = DiBag.createToken(key).forService<number | string>();
 // diagnostic: incompatible or opaque
-DiBag.createBuilder().withServices({ read: DiBag.fromFunction([wider], value => value) }).withTokenService(token, () => 1);
+DiBag.createBuilder().withServices({ read: DiBag.createProviderFromFunction({ dependencies: [wider], factoryFunction: value => value }) }).withTokenService(token, () => 1);
 // diagnostic: incompatible or opaque
-DiBag.createBuilder().withTokenService(token, () => 1).withServices({ read: DiBag.fromFunction([wider], value => value) });
+DiBag.createBuilder().withTokenService(token, () => 1).withServices({ read: DiBag.createProviderFromFunction({ dependencies: [wider], factoryFunction: value => value }) });
 // diagnostic: incompatible or opaque
-DiBag.createBuilder().withTokenService(token, () => 1).withServices({ read: () => 1 }).withReplacedService('read', DiBag.fromFunction([wider], value => value));
+DiBag.createBuilder().withTokenService(token, () => 1).withServices({ read: () => 1 }).withReplacedService('read', DiBag.createProviderFromFunction({ dependencies: [wider], factoryFunction: value => value }));
 // diagnostic: output is not assignable
 DiBag.createBuilder().withTokenService(token, () => 1).withReplacedService(token, () => 'wrong');
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().withServices({ value: () => 1 }).withTokenService(token, ({ value }: { value: string }) => value.length);
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().withServices({ read: DiBag.fromFunction([token], value => value) }).buildContainer();
+DiBag.createBuilder().withServices({ read: DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }) }).buildContainer();
 
 declare const opaque: Provider<() => number, {}, readonly [], OpaqueGraph>;
 // diagnostic: incompatible or opaque
@@ -44,7 +44,7 @@ DiBag.createBuilder().withInstalledModules([privateModule]).withServices({ exter
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().withInstalledModules([privateModule]).buildContainer();
 
-const privateToken = DiBag.createBuilder().withServices({ hidden: DiBag.fromFunction([wider], value => value) }).buildModule({ exportedServiceKeys: [] });
+const privateToken = DiBag.createBuilder().withServices({ hidden: DiBag.createProviderFromFunction({ dependencies: [wider], factoryFunction: value => value }) }).buildModule({ exportedServiceKeys: [] });
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().withInstalledModules([privateToken]).withTokenService(token, () => 1);
 
@@ -53,7 +53,7 @@ DiBag.createBuilder().withServices({ read: ({ value }: { value: number }) => val
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().withTokenService(token, () => 1).withServices({ local: () => 1,
   invalidNamed: ({ local }: { local: string }) => local.length,
-  wrongToken: DiBag.fromFunction([wider], value => value) });
+  wrongToken: DiBag.createProviderFromFunction({ dependencies: [wider], factoryFunction: value => value }) });
 
 // Manually described histories remain checked even when an incoming name cannot
 // match any typed-token key.

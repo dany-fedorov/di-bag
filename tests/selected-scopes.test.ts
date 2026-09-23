@@ -21,7 +21,7 @@ test('selected sharing keeps parent dependencies while child overrides stay loca
 
 test('mixed token selections retain exact borrowed pending values and override bindings', async () => {
   const key = Symbol('value');
-  const token = DiBag.token(key).of<{ id: number }>();
+  const token = DiBag.createToken(key).forService<{ id: number }>();
   const gate = deferred<number>();
   const root = DiBag.createBuilder().withTokenService(token, () => ({ id: 1 })).withServices({ pending: () => gate.promise }).buildContainer();
   const child = root.createChildContainer([token], { [key]: () => ({ id: 2, added: true }) }, { sharedParentServiceKeys: ['pending'] });

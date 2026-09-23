@@ -11,7 +11,21 @@ import type { DisjointScopeSelection } from '../../../src';
 import type { ObserverOptions } from '../../../src';
 // diagnostic: no exported member
 import type { BuilderContribute } from '../../../src';
-const base = DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' });
+// diagnostic: no exported member 'AcquisitionContext'
+import type { AcquisitionContext } from '../../../src';
+// diagnostic: no exported member 'AcquisitionMode'
+import type { AcquisitionMode } from '../../../src';
+// diagnostic: no exported member 'CompositionArguments'
+import type { CompositionArguments } from '../../../src';
+// diagnostic: no exported member 'CompositionFunction'
+import type { CompositionFunction } from '../../../src';
+// diagnostic: no exported member 'PluginAcquisitionMode'
+import type { PluginAcquisitionMode } from '../../../src';
+// diagnostic: no exported member 'PluginOptions'
+import type { PluginOptions } from '../../../src';
+// diagnostic: no exported member named 'PluginProviderFactory'
+import type { PluginProviderFactory } from '../../../src';
+const base = DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' });
 // diagnostic: No overload matches
 DiBag.withMetadata(base, { dynamic: { describe: (_value: Promise<number>) => ({}) } });
 // diagnostic: No overload matches
@@ -23,17 +37,17 @@ DiBag.withMetadata(base, {});
 // diagnostic: No overload matches
 DiBag.withMetadata(DiBag.withMetadata(base, { static: { owner: 1 } }), { static: { owner: 2 } });
 // diagnostic: No overload matches
-DiBag.transformService(base, { mode: 'awaited', acquisitionMode: 'raw', transform: value => value });
+DiBag.transformService(base, { mode: 'awaited', acquisitionMode: 'uninspected', transform: value => value });
 // diagnostic: No overload matches
-DiBag.fromFactory(() => 1, { acquisitionMode: 'nativePromise' });
+DiBag.createProvider(() => 1, { factoryReturnKind: 'native-promise' });
 // diagnostic: not assignable
-DiBag.fromFactory((_deps: {}, _context: { signal: AbortSignal }) => 1);
+DiBag.createProvider((_deps: {}, _context: { signal: AbortSignal }) => 1);
 // diagnostic: No overload matches
-DiBag.transformService(base, { mode: 'direct', acquisitionMode: 'nativePromise', transform: () => 1 });
+DiBag.transformService(base, { mode: 'direct', acquisitionMode: 'native-promise', transform: () => 1 });
 const numberKey = Symbol('number');
-const number = DiBag.token(numberKey).of<number>();
-// diagnostic: composition arguments must match the declared parameter tuple
-DiBag.fromFunction([number], () => 1);
+const number = DiBag.createToken(numberKey).forService<number>();
+// diagnostic: positional factory arguments must match the declared parameter tuple
+DiBag.createProviderFromFunction({ dependencies: [number], factoryFunction: () => 1 });
 // diagnostic: token binding output is not assignable to its service
 DiBag.createBuilder().withTokenService(number, () => 'wrong');
 // diagnostic: does not exist
@@ -49,7 +63,7 @@ type RemovedStartupError = import('../../../src').DiBagStartupError;
 // diagnostic: has no exported member
 type RemovedStartupCancelledError = import('../../../src').DiBagStartupCancelledError;
 const removedCollectionKey = Symbol('removed collection');
-const removedCollection = DiBag.token(removedCollectionKey).forCollectionOf<number>();
+const removedCollection = DiBag.createToken(removedCollectionKey).forCollectionOf<number>();
 const removedBag = DiBag.createBuilder().withCollectionContribution({ collectionToken: removedCollection, provider: () => 1 }).buildContainer();
 // diagnostic: Property 'all' does not exist
 DiBag.all(removedCollection);
@@ -100,3 +114,33 @@ const lifecycleObserver = { onLifecycleEvent() {}, onObserverFailure() {} } sati
 lifecycleObserver.onEvent;
 // diagnostic: does not exist
 lifecycleObserver.onError;
+
+// diagnostic: Property 'fromFactory' does not exist
+DiBag.fromFactory;
+// diagnostic: Property 'fromSyncFactory' does not exist
+DiBag.fromSyncFactory;
+// diagnostic: Property 'fromAsyncFactory' does not exist
+DiBag.fromAsyncFactory;
+// diagnostic: Property 'fromFunction' does not exist
+DiBag.fromFunction;
+// diagnostic: Property 'fromClass' does not exist
+DiBag.fromClass;
+// diagnostic: Property 'fromPlugin' does not exist
+DiBag.fromPlugin;
+// diagnostic: Property 'token' does not exist
+DiBag.token;
+
+const serviceSymbol = Symbol('service'); const token = DiBag.createToken(serviceSymbol);
+// diagnostic: Property 'of' does not exist
+token.of<number>();
+const service = token.forService<number>();
+// diagnostic: Property 'key' does not exist
+service.key;
+
+type RemovedContext = AcquisitionContext;
+type RemovedMode = AcquisitionMode;
+type RemovedArguments = CompositionArguments<[], []>;
+type RemovedFunction = CompositionFunction<[]>;
+type RemovedPluginMode = PluginAcquisitionMode;
+type RemovedPluginOptions = PluginOptions<'raw', unknown>;
+type RemovedPluginFactory = PluginProviderFactory;

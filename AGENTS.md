@@ -11,8 +11,10 @@ Task recipes: [docs/agent/recipes.md](docs/agent/recipes.md). Every compiler and
 
 1. **Import from `di-bag`:** `import { DiBag } from 'di-bag';`. It configures
    itself on Node, Bun, and Deno; use the same root import on every runtime.
-   For browsers and workers wrap factories with `DiBag.fromSyncFactory` / `fromAsyncFactory`
-   ([portable recipe](docs/agent/recipes.md#portable-graph)); a plain factory there fails
+   For browsers and workers register synchronous factories with
+   `DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' })`; use
+   `'native-promise'` for a factory that returns a native Promise
+   ([portable recipe](docs/agent/recipes.md#portable-graph)); an auto-detect factory there fails
    `buildContainer()` with [`DI_BAG_CLASSIFIER_REQUIRED`](docs/agent/errors.md#di-bag-classifier-required), which names it.
 2. **A factory declares its dependencies in the type of its one object
    parameter; destructure it** (`({ clock }: { clock: Clock }) => ...`) or read
@@ -28,7 +30,7 @@ Task recipes: [docs/agent/recipes.md](docs/agent/recipes.md). Every compiler and
    declares `{ db: Promise<Db> }` and awaits it; nothing is awaited for you.
 5. **No thenables.** A factory that returns a non-Promise object with a `then`
    method (query builders) is [rejected](docs/agent/errors.md#structural-thenable).
-   Return `Promise.resolve(builder)` or use `DiBag.fromFactory(create, { acquisitionMode: 'raw' })`.
+   Return `Promise.resolve(builder)` or use `DiBag.createProvider(create, { factoryReturnKind: 'uninspected' })`.
 6. **Ownership.** `DiBag.withDisposal(factory, dispose)` makes the container own the
    returned value; `close()` runs disposers, dependents first. Close every child and
    independent container; a parent closes its live children, never independent containers. Inside a factory,
@@ -41,11 +43,9 @@ Task recipes: [docs/agent/recipes.md](docs/agent/recipes.md). Every compiler and
 9. **Read a rejection at its name.** A graph error is an assignability error
    whose type is `Unsatisfied<"message", details>`, reported where the builder
    expression starts. `builder.verifyGraphAtCompileTime() satisfies void;`
-   reports the same
-   message on its own line; `"noErrorTruncation": true` prints the details.
-   Runtime errors carry `code` and `details`: branch on `code`, never on message
-   text. The section for a code is `docs/agent/errors.md#<code>`, lower-cased
-   with `_` replaced by `-`.
+   reports the same message on its own line; `"noErrorTruncation": true` prints the details.
+   Runtime errors carry `code` and `details`: branch on `code`, never on message text.
+   The section for a code is `docs/agent/errors.md#<code>`, lower-cased with `_` replaced by `-`.
 
 ## Module layout
 

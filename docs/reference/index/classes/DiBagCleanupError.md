@@ -4,7 +4,7 @@
 
 # Class: DiBagCleanupError
 
-Defined in: [errors.ts:86](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L86)
+Defined in: [errors.ts:90](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L90)
 
 One or more disposers failed during `close()`; every cleanup was still attempted.
 `failures` lists each original error with the label of the service it belonged to, in attempt order.
@@ -32,7 +32,7 @@ await container.close().catch((error: unknown) => {
 new (failures: readonly CleanupFailure[]): DiBagCleanupError;
 ```
 
-Defined in: [errors.ts:93](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L93)
+Defined in: [errors.ts:97](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L97)
 
 #### Parameters
 
@@ -54,7 +54,7 @@ AggregateError.constructor
 declare readonly code: 'DI_BAG_CLEANUP_FAILED';
 ```
 
-Defined in: [errors.ts:87](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L87)
+Defined in: [errors.ts:91](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L91)
 
 ***
 
@@ -64,7 +64,7 @@ Defined in: [errors.ts:87](https://github.com/dany-fedorov/di-bag/blob/main/src/
 declare readonly details: Readonly<Record<string, unknown>>;
 ```
 
-Defined in: [errors.ts:88](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L88)
+Defined in: [errors.ts:92](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L92)
 
 ***
 
@@ -74,6 +74,6 @@ Defined in: [errors.ts:88](https://github.com/dany-fedorov/di-bag/blob/main/src/
 readonly failures: readonly CleanupFailure[];
 ```
 
-Defined in: [errors.ts:90](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L90)
+Defined in: [errors.ts:94](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L94)
 
 Frozen cleanup failures in finalizer invocation order.

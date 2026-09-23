@@ -4,7 +4,7 @@
 
 # Interface: DisposerContext
 
-Defined in: [acquisition-context.ts:16](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L16)
+Defined in: [acquisition-context.ts:17](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L17)
 
 Why a pushed disposer is running: the factory never returned, or it did and the
 service disposer — the `withDisposal` on the value this factory returned — has
@@ -22,7 +22,7 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#release-partial-acqui
 readonly reason: 'factory-failed' | 'no-service-disposer' | 'service-disposed' | 'service-disposal-failed';
 ```
 
-Defined in: [acquisition-context.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L23)
+Defined in: [acquisition-context.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L24)
 
 `'factory-failed'`: the factory threw, rejected, or was cancelled; no service exists.
 `'no-service-disposer'`: the factory returned and no `withDisposal` owns that value.

@@ -448,9 +448,62 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     return result.changed ? result.text : undefined;
   }
 
+  function typeTarget(node) {
+    const name = ts.isTypeReferenceNode(node) ? node.typeName
+      : ts.isImportTypeNode(node) ? node.qualifier
+        : undefined;
+    if (name === undefined) return undefined;
+    const target = ts.isQualifiedName(name) ? name.right : name;
+    if (!ts.isIdentifier(target)) return undefined;
+    const canonical = library.exportNameOf(library.symbolAt(target));
+    const entry = canonical === undefined ? undefined : index.types.get(canonical);
+    return entry === undefined ? undefined : { name, target, canonical, entry };
+  }
+
+  function mapTypeArgument(argument, values, replacements) {
+    if (ts.isLiteralTypeNode(argument) && isStringValue(argument.literal)) {
+      const target = values[argument.literal.text];
+      if (target === undefined) return false;
+      replacements.push({ start: start(argument.literal), end: argument.literal.end, text: quote(argument.literal, target) });
+      return true;
+    }
+    if (ts.isUnionTypeNode(argument)) return argument.types.every(item => mapTypeArgument(item, values, replacements));
+    return false;
+  }
+
+  function rewriteMappedType(node) {
+    const resolved = typeTarget(node);
+    if (resolved === undefined || resolved.entry.genericArguments === undefined) return undefined;
+    const { name, target, canonical, entry } = resolved;
+    const replacements = [];
+    if (target.text === canonical || ts.isQualifiedName(name) || ts.isImportTypeNode(node)) {
+      replacements.push({ start: start(target), end: target.end, text: entry.to });
+    }
+    for (const rule of entry.genericArguments) {
+      const argument = node.typeArguments?.[rule.index];
+      if (argument === undefined || !mapTypeArgument(argument, rule.values, replacements)) {
+        manual(node, `${entry.from} has a nonliteral or unsupported generic argument ${rule.index}; rewrite it to ${entry.to} by hand`);
+        return replacements.length === 0 ? undefined : assemble(node, replacements);
+      }
+    }
+    return assemble(node, replacements);
+  }
+
+  function rewriteTypedLegacyLiteral(node) {
+    if (!isStringValue(node)) return undefined;
+    const contextual = checker.getContextualType(node);
+    const symbol = contextual?.aliasSymbol ?? contextual?.symbol;
+    const canonical = symbol && library.exportNameOf(symbol);
+    const entry = canonical === undefined ? undefined : index.types.get(canonical);
+    const target = entry?.literalValues?.[node.text];
+    return target === undefined ? undefined : quote(node, target);
+  }
+
   function rewriteIdentifier(node) {
-    const target = index.types.get(node.text);
-    if (target === undefined) return undefined;
+    const entry = index.types.get(node.text);
+    if (entry === undefined) return undefined;
+    if ((ts.isTypeReferenceNode(node.parent) || ts.isImportTypeNode(node.parent)) && entry.genericArguments !== undefined) return undefined;
+    const target = entry.to;
     const parent = node.parent;
     if (ts.isPropertyAccessExpression(parent) && parent.name === node) return undefined;
     const isKey = (ts.isPropertyAssignment(parent) || ts.isPropertySignature(parent) || ts.isPropertyDeclaration(parent) || ts.isMethodDeclaration(parent)
@@ -510,12 +563,16 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
 
   function rewriteNode(node) {
     if (ts.isTypeQueryNode(node)) return rewriteTypeQuery(node);
+    if (ts.isTypeReferenceNode(node) || ts.isImportTypeNode(node)) {
+      const result = rewriteMappedType(node);
+      if (result !== undefined) return result;
+    }
     if (ts.isCallExpression(node)) return rewriteCall(node);
     if (ts.isPropertyAccessExpression(node)) return rewritePropertyAccess(node);
     if (ts.isObjectLiteralExpression(node)) return rewriteObjectLiteral(node);
     if (ts.isBindingElement(node)) return rewriteBindingElement(node);
     if (ts.isIdentifier(node)) return rewriteIdentifier(node);
-    if (isStringValue(node)) return rewriteString(node);
+    if (isStringValue(node)) return rewriteTypedLegacyLiteral(node) ?? rewriteString(node);
     return undefined;
   }
 

@@ -1,7 +1,7 @@
 import { DiBag } from '../../src';
 
 const key: unique symbol = Symbol('service');
-export const serviceToken = DiBag.token(key).of<{ read(): number }>();
+export const serviceToken = DiBag.createToken(key).forService<{ read(): number }>();
 const feature = DiBag.createBuilder().withServices({
   privateValue: ({ config }: { config: { id: string } }) => config.id,
   service: ({ privateValue }: { privateValue: string }) => ({ id: privateValue }),
@@ -9,7 +9,7 @@ const feature = DiBag.createBuilder().withServices({
 export const parent = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(serviceToken, () => ({ read: () => 1 })).withServices({
   config: () => ({ id: 'parent' }),
   asyncValue: async () => ({ read: () => Number(1) }),
-  raw: DiBag.withMetadata(DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' }), { static: { name: 'raw' as const } }),
+  raw: DiBag.withMetadata(DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' }), { static: { name: 'raw' as const } }),
 }).buildContainer();
 export const child = parent.createChildContainer(['config', serviceToken, 'asyncValue'], {
   config: () => ({ id: 'child', added: true as const }),

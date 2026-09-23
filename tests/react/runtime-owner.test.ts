@@ -30,13 +30,13 @@ function fakeStart(fakes: Fakes) {
     fakes.log.push(`start:${identity}`);
     const bag = await DiBag.createBuilder().withServices({
       resource: DiBag.withDisposal(
-        DiBag.fromFactory(async () => {
+        DiBag.createProvider(async () => {
           if (fakes.lock?.has(identity)) throw new Error(`${identity} is held`);
           fakes.lock?.add(identity);
           fakes.log.push(`acquire:${identity}`);
           await fakes.readyGate?.(identity);
           return identity;
-        }, { acquisitionMode: 'nativePromise' }),
+        }, { factoryReturnKind: 'native-promise' }),
         async value => {
           fakes.log.push(`dispose:${value}`);
           await fakes.disposeGate?.(value);
@@ -45,11 +45,11 @@ function fakeStart(fakes: Fakes) {
         },
       ),
       // Fails after `resource` is owned, so a failed startup has something to roll back.
-      checkpoint: DiBag.fromFactory(async ({ resource }: { resource: Promise<string> }) => {
+      checkpoint: DiBag.createProvider(async ({ resource }: { resource: Promise<string> }) => {
         await resource;
         if (fakes.failing?.includes(identity)) throw new Error(`${identity} failed`);
         return true;
-      }, { acquisitionMode: 'nativePromise' }),
+      }, { factoryReturnKind: 'native-promise' }),
     }).buildContainer().ensureServicesReady(['resource', 'checkpoint'], { abortSignal: signal });
     fakes.log.push(`ready:${identity}`);
     return { identity, close: options => bag.close(options) };

@@ -3,4 +3,4 @@ import { DiBag } from '../../../src';
 declare module '../../../src' { interface DiBagPolicy { readonly structuralThenables: 'allow' } }
 class QueryBuilder { then(onFulfilled: (rows: number[]) => void) { onFulfilled([]); } }
 export const relaxed = DiBag.createBuilder().withServices({ users: () => new QueryBuilder() });
-export const adapter = DiBag.fromFactory(() => new QueryBuilder());
+export const adapter = DiBag.createProvider(() => new QueryBuilder());

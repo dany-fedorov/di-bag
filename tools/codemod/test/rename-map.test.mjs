@@ -9,12 +9,55 @@ import { indexRenameMap, loadRenameMap, validateRenameMap } from '../lib/rename-
 const packageRoot = resolve(import.meta.dirname, '..');
 const shipped = JSON.parse(readFileSync(join(packageRoot, 'rename-map.json'), 'utf8'));
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'di-bag-rename-map-'));
-const shippedTransforms = ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation'];
+const shippedTransforms = ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation', 'provider-sources'];
 after(() => rmSync(temporaryRoot, { force: true, recursive: true }));
 
 test('the shipped map is valid', () => {
   assert.deepEqual(validateRenameMap(shipped, shippedTransforms), []);
   assert.equal(loadRenameMap(join(packageRoot, 'rename-map.json'), shippedTransforms).version, 1);
+});
+
+test('type literal-value and generic rules validate and remain indexed', () => {
+  const entry = {
+    from: 'PluginOptions', to: 'CreateProviderFromPluginOptions',
+    literalValues: { raw: 'uninspected' },
+    genericArguments: [{ index: 0, values: { raw: 'uninspected' } }],
+  };
+  const map = { version: 1, types: [entry] };
+  assert.deepEqual(validateRenameMap(map, []), []);
+  assert.deepEqual(indexRenameMap(map).types.get('PluginOptions'), entry);
+  assert.deepEqual(validateRenameMap({ version: 1, types: [{ from: 'A', to: 'B', literalValues: {} }] }, []), [
+    'types[0]: literalValues must map non-empty string literals',
+  ]);
+  assert.deepEqual(validateRenameMap({ version: 1, types: [{ from: 'A', to: 'B', genericArguments: [{ index: 0, values: {} }] }] }, []), [
+    'types[0]: genericArguments must map non-negative indices and string literal values',
+  ]);
+  assert.deepEqual(validateRenameMap({ version: 1, types: [{ from: 'A', to: 'B', genericArguments: true }] }, []), [
+    'types[0]: genericArguments must map non-negative indices and string literal values',
+  ]);
+});
+
+test('malformed nested generic rules return validation problems', () => {
+  for (const rule of [null, true]) {
+    assert.deepEqual(validateRenameMap({
+      version: 1,
+      types: [{ from: 'A', to: 'B', genericArguments: [rule] }],
+    }, []), [
+      'types[0]: genericArguments must map non-negative indices and string literal values',
+    ]);
+  }
+});
+
+test('nested generic rules reject fields outside the schema', () => {
+  assert.deepEqual(validateRenameMap({
+    version: 1,
+    types: [{
+      from: 'A', to: 'B',
+      genericArguments: [{ index: 0, values: { raw: 'uninspected' }, typo: true }],
+    }],
+  }, []), [
+    'types[0]: genericArguments[0] has unknown field typo',
+  ]);
 });
 
 test('loading a broken map throws one error that lists every problem', () => {
@@ -41,7 +84,7 @@ test('the schema file lists the same sections the validator accepts', () => {
     schema.properties.options.items.properties.path.items, schema.properties.options.items.properties.from,
     ...schema.properties.values.items.oneOf.flatMap(variant => Object.values(variant.properties).filter(property => property.type === 'string')),
     ...Object.values(schema.properties.properties.items.properties),
-    ...Object.values(schema.properties.types.items.properties),
+    ...Object.values(schema.properties.types.items.properties).filter(property => property.type === 'string'),
     ...Object.values(schema.properties.codes.items.properties).filter(property => property.type === 'string'),
     ...schema.properties.imports.items.oneOf.flatMap(variant => Object.values(variant.properties)),
   ];

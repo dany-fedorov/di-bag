@@ -26,7 +26,7 @@ async function main() {
     .withServices({
       connection: observed.withMetadata(
         observed.withDisposal(
-          observed.fromFactory(() => ({ name: 'reporting' }), { acquisitionMode: 'raw' }),
+          observed.createProvider(() => ({ name: 'reporting' }), { factoryReturnKind: 'uninspected' }),
           () => {
             disposals++;
           },

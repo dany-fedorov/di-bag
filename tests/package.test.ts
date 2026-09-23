@@ -176,8 +176,8 @@ for (const mode of ['commonjs', 'module'] as const) {
         const cjs = (await import('node:module')).createRequire(process.cwd() + '/consumer.cjs')('di-bag');
         const esm = await import('di-bag');
         const tokenKey = Symbol('package');
-        const selected = cjs.DiBag.token(tokenKey).of();
-        const tokenFeature = esm.DiBag.createBuilder().withTokenService(selected, () => raw).withServices({ value: esm.DiBag.transformService(esm.DiBag.fromFunction([selected], value => value), { mode: 'direct', transform: value => value }) }).buildModule({ exportedServiceKeys: [selected, 'value'] });
+        const selected = cjs.DiBag.createToken(tokenKey).forService();
+        const tokenFeature = esm.DiBag.createBuilder().withTokenService(selected, () => raw).withServices({ value: esm.DiBag.transformService(esm.DiBag.createProviderFromFunction({ dependencies: [selected], factoryFunction: value => value }), { mode: 'direct', transform: value => value }) }).buildModule({ exportedServiceKeys: [selected, 'value'] });
         const tokenRuntime = DiBag.createBuilder().withInstalledModules([tokenFeature]).buildContainer();
         const tokenIdentity = tokenRuntime.resolve('value') === raw;
         await tokenRuntime.close();

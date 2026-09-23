@@ -228,8 +228,8 @@ test('scope preserves native shadowed-then and raw Promise ownership in configur
   const disposed: unknown[] = [];
   const configured = Core.withConfiguration({ runtime: { isNativePromise: isPromise } });
   const root = configured.createBuilder().withServices({
-    native: configured.withDisposal(configured.fromFactory(() => nativeGate.promise, { acquisitionMode: 'nativePromise' }), value => { disposed.push(value); }),
-    raw: configured.withDisposal(configured.fromFactory(() => raw, { acquisitionMode: 'raw' }), value => { disposed.push(value); }),
+    native: configured.withDisposal(configured.createProvider(() => nativeGate.promise, { factoryReturnKind: 'native-promise' }), value => { disposed.push(value); }),
+    raw: configured.withDisposal(configured.createProvider(() => raw, { factoryReturnKind: 'uninspected' }), value => { disposed.push(value); }),
   }).buildContainer();
   const child = root.createChildContainer();
   expect(child.resolve('native')).toBe(nativeGate.promise);

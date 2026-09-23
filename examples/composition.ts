@@ -27,21 +27,20 @@ async function main() {
   const pathKey = Symbol('path');
   const labelKey = Symbol('label');
   const clientAliasKey = Symbol('client alias');
-  const port = DiBag.token(portKey).of<number>();
-  const client = DiBag.token(clientKey).of<Client>();
-  const path = DiBag.token(pathKey).of<string>();
-  const label = DiBag.token(labelKey).of<string>();
-  const clientAlias = DiBag.token(clientAliasKey).of<Client>();
+  const port = DiBag.createToken(portKey).forService<number>();
+  const client = DiBag.createToken(clientKey).forService<Client>();
+  const path = DiBag.createToken(pathKey).forService<string>();
+  const label = DiBag.createToken(labelKey).forService<string>();
+  const clientAlias = DiBag.createToken(clientAliasKey).forService<Client>();
   const bag = DiBag.createBuilder()
     .withTokenService(port, () => 8080)
-    .withTokenService(client, DiBag.fromClass([port], Client))
+    .withTokenService(client, DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }))
     .withServiceAlias({ aliasKey: clientAlias, targetServiceKey: client })
     .withTokenService(path, () => 'health')
     .withServices({
-      endpoint: DiBag.fromFunction([client, path], endpoint),
-      reporter: DiBag.fromClass(
-        [DiBag.lazy(clientAlias), DiBag.optional(label)],
-        Reporter,
+      endpoint: DiBag.createProviderFromFunction({ dependencies: [client, path], factoryFunction: endpoint }),
+      reporter: DiBag.createProviderFromClass(
+        { dependencies: [DiBag.lazy(clientAlias), DiBag.optional(label)], serviceClass: Reporter },
       ),
     })
     .withServiceAlias({ aliasKey: 'report', targetServiceKey: 'reporter' })

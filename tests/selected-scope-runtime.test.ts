@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { isPromise } from 'node:util/types';
 import { DiBag } from '../src';
 import { BindingGraph, BagRuntime } from '../src/runtime';
-import type { AcquisitionContext } from '../src/acquisition-context';
+import type { FactoryContext } from '../src/acquisition-context';
 import { deferred } from './helpers';
 
 const context = { isNativePromise: isPromise };
@@ -95,39 +95,39 @@ test('shared pending promises deduplicate and failed acquisitions retry at the o
 
 test('closing a borrower leaves the pending owner context and finalizer intact', async () => {
   const gate = deferred<void>();
-  let ownerContext: AcquisitionContext | undefined;
+  let ownerContext: FactoryContext | undefined;
   let finalized = 0;
   const graph = new BindingGraph().withPublicRegistrations({
-    service: DiBag.withDisposal(DiBag.fromFactory(async (_deps: {}, factoryCtx) => { ownerContext = factoryCtx; await gate.promise; return 42; }, { context: 'acquisition' }), () => { finalized++; }),
-    local: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }),
+    service: DiBag.withDisposal(DiBag.createProvider(async (_deps: {}, factoryCtx) => { ownerContext = factoryCtx; await gate.promise; return 42; }, { factoryReceivesContext: true }), () => { finalized++; }),
+    local: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }),
   });
   const parent = new BagRuntime(graph, context);
   const child = parent.scope(graph, [graph.publicBinding('service')]);
   const pending = child.resolve('service');
-  const local = child.resolve('local') as AcquisitionContext;
+  const local = child.resolve('local') as FactoryContext;
   await child.close('child');
-  expect(local.signal.aborted).toBe(true);
-  expect(ownerContext?.signal.aborted).toBe(false);
+  expect(local.abortSignal.aborted).toBe(true);
+  expect(ownerContext?.abortSignal.aborted).toBe(false);
   expect(finalized).toBe(0);
   expect(parent.resolve('service')).toBe(pending);
   gate.resolve();
   expect(await pending).toBe(42);
   await parent.close('parent');
-  expect(ownerContext?.signal.reason).toBe('parent');
+  expect(ownerContext?.abortSignal.reason).toBe('parent');
   expect(finalized).toBe(1);
 });
 
 test('pending child sources discover shared parent dependencies during tree close', async () => {
   const gate = deferred<void>();
   const events: string[] = [];
-  let lateContext: AcquisitionContext | undefined;
+  let lateContext: FactoryContext | undefined;
   const graph = new BindingGraph().withPublicRegistrations({
-    service: DiBag.withDisposal(DiBag.fromFactory((_deps: {}, factoryCtx) => { lateContext = factoryCtx; return 42; }, { context: 'acquisition' }), () => { events.push('service'); }),
-    context: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }),
+    service: DiBag.withDisposal(DiBag.createProvider((_deps: {}, factoryCtx) => { lateContext = factoryCtx; return 42; }, { factoryReceivesContext: true }), () => { events.push('service'); }),
+    context: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }),
     consumer: DiBag.withDisposal(async (deps: { service: number }) => { await gate.promise; return deps.service; }, () => { events.push('consumer'); }),
   });
   const parent = new BagRuntime(graph, context);
-  const ownerContext = parent.resolve('context') as AcquisitionContext;
+  const ownerContext = parent.resolve('context') as FactoryContext;
   const child = parent.scope(graph, [graph.publicBinding('service')]);
   const pending = child.resolve('consumer');
   const closing = parent.close('tree');
@@ -136,8 +136,8 @@ test('pending child sources discover shared parent dependencies during tree clos
   gate.resolve();
   expect(await pending).toBe(42);
   await closing;
-  expect(lateContext?.signal).toBe(ownerContext.signal);
-  expect(lateContext?.signal.reason).toBe('tree');
+  expect(lateContext?.abortSignal).toBe(ownerContext.abortSignal);
+  expect(lateContext?.abortSignal.reason).toBe('tree');
   expect(events).toEqual(['consumer', 'service']);
 });
 

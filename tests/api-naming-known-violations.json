@@ -10,10 +10,8 @@
     "retired-word: code DI_BAG_INVALID_CLEANUP",
     "retired-word: code DI_BAG_INVALID_SCOPE",
     "retired-word: code DI_BAG_INVALID_STARTUP",
-    "retired-word: export AcquisitionMode",
     "retired-word: export CleanupFailure",
     "retired-word: export DiBagCleanupError",
-    "retired-word: export PluginAcquisitionMode",
     "retired-word: export ScopeEventFields",
     "retired-word: member acquisitionMode",
     "retired-word: member cleanupPromise",
@@ -21,7 +19,6 @@
     "retired-word: member parentScopeId",
     "retired-word: member root",
     "retired-word: member scopeId",
-    "retired-word: parameter modeOptions",
     "retired-word: value 'awaited'",
     "retired-word: value 'cleanup-completed'",
     "retired-word: value 'cleanup-failed'",
@@ -32,7 +29,6 @@
     "retired-word: value 'scope-close-failed'",
     "retired-word: value 'scope-closed'",
     "retired-word: value 'scope-closing'",
-    "retired-word: value 'scope-opened'",
-    "value-casing: value 'nativePromise'"
+    "retired-word: value 'scope-opened'"
   ]
 }

@@ -31,7 +31,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#builder
 readonly buildModule: BuilderBuildModule<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:615](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L615)
+Defined in: [di-bag.ts:605](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L605)
 
 Seal this graph as a reusable module and select its public names and typed tokens.
 Unselected services stay private to each installation; unmet dependencies
@@ -74,7 +74,7 @@ const app = DiBag.createBuilder().withInstalledModules([orders]).buildContainer(
 readonly withCollectionContribution: BuilderWithCollectionContribution<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:509](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L509)
+Defined in: [di-bag.ts:503](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L503)
 
 Append a provider to the list of a collection token.
 
@@ -96,10 +96,8 @@ A new builder preserving contribution order.
 
 ```ts
 const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).forCollectionOf<string>();
-const builder = DiBag.createBuilder()
-  .withCollectionContribution({ collectionToken: tools, provider: () => 'search' })
-  .withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' });
+const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
+const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: tools, provider: () => 'search' }).withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' });
 ```
 
 ***
@@ -110,7 +108,7 @@ const builder = DiBag.createBuilder()
 readonly withInstalledModules: BuilderWithInstalledModules<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:563](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L563)
+Defined in: [di-bag.ts:553](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L553)
 
 Install sealed modules in list order, allocating fresh private bindings for each installation.
 Each module is checked against this builder plus the modules before it in the list.
@@ -134,9 +132,7 @@ A new builder exposing only the selected exports of each module; contributions k
 #### Example
 
 ```ts
-const greeting = DiBag.createBuilder()
-  .withServices({ greet: ({ name }: { name: string }) => `hello, ${name}` })
-  .buildModule({ exportedServiceKeys: ['greet'] });
+const greeting = DiBag.createBuilder().withServices({ greet: ({ name }: { name: string }) => `hello, ${name}` }).buildModule({ exportedServiceKeys: ['greet'] });
 const app = DiBag.createBuilder().withInstalledModules([greeting]).withServices({ name: () => 'Ada' }).buildContainer();
 ```
 
@@ -148,7 +144,7 @@ const app = DiBag.createBuilder().withInstalledModules([greeting]).withServices(
 readonly withReplacedService: BuilderWithReplacedService<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:533](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L533)
+Defined in: [di-bag.ts:525](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L525)
 
 Replace an existing binding with a compatible provider, selecting it by name, service token, collection token.
 
@@ -176,9 +172,7 @@ A new builder with the replacement.
 #### Example
 
 ```ts
-const builder = DiBag.createBuilder()
-  .withServices({ clock: () => Date.now() })
-  .withReplacedService('clock', () => 0);
+const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withReplacedService('clock', () => 0);
 ```
 
 ***
@@ -189,7 +183,7 @@ const builder = DiBag.createBuilder()
 readonly withServiceAlias: BuilderWithServiceAlias<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:479](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L479)
+Defined in: [di-bag.ts:475](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L475)
 
 Add another lookup name for an existing service.
 
@@ -211,9 +205,7 @@ A new builder; aliases add no cache or ownership of their own.
 #### Example
 
 ```ts
-const builder = DiBag.createBuilder()
-  .withServices({ clock: () => Date.now() })
-  .withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
+const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
 ```
 
 ***
@@ -224,7 +216,7 @@ const builder = DiBag.createBuilder()
 readonly withServices: BuilderWithServices<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:438](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L438)
+Defined in: [di-bag.ts:436](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L436)
 
 Add new string-named services.
 A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
@@ -248,9 +240,7 @@ A new builder containing snapshots of the supplied providers.
 
 ```ts
 type Clock = { now(): number };
-const builder = DiBag.createBuilder()
-  .withServices({ clock: (): Clock => ({ now: () => Date.now() }) })
-  .withServices({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
+const builder = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now: () => Date.now() }) }).withServices({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
 ```
 
 ***
@@ -261,7 +251,7 @@ const builder = DiBag.createBuilder()
 readonly withTokenService: BuilderWithTokenService<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:458](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L458)
+Defined in: [di-bag.ts:456](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L456)
 
 Add the single service of a typed token.
 
@@ -290,7 +280,7 @@ A new builder retaining the provider's metadata, lifetime, dependencies, and own
 
 ```ts
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
 const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () => Date.now() }));
 ```
 
@@ -302,7 +292,7 @@ const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () =
 buildContainer(this: Builder<Entries, Constraints> & CheckDependencyCompleteness<RegistrationsFromEntries<Entries>> & CompleteConstraints<Constraints, RegistrationsFromEntries<Entries>> & CheckedLifetimes<RegistrationsFromEntries<Entries>, Constraints>): Container<RegistrationsFromEntries<Entries>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:633](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L633)
+Defined in: [di-bag.ts:623](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L623)
 
 Finish a complete graph as a lazy container.
 The container owns what it acquires; close it when done.
@@ -337,7 +327,7 @@ await app.close();
 verifyGraphAtCompileTime<Self extends Builder<Entries, Constraints>>(this: Self): CompositionReport<Self>;
 ```
 
-Defined in: [di-bag.ts:591](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L591)
+Defined in: [di-bag.ts:581](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L581)
 
 Report at the type level why this graph would not build; the runtime call does nothing.
 Write `builder.verifyGraphAtCompileTime() satisfies void;` so a rejected graph fails on that line with

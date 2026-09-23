@@ -50,7 +50,7 @@ export interface CleanupFailure {
  * import { DiBag, DiBagPluginValidationError } from 'di-bag';
  *
  * try {
- *   DiBag.fromPlugin([], { apiVersion: 2 }, { acquisitionMode: 'raw', validate: (pluginOutput): pluginOutput is string => typeof pluginOutput === 'string' });
+ *   DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: { apiVersion: 2 }, factoryReturnKind: 'uninspected', isValidPluginOutput: (pluginOutput): pluginOutput is string => typeof pluginOutput === 'string' });
  * } catch (error) {
  *   if (error instanceof DiBagPluginValidationError) console.error(error.phase, error.reason);
  * }
@@ -63,10 +63,14 @@ export class DiBagPluginValidationError extends Error {
    * @param phase - Whether descriptor authentication or output validation failed.
    * @param reason - A stable description of the rejected boundary condition.
    */
-  constructor(readonly phase: 'descriptor' | 'output', readonly reason: string) {
+  constructor(
+    readonly phase: 'descriptor' | 'output',
+    readonly reason: string,
+    operation: 'createProviderFromPlugin' = 'createProviderFromPlugin',
+  ) {
     super(diagnosticMessage('DI_BAG_PLUGIN_VALIDATION', `Invalid plugin ${phase}: ${reason}`));
     this.name = 'DiBagPluginValidationError';
-    diagnostic(this, 'DI_BAG_PLUGIN_VALIDATION', { operation: 'fromPlugin', phase, reason });
+    diagnostic(this, 'DI_BAG_PLUGIN_VALIDATION', { operation, phase, reason });
   }
 }
 

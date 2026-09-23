@@ -18,11 +18,12 @@ for (const name of fixtureNames) {
   });
 }
 
-test('an untraceable inline collection token preserves its enclosing contribution', () => {
+test('an untraceable token keeps its kind manual while proven constructor and contribution calls migrate', () => {
   const result = runFixture('collection-token-untraceable');
-  assert.equal(result.text, readFixture('collection-token-untraceable', 'input.ts'));
-  assert.equal(result.rewrites, 0);
-  assert.equal(result.manual.length, 1);
+  assert.equal(result.text, readFixture('collection-token-untraceable', 'expected.ts'));
+  assert.deepEqual(result.manual, JSON.parse(readFixture('collection-token-untraceable', 'expected-manual.json')));
+  assert.match(result.text, /\.of<number>\(\)/);
+  assert.doesNotMatch(result.text, /\.for(?:Service|CollectionOf)<number>\(\)/);
 });
 
 test('qualified typeof references follow uncalled member policy without escaping manual preservation', () => {

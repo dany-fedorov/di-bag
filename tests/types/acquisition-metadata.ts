@@ -6,7 +6,7 @@ export const first = DiBag.withMetadata(source, { dynamic: { mode: 'direct', des
 export const annotated = DiBag.withMetadata(first, { dynamic: { mode: 'direct', describe: result => ({ value: result.value }) } });
 export const projected = DiBag.transformService(annotated, { mode: 'direct', transform: result => result.value });
 export const asynchronous = DiBag.withMetadata(async () => ({ value: 1 }), { dynamic: { mode: 'awaited', describe: result => ({ value: result.value }) } });
-const raw = DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' });
+const raw = DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' });
 export const rawAnnotated = DiBag.withMetadata(raw, { dynamic: { mode: 'direct', describe: promise => ({ promise }) } });
 DiBag.withDisposal(rawAnnotated, promise => { const exact: Promise<number> = promise; void exact; });
 export type Contracts = [

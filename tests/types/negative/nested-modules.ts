@@ -23,9 +23,9 @@ host.resolve('logger');
 
 // Token requirements forward outward through every level.
 const clockKey = Symbol('clock');
-const clockToken = DiBag.token(clockKey).of<{ now(): number }>();
-const narrowToken = DiBag.token(clockKey).of<{ now(): number; extra: true }>();
-const tokenInner = DiBag.createBuilder().withServices({ stamp: DiBag.fromFunction([narrowToken], clock => clock.now()) }).buildModule({ exportedServiceKeys: ['stamp'] });
+const clockToken = DiBag.createToken(clockKey).forService<{ now(): number }>();
+const narrowToken = DiBag.createToken(clockKey).forService<{ now(): number; extra: true }>();
+const tokenInner = DiBag.createBuilder().withServices({ stamp: DiBag.createProviderFromFunction({ dependencies: [narrowToken], factoryFunction: clock => clock.now() }) }).buildModule({ exportedServiceKeys: ['stamp'] });
 const tokenOuter = DiBag.createBuilder().withInstalledModules([tokenInner]).buildModule({ exportedServiceKeys: ['stamp'] });
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().withInstalledModules([tokenOuter]).withTokenService(clockToken, () => ({ now: () => 1 }));
@@ -54,7 +54,7 @@ DiBag.createBuilder().withInstalledModules([deepBridge]).withServices({ db: () =
 
 // A root contribution whose private dependency is scoped is rejected when its module seals.
 const groupKey = Symbol('group');
-const group = DiBag.token(groupKey).forCollectionOf<number>();
+const group = DiBag.createToken(groupKey).forCollectionOf<number>();
 const contributingBuilder = DiBag.createBuilder().withServices({ hidden: () => 1 }).withCollectionContribution({ collectionToken: group, provider: withLifetime(({ hidden }: { hidden: number }) => hidden, 'root') });
 // diagnostic: root lifetime cannot capture scoped dependency: contribution -> hidden
 contributingBuilder.buildModule({ exportedServiceKeys: [] });

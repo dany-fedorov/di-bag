@@ -23,9 +23,9 @@ test('closing a deep graph disposes every dependent before its dependency exactl
   const count = 12_000;
   const disposed: number[] = [];
   const registrations = Object.fromEntries(Array.from({ length: count }, (_, index) => [
-    `p${index}`, DiBag.withDisposal(DiBag.fromFactory((deps: Record<string, unknown>) => ({
+    `p${index}`, DiBag.withDisposal(DiBag.createProvider((deps: Record<string, unknown>) => ({
       index, link: () => index + 1 < count ? deps[`p${index + 1}`] : undefined,
-    }), { acquisitionMode: 'raw' }), value => { disposed.push(value.index); }),
+    }), { factoryReturnKind: 'uninspected' }), value => { disposed.push(value.index); }),
   ]));
   // The generated JavaScript-shaped graph exercises runtime depth independently
   // of TypeScript's finite-key admission. Every dependency is registered.

@@ -25,16 +25,6 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-i
 
 ## Properties
 
-### acquisitionMode
-
-```ts
-readonly acquisitionMode: AcquisitionMode;
-```
-
-Defined in: [inspection.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L56)
-
-***
-
 ### acquisitions
 
 ```ts
@@ -95,6 +85,16 @@ Stable identity for the canonical graph binding.
 #### Inherited from
 
 [`RegistrationSnapshot`](RegistrationSnapshot.md).[`bindingId`](RegistrationSnapshot.md#bindingid)
+
+***
+
+### factoryReturnKind
+
+```ts
+readonly factoryReturnKind: FactoryReturnKind;
+```
+
+Defined in: [inspection.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L56)
 
 ***
 

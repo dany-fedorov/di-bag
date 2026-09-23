@@ -2,13 +2,13 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / ContextualFactory
 
-# Type Alias: ContextualFactory\<F *extends* `ContextFactory`\>
+# Type Alias: ContextualFactory\<F *extends* (`this`: `void`, `dependencies`: `never`, `factoryContext`: `never`) => `unknown`\>
 
 ```ts
-type ContextualFactory<F extends ContextFactory> = (this: void, dependencies: Parameters<F> extends [] ? {} : Parameters<F>[0]) => ReturnType<F>;
+type ContextualFactory<F extends (this: void, dependencies: never, factoryContext: never) => unknown> = (this: void, dependencies: Parameters<F> extends [] ? {} : Parameters<F>[0]) => ReturnType<F>;
 ```
 
-Defined in: [acquisition-context.ts:46](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L46)
+Defined in: [acquisition-context.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L45)
 
 The named-dependency factory contract retained by an acquisition-context callback.
 
@@ -16,7 +16,7 @@ The named-dependency factory contract retained by an acquisition-context callbac
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `F` | - |
+| `F` | The contextual callback whose named dependencies and return type are retained. |
 
 ## Parameters
 

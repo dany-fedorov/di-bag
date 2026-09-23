@@ -5,10 +5,63 @@ import { test } from 'node:test';
 import { defaultMapFile, runCodemod, transforms, validateRenameMap } from '../lib/codemod.mjs';
 import { compiler, fixturesProgram, fixturesRoot } from './helpers.mjs';
 
+test('nonliteral provider return kinds stay unchanged and report one manual item per constructor', () => {
+  const result = runCodemod({
+    typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(),
+    only: ['provider-nonliteral-return-kind/input.ts'],
+  });
+  const input = readFileSync(new URL('./fixtures/provider-nonliteral-return-kind/input.ts', import.meta.url), 'utf8');
+  assert.equal(result.files[0]?.text ?? input, input);
+  assert.deepEqual(result.manual.map(({ line, reason }) => ({ line, reason })), [
+    { line: 4, reason: 'fromFactory acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand' },
+    { line: 5, reason: 'fromFunction acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand' },
+    { line: 6, reason: 'fromClass acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand' },
+    { line: 7, reason: 'fromPlugin acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand' },
+  ]);
+  assert.doesNotMatch(result.files[0]?.text ?? input, /factoryReturnKind: 'null'/);
+});
+
 test('every transform the shipped map names exists in the registry', () => {
   const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
   assert.deepEqual(validateRenameMap(shipped, Object.keys(transforms)), []);
-  assert.deepEqual(Object.keys(transforms), ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation']);
+  assert.deepEqual(Object.keys(transforms), ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation', 'provider-sources']);
+});
+
+test('provider source transforms ask their method entries for emitted field names', () => {
+  const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
+  const map = {
+    ...shipped,
+    methods: shipped.methods.map(entry => entry.owner === 'DiBagApi' && entry.from === 'fromFunction'
+      ? { ...entry, to: 'adapt', transformNames: { dependencies: 'needs', callable: 'make', returnKind: 'policy', receivesContext: 'takesContext' } }
+      : entry),
+  };
+  const result = runCodemod({ typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(), only: ['provider-sources/input.ts'], map });
+  assert.match(result.files[0].text, /DiBag\.adapt\(\{ needs: \[clock\], make: value => Promise\.resolve\(value\.now\(\)\), policy: 'native-promise' \}\)/);
+});
+
+test('collection token constructor and role names come from the map even when kind stays manual', () => {
+  const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
+  const map = {
+    ...shipped,
+    methods: shipped.methods.map(entry => entry.owner === 'DiBagApi' && entry.from === 'token'
+      ? { ...entry, to: 'makeToken' }
+      : entry.owner === 'token()' && entry.from === 'of'
+        ? { ...entry, to: 'many', transformNames: { single: 'one', collection: 'many' } }
+        : entry),
+  };
+  const result = runCodemod({
+    typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(),
+    only: ['provider-token-classification/input.ts'], map,
+  });
+  const text = result.files[0].text;
+  assert.match(text, /DiBag\.makeToken\(singleSymbol\)\.one<number>\(\)/);
+  assert.match(text, /DiBag\.makeToken\(collectionSymbol\)\.many<number>\(\)/);
+  assert.match(text, /DiBag\.makeToken\(mixedSymbol\)\.of<number>\(\)/);
+  assert.match(text, /DiBag\.makeToken\(inlineSymbol\)\.of<number>\(\)/);
+  assert.deepEqual(result.manual.map(({ line, reason }) => ({ line, reason })), [
+    { line: 5, reason: 'mixed is used as a collection and as a single service (provider-token-classification/input.ts:11); create a second token with many and keep the single token with one' },
+    { line: 13, reason: 'token creation is not bound to a traceable program variable; choose one or many by hand' },
+  ]);
 });
 
 test('a map that names an unknown transform is refused before any file is read', () => {

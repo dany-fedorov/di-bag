@@ -7,7 +7,7 @@
 Defined in: [tokens.ts:11](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L11)
 
 The common type-only base for genuine typed-token handles.
-Create tokens through `DiBag.token`; fabricated structural values are not authenticated.
+Create tokens through `DiBag.createToken`; fabricated structural values are not authenticated.
 
 ## See
 

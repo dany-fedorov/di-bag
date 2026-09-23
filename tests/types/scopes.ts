@@ -1,10 +1,10 @@
 import { DiBag } from '../../src';
 
 const exactKey: unique symbol = Symbol('exact');
-export const exactToken = DiBag.token(exactKey).of<{ readonly id: 'token'; read(): number }>();
+export const exactToken = DiBag.createToken(exactKey).forService<{ readonly id: 'token'; read(): number }>();
 const rawPromise = Promise.resolve({ id: 'raw' as const });
 const rawOwned = DiBag.withDisposal(
-  DiBag.fromFactory(() => rawPromise, { acquisitionMode: 'raw' }),
+  DiBag.createProvider(() => rawPromise, { factoryReturnKind: 'uninspected' }),
   value => { const exact: Promise<{ id: 'raw' }> = value; void exact; },
 );
 const decoratedRaw = DiBag.withMetadata(rawOwned, { static: { owner: 'scope' as const } });

@@ -1,6 +1,6 @@
 import { DiBag } from '../../src';
 import type { Assert, Equal } from './assert';
-const key = Symbol('service'); const token = DiBag.token(key).of<{ value: number }>();
+const key = Symbol('service'); const token = DiBag.createToken(key).forService<{ value: number }>();
 const named = DiBag.createBuilder().withServices({ named: () => 1 });
 const tokenBuilder = DiBag.createBuilder().withTokenService(token, () => ({ value: 1 }));
 const namedModule = DiBag.createBuilder().withServices({ named: () => 1 });

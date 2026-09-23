@@ -4,7 +4,7 @@
 
 # Interface: DiBagApi
 
-Defined in: [di-bag.ts:653](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L653)
+Defined in: [di-bag.ts:643](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L643)
 
 The immutable public entry surface used by [DiBag](../variables/DiBag.md) and derived facades.
 
@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#dibag-facade
 createBuilder: () => Builder<never>;
 ```
 
-Defined in: [di-bag.ts:776](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L776)
+Defined in: [di-bag.ts:731](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L731)
 
 Begin an empty immutable graph; `buildContainer` creates its owning container, `buildModule` seals a reusable module.
 
@@ -32,410 +32,232 @@ const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }
 
 ***
 
-### fromAsyncFactory
+### createProvider
 
 ```ts
-fromAsyncFactory: {
-    <F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
-    <F extends Factory>(callback: F & AsyncOutput<ReturnType<NoInfer<F>>>, options?: PortableFactoryOptions): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
+readonly createProvider: {
+    <F extends (this: void, dependencies: never, factoryContext: FactoryContext) => any, ReturnKind extends FactoryReturnKind = 'auto-detect'>(factory: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<ReturnKind>>, options: {
+        readonly factoryReceivesContext: true;
+    } & CheckedReturnKindOptions<ReturnType<NoInfer<F>>, ReturnKind>): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, ReturnKind>>;
+    <F extends FactoryType, ReturnKind extends FactoryReturnKind = 'auto-detect'>(factory: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<ReturnKind>>, ...options: {} extends CheckedReturnKindOptions<ReturnType<NoInfer<F>>, ReturnKind> ? [
+        options?: {
+            readonly factoryReceivesContext?: never;
+        } & CheckedReturnKindOptions<ReturnType<NoInfer<F>>, ReturnKind>
+    ] : [
+        options: {
+            readonly factoryReceivesContext?: never;
+        } & CheckedReturnKindOptions<ReturnType<NoInfer<F>>, ReturnKind>
+    ]): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, ReturnKind>>;
 };
 ```
 
-Defined in: [di-bag.ts:698](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L698)
+Defined in: [di-bag.ts:651](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L651)
 
-Describe an asynchronous factory that runs on every host: the service is the returned native Promise and `withDisposal` receives its fulfilled value.
-A non-Promise output is rejected at compile time; a thenable that is not a native Promise fails the acquisition with a `TypeError`.
+Create a provider from a named-dependency factory.
 
 #### Call Signature
 
 ```ts
-<F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => Promise<unknown>>(callback: F, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
+<F extends (this: void, dependencies: never, factoryContext: FactoryContext) => any, ReturnKind extends FactoryReturnKind = 'auto-detect'>(factory: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<ReturnKind>>, options: {
+    readonly factoryReceivesContext: true;
+} & CheckedReturnKindOptions<ReturnType<NoInfer<F>>, ReturnKind>): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, ReturnKind>>;
 ```
 
-Describe an asynchronous named-dependency factory that runs on every host: a `nativePromise`
-stage whose service is the returned Promise and whose owners receive the fulfilled value.
+Create a provider from a named-dependency factory that also receives FactoryContext.
 
 ##### Type Parameters
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `F` | The complete callback signature, retaining dependency and output inference. |
+| `F` | The exact callback signature and output. |
+| `ReturnKind` | How its output is acquired. |
 
 ##### Parameters
 
 | Parameter | Description |
 | ------ | ------ |
-| `callback` | A receiver-free async factory taking its named dependency object and the acquisition context. |
-| `options` | `context: 'acquisition'`; the acquisition mode is fixed and `acquisitionMode` is rejected. |
-
-##### Returns
-
-A lazy provider exposing the factory's own Promise; adds no ownership.
+| `factory` | - |
+| `options` | - |
 
 #### Call Signature
 
 ```ts
-<F extends Factory>(callback: F & AsyncOutput<ReturnType<NoInfer<F>>>, options?: PortableFactoryOptions): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Awaited<ReturnType<F>>>;
+<F extends FactoryType, ReturnKind extends FactoryReturnKind = 'auto-detect'>(factory: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<ReturnKind>>, ...options: {} extends CheckedReturnKindOptions<ReturnType<NoInfer<F>>, ReturnKind> ? [
+    options?: {
+        readonly factoryReceivesContext?: never;
+    } & CheckedReturnKindOptions<ReturnType<NoInfer<F>>, ReturnKind>
+] : [
+    options: {
+        readonly factoryReceivesContext?: never;
+    } & CheckedReturnKindOptions<ReturnType<NoInfer<F>>, ReturnKind>
+]): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, ReturnKind>>;
 ```
 
-Describe an asynchronous named-dependency factory that runs on every host: a `nativePromise`
-stage whose service is the returned Promise and whose owners receive the fulfilled value.
-A non-Promise output is rejected at compile time; a thenable that is not a native Promise fails the acquisition with a `TypeError`.
+Create a provider from a named-dependency factory that also receives FactoryContext.
 
 ##### Type Parameters
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `F` | The exact factory signature and exposed Promise. |
+| `F` | The exact callback signature and output. |
+| `ReturnKind` | How its output is acquired. |
 
 ##### Parameters
 
 | Parameter | Description |
 | ------ | ------ |
-| `callback` | A receiver-free factory returning a native Promise. |
-| `options?` | Optional; `acquisitionMode` is rejected because the helper fixes it. |
-
-##### Returns
-
-A lazy provider exposing the factory's own Promise; `withDisposal` receives its fulfilled value.
-
-#### Throws
-
-`DI_BAG_INVALID_FACTORY` for a non-function, an unknown `context`, or an `acquisitionMode` option.
+| `factory` | - |
+| `...options` | - |
 
 #### Example
 
 ```ts
-const db = DiBag.withDisposal(
-  DiBag.fromAsyncFactory(async ({ config }: { config: { url: string } }) => ({ url: config.url, end: async () => {} })),
-  db => db.end(),
-);
+const config = DiBag.createProvider(() => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' });
 ```
 
 ***
 
-### fromClass
+### createProviderFromClass
 
 ```ts
-fromClass: <const T extends readonly DependencyReference[], C extends new (...args: TokenArguments<NoInfer<T>>) => unknown, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, constructor: C & CompositionArguments<TokenArguments<NoInfer<T>>, ConstructorParameters<NoInfer<C>>> & NativeOutput<InstanceType<NoInfer<C>>, NoInfer<M>> & AutoOutput<InstanceType<NoInfer<C>>, NoInfer<M>>, ...modeOptions: StageOptions<M>) => Provider<() => InstanceType<C>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<InstanceType<C>, M>>;
+readonly createProviderFromClass: <const Dependencies extends readonly DependencyReference[], ServiceClass extends new (...arguments_: TokenArguments<NoInfer<Dependencies>>) => unknown, ReturnKind extends FactoryReturnKind = 'auto-detect'>(options: PositionalClassOptions<Dependencies, ServiceClass & PositionalFactoryArguments<TokenArguments<NoInfer<Dependencies>>, ConstructorParameters<NoInfer<ServiceClass>>> & NativeOutput<InstanceType<NoInfer<ServiceClass>>, NoInfer<ReturnKind>> & AutoOutput<InstanceType<NoInfer<ServiceClass>>, NoInfer<ReturnKind>> & SyncOutput<InstanceType<NoInfer<ServiceClass>>, NoInfer<ReturnKind>>, ReturnKind>) => Provider<() => InstanceType<ServiceClass>, Readonly<{}>, readonly [], ReferenceGraph<Dependencies>, Acquired<InstanceType<ServiceClass>, ReturnKind>>;
 ```
 
-Defined in: [di-bag.ts:768](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L768)
+Defined in: [di-bag.ts:672](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L672)
 
-Adapt a class whose constructor parameters receive the listed tokens' services.
-
-Adapt a concrete constructor while preserving its prototype, private fields, and `new.target`.
+Create a provider that constructs a class from positional dependencies.
 
 #### Type Parameters
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `T` | - |
-| `C` | - |
-| `M` | - |
+| `Dependencies` | - |
+| `ServiceClass` | - |
+| `ReturnKind` | - |
 
 #### Parameters
 
 | Parameter | Description |
 | ------ | ------ |
-| `tokens` | A finite tuple whose dependency values match the constructor parameters. |
-| `constructor` | The concrete class or constructable function to instantiate. |
-| `...modeOptions` | Optional acquisition mode for the constructed result. |
+| `options` | - |
+
+#### Example
+
+```ts
+const portSymbol = Symbol('port');
+const port = DiBag.createToken(portSymbol).forService<number>();
+class Client { constructor(readonly port: number) {} }
+const client = DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client });
+```
+
+***
+
+### createProviderFromFunction
+
+```ts
+readonly createProviderFromFunction: <const Dependencies extends readonly DependencyReference[], FactoryFunction extends PositionalFactoryFunction<NoInfer<Dependencies>, any, NoInfer<ReceivesContext>>, ReturnKind extends FactoryReturnKind = 'auto-detect', ReceivesContext extends boolean = false>(options: {
+    readonly dependencies: Dependencies & DependencyTupleAdmission<Dependencies>;
+    readonly factoryReceivesContext?: ReceivesContext;
+    readonly factoryFunction: FactoryFunction & PositionalFactoryArguments<PositionalArguments<NoInfer<Dependencies>, NoInfer<ReceivesContext>>, Parameters<NoInfer<FactoryFunction>>> & AutoOutput<ReturnType<NoInfer<FactoryFunction>>, NoInfer<ReturnKind>>;
+} & ContextSelection<NoInfer<ReceivesContext>> & CheckedPositionalReturnKindOptions<ReturnType<NoInfer<FactoryFunction>>, ReturnKind>) => Provider<OutputFactory<ReturnType<FactoryFunction>>, Readonly<{}>, readonly [], ReferenceGraph<Dependencies>, Acquired<ReturnType<FactoryFunction>, ReturnKind>>;
+```
+
+Defined in: [di-bag.ts:661](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L661)
+
+Create a provider whose factory receives positional dependency values.
+
+Create a provider by passing positional dependency values to a receiver-free function.
+
+#### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `Dependencies` | The finite tuple of dependency references. |
+| `FactoryFunction` | The exact callback signature and output. |
+| `ReturnKind` | How the output is acquired. |
+| `ReceivesContext` | Whether FactoryContext is appended after dependency values. |
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `options` | - |
+
+#### Example
+
+```ts
+const portSymbol = Symbol('port');
+const port = DiBag.createToken(portSymbol).forService<number>();
+const client = DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: value => ({ port: value }) });
+```
+
+***
+
+### createProviderFromPlugin
+
+```ts
+readonly createProviderFromPlugin: CreateProviderFromPlugin;
+```
+
+Defined in: [di-bag.ts:681](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L681)
+
+Create a provider from a versioned plugin descriptor.
+
+#### Example
+
+```ts
+const pluginDescriptor = { apiVersion: 1 as const, create: () => ({ run() {} }) };
+const plugin = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is { run(): void } => typeof value === 'object' && value !== null });
+```
+
+***
+
+### createToken
+
+```ts
+readonly createToken: <const TokenSymbol extends symbol>(symbol: TokenSymbol & TokenKeyAdmission<TokenSymbol>, ...invalid: [TokenSymbol] extends [never] ? [TokenKeyAdmission<TokenSymbol>] : []) => {
+    readonly forService: <Service>() => Token<TokenSymbol, Service>;
+    readonly forCollectionOf: <Item>() => CollectionToken<TokenSymbol, Item>;
+};
+```
+
+Defined in: [di-bag.ts:690](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L690)
+
+Create a nominal token from a symbol.
+
+Create a typed-token factory from the caller's canonical unique symbol.
+Reusing the same key and service type produces compatible handles; copied or fabricated
+objects are rejected at runtime.
+
+#### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `TokenSymbol` | - |
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `symbol` | An individually known unique symbol used as the runtime binding identity. |
+| `...invalid` | - |
 
 #### Returns
 
-A lazy provider that constructs one instance per acquisition attempt.
-
-#### Throws
-
-When the supplied runtime value is not constructable.
-
-#### Throws
-
-`DI_BAG_INVALID_TOKEN` for a malformed token tuple; `DI_BAG_INVALID_CONSTRUCTOR` for a non-constructable value;
-`DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode.
-
-#### Example
-
-```ts
-class Greeter { constructor(readonly greeting: string) {} }
-const greetingKey = Symbol('greeting');
-const greeter = DiBag.fromClass([DiBag.token(greetingKey).of<string>()], Greeter);
-```
-
-***
-
-### fromFactory
-
-```ts
-fromFactory: {
-    <F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, options: {
-        readonly context: 'acquisition';
-    } & ModeOptions<M>): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
-    <F extends Factory, M extends AcquisitionMode = 'auto'>(callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...options: FactoryOptions<M>): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
-};
-```
-
-Defined in: [di-bag.ts:675](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L675)
-
-Describe a named-dependency factory with an explicit acquisition mode or the acquisition's abort signal.
-A factory that returns a non-Promise object with a `then` method needs `acquisitionMode: 'raw'` or must return `Promise.resolve(value)`.
-
-#### Call Signature
-
-```ts
-<F extends (this: void, dependencies: never, factoryContext: AcquisitionContext) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(callback: F & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, options: {
-    readonly context: 'acquisition';
-} & ModeOptions<M>): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
-```
-
-Describe a named-dependency factory receiving its acquisition owner's cancellation signal.
-Context allocation is opt-in through `context: 'acquisition'`, independent of callback arity.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `F` | The complete callback signature, retaining dependency and output inference. |
-| `M` | The raw, nativePromise, or configured auto acquisition policy. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `callback` | A receiver-free factory taking dependencies and acquisition context. |
-| `options` | Context selection and result policy; acquisitionMode defaults to auto. |
-
-##### Returns
-
-A lazy provider preserving exact output and named dependencies; adds no ownership.
-
-#### Call Signature
-
-```ts
-<F extends Factory, M extends AcquisitionMode = 'auto'>(callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...options: FactoryOptions<M>): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, Acquired<ReturnType<F>, M>>;
-```
-
-Describe a named-dependency factory with explicit or automatic result acquisition.
-Raw mode preserves the exact acquired value; nativePromise observes Promise fulfillment.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `F` | The exact factory signature and exposed result. |
-| `M` | The raw, nativePromise, or configured auto acquisition policy. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `callback` | A receiver-free factory taking its named dependency object. |
-| `...options` | Optional result acquisitionMode, defaulting to auto. |
-
-##### Returns
-
-A lazy provider retaining exact output and dependency types without adding ownership.
-
-#### Throws
-
-`DI_BAG_INVALID_FACTORY` for a non-function or an unknown `context`; `DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode.
-
-#### Example
-
-```ts
-type Query = { then(done: (rows: string[]) => void): void };
-const query = DiBag.fromFactory((): Query => ({ then: done => done([]) }), { acquisitionMode: 'raw' });
-```
-
-***
-
-### fromFunction
-
-```ts
-fromFunction: {
-    <const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>, 'nativePromise' extends M ? Promise<unknown> : unknown>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
-    <const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
-};
-```
-
-Defined in: [di-bag.ts:756](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L756)
-
-Adapt a positional function whose parameters receive the listed tokens' services.
-
-#### Call Signature
-
-```ts
-<const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>, 'nativePromise' extends M ? Promise<unknown> : unknown>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
-```
-
-Adapt a positional function without awaiting its arguments or return value.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `T` | - |
-| `F` | The exact positional function signature retained by the provider. |
-| `M` | - |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `tokens` | A finite tuple of typed tokens and dependency references. |
-| `callback` | The receiver-free function to call in tuple order. |
-| `...modeOptions` | Optional acquisition mode for the function result. |
-
-##### Returns
-
-A lazy provider retaining the dependency graph and exact return type.
-
-#### Call Signature
-
-```ts
-<const T extends readonly DependencyReference[], F extends CompositionFunction<NoInfer<T>>, M extends AcquisitionMode = 'auto'>(tokens: T & DependencyTupleAdmission<T>, callback: F & CompositionArguments<TokenArguments<NoInfer<T>>, Parameters<NoInfer<F>>> & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, ...modeOptions: StageOptions<M>): Provider<OutputFactory<ReturnType<F>>, Readonly<{}>, readonly [], ReferenceGraph<T>, Acquired<ReturnType<F>, M>>;
-```
-
-Adapt a positional function whose parameters exactly match the selected dependency values.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `T` | - |
-| `F` | The exact positional function signature retained by the provider. |
-| `M` | - |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `tokens` | A finite tuple of typed tokens and dependency references. |
-| `callback` | The function invoked once per provider acquisition with no receiver. |
-| `...modeOptions` | Optional `auto`, `raw`, or `nativePromise` result classification. |
-
-##### Returns
-
-A reusable provider; no dependency or result is implicitly awaited.
-
-#### Throws
-
-`DI_BAG_INVALID_TOKEN` for a malformed token tuple; `DI_BAG_INVALID_FUNCTION` for a non-function;
-`DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode.
+A factory whose `.forService<Service>()` creates a single-service token and whose `.forCollectionOf<Item>()` creates a collection token.
 
 #### Example
 
 ```ts
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
-const stamp = DiBag.fromFunction([clock], source => new Date(source.now()).toISOString());
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
 ```
-
-***
-
-### fromPlugin
-
-```ts
-fromPlugin: PluginProviderFactory;
-```
-
-Defined in: [di-bag.ts:744](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L744)
-
-Validate an unknown plugin descriptor now and its acquired output at acquisition.
-
-#### Throws
-
-`DI_BAG_INVALID_TOKEN` for a malformed dependency tuple; `DI_BAG_INVALID_PLUGIN_OPTIONS` for malformed options;
-[DiBagPluginValidationError](../classes/DiBagPluginValidationError.md) (`DI_BAG_PLUGIN_VALIDATION`) for an invalid descriptor, or at acquisition for rejected output.
 
 #### Example
 
 ```ts
-declare const descriptor: unknown;
-const greeter = DiBag.fromPlugin([], descriptor, {
-  acquisitionMode: 'raw',
-  validate: (pluginOutput): pluginOutput is () => string => typeof pluginOutput === 'function',
-});
-```
-
-***
-
-### fromSyncFactory
-
-```ts
-fromSyncFactory: {
-    <F extends ContextFactory>(callback: F & SyncOutput<ReturnType<NoInfer<F>>>, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, ReturnType<F>>;
-    <F extends Factory>(callback: F & SyncOutput<ReturnType<NoInfer<F>>>, options?: PortableFactoryOptions): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, ReturnType<F>>;
-};
-```
-
-Defined in: [di-bag.ts:685](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L685)
-
-Describe a synchronous factory that runs on every host: the exact return value is the service and `then` is never read.
-A Promise or thenable output is rejected at compile time; use `fromAsyncFactory`, or `fromFactory` with `acquisitionMode: 'raw'` when the Promise object itself is the service.
-
-#### Call Signature
-
-```ts
-<F extends ContextFactory>(callback: F & SyncOutput<ReturnType<NoInfer<F>>>, options: ContextualPortableFactoryOptions): Provider<ContextualFactory<F>, Readonly<{}>, readonly [], TokenDependencyContract, ReturnType<F>>;
-```
-
-Describe a synchronous named-dependency factory that runs on every host: a `raw` stage whose
-exact return value is the service, so `then` is never read and no Promise classifier is needed.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `F` | The complete callback signature, retaining dependency and output inference. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `callback` | A receiver-free factory taking its named dependency object and the acquisition context. |
-| `options` | `context: 'acquisition'`; the acquisition mode is fixed and `acquisitionMode` is rejected. |
-
-##### Returns
-
-A lazy provider preserving exact output and named dependencies; adds no ownership.
-
-#### Call Signature
-
-```ts
-<F extends Factory>(callback: F & SyncOutput<ReturnType<NoInfer<F>>>, options?: PortableFactoryOptions): Provider<F, Readonly<{}>, readonly [], TokenDependencyContract, ReturnType<F>>;
-```
-
-Describe a synchronous named-dependency factory that runs on every host: a `raw` stage whose
-exact return value is the service. A Promise or thenable output is rejected at compile time;
-use `fromAsyncFactory`, or `fromFactory` with `acquisitionMode: 'raw'` when the Promise object is the service.
-
-##### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `F` | The exact factory signature and exposed result. |
-
-##### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `callback` | A receiver-free factory taking its named dependency object. |
-| `options?` | Optional; `acquisitionMode` is rejected because the helper fixes it. |
-
-##### Returns
-
-A lazy provider retaining exact output and dependency types without adding ownership.
-
-#### Throws
-
-`DI_BAG_INVALID_FACTORY` for a non-function, an unknown `context`, or an `acquisitionMode` option.
-
-#### Example
-
-```ts
-const config = DiBag.fromSyncFactory(() => ({ url: 'memory:' }));
+const clockSymbol = Symbol('clock');
+const clock = DiBag.createToken(clockSymbol).forService<{ now(): number }>();
 ```
 
 ***
@@ -446,7 +268,7 @@ const config = DiBag.fromSyncFactory(() => ({ url: 'memory:' }));
 lazy: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => LazyDependency<T>;
 ```
 
-Defined in: [di-bag.ts:730](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L730)
+Defined in: [di-bag.ts:723](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L723)
 
 Create a positional dependency supplied as a function that resolves the token when called.
 
@@ -478,8 +300,8 @@ An immutable lazy reference accepted by positional provider adapters.
 
 ```ts
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
-const stamp = DiBag.fromFunction([DiBag.lazy(clock)], getClock => () => getClock().now());
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
+const stamp = DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(clock)], factoryFunction: getClock => () => getClock().now() });
 ```
 
 ***
@@ -490,7 +312,7 @@ const stamp = DiBag.fromFunction([DiBag.lazy(clock)], getClock => () => getClock
 optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & OptionalTokenAdmission<T>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalDependency<T>;
 ```
 
-Defined in: [di-bag.ts:719](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L719)
+Defined in: [di-bag.ts:712](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L712)
 
 Create a positional dependency that yields `undefined` only when the token is unregistered.
 
@@ -522,62 +344,8 @@ An immutable reference accepted by positional provider adapters.
 
 ```ts
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
-const stamp = DiBag.fromFunction([DiBag.optional(clock)], source => source?.now() ?? 0);
-```
-
-***
-
-### token
-
-```ts
-token: <const TokenSymbol extends symbol>(key: TokenSymbol & TokenKeyAdmission<TokenSymbol>, ...invalid: [TokenSymbol] extends [never] ? [TokenKeyAdmission<TokenSymbol>] : []) => {
-    readonly of: <Service>() => Token<TokenSymbol, Service>;
-    readonly forCollectionOf: <Item>() => CollectionToken<TokenSymbol, Item>;
-};
-```
-
-Defined in: [di-bag.ts:708](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L708)
-
-Create a typed-token factory from a unique symbol; `.of<Service>()` selects one service, while `.forCollectionOf<Item>()` selects an ordered collection.
-
-Create a typed-token factory from the caller's canonical unique symbol.
-Reusing the same key and service type produces compatible handles; copied or fabricated
-objects are rejected at runtime.
-
-#### Type Parameters
-
-| Type Parameter | Description |
-| ------ | ------ |
-| `TokenSymbol` | - |
-
-#### Parameters
-
-| Parameter | Description |
-| ------ | ------ |
-| `key` | An individually known unique symbol used as the runtime binding identity. |
-| `...invalid` | - |
-
-#### Returns
-
-A factory whose `.of<Service>()` creates a single-service token and whose `.forCollectionOf<Item>()` creates a collection token.
-
-#### Example
-
-```ts
-const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
-```
-
-#### Throws
-
-`DI_BAG_INVALID_TOKEN` when the key is not a symbol.
-
-#### Example
-
-```ts
-const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
+const stamp = DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(clock)], factoryFunction: source => source?.now() ?? 0 });
 ```
 
 ***
@@ -586,61 +354,56 @@ const clock = DiBag.token(clockKey).of<{ now(): number }>();
 
 ```ts
 transformService: {
-    <R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, options: {
+    <ServiceRegistration extends Registration, Transform extends (this: void, exposedService: ProviderOutput<NoInfer<ServiceRegistration>>) => ('native-promise' extends ReturnKind ? Promise<unknown> : unknown), ReturnKind extends FactoryReturnKind = 'auto-detect'>(registration: ServiceRegistration & Registration, options: {
         readonly mode: 'direct';
-        readonly transform: P;
-    } & ModeOptions<M>): Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, Acquired<ReturnType<P>, M>>;
-    <R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, options: {
+        readonly transform: Transform;
+    } & LegacyTransformReturnKindOptions<ReturnKind> & NativeOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>> & AutoOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>> & SyncOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>>): Provider<MappedFactory<ServiceRegistration, ReturnType<Transform>>, RetainedMetadata<ServiceRegistration>, ProviderAcquisitionMetadata<ServiceRegistration>, ProviderGraphContract<ServiceRegistration>, Acquired<ReturnType<Transform>, ReturnKind>>;
+    <ServiceRegistration extends Registration, Transform extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<ServiceRegistration>>>) => unknown>(registration: ServiceRegistration & Registration, options: {
         readonly mode: 'awaited';
-        readonly transform: P;
+        readonly transform: Transform;
         readonly acquisitionMode?: never;
-    }): Provider<MappedFactory<R, Promise<Awaited<ReturnType<P>>>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>>;
+    }): Provider<MappedFactory<ServiceRegistration, Promise<Awaited<ReturnType<Transform>>>>, RetainedMetadata<ServiceRegistration>, ProviderAcquisitionMetadata<ServiceRegistration>, ProviderGraphContract<ServiceRegistration>>;
 };
 ```
 
-Defined in: [di-bag.ts:821](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L821)
+Defined in: [di-bag.ts:772](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L772)
 
 Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership.
 
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, exposedService: ProviderOutput<NoInfer<R>>) => ('nativePromise' extends M ? Promise<unknown> : unknown), M extends AcquisitionMode = 'auto'>(registration: R & Registration, options: {
+<ServiceRegistration extends Registration, Transform extends (this: void, exposedService: ProviderOutput<NoInfer<ServiceRegistration>>) => ('native-promise' extends ReturnKind ? Promise<unknown> : unknown), ReturnKind extends FactoryReturnKind = 'auto-detect'>(registration: ServiceRegistration & Registration, options: {
     readonly mode: 'direct';
-    readonly transform: P;
-} & ModeOptions<M>): Provider<MappedFactory<R, ReturnType<P>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, Acquired<ReturnType<P>, M>>;
+    readonly transform: Transform;
+} & LegacyTransformReturnKindOptions<ReturnKind> & NativeOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>> & AutoOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>> & SyncOutput<ReturnType<NoInfer<Transform>>, NoInfer<ReturnKind>>): Provider<MappedFactory<ServiceRegistration, ReturnType<Transform>>, RetainedMetadata<ServiceRegistration>, ProviderAcquisitionMetadata<ServiceRegistration>, ProviderGraphContract<ServiceRegistration>, Acquired<ReturnType<Transform>, ReturnKind>>;
 ```
 
 Transform the exact exposed service without awaiting the input or callback result.
-Retains dependencies, lifetime, metadata, and earlier cleanup; the result adds no ownership.
 
 ##### Type Parameters
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `R` | The source registration and its retained contracts. |
-| `P` | The exact transform callback signature and output. |
-| `M` | The result's auto, raw, or nativePromise acquisition policy. |
+| `ServiceRegistration` | The source registration and retained contracts. |
+| `Transform` | The exact transform callback signature and output. |
+| `ReturnKind` | The result's acquisition policy. |
 
 ##### Parameters
 
 | Parameter | Description |
 | ------ | ------ |
-| `registration` | The source registration whose exact output is transformed. |
-| `options` | Direct mode, a transform callback, and optional output acquisitionMode (auto by default). |
-
-##### Returns
-
-A provider exposing the callback's exact result, with the selected output acquisition policy.
+| `registration` | - |
+| `options` | - |
 
 #### Call Signature
 
 ```ts
-<R extends Registration, P extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<R>>>) => unknown>(registration: R & Registration, options: {
+<ServiceRegistration extends Registration, Transform extends (this: void, fulfilledValue: Awaited<ProviderOutput<NoInfer<ServiceRegistration>>>) => unknown>(registration: ServiceRegistration & Registration, options: {
     readonly mode: 'awaited';
-    readonly transform: P;
+    readonly transform: Transform;
     readonly acquisitionMode?: never;
-}): Provider<MappedFactory<R, Promise<Awaited<ReturnType<P>>>>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>>;
+}): Provider<MappedFactory<ServiceRegistration, Promise<Awaited<ReturnType<Transform>>>>, RetainedMetadata<ServiceRegistration>, ProviderAcquisitionMetadata<ServiceRegistration>, ProviderGraphContract<ServiceRegistration>>;
 ```
 
 Await the input and adopt the transformed result into a native Promise stage.
@@ -650,8 +413,8 @@ Retains dependencies, lifetime, metadata, and existing cleanup; adds no result o
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `R` | The source registration and retained contracts. |
-| `P` | The callback signature; its result may itself be a Promise. |
+| `ServiceRegistration` | The source registration and retained contracts. |
+| `Transform` | The callback signature; its result may itself be a Promise. |
 
 ##### Parameters
 
@@ -683,7 +446,7 @@ const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform:
 withConfiguration: (options: ConfigurationOptions) => DiBagApi;
 ```
 
-Defined in: [di-bag.ts:664](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L664)
+Defined in: [di-bag.ts:701](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L701)
 
 Return a facade with inherited runtime settings and appended observers.
 
@@ -716,7 +479,7 @@ withDisposal: {
 };
 ```
 
-Defined in: [di-bag.ts:789](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L789)
+Defined in: [di-bag.ts:742](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L742)
 
 Make the container own a factory's value and run `dispose` on it when the container closes.
 `close()` runs disposers, dependents first; close every child and independent container you create.
@@ -780,9 +543,7 @@ A provider retaining output, dependencies, metadata, frames, and earlier ownersh
 #### Example
 
 ```ts
-const container = DiBag.createBuilder()
-  .withServices({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) })
-  .buildContainer();
+const container = DiBag.createBuilder().withServices({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) }).buildContainer();
 await container.close();
 ```
 
@@ -797,7 +558,7 @@ withLifetime: {
 };
 ```
 
-Defined in: [di-bag.ts:801](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L801)
+Defined in: [di-bag.ts:752](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L752)
 
 Select `root`, `scoped` (the default), or `transient` caching for a registration.
 Mark a shared client `root` only when nothing it depends on is scoped.
@@ -865,9 +626,7 @@ A provider preserving factory, output, metadata, frames, and ownership stages.
 #### Example
 
 ```ts
-const container = DiBag.createBuilder()
-  .withServices({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') })
-  .buildContainer();
+const container = DiBag.createBuilder().withServices({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') }).buildContainer();
 ```
 
 ***
@@ -911,7 +670,7 @@ withMetadata: {
 };
 ```
 
-Defined in: [di-bag.ts:811](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L811)
+Defined in: [di-bag.ts:762](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L762)
 
 Attach static registration metadata, or per-acquisition metadata in direct or awaited mode.
 

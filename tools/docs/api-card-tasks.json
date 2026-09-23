@@ -1,10 +1,9 @@
 [
   { "task": "Start a graph", "call": "DiBag.createBuilder" },
   { "task": "Register services by name", "call": "builder.withServices" },
-  { "task": "Create a collection token", "call": "DiBag.token" },
+  { "task": "Create a collection token", "call": "DiBag.createToken" },
   { "task": "Contribute a collection member", "call": "builder.withCollectionContribution" },
-  { "task": "Register a synchronous factory for a browser or worker", "call": "DiBag.fromSyncFactory" },
-  { "task": "Register an async factory for a browser or worker", "call": "DiBag.fromAsyncFactory" },
+  { "task": "Register a portable factory", "call": "DiBag.createProvider" },
   { "task": "Attach cleanup", "call": "DiBag.withDisposal" },
   { "task": "Choose a lifetime", "call": "DiBag.withLifetime" },
   { "task": "Seal a module", "call": "builder.buildModule" },

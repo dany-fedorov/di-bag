@@ -12,12 +12,12 @@ const count = 12_000;
 
 function chain(dispose) {
   const registrations = Object.fromEntries(Array.from({ length: count }, (_, index) => {
-    const provider = DiBag.fromFactory(deps => ({
+    const provider = DiBag.createProvider(deps => ({
       index, link: () => index + 1 < count ? deps[`p${index + 1}`] : deps.reader,
-    }), { acquisitionMode: 'raw' });
+    }), { factoryReturnKind: 'uninspected' });
     return [`p${index}`, dispose ? DiBag.withDisposal(provider, dispose) : provider];
   }));
-  registrations.reader = DiBag.fromFactory(deps => () => deps.p0, { acquisitionMode: 'raw' });
+  registrations.reader = DiBag.createProvider(deps => () => deps.p0, { factoryReturnKind: 'uninspected' });
   const bag = DiBag.createBuilder().withServices(registrations).buildContainer();
   const nodes = Array.from({ length: count }, (_, index) => bag.resolve(`p${index}`));
   for (let index = 0; index < count - 1; index++) nodes[index].link();
@@ -58,7 +58,7 @@ for (const mode of ['raw', 'auto']) test(`Node cold-resolves 1,000 ${mode} named
         calls[index]++;
         return index === 0 ? 1 : deps[`p${index - 1}`] + 1;
       };
-      return [`p${index}`, mode === 'raw' ? DiBag.fromFactory(create, { acquisitionMode: 'raw' }) : create];
+      return [`p${index}`, mode === 'raw' ? DiBag.createProvider(create, { factoryReturnKind: 'uninspected' }) : create];
     }));
     const bag = DiBag.createBuilder().withServices(registrations).buildContainer();
     try {
@@ -77,8 +77,8 @@ test('raw fast acquisition preserves unobserved thenable and promise identity an
   const thenable = { get then() { reads++; throw new Error('must not inspect raw then'); } };
   const promise = Promise.resolve(42);
   const bag = DiBag.createBuilder().withServices({
-    thenable: DiBag.fromFactory(function () { assert.equal(this, undefined); return thenable; }, { acquisitionMode: 'raw' }),
-    promise: DiBag.fromFactory(() => promise, { acquisitionMode: 'raw' }),
+    thenable: DiBag.createProvider(function () { assert.equal(this, undefined); return thenable; }, { factoryReturnKind: 'uninspected' }),
+    promise: DiBag.createProvider(() => promise, { factoryReturnKind: 'uninspected' }),
   }).buildContainer();
   assert.equal(bag.resolve('thenable'), thenable);
   assert.equal(bag.resolve('promise'), promise);
@@ -91,7 +91,7 @@ for (const lifetime of ['scoped', 'transient']) {
   test(`raw ${lifetime} public reentrant creating cycles invoke the factory once`, async () => {
     let calls = 0;
     const bag = DiBag.createBuilder().withServices({
-      value: DiBag.withLifetime(DiBag.fromFactory(() => { calls++; return bag.resolve('value'); }, { acquisitionMode: 'raw' }), lifetime),
+      value: DiBag.withLifetime(DiBag.createProvider(() => { calls++; return bag.resolve('value'); }, { factoryReturnKind: 'uninspected' }), lifetime),
     }).buildContainer();
     assert.throws(() => bag.resolve('value'), /^Error: DI_BAG_CYCLE: cycle: value -> value; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-cycle$/);
     assert.equal(calls, 1);
@@ -101,7 +101,7 @@ for (const lifetime of ['scoped', 'transient']) {
 
 test('native transient ancestry rejects after-await cycles with the original label order', async () => {
   let calls = 0;
-  const transient = create => DiBag.withLifetime(DiBag.fromFactory(create, { acquisitionMode: 'nativePromise' }), 'transient');
+  const transient = create => DiBag.withLifetime(DiBag.createProvider(create, { factoryReturnKind: 'native-promise' }), 'transient');
   const bag = DiBag.createBuilder().withServices({
     a: transient(async deps => { calls++; await Promise.resolve(); return deps.b; }),
     b: transient(async deps => { await Promise.resolve(); return deps.a; }),
@@ -112,7 +112,7 @@ test('native transient ancestry rejects after-await cycles with the original lab
 });
 
 test('ready borrowed transient proxies keep late cycle and root capture checks', async () => {
-  const raw = create => DiBag.fromFactory(create, { acquisitionMode: 'raw' });
+  const raw = create => DiBag.createProvider(create, { factoryReturnKind: 'uninspected' });
   const transient = create => DiBag.withLifetime(raw(create), 'transient');
   const bag = DiBag.createBuilder().withServices({
     scoped: raw(() => 42),
@@ -136,7 +136,7 @@ for (const mode of ['raw', 'auto']) test(`failed direct ${mode} sources cannot u
   const create = deps => { read = () => deps.value; throw cause; };
   const bag = DiBag.createBuilder().withServices({
     value: () => 42,
-    failed: mode === 'raw' ? DiBag.fromFactory(create, { acquisitionMode: 'raw' }) : create,
+    failed: mode === 'raw' ? DiBag.createProvider(create, { factoryReturnKind: 'uninspected' }) : create,
   }).buildContainer();
   assert.throws(() => bag.resolve('failed'), error => error === cause);
   assert.equal(read(), 42);
@@ -169,7 +169,7 @@ for (const startupOrder of [1, 2]) test(`Node numeric startup ${startupOrder} bo
   let reads = 0, later = 0;
   const raw = { get then() { reads++; throw new Error('raw then'); } };
   const ready = await DiBag.createBuilder().withServices({
-    raw: DiBag.fromFactory(() => raw, { acquisitionMode: 'raw' }), later: () => ++later,
+    raw: DiBag.createProvider(() => raw, { factoryReturnKind: 'uninspected' }), later: () => ++later,
   }).buildContainer().ensureServicesReady(['raw', 'later'], { maxConcurrentServiceKeys: startupOrder });
   assert.equal(ready.resolve('raw'), raw); assert.equal(reads, 0); assert.equal(later, 1);
   await ready.close();
@@ -180,7 +180,7 @@ test('Node observer burst drains in transition and registration order while exte
   const bag = DiBag.withConfiguration({ lifecycleObservers: [{
     onLifecycleEvent(event) { const wait = gate(); pending.push(wait); events.push(`first:${event.kind}`); return wait.promise; },
     onObserverFailure({ error }) { failures.push(error); },
-  }] }).withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { events.push(`second:${event.kind}`); }, onObserverFailure() { assert.fail('fast observer failed'); } }] }).createBuilder().withServices({ value: DiBag.withLifetime(DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' }), 'transient') }).buildContainer();
+  }] }).withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { events.push(`second:${event.kind}`); }, onObserverFailure() { assert.fail('fast observer failed'); } }] }).createBuilder().withServices({ value: DiBag.withLifetime(DiBag.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), 'transient') }).buildContainer();
   await turn(); pending.shift().resolve(); events.length = 0;
   for (let i = 0; i < 100; i++) assert.equal(bag.resolve('value'), 1);
   assert.equal(events.length, 0); await turn();

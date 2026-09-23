@@ -31,7 +31,7 @@ export function aliasEntry(aliasKey: unknown, targetServiceKey: unknown, hasKey:
         (dependencies: Record<symbol, unknown>) => Reflect.get(dependencies, reference.slot),
         undefined,
         [targetToken.key],
-        'raw',
+        'uninspected',
         false,
         [reference],
       ),
@@ -42,7 +42,7 @@ export function aliasEntry(aliasKey: unknown, targetServiceKey: unknown, hasKey:
   // This source is unreachable: canonical routing happens before evaluation.
   // Raw prevents an alias from inventing Promise-classification requirements.
   retainDescription(handle, Object.freeze({
-    ...sourceDescription(() => { throw libraryError('DI_BAG_INTERNAL_STATE', 'alias source cannot execute', {}); }, undefined, [], 'raw'),
+    ...sourceDescription(() => { throw libraryError('DI_BAG_INTERNAL_STATE', 'alias source cannot execute', {}); }, undefined, [], 'uninspected'),
     alias: targetKey,
   }));
   return [key, handle];

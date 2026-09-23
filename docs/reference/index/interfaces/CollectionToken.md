@@ -8,7 +8,7 @@ Defined in: [tokens.ts:38](https://github.com/dany-fedorov/di-bag/blob/main/src/
 
 An immutable typed-token handle pairing a canonical symbol with an invariant
 collection item contract.
-Create one with `DiBag.token(key).forCollectionOf<Item>()`.
+Create one with `DiBag.createToken(key).forCollectionOf<Item>()`.
 
 ## Extends
 
@@ -23,10 +23,10 @@ Create one with `DiBag.token(key).forCollectionOf<Item>()`.
 
 ## Properties
 
-### key
+### symbol
 
 ```ts
-readonly key: TokenSymbol;
+readonly symbol: TokenSymbol;
 ```
 
 Defined in: [tokens.ts:42](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L42)

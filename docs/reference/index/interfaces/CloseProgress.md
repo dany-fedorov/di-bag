@@ -4,7 +4,7 @@
 
 # Interface: CloseProgress
 
-Defined in: [errors.ts:185](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L185)
+Defined in: [errors.ts:189](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L189)
 
 What a close deadline or abort interrupted: labels still in progress when the wait stopped.
 
@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-close-timeout
 readonly acquisitionsStillPending: readonly string[];
 ```
 
-Defined in: [errors.ts:189](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L189)
+Defined in: [errors.ts:193](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L193)
 
 Labels of acquisitions that had started and were not ready yet.
 
@@ -32,6 +32,6 @@ Labels of acquisitions that had started and were not ready yet.
 readonly disposersStillRunning: readonly string[];
 ```
 
-Defined in: [errors.ts:187](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L187)
+Defined in: [errors.ts:191](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L191)
 
 Labels of disposers that started and had not completed.

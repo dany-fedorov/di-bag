@@ -1,0 +1,4 @@
+[
+  { "line": 5, "reason": "mixed is used as a collection and as a single service (provider-token-classification/input.ts:11); create a second token with forCollectionOf and keep the single token with forService" },
+  { "line": 13, "reason": "token creation is not bound to a traceable program variable; choose forService or forCollectionOf by hand" }
+]

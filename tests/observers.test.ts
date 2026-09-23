@@ -16,7 +16,7 @@ test('observers preserve raw identity and explicit ownership', async () => {
   const value = Promise.resolve({ id: 1 });
   let disposed = 0;
   const bag = observed.createBuilder().withServices({
-    value: observed.withDisposal(observed.fromFactory(() => value, { acquisitionMode: 'raw' }),
+    value: observed.withDisposal(observed.createProvider(() => value, { factoryReturnKind: 'uninspected' }),
       acquired => { expect(acquired).toBe(value); disposed++; }),
   }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   expect(bag.resolve('copy')).toBe(value);
@@ -41,7 +41,7 @@ test('ready follows the final native stage while retaining exposed identity', as
   let finalReady!: (value: number) => void;
   const source = new Promise<number>(resolve => { sourceReady = resolve; });
   const final = new Promise<number>(resolve => { finalReady = resolve; });
-  const bag = observed.createBuilder().withServices({ value: observed.transformService(observed.fromFactory(() => source, { acquisitionMode: 'nativePromise' }), { mode: 'direct', transform: () => final, ...{ acquisitionMode: 'nativePromise' } }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ value: observed.transformService(observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), { mode: 'direct', transform: () => final, ...{ acquisitionMode: 'native-promise' } }) }).buildContainer();
   expect(bag.resolve('value')).toBe(final);
   sourceReady(1);
   await flush();
@@ -119,8 +119,8 @@ test('reentrant observer resolution runs outside factory ancestry and respects p
 
 test('canonical owners distinguish shared roots, independent forks, contributions and transients', async () => {
   const { events, observed } = recording();
-  const raw = observed.fromFactory(() => ({}), { acquisitionMode: 'raw' });
-  const key = Symbol('collection'); const token = observed.token(key).forCollectionOf<object>();
+  const raw = observed.createProvider(() => ({}), { factoryReturnKind: 'uninspected' });
+  const key = Symbol('collection'); const token = observed.createToken(key).forCollectionOf<object>();
   const bag = observed.createBuilder().withServices({ root: observed.withLifetime(raw, 'root'), shared: raw, fresh: observed.withLifetime(raw, 'transient') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'shared' }).withCollectionContribution({ collectionToken: token, provider: raw }).withCollectionContribution({ collectionToken: token, provider: raw }).buildContainer();
   const child = bag.createChildContainer({ sharedParentServiceKeys: ['copy'] });
   const fork = bag.createIndependentContainer();
@@ -152,9 +152,9 @@ test('failed final projections retire accepted ownership once and preserve clean
   const { events, observed } = recording();
   const acquisitionError = new Error('projection'); const cleanupError = new Error('dispose');
   const disposed: string[] = [];
-  const source = observed.withDisposal(observed.fromFactory(() => 1, { acquisitionMode: 'raw' }), () => { disposed.push('first'); throw cleanupError; });
+  const source = observed.withDisposal(observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), () => { disposed.push('first'); throw cleanupError; });
   const second = observed.withDisposal(source, () => { disposed.push('second'); });
-  const bag = observed.createBuilder().withServices({ value: observed.transformService(second, { mode: 'direct', transform: () => { throw acquisitionError; }, ...{ acquisitionMode: 'raw' } }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ value: observed.transformService(second, { mode: 'direct', transform: () => { throw acquisitionError; }, ...{ acquisitionMode: 'uninspected' } }) }).buildContainer();
   expect(() => bag.resolve('value')).toThrow(acquisitionError);
   let closeError: unknown;
   try { await bag.close(); } catch (error) { closeError = error; }
@@ -171,7 +171,7 @@ test('failed final projections retire accepted ownership once and preserve clean
 test('intermediate native failure bypassed by raw projection is not final failure', async () => {
   const { events, observed } = recording();
   const source = Promise.reject(new Error('bypassed'));
-  const bag = observed.createBuilder().withServices({ value: observed.transformService(observed.fromFactory(() => source, { acquisitionMode: 'nativePromise' }), { mode: 'direct', transform: () => 42, ...{ acquisitionMode: 'raw' } }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ value: observed.transformService(observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), { mode: 'direct', transform: () => 42, ...{ acquisitionMode: 'uninspected' } }) }).buildContainer();
   expect(bag.resolve('value')).toBe(42);
   await bag.close();
   expect(events.filter(event => event.kind === 'acquisition-ready')).toHaveLength(1);
@@ -181,8 +181,8 @@ test('intermediate native failure bypassed by raw projection is not final failur
 test('private module frames are immutable snapshots without freezing application metadata', async () => {
   const { events, observed } = recording();
   const payload = { owner: 'application' };
-  const wrapped = observed.withMetadata(observed.withMetadata(observed.fromFactory(() => 7, { acquisitionMode: 'raw' }), { static: { payload } }), { dynamic: { mode: 'direct', describe: () => ({ payload }) } });
-  const feature = observed.createBuilder().withServices({ secret: wrapped, publicValue: observed.fromFactory(({ secret }: { secret: number }) => secret, { acquisitionMode: 'raw' }) }).buildModule({ exportedServiceKeys: ['publicValue'] });
+  const wrapped = observed.withMetadata(observed.withMetadata(observed.createProvider(() => 7, { factoryReturnKind: 'uninspected' }), { static: { payload } }), { dynamic: { mode: 'direct', describe: () => ({ payload }) } });
+  const feature = observed.createBuilder().withServices({ secret: wrapped, publicValue: observed.createProvider(({ secret }: { secret: number }) => secret, { factoryReturnKind: 'uninspected' }) }).buildModule({ exportedServiceKeys: ['publicValue'] });
   const bag = observed.createBuilder().withInstalledModules([feature]).buildContainer();
   expect(bag.resolve('publicValue')).toBe(7);
   await flush();
@@ -205,8 +205,8 @@ test('startup rollback observes accepted cleanup while preserving the startup ca
   const { events, observed } = recording();
   const failure = new Error('startup');
   const builder = observed.createBuilder().withServices({
-    good: observed.withDisposal(observed.fromFactory(() => 1, { acquisitionMode: 'raw' }), () => {}),
-    bad: observed.fromFactory(() => Promise.reject(failure), { acquisitionMode: 'nativePromise' }),
+    good: observed.withDisposal(observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), () => {}),
+    bad: observed.createProvider(() => Promise.reject(failure), { factoryReturnKind: 'native-promise' }),
   });
   let error: unknown;
   try { await builder.buildContainer().ensureServicesReady(['good', 'bad']); } catch (caught) { error = caught; }
@@ -225,10 +225,10 @@ test('cancellation observes late accepted resources and final failure without aw
   const pending = new Promise<number>(resolve => { acquired = resolve; });
   let disposed = 0;
   const builder = observed.createBuilder().withServices({
-    good: observed.withDisposal(observed.fromFactory(() => pending, { acquisitionMode: 'nativePromise' }), () => { disposed++; }),
-    bad: observed.fromFactory((_deps: {}, context) => new Promise<never>((_resolve, reject) => {
-      context.signal.addEventListener('abort', () => reject(failure), { once: true });
-    }), { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
+    good: observed.withDisposal(observed.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), () => { disposed++; }),
+    bad: observed.createProvider((_deps: {}, context) => new Promise<never>((_resolve, reject) => {
+      context.abortSignal.addEventListener('abort', () => reject(failure), { once: true });
+    }), { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } }),
   });
   const startup = builder.buildContainer().ensureServicesReady(['good', 'bad'], { abortSignal: abort.signal });
   abort.abort(failure);
@@ -258,7 +258,7 @@ test('delivery keeps emission order across immutable appended facade configurati
   const seen: LifecycleEvent[] = [];
   const base = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { seen.push(event); }, onObserverFailure() {} }] });
   const appended = base.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent() {}, onObserverFailure() {} }] });
-  const a = base.createBuilder().withServices({ value: base.fromFactory(() => 1, { acquisitionMode: 'raw' }) }).buildContainer();
+  const a = base.createBuilder().withServices({ value: base.createProvider(() => 1, { factoryReturnKind: 'uninspected' }) }).buildContainer();
   const b = appended.createBuilder().buildContainer();
   a.resolve('value');
   await flush();

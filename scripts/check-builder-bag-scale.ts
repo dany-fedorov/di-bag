@@ -22,7 +22,7 @@ const last: number = graph.resolve('alias${count - 1}');
 `;
 const contributionChain = (count: number, bags: boolean) => `import { DiBag } from '${process.cwd()}/src';
 const key = Symbol('items');
-const items = DiBag.token(key).forCollectionOf<number>();
+const items = DiBag.createToken(key).forCollectionOf<number>();
 const graph = DiBag.createBuilder()
 ${Array.from({ length: count }, (_, index) => bags ? `  .withCollectionContribution({ collectionToken: items, provider: () => ${index} })` : `  .contribute(items, () => ${index})`).join('\n')}
   .${bags ? 'buildContainer' : 'build'}();

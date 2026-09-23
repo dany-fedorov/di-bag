@@ -52,3 +52,30 @@ test('native gap cannot satisfy a different primary even when that primary match
   expect(result.accepted).toBe(false);
   expect(result.unresolved.map(marker => marker.message)).toEqual(['required service registrations are missing']);
 });
+
+const contextualFingerprints = [
+  { id: 'last-contextual-factory-thenable', oldContext: true, full: "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type '(this: void, _deps: {}, context: FactoryContext) => QueryBuilder' is not assignable to parameter of type 'Factory'.\n      Target signature provides too few arguments. Expected 2 or more, but got 1." },
+  { id: 'last-contextual-sync-factory-promise', oldContext: true, full: "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type '(this: void, _deps: {}, _factoryCtx: FactoryContext) => Promise<number>' is not assignable to parameter of type 'Factory'.\n      Target signature provides too few arguments. Expected 2 or more, but got 1." },
+  { id: 'last-contextual-native-factory-number', full: "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type '(_deps: {}, _factoryCtx: FactoryContext) => number' is not assignable to parameter of type 'Factory'.\n      Target signature provides too few arguments. Expected 2 or more, but got 1." },
+  { id: 'last-provider-context-shape', full: "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type '(_dependencies: {}, factoryContext: { readonly abortSignal: string; }) => { readonly abortSignal: string; }' is not assignable to parameter of type 'Factory'.\n      Target signature provides too few arguments. Expected 2 or more, but got 1." },
+  { id: 'last-provider-contextual-native-number', full: "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type '(this: void, _dependencies: {}, _factoryContext: FactoryContext) => number' is not assignable to parameter of type 'Factory'.\n      Target signature provides too few arguments. Expected 2 or more, but got 1." },
+  { id: 'last-provider-contextual-sync-promise', full: "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type '(this: void, _dependencies: {}, _factoryContext: FactoryContext) => Promise<number>' is not assignable to parameter of type 'Factory'.\n      Target signature provides too few arguments. Expected 2 or more, but got 1." },
+  { id: 'last-provider-contextual-thenable', full: "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type '(this: void, _dependencies: {}, _factoryContext: FactoryContext) => { then(_resolve: (value: number) => void): void; }' is not assignable to parameter of type 'Factory'.\n      Target signature provides too few arguments. Expected 2 or more, but got 1." },
+] as const;
+
+for (const fingerprint of contextualFingerprints) test(`contextual native gap requires exact fingerprint for ${fingerprint.id}`, () => {
+  const declared = `// diagnostic: useful contextual rejection\n// diagnostic-native-gap: ${fingerprint.id}\nreject();`;
+  const native = { file: '/fixture.ts', line: 3, code: 2769, message: fingerprint.full };
+  const accepted = matchNativeDiagnosticMarkers(declared, '/fixture.ts', [native]);
+  expect(accepted).toMatchObject({ accepted: true, primaryMatched: 0, knownNativeRejections: 1,
+    unexpected: [], unresolved: [], declarationErrors: [] });
+  if ('oldContext' in fingerprint) {
+    expect(matchNativeDiagnosticMarkers(declared, '/fixture.ts', [{ ...native, message: fingerprint.full.replace('FactoryContext', ['Acquisition', 'Context'].join('')) }]).accepted).toBe(false);
+  }
+  for (const other of contextualFingerprints) {
+    if (other.id === fingerprint.id) continue;
+    expect(matchNativeDiagnosticMarkers(declared, '/fixture.ts', [{ ...native, message: other.full }]).accepted).toBe(false);
+  }
+  expect(matchNativeDiagnosticMarkers(declared, '/fixture.ts', [native, { ...native, message: 'unrelated' }]).accepted).toBe(false);
+  expect(matchNativeDiagnosticMarkers(declared, '/fixture.ts', [{ ...native, code: 2345, message: 'useful contextual rejection' }]).accepted).toBe(false);
+});

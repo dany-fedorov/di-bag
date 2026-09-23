@@ -1,7 +1,7 @@
 import { DiBag, type ModuleContributions } from '../../src';
 import type { Assert, Equal } from './assert';
 export const key = Symbol('numbers');
-export const numbers = DiBag.token(key).forCollectionOf<number>();
+export const numbers = DiBag.createToken(key).forCollectionOf<number>();
 export const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: () => 1 }).withCollectionContribution({ collectionToken: numbers, provider: () => 2 });
 export const feature = DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: () => 3 }).buildModule({ exportedServiceKeys: [] });
 export const bag = builder.withInstalledModules([feature]).buildContainer();
@@ -15,7 +15,7 @@ export type Exact = [Assert<Equal<typeof values, ReadonlyArray<number>>>,
 const empty = DiBag.createBuilder().buildContainer().resolveCollection(numbers);
 export type Empty = Assert<Equal<typeof empty, ReadonlyArray<number>>>;
 export const all = numbers;
-export const allProvider = DiBag.fromFunction([all], values => values);
+export const allProvider = DiBag.createProviderFromFunction({ dependencies: [all], factoryFunction: values => values });
 export const aggregate = DiBag.createBuilder().withServices({ values: allProvider });
 export const aggregateBag = aggregate.withCollectionContribution({ collectionToken: numbers, provider: () => 1 }).buildContainer();
 export const serviceSnapshotMethod = aggregateBag.serviceSnapshot;
@@ -39,8 +39,8 @@ export const privateRootHost = DiBag.createBuilder().withInstalledModules([priva
 export const rootContribution = DiBag.createBuilder().withServices({ helper: rooted }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'root') }).buildModule({ exportedServiceKeys: [] });
 DiBag.createBuilder().withInstalledModules([rootContribution]).buildContainer();
 class Collection { constructor(readonly values: readonly number[]) {} }
-const classProvider = DiBag.fromClass([all], Collection);
-const functionProvider = DiBag.fromFunction([all], values => values);
+const classProvider = DiBag.createProviderFromClass({ dependencies: [all], serviceClass: Collection });
+const functionProvider = DiBag.createProviderFromFunction({ dependencies: [all], factoryFunction: values => values });
 export const adapters = DiBag.createBuilder().withServices({ classProvider, functionProvider }).buildContainer();
 export type MoreExact = [Assert<Equal<ReturnType<typeof bag.resolveCollection<typeof numbers>>, readonly number[]>>,
   Assert<Equal<ModuleContributions<ReturnType<ReturnType<typeof DiBag.createBuilder>['buildModule']>>, Readonly<{}>>>,
@@ -51,8 +51,8 @@ type IsAny<T> = 0 extends (1 & T) ? true : false;
 export type ReflectedExact = [Assert<Equal<IsAny<ReturnType<typeof contribute>>, false>>,
   Assert<Equal<IsAny<Parameters<typeof contribute>[0]['provider']>, false>>,
   Assert<Equal<ReturnType<typeof inferredContribution>, ReturnType<typeof explicitContribution>>>];
-export const promisedKey = Symbol('promise'); export const promised = DiBag.token(promisedKey).forCollectionOf<Promise<number>>();
-export const promiseBag = DiBag.createBuilder().withCollectionContribution({ collectionToken: promised, provider: DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' }) }).buildContainer();
+export const promisedKey = Symbol('promise'); export const promised = DiBag.createToken(promisedKey).forCollectionOf<Promise<number>>();
+export const promiseBag = DiBag.createBuilder().withCollectionContribution({ collectionToken: promised, provider: DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' }) }).buildContainer();
 const promisedValues = promiseBag.resolveCollection(promised);
 export type PromiseExact = Assert<Equal<typeof promisedValues, readonly Promise<number>[]>>;
 const rootAliasFeature = DiBag.createBuilder().withServices({ helper: rooted }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'helper' }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient') }).buildModule({ exportedServiceKeys: [] });

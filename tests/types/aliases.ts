@@ -1,7 +1,7 @@
 import { DiBag, type ModuleRequiredServices, type Builder } from '../../src';
 import type { Assert, Equal } from './assert';
-export const key = Symbol('source'); export const target = DiBag.token(key).of<{ id: number }>();
-export const destinationKey = Symbol('destination'); export const destination = DiBag.token(destinationKey).of<{ id: number }>();
+export const key = Symbol('source'); export const target = DiBag.createToken(key).forService<{ id: number }>();
+export const destinationKey = Symbol('destination'); export const destination = DiBag.createToken(destinationKey).forService<{ id: number }>();
 export const base = DiBag.createBuilder().withServices({ value: () => ({ id: 1, extra: true }) });
 export const named = base.withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' });
 export const bag = named.withServiceAlias({ aliasKey: destination, targetServiceKey: 'copy' }).buildContainer();
@@ -17,8 +17,8 @@ export type Exact = [Assert<Equal<typeof copy, { id: number; extra: boolean }>>,
   Assert<Equal<typeof declared, { id: number }>>,
   Assert<Equal<ModuleRequiredServices<typeof feature>, Readonly<{ [key]: { id: number } }>>>,
   Assert<Equal<ModuleRequiredServices<typeof emptyFeature>, Readonly<{ [key]: { id: number } }>>>];
-export const promisedKey = Symbol('promise'); export const promised = DiBag.token(promisedKey).of<Promise<number>>();
-export const promiseBag = DiBag.createBuilder().withServiceAlias({ aliasKey: 'promise', targetServiceKey: promised }).withTokenService(promised, DiBag.fromFactory(() => Promise.resolve(1), { acquisitionMode: 'raw' })).buildContainer();
+export const promisedKey = Symbol('promise'); export const promised = DiBag.createToken(promisedKey).forService<Promise<number>>();
+export const promiseBag = DiBag.createBuilder().withServiceAlias({ aliasKey: 'promise', targetServiceKey: promised }).withTokenService(promised, DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' })).buildContainer();
 const promise = promiseBag.resolve('promise');
 export type PromiseExact = Assert<Equal<typeof promise, Promise<number>>>;
 const aliasMethod: typeof base.withServiceAlias = base.withServiceAlias;

@@ -39,8 +39,8 @@ describe('container derivation contracts', () => {
   test('supports token and collection-token computed provider keys', async () => {
     const key = Symbol('clock');
     const listKey = Symbol('clocks');
-    const clock = DiBag.token(key).of<{ now(): number }>();
-    const clocks = DiBag.token(listKey).forCollectionOf<{ now(): number }>();
+    const clock = DiBag.createToken(key).forService<{ now(): number }>();
+    const clocks = DiBag.createToken(listKey).forCollectionOf<{ now(): number }>();
     const root = DiBag.createBuilder()
       .withTokenService(clock, () => ({ now: () => 1 }))
       .withCollectionContribution({ collectionToken: clocks, provider: () => ({ now: () => 2 }) })
@@ -74,8 +74,8 @@ describe('container derivation contracts', () => {
     ['collection', 'single-service'],
   ] as const)('rejects a %s selection when the graph already owns the symbol as %s before reading its provider', (selectedKind, graphKind) => {
     const key = Symbol('same-key');
-    const tokenFactory = DiBag.token(key);
-    const single = tokenFactory.of<number>();
+    const tokenFactory = DiBag.createToken(key);
+    const single = tokenFactory.forService<number>();
     const collection = tokenFactory.forCollectionOf<number>();
     const root = graphKind === 'single-service'
       ? DiBag.createBuilder().withTokenService(single, () => 1).buildContainer()
@@ -97,8 +97,8 @@ describe('container derivation contracts', () => {
 
   test('claims shared token kinds after collection replacement before reading replacement providers', async () => {
     const key = Symbol('shared-kind');
-    const factory = DiBag.token(key);
-    const single = factory.of<number>();
+    const factory = DiBag.createToken(key);
+    const single = factory.forService<number>();
     const collection = factory.forCollectionOf<number>();
     const root = DiBag.createBuilder()
       .withCollectionContribution({ collectionToken: collection, provider: () => 1 })

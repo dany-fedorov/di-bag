@@ -13,22 +13,22 @@ export interface ProjectRuntime {
  */
 export function createProjectBuilder(app: AppServices, projectId: string) {
   return DiBag.createBuilder().withServices({
-    projectId: DiBag.fromSyncFactory(() => projectId),
-    storage: DiBag.fromSyncFactory((): Storage => app.storage),
-    transport: DiBag.fromSyncFactory((): Transport => app.transport),
+    projectId: DiBag.createProvider(() => projectId, { factoryReturnKind: 'sync-value' }),
+    storage: DiBag.createProvider((): Storage => app.storage, { factoryReturnKind: 'sync-value' }),
+    transport: DiBag.createProvider((): Transport => app.transport, { factoryReturnKind: 'sync-value' }),
     lock: DiBag.withDisposal(
-      DiBag.fromAsyncFactory(({ storage, projectId }: { storage: Storage; projectId: string }) => storage.lock(projectId)),
+      DiBag.createProvider(({ storage, projectId }: { storage: Storage; projectId: string }) => storage.lock(projectId), { factoryReturnKind: 'native-promise' }),
       lock => lock.release(),
     ),
     // Depends on the lock so nothing is fetched for a project another runtime still holds.
-    manifest: DiBag.fromAsyncFactory(
-      async ({ transport, projectId, lock }: { transport: Transport; projectId: string; lock: Promise<ProjectLock> }, factoryCtx) => {
+    manifest: DiBag.createProvider(
+      async ({ transport, projectId, lock }: { transport: Transport; projectId: string; lock: Promise<ProjectLock> }, factoryContext) => {
         await lock;
-        return transport.fetchManifest(projectId, factoryCtx.signal);
+        return transport.fetchManifest(projectId, factoryContext.abortSignal);
       },
-      { context: 'acquisition' },
+      { factoryReturnKind: 'native-promise', factoryReceivesContext: true },
     ),
-    documents: DiBag.fromAsyncFactory(
+    documents: DiBag.createProvider(
       async ({ storage, projectId, lock }: { storage: Storage; projectId: string; lock: Promise<ProjectLock> }): Promise<DocumentsStore> => {
         await lock;
         let snapshot = await storage.load(projectId);
@@ -43,7 +43,7 @@ export function createProjectBuilder(app: AppServices, projectId: string) {
             for (const listener of [...listeners]) listener();
           },
         };
-      },
+      }, { factoryReturnKind: 'native-promise' },
     ),
   });
 }

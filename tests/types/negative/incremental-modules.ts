@@ -12,15 +12,15 @@ DiBag.createBuilder().withInstalledModules([wrong]).withInstalledModules([needed
 DiBag.createBuilder().withInstalledModules([needed]).buildContainer();
 
 const key = Symbol('value');
-const narrow = DiBag.token(key).of<number>();
-const wide = DiBag.token(key).of<number | string>();
+const narrow = DiBag.createToken(key).forService<number>();
+const wide = DiBag.createToken(key).forService<number | string>();
 const needsWide = DiBag.createBuilder().withServices({
-  hidden: DiBag.fromFunction([wide], value => value),
+  hidden: DiBag.createProviderFromFunction({ dependencies: [wide], factoryFunction: value => value }),
 }).buildModule({ exportedServiceKeys: [] });
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().withTokenService(narrow, () => 1).withInstalledModules([needsWide]);
 const optionallyNeedsWide = DiBag.createBuilder().withServices({
-  hidden: DiBag.fromFunction([DiBag.optional(wide)], value => value ?? 0),
+  hidden: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(wide)], factoryFunction: value => value ?? 0 }),
 }).buildModule({ exportedServiceKeys: [] });
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().withTokenService(narrow, () => 1).withInstalledModules([optionallyNeedsWide]);

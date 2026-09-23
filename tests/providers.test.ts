@@ -142,7 +142,7 @@ test('metadata preserves synchronous ownership and borrowed cleanup methods', as
 });
 test('provider execution captures projected values and acquisition frames', async () => {
   // Exercise the frame engine independently of public decorators.
-  const operation: ProviderOperation = { kind: 'frame-sync', acquisitionMode: 'raw', project: () => ({ value: 42, frame: Object.freeze({ source: 'engine' }) }) };
+  const operation: ProviderOperation = { kind: 'frame-sync', factoryReturnKind: 'uninspected', project: () => ({ value: 42, frame: Object.freeze({ source: 'engine' }) }) };
   const registration = transform<() => object, () => number, readonly [unknown]>(() => ({}), operation);
   const bag = DiBag.createBuilder().withServices({ value: registration }).buildContainer();
   expect(bag.resolve('value')).toBe(42);

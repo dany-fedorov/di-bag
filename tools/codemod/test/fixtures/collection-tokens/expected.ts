@@ -3,14 +3,14 @@ import { DiBag } from 'di-bag';
 type Controller = { readonly path: string };
 
 const controllersKey = Symbol('controllers');
-export const controllers = DiBag.token(controllersKey).forCollectionOf<Controller>();
+export const controllers = DiBag.createToken(controllersKey).forCollectionOf<Controller>();
 
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
 
 // One token on both channels: a single service is registered under it and providers are contributed to it.
 const loggerKey = Symbol('logger');
-const logger = DiBag.token(loggerKey).of<string>();
+const logger = DiBag.createToken(loggerKey).of<string>();
 
 const feature = DiBag.createBuilder()
   .withCollectionContribution({
@@ -26,14 +26,14 @@ const builder = DiBag.createBuilder()
   .withCollectionContribution({ collectionToken: logger, provider: () => 'console' })
   .withTokenService(logger, () => 'fan-out')
   .withServices({
-    router: DiBag.fromFunction([clock, controllers], (time, list) => `${time.now()}:${list.length}`),
-    sinks: DiBag.fromFunction([DiBag.all(logger)], list => list.join(',')),
+    router: DiBag.createProviderFromFunction({ dependencies: [clock, controllers], factoryFunction: (time, list) => `${time.now()}:${list.length}` }),
+    sinks: DiBag.createProviderFromFunction({ dependencies: [DiBag.all(logger)], factoryFunction: list => list.join(',') }),
   });
 
 export const bag = builder.buildContainer();
 export const paths = bag.resolveCollection(controllers).map(controller => controller.path);
 export const snapshots = bag.serviceSnapshot(controllers);
-export const overrides = { [controllers.key]: () => [] };
+export const overrides = { [controllers.symbol]: () => [] };
 export type ControllersToken = typeof controllers;
 export const sinks = bag.resolveAll(logger);
 export const stamp = bag.resolve(clock).now();

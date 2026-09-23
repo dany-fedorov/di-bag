@@ -11,7 +11,7 @@ forward.buildContainer();
 host.buildContainer();
 // @ts-expect-error emitted exportless module retains external token requirement
 emptyHost.buildContainer();
-const wrong = DiBag.token(key).of<string>();
+const wrong = DiBag.createToken(key).forService<string>();
 // @ts-expect-error emitted alias retains nominal target service
 forward.withTokenService(wrong, () => 'bad');
 // @ts-expect-error named alias consumers retain their promised output after replacement
