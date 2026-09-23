@@ -14,3 +14,4 @@ export const manualUnion = DiBag.withDisposal(mixed, () => {});
 declare const snapshot: BindingSnapshot;
 export const shortComparison = snapshot.lifetime === 'singleton:one-per-container-tree' || snapshot.lifetime === 'scoped:one-per-container' || snapshot.lifetime === 'transient:one-per-resolve';
 export type OldOwned = Provider<typeof f>;
+export type OldDependentOwned = Provider<({ value }: { value: number }) => string>;

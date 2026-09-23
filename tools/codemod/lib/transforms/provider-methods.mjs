@@ -18,6 +18,14 @@ export function originalKind(node, api) {
 }
 export const text = (node, api) => api.text(node);
 export const textWithTrivia = (node, api) => `${api.slice(node.pos, api.start(node))}${api.text(node)}`;
+const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+const propertyName = name => IDENTIFIER.test(name) ? name : JSON.stringify(name);
+const field = (role, value, api) => `${propertyName(api.nameForRole(role))}: ${value}`;
+const roleMethod = (receiver, role, args, api) => {
+  const name = api.nameForRole(role);
+  const access = IDENTIFIER.test(name) ? `.${name}` : `[${JSON.stringify(name)}]`;
+  return `(${receiver})${access}(${args.join(', ')})`;
+};
 const prop = (property, api) => (api.ts.isPropertyAssignment(property) || api.ts.isShorthandPropertyAssignment(property)) && !api.ts.isComputedPropertyName(property.name) ? property.name.text : undefined;
 export function literalBag(node, allowed, call, reason, api) {
   if (!api.ts.isObjectLiteralExpression(node) || node.properties.some(item => api.ts.isSpreadAssignment(item) || api.ts.isMethodDeclaration(item) || api.ts.isGetAccessorDeclaration(item) || api.ts.isSetAccessorDeclaration(item) || prop(item, api) === undefined || !allowed.has(prop(item, api)))) { api.manual(call, reason); return undefined; }
@@ -36,8 +44,8 @@ export function lifetimeOptions(node, call, api) {
   const bag = literalBag(node, new Set(['allowScopedDependencies']), call, 'the withLifetime options are not a supported object literal; rewrite the provider chain by hand', api); if (bag === undefined) return null;
   const item = bag.get('allowScopedDependencies');
   if (item === undefined) return text(node, api);
-  if (api.ts.isShorthandPropertyAssignment(item)) return api.assemble(node, [{ start: api.start(item), end: item.end, text: `${api.nameForRole('allowsScopedDependencies')}: ${text(item.name, api)}` }]);
-  return api.assemble(node, [{ start: api.start(item.name), end: item.name.end, text: api.nameForRole('allowsScopedDependencies') }]);
+  if (api.ts.isShorthandPropertyAssignment(item)) return api.assemble(node, [{ start: api.start(item), end: item.end, text: field('allowsScopedDependencies', text(item.name, api), api) }]);
+  return api.assemble(node, [{ start: api.start(item.name), end: item.name.end, text: propertyName(api.nameForRole('allowsScopedDependencies')) }]);
 }
 function method(receiver, oldName, args, api) { return `(${receiver}).${api.nameOf('DiBagApi', oldName)}(${args.join(', ')})`; }
 function receiverFor(call, api) {
@@ -68,8 +76,8 @@ export default function providerMethods(call, api) {
     const returnNode = nodeOf(options, 'acquisitionMode', api);
     const returnKind = returnNode === undefined ? undefined : renamedLiteral(returnNode, new Map([['auto', 'auto-detect'], ['raw', 'uninspected'], ['nativePromise', 'native-promise']]), call, 'transformService acquisitionMode is nonliteral; choose transformReturnKind by hand', api);
     if (callback === undefined || receives === undefined || (returnNode !== undefined && returnKind === undefined)) { if (callback === undefined) api.manual(call, 'transformService options must contain transform and mode; rewrite the provider chain by hand'); return undefined; }
-    const fields = [`${api.nameForRole('transformService')}: ${callback}`, `${api.nameForRole('callbackReceives')}: ${receives}`];
-    if (returnKind !== undefined) fields.push(`${api.nameForRole('transformReturnKind')}: ${returnKind}`);
+    const fields = [field('transformService', callback, api), field('callbackReceives', receives, api)];
+    if (returnKind !== undefined) fields.push(field('transformReturnKind', returnKind, api));
     return method(receiver, oldName, [`{ ${fields.join(', ')} }`], api);
   }
   const staticValue = valueOf(options, 'static', api), dynamicNode = options.get('dynamic');
@@ -85,7 +93,7 @@ export default function providerMethods(call, api) {
     const describe = valueOf(dynamic, 'describe', api);
     const mode = renamedLiteral(nodeOf(dynamic, 'mode', api), new Map([['direct', 'exposed-service'], ['awaited', 'fulfilled-value']]), call, 'withMetadata dynamic mode is nonliteral; choose callbackReceives by hand', api);
     if (describe === undefined || mode === undefined) { api.manual(call, 'withMetadata dynamic options must contain describe and mode; rewrite the provider chain by hand'); return undefined; }
-    result = `(${result}).${api.nameForRole('acquisitionMethod')}({ ${api.nameForRole('describeAcquisition')}: ${describe}, ${api.nameForRole('callbackReceives')}: ${mode} })`;
+    result = roleMethod(result, 'acquisitionMethod', [`{ ${field('describeAcquisition', describe, api)}, ${field('callbackReceives', mode, api)} }`], api);
   }
   if (staticValue === undefined && dynamicNode === undefined) { api.manual(call, 'withMetadata has neither static nor dynamic metadata; rewrite the provider chain by hand'); return undefined; }
   return result;

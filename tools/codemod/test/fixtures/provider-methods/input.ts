@@ -14,3 +14,4 @@ export const manualUnion = DiBag.withDisposal(mixed, () => {});
 declare const snapshot: BindingSnapshot;
 export const shortComparison = snapshot.lifetime === 'root' || snapshot.lifetime === 'scoped' || snapshot.lifetime === 'transient';
 export type OldOwned = FactoryWithDisposal<typeof f>;
+export type OldDependentOwned = FactoryWithDisposal<({ value }: { value: number }) => string>;

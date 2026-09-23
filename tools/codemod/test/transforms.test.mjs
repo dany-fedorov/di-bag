@@ -43,6 +43,7 @@ test('provider methods use original types, mapped names, and transformed childre
   assert.match(output, /\(\(DiBag\.makeProvider\(f\)\)\.disposeUsing[^\n]+\)\.cacheUsing/);
   assert.match(output, /mappedTransformReturnKind/);
   assert.match(output, /export type OldOwned = Provider<typeof f>;/);
+  assert.match(output, /export type OldDependentOwned = Provider<\(\{ value \}: \{ value: number \}\) => string>;/);
   assert.equal(compiler.ts.createSourceFile('output.ts', output, compiler.ts.ScriptTarget.Latest, true, compiler.ts.ScriptKind.TS).parseDiagnostics.length, 0);
   assert.deepEqual(result.manual.map(({ file, line, reason }) => ({ file, line, reason })), [
     { file: 'provider-methods/input.ts', line: 7, reason: 'combined static and dynamic metadata can change evaluation order when split; rewrite the two provider methods by hand' },
@@ -73,6 +74,68 @@ test('provider methods use original types, mapped names, and transformed childre
   assert.ok(compiler.ts.isObjectLiteralExpression(duplicateOptions));
   assert.equal(duplicateOptions.properties.filter(property => compiler.ts.isPropertyAssignment(property)
     && !compiler.ts.isComputedPropertyName(property.name) && property.name.text === 'mode').length, 2);
+});
+
+test('provider method role names remain valid property and member names', () => {
+  const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
+  const transformNames = {
+    withDisposal: { disposeService: 'dispose-service' },
+    withLifetime: { allowsScopedDependencies: 'allows-scoped-dependencies' },
+    withMetadata: {
+      acquisitionMethod: 'with-acquisition"metadata',
+      registrationMetadata: 'registration-metadata',
+      describeAcquisition: 'describe"acquisition',
+      callbackReceives: 'callback-receives',
+    },
+    transformService: {
+      transformService: 'transform-service',
+      callbackReceives: 'callback-receives',
+      transformReturnKind: 'transform\\return-kind',
+    },
+  };
+  const map = {
+    ...shipped,
+    methods: shipped.methods.map(entry => entry.transform === 'provider-methods'
+      ? { ...entry, transformNames: transformNames[entry.from] }
+      : entry),
+  };
+  assert.deepEqual(validateRenameMap(map, Object.keys(transforms)), []);
+
+  const main = runCodemod({ typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(), map, only: ['provider-methods/input.ts'] });
+  const edges = runCodemod({ typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(), map, only: ['provider-method-edges/input.ts'] });
+  assert.match(main.files[0].text, /\{ "transform-service": value => value, "callback-receives": 'exposed-service', "transform\\\\return-kind": 'native-promise' \}/);
+  assert.match(edges.files[0].text, /\["with-acquisition\\\"metadata"\]\(\{ "describe\\\"acquisition": describe, "callback-receives": 'exposed-service' \}\)/);
+  assert.match(edges.files[0].text, /\{ "allows-scoped-dependencies": allowScopedDependencies \}/);
+
+  const rows = [...main.files[0].text.split('\n'), ...edges.files[0].text.split('\n')]
+    .filter(row => /^export const (transformed|dynamicOnly|shorthandLifetime) = /.test(row));
+  const sourceText = `
+interface Provider {
+  withLifetime(lifetime: string, options: Record<string, unknown>): unknown;
+  withTransformedService(options: {
+    "transform-service": (value: unknown) => unknown;
+    "callback-receives": string;
+    "transform\\\\return-kind": string;
+  }): unknown;
+  ["with-acquisition\\\"metadata"](options: Record<string, unknown>): unknown;
+}
+declare const p: Provider;
+declare const describe: (value: number) => { value: number };
+declare const allowScopedDependencies: boolean;
+${rows.join('\n')}
+`;
+  const ts = compiler.ts;
+  const fileName = '/provider-method-role-output.ts';
+  const options = { noEmit: true, skipLibCheck: true, types: [], target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext };
+  const host = ts.createCompilerHost(options);
+  const getSourceFile = host.getSourceFile.bind(host);
+  host.fileExists = name => name === fileName || ts.sys.fileExists(name);
+  host.readFile = name => name === fileName ? sourceText : ts.sys.readFile(name);
+  host.getSourceFile = (name, languageVersion, onError, shouldCreateNewSourceFile) => name === fileName
+    ? ts.createSourceFile(name, sourceText, languageVersion, true, ts.ScriptKind.TS)
+    : getSourceFile(name, languageVersion, onError, shouldCreateNewSourceFile);
+  const diagnostics = ts.getPreEmitDiagnostics(ts.createProgram([fileName], options, host));
+  assert.deepEqual(diagnostics.map(diagnostic => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')), []);
 });
 
 test('provider source transforms ask their method entries for emitted field names', () => {
