@@ -22,6 +22,6 @@ export const nested = root.createIndependentContainer(['a'], { a: () => DiBag.cr
 export type App = Container<{ a: () => number }>;
 export type ChildOptions = CreateChildContainerOptions<{ a: () => number }, readonly ['a']>;
 const collectionKey = Symbol('collection');
-const collection = DiBag.token(collectionKey).forCollectionOf<number>();
+const collection = DiBag.createToken(collectionKey).forCollectionOf<number>();
 const collectionContainer = DiBag.createBuilder().withCollectionContribution({ collectionToken: collection, provider: () => 1 }).buildContainer();
 export const collectionSnapshots = collectionContainer.serviceSnapshot(collection);

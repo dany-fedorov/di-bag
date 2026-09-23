@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
  * @typedef {{ owner: string, method: string, argument: number, path?: string[], from: string, to: string }} OptionEntry
  * @typedef {{ owner: string, method: string, argument: number, path?: string[], from: string, to: string } | { owner: string, property: string, from: string, to: string }} ValueEntry
  * @typedef {{ owner: string, from: string, to: string } | { owner: string, from: string, manual: string }} PropertyEntry
- * @typedef {{ from: string, to: string }} TypeEntry
+ * @typedef {{ from: string, to: string, genericArguments?: { index: number, values: Record<string, string> }[], literalValues?: Record<string, string> }} TypeEntry
  * @typedef {{ from: string, to: string } | { from: string, manual: string }} CodeEntry
  * @typedef {{ from: string, to: string } | { fromSuffix: string, toSuffix: string }} ImportEntry
  * @typedef {{ version: 1, methods?: MethodEntry[], options?: OptionEntry[], values?: ValueEntry[], properties?: PropertyEntry[], types?: TypeEntry[], codes?: CodeEntry[], imports?: ImportEntry[] }} RenameMap
@@ -130,9 +130,21 @@ export function validateRenameMap(map, transformIds = []) {
   });
   entries('types').forEach((entry, index) => {
     if (!isObject(entry)) return bad('types', index, 'entry must be an object');
-    rejectUnknown('types', index, entry, ['from', 'to']);
+    rejectUnknown('types', index, entry, ['from', 'to', 'genericArguments', 'literalValues']);
     if (!isString(entry.from) || !isString(entry.to)) bad('types', index, 'from and to are required');
     if (isString(entry.to) && !isTypeIdentifier(entry.to)) bad('types', index, 'to must be a safe type identifier');
+    const rules = entry.genericArguments;
+    if (rules !== undefined && (!Array.isArray(rules) || rules.some(rule =>
+      typeof rule !== 'object' || rule === null || !Number.isInteger(rule.index) || rule.index < 0 ||
+      typeof rule.values !== 'object' || rule.values === null || Array.isArray(rule.values) ||
+      Object.keys(rule.values).length === 0 || !Object.entries(rule.values).every(([from, to]) => isString(from) && isString(to))
+    ))) bad('types', index, 'genericArguments must map non-negative indices and string literal values');
+    if (Array.isArray(rules) && new Set(rules.map(rule => rule.index)).size !== rules.length) bad('types', index, 'genericArguments indices must be unique');
+    const literalValues = entry.literalValues;
+    if (literalValues !== undefined && (
+      typeof literalValues !== 'object' || literalValues === null || Array.isArray(literalValues) ||
+      Object.keys(literalValues).length === 0 || !Object.entries(literalValues).every(([from, to]) => isString(from) && isString(to))
+    )) bad('types', index, 'literalValues must map non-empty string literals');
   });
   entries('codes').forEach((entry, index) => {
     if (!isObject(entry)) return bad('codes', index, 'entry must be an object');
@@ -223,7 +235,7 @@ export function indexRenameMap(map) {
   const codes = new Map((map.codes ?? []).map(entry => [entry.from, entry.to === 'manual' ? { from: entry.from, manual: 'this code was split; pick the new code by reading the errors page' } : entry]));
   return {
     methods, properties, options, argumentValues, propertyValues, codes,
-    types: new Map((map.types ?? []).map(entry => [entry.from, entry.to])),
+    types: new Map((map.types ?? []).map(entry => [entry.from, entry])),
     imports: map.imports ?? [],
     /** Names worth asking the checker about; everything else is skipped without a type query. */
     callNames: new Set([...(map.methods ?? []).map(entry => entry.from), ...(map.options ?? []).map(entry => entry.method), ...(map.values ?? []).filter(entry => entry.method !== undefined).map(entry => entry.method)]),

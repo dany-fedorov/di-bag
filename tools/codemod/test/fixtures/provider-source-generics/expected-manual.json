@@ -1,0 +1,3 @@
+[
+  { "line": 14, "reason": "fromFactory has a nonliteral or unsupported explicit return-kind type argument 1; rewrite it by hand" }
+]

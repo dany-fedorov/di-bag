@@ -1,0 +1,3 @@
+[
+  { "line": 10, "reason": "PluginOptions has a nonliteral or unsupported generic argument 0; rewrite it to CreateProviderFromPluginOptions by hand" }
+]

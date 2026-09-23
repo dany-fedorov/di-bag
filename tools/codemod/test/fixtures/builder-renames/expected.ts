@@ -1,9 +1,9 @@
 import { DiBag, type BuilderWithCollectionContribution, type ModuleOptions } from 'di-bag';
 
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
 const toolsKey = Symbol('tools');
-const tools = DiBag.token(toolsKey).forCollectionOf<string>();
+const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
 const label = 'feature';
 const options: ModuleOptions = { moduleLabel: label };
 const deferredOptions: ModuleOptions = options;
