@@ -8,7 +8,7 @@ import type { CleanupFailure } from './errors';
 import { normalize } from './registration';
 import type { Registration, Registrations } from './registration';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
-import { classifierRequired, resolveClassifier } from './acquisition-mode';
+import { classifierRequired, legacyModeOf, resolveClassifier } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
 import { wrongTokenKind, type TokenKind } from './tokens';
 
@@ -278,8 +278,8 @@ export class BindingGraph {
     if (context.isNativePromise || this.#explicitlyClassified) return context;
     const automatic: string[] = [];
     for (const [, { description, normalized }] of this.#bindings) {
-      if (normalized.acquisitionMode === 'auto' || normalized.operations.some(operation =>
-        'acquisitionMode' in operation && operation.acquisitionMode === 'auto')) {
+      if (normalized.factoryReturnKind === 'auto-detect' || normalized.operations.some(operation =>
+        'factoryReturnKind' in operation && operation.factoryReturnKind === 'auto-detect')) {
         // The host answers once for the whole graph; only a host without a classifier needs the full list.
         if (!automatic.length) { const resolved = resolveClassifier(context); if (resolved) return resolved; }
         automatic.push(description.label);
@@ -561,7 +561,8 @@ export class BagRuntime {
         ...this.inspectBinding(id),
         keys,
         lifetime: description.lifetime.kind,
-        acquisitionMode: description.acquisitionMode,
+        factoryReturnKind: description.factoryReturnKind,
+        acquisitionMode: legacyModeOf(description.factoryReturnKind),
         owned: description.dispose !== undefined || description.operations.some(operation => operation.kind === 'owned'),
         tokenDependencies: Object.freeze(description.references.map(reference => Object.freeze({ key: reference.key, kind: reference.kind }))),
       });

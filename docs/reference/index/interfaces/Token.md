@@ -33,3 +33,13 @@ readonly key: TokenSymbol;
 ```
 
 Defined in: [tokens.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L24)
+
+***
+
+### symbol
+
+```ts
+readonly symbol: TokenSymbol;
+```
+
+Defined in: [tokens.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L25)

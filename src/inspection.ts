@@ -1,4 +1,4 @@
-import type { AcquisitionMode } from './acquisition-mode';
+import type { AcquisitionMode, FactoryReturnKind } from './acquisition-mode';
 import type { Lifetime } from './lifetime';
 
 /**
@@ -53,6 +53,8 @@ export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] 
   /** Public names or token symbols that select this binding, in registration order; empty for a private module binding. */
   readonly keys: readonly (string | symbol)[];
   readonly lifetime: Lifetime;
+  readonly factoryReturnKind: FactoryReturnKind;
+  /** @deprecated Use factoryReturnKind. */
   readonly acquisitionMode: AcquisitionMode;
   /** True when some stage of the provider accepts ownership through a disposer. */
   readonly owned: boolean;

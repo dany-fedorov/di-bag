@@ -15,21 +15,21 @@ import type { CompositionReport } from './composition-report';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes, WithoutExportObligations } from './lifetime-types';
 import { withLifetime } from './lifetime';
-import { fromFactory, fromSyncFactory, fromAsyncFactory } from './acquisition-context';
+import { createProvider, fromFactory, fromSyncFactory, fromAsyncFactory } from './acquisition-context';
 import { closeRuntime, ensureRuntimeReady } from './startup';
 import { selectChildContainer, selectIndependentContainer } from './scope-selection';
 import type { CreateChildContainerOptions, CreateIndependentContainerOptions, DisjointChildContainerSelection, UnsharedAliases, ScopedAliases } from './scope-types';
 import type { CheckedChildContainerLifetimes } from './lifetime-types';
 import type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 import { withMetadata, transformService, withTokenBinding } from './provider';
-import { fromFunction, fromClass } from './composition';
+import { createProviderFromFunction, createProviderFromClass, fromFunction, fromClass } from './composition';
 import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
 import type { ProviderRegistrationMetadata, ProviderAcquisitionMetadata } from './provider';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
-import { token, readSingleServiceKey, readToken, wrongTokenKind } from './tokens';
-import { fromPlugin } from './plugins';
-import type { PluginProviderFactory } from './plugins';
+import { createToken, token, readSingleServiceKey, readToken, wrongTokenKind } from './tokens';
+import { createProviderFromPlugin, fromPlugin } from './plugins';
+import type { CreateProviderFromPlugin, PluginProviderFactory } from './plugins';
 import type { CollectionItem, CollectionTokenBase, TokenBase, TokenKind } from './tokens';
 import type { CollectionTokenMember, SingleServiceTokenMember, SelectionKey } from './token-types';
 import type {
@@ -430,9 +430,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @example
    * ```ts
    * type Clock = { now(): number };
-   * const builder = DiBag.createBuilder()
-   *   .withServices({ clock: (): Clock => ({ now: () => Date.now() }) })
-   *   .withServices({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
+   * const builder = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now: () => Date.now() }) }).withServices({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
    * ```
    */
   readonly withServices: BuilderWithServices<Entries, Constraints> = this.#withServices as BuilderWithServices<Entries, Constraints>;
@@ -471,9 +469,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * `DI_BAG_DUPLICATE_REGISTRATION` when the alias key exists; `DI_BAG_INVALID_ALIAS` for an absent named target.
    * @example
    * ```ts
-   * const builder = DiBag.createBuilder()
-   *   .withServices({ clock: () => Date.now() })
-   *   .withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
+   * const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
    * ```
    */
   readonly withServiceAlias: BuilderWithServiceAlias<Entries, Constraints> = this.#withServiceAlias as BuilderWithServiceAlias<Entries, Constraints>;
@@ -500,9 +496,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * ```ts
    * const toolsKey = Symbol('tools');
    * const tools = DiBag.token(toolsKey).forCollectionOf<string>();
-   * const builder = DiBag.createBuilder()
-   *   .withCollectionContribution({ collectionToken: tools, provider: () => 'search' })
-   *   .withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' });
+   * const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: tools, provider: () => 'search' }).withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' });
    * ```
    */
   // A named callable keeps extracted generic methods nameable in consumer declarations.
@@ -525,9 +519,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
    * @example
    * ```ts
-   * const builder = DiBag.createBuilder()
-   *   .withServices({ clock: () => Date.now() })
-   *   .withReplacedService('clock', () => 0);
+   * const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withReplacedService('clock', () => 0);
    * ```
    */
   readonly withReplacedService: BuilderWithReplacedService<Entries, Constraints> = this.#withReplacedService as BuilderWithReplacedService<Entries, Constraints>;
@@ -554,9 +546,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * `DI_BAG_DUPLICATE_REGISTRATION` when an export name is already registered; `DI_BAG_WRONG_TOKEN_KIND` when an installed token kind conflicts with this graph. A rejected list changes nothing.
    * @example
    * ```ts
-   * const greeting = DiBag.createBuilder()
-   *   .withServices({ greet: ({ name }: { name: string }) => `hello, ${name}` })
-   *   .buildModule({ exportedServiceKeys: ['greet'] });
+   * const greeting = DiBag.createBuilder().withServices({ greet: ({ name }: { name: string }) => `hello, ${name}` }).buildModule({ exportedServiceKeys: ['greet'] });
    * const app = DiBag.createBuilder().withInstalledModules([greeting]).withServices({ name: () => 'Ada' }).buildContainer();
    * ```
    */
@@ -651,6 +641,53 @@ export interface ConfigurationOptions {
  * @see https://dany-fedorov.github.io/di-bag/agent/api-card.html#dibag-facade
  */
 export interface DiBagApi {
+  /**
+   * Create a provider from a named-dependency factory.
+   * @example
+   * ```ts
+   * const config = DiBag.createProvider(() => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' });
+   * ```
+   */
+  readonly createProvider: typeof createProvider;
+  /**
+   * Create a provider whose factory receives positional dependency values.
+   * @example
+   * ```ts
+   * const portSymbol = Symbol('port');
+   * const port = DiBag.createToken(portSymbol).forService<number>();
+   * const client = DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: value => ({ port: value }) });
+   * ```
+   */
+  readonly createProviderFromFunction: typeof createProviderFromFunction;
+  /**
+   * Create a provider that constructs a class from positional dependencies.
+   * @example
+   * ```ts
+   * const portSymbol = Symbol('port');
+   * const port = DiBag.createToken(portSymbol).forService<number>();
+   * class Client { constructor(readonly port: number) {} }
+   * const client = DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client });
+   * ```
+   */
+  readonly createProviderFromClass: typeof createProviderFromClass;
+  /**
+   * Create a provider from a versioned plugin descriptor.
+   * @example
+   * ```ts
+   * const pluginDescriptor = { apiVersion: 1 as const, create: () => ({ run() {} }) };
+   * const plugin = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is { run(): void } => typeof value === 'object' && value !== null });
+   * ```
+   */
+  readonly createProviderFromPlugin: CreateProviderFromPlugin;
+  /**
+   * Create a nominal token from a symbol.
+   * @example
+   * ```ts
+   * const clockSymbol = Symbol('clock');
+   * const clock = DiBag.createToken(clockSymbol).forService<{ now(): number }>();
+   * ```
+   */
+  readonly createToken: typeof createToken;
   /**
    * Return a facade with inherited runtime settings and appended observers.
    * @throws `DI_BAG_INVALID_CONFIGURATION` for a non-object, a runtime without `isNativePromise`, or malformed observers.
@@ -780,9 +817,7 @@ export interface DiBagApi {
    * @throws `DI_BAG_INVALID_REGISTRATION` when the registration is neither a function nor a provider.
    * @example
    * ```ts
-   * const container = DiBag.createBuilder()
-   *   .withServices({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) })
-   *   .buildContainer();
+   * const container = DiBag.createBuilder().withServices({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) }).buildContainer();
    * await container.close();
    * ```
    */
@@ -793,9 +828,7 @@ export interface DiBagApi {
    * @throws `DI_BAG_INVALID_LIFETIME` for an unknown lifetime or malformed options; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
    * @example
    * ```ts
-   * const container = DiBag.createBuilder()
-   *   .withServices({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') })
-   *   .buildContainer();
+   * const container = DiBag.createBuilder().withServices({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') }).buildContainer();
    * ```
    */
   withLifetime: typeof withLifetime;
@@ -837,6 +870,7 @@ function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
     }
     return facade(configured);
   },
+  createProvider, createProviderFromFunction, createProviderFromClass, createProviderFromPlugin, createToken,
   fromFactory, fromSyncFactory, fromAsyncFactory, token, optional, lazy, fromPlugin, fromFunction, fromClass,
   createBuilder: (): Builder<never> => new Builder(new BindingGraph(), context),
   withDisposal, withLifetime, withMetadata, transformService,

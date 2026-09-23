@@ -63,10 +63,14 @@ export class DiBagPluginValidationError extends Error {
    * @param phase - Whether descriptor authentication or output validation failed.
    * @param reason - A stable description of the rejected boundary condition.
    */
-  constructor(readonly phase: 'descriptor' | 'output', readonly reason: string) {
+  constructor(
+    readonly phase: 'descriptor' | 'output',
+    readonly reason: string,
+    operation: 'fromPlugin' | 'createProviderFromPlugin' = 'fromPlugin',
+  ) {
     super(diagnosticMessage('DI_BAG_PLUGIN_VALIDATION', `Invalid plugin ${phase}: ${reason}`));
     this.name = 'DiBagPluginValidationError';
-    diagnostic(this, 'DI_BAG_PLUGIN_VALIDATION', { operation: 'fromPlugin', phase, reason });
+    diagnostic(this, 'DI_BAG_PLUGIN_VALIDATION', { operation, phase, reason });
   }
 }
 

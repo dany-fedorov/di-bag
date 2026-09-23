@@ -221,14 +221,14 @@ test('DI_BAG_CLASSIFIER_REQUIRED names every automatic registration, sorted, and
   expect(failure.code).toBe('DI_BAG_CLASSIFIER_REQUIRED');
   expect(failure.details).toEqual({ option: 'runtime.isNativePromise', bindings: ['billing/hidden', 'plain', 'projected', 'shown'] });
   expect(Object.isFrozen(failure.details.bindings)).toBe(true);
-  expect(failure.message).toBe('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule; 4 registrations use automatic acquisition: "billing/hidden", "plain", "projected", "shown"; use DiBag.fromSyncFactory or DiBag.fromAsyncFactory (or an explicit acquisitionMode) for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } }); see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-classifier-required');
+  expect(failure.message).toBe("DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule; 4 registrations use auto-detect factory return kind: \"billing/hidden\", \"plain\", \"projected\", \"shown\"; use DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' }) or factoryReturnKind: 'native-promise' for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } }); see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-classifier-required");
 });
 
 test('the classifier message lists at most eight registrations; details carry them all', () => {
   const registrations = Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`s${String(index).padStart(2, '0')}`, () => index]));
   const failure = caught(() => withoutBuiltinModule(() => Core.createBuilder().withServices(registrations as never).buildContainer()));
   expect(failure.details.bindings).toHaveLength(12);
-  expect(failure.message).toContain('12 registrations use automatic acquisition: "s00", "s01", "s02", "s03", "s04", "s05", "s06", "s07", and 4 more; use DiBag.fromSyncFactory');
+  expect(failure.message).toContain("12 registrations use auto-detect factory return kind: \"s00\", \"s01\", \"s02\", \"s03\", \"s04\", \"s05\", \"s06\", \"s07\", and 4 more; use DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' })");
 });
 
 test('a host classifier is consulted once, at the first automatic registration', async () => {

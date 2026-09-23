@@ -8,7 +8,7 @@
 type PluginAcquisitionMode = 'raw' | 'nativePromise';
 ```
 
-Defined in: [plugins.ts:15](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L15)
+Defined in: [plugins.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L40)
 
 The explicit output boundary used for an application-selected plugin.
 

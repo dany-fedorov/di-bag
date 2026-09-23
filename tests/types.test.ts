@@ -5,6 +5,16 @@ import ts from 'typescript';
 import { diagnostics, diagnosticsByFile, describeDiagnostic, options } from './compiler';
 import { matchDiagnosticMarkers } from './diagnostic-markers';
 
+test('provider sources retain exact inferred contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/provider-sources.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('provider source declarations retain exact inferred contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/provider-sources-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('observers retain exact inferred cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/observers-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
@@ -70,7 +80,7 @@ test('requirement-renaming retains exact cross-file contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
-for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'portable-factories', 'container-derivation', 'requirement-renaming']) test(`${fixture} inferred exports survive declaration consumption`, () => {
+for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'portable-factories', 'provider-sources', 'container-derivation', 'requirement-renaming']) test(`${fixture} inferred exports survive declaration consumption`, () => {
   const producerPath = resolve(__dirname, `types/${fixture}.ts`);
   const consumerPath = resolve(__dirname, `types/${fixture}-consumer.ts`);
   const declarationPath = producerPath.replace(/\.ts$/, '.d.ts');

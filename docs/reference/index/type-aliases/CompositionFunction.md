@@ -8,7 +8,7 @@
 type CompositionFunction<T extends readonly DependencyReference[], O = unknown> = TokenArguments<T> extends [...infer A] ? (this: void, ...args: A) => O : never;
 ```
 
-Defined in: [composition.ts:30](https://github.com/dany-fedorov/di-bag/blob/main/src/composition.ts#L30)
+Defined in: [composition.ts:182](https://github.com/dany-fedorov/di-bag/blob/main/src/composition.ts#L182)
 
 A receiver-free positional callback matching the values supplied by a dependency tuple.
 

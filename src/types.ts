@@ -70,7 +70,7 @@ type ThenableOutputs<R extends Registrations> = {
 }[keyof R];
 /** Reject plain or disposable factories whose declared output auto acquisition would reject at runtime. */
 export type ThenableAdmission<R extends Registrations> = [ThenableOutputs<R>] extends [never] ? unknown
-  : Unsatisfied<`factory output is a structural thenable: ${NameText<ThenableOutputs<R>>}; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise${SeeErrors<'structural-thenable'>}`, { tokens: ThenableOutputs<R> }>;
+  : Unsatisfied<`factory output is a structural thenable: ${NameText<ThenableOutputs<R>>}; return a native Promise or use DiBag.createProvider with factoryReturnKind 'uninspected' or 'native-promise'${SeeErrors<'structural-thenable'>}`, { tokens: ThenableOutputs<R> }>;
 
 /**
  * Render dependency names inside diagnostic messages; typed tokens have no printable name.

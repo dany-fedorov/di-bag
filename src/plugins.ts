@@ -7,6 +7,31 @@ import type { Provider } from './provider';
 import { retainDescription, sourceDescription } from './provider-operations';
 import type { Factory } from './registration';
 import type { DependencyTupleAdmission, ReferenceGraph } from './token-types';
+import { snapshotOptionsBag } from './options-bag';
+
+/** The explicit return policy for the new plugin provider constructor. */
+export type PluginReturnKind = 'uninspected' | 'native-promise';
+
+/** Options for a versioned plugin descriptor and a synchronous output predicate. */
+export interface CreateProviderFromPluginOptions<
+  ReturnKind extends PluginReturnKind,
+  Service,
+  Dependencies extends readonly DependencyReference[] = readonly DependencyReference[],
+> {
+  readonly dependencies: Dependencies;
+  readonly pluginDescriptor: unknown;
+  readonly isValidPluginOutput: PluginOutputValidator<Service>;
+  readonly factoryReturnKind: ReturnKind;
+}
+
+/** Callable adapter for a plugin descriptor with a finite dependency tuple. */
+export type CreateProviderFromPlugin = <
+  const Dependencies extends readonly DependencyReference[],
+  Service,
+  ReturnKind extends PluginReturnKind,
+>(options: CreateProviderFromPluginOptions<ReturnKind, Service, Dependencies> & {
+  readonly dependencies: Dependencies & DependencyTupleAdmission<Dependencies>;
+}) => PluginProvider<Dependencies, Service, ReturnKind>;
 
 /**
  * The explicit output boundary used for an application-selected plugin.
@@ -32,12 +57,12 @@ export interface PluginOptions<M extends PluginAcquisitionMode, V> {
  * The provider contract produced by {@link DiBagApi.fromPlugin}.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
  */
-export type PluginProvider<T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode> = Provider<
-  () => M extends 'raw' ? V : Promise<Awaited<V>>,
+export type PluginProvider<T extends readonly DependencyReference[], V, M extends PluginReturnKind | PluginAcquisitionMode> = Provider<
+  () => M extends 'raw' | 'uninspected' ? V : Promise<Awaited<V>>,
   Readonly<{}>,
   readonly [],
   ReferenceGraph<T>,
-  M extends 'raw' ? V : Awaited<V>
+  M extends 'raw' | 'uninspected' ? V : Awaited<V>
 >;
 
 type PluginDescriptor = {
@@ -46,8 +71,8 @@ type PluginDescriptor = {
   readonly dispose?: (value: unknown) => void | Promise<void>;
 };
 
-function invalidDescriptor(reason: string): DiBagPluginValidationError {
-  return new DiBagPluginValidationError('descriptor', reason);
+function invalidDescriptor(reason: string, operation: 'fromPlugin' | 'createProviderFromPlugin' = 'fromPlugin'): DiBagPluginValidationError {
+  return new DiBagPluginValidationError('descriptor', reason, operation);
 }
 
 function validateOptions<V>(value: unknown): { readonly acquisitionMode: PluginAcquisitionMode; readonly validate: PluginOutputValidator<V> } {
@@ -63,20 +88,60 @@ function validateOptions<V>(value: unknown): { readonly acquisitionMode: PluginA
   return Object.freeze({ acquisitionMode, validate: validate as PluginOutputValidator<V> });
 }
 
-function validateDescriptor(value: unknown): PluginDescriptor {
+function validateDescriptor(value: unknown, operation: 'fromPlugin' | 'createProviderFromPlugin' = 'fromPlugin'): PluginDescriptor {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw invalidDescriptor('plugin descriptor must be a non-array object');
+    throw invalidDescriptor('plugin descriptor must be a non-array object', operation);
   }
-  if (!Object.hasOwn(value, 'apiVersion')) throw invalidDescriptor('plugin descriptor requires own apiVersion');
-  if (Reflect.get(value, 'apiVersion') !== 1) throw invalidDescriptor('plugin apiVersion must be 1');
-  if (!Object.hasOwn(value, 'create')) throw invalidDescriptor('plugin descriptor requires own create');
+  if (!Object.hasOwn(value, 'apiVersion')) throw invalidDescriptor('plugin descriptor requires own apiVersion', operation);
+  if (Reflect.get(value, 'apiVersion') !== 1) throw invalidDescriptor('plugin apiVersion must be 1', operation);
+  if (!Object.hasOwn(value, 'create')) throw invalidDescriptor('plugin descriptor requires own create', operation);
   const create = Reflect.get(value, 'create');
-  if (typeof create !== 'function') throw invalidDescriptor('plugin create must be a function');
+  if (typeof create !== 'function') throw invalidDescriptor('plugin create must be a function', operation);
   if (!Object.hasOwn(value, 'dispose')) return Object.freeze({ apiVersion: 1, create });
   const dispose = Reflect.get(value, 'dispose');
-  if (typeof dispose !== 'function') throw invalidDescriptor('plugin dispose must be a function when present');
+  if (typeof dispose !== 'function') throw invalidDescriptor('plugin dispose must be a function when present', operation);
   return Object.freeze({ apiVersion: 1, create, dispose });
 }
+
+function createPluginProvider(options: unknown, operation: 'fromPlugin' | 'createProviderFromPlugin' = 'createProviderFromPlugin'):
+  PluginProvider<readonly DependencyReference[], unknown, PluginReturnKind> {
+  const bag = snapshotOptionsBag(options, 'createProviderFromPlugin', [
+    'dependencies', 'pluginDescriptor', 'isValidPluginOutput', 'factoryReturnKind',
+  ]);
+  if (!Array.isArray(bag.dependencies)) throw libraryError(
+    'DI_BAG_INVALID_ARGUMENT', 'createProviderFromPlugin dependencies must be an array',
+    { operation: 'createProviderFromPlugin', argument: 'dependencies', expected: 'an array' },
+  );
+  const references = snapshotReferences(bag.dependencies);
+  if (bag.factoryReturnKind !== 'uninspected' && bag.factoryReturnKind !== 'native-promise') throw libraryError(
+    'DI_BAG_INVALID_ARGUMENT', 'createProviderFromPlugin factoryReturnKind must be explicit',
+    { operation: 'createProviderFromPlugin', argument: 'factoryReturnKind', expected: "one of: 'uninspected', 'native-promise'" },
+  );
+  if (typeof bag.isValidPluginOutput !== 'function') throw libraryError(
+    'DI_BAG_INVALID_ARGUMENT', 'createProviderFromPlugin requires an output predicate',
+    { operation: 'createProviderFromPlugin', argument: 'isValidPluginOutput', expected: 'a function' },
+  );
+  const descriptor = validateDescriptor(bag.pluginDescriptor, operation);
+  const validate = bag.isValidPluginOutput as PluginOutputValidator<unknown>;
+  const create: Factory = (dependencies: Record<symbol, unknown>) => Reflect.apply(
+    descriptor.create, undefined, references.map(reference => Reflect.get(dependencies, reference.slot)),
+  );
+  const dispose = descriptor.dispose === undefined ? undefined : (value: never) => Reflect.apply(descriptor.dispose!, undefined, [value]);
+  const project = (value: unknown): unknown => {
+    if (Reflect.apply(validate, undefined, [value]) !== true) throw new DiBagPluginValidationError('output', 'plugin output failed validation', operation);
+    return value;
+  };
+  if (bag.factoryReturnKind === 'uninspected') {
+    const source = createProvider<Factory, Readonly<{}>, readonly [], ReferenceGraph<readonly DependencyReference[]>, unknown>();
+    retainDescription(source, sourceDescription(create, dispose, references.map(reference => reference.key), 'uninspected', false, references));
+    return transformService(source, { mode: 'direct', transform: project, acquisitionMode: 'uninspected' }) as unknown as PluginProvider<readonly DependencyReference[], unknown, PluginReturnKind>;
+  }
+  const source = createProvider<() => Promise<unknown>, Readonly<{}>, readonly [], ReferenceGraph<readonly DependencyReference[]>, unknown>();
+  retainDescription(source, sourceDescription(create, dispose, references.map(reference => reference.key), 'native-promise', false, references));
+  return transformService(source, { mode: 'awaited', transform: project }) as unknown as PluginProvider<readonly DependencyReference[], unknown, PluginReturnKind>;
+}
+
+export const createProviderFromPlugin: CreateProviderFromPlugin = createPluginProvider as CreateProviderFromPlugin;
 
 /**
  * Validate an unknown plugin descriptor and its output at a declared dependency boundary.
@@ -88,7 +153,7 @@ function validateDescriptor(value: unknown): PluginDescriptor {
  * @returns A lazy provider that validates its output when acquired.
  * @throws {@link DiBagPluginValidationError} for an invalid descriptor or rejected output.
  */
-function createPluginProvider<const T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode>(
+function legacyPluginProvider<const T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode>(
   dependencies: T & DependencyTupleAdmission<T>,
   plugin: unknown,
   options: PluginOptions<M, V>,
@@ -111,11 +176,11 @@ function createPluginProvider<const T extends readonly DependencyReference[], V,
   };
   if (selected.acquisitionMode === 'raw') {
     const source = createProvider<Factory, Readonly<{}>, readonly [], ReferenceGraph<T>, unknown>();
-    retainDescription(source, sourceDescription(create, dispose, references.map(reference => reference.key), 'raw', false, references));
+    retainDescription(source, sourceDescription(create, dispose, references.map(reference => reference.key), 'uninspected', false, references));
     return transformService(source, { mode: 'direct', transform: project, acquisitionMode: 'raw' }) as unknown as PluginProvider<T, V, M>;
   }
   const source = createProvider<() => Promise<unknown>, Readonly<{}>, readonly [], ReferenceGraph<T>, unknown>();
-  retainDescription(source, sourceDescription(create, dispose, references.map(reference => reference.key), 'nativePromise', false, references));
+  retainDescription(source, sourceDescription(create, dispose, references.map(reference => reference.key), 'native-promise', false, references));
   return transformService(source, { mode: 'awaited', transform: project }) as unknown as PluginProvider<T, V, M>;
 }
 
@@ -143,4 +208,4 @@ export type PluginProviderFactory = <const T extends readonly DependencyReferenc
 // Both signatures retain the same tuple admission and invariant provider result.
 // Generic assignability otherwise re-infers T as T & DependencyTupleAdmission<T>,
 // applying admission twice. Name the public callable without widening either contract.
-export const fromPlugin: PluginProviderFactory = createPluginProvider as PluginProviderFactory;
+export const fromPlugin: PluginProviderFactory = legacyPluginProvider as PluginProviderFactory;

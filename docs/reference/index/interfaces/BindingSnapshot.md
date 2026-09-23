@@ -25,13 +25,17 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-i
 
 ## Properties
 
-### acquisitionMode
+### ~~acquisitionMode~~
 
 ```ts
 readonly acquisitionMode: AcquisitionMode;
 ```
 
-Defined in: [inspection.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L56)
+Defined in: [inspection.ts:58](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L58)
+
+#### Deprecated
+
+Use factoryReturnKind.
 
 ***
 
@@ -98,6 +102,16 @@ Stable identity for the canonical graph binding.
 
 ***
 
+### factoryReturnKind
+
+```ts
+readonly factoryReturnKind: FactoryReturnKind;
+```
+
+Defined in: [inspection.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L56)
+
+***
+
 ### keys
 
 ```ts
@@ -142,7 +156,7 @@ Defined in: [inspection.ts:55](https://github.com/dany-fedorov/di-bag/blob/main/
 readonly owned: boolean;
 ```
 
-Defined in: [inspection.ts:58](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L58)
+Defined in: [inspection.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L60)
 
 True when some stage of the provider accepts ownership through a disposer.
 
@@ -173,6 +187,6 @@ readonly tokenDependencies: readonly {
 }[];
 ```
 
-Defined in: [inspection.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L60)
+Defined in: [inspection.ts:62](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L62)
 
 Typed-token dependencies declared positionally through service tokens, collection tokens, `optional`, or `lazy` references.

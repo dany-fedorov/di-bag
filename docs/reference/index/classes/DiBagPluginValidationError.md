@@ -29,7 +29,7 @@ try {
 ### Constructor
 
 ```ts
-new (phase: "descriptor" | "output", reason: string): DiBagPluginValidationError;
+new (phase: "descriptor" | "output", reason: string, operation?: "fromPlugin" | "createProviderFromPlugin"): DiBagPluginValidationError;
 ```
 
 Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L66)
@@ -40,6 +40,7 @@ Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/
 | ------ | ------ |
 | `phase` | Whether descriptor authentication or output validation failed. |
 | `reason` | A stable description of the rejected boundary condition. |
+| `operation` | - |
 
 #### Overrides
 
@@ -75,7 +76,7 @@ Defined in: [errors.ts:61](https://github.com/dany-fedorov/di-bag/blob/main/src/
 readonly phase: 'descriptor' | 'output';
 ```
 
-Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L66)
+Defined in: [errors.ts:67](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L67)
 
 Whether descriptor authentication or output validation failed.
 
@@ -87,6 +88,6 @@ Whether descriptor authentication or output validation failed.
 readonly reason: string;
 ```
 
-Defined in: [errors.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L66)
+Defined in: [errors.ts:68](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L68)
 
 A stable description of the rejected boundary condition.

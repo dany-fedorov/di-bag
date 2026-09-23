@@ -12,7 +12,7 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | --- | --- |
 | Start a graph | [`DiBag.createBuilder()`](#dibag-createbuilder) |
 | Register services by name | [`builder.withServices(providersByName)`](#builder-withservices) |
-| Create a collection token | [`DiBag.token(key)`](#dibag-token) |
+| Create a collection token | [`DiBag.token(symbol)`](#dibag-token) |
 | Contribute a collection member | [`builder.withCollectionContribution(options)`](#builder-withcollectioncontribution) |
 | Register a synchronous factory for a browser or worker | [`DiBag.fromSyncFactory(callback, options)`](#dibag-fromsyncfactory) |
 | Register an async factory for a browser or worker | [`DiBag.fromAsyncFactory(callback, options)`](#dibag-fromasyncfactory) |
@@ -31,6 +31,43 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Close | [`container.close(options?)`](#container-close) |
 
 ## DiBag facade {#dibag-facade}
+
+### `DiBag.createProvider(factory, options)` {#dibag-createprovider}
+Create a provider from a named-dependency factory.
+```ts
+const config = DiBag.createProvider(() => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' });
+```
+
+### `DiBag.createProviderFromFunction(options)` {#dibag-createproviderfromfunction}
+Create a provider whose factory receives positional dependency values.
+```ts
+const portSymbol = Symbol('port');
+const port = DiBag.createToken(portSymbol).forService<number>();
+const client = DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: value => ({ port: value }) });
+```
+
+### `DiBag.createProviderFromClass(options)` {#dibag-createproviderfromclass}
+Create a provider that constructs a class from positional dependencies.
+```ts
+const portSymbol = Symbol('port');
+const port = DiBag.createToken(portSymbol).forService<number>();
+class Client { constructor(readonly port: number) {} }
+const client = DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client });
+```
+
+### `DiBag.createProviderFromPlugin(options)` {#dibag-createproviderfromplugin}
+Create a provider from a versioned plugin descriptor.
+```ts
+const pluginDescriptor = { apiVersion: 1 as const, create: () => ({ run() {} }) };
+const plugin = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is { run(): void } => typeof value === 'object' && value !== null });
+```
+
+### `DiBag.createToken(symbol)` {#dibag-createtoken}
+Create a nominal token from a symbol.
+```ts
+const clockSymbol = Symbol('clock');
+const clock = DiBag.createToken(clockSymbol).forService<{ now(): number }>();
+```
 
 ### `DiBag.withConfiguration(options)` {#dibag-withconfiguration}
 Return a facade with inherited runtime settings and appended observers. Throws: [`DI_BAG_INVALID_CONFIGURATION`](errors.md#di-bag-invalid-configuration).
@@ -62,7 +99,7 @@ const db = DiBag.withDisposal(
 );
 ```
 
-### `DiBag.token(key)` {#dibag-token}
+### `DiBag.token(symbol)` {#dibag-token}
 Create a typed-token factory from a unique symbol; `.of<Service>()` selects one service, while `.forCollectionOf<Item>()` selects an ordered collection. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token).
 ```ts
 const clockKey = Symbol('clock');
@@ -120,18 +157,14 @@ const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }
 ### `DiBag.withDisposal(create, dispose)` {#dibag-withdisposal}
 Make the container own a factory's value and run `dispose` on it when the container closes. Throws: [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
 ```ts
-const container = DiBag.createBuilder()
-  .withServices({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) })
-  .buildContainer();
+const container = DiBag.createBuilder().withServices({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) }).buildContainer();
 await container.close();
 ```
 
 ### `DiBag.withLifetime(registration, lifetime)` {#dibag-withlifetime}
 Select `root`, `scoped` (the default), or `transient` caching for a registration. Throws: [`DI_BAG_INVALID_LIFETIME`](errors.md#di-bag-invalid-lifetime), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
 ```ts
-const container = DiBag.createBuilder()
-  .withServices({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') })
-  .buildContainer();
+const container = DiBag.createBuilder().withServices({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') }).buildContainer();
 ```
 
 ### `DiBag.withMetadata(registration, options)` {#dibag-withmetadata}
@@ -152,9 +185,7 @@ const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform:
 Add new string-named services. Throws: [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 type Clock = { now(): number };
-const builder = DiBag.createBuilder()
-  .withServices({ clock: (): Clock => ({ now: () => Date.now() }) })
-  .withServices({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
+const builder = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now: () => Date.now() }) }).withServices({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
 ```
 
 ### `builder.withTokenService(token, provider)` {#builder-withtokenservice}
@@ -168,9 +199,7 @@ const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () =
 ### `builder.withServiceAlias(options)` {#builder-withservicealias}
 Add another lookup name for an existing service. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_INVALID_ALIAS`](errors.md#di-bag-invalid-alias).
 ```ts
-const builder = DiBag.createBuilder()
-  .withServices({ clock: () => Date.now() })
-  .withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
+const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
 ```
 
 ### `builder.withCollectionContribution(options)` {#builder-withcollectioncontribution}
@@ -178,25 +207,19 @@ Append a provider to the list of a collection token. Throws: [`DI_BAG_INVALID_AR
 ```ts
 const toolsKey = Symbol('tools');
 const tools = DiBag.token(toolsKey).forCollectionOf<string>();
-const builder = DiBag.createBuilder()
-  .withCollectionContribution({ collectionToken: tools, provider: () => 'search' })
-  .withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' });
+const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: tools, provider: () => 'search' }).withCollectionContribution({ collectionToken: tools, provider: () => 'fetch' });
 ```
 
 ### `builder.withReplacedService(serviceKey, provider)` {#builder-withreplacedservice}
 Replace an existing binding with a compatible provider, selecting it by name, service token, collection token. Throws: [`DI_BAG_INVALID_REPLACEMENT`](errors.md#di-bag-invalid-replacement), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
-const builder = DiBag.createBuilder()
-  .withServices({ clock: () => Date.now() })
-  .withReplacedService('clock', () => 0);
+const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withReplacedService('clock', () => 0);
 ```
 
 ### `builder.withInstalledModules(modules)` {#builder-withinstalledmodules}
 Install sealed modules in list order, allocating fresh private bindings for each installation. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_MODULE`](errors.md#di-bag-invalid-module), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
-const greeting = DiBag.createBuilder()
-  .withServices({ greet: ({ name }: { name: string }) => `hello, ${name}` })
-  .buildModule({ exportedServiceKeys: ['greet'] });
+const greeting = DiBag.createBuilder().withServices({ greet: ({ name }: { name: string }) => `hello, ${name}` }).buildModule({ exportedServiceKeys: ['greet'] });
 const app = DiBag.createBuilder().withInstalledModules([greeting]).withServices({ name: () => 'Ada' }).buildContainer();
 ```
 

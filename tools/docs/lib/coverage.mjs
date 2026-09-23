@@ -37,7 +37,8 @@ export function verifyApiCoverage(project, root, output) {
     assert.deepEqual(actual, expected, `${name}: generated exports differ from TypeScript exports`);
     const markdown = readFileSync(join(output, name, 'index.md'), 'utf8');
     for (const symbol of symbols) {
-      assert(markdown.includes(`[${symbol.name}](`), `${name}: missing Markdown link for ${symbol.name}`);
+      assert(markdown.includes(`[${symbol.name}](`) || markdown.includes(`[~~${symbol.name}~~](`),
+        `${name}: missing Markdown link for ${symbol.name}`);
       const resolved = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
       const declaration = resolved.declarations?.[0];
       const reflection = target(module.children.find(child => child.name === symbol.name));

@@ -4,7 +4,7 @@
 
 # Class: DiBagServiceReadinessError
 
-Defined in: [errors.ts:117](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L117)
+Defined in: [errors.ts:121](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L121)
 
 `ensureServicesReady` could not make a listed service ready, and this container is now closed.
 `cause` is the original failure and `disposalFailures` lists disposers that failed while the container closed.
@@ -34,7 +34,7 @@ try {
 new (cause: unknown, disposalFailures: readonly CleanupFailure[], disposalError?: unknown | undefined): DiBagServiceReadinessError;
 ```
 
-Defined in: [errors.ts:128](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L128)
+Defined in: [errors.ts:132](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L132)
 
 #### Parameters
 
@@ -58,7 +58,7 @@ Error.constructor
 declare readonly code: 'DI_BAG_SERVICE_READINESS_FAILED';
 ```
 
-Defined in: [errors.ts:118](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L118)
+Defined in: [errors.ts:122](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L122)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [errors.ts:118](https://github.com/dany-fedorov/di-bag/blob/main/src
 declare readonly details: Readonly<Record<string, unknown>>;
 ```
 
-Defined in: [errors.ts:119](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L119)
+Defined in: [errors.ts:123](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L123)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [errors.ts:119](https://github.com/dany-fedorov/di-bag/blob/main/src
 readonly disposalError?: unknown;
 ```
 
-Defined in: [errors.ts:128](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L128)
+Defined in: [errors.ts:132](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L132)
 
 The complete shutdown error, when closing itself rejected.
 
@@ -90,6 +90,6 @@ The complete shutdown error, when closing itself rejected.
 readonly disposalFailures: readonly CleanupFailure[];
 ```
 
-Defined in: [errors.ts:121](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L121)
+Defined in: [errors.ts:125](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L125)
 
 Frozen disposal failures in invocation order, collected while this container closed.

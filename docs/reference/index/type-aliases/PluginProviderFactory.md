@@ -8,7 +8,7 @@
 type PluginProviderFactory = <const T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode>(dependencies: T & DependencyTupleAdmission<T>, plugin: unknown, options: PluginOptions<M, V>) => PluginProvider<T, V, M>;
 ```
 
-Defined in: [plugins.ts:137](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L137)
+Defined in: [plugins.ts:202](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L202)
 
 Callable checked plugin adapter exposed by DiBag.fromPlugin.
 The descriptor must have own `apiVersion: 1` and callable `create`, with an optional

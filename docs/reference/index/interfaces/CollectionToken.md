@@ -4,7 +4,7 @@
 
 # Interface: CollectionToken\<TokenSymbol *extends* `symbol`, Item\>
 
-Defined in: [tokens.ts:38](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L38)
+Defined in: [tokens.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L39)
 
 An immutable typed-token handle pairing a canonical symbol with an invariant
 collection item contract.
@@ -29,4 +29,14 @@ Create one with `DiBag.token(key).forCollectionOf<Item>()`.
 readonly key: TokenSymbol;
 ```
 
-Defined in: [tokens.ts:42](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L42)
+Defined in: [tokens.ts:43](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L43)
+
+***
+
+### symbol
+
+```ts
+readonly symbol: TokenSymbol;
+```
+
+Defined in: [tokens.ts:44](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L44)

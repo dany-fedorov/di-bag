@@ -2,13 +2,13 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / PluginProvider
 
-# Type Alias: PluginProvider\<T *extends* readonly [`DependencyReference`](DependencyReference.md)[], V, M *extends* [`PluginAcquisitionMode`](PluginAcquisitionMode.md)\>
+# Type Alias: PluginProvider\<T *extends* readonly [`DependencyReference`](DependencyReference.md)[], V, M *extends* \| [`PluginReturnKind`](PluginReturnKind.md) \| [`PluginAcquisitionMode`](PluginAcquisitionMode.md)\>
 
 ```ts
-type PluginProvider<T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode> = Provider<() => M extends 'raw' ? V : Promise<Awaited<V>>, Readonly<{}>, readonly [], ReferenceGraph<T>, M extends 'raw' ? V : Awaited<V>>;
+type PluginProvider<T extends readonly DependencyReference[], V, M extends PluginReturnKind | PluginAcquisitionMode> = Provider<() => M extends 'raw' | 'uninspected' ? V : Promise<Awaited<V>>, Readonly<{}>, readonly [], ReferenceGraph<T>, M extends 'raw' | 'uninspected' ? V : Awaited<V>>;
 ```
 
-Defined in: [plugins.ts:35](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L35)
+Defined in: [plugins.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L60)
 
 The provider contract produced by [DiBagApi.fromPlugin](../interfaces/DiBagApi.md#fromplugin).
 

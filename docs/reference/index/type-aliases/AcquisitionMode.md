@@ -2,17 +2,14 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / AcquisitionMode
 
-# Type Alias: AcquisitionMode
+# ~~Type Alias: AcquisitionMode~~
 
 ```ts
 type AcquisitionMode = 'auto' | 'raw' | 'nativePromise';
 ```
 
-Defined in: [acquisition-mode.ts:10](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-mode.ts#L10)
+Defined in: [acquisition-mode.ts:12](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-mode.ts#L12)
 
-How an acquisition stage treats its returned value: configured classification,
-the exact raw value, or an observed native Promise fulfillment.
+## Deprecated
 
-## See
-
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#portable-mode
+Use FactoryReturnKind.

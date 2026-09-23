@@ -155,7 +155,7 @@ app.createIndependentContainer(['host'], { host: () => 'localhost' });
 
 ### Structural thenable {#structural-thenable}
 
-**When:** `factory output is a structural thenable: <keys>; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`,
+**When:** `factory output is a structural thenable: <keys>; return a native Promise or use DiBag.createProvider with factoryReturnKind 'uninspected' or 'native-promise'; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`,
 or on `DiBag.fromFactory`, `fromFunction`, and `fromClass`
 `factory output is a structural thenable; return a native Promise or select acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable`.
 
@@ -167,7 +167,7 @@ await it.
 `acquisitionMode: 'raw'`.
 
 ```ts
-// expect-error: factory output is a structural thenable: query; return a native Promise or use DiBag.fromFactory with acquisitionMode raw or nativePromise; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable
+// expect-error: factory output is a structural thenable: query; return a native Promise or use DiBag.createProvider with factoryReturnKind 'uninspected' or 'native-promise'; see https://dany-fedorov.github.io/di-bag/agent/errors.html#structural-thenable
 import { DiBag } from 'di-bag';
 
 type Query = { then(onFulfilled: (rows: string[]) => void): void };

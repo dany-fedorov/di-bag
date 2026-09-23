@@ -14,7 +14,7 @@
 
 ## Interfaces
 
-- [AcquisitionContext](interfaces/AcquisitionContext.md)
+- [~~AcquisitionContext~~](interfaces/AcquisitionContext.md)
 - [AcquisitionEventFields](interfaces/AcquisitionEventFields.md)
 - [AcquisitionSnapshot](interfaces/AcquisitionSnapshot.md)
 - [BindingSnapshot](interfaces/BindingSnapshot.md)
@@ -28,11 +28,13 @@
 - [CollectionTokenBase](interfaces/CollectionTokenBase.md)
 - [ConfigurationOptions](interfaces/ConfigurationOptions.md)
 - [Container](interfaces/Container.md)
+- [CreateProviderFromPluginOptions](interfaces/CreateProviderFromPluginOptions.md)
 - [DiBagApi](interfaces/DiBagApi.md)
 - [DiBagDiagnostic](interfaces/DiBagDiagnostic.md)
 - [DiBagPolicy](interfaces/DiBagPolicy.md)
 - [DisposerContext](interfaces/DisposerContext.md)
 - [EnsureServicesReadyOptions](interfaces/EnsureServicesReadyOptions.md)
+- [FactoryContext](interfaces/FactoryContext.md)
 - [FactoryWithDisposal](interfaces/FactoryWithDisposal.md)
 - [GraphSnapshot](interfaces/GraphSnapshot.md)
 - [LifecycleObserver](interfaces/LifecycleObserver.md)
@@ -50,7 +52,7 @@
 ## Type Aliases
 
 - [AcquisitionMetadataPresence](type-aliases/AcquisitionMetadataPresence.md)
-- [AcquisitionMode](type-aliases/AcquisitionMode.md)
+- [~~AcquisitionMode~~](type-aliases/AcquisitionMode.md)
 - [AliasEntries](type-aliases/AliasEntries.md)
 - [AliasOutput](type-aliases/AliasOutput.md)
 - [AliasRegistration](type-aliases/AliasRegistration.md)
@@ -73,9 +75,11 @@
 - [ContributionConstraint](type-aliases/ContributionConstraint.md)
 - [CreateChildContainerOptions](type-aliases/CreateChildContainerOptions.md)
 - [CreateIndependentContainerOptions](type-aliases/CreateIndependentContainerOptions.md)
+- [CreateProviderFromPlugin](type-aliases/CreateProviderFromPlugin.md)
 - [DependencyReference](type-aliases/DependencyReference.md)
 - [DiBagErrorCode](type-aliases/DiBagErrorCode.md)
 - [DisjointChildContainerSelection](type-aliases/DisjointChildContainerSelection.md)
+- [FactoryReturnKind](type-aliases/FactoryReturnKind.md)
 - [LazyDependency](type-aliases/LazyDependency.md)
 - [LifecycleEvent](type-aliases/LifecycleEvent.md)
 - [Lifetime](type-aliases/Lifetime.md)
@@ -97,6 +101,9 @@
 - [PluginOutputValidator](type-aliases/PluginOutputValidator.md)
 - [PluginProvider](type-aliases/PluginProvider.md)
 - [PluginProviderFactory](type-aliases/PluginProviderFactory.md)
+- [PluginReturnKind](type-aliases/PluginReturnKind.md)
+- [PositionalFactoryArguments](type-aliases/PositionalFactoryArguments.md)
+- [PositionalFactoryFunction](type-aliases/PositionalFactoryFunction.md)
 - [Presence](type-aliases/Presence.md)
 - [ProviderAcquiredValue](type-aliases/ProviderAcquiredValue.md)
 - [ProviderAcquisitionMetadata](type-aliases/ProviderAcquisitionMetadata.md)

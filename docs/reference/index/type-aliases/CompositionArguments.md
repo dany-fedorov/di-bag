@@ -11,7 +11,7 @@ type CompositionArguments<A extends readonly unknown[], P extends readonly unkno
 }>;
 ```
 
-Defined in: [composition.ts:21](https://github.com/dany-fedorov/di-bag/blob/main/src/composition.ts#L21)
+Defined in: [composition.ts:173](https://github.com/dany-fedorov/di-bag/blob/main/src/composition.ts#L173)
 
 Compile-time admission that checks supplied token values against a callable's parameter tuple.
 

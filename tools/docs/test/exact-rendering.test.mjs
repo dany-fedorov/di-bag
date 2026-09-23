@@ -68,7 +68,7 @@ test('compiler declarations retain syntax that TypeDoc reflections cannot repres
 
   assert.match(facadeText, /fromClass: <const T extends readonly DependencyReference\[\], C extends new \(/);
   assert.match(facadeText, /M extends AcquisitionMode = 'auto'>/);
-  assert.match(facadeText, /callback: F & NativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & AutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, \.\.\.options: FactoryOptions<M>/);
+  assert.match(facadeText, /callback: F & LegacyNativeOutput<ReturnType<NoInfer<F>>, NoInfer<M>> & LegacyAutoOutput<ReturnType<NoInfer<F>>, NoInfer<M>>, \.\.\.options: FactoryOptions<M>/);
   assert.match(containerText, /resolve<K extends \(keyof ServiceRegistrations & string\) \| TokenBase>\(token: K & \(\[K\] extends \[string\] \? unknown : SingleServiceTokenMember<ServiceRegistrations, K>\)\)/);
   assert.match(containerText, /resolveCollection<T extends CollectionTokenBase>\(token: T & CollectionTokenMember<Constraints, T>, \.\.\.invalid: \[T\] extends \[never\] \? \[never\] : \[\]\): readonly CollectionItem<T>\[\];/);
   assert.match(containerText, /serviceSnapshot<ServiceKey extends \(keyof ServiceRegistrations & string\) \| TokenBase>\(serviceKey: ServiceKey & \(\[ServiceKey\] extends \[string\] \? unknown : SingleServiceTokenMember<ServiceRegistrations, ServiceKey>\), \.\.\.invalid: \[ServiceKey\] extends \[never\] \? \[never\] : \[\]\): RegistrationSnapshot<ProviderRegistrationMetadata/);
