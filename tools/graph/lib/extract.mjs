@@ -143,13 +143,18 @@ function isChainStart(calls) {
   return calls.length > 0 && methodName(calls[0]) === 'createBuilder';
 }
 
-function ownBagValue(call, name) {
+function ownBagValue(call, name, checker) {
   const bag = call.arguments[0];
   if (!bag || !ts.isObjectLiteralExpression(skipOuter(bag))) return undefined;
   const literal = skipOuter(bag);
-  const item = literal.properties.find(property => ts.isPropertyAssignment(property)
-    && !ts.isComputedPropertyName(property.name) && keyText(property.name) === name);
-  return item?.initializer;
+  const item = literal.properties.find(property => (ts.isPropertyAssignment(property)
+    && !ts.isComputedPropertyName(property.name) && keyText(property.name) === name)
+    || (ts.isShorthandPropertyAssignment(property) && property.name.text === name));
+  if (!item) return undefined;
+  if (ts.isPropertyAssignment(item)) return item.initializer;
+  if (!ts.isShorthandPropertyAssignment(item)) return undefined;
+  const declaration = checker.getShorthandAssignmentValueSymbol(item)?.valueDeclaration;
+  return declaration && ts.isVariableDeclaration(declaration) ? declaration.initializer : undefined;
 }
 
 /** Unwrap authenticated current facades and 0.4 decorators, reading lifetime and ownership on the way. */
@@ -171,11 +176,11 @@ function unwrap(expression, checker, declarationOwners) {
     if (owner === 'DiBagApi' && PROVIDER_FACADES.has(name)) {
       if (name === 'providerWithDisposal') owned = true;
       if (name === 'providerWithLifetime' && !lifetimeSelected) {
-        const selected = literalLifetime(ownBagValue(inner, 'lifetime'));
+        const selected = literalLifetime(ownBagValue(inner, 'lifetime', checker));
         if (selected === undefined) opaque = true; else lifetime = selected;
         lifetimeSelected = true;
       }
-      const provider = ownBagValue(inner, 'provider');
+      const provider = ownBagValue(inner, 'provider', checker);
       if (provider === undefined) { opaque = true; break; }
       inner = skipOuter(provider);
       continue;

@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": [],
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "paths": { "di-bag": ["../../../../dist/index.d.ts"] }
+  },
+  "files": ["provider-shorthand.ts"]
+}

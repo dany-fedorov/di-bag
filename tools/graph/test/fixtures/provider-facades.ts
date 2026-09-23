@@ -31,6 +31,7 @@ const reset = DiBag.providerWithLifetime({
   lifetime: 'scoped:one-per-container',
 });
 class DiBagApi { providerWithLifetime(_options: object) { return this; } }
+class Provider { providerWithLifetime(_options: object) { return this; } }
 const localProvider = new DiBagApi().providerWithLifetime({ provider: () => 6, lifetime: 'singleton:one-per-container-tree' }) as any;
 const localObject = ({ providerWithDisposal() { return this; } }).providerWithDisposal() as any;
 
