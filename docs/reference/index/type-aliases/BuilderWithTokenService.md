@@ -11,7 +11,7 @@ type BuilderWithTokenService<Entries extends Entry, Constraints extends NeedCons
 }, Constraints>;
 ```
 
-Defined in: [builder-method-types.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L40)
+Defined in: [builder-method-types.ts:58](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L58)
 
 The checked generic `withTokenService` callable exposed by a builder.
 

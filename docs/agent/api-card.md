@@ -123,6 +123,36 @@ Transform the exposed service while retaining dependencies, metadata, lifetime, 
 const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform: text => text.toUpperCase() });
 ```
 
+### `DiBag.providerWithDisposal(options)` {#dibag-providerwithdisposal}
+Add an ownership stage to a provider input. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+```ts
+const owned = DiBag.providerWithDisposal({ provider: () => ({ close() {} }), disposeService: service => service.close() });
+```
+
+### `DiBag.providerWithLifetime(options)` {#dibag-providerwithlifetime}
+Select a full lifetime for a provider input. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+```ts
+const cached = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' });
+```
+
+### `DiBag.providerWithRegistrationMetadata(options)` {#dibag-providerwithregistrationmetadata}
+Add noncolliding registration metadata without acquiring the service. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_DUPLICATE_METADATA`](errors.md#di-bag-duplicate-metadata), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+```ts
+const registered = DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { owner: 'platform' } });
+```
+
+### `DiBag.providerWithAcquisitionMetadata(options)` {#dibag-providerwithacquisitionmetadata}
+Append one synchronous acquisition-metadata frame using the selected callback input. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_METADATA`](errors.md#di-bag-invalid-metadata), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+```ts
+const observed = DiBag.providerWithAcquisitionMetadata({ provider: () => 1, callbackReceives: 'exposed-service', describeAcquisition: value => ({ value }) });
+```
+
+### `DiBag.providerWithTransformedService(options)` {#dibag-providerwithtransformedservice}
+Transform the selected callback input while retaining dependencies, metadata, lifetime and ownership stages. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+```ts
+const mapped = DiBag.providerWithTransformedService({ provider: () => 1, callbackReceives: 'exposed-service', transformService: value => String(value) });
+```
+
 ## Builder {#builder}
 
 ### `builder.withServices(providersByName)` {#builder-withservices}

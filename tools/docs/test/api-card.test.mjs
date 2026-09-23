@@ -43,6 +43,18 @@ test('provider-source API card contains only final task calls', () => {
   ]) assert.ok(card.includes(`### \`${title}\``), `missing call title: ${title}`);
 });
 
+test('provider facade bags are classified in the DiBag facade group with examples', () => {
+  const entries = runtimeSurface(project).filter(item => item.group === 'DiBag facade' && item.name.startsWith('DiBag.providerWith'));
+  assert.deepEqual(entries.map(item => item.name), [
+    'DiBag.providerWithDisposal',
+    'DiBag.providerWithLifetime',
+    'DiBag.providerWithRegistrationMetadata',
+    'DiBag.providerWithAcquisitionMetadata',
+    'DiBag.providerWithTransformedService',
+  ]);
+  assert(entries.every(item => item.examples.length > 0));
+});
+
 test('the card refuses a runtime call without an @example', () => {
   const container = project.children.find(child => child.name === 'index').children.find(child => child.name === 'Container');
   const close = container.children.find(child => child.name === 'close');

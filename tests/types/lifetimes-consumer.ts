@@ -4,7 +4,7 @@ import type { ProviderGraphContract } from '../../src/provider';
 import type { TokenDependencyContract } from '../../src/token-types';
 import type { Assert, Equal } from './assert';
 import type { Lifetime } from '../../src';
-export type LifetimeCheck = Assert<Equal<Lifetime, 'root' | 'scoped' | 'transient'>>;
+export type LifetimeCheck = Assert<Equal<Lifetime, 'singleton:one-per-container-tree' | 'scoped:one-per-container' | 'transient:one-per-resolve'>>;
 type IsAny<T> = 0 extends (1 & T) ? true : false;
 const callReflectedScope = () => reflectedScope();
 export const repo = graph.resolve('repo');

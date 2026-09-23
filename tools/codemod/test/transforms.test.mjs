@@ -24,40 +24,40 @@ test('nonliteral provider return kinds stay unchanged and report one manual item
 test('every transform the shipped map names exists in the registry', () => {
   const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
   assert.deepEqual(validateRenameMap(shipped, Object.keys(transforms)), []);
-  assert.deepEqual(Object.keys(transforms), ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation', 'provider-methods', 'provider-sources']);
+  assert.deepEqual(Object.keys(transforms), ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation', 'provider-facades', 'provider-sources']);
 });
 
-test('provider methods use original types, mapped names, and transformed children', () => {
+test('provider facades use original types, mapped roles, and transformed children', () => {
   const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
   const renamed = {
     ...shipped,
-    methods: shipped.methods.map(entry => entry.transform === 'provider-methods' ? {
+    methods: shipped.methods.map(entry => entry.transform === 'provider-facades' ? {
       ...entry,
-      to: ({ withDisposal: 'disposeUsing', withLifetime: 'cacheUsing', withMetadata: 'describeUsing', transformService: 'mapUsing' })[entry.from],
       transformNames: Object.fromEntries(Object.entries(entry.transformNames).map(([role, value]) => [role, `mapped${value[0].toUpperCase()}${value.slice(1)}`])),
     } : entry).map(entry => entry.owner === 'DiBagApi' && entry.from === 'fromFactory' ? { ...entry, to: 'makeProvider' } : entry),
   };
-  const result = runCodemod({ typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(), map: renamed, only: ['provider-methods/input.ts'] });
+  const result = runCodemod({ typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(), map: renamed, only: ['provider-facades/input.ts'] });
   const output = result.files[0].text;
-  assert.match(output, /\(derived\.makeProvider\(f\)\)\.disposeUsing/);
-  assert.match(output, /\(\(DiBag\.makeProvider\(f\)\)\.disposeUsing[^\n]+\)\.cacheUsing/);
+  assert.match(output, /derived\.mappedProviderWithDisposal\(\{ mappedProvider: f, mappedDisposeService:/);
+  assert.match(output, /DiBag\.mappedProviderWithLifetime\(\{ mappedProvider: DiBag\.mappedProviderWithDisposal\(\{ mappedProvider: f, mappedDisposeService:/);
   assert.match(output, /mappedTransformReturnKind/);
   assert.match(output, /export type OldOwned = Provider<typeof f>;/);
   assert.match(output, /export type OldDependentOwned = Provider<\(\{ value \}: \{ value: number \}\) => string>;/);
   assert.equal(compiler.ts.createSourceFile('output.ts', output, compiler.ts.ScriptTarget.Latest, true, compiler.ts.ScriptKind.TS).parseDiagnostics.length, 0);
   assert.deepEqual(result.manual.map(({ file, line, reason }) => ({ file, line, reason })), [
-    { file: 'provider-methods/input.ts', line: 7, reason: 'combined static and dynamic metadata can change evaluation order when split; rewrite the two provider methods by hand' },
-    { file: 'provider-methods/input.ts', line: 11, reason: 'the transformService options are not a supported object literal; rewrite the provider chain by hand' },
-    { file: 'provider-methods/input.ts', line: 13, reason: 'the decorated value is any, unknown, invalid, or a factory/provider union; wrap a factory with createProvider or supply a provider by hand' },
+    { file: 'provider-facades/input.ts', line: 7, reason: 'combined static and dynamic metadata can change evaluation order when split; rewrite the two provider bags by hand' },
+    { file: 'provider-facades/input.ts', line: 11, reason: 'the transformService options are not a supported object literal; rewrite the provider bag by hand' },
+    { file: 'provider-facades/input.ts', line: 13, reason: 'the decorated value is any, unknown, invalid, or a factory/provider union; wrap a factory with createProvider or supply a provider by hand' },
   ]);
   assert.ok(result.manual.every(item => Number.isInteger(item.column) && typeof item.text === 'string'));
-  const edges = runCodemod({ typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(), map: renamed, only: ['provider-method-edges/input.ts'] });
-  assert.match(edges.files[0].text, /mappedDescribeAcquisition/);
-  assert.ok(edges.files[0].text.split('\n').includes("export const shorthandLifetime = (p).cacheUsing('singleton:one-per-container-tree', { mappedAllowsScopedDependencies: allowScopedDependencies });"));
+  const edges = runCodemod({ typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(), map: renamed, only: ['provider-facade-edges/input.ts'] });
+  assert.match(edges.files[0].text, /DiBag\.mappedProviderWithRegistrationMetadata\(\{ mappedProvider: p, mappedRegistrationMetadata:/);
+  assert.match(edges.files[0].text, /DiBag\.mappedProviderWithAcquisitionMetadata\(\{ mappedProvider: p, mappedDescribeAcquisition:/);
+  assert.ok(edges.files[0].text.split('\n').includes("export const shorthandLifetime = DiBag.mappedProviderWithLifetime({ mappedProvider: p, mappedLifetime: 'singleton:one-per-container-tree', mappedAllowsScopedDependencies: allowScopedDependencies });"));
   assert.match(edges.files[0].text, /\/\* keep \*\//);
   assert.equal(compiler.ts.createSourceFile('edges.ts', edges.files[0].text, compiler.ts.ScriptTarget.Latest, true, compiler.ts.ScriptKind.TS).parseDiagnostics.length, 0);
 
-  const edgeSource = fixturesProgram().getSourceFiles().find(file => file.fileName.endsWith('/provider-method-edges/input.ts'));
+  const edgeSource = fixturesProgram().getSourceFiles().find(file => file.fileName.endsWith('/provider-facade-edges/input.ts'));
   assert.ok(edgeSource);
   const declarations = new Map();
   const visit = node => {
@@ -76,18 +76,22 @@ test('provider methods use original types, mapped names, and transformed childre
     && !compiler.ts.isComputedPropertyName(property.name) && property.name.text === 'mode').length, 2);
 });
 
-test('provider method role names remain valid property and member names', () => {
+test('provider facade role names remain valid property and member names', () => {
   const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
   const transformNames = {
-    withDisposal: { disposeService: 'dispose-service' },
-    withLifetime: { allowsScopedDependencies: 'allows-scoped-dependencies' },
+    withDisposal: { method: 'provider-with-disposal', provider: 'provider-source', disposeService: 'dispose-service' },
+    withLifetime: { method: 'provider-with-lifetime', provider: 'provider-source', lifetime: 'lifetime-policy', allowsScopedDependencies: 'allows-scoped-dependencies' },
     withMetadata: {
-      acquisitionMethod: 'with-acquisition"metadata',
+      registrationFacade: 'provider-with-registration"metadata',
+      acquisitionFacade: 'provider-with-acquisition"metadata',
+      provider: 'provider-source',
       registrationMetadata: 'registration-metadata',
       describeAcquisition: 'describe"acquisition',
       callbackReceives: 'callback-receives',
     },
     transformService: {
+      method: 'provider-with-transformed\\service',
+      provider: 'provider-source',
       transformService: 'transform-service',
       callbackReceives: 'callback-receives',
       transformReturnKind: 'transform\\return-kind',
@@ -95,37 +99,39 @@ test('provider method role names remain valid property and member names', () => 
   };
   const map = {
     ...shipped,
-    methods: shipped.methods.map(entry => entry.transform === 'provider-methods'
+    methods: shipped.methods.map(entry => entry.transform === 'provider-facades'
       ? { ...entry, transformNames: transformNames[entry.from] }
       : entry),
   };
   assert.deepEqual(validateRenameMap(map, Object.keys(transforms)), []);
 
-  const main = runCodemod({ typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(), map, only: ['provider-methods/input.ts'] });
-  const edges = runCodemod({ typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(), map, only: ['provider-method-edges/input.ts'] });
-  assert.match(main.files[0].text, /\{ "transform-service": value => value, "callback-receives": 'exposed-service', "transform\\\\return-kind": 'native-promise' \}/);
-  assert.match(edges.files[0].text, /\["with-acquisition\\\"metadata"\]\(\{ "describe\\\"acquisition": describe, "callback-receives": 'exposed-service' \}\)/);
-  assert.match(edges.files[0].text, /\{ "allows-scoped-dependencies": allowScopedDependencies \}/);
+  const main = runCodemod({ typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(), map, only: ['provider-facades/input.ts'] });
+  const edges = runCodemod({ typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(), map, only: ['provider-facade-edges/input.ts'] });
+  assert.match(main.files[0].text, /\["provider-with-transformed\\\\service"\]\(\{ "provider-source": p, "transform-service": value => value, "callback-receives": 'exposed-service', "transform\\\\return-kind": 'native-promise' \}\)/);
+  assert.match(edges.files[0].text, /\["provider-with-acquisition\\\"metadata"\]\(\{ "provider-source": p, "describe\\\"acquisition": describe, "callback-receives": 'exposed-service' \}\)/);
+  assert.match(edges.files[0].text, /\["provider-with-lifetime"\]\(\{ "provider-source": p, "lifetime-policy": 'singleton:one-per-container-tree', "allows-scoped-dependencies": allowScopedDependencies \}\)/);
 
   const rows = [...main.files[0].text.split('\n'), ...edges.files[0].text.split('\n')]
     .filter(row => /^export const (transformed|dynamicOnly|shorthandLifetime) = /.test(row));
   const sourceText = `
-interface Provider {
-  withLifetime(lifetime: string, options: Record<string, unknown>): unknown;
-  withTransformedService(options: {
+interface Facade {
+  ["provider-with-lifetime"](options: Record<string, unknown>): unknown;
+  ["provider-with-transformed\\\\service"](options: {
+    "provider-source": unknown;
     "transform-service": (value: unknown) => unknown;
     "callback-receives": string;
     "transform\\\\return-kind": string;
   }): unknown;
-  ["with-acquisition\\\"metadata"](options: Record<string, unknown>): unknown;
+  ["provider-with-acquisition\\\"metadata"](options: Record<string, unknown>): unknown;
 }
-declare const p: Provider;
+declare const DiBag: Facade;
+declare const p: unknown;
 declare const describe: (value: number) => { value: number };
 declare const allowScopedDependencies: boolean;
 ${rows.join('\n')}
 `;
   const ts = compiler.ts;
-  const fileName = '/provider-method-role-output.ts';
+  const fileName = '/provider-facade-role-output.ts';
   const options = { noEmit: true, skipLibCheck: true, types: [], target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext };
   const host = ts.createCompilerHost(options);
   const getSourceFile = host.getSourceFile.bind(host);

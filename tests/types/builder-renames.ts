@@ -108,6 +108,7 @@ export const withServicesMethod = DiBag.createBuilder().withServices;
 export const withTokenServiceMethod = DiBag.createBuilder().withTokenService;
 export const withServiceAliasMethod = DiBag.createBuilder().withServices({ target: () => 1 }).withServiceAlias;
 export const withCollectionContributionMethod = DiBag.createBuilder().withCollectionContribution;
+export const physicalReplacementProvider = DiBag.createProvider(() => 3);
 export const withReplacedServiceMethod = DiBag.createBuilder()
   .withServices({ base: () => 1, derived: ({ base }: { base: number }) => base + 1 }).withReplacedService;
 export const buildModuleMethod = DiBag.createBuilder().withServices({ moduleValue: () => true }).buildModule;

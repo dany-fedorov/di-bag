@@ -1,5 +1,5 @@
 import { libraryError, libraryTypeError } from './errors';
-import type { FactoryWithDisposal, Factory, Registration } from './registration';
+import type { FactoryWithDisposal, Factory, ProviderOrFactory, Registration } from './registration';
 import type { Unsatisfied } from './types';
 import { describe, retainDescription, sourceDescription } from './provider-operations';
 import type { ProviderOperation } from './provider-operations';
@@ -7,6 +7,8 @@ import { readTokenKey } from './tokens';
 import type { CollectionTokenBase, TokenBase, TokenKey, TokenService } from './tokens';
 import type { GraphContract, TokenDependencyContract, OpaqueGraph, TokenTupleAdmission, ReboundGraph } from './token-types';
 import type { Acquired, FactoryReturnKind, NativeOutput, AutoOutput, SyncOutput } from './acquisition-mode';
+import { factoryReturnKind } from './acquisition-mode';
+import { snapshotOptionsBag } from './options-bag';
 
 declare const providerInvariant: unique symbol;
 
@@ -21,7 +23,7 @@ class ProviderBase {
  * dependency-graph, and acquired-value contracts.
  *
  * Create providers through {@link DiBagApi.createProvider}, composition adapters, or provider
- * decorators. This type-only class has no public constructor.
+ * composition facades. This type-only class has no public constructor or instance methods.
  * @typeParam ExposedFactory - The exact exposed factory signature, including named dependencies.
  * @typeParam RegistrationMetadata - Static registration metadata available before resolution.
  * @typeParam AcquisitionMetadataFrames - The ordered tuple of acquisition metadata frame payloads.
@@ -34,6 +36,20 @@ class Provider<ExposedFactory extends Factory, RegistrationMetadata extends obje
   /** @internal */
   declare readonly [providerInvariant]: (value: [ExposedFactory, RegistrationMetadata, AcquisitionMetadataFrames, RetainedGraphContract, AcquiredValue]) => [ExposedFactory, RegistrationMetadata, AcquisitionMetadataFrames, RetainedGraphContract, AcquiredValue];
 }
+
+export type MappedProviderFactory<ExposedFactory extends Factory, Output> =
+  Parameters<ExposedFactory> extends []
+    ? (this: void) => Output
+    : (this: void, dependencies: Exclude<Parameters<ExposedFactory>[0], undefined>) => Output;
+
+type TransformReturnAdmission<Output, ReturnKind extends FactoryReturnKind> =
+  NativeOutput<Output, NoInfer<ReturnKind>> & SyncOutput<Output, NoInfer<ReturnKind>>;
+export type CheckedTransformReturnKindOptions<Output, ReturnKind extends FactoryReturnKind> =
+  'auto-detect' extends ReturnKind
+    ? unknown extends TransformReturnAdmission<Output, ReturnKind>
+      ? { readonly transformReturnKind?: ReturnKind & TransformReturnAdmission<Output, ReturnKind> }
+      : { readonly transformReturnKind: ReturnKind & TransformReturnAdmission<Output, ReturnKind> }
+    : { readonly transformReturnKind: ReturnKind & TransformReturnAdmission<Output, ReturnKind> };
 
 /** Internal construction bridge; authentication remains in retainDescription. */
 export function createProvider<F extends Factory, M extends object, A extends readonly unknown[], G extends GraphContract, V>(): Provider<F, M, A, G, V> {
@@ -152,6 +168,42 @@ export function transform<R extends Registration, F extends Factory, A extends r
   return handle;
 }
 
+export function addDisposal(provider: ProviderBase, disposeService: unknown, operation = 'withDisposal'): ProviderBase {
+  if (typeof disposeService !== 'function') throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} disposeService must be a function`, { operation, argument: 'disposeService', expected: 'a function' });
+  return transform(provider as ProviderOrFactory, { kind: 'owned', dispose: disposeService as (value: never) => void | Promise<void> });
+}
+
+export function addRegistrationMetadata(provider: ProviderBase, registrationMetadata: unknown, operation = 'withRegistrationMetadata'): ProviderBase {
+  if (typeof registrationMetadata !== 'object' || registrationMetadata === null || Array.isArray(registrationMetadata)) throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} registrationMetadata must be an object`, { operation, argument: 'registrationMetadata', expected: 'an object' });
+  const description = describe(provider);
+  const keys = Reflect.ownKeys(registrationMetadata);
+  for (const key of keys) if (Object.hasOwn(description.metadata, key)) throw libraryError('DI_BAG_DUPLICATE_METADATA', `duplicate registration metadata: ${String(key)}`, { operation, key });
+  const added = Object.create(null) as Record<PropertyKey, unknown>;
+  for (const key of keys) added[key] = Reflect.get(registrationMetadata, key);
+  Object.freeze(added);
+  const metadata = Object.freeze(Object.assign(Object.create(null), description.metadata, added));
+  const handle = createProvider<Factory, object, readonly unknown[], GraphContract, unknown>();
+  retainDescription(handle, Object.freeze({ ...description, operations: Object.freeze([...description.operations, Object.freeze({ kind: 'metadata' as const, metadata: added })]), metadata }));
+  return handle;
+}
+
+export function addAcquisitionMetadata(provider: ProviderBase, options: unknown, operation = 'withAcquisitionMetadata'): ProviderBase {
+  const { describeAcquisition, callbackReceives } = snapshotOptionsBag(options, operation, ['describeAcquisition', 'callbackReceives']);
+  if (typeof describeAcquisition !== 'function') throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} describeAcquisition must be a function`, { operation, argument: 'describeAcquisition', expected: 'a function' });
+  if (callbackReceives !== 'exposed-service' && callbackReceives !== 'fulfilled-value') throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} callbackReceives must name the callback input`, { operation, argument: 'callbackReceives', expected: "one of: 'exposed-service', 'fulfilled-value'" });
+  return annotate(provider as ProviderOrFactory, describeAcquisition as (value: never) => object, callbackReceives === 'fulfilled-value', operation);
+}
+
+export function addTransformedService(provider: ProviderBase, options: unknown, operation = 'withTransformedService'): ProviderBase {
+  const bag = snapshotOptionsBag(options, operation, ['transformService', 'callbackReceives'], ['transformReturnKind']);
+  const { transformService, callbackReceives, transformReturnKind } = bag;
+  if (typeof transformService !== 'function') throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} transformService must be a function`, { operation, argument: 'transformService', expected: 'a function' });
+  if (callbackReceives !== 'exposed-service' && callbackReceives !== 'fulfilled-value') throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} callbackReceives must name the callback input`, { operation, argument: 'callbackReceives', expected: "one of: 'exposed-service', 'fulfilled-value'" });
+  if (callbackReceives === 'fulfilled-value' && Object.hasOwn(bag, 'transformReturnKind')) throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} transformReturnKind is absent for fulfilled-value callbacks`, { operation, argument: 'transformReturnKind', expected: "absent when callbackReceives is 'fulfilled-value'" });
+  const selected = callbackReceives === 'fulfilled-value' ? 'native-promise' : factoryReturnKind(transformReturnKind, operation, 'auto-detect', 'transformReturnKind');
+  return transform(provider as ProviderOrFactory, { kind: callbackReceives === 'fulfilled-value' ? 'map-async' : 'map-sync', project: transformService as (value: never) => unknown, factoryReturnKind: selected });
+}
+
 /**
  * Transform the exact exposed service without awaiting the input or callback result.
  * Retains dependencies, lifetime, metadata, and earlier cleanup; the result adds no ownership.
@@ -224,12 +276,12 @@ type InvalidAcquisitionMetadata<M> = M extends unknown
         : Extract<M['then'], (...args: never[]) => unknown> extends never ? never : true
       : never
   : never;
-type AcquisitionMetadataAdmission<M> = [InvalidAcquisitionMetadata<M>] extends [never] ? unknown
+export type AcquisitionMetadataAdmission<M> = [InvalidAcquisitionMetadata<M>] extends [never] ? unknown
   : Unsatisfied<'acquisition metadata must be a synchronous object record', {}>;
 type AcquisitionFrames<R, M> = readonly [...ProviderAcquisitionMetadata<R>, Readonly<M>];
 
-function annotate<R extends Registration, F extends Factory, M extends object, V>(registration: R, callback: (this: void, value: never) => object, async: boolean): Provider<F, RetainedMetadata<R>, AcquisitionFrames<R, M>, ProviderGraphContract<R>, V> {
-  if (typeof callback !== 'function') throw libraryTypeError('DI_BAG_INVALID_METADATA', 'acquisition metadata requires a function', { operation: 'withMetadata' });
+function annotate<R extends Registration, F extends Factory, M extends object, V>(registration: R, callback: (this: void, value: never) => object, async: boolean, operation = 'withMetadata'): Provider<F, RetainedMetadata<R>, AcquisitionFrames<R, M>, ProviderGraphContract<R>, V> {
+  if (typeof callback !== 'function') throw libraryTypeError('DI_BAG_INVALID_METADATA', 'acquisition metadata requires a function', { operation });
   const description = describe(registration);
   // Decoration retains the current output stage's mode even across metadata and ownership.
   let factoryReturnKind = description.source.factoryReturnKind;
@@ -242,32 +294,32 @@ function annotate<R extends Registration, F extends Factory, M extends object, V
     project(value: never) {
       const metadata = callback(value);
       if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) {
-        return invalidAcquisitionMetadata(metadata);
+        return invalidAcquisitionMetadata(metadata, operation);
       }
       const prototype = Object.getPrototypeOf(metadata);
-      if (prototype !== null && prototype !== Object.prototype) return invalidAcquisitionMetadata(metadata);
+      if (prototype !== null && prototype !== Object.prototype) return invalidAcquisitionMetadata(metadata, operation);
       const frame = Object.create(null) as Record<PropertyKey, unknown>;
       for (const key of Reflect.ownKeys(metadata)) frame[key] = Reflect.get(metadata, key);
       const then = Object.hasOwn(frame, 'then') ? frame.then : Reflect.get(metadata, 'then');
-      if (typeof then === 'function') return invalidAcquisitionMetadata(metadata);
+      if (typeof then === 'function') return invalidAcquisitionMetadata(metadata, operation);
       return { value, frame: Object.freeze(frame) };
     },
   });
 }
 
-function invalidAcquisitionMetadata(value: unknown): never {
+function invalidAcquisitionMetadata(value: unknown, operation = 'withMetadata'): never {
   // A widened callback can return a rejected Promise. Observe that invalid result
   // before throwing, without reading its `then` or assimilating service values.
   // The intrinsic rejects non-Promise receivers without invoking user code.
   try { Promise.prototype.then.call(value, () => {}, () => {}); } catch { /* Not an observable native Promise. */ }
-  throw libraryTypeError('DI_BAG_INVALID_METADATA', 'acquisition metadata must be a synchronous plain object record', { operation: 'withMetadata' });
+  throw libraryTypeError('DI_BAG_INVALID_METADATA', 'acquisition metadata must be a synchronous plain object record', { operation });
 }
 
 export type MetadataKeyUnion<M> = M extends unknown ? keyof M : never;
 type NonFiniteKeys<M> = M extends unknown ? {
   [K in keyof M]-?: Record<never, never> extends Record<K, never> ? K : never;
 }[keyof M] : never;
-type MetadataKeys<R, M> = [NonFiniteKeys<M> | Extract<MetadataKeyUnion<M>, number>] extends [never]
+export type MetadataKeys<R, M> = [NonFiniteKeys<M> | Extract<MetadataKeyUnion<M>, number>] extends [never]
   ? [MetadataKeyUnion<M> & MetadataKeyUnion<ProviderRegistrationMetadata<R>>] extends [never] ? unknown
     : Unsatisfied<'duplicate metadata keys', { duplicates: MetadataKeyUnion<M> & MetadataKeyUnion<ProviderRegistrationMetadata<R>> }>
   : Unsatisfied<'metadata keys must be finite string or unique-symbol keys', {}>;

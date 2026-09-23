@@ -1,4 +1,4 @@
-import { buildModuleMethod, physicalClock, physicalFeature, physicalLogging, physicalTools,
+import { buildModuleMethod, physicalClock, physicalFeature, physicalLogging, physicalReplacementProvider, physicalTools,
   withCollectionContributionMethod, withInstalledModulesMethod, withReplacedServiceMethod,
   withServiceAliasMethod, withServicesMethod, withTokenServiceMethod } from './builder-renames';
 import type { Assert, Equal } from './assert';
@@ -8,6 +8,7 @@ const alias = withServiceAliasMethod({ aliasKey: 'copy', targetServiceKey: 'targ
 const tools = withCollectionContributionMethod({ collectionToken: physicalTools, provider: () => 'search' }).buildContainer().resolveCollection(physicalTools);
 const replacedFast = withReplacedServiceMethod('base', () => 2).buildContainer().resolve('base');
 const replacedGeneral = withReplacedServiceMethod('derived', ({ base }: { base: number }) => base * 2).buildContainer().resolve('derived');
+const replacedProvider = withReplacedServiceMethod('base', physicalReplacementProvider).buildContainer().resolve('base');
 const physicalModule = buildModuleMethod({ exportedServiceKeys: ['moduleValue'] });
 const physicalLegacyModule = buildModuleMethod({ exportedServiceKeys: ['moduleValue'] });
 const installed = withInstalledModulesMethod([physicalFeature, physicalLogging, physicalModule]).buildContainer();
@@ -18,7 +19,7 @@ const legacyInstalledModuleValue = legacyInstalled.resolve('moduleValue');
 export type Exact = [
   Assert<Equal<typeof named, number>>, Assert<Equal<typeof clock, { now(): number }>>,
   Assert<Equal<typeof alias, number>>, Assert<Equal<typeof tools, readonly string[]>>,
-  Assert<Equal<typeof replacedFast, number>>, Assert<Equal<typeof replacedGeneral, number>>,
+  Assert<Equal<typeof replacedFast, number>>, Assert<Equal<typeof replacedGeneral, number>>, Assert<Equal<typeof replacedProvider, number>>,
   Assert<Equal<typeof installedService, { read(): string }>>, Assert<Equal<typeof installedModuleValue, boolean>>,
   Assert<Equal<typeof legacyInstalledModuleValue, boolean>>,
   Assert<Equal<Parameters<typeof buildModuleMethod>['length'], 1>>,

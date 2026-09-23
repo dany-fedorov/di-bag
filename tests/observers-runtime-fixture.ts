@@ -43,7 +43,7 @@ export const observerRuntimeAssertions = `
     const childStart = events.find(event => event.kind === 'acquisition-started' && contributionAttempts.includes(event.acquisitionId));
     const childOpen = events.find(event => event.kind === 'scope-opened' && event.scopeId === childStart.scopeId);
     const forkOpen = events.find(event => event.kind === 'scope-opened' && event.scopeId === forkStart.scopeId);
-    assertObserver(rootStart.registrationMetadata.tag === 'root' && rootStart.lifetime === 'root'
+    assertObserver(rootStart.registrationMetadata.tag === 'root' && rootStart.lifetime === 'singleton:one-per-container-tree'
       && childOpen.parentScopeId === rootStart.scopeId && !Object.hasOwn(forkOpen, 'parentScopeId')
       && forkStart.scopeId !== rootStart.scopeId, 'observer scope identity or metadata attribution changed');
     assertObserver(events.filter(event => event.kind === 'acquisition-started' && event.acquisitionId === rootAttempt).length === 1

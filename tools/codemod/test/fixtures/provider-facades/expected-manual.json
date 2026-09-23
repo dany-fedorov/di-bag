@@ -1,0 +1,5 @@
+[
+  { "line": 7, "reason": "combined static and dynamic metadata can change evaluation order when split; rewrite the two provider bags by hand" },
+  { "line": 11, "reason": "the transformService options are not a supported object literal; rewrite the provider bag by hand" },
+  { "line": 13, "reason": "the decorated value is any, unknown, invalid, or a factory/provider union; wrap a factory with createProvider or supply a provider by hand" }
+]

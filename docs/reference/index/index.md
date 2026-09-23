@@ -105,6 +105,7 @@
 - [ProviderGraphContract](type-aliases/ProviderGraphContract.md)
 - [ProviderNamedDependencies](type-aliases/ProviderNamedDependencies.md)
 - [ProviderOptionalTokens](type-aliases/ProviderOptionalTokens.md)
+- [ProviderOrFactory](type-aliases/ProviderOrFactory.md)
 - [ProviderOutput](type-aliases/ProviderOutput.md)
 - [ProviderRegistrationMetadata](type-aliases/ProviderRegistrationMetadata.md)
 - [ProviderRequiredTokens](type-aliases/ProviderRequiredTokens.md)

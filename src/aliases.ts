@@ -7,7 +7,7 @@ import { readSingleServiceKey, readToken } from './tokens';
 
 const collectionAliasLifetime = Object.freeze({
   kind: 'transient' as const,
-  allowScopedDependencies: false,
+  allowsScopedDependencies: false,
 });
 
 /** Authenticate both selections before constructing any retained registration. */

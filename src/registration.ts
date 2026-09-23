@@ -25,6 +25,8 @@ export type { FactoryWithDisposal };
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-services
  */
 export type Registration = Factory | FactoryWithDisposal<Factory> | ProviderBase;
+/** A plain factory or immutable provider accepted by provider composition facades. */
+export type ProviderOrFactory = Factory | ProviderBase;
 
 export type Registrations = Record<string, Registration>;
 

@@ -9,7 +9,7 @@ import { indexRenameMap, loadRenameMap, validateRenameMap } from '../lib/rename-
 const packageRoot = resolve(import.meta.dirname, '..');
 const shipped = JSON.parse(readFileSync(join(packageRoot, 'rename-map.json'), 'utf8'));
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'di-bag-rename-map-'));
-const shippedTransforms = ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation', 'provider-methods', 'provider-sources'];
+const shippedTransforms = ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation', 'provider-facades', 'provider-sources'];
 after(() => rmSync(temporaryRoot, { force: true, recursive: true }));
 
 test('the shipped map is valid', () => {

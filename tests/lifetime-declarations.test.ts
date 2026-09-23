@@ -10,8 +10,8 @@ test('lifetime replacement preserves the source and owned stages', () => {
   const root = withLifetime(source, 'root', { allowScopedDependencies: true });
   const next = withLifetime(DiBag.withMetadata(root, { static: { owner: 'app' } }), 'transient');
   expect(calls).toBe(0);
-  expect(normalize(root).lifetime).toEqual({ kind: 'root', allowScopedDependencies: true });
-  expect(normalize(next).lifetime).toEqual({ kind: 'transient', allowScopedDependencies: false });
+  expect(normalize(root).lifetime).toEqual({ kind: 'singleton', allowsScopedDependencies: true });
+  expect(normalize(next).lifetime).toEqual({ kind: 'transient', allowsScopedDependencies: false });
   expect(normalize(next).create).toBe(normalize(source).create);
   expect(normalize(next).dispose).toBe(normalize(source).dispose);
   expect(Object.isFrozen(normalize(next).lifetime)).toBe(true);
@@ -37,13 +37,13 @@ test('options are read once and snapshotted, and replacement clears capture', ()
   const options = { get allowScopedDependencies() { reads++; return true; } };
   const source = withLifetime(() => 1, 'root', options);
   expect(reads).toBe(1);
-  expect(normalize(withLifetime(source, 'root')).lifetime).toEqual({ kind: 'root', allowScopedDependencies: false });
-  expect(normalize(source).lifetime.allowScopedDependencies).toBe(true);
+  expect(normalize(withLifetime(source, 'root')).lifetime).toEqual({ kind: 'singleton', allowsScopedDependencies: false });
+  expect(normalize(source).lifetime.allowsScopedDependencies).toBe(true);
   const mutable = { allowScopedDependencies: true };
   const copied = withLifetime(() => 1, 'root', mutable);
   mutable.allowScopedDependencies = false;
-  expect(normalize(copied).lifetime.allowScopedDependencies).toBe(true);
-  expect(normalize(() => 1).lifetime).toEqual({ kind: 'scoped', allowScopedDependencies: false });
+  expect(normalize(copied).lifetime.allowsScopedDependencies).toBe(true);
+  expect(normalize(() => 1).lifetime).toEqual({ kind: 'scoped', allowsScopedDependencies: false });
 });
 
 test('all provider transformations retain the immutable policy', () => {

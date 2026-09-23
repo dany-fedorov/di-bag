@@ -9,6 +9,7 @@ import type { RuntimeContext } from './acquisition-mode';
 import { AcquisitionFamily } from './acquisition-family';
 import type { AcquisitionId, AttemptIdentity } from './acquisition-family';
 import type { DisposerContext, FactoryContext } from './acquisition-context';
+import { publicLifetime } from './lifetime';
 
 interface Acquisition extends AttemptIdentity {
   readonly strictRoot: string | undefined;
@@ -66,7 +67,7 @@ export class ScopeAcquisitions {
 
   private owner(bindingId: BindingId): ScopeAcquisitions {
     if (this.parent && this.shared.has(bindingId)) return this.parent;
-    if (this.graph.registration(bindingId).lifetime.kind !== 'root') return this;
+    if (this.graph.registration(bindingId).lifetime.kind !== 'singleton') return this;
     // A child override introduces a new identity absent from older graphs.
     // Inherited identities retain the earliest graph and its dependency context.
     let owner: ScopeAcquisitions = this;
@@ -230,7 +231,7 @@ export class ScopeAcquisitions {
     const { lifetime } = description;
     // Validate before routing/cache lookup; retained proxies keep their boundary.
     if (lifetime.kind === 'scoped' && from?.strictRoot !== undefined) {
-      throw libraryError('DI_BAG_LIFETIME_DEPENDENCY', `root lifetime cannot capture scoped dependency: ${from.strictRoot} -> ${this.graph.label(bindingId)}`, { consumer: from.strictRoot, dependency: this.graph.label(bindingId), lifetime: 'root' });
+      throw libraryError('DI_BAG_LIFETIME_DEPENDENCY', `root lifetime cannot capture scoped dependency: ${from.strictRoot} -> ${this.graph.label(bindingId)}`, { consumer: from.strictRoot, dependency: this.graph.label(bindingId), lifetime: 'singleton:one-per-container-tree' });
     }
     const owner = this.owner(bindingId);
     if (owner !== this) return owner.resolveBinding(bindingId, from);
@@ -276,8 +277,8 @@ export class ScopeAcquisitions {
       label: this.graph.label(bindingId),
       dependencies: new Set(),
       ancestry,
-      strictRoot: lifetime.kind === 'root'
-        ? lifetime.allowScopedDependencies ? undefined : this.graph.label(bindingId)
+      strictRoot: lifetime.kind === 'singleton'
+        ? lifetime.allowsScopedDependencies ? undefined : this.graph.label(bindingId)
         : from?.strictRoot,
       state: 'creating',
       transient: lifetime.kind === 'transient',
@@ -374,7 +375,7 @@ export class ScopeAcquisitions {
     const description = this.graph.registration(attempt.bindingId);
     return {
       scopeId: this.ownerId, bindingId: attempt.bindingId, acquisitionId: attempt.id,
-      label: attempt.label, lifetime: description.lifetime.kind,
+      label: attempt.label, lifetime: publicLifetime(description.lifetime.kind),
       registrationMetadata: Object.freeze({ ...description.metadata }), acquisitionMetadata: attempt.execution.inspectFrames(),
     };
   }

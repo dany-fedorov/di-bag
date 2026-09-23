@@ -92,6 +92,16 @@ export const scalePath = resolve('tests/generated-type-scale.ts');
 export type TokenScaleForm = 'bindings' | 'modules';
 export type TokenScaleCase = 'valid' | 'missing-final-token' | 'mismatched-invariant-service';
 export const tokenScalePath = resolve('tests/generated-token-scale.ts');
+export type ProviderMethodScaleShape = 'old' | 'new';
+export const providerMethodScalePath = resolve('tests/provider-method-scale.ts');
+
+export function providerMethodScaleSource(shape: ProviderMethodScaleShape): string {
+  const services = Array.from({ length: 100 }, (_, index) => `svc${index}: () => ${index}`).join(',\n');
+  const replacements = Array.from({ length: 100 }, (_, index) => shape === 'old'
+    ? `.withReplacedService('svc${index}', DiBag.withLifetime(DiBag.withDisposal(() => ${index + 1}, () => {}), 'scoped'))`
+    : `.withReplacedService('svc${index}', DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ${index + 1}, disposeService: () => {} }), lifetime: 'scoped:one-per-container' }))`).join('\n');
+  return `import { DiBag } from '../src';\nDiBag.createBuilder().withServices({${services}})\n${replacements}\n.buildContainer();\n`;
+}
 
 /** Real public calls and checked consumer assignments, with no widening casts. */
 export function scaleSource(

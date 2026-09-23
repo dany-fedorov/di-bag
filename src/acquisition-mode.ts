@@ -49,11 +49,11 @@ export type AsyncOutput<Output> = [Output] extends [Promise<unknown>] ? unknown
   : Unsatisfied<`native-promise factory return kind requires a Promise output; use 'sync-value' for a synchronous value${SeeErrors<'portable-factory-output'>}`, {}>;
 
 const returnKinds: readonly FactoryReturnKind[] = ['auto-detect', 'sync-value', 'native-promise', 'uninspected'];
-export function factoryReturnKind(value: unknown, operation: string, fallback: FactoryReturnKind = 'auto-detect'): FactoryReturnKind {
+export function factoryReturnKind(value: unknown, operation: string, fallback: FactoryReturnKind = 'auto-detect', argument = 'factoryReturnKind'): FactoryReturnKind {
   const selected = value === undefined ? fallback : value;
   if (!returnKinds.includes(selected as FactoryReturnKind)) throw libraryError(
-    'DI_BAG_INVALID_ARGUMENT', `${operation} factoryReturnKind must name a supported return policy`,
-    { operation, argument: 'factoryReturnKind', expected: "one of: 'auto-detect', 'sync-value', 'native-promise', 'uninspected'" },
+    'DI_BAG_INVALID_ARGUMENT', `${operation} ${argument} must name a supported return policy`,
+    { operation, argument, expected: "one of: 'auto-detect', 'sync-value', 'native-promise', 'uninspected'" },
   );
   return selected as FactoryReturnKind;
 }

@@ -5,10 +5,10 @@
 # Type Alias: Lifetime
 
 ```ts
-type Lifetime = 'root' | 'scoped' | 'transient';
+type Lifetime = 'singleton:one-per-container-tree' | 'scoped:one-per-container' | 'transient:one-per-resolve';
 ```
 
-Defined in: [lifetime.ts:13](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime.ts#L13)
+Defined in: [lifetime.ts:14](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime.ts#L14)
 
 Cache at the ownership-family root, once per scope, or once per resolution.
 

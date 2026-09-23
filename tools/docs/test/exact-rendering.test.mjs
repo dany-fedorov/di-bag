@@ -121,7 +121,7 @@ test('source declarations preserve aliases and property modifiers exactly', () =
   assert.match(tokenService, /token: TokenHandle/);
   assert.match(tokenService, /provider: Provider/);
   const replacement = compact(readFileSync(join(output, 'index/interfaces/BuilderWithReplacedService.md'), 'utf8'));
-  assert.equal((replacement.match(/serviceKey:/g) ?? []).length, 2);
+  assert.equal((replacement.match(/serviceKey:/g) ?? []).length, 3);
   const buildModule = compact(readFileSync(join(output, 'index/interfaces/BuilderBuildModule.md'), 'utf8'));
   assert.match(buildModule, /options: ModuleOptions/);
   assert.match(buildModule, /readonly exportedServiceKeys:/);
@@ -190,9 +190,11 @@ test('requirement renaming publishes both labeled keys', () => {
 
 test('provider-source reference pages render final members', () => {
   const facadeText = compact(facade);
-  for (const text of ['createProvider:', 'createProviderFromFunction:', 'createProviderFromClass:', 'createProviderFromPlugin:', 'createToken:']) {
+  for (const text of ['createProvider:', 'createProviderFromFunction:', 'createProviderFromClass:', 'createProviderFromPlugin:', 'createToken:',
+    'providerWithDisposal:', 'providerWithLifetime:', 'providerWithRegistrationMetadata:', 'providerWithAcquisitionMetadata:', 'providerWithTransformedService:']) {
     assert.ok(facadeText.includes(text), `missing facade rendering: ${text}`);
   }
+  assert.doesNotMatch(provider, /withDisposal\(|withLifetime\(|withRegistrationMetadata\(|withAcquisitionMetadata\(|withTransformedService\(/);
   assert.match(compact(bindingSnapshot), /readonly factoryReturnKind: FactoryReturnKind;/);
   assert.match(compact(factoryContext), /readonly abortSignal: AbortSignal;/);
 });

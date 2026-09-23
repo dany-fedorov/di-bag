@@ -8,7 +8,7 @@
 type BuilderWithInstalledModules<Entries extends Entry, Constraints extends NeedConstraint> = <const Modules extends readonly unknown[]>(modules: Modules & InstalledModulesAdmission<Entries, Constraints, Modules>) => import('./di-bag').Builder<InstalledModulesEntries<Entries, Constraints, Modules>, InstalledModulesConstraints<Entries, Constraints, Modules>>;
 ```
 
-Defined in: [builder-method-types.ts:87](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L87)
+Defined in: [builder-method-types.ts:117](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L117)
 
 The checked generic `withInstalledModules` callable exposed by a builder.
 

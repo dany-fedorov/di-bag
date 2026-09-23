@@ -53,7 +53,7 @@ export type IncrementalConstraints<
   MC extends NeedConstraint,
   Old extends Registrations,
   Incoming extends Registrations,
-> = [Extract<C | MC, { kind: 'contribution' | 'collection' | 'opaque' | 'root-reach' | 'export-reach' | 'contribution-reach' }>] extends [never]
+> = [Extract<C | MC, { kind: 'contribution' | 'collection' | 'opaque' | 'singleton-reach' | 'export-reach' | 'contribution-reach' }>] extends [never]
   ? unknown extends CheckedConstraints<C, Incoming>
     ? CheckedConstraints<MC, import('./types').OverrideRegistrations<Old, Incoming>>
     : CheckedConstraints<C, Incoming>

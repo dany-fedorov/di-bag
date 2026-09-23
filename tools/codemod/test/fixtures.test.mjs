@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { compiler, fixtureNames, fixturesProgram, fixturesRoot, readFixture, runFixture } from './helpers.mjs';
 
-test('ordinary fixture inputs type-check and the negative provider-method edge input has exactly its declared diagnostics', () => {
+test('ordinary fixture inputs type-check and the negative provider-facade edge input has exactly its declared diagnostics', () => {
   const ts = compiler.ts;
-  const edgeFile = ts.sys.resolvePath(`${fixturesRoot}/provider-method-edges/input.ts`);
+  const edgeFile = ts.sys.resolvePath(`${fixturesRoot}/provider-facade-edges/input.ts`);
   const diagnostics = ts.getPreEmitDiagnostics(fixturesProgram());
   const edge = diagnostics.filter(diagnostic => diagnostic.file && ts.sys.resolvePath(diagnostic.file.fileName) === edgeFile);
   const ordinary = diagnostics.filter(diagnostic => !diagnostic.file || ts.sys.resolvePath(diagnostic.file.fileName) !== edgeFile);

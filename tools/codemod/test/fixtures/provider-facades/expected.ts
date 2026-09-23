@@ -2,11 +2,11 @@ import { DiBag, type ProviderOrFactory, type Provider, type BindingSnapshot } fr
 const f = () => Promise.resolve(1);
 const p = DiBag.createProvider(f, { factoryReturnKind: 'native-promise' });
 const derived = DiBag.withConfiguration({ runtime: { isNativePromise: Promise.resolve.bind(Promise) as any } });
-export const owned = (DiBag.createProvider(f)).withDisposal(value => void value);
-export const nested = ((DiBag.createProvider(f)).withDisposal(value => void value)).withLifetime('singleton:one-per-container-tree', { allowsScopedDependencies: true });
+export const owned = DiBag.providerWithDisposal({ provider: f, disposeService: value => void value });
+export const nested = DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: f, disposeService: value => void value }), lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true });
 export const metadata = DiBag.withMetadata(p, { static: { owner: 'team' }, dynamic: { mode: 'awaited', describe: value => ({ value }) } });
-export const transformed = (p).withTransformedService({ transformService: value => value, callbackReceives: 'exposed-service', transformReturnKind: 'native-promise' });
-export const configured = (derived.createProvider(f)).withDisposal(value => void value);
+export const transformed = DiBag.providerWithTransformedService({ provider: p, transformService: value => value, callbackReceives: 'exposed-service', transformReturnKind: 'native-promise' });
+export const configured = derived.providerWithDisposal({ provider: f, disposeService: value => void value });
 const options = { mode: 'direct', transform: (value: unknown) => value } as const;
 export const manualOptions = DiBag.transformService(p, options);
 declare const mixed: ProviderOrFactory;

@@ -4,7 +4,7 @@
 
 # Interface: BuilderBuildModule()\<Entries *extends* `Entry`, Constraints *extends* `NeedConstraint`\>
 
-Defined in: [builder-method-types.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L73)
+Defined in: [builder-method-types.ts:103](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L103)
 
 The checked `buildModule` callable exposed by a builder.
 
@@ -21,7 +21,7 @@ The checked `buildModule` callable exposed by a builder.
 }): Module<ExportedServices<ServicesOf<RegistrationsFromEntries<Entries>>, Extract<SelectionKey<Keys[number]>, keyof RegistrationsFromEntries<Entries>>>, ExternalRequirements<ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<Keys[number]>, keyof RegistrationsFromEntries<Entries>>>>, ModuleSealedConstraints<Entries, Constraints, Extract<SelectionKey<Keys[number]>, keyof RegistrationsFromEntries<Entries>>>, ModulePublicProviders<RegistrationsFromEntries<Entries>, Extract<SelectionKey<Keys[number]>, keyof RegistrationsFromEntries<Entries>>>>;
 ```
 
-Defined in: [builder-method-types.ts:74](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L74)
+Defined in: [builder-method-types.ts:104](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L104)
 
 The checked `buildModule` callable exposed by a builder.
 

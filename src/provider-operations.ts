@@ -41,7 +41,7 @@ export interface ProviderDescription {
 }
 
 const emptyMetadata = Object.freeze({});
-const scopedLifetime: LifetimePolicy = Object.freeze({ kind: 'scoped', allowScopedDependencies: false });
+const scopedLifetime: LifetimePolicy = Object.freeze({ kind: 'scoped', allowsScopedDependencies: false });
 const descriptions = new WeakMap<object, ProviderDescription>();
 
 export function sourceDescription(
@@ -64,7 +64,7 @@ export function retainDescription(handle: object, description: ProviderDescripti
   Object.freeze(handle);
 }
 
-export function describe(registration: unknown, operation = 'register'): ProviderDescription {
+export function describe(registration: unknown, operation = 'withServices'): ProviderDescription {
   if (typeof registration === 'function') return sourceDescription(registration as Factory);
   if (typeof registration === 'object' && registration !== null) {
     const description = descriptions.get(registration);

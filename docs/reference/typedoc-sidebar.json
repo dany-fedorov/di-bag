@@ -393,6 +393,10 @@
             "link": "/reference/index/type-aliases/ProviderOptionalTokens.md"
           },
           {
+            "text": "ProviderOrFactory",
+            "link": "/reference/index/type-aliases/ProviderOrFactory.md"
+          },
+          {
             "text": "ProviderOutput",
             "link": "/reference/index/type-aliases/ProviderOutput.md"
           },

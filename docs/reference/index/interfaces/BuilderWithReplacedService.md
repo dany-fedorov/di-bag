@@ -4,7 +4,7 @@
 
 # Interface: BuilderWithReplacedService()\<Entries *extends* `Entry`, Constraints *extends* `NeedConstraint`\>
 
-Defined in: [builder-method-types.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L60)
+Defined in: [builder-method-types.ts:78](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L78)
 
 The checked overloads of `withReplacedService` exposed by a builder.
 
@@ -26,7 +26,7 @@ The checked overloads of `withReplacedService` exposed by a builder.
 }, WithoutExportObligations<Constraints, Key>>;
 ```
 
-Defined in: [builder-method-types.ts:61](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L61)
+Defined in: [builder-method-types.ts:79](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L79)
 
 The checked overloads of `withReplacedService` exposed by a builder.
 
@@ -47,10 +47,35 @@ The checked overloads of `withReplacedService` exposed by a builder.
 ## Call Signature
 
 ```ts
-<const Key extends string | TokenBase, Provider extends Registration>(serviceKey: Key & NoInfer<ReplacementAdmission<RegistrationsFromEntries<Entries>, Constraints, Key>>, provider: Provider & Registration & BuilderReplacementRegistration<Entries, Constraints, NoInfer<Key>, Provider>): import('./di-bag').Builder<ReplacedEntries<Entries, Key, Provider>, WithoutExportObligations<Constraints, SelectionKey<Key>>>;
+<const ServiceKey extends string, Replacement extends ProviderContext<() => unknown, TokenDependencyContract & {
+    readonly alias?: never;
+    readonly sharedAlias?: never;
+}>>(serviceKey: ServiceKey & ReplacementKeyOf<EntryKeys<Entries>, ServiceKey>, provider: Replacement & ZeroDependencyAdmission<NoInfer<Replacement>> & FastReplacementOutputAdmission<Entries, Constraints, NoInfer<ServiceKey>, NoInfer<Replacement>> & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<ServiceKey, NoInfer<Replacement>>>>): import('./di-bag').Builder<ReplacedEntries<Entries, ServiceKey, Replacement>, WithoutExportObligations<Constraints, ServiceKey>>;
 ```
 
-Defined in: [builder-method-types.ts:66](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L66)
+Defined in: [builder-method-types.ts:85](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L85)
+
+### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `ServiceKey` | - |
+| `Replacement` | A provider whose output satisfies the selected string service. |
+
+### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `serviceKey` | - |
+| `provider` | - |
+
+## Call Signature
+
+```ts
+<const Key extends string | TokenBase, Provider extends Registration>(serviceKey: Key & NoInfer<ReplacementAdmission<RegistrationsFromEntries<Entries>, Constraints, Key>>, provider: Provider & Registration & ProviderReplacementSelfAdmission<NoInfer<Key>, NoInfer<Provider>> & BuilderReplacementRegistration<Entries, Constraints, NoInfer<Key>, Provider>): import('./di-bag').Builder<ReplacedEntries<Entries, Key, Provider>, WithoutExportObligations<Constraints, SelectionKey<Key>>>;
+```
+
+Defined in: [builder-method-types.ts:94](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L94)
 
 The checked overloads of `withReplacedService` exposed by a builder.
 

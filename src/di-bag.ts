@@ -22,6 +22,7 @@ import type { CreateChildContainerOptions, CreateIndependentContainerOptions, Di
 import type { CheckedChildContainerLifetimes } from './lifetime-types';
 import type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 import { withMetadata, transformService, withTokenBinding } from './provider';
+import { providerWithAcquisitionMetadata, providerWithDisposal, providerWithLifetime, providerWithRegistrationMetadata, providerWithTransformedService } from './provider-facades';
 import { createProviderFromFunction, createProviderFromClass } from './composition';
 import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
@@ -770,6 +771,51 @@ export interface DiBagApi {
    * ```
    */
   transformService: typeof transformService;
+  /**
+   * Add an ownership stage to a provider input.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag or disposer; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @example
+   * ```ts
+   * const owned = DiBag.providerWithDisposal({ provider: () => ({ close() {} }), disposeService: service => service.close() });
+   * ```
+   */
+  readonly providerWithDisposal: typeof providerWithDisposal;
+  /**
+   * Select a full lifetime for a provider input.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag, lifetime, or option; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @example
+   * ```ts
+   * const cached = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' });
+   * ```
+   */
+  readonly providerWithLifetime: typeof providerWithLifetime;
+  /**
+   * Add noncolliding registration metadata without acquiring the service.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed metadata; `DI_BAG_DUPLICATE_METADATA` for a repeated key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @example
+   * ```ts
+   * const registered = DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { owner: 'platform' } });
+   * ```
+   */
+  readonly providerWithRegistrationMetadata: typeof providerWithRegistrationMetadata;
+  /**
+   * Append one synchronous acquisition-metadata frame using the selected callback input.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag; `DI_BAG_INVALID_METADATA` for an invalid callback result; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @example
+   * ```ts
+   * const observed = DiBag.providerWithAcquisitionMetadata({ provider: () => 1, callbackReceives: 'exposed-service', describeAcquisition: value => ({ value }) });
+   * ```
+   */
+  readonly providerWithAcquisitionMetadata: typeof providerWithAcquisitionMetadata;
+  /**
+   * Transform the selected callback input while retaining dependencies, metadata, lifetime and ownership stages.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag or return policy; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @example
+   * ```ts
+   * const mapped = DiBag.providerWithTransformedService({ provider: () => 1, callbackReceives: 'exposed-service', transformService: value => String(value) });
+   * ```
+   */
+  readonly providerWithTransformedService: typeof providerWithTransformedService;
 }
 function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
   withConfiguration: (options: ConfigurationOptions): DiBagApi => {
@@ -792,6 +838,8 @@ function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
   optional, lazy,
   createBuilder: (): Builder<never> => new Builder(new BindingGraph(), context),
   withDisposal, withLifetime, withMetadata, transformService,
+  providerWithDisposal, providerWithLifetime, providerWithRegistrationMetadata,
+  providerWithAcquisitionMetadata, providerWithTransformedService,
 }); }
 /**
  * The immutable DI Bag facade. `auto-detect` acquisition uses the host classifier where `process.getBuiltinModule`

@@ -11,6 +11,7 @@ import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
 import { classifierRequired, resolveClassifier } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
 import { wrongTokenKind, type TokenKind } from './tokens';
+import { publicLifetime } from './lifetime';
 
 export type BindingId = symbol;
 export type BindingKey = string | symbol;
@@ -560,7 +561,7 @@ export class BagRuntime {
       return Object.freeze({
         ...this.inspectBinding(id),
         keys,
-        lifetime: description.lifetime.kind,
+        lifetime: publicLifetime(description.lifetime.kind),
         factoryReturnKind: description.factoryReturnKind,
         owned: description.dispose !== undefined || description.operations.some(operation => operation.kind === 'owned'),
         tokenDependencies: Object.freeze(description.references.map(reference => Object.freeze({ key: reference.key, kind: reference.kind }))),
