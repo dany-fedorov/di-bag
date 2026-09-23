@@ -54,3 +54,18 @@ test('requirement renaming has one task and a documented runtime call', () => {
   ]);
   assert.match(renderApiCard(project, tasks), /\| Rename a module requirement \| \[`module\.withRenamedRequirement\(options\)`\]\(#module-withrenamedrequirement\) \|/);
 });
+
+test('every public Module method is classified for the API card', () => {
+  const included = new Set(['withRenamedRequirement']);
+  const excluded = new Set(['withRenamedExport']);
+  const module = project.children.find(child => child.name === 'index').children.find(child => child.name === 'Module');
+  const reflected = module.children.filter(child => child.name !== 'constructor').map(child => child.name);
+  const checkClassification = names => {
+    assert.deepEqual([...included].filter(name => excluded.has(name)), [], 'included and excluded Module methods must be disjoint');
+    assert.deepEqual([...names].sort(), [...included, ...excluded].sort(), 'every reflected public Module method must be classified');
+    assert.deepEqual(runtimeSurface(project).filter(item => item.group === 'Module').map(item => item.name),
+      [...included].map(name => `module.${name}`));
+  };
+  checkClassification(reflected);
+  assert.throws(() => checkClassification([...reflected, 'withFutureMethod']), /every reflected public Module method must be classified/);
+});
