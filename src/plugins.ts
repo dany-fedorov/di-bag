@@ -36,6 +36,7 @@ export type CreateProviderFromPlugin = <
 /**
  * The explicit output boundary used for an application-selected plugin.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
+ * @deprecated Use FactoryReturnKind.
  */
 export type PluginAcquisitionMode = 'raw' | 'nativePromise';
 /**
@@ -46,6 +47,7 @@ export type PluginOutputValidator<V> = (this: void, pluginOutput: unknown) => pl
 /**
  * Validation and acquisition choices for {@link DiBagApi.fromPlugin}.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
+ * @deprecated Use CreateProviderFromPluginOptions.
  */
 export interface PluginOptions<M extends PluginAcquisitionMode, V> {
   /** Preserve the exact result with `raw`, or await a genuine native Promise with `nativePromise`. */
@@ -198,6 +200,7 @@ function legacyPluginProvider<const T extends readonly DependencyReference[], V,
  * @typeParam V - The service admitted by the synchronous output validator.
  * @typeParam M - The raw or nativePromise plugin acquisition policy.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
+ * @deprecated Use CreateProviderFromPlugin.
  */
 export type PluginProviderFactory = <const T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode>(
   dependencies: T & DependencyTupleAdmission<T>,

@@ -91,6 +91,7 @@ export function createToken<const TokenSymbol extends symbol>(
    * Declare the invariant service contract carried by this token handle.
    * @typeParam S - The service type accepted by bindings and returned by resolution.
    * @returns A genuine immutable token paired with the canonical symbol key.
+   * @deprecated Use forService.
    */
   readonly of: <Service>() => Token<TokenSymbol, Service>;
   /** Declare the invariant item contract carried by a collection token handle. */

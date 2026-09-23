@@ -8,7 +8,7 @@
 type PluginProvider<T extends readonly DependencyReference[], V, M extends PluginReturnKind | PluginAcquisitionMode> = Provider<() => M extends 'raw' | 'uninspected' ? V : Promise<Awaited<V>>, Readonly<{}>, readonly [], ReferenceGraph<T>, M extends 'raw' | 'uninspected' ? V : Awaited<V>>;
 ```
 
-Defined in: [plugins.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L60)
+Defined in: [plugins.ts:62](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L62)
 
 The provider contract produced by [DiBagApi.fromPlugin](../interfaces/DiBagApi.md#fromplugin).
 

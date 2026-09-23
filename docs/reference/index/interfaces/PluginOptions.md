@@ -2,15 +2,19 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / PluginOptions
 
-# Interface: PluginOptions\<M *extends* [`PluginAcquisitionMode`](../type-aliases/PluginAcquisitionMode.md), V\>
+# ~~Interface: PluginOptions\<M *extends* [`PluginAcquisitionMode`](../type-aliases/PluginAcquisitionMode.md), V\>~~
 
-Defined in: [plugins.ts:50](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L50)
+Defined in: [plugins.ts:52](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L52)
 
 Validation and acquisition choices for [DiBagApi.fromPlugin](DiBagApi.md#fromplugin).
 
 ## See
 
 https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
+
+## Deprecated
+
+Use CreateProviderFromPluginOptions.
 
 ## Type Parameters
 
@@ -21,24 +25,24 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-
 
 ## Properties
 
-### acquisitionMode
+### ~~acquisitionMode~~
 
 ```ts
 readonly acquisitionMode: M;
 ```
 
-Defined in: [plugins.ts:52](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L52)
+Defined in: [plugins.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L54)
 
 Preserve the exact result with `raw`, or await a genuine native Promise with `nativePromise`.
 
 ***
 
-### validate
+### ~~validate~~
 
 ```ts
 readonly validate: PluginOutputValidator<V>;
 ```
 
-Defined in: [plugins.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L54)
+Defined in: [plugins.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L56)
 
 Must synchronously return exactly `true` for acceptable output values.

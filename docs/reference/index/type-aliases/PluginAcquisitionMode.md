@@ -2,16 +2,20 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / PluginAcquisitionMode
 
-# Type Alias: PluginAcquisitionMode
+# ~~Type Alias: PluginAcquisitionMode~~
 
 ```ts
 type PluginAcquisitionMode = 'raw' | 'nativePromise';
 ```
 
-Defined in: [plugins.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L40)
+Defined in: [plugins.ts:41](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L41)
 
 The explicit output boundary used for an application-selected plugin.
 
 ## See
 
 https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
+
+## Deprecated
+
+Use FactoryReturnKind.

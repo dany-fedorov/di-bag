@@ -128,7 +128,7 @@ test('source declarations preserve aliases and property modifiers exactly', () =
 });
 
 test('plugin factory is a callable type alias rather than a type-only function export', () => {
-  assert.match(fromPlugin, /^# Type Alias: PluginProviderFactory$/m);
+  assert.match(fromPlugin, /^# ~~Type Alias: PluginProviderFactory~~$/m);
   assert.match(compact(fromPlugin), /type PluginProviderFactory = <const T extends readonly DependencyReference\[\], V, M extends PluginAcquisitionMode>/);
 });
 

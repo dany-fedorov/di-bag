@@ -2,13 +2,13 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / PluginProviderFactory
 
-# Type Alias: PluginProviderFactory
+# ~~Type Alias: PluginProviderFactory~~
 
 ```ts
 type PluginProviderFactory = <const T extends readonly DependencyReference[], V, M extends PluginAcquisitionMode>(dependencies: T & DependencyTupleAdmission<T>, plugin: unknown, options: PluginOptions<M, V>) => PluginProvider<T, V, M>;
 ```
 
-Defined in: [plugins.ts:202](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L202)
+Defined in: [plugins.ts:205](https://github.com/dany-fedorov/di-bag/blob/main/src/plugins.ts#L205)
 
 Callable checked plugin adapter exposed by DiBag.fromPlugin.
 The descriptor must have own `apiVersion: 1` and callable `create`, with an optional
@@ -42,3 +42,7 @@ A lazy provider that validates its output when acquired.
 ## See
 
 https://dany-fedorov.github.io/di-bag/guides/tutorial.html#admit-an-application-selected-plugin
+
+## Deprecated
+
+Use CreateProviderFromPlugin.
