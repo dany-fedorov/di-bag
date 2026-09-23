@@ -4,7 +4,7 @@
 
 # Interface: ModuleOptions
 
-Defined in: [module.ts:21](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L21)
+Defined in: [module.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L23)
 
 Options for [Builder.buildModule](Builder.md#buildmodule).
 
@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#reuse-named-modules
 readonly moduleLabel?: string;
 ```
 
-Defined in: [module.ts:27](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L27)
+Defined in: [module.ts:29](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L29)
 
 Name each installation's private bindings `<moduleLabel>/<key>` in error messages, cycle paths,
 `graphSnapshot()`, and observer events. Nested labels compose: `outer/inner/key`.

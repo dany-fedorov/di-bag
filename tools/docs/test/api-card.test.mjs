@@ -41,3 +41,16 @@ test('the task table maps each task to exactly one known call', () => {
   assert.throws(() => renderApiCard(project, [{ task: 'Resolve', call: 'container.get' }]), /"Resolve" names unknown call container\.get/);
   assert.throws(() => renderApiCard(project, [{ task: 'Replace for a test', call: ['container.createIndependentContainer', 'builder.withReplacedService'] }]), /needs a task and exactly one call/);
 });
+
+test('requirement renaming has one task and a documented runtime call', () => {
+  assert.equal(tasks.filter(task => task.call === 'module.withRenamedRequirement').length, 1);
+  const installIndex = tasks.findIndex(task => task.call === 'builder.withInstalledModules');
+  assert.deepEqual(tasks[installIndex + 1], { task: 'Rename a module requirement', call: 'module.withRenamedRequirement' });
+  const moduleEntries = runtimeSurface(project).filter(item => item.group === 'Module');
+  assert.deepEqual(moduleEntries.map(item => item.name), ['module.withRenamedRequirement']);
+  assert(moduleEntries[0].examples.length > 0);
+  assert.deepEqual(moduleEntries[0].codes, [
+    'DI_BAG_INVALID_ARGUMENT', 'DI_BAG_UNKNOWN_SERVICE_KEY', 'DI_BAG_DUPLICATE_SERVICE_KEY',
+  ]);
+  assert.match(renderApiCard(project, tasks), /\| Rename a module requirement \| \[`module\.withRenamedRequirement\(options\)`\]\(#module-withrenamedrequirement\) \|/);
+});

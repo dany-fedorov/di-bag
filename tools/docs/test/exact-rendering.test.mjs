@@ -159,3 +159,10 @@ test('exported classes name their type parameters by role', () => {
   assert.match(moduleInterface, /\| `RequiredServices` \| The services the installing builder must provide\. \|/);
   assert.match(token, /\| `TokenSymbol` \| The unique symbol that is this token's runtime identity\. \|/);
 });
+
+test('requirement renaming publishes both labeled keys', () => {
+  const text = compact(moduleInterface);
+  assert.match(text, /withRenamedRequirement<const CurrentRequirementKey extends string, const NewRequirementKey extends string>/);
+  assert.match(text, /currentRequirementKey: CurrentRequirementKey/);
+  assert.match(text, /newRequirementKey: NewRequirementKey/);
+});

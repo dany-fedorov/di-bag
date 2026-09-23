@@ -162,6 +162,7 @@
     "index.DiBagApi.withMetadata": 5,
     "index.DiBagApi.transformService": 2,
     "index.Module.withRenamedExport": 1,
+    "index.Module.withRenamedRequirement": 1,
     "index.RuntimeOptions.isNativePromise": 1,
     "index.AcquisitionContext.pushDisposer": 1,
     "index.ContextualFactory": 1,

@@ -9,6 +9,7 @@
   { "task": "Choose a lifetime", "call": "DiBag.withLifetime" },
   { "task": "Seal a module", "call": "builder.buildModule" },
   { "task": "Install modules", "call": "builder.withInstalledModules" },
+  { "task": "Rename a module requirement", "call": "module.withRenamedRequirement" },
   { "task": "Check the graph on its own line", "call": "builder.verifyGraphAtCompileTime" },
   { "task": "Build a container", "call": "builder.buildContainer" },
   { "task": "Wait for services before accepting work", "call": "container.ensureServicesReady" },

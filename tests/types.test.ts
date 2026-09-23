@@ -65,7 +65,12 @@ test('lifetime declarations retain exact inferred cross-file contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
-for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'portable-factories', 'container-derivation']) test(`${fixture} inferred exports survive declaration consumption`, () => {
+test('requirement-renaming retains exact cross-file contracts', () => {
+  expect(diagnostics(resolve(__dirname, 'types/requirement-renaming-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'portable-factories', 'container-derivation', 'requirement-renaming']) test(`${fixture} inferred exports survive declaration consumption`, () => {
   const producerPath = resolve(__dirname, `types/${fixture}.ts`);
   const consumerPath = resolve(__dirname, `types/${fixture}-consumer.ts`);
   const declarationPath = producerPath.replace(/\.ts$/, '.d.ts');
@@ -255,6 +260,18 @@ const negativeFixtures = readdirSync(negativeDirectory)
   .map((name) => resolve(negativeDirectory, name));
 // One program for every independent rejection fixture; each test reads its own file's diagnostics.
 const negativeDiagnostics = diagnosticsByFile(negativeFixtures);
+
+test('requirement-renaming wrong-shape details name the remapped relationship', () => {
+  const path = resolve(negativeDirectory, 'requirement-renaming.ts');
+  const wrongShape = negativeDiagnostics.get(path)!.filter(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n').includes('provided service does not satisfy its consumer dependency'));
+  expect(wrongShape).toHaveLength(1);
+  const message = ts.flattenDiagnosticMessageText(wrongShape[0]!.messageText, '\n');
+  expect(message).toContain('consumer: "service"');
+  expect(message).toContain('dependency: "featureConfig"');
+  expect(message).toContain('expected: Config');
+  expect(message).toContain('provided: { value: string; }');
+});
 
 for (const path of negativeFixtures) {
   test(`type rejection: ${basename(path)}`, () => {

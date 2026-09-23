@@ -5,7 +5,7 @@ import type { Entry, Intersect, NameText, Needs, Resolved, RegistrationsFromEntr
 import type { MetadataKeyUnion, Provider, ProviderFactory, ProviderOutput, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens, BoundToken } from './provider';
 import type { GraphContract, TokenDependencyContract, WrongToken, MissingToken } from './token-types';
 import type { CollectionTokenBase, TokenBase, TokenKey, TokenService } from './tokens';
-import type { LifetimeObligation, RenamedObligation, SealedLifetimes } from './lifetime-types';
+import type { LifetimeObligation, RenamedExternalObligation, RenamedObligation, SealedLifetimes } from './lifetime-types';
 
 export type NeedConstraint =
   | LifetimeObligation
@@ -159,6 +159,28 @@ export type ModulePublicProviders<R extends Registrations, P extends keyof R> = 
  */
 export type Renamed<P extends object, Old extends string, New extends string> = {
   [K in keyof P as K extends Old ? New : K]: P[K];
+};
+type InvalidCurrentRequirement = Unsatisfied<'withRenamedRequirement requires an existing singleton string-literal requirement', {}>;
+type InvalidNewRequirement = Unsatisfied<'withRenamedRequirement requires a noncolliding singleton string-literal name', {}>;
+
+export type CurrentRequirementKeyAdmission<RequiredServices, Current extends string> =
+  Singleton<Current> extends true ? Current extends keyof RequiredServices ? unknown : InvalidCurrentRequirement : InvalidCurrentRequirement;
+
+export type NewRequirementKeyAdmission<ExportedServices, RequiredServices, Current extends string, New extends string> =
+  Singleton<New> extends true
+    ? New extends Current ? unknown
+      : New extends keyof ExportedServices | Exclude<keyof RequiredServices, Current> ? InvalidNewRequirement : unknown
+    : InvalidNewRequirement;
+
+export type RenamedRequirementConstraints<C extends NeedConstraint, Current extends string, New extends string> =
+  C extends LifetimeObligation ? RenamedExternalObligation<C, Current, New>
+  : C extends { readonly kind: 'external'; readonly consumer: string | symbol; readonly needs: object }
+    ? { readonly consumer: C['consumer']; readonly needs: Renamed<C['needs'], Current, New>; readonly kind: 'external' }
+  : C;
+
+/** Retarget retained public aliases that reach the renamed external requirement. */
+export type RenamedRequirementProviders<Providers extends object, Current extends string, New extends string> = {
+  [K in keyof Providers]: RenamedAlias<Providers[K], Current, New>;
 };
 type AliasesTo<D, Old> = { [K in keyof D]: ProviderGraphContract<D[K]> extends { readonly alias: Old } ? K : never }[keyof D];
 type RenamedAlias<V, Old, New> = V extends Registration ? ProviderGraphContract<V> extends { readonly alias: Old }

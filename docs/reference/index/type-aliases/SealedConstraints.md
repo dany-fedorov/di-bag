@@ -20,7 +20,7 @@ type SealedConstraints<C extends NeedConstraint, R extends Registrations, P exte
 } ? TokenConstraint<K, T, R, P, true> : C;
 ```
 
-Defined in: [module-types.ts:188](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L188)
+Defined in: [module-types.ts:210](https://github.com/dany-fedorov/di-bag/blob/main/src/module-types.ts#L210)
 
 Re-scope every constraint a builder retained from installed modules and
 contributions when that builder seals into a module with exports `P`.

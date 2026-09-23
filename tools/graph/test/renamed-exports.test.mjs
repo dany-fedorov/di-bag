@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -75,6 +75,81 @@ export const unknownValueHost = DiBag.createBuilder()
     });
     const opaque = new Set([spreadHost.id, namedHost.id, shorthandHost.id, unknownValueHost.id]);
     assert.equal(graph.issues.some(issue => opaque.has(issue.unit)), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('requirement views accept only closed literal bags and preserve whole-view opacity', () => {
+  const root = mkdtempSync(join(tmpdir(), 'di-bag-graph-requirements-'));
+  const file = join(root, 'graph.ts');
+  writeFileSync(file, `
+declare const DiBag: any;
+const billingModule = DiBag.createBuilder()
+  .withServices({ billing: ({ shipping }: { shipping: { label(): string } }) => shipping.label() })
+  .buildModule({ exportedServiceKeys: ['billing'] });
+const options = { currentRequirementKey: 'shipping', newRequirementKey: 'delivery' } as const;
+const rest = { newRequirementKey: 'delivery' } as const;
+const currentRequirementKey = 'shipping' as const;
+const newRequirementKey = 'delivery' as const;
+declare const dynamicName: string;
+export const wrapped = DiBag.createBuilder()
+  .withInstalledModules([((billingModule.withRenamedRequirement({
+    'newRequirementKey': ('delivery' as const),
+    currentRequirementKey: ('shipping' satisfies string),
+  })) as any)])
+  .withServices({ delivery: () => ({ label: () => 'ok' }) }).buildContainer();
+export const identity = DiBag.createBuilder()
+  .withInstalledModules([billingModule.withRenamedRequirement({ currentRequirementKey: 'shipping', newRequirementKey: 'shipping' })])
+  .withServices({ shipping: () => ({ label: () => 'ok' }) }).buildContainer();
+export const shorthand = DiBag.createBuilder()
+  .withInstalledModules([billingModule.withRenamedRequirement({ currentRequirementKey, newRequirementKey })])
+  .buildContainer();
+export const named = DiBag.createBuilder()
+  .withInstalledModules([billingModule.withRenamedRequirement(options)])
+  .buildContainer();
+export const spread = DiBag.createBuilder()
+  .withInstalledModules([billingModule.withRenamedRequirement({ currentRequirementKey: 'shipping', ...rest })])
+  .buildContainer();
+export const nonliteral = DiBag.createBuilder()
+  .withInstalledModules([billingModule.withRenamedRequirement({ currentRequirementKey: dynamicName, newRequirementKey: 'delivery' })])
+  .buildContainer();
+export const duplicate = DiBag.createBuilder()
+  .withInstalledModules([billingModule.withRenamedRequirement({ currentRequirementKey: 'shipping', currentRequirementKey: 'other', newRequirementKey: 'delivery' })])
+  .buildContainer();
+export const extra = DiBag.createBuilder()
+  .withInstalledModules([billingModule.withRenamedRequirement({ currentRequirementKey: 'shipping', newRequirementKey: 'delivery', unrelated: 'value' })])
+  .buildContainer();
+export const invalidInner = DiBag.createBuilder()
+  .withInstalledModules([billingModule.withRenamedRequirement(options)
+    .withRenamedExport({ currentExportKey: 'billing', newExportKey: 'invoice' })])
+  .buildContainer();
+export const missingLiteral = DiBag.createBuilder()
+  .withInstalledModules([billingModule.withRenamedRequirement({ currentRequirementKey: 'shipping', newRequirementKey: 'delivery' })])
+  .buildContainer();
+`);
+  try {
+    const graph = extractDependencyGraph({ files: [file], root });
+    const module = graph.units.find(unit => unit.kind === 'module');
+    const host = name => graph.units.find(unit => unit.id === `graph.ts:${readFileSync(file, 'utf8').split('\n').findIndex(line => line.includes(`export const ${name} =`)) + 1}`);
+    assert.deepEqual(module.requirements, ['shipping']);
+    for (const name of ['wrapped', 'identity']) {
+      const unit = host(name);
+      assert(unit, name);
+      assert.deepEqual(unit.installs, [module.id], name);
+      assert.deepEqual(graph.issues.filter(issue => issue.unit === unit.id), [], name);
+    }
+    for (const name of ['shorthand', 'named', 'spread', 'nonliteral', 'duplicate', 'extra', 'invalidInner']) {
+      const unit = host(name);
+      assert(unit, name);
+      assert.equal(unit.installs.length, 1, name);
+      assert.match(unit.installs[0], /withRenamedRequirement\(/, name);
+      assert.deepEqual(graph.issues.filter(issue => issue.unit === unit.id), [], name);
+    }
+    const missing = host('missingLiteral');
+    assert.deepEqual(graph.issues.filter(issue => issue.unit === missing.id), [
+      { kind: 'unresolved', unit: missing.id, consumer: 'billingModule/billing', dependency: 'shipping' },
+    ]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

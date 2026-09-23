@@ -126,6 +126,19 @@ export type RenamedObligation<O, Old extends string, New extends string> =
   : O extends { readonly kind: 'contribution-reach'; readonly group: infer T; readonly policy: infer Policy; readonly reach: infer X }
     ? { readonly kind: 'contribution-reach'; readonly group: T; readonly policy: Policy; readonly reach: RenamedReach<X, Old, New> }
   : O;
+type RenamedExternalReach<X, Current extends string, New extends string> =
+  X extends { readonly kind: 'external'; readonly key: Current }
+    ? { readonly kind: 'external'; readonly key: New }
+    : X;
+/** Rename one external requirement inside retained lifetime obligations. */
+export type RenamedExternalObligation<O, Current extends string, New extends string> =
+  O extends { readonly kind: 'export-reach'; readonly export: infer K; readonly reach: infer X }
+    ? { readonly kind: 'export-reach'; readonly export: K; readonly reach: RenamedExternalReach<X, Current, New> }
+  : O extends { readonly kind: 'root-reach'; readonly root: infer Root; readonly reach: infer X }
+    ? { readonly kind: 'root-reach'; readonly root: Root; readonly reach: RenamedExternalReach<X, Current, New> }
+  : O extends { readonly kind: 'contribution-reach'; readonly group: infer T; readonly policy: infer Policy; readonly reach: infer X }
+    ? { readonly kind: 'contribution-reach'; readonly group: T; readonly policy: Policy; readonly reach: RenamedExternalReach<X, Current, New> }
+  : O;
 /** Drop the obligations of replaced exports: the replacement brings its own graph. */
 export type WithoutExportObligations<C, K> = [Extract<C, { readonly kind: 'export-reach'; readonly export: K }>] extends [never] ? C
   : Exclude<C, { readonly kind: 'export-reach'; readonly export: K }>;

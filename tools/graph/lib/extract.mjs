@@ -147,29 +147,45 @@ function literalString(expression) {
   return ts.isStringLiteralLike(inner) ? inner.text : undefined;
 }
 
-/** A closed `withRenamedExport` bag, or undefined when applying any part would be a guess. */
-function renamedExportPair(call) {
+/** A closed literal view bag, or undefined when applying any part would be a guess. */
+function literalBagPair(call, currentName, newName) {
   const bag = optionsBag(call);
   if (!bag || bag.properties.length !== 2) return undefined;
   const values = new Map();
   for (const property of bag.properties) {
-    let name, value;
-    if (ts.isShorthandPropertyAssignment(property)) {
-      name = property.name.text;
-      value = property.name;
-    } else if (ts.isPropertyAssignment(property) && !ts.isComputedPropertyName(property.name)
-        && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) {
-      name = property.name.text;
-      value = property.initializer;
-    } else return undefined;
-    if (!['currentExportKey', 'newExportKey'].includes(name) || values.has(name)) return undefined;
+    if (!ts.isPropertyAssignment(property) || ts.isComputedPropertyName(property.name)
+        || !(ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) return undefined;
+    const name = property.name.text;
+    if (![currentName, newName].includes(name) || values.has(name)) return undefined;
+    const value = literalString(property.initializer);
+    if (value === undefined) return undefined;
     values.set(name, value);
   }
-  const current = values.get('currentExportKey'), renamed = values.get('newExportKey');
-  if (!current || !renamed) return undefined;
-  const currentText = literalString(current), renamedText = literalString(renamed);
-  if (currentText === undefined || renamedText === undefined) return undefined;
-  return currentText === renamedText ? [] : [currentText, renamedText];
+  const current = values.get(currentName), next = values.get(newName);
+  if (current === undefined || next === undefined) return undefined;
+  return current === next ? [] : [current, next];
+}
+
+function moduleView(expression) {
+  const exportRenames = [], requirementRenames = [];
+  let current = skipOuter(expression);
+  while (ts.isCallExpression(current) && ts.isPropertyAccessExpression(current.expression)) {
+    const name = methodName(current);
+    if (name === 'renameExport') {
+      const [from, to] = current.arguments;
+      if (from && to) exportRenames.unshift([keyText(from), keyText(to)]);
+    } else if (name === 'withRenamedExport') {
+      const pair = literalBagPair(current, 'currentExportKey', 'newExportKey');
+      if (!pair) break;
+      if (pair.length > 0) exportRenames.unshift(pair);
+    } else if (name === 'withRenamedRequirement') {
+      const pair = literalBagPair(current, 'currentRequirementKey', 'newRequirementKey');
+      if (!pair) break;
+      if (pair.length > 0) requirementRenames.unshift(pair);
+    } else break;
+    current = skipOuter(current.expression.expression);
+  }
+  return { expression: current, exportRenames, requirementRenames };
 }
 
 function listedModules(argument, checker) {
@@ -232,28 +248,20 @@ function readUnit(terminal, sourceFile, checker, root) {
   return { id: `${file}:${line + 1}`, kind, file, line: line + 1, ...(label === undefined ? {} : { label }), exports, installs, nodes, aliases, terminal };
 }
 
-/** Map each install argument to the module unit it names, with its label and export renames. */
+/** Map each install argument to its module and ordered literal view renames. */
 function resolveInstalls(units, checker) {
   const byTerminal = new Map(units.map(unit => [unit.terminal, unit]));
   for (const unit of units) {
     unit.installRefs = unit.installs.map(argument => {
-      const renames = [];
-      let expression = skipOuter(argument);
-      while (ts.isCallExpression(expression) && ts.isPropertyAccessExpression(expression.expression)) {
-        const name = methodName(expression);
-        if (name === 'renameExport') {
-          const [from, to] = expression.arguments;
-          if (from && to) renames.unshift([keyText(from), keyText(to)]);
-        } else if (name === 'withRenamedExport') {
-          const pair = renamedExportPair(expression);
-          if (!pair) break;
-          if (pair.length > 0) renames.unshift(pair);
-        } else break;
-        expression = skipOuter(expression.expression.expression);
-      }
-      const initializer = ts.isIdentifier(expression) ? initializerOf(expression, checker) : expression;
+      const view = moduleView(argument);
+      const initializer = ts.isIdentifier(view.expression) ? initializerOf(view.expression, checker) : view.expression;
       const target = initializer && byTerminal.get(skipOuter(initializer));
-      return { unit: target?.kind === 'module' ? target : undefined, label: expression.getText(), renames };
+      return {
+        unit: target?.kind === 'module' ? target : undefined,
+        label: view.expression.getText(),
+        exportRenames: view.exportRenames,
+        requirementRenames: view.requirementRenames,
+      };
     });
     unit.installs = unit.installRefs.map((ref, index) => ref.unit?.id ?? unit.installs[index].getText());
   }
@@ -273,10 +281,17 @@ function instantiate(unit, prefix, outer, graph, active) {
   for (const ref of unit.installRefs) {
     if (!ref.unit || active.has(ref.unit)) { opaque = true; continue; }
     const exported = new Map(ref.unit.exports.map(key => [key, key]));
-    for (const [from, to] of ref.renames) if (exported.has(from)) { exported.set(to, exported.get(from)); exported.delete(from); }
+    for (const [from, to] of ref.exportRenames) {
+      if (exported.has(from)) { exported.set(to, exported.get(from)); exported.delete(from); }
+    }
+    const requirements = new Map();
+    for (const [from, to] of ref.requirementRenames) {
+      const original = [...requirements].find(([, current]) => current === from)?.[0] ?? from;
+      requirements.set(original, to);
+    }
     active.add(ref.unit);
     // The module's own label matches runtime messages; the install expression names unlabeled modules.
-    const own = instantiate(ref.unit, `${prefix}${ref.unit.label ?? ref.label}/`, name => lookup(name), graph, active);
+    const own = instantiate(ref.unit, `${prefix}${ref.unit.label ?? ref.label}/`, name => lookup(requirements.get(name) ?? name), graph, active);
     active.delete(ref.unit);
     installed.push({ exported, own });
   }
@@ -289,8 +304,10 @@ function instantiate(unit, prefix, outer, graph, active) {
   };
   const lookup = name => {
     const found = own(name);
-    if (found?.id || !outer) return found;
-    return outer(name) ?? found;
+    if (found?.id !== undefined) return found;
+    const supplied = outer?.(name);
+    if (supplied?.id !== undefined || supplied?.opaque) return supplied;
+    return found ?? supplied ?? { requirement: name };
   };
   // Resolved after every install exists: a requirement may name a module installed later.
   const top = prefix ? prefix.split('/')[0] : '';
@@ -322,9 +339,11 @@ function findIssues(units) {
       stack.pop(); state.set(id, 'done');
     };
     for (const id of graph.keys()) if (!state.has(id)) visit(id);
-    const unmet = [...graph].flatMap(([id, node]) => node.dependencies.filter(dependency => !dependency.target).map(({ name }) => ({ id, name })));
+    const unmet = [...graph].flatMap(([id, node]) => node.dependencies
+      .filter(dependency => dependency.target.requirement !== undefined)
+      .map(({ name, target }) => ({ id, name, requirement: target.requirement })));
     // A module's unmet names are requirements the host supplies; only a bag reports them as issues.
-    if (unit.kind === 'module') unit.requirements = [...new Set(unmet.map(({ name }) => name))].sort();
+    if (unit.kind === 'module') unit.requirements = [...new Set(unmet.map(({ requirement }) => requirement))].sort();
     else for (const { id, name } of unmet) issues.push({ kind: 'unresolved', unit: unit.id, consumer: id, dependency: name });
     unit.edges = unit.nodes.flatMap(node => node.dependencies.map(dependency => ({ from: node.key, to: dependency })))
       .sort((left, right) => left.from.localeCompare(right.from) || left.to.localeCompare(right.to));

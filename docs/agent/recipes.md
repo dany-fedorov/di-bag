@@ -446,3 +446,33 @@ composition.verifyGraphAtCompileTime() satisfies void;
    [`DI_BAG_CYCLE`](errors.md#di-bag-cycle). The graph is a merge-review and CI
    artifact, not a map for finding code; the layout is the map. Options and
    output: [di-bag-graph README](https://github.com/dany-fedorov/di-bag/blob/main/tools/graph/README.md).
+
+## Install modules that both require `config` {#rename-module-requirements}
+
+Rename each module value at the install site. The factories still read `config`;
+the host supplies the new names.
+
+```ts
+import { DiBag } from 'di-bag';
+type OrdersConfig = { currency: string };
+type BillingConfig = { vatRate: number };
+const ordersModule = DiBag.createBuilder().withServices({
+  orders: ({ config }: { config: OrdersConfig }) => config.currency,
+}).buildModule({ exportedServiceKeys: ['orders'] });
+const billingModule = DiBag.createBuilder().withServices({
+  billing: ({ config }: { config: BillingConfig }) => config.vatRate,
+}).buildModule({ exportedServiceKeys: ['billing'] });
+
+const app = DiBag.createBuilder()
+  .withInstalledModules([
+    ordersModule.withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'ordersConfig' }),
+    billingModule.withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'billingConfig' }),
+  ])
+  .withServices({
+    ordersConfig: (): OrdersConfig => ({ currency: 'EUR' }),
+    billingConfig: (): BillingConfig => ({ vatRate: 0.2 }),
+  })
+  .buildContainer();
+console.log(app.resolve('orders'), app.resolve('billing'));
+await app.close();
+```

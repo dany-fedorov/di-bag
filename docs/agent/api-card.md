@@ -20,6 +20,7 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | Choose a lifetime | [`DiBag.withLifetime(registration, lifetime)`](#dibag-withlifetime) |
 | Seal a module | [`builder.buildModule(options)`](#builder-buildmodule) |
 | Install modules | [`builder.withInstalledModules(modules)`](#builder-withinstalledmodules) |
+| Rename a module requirement | [`module.withRenamedRequirement(options)`](#module-withrenamedrequirement) |
 | Check the graph on its own line | [`builder.verifyGraphAtCompileTime()`](#builder-verifygraphatcompiletime) |
 | Build a container | [`builder.buildContainer()`](#builder-buildcontainer) |
 | Wait for services before accepting work | [`container.ensureServicesReady(serviceKeys, options?)`](#container-ensureservicesready) |
@@ -221,6 +222,21 @@ const app = DiBag.createBuilder().withInstalledModules([orders]).buildContainer(
 Finish a complete graph as a lazy container. Throws: [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required).
 ```ts
 const app = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
+await app.close();
+```
+
+## Module {#module}
+
+### `module.withRenamedRequirement(options)` {#module-withrenamedrequirement}
+Return a module view that asks its host for a requirement under a new name. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key).
+```ts
+const feature = DiBag.createBuilder()
+  .withServices({ answer: ({ config }: { config: number }) => config })
+  .buildModule({ exportedServiceKeys: ['answer'] });
+const app = DiBag.createBuilder()
+  .withInstalledModules([feature.withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'featureConfig' })])
+  .withServices({ featureConfig: () => 42 }).buildContainer();
+console.log(app.resolve('answer'));
 await app.close();
 ```
 
