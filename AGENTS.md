@@ -37,7 +37,7 @@ Task recipes: [docs/agent/recipes.md](docs/agent/recipes.md). Every compiler and
 8. **Modules.** Add factories with `withServices`, then
    `buildModule({ exportedServiceKeys: ['exported'], moduleLabel: 'billing' })`.
    Unregistered needs become requirements: the host supplies them after
-   `withInstalledModules([module])`; private services are named `billing/store`.
+   `withInstalledModules([module])`. Rename colliding string requirements with module.withRenamedRequirement({ currentRequirementKey, newRequirementKey }); tokens keep their global identity.
 9. **Read a rejection at its name.** A graph error is an assignability error
    whose type is `Unsatisfied<"message", details>`, reported where the builder
    expression starts. `builder.verifyGraphAtCompileTime() satisfies void;`

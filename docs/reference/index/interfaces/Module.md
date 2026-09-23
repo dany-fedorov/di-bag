@@ -4,7 +4,7 @@
 
 # Interface: Module\<ExportedServices *extends* `object`, RequiredServices *extends* `object`, Constraints *extends* `NeedConstraint` = `never`, PublicProviders *extends* `Registrations` = `PublicRegistrations`\<`ExportedServices`\>\>
 
-Defined in: [module.ts:42](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L42)
+Defined in: [module.ts:44](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L44)
 
 A sealed, non-resolving module with private registrations and selected public exports.
 Create modules through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) and [Builder.buildModule](Builder.md#buildmodule); this
@@ -34,7 +34,7 @@ withRenamedExport<const CurrentExportKey extends string, const NewExportKey exte
 }): Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
 ```
 
-Defined in: [module.ts:65](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L65)
+Defined in: [module.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L72)
 
 Return a module view with one string-named export renamed through an options bag.
 
@@ -65,4 +65,60 @@ A new sealed module, or the same instance when both names are equal.
 const feature = DiBag.createBuilder().withServices({ service: () => 1 })
   .buildModule({ exportedServiceKeys: ['service'] });
 const renamed = feature.withRenamedExport({ currentExportKey: 'service', newExportKey: 'featureService' });
+```
+
+***
+
+### withRenamedRequirement()
+
+```ts
+withRenamedRequirement<const CurrentRequirementKey extends string, const NewRequirementKey extends string>(options: {
+    readonly currentRequirementKey: CurrentRequirementKey & CurrentRequirementKeyAdmission<RequiredServices, CurrentRequirementKey>;
+    readonly newRequirementKey: NewRequirementKey & NewRequirementKeyAdmission<ExportedServices, RequiredServices, CurrentRequirementKey, NewRequirementKey>;
+}): Module<ExportedServices, Renamed<RequiredServices, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementConstraints<Constraints, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementProviders<PublicProviders, CurrentRequirementKey, NewRequirementKey>>;
+```
+
+Defined in: [module.ts:126](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L126)
+
+Return a module view that asks its host for a requirement under a new name.
+Factory parameter names and private bindings retain their lexical meaning.
+
+#### Type Parameters
+
+| Type Parameter | Description |
+| ------ | ------ |
+| `CurrentRequirementKey` | - |
+| `NewRequirementKey` | - |
+
+#### Parameters
+
+| Parameter | Description |
+| ------ | ------ |
+| `options` | The current requirement and its noncolliding new host key. |
+
+#### Returns
+
+A new sealed module, or this module when both keys are equal.
+
+#### Throws
+
+`DI_BAG_INVALID_ARGUMENT` for malformed options; `DI_BAG_UNKNOWN_SERVICE_KEY`
+for a known non-requirement; `DI_BAG_DUPLICATE_SERVICE_KEY` for a known collision.
+
+#### Remarks
+
+Type checking rejects unknown requirements and all name collisions.
+Runtime checks cover only facts available without executing a factory.
+
+#### Example
+
+```ts
+const feature = DiBag.createBuilder()
+  .withServices({ answer: ({ config }: { config: number }) => config })
+  .buildModule({ exportedServiceKeys: ['answer'] });
+const app = DiBag.createBuilder()
+  .withInstalledModules([feature.withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'featureConfig' })])
+  .withServices({ featureConfig: () => 42 }).buildContainer();
+console.log(app.resolve('answer'));
+await app.close();
 ```

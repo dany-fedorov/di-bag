@@ -1,7 +1,7 @@
 import { libraryError } from './errors';
 import type { BindingDescription, BindingGraph, BindingId, BindingKey, BindingRef, GraphDescription } from './runtime';
 import type { Registrations } from './registration';
-import type { NeedConstraint, PublicRegistrations, Renamed, RenamedConstraints, RenamedProviders, RenameKeys } from './module-types';
+import type { CurrentRequirementKeyAdmission, NeedConstraint, NewRequirementKeyAdmission, PublicRegistrations, Renamed, RenamedConstraints, RenamedProviders, RenamedRequirementConstraints, RenamedRequirementProviders, RenameKeys } from './module-types';
 import { readSingleServiceKey } from './tokens';
 import { snapshotOptionsBag } from './options-bag';
 
@@ -12,6 +12,8 @@ interface ModuleDescription {
   readonly exports: ReadonlyMap<BindingKey, BindingKey>;
   /** Prefix for every non-exported binding label of an installation. */
   readonly label: string | undefined;
+  /** Original local requirement -> current host key. */
+  readonly requirementRenames: ReadonlyMap<string, string>;
 }
 
 /**
@@ -46,7 +48,12 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
   declare readonly [moduleInvariant]: (value: [ExportedServices, RequiredServices, Constraints, PublicProviders]) => [ExportedServices, RequiredServices, Constraints, PublicProviders];
 
   constructor(description: ModuleDescription) {
-    descriptions.set(this, { graph: description.graph, exports: new Map(description.exports), label: description.label });
+    descriptions.set(this, {
+      graph: description.graph,
+      exports: new Map(description.exports),
+      label: description.label,
+      requirementRenames: new Map(description.requirementRenames),
+    });
     Object.freeze(this);
   }
 
@@ -92,7 +99,65 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
     const localName = exports.get(currentExportKey)!;
     exports.delete(currentExportKey);
     exports.set(newExportKey, localName);
-    return new Module({ graph: description.graph, exports, label: description.label });
+    return new Module({ graph: description.graph, exports, label: description.label, requirementRenames: description.requirementRenames });
+  }
+
+  /**
+   * Return a module view that asks its host for a requirement under a new name.
+   * Factory parameter names and private bindings retain their lexical meaning.
+   * @param options - The current requirement and its noncolliding new host key.
+   * @returns A new sealed module, or this module when both keys are equal.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed options; `DI_BAG_UNKNOWN_SERVICE_KEY`
+   * for a known non-requirement; `DI_BAG_DUPLICATE_SERVICE_KEY` for a known collision.
+   * @remarks Type checking rejects unknown requirements and all name collisions.
+   * Runtime checks cover only facts available without executing a factory.
+   * @example
+   * ```ts
+   * const feature = DiBag.createBuilder()
+   *   .withServices({ answer: ({ config }: { config: number }) => config })
+   *   .buildModule({ exportedServiceKeys: ['answer'] });
+   * const app = DiBag.createBuilder()
+   *   .withInstalledModules([feature.withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'featureConfig' })])
+   *   .withServices({ featureConfig: () => 42 }).buildContainer();
+   * console.log(app.resolve('answer'));
+   * await app.close();
+   * ```
+   */
+  withRenamedRequirement<const CurrentRequirementKey extends string, const NewRequirementKey extends string>(
+    options: {
+      readonly currentRequirementKey: CurrentRequirementKey & CurrentRequirementKeyAdmission<RequiredServices, CurrentRequirementKey>;
+      readonly newRequirementKey: NewRequirementKey & NewRequirementKeyAdmission<ExportedServices, RequiredServices, CurrentRequirementKey, NewRequirementKey>;
+    },
+  ): Module<ExportedServices, Renamed<RequiredServices, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementConstraints<Constraints, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementProviders<PublicProviders, CurrentRequirementKey, NewRequirementKey>> {
+    const { currentRequirementKey, newRequirementKey } = snapshotOptionsBag(
+      options, 'withRenamedRequirement', ['currentRequirementKey', 'newRequirementKey'],
+    );
+    if (typeof currentRequirementKey !== 'string') {
+      throw libraryError('DI_BAG_INVALID_ARGUMENT', 'withRenamedRequirement currentRequirementKey must be a string', {
+        operation: 'withRenamedRequirement', argument: 'currentRequirementKey', expected: 'a string',
+      });
+    }
+    if (typeof newRequirementKey !== 'string') {
+      throw libraryError('DI_BAG_INVALID_ARGUMENT', 'withRenamedRequirement newRequirementKey must be a string', {
+        operation: 'withRenamedRequirement', argument: 'newRequirementKey', expected: 'a string',
+      });
+    }
+    const description = descriptions.get(this)!;
+    const source = [...description.requirementRenames].find(([, hostKey]) => hostKey === currentRequirementKey)?.[0];
+    if (description.exports.has(currentRequirementKey) || (description.requirementRenames.has(currentRequirementKey) && source === undefined)) {
+      throw libraryError('DI_BAG_UNKNOWN_SERVICE_KEY', `withRenamedRequirement requires an existing requirement: ${currentRequirementKey}`, {
+        operation: 'withRenamedRequirement', serviceKey: currentRequirementKey,
+      });
+    }
+    if (currentRequirementKey === newRequirementKey) return this as never;
+    if (description.exports.has(newRequirementKey) || [...description.requirementRenames].some(([original, hostKey]) => original !== source && hostKey === newRequirementKey)) {
+      throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate service key: ${newRequirementKey}`, {
+        operation: 'withRenamedRequirement', serviceKey: newRequirementKey,
+      });
+    }
+    const requirementRenames = new Map(description.requirementRenames);
+    requirementRenames.set(source ?? currentRequirementKey, newRequirementKey);
+    return new Module({ graph: description.graph, exports: description.exports, label: description.label, requirementRenames });
   }
 }
 
@@ -119,7 +184,7 @@ export function sealModule(graph: BindingGraph, keys: unknown, moduleLabel?: unk
     if (!graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_EXPORT', 'buildModule accepts existing names or typed tokens only', { operation: 'buildModule' });
     exports.set(key, key);
   }
-  return new Module({ graph: graph.describe(), exports, label });
+  return new Module({ graph: graph.describe(), exports, label, requirementRenames: new Map() });
 }
 
 /** The label of a module: absent, or a non-empty string. */
@@ -140,31 +205,38 @@ export function moduleGraph(value: unknown, index?: number): GraphDescription {
   if (!description) {
     throw libraryError('DI_BAG_INVALID_MODULE', `withInstalledModules requires genuine modules: element ${index} is not one`, { operation: 'withInstalledModules', index });
   }
-  const { graph, exports, label } = description;
-  // Labels are baked per installation, so a nested module's prefix composes outward.
+  const { graph, exports, label, requirementRenames } = description;
   const exported = new Set<BindingId>();
   for (const localKey of exports.values()) exported.add(graph.publicSlots.get(localKey)!);
-  const labelOf = (id: BindingId, binding: BindingDescription) => label === undefined || exported.has(id) ? binding.label : `${label}/${binding.label}`;
+  const labelOf = (id: BindingId, binding: BindingDescription) =>
+    label === undefined || exported.has(id) ? binding.label : `${label}/${binding.label}`;
   const ids = new Map<BindingId, BindingId>();
   for (const [id, binding] of graph.bindings) ids.set(id, Symbol(labelOf(id, binding)));
   const exportNames = new Map<BindingKey, BindingKey>();
   for (const [publicKey, localKey] of exports) exportNames.set(localKey, publicKey);
-  // Every public name of the sealed graph, as seen by its own bindings.
   const scopeNames = new Map<BindingKey, BindingRef>();
   for (const [key, id] of graph.publicSlots) {
-    const exported = exportNames.get(key);
-    scopeNames.set(key, exported === undefined ? { kind: 'private', id: ids.get(id)! } : { kind: 'public', key: exported });
+    const publicKey = exportNames.get(key);
+    scopeNames.set(key, publicKey === undefined
+      ? { kind: 'private', id: ids.get(id)! }
+      : { kind: 'public', key: publicKey });
+  }
+  const hostNames = new Map(scopeNames);
+  for (const [localKey, hostKey] of requirementRenames) {
+    if (!hostNames.has(localKey)) hostNames.set(localKey, { kind: 'public', key: hostKey });
   }
   const remap = (ref: BindingRef): BindingRef => ref.kind === 'private'
     ? { kind: 'private', id: ids.get(ref.id) ?? ref.id }
-    : scopeNames.get(ref.key) ?? ref;
-  // Share one lexical map per distinct inner scope so the graph deduplicates snapshots.
+    : scopeNames.get(ref.key) ?? {
+        kind: 'public',
+        key: typeof ref.key === 'string' ? requirementRenames.get(ref.key) ?? ref.key : ref.key,
+      };
   const nested = new Map<BindingDescription['localNames'], ReadonlyMap<BindingKey, BindingRef>>();
   const localNamesFor = (binding: BindingDescription): ReadonlyMap<BindingKey, BindingRef> => {
-    if (binding.localNames.size === 0) return scopeNames;
+    if (binding.localNames.size === 0) return hostNames;
     let names = nested.get(binding.localNames);
     if (!names) {
-      const merged = new Map(scopeNames);
+      const merged = new Map(hostNames);
       for (const [name, ref] of binding.localNames) merged.set(name, remap(ref));
       names = merged;
       nested.set(binding.localNames, names);
@@ -174,7 +246,10 @@ export function moduleGraph(value: unknown, index?: number): GraphDescription {
   const bindings = new Map<BindingId, BindingDescription>();
   for (const [id, binding] of graph.bindings) {
     const fresh = ids.get(id)!;
-    bindings.set(fresh, { id: fresh, label: labelOf(id, binding), registration: binding.registration, localNames: localNamesFor(binding) });
+    bindings.set(fresh, {
+      id: fresh, label: labelOf(id, binding), registration: binding.registration,
+      localNames: localNamesFor(binding),
+    });
   }
   const publicSlots = new Map<BindingKey, BindingId>();
   for (const [publicKey, localKey] of exports) publicSlots.set(publicKey, ids.get(graph.publicSlots.get(localKey)!)!);

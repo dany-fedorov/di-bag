@@ -542,6 +542,28 @@ DiBag.createBuilder().withServices({ port: () => 80 }).withReplacedService('port
 
 **Recipe:** [split a feature into a module](recipes.md#split-module).
 
+### DI_BAG_DUPLICATE_SERVICE_KEY {#di-bag-duplicate-service-key}
+
+**When:** `withServices`, `withTokenService`, `withServiceAlias`,
+`withInstalledModules`, `withRenamedExport` or `withRenamedRequirement` would
+give two services the same key. `details.operation` names the call and
+`details.serviceKey` the key.
+
+**Cause:** a builder holds one service per key. Adding a key that exists is
+never a replacement.
+
+**Fix:** to change an existing service use `withReplacedService`; otherwise pick
+another key, or rename the module's export before installing it.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const base = DiBag.createBuilder().withServices({ clock: () => ({ now: () => 0 }) });
+const app = base.withReplacedService('clock', () => ({ now: () => 1 })).buildContainer();
+console.log(app.resolve('clock').now());
+await app.close();
+```
+
 ### DI_BAG_INTERNAL_STATE {#di-bag-internal-state}
 
 **When:** a library invariant failed, for example an acquisition without a
@@ -613,7 +635,7 @@ let the compiler point at the argument.
 import { DiBag } from 'di-bag';
 
 try {
-  DiBag.createBuilder().withInstalledModules('not a list' as never);
+  DiBag.createBuilder().withInstalledModules(42 as never);
 } catch (error) {
   const { operation, argument, expected } = (error as { details: Record<string, unknown> }).details;
   console.error(`${String(operation)}: ${String(argument)} must be ${String(expected)}`);
@@ -1176,6 +1198,30 @@ disabled through `DiBagPolicy` or bypassed by a cast.
 `acquisitionMode: 'raw'`.
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
+
+### DI_BAG_UNKNOWN_SERVICE_KEY {#di-bag-unknown-service-key}
+
+**When:** a call names a service key that the builder, container or module does
+not have: `resolve`, `ensureServicesReady`, `withServiceAlias` (the target),
+`withReplacedService`, `createChildContainer`, `createIndependentContainer`,
+`buildModule` (an exported key), `withRenamedExport` and
+`withRenamedRequirement` (the current key). `details.operation` names the call
+and `details.serviceKey` the key.
+
+**Cause:** the key is misspelled, was never registered, or is private to a
+module. The compiler reports this first. For requirement renaming, runtime
+checks cover only known exports and recorded rename facts; an unused unknown
+requirement name can remain undetected because its type is erased.
+
+**Fix:** register the service before the call, or correct the key.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const app = DiBag.createBuilder().withServices({ clock: () => ({ now: () => 0 }) }).buildContainer();
+console.log(app.resolve('clock').now());
+await app.close();
+```
 
 ### DI_BAG_WRONG_TOKEN_KIND {#di-bag-wrong-token-kind}
 

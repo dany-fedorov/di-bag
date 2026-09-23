@@ -4,6 +4,7 @@ import { cardBudget, codeFragment } from './agent-docs.mjs';
 export const surfaceGroups = [
   { name: 'DiBagApi', receiver: 'DiBag', title: 'DiBag facade' },
   { name: 'Builder', receiver: 'builder', title: 'Builder' },
+  { name: 'Module', receiver: 'module', title: 'Module', members: ['withRenamedRequirement'] },
   { name: 'Container', receiver: 'container', title: 'Container' },
 ];
 
@@ -67,10 +68,10 @@ export function runtimeSurface(project) {
   const index = project.children?.find(child => child.name === 'index');
   if (!index) throw new Error('API card: missing index entry point');
   const entries = [];
-  for (const { name, receiver, title } of surfaceGroups) {
+  for (const { name, receiver, title, members } of surfaceGroups) {
     const reflection = index.children.find(child => child.name === name);
     if (!reflection) throw new Error(`API card: missing ${name}`);
-    entries.push(...reflection.children.filter(child => child.name !== 'constructor').map(child => entry(child, title, receiver)).sort((a, b) => a.line - b.line));
+    entries.push(...reflection.children.filter(child => child.name !== 'constructor' && (!members || members.includes(child.name))).map(child => entry(child, title, receiver)).sort((a, b) => a.line - b.line));
   }
   // Kind 128 is a class; type-only classes such as Container are exported as interfaces.
   entries.push(...index.children.filter(child => child.kind === 128).map(child => entry(child, 'Errors')).sort((a, b) => a.line - b.line));

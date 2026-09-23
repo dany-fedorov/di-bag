@@ -306,3 +306,15 @@ const reused = DiBag.createBuilder().withInstalledModules([feature0]).buildConta
 const reusableResult: number = reused.resolve('svc49');
 `;
 }
+
+export function requirementRenameScaleSource(count: number): string {
+  if (!Number.isInteger(count) || count < 1) throw new Error('requirement rename scale count must be at least one');
+  const modules = Array.from({ length: count }, (_, index) => `
+const feature${index} = DiBag.createBuilder().withServices({
+  service${index}: ({ config }: { config: { value: ${index} } }) => config.value,
+}).buildModule({ exportedServiceKeys: ['service${index}'] })
+  .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'config${index}' });`).join('\n');
+  const installed = Array.from({ length: count }, (_, index) => `feature${index}`).join(', ');
+  const configs = Array.from({ length: count }, (_, index) => `config${index}: () => ({ value: ${index} as const })`).join(',\n');
+  return `import { DiBag } from '../src';\n${modules}\nconst container = DiBag.createBuilder().withInstalledModules([${installed}]).withServices({${configs}}).buildContainer();\nconst result: ${count - 1} = container.resolve('service${count - 1}');\n`;
+}
