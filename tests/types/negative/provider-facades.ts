@@ -18,10 +18,12 @@ DiBag.providerWithLifetime({ provider, lifetime: 'singleton:one-per-container-tr
   // diagnostic: withLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
   extra: true });
 // diagnostic: Type '"later"' is not assignable to type '"exposed-service"'
+// diagnostic-native-gap: last-provider-acquisition-mode
 DiBag.providerWithAcquisitionMetadata({ provider, callbackReceives: 'later', describeAcquisition: value => ({ value }) });
 // diagnostic: acquisition metadata must be a synchronous object record
 DiBag.providerWithAcquisitionMetadata({ provider, callbackReceives: 'fulfilled-value', describeAcquisition: async value => ({ value }) });
 // diagnostic: Type 'string' is not assignable to type 'never'
+// diagnostic-native-gap: last-provider-transform-fulfilled-mode
 DiBag.providerWithTransformedService({ provider, callbackReceives: 'fulfilled-value', transformService: value => value, transformReturnKind: 'sync-value' });
 // diagnostic: native-promise factory return kind requires a Promise output
 DiBag.providerWithTransformedService({ provider, callbackReceives: 'exposed-service', transformService: () => 1, transformReturnKind: 'native-promise' });

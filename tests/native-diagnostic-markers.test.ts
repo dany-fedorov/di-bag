@@ -63,6 +63,56 @@ const contextualFingerprints = [
   { id: 'last-provider-contextual-thenable', full: "No overload matches this call.\n  The last overload gave the following error.\n    Argument of type '(this: void, _dependencies: {}, _factoryContext: FactoryContext) => { then(_resolve: (value: number) => void): void; }' is not assignable to parameter of type 'Factory'.\n      Target signature provides too few arguments. Expected 2 or more, but got 1." },
 ] as const;
 
+const providerFacadeFingerprints = [
+  {
+    id: 'last-provider-acquisition-mode',
+    primary: 'Type \'"later"\' is not assignable to type \'"exposed-service"\'',
+    full: "No overload matches this call.\n  The last overload gave the following error.\n    Type '\"later\"' is not assignable to type '\"fulfilled-value\"'.",
+  },
+  {
+    id: 'last-provider-transform-fulfilled-mode',
+    primary: "Type 'string' is not assignable to type 'never'",
+    full: "No overload matches this call.\n  The last overload gave the following error.\n    Type '\"fulfilled-value\"' is not assignable to type '\"exposed-service\"'.",
+  },
+] as const;
+
+for (const fingerprint of providerFacadeFingerprints) test(`provider facade native gap requires exact fingerprint for ${fingerprint.id}`, () => {
+  const declared = `// diagnostic: ${fingerprint.primary}\n// diagnostic-native-gap: ${fingerprint.id}\nreject();`;
+  const native = { file: '/fixture.ts', line: 3, column: 1, code: 2769, message: fingerprint.full };
+  const accepted = matchNativeDiagnosticMarkers(declared, '/fixture.ts', [native]);
+  expect(accepted).toMatchObject({
+    accepted: true,
+    status: 'accepted-with-diagnostic-gaps',
+    primaryExpected: 1,
+    primaryMatched: 0,
+    knownNativeRejections: 1,
+    unexpected: [],
+    unresolved: [],
+    declarationErrors: [],
+  });
+  expect(accepted.gaps).toHaveLength(1);
+  expect(accepted.gaps[0]!.primary.message).toBe(fingerprint.primary);
+
+  const other = providerFacadeFingerprints.find(candidate => candidate.id !== fingerprint.id)!;
+  const adversarial = [
+    ['no declaration', declared.replace(`// diagnostic-native-gap: ${fingerprint.id}\n`, ''), [{ ...native, line: 2 }]],
+    ['absent diagnostic', declared, []],
+    ['duplicate declaration', declared.replace('reject();', `// diagnostic-native-gap: ${fingerprint.id}\nreject();`), [{ ...native, line: 4 }]],
+    ['duplicate diagnostic', declared, [native, { ...native }]],
+    ['wrong code', declared, [{ ...native, code: 2345 }]],
+    ['TS2589', declared, [{ ...native, code: 2589 }]],
+    ['altered complete message', declared, [{ ...native, message: `${fingerprint.full}\nextra` }]],
+    ['other fingerprint', declared, [{ ...native, message: other.full }]],
+    ['wrong file', declared, [{ ...native, file: '/other.ts' }]],
+    ['wrong region', `${declared}\n// diagnostic: neighboring useful rejection\nneighbor();`, [{ ...native, line: 5 }]],
+    ['unrelated additional error', declared, [native, { ...native, message: 'unrelated' }]],
+    ['stale declaration', declared, [{ ...native, code: 2345, message: fingerprint.primary }]],
+  ] as const;
+  for (const [name, changed, errors] of adversarial) {
+    expect(matchNativeDiagnosticMarkers(changed, '/fixture.ts', errors).accepted, name).toBe(false);
+  }
+});
+
 for (const fingerprint of contextualFingerprints) test(`contextual native gap requires exact fingerprint for ${fingerprint.id}`, () => {
   const declared = `// diagnostic: useful contextual rejection\n// diagnostic-native-gap: ${fingerprint.id}\nreject();`;
   const native = { file: '/fixture.ts', line: 3, code: 2769, message: fingerprint.full };
