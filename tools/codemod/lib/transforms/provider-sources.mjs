@@ -62,7 +62,7 @@ function quotedKind(expression, api, operation) {
   if (expression === undefined) return { present: false };
   const node = expression.trim();
   const match = /^(?:'([^']+)'|"([^"]+)")$/.exec(node);
-  const mapped = match && returnKind(match[1] ?? match[2]);
+  const mapped = match ? returnKind(match[1] ?? match[2]) : undefined;
   if (mapped === undefined) {
     api.manual(operation, `${api.member.name} acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand`);
     return undefined;

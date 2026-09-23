@@ -5,6 +5,22 @@ import { test } from 'node:test';
 import { defaultMapFile, runCodemod, transforms, validateRenameMap } from '../lib/codemod.mjs';
 import { compiler, fixturesProgram, fixturesRoot } from './helpers.mjs';
 
+test('nonliteral provider return kinds stay unchanged and report one manual item per constructor', () => {
+  const result = runCodemod({
+    typescript: compiler.ts, root: fixturesRoot, program: fixturesProgram(),
+    only: ['provider-nonliteral-return-kind/input.ts'],
+  });
+  const input = readFileSync(new URL('./fixtures/provider-nonliteral-return-kind/input.ts', import.meta.url), 'utf8');
+  assert.equal(result.files[0]?.text ?? input, input);
+  assert.deepEqual(result.manual.map(({ line, reason }) => ({ line, reason })), [
+    { line: 4, reason: 'fromFactory acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand' },
+    { line: 5, reason: 'fromFunction acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand' },
+    { line: 6, reason: 'fromClass acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand' },
+    { line: 7, reason: 'fromPlugin acquisitionMode is not a supported string literal; rewrite factoryReturnKind by hand' },
+  ]);
+  assert.doesNotMatch(result.files[0]?.text ?? input, /factoryReturnKind: 'null'/);
+});
+
 test('every transform the shipped map names exists in the registry', () => {
   const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
   assert.deepEqual(validateRenameMap(shipped, Object.keys(transforms)), []);
