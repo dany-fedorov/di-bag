@@ -20,6 +20,12 @@ const optionalLifetimeBag: { readonly provider: () => number; readonly lifetime:
   lifetime: 'singleton:one-per-container-tree',
 };
 DiBag.providerWithLifetime(optionalLifetimeBag);
+declare const broadCaptureFlag: boolean;
+const broadCapture = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: broadCaptureFlag });
+type _BroadCaptureLifetime = Assert<Equal<ProviderGraphContract<typeof broadCapture>['lifetime'], Readonly<{ kind: 'singleton'; allowsScopedDependencies: false }>>>;
+const readonlyLifetimeBag = { provider: () => 1, lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true } as const;
+const readonlyLifetimed = DiBag.providerWithLifetime(readonlyLifetimeBag);
+type _ReadonlyBagLifetime = Assert<Equal<ProviderGraphContract<typeof readonlyLifetimed>['lifetime'], Readonly<{ kind: 'singleton'; allowsScopedDependencies: true }>>>;
 DiBag.providerWithLifetime<() => number, 'scoped:one-per-container'>({ provider: () => 1, lifetime: 'scoped:one-per-container' });
 DiBag.providerWithLifetime<() => number, 'singleton:one-per-container-tree', { readonly allowsScopedDependencies: true }>({ provider: () => 1, lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true });
 const replacement = DiBag.providerWithDisposal({ provider: () => 2, disposeService: value => { const n: number = value; void n; } });

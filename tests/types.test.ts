@@ -323,3 +323,23 @@ test('provider facade rejections remain property-located diagnostics', () => {
     'transformService', '{', 'registrationMetadata', 'dependent',
   ]);
 });
+
+test('provider facade lifetime option controls remain independently rejected', () => {
+  const path = resolve(negativeDirectory, 'provider-facade-lifetime-controls.ts');
+  const source = readFileSync(path, 'utf8');
+  const markers = [...source.matchAll(/\/\/ diagnostic: (.+)/g)];
+  const errors = negativeDiagnostics.get(path)!;
+  expect(markers).toHaveLength(6);
+  expect(errors).toHaveLength(6);
+  const matched = matchDiagnosticMarkers(source, path, errors.map(describeDiagnostic));
+  expect(matched.missing).toEqual([]);
+  expect(matched.unexpected).toEqual([]);
+  expect(errors.map(error => source.slice(error.start!, error.start! + error.length!))).toEqual([
+    'unknownOptions',
+    'undefinedOptions',
+    'lifetime',
+    'optionalScopedOptions',
+    'indexedOptions',
+    '[extraSymbol]',
+  ]);
+});
