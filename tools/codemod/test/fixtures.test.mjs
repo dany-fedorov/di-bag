@@ -1,12 +1,38 @@
 // tools/codemod/test/fixtures.test.mjs
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compiler, fixtureNames, fixturesProgram, readFixture, runFixture } from './helpers.mjs';
+import { compiler, fixtureNames, fixturesProgram, fixturesRoot, readFixture, runFixture } from './helpers.mjs';
 
-test('every fixture input type-checks against the published di-bag 0.4.0 declarations', () => {
+test('ordinary fixture inputs type-check and the negative provider-method edge input has exactly its declared diagnostics', () => {
   const ts = compiler.ts;
-  const messages = ts.getPreEmitDiagnostics(fixturesProgram()).map(diagnostic => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
-  assert.deepEqual(messages, []);
+  const edgeFile = ts.sys.resolvePath(`${fixturesRoot}/provider-method-edges/input.ts`);
+  const diagnostics = ts.getPreEmitDiagnostics(fixturesProgram());
+  const edge = diagnostics.filter(diagnostic => diagnostic.file && ts.sys.resolvePath(diagnostic.file.fileName) === edgeFile);
+  const ordinary = diagnostics.filter(diagnostic => !diagnostic.file || ts.sys.resolvePath(diagnostic.file.fileName) !== edgeFile);
+  assert.deepEqual(ordinary.map(diagnostic => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')), []);
+  assert.deepEqual(edge.map(diagnostic => {
+    const position = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
+    return {
+      line: position.line + 1,
+      column: position.character + 1,
+      code: diagnostic.code,
+      category: diagnostic.category,
+      message: ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+    };
+  }), [
+    {
+      line: 13, column: 49, code: 2769, category: ts.DiagnosticCategory.Error,
+      message: "No overload matches this call.\n"
+        + "  Overload 1 of 2, '(create: Factory, dispose: (this: void, value: unknown) => void | Promise<void>): FactoryWithDisposal<Factory>', gave the following error.\n"
+        + "    Argument of type 'unknown' is not assignable to parameter of type 'Factory'.\n"
+        + "  Overload 2 of 2, '(provider: Registration, dispose: (this: void, value: unknown) => void | Promise<void>): Provider<Factory | ((this: void, deps: unknown) => unknown), object, readonly unknown[], OpaqueGraph, unknown>', gave the following error.\n"
+        + "    Argument of type 'unknown' is not assignable to parameter of type 'Registration'.",
+    },
+    {
+      line: 15, column: 70, code: 1117, category: ts.DiagnosticCategory.Error,
+      message: 'An object literal cannot have multiple properties with the same name.',
+    },
+  ]);
   assert.ok(fixtureNames.length >= 8, `found ${fixtureNames.length} fixtures`);
 });
 

@@ -1,0 +1,7 @@
+[
+  { "line": 11, "reason": "the decorated value is any, unknown, invalid, or a factory/provider union; wrap a factory with createProvider or supply a provider by hand" },
+  { "line": 13, "reason": "the decorated value is any, unknown, invalid, or a factory/provider union; wrap a factory with createProvider or supply a provider by hand" },
+  { "line": 14, "reason": "the withMetadata options are not a supported object literal; rewrite the provider chain by hand" },
+  { "line": 15, "reason": "the transformService options are not a supported object literal; rewrite the provider chain by hand; duplicate keys and comments require a hand rewrite" },
+  { "line": 16, "reason": "the transformService options are not a supported object literal; rewrite the provider chain by hand; duplicate keys and comments require a hand rewrite" }
+]

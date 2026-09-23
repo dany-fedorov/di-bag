@@ -1,0 +1,16 @@
+import { DiBag, type Registration, type FactoryWithDisposal, type BindingSnapshot } from 'di-bag';
+const f = () => Promise.resolve(1);
+const p = DiBag.fromFactory(f, { acquisitionMode: 'nativePromise' });
+const derived = DiBag.withConfiguration({ runtime: { isNativePromise: Promise.resolve.bind(Promise) as any } });
+export const owned = DiBag.withDisposal(f, value => void value);
+export const nested = DiBag.withLifetime(DiBag.withDisposal(f, value => void value), 'root', { allowScopedDependencies: true });
+export const metadata = DiBag.withMetadata(p, { static: { owner: 'team' }, dynamic: { mode: 'awaited', describe: value => ({ value }) } });
+export const transformed = DiBag.transformService(p, { mode: 'direct', transform: value => value, acquisitionMode: 'nativePromise' });
+export const configured = derived.withDisposal(f, value => void value);
+const options = { mode: 'direct', transform: (value: unknown) => value } as const;
+export const manualOptions = DiBag.transformService(p, options);
+declare const mixed: Registration;
+export const manualUnion = DiBag.withDisposal(mixed, () => {});
+declare const snapshot: BindingSnapshot;
+export const shortComparison = snapshot.lifetime === 'root' || snapshot.lifetime === 'scoped' || snapshot.lifetime === 'transient';
+export type OldOwned = FactoryWithDisposal<typeof f>;

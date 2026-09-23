@@ -19,6 +19,10 @@
     { "owner": "DiBagApi", "from": "fromFunction", "to": "createProviderFromFunction", "transform": "provider-sources", "transformNames": { "dependencies": "dependencies", "callable": "factoryFunction", "returnKind": "factoryReturnKind", "receivesContext": "factoryReceivesContext" } },
     { "owner": "DiBagApi", "from": "fromClass", "to": "createProviderFromClass", "transform": "provider-sources", "transformNames": { "dependencies": "dependencies", "callable": "serviceClass", "returnKind": "factoryReturnKind" } },
     { "owner": "DiBagApi", "from": "fromPlugin", "to": "createProviderFromPlugin", "transform": "provider-sources", "transformNames": { "dependencies": "dependencies", "descriptor": "pluginDescriptor", "validator": "isValidPluginOutput", "returnKind": "factoryReturnKind" } },
+    { "owner": "DiBagApi", "from": "withDisposal", "to": "withDisposal", "transform": "provider-methods", "transformNames": { "disposeService": "disposeService" } },
+    { "owner": "DiBagApi", "from": "withLifetime", "to": "withLifetime", "transform": "provider-methods", "transformNames": { "allowsScopedDependencies": "allowsScopedDependencies" } },
+    { "owner": "DiBagApi", "from": "withMetadata", "to": "withRegistrationMetadata", "transform": "provider-methods", "transformNames": { "acquisitionMethod": "withAcquisitionMetadata", "registrationMetadata": "registrationMetadata", "describeAcquisition": "describeAcquisition", "callbackReceives": "callbackReceives" } },
+    { "owner": "DiBagApi", "from": "transformService", "to": "withTransformedService", "transform": "provider-methods", "transformNames": { "transformService": "transformService", "callbackReceives": "callbackReceives", "transformReturnKind": "transformReturnKind" } },
     { "owner": "DiBagApi", "from": "token", "to": "createToken" },
     { "owner": "DiBagApi", "from": "all", "to": "forCollectionOf", "transform": "collection-reference" },
     { "owner": "Bag", "from": "resolveAll", "to": "resolveCollection", "transform": "collection-read" },
@@ -32,12 +36,23 @@
   "options": [
     { "owner": "Bag", "method": "close", "argument": 0, "from": "signal", "to": "abortSignal" },
     { "owner": "Bag", "method": "close", "argument": 0, "from": "timeoutMs", "to": "waitTimeoutMs" },
-    { "owner": "DiBagApi", "method": "withConfiguration", "argument": 0, "from": "observers", "to": "lifecycleObservers" }
+    { "owner": "DiBagApi", "method": "withConfiguration", "argument": 0, "from": "observers", "to": "lifecycleObservers" },
+    { "owner": "DiBagApi", "method": "withLifetime", "argument": 2, "from": "allowScopedDependencies", "to": "allowsScopedDependencies" },
+    { "owner": "DiBagApi", "method": "transformService", "argument": 1, "from": "acquisitionMode", "to": "transformReturnKind" }
   ],
   "values": [
     { "owner": "DiBagApi", "method": "transformService", "argument": 1, "path": ["acquisitionMode"], "from": "auto", "to": "auto-detect" },
     { "owner": "DiBagApi", "method": "transformService", "argument": 1, "path": ["acquisitionMode"], "from": "raw", "to": "uninspected" },
-    { "owner": "DiBagApi", "method": "transformService", "argument": 1, "path": ["acquisitionMode"], "from": "nativePromise", "to": "native-promise" }
+    { "owner": "DiBagApi", "method": "transformService", "argument": 1, "path": ["acquisitionMode"], "from": "nativePromise", "to": "native-promise" },
+    { "owner": "DiBagApi", "method": "withLifetime", "argument": 1, "from": "root", "to": "singleton:one-per-container-tree" },
+    { "owner": "DiBagApi", "method": "withLifetime", "argument": 1, "from": "scoped", "to": "scoped:one-per-container" },
+    { "owner": "DiBagApi", "method": "withLifetime", "argument": 1, "from": "transient", "to": "transient:one-per-resolve" },
+    { "owner": "BindingSnapshot", "property": "lifetime", "from": "root", "to": "singleton:one-per-container-tree" },
+    { "owner": "BindingSnapshot", "property": "lifetime", "from": "scoped", "to": "scoped:one-per-container" },
+    { "owner": "BindingSnapshot", "property": "lifetime", "from": "transient", "to": "transient:one-per-resolve" },
+    { "owner": "AcquisitionEventFields", "property": "lifetime", "from": "root", "to": "singleton:one-per-container-tree" },
+    { "owner": "AcquisitionEventFields", "property": "lifetime", "from": "scoped", "to": "scoped:one-per-container" },
+    { "owner": "AcquisitionEventFields", "property": "lifetime", "from": "transient", "to": "transient:one-per-resolve" }
   ],
   "properties": [
     { "owner": "Token", "from": "key", "to": "symbol" },
@@ -58,7 +73,8 @@
     { "owner": "CloseProgress", "from": "acquiring", "to": "acquisitionsStillPending" },
     { "owner": "ObserverOptions", "from": "onEvent", "to": "onLifecycleEvent" },
     { "owner": "ObserverOptions", "from": "onError", "to": "onObserverFailure" },
-    { "owner": "ScopeOptions", "from": "share", "to": "sharedParentServiceKeys" }
+    { "owner": "ScopeOptions", "from": "share", "to": "sharedParentServiceKeys" },
+    { "owner": "LifetimeObligation", "from": "root", "to": "singleton" }
   ],
   "types": [
     { "from": "AcquisitionMode", "to": "FactoryReturnKind", "literalValues": { "auto": "auto-detect", "raw": "uninspected", "nativePromise": "native-promise" } },
@@ -77,7 +93,9 @@
     { "from": "ScopeOptions", "to": "CreateChildContainerOptions" },
     { "from": "CheckedScopeLifetimes", "to": "CheckedChildContainerLifetimes" },
     { "from": "DisjointScopeSelection", "to": "DisjointChildContainerSelection" },
-    { "from": "ObserverOptions", "to": "LifecycleObserver" }
+    { "from": "ObserverOptions", "to": "LifecycleObserver" },
+    { "from": "Registration", "to": "ProviderOrFactory" },
+    { "from": "FactoryWithDisposal", "to": "Provider" }
   ],
   "codes": [
     { "from": "DI_BAG_STARTUP_FAILED", "to": "DI_BAG_SERVICE_READINESS_FAILED" },
