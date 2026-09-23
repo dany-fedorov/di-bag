@@ -6,17 +6,17 @@
 
 Defined in: [errors.ts:117](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L117)
 
-`ensureServicesReady` could not make a listed service ready, and this bag is now closed.
-`cause` is the original failure and `disposalFailures` lists disposers that failed while the bag closed.
+`ensureServicesReady` could not make a listed service ready, and this container is now closed.
+`cause` is the original failure and `disposalFailures` lists disposers that failed while the container closed.
 
 ## Example
 
 ```ts
 import { DiBag, DiBagServiceReadinessError } from 'di-bag';
 
-const bag = DiBag.createBuilder().withServices({ db: async (): Promise<number> => { throw new Error('offline'); } }).buildContainer();
+const container = DiBag.createBuilder().withServices({ db: async (): Promise<number> => { throw new Error('offline'); } }).buildContainer();
 try {
-  await bag.ensureServicesReady(['db']);
+  await container.ensureServicesReady(['db']);
 } catch (error) {
   if (error instanceof DiBagServiceReadinessError) console.error(error.cause, error.disposalFailures);
 }
@@ -41,7 +41,7 @@ Defined in: [errors.ts:128](https://github.com/dany-fedorov/di-bag/blob/main/src
 | Parameter | Description |
 | ------ | ------ |
 | `cause` | The original failure of a listed service or of one of its dependencies. |
-| `disposalFailures` | Structured failures collected while closing the bag. |
+| `disposalFailures` | Structured failures collected while closing the container. |
 | `disposalError?` | The complete shutdown error, when closing itself rejected. |
 
 #### Overrides
@@ -92,4 +92,4 @@ readonly disposalFailures: readonly CleanupFailure[];
 
 Defined in: [errors.ts:121](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L121)
 
-Frozen disposal failures in invocation order, collected while this bag closed.
+Frozen disposal failures in invocation order, collected while this container closed.

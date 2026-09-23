@@ -1,4 +1,4 @@
-import { DiBag, type Bag } from '../../../src';
+import { DiBag, type Container } from '../../../src';
 
 const key: unique symbol = Symbol('token');
 const missingKey: unique symbol = Symbol('token');
@@ -13,61 +13,61 @@ const parent = DiBag.createBuilder().withInstalledModules([feature]).withTokenSe
   transient: DiBag.withLifetime(() => 1, 'transient'),
 }).buildContainer();
 
-// diagnostic: createScope share accepts existing names or typed tokens only
-parent.createScope({ share: ['missing'] });
-// diagnostic: createScope share accepts existing names or typed tokens only
-parent.createScope({ share: ['hidden'] });
-// diagnostic: createScope share accepts existing names or typed tokens only
-parent.createScope({ share: [missingToken] });
-// diagnostic: createScope share requires a finite tuple
-parent.createScope({ share: [key] });
+// diagnostic: createChildContainer sharedParentServiceKeys accepts existing names or typed tokens only
+parent.createChildContainer({ sharedParentServiceKeys: ['missing'] });
+// diagnostic: createChildContainer sharedParentServiceKeys accepts existing names or typed tokens only
+parent.createChildContainer({ sharedParentServiceKeys: ['hidden'] });
+// diagnostic: createChildContainer sharedParentServiceKeys accepts existing names or typed tokens only
+parent.createChildContainer({ sharedParentServiceKeys: [missingToken] });
+// diagnostic: createChildContainer sharedParentServiceKeys requires a finite tuple
+parent.createChildContainer({ sharedParentServiceKeys: [key] });
 const array: string[] = ['config'];
-// diagnostic: createScope share requires a finite tuple
-parent.createScope({ share: array });
+// diagnostic: createChildContainer sharedParentServiceKeys requires a finite tuple
+parent.createChildContainer({ sharedParentServiceKeys: array });
 declare const uncertain: 'config' | 'service';
-// diagnostic: createScope share requires a finite tuple
-parent.createScope({ share: [uncertain] });
+// diagnostic: createChildContainer sharedParentServiceKeys requires a finite tuple
+parent.createChildContainer({ sharedParentServiceKeys: [uncertain] });
 declare const optional: readonly ['config'?];
-// diagnostic: createScope share requires a finite tuple
-parent.createScope({ share: optional });
-// diagnostic: createScope cannot share transient providers
-parent.createScope({ share: ['transient'] });
-// diagnostic: createScope cannot share and override the same token
-parent.createScope(['config'], { config: () => ({ id: 'child' }) }, { share: ['config'] });
-// diagnostic: createScope cannot share and override the same token
-parent.createScope([token], { [key]: () => ({ id: 2 }) }, { share: [token] });
-// diagnostic: createScope accepts existing names or typed tokens only
-parent.createScope(['missing'], { missing: () => 1 });
+// diagnostic: createChildContainer sharedParentServiceKeys requires a finite tuple
+parent.createChildContainer({ sharedParentServiceKeys: optional });
+// diagnostic: createChildContainer cannot share transient providers
+parent.createChildContainer({ sharedParentServiceKeys: ['transient'] });
+// diagnostic: createChildContainer cannot share and replace the same service
+parent.createChildContainer(['config'], { config: () => ({ id: 'child' }) }, { sharedParentServiceKeys: ['config'] });
+// diagnostic: createChildContainer cannot share and replace the same service
+parent.createChildContainer([token], { [key]: () => ({ id: 2 }) }, { sharedParentServiceKeys: [token] });
+// diagnostic: createChildContainer accepts existing names or typed tokens only
+parent.createChildContainer(['missing'], { missing: () => 1 });
 // diagnostic: not assignable
-parent.createScope(['config'], {});
+parent.createChildContainer(['config'], {});
 // diagnostic: Type '() => { id: number
-parent.createScope(['config'], { config: () => ({ id: 1 }) });
+parent.createChildContainer(['config'], { config: () => ({ id: 1 }) });
 // diagnostic: Type '({ missing }: { missing: string; }) => { id: string; }' is not assignable
-parent.createScope(['config'], { config: ({ missing }: { missing: string }) => ({ id: missing }) });
+parent.createChildContainer(['config'], { config: ({ missing }: { missing: string }) => ({ id: missing }) });
 // diagnostic: Type '({ transient }: { transient: string; }) => { id: string; }' is not assignable
-parent.createScope(['config'], { config: ({ transient }: { transient: string }) => ({ id: transient }) });
+parent.createChildContainer(['config'], { config: ({ transient }: { transient: string }) => ({ id: transient }) });
 // diagnostic: Type '() => { id: string
-parent.createScope([token], { [key]: () => ({ id: 'wrong' }) });
+parent.createChildContainer([token], { [key]: () => ({ id: 'wrong' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
-parent.createScope(['service'], { service: DiBag.withLifetime(({ config }: { config: { id: string } }) => config.id, 'root') });
-// diagnostic: createScope requires a finite tuple
-parent.createScope(array, { config: () => ({ id: 'child' }) });
+parent.createChildContainer(['service'], { service: DiBag.withLifetime(({ config }: { config: { id: string } }) => config.id, 'root') });
+// diagnostic: createChildContainer requires a finite tuple
+parent.createChildContainer(array, { config: () => ({ id: 'child' }) });
 // diagnostic: Property 'config' is missing
-parent.createScope<readonly ['config'], {}>(['config'], {});
+parent.createChildContainer<readonly ['config'], {}>(['config'], {});
 // diagnostic: Object literal may only specify known properties
-parent.createScope({ share: [], extra: true });
+parent.createChildContainer({ sharedParentServiceKeys: [], extra: true });
 
 const roots = DiBag.createBuilder().withServices({
   config: DiBag.withLifetime(() => ({ id: 'root' }), 'root'),
   service: DiBag.withLifetime(({ config }: { config: { id: string } }) => config.id, 'root'),
 }).buildContainer();
-const child = roots.createScope(['config'], { config: () => ({ id: 'child' }) });
+const child = roots.createChildContainer(['config'], { config: () => ({ id: 'child' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
-child.fork();
+child.createIndependentContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
-child.fork([], {});
+child.createIndependentContainer([], {});
 
-const borrowed = parent.createScope({ share: ['service'] });
-// diagnostic: is not assignable to type 'Bag
-const erased: Bag<{ service: () => string; config: () => { id: string }; transient: () => number }> = borrowed;
+const borrowed = parent.createChildContainer({ sharedParentServiceKeys: ['service'] });
+// diagnostic: is not assignable to type 'Container
+const erased: Container<{ service: () => string; config: () => { id: string }; transient: () => number }> = borrowed;
 void erased;

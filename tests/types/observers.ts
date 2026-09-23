@@ -1,9 +1,9 @@
-import { DiBag, type LifecycleEvent, type ObserverFailure, type ObserverOptions, type ConfigurationOptions, type ObserverCallback, type ObserverErrorCallback } from '../../src';
+import { DiBag, type LifecycleEvent, type LifecycleObserver, type ObserverFailure, type ConfigurationOptions, type ObserverCallback, type ObserverErrorCallback } from '../../src';
 import type { Assert, Equal } from './assert';
 export const onEvent = (event: LifecycleEvent) => event.kind;
 export const onError = (failure: ObserverFailure) => failure.error;
-export const options = { onEvent, onError } satisfies ObserverOptions;
-export const observed = DiBag.withConfiguration({ observers: [options] });
+export const options = { onLifecycleEvent: onEvent, onObserverFailure: onError } satisfies LifecycleObserver;
+export const observed = DiBag.withConfiguration({ lifecycleObservers: [options] });
 export const observe = observed.withConfiguration;
 export const configure = observed.withConfiguration;
 export const begin = observed.createBuilder;
@@ -11,13 +11,23 @@ export const provider = observed.withMetadata(observed.fromFactory(() => Promise
 export const builder = observed.createBuilder().withServices({ value: provider }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' });
 export const bag = builder.buildContainer();
 export const resolve = bag.resolve;
-export const inspect = bag.inspect;
+export const inspect = bag.serviceSnapshot;
 export const feature = observed.createBuilder().withServices({ value: provider }).buildModule({ exportedServiceKeys: ['value'] });
 export const installed = observed.createBuilder().withInstalledModules([feature]).buildContainer();
-export const fork = bag.fork();
-export const child = bag.createScope({ share: ['copy'] });
+export const fork = bag.createIndependentContainer();
+export const child = bag.createChildContainer({ sharedParentServiceKeys: ['copy'] });
 export const value = bag.resolve('copy');
-export function inferredObserver() { return observed.withConfiguration({ observers: [{ onEvent(event) { return event.kind; }, onError(failure) { return failure.error; } }] }); }
+export function inferredObserver() { return observed.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { return event.kind; }, onObserverFailure(failure) { return failure.error; } }] }); }
+export const onLifecycleEvent = (event: LifecycleEvent) => event.kind;
+export const onObserverFailure = (failure: ObserverFailure) => failure.error;
+export const lifecycleObserver = { onLifecycleEvent, onObserverFailure } satisfies LifecycleObserver;
+export const lifecycleObserved = DiBag.withConfiguration({ lifecycleObservers: [lifecycleObserver] });
+export function inferredLifecycleObserver() {
+  return lifecycleObserved.withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event) { return event.kind; },
+    onObserverFailure(failure) { return failure.error; },
+  }] });
+}
 export type Exact = [Assert<Equal<typeof value, Promise<{ value: number }>>>,
   Assert<Equal<Parameters<typeof observe>, [options: ConfigurationOptions]>>,
   Assert<Equal<Parameters<ObserverCallback>, [event: LifecycleEvent]>>,

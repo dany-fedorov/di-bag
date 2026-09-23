@@ -4,7 +4,7 @@ import { defineConfig } from 'vitepress';
 const generated = JSON.parse(readFileSync(new URL('../reference/typedoc-sidebar.json', import.meta.url), 'utf8'));
 // Staged at tools/docs/site/.vitepress/config.mjs; the manifest owns the package description.
 const manifest = JSON.parse(readFileSync(new URL('../../../../package.json', import.meta.url), 'utf8'));
-const labels = { index: 'Portable API · di-bag', node: 'Node and Bun · di-bag/node' };
+const labels = { index: 'API · di-bag' };
 const api = generated.map(group => ({ ...group, text: labels[group.text] ?? group.text }));
 const guide = [
   { text: 'Start here', items: [
@@ -31,7 +31,7 @@ const guide = [
     { text: 'API overview', link: '/guides/api-reference' },
     { text: 'DiBag facade', link: '/reference/index/interfaces/DiBagApi' },
     { text: 'Builder', link: '/reference/index/interfaces/Builder' },
-    { text: 'Bag', link: '/reference/index/interfaces/Bag' },
+    { text: 'Container', link: '/reference/index/interfaces/Container' },
     { text: 'All generated APIs', link: '/reference/' },
   ] },
   { text: 'Contribute', items: [

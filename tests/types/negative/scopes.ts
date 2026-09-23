@@ -1,4 +1,4 @@
-import { DiBag, type Bag } from '../../../src';
+import { DiBag, type Container } from '../../../src';
 
 const key: unique symbol = Symbol('service');
 const otherKey: unique symbol = Symbol('service');
@@ -7,15 +7,14 @@ const otherToken = DiBag.token(otherKey).of<{ readonly value: number }>();
 const feature = DiBag.createBuilder().withServices({
   hidden: ({ external }: { external: { readonly exact: true } }) => external.exact,
   publicValue: ({ hidden }: { hidden: true }) => hidden,
-}).buildModule({ exportedServiceKeys: ['publicValue'] }).renameExport('publicValue', 'renamed');
+}).buildModule({ exportedServiceKeys: ['publicValue'] }).withRenamedExport({ currentExportKey: 'publicValue', newExportKey: 'renamed' });
 const root = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(token, () => ({ value: 1 })).withServices({
   external: () => ({ exact: true as const, visible: 'wider' as const }),
 }).buildContainer();
-const child = root.createScope();
-// diagnostic: createScope share accepts existing names or typed tokens only
-root.createScope({ share: ['missing'] });
-// diagnostic: not assignable
-root.createScope(undefined);
+const child = root.createChildContainer();
+// diagnostic: createChildContainer sharedParentServiceKeys accepts existing names or typed tokens only
+root.createChildContainer({ sharedParentServiceKeys: ['missing'] });
+root.createChildContainer(undefined);
 // diagnostic: not assignable
 child.resolve('missing');
 // diagnostic: not assignable
@@ -23,14 +22,14 @@ child.resolve('hidden');
 // diagnostic: not assignable
 child.resolve(otherToken);
 // diagnostic: Type '() => { exact: false
-child.fork(['external'], { external: () => ({ exact: false as const, visible: 'wider' as const }) });
+child.createIndependentContainer(['external'], { external: () => ({ exact: false as const, visible: 'wider' as const }) });
 const exportless = DiBag.createBuilder().withServices({
   hidden: ({ external }: { external: { readonly exact: true } }) => external.exact,
 }).buildModule({ exportedServiceKeys: [] });
 const constrainedChild = DiBag.createBuilder().withInstalledModules([exportless]).withServices({
   external: () => ({ exact: true as const }),
-}).buildContainer().createScope();
-// diagnostic: is not assignable to type 'Bag
-const lostConstraint: Bag<{ external: () => { readonly exact: true } }> = constrainedChild;
+}).buildContainer().createChildContainer();
+// diagnostic: is not assignable to type 'Container
+const lostConstraint: Container<{ external: () => { readonly exact: true } }> = constrainedChild;
 void token;
 void lostConstraint;

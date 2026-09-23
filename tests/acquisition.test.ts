@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError } from '../src/node';
+import { DiBag, DiBagCleanupError } from '../src';
 import { deferred } from './helpers';
 
 test('a retry does not inherit the identity of a caught failed attempt', async () => {

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { moduleGraph } from '../src/module';
 import { BindingGraph } from '../src/runtime';
 
@@ -27,7 +27,7 @@ test('module updates preserve declaration positions, earlier builders and rename
   const original = DiBag.createBuilder().withServices({ zebra: () => 1, apple: () => 2 }).withTokenService(token, () => 3)
     .withCollectionContribution({ collectionToken: group, provider: ({ zebra }: { zebra: number }) => zebra });
   const updated = original.withReplacedService('zebra', () => 4).withServiceAlias({ aliasKey: 'alias', targetServiceKey: 'apple' }).withCollectionContribution({ collectionToken: group, provider: () => 5 });
-  const module = updated.buildModule({ exportedServiceKeys: ['zebra', 'apple', token, 'alias'] }).renameExport('zebra', 'renamed');
+  const module = updated.buildModule({ exportedServiceKeys: ['zebra', 'apple', token, 'alias'] }).withRenamedExport({ currentExportKey: 'zebra', newExportKey: 'renamed' });
   const description = moduleGraph(module);
   expect([...description.bindings.values()].map(binding => binding.label)).toEqual(['zebra', 'apple', 'Symbol(same)', 'alias', 'contribution:Symbol(group)', 'contribution:Symbol(group)']);
   const earlier = DiBag.createBuilder().withInstalledModules([original.buildModule({ exportedServiceKeys: ['zebra', 'apple', token] })]).buildContainer();

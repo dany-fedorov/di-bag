@@ -11,30 +11,59 @@ type Transients<R extends Registrations, S extends readonly unknown[]> = {
 }[SelectionKey<S[number]> & keyof R];
 
 /**
- * CheckDependencyCompatibility options for borrowing selected non-transient parent acquisitions in a child scope.
+ * CheckDependencyCompatibility options for borrowing selected non-transient parent acquisitions in a child container.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
  */
-export type ScopeShareAdmission<S extends readonly unknown[]> = [Extract<S[number], CollectionTokenBase>] extends [never] ? unknown
-  : Unsatisfied<'createScope cannot share a collection token', { tokens: TokenKey<Extract<S[number], CollectionTokenBase>> }>;
-/** Options for borrowing selected non-transient parent acquisitions in a child scope. */
-export type ScopeOptions<R extends Registrations, S extends readonly unknown[], C extends NeedConstraint = never> = {
-  /** Existing names or tokens to resolve through the parent's acquisition and ownership context. */
-  readonly share: S & Selection<R, C, S, 'createScope share'> & ScopeShareAdmission<S> & (
-    [Transients<R, S>] extends [never] ? unknown
-      : Unsatisfied<'createScope cannot share transient providers', { tokens: Transients<R, S> }>
-  );
-};
+export type ChildContainerShareAdmission<S extends readonly unknown[]> = [Extract<S[number], CollectionTokenBase>] extends [never] ? unknown
+  : Unsatisfied<'createChildContainer cannot share a collection token', { tokens: TokenKey<Extract<S[number], CollectionTokenBase>> }>;
 
-/**
- * Reject a child-scope key selected for both replacement and parent sharing.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
- */
-export type DisjointScopeSelection<K extends readonly unknown[], S extends readonly unknown[]> =
-  [SelectionKey<K[number]> & SelectionKey<S[number]>] extends [never] ? unknown
-    : Unsatisfied<'createScope cannot share and override the same token', { tokens: SelectionKey<K[number]> & SelectionKey<S[number]> }>;
+type ReplacementOptions<
+  ServiceRegistrations extends Registrations,
+  Constraints extends NeedConstraint,
+  ReplacedServiceKeys extends readonly unknown[],
+  ReplacementProviders,
+  Operation extends string,
+> = [ReplacedServiceKeys[number]] extends [never]
+  ? { readonly replacedServiceKeys?: never; readonly replacementProviders?: never }
+  : {
+      readonly replacedServiceKeys: ReplacedServiceKeys
+        & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, Operation>;
+      readonly replacementProviders: ReplacementProviders;
+    };
+
+/** Options for creating an independent container with selected replacements. */
+export type CreateIndependentContainerOptions<
+  ServiceRegistrations extends Registrations,
+  Constraints extends NeedConstraint = never,
+  ReplacedServiceKeys extends readonly unknown[] = readonly [],
+  ReplacementProviders = never,
+> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders, 'createIndependentContainer'>;
+
+/** Options for creating a tracked child container with replacement and sharing selections. */
+export type CreateChildContainerOptions<
+  ServiceRegistrations extends Registrations,
+  SharedParentServiceKeys extends readonly unknown[],
+  Constraints extends NeedConstraint = never,
+  ReplacedServiceKeys extends readonly unknown[] = readonly [],
+  ReplacementProviders = never,
+> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders, 'createChildContainer'> & {
+  readonly sharedParentServiceKeys?: SharedParentServiceKeys
+    & Selection<ServiceRegistrations, Constraints, SharedParentServiceKeys, 'createChildContainer sharedParentServiceKeys'>
+    & ChildContainerShareAdmission<SharedParentServiceKeys> & (
+      [Transients<ServiceRegistrations, SharedParentServiceKeys>] extends [never] ? unknown
+        : Unsatisfied<'createChildContainer cannot share transient providers', { tokens: Transients<ServiceRegistrations, SharedParentServiceKeys> }>
+    );
+} & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>;
+
+/** Reject a child-container key selected for both replacement and parent sharing. */
+export type DisjointChildContainerSelection<ReplacedServiceKeys extends readonly unknown[], SharedParentServiceKeys extends readonly unknown[]> =
+  [SelectionKey<ReplacedServiceKeys[number]> & SelectionKey<SharedParentServiceKeys[number]>] extends [never] ? unknown
+    : Unsatisfied<'createChildContainer cannot share and replace the same service', {
+        tokens: SelectionKey<ReplacedServiceKeys[number]> & SelectionKey<SharedParentServiceKeys[number]>;
+      }>;
 
 // Selected sharing belongs to one runtime. Retain alias-only parent routing for
-// its checks, then clear it when constructing an independent fork or fresh scope.
+// its checks, then clear it when constructing an independent or fresh child container.
 type SharedKeys<R extends Registrations> = {
   [K in keyof R]: ProviderGraphContract<R[K]> extends { readonly sharedAlias: unknown } ? K : never;
 }[keyof R];
@@ -42,7 +71,7 @@ type Unshared<V extends Registration> = ProviderGraphContract<V> extends {
   readonly sharedAlias: { readonly original: infer O extends Registration };
 } ? O : V;
 /**
- * Remove parent-sharing routes when creating a fresh scope or independent fork.
+ * Remove parent-sharing routes when creating a fresh child or independent container.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
  */
 export type UnsharedAliases<R extends Registrations> = [SharedKeys<R>] extends [never] ? R

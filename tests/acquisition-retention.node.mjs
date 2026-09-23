@@ -7,7 +7,7 @@ import { test } from 'node:test';
 // WeakRef targets survive their current job. Always yield before forcing GC.
 // Run: node --expose-gc --test --test-isolation=none tests/acquisition-retention.node.mjs
 const require = createRequire(import.meta.url);
-const entry = resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/node.js');
+const entry = resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/index.js');
 const { DiBag } = require(entry);
 assert.equal(typeof globalThis.gc, 'function', 'this suite requires --expose-gc');
 const transient = provider => DiBag.withLifetime(provider, 'transient');
@@ -45,7 +45,7 @@ for (const route of ['resolve', 'alias', 'dependency', 'collection', 'startup'])
       }
       assert.equal(calls, route === 'startup' ? 1 : 16);
       await collected(refs);
-      const inspection = route === 'collection' ? bag.inspectCollection(token)[0] : bag.inspect('copy');
+      const inspection = route === 'collection' ? bag.serviceSnapshot(token)[0] : bag.serviceSnapshot('copy');
       assert.equal(inspection.acquisitions.length, calls);
       assert.ok(inspection.acquisitions.every(attempt => attempt.state === 'ready'));
       assert.equal(new Set(inspection.acquisitions.map(attempt => attempt.acquisitionId)).size, calls);
@@ -84,7 +84,7 @@ for (const mapped of [false, true]) {
       await collected(refs);
       assert.equal(sourceCalls, 16);
       assert.equal(mapCalls, mapped ? 16 : 0);
-      assert.equal(bag.inspect('value').acquisitions.length, 16);
+      assert.equal(bag.serviceSnapshot('value').acquisitions.length, 16);
     } finally { await bag.close(); }
   });
 }
@@ -101,9 +101,9 @@ test('borrowed mapped payloads are collectible while independent inspection fram
   const bag = DiBag.createBuilder().withServices({ value: transient(DiBag.transformService(annotated, { mode: 'direct', transform: source => source.value, ...{ acquisitionMode: 'raw' } })) }).buildContainer();
   try {
     for (let index = 0; index < 16; index++) assert.equal(bag.resolve('value')[0], 11);
-    const before = bag.inspect('value');
+    const before = bag.serviceSnapshot('value');
     await collected(refs);
-    assert.deepEqual(bag.inspect('value'), before);
+    assert.deepEqual(bag.serviceSnapshot('value'), before);
     assert.equal(before.acquisitions.length, 16);
     assert.equal(before.acquisitions[0].acquisitionMetadata[0].value.metadata, frame);
   } finally { await bag.close(); }
@@ -206,7 +206,7 @@ test('a ready borrowed projection drops its payload while pending source ownersh
     }, ...{ acquisitionMode: 'raw' } })),
   }).buildContainer();
   assert.equal(bag.resolve('value')[0], 3);
-  assert.equal(bag.inspect('value').acquisitions[0].state, 'ready');
+  assert.equal(bag.serviceSnapshot('value').acquisitions[0].state, 'ready');
   try { await collected(outputs); } finally {
     const closing = bag.close();
     open();

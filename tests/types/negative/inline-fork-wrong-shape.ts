@@ -6,7 +6,7 @@ DiBag.createBuilder().withServices({
         return 42;
       },
     }),
-  }).buildContainer().fork(['clock'], {
+  }).buildContainer().createIndependentContainer(['clock'], {
     clock: () => ({
       now() {
         return 'wrong';

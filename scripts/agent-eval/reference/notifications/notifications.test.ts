@@ -17,13 +17,13 @@ after(() => fixture.close());
 
 test('mails operations and closes the transport with the application', async () => {
   const events: Array<Mail | 'close'> = [];
-  const bag = fixture.fork(['mailConfig'], {
+  const bag = fixture.createIndependentContainer(['mailConfig'], {
     mailConfig: DiBag.withLifetime((): MailConfig => ({
       opsAddress: 'ops@example.com',
       connect: async () => ({ send: async mail => { events.push(mail); }, close: async () => { events.push('close'); } }),
     }), 'root'),
   });
-  await bag.createScope().resolve('notifier').orderPlaced({ orderId: 'o-1', totalCents: 450 });
+  await bag.createChildContainer().resolve('notifier').orderPlaced({ orderId: 'o-1', totalCents: 450 });
   await bag.close();
   assert.deepEqual(events, [{ to: 'ops@example.com', subject: 'Order o-1 placed', body: 'Total: 450 cents' }, 'close']);
 });

@@ -38,7 +38,7 @@ export const feature = DiBag.createBuilder()
 
 async function main() {
   const root = DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
-  const child = root.fork([clock], { [clockKey]: () => ({ now: () => 7 }) });
+  const child = root.createIndependentContainer([clock], { [clockKey]: () => ({ now: () => 7 }) });
   try {
     console.log('root:', root.resolve('service').read());
     console.log('child:', child.resolve('service').read());

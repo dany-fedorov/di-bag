@@ -1,4 +1,4 @@
-import { DiBag } from '../../src/node';
+import { DiBag } from '../../src';
 import type { ProviderOutput, ProviderAcquiredValue, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, PluginProviderFactory, Builder, DiBagApi, Registration } from '../../src';
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
 type Assert<T extends true> = T;

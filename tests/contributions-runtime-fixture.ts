@@ -8,7 +8,7 @@ export const contributionRuntimeAssertions = `
     const empty = DiBag.createBuilder().buildContainer();
     const absent = empty.resolveCollection(item);
     assertContribution(absent.length === 0 && Object.isFrozen(absent), 'empty contribution read changed');
-    assertContribution(empty.inspectCollection(item).length === 0, 'empty contribution inspection changed');
+    assertContribution(empty.serviceSnapshot(item).length === 0, 'empty contribution inspection changed');
     await empty.close();
 
     let privateCalls = 0;
@@ -17,7 +17,7 @@ export const contributionRuntimeAssertions = `
       privateHelper: DiBag.withDisposal(() => ({ id: ++privateCalls }), value => { privateCleanup.push(value.id); }),
     }).withCollectionContribution({ collectionToken: item, provider: ({ privateHelper }) => privateHelper }).buildModule({ exportedServiceKeys: [] });
     const ordered = DiBag.createBuilder().withCollectionContribution({ collectionToken: item, provider: () => ({ id: 'first' }) }).withInstalledModules([feature]).withCollectionContribution({ collectionToken: item, provider: () => ({ id: 'middle' }) }).withInstalledModules([feature]).withTokenService(singularItem, () => ({ id: 'singular' })).buildContainer();
-    const descriptions = ordered.inspectCollection(item);
+    const descriptions = ordered.serviceSnapshot(item);
     assertContribution(descriptions.length === 4 && Object.isFrozen(descriptions)
       && descriptions.every(view => Object.isFrozen(view) && view.acquisitions.length === 0)
       && privateCalls === 0, 'collection inspection acquired or exposed mutable state');
@@ -39,7 +39,7 @@ export const contributionRuntimeAssertions = `
     const tracked = (factory, lifetime) => DiBag.withLifetime(
       DiBag.withDisposal(factory, value => { cleanup.push(value); }), lifetime);
     const parent = DiBag.createBuilder().withServices({ helper: () => 'parent' }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(() => ({ kind: 'root' }), 'root') }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(({ helper }) => ({ kind: helper }), 'scoped') }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(() => ({ kind: 'transient', id: ++transientCalls }), 'transient') }).withServices({ aggregate: DiBag.fromFunction([lifetimeItem], values => values) }).buildContainer();
-    const child = parent.createScope(['helper'], { helper: () => 'child' }, { share: ['aggregate'] });
+    const child = parent.createChildContainer(['helper'], { helper: () => 'child' }, { sharedParentServiceKeys: ['aggregate'] });
     const borrowed = child.resolve('aggregate');
     assertContribution(borrowed === parent.resolve('aggregate') && borrowed[1].kind === 'parent',
       'shared aggregate escaped its parent contribution graph');

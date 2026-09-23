@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError } from '../src/node';
+import { DiBag, DiBagCleanupError } from '../src';
 import { deferred } from './helpers';
 
 test('a projected service does not replace its source disposer argument', async () => {
@@ -90,7 +90,7 @@ test('a synchronous status projection stays cached after its raw Promise rejects
   await gate.promise.catch(() => {});
   expect(bag.resolve('service')).toBe(status);
   expect(status.promise).toBe(gate.promise);
-  expect(bag.inspect('service').acquisitions[0]?.state).toBe('ready');
+  expect(bag.serviceSnapshot('service').acquisitions[0]?.state).toBe('ready');
   expect(calls).toBe(1);
   await bag.close();
 });
@@ -169,7 +169,7 @@ test('retired cleanup errors keep invocation order and original attempt identiti
   const causeB = new Error('B');
   const ids: symbol[] = [];
   const bag = DiBag.createBuilder().withServices({ service: DiBag.transformService(DiBag.withDisposal(() => {
-    ids.push(bag.inspect('service').acquisitions.at(-1)!.acquisitionId);
+    ids.push(bag.serviceSnapshot('service').acquisitions.at(-1)!.acquisitionId);
     return ids.length === 1 ? 'A' : 'B';
   }, value => { starts.push(value); return value === 'A' ? a.promise : b.promise; }), { mode: 'direct', transform: () => { throw new Error('project'); } }) }).buildContainer();
   expect(() => bag.resolve('service')).toThrow('project');
@@ -292,7 +292,7 @@ test('mapping and added finalizers run receiver-free across metadata operations'
     expect(this).toBeUndefined(); expect(value.value).toBe(5); events.push('outer');
   });
   const bag = DiBag.createBuilder().withServices({ service }).buildContainer();
-  expect(bag.inspect('service').registrationMetadata).toEqual({ owner: 'team', phase: 'mapped' });
+  expect(bag.serviceSnapshot('service').registrationMetadata).toEqual({ owner: 'team', phase: 'mapped' });
   await expect(bag.resolve('service')).resolves.toEqual({ value: 5 });
   await bag.close();
   expect(events).toEqual(['outer', 'source']);

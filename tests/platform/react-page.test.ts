@@ -57,7 +57,6 @@ test('react metafile accepts src, the example, and the React packages only', () 
   expect(() => assertReactMetafile(cleanMetafile)).not.toThrow();
   const mutations: Array<[string, unknown, string]> = [
     ['node builtin input', { ...cleanMetafile, inputs: { ...cleanMetafile.inputs, 'node:fs': {} } }, 'node: input'],
-    ['node facade', { ...cleanMetafile, inputs: { ...cleanMetafile.inputs, 'src/node.ts': {} } }, 'node facade'],
     ['foreign package', { ...cleanMetafile, inputs: { ...cleanMetafile.inputs, 'node_modules/lodash/index.js': {} } }, 'outside the allowed roots'],
     ['other example', { ...cleanMetafile, inputs: { ...cleanMetafile.inputs, 'examples/scopes.ts': {} } }, 'outside the allowed roots'],
     ['parent traversal', { ...cleanMetafile, inputs: { ...cleanMetafile.inputs, '../elsewhere/x.js': {} } }, 'outside the repository'],

@@ -113,9 +113,9 @@ function contentFailures(record: ReleasePackageRecord, inspection: NpmArchiveIns
   for (const file of files) if (!['AGENTS.md', 'LICENSE', 'README.md', 'package.json'].includes(file) && !file.startsWith('dist/') && !/^docs\/agent\/[^/]+\.md$/.test(file) || FORBIDDEN_PATH.test(file) || /^dist\/(?:adapters?|internal)\//.test(file)) failures.push(`${record.name} forbidden package file: ${file}`);
   if (record.packageMetadata.main !== './dist/index.js' || record.packageMetadata.types !== './dist/index.d.ts') failures.push(`${record.name} main/types metadata mismatch`);
   if (!same(record.packageMetadata.files, ['AGENTS.md', 'dist', 'docs/agent'])) failures.push("di-bag package metadata files must equal ['dist', 'AGENTS.md', 'docs/agent']");
-  for (const name of ['index', 'node']) for (const extension of ['d.ts', 'js']) if (!files.includes(`dist/${name}.${extension}`)) failures.push(`di-bag missing public export file dist/${name}.${extension}`);
-  for (const name of ['sas-box', 'val-box']) if (files.some(file => file === `dist/${name}.js` || file === `dist/${name}.d.ts`)) failures.push(`di-bag contains removed package entry: ${name}`);
-  const expectedExports = { './node': { types: './dist/node.d.ts', default: './dist/node.js' }, '.': { types: './dist/index.d.ts', default: './dist/index.js' } };
+  for (const extension of ['d.ts', 'js']) if (!files.includes(`dist/index.${extension}`)) failures.push(`di-bag missing public export file dist/index.${extension}`);
+  for (const name of ['node', 'sas-box', 'val-box']) if (files.some(file => file === `dist/${name}.js` || file === `dist/${name}.d.ts`)) failures.push(`di-bag contains removed package entry: ${name}`);
+  const expectedExports = { '.': { types: './dist/index.d.ts', default: './dist/index.js' } };
   if (!same(record.packageMetadata.exports, expectedExports)) failures.push('di-bag public exports mismatch');
   for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'] as const) if (Object.keys(record.packageMetadata[field]).length) failures.push(`di-bag ${field} must be empty`);
   if (record.packageMetadata.bundledDependencies.length) failures.push('di-bag bundledDependencies must be empty');

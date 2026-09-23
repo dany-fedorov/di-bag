@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { deferred } from './helpers';
 
 type Diagnostic = { readonly code: string; readonly details: Readonly<Record<string, unknown>>; readonly message: string };
@@ -50,13 +50,13 @@ test('inspect of a collection token returns one snapshot per contribution and ru
   const itemsKey = Symbol('items');
   const items = DiBag.token(itemsKey).forCollectionOf<number>(); let calls = 0;
   const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: items, provider: DiBag.withMetadata(() => ++calls, { static: { name: 'a' } }) }).withCollectionContribution({ collectionToken: items, provider: () => ++calls }).buildContainer();
-  const before = bag.inspectCollection(items);
+  const before = bag.serviceSnapshot(items);
   expect(calls).toBe(0); expect(Object.isFrozen(before)).toBe(true);
   expect(before.map(snapshot => snapshot.acquisitions.length)).toEqual([0, 0]);
   expect(before[0]!.registrationMetadata).toEqual({ name: 'a' });
   bag.resolveCollection(items);
-  expect(bag.inspectCollection(items).map(snapshot => snapshot.acquisitions.length)).toEqual([1, 1]);
-  expect(DiBag.createBuilder().buildContainer().inspectCollection(items)).toEqual([]);
+  expect(bag.serviceSnapshot(items).map(snapshot => snapshot.acquisitions.length)).toEqual([1, 1]);
+  expect(DiBag.createBuilder().buildContainer().serviceSnapshot(items)).toEqual([]);
   await bag.close();
 });
 
@@ -87,7 +87,7 @@ test('each contribution keeps its own lifetime and disposer when the list is rea
     .buildContainer();
   const first = bag.resolveCollection(objects); const again = bag.resolveCollection(objects);
   expect(first[0]).toBe(again[0]); expect(first[1]).toBe(again[1]); expect(first[2]).not.toBe(again[2]);
-  const child = bag.createScope(); const scoped = child.resolveCollection(objects);
+  const child = bag.createChildContainer(); const scoped = child.resolveCollection(objects);
   expect(scoped[0]).toBe(first[0]); expect(scoped[1]).not.toBe(first[1]);
   await child.close(); await bag.close();
   expect(disposed.length).toBe(ids); expect(new Set(disposed).size).toBe(ids);
@@ -120,7 +120,7 @@ test('a dependency list accepts a collection token, lazy supplies a getter, and 
   expect(bag.resolve('sum')).toBe(7); expect(bag.resolve('total').values).toEqual([3, 4]);
   expect(Object.isFrozen(bag.resolve('total').values)).toBe(true); expect(bag.resolve('count')).toBe(2);
   const getNumbers = bag.resolve('later'); expect(getNumbers()).toEqual([3, 4]); expect(getNumbers()).not.toBe(getNumbers());
-  const graph = bag.inspectGraph();
+  const graph = bag.graphSnapshot();
   const kinds = (label: string) => graph.bindings.find(binding => binding.label === label)!.tokenDependencies.map(dependency => dependency.kind);
   expect(kinds('sum')).toEqual(['required']); expect(kinds('later')).toEqual(['lazy']);
   const error = thrown(() => (DiBag.optional as Function)(numbers));
@@ -150,7 +150,7 @@ test('an alias gives the list a name, so a named factory reaches it', async () =
     .withServices({ router: ({ controllers }: { controllers: readonly string[] }) => controllers.join(',') }).buildContainer();
   expect(bag.resolve('router')).toBe('users,orders');
   const named = bag.resolve('controllers'); expect(named).toEqual(['users', 'orders']); expect(Object.isFrozen(named)).toBe(true);
-  expect(bag.resolve('controllers')).not.toBe(named); expect(bag.inspect('controllers').aliasTarget).toBeUndefined();
+  expect(bag.resolve('controllers')).not.toBe(named); expect(bag.serviceSnapshot('controllers').aliasTarget).toBeUndefined();
   await bag.close();
 });
 
@@ -170,7 +170,7 @@ test('a single-service token and a collection token never merge', async () => {
   const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: loggerSinks, provider: () => 'console' }).withCollectionContribution({ collectionToken: loggerSinks, provider: () => 'file' })
     .withTokenService(logger, DiBag.fromFunction([loggerSinks], sinks => `fan-out(${sinks.join(',')})`)).buildContainer();
   expect(bag.resolve(logger)).toBe('fan-out(console,file)'); expect(bag.resolveCollection(loggerSinks)).toEqual(['console', 'file']);
-  expect(bag.inspectGraph().contributions.map(group => group.token)).toEqual([loggerSinks.key]); await bag.close();
+  expect(bag.graphSnapshot().contributions.map(group => group.token)).toEqual([loggerSinks.key]); await bag.close();
 });
 
 test('fork replaces a whole list, and the replacement wins for every reader', async () => {
@@ -192,7 +192,7 @@ test('fork replaces a whole list, and the replacement wins for every reader', as
     () => fake,
     value => { disposed = value; },
   );
-  const testApp = app.fork(
+  const testApp = app.createIndependentContainer(
     [controllers],
     { [controllers.key]: replacement },
   );
@@ -206,16 +206,16 @@ test('fork replaces a whole list, and the replacement wins for every reader', as
   expect(Object.isFrozen(named)).toBe(true);
   expect(testApp.resolve('router')).toBe('fake');
   expect(testApp.resolve('count')).toBe(1);
-  expect(testApp.inspectCollection(controllers).map(snapshot => snapshot.acquisitions.length)).toEqual([1]);
+  expect(testApp.serviceSnapshot(controllers).map(snapshot => snapshot.acquisitions.length)).toEqual([1]);
   expect(await testApp.ensureServicesReady([controllers])).toBe(testApp); expect(real).toBe(0);
-  expect(app.resolveCollection(controllers)).toEqual(['users', 'orders']); expect(app.inspectCollection(controllers).length).toBe(2);
-  const again = testApp.fork([controllers], { [controllers.key]: () => ['again'] });
+  expect(app.resolveCollection(controllers)).toEqual(['users', 'orders']); expect(app.serviceSnapshot(controllers).length).toBe(2);
+  const again = testApp.createIndependentContainer([controllers], { [controllers.key]: () => ['again'] });
   expect(again.resolveCollection(controllers)).toEqual(['again']);
   const unusedKey = Symbol('unused');
   const unused = DiBag.token(unusedKey).forCollectionOf<number>();
-  const filled = app.fork([unused], { [unused.key]: () => [1, 2] });
+  const filled = app.createIndependentContainer([unused], { [unused.key]: () => [1, 2] });
   expect(filled.resolveCollection(unused)).toEqual([1, 2]);
-  expect(thrown(() => (app.fork as Function)([controllers], {})).code).toBe('DI_BAG_INVALID_OVERRIDE');
+  expect(thrown(() => (app.createIndependentContainer as Function)([controllers], {})).code).toBe('DI_BAG_INVALID_OVERRIDE');
   await again.close(); await filled.close(); await testApp.close();
   expect(disposed).toBe(fake);
   await app.close();
@@ -227,14 +227,14 @@ test('createScope and builder replace swap a list the same way', async () => {
   const builder = DiBag.createBuilder().withCollectionContribution({ collectionToken: sinks, provider: () => 'console' })
     .withServices({ names: DiBag.fromFunction([sinks], list => list.join('+')) });
   const app = builder.buildContainer();
-  const child = app.createScope([sinks], { [sinks.key]: () => ['memory'] });
+  const child = app.createChildContainer([sinks], { [sinks.key]: () => ['memory'] });
   expect(child.resolveCollection(sinks)).toEqual(['memory']); expect(child.resolve('names')).toBe('memory');
   expect(app.resolve('names')).toBe('console');
   const replaced = builder.withReplacedService(sinks, () => ['file', 'syslog']).buildContainer();
   expect(replaced.resolveCollection(sinks)).toEqual(['file', 'syslog']); expect(replaced.resolve('names')).toBe('file+syslog');
   const later = builder.withReplacedService(sinks, () => ['first']).withCollectionContribution({ collectionToken: sinks, provider: () => 'ignored' }).buildContainer();
   expect(later.resolveCollection(sinks)).toEqual(['first']);
-  expect(thrown(() => (app.createScope as Function)([sinks], {})).code).toBe('DI_BAG_INVALID_SCOPE');
+  expect(thrown(() => (app.createChildContainer as Function)([sinks], {})).code).toBe('DI_BAG_INVALID_OVERRIDE');
   await child.close(); await app.close(); await replaced.close(); await later.close();
 });
 
@@ -246,22 +246,30 @@ test('share and buildModule reject a collection token as the wrong kind', async 
   const exported = thrown(() => (builder.buildModule as Function)({ exportedServiceKeys: [numbers] }));
   expect(exported.code).toBe('DI_BAG_WRONG_TOKEN_KIND'); expect(exported.details).toEqual(wrong('buildModule'));
   const bag = builder.buildContainer();
-  const shared = thrown(() => (bag.createScope as Function)({ share: [numbers] }));
-  expect(shared.code).toBe('DI_BAG_WRONG_TOKEN_KIND'); expect(shared.details).toEqual(wrong('createScope'));
-  const replaced = bag.fork([numbers], { [numbers.key]: () => [5] });
-  expect(thrown(() => (replaced.createScope as Function)({ share: [numbers] })).code).toBe('DI_BAG_WRONG_TOKEN_KIND');
+  const shared = thrown(() => (bag.createChildContainer as Function)({ sharedParentServiceKeys: [numbers] }));
+  expect(shared.code).toBe('DI_BAG_WRONG_TOKEN_KIND'); expect(shared.details).toEqual(wrong('createChildContainer'));
+  const replaced = bag.createIndependentContainer([numbers], { [numbers.key]: () => [5] });
+  expect(thrown(() => (replaced.createChildContainer as Function)({ sharedParentServiceKeys: [numbers] })).code).toBe('DI_BAG_WRONG_TOKEN_KIND');
   const resolved = thrown(() => (replaced.resolve as Function)(numbers));
   expect(resolved.code).toBe('DI_BAG_WRONG_TOKEN_KIND'); expect(resolved.details).toEqual(wrong('resolve'));
-  const inspected = thrown(() => (replaced.inspect as Function)(numbers));
-  expect(inspected.code).toBe('DI_BAG_WRONG_TOKEN_KIND'); expect(inspected.details).toEqual(wrong('inspect'));
+  const inspected = replaced.serviceSnapshot(numbers);
+  expect(inspected).toHaveLength(1); expect(inspected[0]!.acquisitions).toEqual([]);
   const serviceKey = Symbol('service');
   const service = DiBag.token(serviceKey).of<number>();
   const serviceBag = DiBag.createBuilder().withTokenService(service, () => 1).buildContainer();
   const collectionWrong = (operation: string) => ({ operation, expectedKind: 'collection', receivedKind: 'single-service' });
   const collectionResolved = thrown(() => (serviceBag.resolveCollection as Function)(service));
   expect(collectionResolved.code).toBe('DI_BAG_WRONG_TOKEN_KIND'); expect(collectionResolved.details).toEqual(collectionWrong('resolveCollection'));
-  const collectionInspected = thrown(() => (serviceBag.inspectCollection as Function)(service));
-  expect(collectionInspected.code).toBe('DI_BAG_WRONG_TOKEN_KIND'); expect(collectionInspected.details).toEqual(collectionWrong('inspectCollection'));
+  const collectionInspected = serviceBag.serviceSnapshot(service);
+  expect(collectionInspected.acquisitions).toEqual([]);
+  const forgedService = DiBag.token(numbersKey).of<number>();
+  const forgedCollection = DiBag.token(serviceKey).forCollectionOf<number>();
+  const forgedServiceInspected = thrown(() => (replaced.serviceSnapshot as Function)(forgedService));
+  expect(forgedServiceInspected.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
+  expect(forgedServiceInspected.details).toEqual(collectionWrong('serviceSnapshot'));
+  const forgedCollectionInspected = thrown(() => (serviceBag.serviceSnapshot as Function)(forgedCollection));
+  expect(forgedCollectionInspected.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
+  expect(forgedCollectionInspected.details).toEqual(wrong('serviceSnapshot'));
   await serviceBag.close();
   await replaced.close(); await bag.close();
 });

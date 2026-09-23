@@ -27,7 +27,7 @@ export interface DisposerContext {
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
  */
 export interface AcquisitionContext {
-  /** Aborted when the acquisition's owning scope begins closing. */
+  /** Aborted when the acquisition's owning container begins closing. */
   readonly signal: AbortSignal;
   /**
    * Own a resource this factory has already acquired. Pushed disposers run exactly once, last

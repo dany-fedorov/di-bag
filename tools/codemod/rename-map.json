@@ -15,11 +15,17 @@
     { "owner": "token()", "from": "of", "to": "forCollectionOf", "transform": "collection-token" },
     { "owner": "DiBagApi", "from": "all", "to": "forCollectionOf", "transform": "collection-reference" },
     { "owner": "Bag", "from": "resolveAll", "to": "resolveCollection", "transform": "collection-read" },
-    { "owner": "Bag", "from": "inspectAll", "to": "inspectCollection", "transform": "collection-read" }
+    { "owner": "Bag", "from": "inspectAll", "to": "serviceSnapshot", "transform": "collection-read" },
+    { "owner": "Bag", "from": "inspect", "to": "serviceSnapshot" },
+    { "owner": "Bag", "from": "inspectGraph", "to": "graphSnapshot" },
+    { "owner": "Bag", "from": "createScope", "to": "createChildContainer", "arity": [0, 1, 2, 3], "transform": "container-derivation", "transformNames": { "keys": "replacedServiceKeys", "providers": "replacementProviders", "sharing": "sharedParentServiceKeys" } },
+    { "owner": "Bag", "from": "fork", "to": "createIndependentContainer", "arity": [0, 1, 2], "transform": "container-derivation", "transformNames": { "keys": "replacedServiceKeys", "providers": "replacementProviders" } },
+    { "owner": "Module", "from": "renameExport", "to": "withRenamedExport", "arguments": { "kind": "bag", "names": ["currentExportKey", "newExportKey"] } }
   ],
   "options": [
     { "owner": "Bag", "method": "close", "argument": 0, "from": "signal", "to": "abortSignal" },
-    { "owner": "Bag", "method": "close", "argument": 0, "from": "timeoutMs", "to": "waitTimeoutMs" }
+    { "owner": "Bag", "method": "close", "argument": 0, "from": "timeoutMs", "to": "waitTimeoutMs" },
+    { "owner": "DiBagApi", "method": "withConfiguration", "argument": 0, "from": "observers", "to": "lifecycleObservers" }
   ],
   "properties": [
     { "owner": "CloseOptions", "from": "signal", "to": "abortSignal" },
@@ -33,17 +39,29 @@
     { "owner": "DiBagStartupCancelledError", "from": "cleanupPromise", "to": "disposalPromise" },
     { "owner": "DiBagCloseCancelledError", "from": "timeoutMs", "to": "waitTimeoutMs" },
     { "owner": "CloseProgress", "from": "pending", "to": "disposersStillRunning" },
-    { "owner": "CloseProgress", "from": "acquiring", "to": "acquisitionsStillPending" }
+    { "owner": "CloseProgress", "from": "acquiring", "to": "acquisitionsStillPending" },
+    { "owner": "ObserverOptions", "from": "onEvent", "to": "onLifecycleEvent" },
+    { "owner": "ObserverOptions", "from": "onError", "to": "onObserverFailure" },
+    { "owner": "ScopeOptions", "from": "share", "to": "sharedParentServiceKeys" }
   ],
   "types": [
     { "from": "StartupOptions", "to": "EnsureServicesReadyOptions" },
     { "from": "DiBagStartupError", "to": "DiBagServiceReadinessError" },
     { "from": "DiBagStartupCancelledError", "to": "DiBagServiceReadinessCancelledError" },
-    { "from": "BuilderContribute", "to": "BuilderWithCollectionContribution" }
+    { "from": "BuilderContribute", "to": "BuilderWithCollectionContribution" },
+    { "from": "Bag", "to": "Container" },
+    { "from": "ScopeOptions", "to": "CreateChildContainerOptions" },
+    { "from": "CheckedScopeLifetimes", "to": "CheckedChildContainerLifetimes" },
+    { "from": "DisjointScopeSelection", "to": "DisjointChildContainerSelection" },
+    { "from": "ObserverOptions", "to": "LifecycleObserver" }
   ],
   "codes": [
     { "from": "DI_BAG_STARTUP_FAILED", "to": "DI_BAG_SERVICE_READINESS_FAILED" },
     { "from": "DI_BAG_STARTUP_CANCELLED", "to": "DI_BAG_SERVICE_READINESS_CANCELLED" },
     { "from": "DI_BAG_STARTUP_TIMEOUT", "to": "DI_BAG_SERVICE_READINESS_TIMEOUT" }
+  ],
+  "imports": [
+    { "from": "di-bag/node", "to": "di-bag" },
+    { "fromSuffix": "/src/node", "toSuffix": "/src" }
   ]
 }

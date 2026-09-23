@@ -77,14 +77,14 @@ DiBag.createBuilder().withTokenService(number, () => 1).withServices({ rootOptio
 const privateRoot = DiBag.createBuilder().withServices({ rootOptional }).buildModule({ exportedServiceKeys: [] });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([privateRoot]).withTokenService(number, () => 1).buildContainer();
-const privateLazy = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ root }).buildModule({ exportedServiceKeys: ['root'] }).renameExport('root', 'renamed');
+const privateLazy = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ root }).buildModule({ exportedServiceKeys: ['root'] }).withRenamedExport({ currentExportKey: 'root', newExportKey: 'renamed' });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([privateLazy]).buildContainer();
 const valid = DiBag.createBuilder().withTokenService(number, DiBag.withLifetime(() => 1, 'root')).withServices({ root }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
-valid.fork([number], { [key]: () => 2 });
+valid.createIndependentContainer([number], { [key]: () => 2 });
 // diagnostic: root lifetime cannot capture scoped dependency
-valid.createScope([number, 'root'], { [key]: () => 2, root });
+valid.createChildContainer([number, 'root'], { [key]: () => 2, root });
 declare const erasedProvider: Provider<() => number> | typeof source;
 // diagnostic: incompatible
 DiBag.createBuilder().withTokenService(wrong, () => 'wrong').withServices({ source: erasedProvider });
@@ -108,16 +108,16 @@ DiBag.fromFunction([referenceUnion], value => value);
 DiBag.fromFunction([{ ...optional }], value => value);
 // diagnostic: not assignable
 const invariant: import('../../../src').OptionalDependency<import('../../../src').Token<typeof key, number | string>> = optional;
-const rootOptionalModule = DiBag.createBuilder().withServices({ rootOptional }).buildModule({ exportedServiceKeys: ['rootOptional'] }).renameExport('rootOptional', 'renamed');
+const rootOptionalModule = DiBag.createBuilder().withServices({ rootOptional }).buildModule({ exportedServiceKeys: ['rootOptional'] }).withRenamedExport({ currentExportKey: 'rootOptional', newExportKey: 'renamed' });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([rootOptionalModule]).withTokenService(number, () => 1).buildContainer();
 const bound = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ source }).buildContainer();
 // diagnostic: token binding output
 DiBag.createBuilder().withTokenService(number, () => 1).withServices({ source }).withReplacedService(number, () => 'wrong');
 // diagnostic: not assignable
-bound.fork([number], { [key]: () => 'wrong' });
+bound.createIndependentContainer([number], { [key]: () => 'wrong' });
 // diagnostic: not assignable
-bound.createScope([number], { [key]: () => 'wrong' });
+bound.createChildContainer([number], { [key]: () => 'wrong' });
 
 declare const impossible: never;
 // diagnostic: finite tuple

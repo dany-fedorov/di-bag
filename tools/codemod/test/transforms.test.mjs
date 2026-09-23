@@ -8,7 +8,7 @@ import { compiler, fixturesProgram, fixturesRoot } from './helpers.mjs';
 test('every transform the shipped map names exists in the registry', () => {
   const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
   assert.deepEqual(validateRenameMap(shipped, Object.keys(transforms)), []);
-  assert.deepEqual(Object.keys(transforms), ['build-and-start', 'collection-read', 'collection-reference', 'collection-token']);
+  assert.deepEqual(Object.keys(transforms), ['build-and-start', 'collection-read', 'collection-reference', 'collection-token', 'container-derivation']);
 });
 
 test('a map that names an unknown transform is refused before any file is read', () => {
@@ -46,4 +46,30 @@ test('an undecidable custom transform leaves each whole call untouched and repor
   assert.ok(result.manual.some(item => item.reason.startsWith('startupOrder is not a literal')));
   assert.ok(result.manual.some(item => item.reason.startsWith('options are spread here')));
   assert.ok(result.manual.some(item => item.reason.startsWith('buildAndStart is called with a spread argument')));
+});
+
+test('container derivation uses mapped role names and preserves three-argument trivia', () => {
+  const shipped = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
+  const alternate = {
+    ...shipped,
+    methods: shipped.methods.map(entry => entry.owner === 'Bag' && entry.from === 'createScope'
+      ? {
+          ...entry,
+          to: 'spawnChild',
+          transformNames: { keys: 'chosenKeys', providers: 'providerMap', sharing: 'parent-keys' },
+        }
+      : entry),
+  };
+  const common = {
+    typescript: compiler.ts,
+    root: fixturesRoot,
+    program: fixturesProgram(),
+    only: ['container-renames/input.ts'],
+  };
+  const alternateResult = runCodemod({ ...common, map: alternate });
+  assert.match(alternateResult.files[0].text,
+    /export const child3 = root\.spawnChild\(keys \/\* k \*\/, replacements \/\* p \*\/, \{ "parent-keys": \['b'\], \}\);/);
+  const shippedResult = runCodemod({ ...common, map: shipped });
+  assert.match(shippedResult.files[0].text,
+    /export const child3 = root\.createChildContainer\(keys \/\* k \*\/, replacements \/\* p \*\/, \{ sharedParentServiceKeys: \['b'\], \}\);/);
 });

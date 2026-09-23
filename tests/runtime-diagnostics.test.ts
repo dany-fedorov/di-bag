@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
 import { getEventListeners } from 'node:events';
-import { DiBag, DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagServiceReadinessCancelledError, type GraphSnapshot, type LifecycleEvent } from '../src/node';
+import { DiBag, DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagServiceReadinessCancelledError, type GraphSnapshot, type LifecycleEvent } from '../src';
 import { DiBag as Core } from '../src';
 import { withoutBuiltinModule } from './host-builtin-module';
 
 // Dynamic graphs below are cast past the compiler on purpose: these tests pin runtime labels.
-type LooseBag = { resolve(key: string): unknown; inspectGraph(): GraphSnapshot; close(): Promise<void> };
+type LooseBag = { resolve(key: string): unknown; graphSnapshot(): GraphSnapshot; close(): Promise<void> };
 const buildLoose = (builder: unknown) => (builder as { buildContainer(): unknown }).buildContainer() as LooseBag;
 
 const page = 'https://dany-fedorov.github.io/di-bag/agent/errors.html';
@@ -31,8 +31,9 @@ test('library messages carry the code, the original text, and the errors-page se
   expect(classifier.message).toBe(`DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule; 1 registration uses automatic acquisition: "value"; use DiBag.fromSyncFactory or DiBag.fromAsyncFactory (or an explicit acquisitionMode) for each, or configure DiBag.withConfiguration({ runtime: { isNativePromise } }); see ${page}#di-bag-classifier-required`);
 
   const typeError = caught(() => DiBag.withConfiguration(null as never));
-  expect(typeError).toBeInstanceOf(TypeError);
-  expect(typeError.message).toStartWith('DI_BAG_INVALID_CONFIGURATION: withConfiguration requires an options object; see ');
+  expect(typeError.code).toBe('DI_BAG_INVALID_ARGUMENT');
+  expect(typeError.details).toEqual({ operation: 'withConfiguration', argument: 'options', expected: 'an object' });
+  expect(typeError.message).toBe(`DI_BAG_INVALID_ARGUMENT: withConfiguration requires one options object; see ${page}#di-bag-invalid-argument`);
 
   const plugin = new DiBagPluginValidationError('output', 'rejected');
   expect(plugin.message).toBe(`DI_BAG_PLUGIN_VALIDATION: Invalid plugin output: rejected; see ${page}#di-bag-plugin-validation`);
@@ -56,9 +57,9 @@ test('application errors keep their message untouched', () => {
   expect(original.message).toBe('application failure');
 });
 
-test('a module label names private bindings in messages, cycle paths, inspectGraph, and observers', async () => {
+test('a module label names private bindings in messages, cycle paths, graphSnapshot, and observers', async () => {
   const events: LifecycleEvent[] = [];
-  const api = DiBag.withConfiguration({ observers: [{ onEvent: event => { events.push(event); }, onError() {} }] });
+  const api = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { events.push(event); }, onObserverFailure() {} }] });
   const orders = api.createBuilder().withServices({
     repository: ({ database }: { database: string }) => `repo:${database}`,
     left: ({ right }: { right: number }) => right,
@@ -81,7 +82,7 @@ test('a module label names private bindings in messages, cycle paths, inspectGra
   expect(missing.code).toBe('DI_BAG_MISSING_DEPENDENCY');
   expect(missing.details.consumer).toBe('broken');
 
-  const labels = bag.inspectGraph().bindings.map(binding => [binding.label, binding.keys]);
+  const labels = bag.graphSnapshot().bindings.map(binding => [binding.label, binding.keys]);
   expect(labels).toEqual(expect.arrayContaining([
     ['placeOrder', ['placeOrder']], ['orders/repository', []], ['orders/left', []], ['orders/right', []], ['database', ['database']],
   ]));
@@ -108,14 +109,14 @@ test('nested module labels compose outward and unlabeled modules keep bare keys'
   const outer = DiBag.createBuilder().withInstalledModules([inner]).withServices({ wrap: ({ read }: { read: number }) => read + 1 }).buildModule({ exportedServiceKeys: ['wrap'], moduleLabel: 'outer' });
   const labeled = DiBag.createBuilder().withInstalledModules([outer]).buildContainer();
   expect(labeled.resolve('wrap')).toBe(2);
-  expect(labeled.inspectGraph().bindings.map(binding => binding.label).sort()).toEqual(['outer/inner/state', 'outer/read', 'wrap']);
+  expect(labeled.graphSnapshot().bindings.map(binding => binding.label).sort()).toEqual(['outer/inner/state', 'outer/read', 'wrap']);
 
   const unlabeledOuter = DiBag.createBuilder().withInstalledModules([inner]).withServices({ wrap: ({ read }: { read: number }) => read }).buildModule({ exportedServiceKeys: ['wrap'] });
-  const mixed = DiBag.createBuilder().withInstalledModules([unlabeledOuter.renameExport('wrap', 'renamed')]).buildContainer();
-  expect(mixed.inspectGraph().bindings.map(binding => binding.label).sort()).toEqual(['inner/state', 'read', 'wrap']);
+  const mixed = DiBag.createBuilder().withInstalledModules([unlabeledOuter.withRenamedExport({ currentExportKey: 'wrap', newExportKey: 'renamed' })]).buildContainer();
+  expect(mixed.graphSnapshot().bindings.map(binding => binding.label).sort()).toEqual(['inner/state', 'read', 'wrap']);
 
   const plain = DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ state: () => 1, read: ({ state }: { state: number }) => state }).buildModule({ exportedServiceKeys: ['read'] })]).buildContainer();
-  expect(plain.inspectGraph().bindings.map(binding => binding.label).sort()).toEqual(['read', 'state']);
+  expect(plain.graphSnapshot().bindings.map(binding => binding.label).sort()).toEqual(['read', 'state']);
   await Promise.all([labeled.close(), mixed.close(), plain.close()]);
 });
 
@@ -143,7 +144,7 @@ test('close({ waitTimeoutMs }) rejects naming the never-settling disposer and ke
   expect(error.code).toBe('DI_BAG_CLOSE_TIMEOUT');
   expect(error.reason).toBe('timeout');
   expect(error.details).toEqual({ operation: 'close', reason: 'timeout', waitTimeoutMs: 1, disposersStillRunning: ['stuck'], acquisitionsStillPending: [] });
-  expect(error.message).toBe(`DI_BAG_CLOSE_TIMEOUT: Bag close timed out after 1ms; disposers still running: stuck; see ${page}#di-bag-close-timeout`);
+  expect(error.message).toBe(`DI_BAG_CLOSE_TIMEOUT: Container close timed out after 1ms; disposers still running: stuck; see ${page}#di-bag-close-timeout`);
   expect(error.cause.name).toBe('TimeoutError');
   expect(error.cause.code).toBe('DI_BAG_CLOSE_TIMEOUT');
   expect(() => bag.resolve('fast')).toThrow('DI_BAG_CLOSING');
@@ -221,16 +222,16 @@ test('scopes and forks accept close options; a child deadline names the child di
   const root = DiBag.createBuilder().withServices({
     session: DiBag.withDisposal(() => 1, () => new Promise<void>(resolve => { release = resolve; })),
   }).buildContainer();
-  const child = root.createScope();
+  const child = root.createChildContainer();
   child.resolve('session');
   const childError = await child.close({ waitTimeoutMs: 1 }).catch(error => error);
   expect(childError.details.disposersStillRunning).toEqual(['session']);
   release();
   await childError.cleanupPromise;
 
-  const fork = root.fork();
+  const fork = root.createIndependentContainer();
   fork.resolve('session');
-  const parentChild = root.createScope();
+  const parentChild = root.createChildContainer();
   parentChild.resolve('session');
   const rootError = await root.close({ waitTimeoutMs: 1 }).catch(error => error);
   expect(rootError.code).toBe('DI_BAG_CLOSE_TIMEOUT');

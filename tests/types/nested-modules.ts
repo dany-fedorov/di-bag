@@ -34,7 +34,7 @@ const exported = DiBag.createBuilder()
   .withInstalledModules([inner])
   .withServices({ logger: () => ({ log(_message: string) {}, level: 1 }) })
   .buildModule({ exportedServiceKeys: ['service', 'logger'] })
-  .renameExport('logger', 'sink');
+  .withRenamedExport({ currentExportKey: 'logger', newExportKey: 'sink' });
 type ExportedRequired = Assert<Equal<ModuleRequiredServices<typeof exported>, Readonly<{ clock: { now(): number } }>>>;
 export const compatible = DiBag.createBuilder()
   .withInstalledModules([exported])

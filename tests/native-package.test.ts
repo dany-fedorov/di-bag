@@ -24,8 +24,8 @@ const bun = process.execPath;
 const npmCli = realpathSync(join(dirname(node), 'npm'));
 const replacementNativeGapCounts: Readonly<Record<string, number>> = {};
 const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
-  ? "const { DiBag, DiBagPluginValidationError } = require('di-bag/node'); const assert = require('node:assert/strict');"
-  : "import { DiBag, DiBagPluginValidationError } from 'di-bag/node'; import assert from 'node:assert/strict';"}
+  ? "const { DiBag, DiBagPluginValidationError } = require('di-bag'); const assert = require('node:assert/strict');"
+  : "import { DiBag, DiBagPluginValidationError } from 'di-bag'; import assert from 'node:assert/strict';"}
 (async () => {
   const log = [];
   let id = 0;
@@ -38,8 +38,8 @@ const scopeRuntimeSource = (extension: 'cts' | 'mts') => `${extension === 'cts'
     scoped: DiBag.withDisposal(() => ({ owner: 'scope' }), () => { scopedDisposed++; }),
     transient: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'call' }), () => { transientsDisposed++; }), 'transient'),
   }).buildContainer();
-  const child = parent.createScope();
-  const independent = child.fork();
+  const child = parent.createChildContainer();
+  const independent = child.createIndependentContainer();
   const childRoot = child.resolve('root');
   child.resolve('scoped');
   const firstTransient = child.resolve('transient');

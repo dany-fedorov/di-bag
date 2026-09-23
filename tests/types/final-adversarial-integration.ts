@@ -40,9 +40,9 @@ export const annotated = DiBag.transformService(DiBag.withMetadata(annotatedSour
 export const finalAdversarialFeature = DiBag.createBuilder().withTokenService(port, () => 8080).withServices({ client, plugin, annotated }).withServiceAlias({ aliasKey: 'clientAlias', targetServiceKey: 'client' }).buildModule({ exportedServiceKeys: ['client', 'plugin', 'annotated', 'clientAlias'] });
 
 export const finalAdversarialBag = DiBag.createBuilder().withInstalledModules([finalAdversarialFeature]).buildContainer();
-export const finalAdversarialChild = finalAdversarialBag.createScope(['plugin'], {
+export const finalAdversarialChild = finalAdversarialBag.createChildContainer(['plugin'], {
   plugin: () => ({ plugin: true as const, port: 9090, selected: true as const }),
-}, { share: ['annotated'] });
+}, { sharedParentServiceKeys: ['annotated'] });
 
 type AnnotatedValue = { annotated: true; port: number };
 export type FinalAdversarialProducerContracts = [

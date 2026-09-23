@@ -17,22 +17,21 @@ DiBag.createBuilder().withTokenService(collection, () => [1]);
 DiBag.createBuilder().withServices({ value: (): readonly number[] => [] }).withServiceAlias({ aliasKey: collection, targetServiceKey: 'value' });
 // diagnostic: optional requires a single-service token
 DiBag.optional(collection);
-// diagnostic: createScope cannot share a collection token
-builder.buildContainer().createScope({ share: [collection] as const });
+// diagnostic: createChildContainer cannot share a collection token
+builder.buildContainer().createChildContainer({ sharedParentServiceKeys: [collection] as const });
 // diagnostic: buildModule cannot export a collection token
 builder.buildModule({ exportedServiceKeys: [collection] as const });
 // diagnostic: token binding output is not assignable to its service
 builder.withReplacedService(collection, () => [1, 'wrong']);
 // diagnostic: token binding output is not assignable to its service
-builder.buildContainer().fork([collection] as const, { [collection.key]: () => ['wrong'] });
+builder.buildContainer().createIndependentContainer([collection] as const, { [collection.key]: () => ['wrong'] });
 // diagnostic: token symbol is already a single service in this graph
 DiBag.createBuilder().withTokenService(sharedService, () => 1).withCollectionContribution({ collectionToken: sharedCollection, provider: () => 2 });
 // diagnostic: token symbol is already a collection in this graph
 DiBag.createBuilder().withCollectionContribution({ collectionToken: sharedCollection, provider: () => 2 }).withTokenService(sharedService, () => 1);
 // diagnostic: operation requires a single-service token
 emptyBag.resolve(collection);
-// diagnostic: operation requires a single-service token
-emptyBag.inspect(collection);
+emptyBag.serviceSnapshot(collection);
 // diagnostic: withCollectionContribution requires a collection token
 DiBag.createBuilder().withCollectionContribution({ collectionToken: service, provider: () => 1 });
 

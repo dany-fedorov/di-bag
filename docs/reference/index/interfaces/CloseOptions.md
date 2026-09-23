@@ -6,7 +6,7 @@
 
 Defined in: [startup.ts:11](https://github.com/dany-fedorov/di-bag/blob/main/src/startup.ts#L11)
 
-Bounds the wait of [Bag.close](Bag.md#close); cleanup itself keeps running after either fires.
+Bounds the wait of [Container.close](Container.md#close); cleanup itself keeps running after either fires.
 
 ## See
 

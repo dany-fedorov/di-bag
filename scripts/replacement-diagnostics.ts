@@ -56,8 +56,8 @@ export const replacementDiagnosticExpectations = {
     supplemental: [],
   },
   'negative/module-rename.ts': {
-    primary: ['renameExport requires', 'renameExport requires', 'renameExport requires', 'renameExport requires',
-      'renameExport requires', 'provided service does not satisfy its consumer dependency', 'provided service does not satisfy its consumer dependency'],
+    primary: ['withRenamedExport requires', 'withRenamedExport requires', 'withRenamedExport requires', 'withRenamedExport requires',
+      'withRenamedExport requires', 'provided service does not satisfy its consumer dependency', 'provided service does not satisfy its consumer dependency'],
     supplemental: [],
   },
   'negative/provider-boundaries.ts': {

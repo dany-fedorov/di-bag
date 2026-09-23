@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import * as api from '../src/node';
+import * as api from '../src';
 import { DiBag as Core } from '../src';
 import { deferred } from './helpers';
 import { getEventListeners } from 'node:events';
@@ -12,9 +12,9 @@ test('contexts follow acquisition owners through child-first roots and independe
     root: DiBag.withLifetime(DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }), 'root'),
     transient: DiBag.withLifetime(DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }), 'transient'),
   }).buildContainer();
-  const child = root.createScope();
-  const sibling = root.createScope();
-  const fork = child.fork();
+  const child = root.createChildContainer();
+  const sibling = root.createChildContainer();
+  const fork = child.createIndependentContainer();
   const rootContext = child.resolve('root');
   const childContext = child.resolve('scoped');
   const siblingContext = sibling.resolve('scoped');
@@ -37,8 +37,8 @@ test('contexts follow acquisition owners through child-first roots and independe
 
 test('abort listeners cannot reenter any closing scope admission gate', async () => {
   const root = DiBag.createBuilder().withServices({ context: DiBag.fromFactory((_deps: {}, factoryCtx) => factoryCtx, { context: 'acquisition' }) }).buildContainer();
-  const child = root.createScope();
-  const sibling = root.createScope();
+  const child = root.createChildContainer();
+  const sibling = root.createChildContainer();
   let called = false;
   child.resolve('context').signal.addEventListener('abort', () => {
     called = true;
@@ -142,7 +142,7 @@ test('startup selects genuine tokens and keeps separate owned transient attempts
   const builder = DiBag.createBuilder().withTokenService(token, DiBag.withLifetime(DiBag.withDisposal(() => ++calls, value => { disposed.push(value); }), 'transient'));
   const bag = await builder.buildContainer().ensureServicesReady([token, token]);
   expect(calls).toBe(2);
-  expect(bag.inspect(token).acquisitions).toHaveLength(2);
+  expect(bag.serviceSnapshot(token).acquisitions).toHaveLength(2);
   await bag.close();
   expect(disposed).toEqual([2, 1]);
   const independent = await builder.buildContainer().ensureServicesReady([]);

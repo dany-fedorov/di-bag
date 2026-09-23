@@ -1,7 +1,7 @@
 # DI Bag: notes for coding agents
 
 DI Bag composes TypeScript factories into a dependency graph that the compiler
-checks. Modules keep a feature's services private behind exported keys; a bag
+checks. Modules keep a feature's services private behind exported keys; a container
 creates services on first use and releases what it owns when closed.
 
 This file ships in `node_modules/di-bag/`. Every call, with one way per task and an example: [docs/agent/api-card.md](docs/agent/api-card.md).
@@ -10,7 +10,7 @@ Task recipes: [docs/agent/recipes.md](docs/agent/recipes.md). Every compiler and
 ## Rules
 
 1. **Import from `di-bag`:** `import { DiBag } from 'di-bag';`. It configures
-   itself on Node, Bun, and Deno; `di-bag/node` is the same API in explicit form.
+   itself on Node, Bun, and Deno; use the same root import on every runtime.
    For browsers and workers wrap factories with `DiBag.fromSyncFactory` / `fromAsyncFactory`
    ([portable recipe](docs/agent/recipes.md#portable-graph)); a plain factory there fails
    `buildContainer()` with [`DI_BAG_CLASSIFIER_REQUIRED`](docs/agent/errors.md#di-bag-classifier-required), which names it.
@@ -19,7 +19,7 @@ Task recipes: [docs/agent/recipes.md](docs/agent/recipes.md). Every compiler and
    `dependencies.clock` directly. The object is a Proxy that resolves each property when
    read: spreading it, `Object.keys`, `in`, and `JSON.stringify` throw
    [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](docs/agent/errors.md#di-bag-invalid-dependency-access).
-3. **Lifetimes.** The default is `scoped`: one instance per bag or child scope.
+3. **Lifetimes.** The default is `scoped`: one instance per container or child container.
    Mark a shared client `DiBag.withLifetime(factory, 'root')` only when nothing
    it depends on is scoped; otherwise the compiler reports a
    [root capture](docs/agent/errors.md#root-capture) naming both keys.
@@ -29,11 +29,11 @@ Task recipes: [docs/agent/recipes.md](docs/agent/recipes.md). Every compiler and
 5. **No thenables.** A factory that returns a non-Promise object with a `then`
    method (query builders) is [rejected](docs/agent/errors.md#structural-thenable).
    Return `Promise.resolve(builder)` or use `DiBag.fromFactory(create, { acquisitionMode: 'raw' })`.
-6. **Ownership.** `DiBag.withDisposal(factory, dispose)` makes the bag own the
-   returned value; `close()` runs disposers, dependents first. Close every scope and
-   fork you create; a parent closes its live scopes, never forks. Inside a factory,
+6. **Ownership.** `DiBag.withDisposal(factory, dispose)` makes the container own the
+   returned value; `close()` runs disposers, dependents first. Close every child and
+   independent container; a parent closes its live children, never independent containers. Inside a factory,
    [`factoryContext.pushDisposer`](docs/agent/recipes.md#partial-acquisition) owns what it acquires on the way; if that is also the returned value, act only when `disposerContext.reason !== 'service-disposed'`.
-7. **Replace dependencies in tests with `fork(keys, overrides)`**; each override must satisfy the original contract.
+7. **Replace dependencies in tests with `createIndependentContainer(keys, providers)`**; each provider must satisfy the original contract.
 8. **Modules.** Add factories with `withServices`, then
    `buildModule({ exportedServiceKeys: ['exported'], moduleLabel: 'billing' })`.
    Unregistered needs become requirements: the host supplies them after
@@ -143,7 +143,7 @@ test suite before merging: [review a merge](docs/agent/recipes.md#review-merge).
 ## Recipes
 
 - [Add a request-scoped service with cleanup](docs/agent/recipes.md#add-scoped-service)
-- [Write a fixture test with `fork`](docs/agent/recipes.md#fixture-test)
+- [Write a fixture test with an independent container](docs/agent/recipes.md#fixture-test)
 - [Split a feature into a module with private services](docs/agent/recipes.md#split-module)
 - [Debug a missing-dependency rejection](docs/agent/recipes.md#debug-missing-dependency)
 - [Add and consume an async client](docs/agent/recipes.md#async-client)

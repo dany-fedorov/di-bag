@@ -8,13 +8,13 @@ async function main() {
     deliveredClose = resolve;
   });
   const observed = DiBag.withConfiguration({
-    observers: [
+    lifecycleObservers: [
       {
-        onEvent(event) {
+        onLifecycleEvent(event) {
           events.push(event);
           if (event.kind === 'scope-closed') deliveredClose();
         },
-        onError(failure) {
+        onObserverFailure(failure) {
           observerFailures.push(failure);
         },
       },

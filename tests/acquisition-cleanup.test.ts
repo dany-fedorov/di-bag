@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { DiBagCleanupError, DiBagCloseCancelledError, DiBagServiceReadinessError } from '../src';
 import { deferred } from './helpers';
 
@@ -124,9 +124,9 @@ test('rollback runs without waiting for the bag to close', async () => {
 test('rollback reports each failure through the cleanup observer channel', async () => {
   const events: string[] = [];
   const Observed = DiBag.withConfiguration({
-    observers: [{
-      onEvent: event => { if (event.kind.startsWith('cleanup')) events.push(event.kind); },
-      onError: () => {},
+    lifecycleObservers: [{
+      onLifecycleEvent: event => { if (event.kind.startsWith('cleanup')) events.push(event.kind); },
+      onObserverFailure: () => {},
     }],
   });
   const bag = Observed.createBuilder().withServices({
@@ -306,7 +306,7 @@ test('a root service acquired through a child runs its rollback on the owning ba
       throw new Error('root failed');
     }, { context: 'acquisition' }), 'root'),
   }).buildContainer();
-  const child = root.createScope();
+  const child = root.createChildContainer();
   await expect(child.resolve('shared')).rejects.toThrow('root failed');
   await child.close();
   expect(released).toEqual(['shared']);
@@ -363,7 +363,7 @@ test('a direct projection over a rejecting source with no ownership still runs i
   await expect(bag.resolve('service').wrapped).rejects.toThrow('source');
   await tick();
   expect(events).toEqual(['rollback']);
-  expect(bag.inspect('service').acquisitions[0]!.state).toBe('ready');
+  expect(bag.serviceSnapshot('service').acquisitions[0]!.state).toBe('ready');
   await bag.close();
   expect(events).toEqual(['rollback']);
 });
@@ -438,7 +438,7 @@ test('a synchronous failure never runs a pushed disposer inline with the throw',
 
 test('without a projection the rollback pair follows acquisition-failed', async () => {
   const kinds: string[] = [];
-  const Observed = DiBag.withConfiguration({ observers: [{ onEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onError: () => {} }] });
+  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
   const bag = Observed.createBuilder().withServices({
     service: Observed.fromFactory(async (_deps: {}, factoryCtx) => { factoryCtx.pushDisposer(() => {}); await Promise.resolve(); throw new Error('source'); }, { context: 'acquisition' }),
   }).buildContainer();
@@ -496,7 +496,7 @@ test('a direct projection over a source that later fulfils accepts the stack int
   }).buildContainer();
   expect(await bag.resolve('service').wrapped).toBe('session');
   await tick();
-  expect(bag.inspect('service').acquisitions[0]!.state).toBe('ready');
+  expect(bag.serviceSnapshot('service').acquisitions[0]!.state).toBe('ready');
   await bag.close();
   expect(events).toEqual(['wrapper.dispose', 'socket.close', 'pool.end']);
 });
@@ -528,7 +528,7 @@ test('every successful transient attempt keeps its stack until close', async () 
   bag.resolve('service');
   bag.resolve('service');
   bag.resolve('service');
-  expect(bag.inspect('service').acquisitions).toHaveLength(3);
+  expect(bag.serviceSnapshot('service').acquisitions).toHaveLength(3);
   await bag.close();
   expect(events).toEqual(['end2', 'end1', 'end0']);
 });
@@ -594,7 +594,7 @@ const pushing = (events: string[], name: string) => DiBag.withDisposal(DiBag.fro
 test('a root service acquired through a child owns its stack on the root', async () => {
   const events: string[] = [];
   const root = DiBag.createBuilder().withServices({ rooted: DiBag.withLifetime(pushing(events, 'root'), 'root'), scoped: pushing(events, 'scoped') }).buildContainer();
-  const child = root.createScope();
+  const child = root.createChildContainer();
   child.resolve('rooted');
   child.resolve('scoped');
   await child.close();
@@ -606,7 +606,7 @@ test('a root service acquired through a child owns its stack on the root', async
 test('a fork owns the stacks of its own acquisitions', async () => {
   const events: string[] = [];
   const root = DiBag.createBuilder().withServices({ service: pushing(events, 'service') }).buildContainer();
-  const fork = root.fork([], {});
+  const fork = root.createIndependentContainer([], {});
   fork.resolve('service');
   await root.close();
   expect(events).toEqual([]);
@@ -617,7 +617,7 @@ test('a fork owns the stacks of its own acquisitions', async () => {
 test('a binding shared to the parent owns its stack on the parent', async () => {
   const events: string[] = [];
   const root = DiBag.createBuilder().withServices({ a: pushing(events, 'a'), b: pushing(events, 'b') }).buildContainer();
-  const child = root.createScope({ share: ['a'] });
+  const child = root.createChildContainer({ sharedParentServiceKeys: ['a'] });
   child.resolve('a');
   child.resolve('b');
   await child.close();
@@ -680,7 +680,7 @@ test('the recommended reason check releases a resource the service owns exactly 
 
 test('a successful acquisition reports one cleanup pair at close covering stages and stack', async () => {
   const kinds: string[] = [];
-  const Observed = DiBag.withConfiguration({ observers: [{ onEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onError: () => {} }] });
+  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
   const bag = Observed.createBuilder().withServices({
     service: Observed.withDisposal(Observed.fromFactory((_deps: {}, factoryCtx) => { factoryCtx.pushDisposer(() => {}); return 1; }, { context: 'acquisition' }), () => {}),
   }).buildContainer();
@@ -691,7 +691,7 @@ test('a successful acquisition reports one cleanup pair at close covering stages
 
 test('a direct projection whose source fails reports a rollback run and, at close, a disposal run', async () => {
   const kinds: string[] = [];
-  const Observed = DiBag.withConfiguration({ observers: [{ onEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onError: () => {} }] });
+  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
   const bag = Observed.createBuilder().withServices({
     service: Observed.withDisposal(Observed.transformService(Observed.fromFactory(async (_deps: {}, factoryCtx) => {
       factoryCtx.pushDisposer(() => {});
@@ -757,7 +757,7 @@ test("a failing projection disposer does not make the returned value's disposer 
 
 test('under a projection the rollback pair precedes acquisition-failed', async () => {
   const kinds: string[] = [];
-  const Observed = DiBag.withConfiguration({ observers: [{ onEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onError: () => {} }] });
+  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
   const bag = Observed.createBuilder().withServices({
     service: Observed.transformService(Observed.fromFactory(async (_deps: {}, factoryCtx) => {
       factoryCtx.pushDisposer(() => {});

@@ -1,5 +1,5 @@
-import { DiBag } from '../../../src/node';
-import type { Module } from '../../../src/node';
+import { DiBag } from '../../../src';
+import type { Module } from '../../../src';
 
 const logging = DiBag.createBuilder()
   .withServices({ logger: () => ({ log: (line: string) => line }) })

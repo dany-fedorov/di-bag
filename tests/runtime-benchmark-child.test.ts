@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test';
 import { resolve } from 'node:path';
 import { DiBag } from '../src/index.ts';
-import { DiBag as NodeDiBag } from '../src/node.ts';
 import { parseRuntimeChildRequestArgument, runtimeBenchmarkChildMain } from '../scripts/runtime-benchmark-child.ts';
 import { runRuntimeArchiveSmoke } from '../scripts/performance-evidence.ts';
 import {
@@ -40,7 +39,7 @@ for (const providers of [10, 100] as const) {
       disposers: 3,
       cleanupLog: ['transient-2', 'transient-1', 'scoped'],
     });
-    expect(prepared.adapter.inspect(prepared.bag!, `provider${providers - 1}`).acquisitions).toHaveLength(1);
+    expect(prepared.adapter.serviceSnapshot(prepared.bag!, `provider${providers - 1}`).acquisitions).toHaveLength(1);
     expect(timed.rootValue).toBe(providers);
     expect(timed.scopedValue).toBe(prepared.scopedValue);
     expect(timed.values).toEqual(prepared.values);
@@ -76,7 +75,7 @@ for (const providers of [10, 100] as const) {
   });
 
   test(`node-native-promise awaits the native Promise and disposes its fulfillment at ${providers}`, async () => {
-    const prepared = await prepareScenario('node-native-promise', providers, NodeDiBag, 'current');
+    const prepared = await prepareScenario('node-native-promise', providers, DiBag, 'current');
     const timed = await runTimed(prepared);
     expect(timed.value).toBe(prepared.nativePromise);
     expect(verifyScenario(prepared, timed)).toEqual({
@@ -220,7 +219,7 @@ test('current and exact 739b509 archives execute the selected builder surface', 
   expect(result.current[0]!.archiveIdentity).not.toBe(result.baseline[0]!.archiveIdentity);
   for (const row of [...result.current, ...result.baseline]) {
     expect(row).toMatchObject(expectedScenarioResult(row.scenario, 10));
-    expect(row.relativeEntry).toBe(`node_modules/di-bag/dist/${row.scenario === 'node-native-promise' ? 'node.js' : 'index.js'}`);
+    expect(row.relativeEntry).toBe(`node_modules/di-bag/dist/${row.lane === 'baseline' && row.scenario === 'node-native-promise' ? 'node.js' : 'index.js'}`);
   }
   expect(result.baselineCommit).toBe('739b509eb7942e4e26c972a711d003aaf8769997');
   console.log(JSON.stringify({ runtimeArchiveSmoke: result }));

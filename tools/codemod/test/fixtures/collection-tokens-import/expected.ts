@@ -2,4 +2,4 @@ import { bag, controllers as importedControllers } from '../collection-tokens/in
 
 // The token is declared in another file of the program; its uses here count, and follow its creation.
 export const again = bag.resolveCollection(importedControllers);
-export const described = bag.inspectCollection(importedControllers).length;
+export const described = bag.serviceSnapshot(importedControllers).length;

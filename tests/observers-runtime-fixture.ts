@@ -5,7 +5,7 @@ export const observerRuntimeAssertions = `
     const turn = () => new Promise(resolve => setTimeout(resolve, 0));
     const events = [];
     const errors = [];
-    const observed = DiBag.withConfiguration({ observers: [{ onEvent: event => { events.push(event); }, onError: failure => { errors.push(failure); } }] });
+    const observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { events.push(event); }, onObserverFailure: failure => { errors.push(failure); } }] });
     const itemKey = Symbol('observed contribution');
     const item = DiBag.token(itemKey).forCollectionOf();
     let rootCalls = 0;
@@ -20,19 +20,19 @@ export const observerRuntimeAssertions = `
         value => { assertObserver(value === 42, 'observer changed native disposer payload'); disposed++; }),
     }).withServiceAlias({ aliasKey: 'resourceAlias', targetServiceKey: 'resource' }).withCollectionContribution({ collectionToken: item, provider: observed.withLifetime(observed.withDisposal(
         observed.fromFactory(() => ({ id: ++transientCalls }), { acquisitionMode: 'raw' }), () => { disposed++; }), 'transient') }).buildContainer();
-    const child = parent.createScope({ share: ['resourceAlias'] });
+    const child = parent.createChildContainer({ sharedParentServiceKeys: ['resourceAlias'] });
     const borrowed = child.resolve('resourceAlias');
     assertObserver(borrowed === parent.resolve('resource') && rootCalls === 1, 'observer changed canonical alias ownership');
-    const rootAttempt = parent.inspect('resource').acquisitions[0].acquisitionId;
+    const rootAttempt = parent.serviceSnapshot('resource').acquisitions[0].acquisitionId;
     child.resolveCollection(item);
     child.resolveCollection(item);
-    const contributionAttempts = child.inspectCollection(item)[0].acquisitions.map(attempt => attempt.acquisitionId);
-    const independent = parent.fork();
+    const contributionAttempts = child.serviceSnapshot(item)[0].acquisitions.map(attempt => attempt.acquisitionId);
+    const independent = parent.createIndependentContainer();
     const independentValue = independent.resolve('resourceAlias');
-    const independentAttempt = independent.inspect('resource').acquisitions[0].acquisitionId;
+    const independentAttempt = independent.serviceSnapshot('resource').acquisitions[0].acquisitionId;
     assertObserver(independentValue !== borrowed && rootCalls === 2, 'observer changed independent fork ownership');
     const pending = parent.resolve('pending');
-    const pendingAttempt = parent.inspect('pending').acquisitions[0].acquisitionId;
+    const pendingAttempt = parent.serviceSnapshot('pending').acquisitions[0].acquisitionId;
     assertObserver(parent.resolve('pending') === pending, 'observer wrapped an exposed Promise');
     assertObserver(events.length === 0, 'observer delivery entered synchronous factory execution');
     await turn();
@@ -71,11 +71,11 @@ export const observerRuntimeAssertions = `
 
     let privateDisposals = 0;
     const privateFeature = observed.createBuilder().withServices({ hidden: observed.withDisposal(
-      observed.fromFactory(() => ({ owner: 'private' }), { acquisitionMode: 'raw' }), () => { privateDisposals++; }) }).withServiceAlias({ aliasKey: 'visible', targetServiceKey: 'hidden' }).buildModule({ exportedServiceKeys: ['visible'] }).renameExport('visible', 'publicView');
+      observed.fromFactory(() => ({ owner: 'private' }), { acquisitionMode: 'raw' }), () => { privateDisposals++; }) }).withServiceAlias({ aliasKey: 'visible', targetServiceKey: 'hidden' }).buildModule({ exportedServiceKeys: ['visible'] }).withRenamedExport({ currentExportKey: 'visible', newExportKey: 'publicView' });
     const moduleBag = observed.createBuilder().withInstalledModules([privateFeature]).withServices({
       hidden: observed.fromFactory(() => ({ owner: 'host' }), { acquisitionMode: 'raw' }),
     }).buildContainer();
-    const privateId = moduleBag.inspect('publicView').aliasTarget.bindingId;
+    const privateId = moduleBag.serviceSnapshot('publicView').aliasTarget.bindingId;
     assertObserver(moduleBag.resolve('publicView').owner === 'private', 'observer changed private module alias routing');
     await moduleBag.close();
     await turn();
@@ -88,7 +88,7 @@ export const observerRuntimeAssertions = `
       broken: observed.withDisposal(observed.fromFactory(() => 1, { acquisitionMode: 'raw' }), () => { throw cleanupError; }),
     }).buildContainer();
     failed.resolve('broken');
-    const brokenAttempt = failed.inspect('broken').acquisitions[0].acquisitionId;
+    const brokenAttempt = failed.serviceSnapshot('broken').acquisitions[0].acquisitionId;
     let closeError;
     try { await failed.close(); } catch (error) { closeError = error; }
     await turn();
@@ -104,14 +104,14 @@ export const observerRuntimeAssertions = `
     const thenError = new Error('observer then getter');
     const secondary = new Error('observer error sink rejected');
     const callbackFailures = [];
-    const monitored = DiBag.withConfiguration({ observers: [{
-      onEvent(event) {
+    const monitored = DiBag.withConfiguration({ lifecycleObservers: [{
+      onLifecycleEvent(event) {
         if (event.kind === 'acquisition-started') throw thrown;
         if (event.kind === 'acquisition-ready') return Promise.reject(rejected);
         if (event.kind === 'cleanup-started') return Object.defineProperty({}, 'then', { get() { throw thenError; } });
         if (event.kind === 'scope-closed') return new Promise(() => {});
       },
-      onError(failure) { callbackFailures.push(failure); return Promise.reject(secondary); },
+      onObserverFailure(failure) { callbackFailures.push(failure); return Promise.reject(secondary); },
     }] }).withConfiguration({ runtime: { isNativePromise: value => value instanceof Promise } });
     let monitoredDisposals = 0;
     const monitoredBag = monitored.createBuilder().withServices({
@@ -132,14 +132,14 @@ export const observerRuntimeAssertions = `
     let reentrantRead;
     let reentrantDisposed = 0;
     const reentrantErrors = [];
-    const reentrant = DiBag.withConfiguration({ observers: [{
-      onEvent(event) {
+    const reentrant = DiBag.withConfiguration({ lifecycleObservers: [{
+      onLifecycleEvent(event) {
         if (event.kind === 'acquisition-started' && event.label === 'trigger') {
           reentrantRead = reentrantBag.resolve('trigger');
           return reentrantBag.close();
         }
       },
-      onError(failure) { reentrantErrors.push(failure); },
+      onObserverFailure(failure) { reentrantErrors.push(failure); },
     }] });
     reentrantBag = reentrant.createBuilder().withServices({ trigger: reentrant.withDisposal(
       reentrant.fromFactory(() => ({ id: 'reentrant' }), { acquisitionMode: 'raw' }), () => { reentrantDisposed++; }) }).buildContainer();
@@ -153,10 +153,10 @@ export const observerRuntimeAssertions = `
     const firstEvents = [];
     const secondEvents = [];
     const portableErrors = [];
-    const firstFacade = PortableObserverBag.withConfiguration({ observers: [{ onEvent: event => { firstEvents.push(event); },
-      onError: failure => { portableErrors.push(failure); } }] });
-    const secondFacade = firstFacade.withConfiguration({ observers: [{ onEvent: event => { secondEvents.push(event); },
-      onError: failure => { portableErrors.push(failure); } }] });
+    const firstFacade = PortableObserverBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { firstEvents.push(event); },
+      onObserverFailure: failure => { portableErrors.push(failure); } }] });
+    const secondFacade = firstFacade.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { secondEvents.push(event); },
+      onObserverFailure: failure => { portableErrors.push(failure); } }] });
     const raw = new Promise(() => {});
     const firstBag = firstFacade.createBuilder().withServices({ raw: firstFacade.fromFactory(() => raw, { acquisitionMode: 'raw' }) }).buildContainer();
     const secondBag = secondFacade.createBuilder().withServices({ raw: secondFacade.fromFactory(() => raw, { acquisitionMode: 'raw' }) }).buildContainer();

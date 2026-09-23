@@ -63,11 +63,11 @@ export type ObserverErrorCallback = (this: void, failure: ObserverFailure) => un
  * Both callbacks required by {@link DiBagApi.withConfiguration}.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
  */
-export interface ObserverOptions {
+export interface LifecycleObserver {
   /** Receives events in transition and observer-registration order on a microtask queue. */
-  readonly onEvent: ObserverCallback;
-  /** Receives synchronous throws and rejected results from `onEvent`. */
-  readonly onError: ObserverErrorCallback;
+  readonly onLifecycleEvent: ObserverCallback;
+  /** Receives synchronous throws and rejected results from `onLifecycleEvent`. */
+  readonly onObserverFailure: ObserverErrorCallback;
 }
 
 const then = Promise.prototype.then<void, void>;
@@ -79,15 +79,23 @@ function monitor(result: unknown, failed: (error: unknown) => void): void {
   then.call(pending, ignore, failed);
 }
 // One lazy queue preserves ordering when a callback observes multiple facades.
-let queue: Array<{ event: LifecycleEvent; callbacks: readonly ObserverOptions[] }> | undefined;
+let queue: Array<{ event: LifecycleEvent; callbacks: readonly LifecycleObserver[] }> | undefined;
 export class LifecycleObservers {
-  private constructor(private readonly callbacks: readonly ObserverOptions[]) {}
+  private constructor(private readonly callbacks: readonly LifecycleObserver[]) {}
 
-  static append(previous: LifecycleObservers | undefined, options: ObserverOptions): LifecycleObservers {
-    if (typeof options !== 'object' || options === null) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
-    const { onEvent, onError } = options;
-    if (typeof onEvent !== 'function' || typeof onError !== 'function') throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration observers require onEvent and onError callbacks', { operation: 'withConfiguration' });
-    return new LifecycleObservers([...(previous?.callbacks ?? []), Object.freeze({ onEvent, onError })]);
+  static append(previous: LifecycleObservers | undefined, observer: unknown): LifecycleObservers {
+    if (typeof observer !== 'object' || observer === null) {
+      throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
+    }
+    const onLifecycleEvent = Reflect.get(observer, 'onLifecycleEvent') as unknown;
+    const onObserverFailure = Reflect.get(observer, 'onObserverFailure') as unknown;
+    if (typeof onLifecycleEvent !== 'function' || typeof onObserverFailure !== 'function') {
+      throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
+    }
+    return new LifecycleObservers([...(previous?.callbacks ?? []), Object.freeze({
+      onLifecycleEvent: onLifecycleEvent as ObserverCallback,
+      onObserverFailure: onObserverFailure as ObserverErrorCallback,
+    })]);
   }
 
   emit(event: LifecycleEvent): void {
@@ -98,12 +106,12 @@ export class LifecycleObservers {
       // Detach this batch: reentrant transitions schedule another microtask.
       const deliveries = queue!;
       queue = undefined;
-      for (const { event, callbacks } of deliveries) for (const { onEvent, onError } of callbacks) {
+      for (const { event, callbacks } of deliveries) for (const { onLifecycleEvent, onObserverFailure } of callbacks) {
         const failed = (error: unknown) => {
-          try { monitor(onError(Object.freeze({ error, event })), ignore); }
+          try { monitor(onObserverFailure(Object.freeze({ error, event })), ignore); }
           catch { /* Error reporting must not recursively report itself. */ }
         };
-        try { monitor(onEvent(event), failed); }
+        try { monitor(onLifecycleEvent(event), failed); }
         catch (error) { failed(error); }
       }
     });

@@ -1,6 +1,6 @@
 import { fromFunction } from '../src/composition';
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { withTokenBinding } from '../src/provider';
 import { normalize } from '../src/provider-operations';
 import { BindingGraph } from '../src/runtime';

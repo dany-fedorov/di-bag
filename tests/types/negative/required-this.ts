@@ -7,4 +7,4 @@ const builder = DiBag.createBuilder().withServices({ value: () => 1 });
 // diagnostic: The 'this' types of each signature are incompatible
 builder.withReplacedService('value', function(this: { value: number }) { return this.value; });
 // diagnostic: Type '(this: { value: number; }) => number' is not assignable to type
-builder.buildContainer().fork(['value'], { value: function(this: { value: number }) { return this.value; } });
+builder.buildContainer().createIndependentContainer(['value'], { value: function(this: { value: number }) { return this.value; } });

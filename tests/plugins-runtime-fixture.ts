@@ -114,10 +114,10 @@ export const pluginRuntimeAssertions = `
       apiVersion: 1,
       create: secret => ({ secret }),
     }, { acquisitionMode: 'raw', validate: item => typeof item === 'object' && item !== null && item.secret === 17 });
-    const privateFeature = DiBag.createBuilder().withTokenService(privateToken, DiBag.fromFactory(() => 17, { acquisitionMode: 'raw' })).withServices({ privatePlugin: privateProvider }).withServiceAlias({ aliasKey: 'pluginAlias', targetServiceKey: 'privatePlugin' }).buildModule({ exportedServiceKeys: ['pluginAlias'] }).renameExport('pluginAlias', 'publicPlugin');
+    const privateFeature = DiBag.createBuilder().withTokenService(privateToken, DiBag.fromFactory(() => 17, { acquisitionMode: 'raw' })).withServices({ privatePlugin: privateProvider }).withServiceAlias({ aliasKey: 'pluginAlias', targetServiceKey: 'privatePlugin' }).buildModule({ exportedServiceKeys: ['pluginAlias'] }).withRenamedExport({ currentExportKey: 'pluginAlias', newExportKey: 'publicPlugin' });
     const privateBag = DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();
     const sharedPlugin = privateBag.resolve('publicPlugin');
-    const sharedChild = privateBag.createScope({ share: ['publicPlugin'] });
+    const sharedChild = privateBag.createChildContainer({ sharedParentServiceKeys: ['publicPlugin'] });
     assertPlugin(sharedChild.resolve('publicPlugin') === sharedPlugin && sharedPlugin.secret === 17,
       'plugin module alias or selected sharing changed identity');
     await sharedChild.close();
@@ -128,15 +128,15 @@ export const pluginRuntimeAssertions = `
     let observerWorkFinished = false;
     const observerWork = new Promise(resolve => { releaseObserverWork = resolve; }).then(() => { observerWorkFinished = true; });
     let observerWorkStarted = false;
-    const observed = DiBag.withConfiguration({ observers: [{
-      onEvent: event => {
+    const observed = DiBag.withConfiguration({ lifecycleObservers: [{
+      onLifecycleEvent: event => {
         observedEvents.push(event);
         if (event.kind === 'acquisition-started') {
           observerWorkStarted = true;
           return observerWork;
         }
       },
-      onError: failure => { throw failure.error; },
+      onObserverFailure: failure => { throw failure.error; },
     }] });
     const observedValue = { id: 'observed' };
     let observedReleased = 0;
@@ -149,8 +149,8 @@ export const pluginRuntimeAssertions = `
       },
     }, { acquisitionMode: 'raw', validate: item => item === observedValue }) }).buildContainer();
     assertPlugin(observedBag.resolve('observedPlugin') === observedValue, 'observer changed plugin value');
-    const observedAttempt = observedBag.inspect('observedPlugin').acquisitions[0].acquisitionId;
-    const observedBinding = observedBag.inspect('observedPlugin').bindingId;
+    const observedAttempt = observedBag.serviceSnapshot('observedPlugin').acquisitions[0].acquisitionId;
+    const observedBinding = observedBag.serviceSnapshot('observedPlugin').bindingId;
     await turn();
     let observedClosed = false;
     await observedBag.close().then(() => { observedClosed = true; });

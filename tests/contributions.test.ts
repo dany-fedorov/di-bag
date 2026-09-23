@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 test('contributions preserve order, empty reads and array immutability', async () => {
   const key = Symbol('number');
@@ -29,7 +29,7 @@ test('host and repeated exportless modules append distinct lexical bindings', as
   const baseBag = base.buildContainer();
   expect(baseBag.resolveCollection(items)).toEqual([{ id: 0, label: 'host' }]);
   await baseBag.close();
-  expect(new Set(bag.inspectCollection(items).map(value => value.bindingId)).size).toBe(5);
+  expect(new Set(bag.serviceSnapshot(items).map(value => value.bindingId)).size).toBe(5);
   await bag.close();
   expect(disposed.sort()).toEqual([1, 1, 2, 2]);
 });
@@ -37,7 +37,7 @@ test('host and repeated exportless modules append distinct lexical bindings', as
 test('all adapters select frozen arrays and retain module export renames', async () => {
   const key = Symbol('numbers'); const numbers = DiBag.token(key).forCollectionOf<number>();
   class Total { constructor(readonly values: readonly number[]) {} }
-  const feature = DiBag.createBuilder().withServices({ helper: () => 7 }).withCollectionContribution({ collectionToken: numbers, provider: ({ helper }: { helper: number }) => helper }).buildModule({ exportedServiceKeys: ['helper'] }).renameExport('helper', 'renamed');
+  const feature = DiBag.createBuilder().withServices({ helper: () => 7 }).withCollectionContribution({ collectionToken: numbers, provider: ({ helper }: { helper: number }) => helper }).buildModule({ exportedServiceKeys: ['helper'] }).withRenamedExport({ currentExportKey: 'helper', newExportKey: 'renamed' });
   const ref = numbers;
   const bag = DiBag.createBuilder().withInstalledModules([feature]).withServices({
     tokens: DiBag.fromFunction([ref], values => values),
@@ -50,7 +50,7 @@ test('all adapters select frozen arrays and retain module export renames', async
   expect(bag.resolve('fn')).toBe(7);
   expect(bag.resolve('cls')).toBeInstanceOf(Total);
   expect(bag.resolve('cls').values).toEqual([7]);
-  const fork = bag.fork(['renamed'], { renamed: () => 9 });
+  const fork = bag.createIndependentContainer(['renamed'], { renamed: () => 9 });
   expect(fork.resolveCollection(numbers)).toEqual([9]);
   await fork.close(); await bag.close();
 });
@@ -62,9 +62,9 @@ test('root scoped and transient contributions retain individual ownership', asyn
   const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: objects, provider: DiBag.withLifetime(create, 'root') }).withCollectionContribution({ collectionToken: objects, provider: create }).withCollectionContribution({ collectionToken: objects, provider: DiBag.withLifetime(create, 'transient') }).buildContainer();
   const first = bag.resolveCollection(objects); const again = bag.resolveCollection(objects);
   expect(first[0]).toBe(again[0]); expect(first[1]).toBe(again[1]); expect(first[2]).not.toBe(again[2]);
-  const child = bag.createScope(); const scoped = child.resolveCollection(objects);
+  const child = bag.createChildContainer(); const scoped = child.resolveCollection(objects);
   expect(scoped[0]).toBe(first[0]); expect(scoped[1]).not.toBe(first[1]);
-  const fork = bag.fork(); expect(fork.resolveCollection(objects)[0]).not.toBe(first[0]);
+  const fork = bag.createIndependentContainer(); expect(fork.resolveCollection(objects)[0]).not.toBe(first[0]);
   await child.close(); expect(disposed).not.toContain(first[0]!.id);
   await fork.close(); await bag.close();
   expect(disposed.length).toBe(ids); expect(new Set(disposed).size).toBe(ids);
@@ -74,10 +74,10 @@ test('shared aggregate borrows the parent graph while a lazy registry reads its 
   const key = Symbol('numbers'); const numbers = DiBag.token(key).forCollectionOf<number>();
   const registryKey = Symbol('registry'); const registry = DiBag.token(registryKey).of<readonly number[]>();
   const bag = DiBag.createBuilder().withServices({ helper: () => 1 }).withCollectionContribution({ collectionToken: numbers, provider: ({ helper }: { helper: number }) => helper }).withTokenService(registry, DiBag.fromFunction([numbers], values => values)).withServices({ lazy: DiBag.fromFunction([DiBag.lazy(registry)], get => get) }).buildContainer();
-  const child = bag.createScope(['helper'], { helper: () => 2 }, { share: [registry] });
+  const child = bag.createChildContainer(['helper'], { helper: () => 2 }, { sharedParentServiceKeys: [registry] });
   expect(child.resolve(registry)).toBe(bag.resolve(registry));
   expect(child.resolveCollection(numbers)).toEqual([2]); expect(child.resolve('lazy')()).toEqual([1]);
-  const fork = child.fork(); expect(fork.resolve('lazy')()).toEqual([2]);
+  const fork = child.createIndependentContainer(); expect(fork.resolve('lazy')()).toEqual([2]);
   await child.close(); await fork.close(); await bag.close();
 });
 
@@ -113,10 +113,10 @@ test('inspection is immutable nonresolving and does not freeze application value
   const key = Symbol('items'); const items = DiBag.token(key).forCollectionOf<{ value: number }>();
   let calls = 0; const service = { value: 1 };
   const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: items, provider: DiBag.withMetadata(() => { calls++; return service; }, { static: { label: 'a' } }) }).buildContainer();
-  const before = bag.inspectCollection(items); expect(calls).toBe(0);
+  const before = bag.serviceSnapshot(items); expect(calls).toBe(0);
   expect(Object.isFrozen(before)).toBe(true); expect(Object.isFrozen(before[0])).toBe(true);
   expect(before[0]!.acquisitions).toEqual([]); expect(before[0]!.registrationMetadata).toEqual({ label: 'a' });
-  bag.resolveCollection(items); const after = bag.inspectCollection(items);
+  bag.resolveCollection(items); const after = bag.serviceSnapshot(items);
   expect(after[0]!.acquisitions.length).toBe(1); expect(before[0]!.acquisitions).toEqual([]);
   service.value = 2; expect(bag.resolveCollection(items)[0]!.value).toBe(2); await bag.close();
 });
@@ -159,7 +159,7 @@ test('observed strict roots reject cached scoped contributions before owner rout
   const bag = (builder.buildContainer as Function).call(builder);
   expect(bag.resolveCollection(items)).toEqual([1]);
   expect(() => bag.resolve('root')).toThrow(/root lifetime cannot capture scoped/);
-  const child = bag.createScope(); expect(() => child.resolve('root')).toThrow(/root lifetime cannot capture scoped/);
+  const child = bag.createChildContainer(); expect(() => child.resolve('root')).toThrow(/root lifetime cannot capture scoped/);
   await bag.close();
 });
 

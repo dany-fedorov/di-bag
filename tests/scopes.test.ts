@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { isPromise } from 'node:util/types';
-import { DiBag, DiBagCleanupError } from '../src/node';
+import { DiBag, DiBagCleanupError } from '../src';
 import { DiBag as Core } from '../src';
 import { BindingGraph, BagRuntime } from '../src/runtime';
 import type { BindingDescription } from '../src/runtime';
@@ -19,9 +19,9 @@ test('children own fresh acquisitions while independent forks outlive their sour
   const root = DiBag.createBuilder().withServices({
     service: DiBag.withDisposal(() => ++next, value => { disposed.push(value); }),
   }).buildContainer();
-  const child = root.createScope();
-  const sibling = root.createScope();
-  const fork = child.fork();
+  const child = root.createChildContainer();
+  const sibling = root.createChildContainer();
+  const fork = child.createIndependentContainer();
   expect(next).toBe(0);
   expect(root.resolve('service')).toBe(1);
   expect(child.resolve('service')).toBe(2);
@@ -50,9 +50,9 @@ test('parent close synchronously closes every descendant admission gate and wait
     }),
   }).buildContainer();
   for (let id = 1; id <= 4; id++) started.set(id, deferred<void>());
-  const child = root.createScope();
-  const grandchild = child.createScope();
-  const sibling = root.createScope();
+  const child = root.createChildContainer();
+  const grandchild = child.createChildContainer();
+  const sibling = root.createChildContainer();
   root.resolve('resource');
   child.resolve('resource');
   grandchild.resolve('resource');
@@ -62,8 +62,8 @@ test('parent close synchronously closes every descendant admission gate and wait
   expect(root.close()).toBe(closing);
   for (const bag of [root, child, grandchild, sibling]) {
     expect(() => bag.resolve('resource')).toThrow(/clos/);
-    expect(() => bag.fork()).toThrow(/clos/);
-    expect(() => bag.createScope()).toThrow(/clos/);
+    expect(() => bag.createIndependentContainer()).toThrow(/clos/);
+    expect(() => bag.createChildContainer()).toThrow(/clos/);
   }
   await Promise.all([started.get(3)!.promise, started.get(4)!.promise]);
   expect(disposed).toContain(4);
@@ -85,7 +85,7 @@ test('pending child sources may acquire dependencies after parent close starts',
       return deps.base * 2;
     }, () => { disposed.push('result'); }),
   }).buildContainer();
-  const child = root.createScope();
+  const child = root.createChildContainer();
   const result = child.resolve('result');
   const closing = root.close();
   gate.resolve();
@@ -98,7 +98,7 @@ test('pending acquisition promises deduplicate only within one scope', async () 
   const gates = [deferred<number>(), deferred<number>()];
   let next = 0;
   const root = DiBag.createBuilder().withServices({ value: () => gates[next++]!.promise }).buildContainer();
-  const child = root.createScope();
+  const child = root.createChildContainer();
   const rootValue = root.resolve('value');
   const childValue = child.resolve('value');
   expect(root.resolve('value')).toBe(rootValue);
@@ -125,12 +125,12 @@ test('nested cleanup failures flatten by registration order despite reversed com
       throw rootError;
     }),
   }).buildContainer();
-  const child = root.createScope();
-  const grandchild = child.createScope();
-  const sibling = root.createScope();
+  const child = root.createChildContainer();
+  const grandchild = child.createChildContainer();
+  const sibling = root.createChildContainer();
   const bags = [root, child, grandchild, sibling] as const;
   for (const bag of bags) bag.resolve('resource');
-  const snapshots = bags.map(bag => bag.inspect('resource'));
+  const snapshots = bags.map(bag => bag.serviceSnapshot('resource'));
   const closing = root.close();
   await Promise.resolve();
   await Promise.resolve();
@@ -186,7 +186,7 @@ test('parent close includes a child already closing until its failure settles', 
   const root = DiBag.createBuilder().withServices({
     resource: DiBag.withDisposal(() => 1, async () => { await gate.promise; throw failure; }),
   }).buildContainer();
-  const child = root.createScope();
+  const child = root.createChildContainer();
   child.resolve('resource');
   const childClosing = child.close();
   const parentClosing = root.close();
@@ -231,7 +231,7 @@ test('scope preserves native shadowed-then and raw Promise ownership in configur
     native: configured.withDisposal(configured.fromFactory(() => nativeGate.promise, { acquisitionMode: 'nativePromise' }), value => { disposed.push(value); }),
     raw: configured.withDisposal(configured.fromFactory(() => raw, { acquisitionMode: 'raw' }), value => { disposed.push(value); }),
   }).buildContainer();
-  const child = root.createScope();
+  const child = root.createChildContainer();
   expect(child.resolve('native')).toBe(nativeGate.promise);
   expect(child.resolve('raw')).toBe(raw);
   const closing = root.close();
@@ -256,7 +256,7 @@ test('child projection rollback finishes before a parent-owned finalizer', async
     projected: DiBag.transformService(source, { mode: 'direct', transform: () => { throw new Error('projection'); } }),
   }).buildContainer();
   root.resolve('parent');
-  const child = root.createScope();
+  const child = root.createChildContainer();
   expect(() => child.resolve('projected')).toThrow('projection');
   await started.promise;
   const closing = root.close();
@@ -273,13 +273,13 @@ test('scopes retain module-private identities and unchanged public binding metad
     hidden: () => ({ id: ++next }),
     publicValue: DiBag.withMetadata(({ hidden, external }: { hidden: { id: number }; external: number }) =>
       ({ hidden, external }), { static: { owner: 'module' as const } }),
-  }).buildModule({ exportedServiceKeys: ['publicValue'] }).renameExport('publicValue', 'service');
+  }).buildModule({ exportedServiceKeys: ['publicValue'] }).withRenamedExport({ currentExportKey: 'publicValue', newExportKey: 'service' });
   const root = DiBag.createBuilder().withInstalledModules([feature]).withServices({ external: () => 7 }).buildContainer();
-  const child = root.createScope();
-  expect(root.inspect('service').bindingId).toBe(child.inspect('service').bindingId);
-  expect(child.inspect('service').registrationMetadata.owner).toBe('module');
-  expect(root.inspect('service').acquisitions).toEqual([]);
-  expect(child.inspect('service').acquisitions).toEqual([]);
+  const child = root.createChildContainer();
+  expect(root.serviceSnapshot('service').bindingId).toBe(child.serviceSnapshot('service').bindingId);
+  expect(child.serviceSnapshot('service').registrationMetadata.owner).toBe('module');
+  expect(root.serviceSnapshot('service').acquisitions).toEqual([]);
+  expect(child.serviceSnapshot('service').acquisitions).toEqual([]);
   expect(child.resolve('service')).toEqual({ hidden: { id: 1 }, external: 7 });
   expect(root.resolve('service')).toEqual({ hidden: { id: 2 }, external: 7 });
   expect(root.resolve('service').hidden).not.toBe(child.resolve('service').hidden);
@@ -293,12 +293,12 @@ test('unchecked scope arguments reject before creating or acquiring a child', as
   let runtimeScopes = 0;
   BagRuntime.prototype.scope = function () { runtimeScopes++; return originalScope.call(this); };
   try {
-    for (const args of [[undefined], [{ share: ['missing'] }], [{ value: () => 2 }]]) {
-      expect(() => Reflect.apply(root.createScope, root, args)).toThrow('createScope');
+    for (const args of [[null], [{ sharedParentServiceKeys: ['missing'] }], [{ value: () => 2 }]]) {
+      expect(() => Reflect.apply(root.createChildContainer, root, args)).toThrow('createChildContainer');
     }
     expect(runtimeScopes).toBe(0);
     expect(created).toBe(0);
-    const child = root.createScope();
+    const child = root.createChildContainer();
     expect(runtimeScopes).toBe(1);
     expect(child.resolve('value')).toBe(1);
     await root.close();

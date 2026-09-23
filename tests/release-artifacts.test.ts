@@ -149,14 +149,13 @@ describe('release documentation contract', () => {
 
     expect(readme).not.toContain('The package publishes');
     expect(packageManifest.exports).toEqual({
-      './node': { types: './dist/node.d.ts', default: './dist/node.js' },
       '.': { types: './dist/index.d.ts', default: './dist/index.js' },
     });
     expect(packageManifest.dependencies ?? {}).toEqual({});
     expect(packageManifest.peerDependencies ?? {}).toEqual({});
     expect(packageManifest.optionalDependencies ?? {}).toEqual({});
     expect(packageManifest.bundledDependencies ?? []).toEqual([]);
-    for (const entry of ['di-bag', 'di-bag/node'])
+    for (const entry of ['di-bag'])
       expect(readme).toContain(`\`${entry}\``);
     // The landing page links to the detailed contracts and verification evidence.
     expect(readme).toContain('(docs/guides/api-reference.md)');
@@ -649,8 +648,13 @@ describe('archive verifier', () => {
   });
   test('rejects missing public export pairs and removed adapter entries from archive bytes', () => {
     { const value: any = structuredClone(manifest), bytes = archiveOf(archiveEntries('di-bag').filter(entry => entry.path !== 'package/AGENTS.md')); adoptArchive(value, 'di-bag', bytes, 'missing-agents'); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('missing AGENTS.md'))).toBe(true); }
-    { const value: any = structuredClone(manifest), bytes = archiveOf(archiveEntries('di-bag').filter(entry => entry.path !== 'package/dist/node.d.ts')); adoptArchive(value, 'di-bag', bytes, 'missing-node-types'); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('missing public export file'))).toBe(true); }
-    for (const name of ['sas-box', 'val-box']) { const value: any = structuredClone(manifest), bytes = archiveOf([...archiveEntries('di-bag'), { path: `package/dist/${name}.js`, content: 'export{}' }]); adoptArchive(value, 'di-bag', bytes, `${name}-extra`); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('removed package entry'))).toBe(true); }
+    { const value: any = structuredClone(manifest), bytes = archiveOf(archiveEntries('di-bag').filter(entry => entry.path !== 'package/dist/index.d.ts')); adoptArchive(value, 'di-bag', bytes, 'missing-index-types'); expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('missing public export file'))).toBe(true); }
+    for (const name of ['node', 'sas-box', 'val-box']) for (const extension of ['js', 'd.ts']) {
+      const value: any = structuredClone(manifest);
+      const bytes = archiveOf([...archiveEntries('di-bag'), { path: `package/dist/${name}.${extension}`, content: 'export{}' }]);
+      adoptArchive(value, 'di-bag', bytes, `${name}-${extension}-extra`);
+      expect((publish(value), verifyReleaseManifestStatic(value).failures).some(failure => failure.includes('removed package entry'))).toBe(true);
+    }
   });
   test('requires byte-identical stable public evidence and rejects missing, stale, malformed, and extra bytes', () => {
     for (const bytes of ['', '{}\n', `${serializeStable(createPublicReleaseEvidence(manifest))} `, serializeStable({ ...createPublicReleaseEvidence(manifest) as any, extra: true })]) {

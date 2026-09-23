@@ -21,12 +21,12 @@ after(() => fixture.close());
 
 test('a declined charge rejects the order without committing', async () => {
   let commits = 0;
-  const bag = fixture.fork(['inventory', 'payments'], {
+  const bag = fixture.createIndependentContainer(['inventory', 'payments'], {
     inventory: (): Inventory => ({ available: () => 0, reserve: () => true, commit: () => { commits++; } }),
     payments: (): PaymentGateway => ({ charge: async () => { throw new Error('declined'); } }),
   });
   try {
-    await assert.rejects(bag.createScope().resolve('checkout').placeOrder([{ sku: 'tea', quantity: 1 }]), /declined/);
+    await assert.rejects(bag.createChildContainer().resolve('checkout').placeOrder([{ sku: 'tea', quantity: 1 }]), /declined/);
     assert.equal(commits, 0);
   } finally {
     await bag.close();

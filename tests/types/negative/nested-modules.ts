@@ -12,7 +12,7 @@ DiBag.createBuilder().withInstalledModules([outer]).buildContainer();
 DiBag.createBuilder().withInstalledModules([outer]).withServices({ clock: () => 'wrong' });
 
 // A need satisfied through an outer export is still checked when the host replaces that export.
-const exported = DiBag.createBuilder().withInstalledModules([inner]).withServices({ logger: () => ({ log(_message: string) {} }) }).buildModule({ exportedServiceKeys: ['service', 'logger'] }).renameExport('logger', 'sink');
+const exported = DiBag.createBuilder().withInstalledModules([inner]).withServices({ logger: () => ({ log(_message: string) {} }) }).buildModule({ exportedServiceKeys: ['service', 'logger'] }).withRenamedExport({ currentExportKey: 'logger', newExportKey: 'sink' });
 // diagnostic: provided service does not satisfy its consumer dependency
 DiBag.createBuilder().withInstalledModules([exported]).withServices({ clock: () => ({ now: () => 1 }) }).withReplacedService('sink', () => 'wrong');
 
@@ -37,7 +37,7 @@ const scopedOuter = DiBag.createBuilder().withInstalledModules([capturing]).with
 DiBag.createBuilder().withInstalledModules([scopedOuter]).buildContainer();
 
 // The same capture through an exported and renamed dependency.
-const exportedOuter = DiBag.createBuilder().withInstalledModules([capturing]).withServices({ db: () => 1 }).buildModule({ exportedServiceKeys: ['root', 'db'] }).renameExport('db', 'database');
+const exportedOuter = DiBag.createBuilder().withInstalledModules([capturing]).withServices({ db: () => 1 }).buildModule({ exportedServiceKeys: ['root', 'db'] }).withRenamedExport({ currentExportKey: 'db', newExportKey: 'database' });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([exportedOuter]).buildContainer();
 

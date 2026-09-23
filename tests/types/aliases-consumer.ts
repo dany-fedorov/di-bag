@@ -20,14 +20,14 @@ named.withReplacedService('value', () => ({ id: 1 }));
 publicTargetHost.withReplacedService('renamed', () => 'wrong');
 DiBag.createBuilder().withInstalledModules([privateRoot]).withServices({ root: DiBag.withLifetime(({ renamed }: { renamed: { id: number } }) => renamed, 'root') }).buildContainer();
 import { rootShared, scopedShared, sharedRootConsumer } from './aliases';
-rootShared.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { share: ['copy'] });
-scopedShared.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
-scopedShared.fork(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
+rootShared.createChildContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { sharedParentServiceKeys: ['copy'] });
+scopedShared.createChildContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
+scopedShared.createIndependentContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
 // @ts-expect-error inferred selected alias retains the effective parent scoped policy
-scopedShared.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { share: ['copy'] });
+scopedShared.createChildContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { sharedParentServiceKeys: ['copy'] });
 // @ts-expect-error fresh scope discards alias sharing and returns to scoped child target
-rootShared.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
+rootShared.createChildContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
 // @ts-expect-error independent fork discards alias sharing and returns to scoped child target
-rootShared.fork(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
+rootShared.createIndependentContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
 // @ts-expect-error retained parent root cannot justify the fork's own captive graph
-sharedRootConsumer.fork();
+sharedRootConsumer.createIndependentContainer();

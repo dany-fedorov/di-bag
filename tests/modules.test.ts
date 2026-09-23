@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 test('a module private retry keeps the caught failed attempt separate', async () => {
   let first = true;
@@ -42,7 +42,7 @@ test('module private dependencies follow exported replacements and fresh forks',
     logger: DiBag.withDisposal(() => ({ log(message: string) { events.push(message); } }), () => { events.push('logger'); }),
   });
   const root = builder.buildContainer();
-  const child = root.fork(['service'], { service: () => ({ read() { return false; }, extra() { return 8; } }) });
+  const child = root.createIndependentContainer(['service'], { service: () => ({ read() { return false; }, extra() { return 8; } }) });
   expect(root.resolve('handler')()).toBe(true);
   expect(child.resolve('handler')()).toBe(false);
   const replaced = builder.withReplacedService('service', () => ({ read() { return false; }, extra() { return 9; }, added: true })).buildContainer();
@@ -61,11 +61,11 @@ test('renamed repeated installations isolate private instances and cleanup', asy
     state: DiBag.withDisposal(() => ({ id: ++next }), state => { events.push(state.id); }),
     read: ({ state }: { state: { id: number } }) => state,
   }).buildModule({ exportedServiceKeys: ['read'] });
-  const root = DiBag.createBuilder().withInstalledModules([module.renameExport('read', 'left')]).withInstalledModules([module.renameExport('read', 'right')]).buildContainer();
+  const root = DiBag.createBuilder().withInstalledModules([module.withRenamedExport({ currentExportKey: 'read', newExportKey: 'left' })]).withInstalledModules([module.withRenamedExport({ currentExportKey: 'read', newExportKey: 'right' })]).buildContainer();
   expect(root.resolve('left')).toEqual({ id: 1 });
   expect(root.resolve('right')).toEqual({ id: 2 });
   expect(root.resolve('left')).not.toBe(root.resolve('right'));
-  const child = root.fork();
+  const child = root.createIndependentContainer();
   expect(child.resolve('left')).toEqual({ id: 3 });
   await root.close();
   expect(events).toEqual([2, 1]);
@@ -79,10 +79,10 @@ test('rename preserves original parameter names even when an export takes a priv
     publicValue: () => 5,
     read: ({ privateValue, publicValue, external }: { privateValue: number; publicValue: number; external: number }) =>
       [privateValue, publicValue, external],
-  }).buildModule({ exportedServiceKeys: ['publicValue', 'read'] }).renameExport('publicValue', 'privateValue');
-  expect(module.renameExport('read', 'read')).toBe(module);
+  }).buildModule({ exportedServiceKeys: ['publicValue', 'read'] }).withRenamedExport({ currentExportKey: 'publicValue', newExportKey: 'privateValue' });
+  expect(module.withRenamedExport({ currentExportKey: 'read', newExportKey: 'read' })).toBe(module);
   const root = DiBag.createBuilder().withInstalledModules([module]).withServices({ external: () => 7 }).buildContainer();
-  const child = root.fork(['privateValue'], { privateValue: () => 11 });
+  const child = root.createIndependentContainer(['privateValue'], { privateValue: () => 11 });
   expect(root.resolve('read')).toEqual([3, 5, 7]);
   expect(child.resolve('read')).toEqual([3, 11, 7]);
   await root.close(); await child.close();
@@ -93,9 +93,9 @@ test('invalid installations and export views fail atomically and reject forged m
   const builder = DiBag.createBuilder().withServices({ b: () => 9 });
   expect(() => (builder.withInstalledModules as Function)([module])).toThrow('duplicate registration: b');
   expect(() => (DiBag.createBuilder().withInstalledModules as Function)([{ ...module }])).toThrow('module');
-  expect(() => (module.renameExport as Function)('a', 'b')).toThrow('duplicate export');
-  expect(() => (module.renameExport as Function)('absent', 'x')).toThrow('existing export');
-  const root = builder.withInstalledModules([module.renameExport('b', 'c')]).buildContainer();
+  expect(() => (module.withRenamedExport as Function)({ currentExportKey: 'a', newExportKey: 'b' })).toThrow('duplicate export');
+  expect(() => (module.withRenamedExport as Function)({ currentExportKey: 'absent', newExportKey: 'x' })).toThrow('existing export');
+  const root = builder.withInstalledModules([module.withRenamedExport({ currentExportKey: 'b', newExportKey: 'c' })]).buildContainer();
   expect(root.resolve('a')).toBe(1);
   expect(root.resolve('b')).toBe(9);
   expect(root.resolve('c')).toBe(2);
@@ -137,7 +137,7 @@ test('renaming an export leaves an unrelated external requirement at its origina
   const module = DiBag.createBuilder().withServices({
     value: () => 1,
     read: ({ value, external }: { value: number; external: number }) => [value, external],
-  }).buildModule({ exportedServiceKeys: ['value', 'read'] }).renameExport('value', 'external').renameExport('external', 'renamed');
+  }).buildModule({ exportedServiceKeys: ['value', 'read'] }).withRenamedExport({ currentExportKey: 'value', newExportKey: 'external' }).withRenamedExport({ currentExportKey: 'external', newExportKey: 'renamed' });
   const root = DiBag.createBuilder().withInstalledModules([module]).withServices({ external: () => 7 }).buildContainer();
   expect(root.resolve('read')).toEqual([1, 7]);
   await root.close();
@@ -146,7 +146,7 @@ test('renaming an export leaves an unrelated external requirement at its origina
 test('module providers can be replaced before sealing without mutating earlier views', async () => {
   const builder = DiBag.createBuilder().withServices({ value: () => 1 });
   const original = builder.buildModule({ exportedServiceKeys: ['value'] });
-  const changed = builder.withReplacedService('value', () => 'changed').buildModule({ exportedServiceKeys: ['value'] }).renameExport('value', 'changed');
+  const changed = builder.withReplacedService('value', () => 'changed').buildModule({ exportedServiceKeys: ['value'] }).withRenamedExport({ currentExportKey: 'value', newExportKey: 'changed' });
   const root = DiBag.createBuilder().withInstalledModules([original]).withInstalledModules([changed]).buildContainer();
   expect(root.resolve('value')).toBe(1);
   expect(root.resolve('changed')).toBe('changed');

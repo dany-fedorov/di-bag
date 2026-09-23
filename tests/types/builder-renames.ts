@@ -1,5 +1,5 @@
-import { DiBag } from '../../src/node';
-import type { Module } from '../../src/node';
+import { DiBag } from '../../src';
+import type { Module } from '../../src';
 import type { Assert, Equal } from './assert';
 
 type Clock = { now(): number };

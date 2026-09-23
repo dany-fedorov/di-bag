@@ -7,7 +7,7 @@ import { test } from 'node:test';
 // Run against an emitted runtime: Node's stack limit differs from Bun's.
 // DI_BAG_RUNTIME_ENTRY can select an isolated build without touching dist/.
 const require = createRequire(import.meta.url);
-const { DiBag } = require(resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/node.js'));
+const { DiBag } = require(resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/index.js'));
 const count = 12_000;
 
 function chain(dispose) {
@@ -67,7 +67,7 @@ for (const mode of ['raw', 'auto']) test(`Node cold-resolves 1,000 ${mode} named
       assert.deepEqual(calls, Array(1000).fill(1));
     } finally { await bag.close(); }
   }
-  const entry = resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/node.js');
+  const entry = resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/index.js');
   const child = spawnSync(process.execPath, ['--input-type=module', '--eval', `await (${cold})(${JSON.stringify(entry)}, ${JSON.stringify(mode)})`], { encoding: 'utf8' });
   assert.equal(child.status, 0, child.stderr || child.stdout);
 });
@@ -121,7 +121,7 @@ test('ready borrowed transient proxies keep late cycle and root capture checks',
     reader: raw(deps => ({ next: () => deps.link })),
     link: transient(deps => ({ next: () => deps.reader })),
   }).buildContainer();
-  const child = bag.createScope();
+  const child = bag.createChildContainer();
   const bridge = child.resolve('root');
   assert.throws(bridge.read, /root lifetime cannot capture scoped dependency: root -> scoped/);
   const reader = bag.resolve('reader');
@@ -177,10 +177,10 @@ for (const startupOrder of [1, 2]) test(`Node numeric startup ${startupOrder} bo
 
 test('Node observer burst drains in transition and registration order while external callback gates remain pending', async () => {
   const pending = [], events = [], failures = [];
-  const bag = DiBag.withConfiguration({ observers: [{
-    onEvent(event) { const wait = gate(); pending.push(wait); events.push(`first:${event.kind}`); return wait.promise; },
-    onError({ error }) { failures.push(error); },
-  }] }).withConfiguration({ observers: [{ onEvent(event) { events.push(`second:${event.kind}`); }, onError() { assert.fail('fast observer failed'); } }] }).createBuilder().withServices({ value: DiBag.withLifetime(DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' }), 'transient') }).buildContainer();
+  const bag = DiBag.withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event) { const wait = gate(); pending.push(wait); events.push(`first:${event.kind}`); return wait.promise; },
+    onObserverFailure({ error }) { failures.push(error); },
+  }] }).withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { events.push(`second:${event.kind}`); }, onObserverFailure() { assert.fail('fast observer failed'); } }] }).createBuilder().withServices({ value: DiBag.withLifetime(DiBag.fromFactory(() => 1, { acquisitionMode: 'raw' }), 'transient') }).buildContainer();
   await turn(); pending.shift().resolve(); events.length = 0;
   for (let i = 0; i < 100; i++) assert.equal(bag.resolve('value'), 1);
   assert.equal(events.length, 0); await turn();

@@ -4,7 +4,7 @@
 
 # Interface: Module\<ExportedServices *extends* `object`, RequiredServices *extends* `object`, Constraints *extends* `NeedConstraint` = `never`, PublicProviders *extends* `Registrations` = `PublicRegistrations`\<`ExportedServices`\>\>
 
-Defined in: [module.ts:41](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L41)
+Defined in: [module.ts:42](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L42)
 
 A sealed, non-resolving module with private registrations and selected public exports.
 Create modules through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) and [Builder.buildModule](Builder.md#buildmodule); this
@@ -25,30 +25,31 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#reuse-named-modules
 
 ## Methods
 
-### renameExport()
+### withRenamedExport()
 
 ```ts
-renameExport<const Old extends string, const New extends string>(oldKey: Old & RenameKeys<ExportedServices, Old, New>, newKey: New & RenameKeys<ExportedServices, Old, New>): Module<Renamed<ExportedServices, Old, New>, RequiredServices, RenamedConstraints<Constraints, Old, New>, RenamedProviders<PublicProviders, Old, New>>;
+withRenamedExport<const CurrentExportKey extends string, const NewExportKey extends string>(options: {
+    readonly currentExportKey: CurrentExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey, 'withRenamedExport'>;
+    readonly newExportKey: NewExportKey & RenameKeys<ExportedServices, CurrentExportKey, NewExportKey, 'withRenamedExport'>;
+}): Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
 ```
 
-Defined in: [module.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L60)
+Defined in: [module.ts:65](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L65)
 
-Return a module view with one string-named export renamed.
-Factory dependency names and private identities remain unchanged.
+Return a module view with one string-named export renamed through an options bag.
 
 #### Type Parameters
 
 | Type Parameter | Description |
 | ------ | ------ |
-| `Old` | - |
-| `New` | - |
+| `CurrentExportKey` | - |
+| `NewExportKey` | - |
 
 #### Parameters
 
 | Parameter | Description |
 | ------ | ------ |
-| `oldKey` | An existing public string export. |
-| `newKey` | A noncolliding string-literal export name. |
+| `options` | The current export and its noncolliding new name. |
 
 #### Returns
 
@@ -56,4 +57,12 @@ A new sealed module, or the same instance when both names are equal.
 
 #### Throws
 
-If runtime input names are invalid, absent, or collide.
+`DI_BAG_INVALID_ARGUMENT` for a malformed options bag or `DI_BAG_INVALID_EXPORT` for invalid export names.
+
+#### Example
+
+```ts
+const feature = DiBag.createBuilder().withServices({ service: () => 1 })
+  .buildModule({ exportedServiceKeys: ['service'] });
+const renamed = feature.withRenamedExport({ currentExportKey: 'service', newExportKey: 'featureService' });
+```

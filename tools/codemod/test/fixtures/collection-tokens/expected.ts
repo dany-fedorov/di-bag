@@ -32,7 +32,7 @@ const builder = DiBag.createBuilder()
 
 export const bag = builder.buildContainer();
 export const paths = bag.resolveCollection(controllers).map(controller => controller.path);
-export const snapshots = bag.inspectCollection(controllers);
+export const snapshots = bag.serviceSnapshot(controllers);
 export const overrides = { [controllers.key]: () => [] };
 export type ControllersToken = typeof controllers;
 export const sinks = bag.resolveAll(logger);

@@ -11,12 +11,12 @@ const decoratedRaw = DiBag.withMetadata(rawOwned, { static: { owner: 'scope' as 
 const feature = DiBag.createBuilder().withServices({
   hidden: ({ external }: { external: { readonly exact: true } }) => external.exact,
   publicValue: ({ hidden }: { hidden: true }) => ({ hidden }),
-}).buildModule({ exportedServiceKeys: ['publicValue'] }).renameExport('publicValue', 'renamed');
+}).buildModule({ exportedServiceKeys: ['publicValue'] }).withRenamedExport({ currentExportKey: 'publicValue', newExportKey: 'renamed' });
 
 export const root = DiBag.createBuilder().withTokenService(exactToken, () => ({ id: 'token' as const, read: () => 7 })).withInstalledModules([feature]).withServices({
     external: () => ({ exact: true as const, visible: 'wide' as const }),
     asyncNamed: async ({ renamed }: { renamed: { hidden: true } }) => renamed.hidden ? 42 : 0,
     rawOwned: decoratedRaw,
   }).buildContainer();
-export const child = root.createScope();
-export const grandchild = child.createScope();
+export const child = root.createChildContainer();
+export const grandchild = child.createChildContainer();

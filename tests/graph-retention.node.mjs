@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { setImmediate } from 'node:timers/promises';
 import { test } from 'node:test';
 const require = createRequire(import.meta.url);
-const { BindingGraph } = require(resolve(dirname(resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/node.js')), 'runtime.js'));
+const { BindingGraph } = require(resolve(dirname(resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/index.js')), 'runtime.js'));
 assert.equal(typeof globalThis.gc, 'function', 'run with --expose-gc');
 async function collected(refs) {
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -61,7 +61,7 @@ test('a private lexical reference intentionally retains an overridden factory', 
 test('symbol lookup remains functional on hosts that reject weak symbol keys', async () => {
   const { readFileSync } = await import('node:fs');
   const { runInNewContext } = await import('node:vm');
-  const filename = resolve(dirname(resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/node.js')), 'persistent-map.js');
+  const filename = resolve(dirname(resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/index.js')), 'persistent-map.js');
   class ObjectOnlyWeakMap extends WeakMap {
     set(key, value) { if (typeof key === 'symbol') throw new TypeError('unsupported weak key'); return super.set(key, value); }
   }

@@ -11,16 +11,16 @@ type Needs = Assert<Equal<ProviderNamedDependencies<typeof decorated>, { clock: 
 type Metadata = Assert<Equal<ProviderRegistrationMetadata<typeof decorated>, Readonly<{ 'app:owner': { team: string } }>>>;
 type Frames = Assert<Equal<ProviderAcquisitionMetadata<typeof decorated>, readonly []>>;
 const unit = DiBag.createBuilder().withServices({ service: decorated }).buildModule({ exportedServiceKeys: ['service'] });
-const renamed = unit.renameExport('service', 'client');
+const renamed = unit.withRenamedExport({ currentExportKey: 'service', newExportKey: 'client' });
 const bag = DiBag.createBuilder().withInstalledModules([renamed]).withServices({ clock: () => ({ now: () => 42 }) }).buildContainer();
-const team: string = bag.inspect('client').registrationMetadata['app:owner'].team;
+const team: string = bag.serviceSnapshot('client').registrationMetadata['app:owner'].team;
 const value: number = bag.resolve('client').read();
 type PublicNeeds = typeof unit extends Module<infer _P, infer _R, infer _C, infer D> ? ProviderNamedDependencies<D[Extract<'service', keyof D>]> : never;
 type NoPrivateNeeds = Assert<Equal<PublicNeeds, Record<never, never>>>;
 const owned = DiBag.withMetadata(DiBag.withDisposal(async () => 42, value => { const n: number = value; void n; }), { static: {} });
 type PromiseOutput = Assert<Equal<ProviderOutput<typeof owned>, Promise<number>>>;
 const plain: Module<{ value: number }, {}> = DiBag.createBuilder().withServices({ value: DiBag.withMetadata(() => 1, { static: {} }) }).buildModule({ exportedServiceKeys: ['value'] });
-const child = bag.fork(['clock', 'client'], {
+const child = bag.createIndependentContainer(['clock', 'client'], {
   clock: DiBag.withMetadata(() => ({ now() { return 7; }, zone() { return 'utc' as const; } }), { static: { owner: 'child' } }),
   client: ({ clock }: { clock: { now(): number; zone(): 'utc' } }) => ({ read() { return clock.now(); }, zone() { return clock.zone(); } }),
 });
@@ -37,7 +37,7 @@ type UnionModuleReplacement = Assert<Equal<ReturnType<typeof moduleInstalled.res
 declare const metadataChoice: { first: number } | { second: string };
 const choiceProvider = DiBag.withMetadata(() => 1, { static: metadataChoice });
 const choiceBag = DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ choice: choiceProvider }).buildModule({ exportedServiceKeys: ['choice'] })]).buildContainer();
-const choiceMetadata = choiceBag.inspect('choice').registrationMetadata;
+const choiceMetadata = choiceBag.serviceSnapshot('choice').registrationMetadata;
 type ChoiceMetadata = Assert<Equal<typeof choiceMetadata, Readonly<{ first: number } | { second: string }>>>;
 type Opaque = Exclude<Registration, ((...args: never[]) => unknown) | { create: unknown }>;
 type OpaqueOutput = Assert<Equal<ProviderOutput<Opaque>, unknown>>;
@@ -49,8 +49,8 @@ type Tuple = Assert<Equal<AcquisitionMetadataPresence<readonly [string, number]>
 declare const attempt: AcquisitionSnapshot<readonly [string]>;
 if (attempt.acquisitionMetadata[0].present) { const text: string = attempt.acquisitionMetadata[0].value; void text; }
 declare const framed: Provider<() => number, Readonly<{ owner: string }>, readonly [{ kind: 'trace'; id: string }]>;
-const frameUnit = DiBag.createBuilder().withServices({ framed }).buildModule({ exportedServiceKeys: ['framed'] }).renameExport('framed', 'traced');
-const frameView = DiBag.createBuilder().withInstalledModules([frameUnit]).buildContainer().inspect('traced');
+const frameUnit = DiBag.createBuilder().withServices({ framed }).buildModule({ exportedServiceKeys: ['framed'] }).withRenamedExport({ currentExportKey: 'framed', newExportKey: 'traced' });
+const frameView = DiBag.createBuilder().withInstalledModules([frameUnit]).buildContainer().serviceSnapshot('traced');
 type RetainedFrame = Assert<Equal<typeof frameView.acquisitions, readonly AcquisitionSnapshot<readonly [{ kind: 'trace'; id: string }]>[]>>;
 void [exact, team, value, plain];
 
@@ -70,12 +70,12 @@ type OwnedMappedMetadata = Assert<Equal<ProviderRegistrationMetadata<typeof fram
 const legacyCreate = ({ clock }: { clock: number }) => ({ read() { return clock; } });
 const legacyOwned = DiBag.withDisposal(legacyCreate, value => { const n: number = value.read(); void n; });
 type OriginalCreate = Assert<Equal<typeof legacyOwned.create, typeof legacyCreate>>;
-const mappedModule = DiBag.createBuilder().withServices({ clock: () => ({ now: () => 42 }), mapped }).buildModule({ exportedServiceKeys: ['mapped'] }).renameExport('mapped', 'result');
+const mappedModule = DiBag.createBuilder().withServices({ clock: () => ({ now: () => 42 }), mapped }).buildModule({ exportedServiceKeys: ['mapped'] }).withRenamedExport({ currentExportKey: 'mapped', newExportKey: 'result' });
 const mappedBag = DiBag.createBuilder().withInstalledModules([mappedModule]).buildContainer();
 type InstalledMapping = Assert<Equal<ReturnType<typeof mappedBag.resolve<'result'>>, { result: number }>>;
 const mappingReplacement = DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService('value', DiBag.transformService(() => 1, { mode: 'direct', transform: value => ({ value }) })).buildContainer();
 type MappingReplacement = Assert<Equal<ReturnType<typeof mappingReplacement.resolve<'value'>>, { value: number }>>;
-const mappingFork = bag.fork(['clock'], { clock: DiBag.transformService(() => 7, { mode: 'direct', transform: value => ({ now() { return value; } }) }) });
+const mappingFork = bag.createIndependentContainer(['clock'], { clock: DiBag.transformService(() => 7, { mode: 'direct', transform: value => ({ now() { return value; } }) }) });
 type MappingFork = Assert<Equal<ReturnType<typeof mappingFork.resolve<'clock'>>, { now(): number }>>;
 declare const erasedRegistration: NoInfer<Registration>;
 const erasedSync = DiBag.transformService(erasedRegistration, { mode: 'direct', transform: value => { const unknown: unknown = value; return unknown; } });

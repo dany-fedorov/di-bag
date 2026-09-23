@@ -11,15 +11,15 @@ const accepted = DiBag.createBuilder().withServices({ config: () => ({ retries: 
 // diagnostic: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-shape
 accepted.withServices({ db: ({ config }: { config: { retries: string } }) => config.retries });
 const bag = DiBag.createBuilder().withServices({ config: () => 1 }).buildContainer();
-// diagnostic: fork accepts existing names or typed tokens only: unknown missing; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
-bag.fork(['missing'], { missing: () => 2 });
+// diagnostic: createIndependentContainer accepts existing names or typed tokens only: unknown missing; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
+bag.createIndependentContainer(['missing'], { missing: () => 2 });
 // diagnostic: withReplacedService requires one existing singleton string-literal key: absent; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 DiBag.createBuilder().withServices({ config: () => 1 }).withReplacedService('absent', () => 2);
 // diagnostic: root lifetime cannot capture scoped dependency: db -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
 DiBag.createBuilder().withServices({ config: () => 1, db: DiBag.withLifetime(({ config }: { config: number }) => config, 'root') }).buildContainer();
 const scoped = DiBag.createBuilder().withServices({ config: () => 1, db: ({ config }: { config: number }) => config }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency: db -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
-scoped.createScope(['db'], { db: DiBag.withLifetime(({ config }: { config: number }) => config, 'root') });
+scoped.createChildContainer(['db'], { db: DiBag.withLifetime(({ config }: { config: number }) => config, 'root') });
 const feature = DiBag.createBuilder().withServices({
   value: () => ({ read() { return 1; }, extra() { return true; } }),
   hidden: ({ value }: { value: { extra(): boolean } }) => value.extra(),

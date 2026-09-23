@@ -14,12 +14,12 @@ const base = DiBag.createBuilder()
   .buildContainer();
 after(() => base.close());
 
-const shop = (list = products) => base.fork(['catalogData'], { catalogData: data(list) });
+const shop = (list = products) => base.createIndependentContainer(['catalogData'], { catalogData: data(list) });
 
 test('find returns the product for a SKU and undefined otherwise', async () => {
   const bag = shop();
   try {
-    const catalog = bag.createScope().resolve('catalog');
+    const catalog = bag.createChildContainer().resolve('catalog');
     assert.deepEqual(catalog.find('mug'), products[1]);
     assert.equal(catalog.find('cake'), undefined);
   } finally {
@@ -31,7 +31,7 @@ test('list returns products in catalogData order', async () => {
   const reversed = [...products].reverse();
   const bag = shop(reversed);
   try {
-    assert.deepEqual([...bag.createScope().resolve('catalog').list()], reversed);
+    assert.deepEqual([...bag.createChildContainer().resolve('catalog').list()], reversed);
   } finally {
     await bag.close();
   }
@@ -40,7 +40,7 @@ test('list returns products in catalogData order', async () => {
 test('every scope resolves the same catalog', async () => {
   const bag = shop();
   try {
-    assert.equal(bag.createScope().resolve('catalog'), bag.createScope().resolve('catalog'));
+    assert.equal(bag.createChildContainer().resolve('catalog'), bag.createChildContainer().resolve('catalog'));
   } finally {
     await bag.close();
   }

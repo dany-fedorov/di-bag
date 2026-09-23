@@ -21,6 +21,7 @@ test('the package contains only the CLI, the library, the map, its schema and it
     'lib/transforms/collection-reference.mjs',
     'lib/transforms/collection-token.mjs',
     'lib/transforms/collection-tokens.mjs',
+    'lib/transforms/container-derivation.mjs',
     'lib/transforms/index.mjs',
     'package.json', 'rename-map.json', 'rename-map.schema.json',
   ]);

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 import { withLifetime } from '../src/lifetime';
 import { normalize } from '../src/provider-operations';
 import { withTokenBinding } from '../src/provider';

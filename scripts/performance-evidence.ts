@@ -592,7 +592,7 @@ export async function runRuntimeArchiveSmoke(root: string, baselineRef: string):
         throw new Error(`runtime ${lane} smoke failed: ${execution.stderr || execution.stdout}`);
       }
       const sample = parseRuntimeChild(request, execution);
-      const entry = scenario === 'node-native-promise' ? 'node.js' : 'index.js';
+      const entry = lane === 'baseline' && scenario === 'node-native-promise' ? 'node.js' : 'index.js';
       if (sample.resolvedDiBag !== join(consumer.installedPackageRoot, 'dist', entry)) {
         throw new Error(`runtime ${lane} smoke resolved an unexpected package entry`);
       }

@@ -50,8 +50,8 @@ test('modules, lifetimes, scopes, forks and direct transforms stay portable', as
   expect((await db).url).toBe('memory:');
   expect(await bag.resolve('shown')).toBe('hidden/shown');
   expect(bag.resolve('projected')).toBe(2);
-  const scope = bag.createScope();
-  const fork = bag.fork();
+  const scope = bag.createChildContainer();
+  const fork = bag.createIndependentContainer();
   withoutBuiltinModule(() => {
     expect(scope.resolve('db')).toBe(db);
     expect(fork.resolve('config')).toEqual({ url: 'memory:' });
@@ -76,7 +76,7 @@ test('fromSyncFactory exposes the exact value, never reads then, and is a raw st
   expect(bag.resolve('value')).toBe(value);
   expect(bag.resolve('promise')).toBe(pending);
   expect(reads).toBe(0);
-  const modes = new Map(bag.inspectGraph().bindings.map(binding => [binding.label, binding.acquisitionMode]));
+  const modes = new Map(bag.graphSnapshot().bindings.map(binding => [binding.label, binding.acquisitionMode]));
   expect(modes.get('value')).toBe('raw');
   expect(modes.get('later')).toBe('nativePromise');
   await bag.close();

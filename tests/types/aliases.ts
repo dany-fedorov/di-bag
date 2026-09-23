@@ -29,31 +29,31 @@ export type ReflectedReturn = ReturnType<typeof base.withServiceAlias>;
 const root = DiBag.withLifetime(() => ({ id: 1 }), 'root');
 const rootConsumer = DiBag.withLifetime(({ copy }: { copy: { id: number } }) => copy, 'root');
 export const rootBag = DiBag.createBuilder().withServices({ root }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'root' }).withServices({ rootConsumer }).buildContainer();
-rootBag.createScope({ share: ['copy'] });
-export const privateRoot = DiBag.createBuilder().withServices({ root }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'root' }).buildModule({ exportedServiceKeys: ['copy'] }).renameExport('copy', 'renamed');
+rootBag.createChildContainer({ sharedParentServiceKeys: ['copy'] });
+export const privateRoot = DiBag.createBuilder().withServices({ root }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'root' }).buildModule({ exportedServiceKeys: ['copy'] }).withRenamedExport({ currentExportKey: 'copy', newExportKey: 'renamed' });
 DiBag.createBuilder().withInstalledModules([privateRoot]).withServices({ rootConsumer: DiBag.withLifetime(({ renamed }: { renamed: { id: number } }) => renamed, 'root') }).buildContainer();
-export const publicTarget = DiBag.createBuilder().withServices({ value: () => ({ id: 1 }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['copy', 'value'] }).renameExport('value', 'renamed');
+export const publicTarget = DiBag.createBuilder().withServices({ value: () => ({ id: 1 }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildModule({ exportedServiceKeys: ['copy', 'value'] }).withRenamedExport({ currentExportKey: 'value', newExportKey: 'renamed' });
 export const publicTargetHost = DiBag.createBuilder().withInstalledModules([publicTarget]);
-const metadata = bag.inspect('copy').registrationMetadata;
-const frames = bag.inspect('copy').acquisitions;
+const metadata = bag.serviceSnapshot('copy').registrationMetadata;
+const frames = bag.serviceSnapshot('copy').acquisitions;
 // @ts-expect-error alias inspection cannot promise target metadata keys
 metadata.old;
 // @ts-expect-error alias inspection cannot promise an empty canonical frame tuple
 const exactFrames: readonly { metadata: readonly [] }[] = frames;
 
 const scopedTarget = DiBag.createBuilder().withServices({ value: () => 1, consumer: ({ copy }: { copy: number }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
-export const scopedShared = scopedTarget.createScope(['value'], { value: DiBag.withLifetime(() => 2, 'root') }, { share: ['copy'] });
+export const scopedShared = scopedTarget.createChildContainer(['value'], { value: DiBag.withLifetime(() => 2, 'root') }, { sharedParentServiceKeys: ['copy'] });
 // Fresh grandchildren discard selected sharing and see their own root target.
-scopedShared.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
-scopedShared.fork(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
+scopedShared.createChildContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
+scopedShared.createIndependentContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') });
 const rootedTarget = DiBag.createBuilder().withServices({ value: DiBag.withLifetime(() => 1, 'root'), consumer: ({ copy }: { copy: number }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
-export const rootShared = rootedTarget.createScope(['value'], { value: () => 2 }, { share: ['copy'] });
-rootShared.createScope(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { share: ['copy'] });
-export const sharedRootConsumer = rootedTarget.createScope(['value', 'consumer'], {
+export const rootShared = rootedTarget.createChildContainer(['value'], { value: () => 2 }, { sharedParentServiceKeys: ['copy'] });
+rootShared.createChildContainer(['consumer'], { consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root') }, { sharedParentServiceKeys: ['copy'] });
+export const sharedRootConsumer = rootedTarget.createChildContainer(['value', 'consumer'], {
   value: () => 2, consumer: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'root'),
-}, { share: ['copy'] });
-const transientOverride = rootedTarget.createScope(['value'], { value: DiBag.withLifetime(() => 3, 'transient') }, { share: ['copy'] });
-transientOverride.createScope({ share: ['copy'] });
+}, { sharedParentServiceKeys: ['copy'] });
+const transientOverride = rootedTarget.createChildContainer(['value'], { value: DiBag.withLifetime(() => 3, 'transient') }, { sharedParentServiceKeys: ['copy'] });
+transientOverride.createChildContainer({ sharedParentServiceKeys: ['copy'] });
 
 type IsAny<T> = 0 extends (1 & T) ? true : false;
 export type ReflectedExact = [Assert<Equal<IsAny<ReturnType<typeof base.withServiceAlias>>, false>>,

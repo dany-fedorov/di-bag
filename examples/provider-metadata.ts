@@ -53,11 +53,11 @@ async function main() {
     console.log('flag present:', flag.present);
     console.log(
       'connection frame:',
-      bag.inspect('connectionPresence').acquisitions[0]!.acquisitionMetadata[0],
+      bag.serviceSnapshot('connectionPresence').acquisitions[0]!.acquisitionMetadata[0],
     );
     console.log(
       'flag frame:',
-      bag.inspect('remoteFlag').acquisitions[0]!.acquisitionMetadata[0],
+      bag.serviceSnapshot('remoteFlag').acquisitions[0]!.acquisitionMetadata[0],
     );
   } finally {
     await bag.close();

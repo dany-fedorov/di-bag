@@ -31,7 +31,7 @@ function consumerFixture() {
   const consumer = mkdtempSync(join(tmpdir(), 'di-bag-browser-test-'));
   roots.push(consumer);
   for (const directory of ['node_modules/di-bag/dist', 'node_modules/other', 'portable']) mkdirSync(join(consumer, directory), { recursive: true });
-  for (const file of ['index.js', 'internal.js', 'node.js']) writeFileSync(join(consumer, 'node_modules/di-bag/dist', file), `// ${file}\n`);
+  for (const file of ['index.js', 'internal.js']) writeFileSync(join(consumer, 'node_modules/di-bag/dist', file), `// ${file}\n`);
   writeFileSync(join(consumer, 'browser-entry.ts'), 'entry\n');
   writeFileSync(join(consumer, 'portable/contract.ts'), 'fixture\n');
   writeFileSync(join(consumer, 'node_modules/other/index.js'), 'foreign\n');
@@ -97,10 +97,9 @@ test('browser metafile accepts only the installed root export and package-local 
 
   const mutations: Array<[string, unknown, string]> = [
     ['missing root', { inputs: { 'browser-entry.ts': {}, 'portable/contract.ts': {} }, outputs: cleanMetafile(consumer).outputs }, 'exactly one di-bag root entry'],
-    ['node facade', { inputs: { ...cleanMetafile(consumer).inputs, 'node_modules/di-bag/dist/node.js': {} }, outputs: cleanMetafile(consumer).outputs }, 'node facade'],
     ['node builtin input', { inputs: { ...cleanMetafile(consumer).inputs, 'node:util/types': {} }, outputs: cleanMetafile(consumer).outputs }, 'node: input'],
     ['node builtin external import', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'node:fs', external: true }] } }, outputs: cleanMetafile(consumer).outputs }, 'node: input'],
-    ['external node facade', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'di-bag/node', external: true }] } }, outputs: cleanMetafile(consumer).outputs }, 'external input'],
+    ['external node facade', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'di-bag', external: true }] } }, outputs: cleanMetafile(consumer).outputs }, 'external input'],
     ['external registry URL', { inputs: { ...cleanMetafile(consumer).inputs, 'browser-entry.ts': { imports: [{ path: 'https://registry.example/di-bag.js', external: true }] } }, outputs: cleanMetafile(consumer).outputs }, 'external input'],
     ['node builtin output import', { inputs: cleanMetafile(consumer).inputs, outputs: { 'worker.js': { imports: [{ path: 'node:path', external: true }] } } }, 'node: input'],
     ['foreign package input', { inputs: { ...cleanMetafile(consumer).inputs, 'node_modules/other/index.js': {} }, outputs: cleanMetafile(consumer).outputs }, 'outside the installed di-bag archive'],

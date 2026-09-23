@@ -1,4 +1,4 @@
-import { DiBag } from '../../src/node';
+import { DiBag } from '../../src';
 
 export const disposals: string[] = [];
 export function reset() { disposals.length = 0; }

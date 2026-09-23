@@ -142,6 +142,36 @@ function optionsBag(call) {
   return call.arguments.length === 1 && ts.isObjectLiteralExpression(call.arguments[0]) ? call.arguments[0] : undefined;
 }
 
+function literalString(expression) {
+  const inner = skipOuter(expression);
+  return ts.isStringLiteralLike(inner) ? inner.text : undefined;
+}
+
+/** A closed `withRenamedExport` bag, or undefined when applying any part would be a guess. */
+function renamedExportPair(call) {
+  const bag = optionsBag(call);
+  if (!bag || bag.properties.length !== 2) return undefined;
+  const values = new Map();
+  for (const property of bag.properties) {
+    let name, value;
+    if (ts.isShorthandPropertyAssignment(property)) {
+      name = property.name.text;
+      value = property.name;
+    } else if (ts.isPropertyAssignment(property) && !ts.isComputedPropertyName(property.name)
+        && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) {
+      name = property.name.text;
+      value = property.initializer;
+    } else return undefined;
+    if (!['currentExportKey', 'newExportKey'].includes(name) || values.has(name)) return undefined;
+    values.set(name, value);
+  }
+  const current = values.get('currentExportKey'), renamed = values.get('newExportKey');
+  if (!current || !renamed) return undefined;
+  const currentText = literalString(current), renamedText = literalString(renamed);
+  if (currentText === undefined || renamedText === undefined) return undefined;
+  return currentText === renamedText ? [] : [currentText, renamedText];
+}
+
 function listedModules(argument, checker) {
   let expression = skipOuter(argument);
   if (ts.isIdentifier(expression)) {
@@ -209,9 +239,16 @@ function resolveInstalls(units, checker) {
     unit.installRefs = unit.installs.map(argument => {
       const renames = [];
       let expression = skipOuter(argument);
-      while (ts.isCallExpression(expression) && methodName(expression) === 'renameExport' && ts.isPropertyAccessExpression(expression.expression)) {
-        const [from, to] = expression.arguments;
-        if (from && to) renames.unshift([keyText(from), keyText(to)]);
+      while (ts.isCallExpression(expression) && ts.isPropertyAccessExpression(expression.expression)) {
+        const name = methodName(expression);
+        if (name === 'renameExport') {
+          const [from, to] = expression.arguments;
+          if (from && to) renames.unshift([keyText(from), keyText(to)]);
+        } else if (name === 'withRenamedExport') {
+          const pair = renamedExportPair(expression);
+          if (!pair) break;
+          if (pair.length > 0) renames.unshift(pair);
+        } else break;
         expression = skipOuter(expression.expression.expression);
       }
       const initializer = ts.isIdentifier(expression) ? initializerOf(expression, checker) : expression;

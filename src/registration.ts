@@ -29,7 +29,7 @@ export type Registration = Factory | FactoryWithDisposal<Factory> | ProviderBase
 export type Registrations = Record<string, Registration>;
 
 /**
- * Declare that each acquiring bag owns a factory's fulfilled value.
+ * Declare that each acquiring container owns a factory's fulfilled value.
  * Neither callback runs until acquisition; cleanup runs once after dependent resources.
  * @param create - The receiver-free service factory.
  * @param dispose - Cleanup for its fulfilled value; it may complete synchronously or asynchronously.

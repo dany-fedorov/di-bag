@@ -102,7 +102,7 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
       (value: { value: string }) => { asyncDisposed = value; },
     ),
   }).withServiceAlias({ aliasKey: 'rootAlias', targetServiceKey: 'root' }).buildContainer();
-  const child = root.createScope();
+  const child = root.createChildContainer();
 
   const rootValue = child.resolve('root');
   const aliasCanonical = child.resolve('rootAlias') === rootValue
@@ -117,7 +117,7 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   const pending2 = child.resolve('pending');
   const asyncPromiseIdentity = pending1 === pending2 && pending1 instanceof Promise;
   const asyncFulfilled = (await pending1).value === 'async';
-  const inspection = child.inspect('root');
+  const inspection = child.serviceSnapshot('root');
   const inspectionProof = validatePortableInspection(inspection);
 
   await child.close();

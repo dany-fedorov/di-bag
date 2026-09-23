@@ -39,14 +39,14 @@ export type Exact = [Assert<Equal<typeof value, number | undefined>>, Assert<Equ
 export type Unions = [Assert<Equal<ProviderRequiredTokens<NoInfer<typeof optional | typeof lazy>>, typeof number>>,
   Assert<Equal<ProviderOptionalTokens<NoInfer<typeof optional | typeof lazy>>, typeof number>>];
 builder.buildContainer(); emptyBuilder.buildContainer(); DiBag.createBuilder().withInstalledModules([retainedFeature]).buildContainer();
-const privateFeature = DiBag.createBuilder().withTokenService(number, () => 5).withServices({ optional, lazy }).buildModule({ exportedServiceKeys: ['optional', 'lazy'] }).renameExport('optional', 'maybe');
+const privateFeature = DiBag.createBuilder().withTokenService(number, () => 5).withServices({ optional, lazy }).buildModule({ exportedServiceKeys: ['optional', 'lazy'] }).withRenamedExport({ currentExportKey: 'optional', newExportKey: 'maybe' });
 DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();
 const rootOptional = DiBag.withLifetime(optional, 'root');
 DiBag.createBuilder().withServices({ rootOptional }).buildContainer();
 DiBag.createBuilder().withTokenService(number, DiBag.withLifetime(() => 1, 'root')).withServices({ rootOptional }).buildContainer();
 const rootLazy = DiBag.withLifetime(lazy, 'root');
 const rootBag = DiBag.createBuilder().withTokenService(number, DiBag.withLifetime(() => 1, 'root')).withServices({ rootLazy }).buildContainer();
-rootBag.createScope([number], { [key]: () => 2 });
+rootBag.createChildContainer([number], { [key]: () => 2 });
 DiBag.fromFunction<readonly [typeof optionalHandle], (value: number | undefined) => number | undefined>([optionalHandle], value => value);
 DiBag.fromClass<readonly [typeof optionalHandle, typeof lazyHandle], typeof Client>([optionalHandle, lazyHandle], Client);
 const reflected: typeof DiBag.fromFunction = DiBag.fromFunction;

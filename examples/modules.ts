@@ -44,7 +44,7 @@ async function main() {
     .withInstalledModules([feature])
     .withInstalledModules([logging])
     .buildContainer();
-  const child = root.fork(['service'], {
+  const child = root.createIndependentContainer(['service'], {
     service: () => ({
       read() {
         return false;

@@ -13,7 +13,7 @@ export const startupRuntimeAssertions = `{
   assert.equal(lazyCalls, 0);
   const context = started.resolve('service');
   assert.equal(Object.isFrozen(context), true);
-  const child = started.createScope();
+  const child = started.createChildContainer();
   const childContext = child.resolve('service');
   await child.close();
   assert.equal(childContext.signal.aborted, true);

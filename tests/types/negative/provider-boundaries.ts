@@ -42,18 +42,18 @@ DiBag.createBuilder().withServices({ value: () => 1 }).withReplacedService('valu
 DiBag.createBuilder().withServices({ erased }).buildModule({ exportedServiceKeys: ['erased'] });
 const bag = DiBag.createBuilder().withServices({ provider, clock: () => 1 }).buildContainer();
 // diagnostic: does not exist
-bag.inspect('provider').registrationMetadata.other;
+bag.serviceSnapshot('provider').registrationMetadata.other;
 // diagnostic: does not exist
-bag.inspect('provider').acquisitions[0]!.value;
+bag.serviceSnapshot('provider').acquisitions[0]!.value;
 // diagnostic: read-only
-bag.inspect('provider').registrationMetadata.owner = 'other';
+bag.serviceSnapshot('provider').registrationMetadata.owner = 'other';
 // diagnostic: does not exist
-bag.inspect('provider').acquisitions.push({});
+bag.serviceSnapshot('provider').acquisitions.push({});
 // diagnostic: read-only
-bag.inspect('provider').acquisitions[0]!.state = 'failed';
+bag.serviceSnapshot('provider').acquisitions[0]!.state = 'failed';
 // diagnostic: not assignable
-bag.inspect('unknown');
+bag.serviceSnapshot('unknown');
 // diagnostic: not assignable
-bag.fork(['clock'], { clock: DiBag.withMetadata(() => 'wrong', { static: {} }) });
+bag.createIndependentContainer(['clock'], { clock: DiBag.withMetadata(() => 'wrong', { static: {} }) });
 // diagnostic: Property 'missing' is missing
-bag.fork(['clock'], { clock: DiBag.withMetadata(({ missing }: { missing: number }) => missing, { static: {} }) });
+bag.createIndependentContainer(['clock'], { clock: DiBag.withMetadata(({ missing }: { missing: number }) => missing, { static: {} }) });

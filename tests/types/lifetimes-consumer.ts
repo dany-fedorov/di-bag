@@ -6,6 +6,7 @@ import type { Assert, Equal } from './assert';
 import type { Lifetime } from '../../src';
 export type LifetimeCheck = Assert<Equal<Lifetime, 'root' | 'scoped' | 'transient'>>;
 type IsAny<T> = 0 extends (1 & T) ? true : false;
+const callReflectedScope = () => reflectedScope();
 export const repo = graph.resolve('repo');
 export const db = scoped.resolve('db');
 export const forked = independent.resolve('repo');
@@ -23,8 +24,9 @@ export type Checks = [
   Assert<Equal<ProviderGraphContract<typeof rebound>, ProviderGraphContract<typeof bound>>>,
   Assert<Equal<ProviderGraphContract<typeof explicitDefault>, TokenDependencyContract>>, Assert<Equal<typeof explicitDefault, Provider<() => number>>>,
   Assert<Equal<ProviderOutput<NoInfer<typeof mixed>>, number>>, Assert<Equal<ProviderOutput<typeof wrappedMixed>, number>>,
-  Assert<Equal<IsAny<typeof wrappedMixed>, false>>, Assert<Equal<ReturnType<typeof reflectedScope>, typeof graph>>,
-  Assert<Equal<Parameters<typeof reflectedScope>, []>>, Assert<Equal<IsAny<ReturnType<typeof reflectedFork>>, false>>,
+  Assert<Equal<IsAny<typeof wrappedMixed>, false>>, Assert<Equal<ReturnType<typeof callReflectedScope>, typeof graph>>,
+  Assert<Equal<IsAny<ReturnType<typeof reflectedScope>>, false>>,
+  Assert<Equal<IsAny<ReturnType<typeof reflectedFork>>, false>>,
 ];
 export const tokenValue = tokenFork.resolve(token);
 export type TokenCheck = Assert<Equal<typeof tokenValue, number>>;

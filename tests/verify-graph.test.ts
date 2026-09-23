@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag } from '../src/node';
+import { DiBag } from '../src';
 
 test('verifyGraph runs no factories, returns undefined, and leaves the builder usable', async () => {
   let calls = 0;
