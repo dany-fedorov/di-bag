@@ -3,8 +3,8 @@ export const contributionRuntimeAssertions = `
   {
     const assertContribution = (condition, message) => { if (!condition) throw new Error(message); };
     const itemKey = Symbol('contributed item');
-    const item = DiBag.token(itemKey).forCollectionOf();
-    const singularItem = DiBag.token(Symbol('singular item')).of();
+    const item = DiBag.createToken(itemKey).forCollectionOf();
+    const singularItem = DiBag.createToken(Symbol('singular item')).forService();
     const empty = DiBag.createBuilder().buildContainer();
     const absent = empty.resolveCollection(item);
     assertContribution(absent.length === 0 && Object.isFrozen(absent), 'empty contribution read changed');
@@ -33,12 +33,12 @@ export const contributionRuntimeAssertions = `
       'repeated private module contributions lost independent ownership');
 
     const lifetimeKey = Symbol('lifetime contribution');
-    const lifetimeItem = DiBag.token(lifetimeKey).forCollectionOf();
+    const lifetimeItem = DiBag.createToken(lifetimeKey).forCollectionOf();
     let transientCalls = 0;
     const cleanup = [];
     const tracked = (factory, lifetime) => DiBag.withLifetime(
       DiBag.withDisposal(factory, value => { cleanup.push(value); }), lifetime);
-    const parent = DiBag.createBuilder().withServices({ helper: () => 'parent' }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(() => ({ kind: 'root' }), 'root') }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(({ helper }) => ({ kind: helper }), 'scoped') }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(() => ({ kind: 'transient', id: ++transientCalls }), 'transient') }).withServices({ aggregate: DiBag.fromFunction([lifetimeItem], values => values) }).buildContainer();
+    const parent = DiBag.createBuilder().withServices({ helper: () => 'parent' }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(() => ({ kind: 'root' }), 'root') }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(({ helper }) => ({ kind: helper }), 'scoped') }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(() => ({ kind: 'transient', id: ++transientCalls }), 'transient') }).withServices({ aggregate: DiBag.createProviderFromFunction({ dependencies: [lifetimeItem], factoryFunction: values => values }) }).buildContainer();
     const child = parent.createChildContainer(['helper'], { helper: () => 'child' }, { sharedParentServiceKeys: ['aggregate'] });
     const borrowed = child.resolve('aggregate');
     assertContribution(borrowed === parent.resolve('aggregate') && borrowed[1].kind === 'parent',
@@ -56,15 +56,15 @@ export const contributionRuntimeAssertions = `
       'shared aggregate introduced duplicate or missing contribution cleanup');
 
     const promiseKey = Symbol('promise contribution');
-    const promiseItem = DiBag.token(promiseKey).forCollectionOf();
+    const promiseItem = DiBag.createToken(promiseKey).forCollectionOf();
     let fulfill;
     const native = new Promise(resolve => { fulfill = resolve; });
     // Raw acquisition must not turn even an unresolved Promise into readiness work.
     const raw = new Promise(() => {});
     const fulfilled = { kind: 'native' };
     const promiseCleanup = [];
-    const promises = DiBag.createBuilder().withCollectionContribution({ collectionToken: promiseItem, provider: DiBag.withDisposal(DiBag.fromFactory(() => native, { acquisitionMode: 'nativePromise' }),
-        value => { promiseCleanup.push(value); }) }).withCollectionContribution({ collectionToken: promiseItem, provider: DiBag.withDisposal(DiBag.fromFactory(() => raw, { acquisitionMode: 'raw' }),
+    const promises = DiBag.createBuilder().withCollectionContribution({ collectionToken: promiseItem, provider: DiBag.withDisposal(DiBag.createProvider(() => native, { factoryReturnKind: 'native-promise' }),
+        value => { promiseCleanup.push(value); }) }).withCollectionContribution({ collectionToken: promiseItem, provider: DiBag.withDisposal(DiBag.createProvider(() => raw, { factoryReturnKind: 'uninspected' }),
         value => { promiseCleanup.push(value); }) }).buildContainer();
     const values = promises.resolveCollection(promiseItem);
     assertContribution(values[0] === native && values[1] === raw, 'collection awaited or wrapped Promise values');
@@ -78,7 +78,7 @@ export const contributionRuntimeAssertions = `
       && promiseCleanup.includes(raw), 'collection mode-specific disposal payload changed');
 
     const retryKey = Symbol('retry contribution');
-    const retryItem = DiBag.token(retryKey).forCollectionOf();
+    const retryItem = DiBag.createToken(retryKey).forCollectionOf();
     const failure = new Error('contribution retry');
     let acceptedCalls = 0;
     let failedCalls = 0;
@@ -96,8 +96,8 @@ export const contributionRuntimeAssertions = `
 
     const { DiBag: PortableContributionBag } = await import('di-bag');
     const portableKey = Symbol('portable contribution');
-    const portableItem = PortableContributionBag.token(portableKey).forCollectionOf();
-    const portable = PortableContributionBag.createBuilder().withCollectionContribution({ collectionToken: portableItem, provider: PortableContributionBag.fromFactory(() => raw, { acquisitionMode: 'raw' }) }).buildContainer();
+    const portableItem = PortableContributionBag.createToken(portableKey).forCollectionOf();
+    const portable = PortableContributionBag.createBuilder().withCollectionContribution({ collectionToken: portableItem, provider: PortableContributionBag.createProvider(() => raw, { factoryReturnKind: 'uninspected' }) }).buildContainer();
     assertContribution(portable.resolveCollection(portableItem)[0] === raw,
       'raw collection required automatic classification or changed exposed identity');
     await portable.close();

@@ -53,7 +53,7 @@ test('immediate metadata retains raw Promise identity, policy, and outer dispose
   let thenReads = 0;
   Object.defineProperty(gate.promise, 'then', { get() { thenReads++; throw new Error('raw then getter'); } });
   const raw = PortableDiBag.createProvider(() => gate.promise, { factoryReturnKind: 'uninspected' });
-  const source = PortableDiBag.withMetadata(PortableDiBag.transformService(raw, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'raw' } }), { static: { team: 'native' } });
+  const source = PortableDiBag.withMetadata(PortableDiBag.transformService(raw, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'uninspected' } }), { static: { team: 'native' } });
   const annotated = PortableDiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: value => ({ exact: value }) } });
   const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.withDisposal(annotated, value => { disposed = value; }) }).buildContainer();
   expect(bag.resolve('value')).toBe(gate.promise);

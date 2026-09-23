@@ -32,8 +32,8 @@ export const tokenBag = DiBag.createBuilder().withTokenService(token, rebound).w
 export const tokenFork = tokenBag.createIndependentContainer([token], { [key]: withLifetime(() => 2, 'root') });
 export const frames = DiBag.withMetadata(raw, { dynamic: { mode: 'direct', describe: () => ({ frame: 1 }) } });
 export const asyncFrames = DiBag.withMetadata(withLifetime(() => 1, 'transient'), { dynamic: { mode: 'awaited', describe: () => ({}) } });
-export const capability = DiBag.transformService(withLifetime(() => ({ read: () => Promise.resolve(1) }), 'root'), { mode: 'direct', transform: value => value.read(), ...{ acquisitionMode: 'raw' } });
-export const mapped = DiBag.transformService(metadata, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'raw' } });
+export const capability = DiBag.transformService(withLifetime(() => ({ read: () => Promise.resolve(1) }), 'root'), { mode: 'direct', transform: value => value.read(), ...{ acquisitionMode: 'uninspected' } });
+export const mapped = DiBag.transformService(metadata, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'uninspected' } });
 export const asyncMapped = DiBag.transformService(metadata, { mode: 'awaited', transform: value => value });
 export const explicitDefault = withLifetime(() => 1, 'scoped');
 export const defaultProvider: Provider<() => number> = explicitDefault;

@@ -50,6 +50,14 @@ usage or tsconfig error.
 It does not fail on type mismatches (`tsc` and `verifyGraph()` do) and it does
 not run factories.
 
+It reads providers built with `DiBag.createProvider`,
+`DiBag.createProviderFromFunction({ dependencies, factoryFunction })`,
+`DiBag.createProviderFromClass({ dependencies, serviceClass })`, and
+`DiBag.createProviderFromPlugin({ dependencies, pluginDescriptor, ... })`.
+The 0.4 provider wrappers remain readable for migration analysis. Named
+factory dependencies appear as edges; positional symbol-token dependencies do
+not acquire invented string labels.
+
 ## JSON
 
 ```text

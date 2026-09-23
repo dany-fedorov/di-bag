@@ -3,9 +3,9 @@ export const startupRuntimeAssertions = `{
   const assert = (await import('node:assert/strict')).default;
   const { DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } = await import('di-bag');
   let lazyCalls = 0;
-  const token = DiBag.token(Symbol('startup')).of();
+  const token = DiBag.createToken(Symbol('startup')).forService();
   const feature = DiBag.createBuilder().withServices({
-    hidden: DiBag.fromFactory((_deps, context) => context, { context: 'acquisition' }),
+    hidden: DiBag.createProvider((_deps, context) => context, { factoryReceivesContext: true }),
     service: ({ hidden }) => hidden,
   }).buildModule({ exportedServiceKeys: ['service'] });
   const started = await DiBag.createBuilder().withInstalledModules([feature]).withTokenService(token, () => 42).withServices({ lazy: () => ++lazyCalls }).buildContainer().ensureServicesReady(['service', token]);
@@ -16,10 +16,10 @@ export const startupRuntimeAssertions = `{
   const child = started.createChildContainer();
   const childContext = child.resolve('service');
   await child.close();
-  assert.equal(childContext.signal.aborted, true);
-  assert.equal(context.signal.aborted, false);
+  assert.equal(childContext.abortSignal.aborted, true);
+  assert.equal(context.abortSignal.aborted, false);
   await started.close();
-  assert.equal(context.signal.aborted, true);
+  assert.equal(context.abortSignal.aborted, true);
 
   let releaseNative;
   const native = new Promise(resolve => { releaseNative = resolve; });
@@ -27,8 +27,8 @@ export const startupRuntimeAssertions = `{
   const raw = new Promise(() => {});
   const rawDisposed = [];
   const starting = DiBag.createBuilder().withServices({
-    native: DiBag.fromFactory((_deps, _context) => native, { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
-    raw: DiBag.withDisposal(DiBag.fromFactory(() => raw, { acquisitionMode: 'raw' }), value => { rawDisposed.push(value); }),
+    native: DiBag.createProvider((_deps, _context) => native, { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' } }),
+    raw: DiBag.withDisposal(DiBag.createProvider(() => raw, { factoryReturnKind: 'uninspected' }), value => { rawDisposed.push(value); }),
   }).buildContainer().ensureServicesReady(['native', 'raw']);
   let ready = false;
   void starting.then(() => { ready = true; });
@@ -58,11 +58,11 @@ export const startupRuntimeAssertions = `{
     const cleanup = [];
     const pending = DiBag.createBuilder().withServices({
       late: () => 17,
-      value: DiBag.withDisposal(DiBag.fromFactory(async (deps, context) => {
-        signal = context.signal;
+      value: DiBag.withDisposal(DiBag.createProvider(async (deps, context) => {
+        signal = context.abortSignal;
         await gate;
         return deps.late;
-      }, { context: 'acquisition' }), value => { cleanup.push(value); }),
+      }, { factoryReceivesContext: true }), value => { cleanup.push(value); }),
     }).buildContainer().ensureServicesReady(['value'], reason === 'aborted' ? { abortSignal: controller.signal } : { totalTimeoutMs: 5 });
     const outcome = pending.catch(error => error);
     if (reason === 'aborted') controller.abort('stop');

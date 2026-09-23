@@ -33,9 +33,9 @@ DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client, fact
 // diagnostic: native-promise factory return kind requires a Promise output
 DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: value => value, factoryReturnKind: 'native-promise' });
 // diagnostic: not assignable
-DiBag.fromFunction([], () => 1, { acquisitionMode: 'invalid' });
+DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: () => 1, factoryReturnKind: 'invalid' });
 // diagnostic: not assignable
-DiBag.fromClass([], class {}, { acquisitionMode: 'invalid' });
+DiBag.createProviderFromClass({ dependencies: [], serviceClass: class {}, factoryReturnKind: 'invalid' });
 declare const broad: readonly typeof port[];
 declare const optional: readonly [typeof port?];
 declare const union: readonly [] | readonly [typeof port];
@@ -68,8 +68,8 @@ DiBag.createProviderFromClass({ dependencies: [port], serviceClass: class { cons
 DiBag.createProviderFromFunction({ dependencies: [port, port], factoryFunction: (first?: number) => first });
 // diagnostic: not assignable
 DiBag.createProviderFromClass({ dependencies: [port, port], serviceClass: class { constructor(first?: number) {} } });
-declare const mode: 'raw' | 'nativePromise';
-// diagnostic: nativePromise acquisition requires a Promise output
-DiBag.fromFunction([port], value => value, { acquisitionMode: mode });
-// diagnostic: nativePromise acquisition requires a Promise output
-DiBag.fromClass([port], Client, { acquisitionMode: mode });
+declare const mode: 'uninspected' | 'native-promise';
+// diagnostic: native-promise factory return kind requires a Promise output
+DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: value => value, factoryReturnKind: mode });
+// diagnostic: native-promise factory return kind requires a Promise output
+DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client, factoryReturnKind: mode });

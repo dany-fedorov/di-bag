@@ -171,23 +171,23 @@ export function tokenScaleSource(
 ) {
   if (!Number.isInteger(count) || count < 2) throw new Error('token scale count must be at least two');
   const declarations = Array.from({ length: count }, (_, index) =>
-    `const key${index} = Symbol('service${index}');\nconst token${index} = DiBag.token(key${index}).of<number>();`,
+    `const key${index} = Symbol('service${index}');\nconst token${index} = DiBag.createToken(key${index}).forService<number>();`,
   );
   if (scenario === 'missing-final-token') {
-    declarations.push("const missingFinalKey = Symbol('missingFinal');\nconst missingFinalToken = DiBag.token(missingFinalKey).of<number>();");
+    declarations.push("const missingFinalKey = Symbol('missingFinal');\nconst missingFinalToken = DiBag.createToken(missingFinalKey).forService<number>();");
   }
   if (scenario === 'mismatched-invariant-service') {
-    declarations.push(`const incompatibleFinalInput = DiBag.token(key${count - 2}).of<number | string>();`);
+    declarations.push(`const incompatibleFinalInput = DiBag.createToken(key${count - 2}).forService<number | string>();`);
   }
   const provider = (index: number) => {
     if (index === 0) return '() => 1';
     if (index === count - 1 && scenario === 'missing-final-token') {
-      return 'DiBag.fromFunction([missingFinalToken], value => value + 1)';
+      return 'DiBag.createProviderFromFunction({ dependencies: [missingFinalToken], factoryFunction: value => value + 1 })';
     }
     if (index === count - 1 && scenario === 'mismatched-invariant-service') {
-      return "DiBag.fromFunction([incompatibleFinalInput], value => typeof value === 'number' ? value + 1 : value.length)";
+      return "DiBag.createProviderFromFunction({ dependencies: [incompatibleFinalInput], factoryFunction: value => typeof value === 'number' ? value + 1 : value.length })";
     }
-    return `DiBag.fromFunction([token${index - 1}], value => value + 1)`;
+    return `DiBag.createProviderFromFunction({ dependencies: [token${index - 1}], factoryFunction: value => value + 1 })`;
   };
   const boundary = '/* token-scale-boundary */';
   let graph: string;
@@ -235,8 +235,8 @@ export function moduleListScaleSource(count: number, shape: ModuleListShape, sce
   if (!Number.isInteger(count) || count < 1) throw new Error('module list count must be at least one');
   const old = shape === 'separate-0.4';
   const declarations = Array.from({ length: count }, (_, index) =>
-    `const key${index} = Symbol('service${index}');\nconst token${index} = DiBag.token(key${index}).of<number>();`);
-  const provider = (index: number) => index === 0 ? '() => 1' : `DiBag.fromFunction([token${index - 1}], value => value + 1)`;
+    `const key${index} = Symbol('service${index}');\nconst token${index} = DiBag.createToken(key${index}).forService<number>();`);
+  const provider = (index: number) => index === 0 ? '() => 1' : `DiBag.createProviderFromFunction({ dependencies: [token${index - 1}], factoryFunction: value => value + 1 })`;
   const modules = Array.from({ length: count }, (_, index) => old
     ? `const module${index} = DiBag.createBuilder().register(token${index}, ${provider(index)}).buildModule([token${index}]);`
     : `const module${index} = DiBag.createBuilder().withTokenService(token${index}, ${provider(index)}).buildModule({ exportedServiceKeys: [token${index}] });`);

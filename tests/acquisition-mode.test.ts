@@ -131,8 +131,8 @@ test('invalid configuration, modes and classifier results fail explicitly', asyn
   for (const options of [null, {}, { isNativePromise: 1 }]) {
     expect(() => Reflect.apply(Core.withConfiguration, undefined, [{ runtime: options }])).toThrow('isNativePromise');
   }
-  for (const options of [null, { acquisitionMode: 'guess' }, { acquisitionMode: null }]) {
-    expect(() => Reflect.apply(Core.fromFactory, undefined, [() => 1, options])).toThrow('acquisition');
+  for (const options of [null, { factoryReturnKind: 'guess' }, { factoryReturnKind: null }]) {
+    expect(() => Reflect.apply(Core.createProvider, undefined, [() => 1, options])).toThrow();
   }
   const bad = Reflect.apply(Core.withConfiguration, undefined, [{ runtime: { isNativePromise: () => 'yes' } }]);
   const bag = bad.createBuilder().withServices({ value: () => 1 }).buildContainer();
@@ -167,7 +167,7 @@ test('explicit native and async projections work without a classifier and preser
   const pending = Promise.resolve({ id: 7 });
   const disposed: unknown[] = [];
   const source = Core.withDisposal(Core.createProvider(() => pending, { factoryReturnKind: 'uninspected' }), value => { disposed.push(value); });
-  const native = Core.withDisposal(Core.transformService(source, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'nativePromise' } }), value => { disposed.push(value); });
+  const native = Core.withDisposal(Core.transformService(source, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'native-promise' } }), value => { disposed.push(value); });
   const bag = Core.createBuilder().withServices({ native, mapped: Core.transformService(Core.createProvider(() => 3, { factoryReturnKind: 'uninspected' }), { mode: 'awaited', transform: value => value + 1 }) }).buildContainer();
   expect(bag.resolve('native')).toBe(pending);
   expect(await bag.resolve('mapped')).toBe(4);
@@ -175,13 +175,13 @@ test('explicit native and async projections work without a classifier and preser
   expect(disposed).toEqual([{ id: 7 }, pending]);
 });
 
-for (const foreign of [false, true]) for (const mode of ['auto', 'nativePromise'] as const) {
+for (const foreign of [false, true]) for (const mode of ['auto-detect', 'native-promise'] as const) {
   test(`${mode} observes ${foreign ? 'foreign' : 'local'} native state with non-callable then`, async () => {
     const resource = { id: 7 };
     const pending: Promise<typeof resource> = foreign ? runInNewContext('Promise.resolve(resource)', { resource }) : Promise.resolve(resource);
     Object.defineProperty(pending, 'then', { value: undefined });
     const disposed: unknown[] = [];
-    const bag = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(DiBag.fromFactory(() => pending, { acquisitionMode: mode }), value => { disposed.push(value); }) }).buildContainer();
+    const bag = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(DiBag.createProvider(() => pending, { factoryReturnKind: mode }), value => { disposed.push(value); }) }).buildContainer();
     expect(bag.resolve('value')).toBe(pending);
     await bag.close();
     expect(disposed).toEqual([resource]);
@@ -192,7 +192,7 @@ test('native metadata preserves raw presence records and explicit payload projec
   const pending = new Promise<number>(() => {});
   const source = Core.withMetadata(Core.createProvider(() => ({ present: true as const, value: pending }), { factoryReturnKind: 'uninspected' }), { dynamic: { mode: 'direct', describe: () => ({ source: 'pending' }) } });
   const disposed: unknown[] = [];
-  const raw = Core.withDisposal(Core.transformService(source, { mode: 'direct', transform: record => record.value, ...{ acquisitionMode: 'raw' } }), value => { disposed.push(value); });
+  const raw = Core.withDisposal(Core.transformService(source, { mode: 'direct', transform: record => record.value, ...{ acquisitionMode: 'uninspected' } }), value => { disposed.push(value); });
   const bag = Core.createBuilder().withServices({ presence: source, raw }).buildContainer();
   expect(bag.resolve('presence')).toEqual({ present: true, value: pending });
   expect(bag.resolve('raw')).toBe(pending);

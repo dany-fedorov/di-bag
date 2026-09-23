@@ -20,16 +20,17 @@ declare const promiseLike: PromiseLike<number>;
 // diagnostic: native-promise factory return kind requires a Promise output
 DiBag.createProvider(() => promiseLike, { factoryReturnKind: 'native-promise' });
 // diagnostic: native-promise factory return kind requires a Promise output
+// diagnostic-native-gap: last-contextual-native-factory-number
 DiBag.createProvider((_deps: {}, _factoryCtx: FactoryContext) => 1, { factoryReturnKind: 'native-promise', factoryReceivesContext: true });
 // diagnostic: not assignable
-DiBag.fromSyncFactory(() => 1, { acquisitionMode: 'raw' });
+DiBag.createProvider(() => 1, { factoryReturnKind: 'sync-value', factoryReceivesContext: false });
 // diagnostic: not assignable
-DiBag.fromAsyncFactory(async () => 1, { acquisitionMode: 'nativePromise' });
+DiBag.createProvider(async () => 1, { factoryReturnKind: 'native-promise', factoryReceivesContext: false });
 // diagnostic: not assignable
-DiBag.fromSyncFactory(() => 1, { context: 'acquisition', ...{ acquisitionMode: 'raw' } });
+DiBag.createProvider(() => 1, { factoryReturnKind: 'sync-value', ...{ factoryReceivesContext: false as const } });
 // diagnostic: not assignable
 DiBag.createProvider(function (this: { id: number }) { return this.id; }, { factoryReturnKind: 'sync-value' });
 // diagnostic: Target signature provides too few arguments
 DiBag.createProvider((_deps: {}, _factoryCtx: FactoryContext, extra: number) => extra, { factoryReturnKind: 'sync-value', factoryReceivesContext: true });
 // diagnostic: not assignable
-DiBag.fromSyncFactory(() => 1, { context: 'later' });
+DiBag.createProvider(() => 1, { factoryReceivesContext: 'later' });

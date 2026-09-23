@@ -18,10 +18,8 @@ type PortableToken<T> = { readonly key: symbol; readonly __service?: T };
 /** The smallest structural slice of the public root API used by this fixture. */
 export type PortableDiBag = {
   createBuilder(): any;
-  fromFactory(factory: (...dependencies: any[]) => unknown, options: { acquisitionMode: 'raw' }): any;
-  fromSyncFactory(factory: (...dependencies: any[]) => unknown): any;
-  fromAsyncFactory(factory: (...dependencies: any[]) => Promise<unknown>): any;
-  token(key: symbol): { of<T>(): PortableToken<T> };
+  createProvider(factory: (...dependencies: any[]) => unknown, options: { factoryReturnKind: 'uninspected' | 'sync-value' | 'native-promise' }): any;
+  createToken(key: symbol): { forService<T>(): PortableToken<T> };
   withDisposal(factory: any, dispose: (value: any) => void | Promise<void>): any;
   withLifetime(factory: any, lifetime: 'root' | 'scoped' | 'transient'): any;
   withMetadata(factory: any, metadata: Readonly<Record<string, unknown>>): any;
@@ -70,8 +68,8 @@ export function automaticAcquisition(DiBag: PortableDiBag): Promise<'resolved' |
 export async function portableContract(DiBag: PortableDiBag): Promise<PortableContractResult> {
   const cleanupLog: string[] = [];
   const privateHelper = Object.freeze({ source: 'private-module-helper' });
-  const exported = DiBag.token(Symbol('portable-export')).of<typeof privateHelper>();
-  const feature = DiBag.createBuilder().withServices({ helper: DiBag.fromSyncFactory(() => privateHelper) }).withTokenService(exported, DiBag.fromSyncFactory(({ helper }: { helper: typeof privateHelper }) => helper)).buildModule({ exportedServiceKeys: [exported] });
+  const exported = DiBag.createToken(Symbol('portable-export')).forService<typeof privateHelper>();
+  const feature = DiBag.createBuilder().withServices({ helper: DiBag.createProvider(() => privateHelper, { factoryReturnKind: 'sync-value' }) }).withTokenService(exported, DiBag.createProvider(({ helper }: { helper: typeof privateHelper }) => helper, { factoryReturnKind: 'sync-value' })).buildModule({ exportedServiceKeys: [exported] });
 
   let rootCalls = 0;
   let scopedCalls = 0;
@@ -81,24 +79,24 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   let asyncDisposed: { value: string } | undefined;
   const root = DiBag.createBuilder().withInstalledModules([feature]).withServices({
     root: DiBag.withMetadata(DiBag.withLifetime(DiBag.withDisposal(
-      DiBag.fromSyncFactory(() => ({ id: ++rootCalls })),
+      DiBag.createProvider(() => ({ id: ++rootCalls }), { factoryReturnKind: 'sync-value' }),
       () => { cleanupLog.push('root'); },
     ), 'root'), { static: { portable: true } }),
     scoped: DiBag.withDisposal(
-      DiBag.fromSyncFactory(() => ({ id: ++scopedCalls })),
+      DiBag.createProvider(() => ({ id: ++scopedCalls }), { factoryReturnKind: 'sync-value' }),
       () => { cleanupLog.push('scoped'); },
     ),
     transient: DiBag.withLifetime(DiBag.withDisposal(
-      DiBag.fromSyncFactory(() => ({ id: ++transientCalls })),
+      DiBag.createProvider(() => ({ id: ++transientCalls }), { factoryReturnKind: 'sync-value' }),
       value => { cleanupLog.push(`transient-${value.id}`); },
     ), 'transient'),
     // The Promise object itself is the service: the explicit raw form stays the way to say so.
     raw: DiBag.withDisposal(
-      DiBag.fromFactory(() => rawPromise, { acquisitionMode: 'raw' }),
+      DiBag.createProvider(() => rawPromise, { factoryReturnKind: 'uninspected' }),
       value => { rawDisposed = value; },
     ),
     pending: DiBag.withDisposal(
-      DiBag.fromAsyncFactory(async () => ({ value: 'async' })),
+      DiBag.createProvider(async () => ({ value: 'async' }), { factoryReturnKind: 'native-promise' }),
       (value: { value: string }) => { asyncDisposed = value; },
     ),
   }).withServiceAlias({ aliasKey: 'rootAlias', targetServiceKey: 'root' }).buildContainer();

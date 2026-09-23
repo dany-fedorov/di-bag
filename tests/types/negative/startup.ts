@@ -49,7 +49,7 @@ DiBag.createProvider(function (this: { required: true }, _deps: {}, _factoryCtx)
 // diagnostic: Target signature provides too few arguments
 DiBag.createProvider((_deps: {}, _factoryCtx: FactoryContext, extra: number) => extra, { factoryReceivesContext: true });
 // diagnostic: not assignable
-DiBag.fromFactory((_deps: {}, _factoryCtx) => 1, { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } });
+DiBag.createProvider((_deps: {}, _factoryContext) => 1, { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } });
 DiBag.createProvider((_deps: {}, factoryCtx) => {
   // diagnostic: Cannot assign to 'abortSignal' because it is a read-only property
   factoryCtx.abortSignal = new AbortController().signal;

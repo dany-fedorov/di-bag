@@ -1,5 +1,5 @@
 import { DiBag } from '../../src';
-import type { ProviderOutput, ProviderAcquiredValue, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, PluginProviderFactory, Builder, DiBagApi, Registration } from '../../src';
+import type { ProviderOutput, ProviderAcquiredValue, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, CreateProviderFromPlugin, Builder, DiBagApi, Registration } from '../../src';
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
 type Assert<T extends true> = T;
 const pending = Promise.resolve({ id: 1 });
@@ -26,7 +26,7 @@ const numberToken = api.createToken(numberKey).forService<number>();
 const provider = api.createProvider(({ number }: { number: number }, context) => ({ number, signal: context.abortSignal }), { factoryReceivesContext: true });
 const bag = empty.withTokenService(numberToken, () => 1).withServices({ number: () => 2, provider }).buildContainer();
 const output: number = bag.resolve('provider').number;
-const pluginFactory: PluginProviderFactory = api.fromPlugin;
+const pluginFactory: CreateProviderFromPlugin = api.createProviderFromPlugin;
 void output; void pluginFactory;
 export const nativeContext = DiBag.createProvider((_deps: {}, context) => Promise.reject<never>(context.abortSignal.reason), { factoryReturnKind: 'native-promise', factoryReceivesContext: true });
 type _NativeContext = Assert<Equal<ProviderOutput<typeof nativeContext>, Promise<never>>>;
@@ -50,6 +50,6 @@ const requiredAwaited = DiBag.withMetadata(() => 1, {
 });
 type _RequiredAwaitedStatic = Assert<Equal<ProviderRegistrationMetadata<typeof requiredAwaited>['tag'], 'awaited'>>;
 
-// An extracted callable must emit through the public PluginProviderFactory name.
-export const extractedPluginFactory = DiBag.fromPlugin;
-type _ExtractedPluginFactory = Assert<Equal<typeof extractedPluginFactory, PluginProviderFactory>>;
+// An extracted callable must emit through the public CreateProviderFromPlugin name.
+export const extractedPluginFactory = DiBag.createProviderFromPlugin;
+type _ExtractedPluginFactory = Assert<Equal<typeof extractedPluginFactory, CreateProviderFromPlugin>>;

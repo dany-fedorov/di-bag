@@ -26,23 +26,27 @@ DiBag.createProvider(() => 1, {
 // diagnostic: not assignable
 DiBag.createProvider(function (this: { id: number }) { return this.id; });
 // diagnostic: Types of property 'abortSignal' are incompatible
+// diagnostic-native-gap: last-provider-context-shape
 DiBag.createProvider((_dependencies: {}, factoryContext: { readonly abortSignal: string }) => factoryContext, { factoryReceivesContext: true });
 // diagnostic: Target signature provides too few arguments. Expected 2 or more, but got 1.
 // diagnostic-also: TS7006 Parameter 'factoryContext' implicitly has an 'any' type.
 DiBag.createProvider((_dependencies: {}, factoryContext) => factoryContext.abortSignal);
 
 // diagnostic: native-promise factory return kind requires a Promise output
+// diagnostic-native-gap: last-provider-contextual-native-number
 DiBag.createProvider((_dependencies: {}, _factoryContext) => 1, {
   factoryReceivesContext: true,
   factoryReturnKind: 'native-promise',
 });
 // diagnostic: sync-value output must not be a Promise or thenable
+// diagnostic-native-gap: last-provider-contextual-sync-promise
 DiBag.createProvider((_dependencies: {}, _factoryContext) => Promise.resolve(1), {
   factoryReceivesContext: true,
   factoryReturnKind: 'sync-value',
 });
 const contextualThenable = { then(_resolve: (value: number) => void) {} };
 // diagnostic: factory output is a structural thenable; return a native Promise or select factoryReturnKind 'uninspected' or 'native-promise'
+// diagnostic-native-gap: last-provider-contextual-thenable
 DiBag.createProvider((_dependencies: {}, _factoryContext) => contextualThenable, { factoryReceivesContext: true });
 
 const portSymbol = Symbol('port');

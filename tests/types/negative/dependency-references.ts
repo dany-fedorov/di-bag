@@ -89,14 +89,16 @@ declare const erasedProvider: Provider<() => number> | typeof source;
 // diagnostic: incompatible
 DiBag.createBuilder().withTokenService(wrong, () => 'wrong').withServices({ source: erasedProvider });
 const reflectedOptional: (...args: Parameters<typeof DiBag.optional>) => ReturnType<typeof DiBag.optional> = DiBag.optional;
-const reflectedFunction: (...args: Parameters<typeof DiBag.fromFunction>) => ReturnType<typeof DiBag.fromFunction> = DiBag.fromFunction;
-const reflectedClass: (...args: Parameters<typeof DiBag.fromClass>) => ReturnType<typeof DiBag.fromClass> = DiBag.fromClass;
+const reflectedFunction: (...args: Parameters<typeof DiBag.createProviderFromFunction>) => ReturnType<typeof DiBag.createProviderFromFunction> = DiBag.createProviderFromFunction;
+const reflectedClass: (...args: Parameters<typeof DiBag.createProviderFromClass>) => ReturnType<typeof DiBag.createProviderFromClass> = DiBag.createProviderFromClass;
 // diagnostic: finite tuple
 reflectedOptional(number);
+// diagnostic: not assignable to parameter of type 'never'
+// diagnostic-also: TS7006 Parameter 'value' implicitly has an 'any' type.
+reflectedFunction({ dependencies: [optional], factoryFunction: value => value });
 // diagnostic: finite tuple
-reflectedFunction([optional], value => value);
-// diagnostic: finite tuple
-reflectedClass([lazy], class { constructor(get: () => number) {} });
+// diagnostic-also: TS2322 Target requires 1 element(s) but source may have fewer.
+reflectedClass({ dependencies: [lazy], serviceClass: class { constructor(get: () => number) {} } });
 // diagnostic: not assignable
 DiBag.createProviderFromFunction<readonly [typeof optional], (value: number) => number>({ dependencies: [optional], factoryFunction: value => value });
 // diagnostic: native-promise factory return kind requires a Promise output

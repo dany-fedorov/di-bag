@@ -41,7 +41,7 @@ test('ready follows the final native stage while retaining exposed identity', as
   let finalReady!: (value: number) => void;
   const source = new Promise<number>(resolve => { sourceReady = resolve; });
   const final = new Promise<number>(resolve => { finalReady = resolve; });
-  const bag = observed.createBuilder().withServices({ value: observed.transformService(observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), { mode: 'direct', transform: () => final, ...{ acquisitionMode: 'nativePromise' } }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ value: observed.transformService(observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), { mode: 'direct', transform: () => final, ...{ acquisitionMode: 'native-promise' } }) }).buildContainer();
   expect(bag.resolve('value')).toBe(final);
   sourceReady(1);
   await flush();
@@ -154,7 +154,7 @@ test('failed final projections retire accepted ownership once and preserve clean
   const disposed: string[] = [];
   const source = observed.withDisposal(observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), () => { disposed.push('first'); throw cleanupError; });
   const second = observed.withDisposal(source, () => { disposed.push('second'); });
-  const bag = observed.createBuilder().withServices({ value: observed.transformService(second, { mode: 'direct', transform: () => { throw acquisitionError; }, ...{ acquisitionMode: 'raw' } }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ value: observed.transformService(second, { mode: 'direct', transform: () => { throw acquisitionError; }, ...{ acquisitionMode: 'uninspected' } }) }).buildContainer();
   expect(() => bag.resolve('value')).toThrow(acquisitionError);
   let closeError: unknown;
   try { await bag.close(); } catch (error) { closeError = error; }
@@ -171,7 +171,7 @@ test('failed final projections retire accepted ownership once and preserve clean
 test('intermediate native failure bypassed by raw projection is not final failure', async () => {
   const { events, observed } = recording();
   const source = Promise.reject(new Error('bypassed'));
-  const bag = observed.createBuilder().withServices({ value: observed.transformService(observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), { mode: 'direct', transform: () => 42, ...{ acquisitionMode: 'raw' } }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ value: observed.transformService(observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), { mode: 'direct', transform: () => 42, ...{ acquisitionMode: 'uninspected' } }) }).buildContainer();
   expect(bag.resolve('value')).toBe(42);
   await bag.close();
   expect(events.filter(event => event.kind === 'acquisition-ready')).toHaveLength(1);
@@ -226,9 +226,9 @@ test('cancellation observes late accepted resources and final failure without aw
   let disposed = 0;
   const builder = observed.createBuilder().withServices({
     good: observed.withDisposal(observed.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), () => { disposed++; }),
-    bad: observed.fromFactory((_deps: {}, context) => new Promise<never>((_resolve, reject) => {
-      context.signal.addEventListener('abort', () => reject(failure), { once: true });
-    }), { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
+    bad: observed.createProvider((_deps: {}, context) => new Promise<never>((_resolve, reject) => {
+      context.abortSignal.addEventListener('abort', () => reject(failure), { once: true });
+    }), { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } }),
   });
   const startup = builder.buildContainer().ensureServicesReady(['good', 'bad'], { abortSignal: abort.signal });
   abort.abort(failure);

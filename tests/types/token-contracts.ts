@@ -1,4 +1,4 @@
-import { fromFunction } from '../../src/composition';
+import { createProviderFromFunction } from '../../src/composition';
 import { DiBag, type CollectionTokenBase, type Overrides, type SingleServiceTokenMember, type Token, type TokenKey, type TokenMember, type TokenService, type Provider, type ProviderCollectionTokens, type ProviderRequiredTokens, type ProviderNamedDependencies, type ProviderOutput, type ProviderRegistrationMetadata, type ProviderAcquisitionMetadata } from '../../src';
 import { withTokenBinding, type ProviderGraphContract, type BoundToken, type ProviderFactory, type ProviderBase } from '../../src/provider';
 import type { TokenDependencyContract, OpaqueGraph } from '../../src/token-types';
@@ -8,10 +8,10 @@ import type { Assert, Equal } from './assert';
 const key = Symbol('number'); const otherKey = Symbol('other');
 const token = DiBag.createToken(key).forService<number>();
 const other = DiBag.createToken(otherKey).forService<Promise<string>>();
-const source = fromFunction([token, other], (value, promise) => {
+const source = createProviderFromFunction({ dependencies: [token, other], factoryFunction: (value, promise) => {
   type Inputs = [Assert<Equal<typeof value, number>>, Assert<Equal<typeof promise, Promise<string>>>];
   return { value, promise };
-});
+} });
 type SourceGraph = TokenDependencyContract<readonly [typeof token, typeof other]>;
 type Identity = [Assert<Equal<typeof token, Token<typeof key, number>>>, Assert<Equal<TokenKey<typeof token>, typeof key>>,
   Assert<Equal<TokenService<typeof token>, number>>, Assert<Equal<ProviderGraphContract<typeof source>, SourceGraph>>,
@@ -61,8 +61,8 @@ type Retention = [Assert<Equal<ProviderGraphContract<typeof annotated>, SourceGr
   Assert<Equal<BoundToken<typeof bound>, typeof binding>>, Assert<Equal<ProviderFactory<typeof bound>, ProviderFactory<typeof owned>>>,
   Assert<Equal<ProviderRegistrationMetadata<typeof bound>, Readonly<{ owner: string }>>>, Assert<Equal<ProviderAcquisitionMetadata<typeof bound>, readonly []>>,
   Assert<Equal<ProviderOutput<typeof sync>, Promise<string>>>, Assert<Equal<ProviderOutput<typeof async>, Promise<number>>>];
-const immediate = fromFunction([token], value => value);
-const annotatedSource = DiBag.transformService(fromFunction([token], value => value), { mode: 'direct', transform: value => value });
+const immediate = createProviderFromFunction({ dependencies: [token], factoryFunction: value => value });
+const annotatedSource = DiBag.transformService(createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }), { mode: 'direct', transform: value => value });
 const framed = DiBag.withMetadata(annotatedSource, { dynamic: { mode: 'direct', describe: () => ({ source: 'frame' }) } });
 const framedAwaited = DiBag.withMetadata(annotatedSource, { dynamic: { mode: 'awaited', describe: () => ({ source: 'frame' }) } });
 const framedMetadata = DiBag.withMetadata(framed, { static: { framed: true } });
@@ -104,8 +104,8 @@ type HeterogeneousChecks = [Assert<Equal<ProviderRegistrationMetadata<NoInfer<He
   Assert<Equal<ProviderNamedDependencies<NoInfer<Heterogeneous>>, Record<never, never> | { named: boolean }>>,
   Assert<Equal<ProviderGraphContract<NoInfer<typeof bound | typeof plain>>, ProviderGraphContract<typeof bound> | TokenDependencyContract>>,
   Assert<Equal<BoundToken<NoInfer<typeof bound | typeof plain>>, typeof binding>>];
-const empty = fromFunction([], () => 42); const defaultAnnotation: Provider<() => number> = empty;
-const ignored = fromFunction([token, other], (_value, _promise) => Promise.resolve(42));
+const empty = createProviderFromFunction({ dependencies: [], factoryFunction: () => 42 }); const defaultAnnotation: Provider<() => number> = empty;
+const ignored = createProviderFromFunction({ dependencies: [token, other], factoryFunction: (_value, _promise) => Promise.resolve(42) });
 type PromiseOutput = Assert<Equal<ProviderOutput<typeof ignored>, Promise<number>>>;
 void [defaultAnnotation, ignored];
 

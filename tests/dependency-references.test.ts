@@ -56,19 +56,23 @@ for (const lifetime of ['scoped', 'root', 'transient'] as const) {
 test('all adapters snapshot mixed references by index and authenticate every handle', async () => {
   const optional = DiBag.optional(number); const lazy = DiBag.lazy(number);
   expect(Object.isFrozen(optional)).toBe(true); expect(Object.isFrozen(lazy)).toBe(true);
-  for (const adapter of [DiBag.fromFunction, DiBag.fromFunction, DiBag.fromClass]) {
+  for (const adapter of [DiBag.createProviderFromFunction, DiBag.createProviderFromFunction, DiBag.createProviderFromClass]) {
     const tuple: [typeof optional, typeof lazy, typeof number] = [optional, lazy, number];
     tuple[Symbol.iterator] = function* () { throw new Error('iterator'); };
-    const callback = adapter === DiBag.fromClass ? class { constructor(readonly optional: number | undefined, readonly lazy: () => number, readonly direct: number) {} }
+    const callback = adapter === DiBag.createProviderFromClass ? class { constructor(readonly optional: number | undefined, readonly lazy: () => number, readonly direct: number) {} }
       : (optional: number | undefined, lazy: () => number, direct: number) => ({ optional, lazy, direct });
-    const source = Reflect.apply(adapter, undefined, [tuple, callback]) as () => { optional: number | undefined; lazy: () => number; direct: number };
+    const source = Reflect.apply(adapter, undefined, [adapter === DiBag.createProviderFromClass
+      ? { dependencies: tuple, serviceClass: callback }
+      : { dependencies: tuple, factoryFunction: callback }]) as () => { optional: number | undefined; lazy: () => number; direct: number };
     tuple.reverse();
     const bag = DiBag.createBuilder().withTokenService(number, () => 23).withServices({ source }).buildContainer();
     const value = bag.resolve('source') as { optional: number | undefined; lazy: () => number; direct: number };
     expect(value.optional).toBe(23); expect(value.lazy()).toBe(23); expect(value.direct).toBe(23);
     await bag.close();
     for (const invalid of [{ ...optional }, { ...lazy }, new Proxy(optional, {}), new Proxy(lazy, {}), { kind: 'optional', token: number }]) {
-      expect(() => Reflect.apply(adapter, undefined, [[invalid], callback])).toThrow();
+      expect(() => Reflect.apply(adapter, undefined, [adapter === DiBag.createProviderFromClass
+        ? { dependencies: [invalid], serviceClass: callback }
+        : { dependencies: [invalid], factoryFunction: callback }])).toThrow();
     }
   }
   for (const wrapper of [DiBag.optional, DiBag.lazy]) {

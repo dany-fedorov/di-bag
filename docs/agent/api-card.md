@@ -12,10 +12,9 @@ An example without an import line uses `import { DiBag } from 'di-bag';`. The ru
 | --- | --- |
 | Start a graph | [`DiBag.createBuilder()`](#dibag-createbuilder) |
 | Register services by name | [`builder.withServices(providersByName)`](#builder-withservices) |
-| Create a collection token | [`DiBag.token(symbol)`](#dibag-token) |
+| Create a collection token | [`DiBag.createToken(symbol)`](#dibag-createtoken) |
 | Contribute a collection member | [`builder.withCollectionContribution(options)`](#builder-withcollectioncontribution) |
-| Register a synchronous factory for a browser or worker | [`DiBag.fromSyncFactory(callback, options)`](#dibag-fromsyncfactory) |
-| Register an async factory for a browser or worker | [`DiBag.fromAsyncFactory(callback, options)`](#dibag-fromasyncfactory) |
+| Register a portable factory | [`DiBag.createProvider(factory, options)`](#dibag-createprovider) |
 | Attach cleanup | [`DiBag.withDisposal(create, dispose)`](#dibag-withdisposal) |
 | Choose a lifetime | [`DiBag.withLifetime(registration, lifetime)`](#dibag-withlifetime) |
 | Seal a module | [`builder.buildModule(options)`](#builder-buildmodule) |
@@ -78,7 +77,7 @@ const Observed = DiBag.withConfiguration({
 ```
 
 ### `DiBag.fromFactory(callback, options)` {#dibag-fromfactory}
-Describe a named-dependency factory with an explicit acquisition mode or the acquisition's abort signal. Throws: [`DI_BAG_INVALID_FACTORY`](errors.md#di-bag-invalid-factory), [`DI_BAG_INVALID_ACQUISITION_MODE`](errors.md#di-bag-invalid-acquisition-mode).
+Describe a named-dependency factory with configurable result acquisition and optional acquisition context. Throws: [`DI_BAG_INVALID_FACTORY`](errors.md#di-bag-invalid-factory), [`DI_BAG_INVALID_ACQUISITION_MODE`](errors.md#di-bag-invalid-acquisition-mode).
 ```ts
 type Query = { then(done: (rows: string[]) => void): void };
 const query = DiBag.fromFactory((): Query => ({ then: done => done([]) }), { acquisitionMode: 'raw' });

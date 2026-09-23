@@ -8,7 +8,7 @@ export const contextual = DiBag.createProvider((deps: { input: { readonly label:
   signal: factoryCtx.abortSignal,
 }), { factoryReceivesContext: true });
 const rawPromise = Promise.resolve({ value: 42 as const });
-export const raw = DiBag.withDisposal(DiBag.fromFactory((_deps: {}, _factoryCtx) => rawPromise, { context: 'acquisition', ...{ acquisitionMode: 'raw' } }), value => {
+export const raw = DiBag.withDisposal(DiBag.createProvider((_deps: {}, _factoryContext) => rawPromise, { factoryReceivesContext: true, ...{ factoryReturnKind: 'uninspected' as const } }), value => {
   const exact: Promise<{ value: 42 }> = value;
   void exact;
 });
@@ -22,7 +22,7 @@ export const started = lazy.ensureServicesReady(['contextual', selectedToken, 'r
 export const sequential = lazy.ensureServicesReady(['contextual'], { maxConcurrentServiceKeys: 1, abortSignal: new AbortController().signal, totalTimeoutMs: 100 });
 export const bounded = lazy.ensureServicesReady(['contextual'], { maxConcurrentServiceKeys: 4 });
 export const empty = lazy.ensureServicesReady([]);
-export const native = DiBag.fromFactory(async (_deps: {}, factoryCtx) => ({ signal: factoryCtx.signal, value: 1 as const }), { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } });
+export const native = DiBag.createProvider(async (_deps: {}, factoryContext) => ({ signal: factoryContext.abortSignal, value: 1 as const }), { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } });
 export const noDeps = DiBag.createProvider(() => 7 as const, { factoryReceivesContext: true });
 export const pushed = DiBag.createProvider((_deps: {}, factoryCtx) => {
   factoryCtx.pushDisposer(() => {});

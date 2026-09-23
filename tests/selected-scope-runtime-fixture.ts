@@ -4,7 +4,7 @@ export const selectedScopeRuntimeAssertions = `
     const assertSelected = (condition, message) => { if (!condition) throw new Error(message); };
     const selectedLog = [];
     const selectedKey = Symbol('selected');
-    const selectedToken = DiBag.token(selectedKey).of();
+    const selectedToken = DiBag.createToken(selectedKey).forService();
     let settleSelected;
     const selectedPromise = new Promise(resolve => { settleSelected = resolve; });
     const selectedFeature = DiBag.createBuilder().withServices({
@@ -14,7 +14,7 @@ export const selectedScopeRuntimeAssertions = `
     const selectedRoot = DiBag.createBuilder().withInstalledModules([selectedFeature]).withTokenService(selectedToken, () => ({ id: 'parent' })).withServices({
       config: () => ({ id: 'parent' }),
       pending: DiBag.withDisposal(() => selectedPromise, () => { selectedLog.push('pending'); }),
-      raw: DiBag.fromFactory(() => selectedPromise, { acquisitionMode: 'raw' }),
+      raw: DiBag.createProvider(() => selectedPromise, { factoryReturnKind: 'uninspected' }),
       rooted: DiBag.withLifetime(DiBag.withDisposal(({ config }) => ({ id: config.id }), () => { selectedLog.push('root'); }), 'root', { allowScopedDependencies: true }),
     }).buildContainer();
     const selectedChild = selectedRoot.createChildContainer(['config', selectedToken], {

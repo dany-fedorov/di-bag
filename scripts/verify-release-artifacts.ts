@@ -14,7 +14,7 @@ const PUBLIC_EVIDENCE = 'docs/reports/2026-09-08-release-candidate-evidence.json
 const PACKAGE_NAMES = ['di-bag'] as const;
 const EXPECTED_RUNTIME = {
   I1: { payloadIdentity: true, metadataIdentity: true, aliasIdentity: true, dispose: ['payload', 'source'], acquisitions: 1 },
-  I2: { nativePromise: true, rootShared: true, transientDistinct: true, childDispose: ['transient-2', 'transient-1', 'scoped'], parentDispose: ['transient-2', 'transient-1', 'scoped', 'root'], acquisitions: 4 },
+  I2: { promiseIdentity: true, rootShared: true, transientDistinct: true, childDispose: ['transient-2', 'transient-1', 'scoped'], parentDispose: ['transient-2', 'transient-1', 'scoped', 'root'], acquisitions: 4 },
   I3: { absentIdentity: true, presentUndefined: true, getterIdentity: true, dispose: ['source'], acquisitions: 3 },
   I4: { outputPhase: 'output', errorIdentity: true, startupWrapper: 'DiBagServiceReadinessError', startupCauseIdentity: true, dispose: ['plugin', 'source'], payloadDisposals: 0, acquisitions: 1 },
   I5: { directRetained: true, directDispose: ['direct-1'], startupWrapper: 'DiBagServiceReadinessError', startupCauseIdentity: true, startupDispose: ['startup-first'], retryFresh: true },
@@ -207,7 +207,7 @@ async function verifyRuntimeConsumers(manifest: ReleaseManifest, workDir: string
     const corePath = resolve(consumer, `core.${mode === 'commonjs' ? 'cjs' : 'mjs'}`), load = mode === 'commonjs'
       ? `const Module=require('node:module');const old=Module._load;Module._load=function(name,...args){if(name.startsWith('node:'))throw new Error('core imported Node');return old.call(this,name,...args)};const {DiBag}=require('di-bag');`
       : `import Module,{createRequire}from'node:module';const old=Module._load;Module._load=function(name,...args){if(name.startsWith('node:'))throw new Error('core imported Node');return old.call(this,name,...args)};const {DiBag}=await import('di-bag');`;
-    writeFileSync(corePath, `${load}(async()=>{const bag=DiBag.createBuilder().withServices({answer:DiBag.fromFactory(()=>42,{acquisitionMode:'raw'})}).buildContainer();console.log(bag.resolve('answer'));await bag.close()})().catch(e=>{console.error(e);process.exitCode=1});`);
+    writeFileSync(corePath, `${load}(async()=>{const bag=DiBag.createBuilder().withServices({answer:DiBag.createProvider(()=>42,{factoryReturnKind:'uninspected'})}).buildContainer();console.log(bag.resolve('answer'));await bag.close()})().catch(e=>{console.error(e);process.exitCode=1});`);
     for (const executable of ['node', 'bun']) { const output = await runChecked([executable, corePath], consumer); if (output.trim() !== '42') throw new Error(`root ${mode} ${executable} output mismatch: ${JSON.stringify(output)}`); }
     const fullPath = resolve(consumer, `oracle.${mode === 'commonjs' ? 'cjs' : 'mjs'}`);
     const checkout = manifest.packages.find(record => record.name === 'di-bag')!.checkout.path;

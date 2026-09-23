@@ -74,7 +74,7 @@ test('startup uses native observation with shadowed then and treats raw promises
   const raw = deferred<number>();
   const disposed: unknown[] = [];
   const starting = Core.createBuilder().withServices({
-    native: Core.fromFactory((_deps: {}, _factoryCtx) => native.promise, { context: 'acquisition', ...{ acquisitionMode: 'nativePromise' } }),
+    native: Core.createProvider((_deps: {}, _factoryContext) => native.promise, { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } }),
     raw: Core.withDisposal(Core.createProvider(() => raw.promise, { factoryReturnKind: 'uninspected' }), value => { disposed.push(value); }),
   }).buildContainer().ensureServicesReady(['native', 'raw']);
   let ready = false;
@@ -375,7 +375,7 @@ test('numeric startup uses final raw readiness while owned sources remain pendin
   const raw = { get then() { thenReads++; throw new Error('raw then'); } };
   const disposed: number[] = [];
   const bag = await Core.createBuilder().withServices({
-    projected: Core.transformService(Core.withDisposal(Core.createProvider(() => source.promise, { factoryReturnKind: 'native-promise' }), value => { disposed.push(value); }), { mode: 'direct', transform: () => raw, ...{ acquisitionMode: 'raw' } }),
+    projected: Core.transformService(Core.withDisposal(Core.createProvider(() => source.promise, { factoryReturnKind: 'native-promise' }), value => { disposed.push(value); }), { mode: 'direct', transform: () => raw, ...{ acquisitionMode: 'uninspected' } }),
     later: Core.createProvider(() => ++later, { factoryReturnKind: 'uninspected' }),
   }).buildContainer().ensureServicesReady(['projected', 'later'], { maxConcurrentServiceKeys: 1 });
   expect(later).toBe(1); expect(thenReads).toBe(0); expect(bag.resolve('projected')).toBe(raw);

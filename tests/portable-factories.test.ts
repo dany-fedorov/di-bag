@@ -62,7 +62,7 @@ test('modules, lifetimes, scopes, forks and direct transforms stay portable', as
   expect(log).toEqual(['end:memory:']);
 });
 
-test('fromSyncFactory exposes the exact value, never reads then, and is a raw stage', async () => {
+test('sync-value exposes the exact value and never reads then', async () => {
   let reads = 0;
   const value: object = Object.defineProperty({}, 'then', { get() { reads++; throw new Error('never read'); } });
   const pending: object = Promise.resolve(7);
@@ -83,7 +83,7 @@ test('fromSyncFactory exposes the exact value, never reads then, and is a raw st
   expect(disposed).toEqual([pending]);
 });
 
-test('fromAsyncFactory exposes the Promise and hands its fulfilled value to the disposer', async () => {
+test('native-promise exposes the Promise and hands its fulfilled value to the disposer', async () => {
   const pending = Promise.resolve({ id: 1 });
   const disposed: unknown[] = [];
   const bag = withoutBuiltinModule(() => DiBag.createBuilder().withServices({
@@ -103,7 +103,7 @@ for (const [name, make] of [
     promise.then = () => { throw new Error('own then must not run'); };
     return promise as Promise<{ id: number }>;
   }],
-] as const) test(`fromAsyncFactory observes ${name} through the engine's own check`, async () => {
+] as const) test(`native-promise observes ${name} through the engine's own check`, async () => {
   const pending = make();
   const disposed: unknown[] = [];
   const bag = withoutBuiltinModule(() => DiBag.createBuilder().withServices({
@@ -114,7 +114,7 @@ for (const [name, make] of [
   expect(disposed).toEqual([{ id: 1 }]);
 });
 
-test('fromAsyncFactory with a non-Promise fails that acquisition with a TypeError and never calls then', async () => {
+test('native-promise with a non-Promise fails that acquisition with a TypeError and never calls then', async () => {
   let thenCalls = 0;
   const thenable = { then() { thenCalls++; } };
   const bag = withoutBuiltinModule(() => DiBag.createBuilder().withServices({
@@ -127,15 +127,14 @@ test('fromAsyncFactory with a non-Promise fails that acquisition with a TypeErro
   await bag.close();
 });
 
-test('the helpers reject invalid callbacks and options with DI_BAG_INVALID_FACTORY', () => {
-  const sync = DiBag.fromSyncFactory as (...args: unknown[]) => unknown;
-  const async = DiBag.fromAsyncFactory as (...args: unknown[]) => unknown;
-  expect(() => sync(1)).toThrow('DI_BAG_INVALID_FACTORY: fromSyncFactory requires a function');
-  expect(() => async(undefined)).toThrow('DI_BAG_INVALID_FACTORY: fromAsyncFactory requires a function');
-  expect(() => sync(() => 1, null)).toThrow('DI_BAG_INVALID_FACTORY: fromSyncFactory options must be an object');
-  expect(() => sync(() => 1, { acquisitionMode: 'raw' })).toThrow('DI_BAG_INVALID_FACTORY: fromSyncFactory selects its acquisitionMode itself');
-  expect(() => async(async () => 1, { acquisitionMode: 'nativePromise' })).toThrow('DI_BAG_INVALID_FACTORY: fromAsyncFactory selects its acquisitionMode itself');
-  expect(() => async(async () => 1, { context: 'later' })).toThrow('DI_BAG_INVALID_FACTORY: fromAsyncFactory context must be acquisition');
+test('createProvider rejects invalid callbacks and options with DI_BAG_INVALID_ARGUMENT', () => {
+  const create = DiBag.createProvider as (...args: unknown[]) => unknown;
+  expect(() => create(1)).toThrow('DI_BAG_INVALID_ARGUMENT: createProvider requires a factory function');
+  expect(() => create(undefined)).toThrow('DI_BAG_INVALID_ARGUMENT: createProvider requires a factory function');
+  expect(() => create(() => 1, null)).toThrow('DI_BAG_INVALID_ARGUMENT: createProvider requires one options object');
+  expect(() => create(() => 1, { extra: true })).toThrow('DI_BAG_INVALID_ARGUMENT: createProvider does not accept the option extra');
+  expect(() => create(async () => 1, { factoryReturnKind: 'invalid' })).toThrow('DI_BAG_INVALID_ARGUMENT: createProvider factoryReturnKind must name a supported return policy');
+  expect(() => create(async () => 1, { factoryReceivesContext: 'later' })).toThrow('DI_BAG_INVALID_ARGUMENT: createProvider factoryReceivesContext must be true when present');
 });
 
 test('contextual helpers receive the signal and own pushed disposers', async () => {

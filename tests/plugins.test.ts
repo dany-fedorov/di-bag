@@ -53,11 +53,13 @@ test('plugin preflight validates dependencies and options before descriptor read
     get apiVersion() { reads++; return 1; },
     create: () => 1,
   };
-  expect(() => Reflect.apply(DiBag.fromPlugin, undefined, [[], descriptor, {}])).toThrow('acquisitionMode');
+  expect(() => Reflect.apply(DiBag.createProviderFromPlugin, undefined, [{ dependencies: [], pluginDescriptor: descriptor,
+    isValidPluginOutput: (value: unknown): value is number => typeof value === 'number',
+  }])).toThrow('factoryReturnKind');
   expect(reads).toBe(0);
   const key = Symbol('dependency'); const dependency = DiBag.createToken(key).forService<number>();
-  expect(() => Reflect.apply(DiBag.fromPlugin, undefined, [[{ ...dependency }], descriptor, {
-    acquisitionMode: 'raw', validate: (value: unknown): value is number => typeof value === 'number',
+  expect(() => Reflect.apply(DiBag.createProviderFromPlugin, undefined, [{ dependencies: [{ ...dependency }], pluginDescriptor: descriptor,
+    factoryReturnKind: 'uninspected', isValidPluginOutput: (value: unknown): value is number => typeof value === 'number',
   }])).toThrow('token');
   expect(reads).toBe(0);
 });
@@ -86,18 +88,21 @@ test('plugin snapshots dependencies, options and callbacks before later mutation
   const twoKey = Symbol('two'); const two = DiBag.createToken(twoKey).forService<number>();
   const dependencies: unknown[] = [one];
   const options = {
-    acquisitionMode: 'raw' as const,
-    validate: (value: unknown): value is number => typeof value === 'number',
+    dependencies,
+    factoryReturnKind: 'uninspected' as const,
+    isValidPluginOutput: (value: unknown): value is number => typeof value === 'number',
+    pluginDescriptor: undefined as unknown,
   };
   const descriptor = {
     get apiVersion() {
       dependencies[0] = two;
-      options.validate = (value: unknown): value is number => value === 2;
+      options.isValidPluginOutput = (value: unknown): value is number => value === 2;
       return 1;
     },
     create: (value: number) => value,
   };
-  const provider = Reflect.apply(DiBag.fromPlugin, undefined, [dependencies, descriptor, options]);
+  options.pluginDescriptor = descriptor;
+  const provider = Reflect.apply(DiBag.createProviderFromPlugin, undefined, [options]);
   dependencies[0] = two;
   descriptor.create = () => 2;
   const builder = DiBag.createBuilder().withTokenService(one, DiBag.createProvider(() => 1, { factoryReturnKind: 'uninspected' })).withTokenService(two, DiBag.createProvider(() => 2, { factoryReturnKind: 'uninspected' }));
@@ -214,11 +219,11 @@ test('plugin callbacks use no receiver and preserve factory and validator failur
   await factoryBag.close();
   const validatorFailure = new Error('validator failure');
   const disposed: number[] = [];
-  const failingValidator = DiBag.fromPlugin([], {
+  const failingValidator = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
     apiVersion: 1,
     create(this: undefined) { expect(this).toBeUndefined(); return 4; },
     dispose(this: undefined, value: number) { expect(this).toBeUndefined(); disposed.push(value); },
-  }, { acquisitionMode: 'raw', validate(this: void, _value): _value is number { expect(this).toBeUndefined(); throw validatorFailure; } });
+  }, factoryReturnKind: 'uninspected', isValidPluginOutput(this: void, _value): _value is number { expect(this).toBeUndefined(); throw validatorFailure; } });
   const validatorBag = DiBag.createBuilder().withServices({ failingValidator }).buildContainer();
   expect(() => validatorBag.resolve('failingValidator')).toThrow(validatorFailure);
   await validatorBag.close();

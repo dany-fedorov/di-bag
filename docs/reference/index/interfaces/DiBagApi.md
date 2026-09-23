@@ -409,7 +409,7 @@ fromFactory: {
 
 Defined in: [di-bag.ts:712](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L712)
 
-Describe a named-dependency factory with an explicit acquisition mode or the acquisition's abort signal.
+Describe a named-dependency factory with configurable result acquisition and optional acquisition context.
 A factory that returns a non-Promise object with a `then` method needs `acquisitionMode: 'raw'` or must return `Promise.resolve(value)`.
 
 #### Call Signature

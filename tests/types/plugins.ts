@@ -25,10 +25,10 @@ export const nativeOwned = DiBag.withDisposal(native, value => { const exact: Ha
 export const feature = DiBag.createBuilder().withTokenService(handler, raw).buildModule({ exportedServiceKeys: [handler] });
 export const bag = DiBag.createBuilder().withTokenService(number, DiBag.createProvider(() => 7, { factoryReturnKind: 'uninspected' })).withInstalledModules([feature]).buildContainer();
 export const value = bag.resolve(handler);
-export const fromPlugin = DiBag.fromPlugin;
-export const extracted = fromPlugin([], selected, {
-  acquisitionMode: 'raw',
-  validate: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
+export const createPlugin = DiBag.createProviderFromPlugin;
+export const extracted = createPlugin({ dependencies: [], pluginDescriptor: selected,
+  factoryReturnKind: 'uninspected',
+  isValidPluginOutput: (value): value is Handler => typeof value === 'object' && value !== null && 'handle' in value,
 });
 export const privateKey = Symbol('private');
 export const privateToken = DiBag.createToken(privateKey).forService<number>();

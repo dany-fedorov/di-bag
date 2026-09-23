@@ -35,7 +35,7 @@ DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: (value?: n
 DiBag.createProviderFromFunction({ dependencies: [port, port], factoryFunction: (...values: number[]) => values });
 const receiver = { value: 1, read(this: { value: number }, port: number) { return this.value + port; } };
 DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: receiver.read.bind(receiver) });
-// Existing fromFunction callbacks may intentionally ignore selected arguments.
+// Positional provider callbacks may intentionally ignore selected arguments.
 DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: (_dependency0) => 1 });
 const promiseKey = Symbol('promise'); const promise = DiBag.createToken(promiseKey).forService<Promise<number>>();
 export const positional = DiBag.createProviderFromFunction({ dependencies: [port, promise], factoryFunction: (value, pending) => ({ value, pending }) });

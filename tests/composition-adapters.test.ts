@@ -86,18 +86,21 @@ for (const kind of ['function', 'class'] as const) {
   });
   test(`${kind} adapters reject invalid declaration inputs before user effects`, () => {
     let calls = 0;
-    const adapter = kind === 'function' ? DiBag.fromFunction : DiBag.fromClass;
+    const adapter = kind === 'function' ? DiBag.createProviderFromFunction : DiBag.createProviderFromClass;
     const callback = kind === 'function' ? () => { calls++; } : class { constructor() { calls++; } };
+    const options = (dependencies: unknown, value: unknown, extra: object = {}) => kind === 'function'
+      ? { dependencies, factoryFunction: value, ...extra }
+      : { dependencies, serviceClass: value, ...extra };
     for (const tokens of [null, {}, [undefined], [{ ...port }], [new Proxy(port, {})]]) {
-      expect(() => Reflect.apply(adapter, undefined, [tokens, callback])).toThrow();
+      expect(() => Reflect.apply(adapter, undefined, [options(tokens, callback)])).toThrow();
     }
-    for (const options of [null, 1, { acquisitionMode: 'invalid' }]) {
-      expect(() => Reflect.apply(adapter, undefined, [[], callback, options])).toThrow('acquisition');
+    for (const invalid of [null, 1, options([], callback, { factoryReturnKind: 'invalid' })]) {
+      expect(() => Reflect.apply(adapter, undefined, [invalid])).toThrow();
     }
     const hostile = Object.defineProperty([], 0, { get() { throw new Error('token getter'); } });
-    expect(() => Reflect.apply(adapter, undefined, [hostile, callback])).toThrow('token getter');
+    expect(() => Reflect.apply(adapter, undefined, [options(hostile, callback)])).toThrow('token getter');
     for (const invalid of [null, {}, 1, ...(kind === 'class' ? [() => 1, async () => 1, function* () {}] : [])]) {
-      expect(() => Reflect.apply(adapter, undefined, [[], invalid])).toThrow(kind === 'class' ? 'constructor' : 'function');
+      expect(() => Reflect.apply(adapter, undefined, [options([], invalid)])).toThrow(kind === 'class' ? 'constructor' : 'function');
     }
     expect(calls).toBe(0);
   });

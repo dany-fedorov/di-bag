@@ -22,9 +22,9 @@ export function createProjectBuilder(app: AppServices, projectId: string) {
     ),
     // Depends on the lock so nothing is fetched for a project another runtime still holds.
     manifest: DiBag.createProvider(
-      async ({ transport, projectId, lock }: { transport: Transport; projectId: string; lock: Promise<ProjectLock> }, factoryCtx) => {
+      async ({ transport, projectId, lock }: { transport: Transport; projectId: string; lock: Promise<ProjectLock> }, factoryContext) => {
         await lock;
-        return transport.fetchManifest(projectId, factoryCtx.abortSignal);
+        return transport.fetchManifest(projectId, factoryContext.abortSignal);
       },
       { factoryReturnKind: 'native-promise', factoryReceivesContext: true },
     ),

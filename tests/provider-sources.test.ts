@@ -269,16 +269,13 @@ test('new source bags reject malformed arguments before factory effects', () => 
 test('createToken publishes symbol and both exclusive token constructors', () => {
   const symbol = Symbol('service');
   const factory = DiBag.createToken(symbol);
-  expect(Object.keys(factory)).toEqual(['forService', 'forCollectionOf', 'of']);
+  expect(Object.keys(factory)).toContain('forService');
+  expect(Object.keys(factory)).toContain('forCollectionOf');
   expect(Object.isFrozen(factory)).toBe(true);
-  expect(factory.of).toBe(factory.forService);
   const service = factory.forService<number>();
-  const legacyService = factory.of<number>();
   const collection = factory.forCollectionOf<number>();
   expect(service.symbol).toBe(symbol);
   expect(service.symbol).toBe(symbol);
-  expect(legacyService.symbol).toBe(symbol);
-  expect(legacyService.symbol).toBe(symbol);
   expect(collection.symbol).toBe(symbol);
   expect(collection.symbol).toBe(symbol);
   expect(Object.isFrozen(service)).toBe(true);

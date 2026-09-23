@@ -17,7 +17,7 @@ test('inspectGraph lists public bindings in registration order without acquiring
   expect(Object.isFrozen(graph)).toBe(true);
   expect(graph.bindings.map(binding => binding.keys)).toEqual([['config'], ['db'], ['handler'], ['client']]);
   const byKey = new Map(graph.bindings.map(binding => [binding.keys[0], binding]));
-  expect(byKey.get('config')).toMatchObject({ label: 'config', lifetime: 'root', owned: false, acquisitionMode: 'auto', acquisitions: [] });
+  expect(byKey.get('config')).toMatchObject({ label: 'config', lifetime: 'root', owned: false, factoryReturnKind: 'auto-detect', acquisitions: [] });
   expect(byKey.get('db')).toMatchObject({ lifetime: 'root', owned: true });
   expect(byKey.get('handler')!.registrationMetadata).toEqual({ 'app:kind': 'http' });
   expect(byKey.get('client')!.aliasTarget).toEqual({ bindingId: byKey.get('db')!.bindingId, label: 'db' });

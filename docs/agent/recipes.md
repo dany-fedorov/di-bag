@@ -116,17 +116,17 @@ type Logger = { log(message: string): void };
 
 const loggerKey = Symbol('logger');
 const loggerSinksKey = Symbol('logger sinks');
-const logger = DiBag.token(loggerKey).of<Logger>();
-const loggerSinks = DiBag.token(loggerSinksKey).forCollectionOf<Logger>();
+const logger = DiBag.createToken(loggerKey).forService<Logger>();
+const loggerSinks = DiBag.createToken(loggerSinksKey).forCollectionOf<Logger>();
 
 const container = DiBag.createBuilder()
   .withCollectionContribution({ collectionToken: loggerSinks, provider: (): Logger => ({ log: message => console.log(message) }) })
   .withCollectionContribution({ collectionToken: loggerSinks, provider: (): Logger => ({ log: message => { process.stderr.write(`${message}\n`); } }) })
   .withTokenService(
     logger,
-    DiBag.fromFunction([loggerSinks], sinks => ({
+    DiBag.createProviderFromFunction({ dependencies: [loggerSinks], factoryFunction: sinks => ({
       log(message: string) { for (const sink of sinks) sink.log(message); },
-    })),
+    }) }),
   )
   .buildContainer();
 
@@ -134,7 +134,7 @@ container.resolve(logger).log('ready');
 await container.close();
 ```
 
-A token created with `.of<Service>()` cannot receive contributions, and a token created with `.forCollectionOf<Item>()` cannot hold the composite service.
+A token created with `.forService<Service>()` cannot receive contributions, and a token created with `.forCollectionOf<Item>()` cannot hold the composite service.
 
 ## Split a feature into a module with private services {#split-module}
 
@@ -316,12 +316,12 @@ import type { Feed, FeedConfig, Socket } from './contract.js';
 
 export const feedModule = DiBag.createBuilder()
   .withServices({
-    socket: DiBag.withDisposal(DiBag.fromFactory(async ({ config }: { config: FeedConfig }, factoryContext): Promise<Socket> => {
+    socket: DiBag.withDisposal(DiBag.createProvider(async ({ config }: { config: FeedConfig }, factoryContext): Promise<Socket> => {
       const socket = await open(config.url);
       factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return socket.close(); });
       await authenticate(socket, config.token);
       return socket;
-    }, { context: 'acquisition' }), socket => socket.close()),
+    }, { factoryReceivesContext: true }), socket => socket.close()),
     feed: ({ socket }: { socket: Promise<Socket> }): Feed => ({
       publish: async text => (await socket).send(text),
     }),
@@ -340,9 +340,8 @@ the factory settled throws [`DI_BAG_CLEANUP_AFTER_FACTORY`](errors.md#di-bag-cle
 
 ## Make a graph portable to browsers and workers {#portable-graph}
 
-Hosts without `process.getBuiltinModule` cannot classify Promises, so every
-registration says whether its factory is synchronous or asynchronous. The same
-module then runs on Node, Bun, Deno, and in a browser Worker.
+Hosts without `process.getBuiltinModule` cannot classify Promises, so every registration says whether its factory is synchronous or asynchronous.
+The same module then runs on Node, Bun, Deno, and in a browser Worker.
 
 ```ts
 // src/features/search/contract.ts
@@ -355,23 +354,17 @@ export type Search = { find(term: string): Promise<string[]> };
 // src/features/search/module.ts
 import { DiBag } from 'di-bag';
 import type { Index, IndexConfig, Search } from './contract.js';
-
-export const searchModule = DiBag.createBuilder()
-  .withServices({
-    index: DiBag.withLifetime(
-      DiBag.withDisposal(
-        DiBag.fromAsyncFactory(async ({ config }: { config: IndexConfig }): Promise<Index> => ({
-          lookup: async term => [`${config.url}#${term}`],
-          close: async () => {},
-        })),
-        index => index.close(),
-      ),
-      'root',
-    ),
-    search: DiBag.fromSyncFactory(({ index }: { index: Promise<Index> }): Search => ({
-      find: async term => (await index).lookup(term),
-    })),
-  })
+export const searchModule = DiBag.createBuilder().withServices({
+  index: DiBag.withLifetime(DiBag.withDisposal(
+    DiBag.createProvider(async ({ config }: { config: IndexConfig }): Promise<Index> => ({
+      lookup: async term => [`${config.url}#${term}`],
+      close: async () => {},
+    }), { factoryReturnKind: 'native-promise' }), index => index.close(),
+  ), 'root'),
+  search: DiBag.createProvider(({ index }: { index: Promise<Index> }): Search => ({
+    find: async term => (await index).lookup(term),
+  }), { factoryReturnKind: 'sync-value' }),
+})
   .buildModule({ exportedServiceKeys: ['search'], moduleLabel: 'search' });
 ```
 
@@ -380,23 +373,30 @@ export const searchModule = DiBag.createBuilder()
 import { DiBag } from 'di-bag';
 import type { IndexConfig } from './contract.js';
 import { searchModule } from './module.js';
-
-DiBag.createBuilder()
-  .withInstalledModules([
-    searchModule,
-  ])
-  .withServices({ config: DiBag.withLifetime(DiBag.fromSyncFactory((): IndexConfig => ({ url: 'memory:' })), 'root') })
+DiBag.createBuilder().withInstalledModules([searchModule])
+  .withServices({ config: DiBag.withLifetime(DiBag.createProvider((): IndexConfig => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' }), 'root') })
   .verifyGraphAtCompileTime() satisfies void;
 ```
 
-`fromSyncFactory` is `fromFactory` with `acquisitionMode: 'raw'`: the exact value
-is the service and `then` is never read; an `async` function or a thenable output
-is rejected at compile time. `fromAsyncFactory` is `fromFactory` with
-`acquisitionMode: 'nativePromise'`: the Promise is the service, consumers await it,
-and `withDisposal` receives the fulfilled value. Give direct `transformService`,
-`fromFunction`, and `fromClass` an explicit `acquisitionMode`. A leftover automatic
-registration fails `buildContainer()` with [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required),
-which names it; a Promise that is itself the service keeps `fromFactory(create, { acquisitionMode: 'raw' })`.
+`factoryReturnKind: 'sync-value'` makes the exact synchronous value the service, never reads `then`, and rejects Promise and structural-thenable outputs at compile time.
+`'native-promise'` requires a native Promise, exposes that Promise, and gives its fulfilled value to disposal callbacks.
+`'uninspected'` preserves the exact returned value, including a Promise or structural thenable.
+Omit the option for `'auto-detect'` on hosts with a native-Promise classifier.
+
+```ts
+import { DiBag } from 'di-bag';
+type Config = { url: string };
+declare function openCatalog(url: string): Promise<{ url: string }>;
+declare function knex(table: string): { readonly table: string; then(resolve: (value: string) => void): void };
+const config = DiBag.createProvider((): Config => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' });
+const catalog = DiBag.createProvider(async ({ config }: { config: Config }) => openCatalog(config.url), {
+  factoryReturnKind: 'native-promise',
+});
+const query = DiBag.createProvider(() => knex('users'), { factoryReturnKind: 'uninspected' });
+const app = DiBag.createBuilder().withServices({ config, catalog, query }).buildContainer();
+```
+
+An auto-detect registration fails `buildContainer()` with [`DI_BAG_CLASSIFIER_REQUIRED`](errors.md#di-bag-classifier-required) on hosts without a native-Promise classifier; the error names the registration.
 
 ## Review a merge {#review-merge}
 

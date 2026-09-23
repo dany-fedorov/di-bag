@@ -45,14 +45,14 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
         let release; const resource = { id: 7 };
         const pending = new Promise(resolve => { release = resolve; });
         Object.defineProperty(pending, 'then', { value: undefined });
-        const key = Symbol('shared'); const token = Core.token(key).of();
+        const key = Symbol('shared'); const token = Core.createToken(key).forService();
         const disposed = [];
         const source = Core.withMetadata(() => pending, { dynamic: { mode: 'direct', describe: value => ({ samePromise: value === pending }) } });
         const owned = Core.withDisposal(source, value => { disposed.push(value === resource ? 'resource' : 'wrong'); });
         const bag = DiBag.createBuilder().withTokenService(token, owned).buildContainer();
         const acquired = bag.resolve(token);
         const identity = acquired === pending;
-        const nativePromise = acquired instanceof Promise;
+        const isNativePromise = acquired instanceof Promise;
         const metadata = bag.serviceSnapshot(token).acquisitions[0].acquisitionMetadata;
         const closing = bag.close(); await Promise.resolve(); await Promise.resolve();
         const before = [...disposed]; release(resource); await closing;
@@ -64,11 +64,11 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
         const detected = Core.createBuilder().withServices({ value: async () => 1 }).buildContainer();
         preflight = preflight && await detected.resolve('value') === 1; await detected.close();
         const rawDisposed = [];
-        const raw = Core.createBuilder().withServices({ value: Core.withDisposal(Core.fromFactory(() => pending, { acquisitionMode: 'raw' }), value => { rawDisposed.push(value === pending); }) }).buildContainer();
+        const raw = Core.createBuilder().withServices({ value: Core.withDisposal(Core.createProvider(() => pending, { factoryReturnKind: 'uninspected' }), value => { rawDisposed.push(value === pending); }) }).buildContainer();
         raw.resolve('value'); await raw.close();
-        console.log(JSON.stringify({ identity, nativePromise, metadata, before, disposed, preflight, rawDisposed }));
+        console.log(JSON.stringify({ identity, isNativePromise, metadata, before, disposed, preflight, rawDisposed }));
       })().catch(error => { console.error(error); process.exitCode = 1; });`);
-    expect(JSON.parse(await run([runtime, file], consumer))).toEqual({ identity: true, nativePromise: true, metadata: [{ present: true, value: { samePromise: true } }], before: [], disposed: ['resource'], preflight: true, rawDisposed: [true] });
+    expect(JSON.parse(await run([runtime, file], consumer))).toEqual({ identity: true, isNativePromise: true, metadata: [{ present: true, value: { samePromise: true } }], before: [], disposed: ['resource'], preflight: true, rawDisposed: [true] });
   });
 }
 
@@ -81,16 +81,16 @@ for (const mode of ['commonjs', 'module'] as const) {
       (async () => {
         ${load}
         const publicKey = Symbol('public');
-        const publicToken = first.DiBag.token(publicKey).of();
-        const samePublicToken = second.DiBag.token(publicKey).of();
+        const publicToken = first.DiBag.createToken(publicKey).forService();
+        const samePublicToken = second.DiBag.createToken(publicKey).forService();
         const promiseKey = Symbol('promise');
-        const promiseToken = first.DiBag.token(promiseKey).of();
+        const promiseToken = first.DiBag.createToken(promiseKey).forService();
         const privateKey = Symbol('private');
-        const privateToken = first.DiBag.token(privateKey).of();
+        const privateToken = first.DiBag.createToken(privateKey).forService();
         const raw = Promise.resolve(7);
         let privateIds = 0;
-        const read = first.DiBag.fromFunction([publicToken, privateToken], (value, local) => ({ value: value.answer, privateId: local.id }));
-        const promiseValue = first.DiBag.fromFunction([promiseToken], value => value);
+        const read = first.DiBag.createProviderFromFunction({ dependencies: [publicToken, privateToken], factoryFunction: (value, local) => ({ value: value.answer, privateId: local.id }) });
+        const promiseValue = first.DiBag.createProviderFromFunction({ dependencies: [promiseToken], factoryFunction: value => value });
         const feature = second.DiBag.createBuilder().withTokenService(privateToken, () => ({ id: ++privateIds })).withServices({ read, promiseValue }).buildModule({ exportedServiceKeys: ['read', 'promiseValue'] });
         const firstFeature = feature.withRenamedExport({ currentExportKey: 'read', newExportKey: 'firstRead' }).withRenamedExport({ currentExportKey: 'promiseValue', newExportKey: 'firstPromise' });
         const secondFeature = feature.withRenamedExport({ currentExportKey: 'read', newExportKey: 'secondRead' }).withRenamedExport({ currentExportKey: 'promiseValue', newExportKey: 'secondPromise' });

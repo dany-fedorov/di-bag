@@ -6,8 +6,8 @@ declare const unknownPlugin: unknown;
 const valid = (value: unknown): value is { run(): number } => typeof value === 'object' && value !== null;
 // diagnostic: not assignable
 DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: unknownPlugin, factoryReturnKind: 'auto-detect', isValidPluginOutput: valid });
-// diagnostic: Property 'acquisitionMode' is missing
-DiBag.fromPlugin([], unknownPlugin, { validate: valid });
+// diagnostic: Property 'factoryReturnKind' is missing
+DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: unknownPlugin, isValidPluginOutput: valid });
 // diagnostic: not assignable
 DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: unknownPlugin, factoryReturnKind: 'uninspected', isValidPluginOutput: (value: unknown): boolean => typeof value === 'object' });
 // diagnostic: not assignable

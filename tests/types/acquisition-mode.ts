@@ -14,9 +14,9 @@ export const token = DiBag.createToken(key).forService<Promise<{ id: number }>>(
 export const tokenProvider = DiBag.createProviderFromFunction({ dependencies: [token], factoryFunction: value => value, factoryReturnKind: 'uninspected' });
 export const feature = DiBag.createBuilder().withTokenService(token, metadata).withServices({ raw: rawOwned }).buildModule({ exportedServiceKeys: [token, 'raw'] });
 export const bag = DiBag.createBuilder().withInstalledModules([feature]).withReplacedService('raw', raw).buildContainer();
-export const projected = DiBag.transformService(native, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'raw' } });
+export const projected = DiBag.transformService(native, { mode: 'direct', transform: value => value, ...{ acquisitionMode: 'uninspected' } });
 export const framed = DiBag.withMetadata(raw, { dynamic: { mode: 'direct', describe: () => ({ source: 'raw' }) } });
-export const capability = DiBag.transformService(DiBag.createProvider(() => ({ read: () => pending }), { factoryReturnKind: 'uninspected' }), { mode: 'direct', transform: source => source.read(), ...{ acquisitionMode: 'raw' } });
+export const capability = DiBag.transformService(DiBag.createProvider(() => ({ read: () => pending }), { factoryReturnKind: 'uninspected' }), { mode: 'direct', transform: source => source.read(), ...{ acquisitionMode: 'uninspected' } });
 export type Checks = [
   Assert<Equal<ProviderOutput<typeof raw>, Promise<{ id: number }>>>,
   Assert<Equal<ProviderAcquiredValue<typeof rawOwned>, Promise<{ id: number }>>>,

@@ -27,6 +27,8 @@ let moduleInterface;
 let token;
 let configurationOptions;
 let lifecycleObserver;
+let factoryContext;
+let bindingSnapshot;
 try {
   process.chdir(directory);
   const app = await Application.bootstrapWithPlugins({ options: resolve(directory, 'typedoc.json') });
@@ -52,6 +54,8 @@ try {
   token = readFileSync(join(output, 'index/interfaces/Token.md'), 'utf8');
   configurationOptions = readFileSync(join(output, 'index/interfaces/ConfigurationOptions.md'), 'utf8');
   lifecycleObserver = readFileSync(join(output, 'index/interfaces/LifecycleObserver.md'), 'utf8');
+  factoryContext = readFileSync(join(output, 'index/interfaces/FactoryContext.md'), 'utf8');
+  bindingSnapshot = readFileSync(join(output, 'index/interfaces/BindingSnapshot.md'), 'utf8');
 } catch (error) {
   rmSync(temporary, { recursive: true, force: true });
   throw error;
@@ -165,4 +169,13 @@ test('requirement renaming publishes both labeled keys', () => {
   assert.match(text, /withRenamedRequirement<const CurrentRequirementKey extends string, const NewRequirementKey extends string>/);
   assert.match(text, /currentRequirementKey: CurrentRequirementKey/);
   assert.match(text, /newRequirementKey: NewRequirementKey/);
+});
+
+test('provider-source reference pages render final members', () => {
+  const facadeText = compact(facade);
+  for (const text of ['createProvider:', 'createProviderFromFunction:', 'createProviderFromClass:', 'createProviderFromPlugin:', 'createToken:']) {
+    assert.ok(facadeText.includes(text), `missing facade rendering: ${text}`);
+  }
+  assert.match(compact(bindingSnapshot), /readonly factoryReturnKind: FactoryReturnKind;/);
+  assert.match(compact(factoryContext), /readonly abortSignal: AbortSignal;/);
 });

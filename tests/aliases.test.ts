@@ -238,9 +238,9 @@ test('strict roots use the effective shared alias policy in both lifetime direct
 test('raw aliases do not inspect then getters or add cancellation contexts', async () => {
   let thenReads = 0; let contexts = 0; let signal!: AbortSignal;
   const value = { get then() { ++thenReads; throw new Error('do not assimilate'); } };
-  const bag = Portable.createBuilder().withServices({ value: Portable.fromFactory((_deps: {}, context) => {
-    contexts++; signal = context.signal; return value;
-  }, { context: 'acquisition', ...{ acquisitionMode: 'raw' } }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
+  const bag = Portable.createBuilder().withServices({ value: Portable.createProvider((_deps: {}, context) => {
+    contexts++; signal = context.abortSignal; return value;
+  }, { factoryReceivesContext: true, ...{ factoryReturnKind: 'uninspected' as const } }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   expect(bag.resolve('copy')).toBe(value);
   expect(bag.resolve('value')).toBe(value);
   expect(contexts).toBe(1); expect(thenReads).toBe(0);

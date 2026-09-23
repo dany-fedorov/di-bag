@@ -11,7 +11,7 @@ DiBag.withDisposal(raw, (value: { id: number }) => {});
 // diagnostic: No overload matches
 DiBag.withDisposal(native, (value: Promise<{ id: number }>) => {});
 // diagnostic: not assignable
-DiBag.fromFactory(() => 7, { acquisitionMode: 'guess' });
+DiBag.createProvider(() => 7, { factoryReturnKind: 'guess' });
 // diagnostic: not assignable
 DiBag.createProvider(function(this: { id: number }) { return this.id; }, { factoryReturnKind: 'uninspected' });
 // diagnostic: not assignable
@@ -19,11 +19,11 @@ DiBag.withConfiguration({ runtime: { isNativePromise: (value: Promise<unknown>) 
 // diagnostic: not assignable
 DiBag.withConfiguration({ runtime: { isNativePromise: () => 'yes' } });
 // diagnostic: not assignable
-DiBag.transformService(native, { mode: 'direct', transform: () => 7, ...{ acquisitionMode: 'nativePromise' } });
+DiBag.transformService(native, { mode: 'direct', transform: () => 7, ...{ acquisitionMode: 'native-promise' } });
 // diagnostic: not assignable
 DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: () => 7, factoryReturnKind: 'native-promise' });
 // diagnostic: Property 'acquisitionMode' is missing
-DiBag.transformService<typeof native, (value: typeof pending) => typeof pending, 'raw'>(native, { mode: 'direct', transform: value => value });
+DiBag.transformService<typeof native, (value: typeof pending) => typeof pending, 'uninspected'>(native, { mode: 'direct', transform: value => value });
 // diagnostic: Property 'factoryReturnKind' is missing
 DiBag.createProviderFromFunction<readonly [], () => typeof pending, 'uninspected'>({ dependencies: [], factoryFunction: () => pending });
 declare const union: typeof raw | typeof native;

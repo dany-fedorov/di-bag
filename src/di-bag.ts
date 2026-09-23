@@ -700,7 +700,7 @@ export interface DiBagApi {
    */
   withConfiguration: (options: ConfigurationOptions) => DiBagApi;
   /**
-   * Describe a named-dependency factory with an explicit acquisition mode or the acquisition's abort signal.
+   * Describe a named-dependency factory with configurable result acquisition and optional acquisition context.
    * A factory that returns a non-Promise object with a `then` method needs `acquisitionMode: 'raw'` or must return `Promise.resolve(value)`.
    * @throws `DI_BAG_INVALID_FACTORY` for a non-function or an unknown `context`; `DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode.
    * @example

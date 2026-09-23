@@ -23,7 +23,7 @@ type CurrentRuntimeBuilder = {
   buildContainer(): RuntimeBag;
 };
 type CurrentRuntimeFacade = {
-  fromFactory(create: (dependencies: Record<string, unknown>) => unknown, options: { acquisitionMode: 'raw' | 'nativePromise' }): Registration;
+  createProvider(create: (dependencies: Record<string, unknown>) => unknown, options: { factoryReturnKind: 'uninspected' | 'native-promise' }): Registration;
   createBuilder(): CurrentRuntimeBuilder;
   withDisposal(registration: Registration, dispose: (value: unknown) => void | Promise<void>): Registration;
   withLifetime(registration: Registration, lifetime: 'root' | 'scoped' | 'transient'): Registration;
@@ -37,7 +37,7 @@ type BaselineRuntimeFacade = {
 export type RuntimeBuilderSurface = 'current' | 'baseline';
 type CreateBag = (bindings: Record<string, Registration>) => RuntimeBag;
 type RuntimeScenarioAdapter = {
-  source(create: (dependencies: Record<string, unknown>) => unknown, mode: 'raw' | 'nativePromise'): Registration;
+  source(create: (dependencies: Record<string, unknown>) => unknown, factoryReturnKind: 'uninspected' | 'native-promise'): Registration;
   own(registration: Registration, dispose: (value: unknown) => void | Promise<void>): Registration;
   lifetime(registration: Registration, lifetime: 'root' | 'scoped' | 'transient'): Registration;
   build: CreateBag;
@@ -60,7 +60,7 @@ export type PreparedRuntimeScenario = {
   bag?: RuntimeBag;
   primedValue?: unknown;
   rawPromise?: Promise<object>;
-  nativePromise?: Promise<object>;
+  nativeResultPromise?: Promise<object>;
   nativeValue?: object;
   scopedValue?: object;
   disposedValue?: unknown;
@@ -70,7 +70,7 @@ function selectRuntimeAdapter(suppliedFacade: unknown, surface: RuntimeBuilderSu
   if (surface === 'current') {
     const current = suppliedFacade as CurrentRuntimeFacade;
     return {
-      source: (create, mode) => current.fromFactory(create, { acquisitionMode: mode }),
+      source: (create, factoryReturnKind) => current.createProvider(create, { factoryReturnKind }),
       own: (registration, dispose) => current.withDisposal(registration, dispose),
       lifetime: (registration, lifetime) => current.withLifetime(registration, lifetime),
       build: bindings => current.createBuilder().withServices(bindings).buildContainer(),
@@ -83,8 +83,8 @@ function selectRuntimeAdapter(suppliedFacade: unknown, surface: RuntimeBuilderSu
   if (surface === 'baseline') {
     const baseline = suppliedFacade as BaselineRuntimeFacade;
     return {
-      source: (create, mode) => baseline.factory(create, {
-        acquisition: mode === 'nativePromise' ? 'native' : 'raw',
+      source: (create, factoryReturnKind) => baseline.factory(create, {
+        acquisition: factoryReturnKind === 'native-promise' ? 'native' : 'raw',
       }),
       own: (registration, dispose) => baseline.withDisposal(registration, dispose),
       lifetime: (registration, lifetime) => baseline.withLifetime(registration, lifetime),
@@ -118,7 +118,7 @@ function linearBindings(prepared: PreparedRuntimeScenario, lifetime?: 'root'): R
     const factory = prepared.adapter.source((dependencies: Record<string, unknown>) => {
       prepared.factories += 1;
       return index === 0 ? 1 : Number(dependencies[previous]) + 1;
-    }, 'raw');
+    }, 'uninspected');
     bindings[`provider${index}`] = lifetime === undefined
       ? factory
       : prepared.adapter.lifetime(factory, lifetime);
@@ -178,13 +178,13 @@ export async function prepareScenario(
       prepared.factories += 1;
       prepared.scopedValue = { label: 'scoped' };
       return prepared.scopedValue;
-    }, 'raw'), () => { prepared.disposers += 1; prepared.cleanupLog.push('scoped'); });
+    }, 'uninspected'), () => { prepared.disposers += 1; prepared.cleanupLog.push('scoped'); });
     prepared.bindings.transient = prepared.adapter.lifetime(prepared.adapter.own(prepared.adapter.source(() => {
       prepared.factories += 1;
       const value = { id: prepared.values.length + 1 };
       prepared.values.push(value);
       return value;
-    }, 'raw'), value => {
+    }, 'uninspected'), value => {
       prepared.disposers += 1;
       prepared.cleanupLog.push(`transient-${(value as { id: number }).id}`);
     }), 'transient');
@@ -193,7 +193,7 @@ export async function prepareScenario(
   }
   if (scenario === 'transient-resolve-close') {
     for (let index = 0; index < count - 1; index += 1) {
-      prepared.bindings[`provider${index}`] = prepared.adapter.source(() => index, 'raw');
+      prepared.bindings[`provider${index}`] = prepared.adapter.source(() => index, 'uninspected');
     }
     prepared.bindings.transient = prepared.adapter.lifetime(prepared.adapter.own(
       prepared.adapter.source(() => {
@@ -201,7 +201,7 @@ export async function prepareScenario(
         const value = { id: prepared.factories };
         prepared.values.push(value);
         return value;
-      }, 'raw'),
+      }, 'uninspected'),
       value => { prepared.disposers += 1; prepared.cleanupLog.push(`transient-${(value as { id: number }).id}`); },
     ), 'transient');
     prepared.bag = prepared.adapter.build(prepared.bindings);
@@ -209,19 +209,19 @@ export async function prepareScenario(
   }
 
   for (let index = 0; index < count - 1; index += 1) {
-    prepared.bindings[`provider${index}`] = prepared.adapter.source(() => index, 'raw');
+    prepared.bindings[`provider${index}`] = prepared.adapter.source(() => index, 'uninspected');
   }
   if (scenario === 'raw-promise-identity') {
     prepared.rawPromise = Promise.resolve(Object.freeze({ kind: 'raw' }));
     prepared.bindings.promise = prepared.adapter.own(
-      prepared.adapter.source(() => { prepared.factories += 1; return prepared.rawPromise; }, 'raw'),
+      prepared.adapter.source(() => { prepared.factories += 1; return prepared.rawPromise; }, 'uninspected'),
       value => { prepared.disposers += 1; prepared.disposedValue = value; prepared.cleanupLog.push('raw-promise'); },
     );
   } else {
     prepared.nativeValue = Object.freeze({ kind: 'native' });
-    prepared.nativePromise = Promise.resolve(prepared.nativeValue);
+    prepared.nativeResultPromise = Promise.resolve(prepared.nativeValue);
     prepared.bindings.promise = prepared.adapter.own(
-      prepared.adapter.source(() => { prepared.factories += 1; return prepared.nativePromise; }, 'nativePromise'),
+      prepared.adapter.source(() => { prepared.factories += 1; return prepared.nativeResultPromise; }, 'native-promise'),
       value => { prepared.disposers += 1; prepared.disposedValue = value; prepared.cleanupLog.push('node-native'); },
     );
   }
@@ -281,6 +281,6 @@ export function verifyScenario(prepared: PreparedRuntimeScenario, timed: TimedRu
   if (prepared.scenario === 'raw-promise-identity'
     && (timed.value !== prepared.rawPromise || prepared.disposedValue !== prepared.rawPromise)) throw new Error('raw Promise identity mismatch');
   if (prepared.scenario === 'node-native-promise'
-    && (timed.value !== prepared.nativePromise || prepared.disposedValue !== prepared.nativeValue)) throw new Error('native Promise identity mismatch');
+    && (timed.value !== prepared.nativeResultPromise || prepared.disposedValue !== prepared.nativeValue)) throw new Error('native Promise identity mismatch');
   return expected;
 }
