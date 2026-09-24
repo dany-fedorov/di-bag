@@ -1,7 +1,7 @@
 import { diagnostic, diagnosticMessage, libraryError } from './errors';
 import type { BagRuntime, BindingGraph, BindingKey } from './runtime';
 import { readToken } from './tokens';
-import { DiBagCleanupError, DiBagCloseCancelledError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from './errors';
+import { DiBagDisposalError, DiBagCloseCancelledError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from './errors';
 import type { DiBagErrorCode } from './errors';
 
 /**
@@ -216,7 +216,7 @@ export function ensureRuntimeReady(runtime: BagRuntime, graph: BindingGraph, key
       if (checkCancellation()) return;
       settled = true;
       release();
-      reject(new DiBagServiceReadinessError(cause, disposalError instanceof DiBagCleanupError ? disposalError.failures : [], disposalError));
+      reject(new DiBagServiceReadinessError(cause, disposalError instanceof DiBagDisposalError ? disposalError.failures : [], disposalError));
     });
   });
 }

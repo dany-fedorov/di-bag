@@ -1,7 +1,7 @@
 import { diagnosticMessage, libraryError } from './errors';
 import type { AcquisitionEventFields, LifecycleEvent } from './observers';
-import { DiBagCleanupError } from './errors';
-import type { CleanupFailure } from './errors';
+import { DiBagDisposalError } from './errors';
+import type { DisposalFailure } from './errors';
 import type { BindingGraph, BindingId, BindingKey } from './runtime';
 import type { RegistrationSnapshot, AcquisitionSnapshot } from './inspection';
 import { ProviderExecution, type DisposerStack, type CompletedExecution } from './provider-execution';
@@ -43,7 +43,7 @@ export class ScopeAcquisitions {
   private readonly cache = new Map<BindingId, Acquisition>();
   private readonly attempts = new Map<AcquisitionId, Acquisition>();
   private readonly retired = new Map<AcquisitionId, Promise<void>>();
-  private readonly failures: (CleanupFailure & { sequence: number })[] = [];
+  private readonly failures: (DisposalFailure & { sequence: number })[] = [];
   private invocationSequence = 0;
   // Insertion order is successful ownership acceptance order, including promises.
   private readonly owned = new Map<AcquisitionId, Acquisition>();
@@ -272,7 +272,7 @@ export class ScopeAcquisitions {
       invoking: () => this.invocationSequence++,
       cleanupFailed: (sequence, error) => {
         if (this.context.observers) this.context.observers.emit({ ...this.eventFields(attempt), kind: 'cleanup-failed', disposalSequence: sequence, error });
-        this.failures.push({ sequence, acquisitionId: attempt.id, bindingId: attempt.bindingId, label: attempt.label, error });
+        this.failures.push({ sequence, acquisitionId: attempt.id, bindingId: attempt.bindingId, bindingLabel: attempt.label, error });
       },
     }, description, this.context);
     const attempt: Acquisition = {
@@ -416,7 +416,7 @@ export class ScopeAcquisitions {
   }
 
   private async disposeAll(beforeDispose?: Promise<void>): Promise<void> {
-    let failures: CleanupFailure[] = [];
+    let failures: DisposalFailure[] = [];
     try {
       if (beforeDispose) await beforeDispose;
       // Sources and projections can still acquire dependencies or retire work.
@@ -453,7 +453,7 @@ export class ScopeAcquisitions {
         attempt.state = 'disposed';
       }
       failures = [...this.failures].sort((a, b) => a.sequence - b.sequence)
-        .map(({ acquisitionId, bindingId, label, error }) => ({ acquisitionId, bindingId, label, error }));
+        .map(({ acquisitionId, bindingId, bindingLabel, error }) => ({ acquisitionId, bindingId, bindingLabel, error }));
     } finally {
       this.state = 'closed';
       for (const attempt of this.attempts.values()) {
@@ -469,6 +469,6 @@ export class ScopeAcquisitions {
       this.failures.length = 0;
       this.owned.clear();
     }
-    if (failures.length > 0) throw new DiBagCleanupError(failures);
+    if (failures.length > 0) throw new DiBagDisposalError(failures);
   }
 }

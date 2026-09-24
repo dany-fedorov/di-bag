@@ -9,12 +9,12 @@
         "collapsed": true,
         "items": [
           {
-            "text": "DiBagCleanupError",
-            "link": "/reference/index/classes/DiBagCleanupError.md"
-          },
-          {
             "text": "DiBagCloseCancelledError",
             "link": "/reference/index/classes/DiBagCloseCancelledError.md"
+          },
+          {
+            "text": "DiBagDisposalError",
+            "link": "/reference/index/classes/DiBagDisposalError.md"
           },
           {
             "text": "DiBagPluginValidationError",
@@ -59,10 +59,6 @@
             "link": "/reference/index/interfaces/BuilderWithReplacedService.md"
           },
           {
-            "text": "CleanupFailure",
-            "link": "/reference/index/interfaces/CleanupFailure.md"
-          },
-          {
             "text": "CloseOptions",
             "link": "/reference/index/interfaces/CloseOptions.md"
           },
@@ -101,6 +97,10 @@
           {
             "text": "DiBagPolicy",
             "link": "/reference/index/interfaces/DiBagPolicy.md"
+          },
+          {
+            "text": "DisposalFailure",
+            "link": "/reference/index/interfaces/DisposalFailure.md"
           },
           {
             "text": "DisposerContext",

@@ -3,8 +3,8 @@ import { ScopeAcquisitions } from './acquisition';
 import { PersistentMap } from './persistent-map';
 import { append, materialize } from './persistent-sequence';
 import type { Sequence } from './persistent-sequence';
-import { DiBagCleanupError } from './errors';
-import type { CleanupFailure } from './errors';
+import { DiBagDisposalError } from './errors';
+import type { DisposalFailure } from './errors';
 import { normalize } from './registration';
 import type { ProviderOrFactory, Registrations } from './registration';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
@@ -671,19 +671,19 @@ export class BagRuntime {
         reason => ({ status: 'rejected' as const, reason }),
       ),
     ]);
-    const failures: CleanupFailure[] = [];
+    const failures: DisposalFailure[] = [];
     const unexpected: unknown[] = [];
     for (const result of [...children, local]) {
       if (result.status === 'fulfilled') continue;
-      if (result.reason instanceof DiBagCleanupError) failures.push(...result.reason.failures);
+      if (result.reason instanceof DiBagDisposalError) failures.push(...result.reason.failures);
       else unexpected.push(result.reason);
     }
     if (unexpected.length > 0) {
       const errors = failures.length > 0
-        ? [new DiBagCleanupError(failures), ...unexpected]
+        ? [new DiBagDisposalError(failures), ...unexpected]
         : unexpected;
       throw diagnostic(new AggregateError(errors, diagnosticMessage('DI_BAG_CLOSE_FAILED', `Failed to close ${errors.length} runtime operation(s)`)), 'DI_BAG_CLOSE_FAILED', { operation: 'close', failedOperations: errors.length });
     }
-    if (failures.length > 0) throw new DiBagCleanupError(failures);
+    if (failures.length > 0) throw new DiBagDisposalError(failures);
   }
 }

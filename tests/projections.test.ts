@@ -180,7 +180,7 @@ test('retired cleanup errors keep invocation order and original attempt identiti
   expect(error.errors).toEqual([undefined, causeB]);
   expect(error.failures.map((failure: { acquisitionId: symbol }) => failure.acquisitionId)).toEqual(ids);
   expect(error.failures.map((failure: object) => Reflect.ownKeys(failure))).toEqual([
-    ['acquisitionId', 'bindingId', 'label', 'error'], ['acquisitionId', 'bindingId', 'label', 'error'],
+    ['acquisitionId', 'bindingId', 'bindingLabel', 'error'], ['acquisitionId', 'bindingId', 'bindingLabel', 'error'],
   ]);
 });
 

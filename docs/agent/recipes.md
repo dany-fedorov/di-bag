@@ -336,8 +336,8 @@ handshake closes the socket through the push; a clean shutdown closes it through
 `providerWithDisposal`, and the push sees `'service-disposed'` and does nothing. The
 reason describes `providerWithDisposal` on the returned value, not ownership a
 consumer attaches to a transformed value. A rejecting disposer is reported
-through [`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed); pushing after
-the factory settled throws [`DI_BAG_CLEANUP_AFTER_FACTORY`](errors.md#di-bag-cleanup-after-factory).
+through [`DI_BAG_DISPOSAL_FAILED`](errors.md#di-bag-disposal-failed); pushing after
+the factory settled throws [`DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY`](errors.md#di-bag-disposer-pushed-after-factory).
 
 ## Make a graph portable to browsers and workers {#portable-graph}
 

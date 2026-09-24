@@ -51,7 +51,7 @@ The shared shutdown promise, or a bounded wait on it when options are given.
 
 #### Throws
 
-[DiBagCleanupError](../classes/DiBagCleanupError.md) (`DI_BAG_CLEANUP_FAILED`) when one or more disposers fail after all cleanup is attempted;
+[DiBagDisposalError](../classes/DiBagDisposalError.md) (`DI_BAG_DISPOSAL_FAILED`) when one or more disposers fail after all cleanup is attempted;
 `DI_BAG_CLOSE_FAILED` for other shutdown failures;
 [DiBagCloseCancelledError](../classes/DiBagCloseCancelledError.md) (`DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`) when the wait stops first,
 naming unfinished disposers in `details.disposersStillRunning`; `DI_BAG_INVALID_CLOSE` for malformed options.

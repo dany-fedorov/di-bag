@@ -384,7 +384,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * independent containers accept the same options. Close every derived container you create; a parent closes its live children, never independent containers.
    * @param options - An optional deadline and abort signal bounding the wait, not the cleanup.
    * @returns The shared shutdown promise, or a bounded wait on it when options are given.
-   * @throws {@link DiBagCleanupError} (`DI_BAG_CLEANUP_FAILED`) when one or more disposers fail after all cleanup is attempted;
+   * @throws {@link DiBagDisposalError} (`DI_BAG_DISPOSAL_FAILED`) when one or more disposers fail after all cleanup is attempted;
    * `DI_BAG_CLOSE_FAILED` for other shutdown failures;
    * {@link DiBagCloseCancelledError} (`DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`) when the wait stops first,
    * naming unfinished disposers in `details.disposersStillRunning`; `DI_BAG_INVALID_CLOSE` for malformed options.

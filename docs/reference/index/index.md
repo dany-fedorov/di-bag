@@ -6,8 +6,8 @@
 
 ## Classes
 
-- [DiBagCleanupError](classes/DiBagCleanupError.md)
 - [DiBagCloseCancelledError](classes/DiBagCloseCancelledError.md)
+- [DiBagDisposalError](classes/DiBagDisposalError.md)
 - [DiBagPluginValidationError](classes/DiBagPluginValidationError.md)
 - [DiBagServiceReadinessCancelledError](classes/DiBagServiceReadinessCancelledError.md)
 - [DiBagServiceReadinessError](classes/DiBagServiceReadinessError.md)
@@ -20,7 +20,6 @@
 - [Builder](interfaces/Builder.md)
 - [BuilderBuildModule](interfaces/BuilderBuildModule.md)
 - [BuilderWithReplacedService](interfaces/BuilderWithReplacedService.md)
-- [CleanupFailure](interfaces/CleanupFailure.md)
 - [CloseOptions](interfaces/CloseOptions.md)
 - [CloseProgress](interfaces/CloseProgress.md)
 - [CollectionToken](interfaces/CollectionToken.md)
@@ -31,6 +30,7 @@
 - [DiBagApi](interfaces/DiBagApi.md)
 - [DiBagDiagnostic](interfaces/DiBagDiagnostic.md)
 - [DiBagPolicy](interfaces/DiBagPolicy.md)
+- [DisposalFailure](interfaces/DisposalFailure.md)
 - [DisposerContext](interfaces/DisposerContext.md)
 - [EnsureServicesReadyOptions](interfaces/EnsureServicesReadyOptions.md)
 - [FactoryContext](interfaces/FactoryContext.md)

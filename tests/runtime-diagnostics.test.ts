@@ -154,15 +154,15 @@ test('close({ waitTimeoutMs }) rejects naming the never-settling disposer and ke
   expect(() => bag.resolve('fast')).toThrow('DI_BAG_CLOSING');
 
   let settled = false;
-  void error.cleanupPromise.then(() => { settled = true; });
+  void error.disposalPromise.then(() => { settled = true; });
   await tick();
   expect(settled).toBe(false);
   expect(disposed).toEqual([]);
   release();
-  await error.cleanupPromise;
+  await error.disposalPromise;
   expect(settled).toBe(true);
   expect(disposed).toEqual(['fast']);
-  expect(error.cleanupPromise).toBe(bag.close());
+  expect(error.disposalPromise).toBe(bag.close());
 });
 
 test('close deadline reports pending acquisitions when cleanup is still draining them', async () => {
@@ -193,7 +193,7 @@ test('close({ abortSignal }) stops the wait on abort with DI_BAG_CLOSE_ABORTED a
   expect(error.details).toEqual({ operation: 'close', reason: 'aborted', disposersStillRunning: ['stuck'], acquisitionsStillPending: [] });
   expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
   release();
-  await error.cleanupPromise;
+  await error.disposalPromise;
 });
 
 test('an already aborted signal still starts cleanup and rejects immediately', async () => {
@@ -204,7 +204,7 @@ test('an already aborted signal still starts cleanup and rejects immediately', a
   controller.abort('now');
   const error = await bag.close({ abortSignal: controller.signal }).catch(caughtError => caughtError);
   expect(error.code).toBe('DI_BAG_CLOSE_ABORTED');
-  await error.cleanupPromise;
+  await error.disposalPromise;
   expect(disposed).toEqual([1]);
 });
 
@@ -231,7 +231,7 @@ test('scopes and forks accept close options; a child deadline names the child di
   const childError = await child.close({ waitTimeoutMs: 1 }).catch(error => error);
   expect(childError.details.disposersStillRunning).toEqual(['session']);
   release();
-  await childError.cleanupPromise;
+  await childError.disposalPromise;
 
   const fork = root.createIndependentContainer();
   fork.resolve('session');
@@ -241,10 +241,10 @@ test('scopes and forks accept close options; a child deadline names the child di
   expect(rootError.code).toBe('DI_BAG_CLOSE_TIMEOUT');
   expect(rootError.details.disposersStillRunning).toEqual(['session']);
   release();
-  await rootError.cleanupPromise;
+  await rootError.disposalPromise;
   const forkError = await fork.close({ waitTimeoutMs: 1 }).catch(error => error);
   release();
-  await forkError.cleanupPromise;
+  await forkError.disposalPromise;
 });
 
 test('close rejects malformed options without starting cleanup', async () => {

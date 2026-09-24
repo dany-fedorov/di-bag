@@ -98,10 +98,10 @@ test('shutdown preserves every cleanup cause and its acquisition identity', asyn
 
 test('cleanup diagnostics snapshot caller records without cloning the original cause', () => {
   const cause = { reason: 'cleanup' };
-  const record = { acquisitionId: Symbol('attempt'), bindingId: Symbol('binding'), label: 'resource', error: cause };
+  const record = { acquisitionId: Symbol('attempt'), bindingId: Symbol('binding'), bindingLabel: 'resource', error: cause };
   const input = [record];
   const error = new DiBagDisposalError(input);
-  record.label = 'changed';
+  record.bindingLabel = 'changed';
   input.length = 0;
   expect(error.failures).toHaveLength(1);
   expect(error.failures[0]!.bindingLabel).toBe('resource');

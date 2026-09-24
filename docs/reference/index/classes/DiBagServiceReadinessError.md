@@ -31,7 +31,7 @@ try {
 ### Constructor
 
 ```ts
-new (cause: unknown, disposalFailures: readonly CleanupFailure[], disposalError?: unknown | undefined): DiBagServiceReadinessError;
+new (cause: unknown, disposalFailures: readonly DisposalFailure[], disposalError?: unknown | undefined): DiBagServiceReadinessError;
 ```
 
 Defined in: [errors.ts:132](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L132)
@@ -87,7 +87,7 @@ The complete shutdown error, when closing itself rejected.
 ### disposalFailures
 
 ```ts
-readonly disposalFailures: readonly CleanupFailure[];
+readonly disposalFailures: readonly DisposalFailure[];
 ```
 
 Defined in: [errors.ts:125](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L125)

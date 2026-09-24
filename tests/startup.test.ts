@@ -4,7 +4,7 @@ import { DiBag as Core } from '../src';
 import { deferred } from './helpers';
 import { getEventListeners } from 'node:events';
 
-const { DiBag, DiBagCleanupError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } = api;
+const { DiBag, DiBagDisposalError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } = api;
 
 test('contexts follow acquisition owners through child-first roots and independent forks', async () => {
   const root = DiBag.createBuilder().withServices({
@@ -271,8 +271,8 @@ for (const reason of ['aborted', 'timeout'] as const) test(`${reason} rejects be
   expect(disposed).toEqual([]);
   gate.resolve();
   const cleanup: unknown = await error.disposalPromise.catch(error => error);
-  expect(cleanup).toBeInstanceOf(DiBagCleanupError);
-  if (!(cleanup instanceof DiBagCleanupError)) throw new Error('expected cleanup error');
+  expect(cleanup).toBeInstanceOf(DiBagDisposalError);
+  if (!(cleanup instanceof DiBagDisposalError)) throw new Error('expected cleanup error');
   expect(cleanup.failures[0]!.error).toBe(cleanupError);
   expect(disposed).toEqual([42]);
 });
@@ -414,8 +414,8 @@ for (const terminal of ['failure', 'aborted', 'timeout'] as const) test(`bounded
   gates[0]!.resolve(1); gates[1]!.resolve(2);
   if (cancellation) {
     const cleanup: unknown = await cancellation.disposalPromise.catch(error => error);
-    expect(cleanup).toBeInstanceOf(DiBagCleanupError);
-    if (!(cleanup instanceof DiBagCleanupError)) throw cleanup;
+    expect(cleanup).toBeInstanceOf(DiBagDisposalError);
+    if (!(cleanup instanceof DiBagDisposalError)) throw cleanup;
     expect(cleanup.failures[0]!.error).toBe(cleanupError);
   } else {
     const error: unknown = await outcome;

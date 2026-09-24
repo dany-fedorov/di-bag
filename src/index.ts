@@ -1,6 +1,6 @@
 export { DiBag } from './di-bag';
-export { DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } from './errors';
-export type { CleanupFailure, CloseProgress, DiBagErrorCode, DiBagDiagnostic } from './errors';
+export { DiBagDisposalError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } from './errors';
+export type { DisposalFailure, CloseProgress, DiBagErrorCode, DiBagDiagnostic } from './errors';
 export type { Container, Builder, DiBagApi, ConfigurationOptions } from './di-bag';
 export type { Module, ModuleOptions } from './module';
 export type { CompositionReport } from './composition-report';

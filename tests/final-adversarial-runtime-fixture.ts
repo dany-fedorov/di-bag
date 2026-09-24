@@ -42,14 +42,14 @@ export const finalAdversarialExpectedResult: FinalAdversarialRuntimeResult = {
 type RuntimeDependencies = Readonly<{
   DiBag: any;
   PortableDiBag: any;
-  DiBagCleanupError: any;
+  DiBagDisposalError: any;
   DiBagPluginValidationError: any;
   DiBagServiceReadinessError: any;
   DiBagServiceReadinessCancelledError: any;
 }>;
 
 async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedId?: string): Promise<FinalAdversarialRuntimeResult> {
-  const { DiBag, PortableDiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError,
+  const { DiBag, PortableDiBag, DiBagDisposalError, DiBagPluginValidationError, DiBagServiceReadinessError,
     DiBagServiceReadinessCancelledError } = api;
   const invariant: (condition: unknown, id: string, detail: string) => asserts condition = (condition, id, detail) => {
     if (!condition && (selectedId === undefined || selectedId === id)) throw new Error(`${id}: ${detail}`);
@@ -271,11 +271,11 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
     ...i7Child.serviceSnapshot('transient').acquisitions, ...i7Child.serviceSnapshot(i7Token).flatMap((item: any) => item.acquisitions)].map((item: any) => item.acquisitionId);
   let i7Close: unknown;
   try { await i7Bag.close(); } catch (error) { i7Close = error; }
-  invariant(i7Close instanceof DiBagCleanupError && (i7Close as any).failures.length === 1 && (i7Close as any).failures[0].error === i7Error, 'I7', 'cleanup failure identity changed');
+  invariant(i7Close instanceof DiBagDisposalError && (i7Close as any).failures.length === 1 && (i7Close as any).failures[0].error === i7Error, 'I7', 'cleanup failure identity changed');
   const i7Failure = (i7Close as any).failures[0];
   const i7FailureEvent = i7Events.find(event => event.kind === 'cleanup-failed' && event.error === i7Error);
   invariant(new Set(i7Ids).size === 6 && i7FailureEvent && i7Failure.bindingId === i7FailureEvent.bindingId
-    && i7Failure.acquisitionId === i7FailureEvent.acquisitionId && i7Failure.label === i7FailureEvent.label, 'I7', 'cleanup diagnostics changed');
+    && i7Failure.acquisitionId === i7FailureEvent.acquisitionId && i7Failure.bindingLabel === i7FailureEvent.label, 'I7', 'cleanup diagnostics changed');
   invariant(i7Root === 1 && i7Scoped === 1 && i7Transient === 2 && i7Contributions === 2 && i7Independent === 6, 'I7', 'lifetime cardinality changed');
 
   // I8: observer telemetry is ordered, filtered, immutable, and never awaited.
@@ -457,14 +457,14 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
 }
 
 export function runFinalAdversarialSourceMatrix(selectedId?: keyof FinalAdversarialRuntimeResult): Promise<FinalAdversarialRuntimeResult> {
-  return executeFinalAdversarialMatrix({ DiBag, PortableDiBag, DiBagCleanupError, DiBagPluginValidationError,
+  return executeFinalAdversarialMatrix({ DiBag, PortableDiBag, DiBagDisposalError, DiBagPluginValidationError,
     DiBagServiceReadinessError, DiBagServiceReadinessCancelledError }, selectedId);
 }
 
 /** Embedded by package tests after binding these public API names in consumer scope. */
 export const finalAdversarialRuntimeAssertions = `
 (async () => {
-  const result = await (${executeFinalAdversarialMatrix.toString()})({ DiBag, PortableDiBag, DiBagCleanupError,
+  const result = await (${executeFinalAdversarialMatrix.toString()})({ DiBag, PortableDiBag, DiBagDisposalError,
     DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError });
   console.log(JSON.stringify(result));
 })().catch(error => { console.error(error); process.exitCode = 1; });
@@ -473,10 +473,10 @@ export const finalAdversarialRuntimeAssertions = `
 /** Build a dependency-free consumer program using only published package subpaths. */
 export function finalAdversarialPackageRuntimeSource(mode: 'commonjs' | 'module'): string {
   const imports = mode === 'commonjs'
-    ? `const { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } = require('di-bag');
+    ? `const { DiBag, DiBagDisposalError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } = require('di-bag');
 const { DiBag: PortableDiBag } = require('di-bag');
 `
-    : `import { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } from 'di-bag';
+    : `import { DiBag, DiBagDisposalError, DiBagPluginValidationError, DiBagServiceReadinessError, DiBagServiceReadinessCancelledError } from 'di-bag';
 import { DiBag as PortableDiBag } from 'di-bag';
 `;
   return `${imports}\n${finalAdversarialRuntimeAssertions}`;

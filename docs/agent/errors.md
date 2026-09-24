@@ -301,60 +301,6 @@ const app = DiBag.createBuilder()
 
 **Recipe:** [make a graph portable to browsers and workers](recipes.md#portable-graph).
 
-### DI_BAG_CLEANUP_AFTER_FACTORY {#di-bag-cleanup-after-factory}
-
-**When:** `factoryContext.pushDisposer(disposer)` throws because the factory that
-owns the context has already returned or failed. Its projections may still be
-running; the factory is the boundary, not the whole acquisition.
-
-**Cause:** the acquisition context escaped its factory and was called later —
-from the service it produced, from a projection of the registration, or from
-inside a pushed disposer already running. A context belongs to one running
-factory, not to the service it produced.
-
-**Fix:** push inside the factory, immediately after acquiring the resource; own
-the returned value with `DiBag.providerWithDisposal`, and give a pushed disposer for that
-same value a `reason` check.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const handle = DiBag.providerWithDisposal({
-  provider: DiBag.createProvider(async (_dependencies: {}, factoryContext) => {
-    const socket = { close: async () => {} };
-    factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return socket.close(); });
-    return socket;
-  }, { factoryReceivesContext: true }),
-  disposeService: socket => socket.close(),
-});
-```
-
-**Recipe:** [own a resource a factory acquires on the way](recipes.md#partial-acquisition).
-
-### DI_BAG_CLEANUP_FAILED {#di-bag-cleanup-failed}
-
-**When:** `close()` rejects with `DiBagCleanupError` after attempting every
-disposer.
-
-**Cause:** one or more disposers threw or rejected. The others still ran and the
-bag is closed; `failures` lists `label` and `error` for each.
-
-**Fix:** fix the failing disposer; log the failures where the application closes.
-
-```ts
-import { DiBag, DiBagCleanupError } from 'di-bag';
-
-const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
-try {
-  await app.close();
-} catch (error) {
-  if (!(error instanceof DiBagCleanupError)) throw error;
-  for (const failure of error.failures) console.error(failure.label, failure.error);
-}
-```
-
-**Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
-
 ### DI_BAG_CLOSE_ABORTED {#di-bag-close-aborted}
 
 **When:** `close({ abortSignal })` rejects with `DiBagCloseCancelledError`,
@@ -364,7 +310,7 @@ try {
 names disposers that started and have not finished, `details.acquisitionsStillPending` the
 acquisitions close is still draining, and `cause` is the abort reason.
 
-**Fix:** await `cleanupPromise` before exiting when cleanup must complete; fix
+**Fix:** await `disposalPromise` before exiting when cleanup must complete; fix
 the named disposer or acquisition if it never settles.
 
 ```ts
@@ -377,7 +323,7 @@ try {
 } catch (error) {
   if (!(error instanceof DiBagCloseCancelledError)) throw error;
   console.error(error.details.disposersStillRunning, error.details.acquisitionsStillPending);
-  await error.cleanupPromise;
+  await error.disposalPromise;
 }
 ```
 
@@ -389,7 +335,7 @@ try {
 
 **Cause:** closing a child container or the root container's own acquisitions failed with
 something other than disposer failures. `errors` holds each failure, preceded
-by a `DiBagCleanupError` when disposers also failed.
+by a `DiBagDisposalError` when disposers also failed.
 
 **Fix:** inspect `errors`; each entry keeps its own `code` when the library
 created it.
@@ -413,7 +359,7 @@ await app.close().catch((error: unknown) => {
 
 **Cause:** cleanup did not finish within `waitTimeoutMs`. The message and
 `details.disposersStillRunning` name the disposers still running, or `details.acquisitionsStillPending` the
-acquisitions still pending; `cleanupPromise` settles when cleanup ends.
+acquisitions still pending; `disposalPromise` settles when cleanup ends.
 
 **Fix:** find why the named disposer or factory never settles (a missing
 `await`, an ignored acquisition signal); raise `waitTimeoutMs` only for slow but
@@ -498,6 +444,60 @@ const app = DiBag.createBuilder()
 
 **Recipe:** [review a merge](recipes.md#review-merge) (`di-bag-graph --check`
 reports cycles before running).
+
+### DI_BAG_DISPOSAL_FAILED {#di-bag-disposal-failed}
+
+**When:** `close()` rejects with `DiBagDisposalError` after attempting every
+disposer.
+
+**Cause:** one or more disposers threw or rejected. The others still ran and the
+bag is closed; `failures` lists `bindingLabel` and `error` for each.
+
+**Fix:** fix the failing disposer; log the failures where the application closes.
+
+```ts
+import { DiBag, DiBagDisposalError } from 'di-bag';
+
+const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
+try {
+  await app.close();
+} catch (error) {
+  if (!(error instanceof DiBagDisposalError)) throw error;
+  for (const failure of error.failures) console.error(failure.bindingLabel, failure.error);
+}
+```
+
+**Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
+
+### DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY {#di-bag-disposer-pushed-after-factory}
+
+**When:** `factoryContext.pushDisposer(disposer)` throws because the factory that
+owns the context has already returned or failed. Its projections may still be
+running; the factory is the boundary, not the whole acquisition.
+
+**Cause:** the acquisition context escaped its factory and was called later —
+from the service it produced, from a projection of the registration, or from
+inside a pushed disposer already running. A context belongs to one running
+factory, not to the service it produced.
+
+**Fix:** push inside the factory, immediately after acquiring the resource; own
+the returned value with `DiBag.providerWithDisposal`, and give a pushed disposer for that
+same value a `reason` check.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const handle = DiBag.providerWithDisposal({
+  provider: DiBag.createProvider(async (_dependencies: {}, factoryContext) => {
+    const socket = { close: async () => {} };
+    factoryContext.pushDisposer(disposerContext => { if (disposerContext.reason !== 'service-disposed') return socket.close(); });
+    return socket;
+  }, { factoryReceivesContext: true }),
+  disposeService: socket => socket.close(),
+});
+```
+
+**Recipe:** [own a resource a factory acquires on the way](recipes.md#partial-acquisition).
 
 ### DI_BAG_DUPLICATE_METADATA {#di-bag-duplicate-metadata}
 

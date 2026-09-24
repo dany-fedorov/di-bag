@@ -26,7 +26,7 @@ test('coverage includes final provider-facade overloads and type-only callables'
   assert.equal(report.callableOverloads['index.DiBagApi.createProviderFromClass'], 1);
   assert.equal(report.callableOverloads['index.DiBagApi.createProviderFromPlugin'], 1);
   assert.equal(report.callableOverloads['index.DiBagApi.createToken'], 1);
-  assert.equal(report.callableOverloads['index.DiBagCleanupError.constructor'], 1);
+  assert.equal(report.callableOverloads['index.DiBagDisposalError.constructor'], 1);
 });
 
 test('coverage rejects a generator that silently drops a public export', () => {

@@ -158,3 +158,7 @@ type RemovedFunction = CompositionFunction<[]>;
 type RemovedPluginMode = PluginAcquisitionMode;
 type RemovedPluginOptions = PluginOptions<'raw', unknown>;
 type RemovedPluginFactory = PluginProviderFactory;
+// diagnostic: has no exported member
+type RemovedCleanupError = import('../../../src').DiBagCleanupError;
+// diagnostic: has no exported member
+type RemovedCleanupFailure = import('../../../src').CleanupFailure;

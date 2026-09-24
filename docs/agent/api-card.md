@@ -282,7 +282,7 @@ const container = await DiBag.createBuilder()
 ```
 
 ### `container.close(options?)` {#container-close}
-Close this container, drain in-flight work, and dispose owned resources once. Throws: [`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed), [`DI_BAG_CLOSE_FAILED`](errors.md#di-bag-close-failed), [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted), [`DI_BAG_INVALID_CLOSE`](errors.md#di-bag-invalid-close).
+Close this container, drain in-flight work, and dispose owned resources once. Throws: [`DI_BAG_DISPOSAL_FAILED`](errors.md#di-bag-disposal-failed), [`DI_BAG_CLOSE_FAILED`](errors.md#di-bag-close-failed), [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted), [`DI_BAG_INVALID_CLOSE`](errors.md#di-bag-invalid-close).
 ```ts
 const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 await container.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(15_000) });
@@ -302,14 +302,14 @@ try {
 }
 ```
 
-### `DiBagCleanupError` {#dibagcleanuperror}
-One or more disposers failed during `close()`; every cleanup was still attempted. Code: [`DI_BAG_CLEANUP_FAILED`](errors.md#di-bag-cleanup-failed).
+### `DiBagDisposalError` {#dibagdisposalerror}
+One or more disposers failed during `close()`; every cleanup was still attempted. Code: [`DI_BAG_DISPOSAL_FAILED`](errors.md#di-bag-disposal-failed).
 ```ts
-import { DiBag, DiBagCleanupError } from 'di-bag';
+import { DiBag, DiBagDisposalError } from 'di-bag';
 
 const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 await container.close().catch((error: unknown) => {
-  if (error instanceof DiBagCleanupError) for (const failure of error.failures) console.error(failure.label, failure.error);
+  if (error instanceof DiBagDisposalError) for (const failure of error.failures) console.error(failure.bindingLabel, failure.error);
 });
 ```
 

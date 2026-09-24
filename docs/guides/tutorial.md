@@ -250,7 +250,7 @@ metadata the pushed disposers can run before the projected promise rejects and
 before `acquisition-failed`.
 `pushDisposer` belongs to one running factory; calling it on a context retained
 past that factory throws
-[`DI_BAG_CLEANUP_AFTER_FACTORY`](../agent/errors.md#di-bag-cleanup-after-factory).
+[`DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY`](../agent/errors.md#di-bag-disposer-pushed-after-factory).
 
 Startup waits according to the selected service's final acquisition mode. A raw
 Promise or thenable is already a ready value; a native Promise waits for

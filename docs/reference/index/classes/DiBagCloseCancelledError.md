@@ -32,7 +32,7 @@ try {
 ### Constructor
 
 ```ts
-new (reason: "aborted" | "timeout", cause: unknown, cleanupPromise: Promise<void>, progress: CloseProgress, waitTimeoutMs?: number): DiBagCloseCancelledError;
+new (reason: "aborted" | "timeout", cause: unknown, disposalPromise: Promise<void>, progress: CloseProgress, waitTimeoutMs?: number): DiBagCloseCancelledError;
 ```
 
 Defined in: [errors.ts:222](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L222)
@@ -43,7 +43,7 @@ Defined in: [errors.ts:222](https://github.com/dany-fedorov/di-bag/blob/main/src
 | ------ | ------ |
 | `reason` | Whether an external abort or the close deadline stopped the wait. |
 | `cause` | The abort reason, or a `TimeoutError` DOMException for the deadline. |
-| `cleanupPromise` | The container's shared shutdown promise; it settles when cleanup eventually finishes. |
+| `disposalPromise` | The container's shared shutdown promise; it settles when cleanup eventually finishes. |
 | `progress` | Labels still in progress when the wait stopped. |
 | `waitTimeoutMs?` | The deadline that elapsed, for `reason: 'timeout'`. |
 
@@ -54,18 +54,6 @@ Error.constructor
 ```
 
 ## Properties
-
-### cleanupPromise
-
-```ts
-readonly cleanupPromise: Promise<void>;
-```
-
-Defined in: [errors.ts:225](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L225)
-
-The container's shared shutdown promise; it settles when cleanup eventually finishes.
-
-***
 
 ### code
 
@@ -88,6 +76,18 @@ declare readonly details: Readonly<{
 ```
 
 Defined in: [errors.ts:214](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L214)
+
+***
+
+### disposalPromise
+
+```ts
+readonly disposalPromise: Promise<void>;
+```
+
+Defined in: [errors.ts:225](https://github.com/dany-fedorov/di-bag/blob/main/src/errors.ts#L225)
+
+The container's shared shutdown promise; it settles when cleanup eventually finishes.
 
 ***
 

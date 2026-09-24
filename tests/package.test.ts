@@ -135,8 +135,8 @@ for (const mode of ['commonjs', 'module'] as const) {
   test(`Node ${mode} consumers can resolve and dispose through the public package`, async () => {
     const load =
       mode === 'commonjs'
-        ? "const packageExports = require('di-bag'); const { DiBag, DiBagCleanupError, DiBagPluginValidationError } = packageExports;"
-        : "import * as packageExports from 'di-bag'; const { DiBag, DiBagCleanupError, DiBagPluginValidationError } = packageExports;";
+        ? "const packageExports = require('di-bag'); const { DiBag, DiBagDisposalError, DiBagPluginValidationError } = packageExports;"
+        : "import * as packageExports from 'di-bag'; const { DiBag, DiBagDisposalError, DiBagPluginValidationError } = packageExports;";
     const stdout = await run([
       'node',
       `--input-type=${mode}`,
@@ -218,10 +218,10 @@ for (const mode of ['commonjs', 'module'] as const) {
           metadata: before.registrationMetadata.owner,
           inspectionIsStatic: before.acquisitions.length === 0 && bag.serviceSnapshot('result').acquisitions.length === 0,
           frozenInspection: Object.isFrozen(before) && Object.isFrozen(before.registrationMetadata),
-          cleanup: error instanceof DiBagCleanupError && error instanceof cjs.DiBagCleanupError && error instanceof esm.DiBagCleanupError,
-          sameClass: cjs.DiBagCleanupError === esm.DiBagCleanupError,
+          cleanup: error instanceof DiBagDisposalError && error instanceof cjs.DiBagDisposalError && error instanceof esm.DiBagDisposalError,
+          sameClass: cjs.DiBagDisposalError === esm.DiBagDisposalError,
           originalCause: error.errors[0] === cause && error.failures[0].error === cause,
-          label: error.failures[0].label,
+          label: error.failures[0].bindingLabel,
           mappedIdentity, asyncMapped, mappedDisposal, tokenIdentity, scopeLog,
           rootDisposed, scopedDisposed, transientsDisposed,
         }));
@@ -282,14 +282,14 @@ for (const mode of ['commonjs', 'module'] as const) {
       __dirname,
       mode === 'commonjs' ? 'consumer.cts' : 'consumer.mts',
     );
-    const source = `import { DiBag, DiBagCleanupError, type CleanupFailure, type Container, type Module, type ModuleExportedServices, type ModuleRequiredServices } from 'di-bag';
+    const source = `import { DiBag, DiBagDisposalError, type DisposalFailure, type Container, type Module, type ModuleExportedServices, type ModuleRequiredServices } from 'di-bag';
       function inspectCleanup(error: unknown): void {
-        if (!(error instanceof DiBagCleanupError)) return;
+        if (!(error instanceof DiBagDisposalError)) return;
         const aggregate: AggregateError = error;
-        const failures: readonly CleanupFailure[] = error.failures;
+        const failures: readonly DisposalFailure[] = error.failures;
         const acquisitionId: symbol = failures[0].acquisitionId;
         const bindingId: symbol = failures[0].bindingId;
-        const label: string = failures[0].label;
+        const label: string = failures[0].bindingLabel;
         const cause: unknown = failures[0].error;
         // @ts-expect-error The failure collection is readonly.
         failures.push(failures[0]);

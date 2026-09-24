@@ -34,12 +34,12 @@ export function libraryTypeError(code: DiBagErrorCode, message: string, details:
 
 /**
  * One disposer failure, associated with the acquisition that owned it.
- * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-cleanup-failed
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-disposal-failed
  */
-export interface CleanupFailure {
+export interface DisposalFailure {
   readonly acquisitionId: symbol;
   readonly bindingId: symbol;
-  readonly label: string;
+  readonly bindingLabel: string;
   readonly error: unknown;
 }
 
@@ -79,26 +79,26 @@ export class DiBagPluginValidationError extends Error {
  * `failures` lists each original error with the label of the service it belonged to, in attempt order.
  * @example
  * ```ts
- * import { DiBag, DiBagCleanupError } from 'di-bag';
+ * import { DiBag, DiBagDisposalError } from 'di-bag';
  *
  * const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
  * await container.close().catch((error: unknown) => {
- *   if (error instanceof DiBagCleanupError) for (const failure of error.failures) console.error(failure.label, failure.error);
+ *   if (error instanceof DiBagDisposalError) for (const failure of error.failures) console.error(failure.bindingLabel, failure.error);
  * });
  * ```
  */
-export class DiBagCleanupError extends AggregateError {
-  declare readonly code: 'DI_BAG_CLEANUP_FAILED';
+export class DiBagDisposalError extends AggregateError {
+  declare readonly code: 'DI_BAG_DISPOSAL_FAILED';
   declare readonly details: Readonly<Record<string, unknown>>;
   /** Frozen cleanup failures in finalizer invocation order. */
-  readonly failures: readonly CleanupFailure[];
+  readonly failures: readonly DisposalFailure[];
 
   /** @param failures - Structured failures whose original errors also populate `AggregateError.errors`. */
-  constructor(failures: readonly CleanupFailure[]) {
+  constructor(failures: readonly DisposalFailure[]) {
     const snapshot = Object.freeze(failures.map(item => Object.freeze({ ...item })));
-    super(snapshot.map(item => item.error), diagnosticMessage('DI_BAG_CLEANUP_FAILED', `Failed to run ${snapshot.length} disposal callback(s)`));
-    this.name = 'DiBagCleanupError';
-    diagnostic(this, 'DI_BAG_CLEANUP_FAILED', { operation: 'close', failedCallbacks: snapshot.length, failures: snapshot });
+    super(snapshot.map(item => item.error), diagnosticMessage('DI_BAG_DISPOSAL_FAILED', `Failed to run ${snapshot.length} disposal callback(s)`));
+    this.name = 'DiBagDisposalError';
+    diagnostic(this, 'DI_BAG_DISPOSAL_FAILED', { operation: 'close', failedCallbacks: snapshot.length, failures: snapshot });
     this.failures = snapshot;
   }
 }
@@ -122,14 +122,14 @@ export class DiBagServiceReadinessError extends Error {
   declare readonly code: 'DI_BAG_SERVICE_READINESS_FAILED';
   declare readonly details: Readonly<Record<string, unknown>>;
   /** Frozen disposal failures in invocation order, collected while this container closed. */
-  readonly disposalFailures: readonly CleanupFailure[];
+  readonly disposalFailures: readonly DisposalFailure[];
 
   /**
    * @param cause - The original failure of a listed service or of one of its dependencies.
    * @param disposalFailures - Structured failures collected while closing the container.
    * @param disposalError - The complete shutdown error, when closing itself rejected.
    */
-  constructor(cause: unknown, disposalFailures: readonly CleanupFailure[], readonly disposalError?: unknown) {
+  constructor(cause: unknown, disposalFailures: readonly DisposalFailure[], readonly disposalError?: unknown) {
     super(diagnosticMessage('DI_BAG_SERVICE_READINESS_FAILED', 'The listed services are not ready: a factory failed; this bag is closed'), { cause });
     this.name = 'DiBagServiceReadinessError';
     this.disposalFailures = Object.freeze(disposalFailures.map(item => Object.freeze({ ...item })));
@@ -215,14 +215,14 @@ export class DiBagCloseCancelledError extends Error {
   /**
    * @param reason - Whether an external abort or the close deadline stopped the wait.
    * @param cause - The abort reason, or a `TimeoutError` DOMException for the deadline.
-   * @param cleanupPromise - The container's shared shutdown promise; it settles when cleanup eventually finishes.
+   * @param disposalPromise - The container's shared shutdown promise; it settles when cleanup eventually finishes.
    * @param progress - Labels still in progress when the wait stopped.
    * @param waitTimeoutMs - The deadline that elapsed, for `reason: 'timeout'`.
    */
   constructor(
     readonly reason: 'aborted' | 'timeout',
     cause: unknown,
-    readonly cleanupPromise: Promise<void>,
+    readonly disposalPromise: Promise<void>,
     progress: CloseProgress,
     waitTimeoutMs?: number,
   ) {
@@ -236,6 +236,6 @@ export class DiBagCloseCancelledError extends Error {
       disposersStillRunning: Object.freeze([...progress.disposersStillRunning]),
       acquisitionsStillPending: Object.freeze([...progress.acquisitionsStillPending]),
     });
-    void cleanupPromise.catch(() => {});
+    void disposalPromise.catch(() => {});
   }
 }
