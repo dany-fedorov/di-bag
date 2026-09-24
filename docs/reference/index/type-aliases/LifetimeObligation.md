@@ -21,7 +21,7 @@ type LifetimeObligation = {
 };
 ```
 
-Defined in: [lifetime-types.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L24)
+Defined in: [lifetime-types.ts:26](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L26)
 
 A compact seal-time lifetime record that replaces a module's private registrations:
 `singleton-reach` names a private strict singleton, `export-reach` an export the host checks as a root or

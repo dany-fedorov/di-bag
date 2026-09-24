@@ -2,7 +2,7 @@
 // `catalog` comes from catalogModule.
 import type { Catalog } from '../catalog/contract.js';
 
-/** Units in stock per SKU when the application starts. Registered by the host with root lifetime. */
+/** Units in stock per SKU when the application starts. Registered by the host as singleton per container tree. */
 export type StockLevels = Readonly<Record<string, number>>;
 
 /** Stock reservations held by one request scope. */

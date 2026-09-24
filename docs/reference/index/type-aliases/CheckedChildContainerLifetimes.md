@@ -10,7 +10,7 @@ type CheckedChildContainerLifetimes<R extends Registrations, O extends Registrat
 }>;
 ```
 
-Defined in: [lifetime-types.ts:208](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L208)
+Defined in: [lifetime-types.ts:210](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L210)
 
 Reject root providers introduced by a child-container replacement when they capture scoped dependencies.
 

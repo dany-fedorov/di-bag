@@ -55,6 +55,21 @@ test('provider facade bags are classified in the DiBag facade group with example
   assert(entries.every(item => item.examples.length > 0));
 });
 
+test('the lifetime card includes its default while unrelated calls keep one sentence', () => {
+  const facade = project.children.find(child => child.name === 'index').children.find(child => child.name === 'DiBagApi');
+  const start = facade.children.find(child => child.name === 'createBuilder');
+  const original = start.comment.summary;
+  try {
+    start.comment.summary = [...original, { kind: 'text', text: ' Synthetic second sentence.' }];
+    const card = renderApiCard(project, tasks);
+    assert.match(card, /Return a provider with singleton, scoped, or transient caching\. Providers are scoped per container by default; mark shared clients singleton when none of their dependencies are scoped\./);
+    assert.match(card, /Begin an empty immutable graph; `buildContainer` creates its owning container, `buildModule` seals a reusable module\./);
+    assert.doesNotMatch(card, /Synthetic second sentence\./);
+  } finally {
+    start.comment.summary = original;
+  }
+});
+
 test('the card refuses a runtime call without an @example', () => {
   const container = project.children.find(child => child.name === 'index').children.find(child => child.name === 'Container');
   const close = container.children.find(child => child.name === 'close');

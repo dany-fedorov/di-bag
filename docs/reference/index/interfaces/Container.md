@@ -30,7 +30,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#container
 close(options?: CloseOptions): Promise<void>;
 ```
 
-Defined in: [di-bag.ts:394](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L394)
+Defined in: [di-bag.ts:397](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L397)
 
 Close this container, drain in-flight work, and dispose owned resources once.
 Dependents are disposed before dependencies; remaining independent acquisitions use
@@ -73,7 +73,7 @@ await container.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(
 createChildContainer(options?: CreateChildContainerOptions<ServiceRegistrations, readonly [], Constraints>): Container<UnsharedAliases<ServiceRegistrations>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:274](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L274)
+Defined in: [di-bag.ts:277](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L277)
 
 Create a tracked child container with fresh ownership for unshared services.
 Share selected non-transient parent acquisitions through the optional options object. To replace services,
@@ -92,14 +92,17 @@ A child owned by this container; closing the parent closes the child first.
 ##### Throws
 
 `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-`DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
+`DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+`DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
 
 ##### Example
 
 ```ts
-const parent = DiBag.createBuilder().withServices({ config: () => ({ port: 3000 }) }).buildContainer();
-const child = parent.createChildContainer({ sharedParentServiceKeys: ['config'] });
-const config = child.resolve('config');
+const parent = DiBag.createBuilder().withServices({ request: DiBag.providerWithLifetime({
+  provider: () => ({ id: 'initial' }), lifetime: 'scoped:one-per-container',
+}) }).buildContainer();
+const child = parent.createChildContainer(['request'], { request: () => ({ id: 'child' }) });
+const request = child.resolve('request');
 await child.close();
 await parent.close();
 ```
@@ -110,7 +113,7 @@ await parent.close();
 createChildContainer<const SharedParentServiceKeys extends readonly unknown[]>(options: CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>): Container<ScopedAliases<ServiceRegistrations, ServiceRegistrations, SharedParentServiceKeys>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:277](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L277)
+Defined in: [di-bag.ts:280](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L280)
 
 Create a tracked child container with fresh ownership for unshared services.
 Share selected non-transient parent acquisitions through the optional options object. To replace services,
@@ -135,14 +138,17 @@ A child owned by this container; closing the parent closes the child first.
 ##### Throws
 
 `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-`DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
+`DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+`DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
 
 ##### Example
 
 ```ts
-const parent = DiBag.createBuilder().withServices({ config: () => ({ port: 3000 }) }).buildContainer();
-const child = parent.createChildContainer({ sharedParentServiceKeys: ['config'] });
-const config = child.resolve('config');
+const parent = DiBag.createBuilder().withServices({ request: DiBag.providerWithLifetime({
+  provider: () => ({ id: 'initial' }), lifetime: 'scoped:one-per-container',
+}) }).buildContainer();
+const child = parent.createChildContainer(['request'], { request: () => ({ id: 'child' }) });
+const request = child.resolve('request');
 await child.close();
 await parent.close();
 ```
@@ -150,10 +156,10 @@ await parent.close();
 #### Call Signature
 
 ```ts
-createChildContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>, const SharedParentServiceKeys extends readonly unknown[] = readonly []>(replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createChildContainer'>, replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createChildContainer'> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedChildContainerLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>>, NoInfer<ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>, options?: Pick<CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>, 'sharedParentServiceKeys'> & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>): Container<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
+createChildContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>, const SharedParentServiceKeys extends readonly unknown[] = readonly []>(replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createChildContainer'>, replacementProviders: ReplacementProviders & ChildReplacementAdmission<ServiceRegistrations, ReplacedServiceKeys> & object & Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createChildContainer'> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedChildContainerLifetimes<NoInfer<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>>, NoInfer<ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>, options?: Pick<CreateChildContainerOptions<ServiceRegistrations, SharedParentServiceKeys, Constraints>, 'sharedParentServiceKeys'> & DisjointChildContainerSelection<ReplacedServiceKeys, SharedParentServiceKeys>): Container<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
 ```
 
-Defined in: [di-bag.ts:280](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L280)
+Defined in: [di-bag.ts:283](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L283)
 
 Create a tracked child container with fresh ownership for unshared services.
 Share selected non-transient parent acquisitions through the optional options object. To replace services,
@@ -182,14 +188,17 @@ A child owned by this container; closing the parent closes the child first.
 ##### Throws
 
 `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-`DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
+`DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+`DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
 
 ##### Example
 
 ```ts
-const parent = DiBag.createBuilder().withServices({ config: () => ({ port: 3000 }) }).buildContainer();
-const child = parent.createChildContainer({ sharedParentServiceKeys: ['config'] });
-const config = child.resolve('config');
+const parent = DiBag.createBuilder().withServices({ request: DiBag.providerWithLifetime({
+  provider: () => ({ id: 'initial' }), lifetime: 'scoped:one-per-container',
+}) }).buildContainer();
+const child = parent.createChildContainer(['request'], { request: () => ({ id: 'child' }) });
+const request = child.resolve('request');
 await child.close();
 await parent.close();
 ```
@@ -204,7 +213,7 @@ await parent.close();
 createIndependentContainer(this: Container<ServiceRegistrations, Constraints> & CheckedLifetimes<UnsharedAliases<ServiceRegistrations>, Constraints>, options?: CreateIndependentContainerOptions<ServiceRegistrations, Constraints>): Container<UnsharedAliases<ServiceRegistrations>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:308](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L308)
+Defined in: [di-bag.ts:311](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L311)
 
 Create an independent container with fresh instances and no replacements.
 Pass no argument, `undefined`, or an empty options object.
@@ -230,7 +239,7 @@ A container with independent acquisition and ownership state.
 createIndependentContainer<const ReplacedServiceKeys extends readonly unknown[], ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>>(replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createIndependentContainer'>, replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> & Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createIndependentContainer'> & CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CompleteConstraints<Constraints, OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> & CheckedLifetimes<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>): Container<UnsharedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
 ```
 
-Defined in: [di-bag.ts:326](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L326)
+Defined in: [di-bag.ts:329](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L329)
 
 Create an independent container with fresh instances and checked replacements.
 
@@ -275,7 +284,7 @@ await parent.close();
 ensureServicesReady<const K extends readonly unknown[]>(serviceKeys: K & Selection<ServiceRegistrations, Constraints, K, 'ensureServicesReady'>, options?: EnsureServicesReadyOptions): Promise<this>;
 ```
 
-Defined in: [di-bag.ts:367](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L367)
+Defined in: [di-bag.ts:370](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L370)
 
 Make the listed services ready before continuing, then resolve to this same container.
 Each listed service is acquired now, with whatever its factory reads, and the call waits until it is ready;

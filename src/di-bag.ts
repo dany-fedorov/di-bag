@@ -261,12 +261,15 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * pass selected keys and providers first, then the sharing options.
    * @returns A child owned by this container; closing the parent closes the child first.
    * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-   * `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
+   * `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+   * `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
    * @example
    * ```ts
-   * const parent = DiBag.createBuilder().withServices({ config: () => ({ port: 3000 }) }).buildContainer();
-   * const child = parent.createChildContainer({ sharedParentServiceKeys: ['config'] });
-   * const config = child.resolve('config');
+   * const parent = DiBag.createBuilder().withServices({ request: DiBag.providerWithLifetime({
+   *   provider: () => ({ id: 'initial' }), lifetime: 'scoped:one-per-container',
+   * }) }).buildContainer();
+   * const child = parent.createChildContainer(['request'], { request: () => ({ id: 'child' }) });
+   * const request = child.resolve('request');
    * await child.close();
    * await parent.close();
    * ```
@@ -739,11 +742,16 @@ export interface DiBagApi {
    */
   readonly providerWithDisposal: typeof providerWithDisposal;
   /**
-   * Select a full lifetime for a provider input.
+   * Return a provider with singleton, scoped, or transient caching.
+   * Providers are scoped per container by default; mark shared clients singleton when none of
+   * their dependencies are scoped.
+   * @param options - The provider, full lifetime, and optional deliberate scoped-capture allowance for singleton only.
+   * @returns A fresh immutable provider retaining every other provider stage.
    * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag, lifetime, or option; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
    * @example
    * ```ts
-   * const cached = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' });
+   * const createClient = () => ({ close() {} });
+   * const client = DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => createClient()), lifetime: 'singleton:one-per-container-tree' });
    * ```
    */
   readonly providerWithLifetime: typeof providerWithLifetime;

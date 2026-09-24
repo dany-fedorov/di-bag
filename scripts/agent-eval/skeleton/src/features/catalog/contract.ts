@@ -10,7 +10,7 @@ export type Catalog = {
   list(): readonly Product[];
 };
 
-/** Registered by the host with root lifetime. */
+/** Registered by the host as singleton per container tree. */
 export type CatalogData = { products: readonly Product[] };
 
 export type CatalogExports = { catalog: Catalog };

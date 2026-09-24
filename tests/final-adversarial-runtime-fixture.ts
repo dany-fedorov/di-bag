@@ -412,7 +412,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i13Dispose: string[] = []; let i13Effects = 0; let i13Lazy: (() => unknown) | undefined;
   const i13Token = DiBag.createToken(Symbol('I13')).forService();
   const i13Parent = DiBag.createBuilder().withTokenService(i13Token, DiBag.providerWithDisposal({ provider: () => { i13Effects++; return {}; }, disposeService: () => {} })).withServices({
-    parent: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({}), disposeService: () => { i13Dispose.push('parent'); } }), lifetime: 'singleton:one-per-container-tree' }),
+    parent: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({}), disposeService: () => { i13Dispose.push('parent'); } }), lifetime: 'scoped:one-per-container' }),
     capture: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(i13Token)], factoryFunction: (get: () => unknown) => { i13Lazy = get; return {}; } }),
   }).buildContainer();
   const i13Child = i13Parent.createChildContainer().createChildContainer();

@@ -201,6 +201,10 @@
             "link": "/reference/index/type-aliases/BuilderWithTokenService.md"
           },
           {
+            "text": "CanonicalLifetime",
+            "link": "/reference/index/type-aliases/CanonicalLifetime.md"
+          },
+          {
             "text": "CheckDependencyCompatibility",
             "link": "/reference/index/type-aliases/CheckDependencyCompatibility.md"
           },
@@ -215,6 +219,10 @@
           {
             "text": "CheckedLifetimes",
             "link": "/reference/index/type-aliases/CheckedLifetimes.md"
+          },
+          {
+            "text": "ChildReplacementAdmission",
+            "link": "/reference/index/type-aliases/ChildReplacementAdmission.md"
           },
           {
             "text": "CollectionItem",

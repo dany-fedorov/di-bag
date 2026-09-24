@@ -7,7 +7,7 @@ Implement `catalogModule` in `src/features/catalog/module.ts` with DI Bag
 
 `contract.ts` is fixed. The module exports exactly one service, `catalog`
 (`Catalog`), and requires exactly one registration from the host,
-`catalogData` (`CatalogData`, root lifetime).
+`catalogData` (`CatalogData`, singleton per container tree).
 
 ## Behavior
 
@@ -15,6 +15,8 @@ Implement `catalogModule` in `src/features/catalog/module.ts` with DI Bag
 - `list()` returns every product in the order of `catalogData.products`.
 - The catalog is created once for the application: every request scope
   resolves the same `catalog` instance.
+- Providers are scoped per container by default; mark the shared catalog
+  singleton per container tree explicitly.
 
 ## Constraints
 

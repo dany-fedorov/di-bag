@@ -40,11 +40,11 @@ parent.createChildContainer([token], { [key]: () => ({ id: 2 }) }, { sharedParen
 parent.createChildContainer(['missing'], { missing: () => 1 });
 // diagnostic: not assignable
 parent.createChildContainer(['config'], {});
-// diagnostic: not assignable to type 'never'
+// diagnostic: Type '() => { id: number
 parent.createChildContainer(['config'], { config: () => ({ id: 1 }) });
-// diagnostic: not assignable to type 'never'
+// diagnostic: Type '({ missing }: { missing: string; }) => { id: string; }' is not assignable
 parent.createChildContainer(['config'], { config: ({ missing }: { missing: string }) => ({ id: missing }) });
-// diagnostic: not assignable to type 'never'
+// diagnostic: Type '({ transient }: { transient: string; }) => { id: string; }' is not assignable
 parent.createChildContainer(['config'], { config: ({ transient }: { transient: string }) => ({ id: transient }) });
 // diagnostic: not assignable to type
 parent.createChildContainer([token], { [key]: () => ({ id: 'wrong' }) });

@@ -194,6 +194,10 @@ test('provider-source reference pages render final members', () => {
     assert.ok(facadeText.includes(text), `missing facade rendering: ${text}`);
   }
   assert.doesNotMatch(provider, /withDisposal\(|withLifetime\(|withRegistrationMetadata\(|withAcquisitionMetadata\(|withTransformedService\(/);
+  assert.match(facadeText, /Return a provider with singleton, scoped, or transient caching\. Providers are scoped per container by default; mark shared clients singleton when none of their dependencies are scoped\./);
+  assert.match(facadeText, /DI_BAG_INVALID_ARGUMENT/);
+  assert.match(compact(container), /DI_BAG_SINGLETON_REPLACEMENT/);
+  assert.match(container, /lifetime: 'scoped:one-per-container'/);
   assert.match(compact(bindingSnapshot), /readonly factoryReturnKind: FactoryReturnKind;/);
   assert.match(compact(factoryContext), /readonly abortSignal: AbortSignal;/);
 });

@@ -5,7 +5,7 @@
 # Type Alias: CreateChildContainerOptions\<ServiceRegistrations *extends* `Registrations`, SharedParentServiceKeys *extends* readonly `unknown`[], Constraints *extends* `NeedConstraint` = `never`, ReplacedServiceKeys *extends* readonly `unknown`[] = readonly \[\], ReplacementProviders = `never`\>
 
 ```ts
-type CreateChildContainerOptions<ServiceRegistrations extends Registrations, SharedParentServiceKeys extends readonly unknown[], Constraints extends NeedConstraint = never, ReplacedServiceKeys extends readonly unknown[] = readonly [], ReplacementProviders = never> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders, 'createChildContainer'> & {
+type CreateChildContainerOptions<ServiceRegistrations extends Registrations, SharedParentServiceKeys extends readonly unknown[], Constraints extends NeedConstraint = never, ReplacedServiceKeys extends readonly unknown[] = readonly [], ReplacementProviders = never> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders & ChildReplacementAdmission<ServiceRegistrations, ReplacedServiceKeys>, 'createChildContainer'> & {
     readonly sharedParentServiceKeys?: SharedParentServiceKeys & Selection<ServiceRegistrations, Constraints, SharedParentServiceKeys, 'createChildContainer sharedParentServiceKeys'> & ChildContainerShareAdmission<SharedParentServiceKeys> & ([
         Transients<ServiceRegistrations, SharedParentServiceKeys>
     ] extends [never] ? unknown : Unsatisfied<'createChildContainer cannot share transient providers', {

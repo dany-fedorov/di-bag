@@ -7,7 +7,7 @@ DI Bag (`di-bag`, installed).
 
 `contract.ts` is fixed. The module exports exactly one service, `notifier`
 (`Notifier`), and requires exactly one registration from the host,
-`mailConfig` (`MailConfig`, root lifetime).
+`mailConfig` (`MailConfig`, singleton per container tree).
 
 ## Behavior
 
@@ -18,6 +18,8 @@ DI Bag (`di-bag`, installed).
 - The application opens at most one transport, with `mailConfig.connect()`,
   and shares it across all request scopes. An application that never resolves
   `notifier` never connects.
+- Providers are scoped per container by default; mark the shared transport
+  and notifier singleton per container tree explicitly.
 - Closing the application closes the transport once. Closing a request scope
   does not close it.
 

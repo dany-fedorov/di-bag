@@ -225,6 +225,10 @@ type PublicLifetime<Kind extends LifetimeKind> =
   : Kind extends 'scoped' ? 'scoped:one-per-container'
   : 'transient:one-per-resolve';
 
+/**
+ * Resolve a service's full public lifetime value through aliases and shared aliases.
+ * Unmarked providers default to `scoped:one-per-container`.
+ */
 export type CanonicalLifetime<
   ServiceRegistrations extends Registrations,
   ServiceKey extends keyof ServiceRegistrations,
@@ -244,6 +248,12 @@ type SingletonReplacementMessage<ServiceKey> = ServiceKey extends PropertyKey
   ? `createChildContainer cannot replace singleton service: ${NameText<ServiceKey>}; mark it scoped:one-per-container or use createIndependentContainer`
   : never;
 
+/**
+ * Reject child-container replacements whose selected services have a canonical
+ * `singleton:one-per-container-tree` lifetime. Mark those services
+ * `scoped:one-per-container` or use `createIndependentContainer`.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-singleton-replacement
+ */
 export type ChildReplacementAdmission<
   ServiceRegistrations extends Registrations,
   ReplacedServiceKeys extends readonly unknown[],

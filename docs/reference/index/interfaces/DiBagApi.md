@@ -4,7 +4,7 @@
 
 # Interface: DiBagApi
 
-Defined in: [di-bag.ts:643](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L643)
+Defined in: [di-bag.ts:646](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L646)
 
 The immutable public entry surface used by [DiBag](../variables/DiBag.md) and derived facades.
 
@@ -20,7 +20,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#dibag-facade
 createBuilder: () => Builder<never>;
 ```
 
-Defined in: [di-bag.ts:731](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L731)
+Defined in: [di-bag.ts:734](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L734)
 
 Begin an empty immutable graph; `buildContainer` creates its owning container, `buildModule` seals a reusable module.
 
@@ -51,7 +51,7 @@ readonly createProvider: {
 };
 ```
 
-Defined in: [di-bag.ts:651](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L651)
+Defined in: [di-bag.ts:654](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L654)
 
 Create a provider from a named-dependency factory.
 
@@ -123,7 +123,7 @@ const config = DiBag.createProvider(() => ({ url: 'memory:' }), { factoryReturnK
 readonly createProviderFromClass: <const Dependencies extends readonly DependencyReference[], ServiceClass extends new (...arguments_: TokenArguments<NoInfer<Dependencies>>) => unknown, ReturnKind extends FactoryReturnKind = 'auto-detect'>(options: PositionalClassOptions<Dependencies, ServiceClass & PositionalFactoryArguments<TokenArguments<NoInfer<Dependencies>>, ConstructorParameters<NoInfer<ServiceClass>>> & NativeOutput<InstanceType<NoInfer<ServiceClass>>, NoInfer<ReturnKind>> & AutoOutput<InstanceType<NoInfer<ServiceClass>>, NoInfer<ReturnKind>> & SyncOutput<InstanceType<NoInfer<ServiceClass>>, NoInfer<ReturnKind>>, ReturnKind>) => Provider<() => InstanceType<ServiceClass>, Readonly<{}>, readonly [], ReferenceGraph<Dependencies>, Acquired<InstanceType<ServiceClass>, ReturnKind>>;
 ```
 
-Defined in: [di-bag.ts:672](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L672)
+Defined in: [di-bag.ts:675](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L675)
 
 Create a provider that constructs a class from positional dependencies.
 
@@ -162,7 +162,7 @@ readonly createProviderFromFunction: <const Dependencies extends readonly Depend
 } & ContextSelection<NoInfer<ReceivesContext>> & CheckedPositionalReturnKindOptions<ReturnType<NoInfer<FactoryFunction>>, ReturnKind>) => Provider<OutputFactory<ReturnType<FactoryFunction>>, Readonly<{}>, readonly [], ReferenceGraph<Dependencies>, Acquired<ReturnType<FactoryFunction>, ReturnKind>>;
 ```
 
-Defined in: [di-bag.ts:661](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L661)
+Defined in: [di-bag.ts:664](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L664)
 
 Create a provider whose factory receives positional dependency values.
 
@@ -199,7 +199,7 @@ const client = DiBag.createProviderFromFunction({ dependencies: [port], factoryF
 readonly createProviderFromPlugin: CreateProviderFromPlugin;
 ```
 
-Defined in: [di-bag.ts:681](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L681)
+Defined in: [di-bag.ts:684](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L684)
 
 Create a provider from a versioned plugin descriptor.
 
@@ -221,7 +221,7 @@ readonly createToken: <const TokenSymbol extends symbol>(symbol: TokenSymbol & T
 };
 ```
 
-Defined in: [di-bag.ts:690](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L690)
+Defined in: [di-bag.ts:693](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L693)
 
 Create a nominal token from a symbol.
 
@@ -268,7 +268,7 @@ const clock = DiBag.createToken(clockSymbol).forService<{ now(): number }>();
 lazy: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => LazyDependency<T>;
 ```
 
-Defined in: [di-bag.ts:723](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L723)
+Defined in: [di-bag.ts:726](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L726)
 
 Create a positional dependency supplied as a function that resolves the token when called.
 
@@ -312,7 +312,7 @@ const stamp = DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(clock
 optional: <T extends TokenBase>(token: T & TokenTupleAdmission<readonly [T]> & OptionalTokenAdmission<T>, ...invalid: [T] extends [never] ? [TokenTupleAdmission<readonly [T]>] : []) => OptionalDependency<T>;
 ```
 
-Defined in: [di-bag.ts:712](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L712)
+Defined in: [di-bag.ts:715](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L715)
 
 Create a positional dependency that yields `undefined` only when the token is unregistered.
 
@@ -367,7 +367,7 @@ readonly providerWithAcquisitionMetadata: {
 };
 ```
 
-Defined in: [di-bag.ts:767](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L767)
+Defined in: [di-bag.ts:775](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L775)
 
 Append one synchronous acquisition-metadata frame using the selected callback input.
 
@@ -462,7 +462,7 @@ readonly providerWithDisposal: <ServiceProvider extends ProviderOrFactory>(optio
 }) => Provider<ProviderFactory<ServiceProvider>, RetainedMetadata<ServiceProvider>, ProviderAcquisitionMetadata<ServiceProvider>, ProviderGraphContract<ServiceProvider>, ProviderAcquiredValue<ServiceProvider>>;
 ```
 
-Defined in: [di-bag.ts:740](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L740)
+Defined in: [di-bag.ts:743](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L743)
 
 Add an ownership stage to a provider input.
 
@@ -512,9 +512,11 @@ readonly providerWithLifetime: <ServiceProvider extends ProviderOrFactory, const
 } & CheckedFacadeLifetimeOptions<NoInfer<SelectedLifetime>, Options>) => Provider<ProviderFactory<ServiceProvider>, RetainedMetadata<ServiceProvider>, ProviderAcquisitionMetadata<ServiceProvider>, LifetimeGraph<ProviderGraphContract<ServiceProvider>, SelectedLifetime, Options>, ProviderAcquiredValue<ServiceProvider>>;
 ```
 
-Defined in: [di-bag.ts:749](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L749)
+Defined in: [di-bag.ts:757](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L757)
 
-Select a full lifetime for a provider input.
+Return a provider with singleton, scoped, or transient caching.
+Providers are scoped per container by default; mark shared clients singleton when none of
+their dependencies are scoped.
 
 Select one full caching policy. Only singleton may opt into scoped dependencies.
 
@@ -542,6 +544,16 @@ A new frozen provider carrying the selected graph contract.
 const cached = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' });
 ```
 
+#### Param
+
+**options**
+
+The provider, full lifetime, and optional deliberate scoped-capture allowance for singleton only.
+
+#### Returns
+
+A fresh immutable provider retaining every other provider stage.
+
 #### Throws
 
 `DI_BAG_INVALID_ARGUMENT` for a malformed bag, lifetime, or option; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
@@ -549,7 +561,8 @@ const cached = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'single
 #### Example
 
 ```ts
-const cached = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' });
+const createClient = () => ({ close() {} });
+const client = DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => createClient()), lifetime: 'singleton:one-per-container-tree' });
 ```
 
 ***
@@ -563,7 +576,7 @@ readonly providerWithRegistrationMetadata: <ServiceProvider extends ProviderOrFa
 }) => Provider<ProviderFactory<ServiceProvider>, Readonly<RetainedMetadata<ServiceProvider> & AddedMetadata>, ProviderAcquisitionMetadata<ServiceProvider>, ProviderGraphContract<ServiceProvider>, ProviderAcquiredValue<ServiceProvider>>;
 ```
 
-Defined in: [di-bag.ts:758](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L758)
+Defined in: [di-bag.ts:766](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L766)
 
 Add noncolliding registration metadata without acquiring the service.
 
@@ -623,7 +636,7 @@ readonly providerWithTransformedService: {
 };
 ```
 
-Defined in: [di-bag.ts:776](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L776)
+Defined in: [di-bag.ts:784](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L784)
 
 Transform the selected callback input while retaining dependencies, metadata, lifetime and ownership stages.
 
@@ -718,7 +731,7 @@ const mapped = DiBag.providerWithTransformedService({ provider: () => 1, callbac
 withConfiguration: (options: ConfigurationOptions) => DiBagApi;
 ```
 
-Defined in: [di-bag.ts:701](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L701)
+Defined in: [di-bag.ts:704](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L704)
 
 Return a facade with inherited runtime settings and appended observers.
 
