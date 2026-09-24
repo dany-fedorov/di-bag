@@ -579,24 +579,6 @@ stack trace and the smallest graph that reproduces it.
 
 **Recipe:** none.
 
-### DI_BAG_INVALID_ACQUISITION_MODE {#di-bag-invalid-acquisition-mode}
-
-**When:** `transformService` receives options that are not an object or an
-unsupported `acquisitionMode`. Final provider constructors report malformed
-option bags as [`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument).
-
-**Cause:** a misspelled mode or options computed at runtime.
-
-**Fix:** use a supported transform acquisition policy.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const handle = DiBag.providerWithTransformedService({ provider: DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' }), callbackReceives: 'exposed-service', transformService: value => value, transformReturnKind: 'uninspected' });
-```
-
-**Recipe:** [add and consume an async client](recipes.md#async-client).
-
 ### DI_BAG_INVALID_ALIAS {#di-bag-invalid-alias}
 
 **When:** `withServiceAlias({ aliasKey: destination, targetServiceKey: 'target' })` names a string target that is not yet
@@ -772,25 +754,6 @@ const east = reports.withRenamedExport({ currentExportKey: 'service', newExportK
 
 **Recipe:** [split a feature into a module](recipes.md#split-module).
 
-### DI_BAG_INVALID_LIFETIME {#di-bag-invalid-lifetime}
-
-**When:** `withLifetime(registration, lifetime, options)` receives a lifetime
-other than `'root'`, `'scoped'`, or `'transient'`, unknown options, or
-`allowScopedDependencies` on a non-root lifetime or as a non-boolean.
-
-**Cause:** a computed or misspelled policy.
-
-**Fix:** pass a literal lifetime; use `allowScopedDependencies: true` only with
-`'root'`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const config = DiBag.providerWithLifetime({ provider: () => ({ region: 'eu' }), lifetime: 'singleton:one-per-container-tree' });
-```
-
-**Recipe:** [add and consume an async client](recipes.md#async-client).
-
 ### DI_BAG_INVALID_METADATA {#di-bag-invalid-metadata}
 
 **When:** `withMetadata` receives neither `static` nor `dynamic` options, a
@@ -955,24 +918,6 @@ import { DiBag } from 'di-bag';
 
 const clockKey = Symbol('clock');
 export const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
-```
-
-**Recipe:** none.
-
-### DI_BAG_INVALID_TRANSFORM {#di-bag-invalid-transform}
-
-**When:** `transformService(registration, options)` receives a mode other than
-`'direct'` or `'awaited'`, no `transform` function, or `acquisitionMode` with
-`'awaited'`.
-
-**Cause:** options that do not match the transform mode.
-
-**Fix:** pass `acquisitionMode` only with `'direct'`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const upper = DiBag.providerWithTransformedService({ provider: async () => 'ready', callbackReceives: 'fulfilled-value', transformService: text => text.toUpperCase() });
 ```
 
 **Recipe:** none.
