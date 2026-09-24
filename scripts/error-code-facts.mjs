@@ -49,11 +49,11 @@ for (const [kind, count] of counts) if (count) console.log(`   ${count}  ${kind}
 const markdown = [...['AGENTS.md', 'README.md'].filter(existsSync), ...walk('docs/agent', ['.md']), ...walk('docs/guides', ['.md']), ...['tools/graph/README.md'].filter(existsSync)].sort();
 const anchor = fragment(OLD).slice(1);
 const escaped = anchor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const anchorBoundary = new RegExp(escaped + '([^a-z0-9-]|$)', 'g');
+const anchorBoundary = new RegExp('#' + escaped + '([^a-z0-9-]|$)', 'g');
 for (const file of markdown) {
   const text = read(file), codes = [...text.matchAll(word(OLD))].length, anchors = [...text.matchAll(anchorBoundary)].length;
   if (!codes && !anchors) continue;
-  const links = [...text.matchAll(new RegExp('\\]\\([^)]*' + escaped + '([^a-z0-9-]|$)', 'g'))].length;
+  const links = [...text.matchAll(new RegExp('\\]\\([^)]*#' + escaped + '([^a-z0-9-]|$)', 'g'))].length;
   console.log(`   ${file}${file.endsWith('api-card.md') ? ' (generated)' : ''}: code x${codes}, anchor x${anchors} of which real links x${links}`);
 }
 const all = [...new Set(sources.flatMap(file => read(file).match(/DI_BAG_[A-Z_]+/g) ?? []))].sort();

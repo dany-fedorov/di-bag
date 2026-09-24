@@ -35,6 +35,11 @@ test('a longer anchor is not counted as the old anchor', () => {
   expect(stdout).toContain('   docs/guides/guide.md: code x1, anchor x1 of which real links x0');
 });
 
+test('anchor counts and links require a literal hash fragment', () => {
+  const { stdout } = run('DI_BAG_SAMPLE', 'DI_BAG_RENAMED_SAMPLE');
+  expect(stdout).toContain('   docs/guides/guide.md: code x1, anchor x1 of which real links x0');
+});
+
 test('the gate it prints is boundary-safe, so a new code that extends the old one passes it', () => {
   const { stdout } = run('DI_BAG_SAMPLE', 'DI_BAG_SAMPLE_KEY');
   expect(stdout).toContain('new code starts with the old code: True');
