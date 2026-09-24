@@ -419,6 +419,39 @@ work, then call `close()`; see the snippet for `DI_BAG_CLOSED`.
 
 **Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
 
+### DI_BAG_CONFLICTING_SERVICE_SELECTION {#di-bag-conflicting-service-selection}
+
+**When:** `createChildContainer` names one key in both `replacedServiceKeys` and
+`sharedParentServiceKeys` (`details.conflict` is `'shared-and-replaced'`), or
+shares a transient service (`'shared-transient'`). `details.serviceKey` names
+the key.
+
+**Cause:** sharing means the child uses the parent's instance and replacing
+means it builds its own, so one key cannot do both. A transient service has no
+instance to share.
+
+**Fix:** list each key once, and do not share a transient service.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const parent = DiBag.createBuilder()
+  .withServices({
+    config: DiBag.providerWithLifetime({ provider: () => ({ region: 'eu' }), lifetime: 'scoped:one-per-container' }),
+    client: DiBag.providerWithLifetime({ provider: () => ({ id: 1 }), lifetime: 'scoped:one-per-container' }),
+  })
+  .buildContainer();
+const child = parent.createChildContainer(
+  ['config'],
+  { config: () => ({ region: 'us' }) },
+  { sharedParentServiceKeys: ['client'] },
+);
+console.log(child.resolve('config').region);
+await parent.close();
+```
+
+**Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
+
 ### DI_BAG_DEPENDENCY_CYCLE {#di-bag-dependency-cycle}
 
 **When:** resolving a service whose dependencies lead back to it; the message is
@@ -751,27 +784,6 @@ const app = DiBag.createBuilder().withInstalledModules([
 
 **Recipe:** [split a feature into a module](recipes.md#split-module).
 
-### DI_BAG_INVALID_OVERRIDE {#di-bag-invalid-override}
-
-**When:** either container-derivation method selects a key without an own
-replacement-provider property.
-
-**Cause:** the selection and the replacement providers disagree. The compiler reports
-[unknown key](#unknown-key) for literal selections.
-
-**Fix:** list each replaced key once and give it an override.
-
-```ts
-import { DiBag } from 'di-bag';
-
-type Clock = { now(): number };
-const app = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now: () => 42 }) }).buildContainer();
-const testApp = app.createIndependentContainer(['clock'], { clock: () => ({ now: () => 7 }) });
-await testApp.close();
-```
-
-**Recipe:** [write a fixture test with an independent container](recipes.md#fixture-test).
-
 ### DI_BAG_INVALID_REGISTRATION {#di-bag-invalid-registration}
 
 **When:** `withServices` receives a non-object, a record with symbol keys, or a value
@@ -790,28 +802,6 @@ DiBag.createBuilder().withServices({ host: () => 'localhost' }).withTokenService
 ```
 
 **Recipe:** none.
-
-### DI_BAG_INVALID_SCOPE {#di-bag-invalid-scope}
-
-**When:** `createChildContainer` shares and replaces the same key, or shares a
-transient service.
-
-**Cause:** the selected registered services and sharing policy disagree. The compiler
-reports these, for example `createChildContainer cannot share transient providers`.
-
-**Fix:** replace and share disjoint, registered, non-transient keys.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const parent = DiBag.createBuilder()
-  .withServices({ config: () => ({ region: 'eu' }), client: () => ({ id: 1 }) })
-  .buildContainer();
-const child = parent.createChildContainer(['config'], { config: () => ({ region: 'us' }) }, { sharedParentServiceKeys: ['client'] });
-await parent.close();
-```
-
-**Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
 
 ### DI_BAG_INVALID_STARTUP {#di-bag-invalid-startup}
 
@@ -882,6 +872,31 @@ and `details.path` is the resolution chain.
 **Fix:** remove the cast so the compiler reports the key, then add it with `withServices`.
 
 **Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
+
+### DI_BAG_MISSING_REPLACEMENT_PROVIDER {#di-bag-missing-replacement-provider}
+
+**When:** `createChildContainer` or `createIndependentContainer` receives a key in
+its positional `replacedServiceKeys` argument and the positional
+`replacementProviders` record has no own property for it.
+`details.serviceKey` names the key.
+
+**Cause:** the two positional arguments are read together: the list says which
+services the new container replaces, the record says with what.
+
+**Fix:** give one provider for every listed key, or take the key off the list.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const parent = DiBag.createBuilder().withServices({ config: () => ({ region: 'eu' }) }).buildContainer();
+const copy = parent.createIndependentContainer(
+  ['config'],
+  { config: () => ({ region: 'us' }) },
+);
+console.log(copy.resolve('config').region);
+await copy.close();
+await parent.close();
+```
 
 ### DI_BAG_PLUGIN_VALIDATION {#di-bag-plugin-validation}
 

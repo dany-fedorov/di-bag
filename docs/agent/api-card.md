@@ -251,7 +251,7 @@ await container.close();
 ```
 
 ### `container.createChildContainer(options?)` {#container-createchildcontainer}
-Create a tracked child container with fresh ownership for unshared services. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_SCOPE`](errors.md#di-bag-invalid-scope), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_SINGLETON_REPLACEMENT`](errors.md#di-bag-singleton-replacement), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Create a tracked child container with fresh ownership for unshared services. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_CONFLICTING_SERVICE_SELECTION`](errors.md#di-bag-conflicting-service-selection), [`DI_BAG_MISSING_REPLACEMENT_PROVIDER`](errors.md#di-bag-missing-replacement-provider), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_SINGLETON_REPLACEMENT`](errors.md#di-bag-singleton-replacement), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const parent = DiBag.createBuilder().withServices({ request: DiBag.providerWithLifetime({
   provider: () => ({ id: 'initial' }), lifetime: 'scoped:one-per-container',
@@ -263,7 +263,7 @@ await parent.close();
 ```
 
 ### `container.createIndependentContainer(replacedServiceKeys, replacementProviders)` {#container-createindependentcontainer}
-Create an independent container with fresh instances and checked replacements. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Create an independent container with fresh instances and checked replacements. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_MISSING_REPLACEMENT_PROVIDER`](errors.md#di-bag-missing-replacement-provider), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const parent = DiBag.createBuilder().withServices({ clock: () => Date.now() }).buildContainer();
 const independent = parent.createIndependentContainer(['clock'], { clock: () => 0 });

@@ -57,7 +57,7 @@ function selectedBindings(
       throw libraryError('DI_BAG_UNKNOWN_SERVICE_KEY', `${operation} accepts existing names or typed tokens only: ${String(key)}`, { operation, serviceKey: key });
     }
     if (!Object.hasOwn(providers, key)) {
-      throw libraryError('DI_BAG_INVALID_OVERRIDE', `missing ${operation} replacement provider: ${String(key)}`, { operation });
+      throw libraryError('DI_BAG_MISSING_REPLACEMENT_PROVIDER', `missing ${operation} replacement provider: ${String(key)}`, { operation, serviceKey: key });
     }
   }
   const bindings: Array<readonly [BindingKey, ProviderOrFactory]> = [];
@@ -129,10 +129,10 @@ export function selectChildContainer(
   const selectedSet = new Set(selected.map(entry => entry.key));
   const shared = [...new Set(sharedKeys.map(entry => entry.key))].map(key => {
     if (selectedSet.has(key)) {
-      throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer cannot share and replace the same service: ${String(key)}`, { operation: 'createChildContainer' });
+      throw libraryError('DI_BAG_CONFLICTING_SERVICE_SELECTION', `createChildContainer cannot share and replace the same service: ${String(key)}`, { operation: 'createChildContainer', serviceKey: key, conflict: 'shared-and-replaced' });
     }
     if (lifetimeOf(key) === 'transient') {
-      throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer cannot share transient providers: ${String(key)}`, { operation: 'createChildContainer' });
+      throw libraryError('DI_BAG_CONFLICTING_SERVICE_SELECTION', `createChildContainer cannot share transient providers: ${String(key)}`, { operation: 'createChildContainer', serviceKey: key, conflict: 'shared-transient' });
     }
     return workingGraph.publicBinding(key);
   });

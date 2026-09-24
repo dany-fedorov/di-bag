@@ -213,7 +213,7 @@ test('fork replaces a whole list, and the replacement wins for every reader', as
   const unused = DiBag.createToken(unusedKey).forCollectionOf<number>();
   const filled = app.createIndependentContainer([unused], { [unused.symbol]: () => [1, 2] });
   expect(filled.resolveCollection(unused)).toEqual([1, 2]);
-  expect(thrown(() => (app.createIndependentContainer as Function)([controllers], {})).code).toBe('DI_BAG_INVALID_OVERRIDE');
+  expect(thrown(() => (app.createIndependentContainer as Function)([controllers], {})).code).toBe('DI_BAG_MISSING_REPLACEMENT_PROVIDER');
   await again.close(); await filled.close(); await testApp.close();
   expect(disposed).toBe(fake);
   await app.close();
@@ -232,7 +232,7 @@ test('createScope and builder replace swap a list the same way', async () => {
   expect(replaced.resolveCollection(sinks)).toEqual(['file', 'syslog']); expect(replaced.resolve('names')).toBe('file+syslog');
   const later = builder.withReplacedService(sinks, () => ['first']).withCollectionContribution({ collectionToken: sinks, provider: () => 'ignored' }).buildContainer();
   expect(later.resolveCollection(sinks)).toEqual(['first']);
-  expect(thrown(() => (app.createChildContainer as Function)([sinks], {})).code).toBe('DI_BAG_INVALID_OVERRIDE');
+  expect(thrown(() => (app.createChildContainer as Function)([sinks], {})).code).toBe('DI_BAG_MISSING_REPLACEMENT_PROVIDER');
   await child.close(); await app.close(); await replaced.close(); await later.close();
 });
 

@@ -91,8 +91,8 @@ A child owned by this container; closing the parent closes the child first.
 
 ##### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-`DI_BAG_INVALID_OVERRIDE` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+`DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_CONFLICTING_SERVICE_SELECTION` when one key is shared and replaced or a transient service is shared;
+`DI_BAG_MISSING_REPLACEMENT_PROVIDER` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
 `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
 
 ##### Example
@@ -137,8 +137,8 @@ A child owned by this container; closing the parent closes the child first.
 
 ##### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-`DI_BAG_INVALID_OVERRIDE` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+`DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_CONFLICTING_SERVICE_SELECTION` when one key is shared and replaced or a transient service is shared;
+`DI_BAG_MISSING_REPLACEMENT_PROVIDER` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
 `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
 
 ##### Example
@@ -187,8 +187,8 @@ A child owned by this container; closing the parent closes the child first.
 
 ##### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-`DI_BAG_INVALID_OVERRIDE` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+`DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_CONFLICTING_SERVICE_SELECTION` when one key is shared and replaced or a transient service is shared;
+`DI_BAG_MISSING_REPLACEMENT_PROVIDER` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
 `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
 
 ##### Example
@@ -263,7 +263,7 @@ A container with independent acquisition and ownership state.
 
 ##### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_OVERRIDE` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key;
+`DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_MISSING_REPLACEMENT_PROVIDER` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key;
 `DI_BAG_INVALID_REGISTRATION` for a malformed provider; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
 
 ##### Example

@@ -64,3 +64,14 @@ check([
   // 0.4.0: builder().buildModule(['absent'])
   ['a module that exports an unknown key', () => builder().buildModule({ exportedServiceKeys: ['absent'] }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'buildModule', serviceKey: 'absent' }],
 ]);
+
+check([
+  // 0.4.0: bag.fork(['config'], {})
+  ['an independent container without the provider for a replaced key', () => container().createIndependentContainer(['config'], {}), 'DI_BAG_MISSING_REPLACEMENT_PROVIDER', { operation: 'createIndependentContainer', serviceKey: 'config' }],
+  // 0.4.0: bag.createScope(['config'], {})
+  ['a child container without the provider for a replaced key', () => container().createChildContainer(['config'], {}), 'DI_BAG_MISSING_REPLACEMENT_PROVIDER', { operation: 'createChildContainer', serviceKey: 'config' }],
+  // 0.4.0: bag.createScope(['config'], { config: ... }, { share: ['config'] })
+  ['a key both replaced and shared', () => container().createChildContainer(['config'], { config: scoped(() => ({ region: 'us' })) }, { sharedParentServiceKeys: ['config'] }), 'DI_BAG_CONFLICTING_SERVICE_SELECTION', { operation: 'createChildContainer', serviceKey: 'config', conflict: 'shared-and-replaced' }],
+  // 0.4.0: bag.createScope({ share: ['id'] })
+  ['a transient service shared with a child', () => container().createChildContainer({ sharedParentServiceKeys: ['id'] }), 'DI_BAG_CONFLICTING_SERVICE_SELECTION', { operation: 'createChildContainer', serviceKey: 'id', conflict: 'shared-transient' }],
+]);
