@@ -1,3 +1,7 @@
+const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+const propertyName = name => IDENTIFIER.test(name) ? name : JSON.stringify(name);
+const memberName = name => IDENTIFIER.test(name) ? `.${name}` : `[${JSON.stringify(name)}]`;
+
 function member(api, call) {
   return api.originalMember(call);
 }
@@ -255,15 +259,16 @@ export function renderLifetimePin(node, target, rendered, api) {
   const factoryText = target.kind === 'method'
     ? `${value.modifiers?.some(modifier => modifier.kind === api.ts.SyntaxKind.AsyncKeyword) ? 'async ' : ''}function${value.asteriskToken ? '*' : ''}${value.typeParameters?.length ? `<${value.typeParameters.map(parameter => api.text(parameter)).join(', ')}>` : ''}(${value.parameters.map(parameter => api.text(parameter)).join(', ')})${value.type ? `: ${api.text(value.type)}` : ''} ${api.text(value.body)}`
     : rendered;
-  const withLifetime = api.nameOf('DiBagApi', 'withLifetime');
+  const lifetimeEntry = api.entryFor('DiBagApi', 'withLifetime', 2);
   let pinned;
-  if (withLifetime !== 'withLifetime') {
+  if (lifetimeEntry?.transformNames) {
     if (target.facade === undefined) {
       api.manual(node, 'no resolved DiBag import is available to add providerWithLifetime; preserve scoped lifetime by hand');
       return rendered;
     }
-    pinned = `${target.facade}.${withLifetime}({ provider: ${factoryText}, lifetime: 'scoped:one-per-container' })`;
+    pinned = `${target.facade}${memberName(api.nameForRole('method'))}({ ${propertyName(api.nameForRole('provider'))}: ${factoryText}, ${propertyName(api.nameForRole('lifetime'))}: 'scoped:one-per-container' })`;
   } else {
+    const withLifetime = api.nameOf('DiBagApi', 'withLifetime');
     const providerText = target.form === 'factory'
       ? target.facade === undefined ? undefined : `${target.facade}.${api.nameOf('DiBagApi', 'fromFactory')}(${factoryText})`
       : rendered;

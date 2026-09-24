@@ -37,7 +37,7 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     if (target !== undefined && !activeLifetimePins.has(node)) {
       activeLifetimePins.add(node);
       try {
-        rendered = renderLifetimePin(node, target, rendered, transformApi(undefined, target.entry));
+        rendered = renderLifetimePin(node, target, rendered, transformApi(undefined, index.methodFor('DiBagApi', 'withLifetime', 2)));
       } finally {
         activeLifetimePins.delete(node);
       }

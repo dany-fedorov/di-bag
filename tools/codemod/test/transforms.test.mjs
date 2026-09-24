@@ -31,6 +31,27 @@ test('lifetime pins compose with provider, role, alias, and container transforms
   ]);
 });
 
+test('lifetime pin facade uses mapped method and field roles', () => {
+  const map = JSON.parse(readFileSync(defaultMapFile, 'utf8'));
+  map.methods = map.methods.map(entry => entry.owner === 'DiBagApi' && entry.from === 'withLifetime'
+    ? { ...entry, transformNames: {
+        ...entry.transformNames,
+        method: 'pin-with-life', provider: 'provider-source', lifetime: 'lifetime-policy',
+      } }
+    : entry);
+  const result = runCodemod({
+    typescript: compiler.ts, root: fixturesRoot,
+    program: fixtureProgram('lifetime-pin'), only: ['lifetime-pin/input.ts'],
+    pinLifetimes: true, map,
+  });
+  assert.equal(result.files.length, 1);
+  const output = result.files[0].text;
+  assert.match(output, /plain: ContainerKit\["pin-with-life"\]\(\{ "provider-source": \(\) => 1, "lifetime-policy": 'scoped:one-per-container' \}\)/);
+  assert.match(output, /clock: ContainerKit\["pin-with-life"\]\(\{ "provider-source": clock, "lifetime-policy": 'scoped:one-per-container' \}\)/);
+  assert.match(output, /const explicit = ContainerKit\["pin-with-life"\]\(\{ "provider-source": \(\) => \(\{ id: 'explicit' \}\), "lifetime-policy": 'singleton:one-per-container-tree' \}\)/);
+  assert.doesNotMatch(output, /ContainerKit\.providerWithLifetime\(/);
+});
+
 test('mixed token use remains manual while both provider arguments receive scoped pins', () => {
   const input = join(fixturesRoot, 'lifetime-pin/mixed.ts');
   const program = compiler.ts.createProgram([input], {
