@@ -27,9 +27,9 @@ const layout = fence('src/features/x/\n  module.ts', 'text');
 test('headings use explicit ids or the site slug, and fences hide heading-like lines', () => {
   assert.equal(slugify('Recommended module layout'), 'recommended-module-layout');
   assert.equal(slugify('Attach cleanup with withDisposal()'), 'attach-cleanup-with-withdisposal');
-  const { headings, blocks } = parseMarkdown(`# Page\n## DI_BAG_CYCLE {#di-bag-cycle}\n${fence('# not a heading')}## Plain title\n`);
-  assert.deepEqual(headings.map(heading => [heading.id, heading.explicit]), [['page', false], ['di-bag-cycle', true], ['plain-title', false]]);
-  assert.equal(blocks[0].heading, 'di-bag-cycle');
+  const { headings, blocks } = parseMarkdown(`# Page\n## DI_BAG_DEPENDENCY_CYCLE {#di-bag-dependency-cycle}\n${fence('# not a heading')}## Plain title\n`);
+  assert.deepEqual(headings.map(heading => [heading.id, heading.explicit]), [['page', false], ['di-bag-dependency-cycle', true], ['plain-title', false]]);
+  assert.equal(blocks[0].heading, 'di-bag-dependency-cycle');
 });
 
 test('markers read only leading comment lines', () => {
@@ -87,8 +87,8 @@ test('budgets, layout identity, and error coverage report drift', () => {
   const root = fixture({
     'AGENTS.md': `# A\n${layout}`,
     'docs/guides/examples-modularity.md': `# M\n## Recommended module layout\n${layout}`,
-    'docs/agent/errors.md': errorsPage(['DI_BAG_CYCLE']),
-    'src/a.ts': "throw libraryError('DI_BAG_CYCLE', 'cycle');",
+    'docs/agent/errors.md': errorsPage(['DI_BAG_DEPENDENCY_CYCLE']),
+    'src/a.ts': "throw libraryError('DI_BAG_DEPENDENCY_CYCLE', 'cycle');",
   });
   try {
     assert.deepEqual([...checkBudgets(root), ...checkLayoutBlock(root), ...checkErrorCoverage(root)], []);
@@ -100,7 +100,7 @@ test('budgets, layout identity, and error coverage report drift', () => {
     writeFileSync(join(root, 'docs/agent/recipes.md'), `# Recipes\n## Short {#short}\n${'x\n'.repeat(57)}\n## Long {#long}\n${'x\n'.repeat(59)}`);
     assert.deepEqual(checkBudgets(root).slice(2), ['docs/agent/recipes.md#long has 60 lines; recipes stay under 60']);
     writeFileSync(join(root, 'src/b.ts'), "libraryError('DI_BAG_NEW', 'new');");
-    writeFileSync(join(root, 'docs/agent/errors.md'), `${errorsPage(['DI_BAG_CYCLE', 'DI_BAG_GONE'])}## DI_BAG_ODD {#odd}\n## Untagged\n`);
+    writeFileSync(join(root, 'docs/agent/errors.md'), `${errorsPage(['DI_BAG_DEPENDENCY_CYCLE', 'DI_BAG_GONE'])}## DI_BAG_ODD {#odd}\n## Untagged\n`);
     assert.deepEqual(checkErrorCoverage(root), [
       'docs/agent/errors.md:11: DI_BAG_ODD must use {#di-bag-odd}',
       'docs/agent/errors.md:12: heading "Untagged" needs an explicit {#id}',
@@ -114,9 +114,9 @@ test('budgets, layout identity, and error coverage report drift', () => {
 test('message URLs in src resolve to a page and anchor, in sources and in the build', () => {
   const root = fixture({
     'README.md': '# Intro\n',
-    'docs/agent/errors.md': '# Errors\n## DI_BAG_CYCLE {#di-bag-cycle}\n',
-    'src/a.ts': "const see = 'see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-cycle';",
-    'dist/agent/errors.html': '<h2 id="di-bag-cycle">DI_BAG_CYCLE</h2>',
+    'docs/agent/errors.md': '# Errors\n## DI_BAG_DEPENDENCY_CYCLE {#di-bag-dependency-cycle}\n',
+    'src/a.ts': "const see = 'see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-dependency-cycle';",
+    'dist/agent/errors.html': '<h2 id="di-bag-dependency-cycle">DI_BAG_DEPENDENCY_CYCLE</h2>',
   });
   try {
     assert.deepEqual(checkMessageUrlsInSources(root, sitePages(root)), []);

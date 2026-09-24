@@ -444,7 +444,7 @@ composition.verifyGraphAtCompileTime() satisfies void;
    unless `--project` names another, and needs its own package:
    `npm install --save-dev di-bag-graph`. The type check does not see cycles;
    without this step they fail at first resolve with
-   [`DI_BAG_CYCLE`](errors.md#di-bag-cycle). The graph is a merge-review and CI
+   [`DI_BAG_DEPENDENCY_CYCLE`](errors.md#di-bag-dependency-cycle). The graph is a merge-review and CI
    artifact, not a map for finding code; the layout is the map. Options and
    output: [di-bag-graph README](https://github.com/dany-fedorov/di-bag/blob/main/tools/graph/README.md).
 

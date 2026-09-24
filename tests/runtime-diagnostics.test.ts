@@ -24,7 +24,7 @@ test('library messages carry the code, the original text, and the errors-page se
   const cycle = caught(() => DiBag.createBuilder().withServices({
     a: ({ b }: { b: number }) => b, b: ({ a }: { a: number }) => a,
   } as never).buildContainer().resolve('a' as never));
-  expect(cycle.message).toBe(`DI_BAG_CYCLE: cycle: a -> b -> a; see ${page}#di-bag-cycle`);
+  expect(cycle.message).toBe(`DI_BAG_DEPENDENCY_CYCLE: cycle: a -> b -> a; see ${page}#di-bag-dependency-cycle`);
   expect(cycle.details.path).toEqual(['a', 'b', 'a']);
 
   const classifier = caught(() => withoutBuiltinModule(() => Core.createBuilder().withServices({ value: () => 1 }).buildContainer()));
@@ -74,7 +74,7 @@ test('a module label names private bindings in messages, cycle paths, graphSnaps
   expect(bag.resolve('placeOrder')).toBe('repo:db');
 
   const cycle = caught(() => bag.resolve('loop'));
-  expect(cycle.code).toBe('DI_BAG_CYCLE');
+  expect(cycle.code).toBe('DI_BAG_DEPENDENCY_CYCLE');
   expect(cycle.details.path).toEqual(['orders/left', 'orders/right', 'orders/left']);
   expect(cycle.message).toContain('cycle: orders/left -> orders/right -> orders/left;');
 

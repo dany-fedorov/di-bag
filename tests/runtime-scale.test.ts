@@ -119,6 +119,6 @@ test('a branching late cycle reports the first dependency-order path and leaves 
   for (const attempt of [a, dead, b, c, d]) family.add(attempt);
   family.recordEdge(a, dead); family.recordEdge(a, b); family.recordEdge(a, c);
   family.recordEdge(b, d); family.recordEdge(c, d);
-  expect(() => family.recordEdge(d, a)).toThrow(/^DI_BAG_CYCLE: cycle: a -> b -> d -> a; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-cycle$/);
+  expect(() => family.recordEdge(d, a)).toThrow(/^DI_BAG_DEPENDENCY_CYCLE: cycle: a -> b -> d -> a; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-dependency-cycle$/);
   expect(d.dependencies.size).toBe(0);
 });

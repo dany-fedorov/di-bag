@@ -171,7 +171,7 @@ export class ScopeAcquisitions {
   observedEdges(): readonly { readonly from: BindingId; readonly to: BindingId }[] { return this.family.observedEdges(); }
 
   private assertAliasPath(bindingId: BindingId, path: readonly BindingId[]): void {
-    if (path.includes(bindingId)) throw libraryError('DI_BAG_CYCLE', `alias cycle: ${[...path, bindingId].map(id => this.graph.label(id)).join(' -> ')}`, { path: Object.freeze([...path, bindingId].map(id => this.graph.label(id))) });
+    if (path.includes(bindingId)) throw libraryError('DI_BAG_DEPENDENCY_CYCLE', `alias cycle: ${[...path, bindingId].map(id => this.graph.label(id)).join(' -> ')}`, { path: Object.freeze([...path, bindingId].map(id => this.graph.label(id))) });
   }
 
   assertOpen(): void {

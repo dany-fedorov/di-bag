@@ -108,7 +108,7 @@ nesting depth.
 Every library-created message has the form
 `<code>: <message>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#<code-slug>`,
 where the slug is the code lower-cased with `_` replaced by `-`. For example:
-`DI_BAG_CYCLE: cycle: a -> b -> a; see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-cycle`.
+`DI_BAG_DEPENDENCY_CYCLE: cycle: a -> b -> a; see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-dependency-cycle`.
 The [errors page](../agent/errors.md) has one section per code and per compile-time message family.
 
 The specialized error classes below are runtime exports from both `di-bag` and

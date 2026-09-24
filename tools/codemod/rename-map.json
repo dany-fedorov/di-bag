@@ -98,6 +98,7 @@
     { "from": "FactoryWithDisposal", "to": "Provider" }
   ],
   "codes": [
+    { "from": "DI_BAG_CYCLE", "to": "DI_BAG_DEPENDENCY_CYCLE" },
     { "from": "DI_BAG_STARTUP_FAILED", "to": "DI_BAG_SERVICE_READINESS_FAILED" },
     { "from": "DI_BAG_STARTUP_CANCELLED", "to": "DI_BAG_SERVICE_READINESS_CANCELLED" },
     { "from": "DI_BAG_STARTUP_TIMEOUT", "to": "DI_BAG_SERVICE_READINESS_TIMEOUT" }

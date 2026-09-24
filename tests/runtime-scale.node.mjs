@@ -40,7 +40,7 @@ test('Node admits a late acyclic edge and rejects a late cycle across a deep gra
   try {
     const reader = bag.resolve('reader');
     assert.equal(reader(), nodes[0]);
-    assert.throws(() => nodes.at(-1).link(), /^Error: DI_BAG_CYCLE: cycle:/);
+    assert.throws(() => nodes.at(-1).link(), /^Error: DI_BAG_DEPENDENCY_CYCLE: cycle:/);
   } finally {
     await bag.close();
   }
@@ -93,7 +93,7 @@ for (const [lifetimeLabel, lifetime] of [['scoped', 'scoped:one-per-container'],
     const bag = DiBag.createBuilder().withServices({
       value: DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => { calls++; return bag.resolve('value'); }, { factoryReturnKind: 'uninspected' }), lifetime: lifetime }),
     }).buildContainer();
-    assert.throws(() => bag.resolve('value'), /^Error: DI_BAG_CYCLE: cycle: value -> value; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-cycle$/);
+    assert.throws(() => bag.resolve('value'), /^Error: DI_BAG_DEPENDENCY_CYCLE: cycle: value -> value; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-dependency-cycle$/);
     assert.equal(calls, 1);
     await bag.close();
   });
@@ -106,7 +106,7 @@ test('native transient ancestry rejects after-await cycles with the original lab
     a: transient(async deps => { calls++; await Promise.resolve(); return deps.b; }),
     b: transient(async deps => { await Promise.resolve(); return deps.a; }),
   }).buildContainer();
-  await assert.rejects(bag.resolve('a'), /^Error: DI_BAG_CYCLE: cycle: a -> b -> a; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-cycle$/);
+  await assert.rejects(bag.resolve('a'), /^Error: DI_BAG_DEPENDENCY_CYCLE: cycle: a -> b -> a; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-dependency-cycle$/);
   assert.equal(calls, 1);
   await bag.close();
 });
@@ -125,7 +125,7 @@ test('ready borrowed transient proxies keep late cycle and root capture checks',
   const bridge = child.resolve('root');
   assert.throws(bridge.read, /root lifetime cannot capture scoped dependency: root -> scoped/);
   const reader = bag.resolve('reader');
-  assert.throws(reader.next().next, /^Error: DI_BAG_CYCLE: cycle: reader -> link -> reader; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-cycle$/);
+  assert.throws(reader.next().next, /^Error: DI_BAG_DEPENDENCY_CYCLE: cycle: reader -> link -> reader; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-dependency-cycle$/);
   assert.equal(child.resolve('scoped'), 42);
   await bag.close();
 });

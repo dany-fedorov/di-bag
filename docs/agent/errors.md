@@ -473,7 +473,7 @@ work, then call `close()`; see the snippet for `DI_BAG_CLOSED`.
 
 **Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
 
-### DI_BAG_CYCLE {#di-bag-cycle}
+### DI_BAG_DEPENDENCY_CYCLE {#di-bag-dependency-cycle}
 
 **When:** resolving a service whose dependencies lead back to it; the message is
 `cycle: a -> b -> a` (or `alias cycle: ...`) and `details.path` lists the keys.

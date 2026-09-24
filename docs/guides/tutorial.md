@@ -365,7 +365,7 @@ Application exceptions keep their identity and are never relabeled as library er
 
 Every library-created message has the form
 `<code>: <message>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#<code-slug>`,
-for example `DI_BAG_CYCLE: cycle: a -> b -> a; see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-cycle`.
+for example `DI_BAG_DEPENDENCY_CYCLE: cycle: a -> b -> a; see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-dependency-cycle`.
 The linked section explains the cause and the fix. Branch on `code` and
 `details`, not on message text.
 | `DiBagPluginValidationError` | A plugin descriptor or output failed validation. `phase` is `'descriptor'` or `'output'`, and `reason` explains the rejection. |
