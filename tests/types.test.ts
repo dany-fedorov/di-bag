@@ -317,6 +317,16 @@ test('singleton default union graph diagnostics remain', () => {
   expect(source.slice(childError!.start!, childError!.start! + childError!.length!)).toBe('{ value: () => 3 }');
 });
 
+test('contribution-only module lifetime diagnostics remain', () => {
+  const file = resolve(__dirname, 'types/negative/contribution-only-lifetimes.ts');
+  const source = readFileSync(file, 'utf8');
+  const errors = negativeDiagnostics.get(file)!;
+  const matched = matchDiagnosticMarkers(source, file, errors.map(describeDiagnostic));
+  expect(errors).toHaveLength(3);
+  expect(matched.missing).toEqual([]);
+  expect(matched.unexpected).toEqual([]);
+});
+
 test('requirement-renaming wrong-shape details name the remapped relationship', () => {
   const path = resolve(negativeDirectory, 'requirement-renaming.ts');
   const wrongShape = negativeDiagnostics.get(path)!.filter(error =>

@@ -106,9 +106,13 @@ type Dependencies<V> = V extends ProviderOrFactory ? keyof ProviderNamedDependen
 // A projected alias has no dependency object left; its target is the alias key.
 type AliasKeys<V> = ProviderGraphContract<V> extends infer G ? G extends { readonly alias: infer A } ? A : never : never;
 type CollectionKeys<V> = ProviderCollectionTokens<V> extends infer T ? T extends TokenBase ? TokenKey<T> : never : never;
+type HasSealableContribution<Constraints> =
+  [CarrierMembers<ContributionProviders<Constraints>>] extends [never] ? false : true;
 type NeedsSealLifetimeWalk<ServiceRegistrations extends Registrations, Constraints> =
   [keyof ServiceRegistrations] extends [never]
-    ? HasLifetimeObligation<Constraints>
+    ? true extends HasLifetimeObligation<Constraints> | HasSealableContribution<Constraints>
+      ? true
+      : false
     : true;
 type ExportReaches<C, K> = C extends { readonly kind: 'export-reach'; readonly export: K; readonly reach: infer X } ? X : never;
 
