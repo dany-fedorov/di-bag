@@ -10,3 +10,4 @@ export function complete(operation: string) {
 }
 export const missingExpected = libraryError('DI_BAG_INVALID_ARGUMENT', 'close waitTimeoutMs must be a number', { operation: 'close', argument: 'waitTimeoutMs' });
 export const wordOnlyInMessage = libraryError('DI_BAG_INVALID_ARGUMENT', 'resolve expected one argument', { operation: 'resolve' });
+export const wordsInValues = libraryError('DI_BAG_INVALID_ARGUMENT', 'close options are invalid', { operation: 'close', note: 'argument expected' });

@@ -41,9 +41,29 @@ test('a literal with no recognisable owner fails the run', () => {
   expect(summary).toContain('unclassified: 1');
 });
 
+test('a literal after a recognised call is not assigned to that call', () => {
+  const { status, summary, rows } = run('adjacent');
+  expect(status).toBe(1);
+  expect(summary).toContain('unclassified: 1');
+  expect(rows.map(row => [row.owner, row.codes])).toEqual([
+    ['libraryError', ['DI_BAG_SAMPLE_OPTIONS']],
+    ['UNCLASSIFIED', ['DI_BAG_FAKE']],
+  ]);
+});
+
 test('DI_BAG_INVALID_ARGUMENT must carry operation, argument and expected; a word in the message does not count', () => {
   const { status, summary, rows } = run('incomplete');
   expect(status).toBe(1);
-  expect(summary).toContain('unclassified: 0; incomplete details: 2');
-  expect(rows.map(row => row.missingDetails)).toEqual([[], ['expected'], ['argument', 'expected']]);
+  expect(summary).toContain('unclassified: 0; incomplete details: 3');
+  expect(rows.map(row => row.missingDetails)).toEqual([[], ['expected'], ['argument', 'expected'], ['argument', 'expected']]);
+});
+
+test('nested templates and diagnostic calls retain their own messages and codes', () => {
+  const { status, rows } = run('nested');
+  expect(status).toBe(0);
+  expect(rows.map(row => [row.owner, row.codes, row.message])).toEqual([
+    ['libraryError', ['DI_BAG_SAMPLE_OPTIONS'], 'count ${count === 1 ? `${count} item` : `${count} items`}'],
+    ['diagnosticMessage', ['DI_BAG_CLOSED'], "wait ${reason === 'timeout' ? `timed out after ${timeout}ms` : 'was aborted'}"],
+    ['diagnostic', ['DI_BAG_CLOSED'], ''],
+  ]);
 });
