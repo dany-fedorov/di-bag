@@ -172,7 +172,7 @@ describe('container derivation contracts', () => {
       (root[operation] as (...args: unknown[]) => unknown)(['value'], { value: 1 });
       throw new Error('expected malformed provider rejection');
     } catch (error) {
-      expect(error).toMatchObject({ code: 'DI_BAG_INVALID_REGISTRATION', details: { operation } });
+      expect(error).toMatchObject({ code: 'DI_BAG_INVALID_PROVIDER', details: { operation } });
     }
   });
 

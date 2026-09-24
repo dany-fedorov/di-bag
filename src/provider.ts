@@ -186,7 +186,7 @@ export function addRegistrationMetadata(provider: ProviderBase, registrationMeta
   return handle;
 }
 
-export function addAcquisitionMetadata(provider: ProviderBase, options: unknown, operation = 'withAcquisitionMetadata'): ProviderBase {
+export function addAcquisitionMetadata(provider: ProviderBase, options: unknown, operation: string): ProviderBase {
   const { describeAcquisition, callbackReceives } = snapshotOptionsBag(options, operation, ['describeAcquisition', 'callbackReceives']);
   if (typeof describeAcquisition !== 'function') throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} describeAcquisition must be a function`, { operation, argument: 'describeAcquisition', expected: 'a function' });
   if (callbackReceives !== 'exposed-service' && callbackReceives !== 'fulfilled-value') throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} callbackReceives must name the callback input`, { operation, argument: 'callbackReceives', expected: "one of: 'exposed-service', 'fulfilled-value'" });
@@ -214,7 +214,7 @@ export type AcquisitionMetadataAdmission<M> = [InvalidAcquisitionMetadata<M>] ex
   : Unsatisfied<'acquisition metadata must be a synchronous object record', {}>;
 type AcquisitionFrames<R, M> = readonly [...ProviderAcquisitionMetadata<R>, Readonly<M>];
 
-function annotate<R extends ProviderOrFactory, F extends Factory, M extends object, V>(registration: R, callback: (this: void, value: never) => object, async: boolean, operation = 'withMetadata'): Provider<F, RetainedMetadata<R>, AcquisitionFrames<R, M>, ProviderGraphContract<R>, V> {
+function annotate<R extends ProviderOrFactory, F extends Factory, M extends object, V>(registration: R, callback: (this: void, value: never) => object, async: boolean, operation: string): Provider<F, RetainedMetadata<R>, AcquisitionFrames<R, M>, ProviderGraphContract<R>, V> {
   if (typeof callback !== 'function') throw libraryTypeError('DI_BAG_INVALID_METADATA', 'acquisition metadata requires a function', { operation });
   const description = describe(registration);
   // Decoration retains the current output stage's mode even across metadata and ownership.
@@ -241,12 +241,12 @@ function annotate<R extends ProviderOrFactory, F extends Factory, M extends obje
   });
 }
 
-function invalidAcquisitionMetadata(value: unknown, operation = 'withMetadata'): never {
+function invalidAcquisitionMetadata(value: unknown, operation: string): never {
   // A widened callback can return a rejected Promise. Observe that invalid result
   // before throwing, without reading its `then` or assimilating service values.
   // The intrinsic rejects non-Promise receivers without invoking user code.
   try { Promise.prototype.then.call(value, () => {}, () => {}); } catch { /* Not an observable native Promise. */ }
-  throw libraryTypeError('DI_BAG_INVALID_METADATA', 'acquisition metadata must be a synchronous plain object record', { operation });
+  throw libraryTypeError('DI_BAG_INVALID_ACQUISITION_METADATA', 'acquisition metadata must be a synchronous plain object record', { operation });
 }
 
 export type MetadataKeyUnion<M> = M extends unknown ? keyof M : never;

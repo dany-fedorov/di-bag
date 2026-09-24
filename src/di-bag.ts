@@ -134,7 +134,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * @returns The service exposed by the selected registration.
    * @throws `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_UNKNOWN_SERVICE_KEY` for a bad selection;
    * during acquisition `DI_BAG_MISSING_DEPENDENCY`, `DI_BAG_DEPENDENCY_CYCLE`, `DI_BAG_LIFETIME_DEPENDENCY`, `DI_BAG_INVALID_DEPENDENCY_ACCESS`,
-   * `DI_BAG_STRUCTURAL_THENABLE`, `DI_BAG_INVALID_CLASSIFIER_RESULT`, `DI_BAG_INVALID_METADATA`, `DI_BAG_PLUGIN_VALIDATION`,
+   * `DI_BAG_STRUCTURAL_THENABLE`, `DI_BAG_INVALID_CLASSIFIER_RESULT`, `DI_BAG_INVALID_ACQUISITION_METADATA`, `DI_BAG_PLUGIN_VALIDATION`,
    * or the factory's own error.
    * @example
    * ```ts
@@ -316,7 +316,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * Create an independent container with fresh instances and checked replacements.
    * @returns A container with independent acquisition and ownership state.
    * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_MISSING_REPLACEMENT_PROVIDER` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key;
-   * `DI_BAG_INVALID_REGISTRATION` for a malformed provider; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
+   * `DI_BAG_INVALID_PROVIDER` for a malformed provider; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
    * @example
    * ```ts
    * const parent = DiBag.createBuilder().withServices({ clock: () => Date.now() }).buildContainer();
@@ -428,7 +428,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
    * @param providersByName - A finite object whose own string keys are service names and whose values are providers or plain factories.
    * @returns A new builder containing snapshots of the supplied providers.
-   * @throws `DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_SERVICE_KEY` for a name already registered;
+   * @throws `DI_BAG_INVALID_REGISTRATION` for a malformed object or `DI_BAG_INVALID_PROVIDER` for a malformed value; `DI_BAG_DUPLICATE_SERVICE_KEY` for a name already registered;
    * `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
    * @example
    * ```ts
@@ -448,7 +448,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @param provider - A provider or plain factory whose exposed output satisfies the token's service type.
    * @returns A new builder retaining the provider's metadata, lifetime, dependencies, and ownership stages.
    * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
-   * `DI_BAG_DUPLICATE_SERVICE_KEY` when the token already has a service; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * `DI_BAG_DUPLICATE_SERVICE_KEY` when the token already has a service; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
    * @example
    * ```ts
    * const clockKey = Symbol('clock');
@@ -494,7 +494,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * Append a provider to the list of a collection token.
    * @param options - `collectionToken` names the list; `provider` is a provider or plain factory whose output satisfies the token's item type.
    * @returns A new builder preserving contribution order.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
    * @example
    * ```ts
    * const toolsKey = Symbol('tools');
@@ -518,7 +518,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @param serviceKey - One existing string-literal service name or typed token.
    * @param provider - The replacement, checked against every surviving consumer.
    * @returns A new builder with the replacement.
-   * @throws `DI_BAG_UNKNOWN_SERVICE_KEY` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider;
+   * @throws `DI_BAG_UNKNOWN_SERVICE_KEY` for an absent key; `DI_BAG_INVALID_PROVIDER` for an invalid provider;
    * `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
    * @example
    * ```ts
@@ -734,7 +734,7 @@ export interface DiBagApi {
   createBuilder: () => Builder<never>;
   /**
    * Add an ownership stage to a provider input.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag or disposer; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag or disposer; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
    * @example
    * ```ts
    * const owned = DiBag.providerWithDisposal({ provider: () => ({ close() {} }), disposeService: service => service.close() });
@@ -747,7 +747,7 @@ export interface DiBagApi {
    * their dependencies are scoped.
    * @param options - The provider, full lifetime, and optional deliberate scoped-capture allowance for singleton only.
    * @returns A fresh immutable provider retaining every other provider stage.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag, lifetime, or option; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag, lifetime, or option; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
    * @example
    * ```ts
    * const createClient = () => ({ close() {} });
@@ -757,7 +757,7 @@ export interface DiBagApi {
   readonly providerWithLifetime: typeof providerWithLifetime;
   /**
    * Add noncolliding registration metadata without acquiring the service.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed metadata; `DI_BAG_DUPLICATE_METADATA_KEY` for a repeated key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed metadata; `DI_BAG_DUPLICATE_METADATA_KEY` for a repeated key; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
    * @example
    * ```ts
    * const registered = DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { owner: 'platform' } });
@@ -766,7 +766,7 @@ export interface DiBagApi {
   readonly providerWithRegistrationMetadata: typeof providerWithRegistrationMetadata;
   /**
    * Append one synchronous acquisition-metadata frame using the selected callback input.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag; `DI_BAG_INVALID_METADATA` for an invalid callback result; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag; `DI_BAG_INVALID_ACQUISITION_METADATA` for an invalid callback result; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
    * @example
    * ```ts
    * const observed = DiBag.providerWithAcquisitionMetadata({ provider: () => 1, callbackReceives: 'exposed-service', describeAcquisition: value => ({ value }) });
@@ -775,7 +775,7 @@ export interface DiBagApi {
   readonly providerWithAcquisitionMetadata: typeof providerWithAcquisitionMetadata;
   /**
    * Transform the selected callback input while retaining dependencies, metadata, lifetime and ownership stages.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag or return policy; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag or return policy; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
    * @example
    * ```ts
    * const mapped = DiBag.providerWithTransformedService({ provider: () => 1, callbackReceives: 'exposed-service', transformService: value => String(value) });

@@ -90,7 +90,7 @@ A new builder preserving contribution order.
 
 #### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
 
 #### Example
 
@@ -166,7 +166,7 @@ A new builder with the replacement.
 
 #### Throws
 
-`DI_BAG_UNKNOWN_SERVICE_KEY` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider;
+`DI_BAG_UNKNOWN_SERVICE_KEY` for an absent key; `DI_BAG_INVALID_PROVIDER` for an invalid provider;
 `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
 
 #### Example
@@ -233,7 +233,7 @@ A new builder containing snapshots of the supplied providers.
 
 #### Throws
 
-`DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_SERVICE_KEY` for a name already registered;
+`DI_BAG_INVALID_REGISTRATION` for a malformed object or `DI_BAG_INVALID_PROVIDER` for a malformed value; `DI_BAG_DUPLICATE_SERVICE_KEY` for a name already registered;
 `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
 
 #### Example
@@ -274,7 +274,7 @@ A new builder retaining the provider's metadata, lifetime, dependencies, and own
 #### Throws
 
 `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
-`DI_BAG_DUPLICATE_SERVICE_KEY` when the token already has a service; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+`DI_BAG_DUPLICATE_SERVICE_KEY` when the token already has a service; `DI_BAG_INVALID_PROVIDER` for an invalid provider.
 
 #### Example
 

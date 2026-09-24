@@ -153,9 +153,9 @@ test('the bag methods report distinct codes under their own operation names', ()
     [() => loose(builder).withServiceAlias!({ aliasKey: 'value', targetServiceKey: clock }), 'DI_BAG_DUPLICATE_SERVICE_KEY', { operation: 'withServiceAlias', serviceKey: 'value' }],
     [() => loose(builder).withServiceAlias!({ aliasKey: 'other', targetServiceKey: 'absent' }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withServiceAlias', serviceKey: 'absent' }],
     [() => loose(builder).withReplacedService!('absent', () => 1), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withReplacedService', serviceKey: 'absent' }],
-    [() => loose(DiBag.createBuilder()).withTokenService!(clock, 42), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withTokenService' }],
-    [() => loose(DiBag.createBuilder()).withCollectionContribution!({ collectionToken: tools, provider: 42 }), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withCollectionContribution' }],
-    [() => loose(builder).withReplacedService!('value', 42), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withReplacedService' }],
+    [() => loose(DiBag.createBuilder()).withTokenService!(clock, 42), 'DI_BAG_INVALID_PROVIDER', { operation: 'withTokenService' }],
+    [() => loose(DiBag.createBuilder()).withCollectionContribution!({ collectionToken: tools, provider: 42 }), 'DI_BAG_INVALID_PROVIDER', { operation: 'withCollectionContribution' }],
+    [() => loose(builder).withReplacedService!('value', 42), 'DI_BAG_INVALID_PROVIDER', { operation: 'withReplacedService' }],
   ];
   for (const [run, code, details] of checks) {
     const error = caught(run);

@@ -75,3 +75,10 @@ check([
   // 0.4.0: bag.createScope({ share: ['id'] })
   ['a transient service shared with a child', () => container().createChildContainer({ sharedParentServiceKeys: ['id'] }), 'DI_BAG_CONFLICTING_SERVICE_SELECTION', { operation: 'createChildContainer', serviceKey: 'id', conflict: 'shared-transient' }],
 ]);
+
+check([
+  // 0.4.0: builder().register({ bad: 42 })
+  ['a service that is neither a function nor a provider', () => builder().withServices({ bad: 42 }), 'DI_BAG_INVALID_PROVIDER', { operation: 'withServices' }],
+  // 0.4.0: resolve of DiBag.withMetadata(f, { dynamic: { mode: 'direct', describe: () => 42 } })
+  ['a describe callback that returns a bad record', () => D.createBuilder().withServices({ value: D.providerWithAcquisitionMetadata({ provider: D.createProvider(() => 1), describeAcquisition: () => 42, callbackReceives: 'exposed-service' }) }).buildContainer().resolve('value'), 'DI_BAG_INVALID_ACQUISITION_METADATA', { operation: 'providerWithAcquisitionMetadata' }],
+]);

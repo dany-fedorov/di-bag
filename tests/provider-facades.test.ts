@@ -51,7 +51,7 @@ test('fallback bags snapshot own fields and reject malformed combinations', () =
   expect(reads).toBe(3);
   const inherited = Object.create({ callbackReceives: 'exposed-service' }); inherited.transformService = (value: number) => value;
   const cases: readonly [() => unknown, string, object][] = [
-    [() => (DiBag as any).providerWithTransformedService({ provider: {}, callbackReceives: 'exposed-service', transformService: (value: unknown) => value }), 'DI_BAG_INVALID_REGISTRATION', { operation: 'providerWithTransformedService' }],
+    [() => (DiBag as any).providerWithTransformedService({ provider: {}, callbackReceives: 'exposed-service', transformService: (value: unknown) => value }), 'DI_BAG_INVALID_PROVIDER', { operation: 'providerWithTransformedService' }],
     [() => (DiBag as any).providerWithDisposal({ provider, disposeService: 1 }), 'DI_BAG_INVALID_ARGUMENT', { operation: 'providerWithDisposal', argument: 'disposeService', expected: 'a function' }],
     [() => (DiBag as any).providerWithLifetime({ provider, lifetime: 'scoped' }), 'DI_BAG_INVALID_ARGUMENT', { operation: 'providerWithLifetime', argument: 'lifetime', expected: "one of: 'singleton:one-per-container-tree', 'scoped:one-per-container', 'transient:one-per-resolve'" }],
     [() => (DiBag as any).providerWithAcquisitionMetadata({ provider, callbackReceives: 'other', describeAcquisition() { return {}; } }), 'DI_BAG_INVALID_ARGUMENT', { operation: 'providerWithAcquisitionMetadata', argument: 'callbackReceives', expected: "one of: 'exposed-service', 'fulfilled-value'" }],
@@ -70,7 +70,8 @@ test('acquisition metadata callback failures name the fallback facade', () => {
     });
     const container = DiBag.createBuilder().withServices({ value: provider }).buildContainer();
     const error = caught(() => container.resolve('value'));
-    expect(error.code).toBe('DI_BAG_INVALID_METADATA');
+    expect(error).toBeInstanceOf(TypeError);
+    expect(error.code).toBe('DI_BAG_INVALID_ACQUISITION_METADATA');
     expect(error.details.operation).toBe('providerWithAcquisitionMetadata');
   }
 });

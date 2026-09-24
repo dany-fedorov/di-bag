@@ -589,6 +589,32 @@ stack trace and the smallest graph that reproduces it.
 
 **Recipe:** none.
 
+### DI_BAG_INVALID_ACQUISITION_METADATA {#di-bag-invalid-acquisition-metadata}
+
+**When:** a `describeAcquisition` callback returns something other than a plain
+object, synchronously: a Promise, an array, `null` or a primitive. It is raised
+while the service is acquired, so `resolve` throws or rejects with a
+`TypeError`.
+
+**Cause:** acquisition metadata is recorded at the moment the service becomes
+available. A Promise cannot be recorded, and the library does not await it.
+
+**Fix:** return a plain record. To describe the fulfilled value of an
+asynchronous factory, ask for it with `callbackReceives: 'fulfilled-value'`.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const db = DiBag.providerWithAcquisitionMetadata({
+  provider: async () => ({ version: 7 }),
+  describeAcquisition: value => ({ version: value.version }),
+  callbackReceives: 'fulfilled-value',
+});
+const app = DiBag.createBuilder().withServices({ db }).buildContainer();
+await app.resolve('db');
+await app.close();
+```
+
 ### DI_BAG_INVALID_ARGUMENT {#di-bag-invalid-argument}
 
 **When:** a call receives an argument of the wrong shape: a factory that is not a
@@ -744,13 +770,12 @@ const east = reports.withRenamedExport({ currentExportKey: 'service', newExportK
 
 ### DI_BAG_INVALID_METADATA {#di-bag-invalid-metadata}
 
-**When:** `providerWithAcquisitionMetadata({ describeAcquisition })` returns
-something other than a synchronous plain object record, including an array,
-Promise, thenable, or class instance.
+**When:** an acquisition-metadata helper receives a callback that is not a
+function.
 
-**Cause:** metadata that is not a plain record.
+**Cause:** the callback was supplied in the wrong shape.
 
-**Fix:** return a plain object literal from `describeAcquisition`.
+**Fix:** pass a function as `describeAcquisition`.
 
 ```ts
 import { DiBag } from 'di-bag';
@@ -784,14 +809,36 @@ const app = DiBag.createBuilder().withInstalledModules([
 
 **Recipe:** [split a feature into a module](recipes.md#split-module).
 
+### DI_BAG_INVALID_PROVIDER {#di-bag-invalid-provider}
+
+**When:** a value given where a factory or a provider is required is neither a
+function nor a provider made by this library: a value of `withServices`, the
+`provider` of `withTokenService`, `withCollectionContribution` or
+`withReplacedService`, or an entry of `replacementProviders`.
+
+**Cause:** the service itself was passed instead of a factory for it, or a
+provider object was copied. A provider is recognised by identity, so a spread
+copy of one is not a provider.
+
+**Fix:** pass `() => value`, or a provider returned by `DiBag.createProvider` and
+its sibling calls.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const config = { region: 'eu' };
+const app = DiBag.createBuilder().withServices({ config: () => config }).buildContainer();
+console.log(app.resolve('config').region);
+await app.close();
+```
+
 ### DI_BAG_INVALID_REGISTRATION {#di-bag-invalid-registration}
 
-**When:** `withServices` receives a non-object, a record with symbol keys, or a value
-that is neither a factory nor a DiBag provider.
+**When:** `withServices` receives a non-object or a record with symbol keys.
 
-**Cause:** a constant registered directly, or tokens mixed into a name record.
+**Cause:** tokens were mixed into a name record, or the record itself is invalid.
 
-**Fix:** wrap values in factories; bind tokens with `withTokenService(token, provider)`.
+**Fix:** pass an object with string keys; bind tokens with `withTokenService(token, provider)`.
 
 ```ts
 import { DiBag } from 'di-bag';

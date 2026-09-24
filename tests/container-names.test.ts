@@ -55,8 +55,8 @@ describe('0.5 container names', () => {
       callRename({ currentExportKey: 'missing', newExportKey: 'answer' });
       throw new Error('expected missing export rejection');
     } catch (error: any) {
-      expect(error).toMatchObject({ code: 'DI_BAG_INVALID_EXPORT', details: {
-        operation: 'withRenamedExport', currentExportKey: 'missing', newExportKey: 'answer',
+      expect(error).toMatchObject({ code: 'DI_BAG_UNKNOWN_SERVICE_KEY', details: {
+        operation: 'withRenamedExport', serviceKey: 'missing',
       } });
       expect(error.message).toContain('withRenamedExport requires an existing export');
     }

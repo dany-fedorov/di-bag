@@ -36,8 +36,8 @@ test('metadata collisions preflight and asynchronous metadata callbacks reject',
   for (const mode of ['direct', 'awaited'] as const) {
     const bad = DiBag.providerWithAcquisitionMetadata({ provider: () => 1, callbackReceives: mode === 'direct' ? 'exposed-service' : 'fulfilled-value', describeAcquisition: async () => ({ bad: true }) } as never);
     const bag = (DiBag.createBuilder() as any).withServices({ bad }).buildContainer();
-    if (mode === 'direct') expect(caught(() => bag.resolve('bad')).code).toBe('DI_BAG_INVALID_METADATA');
-    else await expect(bag.resolve('bad')).rejects.toMatchObject({ code: 'DI_BAG_INVALID_METADATA' });
+    if (mode === 'direct') expect(caught(() => bag.resolve('bad')).code).toBe('DI_BAG_INVALID_ACQUISITION_METADATA');
+    else await expect(bag.resolve('bad')).rejects.toMatchObject({ code: 'DI_BAG_INVALID_ACQUISITION_METADATA' });
     await bag.close();
   }
 });
