@@ -2,10 +2,10 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / Contribution
 
-# Type Alias: Contribution\<T *extends* [`TokenBase`](../interfaces/TokenBase.md) = [`TokenBase`](../interfaces/TokenBase.md), V *extends* [`Registration`](Registration.md) = [`Registration`](Registration.md)\>
+# Type Alias: Contribution\<T *extends* [`TokenBase`](../interfaces/TokenBase.md) = [`TokenBase`](../interfaces/TokenBase.md), V *extends* [`ProviderOrFactory`](ProviderOrFactory.md) = [`ProviderOrFactory`](ProviderOrFactory.md)\>
 
 ```ts
-type Contribution<T extends TokenBase = TokenBase, V extends Registration = Registration> = {
+type Contribution<T extends TokenBase = TokenBase, V extends ProviderOrFactory = ProviderOrFactory> = {
     readonly kind: 'contribution';
     readonly token: T;
     readonly registration: V;

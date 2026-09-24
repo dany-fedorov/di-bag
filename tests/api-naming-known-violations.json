@@ -5,7 +5,6 @@
     "boolean-name: member present",
     "retired-word: code DI_BAG_CLEANUP_AFTER_FACTORY",
     "retired-word: code DI_BAG_CLEANUP_FAILED",
-    "retired-word: code DI_BAG_INVALID_ACQUISITION_MODE",
     "retired-word: code DI_BAG_INVALID_CLEANUP",
     "retired-word: code DI_BAG_INVALID_SCOPE",
     "retired-word: code DI_BAG_INVALID_STARTUP",

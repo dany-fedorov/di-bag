@@ -12,7 +12,7 @@ type Overrides<F extends Registrations, O extends Registrations, K extends reado
 }> : CollectionOverrideAdmission<K, O>;
 ```
 
-Defined in: [types.ts:231](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L231)
+Defined in: [types.ts:230](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L230)
 
 Admit overrides only for existing keys whose service values remain assignable.
 

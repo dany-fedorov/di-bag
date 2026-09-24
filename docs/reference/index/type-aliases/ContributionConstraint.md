@@ -5,7 +5,7 @@
 # Type Alias: ContributionConstraint
 
 ```ts
-type ContributionConstraint = Contribution<TokenBase, Registration>;
+type ContributionConstraint = Contribution<TokenBase, ProviderOrFactory>;
 ```
 
 Defined in: [contribution-types.ts:21](https://github.com/dany-fedorov/di-bag/blob/main/src/contribution-types.ts#L21)

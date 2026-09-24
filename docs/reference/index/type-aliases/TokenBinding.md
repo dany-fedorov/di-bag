@@ -2,10 +2,10 @@
 
 [DI Bag API](../../index.md) / [index](../index.md) / TokenBinding
 
-# Type Alias: TokenBinding\<T *extends* [`TokenBase`](../interfaces/TokenBase.md), R *extends* [`Registration`](Registration.md)\>
+# Type Alias: TokenBinding\<T *extends* [`TokenBase`](../interfaces/TokenBase.md), R *extends* [`ProviderOrFactory`](ProviderOrFactory.md)\>
 
 ```ts
-type TokenBinding<T extends TokenBase, R extends Registration> = Provider<ProviderFactory<R>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraphContract<R>, T>, ProviderAcquiredValue<R>>;
+type TokenBinding<T extends TokenBase, R extends ProviderOrFactory> = Provider<ProviderFactory<R>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraphContract<R>, T>, ProviderAcquiredValue<R>>;
 ```
 
 Defined in: [token-types.ts:64](https://github.com/dany-fedorov/di-bag/blob/main/src/token-types.ts#L64)

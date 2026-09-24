@@ -1,7 +1,7 @@
 import type { CollectionItem, CollectionTokenBase, TokenBase, TokenKey, TokenService } from './tokens';
 import type { DependencyReference, DependencyValue, DependencyToken, DependencyKind, ValidDependency } from './dependency-references';
 import type { SeeErrors, Unsatisfied } from './types';
-import type { Registration, Registrations } from './registration';
+import type { ProviderOrFactory, Registrations } from './registration';
 import type { BoundToken, Provider, ProviderFactory, ProviderGraphContract, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderOutput, ProviderRequiredTokens, ProviderOptionalTokens } from './provider';
 import type { CollectionMember } from './contribution-types';
 
@@ -61,10 +61,10 @@ export type ReboundGraph<G extends GraphContract, T extends TokenBase> = G exten
  * A registration rebound to an invariant typed-token service contract.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-explicit-positional-injection
  */
-export type TokenBinding<T extends TokenBase, R extends Registration> = Provider<ProviderFactory<R>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraphContract<R>, T>, ProviderAcquiredValue<R>>;
-export type BindingOutput<T extends TokenBase, R extends Registration> = [ProviderOutput<R>] extends [TokenValue<T>] ? unknown
+export type TokenBinding<T extends TokenBase, R extends ProviderOrFactory> = Provider<ProviderFactory<R>, ProviderRegistrationMetadata<R> & object, ProviderAcquisitionMetadata<R>, ReboundGraph<ProviderGraphContract<R>, T>, ProviderAcquiredValue<R>>;
+export type BindingOutput<T extends TokenBase, R extends ProviderOrFactory> = [ProviderOutput<R>] extends [TokenValue<T>] ? unknown
   : Unsatisfied<'token binding output is not assignable to its service', { token: TokenKey<T>; expected: TokenValue<T>; provided: ProviderOutput<R> }>;
-export type CollectionBindingOutput<T extends CollectionTokenBase, R extends Registration> = [ProviderOutput<R>] extends [CollectionItem<T>] ? unknown
+export type CollectionBindingOutput<T extends CollectionTokenBase, R extends ProviderOrFactory> = [ProviderOutput<R>] extends [CollectionItem<T>] ? unknown
   : Unsatisfied<'collection contribution output is not assignable to its item', { token: TokenKey<T>; expected: CollectionItem<T>; provided: ProviderOutput<R> }>;
 /**
  * Convert a string selection to itself or a typed token to its symbol key.

@@ -25,6 +25,20 @@ import type { PluginAcquisitionMode } from '../../../src';
 import type { PluginOptions } from '../../../src';
 // diagnostic: no exported member named 'PluginProviderFactory'
 import type { PluginProviderFactory } from '../../../src';
+// diagnostic: no exported member
+import type { FactoryWithDisposal } from '../../../src';
+// diagnostic: no exported member
+import type { Registration } from '../../../src';
+// diagnostic: no exported member
+import type { ReplacementInferenceContext } from '../../../src';
+// diagnostic: does not exist
+DiBag.withDisposal(() => 1, () => {});
+// diagnostic: does not exist
+DiBag.withLifetime(() => 1, 'root');
+// diagnostic: does not exist
+DiBag.withMetadata(() => 1, { static: {} });
+// diagnostic: does not exist
+DiBag.transformService(() => 1, { mode: 'direct', transform: (value: number) => value });
 const base = DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' });
 // diagnostic: No overload matches
 DiBag.providerWithAcquisitionMetadata({ provider: base, describeAcquisition: (_value: Promise<number>) => ({}) });

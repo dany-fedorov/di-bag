@@ -112,7 +112,6 @@
 - [Reach](type-aliases/Reach.md)
 - [ReboundProviders](type-aliases/ReboundProviders.md)
 - [ReboundSelection](type-aliases/ReboundSelection.md)
-- [Registration](type-aliases/Registration.md)
 - [RegistrationEntries](type-aliases/RegistrationEntries.md)
 - [RegistrationsFromEntries](type-aliases/RegistrationsFromEntries.md)
 - [Renamed](type-aliases/Renamed.md)
