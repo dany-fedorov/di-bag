@@ -119,6 +119,21 @@ test('custom-transform role names survive loading the shipped map', () => {
   });
 });
 
+test('ordinary registration entries have no roles while derivation keeps its role names', () => {
+  const loaded = loadRenameMap(join(packageRoot, 'rename-map.json'), shippedTransforms);
+  for (const from of ['register', 'contribute', 'replace']) {
+    const entries = loaded.methods.filter(method => method.owner === 'Builder' && method.from === from);
+    assert.ok(entries.length > 0, `${from} must have a shipped entry`);
+    for (const entry of entries) assert.equal(entry.transformNames, undefined);
+  }
+  assert.deepEqual(loaded.methods.find(method => method.owner === 'Bag' && method.from === 'createScope').transformNames, {
+    keys: 'replacedServiceKeys', providers: 'replacementProviders', sharing: 'sharedParentServiceKeys',
+  });
+  assert.deepEqual(loaded.methods.find(method => method.owner === 'Bag' && method.from === 'fork').transformNames, {
+    keys: 'replacedServiceKeys', providers: 'replacementProviders',
+  });
+});
+
 test('phase 6 roles retain closed validation and effective-method conflict checks', () => {
   const base = {
     version: 1,

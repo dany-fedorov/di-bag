@@ -4,12 +4,12 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { loadTypeScript, runCodemod } from './lib/codemod.mjs';
 
-const usage = 'usage: di-bag-codemod [--project tsconfig.json | file.ts ...] [--library-root dir]... [--extra-files glob]... [--map rename-map.json] [--write] [--report report.json]';
+const usage = 'usage: di-bag-codemod [--project tsconfig.json | file.ts ...] [--library-root dir]... [--extra-files glob]... [--map rename-map.json] [--pin-lifetimes] [--write] [--report report.json]';
 const args = process.argv.slice(2);
 const files = [];
 const extraFiles = [];
 const libraryRoots = [];
-let project, mapFile, report, write = false;
+let project, mapFile, report, write = false, pinLifetimes = false;
 const value = index => {
   if (args[index] === undefined || args[index].startsWith('-')) fail(`${args[index - 1]} needs a value`);
   return args[index];
@@ -22,6 +22,8 @@ for (let index = 0; index < args.length; index++) {
   else if (argument === '--map') mapFile = value(++index);
   else if (argument === '--report') report = value(++index);
   else if (argument === '--write') write = true;
+  else if (argument === '--pin-lifetimes') pinLifetimes = true;
+  else if (argument.startsWith('--pin-lifetimes=')) fail('--pin-lifetimes takes no value');
   else if (argument === '--help' || argument === '-h') { console.log(usage); process.exit(0); }
   else if (argument.startsWith('-')) fail(`unknown option ${argument}`);
   else files.push(argument);
@@ -41,7 +43,7 @@ const root = process.cwd();
 const compiler = loadTypeScript(project ? dirname(resolve(root, project)) : root);
 let result;
 try {
-  result = runCodemod({ typescript: compiler.ts, root, project, files, extraFiles, libraryRoots, write, ...(mapFile ? { mapFile: resolve(root, mapFile) } : {}) });
+  result = runCodemod({ typescript: compiler.ts, root, project, files, extraFiles, libraryRoots, write, pinLifetimes, ...(mapFile ? { mapFile: resolve(root, mapFile) } : {}) });
 } catch (error) {
   fail(error.message);
 }

@@ -6,6 +6,7 @@ import collectionToken from './collection-token.mjs';
 import containerDerivation from './container-derivation.mjs';
 import providerFacades from './provider-facades.mjs';
 import providerSources from './provider-sources.mjs';
+export { hasOldCreateScope, lifetimePinTargets, renderLifetimePin } from './lifetime-pin.mjs';
 
 /** Custom transforms by id. Each transform returns a whole rewritten call or reports and gives up. */
 export const transforms = {

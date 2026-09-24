@@ -6,6 +6,7 @@ import { expandGlob } from './glob.mjs';
 import { createLibrary } from './library.mjs';
 import { indexRenameMap, loadRenameMap, validateRenameMap } from './rename-map.mjs';
 import { rewriteSourceFile } from './rewrite.mjs';
+import { hasOldCreateScope } from './transforms/lifetime-pin.mjs';
 import { transforms } from './transforms/index.mjs';
 
 export { loadTypeScript } from './load-typescript.mjs';
@@ -33,10 +34,10 @@ function loadProgram(ts, { project, files, root, extraFiles }) {
  * Rewrite every source file of a program that is neither a declaration file, nor under
  * `node_modules`, nor part of the library itself.
  * @param {{ typescript: typeof import('typescript'), root: string, project?: string, files?: string[], extraFiles?: string[],
- *   libraryRoots?: string[], map?: object, mapFile?: string, write?: boolean, only?: string[], program?: import('typescript').Program }} options
+ *   libraryRoots?: string[], map?: object, mapFile?: string, write?: boolean, only?: string[], pinLifetimes?: boolean, program?: import('typescript').Program }} options
  * @returns {{ files: { file: string, rewrites: number, text: string }[], manual: { file: string, line: number, column: number, reason: string, text: string }[], rewrites: number }}
  */
-export function runCodemod({ typescript: ts, root, project, files = [], extraFiles = [], libraryRoots = [], map, mapFile = defaultMapFile, write = false, only, program }) {
+export function runCodemod({ typescript: ts, root, project, files = [], extraFiles = [], libraryRoots = [], map, mapFile = defaultMapFile, write = false, only, pinLifetimes = false, program }) {
   const renameMap = map ?? loadRenameMap(mapFile, Object.keys(transforms));
   const problems = validateRenameMap(renameMap, Object.keys(transforms));
   if (problems.length) throw new Error(`invalid rename map:\n${problems.join('\n')}`);
@@ -45,13 +46,22 @@ export function runCodemod({ typescript: ts, root, project, files = [], extraFil
   const checker = built.getTypeChecker();
   const library = createLibrary({ ts, checker, root, libraryRoots });
   const selected = only === undefined ? undefined : new Set(only.map(file => resolve(root, file)));
+  const analysisFiles = built.getSourceFiles().filter(sourceFile => {
+    const fileName = resolve(sourceFile.fileName);
+    return !sourceFile.isDeclarationFile
+      && !fileName.includes('/node_modules/')
+      && !library.isLibraryFile(fileName);
+  });
+  const outputFiles = analysisFiles.filter(sourceFile =>
+    !selected || selected.has(resolve(sourceFile.fileName)));
+  const shouldPinLifetimes = pinLifetimes || hasOldCreateScope({
+    ts, sourceFiles: analysisFiles, library, index,
+  });
   const changed = [];
   const manual = [];
   let rewrites = 0;
-  for (const sourceFile of built.getSourceFiles()) {
+  for (const sourceFile of outputFiles) {
     const fileName = resolve(sourceFile.fileName);
-    if (sourceFile.isDeclarationFile || fileName.includes('/node_modules/') || library.isLibraryFile(fileName)) continue;
-    if (selected && !selected.has(fileName)) continue;
     const fileLabel = relative(root, fileName).replaceAll('\\', '/');
     let result;
     try {
@@ -59,6 +69,7 @@ export function runCodemod({ typescript: ts, root, project, files = [], extraFil
         ts, checker, program: built, sourceFile, library, index, transforms,
         manualItems: manual,
         fileLabel,
+        pinLifetimes: shouldPinLifetimes,
       });
     } catch (error) {
       manual.push({ file: fileLabel, line: 1, column: 1, reason: `this file was left untouched: ${error.message}`, text: '' });

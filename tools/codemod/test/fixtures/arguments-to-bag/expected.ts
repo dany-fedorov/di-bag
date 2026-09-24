@@ -5,8 +5,8 @@ const clock = DiBag.token(clockKey).of<{ now(): number }>();
 const token = clock;
 
 const feature = DiBag.createBuilder()
-  .withServices({ config: () => ({ region: 'eu' }) })
-  .withTokenService({ token: clock, provider: () => ({ now: () => 42 }) })
+  .withServices({ config: (DiBag.fromFactory(() => ({ region: 'eu' }))).withLifetime('scoped:one-per-container') })
+  .withTokenService({ token: clock, provider: (DiBag.fromFactory(() => ({ now: () => 42 }))).withLifetime('scoped:one-per-container') })
   .withServiceAlias({ 'alias-key': 'now', 'target service key': clock })
   .buildModule({ exportedServiceKeys: ['now', 'config'], moduleLabel: 'feature' });
 
@@ -14,21 +14,21 @@ const provider = DiBag.withLifetime({ provider: () => ({ region: 'eu' }), lifeti
 const stamp = DiBag.createProviderFromFunction({ dependencies: [clock], factoryFunction: source => source.now() });
 
 const root = DiBag.createBuilder()
-  .withTokenService({ token, provider: () => ({ now: () => 1 }) })
+  .withTokenService({ token, provider: (DiBag.fromFactory(() => ({ now: () => 1 }))).withLifetime('scoped:one-per-container') })
   .withServices({
     config: provider,
-    stamp,
-    session: ({ config }: { config: { region: string } }) => ({ region: config.region }),
+    stamp: (stamp).withLifetime('scoped:one-per-container'),
+    session: (DiBag.fromFactory(({ config }: { config: { region: string } }) => ({ region: config.region }))).withLifetime('scoped:one-per-container'),
   })
   .build();
 
 export const plainChild = root.createChildContainer();
 export const sharing = root.createChildContainer({ sharedParentServiceKeys: ['session'] });
-export const replacing = root.createChildContainer({ replacedServiceKeys: ['config'], replacementProviders: { config: () => ({ region: 'us' }) }, sharedParentServiceKeys: ['session'] });
+export const replacing = root.createChildContainer({ replacedServiceKeys: ['config'], replacementProviders: { config: (DiBag.fromFactory(() => ({ region: 'us' }))).withLifetime('scoped:one-per-container') }, sharedParentServiceKeys: ['session'] });
 export const test = root.createIndependentContainer({
   replacedServiceKeys: ['config'],
   replacementProviders: {
-    config: () => ({ region: 'test' }),
+    config: (DiBag.fromFactory(() => ({ region: 'test' }))).withLifetime('scoped:one-per-container'),
   },
 });
 export const sealed = feature;
@@ -36,4 +36,4 @@ export const sealed = feature;
 const overrides = [['config'], { config: () => ({ region: 'x' }) }] as const;
 export const spread = root.fork(...overrides);
 const shareOptions = { share: ['session'] } as const;
-export const indirect = root.createScope(['config'], { config: () => ({ region: 'y' }) }, shareOptions);
+export const indirect = root.createScope(['config'], { config: (DiBag.fromFactory(() => ({ region: 'y' }))).withLifetime('scoped:one-per-container') }, shareOptions);
