@@ -3,7 +3,7 @@ import type { RegisterTokenAdmission } from './contribution-types';
 import type { InstalledModulesAdmission, InstalledModulesConstraints, InstalledModulesEntries } from './install-types';
 import type { Module, ModuleOptions } from './module';
 import type { CheckedConstraints, ExternalRequirements, ModuleExportAdmission, ModulePublicProviders, ModuleSealedConstraints, NeedConstraint } from './module-types';
-import type { Factory, FactoryWithDisposal, ProviderOrFactory, Registration, Registrations } from './registration';
+import type { Factory, ProviderOrFactory, Registrations } from './registration';
 import type { ProviderBase, ProviderContext, ProviderNamedDependencies, ProviderOutput } from './provider';
 import type { SealAdmission, WithoutExportObligations } from './lifetime-types';
 import type { BuilderReplacementRegistration, ReplacementAdmission, ReplacedEntries, ZeroDependencyAdmission } from './replacement-types';
@@ -30,6 +30,12 @@ import type {
 } from './types';
 
 type ReplacementFactory<Output> = (this: void) => Output;
+// Inference-only, uninhabitable noncallable arm; never construct or export it.
+declare const replacementInferenceContext: unique symbol;
+type ReplacementInferenceContext<F extends Factory> =
+  ProviderContext<F, TokenDependencyContract> & {
+    readonly [replacementInferenceContext]: never;
+  };
 type FastReplacementOutputAdmission<Entries extends Entry, Constraints extends NeedConstraint, ServiceKey extends string, Replacement extends ProviderOrFactory> =
   [ProviderOutput<NoInfer<Replacement>>] extends [ReplacementOutput<NoInfer<RegistrationsFromEntries<Entries>>, ServiceKey, Constraints>]
     ? unknown
@@ -48,7 +54,7 @@ type ProviderReplacementSelfAdmission<Key, Replacement> =
       : never] extends [never] ? unknown : never;
 
 /** The checked generic `withServices` callable exposed by a builder. */
-export type BuilderWithServices<Entries extends Entry, Constraints extends NeedConstraint> = <Named extends { [Key in keyof Named]: Registration }>(
+export type BuilderWithServices<Entries extends Entry, Constraints extends NeedConstraint> = <Named extends { [Key in keyof Named]: ProviderOrFactory }>(
   providersByName: Named & Registrations & ([Named] extends [never]
     ? never
     : NamedAdmission<Named> & ThenableAdmission<Named> & IntroducesKeys<EntryKeys<Entries>, keyof Named> & IncrementalChecked<Entries, Named> &
@@ -56,9 +62,9 @@ export type BuilderWithServices<Entries extends Entry, Constraints extends NeedC
 ) => import('./di-bag').Builder<Entries | RegistrationEntries<Named>, Constraints>;
 
 /** The checked generic `withTokenService` callable exposed by a builder. */
-export type BuilderWithTokenService<Entries extends Entry, Constraints extends NeedConstraint> = <TokenHandle extends TokenBase, Provider extends Registration>(
+export type BuilderWithTokenService<Entries extends Entry, Constraints extends NeedConstraint> = <TokenHandle extends TokenBase, Provider extends ProviderOrFactory>(
   token: TokenHandle & TokenTupleAdmission<readonly [TokenHandle]> & RegisterTokenAdmission<TokenHandle, Constraints> & IntroducesKeys<EntryKeys<Entries>, TokenKey<TokenHandle>>,
-  provider: Provider & Registration & BindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>> & ThenableAdmission<Record<TokenKey<TokenHandle>, NoInfer<Provider>>> &
+  provider: Provider & ProviderOrFactory & BindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>> & ThenableAdmission<Record<TokenKey<TokenHandle>, NoInfer<Provider>>> &
     IncrementalChecked<Entries, Record<TokenKey<TokenHandle>, TokenBinding<NoInfer<TokenHandle>, NoInfer<Provider>>>> &
     CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<TokenKey<TokenHandle>, TokenBinding<NoInfer<TokenHandle>, NoInfer<Provider>>>>>,
 ) => import('./di-bag').Builder<Entries | { key: TokenKey<TokenHandle>; registration: TokenBinding<TokenHandle, Provider> }, Constraints>;
@@ -77,9 +83,11 @@ export type BuilderWithServiceAlias<Entries extends Entry, Constraints extends N
 
 /** The checked overloads of `withReplacedService` exposed by a builder. */
 export interface BuilderWithReplacedService<Entries extends Entry, Constraints extends NeedConstraint> {
-  <const Key extends string, Provider extends (ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<Entries>>, Key, Constraints>>) | FactoryWithDisposal<ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<Entries>>, Key, Constraints>>>>(
+  <const Key extends string, Provider extends
+    ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<Entries>>, Key, Constraints>>
+    | ReplacementInferenceContext<ReplacementFactory<ReplacementOutput<NoInfer<RegistrationsFromEntries<Entries>>, Key, Constraints>>>>(
     serviceKey: Key & ReplacementKeyOf<EntryKeys<Entries>, Key>,
-    provider: Provider & (Factory | FactoryWithDisposal<Factory>) & ZeroDependencyAdmission<NoInfer<Provider>> &
+    provider: Provider & (Factory | ReplacementInferenceContext<Factory>) & ZeroDependencyAdmission<NoInfer<Provider>> &
       CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<Key, NoInfer<Provider>>>>,
   ): import('./di-bag').Builder<Exclude<Entries, { key: Key }> | { key: Key; registration: Provider }, WithoutExportObligations<Constraints, Key>>;
   /** @typeParam Replacement A provider whose output satisfies the selected string service. */
@@ -92,9 +100,9 @@ export interface BuilderWithReplacedService<Entries extends Entry, Constraints e
       & FastReplacementOutputAdmission<Entries, Constraints, NoInfer<ServiceKey>, NoInfer<Replacement>>
       & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<ServiceKey, NoInfer<Replacement>>>>,
   ): import('./di-bag').Builder<ReplacedEntries<Entries, ServiceKey, Replacement>, WithoutExportObligations<Constraints, ServiceKey>>;
-  <const Key extends string | TokenBase, Provider extends Registration>(
+  <const Key extends string | TokenBase, Provider extends ProviderOrFactory>(
     serviceKey: Key & NoInfer<ReplacementAdmission<RegistrationsFromEntries<Entries>, Constraints, Key>>,
-    provider: Provider & Registration
+    provider: Provider & ProviderOrFactory
       & ProviderReplacementSelfAdmission<NoInfer<Key>, NoInfer<Provider>>
       & BuilderReplacementRegistration<Entries, Constraints, NoInfer<Key>, Provider>,
   ): import('./di-bag').Builder<ReplacedEntries<Entries, Key, Provider>, WithoutExportObligations<Constraints, SelectionKey<Key>>>;

@@ -6,11 +6,11 @@
 
 ```ts
 type OverrideFactoryContext<R extends Registrations, K extends readonly unknown[], O> = {
-    [P in Extract<SelectionKey<K[number]>, keyof SelectionRegistrations<R, K>>]: ((this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>) | FactoryWithDisposal<(this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>> | ProviderContext<(this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>, P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract>;
+    [P in Extract<SelectionKey<K[number]>, keyof SelectionRegistrations<R, K>>]: ((this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>) | ProviderContext<(this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>, P extends keyof O ? ProviderGraphContract<Extract<O[P], ProviderOrFactory>> : TokenDependencyContract>;
 };
 ```
 
-Defined in: [types.ts:394](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L394)
+Defined in: [types.ts:393](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L393)
 
 Contextual replacement shape used to infer a selected independent- or child-container graph.
 

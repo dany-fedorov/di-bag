@@ -2,7 +2,7 @@ import { libraryError } from './errors';
 import { snapshotReferences } from './dependency-references';
 import type { DependencyReference } from './dependency-references';
 import { DiBagPluginValidationError } from './errors';
-import { createProvider, transformService } from './provider';
+import { createProvider, transform } from './provider';
 import type { Provider } from './provider';
 import { retainDescription, sourceDescription } from './provider-operations';
 import type { Factory } from './registration';
@@ -106,11 +106,11 @@ function createPluginProvider(options: unknown):
   if (bag.factoryReturnKind === 'uninspected') {
     const source = createProvider<Factory, Readonly<{}>, readonly [], ReferenceGraph<readonly DependencyReference[]>, unknown>();
     retainDescription(source, sourceDescription(create, dispose, references.map(reference => reference.key), 'uninspected', false, references));
-    return transformService(source, { mode: 'direct', transform: project, acquisitionMode: 'uninspected' }) as unknown as PluginProvider<readonly DependencyReference[], unknown, PluginReturnKind>;
+    return transform(source, { kind: 'map-sync', project, factoryReturnKind: 'uninspected' }) as unknown as PluginProvider<readonly DependencyReference[], unknown, PluginReturnKind>;
   }
   const source = createProvider<() => Promise<unknown>, Readonly<{}>, readonly [], ReferenceGraph<readonly DependencyReference[]>, unknown>();
   retainDescription(source, sourceDescription(create, dispose, references.map(reference => reference.key), 'native-promise', false, references));
-  return transformService(source, { mode: 'awaited', transform: project }) as unknown as PluginProvider<readonly DependencyReference[], unknown, PluginReturnKind>;
+  return transform(source, { kind: 'map-async', project, factoryReturnKind: 'native-promise' }) as unknown as PluginProvider<readonly DependencyReference[], unknown, PluginReturnKind>;
 }
 
 export const createProviderFromPlugin: CreateProviderFromPlugin = createPluginProvider as CreateProviderFromPlugin;

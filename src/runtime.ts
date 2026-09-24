@@ -6,7 +6,7 @@ import type { Sequence } from './persistent-sequence';
 import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import { normalize } from './registration';
-import type { Registration, Registrations } from './registration';
+import type { ProviderOrFactory, Registrations } from './registration';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
 import { classifierRequired, resolveClassifier } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
@@ -22,7 +22,7 @@ export type BindingRef =
 export interface BindingDescription {
   readonly id: BindingId;
   readonly label: string;
-  readonly registration: Registration;
+  readonly registration: ProviderOrFactory;
   readonly localNames: ReadonlyMap<BindingKey, BindingRef>;
 }
 
@@ -229,7 +229,7 @@ export class BindingGraph {
 
   private addBinding(
     label: string,
-    registration: Registration,
+    registration: ProviderOrFactory,
     operation: string,
   ): BindingId {
     const id = Symbol(label);
@@ -256,7 +256,7 @@ export class BindingGraph {
 
   withContribution(
     key: symbol,
-    registration: Registration,
+    registration: ProviderOrFactory,
     operation = 'contribute',
   ): BindingGraph {
     const graph = this.copy();
@@ -338,7 +338,7 @@ export class BindingGraph {
 
   /** Replace ordered slots and prune only unreferenced public replacement history. */
   withPublicBindings(
-    entries: readonly (readonly [BindingKey, Registration])[],
+    entries: readonly (readonly [BindingKey, ProviderOrFactory])[],
     operation = 'register',
   ): BindingGraph {
     if (entries.length === 0) return this;
@@ -364,7 +364,7 @@ export class BindingGraph {
 
   withPublicBinding(
     key: BindingKey,
-    registration: Registration,
+    registration: ProviderOrFactory,
     operation = 'register',
   ): BindingGraph {
     return this.withPublicBindings([[key, registration]], operation);

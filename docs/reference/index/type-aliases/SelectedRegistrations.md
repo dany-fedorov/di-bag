@@ -6,11 +6,11 @@
 
 ```ts
 type SelectedRegistrations<K extends readonly unknown[], O> = {
-    [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], Registration>;
+    [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], ProviderOrFactory>;
 };
 ```
 
-Defined in: [types.ts:351](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L351)
+Defined in: [types.ts:350](https://github.com/dany-fedorov/di-bag/blob/main/src/types.ts#L350)
 
 Select registration-valued own fields corresponding to a checked key tuple.
 

@@ -1,7 +1,7 @@
 import { libraryError } from './errors';
 import type { BindingGraph, BindingKey, BindingId } from './runtime';
 import { normalize } from './registration';
-import type { Registration } from './registration';
+import type { ProviderOrFactory } from './registration';
 import { snapshotOptionsBag } from './options-bag';
 import { readToken, wrongTokenKind } from './tokens';
 import type { TokenKind } from './tokens';
@@ -45,7 +45,7 @@ function selectedBindings(
   operation: string,
   selected: readonly ContainerSelectedKey[],
   providers: unknown,
-): Array<readonly [BindingKey, Registration]> {
+): Array<readonly [BindingKey, ProviderOrFactory]> {
   if (typeof providers !== 'object' || providers === null || Array.isArray(providers)) {
     throw libraryError('DI_BAG_INVALID_ARGUMENT', `${operation} requires replacementProviders to be an object`, {
       operation, argument: 'replacementProviders', expected: 'an object',
@@ -59,14 +59,14 @@ function selectedBindings(
       throw libraryError('DI_BAG_INVALID_OVERRIDE', `missing ${operation} replacement provider: ${String(key)}`, { operation });
     }
   }
-  const bindings: Array<readonly [BindingKey, Registration]> = [];
+  const bindings: Array<readonly [BindingKey, ProviderOrFactory]> = [];
   const seen = new Set<BindingKey>();
   for (const { key } of selected) {
     if (seen.has(key)) continue;
     seen.add(key);
     const registration: unknown = Reflect.get(providers, key);
     normalize(registration, operation);
-    bindings.push([key, registration as Registration]);
+    bindings.push([key, registration as ProviderOrFactory]);
   }
   return bindings;
 }

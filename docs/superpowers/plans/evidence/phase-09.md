@@ -62,4 +62,42 @@ The preferred Provider instance-method design was rejected after its third and f
 
 Earlier Phase 9 Task 5 attempts remain preserved as provenance, not accepted budget rows: `phase09-task05-standard-c19880d.deferred.json` records a 12 GiB prelaunch deferral; `phase09-task05-standard-c19880d-retry-01.{json,log,guard-stdout.log,rows.json}` records twelve sandbox `spawnSync …/node EPERM` child-launch failures; `phase09-task05-provider-old-c19880d-subprocess-01.deferred.json` records a second 12 GiB prelaunch deferral; and `phase09-task05-provider-old-c19880d-subprocess-02-9gib.{json,log,guard-stdout.log}` records the missing-`tsx` preload before any provider row was produced. The controller's resource and EPERM rulings, the user's 9 GiB override, and the native-Node command ruling authorized the successful serialized attempts above. None of these preliminary attempts supplies compiler-cost evidence.
 
-Decision: **S2 preferred Provider methods rejected; the complete `DiBag.providerWith*` fallback selected and accepted at this expand checkpoint.** Acceptance rests on all twelve standard rows and both same-checkpoint provider rows passing their separate gates above. The final post-contraction twelve-row rerun remains Task 6 work. The old 100-provider worker must not be rerun after compatibility declarations are removed.
+Decision: **S2 preferred Provider methods rejected; the complete `DiBag.providerWith*` fallback selected and accepted at this expand checkpoint.** Acceptance rests on all twelve standard rows and both same-checkpoint provider rows passing their separate gates above. The final post-contraction twelve-row rerun is recorded below. The old 100-provider worker was not rerun after compatibility declarations were removed.
+
+## Final post-contraction evidence
+
+After Task 6 removed the compatibility declarations, the unchanged standard
+worker ran once more against the original phase-0 baseline:
+
+```sh
+DI_BAG_GUARD_MIN_AVAILABLE_GIB=12 python3 /tmp/di-bag-resume-20260921/run-guarded.py phase09-task06-post-contraction-standard-12gib /tmp/di-bag-resume-20260921/phase09 node scripts/evidence-cases.mjs --compare docs/superpowers/plans/evidence/baseline.md --json /tmp/phase-09-task06-final-evidence.json
+```
+
+The guard exited 0 after 66.02 seconds, did not resource-stop, and observed a
+9.10 GiB minimum after launching at 13.68 GiB. The archived rows are
+`phase09-task06-post-contraction-standard-12gib.rows.json` with SHA-256
+`6348f4b6a53abcfa66abe6ac2006fdbce60d804946a0f5eee7fe273f3dafd283`.
+Every row reports Node `v24.20.0`, TypeScript `6.0.3`, and `accepted: true`.
+
+| Case | Count | Baseline instantiations | Measured instantiations | Change | Milliseconds | Max RSS MiB | Accepted | 110% ceiling |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| bulk | 100 | 159,001 | 142,340 | -10.48% | 1,079 | 360 | yes | 174,901 |
+| chained | 100 | 787,814 | 765,807 | -2.79% | 1,526 | 414 | yes | 866,595 |
+| grouped | 100 | 166,348 | 149,633 | -10.05% | 1,111 | 359 | yes | 182,982 |
+| replacement | 100 | 1,031,260 | 1,015,917 | -1.49% | 1,504 | 413 | yes | 1,134,386 |
+| bindings | 100 | 847,247 | 830,440 | -1.98% | 1,929 | 436 | yes | 931,971 |
+| modules | 100 | 1,241,644 | 789,432 | -36.42% | 2,164 | 451 | yes | 1,365,808 |
+| bulk | 500 | 806,601 | 790,740 | -1.97% | 1,715 | 439 | yes | 887,261 |
+| chained | 500 | 13,956,214 | 13,913,407 | -0.31% | 10,857 | 1,688 | yes | 15,351,835 |
+| grouped | 500 | 1,060,372 | 1,044,025 | -1.54% | 1,719 | 417 | yes | 1,166,409 |
+| replacement | 500 | 21,767,660 | 21,757,917 | -0.04% | 13,906 | 2,258 | yes | 23,944,426 |
+| bindings | 500 | 12,153,047 | 12,135,840 | -0.14% | 11,494 | 1,751 | yes | 13,368,351 |
+| modules | 500 | 19,719,044 | 10,524,032 | -46.63% | 11,627 | 1,827 | yes | 21,690,948 |
+
+The exact contracted candidate was also exercised on GitHub Actions. CI run
+`36022401749` passed both `contracts` and `portable` on commit `cdc8e86`,
+including the complete check, classic and native retention/scale gates, native
+type/build/diagnostic checks, graph and codemod checks, packed graph-tool smoke
+test, agent evaluation, examples, and platform/browser gates. Documentation run
+`36022434721` passed `docs:check`, the site build, and artifact upload on the
+same commit; deployment was correctly skipped for the temporary branch.

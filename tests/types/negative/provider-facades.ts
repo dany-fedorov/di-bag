@@ -3,10 +3,10 @@ const provider = DiBag.createProvider(async () => 1);
 // diagnostic: lifetime requires an individually known policy literal
 DiBag.providerWithLifetime({ provider, lifetime: 'scoped' });
 DiBag.providerWithLifetime({ provider, lifetime: 'scoped:one-per-container',
-  // diagnostic: withLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
+  // diagnostic: providerWithLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
   allowsScopedDependencies: false });
 DiBag.providerWithLifetime({ provider, lifetime: 'transient:one-per-resolve',
-  // diagnostic: withLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
+  // diagnostic: providerWithLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
   allowsScopedDependencies: false });
 DiBag.providerWithLifetime({ provider, lifetime: 'scoped:one-per-container',
   // diagnostic: Type 'undefined' is not assignable
@@ -15,7 +15,7 @@ DiBag.providerWithLifetime({ provider, lifetime: 'singleton:one-per-container-tr
   // diagnostic: Type 'string' is not assignable to type 'boolean'
   allowsScopedDependencies: 'yes' });
 DiBag.providerWithLifetime({ provider, lifetime: 'singleton:one-per-container-tree',
-  // diagnostic: withLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
+  // diagnostic: providerWithLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
   extra: true });
 // diagnostic: Type '"later"' is not assignable to type '"exposed-service"'
 // diagnostic-native-gap: last-provider-acquisition-mode

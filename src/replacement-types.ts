@@ -1,16 +1,16 @@
 import type { NeedConstraint, CheckedConstraints } from './module-types';
 import type { ProviderFactory } from './provider';
-import type { Registration, Registrations } from './registration';
+import type { ProviderOrFactory, Registrations } from './registration';
 import type { TokenBinding, BindingOutput, TokenMember } from './token-types';
 import type { CollectionTokenBase, TokenBase, TokenKey } from './tokens';
 import type { CollectionMember } from './contribution-types';
 import type { Entry, RegistrationsFromEntries, IncrementalChecked, OverrideRegistrations, ReplacementKey, SelectionRegistrations } from './types';
 
-type DependencyBearingRegistration<R extends Registration> = R extends unknown
+type DependencyBearingRegistration<R extends ProviderOrFactory> = R extends unknown
   ? Parameters<ProviderFactory<R>> extends [] ? never : R
   : never;
 
-export type ZeroDependencyAdmission<R extends Registration> =
+export type ZeroDependencyAdmission<R extends ProviderOrFactory> =
   [DependencyBearingRegistration<R>] extends [never] ? unknown : never;
 
 export type ReplacementAdmission<R extends Registrations, C, K extends string | TokenBase> =
@@ -20,7 +20,7 @@ export type BuilderReplacementRegistration<
   E extends Entry,
   C extends NeedConstraint,
   K extends string | TokenBase,
-  V extends Registration,
+  V extends ProviderOrFactory,
 > = [K] extends [string]
   ? IncrementalChecked<E, Record<K, NoInfer<V>>>
     & CheckedConstraints<C, OverrideRegistrations<RegistrationsFromEntries<E>, Record<K, NoInfer<V>>>>
@@ -33,12 +33,12 @@ export type BuilderReplacementRegistration<
         >>
     : never;
 
-type ReflectedEntry = { key: never; registration: TokenBinding<TokenBase, Registration> };
+type ReflectedEntry = { key: never; registration: TokenBinding<TokenBase, ProviderOrFactory> };
 
 export type ReplacedEntries<
   E extends Entry,
   K extends string | TokenBase,
-  V extends Registration,
+  V extends ProviderOrFactory,
 > = [K] extends [string]
   ? Exclude<E, { key: K }> | { key: K; registration: V }
   : [K] extends [TokenBase]

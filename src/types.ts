@@ -1,7 +1,6 @@
 import type {
   Factory,
-  FactoryWithDisposal,
-  Registration,
+  ProviderOrFactory,
   Registrations,
 } from './registration';
 import type { ProviderContext, ProviderNamedDependencies, ProviderOutput, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens } from './provider';
@@ -10,7 +9,7 @@ import type { CollectionTokenBase, TokenBase, TokenKey } from './tokens';
 import type { CollectionMember } from './contribution-types';
 import type { BoundToken } from './provider';
 
-export type Needs<R extends Registration> = ProviderNamedDependencies<R>;
+export type Needs<R extends ProviderOrFactory> = ProviderNamedDependencies<R>;
 
 /**
  * Map registrations to the exact service values they expose.
@@ -21,10 +20,10 @@ export type ServicesOf<R extends Registrations> = {
 };
 
 // Keep builder history flat; reconstruct a map only at graph-check boundaries.
-export type Entry = { key: string | symbol; registration: Registration };
+export type Entry = { key: string | symbol; registration: ProviderOrFactory };
 
 // Compare distinct keys before the registration types retained by an entry union.
-type RegistrationEntry<K extends string | symbol, V extends Registration> = { key: K; registration: V };
+type RegistrationEntry<K extends string | symbol, V extends ProviderOrFactory> = { key: K; registration: V };
 
 /**
  * Convert a registration map to the union of entries retained by a builder.
@@ -66,9 +65,9 @@ export type StructuralThenable<O> = StructuralThenablesAllowed extends true ? fa
     // Infer through an intersection first: a NoInfer wrapper otherwise defers the check in adapter signatures.
     : O extends infer T & {} ? T extends Promise<unknown> ? false : T extends { then(...args: never[]): unknown } ? true : false : false;
 type ThenableOutputs<R extends Registrations> = {
-  [K in keyof R]: R[K] extends Factory | FactoryWithDisposal<Factory> ? true extends StructuralThenable<ProviderOutput<R[K]>> ? K : never : never;
+  [K in keyof R]: R[K] extends Factory ? true extends StructuralThenable<ProviderOutput<R[K]>> ? K : never : never;
 }[keyof R];
-/** Reject plain or disposable factories whose declared output auto acquisition would reject at runtime. */
+/** Reject plain factories whose declared output auto acquisition would reject at runtime. */
 export type ThenableAdmission<R extends Registrations> = [ThenableOutputs<R>] extends [never] ? unknown
   : Unsatisfied<`factory output is a structural thenable: ${NameText<ThenableOutputs<R>>}; return a native Promise or use DiBag.createProvider with factoryReturnKind 'uninspected' or 'native-promise'${SeeErrors<'structural-thenable'>}`, { tokens: ThenableOutputs<R> }>;
 
@@ -349,12 +348,12 @@ type InvalidSelection<Operation extends string> = Unsatisfied<
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
  */
 export type SelectedRegistrations<K extends readonly unknown[], O> = {
-  [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], Registration>;
+  [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], ProviderOrFactory>;
 };
 type CollectionSelectionMember<V> = V extends CollectionTokenBase ? Record<TokenKey<V>, () => TokenValue<V>> : never;
 export type CollectionSelection<K extends readonly unknown[]> = [Extract<K[number], CollectionTokenBase>] extends [never] ? {}
   : Intersect<CollectionSelectionMember<K[number]>> extends infer Exact extends object
-    ? { [P in keyof Exact]: Extract<Exact[P], Registration> }
+    ? { [P in keyof Exact]: Extract<Exact[P], ProviderOrFactory> }
     : never;
 export type SelectionRegistrations<R extends Registrations, K extends readonly unknown[]> =
   Extract<Omit<R, keyof CollectionSelection<K>> & CollectionSelection<K>, Registrations>;
@@ -364,7 +363,7 @@ type OverrideOutput<Base extends Registrations, K extends readonly unknown[], P 
     ? unknown
     : ServicesOf<Base>[P];
 type CollectionOverrideMember<O, T> = T extends CollectionTokenBase
-  ? TokenKey<T> extends keyof O ? BindingOutput<T, Extract<O[TokenKey<T>], Registration>> : unknown
+  ? TokenKey<T> extends keyof O ? BindingOutput<T, Extract<O[TokenKey<T>], ProviderOrFactory>> : unknown
   : unknown;
 export type CollectionOverrideAdmission<K extends readonly unknown[], O> = Intersect<
   K[number] extends infer T ? CollectionOverrideMember<O, T> : never
@@ -401,15 +400,9 @@ export type OverrideFactoryContext<
         this: void,
         dependencies: ServicesOf<AppliedSelection<R, K, O>>,
       ) => OverrideOutput<SelectionRegistrations<R, K>, K, P>)
-    | FactoryWithDisposal<
-        (
-          this: void,
-          dependencies: ServicesOf<AppliedSelection<R, K, O>>,
-        ) => OverrideOutput<SelectionRegistrations<R, K>, K, P>
-      >
     | ProviderContext<
         (this: void, dependencies: ServicesOf<AppliedSelection<R, K, O>>) => OverrideOutput<SelectionRegistrations<R, K>, K, P>,
-        P extends keyof O ? ProviderGraphContract<Extract<O[P], Registration>> : TokenDependencyContract
+        P extends keyof O ? ProviderGraphContract<Extract<O[P], ProviderOrFactory>> : TokenDependencyContract
       >;
 };
 

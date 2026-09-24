@@ -1,7 +1,7 @@
 import { libraryError } from './errors';
 import { createProvider } from './provider';
 import { retainDescription, sourceDescription } from './provider-operations';
-import type { Registration } from './registration';
+import type { ProviderOrFactory } from './registration';
 import type { BindingKey } from './runtime';
 import { readSingleServiceKey, readToken } from './tokens';
 
@@ -11,7 +11,7 @@ const collectionAliasLifetime = Object.freeze({
 });
 
 /** Authenticate both selections before constructing any retained registration. */
-export function aliasEntry(aliasKey: unknown, targetServiceKey: unknown, hasKey: (key: BindingKey) => boolean): readonly [BindingKey, Registration] {
+export function aliasEntry(aliasKey: unknown, targetServiceKey: unknown, hasKey: (key: BindingKey) => boolean): readonly [BindingKey, ProviderOrFactory] {
   const operation = 'withServiceAlias';
   const key = typeof aliasKey === 'string' ? aliasKey : readSingleServiceKey(aliasKey, operation);
   const targetToken = typeof targetServiceKey === 'string' ? undefined : readToken(targetServiceKey);

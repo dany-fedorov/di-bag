@@ -1,5 +1,5 @@
 import type { ContributionConstraint } from './contribution-types';
-import type { Registration, Registrations } from './registration';
+import type { ProviderOrFactory, Registrations } from './registration';
 import type { ProviderGraphContract, ProviderNamedDependencies, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens } from './provider';
 import type { TokenBase, TokenKey } from './tokens';
 import type { CheckDependencyCompatibility, CheckDependencyCompleteness, NameText, SeeErrors, Unsatisfied } from './types';
@@ -32,14 +32,14 @@ type SiteText<S> = S extends ContributionSite ? 'contribution' : NameText<S>;
 type CaptiveText<C> = C extends { readonly root: infer R; readonly dependency: infer D } ? `${SiteText<R>} -> ${SiteText<D>}` : never;
 
 // Distribute registration unions and NoInfer wrappers so each member keeps its own policy.
-type Members<V> = V extends infer T & {} ? T extends Registration ? T : never : never;
+type Members<V> = V extends infer T & {} ? T extends ProviderOrFactory ? T : never : never;
 type Strict<T> = ProviderGraphContract<T> extends infer G ? G extends { readonly lifetime: { readonly kind: 'singleton'; readonly allowsScopedDependencies: infer A } }
   ? [A] extends [true] ? false : true : false : false;
 type Carrying<T> = ProviderGraphContract<T> extends infer G
   ? G extends { readonly alias: PropertyKey } | { readonly lifetime: { readonly kind: 'transient' } } ? true : false : false;
-type StrictMembers<V> = Members<V> extends infer T ? T extends Registration ? true extends Strict<T> ? T : never : never : never;
-type CarrierMembers<V> = Members<V> extends infer T ? T extends Registration ? true extends Strict<T> | Carrying<T> ? T : never : never : never;
-type Dependencies<V> = V extends Registration ? keyof ProviderNamedDependencies<V> | TokenKey<ProviderRequiredTokens<V> | ProviderOptionalTokens<V>> : never;
+type StrictMembers<V> = Members<V> extends infer T ? T extends ProviderOrFactory ? true extends Strict<T> ? T : never : never : never;
+type CarrierMembers<V> = Members<V> extends infer T ? T extends ProviderOrFactory ? true extends Strict<T> | Carrying<T> ? T : never : never : never;
+type Dependencies<V> = V extends ProviderOrFactory ? keyof ProviderNamedDependencies<V> | TokenKey<ProviderRequiredTokens<V> | ProviderOptionalTokens<V>> : never;
 // A projected alias has no dependency object left; its target is the alias key.
 type AliasKeys<V> = ProviderGraphContract<V> extends infer G ? G extends { readonly alias: infer A } ? A : never : never;
 type CollectionKeys<V> = ProviderCollectionTokens<V> extends infer T ? T extends TokenBase ? TokenKey<T> : never : never;
@@ -59,7 +59,7 @@ type ExportReaches<C, K> = C extends { readonly kind: 'export-reach'; readonly e
 type Reached<R extends Registrations, P, C, D, Visited> = D extends P ? { readonly kind: 'export'; readonly key: D }
   : D extends keyof R ? D extends Visited ? never : ReachTarget<R, P, C, R[D], D, Visited | D>
   : D extends PropertyKey ? { readonly kind: 'external'; readonly key: D } : never;
-type ReachTarget<R extends Registrations, P, C, V, D, Visited> = Members<V> extends infer T ? T extends Registration
+type ReachTarget<R extends Registrations, P, C, V, D, Visited> = Members<V> extends infer T ? T extends ProviderOrFactory
   ? ProviderGraphContract<T> extends infer G
     ? G extends { readonly kind: 'opaque' } ? never
     : G extends { readonly alias: PropertyKey } ? Reaches<R, P, C, T, D, Visited>
@@ -89,7 +89,7 @@ type ExportObligations<R extends Registrations, P, C> = {
 type ContributionPolicy<T> = true extends Strict<T> ? 'singleton'
   : ProviderGraphContract<T> extends infer G ? G extends { readonly lifetime: { readonly kind: 'transient' } } ? 'transient' : never : never;
 type OwnContributions<R extends Registrations, P, C, I = Extract<C, ContributionConstraint>> = I extends ContributionConstraint
-  ? Members<I['registration']> extends infer T ? T extends Registration ? ContributionPolicy<T> extends infer Policy ? Policy extends 'singleton' | 'transient'
+  ? Members<I['registration']> extends infer T ? T extends ProviderOrFactory ? ContributionPolicy<T> extends infer Policy ? Policy extends 'singleton' | 'transient'
     ? AsContribution<TokenKey<I['token']>, Policy, Reaches<R, P, C, T, never, never>> : never : never : never : never
   : never;
 type RetainedContributions<R extends Registrations, P, C, O = C> = O extends { readonly kind: 'contribution-reach'; readonly group: infer T; readonly policy: infer Policy; readonly reach: infer X }
@@ -148,7 +148,7 @@ type Captured<D> = { readonly captured: D };
 type GroupReaches<C, T> = C extends { readonly kind: 'contribution-reach'; readonly group: T; readonly policy: 'transient'; readonly reach: infer X } ? X : never;
 type Collected<T> = { readonly collection: T };
 type HostReach<R extends Registrations, C, D, Visited> = D extends keyof R ? D extends Visited ? never : HostTarget<R, C, R[D], D, Visited | D> : never;
-type HostTarget<R extends Registrations, C, V, D, Visited> = Members<V> extends infer T ? T extends Registration
+type HostTarget<R extends Registrations, C, V, D, Visited> = Members<V> extends infer T ? T extends ProviderOrFactory
   ? ProviderGraphContract<T> extends infer G
     // A selected child alias resolves in its parent's registrations.
     ? G extends { readonly sharedAlias: { readonly registrations: infer S extends Registrations; readonly source: infer K } } ? HostReach<S, C, K, never>
@@ -170,7 +170,7 @@ type HostCollection<R extends Registrations, C, T, Visited> = T extends symbol ?
     | HostFollow<R, C, GroupReaches<C, T>, Visited | Collected<T>>
   : never;
 type HostContributions<R extends Registrations, C, T, Visited, I = Extract<C, ContributionConstraint>> = I extends ContributionConstraint
-  ? TokenKey<I['token']> extends T ? Members<I['registration']> extends infer M ? M extends Registration ? ProviderGraphContract<M> extends infer G
+  ? TokenKey<I['token']> extends T ? Members<I['registration']> extends infer M ? M extends ProviderOrFactory ? ProviderGraphContract<M> extends infer G
     ? G extends { readonly kind: 'opaque' } ? never
     : G extends { readonly lifetime: { readonly kind: 'singleton' } } ? never
     : G extends { readonly lifetime: { readonly kind: 'transient' } } ? HostReaches<R, C, M, never, Visited>

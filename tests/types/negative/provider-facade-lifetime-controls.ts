@@ -7,7 +7,7 @@ const unknownOptions = {
   lifetime: 'singleton:one-per-container-tree',
   extra: true,
 } as const;
-// diagnostic: withLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
+// diagnostic: providerWithLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
 DiBag.providerWithLifetime(unknownOptions);
 
 const undefinedOptions = {
@@ -29,18 +29,18 @@ declare const optionalScopedOptions: {
   readonly lifetime: 'scoped:one-per-container';
   readonly allowsScopedDependencies?: boolean;
 };
-// diagnostic: withLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
+// diagnostic: providerWithLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
 DiBag.providerWithLifetime(optionalScopedOptions);
 
 declare const indexedOptions: {
   readonly provider: typeof provider;
   readonly lifetime: 'singleton:one-per-container-tree';
 } & Readonly<Record<string, unknown>>;
-// diagnostic: withLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
+// diagnostic: providerWithLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
 DiBag.providerWithLifetime(indexedOptions);
 
 const extraSymbol = Symbol('extra');
 DiBag.providerWithLifetime({ provider, lifetime: 'singleton:one-per-container-tree',
-  // diagnostic: withLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
+  // diagnostic: providerWithLifetime allowsScopedDependencies requires singleton lifetime and a boolean value
   [extraSymbol]: true,
 });
