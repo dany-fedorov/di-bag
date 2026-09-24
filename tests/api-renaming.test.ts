@@ -15,7 +15,7 @@ test('combined metadata retains static descriptions and ordered direct/awaited f
     describeAcquisition: pending => ({ same: pending === value }),
   });
   const annotated = DiBag.providerWithAcquisitionMetadata({ provider: direct, describeAcquisition: item => ({ id: item.id, payload: undefined }), callbackReceives: 'fulfilled-value' });
-  const bag = DiBag.createBuilder().withServices({ direct: DiBag.providerWithLifetime({ provider: direct, lifetime: 'scoped:one-per-container' }), annotated: DiBag.providerWithLifetime({ provider: annotated, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ direct, annotated }).buildContainer();
   expect(bag.serviceSnapshot('annotated').registrationMetadata).toEqual({ module: 'billing' });
   expect(bag.resolve('direct')).toBe(value);
   expect(await bag.resolve('annotated')).toEqual({ id: 7 });
@@ -48,7 +48,7 @@ test('providerWithTransformedService retains earlier ownership and raw output di
   const pending = Promise.resolve('result');
   const source = DiBag.providerWithDisposal({ provider: () => connection, disposeService: value => { disposed.push(value); } });
   const transformed = DiBag.providerWithDisposal({ provider: DiBag.providerWithTransformedService({ provider: source, transformService: value => { expect(value).toBe(connection); return pending; }, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } });
-  const bag = DiBag.createBuilder().withServices({ transformed: DiBag.providerWithLifetime({ provider: transformed, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ transformed }).buildContainer();
   expect(bag.resolve('transformed')).toBe(pending);
   await bag.close();
   expect(disposed).toEqual([pending, connection]);
@@ -61,9 +61,9 @@ test('register, acquisition context, modules and immutable observer configuratio
   const configKey = Symbol('config');
   const token = api.createToken(configKey).forService<number>();
   let signal: AbortSignal | undefined;
-  const module = api.createBuilder().withServices({ internal: DiBag.providerWithLifetime({ provider: () => 3, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['internal'] }).withRenamedExport({ currentExportKey: 'internal', newExportKey: 'number' });
-  const bag = api.createBuilder().withTokenService(token, DiBag.providerWithLifetime({ provider: () => 4, lifetime: 'scoped:one-per-container' })).withInstalledModules([module]).withServices({
-    contextual: DiBag.providerWithLifetime({ provider: api.createProvider(({ number }: { number: number }, context) => { signal = context.abortSignal; return number; }, { factoryReceivesContext: true }), lifetime: 'scoped:one-per-container' }),
+  const module = api.createBuilder().withServices({ internal: () => 3 }).buildModule({ exportedServiceKeys: ['internal'] }).withRenamedExport({ currentExportKey: 'internal', newExportKey: 'number' });
+  const bag = api.createBuilder().withTokenService(token, () => 4).withInstalledModules([module]).withServices({
+    contextual: api.createProvider(({ number }: { number: number }, context) => { signal = context.abortSignal; return number; }, { factoryReceivesContext: true }),
   }).buildContainer();
   expect(bag.resolve(token)).toBe(4);
   expect(bag.resolve('contextual')).toBe(3);
@@ -77,20 +77,20 @@ test('register, acquisition context, modules and immutable observer configuratio
 
 test('diagnostics count callbacks, retain cycles and preserve application error identity', async () => {
   const applicationError = new Error('application');
-  const bad = DiBag.createBuilder().withServices({ bad: DiBag.providerWithLifetime({ provider: () => { throw applicationError; }, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bad = DiBag.createBuilder().withServices({ bad: () => { throw applicationError; } }).buildContainer();
   expect(caught(() => bad.resolve('bad'))).toBe(applicationError);
   await bad.close();
   const closed = caught(() => bad.resolve('bad'));
   expect(closed).toMatchObject({ code: 'DI_BAG_CLOSED', details: { state: 'closed' } });
   let cycleBag: any;
-  cycleBag = DiBag.createBuilder().withServices({ a: DiBag.providerWithLifetime({ provider: () => cycleBag.resolve('b'), lifetime: 'scoped:one-per-container' }), b: DiBag.providerWithLifetime({ provider: () => cycleBag.resolve('a'), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  cycleBag = DiBag.createBuilder().withServices({ a: () => cycleBag.resolve('b'), b: () => cycleBag.resolve('a') }).buildContainer();
   const cycle = caught(() => cycleBag.resolve('a'));
   expect(cycle.message).toContain('a -> b -> a');
   expect(cycle.details.path).toEqual(['a', 'b', 'a']);
   await cycleBag.close();
   const dispose = () => { throw applicationError; };
   const owned = DiBag.providerWithDisposal({ provider: DiBag.providerWithDisposal({ provider: () => 1, disposeService: dispose }), disposeService: dispose });
-  const bag = DiBag.createBuilder().withServices({ owned: DiBag.providerWithLifetime({ provider: owned, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ owned }).buildContainer();
   bag.resolve('owned');
   try { await bag.close(); throw new Error('expected cleanup failure'); }
   catch (error) {
@@ -101,7 +101,7 @@ test('diagnostics count callbacks, retain cycles and preserve application error 
 });
 
 test('missing dependency diagnostics identify consumer and complete resolution path', async () => {
-  const bag = DiBag.createBuilder().withServices({ api: DiBag.providerWithLifetime({ provider: ({ db }: { db: unknown }) => db, lifetime: 'scoped:one-per-container' }) } as never).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ api: ({ db }: { db: unknown }) => db } as never).buildContainer();
   const error = caught(() => (bag as any).resolve('api'));
   expect(error.code).toBe('DI_BAG_MISSING_DEPENDENCY');
   expect(error.details).toMatchObject({ consumer: 'api', dependency: 'db', path: ['api', 'db'] });
@@ -159,7 +159,7 @@ test('metadata snapshots dynamic mode and callback once before static getters ru
     }),
     get registrationMetadata() { return options.static; },
   });
-  const bag = DiBag.createBuilder().withServices({ provider: DiBag.providerWithLifetime({ provider: provider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
   expect(bag.resolve('provider')).toBe(7);
   expect(modeReads).toBe(1);
   expect(callbackReads).toBe(1);

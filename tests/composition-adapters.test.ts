@@ -17,7 +17,7 @@ test('class adapters construct lazily with private fields, inherited prototypes 
   let calls = 0;
   class Derived extends Client { constructor(value: number) { super(value); calls++; } }
   const source = DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Derived });
-  const bag = DiBag.createBuilder().withTokenService(port, DiBag.providerWithLifetime({ provider: () => 8080, lifetime: 'scoped:one-per-container' })).withServices({ source: DiBag.providerWithLifetime({ provider: source, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = DiBag.createBuilder().withTokenService(port, () => 8080).withServices({ source: source }).buildContainer();
   expect(calls).toBe(0);
   const client = bag.resolve('source');
   expect(client).toBeInstanceOf(Derived);
@@ -36,7 +36,7 @@ test('constructor validation invokes neither the constructor nor its prototype g
   });
   const source = DiBag.createProviderFromClass({ dependencies: [], serviceClass: original });
   expect(calls).toBe(0); expect(prototypeReads).toBe(0);
-  const bag = DiBag.createBuilder().withServices({ source: DiBag.providerWithLifetime({ provider: source, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ source: source }).buildContainer();
   bag.resolve('source');
   expect(calls).toBe(1); expect(prototypeReads).toBe(1);
   await bag.close();
@@ -46,10 +46,10 @@ test('function adapters pass positional values exactly and support explicitly bo
   const promiseKey = Symbol('promise'); const promised = DiBag.createToken(promiseKey).forService<Promise<number>>();
   const pending = Promise.resolve(9);
   const receiver = { prefix: 'port:', format(this: { prefix: string }, value: number) { return this.prefix + value; } };
-  const bag = DiBag.createBuilder().withTokenService(port, DiBag.providerWithLifetime({ provider: () => 80, lifetime: 'scoped:one-per-container' })).withTokenService(promised, DiBag.providerWithLifetime({ provider: () => pending, lifetime: 'scoped:one-per-container' })).withServices({
-    source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [port, promised], factoryFunction: function (this: void, value, promise) { return { receiver: this, value, promise }; } }), lifetime: 'scoped:one-per-container' }),
-    bound: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: receiver.format.bind(receiver) }), lifetime: 'scoped:one-per-container' }),
-    empty: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: () => 'empty' }), lifetime: 'scoped:one-per-container' }),
+  const bag = DiBag.createBuilder().withTokenService(port, () => 80).withTokenService(promised, () => pending).withServices({
+    source: DiBag.createProviderFromFunction({ dependencies: [port, promised], factoryFunction: function (this: void, value, promise) { return { receiver: this, value, promise }; } }),
+    bound: DiBag.createProviderFromFunction({ dependencies: [port], factoryFunction: receiver.format.bind(receiver) }),
+    empty: DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: () => 'empty' }),
   }).buildContainer();
   expect(bag.resolve('source')).toEqual({ receiver: undefined, value: 80, promise: pending });
   expect(bag.resolve('source').promise).toBe(pending);
@@ -60,10 +60,10 @@ test('function adapters pass positional values exactly and support explicitly bo
 test('optional and rest function and constructor arguments follow selected positions', async () => {
   class Optional { constructor(readonly first = 7, readonly second?: number) {} }
   class Rest { constructor(readonly first: number, ...rest: number[]) { this.rest = rest; } readonly rest: number[]; }
-  const bag = DiBag.createBuilder().withTokenService(port, DiBag.providerWithLifetime({ provider: () => 4, lifetime: 'scoped:one-per-container' })).withServices({
-    optional: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromClass({ dependencies: [], serviceClass: Optional }), lifetime: 'scoped:one-per-container' }), rest: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromClass({ dependencies: [port, port, port], serviceClass: Rest }), lifetime: 'scoped:one-per-container' }),
-    fn: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [port, port], factoryFunction: (first: number, ...rest: number[]) => first + rest.length }), lifetime: 'scoped:one-per-container' }),
-    optionalFn: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: (value = 3) => value }), lifetime: 'scoped:one-per-container' }),
+  const bag = DiBag.createBuilder().withTokenService(port, () => 4).withServices({
+    optional: DiBag.createProviderFromClass({ dependencies: [], serviceClass: Optional }), rest: DiBag.createProviderFromClass({ dependencies: [port, port, port], serviceClass: Rest }),
+    fn: DiBag.createProviderFromFunction({ dependencies: [port, port], factoryFunction: (first: number, ...rest: number[]) => first + rest.length }),
+    optionalFn: DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: (value = 3) => value }),
   }).buildContainer();
   expect(bag.resolve('optional')).toEqual({ first: 7, second: undefined });
   expect(bag.resolve('rest').rest).toEqual([4, 4]); expect(bag.resolve('fn')).toBe(5);
@@ -80,7 +80,7 @@ for (const kind of ['function', 'class'] as const) {
     const source = kind === 'function' ? DiBag.createProviderFromFunction({ dependencies: tokens, factoryFunction: (a, b) => ({ a, b }) })
       : DiBag.createProviderFromClass({ dependencies: tokens, serviceClass: class { constructor(readonly a: number, readonly b: number) {} } });
     Object.defineProperty(tokens, 0, { value: other }); tokens[1] = port as unknown as typeof other;
-    const bag = DiBag.createBuilder().withTokenService(port, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' })).withTokenService(other, DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' })).withServices({ source: DiBag.providerWithLifetime({ provider: source, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+    const bag = DiBag.createBuilder().withTokenService(port, () => 1).withTokenService(other, () => 2).withServices({ source: source }).buildContainer();
     expect(bag.resolve('source')).toEqual({ a: 1, b: 2 }); expect(reads).toBe(1);
     await bag.close();
   });
@@ -112,7 +112,7 @@ for (const kind of ['function', 'class'] as const) {
       dispose() { conventionalCleanup++; }
     }
     const source = kind === 'class' ? DiBag.createProviderFromClass({ dependencies: [], serviceClass: Resource }) : DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: () => new Resource() });
-    const bag = DiBag.createBuilder().withServices({ owned: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: source, disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }), plain: DiBag.providerWithLifetime({ provider: source, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+    const bag = DiBag.createBuilder().withServices({ owned: DiBag.providerWithDisposal({ provider: source, disposeService: value => { disposed.push(value); } }), plain: source }).buildContainer();
     expect(() => bag.resolve('owned')).toThrow('setup');
     const value = bag.resolve('owned'); expect(value).toBeInstanceOf(Resource);
     bag.resolve('plain'); await bag.close();
@@ -123,8 +123,8 @@ for (const kind of ['function', 'class'] as const) {
 test('raw and native adapters retain Promise identity and select the disposal value', async () => {
   const value = { id: 1 }; const promise = Promise.resolve(value); const disposed: unknown[] = [];
   const bag = Core.createBuilder().withServices({
-    raw: DiBag.providerWithLifetime({ provider: Core.providerWithDisposal({ provider: Core.createProviderFromFunction({ dependencies: [], factoryFunction: () => promise, factoryReturnKind: 'uninspected' }), disposeService: result => { disposed.push(result); } }), lifetime: 'scoped:one-per-container' }),
-    native: DiBag.providerWithLifetime({ provider: Core.providerWithDisposal({ provider: Core.createProviderFromFunction({ dependencies: [], factoryFunction: () => promise, factoryReturnKind: 'native-promise' }), disposeService: result => { disposed.push(result); } }), lifetime: 'scoped:one-per-container' }),
+    raw: Core.providerWithDisposal({ provider: Core.createProviderFromFunction({ dependencies: [], factoryFunction: () => promise, factoryReturnKind: 'uninspected' }), disposeService: result => { disposed.push(result); } }),
+    native: Core.providerWithDisposal({ provider: Core.createProviderFromFunction({ dependencies: [], factoryFunction: () => promise, factoryReturnKind: 'native-promise' }), disposeService: result => { disposed.push(result); } }),
   }).buildContainer();
   expect(bag.resolve('raw')).toBe(promise); expect(bag.resolve('native')).toBe(promise);
   await bag.close(); expect(disposed).toContain(promise); expect(disposed).toContain(value);
@@ -134,9 +134,9 @@ test('raw class adapters preserve thenables and auto rejects them without assimi
   let thenCalls = 0; const disposed: unknown[] = [];
   class Thenable { then() { thenCalls++; throw new Error('must not assimilate'); } }
   const bag = DiBag.createBuilder().withServices({
-    raw: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromClass({ dependencies: [], serviceClass: Thenable, factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
+    raw: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromClass({ dependencies: [], serviceClass: Thenable, factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }),
     // @ts-expect-error The runtime rejection of a structural thenable is what this test exercises.
-    auto: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromClass({ dependencies: [], serviceClass: Thenable }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
+    auto: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromClass({ dependencies: [], serviceClass: Thenable }), disposeService: value => { disposed.push(value); } }),
   }).buildContainer();
   const raw = bag.resolve('raw');
   expect(raw).toBeInstanceOf(Thenable); expect(() => bag.resolve('auto')).toThrow('Structural thenables');
@@ -145,19 +145,19 @@ test('raw class adapters preserve thenables and auto rejects them without assimi
 
 test('automatic adapters require runtime classification before acquisition', () => {
   let calls = 0;
-  expect(() => withoutBuiltinModule(() => Core.createBuilder().withServices({ source: DiBag.providerWithLifetime({ provider: Core.createProviderFromFunction({ dependencies: [], factoryFunction: () => { calls++; return 1; } }), lifetime: 'scoped:one-per-container' }) }).buildContainer())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
-  expect(() => withoutBuiltinModule(() => Core.createBuilder().withServices({ source: DiBag.providerWithLifetime({ provider: Core.createProviderFromClass({ dependencies: [], serviceClass: class { constructor() { calls++; } } }), lifetime: 'scoped:one-per-container' }) }).buildContainer())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
+  expect(() => withoutBuiltinModule(() => Core.createBuilder().withServices({ source: Core.createProviderFromFunction({ dependencies: [], factoryFunction: () => { calls++; return 1; } }) }).buildContainer())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
+  expect(() => withoutBuiltinModule(() => Core.createBuilder().withServices({ source: Core.createProviderFromClass({ dependencies: [], serviceClass: class { constructor() { calls++; } } }) }).buildContainer())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   expect(calls).toBe(0);
 });
 
 test('module token graphs and selected sharing keep ownership and parent dependencies', async () => {
   const disposed: unknown[] = [];
-  const feature = DiBag.createBuilder().withServices({ source: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['source'] });
-  const bag = DiBag.createBuilder().withTokenService(port, DiBag.providerWithLifetime({ provider: () => 80, lifetime: 'scoped:one-per-container' })).withInstalledModules([feature]).buildContainer();
-  const child = bag.createChildContainer([port], { [portKey]: DiBag.providerWithLifetime({ provider: () => 90, lifetime: 'scoped:one-per-container' }) }, { sharedParentServiceKeys: ['source'] });
+  const feature = DiBag.createBuilder().withServices({ source: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }), disposeService: value => { disposed.push(value); } }) }).buildModule({ exportedServiceKeys: ['source'] });
+  const bag = DiBag.createBuilder().withTokenService(port, () => 80).withInstalledModules([feature]).buildContainer();
+  const child = bag.createChildContainer([port], { [portKey]: () => 90 }, { sharedParentServiceKeys: ['source'] });
   const shared = child.resolve('source'); expect(shared.port).toBe(80); expect(shared).toBe(bag.resolve('source'));
   expect(child.resolve(port)).toBe(90); await child.close(); expect(disposed).toEqual([]);
-  const fork = bag.createIndependentContainer([port], { [portKey]: DiBag.providerWithLifetime({ provider: () => 99, lifetime: 'scoped:one-per-container' }) }); expect(fork.resolve('source').port).toBe(99);
+  const fork = bag.createIndependentContainer([port], { [portKey]: () => 99 }); expect(fork.resolve('source').port).toBe(99);
   await fork.close(); await bag.close(); expect(disposed).toHaveLength(2); expect(disposed).toContain(shared);
 });
 
@@ -181,8 +181,8 @@ test('native class acquisition preserves constructed promises and disposes their
     constructor() { super(resolve => resolve(7)); }
   }
   const bag = Core.createBuilder().withServices({
-    source: DiBag.providerWithLifetime({ provider: Core.providerWithDisposal({ provider: Core.createProviderFromClass({ dependencies: [], serviceClass: Promised, factoryReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
-    raw: DiBag.providerWithLifetime({ provider: Core.providerWithDisposal({ provider: Core.createProviderFromClass({ dependencies: [], serviceClass: Promised, factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
+    source: Core.providerWithDisposal({ provider: Core.createProviderFromClass({ dependencies: [], serviceClass: Promised, factoryReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } }),
+    raw: Core.providerWithDisposal({ provider: Core.createProviderFromClass({ dependencies: [], serviceClass: Promised, factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }),
   }).buildContainer();
   const source = bag.resolve('source'); const raw = bag.resolve('raw');
   expect(source).toBeInstanceOf(Promised); expect(bag.resolve('source')).toBe(source);
@@ -192,9 +192,9 @@ test('native class acquisition preserves constructed promises and disposes their
 
 test('rejected function acquisitions retry with the original Promise return', async () => {
   let calls = 0; let current: Promise<number> | undefined;
-  const bag = DiBag.createBuilder().withServices({ source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: () => {
+  const bag = DiBag.createBuilder().withServices({ source: DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: () => {
     current = ++calls === 1 ? Promise.reject(new Error('retry')) : Promise.resolve(42); return current;
-  } }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  } }) }).buildContainer();
   const first = bag.resolve('source'); expect(current).toBe(first);
   await expect(first).rejects.toThrow('retry'); await Promise.resolve();
   const second = bag.resolve('source'); expect(current).toBe(second); expect(second).not.toBe(first);
@@ -208,7 +208,7 @@ test('constructor proxies retain their acquisition trap and original new.target'
   } });
   const source = DiBag.createProviderFromClass({ dependencies: [port], serviceClass: original });
   expect(traps).toBe(0);
-  const bag = DiBag.createBuilder().withTokenService(port, DiBag.providerWithLifetime({ provider: () => 80, lifetime: 'scoped:one-per-container' })).withServices({ source: DiBag.providerWithLifetime({ provider: source, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = DiBag.createBuilder().withTokenService(port, () => 80).withServices({ source: source }).buildContainer();
   expect(bag.resolve('source').read()).toBe(80); expect(traps).toBe(1); expect(seen).toBe(original);
   expect(bag.resolve('source').target).toBe(original); await bag.close();
 });

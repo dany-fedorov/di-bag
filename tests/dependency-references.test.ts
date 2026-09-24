@@ -7,13 +7,13 @@ const number = DiBag.createToken(key).forService<number>();
 
 test('optional absence is distinct from a present undefined acquisition', async () => {
   const optional = DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(number)], factoryFunction: value => value });
-  const absent = DiBag.createBuilder().withServices({ optional: DiBag.providerWithLifetime({ provider: optional, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const absent = DiBag.createBuilder().withServices({ optional: optional }).buildContainer();
   expect(absent.resolve('optional')).toBeUndefined();
-  const present = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 17, lifetime: 'scoped:one-per-container' })).withServices({ optional: DiBag.providerWithLifetime({ provider: optional, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const present = DiBag.createBuilder().withTokenService(number, () => 17).withServices({ optional: optional }).buildContainer();
   expect(present.resolve('optional')).toBe(17);
   const undefinedKey = Symbol('undefined'); const empty = DiBag.createToken(undefinedKey).forService<undefined>();
   const disposed: string[] = [];
-  const bag = DiBag.createBuilder().withTokenService(empty, DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => undefined, disposeService: () => { disposed.push('target'); } }), lifetime: 'scoped:one-per-container' })).withServices({ optional: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(empty)], factoryFunction: value => value }), disposeService: () => { disposed.push('consumer'); } }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = DiBag.createBuilder().withTokenService(empty, DiBag.providerWithDisposal({ provider: () => undefined, disposeService: () => { disposed.push('target'); } })).withServices({ optional: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(empty)], factoryFunction: value => value }), disposeService: () => { disposed.push('consumer'); } }) }).buildContainer();
   expect(bag.resolve('optional')).toBeUndefined();
   expect(bag.serviceSnapshot(empty).acquisitions).toHaveLength(1);
   await bag.close(); expect(disposed).toEqual(['consumer', 'target']);
@@ -22,12 +22,12 @@ test('optional absence is distinct from a present undefined acquisition', async 
 
 test('optional factory failures and native rejections propagate and retry', async () => {
   const failure = new Error('factory failure'); let calls = 0;
-  const bag = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => { if (++calls === 1) throw failure; return 9; }, lifetime: 'scoped:one-per-container' })).withServices({ optional: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(number)], factoryFunction: value => value }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = DiBag.createBuilder().withTokenService(number, () => { if (++calls === 1) throw failure; return 9; }).withServices({ optional: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(number)], factoryFunction: value => value }) }).buildContainer();
   expect(() => bag.resolve('optional')).toThrow(failure);
   expect(bag.resolve('optional')).toBe(9); expect(calls).toBe(2); await bag.close();
   const promiseKey = Symbol('promise'); const promise = DiBag.createToken(promiseKey).forService<Promise<number>>();
   const rejection = new Error('native failure'); const rejected = Promise.reject<number>(rejection);
-  const asyncBag = DiBag.createBuilder().withTokenService(promise, DiBag.providerWithLifetime({ provider: () => rejected, lifetime: 'scoped:one-per-container' })).withServices({ optional: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(promise)], factoryFunction: value => ({ value }) }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const asyncBag = DiBag.createBuilder().withTokenService(promise, () => rejected).withServices({ optional: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(promise)], factoryFunction: value => ({ value }) }) }).buildContainer();
   expect(asyncBag.resolve('optional').value).toBe(rejected);
   await expect(rejected).rejects.toBe(rejection); await asyncBag.close();
 });
@@ -39,8 +39,8 @@ for (const lifetime of ['scoped', 'root', 'transient'] as const) {
     const lazy = DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(target)], factoryFunction: get => ({ get }) });
     const owned = DiBag.providerWithDisposal({ provider: () => ({ id: ++calls }), disposeService: value => { disposed.push(`target:${value.id}`); } });
     const registration = lifetime === 'root' ? DiBag.providerWithLifetime({ provider: owned, lifetime: 'singleton:one-per-container-tree' })
-      : lifetime === 'transient' ? DiBag.providerWithLifetime({ provider: owned, lifetime: 'transient:one-per-resolve' }) : DiBag.providerWithLifetime({ provider: owned, lifetime: 'scoped:one-per-container' });
-    const bag = DiBag.createBuilder().withTokenService(target, registration).withServices({ lazy: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: lazy, disposeService: () => { disposed.push('consumer'); } }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+      : lifetime === 'transient' ? DiBag.providerWithLifetime({ provider: owned, lifetime: 'transient:one-per-resolve' }) : owned;
+    const bag = DiBag.createBuilder().withTokenService(target, registration).withServices({ lazy: DiBag.providerWithDisposal({ provider: lazy, disposeService: () => { disposed.push('consumer'); } }) }).buildContainer();
     const consumer = bag.resolve('lazy'); expect(calls).toBe(0);
     expect(bag.serviceSnapshot(target).acquisitions).toHaveLength(0);
     const first = consumer.get(); const second = consumer.get();
@@ -65,7 +65,7 @@ test('all adapters snapshot mixed references by index and authenticate every han
       ? { dependencies: tuple, serviceClass: callback }
       : { dependencies: tuple, factoryFunction: callback }]) as () => { optional: number | undefined; lazy: () => number; direct: number };
     tuple.reverse();
-    const bag = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 23, lifetime: 'scoped:one-per-container' })).withServices({ source: DiBag.providerWithLifetime({ provider: source, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+    const bag = DiBag.createBuilder().withTokenService(number, () => 23).withServices({ source: source }).buildContainer();
     const value = bag.resolve('source') as { optional: number | undefined; lazy: () => number; direct: number };
     expect(value.optional).toBe(23); expect(value.lazy()).toBe(23); expect(value.direct).toBe(23);
     await bag.close();
@@ -85,23 +85,23 @@ test('all adapters snapshot mixed references by index and authenticate every han
 });
 
 test('lazy reads preserve lexical private tokens, export renames and external optional absence', async () => {
-  const feature = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 3, lifetime: 'scoped:one-per-container' })).withServices({
-    client: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(number), DiBag.lazy(number)], factoryFunction: (value, get) => ({ value, get }) }), lifetime: 'scoped:one-per-container' }),
-    forwarding: DiBag.providerWithLifetime({ provider: ({ client }: { client: { value: number | undefined; get: () => number } }) => client, lifetime: 'scoped:one-per-container' }),
+  const feature = DiBag.createBuilder().withTokenService(number, () => 3).withServices({
+    client: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(number), DiBag.lazy(number)], factoryFunction: (value, get) => ({ value, get }) }),
+    forwarding: ({ client }: { client: { value: number | undefined; get: () => number } }) => client,
   }).buildModule({ exportedServiceKeys: ['client', 'forwarding'] }).withRenamedExport({ currentExportKey: 'client', newExportKey: 'renamed' });
-  const bag = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 100, lifetime: 'scoped:one-per-container' })).withInstalledModules([feature]).buildContainer();
+  const bag = DiBag.createBuilder().withTokenService(number, () => 100).withInstalledModules([feature]).buildContainer();
   expect(bag.resolve('renamed').value).toBe(3); expect(bag.resolve('forwarding').get()).toBe(3);
-  const external = DiBag.createBuilder().withServices({ optional: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(number)], factoryFunction: value => value }), lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['optional'] });
+  const external = DiBag.createBuilder().withServices({ optional: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(number)], factoryFunction: value => value }) }).buildModule({ exportedServiceKeys: ['optional'] });
   const absent = DiBag.createBuilder().withInstalledModules([external]).buildContainer(); expect(absent.resolve('optional')).toBeUndefined();
   await absent.close(); await bag.close();
 });
 
 test('lazy closures use shared/root owner context and independent fork overrides', async () => {
-  const bag = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' })).withServices({ source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: get => ({ get }) }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
-  const child = bag.createChildContainer([number], { [key]: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) }, { sharedParentServiceKeys: ['source'] });
+  const bag = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ source: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: get => ({ get }) }) }).buildContainer();
+  const child = bag.createChildContainer([number], { [key]: () => 2 }, { sharedParentServiceKeys: ['source'] });
   const shared = child.resolve('source'); expect(shared.get()).toBe(1); expect(child.resolve(number)).toBe(2);
   await child.close(); expect(shared.get()).toBe(1);
-  const fork = bag.createIndependentContainer([number], { [key]: DiBag.providerWithLifetime({ provider: () => 3, lifetime: 'scoped:one-per-container' }) }); expect(fork.resolve('source').get()).toBe(3);
+  const fork = bag.createIndependentContainer([number], { [key]: () => 3 }); expect(fork.resolve('source').get()).toBe(3);
   await fork.close(); await bag.close(); expect(shared.get).toThrow('closed');
   const root = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 4, lifetime: 'singleton:one-per-container-tree' })).withServices({
     source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: get => ({ get }) }), lifetime: 'singleton:one-per-container-tree' }),
@@ -116,10 +116,10 @@ test('lazy closures use shared/root owner context and independent fork overrides
 test('raw and native references preserve Promise identity and disposal values', async () => {
   const promiseKey = Symbol('promise'); const target = Core.createToken(promiseKey).forService<Promise<number>>();
   const promise = Promise.resolve(5); const disposed: unknown[] = [];
-  const bag = Core.createBuilder().withTokenService(target, DiBag.providerWithLifetime({ provider: Core.providerWithDisposal({ provider: Core.createProvider(() => promise, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' })).withServices({
-      optional: DiBag.providerWithLifetime({ provider: Core.providerWithDisposal({ provider: Core.createProviderFromFunction({ dependencies: [Core.optional(target)], factoryFunction: value => value, factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
-      lazy: DiBag.providerWithLifetime({ provider: Core.createProviderFromFunction({ dependencies: [Core.lazy(target)], factoryFunction: get => ({ get }), factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }),
-      native: DiBag.providerWithLifetime({ provider: Core.providerWithDisposal({ provider: Core.createProviderFromFunction({ dependencies: [Core.lazy(target)], factoryFunction: get => get(), factoryReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
+  const bag = Core.createBuilder().withTokenService(target, Core.providerWithDisposal({ provider: Core.createProvider(() => promise, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } })).withServices({
+      optional: Core.providerWithDisposal({ provider: Core.createProviderFromFunction({ dependencies: [Core.optional(target)], factoryFunction: value => value, factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }),
+      lazy: Core.createProviderFromFunction({ dependencies: [Core.lazy(target)], factoryFunction: get => ({ get }), factoryReturnKind: 'uninspected' }),
+      native: Core.providerWithDisposal({ provider: Core.createProviderFromFunction({ dependencies: [Core.lazy(target)], factoryFunction: get => get(), factoryReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } }),
     }).buildContainer();
   expect(bag.resolve('optional')).toBe(promise); expect(bag.resolve('lazy').get()).toBe(promise); expect(bag.resolve('native')).toBe(promise);
   await bag.close(); expect(disposed.filter(value => value === promise)).toHaveLength(2); expect(disposed).toContain(5);
@@ -131,13 +131,13 @@ for (const reference of ['optional', 'lazy'] as const) {
     const bKey = Symbol('b'); const b = DiBag.createToken(bKey).forService<number>();
     const readA = reference === 'optional' ? DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(a)], factoryFunction: value => value ?? 0 })
       : DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(a)], factoryFunction: get => get() });
-    const bag = DiBag.createBuilder().withTokenService(a, DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [b], factoryFunction: value => value }), lifetime: 'scoped:one-per-container' })).withTokenService(b, DiBag.providerWithLifetime({ provider: readA, lifetime: 'scoped:one-per-container' })).buildContainer();
+    const bag = DiBag.createBuilder().withTokenService(a, DiBag.createProviderFromFunction({ dependencies: [b], factoryFunction: value => value })).withTokenService(b, readA).buildContainer();
     expect(() => bag.resolve(a)).toThrow('cycle'); await bag.close();
     const pKey = Symbol('p'); const p = DiBag.createToken(pKey).forService<Promise<number>>();
     const qKey = Symbol('q'); const q = DiBag.createToken(qKey).forService<Promise<number>>();
     const readP = reference === 'optional' ? DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(p)], factoryFunction: async value => { await Promise.resolve(); return await value ?? 0; } })
       : DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(p)], factoryFunction: async get => { await Promise.resolve(); return get(); } });
-    const asyncBag = DiBag.createBuilder().withTokenService(p, DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(q)], factoryFunction: async get => { await Promise.resolve(); return get(); } }), lifetime: 'scoped:one-per-container' })).withTokenService(q, DiBag.providerWithLifetime({ provider: readP, lifetime: 'scoped:one-per-container' })).buildContainer();
+    const asyncBag = DiBag.createBuilder().withTokenService(p, DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(q)], factoryFunction: async get => { await Promise.resolve(); return get(); } })).withTokenService(q, readP).buildContainer();
     await expect(asyncBag.resolve(p)).rejects.toThrow('cycle'); await asyncBag.close();
   });
 }
@@ -145,22 +145,22 @@ for (const reference of ['optional', 'lazy'] as const) {
 test('lazy closure shutdown admission belongs to the capturing source attempt', async () => {
   let release!: () => void; const barrier = new Promise<void>(resolve => { release = resolve; });
   let get!: () => number; let calls = 0;
-  const bag = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => ++calls, lifetime: 'scoped:one-per-container' })).withServices({
-    source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: async read => { get = read; await barrier; return read(); } }), lifetime: 'scoped:one-per-container' }),
+  const bag = DiBag.createBuilder().withTokenService(number, () => ++calls).withServices({
+    source: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: async read => { get = read; await barrier; return read(); } }),
   }).buildContainer();
   const pending = bag.resolve('source'); const closing = bag.close();
   expect(get()).toBe(1); release(); expect(await pending).toBe(1); await closing; expect(get).toThrow('closed');
-  const ready = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' })).withServices({ source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: read => ({ read }) }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const ready = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ source: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: read => ({ read }) }) }).buildContainer();
   const read = ready.resolve('source').read; const readyClosing = ready.close(); expect(read).toThrow('closing'); await readyClosing;
   let retired!: () => number;
-  const failed = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 8, lifetime: 'scoped:one-per-container' })).withServices({ source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: read => { retired = read; throw new Error('retire'); } }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const failed = DiBag.createBuilder().withTokenService(number, () => 8).withServices({ source: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: read => { retired = read; throw new Error('retire'); } }) }).buildContainer();
   expect(() => failed.resolve('source')).toThrow('retire'); expect(retired()).toBe(8);
   const failedClosing = failed.close(); expect(retired).toThrow('closing'); await failedClosing;
 });
 
 test('observed reference reads retain strict root checks before routing', async () => {
   const root = DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: get => ({ get }) }), lifetime: 'singleton:one-per-container-tree' });
-  const builder = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' })).withServices({ root });
+  const builder = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ root });
   const bag = Reflect.apply(builder.buildContainer, builder, []) as { resolve(key: string): { get(): number }; close(): Promise<void> };
   expect(bag.resolve('root').get).toThrow('root lifetime'); await bag.close();
 });
@@ -168,7 +168,7 @@ test('observed reference reads retain strict root checks before routing', async 
 test('lazy reads detect a cycle between already ready consumers', async () => {
   const aKey = Symbol('a'); const a = DiBag.createToken(aKey).forService<{ get(): unknown }>();
   const bKey = Symbol('b'); const b = DiBag.createToken(bKey).forService<{ get(): unknown }>();
-  const bag = DiBag.createBuilder().withTokenService(a, DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(b)], factoryFunction: get => ({ get }) }), lifetime: 'scoped:one-per-container' })).withTokenService(b, DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(a)], factoryFunction: get => ({ get }) }), lifetime: 'scoped:one-per-container' })).buildContainer();
+  const bag = DiBag.createBuilder().withTokenService(a, DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(b)], factoryFunction: get => ({ get }) })).withTokenService(b, DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(a)], factoryFunction: get => ({ get }) })).buildContainer();
   const first = bag.resolve(a); const second = bag.resolve(b);
   expect(first.get()).toBe(second); expect(second.get).toThrow('cycle'); await bag.close();
 });
@@ -177,18 +177,18 @@ test('a pending projection does not extend a lazy source shutdown admission', as
   let release!: () => void; const barrier = new Promise<void>(resolve => { release = resolve; });
   let get!: () => number; let calls = 0;
   const source = DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: read => { get = read; return { read }; } });
-  const bag = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => ++calls, lifetime: 'scoped:one-per-container' })).withServices({ source: DiBag.providerWithLifetime({ provider: DiBag.providerWithTransformedService({ provider: source, transformService: async value => { await barrier; return value; }, callbackReceives: 'fulfilled-value' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = DiBag.createBuilder().withTokenService(number, () => ++calls).withServices({ source: DiBag.providerWithTransformedService({ provider: source, transformService: async value => { await barrier; return value; }, callbackReceives: 'fulfilled-value' }) }).buildContainer();
   const pending = bag.resolve('source'); const closing = bag.close();
   expect(get).toThrow('closing'); expect(calls).toBe(0); release(); await pending; await closing;
 });
 
 test('root explicit capture and optional reads retain the root lexical context', async () => {
   const source = DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(number), DiBag.lazy(number)], factoryFunction: (value, get) => ({ value, get }) }), lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true });
-  const bag = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 6, lifetime: 'scoped:one-per-container' })).withServices({ source }).buildContainer();
-  const child = bag.createChildContainer([number], { [key]: DiBag.providerWithLifetime({ provider: () => 7, lifetime: 'scoped:one-per-container' }) });
+  const bag = DiBag.createBuilder().withTokenService(number, () => 6).withServices({ source }).buildContainer();
+  const child = bag.createChildContainer([number], { [key]: () => 7 });
   expect(child.resolve('source').value).toBe(6); expect(child.resolve('source').get()).toBe(6); await bag.close();
   const strict = DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(number)], factoryFunction: value => value }), lifetime: 'singleton:one-per-container-tree' });
-  const builder = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' })).withServices({ strict });
+  const builder = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ strict });
   const unchecked = Reflect.apply(builder.buildContainer, builder, []) as { resolve(key: string): unknown; close(): Promise<void> };
   expect(() => unchecked.resolve('strict')).toThrow('root lifetime'); await unchecked.close();
 });

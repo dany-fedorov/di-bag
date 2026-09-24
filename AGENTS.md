@@ -21,10 +21,10 @@ Task recipes: [docs/agent/recipes.md](docs/agent/recipes.md). Every compiler and
    `dependencies.clock` directly. The object is a Proxy that resolves each property when
    read: spreading it, `Object.keys`, `in`, and `JSON.stringify` throw
    [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](docs/agent/errors.md#di-bag-invalid-dependency-access).
-3. **Lifetimes.** The default is `'singleton:one-per-container-tree'`. Mark
-   request state and every consumer that captures it `'scoped:one-per-container'`;
-   otherwise the compiler reports the capture. A child may replace only scoped or
-   transient services; use `createIndependentContainer` to replace a singleton.
+3. **Lifetimes.** The default is `'scoped:one-per-container'`. Mark a shared client
+   `'singleton:one-per-container-tree'` only when nothing it depends on is scoped.
+   A child may replace only scoped or transient services; use an independent container
+   to replace a singleton.
 4. **Async is explicit.** An async factory's service is its Promise. A consumer
    declares `{ db: Promise<Db> }` and awaits it; nothing is awaited for you.
 5. **No thenables.** A factory that returns a non-Promise object with a `then`

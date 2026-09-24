@@ -10,7 +10,7 @@ export const checkoutModule = DiBag.createBuilder()
       let last = 0;
       return { next: () => `order-${++last}` };
     }, lifetime: 'singleton:one-per-container-tree' }),
-    checkout: DiBag.providerWithLifetime({ provider: ({ catalog, inventory, payments, notifier, orderIds }: {
+    checkout: ({ catalog, inventory, payments, notifier, orderIds }: {
       catalog: Catalog;
       inventory: Inventory;
       payments: PaymentGateway;
@@ -32,6 +32,6 @@ export const checkoutModule = DiBag.createBuilder()
         await notifier.orderPlaced({ orderId, totalCents });
         return { orderId, totalCents, chargeId };
       },
-    }), lifetime: 'scoped:one-per-container' }),
+    }),
   })
   .buildModule({ exportedServiceKeys: ['checkout'], moduleLabel: 'checkout' });

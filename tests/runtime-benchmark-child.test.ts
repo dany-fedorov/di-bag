@@ -183,17 +183,15 @@ test('baseline provider bridge translates final return kinds before timing', asy
 
 test('current provider bridge uses final return kinds before timing', async () => {
   const kinds: string[] = [];
-  const lifetimes: string[] = [];
   const bag = { resolve() {}, serviceSnapshot() { return { acquisitions: [] }; }, createChildContainer() { return bag; }, close: async () => {} };
   const facade = {
     createBuilder() { return { withServices() { return this; }, buildContainer() { return bag; } }; },
     createProvider(create: unknown, options: { factoryReturnKind: string }) { kinds.push(options.factoryReturnKind); return create; },
     providerWithDisposal({ provider }: { provider: unknown }) { return provider; },
-    providerWithLifetime({ provider, lifetime }: { provider: unknown; lifetime: string }) { lifetimes.push(lifetime); return provider; },
+    providerWithLifetime({ provider }: { provider: unknown }) { return provider; },
   };
   const prepared = await prepareScenario('node-native-promise', 10, facade, 'current');
   expect(kinds).toEqual([...Array(9).fill('uninspected'), 'native-promise']);
-  expect(lifetimes).toEqual(Array(10).fill('scoped:one-per-container'));
   expect(prepared.factories).toBe(0);
   expect(prepared.disposers).toBe(0);
 });

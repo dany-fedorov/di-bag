@@ -1,7 +1,7 @@
 // tools/codemod/test/cli.test.mjs
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
@@ -35,11 +35,7 @@ test('--write applies the shipped map and --report lists files and manual items'
   const result = run(project, '--write', '--report', report);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /rewrote build-and-start\/input\.ts/);
-  const expected = readFileSync(join(project, 'build-and-start/expected.ts'), 'utf8')
-    .replace('  db: async () => ({ ping: () => true }),', "  db: DiBag.providerWithLifetime({ provider: async () => ({ ping: () => true }), lifetime: 'scoped:one-per-container' }),")
-    .replace('  cache: () => new Map<string, string>(),', "  cache: DiBag.providerWithLifetime({ provider: () => new Map<string, string>(), lifetime: 'scoped:one-per-container' }),")
-    .replace('    .withServices({ value: () => 1 })', "    .withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) })");
-  assert.equal(readFileSync(join(project, 'build-and-start/input.ts'), 'utf8'), expected);
+  assert.equal(readFileSync(join(project, 'build-and-start/input.ts'), 'utf8'), readFileSync(join(project, 'build-and-start/expected.ts'), 'utf8'));
   const written = JSON.parse(readFileSync(report, 'utf8'));
   assert.equal(written.version, 1);
   assert.equal(written.written, true);
@@ -120,66 +116,5 @@ test('usage errors exit 2', () => {
   const badMap = run(project, '--map', 'package.json');
   assert.equal(badMap.status, 2);
   assert.match(badMap.stderr, /invalid rename map/);
-  rmSync(project, { recursive: true, force: true });
-});
-
-test('old createScope enables lifetime pins by default', () => {
-  const project = copyOf('fixtures');
-  const result = run(project, 'lifetime-pin/input.ts', '--write');
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(
-    readFileSync(join(project, 'lifetime-pin/input.ts'), 'utf8'),
-    readFileSync(join(project, 'lifetime-pin/expected.ts'), 'utf8'),
-  );
-  rmSync(project, { recursive: true, force: true });
-});
-
-test('a project without old createScope pins only when requested', () => {
-  const project = copyOf('fixtures');
-  const input = join(project, 'lifetime-pin/input.ts');
-  const withoutScope = readFileSync(input, 'utf8')
-    .replace('root.createScope()', 'root.fork()')
-    .replace("root.createScope(['service'], { service: () => 2 })", "root.fork(['service'], { service: () => 2 })");
-  writeFileSync(input, withoutScope);
-  const automatic = run(project, 'lifetime-pin/input.ts', '--write');
-  assert.equal(automatic.status, 0, automatic.stderr);
-  assert.doesNotMatch(readFileSync(input, 'utf8'), /scoped:one-per-container/);
-  writeFileSync(input, withoutScope);
-  const explicit = run(project, 'lifetime-pin/input.ts', '--pin-lifetimes', '--write');
-  assert.equal(explicit.status, 0, explicit.stderr);
-  assert.match(readFileSync(input, 'utf8'), /providerWithLifetime\(\{/);
-  rmSync(project, { recursive: true, force: true });
-});
-
-test('pin-lifetimes rejects a value', () => {
-  const project = copyOf('fixtures');
-  const result = run(project, 'lifetime-pin/input.ts', '--pin-lifetimes=true');
-  assert.equal(result.status, 2);
-  assert.match(result.stderr, /--pin-lifetimes takes no value/);
-  rmSync(project, { recursive: true, force: true });
-});
-
-test('opaque, mutable, and mixed provider expressions are manual', () => {
-  const project = copyOf('fixtures');
-  const input = join(project, 'lifetime-pin/input.ts');
-  writeFileSync(input, `${readFileSync(input, 'utf8')}
-const stable = () => 0;
-let mutableLet = () => 1;
-var mutableVar = () => 2;
-declare const opaqueProvider: unknown;
-ContainerKit.createBuilder().register({
-  stable,
-  mutableLet,
-  mutableVar,
-  opaqueProvider,
-  mixed: true ? () => 1 : ContainerKit.withLifetime(() => 2, 'root'),
-});
-`);
-  const result = run(project, 'lifetime-pin/input.ts', '--pin-lifetimes', '--write');
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal((result.stdout.match(/this provider's lifetime is not visible in the source file/g) ?? []).length, 4);
-  const written = readFileSync(input, 'utf8');
-  assert.match(written, /stable: ContainerKit\.providerWithLifetime\(\{ provider: stable, lifetime: 'scoped:one-per-container' \}\)/);
-  assert.match(written, /\n  mutableLet,\n  mutableVar,\n  opaqueProvider,/);
   rmSync(project, { recursive: true, force: true });
 });

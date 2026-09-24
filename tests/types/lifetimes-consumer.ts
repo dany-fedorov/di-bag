@@ -22,7 +22,7 @@ export type Checks = [
   Assert<Equal<ProviderAcquiredValue<typeof asyncFrames>, number>>, Assert<Equal<ProviderAcquiredValue<typeof capability>, Promise<number>>>,
   Assert<Equal<ProviderAcquiredValue<typeof mapped>, Promise<{ id: number }>>>, Assert<Equal<ProviderAcquiredValue<typeof asyncMapped>, { id: number }>>,
   Assert<Equal<ProviderGraphContract<typeof rebound>, ProviderGraphContract<typeof bound>>>,
-  Assert<Equal<ProviderGraphContract<typeof explicitDefault> extends { readonly lifetime: { readonly kind: 'scoped' } } ? true : false, true>>,
+  Assert<Equal<ProviderGraphContract<typeof explicitDefault>, TokenDependencyContract>>,
   Assert<Equal<CanonicalLifetime<{ value: typeof explicitDefault }, 'value'>, 'scoped:one-per-container'>>,
   Assert<Equal<ProviderGraphContract<typeof bareDefault>, TokenDependencyContract>>, Assert<Equal<typeof bareDefault, Provider<() => number>>>,
   Assert<Equal<ProviderOutput<NoInfer<typeof mixed>>, number>>, Assert<Equal<ProviderOutput<typeof wrappedMixed>, number>>,

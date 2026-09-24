@@ -9,7 +9,7 @@ test('inspectGraph lists public bindings in registration order without acquiring
       config: DiBag.providerWithLifetime({ provider: () => { created++; return { url: 'x' }; }, lifetime: 'singleton:one-per-container-tree' }),
       db: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }: { config: { url: string } }) => { created++; return { url: config.url }; }, disposeService: () => {} }), lifetime: 'singleton:one-per-container-tree' }),
     })
-    .withServices({ handler: DiBag.providerWithLifetime({ provider: DiBag.providerWithRegistrationMetadata({ provider: ({ db }: { db: { url: string } }) => () => db.url, registrationMetadata: { 'app:kind': 'http' } }), lifetime: 'scoped:one-per-container' }) })
+    .withServices({ handler: DiBag.providerWithRegistrationMetadata({ provider: ({ db }: { db: { url: string } }) => () => db.url, registrationMetadata: { 'app:kind': 'http' } }) })
     .withServiceAlias({ aliasKey: 'client', targetServiceKey: 'db' })
     .buildContainer();
   const graph = bag.graphSnapshot();
@@ -32,13 +32,13 @@ test('inspectGraph reports observed edges, contributions, private module binding
   const toolsKey = Symbol('tools');
   const tools = DiBag.createToken(toolsKey).forCollectionOf<string>();
   const feature = DiBag.createBuilder()
-    .withServices({ secret: DiBag.providerWithLifetime({ provider: () => 'hidden', lifetime: 'scoped:one-per-container' }), exported: DiBag.providerWithLifetime({ provider: ({ secret }: { secret: string }) => secret.length, lifetime: 'scoped:one-per-container' }) })
-    .withCollectionContribution({ collectionToken: tools, provider: DiBag.providerWithLifetime({ provider: () => 'a', lifetime: 'scoped:one-per-container' }) })
+    .withServices({ secret: () => 'hidden', exported: ({ secret }: { secret: string }) => secret.length })
+    .withCollectionContribution({ collectionToken: tools, provider: () => 'a' })
     .buildModule({ exportedServiceKeys: ['exported'] });
   const bag = DiBag.createBuilder()
     .withInstalledModules([feature])
-    .withCollectionContribution({ collectionToken: tools, provider: DiBag.providerWithLifetime({ provider: ({ exported }: { exported: number }) => `b${exported}`, lifetime: 'scoped:one-per-container' }) })
-    .withServices({ reader: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [tools, DiBag.optional(tool)], factoryFunction: (values, _maybe) => values.length }), lifetime: 'scoped:one-per-container' }) })
+    .withCollectionContribution({ collectionToken: tools, provider: ({ exported }: { exported: number }) => `b${exported}` })
+    .withServices({ reader: DiBag.createProviderFromFunction({ dependencies: [tools, DiBag.optional(tool)], factoryFunction: (values, _maybe) => values.length }) })
     .buildContainer();
 
   const before = bag.graphSnapshot();
@@ -73,7 +73,7 @@ test('inspectGraph reports observed edges, contributions, private module binding
 });
 
 test('a child scope reports its own scope id and the family edges', async () => {
-  const root = DiBag.createBuilder().withServices({ shared: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }), local: DiBag.providerWithLifetime({ provider: ({ shared }: { shared: number }) => shared + 1, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const root = DiBag.createBuilder().withServices({ shared: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }), local: ({ shared }: { shared: number }) => shared + 1 }).buildContainer();
   const child = root.createChildContainer();
   expect(child.graphSnapshot().scopeId).not.toBe(root.graphSnapshot().scopeId);
   expect(child.resolve('local')).toBe(2);

@@ -13,10 +13,10 @@ export const raw = DiBag.providerWithDisposal({ provider: DiBag.createProvider((
   void exact;
 } });
 const feature = DiBag.createBuilder().withServices({
-  hidden: DiBag.providerWithLifetime({ provider: DiBag.createProvider((deps: { input: { readonly label: 'exact' } }, factoryCtx) => ({ label: deps.input.label, signal: factoryCtx.abortSignal }), { factoryReceivesContext: true }), lifetime: 'scoped:one-per-container' }),
-  exported: DiBag.providerWithLifetime({ provider: (deps: { hidden: { label: 'exact'; signal: AbortSignal } }) => deps.hidden, lifetime: 'scoped:one-per-container' }),
+  hidden: DiBag.createProvider((deps: { input: { readonly label: 'exact' } }, factoryCtx) => ({ label: deps.input.label, signal: factoryCtx.abortSignal }), { factoryReceivesContext: true }),
+  exported: (deps: { hidden: { label: 'exact'; signal: AbortSignal } }) => deps.hidden,
 }).buildModule({ exportedServiceKeys: ['exported'] }).withRenamedExport({ currentExportKey: 'exported', newExportKey: 'renamed' });
-export const builder = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(selectedToken, DiBag.providerWithLifetime({ provider: DiBag.createProvider((_deps: {}, _factoryCtx) => ({ value: 42 as const }), { factoryReceivesContext: true }), lifetime: 'scoped:one-per-container' })).withServices({ input: DiBag.providerWithLifetime({ provider: () => ({ label: 'exact' as const }), lifetime: 'scoped:one-per-container' }), contextual: DiBag.providerWithLifetime({ provider: DiBag.providerWithRegistrationMetadata({ provider: contextual, registrationMetadata: { owner: 'startup' as const } }), lifetime: 'scoped:one-per-container' }), raw: DiBag.providerWithLifetime({ provider: raw, lifetime: 'scoped:one-per-container' }) });
+export const builder = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(selectedToken, DiBag.createProvider((_deps: {}, _factoryCtx) => ({ value: 42 as const }), { factoryReceivesContext: true })).withServices({ input: () => ({ label: 'exact' as const }), contextual: DiBag.providerWithRegistrationMetadata({ provider: contextual, registrationMetadata: { owner: 'startup' as const } }), raw });
 export const lazy = builder.buildContainer();
 export const started = lazy.ensureServicesReady(['contextual', selectedToken, 'raw', 'renamed']);
 export const sequential = lazy.ensureServicesReady(['contextual'], { maxConcurrentServiceKeys: 1, abortSignal: new AbortController().signal, totalTimeoutMs: 100 });
@@ -57,12 +57,12 @@ export type Contracts = [
   Assert<Equal<ProviderOutput<typeof pushed>, 'owned'>>,
 ];
 
-const closeBag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+const closeBag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 export const closed = closeBag.close();
 export const boundedClose = closeBag.close({ waitTimeoutMs: 100, abortSignal: new AbortController().signal });
 export const scopeClosed = closeBag.createChildContainer().close({ waitTimeoutMs: 1 });
-export const labeledModule = DiBag.createBuilder().withServices({ hidden: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), shown: DiBag.providerWithLifetime({ provider: ({ hidden }: { hidden: number }) => hidden, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['shown'], moduleLabel: 'feature' });
-export const unlabeledModule = DiBag.createBuilder().withServices({ hidden: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), shown: DiBag.providerWithLifetime({ provider: ({ hidden }: { hidden: number }) => hidden, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['shown'] });
+export const labeledModule = DiBag.createBuilder().withServices({ hidden: () => 1, shown: ({ hidden }: { hidden: number }) => hidden }).buildModule({ exportedServiceKeys: ['shown'], moduleLabel: 'feature' });
+export const unlabeledModule = DiBag.createBuilder().withServices({ hidden: () => 1, shown: ({ hidden }: { hidden: number }) => hidden }).buildModule({ exportedServiceKeys: ['shown'] });
 export type CloseContracts = [
   Assert<Equal<typeof closed, Promise<void>>>,
   Assert<Equal<typeof boundedClose, Promise<void>>>,

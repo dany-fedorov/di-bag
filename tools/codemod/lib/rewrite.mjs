@@ -1,5 +1,4 @@
 // tools/codemod/lib/rewrite.mjs
-import { lifetimePinTargets, renderLifetimePin } from './transforms/lifetime-pin.mjs';
 
 // Members of built-in objects. A call such as `text.replace(...)` on an `any` receiver is not worth a report.
 const BUILTIN_MEMBERS = new Set([String.prototype, Array.prototype, Promise.prototype, Promise, Object, Object.prototype, Map.prototype, Set.prototype]
@@ -12,13 +11,11 @@ const RESHAPE_BLOCKED = Symbol('reshape blocked');
  * assembled bottom-up, so a rewritten call may contain other rewritten calls.
  * @returns {{ text: string, rewrites: number }}
  */
-export function rewriteSourceFile({ ts, checker, program, sourceFile, library, index, transforms, manualItems, fileLabel, pinLifetimes = false }) {
+export function rewriteSourceFile({ ts, checker, program, sourceFile, library, index, transforms, manualItems, fileLabel }) {
   const source = sourceFile.text;
   const start = node => node.getStart(sourceFile);
   const slice = (from, to) => source.slice(from, to);
   const skip = new Set();
-  const activeLifetimePins = new Set();
-  let lifetimeTargets = new Map();
   const blockedReshapes = new WeakSet();
   let rewrites = 0;
 
@@ -31,19 +28,9 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
   function text(node) {
     if (skip.has(node)) return slice(start(node), node.end);
     const replaced = rewriteNode(node);
+    if (replaced !== undefined) { rewrites++; return replaced; }
     if (skip.has(node)) return slice(start(node), node.end);
-    let rendered = replaced === undefined ? assemble(node, []) : replaced;
-    const target = lifetimeTargets.get(node);
-    if (target !== undefined && !activeLifetimePins.has(node)) {
-      activeLifetimePins.add(node);
-      try {
-        rendered = renderLifetimePin(node, target, rendered, transformApi(undefined, index.methodFor('DiBagApi', 'withLifetime', 2)));
-      } finally {
-        activeLifetimePins.delete(node);
-      }
-    }
-    if (replaced !== undefined || target !== undefined) rewrites++;
-    return rendered;
+    return assemble(node, []);
   }
 
   /**
@@ -249,31 +236,16 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     if (receiver.flags & ts.TypeFlags.Any) manual(callee, `the receiver of ${name} has type any, so this call cannot be checked; migrate it by hand if it is a DI Bag call`);
   }
 
-  function originalMember(call) {
-    const callee = call.expression;
-    if (!ts.isPropertyAccessExpression(callee)) return undefined;
-    const name = callee.name.text;
-    const coverage = library.memberCoverage(library.symbolAt(callee.name));
-    const candidates = [];
-    for (const resolved of coverage.members) {
-      const entry = index.methodFor(resolved.owner, name, call.arguments.length);
-      if (entry) candidates.push({ ...resolved, name, entry });
-    }
-    if (!coverage.complete || candidates.length !== coverage.members.length || candidates.length !== 1) return undefined;
-    return candidates[0];
-  }
-
   function transformApi(member, entry) {
     return {
       ts, checker, program, library, sourceFile, member,
-      text, slice, start, assemble, objectLiteral, quote, manual, originalMember,
+      text, slice, start, assemble, objectLiteral, quote, manual,
       nameOf: index.nameOf,
       nameForRole(role) {
         const value = entry?.transformNames?.[role];
-        if (value === undefined) throw new Error(`transform ${entry?.transform ?? '<source-hook>'} has no name for role ${role}`);
+        if (value === undefined) throw new Error(`transform ${entry?.transform ?? '<unknown>'} has no name for role ${role}`);
         return value;
       },
-      entryFor: index.methodFor,
       abortParentReshape(node, expected) {
         const parent = node.parent;
         if (!ts.isCallExpression(parent) || parent.arguments[expected.argument] !== node) return;
@@ -604,9 +576,6 @@ export function rewriteSourceFile({ ts, checker, program, sourceFile, library, i
     return undefined;
   }
 
-  lifetimeTargets = pinLifetimes
-    ? lifetimePinTargets(sourceFile, transformApi(undefined, undefined))
-    : new Map();
   let result = assemble(sourceFile, []);
   // `assemble` starts at the first token; keep the file's leading comments.
   result = slice(0, start(sourceFile)) + result;

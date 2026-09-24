@@ -6,22 +6,10 @@ import { compiler, fixtureNames, fixturesProgram, fixturesRoot, readFixture, run
 test('ordinary fixture inputs type-check and the negative provider-facade edge input has exactly its declared diagnostics', () => {
   const ts = compiler.ts;
   const edgeFile = ts.sys.resolvePath(`${fixturesRoot}/provider-facade-edges/input.ts`);
-  const lifetimeFile = ts.sys.resolvePath(`${fixturesRoot}/lifetime-pin/input.ts`);
   const diagnostics = ts.getPreEmitDiagnostics(fixturesProgram());
   const edge = diagnostics.filter(diagnostic => diagnostic.file && ts.sys.resolvePath(diagnostic.file.fileName) === edgeFile);
-  const lifetime = diagnostics.filter(diagnostic => diagnostic.file && ts.sys.resolvePath(diagnostic.file.fileName) === lifetimeFile);
-  const ordinary = diagnostics.filter(diagnostic => !diagnostic.file || ![edgeFile, lifetimeFile].includes(ts.sys.resolvePath(diagnostic.file.fileName)));
+  const ordinary = diagnostics.filter(diagnostic => !diagnostic.file || ts.sys.resolvePath(diagnostic.file.fileName) !== edgeFile);
   assert.deepEqual(ordinary.map(diagnostic => ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')), []);
-  assert.deepEqual(lifetime.map(diagnostic => ({
-    line: diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start).line + 1,
-    code: diagnostic.code,
-  })), [
-    { line: 8, code: 2345 },
-    { line: 9, code: 2345 },
-    { line: 25, code: 2345 },
-    { line: 26, code: 2345 },
-    { line: 27, code: 2769 },
-  ]);
   assert.deepEqual(edge.map(diagnostic => {
     const position = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
     return {

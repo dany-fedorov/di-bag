@@ -11,9 +11,9 @@ const descriptor: unknown = {
   create: () => (text: string) => text.toUpperCase(),
   dispose: () => { disposals.push('plugin'); },
 };
-export const feature = DiBag.createBuilder().withTokenService(plugin, DiBag.providerWithLifetime({ provider: DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: descriptor, factoryReturnKind: 'uninspected', isValidPluginOutput: (value: unknown): value is (text: string) => string => typeof value === 'function' }), lifetime: 'scoped:one-per-container' })).withServices({
-  prefix: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => 'private:', disposeService: () => { disposals.push('private'); } }), lifetime: 'scoped:one-per-container' }),
-}).withCollectionContribution({ collectionToken: steps, provider: DiBag.providerWithLifetime({ provider: ({ prefix }: { prefix: string }) => (text: string) => prefix + text, lifetime: 'scoped:one-per-container' }) }).withCollectionContribution({ collectionToken: steps, provider: DiBag.providerWithLifetime({ provider: () => (text: string) => text + '!', lifetime: 'scoped:one-per-container' }) }).withServices({
-    handler: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromFunction({ dependencies: [plugin, steps], factoryFunction: (transform, operations) =>
-      (text: string) => operations.reduce((value, step) => step(value), transform(text)) }), disposeService: () => { disposals.push('handler'); } }), lifetime: 'scoped:one-per-container' }),
+export const feature = DiBag.createBuilder().withTokenService(plugin, DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: descriptor, factoryReturnKind: 'uninspected', isValidPluginOutput: (value: unknown): value is (text: string) => string => typeof value === 'function' })).withServices({
+  prefix: DiBag.providerWithDisposal({ provider: () => 'private:', disposeService: () => { disposals.push('private'); } }),
+}).withCollectionContribution({ collectionToken: steps, provider: ({ prefix }: { prefix: string }) => (text: string) => prefix + text }).withCollectionContribution({ collectionToken: steps, provider: () => (text: string) => text + '!' }).withServices({
+    handler: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromFunction({ dependencies: [plugin, steps], factoryFunction: (transform, operations) =>
+      (text: string) => operations.reduce((value, step) => step(value), transform(text)) }), disposeService: () => { disposals.push('handler'); } }),
   }).buildModule({ exportedServiceKeys: ['handler'] });

@@ -5,11 +5,11 @@ const otherKey: unique symbol = Symbol('service');
 const token = DiBag.createToken(key).forService<{ readonly value: number }>();
 const otherToken = DiBag.createToken(otherKey).forService<{ readonly value: number }>();
 const feature = DiBag.createBuilder().withServices({
-  hidden: DiBag.providerWithLifetime({ provider: ({ external }: { external: { readonly exact: true } }) => external.exact, lifetime: 'scoped:one-per-container' }),
-  publicValue: DiBag.providerWithLifetime({ provider: ({ hidden }: { hidden: true }) => hidden, lifetime: 'scoped:one-per-container' }),
+  hidden: ({ external }: { external: { readonly exact: true } }) => external.exact,
+  publicValue: ({ hidden }: { hidden: true }) => hidden,
 }).buildModule({ exportedServiceKeys: ['publicValue'] }).withRenamedExport({ currentExportKey: 'publicValue', newExportKey: 'renamed' });
-const root = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(token, DiBag.providerWithLifetime({ provider: () => ({ value: 1 }), lifetime: 'scoped:one-per-container' })).withServices({
-  external: DiBag.providerWithLifetime({ provider: () => ({ exact: true as const, visible: 'wider' as const }), lifetime: 'scoped:one-per-container' }),
+const root = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(token, () => ({ value: 1 })).withServices({
+  external: () => ({ exact: true as const, visible: 'wider' as const }),
 }).buildContainer();
 const child = root.createChildContainer();
 // diagnostic: createChildContainer sharedParentServiceKeys accepts existing names or typed tokens only
@@ -22,12 +22,12 @@ child.resolve('hidden');
 // diagnostic: not assignable
 child.resolve(otherToken);
 // diagnostic: Type '() => { exact: false
-child.createIndependentContainer(['external'], { external: DiBag.providerWithLifetime({ provider: () => ({ exact: false as const, visible: 'wider' as const }), lifetime: 'scoped:one-per-container' }) });
+child.createIndependentContainer(['external'], { external: () => ({ exact: false as const, visible: 'wider' as const }) });
 const exportless = DiBag.createBuilder().withServices({
-  hidden: DiBag.providerWithLifetime({ provider: ({ external }: { external: { readonly exact: true } }) => external.exact, lifetime: 'scoped:one-per-container' }),
+  hidden: ({ external }: { external: { readonly exact: true } }) => external.exact,
 }).buildModule({ exportedServiceKeys: [] });
 const constrainedChild = DiBag.createBuilder().withInstalledModules([exportless]).withServices({
-  external: DiBag.providerWithLifetime({ provider: () => ({ exact: true as const }), lifetime: 'scoped:one-per-container' }),
+  external: () => ({ exact: true as const }),
 }).buildContainer().createChildContainer();
 // diagnostic: is not assignable to type 'Container
 const lostConstraint: Container<{ external: () => { readonly exact: true } }> = constrainedChild;

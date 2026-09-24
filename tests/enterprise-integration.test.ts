@@ -7,23 +7,23 @@ test('overlapping requests isolate private dependencies and release scopes befor
   const signals: AbortSignal[] = [];
   let roots = 0;
   const feature = DiBag.createBuilder().withServices({
-    privateSession: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(({ request }: { request: { id: string } }, context) => {
+    privateSession: DiBag.providerWithDisposal({ provider: DiBag.createProvider(({ request }: { request: { id: string } }, context) => {
         signals.push(context.abortSignal);
         return { id: request.id };
-      }, { factoryReceivesContext: true }), disposeService: session => { released.push(session.id); } }), lifetime: 'scoped:one-per-container' }),
-    handler: DiBag.providerWithLifetime({ provider: ({ privateSession, database }: {
+      }, { factoryReceivesContext: true }), disposeService: session => { released.push(session.id); } }),
+    handler: ({ privateSession, database }: {
       privateSession: { id: string }; database: { serial: number };
-    }) => ({ request: privateSession.id, database }), lifetime: 'scoped:one-per-container' }),
+    }) => ({ request: privateSession.id, database }),
   }).buildModule({ exportedServiceKeys: ['handler'] });
   const root = DiBag.createBuilder().withInstalledModules([feature]).withServices({
-    request: DiBag.providerWithLifetime({ provider: () => ({ id: 'root' }), lifetime: 'scoped:one-per-container' }),
+    request: () => ({ id: 'root' }),
     database: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ serial: ++roots }), disposeService: () => { released.push('database'); } }), lifetime: 'singleton:one-per-container-tree' }),
   }).buildContainer();
   let entered = 0;
   let release!: () => void;
   const bothEntered = new Promise<void>(resolve => { release = resolve; });
   const run = (id: string) => withOwnedScope(
-    () => root.createChildContainer(['request'], { request: DiBag.providerWithLifetime({ provider: () => ({ id }), lifetime: 'scoped:one-per-container' }) }),
+    () => root.createChildContainer(['request'], { request: () => ({ id }) }),
     async scope => {
       const handler = scope.resolve('handler');
       if (++entered === 2) release();
@@ -51,7 +51,7 @@ test('owned-scope fixture preserves handler and cleanup failures without closing
   const cleanupFailure = new Error('cleanup');
   let closes = 0;
   const builder = DiBag.createBuilder().withServices({
-    resource: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => 42, disposeService: () => { closes++; throw cleanupFailure; } }), lifetime: 'scoped:one-per-container' }),
+    resource: DiBag.providerWithDisposal({ provider: () => 42, disposeService: () => { closes++; throw cleanupFailure; } }),
   });
   const result = await withOwnedScope(() => builder.buildContainer(), scope => {
     scope.resolve('resource');
@@ -67,14 +67,14 @@ test('owned-scope fixture preserves handler and cleanup failures without closing
 test('test substitutions retain private module contracts and fresh transient instances', async () => {
   let created = 0;
   const feature = DiBag.createBuilder().withServices({
-    privateRead: DiBag.providerWithLifetime({ provider: ({ clock }: { clock: { now(): number } }) => clock.now(), lifetime: 'scoped:one-per-container' }),
-    result: DiBag.providerWithLifetime({ provider: ({ privateRead }: { privateRead: number }) => privateRead, lifetime: 'scoped:one-per-container' }),
+    privateRead: ({ clock }: { clock: { now(): number } }) => clock.now(),
+    result: ({ privateRead }: { privateRead: number }) => privateRead,
   }).buildModule({ exportedServiceKeys: ['result'] });
   const builder = DiBag.createBuilder().withInstalledModules([feature]).withServices({
-    clock: DiBag.providerWithLifetime({ provider: () => ({ now: () => Date.now() }), lifetime: 'scoped:one-per-container' }),
+    clock: () => ({ now: () => Date.now() }),
     attempt: DiBag.providerWithLifetime({ provider: () => ({ id: ++created }), lifetime: 'transient:one-per-resolve' }),
   });
-  await withOwnedScope(() => builder.withReplacedService('clock', DiBag.providerWithLifetime({ provider: () => ({ now: () => 7 }), lifetime: 'scoped:one-per-container' })).buildContainer(), scope => {
+  await withOwnedScope(() => builder.withReplacedService('clock', () => ({ now: () => 7 })).buildContainer(), scope => {
     const value: number = scope.resolve('result');
     expect(value).toBe(7);
     expect(scope.resolve('attempt')).not.toBe(scope.resolve('attempt'));
@@ -134,11 +134,11 @@ test('a fixture whose startup fails releases acquired resources without admittin
   let released = 0;
   let work = 0;
   const builder = DiBag.createBuilder().withServices({
-    resource: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ ready: true }), disposeService: () => { released++; } }), lifetime: 'scoped:one-per-container' }),
-    handler: DiBag.providerWithLifetime({ provider: ({ resource }: { resource: { ready: boolean } }) => {
+    resource: DiBag.providerWithDisposal({ provider: () => ({ ready: true }), disposeService: () => { released++; } }),
+    handler: ({ resource }: { resource: { ready: boolean } }) => {
       expect(resource.ready).toBe(true);
       throw failure;
-    }, lifetime: 'scoped:one-per-container' }),
+    },
   });
   const result = await withOwnedScope(() => builder.buildContainer().ensureServicesReady(['handler']), () => { work++; }).catch(error => error);
   expect(result).toBeInstanceOf(DiBagServiceReadinessError);

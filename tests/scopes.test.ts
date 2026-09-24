@@ -17,7 +17,7 @@ test('children own fresh acquisitions while independent forks outlive their sour
   let next = 0;
   const disposed: number[] = [];
   const root = DiBag.createBuilder().withServices({
-    service: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ++next, disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
+    service: DiBag.providerWithDisposal({ provider: () => ++next, disposeService: value => { disposed.push(value); } }),
   }).buildContainer();
   const child = root.createChildContainer();
   const sibling = root.createChildContainer();
@@ -43,11 +43,11 @@ test('parent close synchronously closes every descendant admission gate and wait
   const disposed: number[] = [];
   let next = 0;
   const root = DiBag.createBuilder().withServices({
-    resource: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ++next, disposeService: async value => {
+    resource: DiBag.providerWithDisposal({ provider: () => ++next, disposeService: async value => {
       started.get(value)?.resolve();
       if (value === 3) await releaseGrandchild.promise;
       disposed.push(value);
-    } }), lifetime: 'scoped:one-per-container' }),
+    } }),
   }).buildContainer();
   for (let id = 1; id <= 4; id++) started.set(id, deferred<void>());
   const child = root.createChildContainer();
@@ -79,11 +79,11 @@ test('pending child sources may acquire dependencies after parent close starts',
   const gate = deferred<void>();
   const disposed: string[] = [];
   const root = DiBag.createBuilder().withServices({
-    base: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => 21, disposeService: () => { disposed.push('base'); } }), lifetime: 'scoped:one-per-container' }),
-    result: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: async (deps: { base: number }) => {
+    base: DiBag.providerWithDisposal({ provider: () => 21, disposeService: () => { disposed.push('base'); } }),
+    result: DiBag.providerWithDisposal({ provider: async (deps: { base: number }) => {
       await gate.promise;
       return deps.base * 2;
-    }, disposeService: () => { disposed.push('result'); } }), lifetime: 'scoped:one-per-container' }),
+    }, disposeService: () => { disposed.push('result'); } }),
   }).buildContainer();
   const child = root.createChildContainer();
   const result = child.resolve('result');
@@ -97,7 +97,7 @@ test('pending child sources may acquire dependencies after parent close starts',
 test('pending acquisition promises deduplicate only within one scope', async () => {
   const gates = [deferred<number>(), deferred<number>()];
   let next = 0;
-  const root = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => gates[next++]!.promise, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const root = DiBag.createBuilder().withServices({ value: () => gates[next++]!.promise }).buildContainer();
   const child = root.createChildContainer();
   const rootValue = root.resolve('value');
   const childValue = child.resolve('value');
@@ -118,12 +118,12 @@ test('nested cleanup failures flatten by registration order despite reversed com
   const rootError = new Error('root');
   let next = 0;
   const root = DiBag.createBuilder().withServices({
-    resource: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ++next, disposeService: async value => {
+    resource: DiBag.providerWithDisposal({ provider: () => ++next, disposeService: async value => {
       if (value === 3) { await delayed.promise; throw undefined; }
       if (value === 2) throw childError;
       if (value === 4) throw siblingError;
       throw rootError;
-    } }), lifetime: 'scoped:one-per-container' }),
+    } }),
   }).buildContainer();
   const child = root.createChildContainer();
   const grandchild = child.createChildContainer();
@@ -184,7 +184,7 @@ test('parent close includes a child already closing until its failure settles', 
   const gate = deferred<void>();
   const failure = new Error('closing child');
   const root = DiBag.createBuilder().withServices({
-    resource: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => 1, disposeService: async () => { await gate.promise; throw failure; } }), lifetime: 'scoped:one-per-container' }),
+    resource: DiBag.providerWithDisposal({ provider: () => 1, disposeService: async () => { await gate.promise; throw failure; } }),
   }).buildContainer();
   const child = root.createChildContainer();
   child.resolve('resource');
@@ -228,8 +228,8 @@ test('scope preserves native shadowed-then and raw Promise ownership in configur
   const disposed: unknown[] = [];
   const configured = Core.withConfiguration({ runtime: { isNativePromise: isPromise } });
   const root = configured.createBuilder().withServices({
-    native: DiBag.providerWithLifetime({ provider: configured.providerWithDisposal({ provider: configured.createProvider(() => nativeGate.promise, { factoryReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
-    raw: DiBag.providerWithLifetime({ provider: configured.providerWithDisposal({ provider: configured.createProvider(() => raw, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
+    native: configured.providerWithDisposal({ provider: configured.createProvider(() => nativeGate.promise, { factoryReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } }),
+    raw: configured.providerWithDisposal({ provider: configured.createProvider(() => raw, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }),
   }).buildContainer();
   const child = root.createChildContainer();
   expect(child.resolve('native')).toBe(nativeGate.promise);
@@ -252,8 +252,8 @@ test('child projection rollback finishes before a parent-owned finalizer', async
     events.push('rollback');
   } });
   const root = DiBag.createBuilder().withServices({
-    parent: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => 'parent', disposeService: () => { events.push('parent'); } }), lifetime: 'scoped:one-per-container' }),
-    projected: DiBag.providerWithLifetime({ provider: DiBag.providerWithTransformedService({ provider: source, transformService: () => { throw new Error('projection'); }, callbackReceives: 'exposed-service' }), lifetime: 'scoped:one-per-container' }),
+    parent: DiBag.providerWithDisposal({ provider: () => 'parent', disposeService: () => { events.push('parent'); } }),
+    projected: DiBag.providerWithTransformedService({ provider: source, transformService: () => { throw new Error('projection'); }, callbackReceives: 'exposed-service' }),
   }).buildContainer();
   root.resolve('parent');
   const child = root.createChildContainer();
@@ -270,11 +270,11 @@ test('child projection rollback finishes before a parent-owned finalizer', async
 test('scopes retain module-private identities and unchanged public binding metadata', async () => {
   let next = 0;
   const feature = DiBag.createBuilder().withServices({
-    hidden: DiBag.providerWithLifetime({ provider: () => ({ id: ++next }), lifetime: 'scoped:one-per-container' }),
-    publicValue: DiBag.providerWithLifetime({ provider: DiBag.providerWithRegistrationMetadata({ provider: ({ hidden, external }: { hidden: { id: number }; external: number }) =>
-      ({ hidden, external }), registrationMetadata: { owner: 'module' as const } }), lifetime: 'scoped:one-per-container' }),
+    hidden: () => ({ id: ++next }),
+    publicValue: DiBag.providerWithRegistrationMetadata({ provider: ({ hidden, external }: { hidden: { id: number }; external: number }) =>
+      ({ hidden, external }), registrationMetadata: { owner: 'module' as const } }),
   }).buildModule({ exportedServiceKeys: ['publicValue'] }).withRenamedExport({ currentExportKey: 'publicValue', newExportKey: 'service' });
-  const root = DiBag.createBuilder().withInstalledModules([feature]).withServices({ external: DiBag.providerWithLifetime({ provider: () => 7, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const root = DiBag.createBuilder().withInstalledModules([feature]).withServices({ external: () => 7 }).buildContainer();
   const child = root.createChildContainer();
   expect(root.serviceSnapshot('service').bindingId).toBe(child.serviceSnapshot('service').bindingId);
   expect(child.serviceSnapshot('service').registrationMetadata.owner).toBe('module');
@@ -288,7 +288,7 @@ test('scopes retain module-private identities and unchanged public binding metad
 
 test('unchecked scope arguments reject before creating or acquiring a child', async () => {
   let created = 0;
-  const root = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => ++created, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const root = DiBag.createBuilder().withServices({ value: () => ++created }).buildContainer();
   const originalScope = BagRuntime.prototype.scope;
   let runtimeScopes = 0;
   BagRuntime.prototype.scope = function () { runtimeScopes++; return originalScope.call(this); };

@@ -41,7 +41,7 @@ export interface ProviderDescription {
 }
 
 const emptyMetadata = Object.freeze({});
-const singletonLifetime: LifetimePolicy = Object.freeze({ kind: 'singleton', allowsScopedDependencies: false });
+const scopedLifetime: LifetimePolicy = Object.freeze({ kind: 'scoped', allowsScopedDependencies: false });
 const descriptions = new WeakMap<object, ProviderDescription>();
 
 export function sourceDescription(
@@ -55,7 +55,7 @@ export function sourceDescription(
   const selected = Object.freeze([...tokenKeys]);
   const argumentsSnapshot = Object.freeze(references.map(reference => Object.freeze({ ...reference })));
   const source: SourceOperation = Object.freeze(dispose ? { kind: 'source', create, dispose, tokenKeys: selected, references: argumentsSnapshot, factoryReturnKind, contextual } : { kind: 'source', create, tokenKeys: selected, references: argumentsSnapshot, factoryReturnKind, contextual });
-  return Object.freeze({ source, operations: Object.freeze([]), metadata: emptyMetadata, lifetime: singletonLifetime });
+  return Object.freeze({ source, operations: Object.freeze([]), metadata: emptyMetadata, lifetime: scopedLifetime });
 }
 
 /** One registry authenticates both ownership handles and transformed providers. */

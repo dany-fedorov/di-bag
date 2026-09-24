@@ -1,26 +1,6 @@
 [
   {
-    "line": 12,
-    "reason": "createScope receives a nonliteral registration bag; add withLifetime('scoped:one-per-container') to each provider in that bag"
-  },
-  {
-    "line": 13,
-    "reason": "createScope receives a nonliteral registration bag; add withLifetime('scoped:one-per-container') to each provider in that bag"
-  },
-  {
     "line": 14,
     "reason": "the createScope options are not an object literal; rewrite it to createChildContainer by hand"
-  },
-  {
-    "line": 14,
-    "reason": "createScope receives a nonliteral registration bag; add withLifetime('scoped:one-per-container') to each provider in that bag"
-  },
-  {
-    "line": 16,
-    "reason": "fork receives a nonliteral registration bag; add withLifetime('scoped:one-per-container') to each provider in that bag"
-  },
-  {
-    "line": 19,
-    "reason": "createScope receives a nonliteral registration bag; add withLifetime('scoped:one-per-container') to each provider in that bag"
   }
 ]

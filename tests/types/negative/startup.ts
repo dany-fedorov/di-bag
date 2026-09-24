@@ -1,6 +1,6 @@
 import { DiBag, type FactoryContext, type DisposerContext } from '../../../src';
 
-const builder = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) });
+const builder = DiBag.createBuilder().withServices({ value: () => 1 });
 const ready = builder.buildContainer();
 // diagnostic: ensureServicesReady accepts existing names or typed tokens only
 ready.ensureServicesReady(['missing']);
@@ -26,16 +26,16 @@ ready.ensureServicesReady(['value'], { extra: true });
 ready.ensureServicesReady(['value'], { timeoutMs: 1 });
 // diagnostic: does not exist in type 'EnsureServicesReadyOptions'
 ready.ensureServicesReady(['value'], { startupOrder: 'sequential' });
-const missing = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: DiBag.createProvider((deps: { absent: number }, _factoryCtx) => deps.absent, { factoryReceivesContext: true }), lifetime: 'scoped:one-per-container' }) });
+const missing = DiBag.createBuilder().withServices({ value: DiBag.createProvider((deps: { absent: number }, _factoryCtx) => deps.absent, { factoryReceivesContext: true }) });
 // diagnostic: required service registrations are missing
 missing.buildContainer().ensureServicesReady([]);
 const captive = DiBag.createBuilder().withServices({
-  scoped: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }),
+  scoped: () => 1,
   root: DiBag.providerWithLifetime({ provider: DiBag.createProvider((deps: { scoped: number }, _factoryCtx) => deps.scoped, { factoryReceivesContext: true }), lifetime: 'singleton:one-per-container-tree' }),
 });
 // diagnostic: root lifetime cannot capture scoped dependency
 captive.buildContainer().ensureServicesReady(['root']);
-const exportless = DiBag.createBuilder().withServices({ hidden: DiBag.providerWithLifetime({ provider: (deps: { missing: number }) => deps.missing, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: [] });
+const exportless = DiBag.createBuilder().withServices({ hidden: (deps: { missing: number }) => deps.missing }).buildModule({ exportedServiceKeys: [] });
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().withInstalledModules([exportless]).buildContainer().ensureServicesReady([]);
 const key: unique symbol = Symbol('token');
@@ -43,7 +43,7 @@ const otherKey: unique symbol = Symbol('token');
 const token = DiBag.createToken(key).forService<number>();
 const other = DiBag.createToken(otherKey).forService<number>();
 // diagnostic: ensureServicesReady accepts existing names or typed tokens only
-DiBag.createBuilder().withTokenService(token, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' })).buildContainer().ensureServicesReady([other]);
+DiBag.createBuilder().withTokenService(token, () => 1).buildContainer().ensureServicesReady([other]);
 // diagnostic: not assignable
 DiBag.createProvider(function (this: { required: true }, _deps: {}, _factoryCtx) { return 1; }, { factoryReceivesContext: true });
 // diagnostic: Target signature provides too few arguments
@@ -66,7 +66,7 @@ DiBag.createProvider((_deps: {}, factoryCtx) => {
     if (disposerCtx.reason === 'disposed') return;
   });
 }, { factoryReceivesContext: true });
-const closable = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+const closable = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 // diagnostic: not assignable
 closable.close({ waitTimeoutMs: '1' });
 // diagnostic: does not exist in type 'CloseOptions'
@@ -78,6 +78,6 @@ closable.close({ timeoutMs: 1 });
 // diagnostic: does not exist in type 'CloseOptions'
 closable.close({ signal: new AbortController().signal });
 // diagnostic: not assignable
-DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['value'], moduleLabel: 1 });
+DiBag.createBuilder().withServices({ value: () => 1 }).buildModule({ exportedServiceKeys: ['value'], moduleLabel: 1 });
 // diagnostic: 'name' does not exist in type 'ModuleOptions &
-DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['value'], name: 'x' });
+DiBag.createBuilder().withServices({ value: () => 1 }).buildModule({ exportedServiceKeys: ['value'], name: 'x' });

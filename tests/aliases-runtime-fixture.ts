@@ -13,11 +13,11 @@ export const aliasRuntimeAssertions = `
     let transientCalls = 0;
     const promise = Promise.resolve(7);
     const parent = DiBag.createBuilder().withServices({
-      resource: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => { resourceCalls++; return { owner: 'parent' }; }, disposeService: value => { assertAlias(value.owner === 'parent', 'wrong alias target disposer'); cleanup.push('resource'); } }), lifetime: 'scoped:one-per-container' }),
+      resource: DiBag.providerWithDisposal({ provider: () => { resourceCalls++; return { owner: 'parent' }; }, disposeService: value => { assertAlias(value.owner === 'parent', 'wrong alias target disposer'); cleanup.push('resource'); } }),
       transient: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ id: ++transientCalls }), disposeService: value => { cleanup.push(value.id); } }), lifetime: 'transient:one-per-resolve' }),
-    }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'resource' }).withServiceAlias({ aliasKey: tokenAlias, targetServiceKey: 'copy' }).withServiceAlias({ aliasKey: 'localCopy', targetServiceKey: 'resource' }).withServiceAlias({ aliasKey: 'next', targetServiceKey: 'transient' }).withServiceAlias({ aliasKey: 'later', targetServiceKey: pending }).withTokenService(pending, DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => promise, { factoryReturnKind: 'uninspected' }), disposeService: value => { assertAlias(value === promise, 'alias raw Promise ownership changed'); cleanup.push('promise'); } }), lifetime: 'scoped:one-per-container' })).withServiceAlias({ aliasKey: pendingAlias, targetServiceKey: pending }).buildContainer();
+    }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'resource' }).withServiceAlias({ aliasKey: tokenAlias, targetServiceKey: 'copy' }).withServiceAlias({ aliasKey: 'localCopy', targetServiceKey: 'resource' }).withServiceAlias({ aliasKey: 'next', targetServiceKey: 'transient' }).withServiceAlias({ aliasKey: 'later', targetServiceKey: pending }).withTokenService(pending, DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => promise, { factoryReturnKind: 'uninspected' }), disposeService: value => { assertAlias(value === promise, 'alias raw Promise ownership changed'); cleanup.push('promise'); } })).withServiceAlias({ aliasKey: pendingAlias, targetServiceKey: pending }).buildContainer();
     assertAlias(resourceCalls === 0 && transientCalls === 0, 'alias eagerly acquired its target');
-    const child = parent.createChildContainer(['resource'], { resource: DiBag.providerWithLifetime({ provider: () => ({ owner: 'child' }), lifetime: 'scoped:one-per-container' }) }, { sharedParentServiceKeys: ['copy'] });
+    const child = parent.createChildContainer(['resource'], { resource: () => ({ owner: 'child' }) }, { sharedParentServiceKeys: ['copy'] });
     const borrowed = child.resolve('copy');
     assertAlias(borrowed === parent.resolve('resource') && borrowed === child.resolve(tokenAlias)
       && borrowed.owner === 'parent' && resourceCalls === 1, 'alias chain lost shared parent identity');
@@ -41,9 +41,9 @@ export const aliasRuntimeAssertions = `
     let privateCalls = 0;
     let privateDisposed = 0;
     const feature = DiBag.createBuilder().withServices({
-      hidden: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => { privateCalls++; return { kind: 'private' }; }, disposeService: () => { privateDisposed++; } }), lifetime: 'scoped:one-per-container' }),
+      hidden: DiBag.providerWithDisposal({ provider: () => { privateCalls++; return { kind: 'private' }; }, disposeService: () => { privateDisposed++; } }),
     }).withServiceAlias({ aliasKey: 'exported', targetServiceKey: 'hidden' }).buildModule({ exportedServiceKeys: ['exported'] }).withRenamedExport({ currentExportKey: 'exported', newExportKey: 'publicAlias' });
-    const moduleBag = DiBag.createBuilder().withInstalledModules([feature]).withServices({ hidden: DiBag.providerWithLifetime({ provider: () => ({ kind: 'host' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+    const moduleBag = DiBag.createBuilder().withInstalledModules([feature]).withServices({ hidden: () => ({ kind: 'host' }) }).buildContainer();
     assertAlias(moduleBag.resolve('publicAlias').kind === 'private' && privateCalls === 1,
       'renamed module alias escaped its private lexical target');
     await moduleBag.close();
@@ -55,7 +55,7 @@ export const aliasRuntimeAssertions = `
     let nativeCalls = 0;
     let nativeDisposals = 0;
     const nativeBag = DiBag.createBuilder().withServices({
-      native: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => { nativeCalls++; return pendingNative; }, { factoryReturnKind: 'native-promise' }), disposeService: value => { assertAlias(value === nativeValue, 'native alias disposer did not receive fulfilled target'); nativeDisposals++; } }), lifetime: 'scoped:one-per-container' }),
+      native: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => { nativeCalls++; return pendingNative; }, { factoryReturnKind: 'native-promise' }), disposeService: value => { assertAlias(value === nativeValue, 'native alias disposer did not receive fulfilled target'); nativeDisposals++; } }),
     }).withServiceAlias({ aliasKey: 'nativeAlias', targetServiceKey: 'native' }).buildContainer();
     assertAlias(nativeBag.resolve('nativeAlias') === pendingNative && nativeBag.resolve('native') === pendingNative
       && nativeCalls === 1, 'native alias changed pending Promise identity or added an acquisition');
@@ -75,7 +75,7 @@ export const aliasRuntimeAssertions = `
 
     const { DiBag: PortableDiBag } = await import('di-bag');
     const portable = PortableDiBag.createBuilder().withServices({
-      raw: PortableDiBag.providerWithLifetime({ provider: PortableDiBag.createProvider(() => promise, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }),
+      raw: PortableDiBag.createProvider(() => promise, { factoryReturnKind: 'uninspected' }),
     }).withServiceAlias({ aliasKey: 'rawAlias', targetServiceKey: 'raw' }).buildContainer();
     assertAlias(portable.resolve('rawAlias') === promise, 'raw alias required automatic classification or changed identity');
     await portable.close();

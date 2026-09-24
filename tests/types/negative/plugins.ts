@@ -18,17 +18,17 @@ declare const broad: readonly [typeof number, ...typeof number[]];
 DiBag.createProviderFromPlugin({ dependencies: broad, pluginDescriptor: unknownPlugin, factoryReturnKind: 'uninspected', isValidPluginOutput: valid });
 const requiredPlugin = DiBag.createProviderFromPlugin({ dependencies: [number], pluginDescriptor: unknownPlugin, factoryReturnKind: 'uninspected', isValidPluginOutput: valid });
 // diagnostic: required service registrations are missing
-DiBag.createBuilder().withServices({ requiredPlugin: DiBag.providerWithLifetime({ provider: requiredPlugin, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+DiBag.createBuilder().withServices({ requiredPlugin }).buildContainer();
 const rootPlugin = DiBag.providerWithLifetime({ provider: requiredPlugin, lifetime: 'singleton:one-per-container-tree' });
 // diagnostic: root lifetime cannot capture scoped dependency
-DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' })).withServices({ rootPlugin }).buildContainer();
+DiBag.createBuilder().withTokenService(number, () => 1).withServices({ rootPlugin }).buildContainer();
 const raw = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: unknownPlugin, factoryReturnKind: 'uninspected', isValidPluginOutput: valid });
 const native = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: unknownPlugin, factoryReturnKind: 'native-promise', isValidPluginOutput: valid });
 // diagnostic: not assignable
 DiBag.providerWithDisposal({ provider: raw, disposeService: (value: Promise<{ run(): number }>) => { void value; } });
 // diagnostic: not assignable
 DiBag.providerWithDisposal({ provider: native, disposeService: (value: Promise<{ run(): number }>) => { void value; } });
-const privateFeature = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' })).withServices({ privatePlugin: DiBag.providerWithLifetime({ provider: requiredPlugin, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['privatePlugin'] });
+const privateFeature = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ privatePlugin: requiredPlugin }).buildModule({ exportedServiceKeys: ['privatePlugin'] });
 // diagnostic: not assignable
 DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer().resolve(number);
 declare const erased: ProviderBase;

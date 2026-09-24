@@ -7,9 +7,9 @@ directory also has the `tsconfig.json` and check command from
 
 ## Add a request-scoped service with cleanup {#add-scoped-service}
 
-Providers are singleton per container tree by default. Mark request state and its
-consumers scoped so each `createChildContainer()` gets its own instance;
-`providerWithDisposal` releases an owned instance when that child container closes.
+Providers are scoped per container by default, so each `createChildContainer()` gets
+its own request state and consumers. The explicit scoped marks below document that
+intent; `providerWithDisposal` releases an owned instance when that child closes.
 
 ```ts
 // src/features/audit/contract.ts

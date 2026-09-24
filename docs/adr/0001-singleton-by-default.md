@@ -2,54 +2,32 @@
 status: accepted
 ---
 
-# Default providers to one singleton per container tree
+# Retain scoped as the default lifetime
 
-Most DI Bag services are stateless application services, repositories, or clients, so an
-unmarked provider now creates one service for a root container and all of its child
-containers. Per-request state and every consumer that captures it are marked
-`'scoped:one-per-container'`; transient providers remain explicit. This makes the common
-case terse while keeping request boundaries visible at the provider that owns them.
+DI Bag retains `'scoped:one-per-container'` as the unmarked provider lifetime because the
+measured singleton-default type shape failed the S8 compiler budget recorded in
+`docs/superpowers/plans/evidence/phase-10.md`. Explicit
+`'singleton:one-per-container-tree'` and `'transient:one-per-resolve'` policies remain
+available.
 
-Two compile-time rules guard the model. A singleton may not depend on a scoped service
-unless its provider explicitly uses
-`DiBag.providerWithLifetime({ provider, lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true })`.
-A child container may replace only scoped and transient services; replacing a singleton
-requires an independent container because inherited singleton consumers have already fixed
-their dependency graph. Runtime enforces the child replacement rule for JavaScript and for
-callers that bypass TypeScript.
-
-Module sealing retains an obligation when a singleton reaches an external requirement.
-The installing host may satisfy that requirement with a scoped provider, including after
-`withRenamedRequirement`, so discarding the reach at the module boundary would make the
-capture check unsound.
-
-## Remaining gap
-
-The graph cannot infer that dependency-free state is conceptually per request. If a request
-id, unit of work, or similar provider has no scoped dependency and its author forgets the
-scoped mark, it is shared across child containers. The migration codemod pins the old scoped
-meaning in programs that used `createScope`; developers then remove pins only where sharing
-is intended.
+A child container may replace scoped and transient services, but it may not replace an
+explicit singleton; use an independent container when the replacement must rebuild the
+whole graph. Both TypeScript and runtime enforce that rule. The singleton-captures-scoped
+check and module obligations retain their phase-9 behavior, including renamed external
+requirements.
 
 ## Considered options
 
-- Keep scoped as the default. This preserves 0.4 behavior but makes every ordinary stateless
-  service allocate once per child container and leaves the common application shape verbose.
-- Select a default per builder. This moves lifetime meaning away from each provider, makes
-  installed modules depend on host policy, and creates two interpretations of the same module.
-- Use NestJS-style scope bubbling. DI Bag discovers named dependencies lazily through a Proxy,
-  so it cannot know the complete runtime dependency graph before factories run; bubbling would
-  make cache ownership change after acquisition and would still miss dependency-free request
-  state.
-- Remove child containers. Independent containers avoid the replacement ambiguity, but they
-  also give up shared singleton clients, tracked parent-child shutdown, and the inexpensive
-  request-container pattern.
+- Make singleton the default with a no-scoped-service fast path. S8 failed the recorded
+  diagnostic-location, instantiation, or compiler-ceiling rule, so the release uses its
+  specified fallback.
+- Select a default per builder. This makes installed module meaning depend on the host.
+- Use NestJS-style scope bubbling. Lazy Proxy dependency discovery cannot determine the
+  complete graph before acquisition.
+- Remove child containers. That loses tracked request ownership and parent singleton sharing.
 
 ## Consequences
 
-Old code that creates child containers can compile with different instance counts, so this is
-the release's one silent semantic migration. The type-aware `--pin-lifetimes` transform
-preserves old behavior. Complete host graphs with neither scoped providers nor retained lifetime
-obligations skip the host lifetime walk;
-module sealing still retains external reaches. A disposable transient remains owned until the
-container that resolved it closes.
+Existing unmarked providers keep their 0.4 per-container instance behavior and need no
+lifetime-pin migration. Singleton providers stay explicit. The new child replacement rule
+prevents an explicit singleton consumer from silently retaining an inherited dependency.

@@ -16,7 +16,7 @@ test('observers preserve raw identity and explicit ownership', async () => {
   const value = Promise.resolve({ id: 1 });
   let disposed = 0;
   const bag = observed.createBuilder().withServices({
-    value: DiBag.providerWithLifetime({ provider: observed.providerWithDisposal({ provider: observed.createProvider(() => value, { factoryReturnKind: 'uninspected' }), disposeService: acquired => { expect(acquired).toBe(value); disposed++; } }), lifetime: 'scoped:one-per-container' }),
+    value: observed.providerWithDisposal({ provider: observed.createProvider(() => value, { factoryReturnKind: 'uninspected' }), disposeService: acquired => { expect(acquired).toBe(value); disposed++; } }),
   }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   expect(bag.resolve('copy')).toBe(value);
   expect(bag.resolve('value')).toBe(value);
@@ -40,7 +40,7 @@ test('ready follows the final native stage while retaining exposed identity', as
   let finalReady!: (value: number) => void;
   const source = new Promise<number>(resolve => { sourceReady = resolve; });
   const final = new Promise<number>(resolve => { finalReady = resolve; });
-  const bag = observed.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: observed.providerWithTransformedService({ provider: observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), transformService: () => final, callbackReceives: 'exposed-service', transformReturnKind: 'native-promise' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ value: observed.providerWithTransformedService({ provider: observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), transformService: () => final, callbackReceives: 'exposed-service', transformReturnKind: 'native-promise' }) }).buildContainer();
   expect(bag.resolve('value')).toBe(final);
   sourceReady(1);
   await flush();
@@ -81,8 +81,8 @@ test('configuration snapshots callbacks, appends in order and retains classifica
   const builder = base.createBuilder();
   options.onLifecycleEvent = () => { throw new Error('mutated'); };
   const appended = base.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent() { seen.push('second'); }, onObserverFailure() {} }] }).withConfiguration({ runtime: { isNativePromise: value => value instanceof Promise } });
-  const a = builder.withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildContainer();
-  const b = appended.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => Promise.resolve(2), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const a = builder.withServices({ value: () => 1 }).buildContainer();
+  const b = appended.createBuilder().withServices({ value: () => Promise.resolve(2) }).buildContainer();
   expect(a.resolve('value')).toBe(1);
   expect(await b.resolve('value')).toBe(2);
   await Promise.all([a.close(), b.close()]);
@@ -92,7 +92,7 @@ test('configuration snapshots callbacks, appends in order and retains classifica
   expect(() => DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: 1, onObserverFailure() {} } as never] })).toThrow();
   expect(() => DiBag.withConfiguration({ lifecycleObservers: [null as never] })).toThrow();
   const { observed, events } = recording();
-  expect(() => withoutBuiltinModule(() => observed.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildContainer())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
+  expect(() => withoutBuiltinModule(() => observed.createBuilder().withServices({ value: () => 1 }).buildContainer())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   await flush();
   expect(events).toEqual([]);
 });
@@ -107,7 +107,7 @@ test('reentrant observer resolution runs outside factory ancestry and respects p
       if (event.kind === 'scope-closing') expect(() => bag.resolve('value')).toThrow('closing');
     }, onObserverFailure(failure) { failures.push(failure); },
   }] });
-  function makeBag() { return observed.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildContainer(); }
+  function makeBag() { return observed.createBuilder().withServices({ value: () => 1 }).buildContainer(); }
   bag = makeBag();
   bag.resolve('value');
   await flush();
@@ -120,7 +120,7 @@ test('canonical owners distinguish shared roots, independent forks, contribution
   const { events, observed } = recording();
   const raw = observed.createProvider(() => ({}), { factoryReturnKind: 'uninspected' });
   const key = Symbol('collection'); const token = observed.createToken(key).forCollectionOf<object>();
-  const bag = observed.createBuilder().withServices({ root: observed.providerWithLifetime({ provider: raw, lifetime: 'singleton:one-per-container-tree' }), shared: DiBag.providerWithLifetime({ provider: raw, lifetime: 'scoped:one-per-container' }), fresh: observed.providerWithLifetime({ provider: raw, lifetime: 'transient:one-per-resolve' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'shared' }).withCollectionContribution({ collectionToken: token, provider: DiBag.providerWithLifetime({ provider: raw, lifetime: 'scoped:one-per-container' }) }).withCollectionContribution({ collectionToken: token, provider: DiBag.providerWithLifetime({ provider: raw, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ root: observed.providerWithLifetime({ provider: raw, lifetime: 'singleton:one-per-container-tree' }), shared: raw, fresh: observed.providerWithLifetime({ provider: raw, lifetime: 'transient:one-per-resolve' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'shared' }).withCollectionContribution({ collectionToken: token, provider: raw }).withCollectionContribution({ collectionToken: token, provider: raw }).buildContainer();
   const child = bag.createChildContainer({ sharedParentServiceKeys: ['copy'] });
   const fork = bag.createIndependentContainer();
   child.resolve('root'); child.resolve('copy'); child.resolve('fresh'); child.resolve('fresh');
@@ -153,7 +153,7 @@ test('failed final projections retire accepted ownership once and preserve clean
   const disposed: string[] = [];
   const source = observed.providerWithDisposal({ provider: observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), disposeService: () => { disposed.push('first'); throw cleanupError; } });
   const second = observed.providerWithDisposal({ provider: source, disposeService: () => { disposed.push('second'); } });
-  const bag = observed.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: observed.providerWithTransformedService({ provider: second, transformService: () => { throw acquisitionError; }, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ value: observed.providerWithTransformedService({ provider: second, transformService: () => { throw acquisitionError; }, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }) }).buildContainer();
   expect(() => bag.resolve('value')).toThrow(acquisitionError);
   let closeError: unknown;
   try { await bag.close(); } catch (error) { closeError = error; }
@@ -170,7 +170,7 @@ test('failed final projections retire accepted ownership once and preserve clean
 test('intermediate native failure bypassed by raw projection is not final failure', async () => {
   const { events, observed } = recording();
   const source = Promise.reject(new Error('bypassed'));
-  const bag = observed.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: observed.providerWithTransformedService({ provider: observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), transformService: () => 42, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ value: observed.providerWithTransformedService({ provider: observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), transformService: () => 42, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }) }).buildContainer();
   expect(bag.resolve('value')).toBe(42);
   await bag.close();
   expect(events.filter(event => event.kind === 'acquisition-ready')).toHaveLength(1);
@@ -181,7 +181,7 @@ test('private module frames are immutable snapshots without freezing application
   const { events, observed } = recording();
   const payload = { owner: 'application' };
   const wrapped = observed.providerWithAcquisitionMetadata({ provider: observed.providerWithRegistrationMetadata({ provider: observed.createProvider(() => 7, { factoryReturnKind: 'uninspected' }), registrationMetadata: { payload } }), describeAcquisition: () => ({ payload }), callbackReceives: 'exposed-service' });
-  const feature = observed.createBuilder().withServices({ secret: DiBag.providerWithLifetime({ provider: wrapped, lifetime: 'scoped:one-per-container' }), publicValue: DiBag.providerWithLifetime({ provider: observed.createProvider(({ secret }: { secret: number }) => secret, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['publicValue'] });
+  const feature = observed.createBuilder().withServices({ secret: wrapped, publicValue: observed.createProvider(({ secret }: { secret: number }) => secret, { factoryReturnKind: 'uninspected' }) }).buildModule({ exportedServiceKeys: ['publicValue'] });
   const bag = observed.createBuilder().withInstalledModules([feature]).buildContainer();
   expect(bag.resolve('publicValue')).toBe(7);
   await flush();
@@ -204,8 +204,8 @@ test('startup rollback observes accepted cleanup while preserving the startup ca
   const { events, observed } = recording();
   const failure = new Error('startup');
   const builder = observed.createBuilder().withServices({
-    good: DiBag.providerWithLifetime({ provider: observed.providerWithDisposal({ provider: observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), disposeService: () => {} }), lifetime: 'scoped:one-per-container' }),
-    bad: DiBag.providerWithLifetime({ provider: observed.createProvider(() => Promise.reject(failure), { factoryReturnKind: 'native-promise' }), lifetime: 'scoped:one-per-container' }),
+    good: observed.providerWithDisposal({ provider: observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), disposeService: () => {} }),
+    bad: observed.createProvider(() => Promise.reject(failure), { factoryReturnKind: 'native-promise' }),
   });
   let error: unknown;
   try { await builder.buildContainer().ensureServicesReady(['good', 'bad']); } catch (caught) { error = caught; }
@@ -224,10 +224,10 @@ test('cancellation observes late accepted resources and final failure without aw
   const pending = new Promise<number>(resolve => { acquired = resolve; });
   let disposed = 0;
   const builder = observed.createBuilder().withServices({
-    good: DiBag.providerWithLifetime({ provider: observed.providerWithDisposal({ provider: observed.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), disposeService: () => { disposed++; } }), lifetime: 'scoped:one-per-container' }),
-    bad: DiBag.providerWithLifetime({ provider: observed.createProvider((_deps: {}, context) => new Promise<never>((_resolve, reject) => {
+    good: observed.providerWithDisposal({ provider: observed.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), disposeService: () => { disposed++; } }),
+    bad: observed.createProvider((_deps: {}, context) => new Promise<never>((_resolve, reject) => {
       context.abortSignal.addEventListener('abort', () => reject(failure), { once: true });
-    }), { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } }), lifetime: 'scoped:one-per-container' }),
+    }), { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } }),
   });
   const startup = builder.buildContainer().ensureServicesReady(['good', 'bad'], { abortSignal: abort.signal });
   abort.abort(failure);
@@ -257,7 +257,7 @@ test('delivery keeps emission order across immutable appended facade configurati
   const seen: LifecycleEvent[] = [];
   const base = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { seen.push(event); }, onObserverFailure() {} }] });
   const appended = base.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent() {}, onObserverFailure() {} }] });
-  const a = base.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: base.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const a = base.createBuilder().withServices({ value: base.createProvider(() => 1, { factoryReturnKind: 'uninspected' }) }).buildContainer();
   const b = appended.createBuilder().buildContainer();
   a.resolve('value');
   await flush();

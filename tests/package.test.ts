@@ -123,7 +123,7 @@ for (const mode of ['commonjs', 'module'] as const) {
     const load = mode === 'commonjs' ? "const { DiBag } = require('di-bag');" : "import { DiBag } from 'di-bag';";
     const stdout = await run(['node', `--input-type=${mode}`, '--eval', `${load}
       (async () => {
-        const container = DiBag.createBuilder().withServices({ promised: DiBag.providerWithLifetime({ provider: () => Promise.resolve(42), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+        const container = DiBag.createBuilder().withServices({ promised: () => Promise.resolve(42) }).buildContainer();
         const promised = await container.resolve('promised');
         await container.close();
         console.log(JSON.stringify({ promised }));
@@ -154,8 +154,8 @@ for (const mode of ['commonjs', 'module'] as const) {
         let disposed;
         const mappedDisposal = [];
         const feature = DiBag.createBuilder().withServices({
-          answer: DiBag.providerWithLifetime({ provider: DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: () => 42, disposeService: value => { disposed = value; } }), registrationMetadata: { owner: 'package' } }), lifetime: 'scoped:one-per-container' }),
-          privateValue: DiBag.providerWithLifetime({ provider: () => 7, lifetime: 'scoped:one-per-container' }),
+          answer: DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: () => 42, disposeService: value => { disposed = value; } }), registrationMetadata: { owner: 'package' } }),
+          privateValue: () => 7,
         }).buildModule({ exportedServiceKeys: ['answer'] });
         const bag = DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'answer', newExportKey: 'result' })]).buildContainer();
         const before = bag.serviceSnapshot('result');
@@ -163,13 +163,13 @@ for (const mode of ['commonjs', 'module'] as const) {
         await bag.close();
         const cause = new Error('cleanup');
         const failing = DiBag.createBuilder().withServices({
-          resource: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => { throw cause; } }), lifetime: 'scoped:one-per-container' }),
+          resource: DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => { throw cause; } }),
         }).buildContainer();
         failing.resolve('resource');
         const error = await failing.close().catch(error => error);
         const raw = Promise.resolve(7);
         const mapped = DiBag.providerWithDisposal({ provider: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: () => raw, disposeService: value => { mappedDisposal.push(value); } }), transformService: value => { if (value !== raw) throw new Error('lost source identity'); return { promise: value }; }, callbackReceives: 'exposed-service' }), disposeService: value => { mappedDisposal.push(value.promise === raw ? 'outer' : 'wrong'); } });
-        const mappedBag = DiBag.createBuilder().withServices({ mapped: DiBag.providerWithLifetime({ provider: mapped, lifetime: 'scoped:one-per-container' }), asyncMapped: DiBag.providerWithLifetime({ provider: DiBag.providerWithTransformedService({ provider: () => Promise.resolve(4), transformService: value => value + 1, callbackReceives: 'fulfilled-value' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+        const mappedBag = DiBag.createBuilder().withServices({ mapped, asyncMapped: DiBag.providerWithTransformedService({ provider: () => Promise.resolve(4), transformService: value => value + 1, callbackReceives: 'fulfilled-value' }) }).buildContainer();
         const mappedIdentity = mappedBag.resolve('mapped').promise === raw;
         const asyncMapped = await mappedBag.resolve('asyncMapped');
         await mappedBag.close();
@@ -177,7 +177,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         const esm = await import('di-bag');
         const tokenKey = Symbol('package');
         const selected = cjs.DiBag.createToken(tokenKey).forService();
-        const tokenFeature = esm.DiBag.createBuilder().withTokenService(selected, esm.DiBag.providerWithLifetime({ provider: () => raw, lifetime: 'scoped:one-per-container' })).withServices({ value: esm.DiBag.providerWithLifetime({ provider: esm.DiBag.providerWithTransformedService({ provider: esm.DiBag.createProviderFromFunction({ dependencies: [selected], factoryFunction: value => value }), transformService: value => value, callbackReceives: 'exposed-service' }), lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: [selected, 'value'] });
+        const tokenFeature = esm.DiBag.createBuilder().withTokenService(selected, () => raw).withServices({ value: esm.DiBag.providerWithTransformedService({ provider: esm.DiBag.createProviderFromFunction({ dependencies: [selected], factoryFunction: value => value }), transformService: value => value, callbackReceives: 'exposed-service' }) }).buildModule({ exportedServiceKeys: [selected, 'value'] });
         const tokenRuntime = DiBag.createBuilder().withInstalledModules([tokenFeature]).buildContainer();
         const tokenIdentity = tokenRuntime.resolve('value') === raw;
         await tokenRuntime.close();
@@ -187,9 +187,9 @@ for (const mode of ['commonjs', 'module'] as const) {
         let scopedDisposed = 0;
         let transientsDisposed = 0;
         const parent = DiBag.createBuilder().withServices({
-          service: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ++scopeId, disposeService: value => { scopeLog.push(value); } }), lifetime: 'scoped:one-per-container' }),
+          service: DiBag.providerWithDisposal({ provider: () => ++scopeId, disposeService: value => { scopeLog.push(value); } }),
           root: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ owner: 'root' }), disposeService: () => { rootDisposed++; } }), lifetime: 'singleton:one-per-container-tree' }),
-          scoped: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ owner: 'scope' }), disposeService: () => { scopedDisposed++; } }), lifetime: 'scoped:one-per-container' }),
+          scoped: DiBag.providerWithDisposal({ provider: () => ({ owner: 'scope' }), disposeService: () => { scopedDisposed++; } }),
           transient: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ owner: 'call' }), disposeService: () => { transientsDisposed++; } }), lifetime: 'transient:one-per-resolve' }),
         }).buildContainer();
         const scope = parent.createChildContainer();
@@ -260,7 +260,7 @@ for (const mode of ['commonjs', 'module'] as const) {
           };
           const disposed = [];
           const bag = DiBag.createBuilder().withServices({
-            resource: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => original, disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
+            resource: DiBag.providerWithDisposal({ provider: () => original, disposeService: value => { disposed.push(value); } }),
           }).buildContainer();
           const exposed = bag.resolve('resource');
           await bag.close();
@@ -302,15 +302,15 @@ for (const mode of ['commonjs', 'module'] as const) {
         void [aggregate, acquisitionId, bindingId, label, cause];
       }
       const bag = DiBag.createBuilder().withServices({
-        value: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: async () => 42, disposeService: value => { const n: number = value; void n; } }), lifetime: 'scoped:one-per-container' }),
-        clock: DiBag.providerWithLifetime({ provider: () => ({ now() { return 42; } }), lifetime: 'scoped:one-per-container' }),
-        service: DiBag.providerWithLifetime({ provider: ({ clock }: { clock: { now(): number } }) => ({
+        value: DiBag.providerWithDisposal({ provider: async () => 42, disposeService: value => { const n: number = value; void n; } }),
+        clock: () => ({ now() { return 42; } }),
+        service: ({ clock }: { clock: { now(): number } }) => ({
           stamp() { return clock.now(); },
-        }), lifetime: 'scoped:one-per-container' }),
+        }),
       }).buildContainer();
       const value: Promise<number> = bag.resolve('value');
       const scoped = bag.createIndependentContainer(['clock'], {
-        clock: DiBag.providerWithLifetime({ provider: () => ({ now() { return 7; } }), lifetime: 'scoped:one-per-container' }),
+        clock: () => ({ now() { return 7; } }),
       });
       const stamp = scoped.resolve('service').stamp();
       type Assert<T extends true> = T;
@@ -320,38 +320,38 @@ for (const mode of ['commonjs', 'module'] as const) {
         then(fulfilled) { fulfilled?.(42); throw new Error('after fulfillment'); },
       };
       const converted = DiBag.createBuilder().withServices({
-        resource: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => Promise.resolve(legacy), disposeService: value => {
+        resource: DiBag.providerWithDisposal({ provider: () => Promise.resolve(legacy), disposeService: value => {
           const number: number = value;
           void number;
-        } }), lifetime: 'scoped:one-per-container' }),
+        } }),
       }).buildContainer().resolve('resource');
       type Converted = Assert<Equal<typeof converted, Promise<number>>>;
       type Stamp = Assert<Equal<typeof stamp, number>>;
-      const replaced = DiBag.createBuilder().withServices({ clock: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).withReplacedService('clock', DiBag.providerWithLifetime({ provider: () => ({ now() { return 7; } }), lifetime: 'scoped:one-per-container' })).buildContainer();
+      const replaced = DiBag.createBuilder().withServices({ clock: () => 1 }).withReplacedService('clock', () => ({ now() { return 7; } })).buildContainer();
       const clock = replaced.resolve('clock');
       type Clock = Assert<Equal<typeof clock, { now(): number }>>;
       const fresh: typeof bag = bag.createIndependentContainer();
       const typed: Container<{ clock: () => { now(): number } }> = replaced;
       const feature = DiBag.createBuilder().withServices({
-        clock: DiBag.providerWithLifetime({ provider: () => ({ now() { return Number(42); }, extra() { return true; } }), lifetime: 'scoped:one-per-container' }),
-        privateReader: DiBag.providerWithLifetime({ provider: ({ clock, logger }: { clock: { extra(): boolean }; logger: { log(message: string): void } }) => clock.extra(), lifetime: 'scoped:one-per-container' }),
-        read: DiBag.providerWithLifetime({ provider: ({ privateReader }: { privateReader: boolean }) => ({ read() { return privateReader; } }), lifetime: 'scoped:one-per-container' }),
-        promised: DiBag.providerWithLifetime({ provider: async () => 7, lifetime: 'scoped:one-per-container' }),
+        clock: () => ({ now() { return Number(42); }, extra() { return true; } }),
+        privateReader: ({ clock, logger }: { clock: { extra(): boolean }; logger: { log(message: string): void } }) => clock.extra(),
+        read: ({ privateReader }: { privateReader: boolean }) => ({ read() { return privateReader; } }),
+        promised: async () => 7,
       }).buildModule({ exportedServiceKeys: ['clock', 'read', 'promised'] });
       type Public = ModuleExportedServices<typeof feature>;
       type Required = ModuleRequiredServices<typeof feature>;
       type RequiredKeys = Assert<Equal<keyof Required, 'logger'>>;
       type PublicPromise = Assert<Equal<Public['promised'], Promise<number>>>;
       const annotated: typeof feature = feature;
-      const installed = DiBag.createBuilder().withInstalledModules([annotated]).withServices({ logger: DiBag.providerWithLifetime({ provider: () => ({ log(_message: string) {} }), lifetime: 'scoped:one-per-container' }) });
+      const installed = DiBag.createBuilder().withInstalledModules([annotated]).withServices({ logger: () => ({ log(_message: string) {} }) });
       const composed = installed.buildContainer();
-      const child = composed.createIndependentContainer(['clock'], { clock: DiBag.providerWithLifetime({ provider: () => ({ now() { return 7; }, extra() { return false; } }), lifetime: 'scoped:one-per-container' }) });
+      const child = composed.createIndependentContainer(['clock'], { clock: () => ({ now() { return 7; }, extra() { return false; } }) });
       const result = child.resolve('read').read();
       type Result = Assert<Equal<typeof result, boolean>>;
       const modulePromise: Promise<number> = child.resolve('promised');
       const asyncOverrides = {
-        clock: DiBag.providerWithLifetime({ provider: () => ({ now() { return Number(7); }, extra() { return true; }, richer() { return 9; } }), lifetime: 'scoped:one-per-container' }),
-        promised: DiBag.providerWithLifetime({ provider: async ({ clock }: { clock: { richer(): number } }) => clock.richer(), lifetime: 'scoped:one-per-container' }),
+        clock: () => ({ now() { return Number(7); }, extra() { return true; }, richer() { return 9; } }),
+        promised: async ({ clock }: { clock: { richer(): number } }) => clock.richer(),
       };
       const asyncFork = composed.createIndependentContainer(['clock', 'promised'], asyncOverrides);
       const asyncPromise = asyncFork.resolve('promised');
@@ -367,23 +367,23 @@ for (const mode of ['commonjs', 'module'] as const) {
       // @ts-expect-error Plain Container annotations cannot erase installed constraints.
       const erasedBag: Container<{ clock: () => Public['clock']; read: () => Public['read']; promised: () => Public['promised']; logger: () => Required['logger'] }> = composed;
       const plainBuilder = DiBag.createBuilder().withServices({
-        clock: DiBag.providerWithLifetime({ provider: (): Public['clock'] => ({ now() { return 1; }, extra() { return true; } }), lifetime: 'scoped:one-per-container' }),
-        read: DiBag.providerWithLifetime({ provider: (): Public['read'] => ({ read() { return true; } }), lifetime: 'scoped:one-per-container' }),
-        promised: DiBag.providerWithLifetime({ provider: async () => 7, lifetime: 'scoped:one-per-container' }),
-        logger: DiBag.providerWithLifetime({ provider: (): Required['logger'] => ({ log(_message: string) {} }), lifetime: 'scoped:one-per-container' }),
+        clock: (): Public['clock'] => ({ now() { return 1; }, extra() { return true; } }),
+        read: (): Public['read'] => ({ read() { return true; } }),
+        promised: async () => 7,
+        logger: (): Required['logger'] => ({ log(_message: string) {} }),
       });
       // @ts-expect-error Builder annotation cannot erase installed constraints.
       const erasedBuilder: typeof plainBuilder = installed;
-      const selfContained = DiBag.createBuilder().withServices({ a: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), b: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['a', 'b'] });
+      const selfContained = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2 }).buildModule({ exportedServiceKeys: ['a', 'b'] });
       // @ts-expect-error The provided contract is invariant even without retained requirements.
       const fewerProvides: Module<{ a: number }, {}> = selfContained;
       // @ts-expect-error Structural copies lose module identity.
       DiBag.createBuilder().withInstalledModules([{ ...feature }]);
       // @ts-expect-error Export selections require a finite tuple.
-      DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['value'] as string[] });
+      DiBag.createBuilder().withServices({ value: () => 1 }).buildModule({ exportedServiceKeys: ['value'] as string[] });
       // @ts-expect-error Renames cannot hide another exported slot.
       feature.withRenamedExport({ currentExportKey: 'clock', newExportKey: 'read' });
-      const renamed = DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'clock', newExportKey: 'other' })]).withServices({ logger: DiBag.providerWithLifetime({ provider: () => ({ log(_message: string) {} }), lifetime: 'scoped:one-per-container' }) });
+      const renamed = DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'clock', newExportKey: 'other' })]).withServices({ logger: () => ({ log(_message: string) {} }) });
       // @ts-expect-error Renamed public references retain their consumer constraints.
       renamed.withReplacedService('other', () => ({ now() { return 7; } }));
       void [value, stamp, fresh, typed, scoped.close(), bag.close()];`;

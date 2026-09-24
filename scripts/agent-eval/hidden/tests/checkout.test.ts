@@ -12,9 +12,9 @@ const base = DiBag.createBuilder()
   .withInstalledModules([checkoutModule])
   .withServices({
     catalog: DiBag.providerWithLifetime({ provider: () => ({ find: unused, list: unused }), lifetime: 'singleton:one-per-container-tree' }),
-    inventory: DiBag.providerWithLifetime({ provider: () => ({ available: unused, reserve: unused, commit: unused }), lifetime: 'scoped:one-per-container' }),
-    payments: DiBag.providerWithLifetime({ provider: () => ({ charge: unused }), lifetime: 'scoped:one-per-container' }),
-    notifier: DiBag.providerWithLifetime({ provider: () => ({ orderPlaced: unused }), lifetime: 'scoped:one-per-container' }),
+    inventory: () => ({ available: unused, reserve: unused, commit: unused }),
+    payments: () => ({ charge: unused }),
+    notifier: () => ({ orderPlaced: unused }),
   })
   .buildContainer();
 after(() => base.close());
@@ -23,13 +23,13 @@ function shop({ inStock = true, charge = async (cents: number) => `ch-${cents}` 
   const log: string[] = [];
   const bag = base.createIndependentContainer(['catalog', 'inventory', 'payments', 'notifier'], {
     catalog: DiBag.providerWithLifetime({ provider: () => ({ find: (sku: string) => products.find(product => product.sku === sku), list: () => products }), lifetime: 'singleton:one-per-container-tree' }),
-    inventory: DiBag.providerWithLifetime({ provider: () => ({
+    inventory: () => ({
       available: () => 0,
       reserve: (sku: string, quantity: number) => { log.push(`reserve ${sku} ${quantity}`); return inStock; },
       commit: () => { log.push('commit'); },
-    }), lifetime: 'scoped:one-per-container' }),
-    payments: DiBag.providerWithLifetime({ provider: () => ({ charge: async (cents: number) => { log.push(`charge ${cents}`); return charge(cents); } }), lifetime: 'scoped:one-per-container' }),
-    notifier: DiBag.providerWithLifetime({ provider: () => ({ orderPlaced: async (order: { orderId: string; totalCents: number }) => { log.push(`notify ${order.orderId} ${order.totalCents}`); } }), lifetime: 'scoped:one-per-container' }),
+    }),
+    payments: () => ({ charge: async (cents: number) => { log.push(`charge ${cents}`); return charge(cents); } }),
+    notifier: () => ({ orderPlaced: async (order: { orderId: string; totalCents: number }) => { log.push(`notify ${order.orderId} ${order.totalCents}`); } }),
   });
   return { bag, log, after: (prefix: string) => log.filter(entry => !entry.startsWith(prefix)) };
 }
