@@ -499,10 +499,10 @@ const handle = DiBag.providerWithDisposal({
 
 **Recipe:** [own a resource a factory acquires on the way](recipes.md#partial-acquisition).
 
-### DI_BAG_DUPLICATE_METADATA {#di-bag-duplicate-metadata}
+### DI_BAG_DUPLICATE_METADATA_KEY {#di-bag-duplicate-metadata-key}
 
 **When:** `DiBag.providerWithRegistrationMetadata({ provider, registrationMetadata })` adds a key the
-registration already carries.
+registration already carries. `details.metadataKey` names the repeated key.
 
 **Cause:** two metadata wrappers use the same key.
 
@@ -521,31 +521,6 @@ const service = DiBag.providerWithRegistrationMetadata({
 ```
 
 **Recipe:** none.
-
-### DI_BAG_DUPLICATE_REGISTRATION {#di-bag-duplicate-registration}
-
-**When:** `withServices`, `withServiceAlias`, or `withInstalledModules` adds a public key that already
-exists. The compiler reports `withServices and withTokenService introduce new names or typed tokens only`.
-
-**Cause:** two registrations or two installed modules export the same name.
-
-**Fix:** use `withReplacedService(key, factory)` to substitute an implementation; install a
-second copy of a module under another name with `withRenamedExport`.
-
-```ts
-// expect-error: withServices and withTokenService introduce new names or typed tokens only
-import { DiBag } from 'di-bag';
-
-DiBag.createBuilder().withServices({ port: () => 80 }).withServices({ port: () => 81 });
-```
-
-```ts
-import { DiBag } from 'di-bag';
-
-DiBag.createBuilder().withServices({ port: () => 80 }).withReplacedService('port', () => 81).buildContainer();
-```
-
-**Recipe:** [split a feature into a module](recipes.md#split-module).
 
 ### DI_BAG_DUPLICATE_SERVICE_KEY {#di-bag-duplicate-service-key}
 

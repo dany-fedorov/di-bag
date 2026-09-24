@@ -142,15 +142,15 @@ test('renamed methods preserve the collection-token kind boundary before reading
   expect(laterReads).toBe(0);
 });
 
-test('the bag methods keep the 0.4.0 codes of the checks they share, under their own operation names', () => {
+test('the bag methods report distinct codes under their own operation names', () => {
   const builder = DiBag.createBuilder()
     .withServices({ value: () => 1 })
     .withTokenService(clock, (): Clock => ({ now: () => 1 }));
   const checks: readonly [() => unknown, string, Record<string, unknown>][] = [
-    [() => loose(builder).withServices!({ value: () => 2 }), 'DI_BAG_DUPLICATE_REGISTRATION', { operation: 'withServices', key: 'value' }],
+    [() => loose(builder).withServices!({ value: () => 2 }), 'DI_BAG_DUPLICATE_SERVICE_KEY', { operation: 'withServices', serviceKey: 'value' }],
     [() => loose(builder).withServices!(42), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withServices' }],
-    [() => loose(builder).withTokenService!(clock, () => ({ now: () => 2 })), 'DI_BAG_DUPLICATE_REGISTRATION', { operation: 'withTokenService', key: clockKey }],
-    [() => loose(builder).withServiceAlias!({ aliasKey: 'value', targetServiceKey: clock }), 'DI_BAG_DUPLICATE_REGISTRATION', { operation: 'withServiceAlias', key: 'value' }],
+    [() => loose(builder).withTokenService!(clock, () => ({ now: () => 2 })), 'DI_BAG_DUPLICATE_SERVICE_KEY', { operation: 'withTokenService', serviceKey: clockKey }],
+    [() => loose(builder).withServiceAlias!({ aliasKey: 'value', targetServiceKey: clock }), 'DI_BAG_DUPLICATE_SERVICE_KEY', { operation: 'withServiceAlias', serviceKey: 'value' }],
     [() => loose(builder).withServiceAlias!({ aliasKey: 'other', targetServiceKey: 'absent' }), 'DI_BAG_INVALID_ALIAS', { operation: 'withServiceAlias', target: 'absent' }],
     [() => loose(builder).withReplacedService!('absent', () => 1), 'DI_BAG_INVALID_REPLACEMENT', { operation: 'withReplacedService', key: 'absent' }],
     [() => loose(DiBag.createBuilder()).withTokenService!(clock, 42), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withTokenService' }],
@@ -232,11 +232,11 @@ test('withInstalledModules rejects a bad list as a whole and names the bad eleme
 
   // Two modules of one list export the same name: the second is the duplicate.
   const twice = install([logging, other, logging]);
-  expect(twice.code).toBe('DI_BAG_DUPLICATE_REGISTRATION');
-  expect(twice.details).toEqual({ operation: 'withInstalledModules', key: 'logger' });
+  expect(twice.code).toBe('DI_BAG_DUPLICATE_SERVICE_KEY');
+  expect(twice.details).toEqual({ operation: 'withInstalledModules', serviceKey: 'logger' });
   // A module export collides with the host.
   const colliding = DiBag.createBuilder().withServices({ taken: () => 1 }).buildModule({ exportedServiceKeys: ['taken'] });
-  expect(install([other, colliding]).details).toEqual({ operation: 'withInstalledModules', key: 'taken' });
+  expect(install([other, colliding]).details).toEqual({ operation: 'withInstalledModules', serviceKey: 'taken' });
   // Builders are immutable: the host is still usable and still has one service.
   const app = host.buildContainer();
   expect(app.graphSnapshot().bindings.map(binding => binding.label)).toEqual(['taken']);

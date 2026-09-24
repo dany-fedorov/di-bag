@@ -115,7 +115,7 @@ const client = DiBag.providerWithLifetime({ provider: DiBag.createProvider(() =>
 ```
 
 ### `DiBag.providerWithRegistrationMetadata(options)` {#dibag-providerwithregistrationmetadata}
-Add noncolliding registration metadata without acquiring the service. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_DUPLICATE_METADATA`](errors.md#di-bag-duplicate-metadata), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+Add noncolliding registration metadata without acquiring the service. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_DUPLICATE_METADATA_KEY`](errors.md#di-bag-duplicate-metadata-key), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
 ```ts
 const registered = DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { owner: 'platform' } });
 ```
@@ -135,14 +135,14 @@ const mapped = DiBag.providerWithTransformedService({ provider: () => 1, callbac
 ## Builder {#builder}
 
 ### `builder.withServices(providersByName)` {#builder-withservices}
-Add new string-named services. Throws: [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Add new string-named services. Throws: [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 type Clock = { now(): number };
 const builder = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now: () => Date.now() }) }).withServices({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
 ```
 
 ### `builder.withTokenService(token, provider)` {#builder-withtokenservice}
-Add the single service of a typed token. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+Add the single service of a typed token. Throws: [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
 ```ts
 const clockKey = Symbol('clock');
 const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
@@ -150,7 +150,7 @@ const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () =
 ```
 
 ### `builder.withServiceAlias(options)` {#builder-withservicealias}
-Add another lookup name for an existing service. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_INVALID_ALIAS`](errors.md#di-bag-invalid-alias).
+Add another lookup name for an existing service. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_INVALID_ALIAS`](errors.md#di-bag-invalid-alias).
 ```ts
 const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
 ```
@@ -170,7 +170,7 @@ const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).
 ```
 
 ### `builder.withInstalledModules(modules)` {#builder-withinstalledmodules}
-Install sealed modules in list order, allocating fresh private bindings for each installation. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_MODULE`](errors.md#di-bag-invalid-module), [`DI_BAG_DUPLICATE_REGISTRATION`](errors.md#di-bag-duplicate-registration), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Install sealed modules in list order, allocating fresh private bindings for each installation. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_MODULE`](errors.md#di-bag-invalid-module), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const greeting = DiBag.createBuilder().withServices({ greet: ({ name }: { name: string }) => `hello, ${name}` }).buildModule({ exportedServiceKeys: ['greet'] });
 const app = DiBag.createBuilder().withInstalledModules([greeting]).withServices({ name: () => 'Ada' }).buildContainer();

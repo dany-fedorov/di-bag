@@ -428,7 +428,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
    * @param providersByName - A finite object whose own string keys are service names and whose values are providers or plain factories.
    * @returns A new builder containing snapshots of the supplied providers.
-   * @throws `DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_REGISTRATION` for a name already registered;
+   * @throws `DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_SERVICE_KEY` for a name already registered;
    * `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
    * @example
    * ```ts
@@ -448,7 +448,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @param provider - A provider or plain factory whose exposed output satisfies the token's service type.
    * @returns A new builder retaining the provider's metadata, lifetime, dependencies, and ownership stages.
    * @throws `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
-   * `DI_BAG_DUPLICATE_REGISTRATION` when the token already has a service; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * `DI_BAG_DUPLICATE_SERVICE_KEY` when the token already has a service; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
    * @example
    * ```ts
    * const clockKey = Symbol('clock');
@@ -460,7 +460,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
   #withTokenService(token: unknown, provider: unknown): unknown {
     const serviceKey = readSingleServiceKey(token, 'withTokenService');
     const graph = this.#graph.withTokenKind(serviceKey, 'single-service', 'withTokenService');
-    if (graph.hasPublic(serviceKey)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(serviceKey)}`, { operation: 'withTokenService', key: serviceKey });
+    if (graph.hasPublic(serviceKey)) throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate registration: ${String(serviceKey)}`, { operation: 'withTokenService', serviceKey });
     return new Builder(graph.withPublicBinding(serviceKey, withTokenBinding(token as never, provider as never, 'withTokenService'), 'withTokenService'), this.context) as never;
   }
 
@@ -469,7 +469,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @param options - `aliasKey` is a new string name or single-service token; `targetServiceKey` is the existing name or token whose canonical acquisition is reused.
    * @returns A new builder; aliases add no cache or ownership of their own.
    * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
-   * `DI_BAG_DUPLICATE_REGISTRATION` when the alias key exists; `DI_BAG_INVALID_ALIAS` for an absent named target.
+   * `DI_BAG_DUPLICATE_SERVICE_KEY` when the alias key exists; `DI_BAG_INVALID_ALIAS` for an absent named target.
    * @example
    * ```ts
    * const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
@@ -546,7 +546,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @param modules - A finite list of modules whose public names collide neither with this builder nor with each other.
    * @returns A new builder exposing only the selected exports of each module; contributions keep list order.
    * @throws `DI_BAG_INVALID_ARGUMENT` when `modules` is not an array; `DI_BAG_INVALID_MODULE` for an element not made by `buildModule`;
-   * `DI_BAG_DUPLICATE_REGISTRATION` when an export name is already registered; `DI_BAG_WRONG_TOKEN_KIND` when an installed token kind conflicts with this graph. A rejected list changes nothing.
+   * `DI_BAG_DUPLICATE_SERVICE_KEY` when an export name is already registered; `DI_BAG_WRONG_TOKEN_KIND` when an installed token kind conflicts with this graph. A rejected list changes nothing.
    * @example
    * ```ts
    * const greeting = DiBag.createBuilder().withServices({ greet: ({ name }: { name: string }) => `hello, ${name}` }).buildModule({ exportedServiceKeys: ['greet'] });
@@ -757,7 +757,7 @@ export interface DiBagApi {
   readonly providerWithLifetime: typeof providerWithLifetime;
   /**
    * Add noncolliding registration metadata without acquiring the service.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed metadata; `DI_BAG_DUPLICATE_METADATA` for a repeated key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed metadata; `DI_BAG_DUPLICATE_METADATA_KEY` for a repeated key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
    * @example
    * ```ts
    * const registered = DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { owner: 'platform' } });

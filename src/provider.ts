@@ -176,7 +176,7 @@ export function addRegistrationMetadata(provider: ProviderBase, registrationMeta
   if (typeof registrationMetadata !== 'object' || registrationMetadata === null || Array.isArray(registrationMetadata)) throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', `${operation} registrationMetadata must be an object`, { operation, argument: 'registrationMetadata', expected: 'an object' });
   const description = describe(provider);
   const keys = Reflect.ownKeys(registrationMetadata);
-  for (const key of keys) if (Object.hasOwn(description.metadata, key)) throw libraryError('DI_BAG_DUPLICATE_METADATA', `duplicate registration metadata: ${String(key)}`, { operation, key });
+  for (const key of keys) if (Object.hasOwn(description.metadata, key)) throw libraryError('DI_BAG_DUPLICATE_METADATA_KEY', `duplicate registration metadata: ${String(key)}`, { operation, metadataKey: key });
   const added = Object.create(null) as Record<PropertyKey, unknown>;
   for (const key of keys) added[key] = Reflect.get(registrationMetadata, key);
   Object.freeze(added);

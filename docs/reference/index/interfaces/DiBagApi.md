@@ -608,7 +608,7 @@ const registered = DiBag.providerWithRegistrationMetadata({ provider: () => 1, r
 
 #### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for malformed metadata; `DI_BAG_DUPLICATE_METADATA` for a repeated key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+`DI_BAG_INVALID_ARGUMENT` for malformed metadata; `DI_BAG_DUPLICATE_METADATA_KEY` for a repeated key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
 
 #### Example
 

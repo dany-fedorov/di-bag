@@ -20,7 +20,7 @@ export function snapshotAdd(providersByName: unknown, hasKey: (key: string) => b
   const keys = Reflect.ownKeys(providersByName);
   for (const key of keys) {
     if (typeof key !== 'string') throw libraryError('DI_BAG_INVALID_REGISTRATION', 'registration keys must be strings', { operation });
-    if (hasKey(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${key}`, { operation, key });
+    if (hasKey(key)) throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate registration: ${key}`, { operation, serviceKey: key });
   }
   const snapshot: Registrations = Object.create(null);
   for (const key of keys as string[]) {

@@ -127,7 +127,7 @@ A new builder exposing only the selected exports of each module; contributions k
 #### Throws
 
 `DI_BAG_INVALID_ARGUMENT` when `modules` is not an array; `DI_BAG_INVALID_MODULE` for an element not made by `buildModule`;
-`DI_BAG_DUPLICATE_REGISTRATION` when an export name is already registered; `DI_BAG_WRONG_TOKEN_KIND` when an installed token kind conflicts with this graph. A rejected list changes nothing.
+`DI_BAG_DUPLICATE_SERVICE_KEY` when an export name is already registered; `DI_BAG_WRONG_TOKEN_KIND` when an installed token kind conflicts with this graph. A rejected list changes nothing.
 
 #### Example
 
@@ -200,7 +200,7 @@ A new builder; aliases add no cache or ownership of their own.
 #### Throws
 
 `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
-`DI_BAG_DUPLICATE_REGISTRATION` when the alias key exists; `DI_BAG_INVALID_ALIAS` for an absent named target.
+`DI_BAG_DUPLICATE_SERVICE_KEY` when the alias key exists; `DI_BAG_INVALID_ALIAS` for an absent named target.
 
 #### Example
 
@@ -233,7 +233,7 @@ A new builder containing snapshots of the supplied providers.
 
 #### Throws
 
-`DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_REGISTRATION` for a name already registered;
+`DI_BAG_INVALID_REGISTRATION` for a malformed object or value; `DI_BAG_DUPLICATE_SERVICE_KEY` for a name already registered;
 `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
 
 #### Example
@@ -274,7 +274,7 @@ A new builder retaining the provider's metadata, lifetime, dependencies, and own
 #### Throws
 
 `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
-`DI_BAG_DUPLICATE_REGISTRATION` when the token already has a service; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+`DI_BAG_DUPLICATE_SERVICE_KEY` when the token already has a service; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
 
 #### Example
 

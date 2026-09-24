@@ -459,7 +459,7 @@ export class BindingGraph {
   withInstallation(description: GraphDescription): BindingGraph {
     const operation = 'withInstalledModules';
     for (const key of description.publicSlots.keys()) {
-      if (this.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_REGISTRATION', `duplicate registration: ${String(key)}`, { operation, key });
+      if (this.hasPublic(key)) throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate registration: ${String(key)}`, { operation, serviceKey: key });
     }
     const installation = new BindingGraph(description);
     for (const [key, kind] of installation.#tokenKinds) {

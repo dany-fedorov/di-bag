@@ -91,8 +91,8 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
     }
     if (currentExportKey === newExportKey) return this as unknown as Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
     if (description.exports.has(newExportKey)) {
-      throw libraryError('DI_BAG_INVALID_EXPORT', `duplicate export: ${newExportKey}`, {
-        operation: 'withRenamedExport', currentExportKey, newExportKey,
+      throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate export: ${newExportKey}`, {
+        operation: 'withRenamedExport', currentExportKey, newExportKey, serviceKey: newExportKey,
       });
     }
     const exports = new Map(description.exports);

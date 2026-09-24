@@ -30,7 +30,7 @@ test('metadata collisions preflight and asynchronous metadata callbacks reject',
   const source = DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { owner: 'a' } });
   let reads = 0;
   const collision = caught(() => DiBag.providerWithRegistrationMetadata({ provider: source, registrationMetadata: { get owner() { reads++; return 'b'; } } } as never));
-  expect(collision.code).toBe('DI_BAG_DUPLICATE_METADATA');
+  expect(collision.code).toBe('DI_BAG_DUPLICATE_METADATA_KEY');
   expect(Object.isFrozen(collision.details)).toBe(true);
   expect(reads).toBe(0);
   for (const mode of ['direct', 'awaited'] as const) {
