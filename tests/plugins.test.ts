@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessError } from '../src';
+import { DiBag, DiBagDisposalError, DiBagPluginValidationError, DiBagServiceReadinessError } from '../src';
 import type { LifecycleEvent } from '../src';
 import { deferred } from './helpers';
 
@@ -328,8 +328,8 @@ test('plugin validation errors survive one failed retirement cleanup', async () 
   expect(() => bag.resolve('plugin')).toThrow(validationFailure);
   let closeFailure: unknown;
   try { await bag.close(); } catch (error) { closeFailure = error; }
-  expect(closeFailure).toBeInstanceOf(DiBagCleanupError);
-  expect((closeFailure as DiBagCleanupError).failures.map(failure => failure.error)).toEqual([cleanupFailure]);
+  expect(closeFailure).toBeInstanceOf(DiBagDisposalError);
+  expect((closeFailure as DiBagDisposalError).failures.map(failure => failure.error)).toEqual([cleanupFailure]);
   expect(disposed).toBe(1);
 });
 

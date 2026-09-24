@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { DiBag } from '../src';
-import { DiBagCleanupError, DiBagCloseCancelledError, DiBagServiceReadinessError } from '../src';
+import { DiBagDisposalError, DiBagCloseCancelledError, DiBagServiceReadinessError } from '../src';
 import { deferred } from './helpers';
 
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
@@ -60,9 +60,9 @@ test('one rejecting pushed disposer never skips the rest and surfaces at close',
   await expect(bag.resolve('service')).rejects.toThrow('acquire');
   const failure = await bag.close().then(() => undefined, (error: unknown) => error);
   expect(released).toEqual(['inner', 'outer']);
-  expect(failure).toBeInstanceOf(DiBagCleanupError);
-  expect((failure as DiBagCleanupError).failures).toHaveLength(1);
-  expect((failure as DiBagCleanupError).failures[0]!.label).toBe('service');
+  expect(failure).toBeInstanceOf(DiBagDisposalError);
+  expect((failure as DiBagDisposalError).failures).toHaveLength(1);
+  expect((failure as DiBagDisposalError).failures[0]!.bindingLabel).toBe('service');
 });
 
 test('a rejecting source runs its rollback and never reaches the ownership stage', async () => {
@@ -124,7 +124,7 @@ test('rollback reports each failure through the cleanup observer channel', async
     }, { factoryReceivesContext: true }),
   }).buildContainer();
   await expect(bag.resolve('service')).rejects.toThrow('acquire');
-  await expect(bag.close()).rejects.toBeInstanceOf(DiBagCleanupError);
+  await expect(bag.close()).rejects.toBeInstanceOf(DiBagDisposalError);
   expect(events).toEqual(['cleanup-started', 'cleanup-failed', 'cleanup-completed']);
 });
 
@@ -137,7 +137,10 @@ test('pushDisposer is rejected after an asynchronous factory has settled', async
     }, { factoryReceivesContext: true }),
   }).buildContainer();
   expect(await bag.resolve('service')).toBe('ok');
-  expect(() => escaped.pushDisposer(() => {})).toThrow(/DI_BAG_CLEANUP_AFTER_FACTORY/);
+  expect(() => escaped.pushDisposer(() => {})).toThrow(/DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY/);
+  const late = (() => { try { escaped.pushDisposer(() => {}); } catch (error) { return error as { code: string; details: unknown }; } throw new Error('expected a throw'); })();
+  expect(late.code).toBe('DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY');
+  expect(late.details).toEqual({ operation: 'pushDisposer' });
   await bag.close();
 });
 
@@ -192,7 +195,7 @@ test('pushDisposer is rejected after a synchronous factory has returned', async 
     }, { factoryReceivesContext: true }),
   }).buildContainer();
   expect(bag.resolve('service')).toBe('ok');
-  expect(() => escaped.pushDisposer(() => {})).toThrow(/DI_BAG_CLEANUP_AFTER_FACTORY/);
+  expect(() => escaped.pushDisposer(() => {})).toThrow(/DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY/);
   await bag.close();
 });
 
@@ -246,7 +249,7 @@ test('a raw asynchronous factory settles at its first await, as documented', asy
   }).buildContainer();
   // Raw acquisition completes on return, so the bag owns the early push and never observes the rejection.
   await expect(bag.resolve('service') as Promise<unknown>).rejects.toThrow('rejected');
-  expect(afterAwait).toThrow(/DI_BAG_CLEANUP_AFTER_FACTORY/);
+  expect(afterAwait).toThrow(/DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY/);
   await tick();
   expect(released).toEqual([]);
   await bag.close();
@@ -263,7 +266,7 @@ test('a rollback failure during readiness is reported on DiBagServiceReadinessEr
   expect(failure).toBeInstanceOf(DiBagServiceReadinessError);
   const { disposalFailures } = failure as DiBagServiceReadinessError;
   expect(disposalFailures).toHaveLength(1);
-  expect(disposalFailures[0]!.label).toBe('socket');
+  expect(disposalFailures[0]!.bindingLabel).toBe('socket');
   expect((disposalFailures[0]!.error as Error).message).toBe('release failed');
 });
 
@@ -281,7 +284,7 @@ test('a retried scoped acquisition pushes onto a fresh stack', async () => {
   }).buildContainer();
   expect(() => bag.resolve('service')).toThrow('attempt 0');
   expect(() => bag.resolve('service')).toThrow('attempt 1');
-  expect(() => first.pushDisposer(() => {})).toThrow(/DI_BAG_CLEANUP_AFTER_FACTORY/);
+  expect(() => first.pushDisposer(() => {})).toThrow(/DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY/);
   await bag.close();
   expect(released).toEqual([0, 1]);
 });
@@ -641,8 +644,8 @@ test('pushed disposers learn that the service disposer threw and still run', asy
   }).buildContainer();
   bag.resolve('service');
   const failure = await bag.close().then(() => undefined, (error: unknown) => error);
-  expect(failure).toBeInstanceOf(DiBagCleanupError);
-  expect((failure as DiBagCleanupError).failures).toHaveLength(1);
+  expect(failure).toBeInstanceOf(DiBagDisposalError);
+  expect((failure as DiBagDisposalError).failures).toHaveLength(1);
   expect(reasons).toEqual(['service-disposal-failed']);
 });
 
@@ -702,7 +705,7 @@ test('a bounded close reports an in-flight rollback as pending', async () => {
   expect(failure).toBeInstanceOf(DiBagCloseCancelledError);
   expect((failure as DiBagCloseCancelledError).details.disposersStillRunning).toEqual(['service']);
   gate.resolve();
-  await (failure as DiBagCloseCancelledError).cleanupPromise;
+  await (failure as DiBagCloseCancelledError).disposalPromise;
 });
 
 const strictSocket = (closes: string[]) => ({ closed: false, close() { if (this.closed) throw new Error('double close'); this.closed = true; closes.push('socket'); } });
@@ -734,7 +737,7 @@ test("a failing projection disposer does not make the returned value's disposer 
   bag.resolve('session');
   const failure = await bag.close().then(() => undefined, (error: unknown) => error);
   expect(closes).toEqual(['socket']);
-  expect((failure as DiBagCleanupError).failures.map(item => (item.error as Error).message)).toEqual(['projection disposer failed']);
+  expect((failure as DiBagDisposalError).failures.map(item => (item.error as Error).message)).toEqual(['projection disposer failed']);
 });
 
 test('under a projection the rollback pair precedes acquisition-failed', async () => {

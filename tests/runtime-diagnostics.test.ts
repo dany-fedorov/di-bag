@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { getEventListeners } from 'node:events';
-import { DiBag, DiBagCleanupError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagServiceReadinessCancelledError, type GraphSnapshot, type LifecycleEvent } from '../src';
+import { DiBag, DiBagDisposalError, DiBagCloseCancelledError, DiBagPluginValidationError, DiBagServiceReadinessCancelledError, type GraphSnapshot, type LifecycleEvent } from '../src';
 import { DiBag as Core } from '../src';
 import { withoutBuiltinModule } from './host-builtin-module';
 
@@ -41,8 +41,12 @@ test('library messages carry the code, the original text, and the errors-page se
   const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => { throw new Error('boom'); } }) }).buildContainer();
   bag.resolve('value');
   const cleanup = await bag.close().catch(error => error);
-  expect(cleanup).toBeInstanceOf(DiBagCleanupError);
-  expect(cleanup.message).toBe(`DI_BAG_CLEANUP_FAILED: Failed to run 1 disposal callback(s); see ${page}#di-bag-cleanup-failed`);
+  expect(cleanup).toBeInstanceOf(DiBagDisposalError);
+  expect(cleanup.message).toBe(`DI_BAG_DISPOSAL_FAILED: Failed to run 1 disposal callback(s); see ${page}#di-bag-disposal-failed`);
+  expect(cleanup.code).toBe('DI_BAG_DISPOSAL_FAILED');
+  expect(cleanup.name).toBe('DiBagDisposalError');
+  expect(cleanup.failures.map((failure: { bindingLabel: string }) => failure.bindingLabel)).toEqual(['value']);
+  expect(cleanup.failures[0]).not.toHaveProperty('label');
 
   const readiness = await DiBag.createBuilder().withServices({ slow: () => new Promise(() => {}) }).buildContainer().ensureServicesReady(['slow'], { totalTimeoutMs: 1 }).catch(error => error);
   expect(readiness).toBeInstanceOf(DiBagServiceReadinessCancelledError);
@@ -214,7 +218,7 @@ test('bounded close resolves or rejects with the ordinary outcome when cleanup f
 
   const failing = DiBag.createBuilder().withServices({ value: DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => { throw new Error('boom'); } }) }).buildContainer();
   failing.resolve('value');
-  expect(await failing.close({ waitTimeoutMs: 1_000 }).catch(error => error)).toBeInstanceOf(DiBagCleanupError);
+  expect(await failing.close({ waitTimeoutMs: 1_000 }).catch(error => error)).toBeInstanceOf(DiBagDisposalError);
 });
 
 test('scopes and forks accept close options; a child deadline names the child disposer', async () => {

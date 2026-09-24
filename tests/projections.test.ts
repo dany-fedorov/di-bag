@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError } from '../src';
+import { DiBag, DiBagDisposalError } from '../src';
 import { deferred } from './helpers';
 
 test('a projected service does not replace its source disposer argument', async () => {
@@ -176,7 +176,7 @@ test('retired cleanup errors keep invocation order and original attempt identiti
   await b.promise.catch(() => {});
   a.reject(undefined);
   const error = await bag.close().catch(error => error);
-  expect(error).toBeInstanceOf(DiBagCleanupError);
+  expect(error).toBeInstanceOf(DiBagDisposalError);
   expect(error.errors).toEqual([undefined, causeB]);
   expect(error.failures.map((failure: { acquisitionId: symbol }) => failure.acquisitionId)).toEqual(ids);
   expect(error.failures.map((failure: object) => Reflect.ownKeys(failure))).toEqual([

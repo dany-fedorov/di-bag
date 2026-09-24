@@ -1,4 +1,4 @@
-import { DiBag, DiBagCleanupError, DiBagPluginValidationError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from '../src';
+import { DiBag, DiBagDisposalError, DiBagPluginValidationError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from '../src';
 import { DiBag as PortableDiBag } from '../src';
 
 export type FinalAdversarialRuntimeResult = Readonly<{

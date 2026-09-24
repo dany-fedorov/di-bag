@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { getEventListeners } from 'node:events';
-import { DiBag, DiBagCleanupError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from '../src';
+import { DiBag, DiBagDisposalError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from '../src';
 import { deferred } from './helpers';
 
 const turn = () => new Promise<void>(resolve => setImmediate(resolve));
@@ -137,7 +137,7 @@ test('a factory failure closes this bag and reports disposal failures', async ()
   expect(error.cause).toBe(cause);
   expect(error.disposalFailures.map(failure => failure.error)).toEqual([disposalFailure]);
   expect(Object.isFrozen(error.disposalFailures)).toBe(true);
-  expect(error.disposalError).toBeInstanceOf(DiBagCleanupError);
+  expect(error.disposalError).toBeInstanceOf(DiBagDisposalError);
   expect(error.details).toEqual({ operation: 'ensureServicesReady', disposalFailures: error.disposalFailures });
   expect(error.message).toContain('DI_BAG_SERVICE_READINESS_FAILED: The listed services are not ready: a factory failed; this bag is closed;');
   expect(error.message).toContain('#di-bag-service-readiness-failed');

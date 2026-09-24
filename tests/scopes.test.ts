@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { isPromise } from 'node:util/types';
-import { DiBag, DiBagCleanupError } from '../src';
+import { DiBag, DiBagDisposalError } from '../src';
 import { DiBag as Core } from '../src';
 import { BindingGraph, BagRuntime } from '../src/runtime';
 import type { BindingDescription } from '../src/runtime';
@@ -136,13 +136,13 @@ test('nested cleanup failures flatten by registration order despite reversed com
   await Promise.resolve();
   delayed.resolve();
   const error: unknown = await closing.catch(error => error);
-  expect(error).toBeInstanceOf(DiBagCleanupError);
-  if (!(error instanceof DiBagCleanupError)) throw new Error('missing cleanup aggregate');
+  expect(error).toBeInstanceOf(DiBagDisposalError);
+  if (!(error instanceof DiBagDisposalError)) throw new Error('missing cleanup aggregate');
   expect(error.errors).toEqual([undefined, childError, siblingError, rootError]);
   expect(error.failures.map(failure => ({
     acquisitionId: failure.acquisitionId,
     bindingId: failure.bindingId,
-    label: failure.label,
+    label: failure.bindingLabel,
   }))).toEqual([snapshots[2], snapshots[1], snapshots[3], snapshots[0]].map(snapshot => ({
     acquisitionId: snapshot!.acquisitions[0]!.acquisitionId,
     bindingId: snapshot!.bindingId,
@@ -171,7 +171,7 @@ test('independently settled children detach on success and failure without repla
   expect(Reflect.get(parent, 'children').size).toBe(1);
   expect(Reflect.get(successful, 'detach')).toBeUndefined();
   const childFailure = await failing.close().catch(error => error);
-  expect(childFailure).toBeInstanceOf(DiBagCleanupError);
+  expect(childFailure).toBeInstanceOf(DiBagDisposalError);
   expect(Reflect.get(parent, 'children').size).toBe(0);
   expect(Reflect.get(failing, 'detach')).toBeUndefined();
   expect(parent.resolve('resource')).toBe(3);
@@ -195,9 +195,9 @@ test('parent close includes a child already closing until its failure settles', 
     childClosing.catch(error => error),
     parentClosing.catch(error => error),
   ]);
-  expect(childError).toBeInstanceOf(DiBagCleanupError);
-  expect(parentError).toBeInstanceOf(DiBagCleanupError);
-  if (!(parentError instanceof DiBagCleanupError)) throw new Error('missing parent aggregate');
+  expect(childError).toBeInstanceOf(DiBagDisposalError);
+  expect(parentError).toBeInstanceOf(DiBagDisposalError);
+  if (!(parentError instanceof DiBagDisposalError)) throw new Error('missing parent aggregate');
   expect(parentError.errors).toEqual([failure]);
 });
 

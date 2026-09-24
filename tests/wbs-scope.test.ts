@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError } from '../src';
+import { DiBag, DiBagDisposalError } from '../src';
 import {
   Collector,
   Source,
@@ -157,8 +157,8 @@ test('startup still closes later bags and its source when multiple disposers fai
   const acquisitionIds: symbol[] = [];
   for (const [index, cause] of [first, second].entries()) {
     const scopeFailure: unknown = error.errors[index];
-    expect(scopeFailure).toBeInstanceOf(DiBagCleanupError);
-    if (!(scopeFailure instanceof DiBagCleanupError)) throw new Error('missing scope aggregate');
+    expect(scopeFailure).toBeInstanceOf(DiBagDisposalError);
+    if (!(scopeFailure instanceof DiBagDisposalError)) throw new Error('missing scope aggregate');
     expect(scopeFailure.errors).toEqual([cause]);
     expect(scopeFailure.failures[0]!.error).toBe(cause);
     acquisitionIds.push(scopeFailure.failures[0]!.acquisitionId);

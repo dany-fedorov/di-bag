@@ -15,7 +15,7 @@ export async function main(signal: AbortSignal, options: EnsureServicesReadyOpti
   } catch (error) {
     if (error instanceof DiBagServiceReadinessError) console.error(error.code === 'DI_BAG_SERVICE_READINESS_FAILED', error.disposalFailures, error.disposalError);
     if (error instanceof DiBagServiceReadinessCancelledError) await error.disposalPromise;
-    if (error instanceof DiBagCloseCancelledError) console.error(error.details.disposersStillRunning, error.details.acquisitionsStillPending, error.cleanupPromise);
+    if (error instanceof DiBagCloseCancelledError) console.error(error.details.disposersStillRunning, error.details.acquisitionsStillPending, error.disposalPromise);
   }
   return [all, parallel, four, computed, passed];
 }

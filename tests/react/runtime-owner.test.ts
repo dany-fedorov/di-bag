@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError, DiBagServiceReadinessError, type CloseOptions } from '../../src';
+import { DiBag, DiBagDisposalError, DiBagServiceReadinessError, type CloseOptions } from '../../src';
 import { RuntimeOwner, type OwnerFailure } from '../../examples/react/runtime-owner';
 import { deferred } from '../helpers';
 
@@ -200,7 +200,7 @@ test('a rejecting disposer reaches the sink and the replacement still starts', a
   await settle();
   expect(failures).toHaveLength(1);
   expect(failures[0]).toMatchObject({ phase: 'close-failed', identity: 'a', generation: 1 });
-  expect((failures[0] as { error: unknown }).error).toBeInstanceOf(DiBagCleanupError);
+  expect((failures[0] as { error: unknown }).error).toBeInstanceOf(DiBagDisposalError);
   expect(owner.getSnapshot()).toMatchObject({ state: 'ready', identity: 'b', generation: 2 });
   expect(fakes.log).toEqual(['start:a', 'acquire:a', 'ready:a', 'dispose:a', 'start:b', 'acquire:b', 'ready:b']);
   await owner.close();

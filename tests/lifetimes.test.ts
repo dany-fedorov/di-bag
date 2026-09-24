@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError } from '../src';
+import { DiBag, DiBagDisposalError } from '../src';
 import { deferred } from './helpers';
 import { AcquisitionFamily } from '../src/acquisition-family';
 import type { AttemptIdentity } from '../src/acquisition-family';
@@ -72,8 +72,8 @@ test('same-object transients own separate attempts and preserve every cleanup ca
   const closing = bag.close();
   expect(bag.close()).toBe(closing);
   const error: unknown = await closing.catch(error => error);
-  expect(error).toBeInstanceOf(DiBagCleanupError);
-  if (!(error instanceof DiBagCleanupError)) throw new Error('missing cleanup error');
+  expect(error).toBeInstanceOf(DiBagDisposalError);
+  if (!(error instanceof DiBagDisposalError)) throw new Error('missing cleanup error');
   expect(error.errors).toEqual([cause, cause]);
   expect(error.failures.map(item => item.acquisitionId)).toEqual([...ids].reverse());
   expect(bag.serviceSnapshot('value').acquisitions).toHaveLength(0);
@@ -341,8 +341,8 @@ test('failed root rollback and retry retain distinct ownership across child cons
   const closing = bag.close();
   rollback.resolve();
   const error: unknown = await closing.catch(error => error);
-  expect(error).toBeInstanceOf(DiBagCleanupError);
-  if (!(error instanceof DiBagCleanupError)) throw new Error('missing cleanup failure');
+  expect(error).toBeInstanceOf(DiBagDisposalError);
+  if (!(error instanceof DiBagDisposalError)) throw new Error('missing cleanup failure');
   expect(error.failures.map(item => item.error)).toEqual([cleanupFailure]);
   expect(error.failures[0]!.acquisitionId).toBe(first.acquisitionId);
   expect(events.indexOf('child')).toBeLessThan(events.indexOf('root:2:start'));

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError } from '../src';
+import { DiBag, DiBagDisposalError } from '../src';
 import { deferred } from './helpers';
 
 test('a retry does not inherit the identity of a caught failed attempt', async () => {
@@ -78,14 +78,14 @@ test('shutdown preserves every cleanup cause and its acquisition identity', asyn
   expect(bag.close()).toBe(closing);
   let failure: unknown;
   try { await closing; } catch (error) { failure = error; }
-  expect(failure).toBeInstanceOf(DiBagCleanupError);
-  if (!(failure instanceof DiBagCleanupError)) throw new Error('missing aggregate');
+  expect(failure).toBeInstanceOf(DiBagDisposalError);
+  if (!(failure instanceof DiBagDisposalError)) throw new Error('missing aggregate');
   expect(events).toEqual(['c', 'b', 'a']);
   expect(failure.errors).toEqual([undefined, first]);
   expect(failure.failures.map(item => item.error)).toEqual([undefined, first]);
   expect(failure.failures[0]!.error).toBeUndefined();
   expect(failure.failures[1]!.error).toBe(first);
-  expect(failure.failures.map(item => item.label)).toEqual(['b', 'a']);
+  expect(failure.failures.map(item => item.bindingLabel)).toEqual(['b', 'a']);
   expect(new Set(failure.failures.map(item => item.acquisitionId)).size).toBe(2);
   expect(failure.failures.every(item => typeof item.bindingId === 'symbol' &&
     typeof item.acquisitionId === 'symbol' && item.acquisitionId !== item.bindingId)).toBe(true);
@@ -100,11 +100,11 @@ test('cleanup diagnostics snapshot caller records without cloning the original c
   const cause = { reason: 'cleanup' };
   const record = { acquisitionId: Symbol('attempt'), bindingId: Symbol('binding'), label: 'resource', error: cause };
   const input = [record];
-  const error = new DiBagCleanupError(input);
+  const error = new DiBagDisposalError(input);
   record.label = 'changed';
   input.length = 0;
   expect(error.failures).toHaveLength(1);
-  expect(error.failures[0]!.label).toBe('resource');
+  expect(error.failures[0]!.bindingLabel).toBe('resource');
   expect(error.failures[0]!.error).toBe(cause);
   expect(error.errors[0]).toBe(cause);
   expect(error.failures[0]).not.toBe(record);

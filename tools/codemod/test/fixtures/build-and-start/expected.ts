@@ -31,7 +31,7 @@ export async function start(shutdown: AbortSignal, passedOptions: EnsureServices
 export const typed: EnsureServicesReadyOptions = { totalTimeoutMs: 100, startupOrder: 'sequential' };
 
 export function report(error: unknown): unknown {
-  if (error instanceof DiBagCloseCancelledError) return [error.details.disposersStillRunning, error.details.acquisitionsStillPending, error.details.waitTimeoutMs, error.cleanupPromise];
+  if (error instanceof DiBagCloseCancelledError) return [error.details.disposersStillRunning, error.details.acquisitionsStillPending, error.details.waitTimeoutMs, error.disposalPromise];
   if (error instanceof DiBagServiceReadinessCancelledError) return error.disposalPromise;
   if (error instanceof DiBagServiceReadinessError && error.code === 'DI_BAG_SERVICE_READINESS_FAILED') return [error.disposalFailures, error.disposalError];
   return /DI_BAG_STARTUP_TIMEOUT/.test(String(error));

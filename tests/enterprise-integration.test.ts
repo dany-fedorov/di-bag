@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError, DiBagServiceReadinessError } from '../src';
+import { DiBag, DiBagDisposalError, DiBagServiceReadinessError } from '../src';
 import { withOwnedScope } from '../examples/integration/owned-scope';
 
 test('overlapping requests isolate private dependencies and release scopes before the shared root', async () => {
@@ -59,7 +59,7 @@ test('owned-scope fixture preserves handler and cleanup failures without closing
   }).catch(error => error);
   expect(result).toBeInstanceOf(AggregateError);
   expect(result.errors[0]).toBe(handlerFailure);
-  expect(result.errors[1]).toBeInstanceOf(DiBagCleanupError);
+  expect(result.errors[1]).toBeInstanceOf(DiBagDisposalError);
   expect(result.errors[1].failures[0].error).toBe(cleanupFailure);
   expect(closes).toBe(1);
 });

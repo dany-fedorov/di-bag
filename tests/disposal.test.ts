@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { DiBag } from '../src';
-import { DiBagCleanupError } from '../src';
+import { DiBagDisposalError } from '../src';
 import { deferred } from './helpers';
 
 test('disposal callbacks receive the owned value without a receiver', async () => {
@@ -476,8 +476,8 @@ test('every disposer runs and close aggregates the original cleanup failures', a
   bag.resolve('c');
   const closing = bag.close();
   const failure: unknown = await closing.catch(error => error);
-  expect(failure).toBeInstanceOf(DiBagCleanupError);
-  if (!(failure instanceof DiBagCleanupError)) throw new Error('missing aggregate');
+  expect(failure).toBeInstanceOf(DiBagDisposalError);
+  if (!(failure instanceof DiBagDisposalError)) throw new Error('missing aggregate');
   expect(failure.errors).toEqual([firstError, laterError]);
   expect(failure.errors[0]).toBe(firstError);
   expect(failure.errors[1]).toBe(laterError);
@@ -503,8 +503,8 @@ test('throwing undefined still rejects close and does not skip other disposers',
     await bag.close();
   } catch (error) {
     rejected = true;
-    expect(error).toBeInstanceOf(DiBagCleanupError);
-    if (!(error instanceof DiBagCleanupError)) throw new Error('missing aggregate');
+    expect(error).toBeInstanceOf(DiBagDisposalError);
+    if (!(error instanceof DiBagDisposalError)) throw new Error('missing aggregate');
     expect(error.errors).toEqual([undefined]);
   }
   expect(rejected).toBe(true);
@@ -527,8 +527,8 @@ test('reentrant close observes the same barrier even when its disposer rejects',
   const error: unknown = await closing.catch(error => error);
   expect(reentrant).toBe(closing);
   expect(bag.close()).toBe(closing);
-  expect(error).toBeInstanceOf(DiBagCleanupError);
-  if (!(error instanceof DiBagCleanupError)) throw new Error('missing aggregate');
+  expect(error).toBeInstanceOf(DiBagDisposalError);
+  if (!(error instanceof DiBagDisposalError)) throw new Error('missing aggregate');
   expect(error.errors).toEqual([failure]);
   await expect(bag.close()).rejects.toBe(error);
   expect(events).toEqual(['resource']);

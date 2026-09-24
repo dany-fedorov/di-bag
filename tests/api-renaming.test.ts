@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, DiBagCleanupError } from '../src';
+import { DiBag, DiBagDisposalError } from '../src';
 
 function caught(callback: () => unknown): any {
   try { callback(); } catch (error) { return error; }
@@ -94,9 +94,9 @@ test('diagnostics count callbacks, retain cycles and preserve application error 
   bag.resolve('owned');
   try { await bag.close(); throw new Error('expected cleanup failure'); }
   catch (error) {
-    expect(error).toBeInstanceOf(DiBagCleanupError);
+    expect(error).toBeInstanceOf(DiBagDisposalError);
     expect((error as Error).message).toContain('2 disposal callback(s)');
-    expect((error as DiBagCleanupError).errors).toEqual([applicationError, applicationError]);
+    expect((error as DiBagDisposalError).errors).toEqual([applicationError, applicationError]);
   }
 });
 
