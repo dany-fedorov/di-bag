@@ -1,4 +1,4 @@
-import type { CanonicalLifetime } from './lifetime-types';
+import type { CanonicalLifetime, ChildReplacementAdmission } from './lifetime-types';
 import type { Provider, ProviderGraphContract, ProviderFactory, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue } from './provider';
 import type { ProviderOrFactory, Registrations } from './registration';
 import type { SelectionKey } from './token-types';
@@ -7,7 +7,7 @@ import type { CollectionTokenBase, TokenKey } from './tokens';
 import type { NeedConstraint } from './module-types';
 
 type Transients<R extends Registrations, S extends readonly unknown[]> = {
-  [K in SelectionKey<S[number]> & keyof R]: 'transient' extends CanonicalLifetime<R, K> ? K : never;
+  [K in SelectionKey<S[number]> & keyof R]: 'transient:one-per-resolve' extends CanonicalLifetime<R, K> ? K : never;
 }[SelectionKey<S[number]> & keyof R];
 
 /**
@@ -46,7 +46,7 @@ export type CreateChildContainerOptions<
   Constraints extends NeedConstraint = never,
   ReplacedServiceKeys extends readonly unknown[] = readonly [],
   ReplacementProviders = never,
-> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders, 'createChildContainer'> & {
+> = ReplacementOptions<ServiceRegistrations, Constraints, ReplacedServiceKeys, ReplacementProviders & ChildReplacementAdmission<ServiceRegistrations, ReplacedServiceKeys>, 'createChildContainer'> & {
   readonly sharedParentServiceKeys?: SharedParentServiceKeys
     & Selection<ServiceRegistrations, Constraints, SharedParentServiceKeys, 'createChildContainer sharedParentServiceKeys'>
     & ChildContainerShareAdmission<SharedParentServiceKeys> & (

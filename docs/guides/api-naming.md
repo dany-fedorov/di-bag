@@ -123,9 +123,9 @@ letters. The description removes the doubt about what the term means in this
 library. Both halves are kebab-case and one colon joins them.
 
 ```ts
-provider.withLifetime('singleton:one-per-container-tree'); // the default, rarely written
-provider.withLifetime('scoped:one-per-container');
-provider.withLifetime('transient:one-per-resolve');
+DiBag.providerWithLifetime({ provider, lifetime: 'singleton:one-per-container-tree' });
+DiBag.providerWithLifetime({ provider, lifetime: 'scoped:one-per-container' }); // the default, rarely written
+DiBag.providerWithLifetime({ provider, lifetime: 'transient:one-per-resolve' });
 ```
 
 Only the full value is accepted. `'scoped'` alone is rejected with a message that
@@ -151,8 +151,8 @@ value or an error code.
 | What a decorator callback is handed | callback receives | direct, awaited |
 | Waiting until listed services exist and are settled | service readiness | startup, start |
 | A resolvable set of services with its own cache and ownership | container | bag, as a concept word. `DiBag` stays the product and facade name, and "bag" now only means an options bag |
-| One instance for a root container and all its child containers, the default | `'singleton:one-per-container-tree'` | root |
-| One instance in each container that resolves it | `'scoped:one-per-container'` | |
+| One instance for a root container and all its child containers | `'singleton:one-per-container-tree'` | root |
+| One instance in each container that resolves it, the default | `'scoped:one-per-container'` | |
 | A new instance for every resolve and every dependency read | `'transient:one-per-resolve'` | |
 | A root container and all its child containers | container tree | family, ownership family |
 | A provider appended to a collection token's list | contribution | |
@@ -228,5 +228,6 @@ one row here, added by the change that takes the fallback.
 | --- | --- | --- | --- |
 | Collection-token branches on `resolve` and `inspect` | Explicit `resolveCollection` and `inspectCollection` methods | The bounded compiler fixture repairs exhausted three attempts before S5 measurement; contextual collection replacement diagnostics remained unstable | [Phase 04 evidence](../superpowers/plans/evidence/phase-04.md) |
 | `withTokenService({ token, provider })` | `withTokenService(token, provider)` | The bag shape measured 1,206,389 instantiations at 100 bindings (+42.4% over the 847,247 baseline) and 19,720,389 at 500 (+62.3% over 12,153,047) | [Phase 05 evidence](../superpowers/plans/evidence/phase-05.md) |
+| singleton default | scoped default | bulk 100 uses 236,619 instantiations against baseline 159,001, +48.82% over the +10% limit | [Phase 10 evidence](../superpowers/plans/evidence/phase-10.md) |
 | `withReplacedService({ serviceKey, provider })` | `withReplacedService(serviceKey, provider)` | Two bounded bag-signature repairs retained an unannotated replacement-output inference regression; the positional fallback measured 1,114,200 instantiations at 100 replacements (+8.04% over baseline) and 21,853,000 at 500 (+0.39%) | [Phase 05 evidence](../superpowers/plans/evidence/phase-05.md) |
 | Replacement fields inside the optional `createChildContainer` and `createIndependentContainer` bags | Positional selected keys and replacement providers; child sharing remains an optional bag | Three bounded bag signatures failed contextual provider inference or overflowed the compiler; the fallback's twelve cumulative rows all pass, with a maximum increase of +0.1% | [Phase 06 evidence](../superpowers/plans/evidence/phase-06.md) |

@@ -29,8 +29,9 @@ function parameters(signature) {
     .map(parameter => parameter.flags.isRest ? `...${parameter.name}` : parameter.flags.isOptional ? `${parameter.name}?` : parameter.name);
 }
 
-function firstSentence(comment) {
+function cardSummary(comment, name) {
   const summary = partText(comment?.summary).replace(/\s+/g, ' ').trim();
+  if (name === 'DiBag.providerWithLifetime') return summary;
   return summary.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? summary;
 }
 
@@ -51,7 +52,7 @@ function entry(reflection, group, receiver) {
   return {
     group, name, id: anchor(name), line: line(reflection),
     title: receiver ? `${name}(${parameters(signature).join(', ')})` : name,
-    summary: firstSentence(carrier?.comment ?? comments[0]?.comment),
+    summary: cardSummary(carrier?.comment ?? comments[0]?.comment, name),
     examples: carrier ? examples(carrier.comment) : [],
     codes, codeLabel: receiver ? 'Throws' : 'Code',
   };

@@ -158,7 +158,7 @@ test('independently settled children detach on success and failure without repla
   const parent = new BagRuntime(graph([{
     id,
     label: 'resource',
-    registration: DiBag.providerWithDisposal({ provider: () => ++next, disposeService: value => { if (value === 2) throw failure; } }),
+    registration: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ++next, disposeService: value => { if (value === 2) throw failure; } }), lifetime: 'scoped:one-per-container' }),
     localNames: new Map(),
   }], [['resource', id]]), { isNativePromise: isPromise });
   const successful = parent.scope();

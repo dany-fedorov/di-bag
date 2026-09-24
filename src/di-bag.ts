@@ -18,7 +18,7 @@ import { createProvider } from './acquisition-context';
 import { closeRuntime, ensureRuntimeReady } from './startup';
 import { selectChildContainer, selectIndependentContainer } from './scope-selection';
 import type { CreateChildContainerOptions, CreateIndependentContainerOptions, DisjointChildContainerSelection, UnsharedAliases, ScopedAliases } from './scope-types';
-import type { CheckedChildContainerLifetimes } from './lifetime-types';
+import type { CheckedChildContainerLifetimes, ChildReplacementAdmission } from './lifetime-types';
 import type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 import { withTokenBinding } from './provider';
 import { providerWithAcquisitionMetadata, providerWithDisposal, providerWithLifetime, providerWithRegistrationMetadata, providerWithTransformedService } from './provider-facades';
@@ -261,12 +261,15 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * pass selected keys and providers first, then the sharing options.
    * @returns A child owned by this container; closing the parent closes the child first.
    * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-   * `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
+   * `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+   * `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
    * @example
    * ```ts
-   * const parent = DiBag.createBuilder().withServices({ config: () => ({ port: 3000 }) }).buildContainer();
-   * const child = parent.createChildContainer({ sharedParentServiceKeys: ['config'] });
-   * const config = child.resolve('config');
+   * const parent = DiBag.createBuilder().withServices({ request: DiBag.providerWithLifetime({
+   *   provider: () => ({ id: 'initial' }), lifetime: 'scoped:one-per-container',
+   * }) }).buildContainer();
+   * const child = parent.createChildContainer(['request'], { request: () => ({ id: 'child' }) });
+   * const request = child.resolve('request');
    * await child.close();
    * await parent.close();
    * ```
@@ -283,7 +286,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
     const SharedParentServiceKeys extends readonly unknown[] = readonly [],
   >(
     replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createChildContainer'>,
-    replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> &
+    replacementProviders: ReplacementProviders & ChildReplacementAdmission<ServiceRegistrations, ReplacedServiceKeys> & object & Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> &
       Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createChildContainer'> &
       CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
       CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
@@ -295,7 +298,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
   ): Container<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
   createChildContainer(...args: unknown[]): unknown {
     this.#runtime.assertOpen();
-    const { graph, shared } = selectChildContainer(this.#graph, positionalChildOptions(args), serviceKey => this.#runtime.isTransient(serviceKey));
+    const { graph, shared } = selectChildContainer(this.#graph, positionalChildOptions(args), serviceKey => this.#runtime.lifetimeOf(serviceKey));
     return new Container(graph, this.context, this.#runtime.scope(graph, shared));
   }
 
@@ -739,11 +742,16 @@ export interface DiBagApi {
    */
   readonly providerWithDisposal: typeof providerWithDisposal;
   /**
-   * Select a full lifetime for a provider input.
+   * Return a provider with singleton, scoped, or transient caching.
+   * Providers are scoped per container by default; mark shared clients singleton when none of
+   * their dependencies are scoped.
+   * @param options - The provider, full lifetime, and optional deliberate scoped-capture allowance for singleton only.
+   * @returns A fresh immutable provider retaining every other provider stage.
    * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag, lifetime, or option; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
    * @example
    * ```ts
-   * const cached = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' });
+   * const createClient = () => ({ close() {} });
+   * const client = DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => createClient()), lifetime: 'singleton:one-per-container-tree' });
    * ```
    */
   readonly providerWithLifetime: typeof providerWithLifetime;

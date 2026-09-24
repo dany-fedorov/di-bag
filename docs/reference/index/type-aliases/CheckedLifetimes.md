@@ -10,7 +10,7 @@ type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [Need
 }> : unknown;
 ```
 
-Defined in: [lifetime-types.ts:196](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L196)
+Defined in: [lifetime-types.ts:198](https://github.com/dany-fedorov/di-bag/blob/main/src/lifetime-types.ts#L198)
 
 Reject strict root providers that transitively capture scoped dependencies.
 

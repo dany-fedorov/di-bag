@@ -23,7 +23,7 @@ export const composition = DiBag.createBuilder()
       ],
     }), lifetime: 'singleton:one-per-container-tree' }),
     stockLevels: DiBag.providerWithLifetime({ provider: (): StockLevels => ({ tea: 40, mug: 10 }), lifetime: 'singleton:one-per-container-tree' }),
-    payments: (): PaymentGateway => ({ charge: async amountCents => `charge-${amountCents}` }),
+    payments: DiBag.providerWithLifetime({ provider: (): PaymentGateway => ({ charge: async amountCents => `charge-${amountCents}` }), lifetime: 'scoped:one-per-container' }),
     mailConfig: DiBag.providerWithLifetime({ provider: (): MailConfig => ({
       opsAddress: 'ops@example.com',
       connect: async () => ({ send: async mail => { console.log(mail.subject); }, close: async () => {} }),

@@ -15,11 +15,11 @@ export const selectedScopeRuntimeAssertions = `
       config: () => ({ id: 'parent' }),
       pending: DiBag.providerWithDisposal({ provider: () => selectedPromise, disposeService: () => { selectedLog.push('pending'); } }),
       raw: DiBag.createProvider(() => selectedPromise, { factoryReturnKind: 'uninspected' }),
-      rooted: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }) => ({ id: config.id }), disposeService: () => { selectedLog.push('root'); } }), lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true }),
+      rooted: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }) => ({ id: config.id }), disposeService: () => { selectedLog.push('root'); } }), lifetime: 'scoped:one-per-container' }),
     }).buildContainer();
     const selectedChild = selectedRoot.createChildContainer(['config', selectedToken], {
       config: () => ({ id: 'child' }), [selectedKey]: () => ({ id: 'child' }),
-    }, { sharedParentServiceKeys: ['shared', 'pending', 'raw'] });
+    }, { sharedParentServiceKeys: ['shared', 'pending', 'raw', 'rooted'] });
     const selectedGrandchild = selectedChild.createChildContainer({ sharedParentServiceKeys: ['shared', selectedToken] });
     assertSelected(selectedChild.resolve('config').id === 'child', 'child override missing');
     assertSelected(selectedGrandchild.resolve(selectedToken).id === 'child', 'token share lost override');

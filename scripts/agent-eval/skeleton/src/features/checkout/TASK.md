@@ -7,7 +7,7 @@ Implement `checkoutModule` in `src/features/checkout/module.ts` with DI Bag
 
 `contract.ts` is fixed. The module exports exactly one service, `checkout`
 (`Checkout`), and requires exactly four registrations from the host:
-`catalog` (`Catalog`, root lifetime, from the catalog module), `inventory`
+`catalog` (`Catalog`, singleton per container tree, from the catalog module), `inventory`
 (`Inventory`, per request scope, from the inventory module), `payments`
 (`PaymentGateway`, per request scope), and `notifier` (`Notifier`, from the
 notifications module).
@@ -15,6 +15,8 @@ notifications module).
 ## Behavior
 
 `checkout` belongs to one request scope, which places at most one order.
+Providers are scoped per container by default; mark the checkout service
+explicitly scoped because it captures request state.
 `placeOrder(lines)`:
 
 1. Rejects with an `Error` when `lines` is empty.

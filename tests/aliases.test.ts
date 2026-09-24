@@ -148,13 +148,14 @@ test('shared alias inspection identifies its parent target despite a child overr
   await bag.close();
 });
 
-test('aliases of root targets retain the root graph under child overrides', async () => {
+test('singleton aliases stay inherited by a child and follow independent replacements', async () => {
   const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => ({ id: 1 }), lifetime: 'singleton:one-per-container-tree' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   const child = bag.createChildContainer();
   expect(child.resolve('copy')).toBe(bag.resolve('value'));
-  const override = bag.createChildContainer(['value'], { value: () => ({ id: 2 }) });
+  const override = bag.createIndependentContainer(['value'], { value: () => ({ id: 2 }) });
   expect(override.resolve('copy')).toBe(override.resolve('value'));
   expect(override.resolve('copy').id).toBe(2);
+  await override.close();
   await bag.close();
 });
 
@@ -197,7 +198,7 @@ test('exported target replacements and renames remain visible through module ali
 });
 
 test('re-sharing aliases keeps parent policy while fresh grandchildren and forks use local targets', async () => {
-  const base = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => ({ id: 1 }), lifetime: 'singleton:one-per-container-tree' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
+  const base = DiBag.createBuilder().withServices({ value: () => ({ id: 1 }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   const shared = base.createChildContainer(['value'], { value: DiBag.providerWithLifetime({ provider: () => ({ id: 2 }), lifetime: 'transient:one-per-resolve' }) }, { sharedParentServiceKeys: ['copy'] });
   const borrowed = shared.createChildContainer({ sharedParentServiceKeys: ['copy'] });
   expect(borrowed.resolve('copy')).toBe(base.resolve('value'));
@@ -214,24 +215,33 @@ test('re-sharing aliases keeps parent policy while fresh grandchildren and forks
 test('strict roots use the effective shared alias policy in both lifetime directions', async () => {
   for (const rootTarget of [false, true]) {
     const source = () => ({ id: 1 });
-    const initial = DiBag.createBuilder().withServices({ value: rootTarget ? DiBag.providerWithLifetime({ provider: source, lifetime: 'singleton:one-per-container-tree' }) : source,
-      consumer: ({ copy }: { copy: { id: number } }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
-    const override = () => ({ id: 2 });
-    const child = initial.createChildContainer(['value'], { value: rootTarget ? override : DiBag.providerWithLifetime({ provider: override, lifetime: 'singleton:one-per-container-tree' }) }, { sharedParentServiceKeys: ['copy'] });
     const consumer = DiBag.providerWithLifetime({ provider: ({ copy }: { copy: { id: number } }) => copy, lifetime: 'singleton:one-per-container-tree' });
-    const shared = Reflect.apply(child.createChildContainer, child, [['consumer'], { consumer }, { sharedParentServiceKeys: ['copy'] }]);
-    const fresh = Reflect.apply(child.createChildContainer, child, [['consumer'], { consumer }]);
-    const fork = Reflect.apply(child.createIndependentContainer, child, [['consumer'], { consumer }]);
     if (rootTarget) {
+      const initial = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: source, lifetime: 'singleton:one-per-container-tree' }),
+        consumer: ({ copy }: { copy: { id: number } }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
+      const child = initial.createChildContainer({ sharedParentServiceKeys: ['copy'] });
+      const shared = child.createChildContainer(['consumer'], { consumer }, { sharedParentServiceKeys: ['copy'] });
       expect(shared.resolve('consumer')).toBe(initial.resolve('value'));
+      const independentScoped = initial.createIndependentContainer(['value'], { value: () => ({ id: 2 }) });
+      const fresh = Reflect.apply(independentScoped.createChildContainer, independentScoped, [['consumer'], { consumer }]);
+      const fork = Reflect.apply(independentScoped.createIndependentContainer, independentScoped, [['consumer'], { consumer }]);
       expect(() => fresh.resolve('consumer')).toThrow('root lifetime cannot capture scoped');
       expect(() => fork.resolve('consumer')).toThrow('root lifetime cannot capture scoped');
+      await fork.close(); await independentScoped.close();
+      await initial.close();
     } else {
+      const initial = DiBag.createBuilder().withServices({ value: source,
+        consumer: ({ copy }: { copy: { id: number } }) => copy }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
+      const child = initial.createChildContainer(['value'], { value: DiBag.providerWithLifetime({ provider: () => ({ id: 2 }), lifetime: 'singleton:one-per-container-tree' }) }, { sharedParentServiceKeys: ['copy'] });
+      const shared = Reflect.apply(child.createChildContainer, child, [['consumer'], { consumer }, { sharedParentServiceKeys: ['copy'] }]);
+      const fresh = child.createChildContainer(['consumer'], { consumer });
+      const fork = child.createIndependentContainer(['consumer'], { consumer });
       expect(() => shared.resolve('consumer')).toThrow('root lifetime cannot capture scoped');
       expect(fresh.resolve('consumer')).toEqual({ id: 2 });
       expect(fork.resolve('consumer')).toEqual({ id: 2 });
+      await fork.close();
+      await initial.close();
     }
-    await fork.close(); await initial.close();
   }
 });
 

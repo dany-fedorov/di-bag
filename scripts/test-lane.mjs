@@ -26,5 +26,7 @@ if (rest[0] === '--list') {
   console.log(files.join('\n'));
   process.exit(0);
 }
-const result = spawnSync('bun', ['test', ...files, ...rest], { stdio: 'inherit' });
+// Compiler and package integration tests need headroom; explicit test and child limits remain authoritative.
+const laneOptions = lane === 'compiler' ? ['--timeout=30000'] : [];
+const result = spawnSync('bun', ['test', ...laneOptions, ...files, ...rest], { stdio: 'inherit' });
 process.exit(result.status ?? 1);

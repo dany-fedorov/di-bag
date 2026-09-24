@@ -7,14 +7,16 @@ Implement `inventoryModule` in `src/features/inventory/module.ts` with DI Bag
 
 `contract.ts` is fixed. The module exports exactly one service, `inventory`
 (`Inventory`), and requires exactly two registrations from the host:
-`stockLevels` (`StockLevels`, root lifetime) and `catalog` (`Catalog`, root
-lifetime, exported by the catalog module).
+`stockLevels` (`StockLevels`, singleton per container tree) and `catalog`
+(`Catalog`, singleton per container tree, exported by the catalog module).
 
 ## Behavior
 
 - Stock is one ledger for the whole application, starting from `stockLevels`.
   A SKU missing from `stockLevels` has no stock.
 - `inventory` belongs to one request scope; each scope resolves its own.
+- Providers are scoped per container by default; mark request holds and
+  inventory explicitly scoped while keeping the ledger singleton per tree.
 - `reserve(sku, quantity)` returns `false` and reserves nothing when the SKU is
   not in the catalog or fewer than `quantity` units are available. Otherwise
   it holds the units for this scope and returns `true`.

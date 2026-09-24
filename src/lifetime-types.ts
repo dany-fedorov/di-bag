@@ -1,9 +1,11 @@
 import type { ContributionConstraint } from './contribution-types';
 import type { ProviderOrFactory, Registrations } from './registration';
 import type { ProviderGraphContract, ProviderNamedDependencies, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens } from './provider';
-import type { TokenBase, TokenKey } from './tokens';
+import type { CollectionTokenBase, TokenBase, TokenKey } from './tokens';
 import type { CheckDependencyCompatibility, CheckDependencyCompleteness, NameText, SeeErrors, Unsatisfied } from './types';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
+import type { LifetimeKind } from './lifetime';
+import type { SelectionKey } from './token-types';
 
 /**
  * Where a sealed lifetime walk leaves its module: an export or external name the installing
@@ -216,6 +218,48 @@ type PolicyOf<R extends Registrations, K, Visited> = K extends keyof R ? K exten
 type PolicyTarget<R extends Registrations, V, Visited> = ProviderGraphContract<V> extends infer G
   ? G extends { readonly sharedAlias: { readonly registrations: infer P extends Registrations; readonly source: infer K } } ? PolicyOf<P, K, never>
   : G extends { readonly alias: infer K } ? PolicyOf<R, K, Visited>
-  : G extends { readonly lifetime: { readonly kind: infer L } } ? L : 'scoped'
+  : G extends { readonly lifetime: { readonly kind: infer L extends LifetimeKind } } ? L : 'scoped'
   : never;
-export type CanonicalLifetime<R extends Registrations, K extends keyof R> = PolicyOf<R, K, never>;
+type PublicLifetime<Kind extends LifetimeKind> =
+  Kind extends 'singleton' ? 'singleton:one-per-container-tree'
+  : Kind extends 'scoped' ? 'scoped:one-per-container'
+  : 'transient:one-per-resolve';
+
+/**
+ * Resolve a service's full public lifetime value through aliases and shared aliases.
+ * Unmarked providers default to `scoped:one-per-container`.
+ */
+export type CanonicalLifetime<
+  ServiceRegistrations extends Registrations,
+  ServiceKey extends keyof ServiceRegistrations,
+> = PublicLifetime<PolicyOf<ServiceRegistrations, ServiceKey, never>>;
+
+type SingletonReplacementKeys<
+  ServiceRegistrations extends Registrations,
+  ReplacedServiceKeys extends readonly unknown[],
+> = {
+  [ServiceKey in SelectionKey<Exclude<ReplacedServiceKeys[number], CollectionTokenBase>> & keyof ServiceRegistrations]:
+    'singleton:one-per-container-tree' extends CanonicalLifetime<ServiceRegistrations, ServiceKey>
+      ? ServiceKey
+      : never;
+}[SelectionKey<Exclude<ReplacedServiceKeys[number], CollectionTokenBase>> & keyof ServiceRegistrations];
+
+type SingletonReplacementMessage<ServiceKey> = ServiceKey extends PropertyKey
+  ? `createChildContainer cannot replace singleton service: ${NameText<ServiceKey>}; mark it scoped:one-per-container or use createIndependentContainer`
+  : never;
+
+/**
+ * Reject child-container replacements whose selected services have a canonical
+ * `singleton:one-per-container-tree` lifetime. Mark those services
+ * `scoped:one-per-container` or use `createIndependentContainer`.
+ * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#di-bag-singleton-replacement
+ */
+export type ChildReplacementAdmission<
+  ServiceRegistrations extends Registrations,
+  ReplacedServiceKeys extends readonly unknown[],
+> = [SingletonReplacementKeys<ServiceRegistrations, ReplacedServiceKeys>] extends [never]
+  ? unknown
+  : Unsatisfied<
+      SingletonReplacementMessage<SingletonReplacementKeys<ServiceRegistrations, ReplacedServiceKeys>>,
+      { readonly serviceKey: SingletonReplacementKeys<ServiceRegistrations, ReplacedServiceKeys> }
+    >;

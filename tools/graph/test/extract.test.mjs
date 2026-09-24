@@ -108,9 +108,12 @@ test('provider facades are unwrapped only through the exported DiBagApi declarat
   }
   const providers = extractDependencyGraph({ project: 'tools/graph/test/fixtures/provider-facades.tsconfig.json', root });
   assert.equal(providers.units.length, 1);
+  const request = providers.units[0].nodes.find(node => node.key === 'request');
+  assert.equal(request.lifetime, 'scoped:one-per-container');
   assert.deepEqual(providers.units[0].nodes.map(({ key, lifetime, owned }) => ({ key, lifetime, owned })), [
     { key: 'singleton', lifetime: 'singleton:one-per-container-tree', owned: true },
     { key: 'scoped', lifetime: 'scoped:one-per-container', owned: false },
+    { key: 'request', lifetime: 'scoped:one-per-container', owned: false },
     { key: 'transient', lifetime: 'transient:one-per-resolve', owned: true },
     { key: 'dynamic', lifetime: 'dynamic', owned: false },
     { key: 'reset', lifetime: 'scoped:one-per-container', owned: false },

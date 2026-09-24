@@ -17,6 +17,7 @@ const singleton = DiBag.providerWithLifetime({
   lifetime: 'singleton:one-per-container-tree',
 });
 const scoped = DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' });
+const request = DiBag.providerWithLifetime({ provider: () => ({ id: 'request' }), lifetime: 'scoped:one-per-container' });
 const transient = DiBag.providerWithTransformedService({
   provider: DiBag.providerWithLifetime({
     provider: DiBag.providerWithDisposal({ provider: () => 3, disposeService: () => {} }),
@@ -35,4 +36,4 @@ class Provider { providerWithLifetime(_options: object) { return this; } }
 const localProvider = new DiBagApi().providerWithLifetime({ provider: () => 6, lifetime: 'singleton:one-per-container-tree' }) as any;
 const localObject = ({ providerWithDisposal() { return this; } }).providerWithDisposal() as any;
 
-export const container = DiBag.createBuilder().withServices({ singleton, scoped, transient, dynamic, reset, localProvider, localObject }).buildContainer();
+export const container = DiBag.createBuilder().withServices({ singleton, scoped, request, transient, dynamic, reset, localProvider, localObject }).buildContainer();

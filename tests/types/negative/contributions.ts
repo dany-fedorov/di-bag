@@ -133,8 +133,10 @@ const sharedAliasBase = DiBag.createBuilder().withServices({ helper: () => 1, co
 // diagnostic: root lifetime cannot capture scoped dependency
 sharedAliasBase.createChildContainer(['helper', 'consumer'], { helper: rooted, consumer: rootAll }, { sharedParentServiceKeys: ['copy'] });
 const sharedRootAliasBase = DiBag.createBuilder().withServices({ helper: rooted, consumer: DiBag.createProviderFromFunction({ dependencies: [all], factoryFunction: values => values }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'helper' }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'transient:one-per-resolve' }) }).buildContainer();
-const sharedRootAlias = sharedRootAliasBase.createChildContainer(['helper', 'consumer'], { helper: () => 2, consumer: rootAll }, { sharedParentServiceKeys: ['copy'] });
+// diagnostic: createChildContainer cannot replace singleton service: helper
+sharedRootAliasBase.createChildContainer(['helper', 'consumer'], { helper: () => 2, consumer: rootAll }, { sharedParentServiceKeys: ['copy'] });
+const scopedHelperFork = sharedRootAliasBase.createIndependentContainer(['helper'], { helper: () => 2 });
 // diagnostic: root lifetime cannot capture scoped dependency
-sharedRootAlias.createIndependentContainer();
+scopedHelperFork.createIndependentContainer(['consumer'], { consumer: rootAll });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: rooted }).withCollectionContribution({ collectionToken: numbers, provider: () => 1 }).withServices({ rootAll }).buildContainer();

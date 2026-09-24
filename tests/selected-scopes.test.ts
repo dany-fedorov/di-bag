@@ -87,14 +87,17 @@ test('empty selections are lazy and duplicates read each override once', async (
   await root.close();
 });
 
-test('inherited strict roots keep their graph when a child overrides a dependency as scoped', async () => {
+test('inherited singleton roots stay shared by a child; independent replacement rebuilds their graph', async () => {
   const root = DiBag.createBuilder().withServices({
     config: DiBag.providerWithLifetime({ provider: () => ({ id: 'parent' }), lifetime: 'singleton:one-per-container-tree' }),
     service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => ({ config }), lifetime: 'singleton:one-per-container-tree' }),
   }).buildContainer();
-  const child = root.createChildContainer(['config'], { config: () => ({ id: 'child' }) });
-  expect(child.resolve('config').id).toBe('child');
+  const child = root.createChildContainer();
+  expect(child.resolve('config').id).toBe('parent');
   expect(child.resolve('service').config.id).toBe('parent');
   expect(child.resolve('service')).toBe(root.resolve('service'));
+  const independent = root.createIndependentContainer(['config'], { config: DiBag.providerWithLifetime({ provider: () => ({ id: 'child' }), lifetime: 'singleton:one-per-container-tree' }) });
+  expect(independent.resolve('service').config.id).toBe('child');
+  await independent.close();
   await root.close();
 });

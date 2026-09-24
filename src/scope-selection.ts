@@ -5,6 +5,7 @@ import type { ProviderOrFactory } from './registration';
 import { snapshotOptionsBag } from './options-bag';
 import { readToken, wrongTokenKind } from './tokens';
 import type { TokenKind } from './tokens';
+import type { LifetimeKind } from './lifetime';
 
 type ContainerSelectedKey = {
   readonly key: BindingKey;
@@ -102,7 +103,7 @@ export function selectIndependentContainer(graph: BindingGraph, options: unknown
 export function selectChildContainer(
   graph: BindingGraph,
   options: unknown,
-  isTransient: (serviceKey: BindingKey) => boolean,
+  lifetimeOf: (serviceKey: BindingKey) => LifetimeKind,
 ): { readonly graph: BindingGraph; readonly shared: readonly BindingId[] } {
   if (options === undefined) return { graph, shared: [] };
   const bag = snapshotOptionsBag(options, 'createChildContainer', [], [
@@ -130,11 +131,20 @@ export function selectChildContainer(
     if (selectedSet.has(key)) {
       throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer cannot share and replace the same service: ${String(key)}`, { operation: 'createChildContainer' });
     }
-    if (isTransient(key)) {
+    if (lifetimeOf(key) === 'transient') {
       throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer cannot share transient providers: ${String(key)}`, { operation: 'createChildContainer' });
     }
     return workingGraph.publicBinding(key);
   });
+  for (const { key: serviceKey, isCollection } of selected) {
+    if (!isCollection && lifetimeOf(serviceKey) === 'singleton') {
+      throw libraryError(
+        'DI_BAG_SINGLETON_REPLACEMENT',
+        `createChildContainer cannot replace singleton service '${String(serviceKey)}'; mark it 'scoped:one-per-container' or use createIndependentContainer`,
+        { operation: 'createChildContainer', serviceKey },
+      );
+    }
+  }
   const bindings = present ? selectedBindings(workingGraph, 'createChildContainer', selected, providers) : [];
   return {
     graph: bindings.length === 0 ? workingGraph : workingGraph.withPublicBindings(bindings, 'createChildContainer'),

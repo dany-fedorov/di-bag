@@ -19,15 +19,14 @@ named.withReplacedService('value', () => ({ id: 1 }));
 // @ts-expect-error exported target rename retains alias shape obligations
 publicTargetHost.withReplacedService('renamed', () => 'wrong');
 DiBag.createBuilder().withInstalledModules([privateRoot]).withServices({ root: DiBag.providerWithLifetime({ provider: ({ renamed }: { renamed: { id: number } }) => renamed, lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
-import { rootShared, scopedShared, sharedRootConsumer } from './aliases';
+import { rootShared, scopedShared, scopedTarget, sharedRootConsumer } from './aliases';
 rootShared.createChildContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) }, { sharedParentServiceKeys: ['copy'] });
 scopedShared.createChildContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
 scopedShared.createIndependentContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
 // @ts-expect-error inferred selected alias retains the effective parent scoped policy
 scopedShared.createChildContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) }, { sharedParentServiceKeys: ['copy'] });
-// @ts-expect-error fresh scope discards alias sharing and returns to scoped child target
-rootShared.createChildContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
-// @ts-expect-error independent fork discards alias sharing and returns to scoped child target
-rootShared.createIndependentContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
-// @ts-expect-error retained parent root cannot justify the fork's own captive graph
+// @ts-expect-error fresh child cannot capture the scoped alias target
+scopedTarget.createChildContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
+// @ts-expect-error independent fork cannot capture the scoped alias target
+scopedTarget.createIndependentContainer(['consumer'], { consumer: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'singleton:one-per-container-tree' }) });
 sharedRootConsumer.createIndependentContainer();

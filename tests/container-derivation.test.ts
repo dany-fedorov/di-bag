@@ -5,7 +5,7 @@ describe('container derivation contracts', () => {
   test('creates empty child and independent containers with distinct ownership', async () => {
     let disposed = 0;
     const root = DiBag.createBuilder().withServices({
-      value: DiBag.providerWithDisposal({ provider: () => ({}), disposeService: () => { disposed++; } }),
+      value: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({}), disposeService: () => { disposed++; } }), lifetime: 'scoped:one-per-container' }),
     }).buildContainer();
     const child = root.createChildContainer();
     const independent = root.createIndependentContainer();
@@ -22,13 +22,13 @@ describe('container derivation contracts', () => {
   test('replaces selected services and shares selected parent acquisitions', async () => {
     let acquired = 0;
     const root = DiBag.createBuilder().withServices({
-      shared: () => ({ id: ++acquired }),
-      value: () => 1,
+      shared: DiBag.providerWithLifetime({ provider: () => ({ id: ++acquired }), lifetime: 'scoped:one-per-container' }),
+      value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }),
     }).buildContainer();
     const parentShared = root.resolve('shared');
     const child = root.createChildContainer(
       ['value'],
-      { value: () => 2 },
+      { value: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) },
       { sharedParentServiceKeys: ['shared'] },
     );
     expect(child.resolve('value')).toBe(2);
@@ -159,7 +159,7 @@ describe('container derivation contracts', () => {
     const sharing = {
       get sharedParentServiceKeys() { reads.sharedParentServiceKeys++; return ['shared'] as const; },
     };
-    const root = DiBag.createBuilder().withServices({ value: () => 1, shared: () => 3 }).buildContainer();
+    const root = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), shared: DiBag.providerWithLifetime({ provider: () => 3, lifetime: 'scoped:one-per-container' }) }).buildContainer();
     const child = root.createChildContainer(['value'], providers, sharing);
     expect(child.resolve('value')).toBe(2);
     expect(reads).toEqual({ sharedParentServiceKeys: 1, value: 1 });
@@ -167,7 +167,7 @@ describe('container derivation contracts', () => {
   });
 
   test.each(['createChildContainer', 'createIndependentContainer'] as const)('reports malformed replacement providers for %s', operation => {
-    const root = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+    const root = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildContainer();
     try {
       (root[operation] as (...args: unknown[]) => unknown)(['value'], { value: 1 });
       throw new Error('expected malformed provider rejection');
@@ -187,7 +187,7 @@ describe('container derivation contracts', () => {
   });
 
   test('rejects inherited and overlapping child options before provider getters', () => {
-    const root = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
+    const root = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildContainer();
     const inherited = Object.create({ sharedParentServiceKeys: ['value'] });
     expect(() => root.createChildContainer(inherited)).toThrow('createChildContainer reads own properties only');
     let read = false;
@@ -200,14 +200,14 @@ describe('container derivation contracts', () => {
   });
 
   test('positional fallback normalizes explicit undefined and replacement forms', async () => {
-    const root = DiBag.createBuilder().withServices({ value: () => 1, shared: () => ({ id: 1 }) }).buildContainer();
+    const root = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), shared: DiBag.providerWithLifetime({ provider: () => ({ id: 1 }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
     const parentShared = root.resolve('shared');
     const undefinedChild = root.createChildContainer(undefined);
     const undefinedIndependent = root.createIndependentContainer(undefined);
-    const child = root.createChildContainer(['value'], { value: () => 2 }, undefined);
+    const child = root.createChildContainer(['value'], { value: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) }, undefined);
     const sharedChild = root.createChildContainer(
       ['value'],
-      { value: () => 3 },
+      { value: DiBag.providerWithLifetime({ provider: () => 3, lifetime: 'scoped:one-per-container' }) },
       { sharedParentServiceKeys: ['shared'] },
     );
     const independent = root.createIndependentContainer(['value'], { value: () => 4 });

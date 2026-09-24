@@ -90,11 +90,13 @@ DiBag.createBuilder()
 
 **When:** `root lifetime cannot capture scoped dependency: <root> -> <scoped>; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture`.
 
-**Cause:** a `root` service would keep one child container's instance of a `scoped` (the
-default) dependency for the whole application.
+**Cause:** a singleton service would keep one child container's scoped dependency
+for the whole container tree. Providers are scoped per container by default.
 
-**Fix:** make the dependency `root` as well, or leave the consumer scoped. Use
-`{ allowScopedDependencies: true }` only for a deliberate capture of the root
+**Fix:** mark the consumer with `DiBag.providerWithLifetime({ provider, lifetime:
+'scoped:one-per-container' })`, make the dependency singleton as well, or use
+`DiBag.providerWithLifetime({ provider, lifetime: 'singleton:one-per-container-tree',
+allowsScopedDependencies: true })` only for a deliberate capture of the root
 container's instance.
 
 ```ts
@@ -1050,6 +1052,42 @@ the whole call and not each service.
 the signal so they stop promptly.
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
+
+### DI_BAG_SINGLETON_REPLACEMENT {#di-bag-singleton-replacement}
+
+**When:** `container.createChildContainer(replacedServiceKeys, replacementProviders)`
+selects a service whose inherited provider has lifetime
+`'singleton:one-per-container-tree'`.
+
+**Cause:** a singleton is anchored to the container tree and has already fixed the
+dependencies of the container that introduced it. Replacing it only in a child would
+leave singleton consumers using the inherited value.
+
+**Fix:** mark the replaceable provider with `DiBag.providerWithLifetime` and
+`'scoped:one-per-container'`, or use `createIndependentContainer` when the
+replacement must rebuild the whole graph.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const app = DiBag.createBuilder().withServices({
+  request: DiBag.providerWithLifetime({
+    provider: () => ({ id: 'outside-request' }),
+    lifetime: 'scoped:one-per-container',
+  }),
+}).buildContainer();
+
+const requestContainer = app.createChildContainer(
+  ['request'],
+  { request: () => ({ id: crypto.randomUUID() }) },
+);
+await requestContainer.close();
+await app.close();
+```
+
+**Details:** `{ operation: 'createChildContainer', serviceKey }`.
+
+**Recipe:** [add a request-scoped service](recipes.md#add-scoped-service).
 
 ### DI_BAG_STRUCTURAL_THENABLE {#di-bag-structural-thenable}
 

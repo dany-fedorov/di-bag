@@ -17,7 +17,7 @@ test('class adapters construct lazily with private fields, inherited prototypes 
   let calls = 0;
   class Derived extends Client { constructor(value: number) { super(value); calls++; } }
   const source = DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Derived });
-  const bag = DiBag.createBuilder().withTokenService(port, () => 8080).withServices({ source }).buildContainer();
+  const bag = DiBag.createBuilder().withTokenService(port, () => 8080).withServices({ source: source }).buildContainer();
   expect(calls).toBe(0);
   const client = bag.resolve('source');
   expect(client).toBeInstanceOf(Derived);
@@ -36,7 +36,7 @@ test('constructor validation invokes neither the constructor nor its prototype g
   });
   const source = DiBag.createProviderFromClass({ dependencies: [], serviceClass: original });
   expect(calls).toBe(0); expect(prototypeReads).toBe(0);
-  const bag = DiBag.createBuilder().withServices({ source }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ source: source }).buildContainer();
   bag.resolve('source');
   expect(calls).toBe(1); expect(prototypeReads).toBe(1);
   await bag.close();
@@ -80,7 +80,7 @@ for (const kind of ['function', 'class'] as const) {
     const source = kind === 'function' ? DiBag.createProviderFromFunction({ dependencies: tokens, factoryFunction: (a, b) => ({ a, b }) })
       : DiBag.createProviderFromClass({ dependencies: tokens, serviceClass: class { constructor(readonly a: number, readonly b: number) {} } });
     Object.defineProperty(tokens, 0, { value: other }); tokens[1] = port as unknown as typeof other;
-    const bag = DiBag.createBuilder().withTokenService(port, () => 1).withTokenService(other, () => 2).withServices({ source }).buildContainer();
+    const bag = DiBag.createBuilder().withTokenService(port, () => 1).withTokenService(other, () => 2).withServices({ source: source }).buildContainer();
     expect(bag.resolve('source')).toEqual({ a: 1, b: 2 }); expect(reads).toBe(1);
     await bag.close();
   });
@@ -161,12 +161,15 @@ test('module token graphs and selected sharing keep ownership and parent depende
   await fork.close(); await bag.close(); expect(disposed).toHaveLength(2); expect(disposed).toContain(shared);
 });
 
-test('strict root class adapters retain root dependencies through child overrides', async () => {
+test('singleton class adapters stay inherited by a child and rebind in an independent container', async () => {
   const bag = DiBag.createBuilder().withTokenService(port, DiBag.providerWithLifetime({ provider: () => 80, lifetime: 'singleton:one-per-container-tree' })).withServices({
     source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }), lifetime: 'singleton:one-per-container-tree' }),
   }).buildContainer();
-  const child = bag.createChildContainer([port], { [portKey]: () => 90 });
+  const child = bag.createChildContainer();
   expect(child.resolve('source')).toBe(bag.resolve('source')); expect(child.resolve('source').port).toBe(80);
+  const independent = bag.createIndependentContainer([port], { [portKey]: DiBag.providerWithLifetime({ provider: () => 90, lifetime: 'singleton:one-per-container-tree' }) });
+  expect(independent.resolve('source').port).toBe(90);
+  await independent.close();
   await bag.close();
 });
 
@@ -205,7 +208,7 @@ test('constructor proxies retain their acquisition trap and original new.target'
   } });
   const source = DiBag.createProviderFromClass({ dependencies: [port], serviceClass: original });
   expect(traps).toBe(0);
-  const bag = DiBag.createBuilder().withTokenService(port, () => 80).withServices({ source }).buildContainer();
+  const bag = DiBag.createBuilder().withTokenService(port, () => 80).withServices({ source: source }).buildContainer();
   expect(bag.resolve('source').read()).toBe(80); expect(traps).toBe(1); expect(seen).toBe(original);
   expect(bag.resolve('source').target).toBe(original); await bag.close();
 });

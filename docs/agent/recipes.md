@@ -7,8 +7,8 @@ directory also has the `tsconfig.json` and check command from
 
 ## Add a request-scoped service with cleanup {#add-scoped-service}
 
-Services are scoped by default: each `createChildContainer()` gets its own instance, and
-`providerWithDisposal` releases an owned instance when that child container closes.
+Providers are scoped per container by default, so each child gets its own request state and consumers.
+Explicit scoped marks document that intent; `providerWithDisposal` releases owned instances when the child closes.
 
 ```ts
 // src/features/audit/contract.ts
@@ -20,18 +20,16 @@ export type AuditSink = { write(lines: readonly string[]): Promise<void> };
 // src/features/audit/module.ts
 import { DiBag } from 'di-bag';
 import type { Audit, AuditSink } from './contract.js';
-
-export const auditModule = DiBag.createBuilder()
-  .withServices({
-    audit: DiBag.providerWithDisposal({
-      provider: ({ sink }: { sink: AuditSink }): Audit => {
-        const lines: string[] = [];
-        return { record: event => { lines.push(event); }, flush: () => sink.write(lines.splice(0)) };
-      },
-      disposeService: audit => audit.flush(),
-    }),
-  })
-  .buildModule({ exportedServiceKeys: ['audit'] });
+export const auditModule = DiBag.createBuilder().withServices({
+    audit: DiBag.providerWithLifetime({
+      provider: DiBag.providerWithDisposal({
+        provider: ({ sink }: { sink: AuditSink }): Audit => {
+          const lines: string[] = [];
+          return { record: event => { lines.push(event); }, flush: () => sink.write(lines.splice(0)) };
+        },
+        disposeService: audit => audit.flush(),
+      }), lifetime: 'scoped:one-per-container' }),
+}).buildModule({ exportedServiceKeys: ['audit'] });
 ```
 
 ```ts
@@ -39,11 +37,7 @@ export const auditModule = DiBag.createBuilder()
 import { DiBag } from 'di-bag';
 import type { AuditSink } from './contract.js';
 import { auditModule } from './module.js';
-
-DiBag.createBuilder()
-  .withInstalledModules([
-    auditModule,
-  ])
+DiBag.createBuilder().withInstalledModules([auditModule])
   .withServices({ sink: (): AuditSink => ({ write: async () => {} }) })
   .verifyGraphAtCompileTime() satisfies void;
 ```
@@ -52,17 +46,23 @@ Open one child container per request and close it when the request ends:
 
 ```ts
 // src/server.ts
+import { DiBag } from 'di-bag';
+import type { Audit } from './features/audit/contract.js';
 import { composition } from './app.js';
-
-const app = composition.buildContainer();
-export async function handle(path: string) {
-  const request = app.createChildContainer();
-  try {
-    request.resolve('audit').record(path);
-  } finally {
-    await request.close(); // runs this request's disposers
-  }
+type RequestContext = { requestId: string };
+const app = composition.withServices({
+  request: DiBag.providerWithLifetime({ provider: (): RequestContext => ({ requestId: 'outside-request' }), lifetime: 'scoped:one-per-container' }),
+  handler: DiBag.providerWithLifetime({
+    provider: ({ request, audit }: { request: RequestContext; audit: Audit }) => ({ run() { audit.record(`request:${request.requestId}`); } }),
+    lifetime: 'scoped:one-per-container',
+  }),
+}).buildContainer();
+export async function handle(requestId: string) {
+  const requestContainer = app.createChildContainer(['request'], { request: (): RequestContext => ({ requestId }) });
+  try { requestContainer.resolve('handler').run(); }
+  finally { await requestContainer.close(); } // flushes this request's audit
 }
+export async function shutdown() { await app.close(); }
 ```
 
 ## Write a fixture test with an independent container {#fixture-test}

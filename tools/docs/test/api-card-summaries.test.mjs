@@ -32,6 +32,7 @@ const acceptedLeadingVerbs = new Set([
   'Install', 'Make', 'Replace', 'Report', 'Resolve', 'Return', 'Seal', 'Select', 'Transform', 'Validate',
 ]);
 const leadingWord = text => /^([A-Z][a-z]+)\b/.exec(text)?.[1];
+const joinsPurposes = text => /\bor\b/.test(text.replace(/\bsingleton, scoped, or transient\b/g, 'lifetime choices'));
 
 test('the card has call summaries to check', () => {
   assert(summaries.length >= 20, `found ${summaries.length} call summaries`);
@@ -39,10 +40,16 @@ test('the card has call summaries to check', () => {
 });
 
 test('no call summary needs "or", apart from the recorded exceptions', () => {
-  const offenders = summaries.filter(({ text }) => /\bor\b/.test(text)).map(({ id }) => id).sort();
+  const offenders = summaries.filter(({ text }) => joinsPurposes(text)).map(({ id }) => id).sort();
   assert.deepEqual(offenders, [...exceptions.or].sort(),
     'A new id means a summary joins two purposes with "or": split the call or reword the summary. '
     + 'A missing id means an exception is stale: delete it from tools/docs/api-card-summary-exceptions.json.');
+});
+
+test('a lifetime enumeration does not hide a second purpose', () => {
+  assert.equal(joinsPurposes('Return a provider with singleton, scoped, or transient caching.'), false);
+  assert.equal(joinsPurposes('Return a provider or resolve a service.'), true);
+  assert.equal(joinsPurposes('Return a provider with singleton, scoped, or transient caching or resolve a service.'), true);
 });
 
 test('the accepted leading-word set rejects a noun-phrase control', () => {
@@ -53,4 +60,11 @@ test('every call summary starts with a reviewed imperative verb', () => {
   const offenders = summaries.filter(({ text }) => !acceptedLeadingVerbs.has(leadingWord(text))).map(({ id }) => id).sort();
   assert.deepEqual(offenders, [],
     'A summary must start with a reviewed imperative verb. Add a genuinely new verb to acceptedLeadingVerbs only with its intentional summary.');
+});
+
+test('lifetime summary states the scoped default and the facade option bag', () => {
+  assert.match(card, /### `DiBag\.providerWithLifetime\(options\)`/);
+  assert.equal(summaries.find(({ id }) => id === 'dibag-providerwithlifetime')?.text,
+    'Return a provider with singleton, scoped, or transient caching. Providers are scoped per container by default; mark shared clients singleton when none of their dependencies are scoped.');
+  assert.match(card, /const client = DiBag\.providerWithLifetime\(\{ provider: DiBag\.createProvider\(\(\) => createClient\(\)\), lifetime: 'singleton:one-per-container-tree' \}\);/);
 });

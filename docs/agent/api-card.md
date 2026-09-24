@@ -108,9 +108,10 @@ const owned = DiBag.providerWithDisposal({ provider: () => ({ close() {} }), dis
 ```
 
 ### `DiBag.providerWithLifetime(options)` {#dibag-providerwithlifetime}
-Select a full lifetime for a provider input. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
+Return a provider with singleton, scoped, or transient caching. Providers are scoped per container by default; mark shared clients singleton when none of their dependencies are scoped. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration).
 ```ts
-const cached = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' });
+const createClient = () => ({ close() {} });
+const client = DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => createClient()), lifetime: 'singleton:one-per-container-tree' });
 ```
 
 ### `DiBag.providerWithRegistrationMetadata(options)` {#dibag-providerwithregistrationmetadata}
@@ -250,11 +251,13 @@ await container.close();
 ```
 
 ### `container.createChildContainer(options?)` {#container-createchildcontainer}
-Create a tracked child container with fresh ownership for unshared services. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_SCOPE`](errors.md#di-bag-invalid-scope), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Create a tracked child container with fresh ownership for unshared services. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_SCOPE`](errors.md#di-bag-invalid-scope), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_SINGLETON_REPLACEMENT`](errors.md#di-bag-singleton-replacement), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
-const parent = DiBag.createBuilder().withServices({ config: () => ({ port: 3000 }) }).buildContainer();
-const child = parent.createChildContainer({ sharedParentServiceKeys: ['config'] });
-const config = child.resolve('config');
+const parent = DiBag.createBuilder().withServices({ request: DiBag.providerWithLifetime({
+  provider: () => ({ id: 'initial' }), lifetime: 'scoped:one-per-container',
+}) }).buildContainer();
+const child = parent.createChildContainer(['request'], { request: () => ({ id: 'child' }) });
+const request = child.resolve('request');
 await child.close();
 await parent.close();
 ```

@@ -46,7 +46,7 @@ parent.createChildContainer(['config'], { config: () => ({ id: 1 }) });
 parent.createChildContainer(['config'], { config: ({ missing }: { missing: string }) => ({ id: missing }) });
 // diagnostic: Type '({ transient }: { transient: string; }) => { id: string; }' is not assignable
 parent.createChildContainer(['config'], { config: ({ transient }: { transient: string }) => ({ id: transient }) });
-// diagnostic: Type '() => { id: string
+// diagnostic: not assignable to type
 parent.createChildContainer([token], { [key]: () => ({ id: 'wrong' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
 parent.createChildContainer(['service'], { service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => config.id, lifetime: 'singleton:one-per-container-tree' }) });
@@ -61,11 +61,11 @@ const roots = DiBag.createBuilder().withServices({
   config: DiBag.providerWithLifetime({ provider: () => ({ id: 'root' }), lifetime: 'singleton:one-per-container-tree' }),
   service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => config.id, lifetime: 'singleton:one-per-container-tree' }),
 }).buildContainer();
-const child = roots.createChildContainer(['config'], { config: () => ({ id: 'child' }) });
+const child = roots.createChildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
-child.createIndependentContainer();
+child.createIndependentContainer(['config'], { config: () => ({ id: 'child' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
-child.createIndependentContainer([], {});
+child.createIndependentContainer(['config', 'service'], { config: () => ({ id: 'child' }), service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => config.id, lifetime: 'singleton:one-per-container-tree' }) });
 
 const borrowed = parent.createChildContainer({ sharedParentServiceKeys: ['service'] });
 // diagnostic: is not assignable to type 'Container
