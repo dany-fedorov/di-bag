@@ -30,6 +30,11 @@ test('a Markdown link is told apart from the same anchor as plain text', () => {
   expect(stdout).toContain('   docs/guides/guide.md: code x1, anchor x1 of which real links x0');
 });
 
+test('a longer anchor is not counted as the old anchor', () => {
+  const { stdout } = run('DI_BAG_SAMPLE', 'DI_BAG_RENAMED_SAMPLE');
+  expect(stdout).toContain('   docs/guides/guide.md: code x1, anchor x1 of which real links x0');
+});
+
 test('the gate it prints is boundary-safe, so a new code that extends the old one passes it', () => {
   const { stdout } = run('DI_BAG_SAMPLE', 'DI_BAG_SAMPLE_KEY');
   expect(stdout).toContain('new code starts with the old code: True');
@@ -42,4 +47,15 @@ test('two codes are required', () => {
   const { status, stderr } = run('DI_BAG_SAMPLE');
   expect(status).toBe(2);
   expect(stderr).toContain('usage: node scripts/error-code-facts.mjs OLD_CODE NEW_CODE');
+});
+
+test('more than two codes are rejected', () => {
+  const { status, stderr } = run('DI_BAG_SAMPLE', 'DI_BAG_RENAMED_SAMPLE', 'DI_BAG_EXTRA');
+  expect(status).toBe(2);
+  expect(stderr).toContain('usage: node scripts/error-code-facts.mjs OLD_CODE NEW_CODE');
+});
+
+test('a longer code sharing the new name prefix does not count as prior use', () => {
+  const { stdout } = run('DI_BAG_SAMPLE', 'DI_BAG_SAMPLES');
+  expect(stdout).toContain('new name already used in src/tests/docs: False');
 });

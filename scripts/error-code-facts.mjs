@@ -3,13 +3,13 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const [OLD, NEW] = process.argv.slice(2);
-if (!/^DI_BAG_[A-Z_]+$/.test(OLD ?? '') || !/^DI_BAG_[A-Z_]+$/.test(NEW ?? '')) {
+if (process.argv.length !== 4 || !/^DI_BAG_[A-Z_]+$/.test(OLD ?? '') || !/^DI_BAG_[A-Z_]+$/.test(NEW ?? '')) {
   console.error('usage: node scripts/error-code-facts.mjs OLD_CODE NEW_CODE');
   process.exit(2);
 }
 const Q = "'", BT = '`';
 const fragment = code => '#' + code.toLowerCase().replaceAll('_', '-');
-const word = () => new RegExp('(?<![A-Z_])' + OLD + '(?![A-Z_])', 'g');
+const word = code => new RegExp('(?<![A-Z_])' + code + '(?![A-Z_])', 'g');
 const read = file => readFileSync(file, 'utf8');
 function walk(directory, extensions) {
   if (!existsSync(directory)) return [];
@@ -36,7 +36,7 @@ const EQ = 'string equal to the code (codemod rewrites)', REP = 'other TypeScrip
 const forms = new Map([[EQ, new Set()], [REP, new Set()], [JS, new Set()]]), counts = new Map([[EQ, 0], [REP, 0], [JS, 0]]);
 for (const file of walk('tests', ['.ts', '.tsx', '.mjs'])) {
   for (const line of read(file).split('\n')) {
-    for (const match of line.matchAll(word())) {
+    for (const match of line.matchAll(word(OLD))) {
       const before = line[match.index - 1] ?? '', after = line[match.index + OLD.length] ?? '';
       const kind = file.endsWith('.mjs') ? JS : [Q, '"', BT].includes(before) && after === before ? EQ : REP;
       counts.set(kind, counts.get(kind) + 1); forms.get(kind).add(file);
@@ -47,17 +47,19 @@ console.log(`tests: ${[...counts.values()].reduce((sum, value) => sum + value, 0
 for (const [kind, count] of counts) if (count) console.log(`   ${count}  ${kind}: ${[...forms.get(kind)].sort().join(', ')}`);
 
 const markdown = [...['AGENTS.md', 'README.md'].filter(existsSync), ...walk('docs/agent', ['.md']), ...walk('docs/guides', ['.md']), ...['tools/graph/README.md'].filter(existsSync)].sort();
-const escaped = fragment(OLD).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const anchor = fragment(OLD).slice(1);
+const escaped = anchor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const anchorBoundary = new RegExp(escaped + '([^a-z0-9-]|$)', 'g');
 for (const file of markdown) {
-  const text = read(file), codes = [...text.matchAll(word())].length, anchors = text.split(fragment(OLD)).length - 1;
+  const text = read(file), codes = [...text.matchAll(word(OLD))].length, anchors = [...text.matchAll(anchorBoundary)].length;
   if (!codes && !anchors) continue;
-  const links = [...text.matchAll(new RegExp('\\]\\([^)]*' + escaped + '\\)', 'g'))].length;
+  const links = [...text.matchAll(new RegExp('\\]\\([^)]*' + escaped + '([^a-z0-9-]|$)', 'g'))].length;
   console.log(`   ${file}${file.endsWith('api-card.md') ? ' (generated)' : ''}: code x${codes}, anchor x${anchors} of which real links x${links}`);
 }
 const all = [...new Set(sources.flatMap(file => read(file).match(/DI_BAG_[A-Z_]+/g) ?? []))].sort();
 const longer = all.filter(code => code.startsWith(OLD) && code !== OLD);
 console.log(`longer codes sharing the old prefix: ${longer.length ? JSON.stringify(longer) : 'none'}`);
-const used = [...sources, ...walk('tests', ['.ts']), ...walk('docs/agent', ['.md'])].some(file => read(file).includes(NEW));
+const used = [...sources, ...walk('tests', ['.ts']), ...walk('docs/agent', ['.md'])].some(file => word(NEW).test(read(file)));
 console.log(`new name already used in src/tests/docs: ${used ? 'True' : 'False'}`);
 console.log(`new code starts with the old code: ${NEW.startsWith(OLD) ? 'True' : 'False'}`);
 const places = 'src tests examples scripts AGENTS.md README.md docs/agent docs/guides tools/docs/lib tools/docs/test tools/docs/*.json tools/graph/lib tools/graph/test tools/graph/README.md';
