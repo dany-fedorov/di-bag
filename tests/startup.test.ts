@@ -8,7 +8,7 @@ const { DiBag, DiBagCleanupError, DiBagServiceReadinessError, DiBagServiceReadin
 
 test('contexts follow acquisition owners through child-first roots and independent forks', async () => {
   const root = DiBag.createBuilder().withServices({
-    scoped: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }),
+    scoped: Core.providerWithLifetime({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), lifetime: 'scoped:one-per-container' }),
     root: DiBag.providerWithLifetime({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), lifetime: 'singleton:one-per-container-tree' }),
     transient: DiBag.providerWithLifetime({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), lifetime: 'transient:one-per-resolve' }),
   }).buildContainer();
@@ -36,7 +36,7 @@ test('contexts follow acquisition owners through child-first roots and independe
 });
 
 test('abort listeners cannot reenter any closing scope admission gate', async () => {
-  const root = DiBag.createBuilder().withServices({ context: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }) }).buildContainer();
+  const root = DiBag.createBuilder().withServices({ context: Core.providerWithLifetime({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
   const child = root.createChildContainer();
   const sibling = root.createChildContainer();
   let called = false;
@@ -53,8 +53,8 @@ test('startup waits for selected native acquisition while leaving unrelated prov
   let calls = 0;
   let lazy = 0;
   const starting = DiBag.createBuilder().withServices({
-    service: () => { calls++; return gate.promise; },
-    lazy: () => ++lazy,
+    service: Core.providerWithLifetime({ provider: () => { calls++; return gate.promise; }, lifetime: 'scoped:one-per-container' }),
+    lazy: Core.providerWithLifetime({ provider: () => ++lazy, lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['service', 'service']);
   let ready = false;
   void starting.then(() => { ready = true; });
@@ -74,8 +74,8 @@ test('startup uses native observation with shadowed then and treats raw promises
   const raw = deferred<number>();
   const disposed: unknown[] = [];
   const starting = Core.createBuilder().withServices({
-    native: Core.createProvider((_deps: {}, _factoryContext) => native.promise, { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } }),
-    raw: Core.providerWithDisposal({ provider: Core.createProvider(() => raw.promise, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }),
+    native: Core.providerWithLifetime({ provider: Core.createProvider((_deps: {}, _factoryContext) => native.promise, { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } }), lifetime: 'scoped:one-per-container' }),
+    raw: Core.providerWithLifetime({ provider: Core.providerWithDisposal({ provider: Core.createProvider(() => raw.promise, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['native', 'raw']);
   let ready = false;
   void starting.then(() => { ready = true; });
@@ -92,7 +92,7 @@ test('a ready native projection starts while its source remains pending until sh
   const source = deferred<number>();
   const owned: number[] = [];
   const outcome = await DiBag.createBuilder().withServices({
-    projected: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: () => source.promise, disposeService: value => { owned.push(value); } }), transformService: () => Promise.resolve(42), callbackReceives: 'exposed-service' }),
+    projected: Core.providerWithLifetime({ provider: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: () => source.promise, disposeService: value => { owned.push(value); } }), transformService: () => Promise.resolve(42), callbackReceives: 'exposed-service' }), lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['projected'], { totalTimeoutMs: 30 }).then(bag => ({ bag }), error => ({ error }));
   source.resolve(7);
   if ('error' in outcome) {
@@ -111,7 +111,7 @@ test('failed native projection aborts a cooperative pending source before cleanu
     factoryCtx.abortSignal.addEventListener('abort', () => resolve(7), { once: true });
   }), { factoryReceivesContext: true }), disposeService: value => { disposed.push(value); } });
   const error: unknown = await DiBag.createBuilder().withServices({
-    service: DiBag.providerWithTransformedService({ provider: source, transformService: () => Promise.reject(cause), callbackReceives: 'exposed-service' }),
+    service: Core.providerWithLifetime({ provider: DiBag.providerWithTransformedService({ provider: source, transformService: () => Promise.reject(cause), callbackReceives: 'exposed-service' }), lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['service'], { totalTimeoutMs: 30 }).catch(error => error);
   if (error instanceof DiBagServiceReadinessCancelledError) await error.disposalPromise;
   expect(error).toBeInstanceOf(DiBagServiceReadinessError);
@@ -124,8 +124,8 @@ test('sequential startup waits before invoking the next selection', async () => 
   const gate = deferred<number>();
   const calls: string[] = [];
   const starting = DiBag.createBuilder().withServices({
-    first: () => { calls.push('first'); return gate.promise; },
-    second: () => { calls.push('second'); return 2; },
+    first: Core.providerWithLifetime({ provider: () => { calls.push('first'); return gate.promise; }, lifetime: 'scoped:one-per-container' }),
+    second: Core.providerWithLifetime({ provider: () => { calls.push('second'); return 2; }, lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['first', 'second'], { maxConcurrentServiceKeys: 1 });
   expect(calls).toEqual(['first']);
   gate.resolve(1);
@@ -154,8 +154,8 @@ test('startup selects genuine tokens and keeps separate owned transient attempts
 test('late contextual dependencies receive an already aborted owner signal', async () => {
   const gate = deferred<void>();
   const bag = DiBag.createBuilder().withServices({
-    late: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx.abortSignal.aborted, { factoryReceivesContext: true }),
-    first: async (deps: { late: boolean }) => { await gate.promise; return deps.late; },
+    late: Core.providerWithLifetime({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx.abortSignal.aborted, { factoryReceivesContext: true }), lifetime: 'scoped:one-per-container' }),
+    first: Core.providerWithLifetime({ provider: async (deps: { late: boolean }) => { await gate.promise; return deps.late; }, lifetime: 'scoped:one-per-container' }),
   }).buildContainer();
   const value = bag.resolve('first');
   const closing = bag.close();
@@ -168,7 +168,7 @@ test('late contextual dependencies receive an already aborted owner signal', asy
 for (const outcome of ['success', 'failure', 'aborted', 'timeout'] as const) test(`startup removes its abort listener on ${outcome}`, async () => {
   const controller = new AbortController();
   const gate = deferred<number>();
-  const starting = DiBag.createBuilder().withServices({ service: () => gate.promise }).buildContainer().ensureServicesReady(['service'], { abortSignal: controller.signal, totalTimeoutMs: outcome === 'timeout' ? 5 : 10000 });
+  const starting = DiBag.createBuilder().withServices({ service: Core.providerWithLifetime({ provider: () => gate.promise, lifetime: 'scoped:one-per-container' }) }).buildContainer().ensureServicesReady(['service'], { abortSignal: controller.signal, totalTimeoutMs: outcome === 'timeout' ? 5 : 10000 });
   const result = starting.catch(error => error);
   expect(getEventListeners(controller.signal, 'abort')).toHaveLength(1);
   if (outcome === 'success') gate.resolve(1);
@@ -186,8 +186,8 @@ test('startup snapshots option getters once after snapshotting all selected keys
   let reads = 0;
   const calls: string[] = [];
   const bag = await DiBag.createBuilder().withServices({
-    first: () => { calls.push('first'); return 1; },
-    second: () => { calls.push('second'); return 2; },
+    first: Core.providerWithLifetime({ provider: () => { calls.push('first'); return 1; }, lifetime: 'scoped:one-per-container' }),
+    second: Core.providerWithLifetime({ provider: () => { calls.push('second'); return 2; }, lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(keys, { get maxConcurrentServiceKeys() {
     reads++;
     Reflect.set(keys, 0, 'second');
@@ -205,11 +205,11 @@ test('sequential startup stops after failure and waits for cleanup with original
   const disposalError = new Error('dispose');
   const calls: string[] = [];
   const starting = DiBag.createBuilder().withServices({
-    first: DiBag.providerWithDisposal({ provider: () => { calls.push('first'); return 1; }, disposeService: async () => {
+    first: Core.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => { calls.push('first'); return 1; }, disposeService: async () => {
       cleanupStarted.resolve(); await cleanup.promise; throw disposalError;
-    } }),
-    fail: () => { calls.push('fail'); throw acquisitionError; },
-    last: () => { calls.push('last'); return 2; },
+    } }), lifetime: 'scoped:one-per-container' }),
+    fail: Core.providerWithLifetime({ provider: () => { calls.push('fail'); throw acquisitionError; }, lifetime: 'scoped:one-per-container' }),
+    last: Core.providerWithLifetime({ provider: () => { calls.push('last'); return 2; }, lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['first', 'fail', 'last'], { maxConcurrentServiceKeys: 1 });
   const outcome = starting.catch(error => error);
   await cleanupStarted.promise;
@@ -232,8 +232,8 @@ test('parallel startup starts later selections after synchronous failure and cle
   let calls = 0;
   const disposed: number[] = [];
   const starting = DiBag.createBuilder().withServices({
-    fail: () => { throw undefined; },
-    later: DiBag.providerWithDisposal({ provider: () => { calls++; return gate.promise; }, disposeService: value => { disposed.push(value); } }),
+    fail: Core.providerWithLifetime({ provider: () => { throw undefined; }, lifetime: 'scoped:one-per-container' }),
+    later: Core.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => { calls++; return gate.promise; }, disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['fail', 'later']);
   const outcome = starting.catch(error => error);
   expect(calls).toBe(1);
@@ -253,12 +253,12 @@ for (const reason of ['aborted', 'timeout'] as const) test(`${reason} rejects be
   const disposed: number[] = [];
   let signal: AbortSignal | undefined;
   const starting = DiBag.createBuilder().withServices({
-    value: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async (deps: { late: number }, factoryCtx) => {
+    value: Core.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async (deps: { late: number }, factoryCtx) => {
       signal = factoryCtx.abortSignal;
       await gate.promise;
       return deps.late;
-    }, { factoryReceivesContext: true }), disposeService: value => { disposed.push(value); throw cleanupError; } }),
-    late: () => 42,
+    }, { factoryReceivesContext: true }), disposeService: value => { disposed.push(value); throw cleanupError; } }), lifetime: 'scoped:one-per-container' }),
+    late: Core.providerWithLifetime({ provider: () => 42, lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['value'], reason === 'aborted' ? { abortSignal: abort.signal } : { totalTimeoutMs: 5 });
   const outcome = starting.catch(error => error);
   if (reason === 'aborted') abort.abort(cause);
@@ -282,7 +282,7 @@ test('already aborted startup does not invoke any factories', async () => {
   const cause = { cancelled: true };
   controller.abort(cause);
   let calls = 0;
-  const error: unknown = await DiBag.createBuilder().withServices({ value: () => ++calls }).buildContainer().ensureServicesReady(['value'], { abortSignal: controller.signal }).catch(error => error);
+  const error: unknown = await DiBag.createBuilder().withServices({ value: Core.providerWithLifetime({ provider: () => ++calls, lifetime: 'scoped:one-per-container' }) }).buildContainer().ensureServicesReady(['value'], { abortSignal: controller.signal }).catch(error => error);
   expect(error).toBeInstanceOf(DiBagServiceReadinessCancelledError);
   if (!(error instanceof DiBagServiceReadinessCancelledError)) throw new Error('expected cancellation');
   expect(error.cause).toBe(cause);
@@ -295,8 +295,8 @@ test('cancellation can interrupt cleanup after ordinary startup failure', async 
   const began = deferred<void>();
   const controller = new AbortController();
   const starting = DiBag.createBuilder().withServices({
-    owned: DiBag.providerWithDisposal({ provider: () => 1, disposeService: async () => { began.resolve(); await cleanup.promise; } }),
-    fail: () => { throw new Error('setup'); },
+    owned: Core.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => 1, disposeService: async () => { began.resolve(); await cleanup.promise; } }), lifetime: 'scoped:one-per-container' }),
+    fail: Core.providerWithLifetime({ provider: () => { throw new Error('setup'); }, lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['owned', 'fail'], { abortSignal: controller.signal });
   const outcome = starting.catch(error => error);
   await began.promise;
@@ -314,8 +314,8 @@ test('successful startup removes external cancellation and snapshots indexed sel
   const keys: ['value'] = ['value'];
   keys[Symbol.iterator] = function* () { throw new Error('do not iterate'); };
   const bag = await DiBag.createBuilder().withServices({
-    value: DiBag.createProvider((_deps: {}, factoryCtx) => { calls.push('value'); return factoryCtx; }, { factoryReceivesContext: true }),
-    hidden: () => { calls.push('hidden'); return 2; },
+    value: Core.providerWithLifetime({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => { calls.push('value'); return factoryCtx; }, { factoryReceivesContext: true }), lifetime: 'scoped:one-per-container' }),
+    hidden: Core.providerWithLifetime({ provider: () => { calls.push('hidden'); return 2; }, lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(keys, { abortSignal: controller.signal, totalTimeoutMs: 2 ** 32 });
   controller.abort();
   expect(bag.resolve('value').abortSignal.aborted).toBe(false);
@@ -325,7 +325,7 @@ test('successful startup removes external cancellation and snapshots indexed sel
 
 test('invalid startup inputs reject before factory or unsupported option getter effects', async () => {
   let effects = 0;
-  const bag = DiBag.createBuilder().withServices({ value: () => ++effects }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ value: Core.providerWithLifetime({ provider: () => ++effects, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   const start = bag.ensureServicesReady.bind(bag) as (...args: unknown[]) => Promise<unknown>;
   for (const options of [null, [], true, { totalTimeoutMs: 0 }, { totalTimeoutMs: -1 }, { totalTimeoutMs: Infinity }, { totalTimeoutMs: NaN }, { totalTimeoutMs: '1' }, { maxConcurrentServiceKeys: 'serial' }, { abortSignal: {} }, { timeoutMs: 1 }, { startupOrder: 'sequential' }, { other: true, get totalTimeoutMs() { effects++; return 1; } }, Object.create({ totalTimeoutMs: 1 })]) {
     await expect(start(['value'], options)).rejects.toThrow(/ensureServicesReady/);
@@ -340,7 +340,7 @@ for (const startupOrder of [1, 2, 20]) test(`numeric startup ${startupOrder} bou
   const gates = [deferred<number>(), deferred<number>(), deferred<number>()];
   const calls: number[] = [];
   const disposed: number[] = [];
-  const provider = (index: number) => DiBag.providerWithDisposal({ provider: () => { calls.push(index); return gates[index]!.promise; }, disposeService: value => { disposed.push(value); } });
+  const provider = (index: number) => DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => { calls.push(index); return gates[index]!.promise; }, disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' });
   const starting = DiBag.createBuilder().withServices({ a: provider(0), b: provider(1), c: provider(2) }).buildContainer().ensureServicesReady(['a', 'b', 'c'], { maxConcurrentServiceKeys: startupOrder });
   const outcome = starting.catch(error => error);
   await new Promise<void>(resolve => setImmediate(resolve));
@@ -360,7 +360,7 @@ for (const startupOrder of [1, 2]) test(`numeric startup ${startupOrder} snapsho
   let reads = 0, scoped = 0, transient = 0;
   const disposed: number[] = [];
   const builder = DiBag.createBuilder().withServices({
-    scoped: () => ++scoped,
+    scoped: Core.providerWithLifetime({ provider: () => ++scoped, lifetime: 'scoped:one-per-container' }),
     transient: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ++transient, disposeService: value => { disposed.push(value); } }), lifetime: 'transient:one-per-resolve' }),
   });
   const bag = await builder.buildContainer().ensureServicesReady(['scoped', 'scoped', 'transient', 'transient'], { get maxConcurrentServiceKeys() { reads++; return startupOrder; } });
@@ -375,8 +375,8 @@ test('numeric startup uses final raw readiness while owned sources remain pendin
   const raw = { get then() { thenReads++; throw new Error('raw then'); } };
   const disposed: number[] = [];
   const bag = await Core.createBuilder().withServices({
-    projected: Core.providerWithTransformedService({ provider: Core.providerWithDisposal({ provider: Core.createProvider(() => source.promise, { factoryReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } }), transformService: () => raw, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }),
-    later: Core.createProvider(() => ++later, { factoryReturnKind: 'uninspected' }),
+    projected: Core.providerWithLifetime({ provider: Core.providerWithTransformedService({ provider: Core.providerWithDisposal({ provider: Core.createProvider(() => source.promise, { factoryReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } }), transformService: () => raw, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }),
+    later: Core.providerWithLifetime({ provider: Core.createProvider(() => ++later, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['projected', 'later'], { maxConcurrentServiceKeys: 1 });
   expect(later).toBe(1); expect(thenReads).toBe(0); expect(bag.resolve('projected')).toBe(raw);
   const closing = bag.close(); source.resolve(7); await closing;
@@ -390,9 +390,9 @@ for (const terminal of ['failure', 'aborted', 'timeout'] as const) test(`bounded
   const cause = new Error('failed');
   const cleanupError = new Error('cleanup');
   const starting = DiBag.createBuilder().withServices({
-    a: DiBag.providerWithDisposal({ provider: () => { calls.push('a'); return gates[0]!.promise; }, disposeService: value => { disposed.push(value); } }),
-    b: DiBag.providerWithDisposal({ provider: () => { calls.push('b'); return gates[1]!.promise; }, disposeService: value => { disposed.push(value); throw cleanupError; } }),
-    queued: () => { calls.push('queued'); return 3; },
+    a: Core.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => { calls.push('a'); return gates[0]!.promise; }, disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
+    b: Core.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => { calls.push('b'); return gates[1]!.promise; }, disposeService: value => { disposed.push(value); throw cleanupError; } }), lifetime: 'scoped:one-per-container' }),
+    queued: Core.providerWithLifetime({ provider: () => { calls.push('queued'); return 3; }, lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['a', 'b', 'queued'], { maxConcurrentServiceKeys: 2, abortSignal: abort.signal, ...(terminal === 'timeout' ? { totalTimeoutMs: 5 } : {}) });
   const outcome = starting.catch(error => error);
   let settled = false; void outcome.then(() => { settled = true; });
@@ -429,7 +429,7 @@ for (const terminal of ['failure', 'aborted', 'timeout'] as const) test(`bounded
 
 test('numeric startup rejects invalid bounds before factories', async () => {
   let calls = 0;
-  const builder = DiBag.createBuilder().withServices({ value: () => ++calls });
+  const builder = DiBag.createBuilder().withServices({ value: Core.providerWithLifetime({ provider: () => ++calls, lifetime: 'scoped:one-per-container' }) });
   for (const startupOrder of [0, -1, 0.5, NaN, Infinity, -Infinity, Number.MAX_SAFE_INTEGER + 1]) {
     await expect(builder.buildContainer().ensureServicesReady(['value'], { maxConcurrentServiceKeys: startupOrder })).rejects.toThrow('ensureServicesReady maxConcurrentServiceKeys must be a positive safe integer');
   }
@@ -443,8 +443,8 @@ test('numeric startup stops initial worker admission when a factory aborts synch
   const source = deferred<number>();
   const calls: string[] = [], disposed: number[] = [];
   const outcome = await DiBag.createBuilder().withServices({
-    first: DiBag.providerWithDisposal({ provider: () => { calls.push('first'); abort.abort('stop'); return source.promise; }, disposeService: value => { disposed.push(value); } }),
-    next: () => { calls.push('next'); return 2; },
+    first: Core.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => { calls.push('first'); abort.abort('stop'); return source.promise; }, disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
+    next: Core.providerWithLifetime({ provider: () => { calls.push('next'); return 2; }, lifetime: 'scoped:one-per-container' }),
   }).buildContainer().ensureServicesReady(['first', 'next'], { maxConcurrentServiceKeys: 2, abortSignal: abort.signal }).catch(error => error);
   expect(outcome).toBeInstanceOf(DiBagServiceReadinessCancelledError);
   if (!(outcome instanceof DiBagServiceReadinessCancelledError)) throw outcome;

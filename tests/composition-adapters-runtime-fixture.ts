@@ -19,10 +19,10 @@ export const compositionAdapterRuntimeAssertions = `
         assertAdapter(value instanceof Client && value.read() === 8080, 'wrong constructor disposer value');
         disposed++;
       } }), lifetime: 'singleton:one-per-container-tree' });
-    const functionProvider = DiBag.createProviderFromFunction({ dependencies: [portToken], factoryFunction: model.multiply.bind(model) });
-    const rawProvider = DiBag.providerWithDisposal({ provider: DiBag.createProviderFromFunction({ dependencies: [pendingToken], factoryFunction: value => value, factoryReturnKind: 'uninspected' }), disposeService: value => { assertAdapter(value === pendingValue, 'raw function acquisition changed'); disposed++; },  });
+    const functionProvider = DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [portToken], factoryFunction: model.multiply.bind(model) }), lifetime: 'scoped:one-per-container' });
+    const rawProvider = DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromFunction({ dependencies: [pendingToken], factoryFunction: value => value, factoryReturnKind: 'uninspected' }), disposeService: value => { assertAdapter(value === pendingValue, 'raw function acquisition changed'); disposed++; },  }), lifetime: 'scoped:one-per-container' });
     assertAdapter(created === 0, 'adapter eagerly constructed service');
-    const adapterRoot = DiBag.createBuilder().withTokenService(portToken, DiBag.providerWithLifetime({ provider: () => 8080, lifetime: 'singleton:one-per-container-tree' })).withTokenService(pendingToken, () => pendingValue).withServices({ client: classProvider, multiply: functionProvider, raw: rawProvider }).buildContainer();
+    const adapterRoot = DiBag.createBuilder().withTokenService(portToken, DiBag.providerWithLifetime({ provider: () => 8080, lifetime: 'singleton:one-per-container-tree' })).withTokenService(pendingToken, DiBag.providerWithLifetime({ provider: () => pendingValue, lifetime: 'scoped:one-per-container' })).withServices({ client: classProvider, multiply: functionProvider, raw: rawProvider }).buildContainer();
     const adapterChild = adapterRoot.createChildContainer({ sharedParentServiceKeys: ['raw'] });
     const client = adapterChild.resolve('client');
     assertAdapter(client instanceof Client && client.constructedAs === Client && client.read() === 8080, 'class semantics changed');

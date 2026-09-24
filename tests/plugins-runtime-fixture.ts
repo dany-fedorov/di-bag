@@ -17,7 +17,7 @@ export const pluginRuntimeAssertions = `
       factoryReturnKind: 'uninspected',
       isValidPluginOutput: item => item === value,
     });
-    const bag = DiBag.createBuilder().withServices({ plugin: provider }).buildContainer();
+    const bag = DiBag.createBuilder().withServices({ plugin: DiBag.providerWithLifetime({ provider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
     assertPlugin(bag.resolve('plugin') === value, 'plugin identity changed');
     await bag.close();
     assertPlugin(released === 1, 'plugin cleanup was not once-only');
@@ -45,7 +45,7 @@ export const pluginRuntimeAssertions = `
         return invalidDisposal;
       },
     }, factoryReturnKind: 'uninspected', isValidPluginOutput: () => false });
-    const invalidBag = DiBag.createBuilder().withServices({ invalidPlugin: invalidProvider }).buildContainer();
+    const invalidBag = DiBag.createBuilder().withServices({ invalidPlugin: DiBag.providerWithLifetime({ provider: invalidProvider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
     let outputError;
     try { invalidBag.resolve('invalidPlugin'); } catch (error) { outputError = error; }
     let invalidClosed = false;
@@ -73,7 +73,7 @@ export const pluginRuntimeAssertions = `
         return nativeDisposal;
       },
     }, factoryReturnKind: 'native-promise', isValidPluginOutput: item => item === nativeValue });
-    const nativeBag = DiBag.createBuilder().withServices({ nativePlugin: nativeProvider }).buildContainer();
+    const nativeBag = DiBag.createBuilder().withServices({ nativePlugin: DiBag.providerWithLifetime({ provider: nativeProvider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
     const nativeResult = nativeBag.resolve('nativePlugin');
     assertPlugin(nativeBag.resolve('nativePlugin') === nativeResult, 'native plugin validation promise was not cached');
     let nativeClosed = false;
@@ -103,7 +103,7 @@ export const pluginRuntimeAssertions = `
         summary: [requiredValue, optionalValue, getLazy(), allValues.join(',')].join('|'),
       }),
     }, factoryReturnKind: 'uninspected', isValidPluginOutput: item => typeof item === 'object' && item !== null && typeof item.summary === 'string' });
-    const dependencyBag = DiBag.createBuilder().withTokenService(required, DiBag.createProvider(() => 3, { factoryReturnKind: 'uninspected' })).withTokenService(lazy, DiBag.createProvider(() => 4, { factoryReturnKind: 'uninspected' })).withCollectionContribution({ collectionToken: all, provider: DiBag.createProvider(() => 5, { factoryReturnKind: 'uninspected' }) }).withCollectionContribution({ collectionToken: all, provider: DiBag.createProvider(() => 6, { factoryReturnKind: 'uninspected' }) }).withServices({ dependencyPlugin: dependencyProvider }).buildContainer();
+    const dependencyBag = DiBag.createBuilder().withTokenService(required, DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 3, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' })).withTokenService(lazy, DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 4, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' })).withCollectionContribution({ collectionToken: all, provider: DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 5, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }).withCollectionContribution({ collectionToken: all, provider: DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 6, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }).withServices({ dependencyPlugin: DiBag.providerWithLifetime({ provider: dependencyProvider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
     assertPlugin(dependencyBag.resolve('dependencyPlugin').summary === '3||4|5,6',
       'plugin dependencies lost required, optional, lazy or all routing');
     await dependencyBag.close();
@@ -114,7 +114,7 @@ export const pluginRuntimeAssertions = `
       apiVersion: 1,
       create: secret => ({ secret }),
     }, factoryReturnKind: 'uninspected', isValidPluginOutput: item => typeof item === 'object' && item !== null && item.secret === 17 });
-    const privateFeature = DiBag.createBuilder().withTokenService(privateToken, DiBag.createProvider(() => 17, { factoryReturnKind: 'uninspected' })).withServices({ privatePlugin: privateProvider }).withServiceAlias({ aliasKey: 'pluginAlias', targetServiceKey: 'privatePlugin' }).buildModule({ exportedServiceKeys: ['pluginAlias'] }).withRenamedExport({ currentExportKey: 'pluginAlias', newExportKey: 'publicPlugin' });
+    const privateFeature = DiBag.createBuilder().withTokenService(privateToken, DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 17, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' })).withServices({ privatePlugin: DiBag.providerWithLifetime({ provider: privateProvider, lifetime: 'scoped:one-per-container' }) }).withServiceAlias({ aliasKey: 'pluginAlias', targetServiceKey: 'privatePlugin' }).buildModule({ exportedServiceKeys: ['pluginAlias'] }).withRenamedExport({ currentExportKey: 'pluginAlias', newExportKey: 'publicPlugin' });
     const privateBag = DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();
     const sharedPlugin = privateBag.resolve('publicPlugin');
     const sharedChild = privateBag.createChildContainer({ sharedParentServiceKeys: ['publicPlugin'] });
@@ -140,14 +140,14 @@ export const pluginRuntimeAssertions = `
     }] });
     const observedValue = { id: 'observed' };
     let observedReleased = 0;
-    const observedBag = observed.createBuilder().withServices({ observedPlugin: observed.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
+    const observedBag = observed.createBuilder().withServices({ observedPlugin: observed.providerWithLifetime({ provider: observed.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
       apiVersion: 1,
       create: () => observedValue,
       dispose(acquired) {
         if (acquired !== observedValue) throw new Error('observer plugin ownership changed');
         observedReleased++;
       },
-    }, factoryReturnKind: 'uninspected', isValidPluginOutput: item => item === observedValue }) }).buildContainer();
+    }, factoryReturnKind: 'uninspected', isValidPluginOutput: item => item === observedValue }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
     assertPlugin(observedBag.resolve('observedPlugin') === observedValue, 'observer changed plugin value');
     const observedAttempt = observedBag.serviceSnapshot('observedPlugin').acquisitions[0].acquisitionId;
     const observedBinding = observedBag.serviceSnapshot('observedPlugin').bindingId;
@@ -170,7 +170,7 @@ export const pluginRuntimeAssertions = `
       apiVersion: 1,
       create: () => portableValue,
     }, factoryReturnKind: 'uninspected', isValidPluginOutput: item => item === portableValue });
-    const portableBag = PortablePluginBag.createBuilder().withServices({ portablePlugin: portableProvider }).buildContainer();
+    const portableBag = PortablePluginBag.createBuilder().withServices({ portablePlugin: PortablePluginBag.providerWithLifetime({ provider: portableProvider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
     assertPlugin(portableBag.resolve('portablePlugin') === portableValue,
       'portable core required a classifier for explicit raw plugin mode');
     await portableBag.close();

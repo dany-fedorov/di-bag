@@ -22,7 +22,7 @@ test('metadata is lazy, ordered, copied with hidden symbols, and retained after 
     return metadata;
   }, callbackReceives: 'exposed-service' });
   const value = DiBag.providerWithTransformedService({ provider: DiBag.providerWithAcquisitionMetadata({ provider: first, describeAcquisition: result => ({ second: result.origin }), callbackReceives: 'exposed-service' }), transformService: result => result.value, callbackReceives: 'exposed-service' });
-  const bag = DiBag.createBuilder().withServices({ value }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: value, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(calls).toBe(0);
   expect(bag.serviceSnapshot('value').acquisitions).toEqual([]);
   expect(bag.resolve('value')).toBe(payload);
@@ -55,7 +55,7 @@ test('immediate metadata retains raw Promise identity, policy, and outer dispose
   const raw = PortableDiBag.createProvider(() => gate.promise, { factoryReturnKind: 'uninspected' });
   const source = PortableDiBag.providerWithRegistrationMetadata({ provider: PortableDiBag.providerWithTransformedService({ provider: raw, transformService: value => value, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }), registrationMetadata: { team: 'native' } });
   const annotated = PortableDiBag.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: value => ({ exact: value }), callbackReceives: 'exposed-service' });
-  const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.providerWithDisposal({ provider: annotated, disposeService: value => { disposed = value; } }) }).buildContainer();
+  const bag = PortableDiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: PortableDiBag.providerWithDisposal({ provider: annotated, disposeService: value => { disposed = value; } }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(bag.resolve('value')).toBe(gate.promise);
   expect(bag.serviceSnapshot('value').acquisitions[0]!.state).toBe('ready');
   await bag.close();
@@ -67,7 +67,7 @@ test('immediate metadata retains raw Promise identity, policy, and outer dispose
 test('async metadata awaits raw thenables and exposes a native Promise', async () => {
   const raw = { then(resolve: (value: { origin: string }) => unknown) { return resolve({ origin: 'remote' }); } };
   const source = PortableDiBag.createProvider(() => raw, { factoryReturnKind: 'uninspected' });
-  const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: result => ({ origin: result.origin }), callbackReceives: 'fulfilled-value' }) }).buildContainer();
+  const bag = PortableDiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: PortableDiBag.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: result => ({ origin: result.origin }), callbackReceives: 'fulfilled-value' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
   const value = bag.resolve('value');
   expect(value).toBeInstanceOf(Promise);
   expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: false }]);
@@ -80,7 +80,7 @@ test('native acquisition remains pending and disposes fulfilled values after imm
   const gate = deferred<number>();
   const disposed: number[] = [];
   const source = PortableDiBag.createProvider(() => gate.promise, { factoryReturnKind: 'native-promise' });
-  const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.providerWithDisposal({ provider: PortableDiBag.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: promise => ({ promise }), callbackReceives: 'exposed-service' }), disposeService: value => { disposed.push(value); } }) }).buildContainer();
+  const bag = PortableDiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: PortableDiBag.providerWithDisposal({ provider: PortableDiBag.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: promise => ({ promise }), callbackReceives: 'exposed-service' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(bag.resolve('value')).toBe(gate.promise);
   expect(bag.serviceSnapshot('value').acquisitions[0]!.state).toBe('pending');
   const closing = bag.close();
@@ -97,7 +97,7 @@ test('annotation errors preserve original failures, cleanup, and independent ret
     if (value === 1) throw cause;
     return { attempt: value };
   }, callbackReceives: 'exposed-service' });
-  const bag = DiBag.createBuilder().withServices({ service }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ service: DiBag.providerWithLifetime({ provider: service, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   let failure: unknown;
   try { bag.resolve('service'); } catch (error) { failure = error; }
   expect(failure).toBe(cause);
@@ -116,8 +116,8 @@ test('async annotation rejection cleans source ownership and skips failed source
   const disposed: number[] = [];
   let called = false;
   const bag = DiBag.createBuilder().withServices({
-    annotation: DiBag.providerWithAcquisitionMetadata({ provider: DiBag.providerWithDisposal({ provider: async () => 1, disposeService: value => { disposed.push(value); } }), describeAcquisition: () => { throw cause; }, callbackReceives: 'fulfilled-value' }),
-    source: DiBag.providerWithAcquisitionMetadata({ provider: () => { throw cause; }, describeAcquisition: () => { called = true; return {}; }, callbackReceives: 'fulfilled-value' }),
+    annotation: DiBag.providerWithLifetime({ provider: DiBag.providerWithAcquisitionMetadata({ provider: DiBag.providerWithDisposal({ provider: async () => 1, disposeService: value => { disposed.push(value); } }), describeAcquisition: () => { throw cause; }, callbackReceives: 'fulfilled-value' }), lifetime: 'scoped:one-per-container' }),
+    source: DiBag.providerWithLifetime({ provider: DiBag.providerWithAcquisitionMetadata({ provider: () => { throw cause; }, describeAcquisition: () => { called = true; return {}; }, callbackReceives: 'fulfilled-value' }), lifetime: 'scoped:one-per-container' }),
   }).buildContainer();
   await expect(bag.resolve('annotation')).rejects.toBe(cause);
   await expect(bag.resolve('source')).rejects.toBe(cause);
@@ -133,7 +133,7 @@ test('metadata callbacks and returned records reject malformed and asynchronous 
       : DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: callback, callbackReceives: 'exposed-service' });
     expect(() => decorate(null as never)).toThrow();
     for (const invalid of [null, undefined, 1, 'metadata', [], () => ({}), Promise.resolve({}), { then() {} }, Object.create({ then() {} })]) {
-      const bag = DiBag.createBuilder().withServices({ value: decorate((() => invalid) as never) }).buildContainer();
+      const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: decorate((() => invalid) as never), lifetime: 'scoped:one-per-container' }) }).buildContainer();
       if (!async) expect(() => bag.resolve('value')).toThrow();
       else await expect(bag.resolve('value')).rejects.toThrow();
       await bag.close();
@@ -145,7 +145,7 @@ test('annotations retain present undefined values and add no ownership', async (
   let disposed = false;
   const value = { present: true as const, value: undefined, dispose() { disposed = true; } };
   const bag = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent() {}, onObserverFailure() {} }] }).createBuilder().withServices({
-    value: DiBag.providerWithAcquisitionMetadata({ provider: () => value, describeAcquisition: result => ({ presence: result.present, payload: result.value }), callbackReceives: 'exposed-service' }),
+    value: DiBag.providerWithLifetime({ provider: DiBag.providerWithAcquisitionMetadata({ provider: () => value, describeAcquisition: result => ({ presence: result.present, payload: result.value }), callbackReceives: 'exposed-service' }), lifetime: 'scoped:one-per-container' }),
   }).buildContainer();
   expect(bag.resolve('value')).toBe(value);
   expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { presence: true, payload: undefined } }]);
@@ -160,7 +160,7 @@ test('rejecting accidentally async metadata observes its rejected Promise in bot
     const value = async
       ? DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: describe, callbackReceives: 'fulfilled-value' })
       : DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: describe, callbackReceives: 'exposed-service' });
-    const bag = DiBag.createBuilder().withServices({ value }).buildContainer();
+    const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: value, lifetime: 'scoped:one-per-container' }) }).buildContainer();
     if (async) await expect(bag.resolve('value')).rejects.toBeInstanceOf(TypeError);
     else expect(() => bag.resolve('value')).toThrow(TypeError);
     await bag.close();
@@ -179,13 +179,13 @@ test('metadata requires plain records and accepts records without a prototype', 
       ? DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: describe, callbackReceives: 'fulfilled-value' })
       : DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: describe, callbackReceives: 'exposed-service' });
     for (const invalid of [new Date(), new Origin()]) {
-      const bag = DiBag.createBuilder().withServices({ value: decorate(() => invalid) }).buildContainer();
+      const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: decorate(() => invalid), lifetime: 'scoped:one-per-container' }) }).buildContainer();
       if (async) await expect(bag.resolve('value')).rejects.toBeInstanceOf(TypeError);
       else expect(() => bag.resolve('value')).toThrow(TypeError);
       await bag.close();
     }
     const record = Object.assign(Object.create(null), { source: 'remote' });
-    const bag = DiBag.createBuilder().withServices({ value: decorate(() => record) }).buildContainer();
+    const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: decorate(() => record), lifetime: 'scoped:one-per-container' }) }).buildContainer();
     expect(await bag.resolve('value')).toBe(1);
     expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([
       { present: true, value: { source: 'remote' } },
@@ -197,7 +197,7 @@ test('metadata requires plain records and accepts records without a prototype', 
 test('metadata getters are captured exactly once, including an ordinary then field', async () => {
   let reads = 0;
   const metadata = { get then() { return ++reads; } };
-  const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: () => metadata, callbackReceives: 'exposed-service' }) }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: () => metadata, callbackReceives: 'exposed-service' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(bag.resolve('value')).toBe(1);
   expect(reads).toBe(1);
   expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { then: 1 } }]);

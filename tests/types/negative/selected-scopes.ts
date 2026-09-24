@@ -5,11 +5,11 @@ const missingKey: unique symbol = Symbol('token');
 const token = DiBag.createToken(key).forService<{ id: number }>();
 const missingToken = DiBag.createToken(missingKey).forService<{ id: number }>();
 const feature = DiBag.createBuilder().withServices({
-  hidden: ({ config }: { config: { id: string } }) => config.id,
-  service: ({ hidden }: { hidden: string }) => hidden,
+  hidden: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => config.id, lifetime: 'scoped:one-per-container' }),
+  service: DiBag.providerWithLifetime({ provider: ({ hidden }: { hidden: string }) => hidden, lifetime: 'scoped:one-per-container' }),
 }).buildModule({ exportedServiceKeys: ['service'] });
-const parent = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(token, () => ({ id: 1 })).withServices({
-  config: () => ({ id: 'parent' }),
+const parent = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(token, DiBag.providerWithLifetime({ provider: () => ({ id: 1 }), lifetime: 'scoped:one-per-container' })).withServices({
+  config: DiBag.providerWithLifetime({ provider: () => ({ id: 'parent' }), lifetime: 'scoped:one-per-container' }),
   transient: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'transient:one-per-resolve' }),
 }).buildContainer();
 
@@ -33,25 +33,25 @@ parent.createChildContainer({ sharedParentServiceKeys: optional });
 // diagnostic: createChildContainer cannot share transient providers
 parent.createChildContainer({ sharedParentServiceKeys: ['transient'] });
 // diagnostic: createChildContainer cannot share and replace the same service
-parent.createChildContainer(['config'], { config: () => ({ id: 'child' }) }, { sharedParentServiceKeys: ['config'] });
+parent.createChildContainer(['config'], { config: DiBag.providerWithLifetime({ provider: () => ({ id: 'child' }), lifetime: 'scoped:one-per-container' }) }, { sharedParentServiceKeys: ['config'] });
 // diagnostic: createChildContainer cannot share and replace the same service
-parent.createChildContainer([token], { [key]: () => ({ id: 2 }) }, { sharedParentServiceKeys: [token] });
+parent.createChildContainer([token], { [key]: DiBag.providerWithLifetime({ provider: () => ({ id: 2 }), lifetime: 'scoped:one-per-container' }) }, { sharedParentServiceKeys: [token] });
 // diagnostic: createChildContainer accepts existing names or typed tokens only
-parent.createChildContainer(['missing'], { missing: () => 1 });
+parent.createChildContainer(['missing'], { missing: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) });
 // diagnostic: not assignable
 parent.createChildContainer(['config'], {});
 // diagnostic: Type '() => { id: number
-parent.createChildContainer(['config'], { config: () => ({ id: 1 }) });
+parent.createChildContainer(['config'], { config: DiBag.providerWithLifetime({ provider: () => ({ id: 1 }), lifetime: 'scoped:one-per-container' }) });
 // diagnostic: Type '({ missing }: { missing: string; }) => { id: string; }' is not assignable
-parent.createChildContainer(['config'], { config: ({ missing }: { missing: string }) => ({ id: missing }) });
+parent.createChildContainer(['config'], { config: DiBag.providerWithLifetime({ provider: ({ missing }: { missing: string }) => ({ id: missing }), lifetime: 'scoped:one-per-container' }) });
 // diagnostic: Type '({ transient }: { transient: string; }) => { id: string; }' is not assignable
-parent.createChildContainer(['config'], { config: ({ transient }: { transient: string }) => ({ id: transient }) });
+parent.createChildContainer(['config'], { config: DiBag.providerWithLifetime({ provider: ({ transient }: { transient: string }) => ({ id: transient }), lifetime: 'scoped:one-per-container' }) });
 // diagnostic: Type '() => { id: string
-parent.createChildContainer([token], { [key]: () => ({ id: 'wrong' }) });
+parent.createChildContainer([token], { [key]: DiBag.providerWithLifetime({ provider: () => ({ id: 'wrong' }), lifetime: 'scoped:one-per-container' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
 parent.createChildContainer(['service'], { service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => config.id, lifetime: 'singleton:one-per-container-tree' }) });
 // diagnostic: createChildContainer requires a finite tuple
-parent.createChildContainer(array, { config: () => ({ id: 'child' }) });
+parent.createChildContainer(array, { config: DiBag.providerWithLifetime({ provider: () => ({ id: 'child' }), lifetime: 'scoped:one-per-container' }) });
 // diagnostic: Property 'config' is missing
 parent.createChildContainer<readonly ['config'], {}>(['config'], {});
 // diagnostic: Object literal may only specify known properties
@@ -61,7 +61,7 @@ const roots = DiBag.createBuilder().withServices({
   config: DiBag.providerWithLifetime({ provider: () => ({ id: 'root' }), lifetime: 'singleton:one-per-container-tree' }),
   service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => config.id, lifetime: 'singleton:one-per-container-tree' }),
 }).buildContainer();
-const child = roots.createChildContainer(['config'], { config: () => ({ id: 'child' }) });
+const child = roots.createChildContainer(['config'], { config: DiBag.providerWithLifetime({ provider: () => ({ id: 'child' }), lifetime: 'scoped:one-per-container' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
 child.createIndependentContainer();
 // diagnostic: root lifetime cannot capture scoped dependency

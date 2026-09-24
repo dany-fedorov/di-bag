@@ -15,7 +15,7 @@ export const feature = DiBag.createBuilder()
     // Exported transient over an external requirement: a carrier obligation reaching `external`.
     passthrough: DiBag.providerWithLifetime({ provider: ({ external, privateHelper }: { external: string; privateHelper: (key: string) => number }) => () => privateHelper(external), lifetime: 'transient:one-per-resolve' }),
     // Private consumer of an export: a checked constraint the host must keep satisfying.
-    privateConsumer: ({ service }: { service: { read(key: string): number } }) => service.read('x'),
+    privateConsumer: DiBag.providerWithLifetime({ provider: ({ service }: { service: { read(key: string): number } }) => service.read('x'), lifetime: 'scoped:one-per-container' }),
   })
-  .withTokenService(tokenService, () => ({ id: 1 }))
+  .withTokenService(tokenService, DiBag.providerWithLifetime({ provider: () => ({ id: 1 }), lifetime: 'scoped:one-per-container' }))
   .buildModule({ exportedServiceKeys: ['service', 'passthrough', tokenService] });

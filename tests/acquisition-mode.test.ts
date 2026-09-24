@@ -21,7 +21,7 @@ for (const stage of ['source', 'projection', 'metadata'] as const) {
       ? DiBag.providerWithTransformedService({ provider: () => 0, transformService: () => pending, callbackReceives: 'exposed-service' })
       : DiBag.providerWithAcquisitionMetadata({ provider: () => pending, describeAcquisition: () => ({ stage: 'metadata' }), callbackReceives: 'exposed-service' });
     const bag = DiBag.createBuilder().withServices({
-      value: DiBag.providerWithDisposal({ provider: factory, disposeService: resource => { disposed.push(resource); } }),
+      value: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: factory, disposeService: resource => { disposed.push(resource); } }), lifetime: 'scoped:one-per-container' }),
     }).buildContainer();
     expect(bag.resolve('value')).toBe(pending);
     let closed = false;
@@ -40,9 +40,9 @@ test('bare entry resolves automatic async factories through the host classifier'
   const pending = Promise.resolve(42);
   const thenable = { then: (resolve: (value: number) => void) => resolve(1) };
   const bag = Core.createBuilder().withServices({
-    answer: async () => 42,
-    same: () => pending,
-    thenable: Core.createProvider(() => thenable, { factoryReturnKind: 'uninspected' }),
+    answer: DiBag.providerWithLifetime({ provider: async () => 42, lifetime: 'scoped:one-per-container' }),
+    same: DiBag.providerWithLifetime({ provider: () => pending, lifetime: 'scoped:one-per-container' }),
+    thenable: DiBag.providerWithLifetime({ provider: Core.createProvider(() => thenable, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }),
   }).buildContainer();
   expect(await bag.resolve('answer')).toBe(42);
   expect(bag.resolve('same')).toBe(pending);
@@ -53,13 +53,13 @@ test('bare entry resolves automatic async factories through the host classifier'
   withoutBuiltinModule(() => { expect(scope.resolve('same')).toBe(pending); expect(fork.resolve('same')).toBe(pending); });
   await Promise.all([scope.close(), fork.close()]);
   await bag.close();
-  const started = await Core.createBuilder().withServices({ answer: async () => 7 }).buildContainer().ensureServicesReady(['answer']);
+  const started = await Core.createBuilder().withServices({ answer: DiBag.providerWithLifetime({ provider: async () => 7, lifetime: 'scoped:one-per-container' }) }).buildContainer().ensureServicesReady(['answer']);
   expect(await started.resolve('answer')).toBe(7);
   await started.close();
 });
 
 test('bare entry fires DI_BAG_CLASSIFIER_REQUIRED on hosts without a usable process.getBuiltinModule', () => {
-  const build = () => Core.createBuilder().withServices({ value: () => 1 }).buildContainer();
+  const build = () => Core.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   for (const replacement of [undefined, 1, () => undefined, () => ({}), () => ({ isPromise: true })]) {
     expect(() => withoutBuiltinModule(build, replacement)).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   }
@@ -77,14 +77,14 @@ test('an explicit classifier wins and explicit graphs never consult the host', a
   const counting = (id: string) => { loads++; return id === 'node:util/types' ? { isPromise } : undefined; };
   const configured = Core.withConfiguration({ runtime: { isNativePromise: value => { classified.push(value); return isPromise(value); } } });
   const [explicit, automatic] = withoutBuiltinModule(() => [
-    Core.createBuilder().withServices({ raw: Core.createProvider(() => 1, { factoryReturnKind: 'uninspected' }) }).buildContainer(),
-    configured.createBuilder().withServices({ value: () => 2 }).buildContainer(),
+    Core.createBuilder().withServices({ raw: DiBag.providerWithLifetime({ provider: Core.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }).buildContainer(),
+    configured.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) }).buildContainer(),
   ], counting);
   expect(explicit.resolve('raw')).toBe(1);
   expect(automatic.resolve('value')).toBe(2);
   expect(classified).toEqual([2]);
   expect(loads).toBe(0);
-  const detected = withoutBuiltinModule(() => Core.createBuilder().withServices({ value: async () => 3 }).buildContainer(), counting);
+  const detected = withoutBuiltinModule(() => Core.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: async () => 3, lifetime: 'scoped:one-per-container' }) }).buildContainer(), counting);
   expect(await detected.resolve('value')).toBe(3);
   expect(loads).toBe(1);
   await Promise.all([explicit.close(), automatic.close(), detected.close()]);
@@ -94,10 +94,10 @@ test('unconfigured core preflights every stage and private module before any fac
   let calls = 0;
   const source = Core.createProvider(() => { calls++; return 1; }, { factoryReturnKind: 'uninspected' });
   const automatic = () => { calls++; return 2; };
-  const feature = Core.createBuilder().withServices({ hidden: automatic, public: source }).buildModule({ exportedServiceKeys: ['public'] });
+  const feature = Core.createBuilder().withServices({ hidden: DiBag.providerWithLifetime({ provider: automatic, lifetime: 'scoped:one-per-container' }), public: DiBag.providerWithLifetime({ provider: source, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['public'] });
   const cases: Array<[() => unknown, readonly string[]]> = [
-    [() => Core.createBuilder().withServices({ source, automatic }).buildContainer(), ['automatic']],
-    [() => Core.createBuilder().withServices({ projected: Core.providerWithTransformedService({ provider: source, transformService: value => { calls++; return value; }, callbackReceives: 'exposed-service' }) }).buildContainer(), ['projected']],
+    [() => Core.createBuilder().withServices({ source: DiBag.providerWithLifetime({ provider: source, lifetime: 'scoped:one-per-container' }), automatic: DiBag.providerWithLifetime({ provider: automatic, lifetime: 'scoped:one-per-container' }) }).buildContainer(), ['automatic']],
+    [() => Core.createBuilder().withServices({ projected: DiBag.providerWithLifetime({ provider: Core.providerWithTransformedService({ provider: source, transformService: value => { calls++; return value; }, callbackReceives: 'exposed-service' }), lifetime: 'scoped:one-per-container' }) }).buildContainer(), ['projected']],
     [() => Core.createBuilder().withInstalledModules([feature]).buildContainer(), ['hidden']],
   ];
   for (const [finalize, bindings] of cases) {
@@ -116,13 +116,13 @@ test('facades snapshot and isolate their predicate, carrying it through builders
   const symbol = Symbol('shared registry');
   const key = Core.createToken(symbol).forService<Promise<number>>();
   const provider = Core.createProvider(() => pending, { factoryReturnKind: 'auto-detect' });
-  const feature = Core.createBuilder().withTokenService(key, provider).buildModule({ exportedServiceKeys: [key] });
+  const feature = Core.createBuilder().withTokenService(key, DiBag.providerWithLifetime({ provider: provider, lifetime: 'scoped:one-per-container' })).buildModule({ exportedServiceKeys: [key] });
   const bag = configured.createBuilder().withInstalledModules([feature]).buildContainer();
-  const forks = [bag.createIndependentContainer(), bag.createIndependentContainer([key], { [key.symbol]: () => pending })];
+  const forks = [bag.createIndependentContainer(), bag.createIndependentContainer([key], { [key.symbol]: DiBag.providerWithLifetime({ provider: () => pending, lifetime: 'scoped:one-per-container' }) })];
   for (const item of [bag, ...forks]) { expect(item.resolve(key)).toBe(pending); await item.close(); }
-  expect(() => withoutBuiltinModule(() => Core.createBuilder().withServices({ value: () => 1 }).buildContainer())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
+  expect(() => withoutBuiltinModule(() => Core.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildContainer())).toThrow('DI_BAG_CLASSIFIER_REQUIRED: this host has no process.getBuiltinModule');
   const failure = new Error('predicate failure');
-  const other = Core.withConfiguration({ runtime: { isNativePromise: () => { throw failure; } } }).createBuilder().withServices({ value: () => 1 }).buildContainer();
+  const other = Core.withConfiguration({ runtime: { isNativePromise: () => { throw failure; } } }).createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(() => other.resolve('value')).toThrow(failure);
   await other.close();
 });
@@ -143,7 +143,7 @@ test('invalid configuration, modes and classifier results fail explicitly', asyn
 test('automatic ordinary values preserve the then-presence guard', async () => {
   let reads = 0;
   const value = new Proxy({}, { has: () => false, get: () => { reads++; throw new Error('unexpected then read'); } });
-  const bag = DiBag.createBuilder().withServices({ value: () => value }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => value, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(bag.resolve('value')).toBe(value);
   expect(reads).toBe(0);
   await bag.close();
@@ -154,8 +154,8 @@ test('raw Promise and then-getter values retain exact ownership without observat
   const throwing = { get then(): never { throw new Error('raw getter'); } };
   const disposed: unknown[] = [];
   const bag = Core.createBuilder().withServices({
-    pending: Core.providerWithDisposal({ provider: Core.createProvider(() => pending, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }),
-    throwing: Core.providerWithDisposal({ provider: Core.createProvider(() => throwing, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }),
+    pending: DiBag.providerWithLifetime({ provider: Core.providerWithDisposal({ provider: Core.createProvider(() => pending, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
+    throwing: DiBag.providerWithLifetime({ provider: Core.providerWithDisposal({ provider: Core.createProvider(() => throwing, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }),
   }).buildContainer();
   expect(bag.resolve('pending')).toBe(pending);
   expect(bag.resolve('throwing')).toBe(throwing);
@@ -168,7 +168,7 @@ test('explicit native and async projections work without a classifier and preser
   const disposed: unknown[] = [];
   const source = Core.providerWithDisposal({ provider: Core.createProvider(() => pending, { factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } });
   const native = Core.providerWithDisposal({ provider: Core.providerWithTransformedService({ provider: source, transformService: value => value, callbackReceives: 'exposed-service', transformReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } });
-  const bag = Core.createBuilder().withServices({ native, mapped: Core.providerWithTransformedService({ provider: Core.createProvider(() => 3, { factoryReturnKind: 'uninspected' }), transformService: value => value + 1, callbackReceives: 'fulfilled-value' }) }).buildContainer();
+  const bag = Core.createBuilder().withServices({ native: DiBag.providerWithLifetime({ provider: native, lifetime: 'scoped:one-per-container' }), mapped: DiBag.providerWithLifetime({ provider: Core.providerWithTransformedService({ provider: Core.createProvider(() => 3, { factoryReturnKind: 'uninspected' }), transformService: value => value + 1, callbackReceives: 'fulfilled-value' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(bag.resolve('native')).toBe(pending);
   expect(await bag.resolve('mapped')).toBe(4);
   await bag.close();
@@ -181,7 +181,7 @@ for (const foreign of [false, true]) for (const mode of ['auto-detect', 'native-
     const pending: Promise<typeof resource> = foreign ? runInNewContext('Promise.resolve(resource)', { resource }) : Promise.resolve(resource);
     Object.defineProperty(pending, 'then', { value: undefined });
     const disposed: unknown[] = [];
-    const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => pending, { factoryReturnKind: mode }), disposeService: value => { disposed.push(value); } }) }).buildContainer();
+    const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => pending, { factoryReturnKind: mode }), disposeService: value => { disposed.push(value); } }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
     expect(bag.resolve('value')).toBe(pending);
     await bag.close();
     expect(disposed).toEqual([resource]);
@@ -193,7 +193,7 @@ test('native metadata preserves raw presence records and explicit payload projec
   const source = Core.providerWithAcquisitionMetadata({ provider: Core.createProvider(() => ({ present: true as const, value: pending }), { factoryReturnKind: 'uninspected' }), describeAcquisition: () => ({ source: 'pending' }), callbackReceives: 'exposed-service' });
   const disposed: unknown[] = [];
   const raw = Core.providerWithDisposal({ provider: Core.providerWithTransformedService({ provider: source, transformService: record => record.value, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } });
-  const bag = Core.createBuilder().withServices({ presence: source, raw }).buildContainer();
+  const bag = Core.createBuilder().withServices({ presence: DiBag.providerWithLifetime({ provider: source, lifetime: 'scoped:one-per-container' }), raw: DiBag.providerWithLifetime({ provider: raw, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(bag.resolve('presence')).toEqual({ present: true, value: pending });
   expect(bag.resolve('raw')).toBe(pending);
   await bag.close();
@@ -202,7 +202,7 @@ test('native metadata preserves raw presence records and explicit payload projec
 
 test('async metadata retains a native output contract without a portable classifier', async () => {
   const source = Core.createProvider(() => Promise.resolve(7), { factoryReturnKind: 'native-promise' });
-  const bag = Core.createBuilder().withServices({ value: Core.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: value => ({ result: value }), callbackReceives: 'fulfilled-value' }) }).buildContainer();
+  const bag = Core.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: Core.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: value => ({ result: value }), callbackReceives: 'fulfilled-value' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(await bag.resolve('value')).toBe(7);
   expect(bag.serviceSnapshot('value').acquisitions[0]?.acquisitionMetadata).toEqual([{ present: true, value: { result: 7 } }]);
   await bag.close();
@@ -210,13 +210,13 @@ test('async metadata retains a native output contract without a portable classif
 
 test('DI_BAG_CLASSIFIER_REQUIRED names every automatic registration, sorted, and suggests the helpers', () => {
   const raw = Core.createProvider(() => 1, { factoryReturnKind: 'uninspected' });
-  const feature = Core.createBuilder().withServices({ hidden: () => 1, shown: ({ hidden }: { hidden: number }) => hidden }).buildModule({ exportedServiceKeys: ['shown'], moduleLabel: 'billing' });
+  const feature = Core.createBuilder().withServices({ hidden: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), shown: DiBag.providerWithLifetime({ provider: ({ hidden }: { hidden: number }) => hidden, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['shown'], moduleLabel: 'billing' });
   const failure = caught(() => withoutBuiltinModule(() => Core.createBuilder().withInstalledModules([feature]).withServices({
-    raw,
-    plain: () => 2,
-    projected: Core.providerWithTransformedService({ provider: raw, transformService: value => value, callbackReceives: 'exposed-service' }),
-    sync: Core.createProvider(() => 3, { factoryReturnKind: 'sync-value' }),
-    pending: Core.createProvider(async () => 4, { factoryReturnKind: 'native-promise' }),
+    raw: DiBag.providerWithLifetime({ provider: raw, lifetime: 'scoped:one-per-container' }),
+    plain: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }),
+    projected: DiBag.providerWithLifetime({ provider: Core.providerWithTransformedService({ provider: raw, transformService: value => value, callbackReceives: 'exposed-service' }), lifetime: 'scoped:one-per-container' }),
+    sync: DiBag.providerWithLifetime({ provider: Core.createProvider(() => 3, { factoryReturnKind: 'sync-value' }), lifetime: 'scoped:one-per-container' }),
+    pending: DiBag.providerWithLifetime({ provider: Core.createProvider(async () => 4, { factoryReturnKind: 'native-promise' }), lifetime: 'scoped:one-per-container' }),
   }).buildContainer()));
   expect(failure.code).toBe('DI_BAG_CLASSIFIER_REQUIRED');
   expect(failure.details).toEqual({ option: 'runtime.isNativePromise', bindings: ['billing/hidden', 'plain', 'projected', 'shown'] });
@@ -225,7 +225,7 @@ test('DI_BAG_CLASSIFIER_REQUIRED names every automatic registration, sorted, and
 });
 
 test('the classifier message lists at most eight registrations; details carry them all', () => {
-  const registrations = Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`s${String(index).padStart(2, '0')}`, () => index]));
+  const registrations = Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`s${String(index).padStart(2, '0')}`, DiBag.providerWithLifetime({ provider: () => index, lifetime: 'scoped:one-per-container' })]));
   const failure = caught(() => withoutBuiltinModule(() => Core.createBuilder().withServices(registrations as never).buildContainer()));
   expect(failure.details.bindings).toHaveLength(12);
   expect(failure.message).toContain("12 registrations use auto-detect factory return kind: \"s00\", \"s01\", \"s02\", \"s03\", \"s04\", \"s05\", \"s06\", \"s07\", and 4 more; use DiBag.createProvider(factory, { factoryReturnKind: 'sync-value' })");
@@ -234,7 +234,7 @@ test('the classifier message lists at most eight registrations; details carry th
 test('a host classifier is consulted once, at the first automatic registration', async () => {
   let loads = 0;
   const counting = (id: string) => { loads++; return id === 'node:util/types' ? { isPromise } : undefined; };
-  const bag = withoutBuiltinModule(() => Core.createBuilder().withServices({ a: () => 1, b: () => 2, c: () => 3 }).buildContainer(), counting);
+  const bag = withoutBuiltinModule(() => Core.createBuilder().withServices({ a: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), b: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }), c: DiBag.providerWithLifetime({ provider: () => 3, lifetime: 'scoped:one-per-container' }) }).buildContainer(), counting);
   expect(loads).toBe(1);
   await bag.close();
 });

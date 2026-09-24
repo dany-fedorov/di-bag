@@ -1,12 +1,12 @@
 import { DiBag } from '../../../src';
-const incomplete = DiBag.createBuilder().withServices({ db: ({ config }: { config: { url: string } }) => config.url });
+const incomplete = DiBag.createBuilder().withServices({ db: DiBag.providerWithLifetime({ provider: ({ config }: { config: { url: string } }) => config.url, lifetime: 'scoped:one-per-container' }) });
 // diagnostic: required service registrations are missing: config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#missing-service
 incomplete.verifyGraphAtCompileTime() satisfies void;
-const captive = DiBag.createBuilder().withServices({ config: () => 1, db: DiBag.providerWithLifetime({ provider: ({ config }: { config: number }) => config, lifetime: 'singleton:one-per-container-tree' }) });
+const captive = DiBag.createBuilder().withServices({ config: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), db: DiBag.providerWithLifetime({ provider: ({ config }: { config: number }) => config, lifetime: 'singleton:one-per-container-tree' }) });
 // diagnostic: root lifetime cannot capture scoped dependency: db -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
 captive.verifyGraphAtCompileTime() satisfies void;
 // withServices reports the generic wrong shape; verifyGraphAtCompileTime() prints the details and names the unsatisfied-consumer section.
 // diagnostic: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#wrong-shape
-const mismatched = DiBag.createBuilder().withServices({ port: () => 'eighty', server: ({ port }: { port: number }) => port + 1 });
+const mismatched = DiBag.createBuilder().withServices({ port: DiBag.providerWithLifetime({ provider: () => 'eighty', lifetime: 'scoped:one-per-container' }), server: DiBag.providerWithLifetime({ provider: ({ port }: { port: number }) => port + 1, lifetime: 'scoped:one-per-container' }) });
 // diagnostic: provided service does not satisfy its consumer dependency; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unsatisfied-consumer
 mismatched.verifyGraphAtCompileTime() satisfies void;

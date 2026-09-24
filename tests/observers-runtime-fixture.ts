@@ -15,7 +15,7 @@ export const observerRuntimeAssertions = `
     const finalGate = new Promise(resolve => { finishFinal = resolve; });
     const parent = observed.createBuilder().withServices({
       resource: observed.providerWithRegistrationMetadata({ provider: observed.providerWithLifetime({ provider: observed.providerWithDisposal({ provider: observed.createProvider(() => ({ id: ++rootCalls }), { factoryReturnKind: 'uninspected' }), disposeService: () => { disposed++; } }), lifetime: 'singleton:one-per-container-tree' }), registrationMetadata: { tag: 'root' } }),
-      pending: observed.providerWithDisposal({ provider: observed.providerWithTransformedService({ provider: observed.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'native-promise' }), transformService: () => finalGate, callbackReceives: 'fulfilled-value' }), disposeService: value => { assertObserver(value === 42, 'observer changed native disposer payload'); disposed++; } }),
+      pending: observed.providerWithLifetime({ provider: observed.providerWithDisposal({ provider: observed.providerWithTransformedService({ provider: observed.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'native-promise' }), transformService: () => finalGate, callbackReceives: 'fulfilled-value' }), disposeService: value => { assertObserver(value === 42, 'observer changed native disposer payload'); disposed++; } }), lifetime: 'scoped:one-per-container' }),
     }).withServiceAlias({ aliasKey: 'resourceAlias', targetServiceKey: 'resource' }).withCollectionContribution({ collectionToken: item, provider: observed.providerWithLifetime({ provider: observed.providerWithDisposal({ provider: observed.createProvider(() => ({ id: ++transientCalls }), { factoryReturnKind: 'uninspected' }), disposeService: () => { disposed++; } }), lifetime: 'transient:one-per-resolve' }) }).buildContainer();
     const child = parent.createChildContainer({ sharedParentServiceKeys: ['resourceAlias'] });
     const borrowed = child.resolve('resourceAlias');
@@ -67,9 +67,9 @@ export const observerRuntimeAssertions = `
       && (!('registrationMetadata' in event) || Object.isFrozen(event.registrationMetadata))), 'observer snapshots are mutable');
 
     let privateDisposals = 0;
-    const privateFeature = observed.createBuilder().withServices({ hidden: observed.providerWithDisposal({ provider: observed.createProvider(() => ({ owner: 'private' }), { factoryReturnKind: 'uninspected' }), disposeService: () => { privateDisposals++; } }) }).withServiceAlias({ aliasKey: 'visible', targetServiceKey: 'hidden' }).buildModule({ exportedServiceKeys: ['visible'] }).withRenamedExport({ currentExportKey: 'visible', newExportKey: 'publicView' });
+    const privateFeature = observed.createBuilder().withServices({ hidden: observed.providerWithLifetime({ provider: observed.providerWithDisposal({ provider: observed.createProvider(() => ({ owner: 'private' }), { factoryReturnKind: 'uninspected' }), disposeService: () => { privateDisposals++; } }), lifetime: 'scoped:one-per-container' }) }).withServiceAlias({ aliasKey: 'visible', targetServiceKey: 'hidden' }).buildModule({ exportedServiceKeys: ['visible'] }).withRenamedExport({ currentExportKey: 'visible', newExportKey: 'publicView' });
     const moduleBag = observed.createBuilder().withInstalledModules([privateFeature]).withServices({
-      hidden: observed.createProvider(() => ({ owner: 'host' }), { factoryReturnKind: 'uninspected' }),
+      hidden: observed.providerWithLifetime({ provider: observed.createProvider(() => ({ owner: 'host' }), { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }),
     }).buildContainer();
     const privateId = moduleBag.serviceSnapshot('publicView').aliasTarget.bindingId;
     assertObserver(moduleBag.resolve('publicView').owner === 'private', 'observer changed private module alias routing');
@@ -81,7 +81,7 @@ export const observerRuntimeAssertions = `
 
     const cleanupError = new Error('observed cleanup failure');
     const failed = observed.createBuilder().withServices({
-      broken: observed.providerWithDisposal({ provider: observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), disposeService: () => { throw cleanupError; } }),
+      broken: observed.providerWithLifetime({ provider: observed.providerWithDisposal({ provider: observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), disposeService: () => { throw cleanupError; } }), lifetime: 'scoped:one-per-container' }),
     }).buildContainer();
     failed.resolve('broken');
     const brokenAttempt = failed.serviceSnapshot('broken').acquisitions[0].acquisitionId;
@@ -111,7 +111,7 @@ export const observerRuntimeAssertions = `
     }] }).withConfiguration({ runtime: { isNativePromise: value => value instanceof Promise } });
     let monitoredDisposals = 0;
     const monitoredBag = monitored.createBuilder().withServices({
-      value: monitored.providerWithDisposal({ provider: () => ({ id: 'unchanged' }), disposeService: () => { monitoredDisposals++; } }),
+      value: monitored.providerWithLifetime({ provider: monitored.providerWithDisposal({ provider: () => ({ id: 'unchanged' }), disposeService: () => { monitoredDisposals++; } }), lifetime: 'scoped:one-per-container' }),
     }).buildContainer();
     const monitoredValue = monitoredBag.resolve('value');
     assertObserver(monitoredValue.id === 'unchanged', 'observer result transformed a service');
@@ -137,10 +137,10 @@ export const observerRuntimeAssertions = `
       },
       onObserverFailure(failure) { reentrantErrors.push(failure); },
     }] });
-    reentrantBag = reentrant.createBuilder().withServices({ trigger: reentrant.providerWithDisposal({
+    reentrantBag = reentrant.createBuilder().withServices({ trigger: reentrant.providerWithLifetime({ provider: reentrant.providerWithDisposal({
       provider: reentrant.createProvider(() => ({ id: 'reentrant' }), { factoryReturnKind: 'uninspected' }),
       disposeService: () => { reentrantDisposed++; },
-    }) }).buildContainer();
+    }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
     const trigger = reentrantBag.resolve('trigger');
     await turn();
     await reentrantBag.close();
@@ -156,8 +156,8 @@ export const observerRuntimeAssertions = `
     const secondFacade = firstFacade.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { secondEvents.push(event); },
       onObserverFailure: failure => { portableErrors.push(failure); } }] });
     const raw = new Promise(() => {});
-    const firstBag = firstFacade.createBuilder().withServices({ raw: firstFacade.createProvider(() => raw, { factoryReturnKind: 'uninspected' }) }).buildContainer();
-    const secondBag = secondFacade.createBuilder().withServices({ raw: secondFacade.createProvider(() => raw, { factoryReturnKind: 'uninspected' }) }).buildContainer();
+    const firstBag = firstFacade.createBuilder().withServices({ raw: firstFacade.providerWithLifetime({ provider: firstFacade.createProvider(() => raw, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
+    const secondBag = secondFacade.createBuilder().withServices({ raw: secondFacade.providerWithLifetime({ provider: secondFacade.createProvider(() => raw, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
     assertObserver(firstBag.resolve('raw') === raw && secondBag.resolve('raw') === raw,
       'portable observation added classification capability or awaited a raw value');
     await Promise.all([firstBag.close(), secondBag.close()]);

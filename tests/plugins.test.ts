@@ -14,10 +14,10 @@ test('plugin validation retains raw source ownership on success and failure', as
   }, factoryReturnKind: 'uninspected', isValidPluginOutput: (value: unknown): value is { run(): number } =>
       typeof value === 'object' && value !== null &&
       'run' in value && typeof value.run === 'function' });
-  const good = DiBag.createBuilder().withServices({ plugin: wrap(valid) }).buildContainer();
+  const good = DiBag.createBuilder().withServices({ plugin: DiBag.providerWithLifetime({ provider: wrap(valid), lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(good.resolve('plugin')).toBe(valid);
   expect(good.resolve('plugin').run()).toBe(42);
-  const bad = DiBag.createBuilder().withServices({ plugin: wrap(invalid) }).buildContainer();
+  const bad = DiBag.createBuilder().withServices({ plugin: DiBag.providerWithLifetime({ provider: wrap(invalid), lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(() => bad.resolve('plugin')).toThrow(DiBagPluginValidationError);
   await Promise.all([good.close(), bad.close()]);
   expect(disposed).toHaveLength(2);
@@ -78,7 +78,7 @@ test('plugin descriptor preflight preserves accessor errors and ignores extra ge
     create: () => 1,
     get ignored() { extraReads++; return 'ignored'; },
   }, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is number => typeof value === 'number' });
-  const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ provider: DiBag.providerWithLifetime({ provider: provider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(bag.resolve('provider')).toBe(1);
   expect(extraReads).toBe(0);
   return bag.close();
@@ -106,7 +106,7 @@ test('plugin snapshots dependencies, options and callbacks before later mutation
   const provider = Reflect.apply(DiBag.createProviderFromPlugin, undefined, [options]);
   dependencies[0] = two;
   descriptor.create = () => 2;
-  const builder = DiBag.createBuilder().withTokenService(one, DiBag.createProvider(() => 1, { factoryReturnKind: 'uninspected' })).withTokenService(two, DiBag.createProvider(() => 2, { factoryReturnKind: 'uninspected' }));
+  const builder = DiBag.createBuilder().withTokenService(one, DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' })).withTokenService(two, DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 2, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }));
   const added = Reflect.apply(builder.withServices, builder, [{ provider }]);
   const bag = Reflect.apply(added.buildContainer, added, []) as { resolve(key: string): unknown; close(): Promise<void> };
   expect(bag.resolve('provider')).toBe(1);
@@ -122,7 +122,7 @@ test('plugin routes required optional lazy and all dependency references positio
     apiVersion: 1,
     create: (value: number, maybe: number | undefined, get: () => number, all: readonly number[]) => ({ value, maybe, get, all }),
   }, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is { value: number; maybe: number | undefined; get(): number; all: readonly number[] } => typeof value === 'object' && value !== null });
-  const bag = DiBag.createBuilder().withTokenService(required, DiBag.createProvider(() => 1, { factoryReturnKind: 'uninspected' })).withTokenService(lazy, DiBag.createProvider(() => 2, { factoryReturnKind: 'uninspected' })).withCollectionContribution({ collectionToken: collected, provider: DiBag.createProvider(() => 3, { factoryReturnKind: 'uninspected' }) }).withCollectionContribution({ collectionToken: collected, provider: DiBag.createProvider(() => 4, { factoryReturnKind: 'uninspected' }) }).withServices({ provider }).buildContainer();
+  const bag = DiBag.createBuilder().withTokenService(required, DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' })).withTokenService(lazy, DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 2, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' })).withCollectionContribution({ collectionToken: collected, provider: DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 3, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }).withCollectionContribution({ collectionToken: collected, provider: DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 4, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }).withServices({ provider: DiBag.providerWithLifetime({ provider: provider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   const value = bag.resolve('provider');
   expect(value.value).toBe(1); expect(value.maybe).toBeUndefined(); expect(value.get()).toBe(2); expect(value.all).toEqual([3, 4]);
   await bag.close();
@@ -133,13 +133,13 @@ test('raw plugin validation does not assimilate values or validator results', as
   const never = new Promise<void>(() => {});
   for (const value of [hostile, never, undefined, () => 3]) {
     const provider = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: { apiVersion: 1, create: () => value }, factoryReturnKind: 'uninspected', isValidPluginOutput: (candidate): candidate is typeof value => candidate === value });
-    const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
+    const bag = DiBag.createBuilder().withServices({ provider: DiBag.providerWithLifetime({ provider: provider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
     expect(bag.resolve('provider')).toBe(value);
     await bag.close();
   }
   for (const result of [false, 1, Promise.resolve(true), { then() { return true; } }]) {
     const provider = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: { apiVersion: 1, create: () => 1 }, factoryReturnKind: 'uninspected', isValidPluginOutput: (() => result) as unknown as (value: unknown) => value is number });
-    const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
+    const bag = DiBag.createBuilder().withServices({ provider: DiBag.providerWithLifetime({ provider: provider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
     let failure: unknown;
     try { bag.resolve('provider'); } catch (error) { failure = error; }
     expect(failure).toBeInstanceOf(DiBagPluginValidationError);
@@ -156,7 +156,7 @@ test('native plugin validates fulfilled values, caches final output and releases
     create: () => gate.promise,
     dispose(value: { id: number }) { disposed.push(value); },
   }, factoryReturnKind: 'native-promise', isValidPluginOutput: (value): value is { id: number } => typeof value === 'object' && value !== null && 'id' in value });
-  const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ provider: DiBag.providerWithLifetime({ provider: provider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   const first = bag.resolve('provider'); const second = bag.resolve('provider');
   expect(first).toBe(second);
   const closing = bag.close();
@@ -169,7 +169,7 @@ test('native plugin validates fulfilled values, caches final output and releases
 test('native plugin rejection and output validation preserve causes and ownership', async () => {
   const rejection = new Error('source rejection');
   const rejected = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: { apiVersion: 1, create: () => Promise.reject(rejection) }, factoryReturnKind: 'native-promise', isValidPluginOutput: (value): value is number => typeof value === 'number' });
-  const rejectedBag = DiBag.createBuilder().withServices({ rejected }).buildContainer();
+  const rejectedBag = DiBag.createBuilder().withServices({ rejected: DiBag.providerWithLifetime({ provider: rejected, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   await expect(rejectedBag.resolve('rejected')).rejects.toBe(rejection);
   await rejectedBag.close();
   const disposed: unknown[] = [];
@@ -177,7 +177,7 @@ test('native plugin rejection and output validation preserve causes and ownershi
   const invalidProvider = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
     apiVersion: 1, create: () => Promise.resolve(invalid), dispose: (value: unknown) => { disposed.push(value); },
   }, factoryReturnKind: 'native-promise', isValidPluginOutput: (value): value is { id: number } => typeof value === 'object' && value !== null && (value as { id?: unknown }).id === 1 });
-  const invalidBag = DiBag.createBuilder().withServices({ invalidProvider }).buildContainer();
+  const invalidBag = DiBag.createBuilder().withServices({ invalidProvider: DiBag.providerWithLifetime({ provider: invalidProvider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   await expect(invalidBag.resolve('invalidProvider')).rejects.toBeInstanceOf(DiBagPluginValidationError);
   await invalidBag.close();
   expect(disposed).toEqual([invalid]);
@@ -189,7 +189,7 @@ test('native plugins require a genuine Promise source', async () => {
     apiVersion: 1,
     create: () => ({ then() { throw new Error('must not assimilate'); } }),
   }, factoryReturnKind: 'native-promise', isValidPluginOutput: (value): value is number => { validated++; return typeof value === 'number'; } });
-  const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ provider: DiBag.providerWithLifetime({ provider: provider, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   await expect(bag.resolve('provider')).rejects.toBeInstanceOf(TypeError);
   expect(validated).toBe(0);
   await bag.close();
@@ -201,7 +201,7 @@ test('startup rollback releases an accepted plugin source once', async () => {
   const plugin = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
     apiVersion: 1, create: () => 5, dispose: (value: unknown) => { if (typeof value === 'number') disposed.push(value); },
   }, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is number => typeof value === 'number' });
-  const builder = DiBag.createBuilder().withServices({ plugin, failure: DiBag.createProvider(() => { throw failure; }, { factoryReturnKind: 'uninspected' }) });
+  const builder = DiBag.createBuilder().withServices({ plugin: DiBag.providerWithLifetime({ provider: plugin, lifetime: 'scoped:one-per-container' }), failure: DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => { throw failure; }, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) });
   let caught: unknown;
   try { await builder.buildContainer().ensureServicesReady(['plugin', 'failure']); } catch (error) { caught = error; }
   expect(caught).toBeInstanceOf(DiBagServiceReadinessError);
@@ -215,7 +215,7 @@ test('plugin callbacks use no receiver and preserve factory and validator failur
     apiVersion: 1,
     create(this: undefined) { expect(this).toBeUndefined(); throw factoryFailure; },
   }, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is number => typeof value === 'number' });
-  const factoryBag = DiBag.createBuilder().withServices({ failingFactory }).buildContainer();
+  const factoryBag = DiBag.createBuilder().withServices({ failingFactory: DiBag.providerWithLifetime({ provider: failingFactory, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(() => factoryBag.resolve('failingFactory')).toThrow(factoryFailure);
   await factoryBag.close();
   const validatorFailure = new Error('validator failure');
@@ -225,7 +225,7 @@ test('plugin callbacks use no receiver and preserve factory and validator failur
     create(this: undefined) { expect(this).toBeUndefined(); return 4; },
     dispose(this: undefined, value: number) { expect(this).toBeUndefined(); disposed.push(value); },
   }, factoryReturnKind: 'uninspected', isValidPluginOutput(this: void, _value): _value is number { expect(this).toBeUndefined(); throw validatorFailure; } });
-  const validatorBag = DiBag.createBuilder().withServices({ failingValidator }).buildContainer();
+  const validatorBag = DiBag.createBuilder().withServices({ failingValidator: DiBag.providerWithLifetime({ provider: failingValidator, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(() => validatorBag.resolve('failingValidator')).toThrow(validatorFailure);
   await validatorBag.close();
   expect(disposed).toEqual([4]);
@@ -239,12 +239,12 @@ test('plugin composition retains module privacy, aliases, contributions and sele
     apiVersion: 1,
     create: (id: number) => ({ id, sequence: ++created }),
   }, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is { id: number; sequence: number } => typeof value === 'object' && value !== null });
-  const feature = DiBag.createBuilder().withServices({ plugin }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'plugin' }).withCollectionContribution({ collectionToken: collection, provider: plugin }).buildModule({ exportedServiceKeys: ['plugin', 'copy'] });
-  const bag = DiBag.createBuilder().withTokenService(dependency, DiBag.createProvider(() => 1, { factoryReturnKind: 'uninspected' })).withInstalledModules([feature]).buildContainer();
+  const feature = DiBag.createBuilder().withServices({ plugin: DiBag.providerWithLifetime({ provider: plugin, lifetime: 'scoped:one-per-container' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'plugin' }).withCollectionContribution({ collectionToken: collection, provider: DiBag.providerWithLifetime({ provider: plugin, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['plugin', 'copy'] });
+  const bag = DiBag.createBuilder().withTokenService(dependency, DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' })).withInstalledModules([feature]).buildContainer();
   const parent = bag.resolve('plugin');
   expect(bag.resolve('copy')).toBe(parent);
   expect(bag.resolveCollection(collection).map(value => value.id)).toEqual([1]);
-  const child = bag.createChildContainer([dependency], { [dependencyKey]: DiBag.createProvider(() => 2, { factoryReturnKind: 'uninspected' }) }, { sharedParentServiceKeys: ['plugin'] });
+  const child = bag.createChildContainer([dependency], { [dependencyKey]: DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 2, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' }) }, { sharedParentServiceKeys: ['plugin'] });
   expect(child.resolve('plugin')).toBe(parent);
   expect(created).toBe(2);
   await child.close(); await bag.close();
@@ -252,7 +252,7 @@ test('plugin composition retains module privacy, aliases, contributions and sele
   const privatePlugin = DiBag.createProviderFromPlugin({ dependencies: [privateDependency], pluginDescriptor: {
     apiVersion: 1, create: (id: number) => ({ id }),
   }, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is { id: number } => typeof value === 'object' && value !== null });
-  const privateFeature = DiBag.createBuilder().withTokenService(privateDependency, DiBag.createProvider(() => 9, { factoryReturnKind: 'uninspected' })).withServices({ privatePlugin }).buildModule({ exportedServiceKeys: ['privatePlugin'] });
+  const privateFeature = DiBag.createBuilder().withTokenService(privateDependency, DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 9, { factoryReturnKind: 'uninspected' }), lifetime: 'scoped:one-per-container' })).withServices({ privatePlugin: DiBag.providerWithLifetime({ provider: privatePlugin, lifetime: 'scoped:one-per-container' }) }).buildModule({ exportedServiceKeys: ['privatePlugin'] });
   const privateBag = DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer();
   expect(privateBag.resolve('privatePlugin').id).toBe(9);
   await privateBag.close();
@@ -264,7 +264,7 @@ test('plugin observers retain the canonical acquisition and cleanup events', asy
   const plugin = observed.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
     apiVersion: 1, create: () => ({ id: 1 }), dispose: () => {},
   }, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is { id: number } => typeof value === 'object' && value !== null });
-  const bag = observed.createBuilder().withServices({ plugin }).buildContainer();
+  const bag = observed.createBuilder().withServices({ plugin: DiBag.providerWithLifetime({ provider: plugin, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   bag.resolve('plugin'); await bag.close();
   expect(events.filter(kind => kind === 'acquisition-started')).toHaveLength(1);
   expect(events.filter(kind => kind === 'acquisition-ready')).toHaveLength(1);
@@ -281,7 +281,7 @@ test('native plugin readiness waits for source validation', async () => {
       validated++;
       return typeof value === 'object' && value !== null && 'id' in value;
     } });
-  const starting = DiBag.createBuilder().withServices({ plugin }).buildContainer().ensureServicesReady(['plugin']);
+  const starting = DiBag.createBuilder().withServices({ plugin: DiBag.providerWithLifetime({ provider: plugin, lifetime: 'scoped:one-per-container' }) }).buildContainer().ensureServicesReady(['plugin']);
   let ready = false;
   void starting.then(() => { ready = true; });
   await Promise.resolve();
@@ -302,7 +302,7 @@ test('plugin close waits for accepted disposer cleanup exactly once', async () =
     create: () => 1,
     dispose: async () => { disposed++; await gate.promise; },
   }, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is number => typeof value === 'number' });
-  const bag = DiBag.createBuilder().withServices({ plugin }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ plugin: DiBag.providerWithLifetime({ provider: plugin, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(bag.resolve('plugin')).toBe(1);
   const closing = bag.close();
   let closed = false;
@@ -324,7 +324,7 @@ test('plugin validation errors survive one failed retirement cleanup', async () 
     create: () => 1,
     dispose: () => { disposed++; throw cleanupFailure; },
   }, factoryReturnKind: 'uninspected', isValidPluginOutput: (_value: unknown): _value is number => { throw validationFailure; } });
-  const bag = DiBag.createBuilder().withServices({ plugin }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ plugin: DiBag.providerWithLifetime({ provider: plugin, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   expect(() => bag.resolve('plugin')).toThrow(validationFailure);
   let closeFailure: unknown;
   try { await bag.close(); } catch (error) { closeFailure = error; }
@@ -339,7 +339,7 @@ test('plugin observer lifecycle events identify its canonical acquisition', asyn
   const plugin = observed.createProviderFromPlugin({ dependencies: [], pluginDescriptor: {
     apiVersion: 1, create: () => ({ id: 1 }), dispose: () => {},
   }, factoryReturnKind: 'uninspected', isValidPluginOutput: (value): value is { id: number } => typeof value === 'object' && value !== null });
-  const bag = observed.createBuilder().withServices({ plugin }).buildContainer();
+  const bag = observed.createBuilder().withServices({ plugin: DiBag.providerWithLifetime({ provider: plugin, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   bag.resolve('plugin');
   const inspection = bag.serviceSnapshot('plugin');
   const id = inspection.acquisitions[0]!.acquisitionId;

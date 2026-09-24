@@ -5,10 +5,10 @@ import { deferred } from './helpers';
 test('selected sharing keeps parent dependencies while child overrides stay local', async () => {
   const released: string[] = [];
   const root = DiBag.createBuilder().withServices({
-    config: () => ({ id: 'parent' }),
-    service: DiBag.providerWithDisposal({ provider: ({ config }: { config: { id: string } }) => ({ config }), disposeService: () => { released.push('parent'); } }),
+    config: DiBag.providerWithLifetime({ provider: () => ({ id: 'parent' }), lifetime: 'scoped:one-per-container' }),
+    service: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }: { config: { id: string } }) => ({ config }), disposeService: () => { released.push('parent'); } }), lifetime: 'scoped:one-per-container' }),
   }).buildContainer();
-  const child = root.createChildContainer(['config'], { config: () => ({ id: 'child', extra: true }) }, { sharedParentServiceKeys: ['service'] });
+  const child = root.createChildContainer(['config'], { config: DiBag.providerWithLifetime({ provider: () => ({ id: 'child', extra: true }), lifetime: 'scoped:one-per-container' }) }, { sharedParentServiceKeys: ['service'] });
   expect(child.resolve('config')).toEqual({ id: 'child', extra: true });
   expect(child.resolve('service').config.id).toBe('parent');
   expect(child.resolve('service')).toBe(root.resolve('service'));
@@ -23,8 +23,8 @@ test('mixed token selections retain exact borrowed pending values and override b
   const key = Symbol('value');
   const token = DiBag.createToken(key).forService<{ id: number }>();
   const gate = deferred<number>();
-  const root = DiBag.createBuilder().withTokenService(token, () => ({ id: 1 })).withServices({ pending: () => gate.promise }).buildContainer();
-  const child = root.createChildContainer([token], { [key]: () => ({ id: 2, added: true }) }, { sharedParentServiceKeys: ['pending'] });
+  const root = DiBag.createBuilder().withTokenService(token, DiBag.providerWithLifetime({ provider: () => ({ id: 1 }), lifetime: 'scoped:one-per-container' })).withServices({ pending: DiBag.providerWithLifetime({ provider: () => gate.promise, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+  const child = root.createChildContainer([token], { [key]: DiBag.providerWithLifetime({ provider: () => ({ id: 2, added: true }), lifetime: 'scoped:one-per-container' }) }, { sharedParentServiceKeys: ['pending'] });
   expect(child.resolve(token)).toEqual({ id: 2, added: true });
   expect(child.resolve('pending')).toBe(gate.promise);
   expect(root.resolve('pending')).toBe(gate.promise);
@@ -33,14 +33,14 @@ test('mixed token selections retain exact borrowed pending values and override b
 });
 
 test('scope snapshots selections and ignores unselected override getters and tuple iterators', async () => {
-  const root = DiBag.createBuilder().withServices({ a: () => 1, b: () => 2, c: () => 3 }).buildContainer();
+  const root = DiBag.createBuilder().withServices({ a: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }), b: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }), c: DiBag.providerWithLifetime({ provider: () => 3, lifetime: 'scoped:one-per-container' }) }).buildContainer();
   const keys: ['a'] = ['a'];
   const shared: ['b'] = ['b'];
   keys[Symbol.iterator] = function* () { throw new Error('override iterator'); };
   shared[Symbol.iterator] = function* () { throw new Error('share iterator'); };
   let reads = 0;
   const overrides = {
-    get a() { reads++; keys[0] = 'c' as 'a'; shared[0] = 'c' as 'b'; return () => 10; },
+    get a() { reads++; keys[0] = 'c' as 'a'; shared[0] = 'c' as 'b'; return DiBag.providerWithLifetime({ provider: () => 10, lifetime: 'scoped:one-per-container' }); },
     get c(): () => number { throw new Error('unselected'); },
   };
   const child = root.createChildContainer(keys, overrides, { sharedParentServiceKeys: shared });
@@ -54,7 +54,7 @@ test('scope snapshots selections and ignores unselected override getters and tup
 
 test('invalid selections reject before override values or provider effects', async () => {
   let calls = 0;
-  const root = DiBag.createBuilder().withServices({ a: () => { calls++; return 1; }, transient: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'transient:one-per-resolve' }) }).buildContainer();
+  const root = DiBag.createBuilder().withServices({ a: DiBag.providerWithLifetime({ provider: () => { calls++; return 1; }, lifetime: 'scoped:one-per-container' }), transient: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'transient:one-per-resolve' }) }).buildContainer();
   const scope = root.createChildContainer.bind(root) as (...args: unknown[]) => unknown;
   const overrides = { get a() { calls++; return () => 10; } };
   for (const args of [
@@ -74,14 +74,14 @@ test('invalid selections reject before override values or provider effects', asy
 
 test('empty selections are lazy and duplicates read each override once', async () => {
   let calls = 0;
-  const root = DiBag.createBuilder().withServices({ a: () => ({ id: ++calls }) }).buildContainer();
+  const root = DiBag.createBuilder().withServices({ a: DiBag.providerWithLifetime({ provider: () => ({ id: ++calls }), lifetime: 'scoped:one-per-container' }) }).buildContainer();
   const empty = root.createChildContainer([], { get a(): () => { id: number } { throw new Error('unselected'); } }, { sharedParentServiceKeys: [] });
   const sharing = root.createChildContainer({ sharedParentServiceKeys: ['a', 'a'] });
   expect(calls).toBe(0);
   expect(sharing.resolve('a')).toBe(root.resolve('a'));
   expect(empty.resolve('a')).not.toBe(root.resolve('a'));
   let reads = 0;
-  const overridden = root.createChildContainer(['a', 'a'], { get a() { reads++; return () => ({ id: 9 }); } });
+  const overridden = root.createChildContainer(['a', 'a'], { get a() { reads++; return DiBag.providerWithLifetime({ provider: () => ({ id: 9 }), lifetime: 'scoped:one-per-container' }); } });
   expect(overridden.resolve('a').id).toBe(9);
   expect(reads).toBe(1);
   await root.close();
@@ -92,7 +92,7 @@ test('inherited strict roots keep their graph when a child overrides a dependenc
     config: DiBag.providerWithLifetime({ provider: () => ({ id: 'parent' }), lifetime: 'singleton:one-per-container-tree' }),
     service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => ({ config }), lifetime: 'singleton:one-per-container-tree' }),
   }).buildContainer();
-  const child = root.createChildContainer(['config'], { config: () => ({ id: 'child' }) });
+  const child = root.createChildContainer(['config'], { config: DiBag.providerWithLifetime({ provider: () => ({ id: 'child' }), lifetime: 'scoped:one-per-container' }) });
   expect(child.resolve('config').id).toBe('child');
   expect(child.resolve('service').config.id).toBe('parent');
   expect(child.resolve('service')).toBe(root.resolve('service'));

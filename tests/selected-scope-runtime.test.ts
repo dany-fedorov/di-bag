@@ -10,11 +10,11 @@ const context = { isNativePromise: isPromise };
 test('selected service borrows parent configuration and ownership while child config is overridden', async () => {
   const disposed: string[] = [];
   const graph = new BindingGraph().withPublicRegistrations({
-    config: DiBag.providerWithDisposal({ provider: () => ({ name: 'parent' }), disposeService: value => { disposed.push(value.name); } }),
-    service: DiBag.providerWithDisposal({ provider: DiBag.providerWithRegistrationMetadata({ provider: (deps: { config: { name: string } }) => ({ config: deps.config }), registrationMetadata: { owner: 'service' } }), disposeService: () => { disposed.push('service'); } }),
+    config: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ name: 'parent' }), disposeService: value => { disposed.push(value.name); } }), lifetime: 'scoped:one-per-container' }),
+    service: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.providerWithRegistrationMetadata({ provider: (deps: { config: { name: string } }) => ({ config: deps.config }), registrationMetadata: { owner: 'service' } }), disposeService: () => { disposed.push('service'); } }), lifetime: 'scoped:one-per-container' }),
   });
   const parent = new BagRuntime(graph, context);
-  const overridden = graph.withPublicBinding('config', DiBag.providerWithDisposal({ provider: () => ({ name: 'child' }), disposeService: value => { disposed.push(value.name); } }));
+  const overridden = graph.withPublicBinding('config', DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ name: 'child' }), disposeService: value => { disposed.push(value.name); } }), lifetime: 'scoped:one-per-container' }));
   const child = parent.scope(overridden, [graph.publicBinding('service')]);
   expect(parent.inspect('service').acquisitions).toEqual([]);
   const service = child.resolve('service');
@@ -34,7 +34,7 @@ test('selected service borrows parent configuration and ownership while child co
 
 test('scoped sharing selects the immediate parent and must be selected again by grandchildren', async () => {
   let next = 0;
-  const graph = new BindingGraph().withPublicRegistrations({ service: () => ({ id: ++next }) });
+  const graph = new BindingGraph().withPublicRegistrations({ service: DiBag.providerWithLifetime({ provider: () => ({ id: ++next }), lifetime: 'scoped:one-per-container' }) });
   const parent = new BagRuntime(graph, context);
   const child = parent.scope();
   const grandchild = child.scope(graph, [graph.publicBinding('service')]);
@@ -49,11 +49,11 @@ test('scoped sharing selects the immediate parent and must be selected again by 
 test('child-defined roots anchor their graph while inherited roots construct in the original graph', async () => {
   const disposed: string[] = [];
   const root = (name: string) => DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: (deps: { config: string }) => ({ name, config: deps.config }), disposeService: value => { disposed.push(value.name); } }), lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true });
-  const graph = new BindingGraph().withPublicRegistrations({ config: () => 'parent', inherited: root('inherited'), replaced: root('old') });
+  const graph = new BindingGraph().withPublicRegistrations({ config: DiBag.providerWithLifetime({ provider: () => 'parent', lifetime: 'scoped:one-per-container' }), inherited: root('inherited'), replaced: root('old') });
   const parent = new BagRuntime(graph, context);
-  const childGraph = graph.withPublicRegistrations({ config: () => 'child', replaced: root('new') });
+  const childGraph = graph.withPublicRegistrations({ config: DiBag.providerWithLifetime({ provider: () => 'child', lifetime: 'scoped:one-per-container' }), replaced: root('new') });
   const child = parent.scope(childGraph);
-  const grandchild = child.scope(childGraph.withPublicBinding('config', () => 'grandchild'));
+  const grandchild = child.scope(childGraph.withPublicBinding('config', DiBag.providerWithLifetime({ provider: () => 'grandchild', lifetime: 'scoped:one-per-container' })));
   const introduced = grandchild.resolve('replaced');
   expect(introduced).toEqual({ name: 'new', config: 'child' });
   expect(child.resolve('replaced')).toBe(introduced);
@@ -73,7 +73,7 @@ test('child-defined roots anchor their graph while inherited roots construct in 
 test('shared pending promises deduplicate and failed acquisitions retry at the owner', async () => {
   const gate = deferred<number>();
   let calls = 0;
-  const graph = new BindingGraph().withPublicRegistrations({ service: () => ++calls === 1 ? gate.promise : Promise.resolve(42) });
+  const graph = new BindingGraph().withPublicRegistrations({ service: DiBag.providerWithLifetime({ provider: () => ++calls === 1 ? gate.promise : Promise.resolve(42), lifetime: 'scoped:one-per-container' }) });
   const parent = new BagRuntime(graph, context);
   const child = parent.scope(graph, [graph.publicBinding('service')]);
   const sibling = parent.scope(graph, [graph.publicBinding('service')]);
@@ -98,8 +98,8 @@ test('closing a borrower leaves the pending owner context and finalizer intact',
   let ownerContext: FactoryContext | undefined;
   let finalized = 0;
   const graph = new BindingGraph().withPublicRegistrations({
-    service: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async (_deps: {}, factoryCtx) => { ownerContext = factoryCtx; await gate.promise; return 42; }, { factoryReceivesContext: true }), disposeService: () => { finalized++; } }),
-    local: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }),
+    service: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async (_deps: {}, factoryCtx) => { ownerContext = factoryCtx; await gate.promise; return 42; }, { factoryReceivesContext: true }), disposeService: () => { finalized++; } }), lifetime: 'scoped:one-per-container' }),
+    local: DiBag.providerWithLifetime({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), lifetime: 'scoped:one-per-container' }),
   });
   const parent = new BagRuntime(graph, context);
   const child = parent.scope(graph, [graph.publicBinding('service')]);
@@ -122,9 +122,9 @@ test('pending child sources discover shared parent dependencies during tree clos
   const events: string[] = [];
   let lateContext: FactoryContext | undefined;
   const graph = new BindingGraph().withPublicRegistrations({
-    service: DiBag.providerWithDisposal({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => { lateContext = factoryCtx; return 42; }, { factoryReceivesContext: true }), disposeService: () => { events.push('service'); } }),
-    context: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }),
-    consumer: DiBag.providerWithDisposal({ provider: async (deps: { service: number }) => { await gate.promise; return deps.service; }, disposeService: () => { events.push('consumer'); } }),
+    service: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => { lateContext = factoryCtx; return 42; }, { factoryReceivesContext: true }), disposeService: () => { events.push('service'); } }), lifetime: 'scoped:one-per-container' }),
+    context: DiBag.providerWithLifetime({ provider: DiBag.createProvider((_deps: {}, factoryCtx) => factoryCtx, { factoryReceivesContext: true }), lifetime: 'scoped:one-per-container' }),
+    consumer: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: async (deps: { service: number }) => { await gate.promise; return deps.service; }, disposeService: () => { events.push('consumer'); } }), lifetime: 'scoped:one-per-container' }),
   });
   const parent = new BagRuntime(graph, context);
   const ownerContext = parent.resolve('context') as FactoryContext;
@@ -143,7 +143,7 @@ test('pending child sources discover shared parent dependencies during tree clos
 
 test('strict child roots reject shared scoped dependencies before reading a cached owner', async () => {
   let calls = 0;
-  const graph = new BindingGraph().withPublicRegistrations({ service: () => ++calls, root: () => 0 });
+  const graph = new BindingGraph().withPublicRegistrations({ service: DiBag.providerWithLifetime({ provider: () => ++calls, lifetime: 'scoped:one-per-container' }), root: DiBag.providerWithLifetime({ provider: () => 0, lifetime: 'scoped:one-per-container' }) });
   const parent = new BagRuntime(graph, context);
   parent.resolve('service');
   const childGraph = graph.withPublicBinding('root', DiBag.providerWithLifetime({ provider: (deps: { service: number }) => deps.service, lifetime: 'singleton:one-per-container-tree' }));
@@ -157,8 +157,8 @@ test('shared dependency edges detect cycles through retained owner proxies', asy
   type Reader = { read(): Reader };
   let readBack!: () => unknown;
   const cyclicGraph = new BindingGraph().withPublicRegistrations({
-    owner: (deps: { consumer: Reader }) => { readBack = () => deps.consumer; return { read: () => deps.consumer }; },
-    consumer: (deps: { owner: Reader }) => ({ read: () => deps.owner }),
+    owner: DiBag.providerWithLifetime({ provider: (deps: { consumer: Reader }) => { readBack = () => deps.consumer; return { read: () => deps.consumer }; }, lifetime: 'scoped:one-per-container' }),
+    consumer: DiBag.providerWithLifetime({ provider: (deps: { owner: Reader }) => ({ read: () => deps.owner }), lifetime: 'scoped:one-per-container' }),
   });
   const cyclicParent = new BagRuntime(cyclicGraph, context);
   const cyclicChild = cyclicParent.scope(cyclicGraph, [cyclicGraph.publicBinding('owner'), cyclicGraph.publicBinding('consumer')]);
@@ -174,13 +174,13 @@ test('shared module bindings preserve lexical private dependencies despite child
   const service = Symbol('service');
   const graph = new BindingGraph({
     bindings: new Map([
-      [hidden, { id: hidden, label: 'module.hidden', registration: () => ({ name: 'private' }), localNames: new Map() }],
-      [service, { id: service, label: 'module.service', registration: (deps: { hidden: object; config: string }) => ({ hidden: deps.hidden, config: deps.config }), localNames: new Map([['hidden', { kind: 'private' as const, id: hidden }]]) }],
+      [hidden, { id: hidden, label: 'module.hidden', registration: DiBag.providerWithLifetime({ provider: () => ({ name: 'private' }), lifetime: 'scoped:one-per-container' }), localNames: new Map() }],
+      [service, { id: service, label: 'module.service', registration: DiBag.providerWithLifetime({ provider: (deps: { hidden: object; config: string }) => ({ hidden: deps.hidden, config: deps.config }), lifetime: 'scoped:one-per-container' }), localNames: new Map([['hidden', { kind: 'private' as const, id: hidden }]]) }],
     ]),
     publicSlots: new Map([['service', service]]),
-  }).withPublicRegistrations({ hidden: () => ({ name: 'public' }), config: () => 'parent' });
+  }).withPublicRegistrations({ hidden: DiBag.providerWithLifetime({ provider: () => ({ name: 'public' }), lifetime: 'scoped:one-per-container' }), config: DiBag.providerWithLifetime({ provider: () => 'parent', lifetime: 'scoped:one-per-container' }) });
   const parent = new BagRuntime(graph, context);
-  const child = parent.scope(graph.withPublicRegistrations({ hidden: () => ({ name: 'child' }), config: () => 'child' }), [service]);
+  const child = parent.scope(graph.withPublicRegistrations({ hidden: DiBag.providerWithLifetime({ provider: () => ({ name: 'child' }), lifetime: 'scoped:one-per-container' }), config: DiBag.providerWithLifetime({ provider: () => 'child', lifetime: 'scoped:one-per-container' }) }), [service]);
   expect(child.resolve('service')).toEqual({ hidden: { name: 'private' }, config: 'parent' });
   expect(child.resolve('service')).toBe(parent.resolve('service'));
   expect(child.resolve('hidden')).toEqual({ name: 'child' });
@@ -192,8 +192,8 @@ test('synchronous shared owner reentry detects a cycle across acquisition owners
   let ownerCalls = 0;
   let consumerCalls = 0;
   const graph = new BindingGraph().withPublicRegistrations({
-    owner: () => { ownerCalls++; return reenter(); },
-    consumer: (deps: { owner: unknown }) => { consumerCalls++; return deps.owner; },
+    owner: DiBag.providerWithLifetime({ provider: () => { ownerCalls++; return reenter(); }, lifetime: 'scoped:one-per-container' }),
+    consumer: DiBag.providerWithLifetime({ provider: (deps: { owner: unknown }) => { consumerCalls++; return deps.owner; }, lifetime: 'scoped:one-per-container' }),
   });
   const parent = new BagRuntime(graph, context);
   const child = parent.scope(graph, [graph.publicBinding('owner')]);
@@ -211,11 +211,11 @@ for (const failed of [false, true]) {
     const gate = deferred<void>();
     const events: string[] = [];
     const graph = new BindingGraph().withPublicRegistrations({
-      owner: DiBag.providerWithDisposal({ provider: () => 42, disposeService: () => { events.push('owner'); } }),
-      consumer: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: async (deps: { owner: number }) => { await gate.promise; return deps.owner; }, disposeService: () => { events.push('consumer'); } }), transformService: () => {
+      owner: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => 42, disposeService: () => { events.push('owner'); } }), lifetime: 'scoped:one-per-container' }),
+      consumer: DiBag.providerWithLifetime({ provider: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: async (deps: { owner: number }) => { await gate.promise; return deps.owner; }, disposeService: () => { events.push('consumer'); } }), transformService: () => {
         if (failed) throw new Error('projection');
         return 7;
-      }, callbackReceives: 'exposed-service' }),
+      }, callbackReceives: 'exposed-service' }), lifetime: 'scoped:one-per-container' }),
     });
     const parent = new BagRuntime(graph, context);
     const child = parent.scope(graph, [graph.publicBinding('owner')]);
@@ -234,12 +234,12 @@ test('completed and retired child proxies cannot borrow another source closing p
   let stale!: () => number;
   let ownerCalls = 0;
   const graph = new BindingGraph().withPublicRegistrations({
-    owner: () => { ownerCalls++; return 42; },
-    reader: (deps: { owner: number }) => () => deps.owner,
-    retry: (deps: { owner: number }) => {
+    owner: DiBag.providerWithLifetime({ provider: () => { ownerCalls++; return 42; }, lifetime: 'scoped:one-per-container' }),
+    reader: DiBag.providerWithLifetime({ provider: (deps: { owner: number }) => () => deps.owner, lifetime: 'scoped:one-per-container' }),
+    retry: DiBag.providerWithLifetime({ provider: (deps: { owner: number }) => {
       if (first) { first = false; stale = () => deps.owner; throw new Error('failed'); }
       return gate.promise;
-    },
+    }, lifetime: 'scoped:one-per-container' }),
   });
   const parent = new BagRuntime(graph, context);
   const child = parent.scope(graph, [graph.publicBinding('owner')]);

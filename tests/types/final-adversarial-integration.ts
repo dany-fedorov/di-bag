@@ -34,11 +34,11 @@ const annotatedSource = DiBag.createProviderFromFunction({ dependencies: [port],
 }) });
 export const annotated = DiBag.providerWithTransformedService({ provider: DiBag.providerWithAcquisitionMetadata({ provider: annotatedSource, describeAcquisition: result => result.metadata, callbackReceives: 'exposed-service' }), transformService: result => result.value, callbackReceives: 'exposed-service' });
 
-export const finalAdversarialFeature = DiBag.createBuilder().withTokenService(port, () => 8080).withServices({ client, plugin, annotated }).withServiceAlias({ aliasKey: 'clientAlias', targetServiceKey: 'client' }).buildModule({ exportedServiceKeys: ['client', 'plugin', 'annotated', 'clientAlias'] });
+export const finalAdversarialFeature = DiBag.createBuilder().withTokenService(port, DiBag.providerWithLifetime({ provider: () => 8080, lifetime: 'scoped:one-per-container' })).withServices({ client: DiBag.providerWithLifetime({ provider: client, lifetime: 'scoped:one-per-container' }), plugin: DiBag.providerWithLifetime({ provider: plugin, lifetime: 'scoped:one-per-container' }), annotated: DiBag.providerWithLifetime({ provider: annotated, lifetime: 'scoped:one-per-container' }) }).withServiceAlias({ aliasKey: 'clientAlias', targetServiceKey: 'client' }).buildModule({ exportedServiceKeys: ['client', 'plugin', 'annotated', 'clientAlias'] });
 
 export const finalAdversarialBag = DiBag.createBuilder().withInstalledModules([finalAdversarialFeature]).buildContainer();
 export const finalAdversarialChild = finalAdversarialBag.createChildContainer(['plugin'], {
-  plugin: () => ({ plugin: true as const, port: 9090, selected: true as const }),
+  plugin: DiBag.providerWithLifetime({ provider: () => ({ plugin: true as const, port: 9090, selected: true as const }), lifetime: 'scoped:one-per-container' }),
 }, { sharedParentServiceKeys: ['annotated'] });
 
 type AnnotatedValue = { annotated: true; port: number };
