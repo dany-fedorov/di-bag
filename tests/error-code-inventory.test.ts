@@ -7,6 +7,10 @@ function run(directory: string) {
   const result = spawnSync('node', [script, resolve(__dirname, 'fixtures/error-code-inventory', directory), '--json'], { encoding: 'utf8' });
   return { status: result.status, summary: result.stderr.trim(), rows: JSON.parse(result.stdout) as Array<{ line: number; owner: string; codes: string[]; message: string; missingDetails?: string[] }> };
 }
+function runTsv(directory: string) {
+  const result = spawnSync('node', [script, resolve(__dirname, 'fixtures/error-code-inventory', directory)], { encoding: 'utf8' });
+  return { status: result.status, summary: result.stderr.trim(), output: result.stdout };
+}
 
 test('every literal is accounted for, and declarations and JSDoc are not rows', () => {
   const { status, summary, rows } = run('ok');
@@ -65,5 +69,23 @@ test('nested templates and diagnostic calls retain their own messages and codes'
     ['libraryError', ['DI_BAG_SAMPLE_OPTIONS'], 'count ${count === 1 ? `${count} item` : `${count} items`}'],
     ['diagnosticMessage', ['DI_BAG_CLOSED'], "wait ${reason === 'timeout' ? `timed out after ${timeout}ms` : 'was aborted'}"],
     ['diagnostic', ['DI_BAG_CLOSED'], ''],
+  ]);
+});
+
+test('TSV escapes control characters while JSON keeps decoded message text', () => {
+  const json = run('escaped');
+  expect(json.status).toBe(0);
+  expect(json.rows.map(row => row.message)).toEqual([
+    'line one\nline two\tcolumn',
+    'first line\nsecond line ${name}',
+  ]);
+
+  const tsv = runTsv('escaped');
+  expect(tsv.status).toBe(0);
+  const lines = tsv.output.trimEnd().split('\n');
+  expect(lines).toHaveLength(2);
+  expect(lines.map(line => line.split('\t').slice(-1)[0])).toEqual([
+    'line one\\nline two\\tcolumn',
+    'first line\\nsecond line ${name}',
   ]);
 });

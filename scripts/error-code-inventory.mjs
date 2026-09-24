@@ -41,6 +41,15 @@ function templateText(node, sourceFile) {
   return node.head.text + node.templateSpans.map(span => `\u0024{${span.expression.getText(sourceFile)}}${span.literal.text}`).join('');
 }
 
+function tsvCell(value) {
+  return String(value).replace(/[\\\t\r\n]/g, character => ({
+    '\\': '\\\\',
+    '\t': '\\t',
+    '\r': '\\r',
+    '\n': '\\n',
+  })[character]);
+}
+
 function propertyKey(property, sourceFile) {
   if (ts.isShorthandPropertyAssignment(property)) return property.name.text;
   if (!ts.isPropertyAssignment(property)) return undefined;
@@ -155,6 +164,6 @@ const outputRows = rows.map(item => item.row);
 const unclassified = outputRows.filter(row => row.owner === 'UNCLASSIFIED');
 const incomplete = outputRows.filter(row => row.missingDetails?.length);
 if (process.argv.includes('--json')) writeSync(1, `${JSON.stringify(outputRows, null, 2)}\n`);
-else for (const row of outputRows) writeSync(1, `${[row.file, row.line, row.owner, row.codes.join('|'), row.message].join('\t')}\n`);
+else for (const row of outputRows) writeSync(1, `${[row.file, row.line, row.owner, row.codes.join('|'), row.message].map(tsvCell).join('\t')}\n`);
 writeSync(2, `literals: ${found}; accounted: ${accounted}; rows: ${outputRows.length}; codes: ${new Set(outputRows.flatMap(row => row.codes)).size}; unclassified: ${unclassified.length}; incomplete details: ${incomplete.length}\n`);
 process.exitCode = found === accounted && unclassified.length === 0 && incomplete.length === 0 ? 0 : 1;
