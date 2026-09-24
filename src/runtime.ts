@@ -298,7 +298,7 @@ export class BindingGraph {
 
   private requirePublicBinding(key: BindingKey): BindingId {
     const id = this.slot(key);
-    if (id === undefined) throw libraryError('DI_BAG_MISSING_REGISTRATION', `Service ${JSON.stringify(String(key))} is not registered.`, { operation: 'resolve', key });
+    if (id === undefined) throw libraryError('DI_BAG_UNKNOWN_SERVICE_KEY', `Service ${JSON.stringify(String(key))} is not registered.`, { operation: 'resolve', serviceKey: key });
     return id;
   }
 
@@ -321,7 +321,7 @@ export class BindingGraph {
 
   private requireRegistration(id: BindingId): Normalized {
     const registration = this.entry(id)?.normalized;
-    if (!registration) throw libraryError('DI_BAG_MISSING_REGISTRATION', `Service ${JSON.stringify(this.label(id))} is not registered.`, { bindingId: id });
+    if (!registration) throw libraryError('DI_BAG_UNKNOWN_SERVICE_KEY', `Service ${JSON.stringify(this.label(id))} is not registered.`, { bindingId: id, bindingLabel: this.label(id) });
     return registration;
   }
 

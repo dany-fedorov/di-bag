@@ -150,7 +150,7 @@ const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () =
 ```
 
 ### `builder.withServiceAlias(options)` {#builder-withservicealias}
-Add another lookup name for an existing service. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_INVALID_ALIAS`](errors.md#di-bag-invalid-alias).
+Add another lookup name for an existing service. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key).
 ```ts
 const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
 ```
@@ -164,7 +164,7 @@ const builder = DiBag.createBuilder().withCollectionContribution({ collectionTok
 ```
 
 ### `builder.withReplacedService(serviceKey, provider)` {#builder-withreplacedservice}
-Replace an existing binding with a compatible provider, selecting it by name, service token, collection token. Throws: [`DI_BAG_INVALID_REPLACEMENT`](errors.md#di-bag-invalid-replacement), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Replace an existing binding with a compatible provider, selecting it by name, service token, collection token. Throws: [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withReplacedService('clock', () => 0);
 ```
@@ -184,7 +184,7 @@ builder.verifyGraphAtCompileTime() satisfies void;
 ```
 
 ### `builder.buildModule(options)` {#builder-buildmodule}
-Seal this graph as a reusable module and select its public names and typed tokens. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_EXPORT`](errors.md#di-bag-invalid-export), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Seal this graph as a reusable module and select its public names and typed tokens. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_EXPORT`](errors.md#di-bag-invalid-export), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const orders = DiBag.createBuilder()
   .withServices({ repository: () => new Map<string, number>() })
@@ -219,7 +219,7 @@ await app.close();
 ## Container {#container}
 
 ### `container.resolve(token)` {#container-resolve}
-Resolve a registered service, acquiring it lazily when needed. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_MISSING_REGISTRATION`](errors.md#di-bag-missing-registration), [`DI_BAG_MISSING_DEPENDENCY`](errors.md#di-bag-missing-dependency), [`DI_BAG_DEPENDENCY_CYCLE`](errors.md#di-bag-dependency-cycle), [`DI_BAG_LIFETIME_DEPENDENCY`](errors.md#di-bag-lifetime-dependency), [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](errors.md#di-bag-invalid-dependency-access), [`DI_BAG_STRUCTURAL_THENABLE`](errors.md#di-bag-structural-thenable), [`DI_BAG_INVALID_CLASSIFIER_RESULT`](errors.md#di-bag-invalid-classifier-result), [`DI_BAG_INVALID_METADATA`](errors.md#di-bag-invalid-metadata), [`DI_BAG_PLUGIN_VALIDATION`](errors.md#di-bag-plugin-validation).
+Resolve a registered service, acquiring it lazily when needed. Throws: [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_MISSING_DEPENDENCY`](errors.md#di-bag-missing-dependency), [`DI_BAG_DEPENDENCY_CYCLE`](errors.md#di-bag-dependency-cycle), [`DI_BAG_LIFETIME_DEPENDENCY`](errors.md#di-bag-lifetime-dependency), [`DI_BAG_INVALID_DEPENDENCY_ACCESS`](errors.md#di-bag-invalid-dependency-access), [`DI_BAG_STRUCTURAL_THENABLE`](errors.md#di-bag-structural-thenable), [`DI_BAG_INVALID_CLASSIFIER_RESULT`](errors.md#di-bag-invalid-classifier-result), [`DI_BAG_INVALID_METADATA`](errors.md#di-bag-invalid-metadata), [`DI_BAG_PLUGIN_VALIDATION`](errors.md#di-bag-plugin-validation).
 ```ts
 const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
 const greeting: string = container.resolve('greeting');
@@ -251,7 +251,7 @@ await container.close();
 ```
 
 ### `container.createChildContainer(options?)` {#container-createchildcontainer}
-Create a tracked child container with fresh ownership for unshared services. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_SCOPE`](errors.md#di-bag-invalid-scope), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_SINGLETON_REPLACEMENT`](errors.md#di-bag-singleton-replacement), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Create a tracked child container with fresh ownership for unshared services. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_SCOPE`](errors.md#di-bag-invalid-scope), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_SINGLETON_REPLACEMENT`](errors.md#di-bag-singleton-replacement), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const parent = DiBag.createBuilder().withServices({ request: DiBag.providerWithLifetime({
   provider: () => ({ id: 'initial' }), lifetime: 'scoped:one-per-container',
@@ -263,7 +263,7 @@ await parent.close();
 ```
 
 ### `container.createIndependentContainer(replacedServiceKeys, replacementProviders)` {#container-createindependentcontainer}
-Create an independent container with fresh instances and checked replacements. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Create an independent container with fresh instances and checked replacements. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_OVERRIDE`](errors.md#di-bag-invalid-override), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const parent = DiBag.createBuilder().withServices({ clock: () => Date.now() }).buildContainer();
 const independent = parent.createIndependentContainer(['clock'], { clock: () => 0 });
@@ -273,7 +273,7 @@ await parent.close();
 ```
 
 ### `container.ensureServicesReady(serviceKeys, options?)` {#container-ensureservicesready}
-Make the listed services ready before continuing, then resolve to this same container. Throws: [`DI_BAG_SERVICE_READINESS_FAILED`](errors.md#di-bag-service-readiness-failed), [`DI_BAG_SERVICE_READINESS_CANCELLED`](errors.md#di-bag-service-readiness-cancelled), [`DI_BAG_INVALID_STARTUP`](errors.md#di-bag-invalid-startup), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed).
+Make the listed services ready before continuing, then resolve to this same container. Throws: [`DI_BAG_SERVICE_READINESS_FAILED`](errors.md#di-bag-service-readiness-failed), [`DI_BAG_SERVICE_READINESS_CANCELLED`](errors.md#di-bag-service-readiness-cancelled), [`DI_BAG_INVALID_STARTUP`](errors.md#di-bag-invalid-startup), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed).
 ```ts
 const container = await DiBag.createBuilder()
   .withServices({ db: async () => ({ ping: () => true }) })

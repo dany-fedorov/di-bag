@@ -51,8 +51,8 @@ An immutable module that can be renamed or installed in another builder.
 
 #### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_EXPORT` if the selection is not a tuple,
-contains an absent name or token, or the label is not a non-empty string; `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token;
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_EXPORT` if the selection is not a tuple
+or the label is not a non-empty string; `DI_BAG_UNKNOWN_SERVICE_KEY` for an absent name or token; `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token;
 `DI_BAG_WRONG_TOKEN_KIND` when an exported token kind conflicts with this graph.
 
 #### Example
@@ -166,7 +166,7 @@ A new builder with the replacement.
 
 #### Throws
 
-`DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider;
+`DI_BAG_UNKNOWN_SERVICE_KEY` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider;
 `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
 
 #### Example
@@ -200,7 +200,7 @@ A new builder; aliases add no cache or ownership of their own.
 #### Throws
 
 `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
-`DI_BAG_DUPLICATE_SERVICE_KEY` when the alias key exists; `DI_BAG_INVALID_ALIAS` for an absent named target.
+`DI_BAG_DUPLICATE_SERVICE_KEY` when the alias key exists; `DI_BAG_UNKNOWN_SERVICE_KEY` for an absent named target.
 
 #### Example
 

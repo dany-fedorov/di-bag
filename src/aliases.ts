@@ -17,7 +17,7 @@ export function aliasEntry(aliasKey: unknown, targetServiceKey: unknown, hasKey:
   const targetToken = typeof targetServiceKey === 'string' ? undefined : readToken(targetServiceKey);
   const targetKey = targetToken === undefined ? targetServiceKey as string : targetToken.key;
   if (hasKey(key)) throw libraryError('DI_BAG_DUPLICATE_SERVICE_KEY', `duplicate registration: ${String(key)}`, { operation, serviceKey: key });
-  if (typeof targetServiceKey === 'string' && !hasKey(targetKey)) throw libraryError('DI_BAG_INVALID_ALIAS', 'withServiceAlias requires an existing named target', { operation, target: targetKey });
+  if (typeof targetServiceKey === 'string' && !hasKey(targetKey)) throw libraryError('DI_BAG_UNKNOWN_SERVICE_KEY', 'withServiceAlias requires an existing named target', { operation, serviceKey: targetKey });
   const handle = createProvider();
   if (targetToken?.kind === 'collection') {
     const reference = Object.freeze({

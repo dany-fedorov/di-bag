@@ -556,27 +556,6 @@ stack trace and the smallest graph that reproduces it.
 
 **Recipe:** none.
 
-### DI_BAG_INVALID_ALIAS {#di-bag-invalid-alias}
-
-**When:** `withServiceAlias({ aliasKey: destination, targetServiceKey: 'target' })` names a string target that is not yet
-registered. The compiler reports `withServiceAlias requires an existing named target`.
-
-**Cause:** the alias is declared before its named target.
-
-**Fix:** add the target first, or alias a typed token, which may be bound
-later.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const app = DiBag.createBuilder()
-  .withServices({ service: () => ({ port: 8080 }) })
-  .withServiceAlias({ aliasKey: 'primary', targetServiceKey: 'service' })
-  .buildContainer();
-```
-
-**Recipe:** none.
-
 ### DI_BAG_INVALID_ARGUMENT {#di-bag-invalid-argument}
 
 **When:** a call receives an argument of the wrong shape: a factory that is not a
@@ -713,10 +692,9 @@ const app = DiBag.createBuilder()
 
 ### DI_BAG_INVALID_EXPORT {#di-bag-invalid-export}
 
-**When:** `buildModule({ exportedServiceKeys, moduleLabel })` receives a non-array key list, a key that is not
-registered on that builder, or a `moduleLabel` that is not a non-empty string
-(`details.option: 'moduleLabel'`), or `withRenamedExport({ currentExportKey, newExportKey })` names a missing export,
-a non-string name, or an existing export.
+**When:** `buildModule({ exportedServiceKeys, moduleLabel })` receives a non-array key list or a
+`moduleLabel` that is not a non-empty string (`details.option: 'moduleLabel'`),
+or `withRenamedExport({ currentExportKey, newExportKey })` receives a non-string name.
 
 **Cause:** the export list and the registrations disagree.
 
@@ -775,8 +753,7 @@ const app = DiBag.createBuilder().withInstalledModules([
 
 ### DI_BAG_INVALID_OVERRIDE {#di-bag-invalid-override}
 
-**When:** `createIndependentContainer(keys, providers)` selects a key that is not
-registered, or either container-derivation method selects a key without an own
+**When:** either container-derivation method selects a key without an own
 replacement-provider property.
 
 **Cause:** the selection and the replacement providers disagree. The compiler reports
@@ -814,27 +791,10 @@ DiBag.createBuilder().withServices({ host: () => 'localhost' }).withTokenService
 
 **Recipe:** none.
 
-### DI_BAG_INVALID_REPLACEMENT {#di-bag-invalid-replacement}
-
-**When:** `withReplacedService(key, registration)` names a key the builder does not expose.
-The compiler reports [unknown key](#unknown-key).
-
-**Cause:** the key is misspelled, not yet registered, or private to a module.
-
-**Fix:** replace an exported or registered key; add a new one with `withServices` instead.
-
-```ts
-import { DiBag } from 'di-bag';
-
-DiBag.createBuilder().withServices({ port: () => 80 }).withReplacedService('port', () => 8080).buildContainer();
-```
-
-**Recipe:** [write a fixture test with an independent container](recipes.md#fixture-test).
-
 ### DI_BAG_INVALID_SCOPE {#di-bag-invalid-scope}
 
-**When:** `createChildContainer` selects or shares an unregistered key, shares and
-replaces the same key, or shares a transient service.
+**When:** `createChildContainer` shares and replaces the same key, or shares a
+transient service.
 
 **Cause:** the selected registered services and sharing policy disagree. The compiler
 reports these, for example `createChildContainer cannot share transient providers`.
@@ -856,7 +816,7 @@ await parent.close();
 ### DI_BAG_INVALID_STARTUP {#di-bag-invalid-startup}
 
 **When:** `ensureServicesReady(serviceKeys, options)` receives a list that is not
-an array, an unregistered key, an unknown option (the 0.4 names `signal`,
+an array, an unknown option (the 0.4 names `signal`,
 `timeoutMs` and `startupOrder` are unknown), a non-positive `totalTimeoutMs`, a
 `maxConcurrentServiceKeys` that is not a positive safe integer, or an
 `abortSignal` that is not an `AbortSignal`. No factory runs and the container stays
@@ -920,26 +880,6 @@ and `details.path` is the resolution chain.
 [missing service](#missing-service) check.
 
 **Fix:** remove the cast so the compiler reports the key, then add it with `withServices`.
-
-**Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
-
-### DI_BAG_MISSING_REGISTRATION {#di-bag-missing-registration}
-
-**When:** `resolve(key)` names a key the container does not expose; the message is
-`Service "<key>" is not registered`.
-
-**Cause:** a key computed at runtime or cast to a registered name; module
-private names are not public.
-
-**Fix:** resolve literal exported keys; `container.graphSnapshot()` lists each binding's
-public keys.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const app = DiBag.createBuilder().withServices({ port: () => 80 }).buildContainer();
-const keys = app.graphSnapshot().bindings.flatMap(binding => binding.keys);
-```
 
 **Recipe:** [debug a missing-dependency rejection](recipes.md#debug-missing-dependency).
 
@@ -1087,9 +1027,8 @@ not have: `resolve`, `ensureServicesReady`, `withServiceAlias` (the target),
 and `details.serviceKey` the key.
 
 **Cause:** the key is misspelled, was never registered, or is private to a
-module. The compiler reports this first. For requirement renaming, runtime
-checks cover only known exports and recorded rename facts; an unused unknown
-requirement name can remain undetected because its type is erased.
+module. The compiler reports this first; the runtime error is what an untyped
+call gets.
 
 **Fix:** register the service before the call, or correct the key.
 

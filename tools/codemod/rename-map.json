@@ -102,6 +102,9 @@
     { "from": "FactoryWithDisposal", "to": "Provider" }
   ],
   "codes": [
+    { "from": "DI_BAG_MISSING_REGISTRATION", "to": "DI_BAG_UNKNOWN_SERVICE_KEY" },
+    { "from": "DI_BAG_INVALID_REPLACEMENT", "to": "DI_BAG_UNKNOWN_SERVICE_KEY" },
+    { "from": "DI_BAG_INVALID_ALIAS", "to": "DI_BAG_UNKNOWN_SERVICE_KEY" },
     { "from": "DI_BAG_DUPLICATE_REGISTRATION", "to": "DI_BAG_DUPLICATE_SERVICE_KEY" },
     { "from": "DI_BAG_DUPLICATE_METADATA", "to": "DI_BAG_DUPLICATE_METADATA_KEY" },
     { "from": "DI_BAG_CYCLE", "to": "DI_BAG_DEPENDENCY_CYCLE" },

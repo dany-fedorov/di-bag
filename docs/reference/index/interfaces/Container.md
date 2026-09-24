@@ -92,7 +92,7 @@ A child owned by this container; closing the parent closes the child first.
 ##### Throws
 
 `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-`DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+`DI_BAG_INVALID_OVERRIDE` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
 `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
 
 ##### Example
@@ -138,7 +138,7 @@ A child owned by this container; closing the parent closes the child first.
 ##### Throws
 
 `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-`DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+`DI_BAG_INVALID_OVERRIDE` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
 `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
 
 ##### Example
@@ -188,7 +188,7 @@ A child owned by this container; closing the parent closes the child first.
 ##### Throws
 
 `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-`DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+`DI_BAG_INVALID_OVERRIDE` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
 `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
 
 ##### Example
@@ -263,7 +263,7 @@ A container with independent acquisition and ownership state.
 
 ##### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection;
+`DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_OVERRIDE` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key;
 `DI_BAG_INVALID_REGISTRATION` for a malformed provider; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
 
 ##### Example
@@ -314,7 +314,7 @@ A promise for this container once every listed service is ready.
 
 [DiBagServiceReadinessError](../classes/DiBagServiceReadinessError.md) (`DI_BAG_SERVICE_READINESS_FAILED`) after this container has closed because a factory failed;
 [DiBagServiceReadinessCancelledError](../classes/DiBagServiceReadinessCancelledError.md) (`DI_BAG_SERVICE_READINESS_CANCELLED`) promptly on abort or timeout, naming what was still pending;
-`DI_BAG_INVALID_STARTUP` for malformed keys or options and `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind, all before any factory runs and with this container left open;
+`DI_BAG_INVALID_STARTUP` for malformed keys or options, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown key, and `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind, all before any factory runs and with this container left open;
 `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`. Each arrives as a rejection.
 
 #### Example
@@ -383,7 +383,7 @@ The service exposed by the selected registration.
 
 #### Throws
 
-`DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_MISSING_REGISTRATION` for a bad selection;
+`DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_UNKNOWN_SERVICE_KEY` for a bad selection;
 during acquisition `DI_BAG_MISSING_DEPENDENCY`, `DI_BAG_DEPENDENCY_CYCLE`, `DI_BAG_LIFETIME_DEPENDENCY`, `DI_BAG_INVALID_DEPENDENCY_ACCESS`,
 `DI_BAG_STRUCTURAL_THENABLE`, `DI_BAG_INVALID_CLASSIFIER_RESULT`, `DI_BAG_INVALID_METADATA`, `DI_BAG_PLUGIN_VALIDATION`,
 or the factory's own error.

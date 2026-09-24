@@ -54,7 +54,7 @@ function selectedBindings(
   }
   for (const { key, isCollection } of selected) {
     if (!isCollection && !graph.hasPublic(key)) {
-      throw libraryError('DI_BAG_INVALID_OVERRIDE', `${operation} accepts existing names or typed tokens only: ${String(key)}`, { operation });
+      throw libraryError('DI_BAG_UNKNOWN_SERVICE_KEY', `${operation} accepts existing names or typed tokens only: ${String(key)}`, { operation, serviceKey: key });
     }
     if (!Object.hasOwn(providers, key)) {
       throw libraryError('DI_BAG_INVALID_OVERRIDE', `missing ${operation} replacement provider: ${String(key)}`, { operation });
@@ -123,7 +123,7 @@ export function selectChildContainer(
   }
   for (const { key, isCollection } of [...selected, ...sharedKeys]) {
     if (!isCollection && !workingGraph.hasPublic(key)) {
-      throw libraryError('DI_BAG_INVALID_SCOPE', `createChildContainer accepts existing names or typed tokens only: ${String(key)}`, { operation: 'createChildContainer' });
+      throw libraryError('DI_BAG_UNKNOWN_SERVICE_KEY', `createChildContainer accepts existing names or typed tokens only: ${String(key)}`, { operation: 'createChildContainer', serviceKey: key });
     }
   }
   const selectedSet = new Set(selected.map(entry => entry.key));

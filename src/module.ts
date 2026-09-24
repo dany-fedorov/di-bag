@@ -61,7 +61,8 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
    * Return a module view with one string-named export renamed through an options bag.
    * @param options - The current export and its noncolliding new name.
    * @returns A new sealed module, or the same instance when both names are equal.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options bag or `DI_BAG_INVALID_EXPORT` for invalid export names.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options bag, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown current export,
+   * or `DI_BAG_INVALID_EXPORT` for malformed export names.
    * @example
    * ```ts
    * const feature = DiBag.createBuilder().withServices({ service: () => 1 })
@@ -79,9 +80,14 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
       options, 'withRenamedExport', ['currentExportKey', 'newExportKey'],
     );
     const description = descriptions.get(this)!;
-    if (typeof currentExportKey !== 'string' || !description.exports.has(currentExportKey)) {
+    if (typeof currentExportKey !== 'string') {
       throw libraryError('DI_BAG_INVALID_EXPORT', 'withRenamedExport requires an existing export', {
         operation: 'withRenamedExport', currentExportKey, newExportKey,
+      });
+    }
+    if (!description.exports.has(currentExportKey)) {
+      throw libraryError('DI_BAG_UNKNOWN_SERVICE_KEY', 'withRenamedExport requires an existing export', {
+        operation: 'withRenamedExport', serviceKey: currentExportKey,
       });
     }
     if (typeof newExportKey !== 'string') {
@@ -181,7 +187,7 @@ export function sealModule(graph: BindingGraph, keys: unknown, moduleLabel?: unk
     if (typeof value !== 'string') {
       graph.assertTokenKind(key as symbol, 'single-service', 'buildModule');
     }
-    if (!graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_EXPORT', 'buildModule accepts existing names or typed tokens only', { operation: 'buildModule' });
+    if (!graph.hasPublic(key)) throw libraryError('DI_BAG_UNKNOWN_SERVICE_KEY', 'buildModule accepts existing names or typed tokens only', { operation: 'buildModule', serviceKey: key });
     exports.set(key, key);
   }
   return new Module({ graph: graph.describe(), exports, label, requirementRenames: new Map() });

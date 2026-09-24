@@ -58,7 +58,7 @@ test('every builder method returns a new builder and leaves the receiver unchang
   const extended = base.withServices({ other: () => 2 });
   expect(extended).not.toBe(base);
   const app = base.buildContainer();
-  expect(() => loose(app).resolve!('other')).toThrow("DI_BAG_MISSING_REGISTRATION");
+  expect(() => loose(app).resolve!('other')).toThrow("DI_BAG_UNKNOWN_SERVICE_KEY");
   expect(base.verifyGraphAtCompileTime()).toBeUndefined();
   await app.close();
 });
@@ -74,7 +74,7 @@ test('portable builder callables share prototype functions and preserve a borrow
   const app = extended.buildContainer();
   expect(app.resolve('secondOnly')).toBe(2);
   expect(app.resolve('added')).toBe(3);
-  expect(() => app.resolve('firstOnly')).toThrow('DI_BAG_MISSING_REGISTRATION');
+  expect(() => app.resolve('firstOnly')).toThrow('DI_BAG_UNKNOWN_SERVICE_KEY');
   await app.close();
 });
 
@@ -151,8 +151,8 @@ test('the bag methods report distinct codes under their own operation names', ()
     [() => loose(builder).withServices!(42), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withServices' }],
     [() => loose(builder).withTokenService!(clock, () => ({ now: () => 2 })), 'DI_BAG_DUPLICATE_SERVICE_KEY', { operation: 'withTokenService', serviceKey: clockKey }],
     [() => loose(builder).withServiceAlias!({ aliasKey: 'value', targetServiceKey: clock }), 'DI_BAG_DUPLICATE_SERVICE_KEY', { operation: 'withServiceAlias', serviceKey: 'value' }],
-    [() => loose(builder).withServiceAlias!({ aliasKey: 'other', targetServiceKey: 'absent' }), 'DI_BAG_INVALID_ALIAS', { operation: 'withServiceAlias', target: 'absent' }],
-    [() => loose(builder).withReplacedService!('absent', () => 1), 'DI_BAG_INVALID_REPLACEMENT', { operation: 'withReplacedService', key: 'absent' }],
+    [() => loose(builder).withServiceAlias!({ aliasKey: 'other', targetServiceKey: 'absent' }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withServiceAlias', serviceKey: 'absent' }],
+    [() => loose(builder).withReplacedService!('absent', () => 1), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withReplacedService', serviceKey: 'absent' }],
     [() => loose(DiBag.createBuilder()).withTokenService!(clock, 42), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withTokenService' }],
     [() => loose(DiBag.createBuilder()).withCollectionContribution!({ collectionToken: tools, provider: 42 }), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withCollectionContribution' }],
     [() => loose(builder).withReplacedService!('value', 42), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withReplacedService' }],
@@ -306,5 +306,5 @@ test('buildModule rejects a malformed bag, a malformed key list and a malformed 
   const notATuple = seal({ exportedServiceKeys: 'value' });
   expect(notATuple.code).toBe('DI_BAG_INVALID_EXPORT');
   expect(notATuple.details).toEqual({ operation: 'buildModule' });
-  expect(seal({ exportedServiceKeys: ['absent'] }).code).toBe('DI_BAG_INVALID_EXPORT');
+  expect(seal({ exportedServiceKeys: ['absent'] }).code).toBe('DI_BAG_UNKNOWN_SERVICE_KEY');
 });

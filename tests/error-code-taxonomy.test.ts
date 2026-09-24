@@ -43,3 +43,24 @@ check([
 ]);
 
 void container;
+
+check([
+  // 0.4.0: bag.resolve('absent')
+  ['resolve of an unknown key', () => container().resolve('absent'), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'resolve', serviceKey: 'absent' }],
+  // 0.4.0: builder().alias('other', 'absent')
+  ['an alias to an unknown key', () => builder().withServiceAlias({ aliasKey: 'other', targetServiceKey: 'absent' }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withServiceAlias', serviceKey: 'absent' }],
+  // 0.4.0: builder().replace('absent', () => 1)
+  ['a replacement of an unknown key', () => builder().withReplacedService('absent', () => 1), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withReplacedService', serviceKey: 'absent' }],
+  // 0.4.0: bag.fork(['absent'], { absent: () => 1 })
+  ['an independent container that replaces an unknown key', () => container().createIndependentContainer(['absent'], { absent: () => 1 }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'createIndependentContainer', serviceKey: 'absent' }],
+  // 0.4.0: bag.createScope(['absent'], { absent: () => 1 })
+  ['a child container that replaces an unknown key', () => container().createChildContainer(['absent'], { absent: () => 1 }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'createChildContainer', serviceKey: 'absent' }],
+  // 0.4.0: bag.createScope({ share: ['absent'] })
+  ['a child container that shares an unknown key', () => container().createChildContainer({ sharedParentServiceKeys: ['absent'] }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'createChildContainer', serviceKey: 'absent' }],
+  // 0.4.0: builder().buildAndStart(['absent'])
+  ['readiness of an unknown key', () => container().ensureServicesReady(['absent']), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'ensureServicesReady', serviceKey: 'absent' }],
+  // 0.4.0: <module>.renameExport('absent', 'x')
+  ['a rename of an unknown export', () => builder().buildModule({ exportedServiceKeys: ['config'] }).withRenamedExport({ currentExportKey: 'absent', newExportKey: 'x' }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withRenamedExport', serviceKey: 'absent' }],
+  // 0.4.0: builder().buildModule(['absent'])
+  ['a module that exports an unknown key', () => builder().buildModule({ exportedServiceKeys: ['absent'] }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'buildModule', serviceKey: 'absent' }],
+]);

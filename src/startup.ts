@@ -137,7 +137,7 @@ export function ensureRuntimeReady(runtime: BagRuntime, graph: BindingGraph, key
     }
     const key = token === undefined ? value as string : token.key;
     const isCollection = token?.kind === 'collection';
-    if (!isCollection && !graph.hasPublic(key)) throw libraryError('DI_BAG_INVALID_STARTUP', `ensureServicesReady accepts existing names or typed tokens only: ${String(key)}`, { operation: 'ensureServicesReady' });
+    if (!isCollection && !graph.hasPublic(key)) throw libraryError('DI_BAG_UNKNOWN_SERVICE_KEY', `ensureServicesReady accepts existing names or typed tokens only: ${String(key)}`, { operation: 'ensureServicesReady', serviceKey: key });
     selected.push({ key, isCollection });
   }
   const { abortSignal, totalTimeoutMs, maxConcurrentServiceKeys } = snapshotReadinessOptions(options);

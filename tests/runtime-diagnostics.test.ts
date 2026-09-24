@@ -17,9 +17,9 @@ const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 
 test('library messages carry the code, the original text, and the errors-page section', async () => {
   const missing = caught(() => (DiBag.createBuilder().withServices({ a: () => 1 }).buildContainer().resolve as Function)('absent'));
-  expect(missing.code).toBe('DI_BAG_MISSING_REGISTRATION');
-  expect(missing.message).toBe(`DI_BAG_MISSING_REGISTRATION: Service "absent" is not registered.; see ${page}#di-bag-missing-registration`);
-  expect(missing.details).toEqual({ operation: 'resolve', key: 'absent' });
+  expect(missing.code).toBe('DI_BAG_UNKNOWN_SERVICE_KEY');
+  expect(missing.message).toBe(`DI_BAG_UNKNOWN_SERVICE_KEY: Service "absent" is not registered.; see ${page}#di-bag-unknown-service-key`);
+  expect(missing.details).toEqual({ operation: 'resolve', serviceKey: 'absent' });
 
   const cycle = caught(() => DiBag.createBuilder().withServices({
     a: ({ b }: { b: number }) => b, b: ({ a }: { a: number }) => a,

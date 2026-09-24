@@ -132,7 +132,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * An async factory's service is its Promise; nothing is awaited for you.
    * @param token - An existing public string name or typed token.
    * @returns The service exposed by the selected registration.
-   * @throws `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_MISSING_REGISTRATION` for a bad selection;
+   * @throws `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`; `DI_BAG_INVALID_TOKEN`, `DI_BAG_WRONG_TOKEN_KIND`, or `DI_BAG_UNKNOWN_SERVICE_KEY` for a bad selection;
    * during acquisition `DI_BAG_MISSING_DEPENDENCY`, `DI_BAG_DEPENDENCY_CYCLE`, `DI_BAG_LIFETIME_DEPENDENCY`, `DI_BAG_INVALID_DEPENDENCY_ACCESS`,
    * `DI_BAG_STRUCTURAL_THENABLE`, `DI_BAG_INVALID_CLASSIFIER_RESULT`, `DI_BAG_INVALID_METADATA`, `DI_BAG_PLUGIN_VALIDATION`,
    * or the factory's own error.
@@ -261,7 +261,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * pass selected keys and providers first, then the sharing options.
    * @returns A child owned by this container; closing the parent closes the child first.
    * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_SCOPE` for an invalid or transient shared service;
-   * `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
+   * `DI_BAG_INVALID_OVERRIDE` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key; `DI_BAG_SINGLETON_REPLACEMENT` when a selected inherited provider is singleton;
    * `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
    * @example
    * ```ts
@@ -315,7 +315,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
   /**
    * Create an independent container with fresh instances and checked replacements.
    * @returns A container with independent acquisition and ownership state.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_OVERRIDE` for an invalid replacement selection;
+   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed arguments; `DI_BAG_INVALID_OVERRIDE` for a missing replacement provider; `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown selected key;
    * `DI_BAG_INVALID_REGISTRATION` for a malformed provider; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind.
    * @example
    * ```ts
@@ -357,7 +357,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * @returns A promise for this container once every listed service is ready.
    * @throws {@link DiBagServiceReadinessError} (`DI_BAG_SERVICE_READINESS_FAILED`) after this container has closed because a factory failed;
    * {@link DiBagServiceReadinessCancelledError} (`DI_BAG_SERVICE_READINESS_CANCELLED`) promptly on abort or timeout, naming what was still pending;
-   * `DI_BAG_INVALID_STARTUP` for malformed keys or options and `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind, all before any factory runs and with this container left open;
+   * `DI_BAG_INVALID_STARTUP` for malformed keys or options, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown key, and `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind, all before any factory runs and with this container left open;
    * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`. Each arrives as a rejection.
    * @example
    * ```ts
@@ -469,7 +469,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @param options - `aliasKey` is a new string name or single-service token; `targetServiceKey` is the existing name or token whose canonical acquisition is reused.
    * @returns A new builder; aliases add no cache or ownership of their own.
    * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind;
-   * `DI_BAG_DUPLICATE_SERVICE_KEY` when the alias key exists; `DI_BAG_INVALID_ALIAS` for an absent named target.
+   * `DI_BAG_DUPLICATE_SERVICE_KEY` when the alias key exists; `DI_BAG_UNKNOWN_SERVICE_KEY` for an absent named target.
    * @example
    * ```ts
    * const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).withServiceAlias({ aliasKey: 'now', targetServiceKey: 'clock' });
@@ -518,7 +518,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @param serviceKey - One existing string-literal service name or typed token.
    * @param provider - The replacement, checked against every surviving consumer.
    * @returns A new builder with the replacement.
-   * @throws `DI_BAG_INVALID_REPLACEMENT` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider;
+   * @throws `DI_BAG_UNKNOWN_SERVICE_KEY` for an absent key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider;
    * `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
    * @example
    * ```ts
@@ -533,7 +533,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
       ? this.#graph
       : this.#graph.withTokenKind(selected.key, selected.kind, 'withReplacedService');
     if (selected?.kind !== 'collection' && !graph.hasPublic(key)) {
-      throw libraryError('DI_BAG_INVALID_REPLACEMENT', `withReplacedService accepts existing names or typed tokens only: ${String(key)}`, { operation: 'withReplacedService', key });
+      throw libraryError('DI_BAG_UNKNOWN_SERVICE_KEY', `withReplacedService accepts existing names or typed tokens only: ${String(key)}`, { operation: 'withReplacedService', serviceKey: key });
     }
     normalize(provider, 'withReplacedService');
     return new Builder(graph.withPublicBinding(key, provider as ProviderOrFactory, 'withReplacedService'), this.context);
@@ -592,8 +592,8 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @param options - `exportedServiceKeys` is a finite tuple of existing names or tokens, and may be empty. `moduleLabel` is optional;
    * each installation names its private bindings `<moduleLabel>/<key>` in error messages, cycle paths, `graphSnapshot()`, and observer events.
    * @returns An immutable module that can be renamed or installed in another builder.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_EXPORT` if the selection is not a tuple,
-   * contains an absent name or token, or the label is not a non-empty string; `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token;
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_EXPORT` if the selection is not a tuple
+   * or the label is not a non-empty string; `DI_BAG_UNKNOWN_SERVICE_KEY` for an absent name or token; `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token;
    * `DI_BAG_WRONG_TOKEN_KIND` when an exported token kind conflicts with this graph.
    * @example
    * ```ts
