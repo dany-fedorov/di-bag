@@ -1,7 +1,7 @@
 import type { ContributionConstraint } from './contribution-types';
 import type { ProviderOrFactory, Registrations } from './registration';
 import type { ProviderGraphContract, ProviderNamedDependencies, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens } from './provider';
-import type { TokenBase, TokenKey } from './tokens';
+import type { CollectionTokenBase, TokenBase, TokenKey } from './tokens';
 import type { CheckDependencyCompatibility, CheckDependencyCompleteness, NameText, SeeErrors, Unsatisfied } from './types';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
 import type { LifetimeKind } from './lifetime';
@@ -238,11 +238,11 @@ type SingletonReplacementKeys<
   ServiceRegistrations extends Registrations,
   ReplacedServiceKeys extends readonly unknown[],
 > = {
-  [ServiceKey in SelectionKey<ReplacedServiceKeys[number]> & keyof ServiceRegistrations]:
+  [ServiceKey in SelectionKey<Exclude<ReplacedServiceKeys[number], CollectionTokenBase>> & keyof ServiceRegistrations]:
     'singleton:one-per-container-tree' extends CanonicalLifetime<ServiceRegistrations, ServiceKey>
       ? ServiceKey
       : never;
-}[SelectionKey<ReplacedServiceKeys[number]> & keyof ServiceRegistrations];
+}[SelectionKey<Exclude<ReplacedServiceKeys[number], CollectionTokenBase>> & keyof ServiceRegistrations];
 
 type SingletonReplacementMessage<ServiceKey> = ServiceKey extends PropertyKey
   ? `createChildContainer cannot replace singleton service: ${NameText<ServiceKey>}; mark it scoped:one-per-container or use createIndependentContainer`

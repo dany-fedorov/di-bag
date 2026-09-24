@@ -47,5 +47,10 @@ test('aliases follow explicit singleton targets while collection replacement rem
   )).toThrow("cannot replace singleton service 'alias'");
   const child = root.createChildContainer([items], { [items.symbol]: () => [2] });
   expect(child.resolveCollection(items)).toEqual([2]);
-  await child.close(); await root.close();
+  const singletonCollectionChild = root.createChildContainer([items], {
+    [items.symbol]: DiBag.providerWithLifetime({ provider: () => [2], lifetime: 'singleton:one-per-container-tree' }),
+  });
+  const repeatedCollectionChild = singletonCollectionChild.createChildContainer([items], { [items.symbol]: () => [3] });
+  expect(repeatedCollectionChild.resolveCollection(items)).toEqual([3]);
+  await child.close(); await singletonCollectionChild.close(); await root.close();
 });

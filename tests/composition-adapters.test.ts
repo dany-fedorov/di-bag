@@ -161,7 +161,7 @@ test('module token graphs and selected sharing keep ownership and parent depende
   await fork.close(); await bag.close(); expect(disposed).toHaveLength(2); expect(disposed).toContain(shared);
 });
 
-test('strict root class adapters retain root dependencies through child overrides', async () => {
+test('singleton class adapters stay inherited by a child and rebind in an independent container', async () => {
   const bag = DiBag.createBuilder().withTokenService(port, DiBag.providerWithLifetime({ provider: () => 80, lifetime: 'singleton:one-per-container-tree' })).withServices({
     source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }), lifetime: 'singleton:one-per-container-tree' }),
   }).buildContainer();

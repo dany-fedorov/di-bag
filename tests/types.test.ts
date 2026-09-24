@@ -89,7 +89,7 @@ test('requirement-renaming retains exact cross-file contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
-for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'portable-factories', 'provider-sources', 'provider-facades', 'container-derivation', 'requirement-renaming']) test(`${fixture} inferred exports survive declaration consumption`, () => {
+for (const fixture of ['lifetimes', 'child-singleton-replacement', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'portable-factories', 'provider-sources', 'provider-facades', 'container-derivation', 'requirement-renaming']) test(`${fixture} inferred exports survive declaration consumption`, () => {
   const producerPath = resolve(__dirname, `types/${fixture}.ts`);
   const consumerPath = resolve(__dirname, `types/${fixture}-consumer.ts`);
   const declarationPath = producerPath.replace(/\.ts$/, '.d.ts');

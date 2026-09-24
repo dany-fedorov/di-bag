@@ -148,7 +148,7 @@ test('shared alias inspection identifies its parent target despite a child overr
   await bag.close();
 });
 
-test('aliases of root targets retain the root graph under child overrides', async () => {
+test('singleton aliases stay inherited by a child and follow independent replacements', async () => {
   const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => ({ id: 1 }), lifetime: 'singleton:one-per-container-tree' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   const child = bag.createChildContainer();
   expect(child.resolve('copy')).toBe(bag.resolve('value'));
