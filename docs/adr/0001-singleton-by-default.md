@@ -49,6 +49,7 @@ is intended.
 
 Old code that creates child containers can compile with different instance counts, so this is
 the release's one silent semantic migration. The type-aware `--pin-lifetimes` transform
-preserves old behavior. Complete host graphs with no scoped provider skip the lifetime walk;
+preserves old behavior. Complete host graphs with neither scoped providers nor retained lifetime
+obligations skip the host lifetime walk;
 module sealing still retains external reaches. A disposable transient remains owned until the
 container that resolved it closes.
