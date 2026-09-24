@@ -87,8 +87,8 @@ test('raw fast acquisition preserves unobserved thenable and promise identity an
   assert.equal(reads, 0);
 });
 
-for (const lifetime of ['scoped', 'transient']) {
-  test(`raw ${lifetime} public reentrant creating cycles invoke the factory once`, async () => {
+for (const [lifetimeLabel, lifetime] of [['scoped', 'scoped:one-per-container'], ['transient', 'transient:one-per-resolve']]) {
+  test(`raw ${lifetimeLabel} public reentrant creating cycles invoke the factory once`, async () => {
     let calls = 0;
     const bag = DiBag.createBuilder().withServices({
       value: DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => { calls++; return bag.resolve('value'); }, { factoryReturnKind: 'uninspected' }), lifetime: lifetime }),
