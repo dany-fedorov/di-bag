@@ -5,7 +5,7 @@ export type { Container, Builder, DiBagApi, ConfigurationOptions } from './di-ba
 export type { Module, ModuleOptions } from './module';
 export type { CompositionReport } from './composition-report';
 export type { ModuleExportedServices, ModuleRequiredServices, ModuleConstraints, ModuleSealedConstraints, SealedConstraints, PublicProviders, ModulePublicProviders, Renamed } from './module-types';
-export type { FactoryWithDisposal, Registration } from './registration';
+export type { ProviderOrFactory } from './registration';
 export type { Provider, ProviderFactory, ProviderGraphContract, ProviderOutput, ProviderAcquiredValue, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens } from './provider';
 export type { FactoryReturnKind, RuntimeOptions } from './acquisition-mode';
 export type { Lifetime } from './lifetime';

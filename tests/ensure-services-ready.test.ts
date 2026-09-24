@@ -88,9 +88,9 @@ test('a failed readiness call on a child scope closes that scope only', async ()
   const cause = new Error('session store offline');
   const disposed: string[] = [];
   const parent = DiBag.createBuilder().withServices({
-    pool: DiBag.withDisposal(() => ({ name: 'pool' }), () => { disposed.push('pool'); }),
-    cache: DiBag.withDisposal(() => ({ name: 'cache' }), () => { disposed.push('cache'); }),
-    session: DiBag.withDisposal(({ pool }: { pool: { name: string } }) => ({ owner: pool.name }), () => { disposed.push('session'); }),
+    pool: DiBag.providerWithDisposal({ provider: () => ({ name: 'pool' }), disposeService: () => { disposed.push('pool'); } }),
+    cache: DiBag.providerWithDisposal({ provider: () => ({ name: 'cache' }), disposeService: () => { disposed.push('cache'); } }),
+    session: DiBag.providerWithDisposal({ provider: ({ pool }: { pool: { name: string } }) => ({ owner: pool.name }), disposeService: () => { disposed.push('session'); } }),
     broken: (): number => { throw cause; },
   }).buildContainer();
   const parentCache = parent.resolve('cache');
@@ -125,7 +125,7 @@ test('a factory failure closes this bag and reports disposal failures', async ()
   const disposalFailure = new Error('dispose');
   const calls: string[] = [];
   const bag = DiBag.createBuilder().withServices({
-    owned: DiBag.withDisposal(() => { calls.push('owned'); return 1; }, () => { throw disposalFailure; }),
+    owned: DiBag.providerWithDisposal({ provider: () => { calls.push('owned'); return 1; }, disposeService: () => { throw disposalFailure; } }),
     db: (): number => { calls.push('db'); throw cause; },
     queued: () => { calls.push('queued'); return 3; },
   }).buildContainer();
@@ -172,7 +172,7 @@ test('an abort rejects promptly with the abort reason and settles disposalPromis
   const reason = new Error('shutting down');
   const disposed: number[] = [];
   const bag = DiBag.createBuilder().withServices({
-    slow: DiBag.withDisposal(() => gate.promise, value => { disposed.push(value); }),
+    slow: DiBag.providerWithDisposal({ provider: () => gate.promise, disposeService: value => { disposed.push(value); } }),
   }).buildContainer();
   const outcome = bag.ensureServicesReady(['slow'], { abortSignal: controller.signal }).catch(caught => caught);
   expect(getEventListeners(controller.signal, 'abort')).toHaveLength(1);

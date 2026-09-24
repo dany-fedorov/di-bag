@@ -56,12 +56,11 @@ test('an owned private dependency closes after its public dependent', async () =
   const dependent = Symbol('dependent');
   const disposed: string[] = [];
   const runtime = new BagRuntime(graph([
-    { id: connection, label: 'connection', registration: DiBag.withDisposal(() => 'private', value => { disposed.push(value); }), localNames: new Map() },
-    { id: dependent, label: 'dependent', registration: DiBag.withDisposal(
-      ({ connection }: { connection: string }) => {
+    { id: connection, label: 'connection', registration: DiBag.providerWithDisposal({ provider: () => 'private', disposeService: value => { disposed.push(value); } }), localNames: new Map() },
+    { id: dependent, label: 'dependent', registration: DiBag.providerWithDisposal({ provider: ({ connection }: { connection: string }) => {
         expect(connection).toBe('private');
         return 'dependent';
-      }, value => { disposed.push(value); }),
+      }, disposeService: value => { disposed.push(value); } }),
       localNames: new Map([['connection', { kind: 'private', id: connection }]]) },
   ], [['dependent', dependent]]));
   runtime.resolve('dependent');

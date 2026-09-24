@@ -4,5 +4,5 @@ import { catalogModule } from './module.js';
 
 DiBag.createBuilder()
   .withInstalledModules([catalogModule])
-  .withServices({ catalogData: DiBag.withLifetime((): CatalogData => ({ products: [] }), 'root') })
+  .withServices({ catalogData: DiBag.providerWithLifetime({ provider: (): CatalogData => ({ products: [] }), lifetime: 'singleton:one-per-container-tree' }) })
   .verifyGraphAtCompileTime() satisfies void;

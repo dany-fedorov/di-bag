@@ -139,13 +139,10 @@ test('startup still closes later bags and its source when multiple disposers fai
   const second = new Error('second cleanup failed');
   const failing = (scope: string, error: Error) =>
     root.createIndependentContainer(['broadcast'], {
-      broadcast: DiBag.withDisposal(
-        () => new Collector(scope, lifecycle),
-        (collector) => {
+      broadcast: DiBag.providerWithDisposal({ provider: () => new Collector(scope, lifecycle), disposeService: (collector) => {
           collector.close();
           throw error;
-        },
-      ),
+        } }),
     });
   const a = failing('a', first);
   const b = failing('b', second);

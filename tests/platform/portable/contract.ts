@@ -20,9 +20,9 @@ export type PortableDiBag = {
   createBuilder(): any;
   createProvider(factory: (...dependencies: any[]) => unknown, options: { factoryReturnKind: 'uninspected' | 'sync-value' | 'native-promise' }): any;
   createToken(key: symbol): { forService<T>(): PortableToken<T> };
-  withDisposal(factory: any, dispose: (value: any) => void | Promise<void>): any;
-  withLifetime(factory: any, lifetime: 'root' | 'scoped' | 'transient'): any;
-  withMetadata(factory: any, metadata: Readonly<Record<string, unknown>>): any;
+  providerWithDisposal(options: { provider: any; disposeService: (value: any) => void | Promise<void> }): any;
+  providerWithLifetime(options: { provider: any; lifetime: 'singleton:one-per-container-tree' | 'scoped:one-per-container' | 'transient:one-per-resolve'; allowsScopedDependencies?: boolean }): any;
+  providerWithRegistrationMetadata(options: { provider: any; registrationMetadata: Readonly<Record<string, unknown>> }): any;
 };
 
 export function validatePortableInspection(inspection: unknown): {
@@ -78,27 +78,12 @@ export async function portableContract(DiBag: PortableDiBag): Promise<PortableCo
   let rawDisposed: unknown;
   let asyncDisposed: { value: string } | undefined;
   const root = DiBag.createBuilder().withInstalledModules([feature]).withServices({
-    root: DiBag.withMetadata(DiBag.withLifetime(DiBag.withDisposal(
-      DiBag.createProvider(() => ({ id: ++rootCalls }), { factoryReturnKind: 'sync-value' }),
-      () => { cleanupLog.push('root'); },
-    ), 'root'), { static: { portable: true } }),
-    scoped: DiBag.withDisposal(
-      DiBag.createProvider(() => ({ id: ++scopedCalls }), { factoryReturnKind: 'sync-value' }),
-      () => { cleanupLog.push('scoped'); },
-    ),
-    transient: DiBag.withLifetime(DiBag.withDisposal(
-      DiBag.createProvider(() => ({ id: ++transientCalls }), { factoryReturnKind: 'sync-value' }),
-      value => { cleanupLog.push(`transient-${value.id}`); },
-    ), 'transient'),
+    root: DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => ({ id: ++rootCalls }), { factoryReturnKind: 'sync-value' }), disposeService: () => { cleanupLog.push('root'); },  }), lifetime: 'singleton:one-per-container-tree' }), registrationMetadata: { portable: true } }),
+    scoped: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => ({ id: ++scopedCalls }), { factoryReturnKind: 'sync-value' }), disposeService: () => { cleanupLog.push('scoped'); },  }),
+    transient: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => ({ id: ++transientCalls }), { factoryReturnKind: 'sync-value' }), disposeService: value => { cleanupLog.push(`transient-${value.id}`); },  }), lifetime: 'transient:one-per-resolve' }),
     // The Promise object itself is the service: the explicit raw form stays the way to say so.
-    raw: DiBag.withDisposal(
-      DiBag.createProvider(() => rawPromise, { factoryReturnKind: 'uninspected' }),
-      value => { rawDisposed = value; },
-    ),
-    pending: DiBag.withDisposal(
-      DiBag.createProvider(async () => ({ value: 'async' }), { factoryReturnKind: 'native-promise' }),
-      (value: { value: string }) => { asyncDisposed = value; },
-    ),
+    raw: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => rawPromise, { factoryReturnKind: 'uninspected' }), disposeService: value => { rawDisposed = value; },  }),
+    pending: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async () => ({ value: 'async' }), { factoryReturnKind: 'native-promise' }), disposeService: (value: { value: string }) => { asyncDisposed = value; },  }),
   }).withServiceAlias({ aliasKey: 'rootAlias', targetServiceKey: 'root' }).buildContainer();
   const child = root.createChildContainer();
 

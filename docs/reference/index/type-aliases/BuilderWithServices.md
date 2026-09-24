@@ -6,11 +6,11 @@
 
 ```ts
 type BuilderWithServices<Entries extends Entry, Constraints extends NeedConstraint> = <Named extends {
-    [Key in keyof Named]: Registration;
+    [Key in keyof Named]: ProviderOrFactory;
 }>(providersByName: Named & Registrations & ([Named] extends [never] ? never : NamedAdmission<Named> & ThenableAdmission<Named> & IntroducesKeys<EntryKeys<Entries>, keyof Named> & IncrementalChecked<Entries, Named> & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Named>>)) => import('./di-bag').Builder<Entries | RegistrationEntries<Named>, Constraints>;
 ```
 
-Defined in: [builder-method-types.ts:32](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L32)
+Defined in: [builder-method-types.ts:57](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L57)
 
 The checked generic `withServices` callable exposed by a builder.
 

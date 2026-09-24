@@ -31,9 +31,9 @@ const asyncRicher = root.createIndependentContainer(['service', 'promised'], asy
 const asyncRicherPromise = asyncRicher.resolve('promised');
 type AsyncRicher = Assert<Equal<typeof asyncRicherPromise, Promise<number>>>;
 const owned = DiBag.createBuilder().withServices({
-  resource: DiBag.withDisposal(async () => ({ read() { return Number(7); } }), resource => {
+  resource: DiBag.providerWithDisposal({ provider: async () => ({ read() { return Number(7); } }), disposeService: resource => {
     const value: number = resource.read(); void value;
-  }),
+  } }),
 }).buildModule({ exportedServiceKeys: ['resource'] });
 const ownedResult = DiBag.createBuilder().withInstalledModules([owned]).buildContainer().resolve('resource');
 type FactoryWithDisposal = Assert<Equal<typeof ownedResult, Promise<{ read(): number }>>>;

@@ -24,15 +24,9 @@ async function main() {
   const bag = observed
     .createBuilder()
     .withServices({
-      connection: observed.withMetadata(
-        observed.withDisposal(
-          observed.createProvider(() => ({ name: 'reporting' }), { factoryReturnKind: 'uninspected' }),
-          () => {
+      connection: observed.providerWithRegistrationMetadata({ provider: observed.providerWithDisposal({ provider: observed.createProvider(() => ({ name: 'reporting' }), { factoryReturnKind: 'uninspected' }), disposeService: () => {
             disposals++;
-          },
-        ),
-        { static: { 'app:owner': { team: 'platform' } } },
-      ),
+          } }), registrationMetadata: { 'app:owner': { team: 'platform' } } }),
     })
     .withServiceAlias({ aliasKey: 'reports', targetServiceKey: 'connection' })
     .buildContainer();

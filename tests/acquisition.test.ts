@@ -32,21 +32,21 @@ test('a caught rejected attempt does not retarget its incoming edge to the retry
   let originalA: Promise<typeof valueA> | undefined;
   let originalB: Promise<typeof valueB> | undefined;
   const bag = DiBag.createBuilder().withServices({
-    a: DiBag.withDisposal((deps: { b: Promise<typeof valueB> }) => {
+    a: DiBag.providerWithDisposal({ provider: (deps: { b: Promise<typeof valueB> }) => {
       originalA = (async () => {
         try { await deps.b; } catch {}
         return valueA;
       })();
       return originalA;
-    }, value => { events.push(value.id); }),
-    b: DiBag.withDisposal((deps: { a: Promise<typeof valueA> }) => {
+    }, disposeService: value => { events.push(value.id); } }),
+    b: DiBag.providerWithDisposal({ provider: (deps: { a: Promise<typeof valueA> }) => {
       if (first) { first = false; return rejected; }
       originalB = (async () => {
         expect(await deps.a).toBe(valueA);
         return valueB;
       })();
       return originalB;
-    }, value => { events.push(value.id); }),
+    }, disposeService: value => { events.push(value.id); } }),
   }).buildContainer();
   const a = bag.resolve('a');
   expect(originalA).toBe(a);
@@ -65,12 +65,12 @@ test('shutdown preserves every cleanup cause and its acquisition identity', asyn
   const first = new Error('first cleanup');
   const events: string[] = [];
   const bag = DiBag.createBuilder().withServices({
-    a: DiBag.withDisposal(() => 'a', () => { events.push('a'); throw first; }),
-    b: DiBag.withDisposal(({ a }: { a: string }) => a + 'b', async () => {
+    a: DiBag.providerWithDisposal({ provider: () => 'a', disposeService: () => { events.push('a'); throw first; } }),
+    b: DiBag.providerWithDisposal({ provider: ({ a }: { a: string }) => a + 'b', disposeService: async () => {
       events.push('b');
       throw undefined;
-    }),
-    c: DiBag.withDisposal(() => 'c', () => { events.push('c'); }),
+    } }),
+    c: DiBag.providerWithDisposal({ provider: () => 'c', disposeService: () => { events.push('c'); } }),
   }).buildContainer();
   bag.resolve('b');
   bag.resolve('c');
@@ -119,16 +119,15 @@ test('a failed attempt cannot borrow its pending retry permission to acquire dur
   let lateRead = () => 0;
   const events: string[] = [];
   const bag = DiBag.createBuilder().withServices({
-    resource: DiBag.withDisposal(() => { events.push('resource:open'); return 42; },
-      () => { events.push('resource:close'); }),
-    holder: DiBag.withDisposal((deps: { resource: number }) => {
+    resource: DiBag.providerWithDisposal({ provider: () => { events.push('resource:open'); return 42; }, disposeService: () => { events.push('resource:close'); } }),
+    holder: DiBag.providerWithDisposal({ provider: (deps: { resource: number }) => {
       if (first) {
         first = false;
         lateRead = () => deps.resource;
         throw failure;
       }
       return gate.promise;
-    }, () => { events.push('holder:close'); }),
+    }, disposeService: () => { events.push('holder:close'); } }),
   }).buildContainer();
   expect(() => bag.resolve('holder')).toThrow(failure);
   expect(bag.resolve('holder')).toBe(gate.promise);
@@ -146,7 +145,7 @@ test('a completed factory cannot start late acquisitions while another factory d
   const bag = DiBag.createBuilder().withServices({
     resource: () => { events.push('resource:open'); return 42; },
     reader: (deps: { resource: number }) => () => deps.resource,
-    pending: DiBag.withDisposal(() => gate.promise, () => { events.push('pending:close'); }),
+    pending: DiBag.providerWithDisposal({ provider: () => gate.promise, disposeService: () => { events.push('pending:close'); } }),
   }).buildContainer();
   const read = bag.resolve('reader');
   expect(bag.resolve('pending')).toBe(gate.promise);

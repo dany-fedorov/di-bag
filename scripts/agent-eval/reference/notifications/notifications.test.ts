@@ -7,10 +7,10 @@ import { notificationsModule } from './module.js';
 const fixture = DiBag.createBuilder()
   .withInstalledModules([notificationsModule])
   .withServices({
-    mailConfig: DiBag.withLifetime((): MailConfig => ({
+    mailConfig: DiBag.providerWithLifetime({ provider: (): MailConfig => ({
       opsAddress: 'ops@example.com',
       connect: async () => { throw new Error('supply a mail config'); },
-    }), 'root'),
+    }), lifetime: 'singleton:one-per-container-tree' }),
   })
   .buildContainer();
 after(() => fixture.close());
@@ -18,10 +18,10 @@ after(() => fixture.close());
 test('mails operations and closes the transport with the application', async () => {
   const events: Array<Mail | 'close'> = [];
   const bag = fixture.createIndependentContainer(['mailConfig'], {
-    mailConfig: DiBag.withLifetime((): MailConfig => ({
+    mailConfig: DiBag.providerWithLifetime({ provider: (): MailConfig => ({
       opsAddress: 'ops@example.com',
       connect: async () => ({ send: async mail => { events.push(mail); }, close: async () => { events.push('close'); } }),
-    }), 'root'),
+    }), lifetime: 'singleton:one-per-container-tree' }),
   });
   await bag.createChildContainer().resolve('notifier').orderPlaced({ orderId: 'o-1', totalCents: 450 });
   await bag.close();

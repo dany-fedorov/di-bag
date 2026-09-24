@@ -1,8 +1,5 @@
 import { DiBag } from '../../../src/di-bag';
 // diagnostic: assignable
-DiBag.withDisposal(
-  () => 1,
-  (value: string) => {
+DiBag.providerWithDisposal({ provider: () => 1, disposeService: (value: string) => {
     void value;
-  },
-);
+  } });

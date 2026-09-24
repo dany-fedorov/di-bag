@@ -75,7 +75,8 @@ not acquire invented string labels.
   - `nodes`: `{ key, line, dependencies, async, lifetime, owned }` per
     registration. `dependencies` are the property names of the factory's first
     parameter type; `async` means the factory returns a `Promise`; `lifetime`
-    is `root`, `scoped`, or `transient`; `owned` means `withDisposal`.
+    is a full 0.5.0 lifetime value, or `dynamic` when the extractor cannot statically
+    read the argument; old facade values are normalized. `owned` means a disposal stage.
   - `edges`: `{ from, to }` for the unit's own registrations, sorted.
 - `Issue`: `{ kind: 'cycle', unit, path }` or
   `{ kind: 'unresolved', unit, consumer, dependency }`.

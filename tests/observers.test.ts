@@ -16,8 +16,7 @@ test('observers preserve raw identity and explicit ownership', async () => {
   const value = Promise.resolve({ id: 1 });
   let disposed = 0;
   const bag = observed.createBuilder().withServices({
-    value: observed.withDisposal(observed.createProvider(() => value, { factoryReturnKind: 'uninspected' }),
-      acquired => { expect(acquired).toBe(value); disposed++; }),
+    value: observed.providerWithDisposal({ provider: observed.createProvider(() => value, { factoryReturnKind: 'uninspected' }), disposeService: acquired => { expect(acquired).toBe(value); disposed++; } }),
   }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).buildContainer();
   expect(bag.resolve('copy')).toBe(value);
   expect(bag.resolve('value')).toBe(value);
@@ -41,7 +40,7 @@ test('ready follows the final native stage while retaining exposed identity', as
   let finalReady!: (value: number) => void;
   const source = new Promise<number>(resolve => { sourceReady = resolve; });
   const final = new Promise<number>(resolve => { finalReady = resolve; });
-  const bag = observed.createBuilder().withServices({ value: observed.transformService(observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), { mode: 'direct', transform: () => final, ...{ acquisitionMode: 'native-promise' } }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ value: observed.providerWithTransformedService({ provider: observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), transformService: () => final, callbackReceives: 'exposed-service', transformReturnKind: 'native-promise' }) }).buildContainer();
   expect(bag.resolve('value')).toBe(final);
   sourceReady(1);
   await flush();
@@ -121,7 +120,7 @@ test('canonical owners distinguish shared roots, independent forks, contribution
   const { events, observed } = recording();
   const raw = observed.createProvider(() => ({}), { factoryReturnKind: 'uninspected' });
   const key = Symbol('collection'); const token = observed.createToken(key).forCollectionOf<object>();
-  const bag = observed.createBuilder().withServices({ root: observed.withLifetime(raw, 'root'), shared: raw, fresh: observed.withLifetime(raw, 'transient') }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'shared' }).withCollectionContribution({ collectionToken: token, provider: raw }).withCollectionContribution({ collectionToken: token, provider: raw }).buildContainer();
+  const bag = observed.createBuilder().withServices({ root: observed.providerWithLifetime({ provider: raw, lifetime: 'singleton:one-per-container-tree' }), shared: raw, fresh: observed.providerWithLifetime({ provider: raw, lifetime: 'transient:one-per-resolve' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'shared' }).withCollectionContribution({ collectionToken: token, provider: raw }).withCollectionContribution({ collectionToken: token, provider: raw }).buildContainer();
   const child = bag.createChildContainer({ sharedParentServiceKeys: ['copy'] });
   const fork = bag.createIndependentContainer();
   child.resolve('root'); child.resolve('copy'); child.resolve('fresh'); child.resolve('fresh');
@@ -152,9 +151,9 @@ test('failed final projections retire accepted ownership once and preserve clean
   const { events, observed } = recording();
   const acquisitionError = new Error('projection'); const cleanupError = new Error('dispose');
   const disposed: string[] = [];
-  const source = observed.withDisposal(observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), () => { disposed.push('first'); throw cleanupError; });
-  const second = observed.withDisposal(source, () => { disposed.push('second'); });
-  const bag = observed.createBuilder().withServices({ value: observed.transformService(second, { mode: 'direct', transform: () => { throw acquisitionError; }, ...{ acquisitionMode: 'uninspected' } }) }).buildContainer();
+  const source = observed.providerWithDisposal({ provider: observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), disposeService: () => { disposed.push('first'); throw cleanupError; } });
+  const second = observed.providerWithDisposal({ provider: source, disposeService: () => { disposed.push('second'); } });
+  const bag = observed.createBuilder().withServices({ value: observed.providerWithTransformedService({ provider: second, transformService: () => { throw acquisitionError; }, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }) }).buildContainer();
   expect(() => bag.resolve('value')).toThrow(acquisitionError);
   let closeError: unknown;
   try { await bag.close(); } catch (error) { closeError = error; }
@@ -171,7 +170,7 @@ test('failed final projections retire accepted ownership once and preserve clean
 test('intermediate native failure bypassed by raw projection is not final failure', async () => {
   const { events, observed } = recording();
   const source = Promise.reject(new Error('bypassed'));
-  const bag = observed.createBuilder().withServices({ value: observed.transformService(observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), { mode: 'direct', transform: () => 42, ...{ acquisitionMode: 'uninspected' } }) }).buildContainer();
+  const bag = observed.createBuilder().withServices({ value: observed.providerWithTransformedService({ provider: observed.createProvider(() => source, { factoryReturnKind: 'native-promise' }), transformService: () => 42, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }) }).buildContainer();
   expect(bag.resolve('value')).toBe(42);
   await bag.close();
   expect(events.filter(event => event.kind === 'acquisition-ready')).toHaveLength(1);
@@ -181,7 +180,7 @@ test('intermediate native failure bypassed by raw projection is not final failur
 test('private module frames are immutable snapshots without freezing application metadata', async () => {
   const { events, observed } = recording();
   const payload = { owner: 'application' };
-  const wrapped = observed.withMetadata(observed.withMetadata(observed.createProvider(() => 7, { factoryReturnKind: 'uninspected' }), { static: { payload } }), { dynamic: { mode: 'direct', describe: () => ({ payload }) } });
+  const wrapped = observed.providerWithAcquisitionMetadata({ provider: observed.providerWithRegistrationMetadata({ provider: observed.createProvider(() => 7, { factoryReturnKind: 'uninspected' }), registrationMetadata: { payload } }), describeAcquisition: () => ({ payload }), callbackReceives: 'exposed-service' });
   const feature = observed.createBuilder().withServices({ secret: wrapped, publicValue: observed.createProvider(({ secret }: { secret: number }) => secret, { factoryReturnKind: 'uninspected' }) }).buildModule({ exportedServiceKeys: ['publicValue'] });
   const bag = observed.createBuilder().withInstalledModules([feature]).buildContainer();
   expect(bag.resolve('publicValue')).toBe(7);
@@ -205,7 +204,7 @@ test('startup rollback observes accepted cleanup while preserving the startup ca
   const { events, observed } = recording();
   const failure = new Error('startup');
   const builder = observed.createBuilder().withServices({
-    good: observed.withDisposal(observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), () => {}),
+    good: observed.providerWithDisposal({ provider: observed.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), disposeService: () => {} }),
     bad: observed.createProvider(() => Promise.reject(failure), { factoryReturnKind: 'native-promise' }),
   });
   let error: unknown;
@@ -225,7 +224,7 @@ test('cancellation observes late accepted resources and final failure without aw
   const pending = new Promise<number>(resolve => { acquired = resolve; });
   let disposed = 0;
   const builder = observed.createBuilder().withServices({
-    good: observed.withDisposal(observed.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), () => { disposed++; }),
+    good: observed.providerWithDisposal({ provider: observed.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), disposeService: () => { disposed++; } }),
     bad: observed.createProvider((_deps: {}, context) => new Promise<never>((_resolve, reject) => {
       context.abortSignal.addEventListener('abort', () => reject(failure), { once: true });
     }), { factoryReceivesContext: true, ...{ factoryReturnKind: 'native-promise' as const } }),

@@ -8,15 +8,15 @@ export const contextual = DiBag.createProvider((deps: { input: { readonly label:
   signal: factoryCtx.abortSignal,
 }), { factoryReceivesContext: true });
 const rawPromise = Promise.resolve({ value: 42 as const });
-export const raw = DiBag.withDisposal(DiBag.createProvider((_deps: {}, _factoryContext) => rawPromise, { factoryReceivesContext: true, ...{ factoryReturnKind: 'uninspected' as const } }), value => {
+export const raw = DiBag.providerWithDisposal({ provider: DiBag.createProvider((_deps: {}, _factoryContext) => rawPromise, { factoryReceivesContext: true, ...{ factoryReturnKind: 'uninspected' as const } }), disposeService: value => {
   const exact: Promise<{ value: 42 }> = value;
   void exact;
-});
+} });
 const feature = DiBag.createBuilder().withServices({
   hidden: DiBag.createProvider((deps: { input: { readonly label: 'exact' } }, factoryCtx) => ({ label: deps.input.label, signal: factoryCtx.abortSignal }), { factoryReceivesContext: true }),
   exported: (deps: { hidden: { label: 'exact'; signal: AbortSignal } }) => deps.hidden,
 }).buildModule({ exportedServiceKeys: ['exported'] }).withRenamedExport({ currentExportKey: 'exported', newExportKey: 'renamed' });
-export const builder = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(selectedToken, DiBag.createProvider((_deps: {}, _factoryCtx) => ({ value: 42 as const }), { factoryReceivesContext: true })).withServices({ input: () => ({ label: 'exact' as const }), contextual: DiBag.withMetadata(contextual, { static: { owner: 'startup' as const } }), raw });
+export const builder = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(selectedToken, DiBag.createProvider((_deps: {}, _factoryCtx) => ({ value: 42 as const }), { factoryReceivesContext: true })).withServices({ input: () => ({ label: 'exact' as const }), contextual: DiBag.providerWithRegistrationMetadata({ provider: contextual, registrationMetadata: { owner: 'startup' as const } }), raw });
 export const lazy = builder.buildContainer();
 export const started = lazy.ensureServicesReady(['contextual', selectedToken, 'raw', 'renamed']);
 export const sequential = lazy.ensureServicesReady(['contextual'], { maxConcurrentServiceKeys: 1, abortSignal: new AbortController().signal, totalTimeoutMs: 100 });

@@ -4,7 +4,7 @@ const key = Symbol('service'); const token = DiBag.createToken(key).forService<{
 const rewrapped = DiBag.createToken(key).forService<{ value: number }>();
 const promiseKey = Symbol('promise'); const promiseToken = DiBag.createToken(promiseKey).forService<Promise<number>>();
 const promised = Promise.resolve(3);
-const source = DiBag.withMetadata(() => ({ value: 1, rich: true as const }), { static: { owner: 'team' } });
+const source = DiBag.providerWithRegistrationMetadata({ provider: () => ({ value: 1, rich: true as const }), registrationMetadata: { owner: 'team' } });
 const bag = DiBag.createBuilder().withTokenService(token, source).withTokenService(promiseToken, () => promised).withServices({ read: DiBag.createProviderFromFunction({ dependencies: [rewrapped, promiseToken], factoryFunction: (value, promise) => ({ value: value.value, promise }) }) }).buildContainer();
 const value = bag.resolve(rewrapped); const promise = bag.resolve(promiseToken); const inspection = bag.serviceSnapshot(token);
 type Exact = [Assert<Equal<typeof value, { value: number; rich: true }>>, Assert<Equal<typeof promise, Promise<number>>>,
@@ -22,7 +22,7 @@ DiBag.createBuilder().withServices({ name: () => 'ok' }).withTokenService(token,
 const plainModule: Module<{ value: number }, {}> = DiBag.createBuilder().withServices({ value: () => 1 }).buildModule({ exportedServiceKeys: ['value'] });
 const plainProvider: Provider<() => number> = DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: () => 1 });
 const frameSource = DiBag.createProviderFromFunction({ dependencies: [promiseToken], factoryFunction: promise => promise });
-const framed = DiBag.withMetadata(frameSource, { dynamic: { mode: 'direct', describe: () => ({ source: 'frame' }) } });
+const framed = DiBag.providerWithAcquisitionMetadata({ provider: frameSource, describeAcquisition: () => ({ source: 'frame' }), callbackReceives: 'exposed-service' });
 const frameBag = DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ framed }).buildModule({ exportedServiceKeys: ['framed'] })]).withTokenService(promiseToken, () => promised).buildContainer();
 const frameInspection = frameBag.serviceSnapshot('framed');
 type Frames = [Assert<Equal<ProviderOutput<typeof framed>, Promise<number>>>, Assert<Equal<typeof frameInspection.acquisitions[number]['acquisitionMetadata'], AcquisitionMetadataPresence<ProviderAcquisitionMetadata<typeof framed>>>>];

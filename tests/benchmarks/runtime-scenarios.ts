@@ -25,8 +25,8 @@ type CurrentRuntimeBuilder = {
 type CurrentRuntimeFacade = {
   createProvider(create: (dependencies: Record<string, unknown>) => unknown, options: { factoryReturnKind: 'uninspected' | 'native-promise' }): Registration;
   createBuilder(): CurrentRuntimeBuilder;
-  withDisposal(registration: Registration, dispose: (value: unknown) => void | Promise<void>): Registration;
-  withLifetime(registration: Registration, lifetime: 'root' | 'scoped' | 'transient'): Registration;
+  providerWithDisposal(options: { provider: Registration; disposeService: (value: unknown) => void | Promise<void> }): Registration;
+  providerWithLifetime(options: { provider: Registration; lifetime: 'singleton:one-per-container-tree' | 'scoped:one-per-container' | 'transient:one-per-resolve' }): Registration;
 };
 type BaselineRuntimeFacade = {
   factory(create: (dependencies: Record<string, unknown>) => unknown, options: { acquisition: 'raw' | 'native' }): Registration;
@@ -69,10 +69,15 @@ export type PreparedRuntimeScenario = {
 function selectRuntimeAdapter(suppliedFacade: unknown, surface: RuntimeBuilderSurface): RuntimeScenarioAdapter {
   if (surface === 'current') {
     const current = suppliedFacade as CurrentRuntimeFacade;
+    const lifetimeValues = {
+      root: 'singleton:one-per-container-tree',
+      scoped: 'scoped:one-per-container',
+      transient: 'transient:one-per-resolve',
+    } as const;
     return {
       source: (create, factoryReturnKind) => current.createProvider(create, { factoryReturnKind }),
-      own: (registration, dispose) => current.withDisposal(registration, dispose),
-      lifetime: (registration, lifetime) => current.withLifetime(registration, lifetime),
+      own: (registration, dispose) => current.providerWithDisposal({ provider: registration, disposeService: dispose }),
+      lifetime: (registration, lifetime) => current.providerWithLifetime({ provider: registration, lifetime: lifetimeValues[lifetime] }),
       build: bindings => current.createBuilder().withServices(bindings).buildContainer(),
       child: bag => (bag as CurrentRuntimeBag).createChildContainer(),
       resolve: (bag, key) => (bag as CurrentRuntimeBag).resolve(key),

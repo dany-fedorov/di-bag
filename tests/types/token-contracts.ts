@@ -39,10 +39,10 @@ type OverrideFacadeContracts = [
   Assert<Equal<unknown extends Overrides<{ port: () => number }, { extra: () => number }> ? true : false, false>>,
   Assert<Equal<unknown extends Overrides<{ port: () => number }, { port: () => string }> ? true : false, false>>,
 ];
-const annotated = DiBag.withMetadata(source, { static: { owner: 'team' } });
-const owned = DiBag.withDisposal(annotated, value => { type Value = Assert<Equal<typeof value, { value: number; promise: Promise<string> }>>; });
-const sync = DiBag.transformService(owned, { mode: 'direct', transform: value => value.promise });
-const async = DiBag.transformService(sync, { mode: 'awaited', transform: value => { type Value = Assert<Equal<typeof value, string>>; return value.length; } });
+const annotated = DiBag.providerWithRegistrationMetadata({ provider: source, registrationMetadata: { owner: 'team' } });
+const owned = DiBag.providerWithDisposal({ provider: annotated, disposeService: value => { type Value = Assert<Equal<typeof value, { value: number; promise: Promise<string> }>>; } });
+const sync = DiBag.providerWithTransformedService({ provider: owned, transformService: value => value.promise, callbackReceives: 'exposed-service' });
+const async = DiBag.providerWithTransformedService({ provider: sync, transformService: value => { type Value = Assert<Equal<typeof value, string>>; return value.length; }, callbackReceives: 'fulfilled-value' });
 const bindingKey = Symbol('binding'); const binding = DiBag.createToken(bindingKey).forService<{ value: number; promise: Promise<string> }>();
 const bound = withTokenBinding(binding, owned);
 const collectionMemberKey = Symbol('collection member');
@@ -62,13 +62,13 @@ type Retention = [Assert<Equal<ProviderGraphContract<typeof annotated>, SourceGr
   Assert<Equal<ProviderRegistrationMetadata<typeof bound>, Readonly<{ owner: string }>>>, Assert<Equal<ProviderAcquisitionMetadata<typeof bound>, readonly []>>,
   Assert<Equal<ProviderOutput<typeof sync>, Promise<string>>>, Assert<Equal<ProviderOutput<typeof async>, Promise<number>>>];
 const immediate = createProviderFromFunction({ dependencies: [token], factoryFunction: value => value });
-const annotatedSource = DiBag.transformService(createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }), { mode: 'direct', transform: value => value });
-const framed = DiBag.withMetadata(annotatedSource, { dynamic: { mode: 'direct', describe: () => ({ source: 'frame' }) } });
-const framedAwaited = DiBag.withMetadata(annotatedSource, { dynamic: { mode: 'awaited', describe: () => ({ source: 'frame' }) } });
-const framedMetadata = DiBag.withMetadata(framed, { static: { framed: true } });
-const framedOwned = DiBag.withDisposal(framedMetadata, value => { type Value = Assert<Equal<typeof value, number>>; });
-const framedSync = DiBag.transformService(framedOwned, { mode: 'direct', transform: value => String(value) });
-const framedAsync = DiBag.transformService(framedOwned, { mode: 'awaited', transform: value => String(value) });
+const annotatedSource = DiBag.providerWithTransformedService({ provider: createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }), transformService: value => value, callbackReceives: 'exposed-service' });
+const framed = DiBag.providerWithAcquisitionMetadata({ provider: annotatedSource, describeAcquisition: () => ({ source: 'frame' }), callbackReceives: 'exposed-service' });
+const framedAwaited = DiBag.providerWithAcquisitionMetadata({ provider: annotatedSource, describeAcquisition: () => ({ source: 'frame' }), callbackReceives: 'fulfilled-value' });
+const framedMetadata = DiBag.providerWithRegistrationMetadata({ provider: framed, registrationMetadata: { framed: true } });
+const framedOwned = DiBag.providerWithDisposal({ provider: framedMetadata, disposeService: value => { type Value = Assert<Equal<typeof value, number>>; } });
+const framedSync = DiBag.providerWithTransformedService({ provider: framedOwned, transformService: value => String(value), callbackReceives: 'exposed-service' });
+const framedAsync = DiBag.providerWithTransformedService({ provider: framedOwned, transformService: value => String(value), callbackReceives: 'fulfilled-value' });
 type Framed = [Assert<Equal<ProviderGraphContract<typeof framedMetadata>, TokenDependencyContract<readonly [typeof token]>>>,
   Assert<Equal<ProviderGraphContract<typeof framedOwned>, TokenDependencyContract<readonly [typeof token]>>>,
   Assert<Equal<ProviderGraphContract<typeof framedSync>, TokenDependencyContract<readonly [typeof token]>>>,
@@ -84,7 +84,7 @@ type AcquisitionContracts = [Assert<Equal<ProviderGraphContract<typeof immediate
   Assert<Equal<ProviderOutput<typeof immediate>, number>>, Assert<Equal<ProviderOutput<typeof framed>, number>>, Assert<Equal<ProviderOutput<typeof framedAwaited>, Promise<number>>>,
   Assert<Equal<ProviderAcquisitionMetadata<typeof framed>, readonly [Readonly<{ source: string }>]>>];
 const plain = ({ named }: { named: boolean }) => named;
-const ordinary = DiBag.withDisposal(() => 1, () => {});
+const ordinary = DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => {} });
 type Mixed = typeof source | typeof plain | typeof ordinary;
 type MixedGraph = SourceGraph | TokenDependencyContract;
 type MixedChecks = [Assert<Equal<ProviderGraphContract<NoInfer<Mixed>>, MixedGraph>>,
@@ -95,13 +95,13 @@ type MixedChecks = [Assert<Equal<ProviderGraphContract<NoInfer<Mixed>>, MixedGra
   Assert<Equal<BoundToken<NoInfer<Mixed | ProviderBase>>, TokenBase>>,
   Assert<Equal<ProviderGraphContract<NoInfer<typeof ordinary>>, TokenDependencyContract>>];
 declare const mixed: Mixed;
-const mixedMapped = DiBag.transformService(mixed, { mode: 'direct', transform: value => { type Value = Assert<Equal<typeof value, { value: number; promise: Promise<string> } | number | boolean>>; return value; } });
+const mixedMapped = DiBag.providerWithTransformedService({ provider: mixed, transformService: value => { type Value = Assert<Equal<typeof value, { value: number; promise: Promise<string> } | number | boolean>>; return value; }, callbackReceives: 'exposed-service' });
 type MixedMapped = Assert<Equal<ProviderGraphContract<typeof mixedMapped>, MixedGraph>>;
 type Heterogeneous = typeof framedOwned | typeof plain | typeof ordinary;
 type HeterogeneousChecks = [Assert<Equal<ProviderRegistrationMetadata<NoInfer<Heterogeneous>>, Readonly<{}> | Readonly<{ framed: boolean }>>>,
   Assert<Equal<ProviderAcquisitionMetadata<NoInfer<Heterogeneous>>, readonly [] | ProviderAcquisitionMetadata<typeof framed>>>,
   Assert<Equal<ProviderGraphContract<NoInfer<Heterogeneous>>, TokenDependencyContract | TokenDependencyContract<readonly [typeof token]>>>,
-  Assert<Equal<ProviderNamedDependencies<NoInfer<Heterogeneous>>, Record<never, never> | { named: boolean }>>,
+  Assert<Equal<ProviderNamedDependencies<NoInfer<Heterogeneous>>, { named: boolean }>>,
   Assert<Equal<ProviderGraphContract<NoInfer<typeof bound | typeof plain>>, ProviderGraphContract<typeof bound> | TokenDependencyContract>>,
   Assert<Equal<BoundToken<NoInfer<typeof bound | typeof plain>>, typeof binding>>];
 const empty = createProviderFromFunction({ dependencies: [], factoryFunction: () => 42 }); const defaultAnnotation: Provider<() => number> = empty;

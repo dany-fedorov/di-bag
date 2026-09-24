@@ -9,13 +9,12 @@ function caught(callback: () => unknown): any {
 test('combined metadata retains static descriptions and ordered direct/awaited frames', async () => {
   const value = Promise.resolve({ id: 7 });
   const base = DiBag.createProvider(() => value, { factoryReturnKind: 'uninspected' });
-  const direct = DiBag.withMetadata(base, {
-    static: { module: 'billing' },
-    dynamic: { mode: 'direct', describe: pending => ({ same: pending === value }) },
+  const direct = DiBag.providerWithAcquisitionMetadata({
+    provider: DiBag.providerWithRegistrationMetadata({ provider: base, registrationMetadata: { module: 'billing' } }),
+    callbackReceives: 'exposed-service',
+    describeAcquisition: pending => ({ same: pending === value }),
   });
-  const annotated = DiBag.withMetadata(direct, {
-    dynamic: { mode: 'awaited', describe: item => ({ id: item.id, payload: undefined }) },
-  });
+  const annotated = DiBag.providerWithAcquisitionMetadata({ provider: direct, describeAcquisition: item => ({ id: item.id, payload: undefined }), callbackReceives: 'fulfilled-value' });
   const bag = DiBag.createBuilder().withServices({ direct, annotated }).buildContainer();
   expect(bag.serviceSnapshot('annotated').registrationMetadata).toEqual({ module: 'billing' });
   expect(bag.resolve('direct')).toBe(value);
@@ -28,29 +27,27 @@ test('combined metadata retains static descriptions and ordered direct/awaited f
 });
 
 test('metadata collisions preflight and asynchronous metadata callbacks reject', async () => {
-  const source = DiBag.withMetadata(() => 1, { static: { owner: 'a' } });
+  const source = DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { owner: 'a' } });
   let reads = 0;
-  const collision = caught(() => DiBag.withMetadata(source, { static: { get owner() { reads++; return 'b'; } } } as never));
+  const collision = caught(() => DiBag.providerWithRegistrationMetadata({ provider: source, registrationMetadata: { get owner() { reads++; return 'b'; } } } as never));
   expect(collision.code).toBe('DI_BAG_DUPLICATE_METADATA');
   expect(Object.isFrozen(collision.details)).toBe(true);
   expect(reads).toBe(0);
   for (const mode of ['direct', 'awaited'] as const) {
-    const bad = DiBag.withMetadata(() => 1, { dynamic: { mode, describe: async () => ({ bad: true }) } } as never);
-    const bag = DiBag.createBuilder().withServices({ bad }).buildContainer();
+    const bad = DiBag.providerWithAcquisitionMetadata({ provider: () => 1, callbackReceives: mode === 'direct' ? 'exposed-service' : 'fulfilled-value', describeAcquisition: async () => ({ bad: true }) } as never);
+    const bag = (DiBag.createBuilder() as any).withServices({ bad }).buildContainer();
     if (mode === 'direct') expect(caught(() => bag.resolve('bad')).code).toBe('DI_BAG_INVALID_METADATA');
     else await expect(bag.resolve('bad')).rejects.toMatchObject({ code: 'DI_BAG_INVALID_METADATA' });
     await bag.close();
   }
 });
 
-test('transformService retains earlier ownership and raw output disposal policy', async () => {
+test('providerWithTransformedService retains earlier ownership and raw output disposal policy', async () => {
   const disposed: unknown[] = [];
   const connection = { id: 9 };
   const pending = Promise.resolve('result');
-  const source = DiBag.withDisposal(() => connection, value => { disposed.push(value); });
-  const transformed = DiBag.withDisposal(DiBag.transformService(source, {
-    mode: 'direct', acquisitionMode: 'uninspected', transform: value => { expect(value).toBe(connection); return pending; },
-  }), value => { disposed.push(value); });
+  const source = DiBag.providerWithDisposal({ provider: () => connection, disposeService: value => { disposed.push(value); } });
+  const transformed = DiBag.providerWithDisposal({ provider: DiBag.providerWithTransformedService({ provider: source, transformService: value => { expect(value).toBe(connection); return pending; }, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } });
   const bag = DiBag.createBuilder().withServices({ transformed }).buildContainer();
   expect(bag.resolve('transformed')).toBe(pending);
   await bag.close();
@@ -92,7 +89,7 @@ test('diagnostics count callbacks, retain cycles and preserve application error 
   expect(cycle.details.path).toEqual(['a', 'b', 'a']);
   await cycleBag.close();
   const dispose = () => { throw applicationError; };
-  const owned = DiBag.withDisposal(DiBag.withDisposal(() => 1, dispose), dispose);
+  const owned = DiBag.providerWithDisposal({ provider: DiBag.providerWithDisposal({ provider: () => 1, disposeService: dispose }), disposeService: dispose });
   const bag = DiBag.createBuilder().withServices({ owned }).buildContainer();
   bag.resolve('owned');
   try { await bag.close(); throw new Error('expected cleanup failure'); }
@@ -121,17 +118,17 @@ test('closed facades distinguish closed from closing across fork and createScope
   expect(caught(() => bag.createChildContainer())).toMatchObject({ code: 'DI_BAG_CLOSED', details: { state: 'closed' } });
 });
 
-test('metadata rejects inherited top-level options before reading or executing them', () => {
+test('provider metadata facades reject inherited options before reading them', () => {
   let reads = 0;
   const options = Object.assign(Object.create({
-    get dynamic() { reads++; return { mode: 'invalid', describe: () => ({ invalid: true }) }; },
-  }), { static: { tag: 'own' } });
-  expect(caught(() => DiBag.withMetadata(() => 1, options))).toMatchObject({ code: 'DI_BAG_INVALID_METADATA' });
+    get registrationMetadata() { reads++; return { invalid: true }; },
+  }), { provider: () => 1 });
+  expect(caught(() => DiBag.providerWithRegistrationMetadata(options as never))).toMatchObject({ code: 'DI_BAG_INVALID_ARGUMENT' });
   expect(reads).toBe(0);
-  const inheritedStatic = Object.assign(Object.create({ static: { tag: 'inherited' } }), {
-    dynamic: { mode: 'direct', describe: () => ({}) },
+  const inheritedCallback = Object.assign(Object.create({ callbackReceives: 'exposed-service' }), {
+    provider: () => 1, describeAcquisition: () => ({}),
   });
-  expect(caught(() => DiBag.withMetadata(() => 1, inheritedStatic))).toMatchObject({ code: 'DI_BAG_INVALID_METADATA' });
+  expect(caught(() => DiBag.providerWithAcquisitionMetadata(inheritedCallback as never))).toMatchObject({ code: 'DI_BAG_INVALID_ARGUMENT' });
 });
 
 test('metadata snapshots dynamic mode and callback once before static getters run', async () => {
@@ -150,9 +147,17 @@ test('metadata snapshots dynamic mode and callback once before static getters ru
     },
   };
   // The hostile getter changes modes; its first read is deliberately direct.
-  const provider = DiBag.withMetadata(() => 7, options as {
-    static: { tag: string };
-    dynamic: { mode: 'direct'; describe: (value: number) => { value: number } };
+  const snapshottedDynamic = options.dynamic;
+  const provider = DiBag.providerWithRegistrationMetadata({
+    provider: DiBag.providerWithAcquisitionMetadata({
+      provider: () => 7,
+      get callbackReceives(): 'exposed-service' {
+        if (snapshottedDynamic.mode !== 'direct') throw new Error('expected direct snapshot');
+        return 'exposed-service';
+      },
+      get describeAcquisition() { return snapshottedDynamic.describe; },
+    }),
+    get registrationMetadata() { return options.static; },
   });
   const bag = DiBag.createBuilder().withServices({ provider }).buildContainer();
   expect(bag.resolve('provider')).toBe(7);

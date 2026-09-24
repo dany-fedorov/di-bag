@@ -134,8 +134,8 @@ for (const surface of ['current', 'baseline'] as const) {
         return terminal;
       },
       createProvider() { return () => { throw new Error('build-close acquired a provider'); }; },
-      withDisposal(value: unknown) { return value; },
-      withLifetime(value: unknown) { return value; },
+      providerWithDisposal({ provider }: { provider: unknown }) { return provider; },
+      providerWithLifetime({ provider }: { provider: unknown }) { return provider; },
     };
     const baselineFacade = {
       begin() {
@@ -187,8 +187,8 @@ test('current provider bridge uses final return kinds before timing', async () =
   const facade = {
     createBuilder() { return { withServices() { return this; }, buildContainer() { return bag; } }; },
     createProvider(create: unknown, options: { factoryReturnKind: string }) { kinds.push(options.factoryReturnKind); return create; },
-    withDisposal(value: unknown) { return value; },
-    withLifetime(value: unknown) { return value; },
+    providerWithDisposal({ provider }: { provider: unknown }) { return provider; },
+    providerWithLifetime({ provider }: { provider: unknown }) { return provider; },
   };
   const prepared = await prepareScenario('node-native-promise', 10, facade, 'current');
   expect(kinds).toEqual([...Array(9).fill('uninspected'), 'native-promise']);

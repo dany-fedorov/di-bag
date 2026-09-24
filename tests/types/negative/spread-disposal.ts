@@ -1,6 +1,6 @@
 import { DiBag } from '../../../src';
-const owned = DiBag.withDisposal(() => 1, value => { value.toFixed(); });
-// diagnostic: nominal
+const owned = DiBag.providerWithDisposal({ provider: () => 1, disposeService: value => { value.toFixed(); } });
+// diagnostic: 'create' does not exist in type 'ProviderOrFactory'
 DiBag.createBuilder().withServices({ value: { ...owned, create: () => 'wrong' } });
-// diagnostic: nominal
+// diagnostic: not assignable
 DiBag.createBuilder().withServices({ value: { ...owned } });

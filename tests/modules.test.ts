@@ -7,15 +7,15 @@ test('a module private retry keeps the caught failed attempt separate', async ()
   const valueB = { id: 'b' };
   const events: string[] = [];
   const feature = DiBag.createBuilder().withServices({
-    a: DiBag.withDisposal((deps: { b: typeof valueB }) => {
+    a: DiBag.providerWithDisposal({ provider: (deps: { b: typeof valueB }) => {
       try { void deps.b; } catch {}
       return valueA;
-    }, value => { events.push(value.id); }),
-    b: DiBag.withDisposal((deps: { a: typeof valueA }) => {
+    }, disposeService: value => { events.push(value.id); } }),
+    b: DiBag.providerWithDisposal({ provider: (deps: { a: typeof valueA }) => {
       if (first) { first = false; throw new Error('first attempt'); }
       expect(deps.a).toBe(valueA);
       return valueB;
-    }, value => { events.push(value.id); }),
+    }, disposeService: value => { events.push(value.id); } }),
     retry: (deps: { b: typeof valueB }) => () => deps.b,
   }).buildModule({ exportedServiceKeys: ['a', 'retry'] });
   const bag = DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
@@ -31,15 +31,14 @@ test('a module private retry keeps the caught failed attempt separate', async ()
 test('module private dependencies follow exported replacements and fresh forks', async () => {
   const events: string[] = [];
   const feature = DiBag.createBuilder().withServices({
-    connection: DiBag.withDisposal(() => ({ open: true }), () => { events.push('connection'); }),
+    connection: DiBag.providerWithDisposal({ provider: () => ({ open: true }), disposeService: () => { events.push('connection'); } }),
     service: ({ connection, logger }: { connection: { open: boolean }; logger: { log(message: string): void } }) =>
       ({ read() { logger.log('read'); return connection.open; }, extra() { return 7; } }),
     privateReader: ({ service }: { service: { read(): boolean; extra(): number } }) => () => service.read(),
-    handler: DiBag.withDisposal(({ privateReader }: { privateReader(): boolean }) => privateReader,
-      () => { events.push('handler'); }),
+    handler: DiBag.providerWithDisposal({ provider: ({ privateReader }: { privateReader(): boolean }) => privateReader, disposeService: () => { events.push('handler'); } }),
   }).buildModule({ exportedServiceKeys: ['service', 'handler'] });
   const builder = DiBag.createBuilder().withInstalledModules([feature]).withServices({
-    logger: DiBag.withDisposal(() => ({ log(message: string) { events.push(message); } }), () => { events.push('logger'); }),
+    logger: DiBag.providerWithDisposal({ provider: () => ({ log(message: string) { events.push(message); } }), disposeService: () => { events.push('logger'); } }),
   });
   const root = builder.buildContainer();
   const child = root.createIndependentContainer(['service'], { service: () => ({ read() { return false; }, extra() { return 8; } }) });
@@ -58,7 +57,7 @@ test('renamed repeated installations isolate private instances and cleanup', asy
   const events: number[] = [];
   let next = 0;
   const module = DiBag.createBuilder().withServices({
-    state: DiBag.withDisposal(() => ({ id: ++next }), state => { events.push(state.id); }),
+    state: DiBag.providerWithDisposal({ provider: () => ({ id: ++next }), disposeService: state => { events.push(state.id); } }),
     read: ({ state }: { state: { id: number } }) => state,
   }).buildModule({ exportedServiceKeys: ['read'] });
   const root = DiBag.createBuilder().withInstalledModules([module.withRenamedExport({ currentExportKey: 'read', newExportKey: 'left' })]).withInstalledModules([module.withRenamedExport({ currentExportKey: 'read', newExportKey: 'right' })]).buildContainer();
@@ -156,17 +155,17 @@ test('module providers can be replaced before sealing without mutating earlier v
 test('close drains module acquisitions that discover private and host dependencies after await', async () => {
   const events: string[] = [];
   const feature = DiBag.createBuilder().withServices({
-    privateResource: DiBag.withDisposal(async (deps: { external: Promise<number> }) => {
+    privateResource: DiBag.providerWithDisposal({ provider: async (deps: { external: Promise<number> }) => {
       await Promise.resolve();
       return await deps.external;
-    }, () => { events.push('private'); }),
-    publicResource: DiBag.withDisposal(async (deps: { privateResource: Promise<number> }) => {
+    }, disposeService: () => { events.push('private'); } }),
+    publicResource: DiBag.providerWithDisposal({ provider: async (deps: { privateResource: Promise<number> }) => {
       await Promise.resolve();
       return await deps.privateResource;
-    }, () => { events.push('public'); }),
+    }, disposeService: () => { events.push('public'); } }),
   }).buildModule({ exportedServiceKeys: ['publicResource'] });
   const root = DiBag.createBuilder().withInstalledModules([feature]).withServices({
-    external: DiBag.withDisposal(async () => 42, () => { events.push('external'); }),
+    external: DiBag.providerWithDisposal({ provider: async () => 42, disposeService: () => { events.push('external'); } }),
   }).buildContainer();
   const acquired = root.resolve('publicResource');
   const closing = root.close();

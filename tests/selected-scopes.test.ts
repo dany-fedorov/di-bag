@@ -6,7 +6,7 @@ test('selected sharing keeps parent dependencies while child overrides stay loca
   const released: string[] = [];
   const root = DiBag.createBuilder().withServices({
     config: () => ({ id: 'parent' }),
-    service: DiBag.withDisposal(({ config }: { config: { id: string } }) => ({ config }), () => { released.push('parent'); }),
+    service: DiBag.providerWithDisposal({ provider: ({ config }: { config: { id: string } }) => ({ config }), disposeService: () => { released.push('parent'); } }),
   }).buildContainer();
   const child = root.createChildContainer(['config'], { config: () => ({ id: 'child', extra: true }) }, { sharedParentServiceKeys: ['service'] });
   expect(child.resolve('config')).toEqual({ id: 'child', extra: true });
@@ -54,7 +54,7 @@ test('scope snapshots selections and ignores unselected override getters and tup
 
 test('invalid selections reject before override values or provider effects', async () => {
   let calls = 0;
-  const root = DiBag.createBuilder().withServices({ a: () => { calls++; return 1; }, transient: DiBag.withLifetime(() => 2, 'transient') }).buildContainer();
+  const root = DiBag.createBuilder().withServices({ a: () => { calls++; return 1; }, transient: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'transient:one-per-resolve' }) }).buildContainer();
   const scope = root.createChildContainer.bind(root) as (...args: unknown[]) => unknown;
   const overrides = { get a() { calls++; return () => 10; } };
   for (const args of [
@@ -89,8 +89,8 @@ test('empty selections are lazy and duplicates read each override once', async (
 
 test('inherited strict roots keep their graph when a child overrides a dependency as scoped', async () => {
   const root = DiBag.createBuilder().withServices({
-    config: DiBag.withLifetime(() => ({ id: 'parent' }), 'root'),
-    service: DiBag.withLifetime(({ config }: { config: { id: string } }) => ({ config }), 'root'),
+    config: DiBag.providerWithLifetime({ provider: () => ({ id: 'parent' }), lifetime: 'singleton:one-per-container-tree' }),
+    service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => ({ config }), lifetime: 'singleton:one-per-container-tree' }),
   }).buildContainer();
   const child = root.createChildContainer(['config'], { config: () => ({ id: 'child' }) });
   expect(child.resolve('config').id).toBe('child');

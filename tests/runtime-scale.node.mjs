@@ -15,7 +15,7 @@ function chain(dispose) {
     const provider = DiBag.createProvider(deps => ({
       index, link: () => index + 1 < count ? deps[`p${index + 1}`] : deps.reader,
     }), { factoryReturnKind: 'uninspected' });
-    return [`p${index}`, dispose ? DiBag.withDisposal(provider, dispose) : provider];
+    return [`p${index}`, dispose ? DiBag.providerWithDisposal({ provider: provider, disposeService: dispose }) : provider];
   }));
   registrations.reader = DiBag.createProvider(deps => () => deps.p0, { factoryReturnKind: 'uninspected' });
   const bag = DiBag.createBuilder().withServices(registrations).buildContainer();
@@ -87,11 +87,11 @@ test('raw fast acquisition preserves unobserved thenable and promise identity an
   assert.equal(reads, 0);
 });
 
-for (const lifetime of ['scoped', 'transient']) {
-  test(`raw ${lifetime} public reentrant creating cycles invoke the factory once`, async () => {
+for (const [lifetimeLabel, lifetime] of [['scoped', 'scoped:one-per-container'], ['transient', 'transient:one-per-resolve']]) {
+  test(`raw ${lifetimeLabel} public reentrant creating cycles invoke the factory once`, async () => {
     let calls = 0;
     const bag = DiBag.createBuilder().withServices({
-      value: DiBag.withLifetime(DiBag.createProvider(() => { calls++; return bag.resolve('value'); }, { factoryReturnKind: 'uninspected' }), lifetime),
+      value: DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => { calls++; return bag.resolve('value'); }, { factoryReturnKind: 'uninspected' }), lifetime: lifetime }),
     }).buildContainer();
     assert.throws(() => bag.resolve('value'), /^Error: DI_BAG_CYCLE: cycle: value -> value; see https:\/\/dany-fedorov\.github\.io\/di-bag\/agent\/errors\.html#di-bag-cycle$/);
     assert.equal(calls, 1);
@@ -101,7 +101,7 @@ for (const lifetime of ['scoped', 'transient']) {
 
 test('native transient ancestry rejects after-await cycles with the original label order', async () => {
   let calls = 0;
-  const transient = create => DiBag.withLifetime(DiBag.createProvider(create, { factoryReturnKind: 'native-promise' }), 'transient');
+  const transient = create => DiBag.providerWithLifetime({ provider: DiBag.createProvider(create, { factoryReturnKind: 'native-promise' }), lifetime: 'transient:one-per-resolve' });
   const bag = DiBag.createBuilder().withServices({
     a: transient(async deps => { calls++; await Promise.resolve(); return deps.b; }),
     b: transient(async deps => { await Promise.resolve(); return deps.a; }),
@@ -113,10 +113,10 @@ test('native transient ancestry rejects after-await cycles with the original lab
 
 test('ready borrowed transient proxies keep late cycle and root capture checks', async () => {
   const raw = create => DiBag.createProvider(create, { factoryReturnKind: 'uninspected' });
-  const transient = create => DiBag.withLifetime(raw(create), 'transient');
+  const transient = create => DiBag.providerWithLifetime({ provider: raw(create), lifetime: 'transient:one-per-resolve' });
   const bag = DiBag.createBuilder().withServices({
     scoped: raw(() => 42),
-    root: DiBag.withLifetime(raw(deps => deps.bridge), 'root'),
+    root: DiBag.providerWithLifetime({ provider: raw(deps => deps.bridge), lifetime: 'singleton:one-per-container-tree' }),
     bridge: transient(deps => ({ read: () => deps.scoped })),
     reader: raw(deps => ({ next: () => deps.link })),
     link: transient(deps => ({ next: () => deps.reader })),
@@ -156,7 +156,7 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 for (const startupOrder of [1, 2]) test(`Node numeric startup ${startupOrder} bounds selected readiness without awaiting raw outputs`, async () => {
   const gates = [gate(), gate(), gate()];
   const calls = [], disposed = [];
-  const provider = index => DiBag.withDisposal(() => { calls.push(index); return gates[index].promise; }, value => { disposed.push(value); });
+  const provider = index => DiBag.providerWithDisposal({ provider: () => { calls.push(index); return gates[index].promise; }, disposeService: value => { disposed.push(value); } });
   const starting = DiBag.createBuilder().withServices({ a: provider(0), b: provider(1), c: provider(2) }).buildContainer().ensureServicesReady(['a', 'b', 'c'], { maxConcurrentServiceKeys: startupOrder });
   assert.deepEqual(calls, startupOrder === 1 ? [0] : [0, 1]);
   gates[0].resolve(10); await turn();
@@ -180,7 +180,7 @@ test('Node observer burst drains in transition and registration order while exte
   const bag = DiBag.withConfiguration({ lifecycleObservers: [{
     onLifecycleEvent(event) { const wait = gate(); pending.push(wait); events.push(`first:${event.kind}`); return wait.promise; },
     onObserverFailure({ error }) { failures.push(error); },
-  }] }).withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { events.push(`second:${event.kind}`); }, onObserverFailure() { assert.fail('fast observer failed'); } }] }).createBuilder().withServices({ value: DiBag.withLifetime(DiBag.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), 'transient') }).buildContainer();
+  }] }).withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) { events.push(`second:${event.kind}`); }, onObserverFailure() { assert.fail('fast observer failed'); } }] }).createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => 1, { factoryReturnKind: 'uninspected' }), lifetime: 'transient:one-per-resolve' }) }).buildContainer();
   await turn(); pending.shift().resolve(); events.length = 0;
   for (let i = 0; i < 100; i++) assert.equal(bag.resolve('value'), 1);
   assert.equal(events.length, 0); await turn();
@@ -197,9 +197,9 @@ test('Node application wait deadlines preserve memoized pending source and dispo
   const source = gate(), disposer = gate(), entered = gate();
   const error = new Error('dispose failed');
   let count = 0, settled = false;
-  const bag = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(() => source.promise, async value => {
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithDisposal({ provider: () => source.promise, disposeService: async value => {
     assert.equal(value, 42); count++; entered.resolve(); await disposer.promise; throw error;
-  }) }).buildContainer();
+  } }) }).buildContainer();
   bag.resolve('value');
   const closing = bag.close();
   const outcome = closing.catch(error => error).then(value => { settled = true; return value; });

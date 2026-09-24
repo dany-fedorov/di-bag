@@ -4,7 +4,7 @@ import type { ProviderGraphContract } from '../../src/provider';
 import type { TokenDependencyContract } from '../../src/token-types';
 import type { Assert, Equal } from './assert';
 import type { Lifetime } from '../../src';
-export type LifetimeCheck = Assert<Equal<Lifetime, 'root' | 'scoped' | 'transient'>>;
+export type LifetimeCheck = Assert<Equal<Lifetime, 'singleton:one-per-container-tree' | 'scoped:one-per-container' | 'transient:one-per-resolve'>>;
 type IsAny<T> = 0 extends (1 & T) ? true : false;
 const callReflectedScope = () => reflectedScope();
 export const repo = graph.resolve('repo');
@@ -12,7 +12,7 @@ export const db = scoped.resolve('db');
 export const forked = independent.resolve('repo');
 export const installed = moduleBag.resolve('raw');
 export type Checks = [
-  Assert<Equal<typeof repo, number>>, Assert<Equal<typeof db, { query(): number }>>, Assert<Equal<typeof forked, number>>,
+  Assert<Equal<typeof repo, number>>, Assert<Equal<typeof db, { query: () => 1 }>>, Assert<Equal<typeof forked, number>>,
   Assert<Equal<IsAny<typeof installed>, false>>, Assert<Equal<typeof installed, Promise<{ id: number }>>>,
   Assert<Equal<ProviderAcquiredValue<typeof raw>, Promise<{ id: number }>>>, Assert<Equal<ProviderAcquiredValue<typeof native>, { id: number }>>,
   Assert<Equal<ProviderOutput<typeof metadata>, Promise<{ id: number }>>>, Assert<Equal<ProviderRegistrationMetadata<typeof metadata>, Readonly<{ owner: 'app' }>>>,

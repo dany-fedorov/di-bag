@@ -154,7 +154,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         let disposed;
         const mappedDisposal = [];
         const feature = DiBag.createBuilder().withServices({
-          answer: DiBag.withMetadata(DiBag.withDisposal(() => 42, value => { disposed = value; }), { static: { owner: 'package' } }),
+          answer: DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: () => 42, disposeService: value => { disposed = value; } }), registrationMetadata: { owner: 'package' } }),
           privateValue: () => 7,
         }).buildModule({ exportedServiceKeys: ['answer'] });
         const bag = DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'answer', newExportKey: 'result' })]).buildContainer();
@@ -163,13 +163,13 @@ for (const mode of ['commonjs', 'module'] as const) {
         await bag.close();
         const cause = new Error('cleanup');
         const failing = DiBag.createBuilder().withServices({
-          resource: DiBag.withDisposal(() => 1, () => { throw cause; }),
+          resource: DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => { throw cause; } }),
         }).buildContainer();
         failing.resolve('resource');
         const error = await failing.close().catch(error => error);
         const raw = Promise.resolve(7);
-        const mapped = DiBag.withDisposal(DiBag.transformService(DiBag.withDisposal(() => raw, value => { mappedDisposal.push(value); }), { mode: 'direct', transform: value => { if (value !== raw) throw new Error('lost source identity'); return { promise: value }; } }), value => { mappedDisposal.push(value.promise === raw ? 'outer' : 'wrong'); });
-        const mappedBag = DiBag.createBuilder().withServices({ mapped, asyncMapped: DiBag.transformService(() => Promise.resolve(4), { mode: 'awaited', transform: value => value + 1 }) }).buildContainer();
+        const mapped = DiBag.providerWithDisposal({ provider: DiBag.providerWithTransformedService({ provider: DiBag.providerWithDisposal({ provider: () => raw, disposeService: value => { mappedDisposal.push(value); } }), transformService: value => { if (value !== raw) throw new Error('lost source identity'); return { promise: value }; }, callbackReceives: 'exposed-service' }), disposeService: value => { mappedDisposal.push(value.promise === raw ? 'outer' : 'wrong'); } });
+        const mappedBag = DiBag.createBuilder().withServices({ mapped, asyncMapped: DiBag.providerWithTransformedService({ provider: () => Promise.resolve(4), transformService: value => value + 1, callbackReceives: 'fulfilled-value' }) }).buildContainer();
         const mappedIdentity = mappedBag.resolve('mapped').promise === raw;
         const asyncMapped = await mappedBag.resolve('asyncMapped');
         await mappedBag.close();
@@ -177,7 +177,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         const esm = await import('di-bag');
         const tokenKey = Symbol('package');
         const selected = cjs.DiBag.createToken(tokenKey).forService();
-        const tokenFeature = esm.DiBag.createBuilder().withTokenService(selected, () => raw).withServices({ value: esm.DiBag.transformService(esm.DiBag.createProviderFromFunction({ dependencies: [selected], factoryFunction: value => value }), { mode: 'direct', transform: value => value }) }).buildModule({ exportedServiceKeys: [selected, 'value'] });
+        const tokenFeature = esm.DiBag.createBuilder().withTokenService(selected, () => raw).withServices({ value: esm.DiBag.providerWithTransformedService({ provider: esm.DiBag.createProviderFromFunction({ dependencies: [selected], factoryFunction: value => value }), transformService: value => value, callbackReceives: 'exposed-service' }) }).buildModule({ exportedServiceKeys: [selected, 'value'] });
         const tokenRuntime = DiBag.createBuilder().withInstalledModules([tokenFeature]).buildContainer();
         const tokenIdentity = tokenRuntime.resolve('value') === raw;
         await tokenRuntime.close();
@@ -187,10 +187,10 @@ for (const mode of ['commonjs', 'module'] as const) {
         let scopedDisposed = 0;
         let transientsDisposed = 0;
         const parent = DiBag.createBuilder().withServices({
-          service: DiBag.withDisposal(() => ++scopeId, value => { scopeLog.push(value); }),
-          root: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'root' }), () => { rootDisposed++; }), 'root'),
-          scoped: DiBag.withDisposal(() => ({ owner: 'scope' }), () => { scopedDisposed++; }),
-          transient: DiBag.withLifetime(DiBag.withDisposal(() => ({ owner: 'call' }), () => { transientsDisposed++; }), 'transient'),
+          service: DiBag.providerWithDisposal({ provider: () => ++scopeId, disposeService: value => { scopeLog.push(value); } }),
+          root: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ owner: 'root' }), disposeService: () => { rootDisposed++; } }), lifetime: 'singleton:one-per-container-tree' }),
+          scoped: DiBag.providerWithDisposal({ provider: () => ({ owner: 'scope' }), disposeService: () => { scopedDisposed++; } }),
+          transient: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ owner: 'call' }), disposeService: () => { transientsDisposed++; } }), lifetime: 'transient:one-per-resolve' }),
         }).buildContainer();
         const scope = parent.createChildContainer();
         const independent = scope.createIndependentContainer();
@@ -260,7 +260,7 @@ for (const mode of ['commonjs', 'module'] as const) {
           };
           const disposed = [];
           const bag = DiBag.createBuilder().withServices({
-            resource: DiBag.withDisposal(() => original, value => { disposed.push(value); }),
+            resource: DiBag.providerWithDisposal({ provider: () => original, disposeService: value => { disposed.push(value); } }),
           }).buildContainer();
           const exposed = bag.resolve('resource');
           await bag.close();
@@ -302,7 +302,7 @@ for (const mode of ['commonjs', 'module'] as const) {
         void [aggregate, acquisitionId, bindingId, label, cause];
       }
       const bag = DiBag.createBuilder().withServices({
-        value: DiBag.withDisposal(async () => 42, value => { const n: number = value; void n; }),
+        value: DiBag.providerWithDisposal({ provider: async () => 42, disposeService: value => { const n: number = value; void n; } }),
         clock: () => ({ now() { return 42; } }),
         service: ({ clock }: { clock: { now(): number } }) => ({
           stamp() { return clock.now(); },
@@ -320,10 +320,10 @@ for (const mode of ['commonjs', 'module'] as const) {
         then(fulfilled) { fulfilled?.(42); throw new Error('after fulfillment'); },
       };
       const converted = DiBag.createBuilder().withServices({
-        resource: DiBag.withDisposal(() => Promise.resolve(legacy), value => {
+        resource: DiBag.providerWithDisposal({ provider: () => Promise.resolve(legacy), disposeService: value => {
           const number: number = value;
           void number;
-        }),
+        } }),
       }).buildContainer().resolve('resource');
       type Converted = Assert<Equal<typeof converted, Promise<number>>>;
       type Stamp = Assert<Equal<typeof stamp, number>>;

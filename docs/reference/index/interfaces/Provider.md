@@ -4,13 +4,13 @@
 
 # Interface: Provider\<ExposedFactory *extends* `Factory`, RegistrationMetadata *extends* `object` = `Readonly`\<\{ \}\>, AcquisitionMetadataFrames *extends* readonly `unknown`[] = readonly \[\], RetainedGraphContract *extends* `GraphContract` = [`TokenDependencyContract`](../type-aliases/TokenDependencyContract.md), AcquiredValue = `Awaited`\<`ReturnType`\<`ExposedFactory`\>\>\>
 
-Defined in: [provider.ts:32](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L32)
+Defined in: [provider.ts:34](https://github.com/dany-fedorov/di-bag/blob/main/src/provider.ts#L34)
 
 An immutable provider description retaining factory, metadata, inspection-frame,
 dependency-graph, and acquired-value contracts.
 
 Create providers through [DiBagApi.createProvider](DiBagApi.md#createprovider), composition adapters, or provider
-decorators. This type-only class has no public constructor.
+composition facades. This type-only class has no public constructor or instance methods.
 
 ## See
 

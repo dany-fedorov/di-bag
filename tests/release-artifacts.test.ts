@@ -352,11 +352,13 @@ describe('native gap inventory', () => {
   test('freezes the exact current reviewed-gap source authority', () => {
     expect(Object.isFrozen(nativeDiagnosticGapMessages)).toBe(true);
     const gaps = collectReviewedNativeGaps(reviewedRoot);
-    // Seven reviewed contextual createProvider gaps: native 7.0.2 reports the
-    // last overload's arity error instead of the useful return-kind/context error.
+    // Seven reviewed contextual createProvider gaps and two reviewed provider
+    // facade mode gaps: native 7.0.2 selects a less useful last-overload diagnostic.
     expect(gaps.map(gap => [gap.fixture, gap.id, gap.code])).toEqual([
       ['negative/portable-factories.ts', 'last-contextual-sync-factory-promise', 2769],
       ['negative/portable-factories.ts', 'last-contextual-native-factory-number', 2769],
+      ['negative/provider-facades.ts', 'last-provider-acquisition-mode', 2769],
+      ['negative/provider-facades.ts', 'last-provider-transform-fulfilled-mode', 2769],
       ['negative/provider-sources.ts', 'last-provider-context-shape', 2769],
       ['negative/provider-sources.ts', 'last-provider-contextual-native-number', 2769],
       ['negative/provider-sources.ts', 'last-provider-contextual-sync-promise', 2769],

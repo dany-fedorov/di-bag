@@ -16,10 +16,7 @@ export function createProjectBuilder(app: AppServices, projectId: string) {
     projectId: DiBag.createProvider(() => projectId, { factoryReturnKind: 'sync-value' }),
     storage: DiBag.createProvider((): Storage => app.storage, { factoryReturnKind: 'sync-value' }),
     transport: DiBag.createProvider((): Transport => app.transport, { factoryReturnKind: 'sync-value' }),
-    lock: DiBag.withDisposal(
-      DiBag.createProvider(({ storage, projectId }: { storage: Storage; projectId: string }) => storage.lock(projectId), { factoryReturnKind: 'native-promise' }),
-      lock => lock.release(),
-    ),
+    lock: DiBag.providerWithDisposal({ provider: DiBag.createProvider(({ storage, projectId }: { storage: Storage; projectId: string }) => storage.lock(projectId), { factoryReturnKind: 'native-promise' }), disposeService: lock => lock.release() }),
     // Depends on the lock so nothing is fetched for a project another runtime still holds.
     manifest: DiBag.createProvider(
       async ({ transport, projectId, lock }: { transport: Transport; projectId: string; lock: Promise<ProjectLock> }, factoryContext) => {

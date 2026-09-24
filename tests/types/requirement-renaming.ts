@@ -11,9 +11,9 @@ export const host = DiBag.createBuilder().withInstalledModules([rerouted])
   .withServices({ appConfig: (): Config => ({ value: 1 }) }).buildContainer();
 export const result: number = host.resolve('service');
 export const strict = DiBag.createBuilder().withServices({
-  service: DiBag.withLifetime(({ config }: { config: Config }) => config.value, 'root'),
+  service: DiBag.providerWithLifetime({ provider: ({ config }: { config: Config }) => config.value, lifetime: 'singleton:one-per-container-tree' }),
 }).buildModule({ exportedServiceKeys: ['service'] })
   .withRenamedRequirement({ currentRequirementKey: 'config', newRequirementKey: 'strictConfig' });
 DiBag.createBuilder().withInstalledModules([strict])
-  .withServices({ strictConfig: DiBag.withLifetime((): Config => ({ value: 1 }), 'root') })
+  .withServices({ strictConfig: DiBag.providerWithLifetime({ provider: (): Config => ({ value: 1 }), lifetime: 'singleton:one-per-container-tree' }) })
   .buildContainer();

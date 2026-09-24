@@ -11,13 +11,10 @@ function portableApplication(log: string[]) {
   return DiBag.createBuilder()
     .withServices({
       config: DiBag.createProvider((): Config => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' }),
-      catalog: DiBag.withDisposal(
-        DiBag.createProvider(async ({ config }: { config: Config }): Promise<Catalog> => ({
+      catalog: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async ({ config }: { config: Config }): Promise<Catalog> => ({
           names: async () => [config.url],
           close: async () => { log.push('catalog.close'); },
-        }), { factoryReturnKind: 'native-promise' }),
-        catalog => catalog.close(),
-      ),
+        }), { factoryReturnKind: 'native-promise' }), disposeService: catalog => catalog.close() }),
       handler: DiBag.createProvider(({ catalog }: { catalog: Promise<Catalog> }) => ({
         list: async () => (await catalog).names(),
       }), { factoryReturnKind: 'sync-value' }),
@@ -42,9 +39,9 @@ test('modules, lifetimes, scopes, forks and direct transforms stay portable', as
     shown: DiBag.createProvider(async ({ hidden }: { hidden: string }) => `${hidden}/shown`, { factoryReturnKind: 'native-promise' }),
   }).buildModule({ exportedServiceKeys: ['shown'], moduleLabel: 'feature' });
   const bag = withoutBuiltinModule(() => DiBag.createBuilder().withInstalledModules([feature]).withServices({
-    config: DiBag.withLifetime(DiBag.createProvider(() => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' }), 'root'),
-    db: DiBag.withLifetime(DiBag.withDisposal(DiBag.createProvider(async ({ config }: { config: { url: string } }) => ({ url: config.url }), { factoryReturnKind: 'native-promise' }), db => { log.push(`end:${db.url}`); }), 'root'),
-    projected: DiBag.transformService(DiBag.createProvider(() => 1, { factoryReturnKind: 'sync-value' }), { mode: 'direct', transform: value => value + 1, acquisitionMode: 'uninspected' }),
+    config: DiBag.providerWithLifetime({ provider: DiBag.createProvider(() => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' }), lifetime: 'singleton:one-per-container-tree' }),
+    db: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async ({ config }: { config: { url: string } }) => ({ url: config.url }), { factoryReturnKind: 'native-promise' }), disposeService: db => { log.push(`end:${db.url}`); } }), lifetime: 'singleton:one-per-container-tree' }),
+    projected: DiBag.providerWithTransformedService({ provider: DiBag.createProvider(() => 1, { factoryReturnKind: 'sync-value' }), transformService: value => value + 1, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' }),
   }).buildContainer());
   const db = bag.resolve('db');
   expect((await db).url).toBe('memory:');
@@ -70,7 +67,7 @@ test('sync-value exposes the exact value and never reads then', async () => {
   const bag = withoutBuiltinModule(() => DiBag.createBuilder().withServices({
     value: DiBag.createProvider((): object => value, { factoryReturnKind: 'sync-value' }),
     // Reached only through a cast: the type rejects a Promise, the runtime is plain raw.
-    promise: DiBag.withDisposal(DiBag.createProvider((): object => pending, { factoryReturnKind: 'sync-value' }), resource => { disposed.push(resource); }),
+    promise: DiBag.providerWithDisposal({ provider: DiBag.createProvider((): object => pending, { factoryReturnKind: 'sync-value' }), disposeService: resource => { disposed.push(resource); } }),
     later: DiBag.createProvider(async () => 1, { factoryReturnKind: 'native-promise' }),
   }).buildContainer());
   expect(bag.resolve('value')).toBe(value);
@@ -87,7 +84,7 @@ test('native-promise exposes the Promise and hands its fulfilled value to the di
   const pending = Promise.resolve({ id: 1 });
   const disposed: unknown[] = [];
   const bag = withoutBuiltinModule(() => DiBag.createBuilder().withServices({
-    value: DiBag.withDisposal(DiBag.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), resource => { disposed.push(resource); }),
+    value: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), disposeService: resource => { disposed.push(resource); } }),
   }).buildContainer());
   expect(bag.resolve('value')).toBe(pending);
   expect(bag.resolve('value')).toBe(pending);
@@ -107,7 +104,7 @@ for (const [name, make] of [
   const pending = make();
   const disposed: unknown[] = [];
   const bag = withoutBuiltinModule(() => DiBag.createBuilder().withServices({
-    value: DiBag.withDisposal(DiBag.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), resource => { disposed.push(resource); }),
+    value: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => pending, { factoryReturnKind: 'native-promise' }), disposeService: resource => { disposed.push(resource); } }),
   }).buildContainer());
   expect(bag.resolve('value')).toBe(pending);
   await bag.close();

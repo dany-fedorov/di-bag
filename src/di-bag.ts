@@ -6,22 +6,22 @@ import type { BuilderWithCollectionContribution } from './contribution-types';
 import type { BuilderBuildModule, BuilderWithInstalledModules, BuilderWithReplacedService, BuilderWithServiceAlias, BuilderWithServices, BuilderWithTokenService } from './builder-method-types';
 import { aliasEntry } from './aliases';
 import { optional, lazy } from './dependency-references';
-import { normalize, snapshotAdd, withDisposal } from './registration';
+import { normalize, snapshotAdd } from './registration';
 import { snapshotOptionsBag } from './options-bag';
-import type { Registration, Registrations } from './registration';
+import type { ProviderOrFactory, Registrations } from './registration';
 import { BindingGraph, BagRuntime } from './runtime';
 import { moduleGraph, sealModule } from './module';
 import type { CompositionReport } from './composition-report';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
 import type { CheckedLifetimes, WithoutExportObligations } from './lifetime-types';
-import { withLifetime } from './lifetime';
 import { createProvider } from './acquisition-context';
 import { closeRuntime, ensureRuntimeReady } from './startup';
 import { selectChildContainer, selectIndependentContainer } from './scope-selection';
 import type { CreateChildContainerOptions, CreateIndependentContainerOptions, DisjointChildContainerSelection, UnsharedAliases, ScopedAliases } from './scope-types';
 import type { CheckedChildContainerLifetimes } from './lifetime-types';
 import type { CloseOptions, EnsureServicesReadyOptions } from './startup';
-import { withMetadata, transformService, withTokenBinding } from './provider';
+import { withTokenBinding } from './provider';
+import { providerWithAcquisitionMetadata, providerWithDisposal, providerWithLifetime, providerWithRegistrationMetadata, providerWithTransformedService } from './provider-facades';
 import { createProviderFromFunction, createProviderFromClass } from './composition';
 import { runtimeContext, unconfigured } from './acquisition-mode';
 import type { RuntimeContext, RuntimeOptions } from './acquisition-mode';
@@ -283,7 +283,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
     const SharedParentServiceKeys extends readonly unknown[] = readonly [],
   >(
     replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createChildContainer'>,
-    replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> &
+    replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> &
       Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createChildContainer'> &
       CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
       CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
@@ -328,7 +328,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
     ReplacementProviders extends OverrideFactoryContext<ServiceRegistrations, ReplacedServiceKeys, ReplacementProviders>,
   >(
     replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createIndependentContainer'>,
-    replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, Registration> &
+    replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> &
       Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createIndependentContainer'> &
       CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
       CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
@@ -506,7 +506,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
       const { key, kind } = readToken(value);
       if (kind !== 'collection') throw wrongTokenKind('withCollectionContribution', 'collection', key);
     });
-    const [key, value] = contributionEntry(collectionToken, provider as Registration);
+    const [key, value] = contributionEntry(collectionToken, provider as ProviderOrFactory);
     return new Builder(this.#graph.withContribution(key, value, 'withCollectionContribution'), this.context);
   }) as BuilderWithCollectionContribution<Entries, Constraints>;
 
@@ -533,7 +533,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
       throw libraryError('DI_BAG_INVALID_REPLACEMENT', `withReplacedService accepts existing names or typed tokens only: ${String(key)}`, { operation: 'withReplacedService', key });
     }
     normalize(provider, 'withReplacedService');
-    return new Builder(graph.withPublicBinding(key, provider as Registration, 'withReplacedService'), this.context);
+    return new Builder(graph.withPublicBinding(key, provider as ProviderOrFactory, 'withReplacedService'), this.context);
   }
 
   /**
@@ -730,46 +730,50 @@ export interface DiBagApi {
    */
   createBuilder: () => Builder<never>;
   /**
-   * Make the container own a factory's value and run `dispose` on it when the container closes.
-   * `close()` runs disposers, dependents first; close every child and independent container you create.
-   * @throws `DI_BAG_INVALID_REGISTRATION` when the registration is neither a function nor a provider.
+   * Add an ownership stage to a provider input.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag or disposer; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
    * @example
    * ```ts
-   * const container = DiBag.createBuilder().withServices({ controller: DiBag.withDisposal(() => new AbortController(), controller => controller.abort()) }).buildContainer();
-   * await container.close();
+   * const owned = DiBag.providerWithDisposal({ provider: () => ({ close() {} }), disposeService: service => service.close() });
    * ```
    */
-  withDisposal: typeof withDisposal;
+  readonly providerWithDisposal: typeof providerWithDisposal;
   /**
-   * Select `root`, `scoped` (the default), or `transient` caching for a registration.
-   * Mark a shared client `root` only when nothing it depends on is scoped.
-   * @throws `DI_BAG_INVALID_LIFETIME` for an unknown lifetime or malformed options; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
+   * Select a full lifetime for a provider input.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag, lifetime, or option; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
    * @example
    * ```ts
-   * const container = DiBag.createBuilder().withServices({ cache: DiBag.withLifetime(() => new Map<string, string>(), 'root') }).buildContainer();
+   * const cached = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' });
    * ```
    */
-  withLifetime: typeof withLifetime;
+  readonly providerWithLifetime: typeof providerWithLifetime;
   /**
-   * Attach static registration metadata, or per-acquisition metadata in direct or awaited mode.
-   * @throws `DI_BAG_INVALID_METADATA` for malformed options or, at acquisition, a describe result that is not a plain record;
-   * `DI_BAG_DUPLICATE_METADATA` for a repeated key; `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
+   * Add noncolliding registration metadata without acquiring the service.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for malformed metadata; `DI_BAG_DUPLICATE_METADATA` for a repeated key; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
    * @example
    * ```ts
-   * const greeting = DiBag.withMetadata(() => 'hello', { static: { owner: 'greeting' } });
+   * const registered = DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { owner: 'platform' } });
    * ```
    */
-  withMetadata: typeof withMetadata;
+  readonly providerWithRegistrationMetadata: typeof providerWithRegistrationMetadata;
   /**
-   * Transform the exposed service while retaining dependencies, metadata, lifetime, and existing ownership.
-   * @throws `DI_BAG_INVALID_TRANSFORM` for a bad mode or callback; `DI_BAG_INVALID_ACQUISITION_MODE` for an unknown mode;
-   * `DI_BAG_INVALID_REGISTRATION` for an invalid registration.
+   * Append one synchronous acquisition-metadata frame using the selected callback input.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag; `DI_BAG_INVALID_METADATA` for an invalid callback result; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
    * @example
    * ```ts
-   * const shout = DiBag.transformService(() => 'hello', { mode: 'direct', transform: text => text.toUpperCase() });
+   * const observed = DiBag.providerWithAcquisitionMetadata({ provider: () => 1, callbackReceives: 'exposed-service', describeAcquisition: value => ({ value }) });
    * ```
    */
-  transformService: typeof transformService;
+  readonly providerWithAcquisitionMetadata: typeof providerWithAcquisitionMetadata;
+  /**
+   * Transform the selected callback input while retaining dependencies, metadata, lifetime and ownership stages.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed bag or return policy; `DI_BAG_INVALID_REGISTRATION` for an invalid provider.
+   * @example
+   * ```ts
+   * const mapped = DiBag.providerWithTransformedService({ provider: () => 1, callbackReceives: 'exposed-service', transformService: value => String(value) });
+   * ```
+   */
+  readonly providerWithTransformedService: typeof providerWithTransformedService;
 }
 function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
   withConfiguration: (options: ConfigurationOptions): DiBagApi => {
@@ -791,7 +795,8 @@ function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
   createProvider, createProviderFromFunction, createProviderFromClass, createProviderFromPlugin, createToken,
   optional, lazy,
   createBuilder: (): Builder<never> => new Builder(new BindingGraph(), context),
-  withDisposal, withLifetime, withMetadata, transformService,
+  providerWithDisposal, providerWithLifetime, providerWithRegistrationMetadata,
+  providerWithAcquisitionMetadata, providerWithTransformedService,
 }); }
 /**
  * The immutable DI Bag facade. `auto-detect` acquisition uses the host classifier where `process.getBuiltinModule`

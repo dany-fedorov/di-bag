@@ -1,4 +1,4 @@
-import type { Registration, Registrations } from './registration';
+import type { ProviderOrFactory, Registrations } from './registration';
 import type { CollectionItem, CollectionTokenBase, TokenBase, TokenKey, TokenService } from './tokens';
 import type { ValidToken, TokenTupleAdmission, CollectionBindingOutput } from './token-types';
 import type { CheckDependencyCompatibility, CheckDependencyCompleteness, SeeErrors, Unsatisfied, Entry, RegistrationsFromEntries } from './types';
@@ -11,14 +11,14 @@ declare const contributionSite: unique symbol;
  * Each union member retains one independently checked provider and its group.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
  */
-export type Contribution<T extends TokenBase = TokenBase, V extends Registration = Registration> = {
+export type Contribution<T extends TokenBase = TokenBase, V extends ProviderOrFactory = ProviderOrFactory> = {
   readonly kind: 'contribution'; readonly token: T; readonly registration: V;
 };
 /**
  * The erased contribution contract retained by checked builders and modules.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
  */
-export type ContributionConstraint = Contribution<TokenBase, Registration>;
+export type ContributionConstraint = Contribution<TokenBase, ProviderOrFactory>;
 type Groups<C> = Extract<C, ContributionConstraint>;
 type Same<A, B> = [A] extends [B] ? [B] extends [A] ? true : false : false;
 type WrongMember<T, G> = G extends ContributionConstraint ? TokenKey<T> extends TokenKey<G['token']>
@@ -38,7 +38,7 @@ export type CollectionTokenAdmission<R extends Registrations, T> = T extends Col
       : Unsatisfied<'token symbol is already a single service in this graph', {}>
     : unknown
   : Unsatisfied<'withCollectionContribution requires a collection token', {}>;
-type ContributionGraph<A extends Registrations, V extends Registration> = A & Record<typeof contributionSite, V>;
+type ContributionGraph<A extends Registrations, V extends ProviderOrFactory> = A & Record<typeof contributionSite, V>;
 type WrongProvider<C, A extends Registrations> = C extends ContributionConstraint
   ? unknown extends CheckDependencyCompatibility<ContributionGraph<A, C['registration']>> ? never : C : never;
 // Only failing contributions expand their retained consumer/dependency diagnostics.
@@ -80,14 +80,14 @@ export type ModuleContributions<M> = M extends Module<infer _P, infer _R, infer 
  * The checked generic `withCollectionContribution` callable exposed by a builder.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-an-ordered-collection
  */
-export type BuilderWithCollectionContribution<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends Registration>(
+export type BuilderWithCollectionContribution<E extends Entry, C extends NeedConstraint> = <T extends TokenBase, V extends ProviderOrFactory>(
   options: {
     readonly collectionToken: T & (
       unknown extends TokenTupleAdmission<readonly [T]>
         ? CollectionTokenAdmission<RegistrationsFromEntries<E>, T>
         : TokenTupleAdmission<readonly [T]>
     );
-    readonly provider: V & Registration & (
+    readonly provider: V & ProviderOrFactory & (
       unknown extends TokenTupleAdmission<readonly [NoInfer<T>]>
         ? unknown extends CollectionTokenAdmission<RegistrationsFromEntries<E>, NoInfer<T>>
           ? NoInfer<T> extends CollectionTokenBase

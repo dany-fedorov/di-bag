@@ -115,10 +115,6 @@
             "link": "/reference/index/interfaces/FactoryContext.md"
           },
           {
-            "text": "FactoryWithDisposal",
-            "link": "/reference/index/interfaces/FactoryWithDisposal.md"
-          },
-          {
             "text": "GraphSnapshot",
             "link": "/reference/index/interfaces/GraphSnapshot.md"
           },
@@ -393,6 +389,10 @@
             "link": "/reference/index/type-aliases/ProviderOptionalTokens.md"
           },
           {
+            "text": "ProviderOrFactory",
+            "link": "/reference/index/type-aliases/ProviderOrFactory.md"
+          },
+          {
             "text": "ProviderOutput",
             "link": "/reference/index/type-aliases/ProviderOutput.md"
           },
@@ -419,10 +419,6 @@
           {
             "text": "ReboundSelection",
             "link": "/reference/index/type-aliases/ReboundSelection.md"
-          },
-          {
-            "text": "Registration",
-            "link": "/reference/index/type-aliases/Registration.md"
           },
           {
             "text": "RegistrationEntries",

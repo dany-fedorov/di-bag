@@ -14,7 +14,7 @@ export const contributionRuntimeAssertions = `
     let privateCalls = 0;
     const privateCleanup = [];
     const feature = DiBag.createBuilder().withServices({
-      privateHelper: DiBag.withDisposal(() => ({ id: ++privateCalls }), value => { privateCleanup.push(value.id); }),
+      privateHelper: DiBag.providerWithDisposal({ provider: () => ({ id: ++privateCalls }), disposeService: value => { privateCleanup.push(value.id); } }),
     }).withCollectionContribution({ collectionToken: item, provider: ({ privateHelper }) => privateHelper }).buildModule({ exportedServiceKeys: [] });
     const ordered = DiBag.createBuilder().withCollectionContribution({ collectionToken: item, provider: () => ({ id: 'first' }) }).withInstalledModules([feature]).withCollectionContribution({ collectionToken: item, provider: () => ({ id: 'middle' }) }).withInstalledModules([feature]).withTokenService(singularItem, () => ({ id: 'singular' })).buildContainer();
     const descriptions = ordered.serviceSnapshot(item);
@@ -36,8 +36,8 @@ export const contributionRuntimeAssertions = `
     const lifetimeItem = DiBag.createToken(lifetimeKey).forCollectionOf();
     let transientCalls = 0;
     const cleanup = [];
-    const tracked = (factory, lifetime) => DiBag.withLifetime(
-      DiBag.withDisposal(factory, value => { cleanup.push(value); }), lifetime);
+    const lifetimeValues = { root: 'singleton:one-per-container-tree', scoped: 'scoped:one-per-container', transient: 'transient:one-per-resolve' };
+    const tracked = (factory, lifetime) => DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: factory, disposeService: value => { cleanup.push(value); } }), lifetime: lifetimeValues[lifetime] });
     const parent = DiBag.createBuilder().withServices({ helper: () => 'parent' }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(() => ({ kind: 'root' }), 'root') }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(({ helper }) => ({ kind: helper }), 'scoped') }).withCollectionContribution({ collectionToken: lifetimeItem, provider: tracked(() => ({ kind: 'transient', id: ++transientCalls }), 'transient') }).withServices({ aggregate: DiBag.createProviderFromFunction({ dependencies: [lifetimeItem], factoryFunction: values => values }) }).buildContainer();
     const child = parent.createChildContainer(['helper'], { helper: () => 'child' }, { sharedParentServiceKeys: ['aggregate'] });
     const borrowed = child.resolve('aggregate');
@@ -63,9 +63,7 @@ export const contributionRuntimeAssertions = `
     const raw = new Promise(() => {});
     const fulfilled = { kind: 'native' };
     const promiseCleanup = [];
-    const promises = DiBag.createBuilder().withCollectionContribution({ collectionToken: promiseItem, provider: DiBag.withDisposal(DiBag.createProvider(() => native, { factoryReturnKind: 'native-promise' }),
-        value => { promiseCleanup.push(value); }) }).withCollectionContribution({ collectionToken: promiseItem, provider: DiBag.withDisposal(DiBag.createProvider(() => raw, { factoryReturnKind: 'uninspected' }),
-        value => { promiseCleanup.push(value); }) }).buildContainer();
+    const promises = DiBag.createBuilder().withCollectionContribution({ collectionToken: promiseItem, provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => native, { factoryReturnKind: 'native-promise' }), disposeService: value => { promiseCleanup.push(value); } }) }).withCollectionContribution({ collectionToken: promiseItem, provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => raw, { factoryReturnKind: 'uninspected' }), disposeService: value => { promiseCleanup.push(value); } }) }).buildContainer();
     const values = promises.resolveCollection(promiseItem);
     assertContribution(values[0] === native && values[1] === raw, 'collection awaited or wrapped Promise values');
     let closed = false;
@@ -83,7 +81,7 @@ export const contributionRuntimeAssertions = `
     let acceptedCalls = 0;
     let failedCalls = 0;
     let acceptedDisposals = 0;
-    const retry = DiBag.createBuilder().withCollectionContribution({ collectionToken: retryItem, provider: DiBag.withDisposal(() => ({ id: ++acceptedCalls }), () => { acceptedDisposals++; }) }).withCollectionContribution({ collectionToken: retryItem, provider: () => { if (++failedCalls === 1) throw failure; return { id: 'recovered' }; } }).buildContainer();
+    const retry = DiBag.createBuilder().withCollectionContribution({ collectionToken: retryItem, provider: DiBag.providerWithDisposal({ provider: () => ({ id: ++acceptedCalls }), disposeService: () => { acceptedDisposals++; } }) }).withCollectionContribution({ collectionToken: retryItem, provider: () => { if (++failedCalls === 1) throw failure; return { id: 'recovered' }; } }).buildContainer();
     let caught;
     try { retry.resolveCollection(retryItem); } catch (error) { caught = error; }
     assertContribution(caught === failure && acceptedCalls === 1 && acceptedDisposals === 0,

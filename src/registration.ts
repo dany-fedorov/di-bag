@@ -1,64 +1,15 @@
 import { libraryError } from './errors';
-import { transform } from './provider';
-import type { ProviderBase, Provider, ProviderFactory, ProviderAcquiredValue, RetainedMetadata, ProviderAcquisitionMetadata, ProviderGraphContract } from './provider';
-import { normalize, retainDescription, sourceDescription } from './provider-operations';
+import type { ProviderBase } from './provider';
+import { normalize } from './provider-operations';
 export { normalize } from './provider-operations';
 
 // Contravariant bottom accepts each factory's actual parameter type without any.
 export type Factory = (this: void, dependencies: never) => unknown;
 
-// A private member is lost on spread; structural copies cannot be registrations.
-/**
- * A nominal registration pairing a factory with fulfilled-value cleanup.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-cleanup-with-withdisposal
- */
-class FactoryWithDisposal<F extends Factory> {
-  declare private readonly nominal: void;
-  constructor(readonly create: F) {}
-}
+/** A plain factory or immutable provider accepted by provider composition facades. */
+export type ProviderOrFactory = Factory | ProviderBase;
 
-/** A nominal registration pairing a factory with fulfilled-value cleanup. */
-export type { FactoryWithDisposal };
-
-/**
- * A factory, disposable factory, or immutable provider accepted by builders and decorators.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#compose-services
- */
-export type Registration = Factory | FactoryWithDisposal<Factory> | ProviderBase;
-
-export type Registrations = Record<string, Registration>;
-
-/**
- * Declare that each acquiring container owns a factory's fulfilled value.
- * Neither callback runs until acquisition; cleanup runs once after dependent resources.
- * @param create - The receiver-free service factory.
- * @param dispose - Cleanup for its fulfilled value; it may complete synchronously or asynchronously.
- * @returns A nominal disposable registration preserving the factory's exact output.
- */
-export function withDisposal<F extends Factory>(
-  create: F,
-  dispose: (this: void, acquiredValue: Awaited<ReturnType<NoInfer<F>>>) => void | Promise<void>,
-): FactoryWithDisposal<F>;
-/**
- * Add an ownership stage to an existing registration.
- * Earlier disposal stages remain attached and run after this stage in reverse order.
- * @param provider - The registration whose acquired value becomes owned at this stage.
- * @param dispose - Cleanup for the registration's acquired value.
- * @returns A provider retaining output, dependencies, metadata, frames, and earlier ownership.
- */
-export function withDisposal<R extends Registration>(
-  provider: R & Registration,
-  dispose: (this: void, acquiredValue: ProviderAcquiredValue<NoInfer<R>>) => void | Promise<void>,
-): Provider<ProviderFactory<R>, RetainedMetadata<R>, ProviderAcquisitionMetadata<R>, ProviderGraphContract<R>, ProviderAcquiredValue<R>>;
-export function withDisposal(
-  registration: Registration,
-  dispose: (value: never) => void | Promise<void>,
-): FactoryWithDisposal<Factory> | ProviderBase {
-  if (typeof registration !== 'function') return transform(registration, { kind: 'owned', dispose });
-  const handle = new FactoryWithDisposal(registration);
-  retainDescription(handle, sourceDescription(registration, dispose));
-  return handle;
-}
+export type Registrations = Record<string, ProviderOrFactory>;
 
 /** Preflight every own key before reading getters; retain hidden own entries. */
 export function snapshotAdd(providersByName: unknown, hasKey: (key: string) => boolean): Registrations {
@@ -75,7 +26,7 @@ export function snapshotAdd(providersByName: unknown, hasKey: (key: string) => b
   for (const key of keys as string[]) {
     const registration: unknown = Reflect.get(providersByName, key);
     normalize(registration, operation);
-    snapshot[key] = registration as Registration;
+    snapshot[key] = registration as ProviderOrFactory;
   }
   return snapshot;
 }

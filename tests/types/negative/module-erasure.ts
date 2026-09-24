@@ -1,11 +1,11 @@
 import { DiBag } from '../../../src';
 import { feature } from '../module-erasure/feature';
-const clock = DiBag.withLifetime(() => () => 0, 'root');
+const clock = DiBag.providerWithLifetime({ provider: () => () => 0, lifetime: 'singleton:one-per-container-tree' });
 // diagnostic: root lifetime cannot capture scoped dependency: api -> external; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
-DiBag.createBuilder().withInstalledModules([feature]).withServices({ external: () => 'x', clock, api: DiBag.withLifetime(({ passthrough }: { passthrough: () => number }) => passthrough(), 'root') }).buildContainer();
+DiBag.createBuilder().withInstalledModules([feature]).withServices({ external: () => 'x', clock, api: DiBag.providerWithLifetime({ provider: ({ passthrough }: { passthrough: () => number }) => passthrough(), lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency: api -> external; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
-DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'passthrough', newExportKey: 'through' })]).withServices({ external: () => 'x', clock, api: DiBag.withLifetime(({ through }: { through: () => number }) => through(), 'root') }).buildContainer();
-const helper = DiBag.createBuilder().withServices({ helper: () => 1, api: DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'root') });
+DiBag.createBuilder().withInstalledModules([feature.withRenamedExport({ currentExportKey: 'passthrough', newExportKey: 'through' })]).withServices({ external: () => 'x', clock, api: DiBag.providerWithLifetime({ provider: ({ through }: { through: () => number }) => through(), lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
+const helper = DiBag.createBuilder().withServices({ helper: () => 1, api: DiBag.providerWithLifetime({ provider: ({ helper }: { helper: number }) => helper, lifetime: 'singleton:one-per-container-tree' }) });
 // diagnostic: root lifetime cannot capture scoped dependency: api -> helper; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
 helper.buildModule({ exportedServiceKeys: [] });
 // diagnostic: provided service does not satisfy its consumer dependency

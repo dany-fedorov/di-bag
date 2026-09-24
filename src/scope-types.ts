@@ -1,6 +1,6 @@
 import type { CanonicalLifetime } from './lifetime-types';
 import type { Provider, ProviderGraphContract, ProviderFactory, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue } from './provider';
-import type { Registration, Registrations } from './registration';
+import type { ProviderOrFactory, Registrations } from './registration';
 import type { SelectionKey } from './token-types';
 import type { Selection, Unsatisfied } from './types';
 import type { CollectionTokenBase, TokenKey } from './tokens';
@@ -67,8 +67,8 @@ export type DisjointChildContainerSelection<ReplacedServiceKeys extends readonly
 type SharedKeys<R extends Registrations> = {
   [K in keyof R]: ProviderGraphContract<R[K]> extends { readonly sharedAlias: unknown } ? K : never;
 }[keyof R];
-type Unshared<V extends Registration> = ProviderGraphContract<V> extends {
-  readonly sharedAlias: { readonly original: infer O extends Registration };
+type Unshared<V extends ProviderOrFactory> = ProviderGraphContract<V> extends {
+  readonly sharedAlias: { readonly original: infer O extends ProviderOrFactory };
 } ? O : V;
 /**
  * Remove parent-sharing routes when creating a fresh child or independent container.

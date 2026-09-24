@@ -5,13 +5,13 @@
 # Type Alias: BuilderWithTokenService\<Entries *extends* `Entry`, Constraints *extends* `NeedConstraint`\>
 
 ```ts
-type BuilderWithTokenService<Entries extends Entry, Constraints extends NeedConstraint> = <TokenHandle extends TokenBase, Provider extends Registration>(token: TokenHandle & TokenTupleAdmission<readonly [TokenHandle]> & RegisterTokenAdmission<TokenHandle, Constraints> & IntroducesKeys<EntryKeys<Entries>, TokenKey<TokenHandle>>, provider: Provider & Registration & BindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>> & ThenableAdmission<Record<TokenKey<TokenHandle>, NoInfer<Provider>>> & IncrementalChecked<Entries, Record<TokenKey<TokenHandle>, TokenBinding<NoInfer<TokenHandle>, NoInfer<Provider>>>> & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<TokenKey<TokenHandle>, TokenBinding<NoInfer<TokenHandle>, NoInfer<Provider>>>>>) => import('./di-bag').Builder<Entries | {
+type BuilderWithTokenService<Entries extends Entry, Constraints extends NeedConstraint> = <TokenHandle extends TokenBase, Provider extends ProviderOrFactory>(token: TokenHandle & TokenTupleAdmission<readonly [TokenHandle]> & RegisterTokenAdmission<TokenHandle, Constraints> & IntroducesKeys<EntryKeys<Entries>, TokenKey<TokenHandle>>, provider: Provider & ProviderOrFactory & BindingOutput<NoInfer<TokenHandle>, NoInfer<Provider>> & ThenableAdmission<Record<TokenKey<TokenHandle>, NoInfer<Provider>>> & IncrementalChecked<Entries, Record<TokenKey<TokenHandle>, TokenBinding<NoInfer<TokenHandle>, NoInfer<Provider>>>> & CheckedConstraints<Constraints, OverrideRegistrations<RegistrationsFromEntries<Entries>, Record<TokenKey<TokenHandle>, TokenBinding<NoInfer<TokenHandle>, NoInfer<Provider>>>>>) => import('./di-bag').Builder<Entries | {
     key: TokenKey<TokenHandle>;
     registration: TokenBinding<TokenHandle, Provider>;
 }, Constraints>;
 ```
 
-Defined in: [builder-method-types.ts:40](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L40)
+Defined in: [builder-method-types.ts:65](https://github.com/dany-fedorov/di-bag/blob/main/src/builder-method-types.ts#L65)
 
 The checked generic `withTokenService` callable exposed by a builder.
 

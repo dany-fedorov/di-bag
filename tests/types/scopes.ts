@@ -3,11 +3,8 @@ import { DiBag } from '../../src';
 const exactKey: unique symbol = Symbol('exact');
 export const exactToken = DiBag.createToken(exactKey).forService<{ readonly id: 'token'; read(): number }>();
 const rawPromise = Promise.resolve({ id: 'raw' as const });
-const rawOwned = DiBag.withDisposal(
-  DiBag.createProvider(() => rawPromise, { factoryReturnKind: 'uninspected' }),
-  value => { const exact: Promise<{ id: 'raw' }> = value; void exact; },
-);
-const decoratedRaw = DiBag.withMetadata(rawOwned, { static: { owner: 'scope' as const } });
+const rawOwned = DiBag.providerWithDisposal({ provider: DiBag.createProvider(() => rawPromise, { factoryReturnKind: 'uninspected' }), disposeService: value => { const exact: Promise<{ id: 'raw' }> = value; void exact; } });
+const decoratedRaw = DiBag.providerWithRegistrationMetadata({ provider: rawOwned, registrationMetadata: { owner: 'scope' as const } });
 const feature = DiBag.createBuilder().withServices({
   hidden: ({ external }: { external: { readonly exact: true } }) => external.exact,
   publicValue: ({ hidden }: { hidden: true }) => ({ hidden }),

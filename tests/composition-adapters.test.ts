@@ -112,7 +112,7 @@ for (const kind of ['function', 'class'] as const) {
       dispose() { conventionalCleanup++; }
     }
     const source = kind === 'class' ? DiBag.createProviderFromClass({ dependencies: [], serviceClass: Resource }) : DiBag.createProviderFromFunction({ dependencies: [], factoryFunction: () => new Resource() });
-    const bag = DiBag.createBuilder().withServices({ owned: DiBag.withDisposal(source, value => { disposed.push(value); }), plain: source }).buildContainer();
+    const bag = DiBag.createBuilder().withServices({ owned: DiBag.providerWithDisposal({ provider: source, disposeService: value => { disposed.push(value); } }), plain: source }).buildContainer();
     expect(() => bag.resolve('owned')).toThrow('setup');
     const value = bag.resolve('owned'); expect(value).toBeInstanceOf(Resource);
     bag.resolve('plain'); await bag.close();
@@ -123,8 +123,8 @@ for (const kind of ['function', 'class'] as const) {
 test('raw and native adapters retain Promise identity and select the disposal value', async () => {
   const value = { id: 1 }; const promise = Promise.resolve(value); const disposed: unknown[] = [];
   const bag = Core.createBuilder().withServices({
-    raw: Core.withDisposal(Core.createProviderFromFunction({ dependencies: [], factoryFunction: () => promise, factoryReturnKind: 'uninspected' }), result => { disposed.push(result); }),
-    native: Core.withDisposal(Core.createProviderFromFunction({ dependencies: [], factoryFunction: () => promise, factoryReturnKind: 'native-promise' }), result => { disposed.push(result); }),
+    raw: Core.providerWithDisposal({ provider: Core.createProviderFromFunction({ dependencies: [], factoryFunction: () => promise, factoryReturnKind: 'uninspected' }), disposeService: result => { disposed.push(result); } }),
+    native: Core.providerWithDisposal({ provider: Core.createProviderFromFunction({ dependencies: [], factoryFunction: () => promise, factoryReturnKind: 'native-promise' }), disposeService: result => { disposed.push(result); } }),
   }).buildContainer();
   expect(bag.resolve('raw')).toBe(promise); expect(bag.resolve('native')).toBe(promise);
   await bag.close(); expect(disposed).toContain(promise); expect(disposed).toContain(value);
@@ -134,9 +134,9 @@ test('raw class adapters preserve thenables and auto rejects them without assimi
   let thenCalls = 0; const disposed: unknown[] = [];
   class Thenable { then() { thenCalls++; throw new Error('must not assimilate'); } }
   const bag = DiBag.createBuilder().withServices({
-    raw: DiBag.withDisposal(DiBag.createProviderFromClass({ dependencies: [], serviceClass: Thenable, factoryReturnKind: 'uninspected' }), value => { disposed.push(value); }),
+    raw: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromClass({ dependencies: [], serviceClass: Thenable, factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }),
     // @ts-expect-error The runtime rejection of a structural thenable is what this test exercises.
-    auto: DiBag.withDisposal(DiBag.createProviderFromClass({ dependencies: [], serviceClass: Thenable }), value => { disposed.push(value); }),
+    auto: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromClass({ dependencies: [], serviceClass: Thenable }), disposeService: value => { disposed.push(value); } }),
   }).buildContainer();
   const raw = bag.resolve('raw');
   expect(raw).toBeInstanceOf(Thenable); expect(() => bag.resolve('auto')).toThrow('Structural thenables');
@@ -152,7 +152,7 @@ test('automatic adapters require runtime classification before acquisition', () 
 
 test('module token graphs and selected sharing keep ownership and parent dependencies', async () => {
   const disposed: unknown[] = [];
-  const feature = DiBag.createBuilder().withServices({ source: DiBag.withDisposal(DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }), value => { disposed.push(value); }) }).buildModule({ exportedServiceKeys: ['source'] });
+  const feature = DiBag.createBuilder().withServices({ source: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }), disposeService: value => { disposed.push(value); } }) }).buildModule({ exportedServiceKeys: ['source'] });
   const bag = DiBag.createBuilder().withTokenService(port, () => 80).withInstalledModules([feature]).buildContainer();
   const child = bag.createChildContainer([port], { [portKey]: () => 90 }, { sharedParentServiceKeys: ['source'] });
   const shared = child.resolve('source'); expect(shared.port).toBe(80); expect(shared).toBe(bag.resolve('source'));
@@ -162,8 +162,8 @@ test('module token graphs and selected sharing keep ownership and parent depende
 });
 
 test('strict root class adapters retain root dependencies through child overrides', async () => {
-  const bag = DiBag.createBuilder().withTokenService(port, DiBag.withLifetime(() => 80, 'root')).withServices({
-    source: DiBag.withLifetime(DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }), 'root'),
+  const bag = DiBag.createBuilder().withTokenService(port, DiBag.providerWithLifetime({ provider: () => 80, lifetime: 'singleton:one-per-container-tree' })).withServices({
+    source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }), lifetime: 'singleton:one-per-container-tree' }),
   }).buildContainer();
   const child = bag.createChildContainer([port], { [portKey]: () => 90 });
   expect(child.resolve('source')).toBe(bag.resolve('source')); expect(child.resolve('source').port).toBe(80);
@@ -178,8 +178,8 @@ test('native class acquisition preserves constructed promises and disposes their
     constructor() { super(resolve => resolve(7)); }
   }
   const bag = Core.createBuilder().withServices({
-    source: Core.withDisposal(Core.createProviderFromClass({ dependencies: [], serviceClass: Promised, factoryReturnKind: 'native-promise' }), value => { disposed.push(value); }),
-    raw: Core.withDisposal(Core.createProviderFromClass({ dependencies: [], serviceClass: Promised, factoryReturnKind: 'uninspected' }), value => { disposed.push(value); }),
+    source: Core.providerWithDisposal({ provider: Core.createProviderFromClass({ dependencies: [], serviceClass: Promised, factoryReturnKind: 'native-promise' }), disposeService: value => { disposed.push(value); } }),
+    raw: Core.providerWithDisposal({ provider: Core.createProviderFromClass({ dependencies: [], serviceClass: Promised, factoryReturnKind: 'uninspected' }), disposeService: value => { disposed.push(value); } }),
   }).buildContainer();
   const source = bag.resolve('source'); const raw = bag.resolve('raw');
   expect(source).toBeInstanceOf(Promised); expect(bag.resolve('source')).toBe(source);

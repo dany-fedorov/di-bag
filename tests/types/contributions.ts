@@ -30,13 +30,13 @@ export const needsFeature = moduleBuilder.buildModule({ exportedServiceKeys: [] 
 export const needsHost = DiBag.createBuilder().withInstalledModules([needsFeature]);
 export const renamedFeature = moduleBuilder.withServices({ helper: () => 1 }).buildModule({ exportedServiceKeys: ['helper'] }).withRenamedExport({ currentExportKey: 'helper', newExportKey: 'renamed' });
 export const renamedHost = DiBag.createBuilder().withInstalledModules([renamedFeature]).buildContainer();
-const rooted = DiBag.withLifetime(() => 1, 'root');
-const rootAll = DiBag.withLifetime(allProvider, 'root');
+const rooted = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' });
+const rootAll = DiBag.providerWithLifetime({ provider: allProvider, lifetime: 'singleton:one-per-container-tree' });
 export const emptyRoot = DiBag.createBuilder().withServices({ rootAll }).buildContainer();
 export const rootBag = DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: rooted }).withServices({ rootAll }).buildContainer();
-export const privateRootFeature = DiBag.createBuilder().withServices({ helper: rooted }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'transient') }).buildModule({ exportedServiceKeys: [] });
+export const privateRootFeature = DiBag.createBuilder().withServices({ helper: rooted }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.providerWithLifetime({ provider: ({ helper }: { helper: number }) => helper, lifetime: 'transient:one-per-resolve' }) }).buildModule({ exportedServiceKeys: [] });
 export const privateRootHost = DiBag.createBuilder().withInstalledModules([privateRootFeature]).withServices({ rootAll }).buildContainer();
-export const rootContribution = DiBag.createBuilder().withServices({ helper: rooted }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'root') }).buildModule({ exportedServiceKeys: [] });
+export const rootContribution = DiBag.createBuilder().withServices({ helper: rooted }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.providerWithLifetime({ provider: ({ helper }: { helper: number }) => helper, lifetime: 'singleton:one-per-container-tree' }) }).buildModule({ exportedServiceKeys: [] });
 DiBag.createBuilder().withInstalledModules([rootContribution]).buildContainer();
 class Collection { constructor(readonly values: readonly number[]) {} }
 const classProvider = DiBag.createProviderFromClass({ dependencies: [all], serviceClass: Collection });
@@ -55,13 +55,13 @@ export const promisedKey = Symbol('promise'); export const promised = DiBag.crea
 export const promiseBag = DiBag.createBuilder().withCollectionContribution({ collectionToken: promised, provider: DiBag.createProvider(() => Promise.resolve(1), { factoryReturnKind: 'uninspected' }) }).buildContainer();
 const promisedValues = promiseBag.resolveCollection(promised);
 export type PromiseExact = Assert<Equal<typeof promisedValues, readonly Promise<number>[]>>;
-const rootAliasFeature = DiBag.createBuilder().withServices({ helper: rooted }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'helper' }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient') }).buildModule({ exportedServiceKeys: [] });
+const rootAliasFeature = DiBag.createBuilder().withServices({ helper: rooted }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'helper' }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'transient:one-per-resolve' }) }).buildModule({ exportedServiceKeys: [] });
 DiBag.createBuilder().withInstalledModules([rootAliasFeature]).withServices({ rootAll }).buildContainer();
 export const scopedAggregate = rootBag.createChildContainer();
-export const rootedHelper = DiBag.createBuilder().withServices({ helper: rooted, rootAll: allProvider }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ helper }: { helper: number }) => helper, 'transient') }).buildContainer();
-rootedHelper.createChildContainer(['rootAll'], { rootAll: DiBag.withLifetime(allProvider, 'root') });
+export const rootedHelper = DiBag.createBuilder().withServices({ helper: rooted, rootAll: allProvider }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.providerWithLifetime({ provider: ({ helper }: { helper: number }) => helper, lifetime: 'transient:one-per-resolve' }) }).buildContainer();
+rootedHelper.createChildContainer(['rootAll'], { rootAll: DiBag.providerWithLifetime({ provider: allProvider, lifetime: 'singleton:one-per-container-tree' }) });
 export const replacementContext = DiBag.createBuilder().withServices({ clock: () => ({ now: () => 1, unused: () => true }) }).withCollectionContribution({ collectionToken: numbers, provider: ({ clock }: { clock: { now(): number } }) => clock.now() }).withReplacedService('clock', () => ({ now() { return 2; }, extra() { return true; } })).buildContainer();
 export const moduleReplacementContext = DiBag.createBuilder().withServices({ clock: () => ({ now: () => 1, unused: () => true }) }).withCollectionContribution({ collectionToken: numbers, provider: ({ clock }: { clock: { now(): number } }) => clock.now() }).withReplacedService('clock', () => ({ now() { return 2; }, extra() { return true; } })).buildModule({ exportedServiceKeys: [] });
 export type ReplacementExact = Assert<Equal<ReturnType<typeof replacementContext.resolve<'clock'>>, { now(): number; extra(): boolean }>>;
-export const sharedAliasBase = DiBag.createBuilder().withServices({ helper: rooted, consumer: allProvider }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'helper' }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.withLifetime(({ copy }: { copy: number }) => copy, 'transient') }).buildContainer();
+export const sharedAliasBase = DiBag.createBuilder().withServices({ helper: rooted, consumer: allProvider }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'helper' }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'transient:one-per-resolve' }) }).buildContainer();
 export const sharedAliasRoot = sharedAliasBase.createChildContainer(['helper', 'consumer'], { helper: () => 2, consumer: rootAll }, { sharedParentServiceKeys: ['copy'] });

@@ -9,8 +9,7 @@ export const dependencyReferenceRuntimeAssertions = `
     assertReference(absent.resolve('maybeNumber') === undefined, 'missing optional target did not remain absent');
     await absent.close();
     let undefinedDisposed = 0;
-    const present = DiBag.createBuilder().withTokenService(number, DiBag.withDisposal(() => undefined,
-      value => { assertReference(value === undefined, 'present undefined ownership changed'); undefinedDisposed++; })).withServices({ maybeNumber }).buildContainer();
+    const present = DiBag.createBuilder().withTokenService(number, DiBag.providerWithDisposal({ provider: () => undefined, disposeService: value => { assertReference(value === undefined, 'present undefined ownership changed'); undefinedDisposed++; } })).withServices({ maybeNumber }).buildContainer();
     assertReference(present.resolve('maybeNumber') === undefined, 'present undefined changed');
     await present.close();
     assertReference(undefinedDisposed === 1, 'optional present undefined was not acquired');
@@ -26,8 +25,8 @@ export const dependencyReferenceRuntimeAssertions = `
     const pending = Promise.resolve(7);
     let rawDisposed = 0;
     const promiseBag = DiBag.createBuilder().withTokenService(promised, () => pending).withServices({
-      maybe: DiBag.withDisposal(DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(promised)], factoryFunction: value => value,
-        factoryReturnKind: 'uninspected' }), value => { assertReference(value === pending, 'raw optional disposer value changed'); rawDisposed++; }),
+      maybe: DiBag.providerWithDisposal({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.optional(promised)], factoryFunction: value => value,
+        factoryReturnKind: 'uninspected' }), disposeService: value => { assertReference(value === pending, 'raw optional disposer value changed'); rawDisposed++; } }),
       later: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(promised)], factoryFunction: get => get }),
     }).buildContainer();
     assertReference(promiseBag.resolve('maybe') === pending && promiseBag.resolve('later')() === pending,
@@ -41,10 +40,10 @@ export const dependencyReferenceRuntimeAssertions = `
     let created = 0;
     let overrides = 0;
     let signal;
-    const target = DiBag.withLifetime(DiBag.withDisposal(DiBag.createProvider((_deps, context) => {
+    const target = DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider((_deps, context) => {
       signal = context.abortSignal;
       return { id: ++created, owner: 'parent' };
-    }, { factoryReceivesContext: true }), value => { cleanup.push(value.id); }), 'transient');
+    }, { factoryReceivesContext: true }), disposeService: value => { cleanup.push(value.id); } }), lifetime: 'transient:one-per-resolve' });
     class Reader { constructor(get) { this.get = get; } }
     const reader = DiBag.createProviderFromClass({ dependencies: [DiBag.lazy(service)], serviceClass: Reader });
     const parent = DiBag.createBuilder().withTokenService(service, target).withServices({ reader }).buildContainer();

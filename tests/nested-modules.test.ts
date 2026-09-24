@@ -23,11 +23,11 @@ test('nested installations receive fresh private identities and ownership at eve
   const events: string[] = [];
   let next = 0;
   const inner = DiBag.createBuilder().withServices({
-    state: DiBag.withDisposal(() => ({ id: ++next }), state => { events.push(`state${state.id}`); }),
+    state: DiBag.providerWithDisposal({ provider: () => ({ id: ++next }), disposeService: state => { events.push(`state${state.id}`); } }),
     read: ({ state }: { state: { id: number } }) => state.id,
   }).buildModule({ exportedServiceKeys: ['read'] });
   const outer = DiBag.createBuilder().withInstalledModules([inner]).withServices({
-    wrap: DiBag.withDisposal(({ read }: { read: number }) => ({ read }), wrap => { events.push(`wrap${wrap.read}`); }),
+    wrap: DiBag.providerWithDisposal({ provider: ({ read }: { read: number }) => ({ read }), disposeService: wrap => { events.push(`wrap${wrap.read}`); } }),
   }).buildModule({ exportedServiceKeys: ['wrap'] });
   const host = DiBag.createBuilder()
     .withInstalledModules([outer.withRenamedExport({ currentExportKey: 'wrap', newExportKey: 'left' })])
@@ -171,10 +171,10 @@ test('an outer module with no exports still installs nested contributions and no
 test('startup and child scopes acquire nested exports through the host runtime', async () => {
   const events: string[] = [];
   const inner = DiBag.createBuilder().withServices({
-    resource: DiBag.withDisposal(async () => { events.push('open'); return 'ready'; }, () => { events.push('close'); }),
+    resource: DiBag.providerWithDisposal({ provider: async () => { events.push('open'); return 'ready'; }, disposeService: () => { events.push('close'); } }),
   }).buildModule({ exportedServiceKeys: ['resource'] });
   const outer = DiBag.createBuilder().withInstalledModules([inner]).withServices({
-    scoped: DiBag.withLifetime(({ resource }: { resource: Promise<string> }) => resource, 'scoped'),
+    scoped: DiBag.providerWithLifetime({ provider: ({ resource }: { resource: Promise<string> }) => resource, lifetime: 'scoped:one-per-container' }),
   }).buildModule({ exportedServiceKeys: ['resource', 'scoped'] });
   const host = await DiBag.createBuilder().withInstalledModules([outer]).buildContainer().ensureServicesReady(['resource']);
   expect(events).toEqual(['open']);

@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const entry = resolve(process.env.DI_BAG_RUNTIME_ENTRY ?? 'dist/index.js');
 const { DiBag } = require(entry);
 assert.equal(typeof globalThis.gc, 'function', 'this suite requires --expose-gc');
-const transient = provider => DiBag.withLifetime(provider, 'transient');
+const transient = provider => DiBag.providerWithLifetime({ provider: provider, lifetime: 'transient:one-per-resolve' });
 const raw = create => DiBag.createProvider(create, { factoryReturnKind: 'uninspected' });
 const native = create => DiBag.createProvider(create, { factoryReturnKind: 'native-promise' });
 
@@ -65,13 +65,13 @@ for (const mapped of [false, true]) {
       refs.push(new WeakRef(value), new WeakRef(promise));
       return promise;
     });
-    const provider = mapped ? DiBag.transformService(source, { mode: 'awaited', transform: value => {
+    const provider = mapped ? DiBag.providerWithTransformedService({ provider: source, transformService: value => {
       mapCalls++;
       assert.equal(value[0], 7);
       const output = Array(256).fill(9);
       refs.push(new WeakRef(output));
       return output;
-    } }) : source;
+    }, callbackReceives: 'fulfilled-value' }) : source;
     const bag = DiBag.createBuilder().withServices({ value: transient(provider) }).buildContainer();
     try {
       await (async () => {
@@ -97,8 +97,8 @@ test('borrowed mapped payloads are collectible while independent inspection fram
     refs.push(new WeakRef(value));
     return { value };
   });
-  const annotated = DiBag.withMetadata(source, { dynamic: { mode: 'direct', describe: () => ({ metadata: frame }) } });
-  const bag = DiBag.createBuilder().withServices({ value: transient(DiBag.transformService(annotated, { mode: 'direct', transform: source => source.value, ...{ acquisitionMode: 'uninspected' } })) }).buildContainer();
+  const annotated = DiBag.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: () => ({ metadata: frame }), callbackReceives: 'exposed-service' });
+  const bag = DiBag.createBuilder().withServices({ value: transient(DiBag.providerWithTransformedService({ provider: annotated, transformService: source => source.value, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' })) }).buildContainer();
   try {
     for (let index = 0; index < 16; index++) assert.equal(bag.resolve('value')[0], 11);
     const before = bag.serviceSnapshot('value');
@@ -112,21 +112,21 @@ test('borrowed mapped payloads are collectible while independent inspection fram
 test('transient owned source and mapped identities survive GC until reverse stage cleanup', async () => {
   const refs = [];
   const disposed = [];
-  const own = (provider, label) => DiBag.withDisposal(provider, value => {
+  const own = (provider, label) => DiBag.providerWithDisposal({ provider: provider, disposeService: value => {
     assert.equal(value, refs[label].deref());
     disposed.push(label);
-  });
+  } });
   const source = own(native(() => {
     const value = Array(256).fill(1);
     refs[0] = new WeakRef(value);
     return Promise.resolve(value);
   }), 0);
-  const mapped = own(DiBag.transformService(source, { mode: 'awaited', transform: value => {
+  const mapped = own(DiBag.providerWithTransformedService({ provider: source, transformService: value => {
     assert.equal(value[0], 1);
     const result = Array(256).fill(2);
     refs[1] = new WeakRef(result);
     return result;
-  } }), 1);
+  }, callbackReceives: 'fulfilled-value' }), 1);
   const bag = DiBag.createBuilder().withServices({ value: transient(mapped) }).buildContainer();
   await bag.resolve('value');
   await setImmediate();
@@ -146,7 +146,7 @@ test('closing releases compacted frame payloads even when a dependency proxy is 
   }
   const bag = DiBag.createBuilder().withServices({
     other: raw(() => 42),
-    value: transient(DiBag.withMetadata(raw(deps => () => deps.other), { dynamic: { mode: 'direct', describe: describe } })),
+    value: transient(DiBag.providerWithAcquisitionMetadata({ provider: raw(deps => () => deps.other), describeAcquisition: describe, callbackReceives: 'exposed-service' })),
   }).buildContainer();
   const read = bag.resolve('value');
   assert.equal(read(), 42);
@@ -169,7 +169,7 @@ test('a retained acquisition context releases the frame payloads of its own atte
   // the whole context must not keep its attempt's payloads alive.
   const contextual = create => DiBag.createProvider(create, { factoryReceivesContext: true });
   const bag = DiBag.createBuilder().withServices({
-    value: transient(DiBag.withMetadata(contextual((_deps, factoryContext) => () => factoryContext.abortSignal.aborted), { dynamic: { mode: 'direct', describe: describe } })),
+    value: transient(DiBag.providerWithAcquisitionMetadata({ provider: contextual((_deps, factoryContext) => () => factoryContext.abortSignal.aborted), describeAcquisition: describe, callbackReceives: 'exposed-service' })),
   }).buildContainer();
   const read = bag.resolve('value');
   assert.equal(read(), false);
@@ -187,23 +187,23 @@ test('a ready borrowed projection drops its payload while pending source ownersh
   const outputs = [];
   const sources = [];
   const disposed = [];
-  const source = DiBag.withDisposal(native(async deps => {
+  const source = DiBag.providerWithDisposal({ provider: native(async deps => {
     await gate;
     const value = { root: deps.root };
     sources.push(new WeakRef(value));
     return value;
-  }), value => {
+  }), disposeService: value => {
     assert.equal(value, sources[0].deref());
     assert.equal(value.root, 42);
     disposed.push('source');
-  });
+  } });
   const bag = DiBag.createBuilder().withServices({
-    root: DiBag.withLifetime(DiBag.withDisposal(raw(() => 42), () => { disposed.push('root'); }), 'root'),
-    value: transient(DiBag.transformService(source, { mode: 'direct', transform: () => {
+    root: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: raw(() => 42), disposeService: () => { disposed.push('root'); } }), lifetime: 'singleton:one-per-container-tree' }),
+    value: transient(DiBag.providerWithTransformedService({ provider: source, transformService: () => {
       const value = Array(256).fill(3);
       outputs.push(new WeakRef(value));
       return value;
-    }, ...{ acquisitionMode: 'uninspected' } })),
+    }, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' })),
   }).buildContainer();
   assert.equal(bag.resolve('value')[0], 3);
   assert.equal(bag.serviceSnapshot('value').acquisitions[0].state, 'ready');

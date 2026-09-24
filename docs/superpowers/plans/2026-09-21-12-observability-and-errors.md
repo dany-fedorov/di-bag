@@ -1405,6 +1405,17 @@ git commit -m "refactor(errors)!: DI_BAG_INVALID_PROVIDER and DI_BAG_INVALID_ACQ
 
 ### Task 9: `DI_BAG_INVALID_ARGUMENT`
 
+> **Phase 9 execution note (2026-09-24):** the accepted provider-facade
+> contraction already retired `DI_BAG_INVALID_ACQUISITION_MODE`,
+> `DI_BAG_INVALID_LIFETIME`, and `DI_BAG_INVALID_TRANSFORM` together with their
+> obsolete `docs/agent/errors.md` sections. Inventory the actual remaining
+> sites at Task 9 entry, adapt taxonomy probes to the accepted
+> `providerWith*` facade, and omit only sites the inventory proves are gone.
+> Keep the three 0.4.0 codemod mappings below. Task 9's local naming-ratchet
+> removal is therefore three entries rather than four, and subsequent
+> cumulative expectations omit the acquisition-mode entry: absent other early
+> removals, the phase-entry total is 20 rather than 21.
+
 Every remaining site that rejects a malformed input takes one code, `DI_BAG_INVALID_ARGUMENT`, with `details: { operation, argument, expected }`, which is the one details shape the spec fixes. Sixteen old codes end here. Ten move whole: `DI_BAG_INVALID_ACQUISITION_MODE`, `_CLEANUP`, `_CLOSE`, `_CONFIGURATION`, `_CONSTRUCTOR`, `_FACTORY`, `_FUNCTION`, `_LIFETIME`, `_PLUGIN_OPTIONS`, `_TRANSFORM`. Six were split, and Tasks 5 to 8 already took their other sites: `DI_BAG_INVALID_EXPORT`, `_METADATA`, `_OVERRIDE`, `_REGISTRATION`, `_SCOPE`, `_STARTUP`. At the 0.4.0 source this is 52 throw statements plus the four conditions inside the shared options validator.
 
 **The three keys.** These rules are the contract; the rows below apply them.

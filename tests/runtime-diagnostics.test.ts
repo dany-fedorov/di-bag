@@ -38,7 +38,7 @@ test('library messages carry the code, the original text, and the errors-page se
   const plugin = new DiBagPluginValidationError('output', 'rejected');
   expect(plugin.message).toBe(`DI_BAG_PLUGIN_VALIDATION: Invalid plugin output: rejected; see ${page}#di-bag-plugin-validation`);
 
-  const bag = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(() => 1, () => { throw new Error('boom'); }) }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => { throw new Error('boom'); } }) }).buildContainer();
   bag.resolve('value');
   const cleanup = await bag.close().catch(error => error);
   expect(cleanup).toBeInstanceOf(DiBagCleanupError);
@@ -135,8 +135,8 @@ test('close({ waitTimeoutMs }) rejects naming the never-settling disposer and ke
   let release!: () => void;
   const disposed: string[] = [];
   const bag = DiBag.createBuilder().withServices({
-    fast: DiBag.withDisposal(() => 'fast', () => { disposed.push('fast'); }),
-    stuck: DiBag.withDisposal(({ fast }: { fast: string }) => fast, () => new Promise<void>(resolve => { release = resolve; })),
+    fast: DiBag.providerWithDisposal({ provider: () => 'fast', disposeService: () => { disposed.push('fast'); } }),
+    stuck: DiBag.providerWithDisposal({ provider: ({ fast }: { fast: string }) => fast, disposeService: () => new Promise<void>(resolve => { release = resolve; }) }),
   }).buildContainer();
   bag.resolve('stuck');
   const error = await bag.close({ waitTimeoutMs: 1 }).catch(caughtError => caughtError);
@@ -173,7 +173,7 @@ test('close deadline reports pending acquisitions when cleanup is still draining
 test('close({ abortSignal }) stops the wait on abort with DI_BAG_CLOSE_ABORTED and removes its listener', async () => {
   let release!: () => void;
   const bag = DiBag.createBuilder().withServices({
-    stuck: DiBag.withDisposal(() => 1, () => new Promise<void>(resolve => { release = resolve; })),
+    stuck: DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => new Promise<void>(resolve => { release = resolve; }) }),
   }).buildContainer();
   bag.resolve('stuck');
   const controller = new AbortController();
@@ -194,7 +194,7 @@ test('close({ abortSignal }) stops the wait on abort with DI_BAG_CLOSE_ABORTED a
 
 test('an already aborted signal still starts cleanup and rejects immediately', async () => {
   const disposed: number[] = [];
-  const bag = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(() => 1, value => { disposed.push(value); }) }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithDisposal({ provider: () => 1, disposeService: value => { disposed.push(value); } }) }).buildContainer();
   bag.resolve('value');
   const controller = new AbortController();
   controller.abort('now');
@@ -205,14 +205,14 @@ test('an already aborted signal still starts cleanup and rejects immediately', a
 });
 
 test('bounded close resolves or rejects with the ordinary outcome when cleanup finishes first', async () => {
-  const bag = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(() => 1, () => {}) }).buildContainer();
+  const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => {} }) }).buildContainer();
   bag.resolve('value');
   const controller = new AbortController();
   await bag.close({ waitTimeoutMs: 1_000, abortSignal: controller.signal });
   expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
   expect(await bag.close({ waitTimeoutMs: 1 })).toBeUndefined();
 
-  const failing = DiBag.createBuilder().withServices({ value: DiBag.withDisposal(() => 1, () => { throw new Error('boom'); }) }).buildContainer();
+  const failing = DiBag.createBuilder().withServices({ value: DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => { throw new Error('boom'); } }) }).buildContainer();
   failing.resolve('value');
   expect(await failing.close({ waitTimeoutMs: 1_000 }).catch(error => error)).toBeInstanceOf(DiBagCleanupError);
 });
@@ -220,7 +220,7 @@ test('bounded close resolves or rejects with the ordinary outcome when cleanup f
 test('scopes and forks accept close options; a child deadline names the child disposer', async () => {
   let release!: () => void;
   const root = DiBag.createBuilder().withServices({
-    session: DiBag.withDisposal(() => 1, () => new Promise<void>(resolve => { release = resolve; })),
+    session: DiBag.providerWithDisposal({ provider: () => 1, disposeService: () => new Promise<void>(resolve => { release = resolve; }) }),
   }).buildContainer();
   const child = root.createChildContainer();
   child.resolve('session');

@@ -1,6 +1,6 @@
 import type { ContributionConstraint, CheckedContributions, CompleteContributions, ModuleContributionConstraints } from './contribution-types';
 import type { Module } from './module';
-import type { Registration, Registrations } from './registration';
+import type { ProviderOrFactory, Registrations } from './registration';
 import type { Entry, Intersect, NameText, Needs, Resolved, RegistrationsFromEntries, SeeErrors, ServicesOf, Singleton, Unsatisfied, WrongShapeMessage } from './types';
 import type { MetadataKeyUnion, Provider, ProviderFactory, ProviderOutput, ProviderNamedDependencies, ProviderRegistrationMetadata, ProviderAcquisitionMetadata, ProviderAcquiredValue, ProviderGraphContract, ProviderRequiredTokens, ProviderOptionalTokens, ProviderCollectionTokens, BoundToken } from './provider';
 import type { GraphContract, TokenDependencyContract, WrongToken, MissingToken } from './token-types';
@@ -53,7 +53,7 @@ export type IncrementalConstraints<
   MC extends NeedConstraint,
   Old extends Registrations,
   Incoming extends Registrations,
-> = [Extract<C | MC, { kind: 'contribution' | 'collection' | 'opaque' | 'root-reach' | 'export-reach' | 'contribution-reach' }>] extends [never]
+> = [Extract<C | MC, { kind: 'contribution' | 'collection' | 'opaque' | 'singleton-reach' | 'export-reach' | 'contribution-reach' }>] extends [never]
   ? unknown extends CheckedConstraints<C, Incoming>
     ? CheckedConstraints<MC, import('./types').OverrideRegistrations<Old, Incoming>>
     : CheckedConstraints<C, Incoming>
@@ -134,7 +134,7 @@ type AliasEnd<R extends Registrations, P, A, Visited> = A extends P ? { readonly
     : G extends { readonly lifetime: infer L } ? { readonly lifetime: L } : {}
     : never
   : { readonly alias: A };
-type SealedProvider<R extends Registrations, P, V> = PublicProvider<V> extends infer T ? T extends Registration
+type SealedProvider<R extends Registrations, P, V> = PublicProvider<V> extends infer T ? T extends ProviderOrFactory
   ? ProviderGraphContract<T> extends { readonly alias: infer A }
     ? AliasEnd<R, P, A, never> extends infer F ? F extends object
       ? Provider<ProviderFactory<T>, ProviderRegistrationMetadata<T> & object, ProviderAcquisitionMetadata<T>, Extract<Resolved<WithoutAlias<ProviderGraphContract<T>> & F>, GraphContract>, ProviderAcquiredValue<T>>
@@ -183,7 +183,7 @@ export type RenamedRequirementProviders<Providers extends object, Current extend
   [K in keyof Providers]: RenamedAlias<Providers[K], Current, New>;
 };
 type AliasesTo<D, Old> = { [K in keyof D]: ProviderGraphContract<D[K]> extends { readonly alias: Old } ? K : never }[keyof D];
-type RenamedAlias<V, Old, New> = V extends Registration ? ProviderGraphContract<V> extends { readonly alias: Old }
+type RenamedAlias<V, Old, New> = V extends ProviderOrFactory ? ProviderGraphContract<V> extends { readonly alias: Old }
   ? Provider<ProviderFactory<V>, ProviderRegistrationMetadata<V> & object, ProviderAcquisitionMetadata<V>, Extract<Resolved<WithoutAlias<ProviderGraphContract<V>> & { readonly alias: New }>, GraphContract>, ProviderAcquiredValue<V>>
   : V : V;
 /** Rename one export in a module's public providers, including exported aliases that follow it. */

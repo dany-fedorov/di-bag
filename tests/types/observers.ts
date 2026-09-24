@@ -7,7 +7,7 @@ export const observed = DiBag.withConfiguration({ lifecycleObservers: [options] 
 export const observe = observed.withConfiguration;
 export const configure = observed.withConfiguration;
 export const begin = observed.createBuilder;
-export const provider = observed.withMetadata(observed.createProvider(() => Promise.resolve({ value: 1 }), { factoryReturnKind: 'uninspected' }), { static: { team: 'core' as const } });
+export const provider = observed.providerWithRegistrationMetadata({ provider: observed.createProvider(() => Promise.resolve({ value: 1 }), { factoryReturnKind: 'uninspected' }), registrationMetadata: { team: 'core' as const } });
 export const builder = observed.createBuilder().withServices({ value: provider }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' });
 export const bag = builder.buildContainer();
 export const resolve = bag.resolve;

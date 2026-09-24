@@ -47,8 +47,8 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
         Object.defineProperty(pending, 'then', { value: undefined });
         const key = Symbol('shared'); const token = Core.createToken(key).forService();
         const disposed = [];
-        const source = Core.withMetadata(() => pending, { dynamic: { mode: 'direct', describe: value => ({ samePromise: value === pending }) } });
-        const owned = Core.withDisposal(source, value => { disposed.push(value === resource ? 'resource' : 'wrong'); });
+        const source = Core.providerWithAcquisitionMetadata({ provider: () => pending, describeAcquisition: value => ({ samePromise: value === pending }), callbackReceives: 'exposed-service' });
+        const owned = Core.providerWithDisposal({ provider: source, disposeService: value => { disposed.push(value === resource ? 'resource' : 'wrong'); } });
         const bag = DiBag.createBuilder().withTokenService(token, owned).buildContainer();
         const acquired = bag.resolve(token);
         const identity = acquired === pending;
@@ -64,7 +64,7 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
         const detected = Core.createBuilder().withServices({ value: async () => 1 }).buildContainer();
         preflight = preflight && await detected.resolve('value') === 1; await detected.close();
         const rawDisposed = [];
-        const raw = Core.createBuilder().withServices({ value: Core.withDisposal(Core.createProvider(() => pending, { factoryReturnKind: 'uninspected' }), value => { rawDisposed.push(value === pending); }) }).buildContainer();
+        const raw = Core.createBuilder().withServices({ value: Core.providerWithDisposal({ provider: Core.createProvider(() => pending, { factoryReturnKind: 'uninspected' }), disposeService: value => { rawDisposed.push(value === pending); } }) }).buildContainer();
         raw.resolve('value'); await raw.close();
         console.log(JSON.stringify({ identity, isNativePromise, metadata, before, disposed, preflight, rawDisposed }));
       })().catch(error => { console.error(error); process.exitCode = 1; });`);

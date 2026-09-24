@@ -16,10 +16,10 @@ bag.createIndependentContainer(['missing'], { missing: () => 2 });
 // diagnostic: withReplacedService requires one existing singleton string-literal key: absent; see https://dany-fedorov.github.io/di-bag/agent/errors.html#unknown-key
 DiBag.createBuilder().withServices({ config: () => 1 }).withReplacedService('absent', () => 2);
 // diagnostic: root lifetime cannot capture scoped dependency: db -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
-DiBag.createBuilder().withServices({ config: () => 1, db: DiBag.withLifetime(({ config }: { config: number }) => config, 'root') }).buildContainer();
+DiBag.createBuilder().withServices({ config: () => 1, db: DiBag.providerWithLifetime({ provider: ({ config }: { config: number }) => config, lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
 const scoped = DiBag.createBuilder().withServices({ config: () => 1, db: ({ config }: { config: number }) => config }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency: db -> config; see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
-scoped.createChildContainer(['db'], { db: DiBag.withLifetime(({ config }: { config: number }) => config, 'root') });
+scoped.createChildContainer(['db'], { db: DiBag.providerWithLifetime({ provider: ({ config }: { config: number }) => config, lifetime: 'singleton:one-per-container-tree' }) });
 const feature = DiBag.createBuilder().withServices({
   value: () => ({ read() { return 1; }, extra() { return true; } }),
   hidden: ({ value }: { value: { extra(): boolean } }) => value.extra(),

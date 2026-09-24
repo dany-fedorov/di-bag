@@ -19,15 +19,15 @@ DiBag.createProviderFromPlugin({ dependencies: broad, pluginDescriptor: unknownP
 const requiredPlugin = DiBag.createProviderFromPlugin({ dependencies: [number], pluginDescriptor: unknownPlugin, factoryReturnKind: 'uninspected', isValidPluginOutput: valid });
 // diagnostic: required service registrations are missing
 DiBag.createBuilder().withServices({ requiredPlugin }).buildContainer();
-const rootPlugin = DiBag.withLifetime(requiredPlugin, 'root');
+const rootPlugin = DiBag.providerWithLifetime({ provider: requiredPlugin, lifetime: 'singleton:one-per-container-tree' });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withTokenService(number, () => 1).withServices({ rootPlugin }).buildContainer();
 const raw = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: unknownPlugin, factoryReturnKind: 'uninspected', isValidPluginOutput: valid });
 const native = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: unknownPlugin, factoryReturnKind: 'native-promise', isValidPluginOutput: valid });
-// diagnostic: No overload matches
-DiBag.withDisposal(raw, (value: Promise<{ run(): number }>) => { void value; });
-// diagnostic: No overload matches
-DiBag.withDisposal(native, (value: Promise<{ run(): number }>) => { void value; });
+// diagnostic: not assignable
+DiBag.providerWithDisposal({ provider: raw, disposeService: (value: Promise<{ run(): number }>) => { void value; } });
+// diagnostic: not assignable
+DiBag.providerWithDisposal({ provider: native, disposeService: (value: Promise<{ run(): number }>) => { void value; } });
 const privateFeature = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ privatePlugin: requiredPlugin }).buildModule({ exportedServiceKeys: ['privatePlugin'] });
 // diagnostic: not assignable
 DiBag.createBuilder().withInstalledModules([privateFeature]).buildContainer().resolve(number);

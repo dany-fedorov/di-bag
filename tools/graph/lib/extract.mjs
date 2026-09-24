@@ -4,6 +4,15 @@ import { dirname, relative, resolve } from 'node:path';
 
 const TERMINALS = new Set(['buildContainer', 'buildModule', 'build', 'buildAndStart']);
 const WRAPPERS = new Set(['withLifetime', 'withDisposal', 'withMetadata', 'transformService']);
+const PROVIDER_FACADES = new Set(['providerWithDisposal', 'providerWithLifetime', 'providerWithRegistrationMetadata', 'providerWithAcquisitionMetadata', 'providerWithTransformedService']);
+const LIFETIMES = new Map([
+  ['root', 'singleton:one-per-container-tree'],
+  ['scoped', 'scoped:one-per-container'],
+  ['transient', 'transient:one-per-resolve'],
+  ['singleton:one-per-container-tree', 'singleton:one-per-container-tree'],
+  ['scoped:one-per-container', 'scoped:one-per-container'],
+  ['transient:one-per-resolve', 'transient:one-per-resolve'],
+]);
 
 // Set per extraction: the consumer's compiler or the bundled one.
 let ts;
@@ -62,6 +71,46 @@ function skipOuter(expression) {
   return expression;
 }
 
+function literalLifetime(expression) {
+  const inner = expression && skipOuter(expression);
+  return inner && ts.isStringLiteralLike(inner) ? LIFETIMES.get(inner.text) : undefined;
+}
+
+function diBagDeclarationOwners(sourceFile, checker) {
+  const owners = new Set();
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+    const specifier = statement.moduleSpecifier.text;
+    if (specifier !== 'di-bag' && specifier !== 'di-bag/node'
+        && !specifier.endsWith('/provider-sources-0-4-library.js')) continue;
+    let moduleSymbol = checker.getSymbolAtLocation(statement.moduleSpecifier);
+    if (moduleSymbol?.flags & ts.SymbolFlags.Alias) moduleSymbol = checker.getAliasedSymbol(moduleSymbol);
+    for (const exported of moduleSymbol ? checker.getExportsOfModule(moduleSymbol) : []) {
+      const symbol = exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
+      if (symbol.name !== 'Provider' && symbol.name !== 'DiBagApi') continue;
+      if ((symbol.declarations ?? []).some(declaration =>
+        (ts.isClassDeclaration(declaration) || ts.isInterfaceDeclaration(declaration))
+        && declaration.name?.text === symbol.name)) owners.add(symbol);
+    }
+  }
+  return owners;
+}
+
+function declarationOwner(nameNode, checker, declarationOwners) {
+  let symbol = checker.getSymbolAtLocation(nameNode);
+  if (symbol?.flags & ts.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
+  for (const declaration of symbol?.declarations ?? []) {
+    for (let node = declaration.parent; node; node = node.parent) {
+      if (!(ts.isClassDeclaration(node) || ts.isInterfaceDeclaration(node)) || !node.name) continue;
+      let owner = checker.getSymbolAtLocation(node.name);
+      if (owner?.flags & ts.SymbolFlags.Alias) owner = checker.getAliasedSymbol(owner);
+      if (owner && declarationOwners.has(owner)) return node.name.text;
+      break;
+    }
+  }
+  return undefined;
+}
+
 /** The variable initializer an identifier names, following imports. */
 function initializerOf(identifier, checker) {
   let symbol = checker.getSymbolAtLocation(identifier);
@@ -94,16 +143,62 @@ function isChainStart(calls) {
   return calls.length > 0 && methodName(calls[0]) === 'createBuilder';
 }
 
-/** Unwrap DiBag decorators around a registration expression, reading lifetime and ownership on the way. */
-function unwrap(expression) {
-  let lifetime = 'scoped', owned = false, inner = expression;
-  while (ts.isCallExpression(inner) && WRAPPERS.has(methodName(inner) ?? '') && inner.arguments.length > 0) {
-    const name = methodName(inner);
-    if (name === 'withLifetime' && inner.arguments[1] && ts.isStringLiteral(inner.arguments[1])) lifetime = inner.arguments[1].text;
-    if (name === 'withDisposal') owned = true;
-    inner = inner.arguments[0];
+function ownBagValue(call, name, checker) {
+  const bag = call.arguments[0];
+  if (!bag || !ts.isObjectLiteralExpression(skipOuter(bag))) return undefined;
+  const literal = skipOuter(bag);
+  const item = literal.properties.find(property => (ts.isPropertyAssignment(property)
+    && !ts.isComputedPropertyName(property.name) && keyText(property.name) === name)
+    || (ts.isShorthandPropertyAssignment(property) && property.name.text === name));
+  if (!item) return undefined;
+  if (ts.isPropertyAssignment(item)) return item.initializer;
+  if (!ts.isShorthandPropertyAssignment(item)) return undefined;
+  const declaration = checker.getShorthandAssignmentValueSymbol(item)?.valueDeclaration;
+  return declaration && ts.isVariableDeclaration(declaration) ? declaration.initializer : undefined;
+}
+
+/** Unwrap authenticated current facades and 0.4 decorators, reading lifetime and ownership on the way. */
+function unwrap(expression, checker, declarationOwners) {
+  let lifetime = 'scoped:one-per-container', lifetimeSelected = false, owned = false, opaque = false;
+  let inner = skipOuter(expression);
+  const seen = new Set();
+  while (inner) {
+    if (ts.isIdentifier(inner)) {
+      const initializer = initializerOf(inner, checker);
+      if (!initializer || seen.has(initializer)) break;
+      seen.add(initializer);
+      inner = skipOuter(initializer);
+      continue;
+    }
+    if (!ts.isCallExpression(inner) || !ts.isPropertyAccessExpression(inner.expression)) break;
+    const name = inner.expression.name.text;
+    const owner = declarationOwner(inner.expression.name, checker, declarationOwners);
+    if (owner === 'DiBagApi' && PROVIDER_FACADES.has(name)) {
+      if (name === 'providerWithDisposal') owned = true;
+      if (name === 'providerWithLifetime' && !lifetimeSelected) {
+        const selected = literalLifetime(ownBagValue(inner, 'lifetime', checker));
+        if (selected === undefined) opaque = true; else lifetime = selected;
+        lifetimeSelected = true;
+      }
+      const provider = ownBagValue(inner, 'provider', checker);
+      if (provider === undefined) { opaque = true; break; }
+      inner = skipOuter(provider);
+      continue;
+    }
+    if (owner === 'DiBagApi' && WRAPPERS.has(name)) {
+      if (name === 'withDisposal') owned = true;
+      if (name === 'withLifetime' && !lifetimeSelected) {
+        const selected = literalLifetime(inner.arguments[1]);
+        if (selected === undefined) opaque = true; else lifetime = selected;
+        lifetimeSelected = true;
+      }
+      if (!inner.arguments[0]) { opaque = true; break; }
+      inner = skipOuter(inner.arguments[0]);
+      continue;
+    }
+    break;
   }
-  return { inner, lifetime, owned };
+  return { inner, lifetime: opaque ? 'dynamic' : lifetime, owned };
 }
 
 /** Declared named dependencies and async-ness of a factory expression, through the checker. */
@@ -197,7 +292,7 @@ function listedModules(argument, checker) {
   return ts.isArrayLiteralExpression(expression) ? [...expression.elements] : [argument];
 }
 
-function readUnit(terminal, sourceFile, checker, root) {
+function readUnit(terminal, sourceFile, checker, declarationOwners, root) {
   const calls = chainCalls(terminal, checker);
   const nodes = [], installs = [], aliases = [];
   let exports = [], label;
@@ -205,7 +300,7 @@ function readUnit(terminal, sourceFile, checker, root) {
     const name = methodName(call);
     const bag = optionsBag(call);
     const pushNode = (keyExpression, providerExpression) => {
-      const { inner, lifetime, owned } = unwrap(providerExpression);
+      const { inner, lifetime, owned } = unwrap(providerExpression, checker, declarationOwners);
       const { dependencies, async } = describeFactory(inner, checker);
       const { line } = sourceFile.getLineAndCharacterOfPosition(call.getStart(sourceFile));
       nodes.push({ key: keyText(keyExpression), line: line + 1, dependencies, async, lifetime, owned });
@@ -222,8 +317,13 @@ function readUnit(terminal, sourceFile, checker, root) {
       if (moduleLabel && ts.isStringLiteralLike(moduleLabel)) label = moduleLabel.text;
     } else if ((name === 'register' || name === 'replace' || name === 'withServices') && call.arguments.length === 1 && ts.isObjectLiteralExpression(call.arguments[0])) {
       for (const property of call.arguments[0].properties) {
-        if (!ts.isPropertyAssignment(property)) continue;
-        const { inner, lifetime, owned } = unwrap(property.initializer);
+        if (!ts.isPropertyAssignment(property) && !ts.isShorthandPropertyAssignment(property)) continue;
+        let provider = ts.isPropertyAssignment(property) ? property.initializer : property.name;
+        if (ts.isShorthandPropertyAssignment(property)) {
+          const value = checker.getShorthandAssignmentValueSymbol(property)?.valueDeclaration;
+          if (value && ts.isVariableDeclaration(value) && value.initializer) provider = value.initializer;
+        }
+        const { inner, lifetime, owned } = unwrap(provider, checker, declarationOwners);
         const { dependencies, async } = describeFactory(inner, checker);
         const { line } = sourceFile.getLineAndCharacterOfPosition(property.getStart(sourceFile));
         nodes.push({ key: keyText(property.name), line: line + 1, dependencies, async, lifetime, owned });
@@ -365,9 +465,10 @@ export function extractDependencyGraph({ project, files, root = process.cwd(), t
   const units = [];
   for (const sourceFile of program.getSourceFiles()) {
     if (sourceFile.isDeclarationFile || sourceFile.fileName.includes('/node_modules/')) continue;
+    const declarationOwners = diBagDeclarationOwners(sourceFile, checker);
     const visit = node => {
       if (ts.isCallExpression(node) && TERMINALS.has(methodName(node) ?? '') && isChainStart(chainCalls(node, checker))) {
-        units.push(readUnit(node, sourceFile, checker, root));
+        units.push(readUnit(node, sourceFile, checker, declarationOwners, root));
         return;
       }
       ts.forEachChild(node, visit);

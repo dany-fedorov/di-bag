@@ -6,7 +6,7 @@ type Config = { readonly url: string };
 type Db = { query(): Promise<string[]>; end(): Promise<void> };
 export const config = DiBag.createProvider((): Config => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' });
 export const dbSource = DiBag.createProvider(async ({ config }: { config: Config }): Promise<Db> => ({ query: async () => [config.url], end: async () => {} }), { factoryReturnKind: 'native-promise' });
-export const db = DiBag.withDisposal(dbSource, db => db.end());
+export const db = DiBag.providerWithDisposal({ provider: dbSource, disposeService: db => db.end() });
 export const contextualSync = DiBag.createProvider((deps: { config: Config }, factoryCtx) => {
   factoryCtx.pushDisposer(() => {});
   return { url: deps.config.url, signal: factoryCtx.abortSignal };
@@ -19,7 +19,7 @@ export const callable = DiBag.createProvider(() => async () => 1, { factoryRetur
 export const optionalObject = DiBag.createProvider((): { id: number } | undefined => undefined, { factoryReturnKind: 'sync-value' });
 class ServicePromise<T> extends Promise<T> {}
 export const subclass = DiBag.createProvider(() => ServicePromise.resolve(1 as const), { factoryReturnKind: 'native-promise' });
-export const projected = DiBag.transformService(config, { mode: 'direct', transform: value => value.url, acquisitionMode: 'uninspected' });
+export const projected = DiBag.providerWithTransformedService({ provider: config, transformService: value => value.url, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' });
 export const feature = DiBag.createBuilder().withServices({ config, db }).buildModule({ exportedServiceKeys: ['db'], moduleLabel: 'storage' });
 export const bag = DiBag.createBuilder().withInstalledModules([feature]).withServices({ config, contextualSync, contextualAsync, projected }).buildContainer();
 export const resolved: Promise<Db> = bag.resolve('db');

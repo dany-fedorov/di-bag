@@ -7,14 +7,12 @@ const bag = DiBag.createBuilder().withServices({
         return 42;
       },
     }),
-    resource: DiBag.withDisposal(
-      async ({ clock }: { clock: { now(): number } }) => ({
+    resource: DiBag.providerWithDisposal({ provider: async ({ clock }: { clock: { now(): number } }) => ({
         stamp() {
           return clock.now();
         },
         close() {},
-      }),
-      (resource) => {
+      }), disposeService: (resource) => {
         type Resource = Assert<
           Equal<
             typeof resource,
@@ -25,8 +23,7 @@ const bag = DiBag.createBuilder().withServices({
           >
         >;
         resource.close();
-      },
-    ),
+      } }),
   }).buildContainer();
 
 const resource = bag.resolve('resource');

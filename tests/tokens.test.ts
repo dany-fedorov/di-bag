@@ -11,9 +11,8 @@ test('token symbols participate in the same acquisition graph', async () => {
   const key = Symbol('resource');
   const resource = DiBag.createToken(key).forService<{ read(): number }>();
   const disposed: string[] = [];
-  const owned = DiBag.withDisposal(() => ({ read: () => 42 }), () => { disposed.push('resource'); });
-  const use = DiBag.withDisposal(createProviderFromFunction({ dependencies: [resource], factoryFunction: value => ({ read: () => value.read() }) }),
-    () => { disposed.push('consumer'); });
+  const owned = DiBag.providerWithDisposal({ provider: () => ({ read: () => 42 }), disposeService: () => { disposed.push('resource'); } });
+  const use = DiBag.providerWithDisposal({ provider: createProviderFromFunction({ dependencies: [resource], factoryFunction: value => ({ read: () => value.read() }) }), disposeService: () => { disposed.push('consumer'); } });
   const runtime = new BagRuntime(new BindingGraph().withPublicBinding(key, owned).withPublicRegistrations({ use }));
   expect((runtime.resolve('use') as { read(): number }).read()).toBe(42);
   await runtime.close();
@@ -124,10 +123,10 @@ test('late named reads from a token-bound source retain close permission and dis
   const key = Symbol('late'); const token = DiBag.createToken(key).forService<Promise<number>>();
   const disposed: string[] = [];
   let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; });
-  const late = DiBag.withDisposal(async (deps: { resource: number }) => { await gate; return deps.resource; }, () => { disposed.push('late'); });
+  const late = DiBag.providerWithDisposal({ provider: async (deps: { resource: number }) => { await gate; return deps.resource; }, disposeService: () => { disposed.push('late'); } });
   const runtime = new BagRuntime(new BindingGraph().withPublicBinding(key, late).withPublicRegistrations({
-    resource: DiBag.withDisposal(() => 42, () => { disposed.push('resource'); }),
-    use: DiBag.withDisposal(createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }), () => { disposed.push('use'); }),
+    resource: DiBag.providerWithDisposal({ provider: () => 42, disposeService: () => { disposed.push('resource'); } }),
+    use: DiBag.providerWithDisposal({ provider: createProviderFromFunction({ dependencies: [token], factoryFunction: value => value }), disposeService: () => { disposed.push('use'); } }),
   }));
   const result = runtime.resolve('use'); const closing = runtime.close(); release();
   expect(await result).toBe(42); await closing;
@@ -145,7 +144,7 @@ test('binding views and transformations retain frozen source selection without m
   const key = Symbol('value'); const token = DiBag.createToken(key).forService<number>();
   const boundKey = Symbol('bound'); const bound = DiBag.createToken(boundKey).forService<number>();
   const source = createProviderFromFunction({ dependencies: [token], factoryFunction: value => value });
-  const mapped = DiBag.transformService(DiBag.withMetadata(DiBag.withDisposal(source, () => {}), { static: { owner: 'test' } }), { mode: 'direct', transform: value => value + 1 });
+  const mapped = DiBag.providerWithTransformedService({ provider: DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: source, disposeService: () => {} }), registrationMetadata: { owner: 'test' } }), transformService: value => value + 1, callbackReceives: 'exposed-service' });
   const view = withTokenBinding(bound, mapped);
   expect(normalize(view).tokenKeys).toEqual([key]);
   expect(Object.isFrozen(normalize(view).tokenKeys)).toBe(true);

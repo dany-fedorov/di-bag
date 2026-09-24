@@ -5,7 +5,7 @@ describe('container derivation contracts', () => {
   test('creates empty child and independent containers with distinct ownership', async () => {
     let disposed = 0;
     const root = DiBag.createBuilder().withServices({
-      value: DiBag.withDisposal(() => ({}), () => { disposed++; }),
+      value: DiBag.providerWithDisposal({ provider: () => ({}), disposeService: () => { disposed++; } }),
     }).buildContainer();
     const child = root.createChildContainer();
     const independent = root.createIndependentContainer();
@@ -51,10 +51,7 @@ describe('container derivation contracts', () => {
       [clock, clocks],
       {
         [key]: () => ({ now: () => 3 }),
-        [listKey]: DiBag.withDisposal(
-          (): readonly { now(): number }[] => replacement,
-          value => { disposed = value; },
-        ),
+        [listKey]: DiBag.providerWithDisposal({ provider: (): readonly { now(): number }[] => replacement, disposeService: value => { disposed = value; } }),
       },
     );
     expect(independent.resolve(clock).now()).toBe(3);

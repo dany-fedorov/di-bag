@@ -6,11 +6,12 @@ import type { Sequence } from './persistent-sequence';
 import { DiBagCleanupError } from './errors';
 import type { CleanupFailure } from './errors';
 import { normalize } from './registration';
-import type { Registration, Registrations } from './registration';
+import type { ProviderOrFactory, Registrations } from './registration';
 import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
 import { classifierRequired, resolveClassifier } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
 import { wrongTokenKind, type TokenKind } from './tokens';
+import { publicLifetime } from './lifetime';
 
 export type BindingId = symbol;
 export type BindingKey = string | symbol;
@@ -21,7 +22,7 @@ export type BindingRef =
 export interface BindingDescription {
   readonly id: BindingId;
   readonly label: string;
-  readonly registration: Registration;
+  readonly registration: ProviderOrFactory;
   readonly localNames: ReadonlyMap<BindingKey, BindingRef>;
 }
 
@@ -228,7 +229,7 @@ export class BindingGraph {
 
   private addBinding(
     label: string,
-    registration: Registration,
+    registration: ProviderOrFactory,
     operation: string,
   ): BindingId {
     const id = Symbol(label);
@@ -255,7 +256,7 @@ export class BindingGraph {
 
   withContribution(
     key: symbol,
-    registration: Registration,
+    registration: ProviderOrFactory,
     operation = 'contribute',
   ): BindingGraph {
     const graph = this.copy();
@@ -337,7 +338,7 @@ export class BindingGraph {
 
   /** Replace ordered slots and prune only unreferenced public replacement history. */
   withPublicBindings(
-    entries: readonly (readonly [BindingKey, Registration])[],
+    entries: readonly (readonly [BindingKey, ProviderOrFactory])[],
     operation = 'register',
   ): BindingGraph {
     if (entries.length === 0) return this;
@@ -363,7 +364,7 @@ export class BindingGraph {
 
   withPublicBinding(
     key: BindingKey,
-    registration: Registration,
+    registration: ProviderOrFactory,
     operation = 'register',
   ): BindingGraph {
     return this.withPublicBindings([[key, registration]], operation);
@@ -560,7 +561,7 @@ export class BagRuntime {
       return Object.freeze({
         ...this.inspectBinding(id),
         keys,
-        lifetime: description.lifetime.kind,
+        lifetime: publicLifetime(description.lifetime.kind),
         factoryReturnKind: description.factoryReturnKind,
         owned: description.dispose !== undefined || description.operations.some(operation => operation.kind === 'owned'),
         tokenDependencies: Object.freeze(description.references.map(reference => Object.freeze({ key: reference.key, kind: reference.kind }))),

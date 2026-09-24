@@ -5,7 +5,7 @@ import { catalogModule } from '../../src/features/catalog/module.js';
 
 const builder = DiBag.createBuilder()
   .withInstalledModules([catalogModule])
-  .withServices({ catalogData: DiBag.withLifetime((): CatalogData => ({ products: [] }), 'root') });
+  .withServices({ catalogData: DiBag.providerWithLifetime({ provider: (): CatalogData => ({ products: [] }), lifetime: 'singleton:one-per-container-tree' }) });
 
 builder.verifyGraphAtCompileTime() satisfies void;
 export const exported = (): Catalog => builder.buildContainer().resolve('catalog');

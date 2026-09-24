@@ -3,11 +3,11 @@ import { after, test } from 'node:test';
 import { DiBag } from 'di-bag';
 import { inventoryModule } from '../../src/features/inventory/module.js';
 
-const catalogOf = (skus: string[]) => DiBag.withLifetime(() => ({
+const catalogOf = (skus: string[]) => DiBag.providerWithLifetime({ provider: () => ({
   find: (sku: string) => skus.includes(sku) ? { sku, name: sku, priceCents: 100 } : undefined,
   list: () => skus.map(sku => ({ sku, name: sku, priceCents: 100 })),
-}), 'root');
-const stock = (levels: Record<string, number>) => DiBag.withLifetime(() => levels, 'root');
+}), lifetime: 'singleton:one-per-container-tree' });
+const stock = (levels: Record<string, number>) => DiBag.providerWithLifetime({ provider: () => levels, lifetime: 'singleton:one-per-container-tree' });
 const base = DiBag.createBuilder()
   .withInstalledModules([inventoryModule])
   .withServices({ stockLevels: stock({}), catalog: catalogOf([]) })

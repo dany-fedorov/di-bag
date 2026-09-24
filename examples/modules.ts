@@ -13,13 +13,10 @@ const logging = DiBag.createBuilder()
 
 const feature = DiBag.createBuilder()
   .withServices({
-    connection: DiBag.withDisposal(
-      () => ({ open: true }),
-      (connection) => {
+    connection: DiBag.providerWithDisposal({ provider: () => ({ open: true }), disposeService: (connection) => {
         connection.open = false;
         console.log('connection closed');
-      },
-    ),
+      } }),
     service: ({
       connection,
       logger,

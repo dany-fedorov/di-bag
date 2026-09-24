@@ -10,7 +10,7 @@ const feature = DiBag.createBuilder().withServices({
 }).buildModule({ exportedServiceKeys: ['service'] });
 const parent = DiBag.createBuilder().withInstalledModules([feature]).withTokenService(token, () => ({ id: 1 })).withServices({
   config: () => ({ id: 'parent' }),
-  transient: DiBag.withLifetime(() => 1, 'transient'),
+  transient: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'transient:one-per-resolve' }),
 }).buildContainer();
 
 // diagnostic: createChildContainer sharedParentServiceKeys accepts existing names or typed tokens only
@@ -49,7 +49,7 @@ parent.createChildContainer(['config'], { config: ({ transient }: { transient: s
 // diagnostic: Type '() => { id: string
 parent.createChildContainer([token], { [key]: () => ({ id: 'wrong' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
-parent.createChildContainer(['service'], { service: DiBag.withLifetime(({ config }: { config: { id: string } }) => config.id, 'root') });
+parent.createChildContainer(['service'], { service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => config.id, lifetime: 'singleton:one-per-container-tree' }) });
 // diagnostic: createChildContainer requires a finite tuple
 parent.createChildContainer(array, { config: () => ({ id: 'child' }) });
 // diagnostic: Property 'config' is missing
@@ -58,8 +58,8 @@ parent.createChildContainer<readonly ['config'], {}>(['config'], {});
 parent.createChildContainer({ sharedParentServiceKeys: [], extra: true });
 
 const roots = DiBag.createBuilder().withServices({
-  config: DiBag.withLifetime(() => ({ id: 'root' }), 'root'),
-  service: DiBag.withLifetime(({ config }: { config: { id: string } }) => config.id, 'root'),
+  config: DiBag.providerWithLifetime({ provider: () => ({ id: 'root' }), lifetime: 'singleton:one-per-container-tree' }),
+  service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => config.id, lifetime: 'singleton:one-per-container-tree' }),
 }).buildContainer();
 const child = roots.createChildContainer(['config'], { config: () => ({ id: 'child' }) });
 // diagnostic: root lifetime cannot capture scoped dependency

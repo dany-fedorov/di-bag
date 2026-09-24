@@ -32,7 +32,7 @@ const annotatedSource = DiBag.createProviderFromFunction({ dependencies: [port],
   value: { annotated: true as const, port: value },
   metadata: { origin: 'final-adversarial' as const },
 }) });
-export const annotated = DiBag.transformService(DiBag.withMetadata(annotatedSource, { dynamic: { mode: 'direct', describe: result => result.metadata } }), { mode: 'direct', transform: result => result.value });
+export const annotated = DiBag.providerWithTransformedService({ provider: DiBag.providerWithAcquisitionMetadata({ provider: annotatedSource, describeAcquisition: result => result.metadata, callbackReceives: 'exposed-service' }), transformService: result => result.value, callbackReceives: 'exposed-service' });
 
 export const finalAdversarialFeature = DiBag.createBuilder().withTokenService(port, () => 8080).withServices({ client, plugin, annotated }).withServiceAlias({ aliasKey: 'clientAlias', targetServiceKey: 'client' }).buildModule({ exportedServiceKeys: ['client', 'plugin', 'annotated', 'clientAlias'] });
 

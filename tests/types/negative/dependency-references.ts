@@ -68,8 +68,8 @@ DiBag.createProviderFromFunction({ dependencies: [optional], factoryFunction: fu
 DiBag.createProviderFromClass({ dependencies: [optional], serviceClass: class { constructor(value: number) {} } });
 // diagnostic: native-promise factory return kind requires a Promise output
 DiBag.createProviderFromFunction({ dependencies: [optional], factoryFunction: value => value, factoryReturnKind: 'native-promise' });
-const root = DiBag.withLifetime(lazySource, 'root');
-const rootOptional = DiBag.withLifetime(source, 'root');
+const root = DiBag.providerWithLifetime({ provider: lazySource, lifetime: 'singleton:one-per-container-tree' });
+const rootOptional = DiBag.providerWithLifetime({ provider: source, lifetime: 'singleton:one-per-container-tree' });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withTokenService(number, () => 1).withServices({ root }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
@@ -80,7 +80,7 @@ DiBag.createBuilder().withInstalledModules([privateRoot]).withTokenService(numbe
 const privateLazy = DiBag.createBuilder().withTokenService(number, () => 1).withServices({ root }).buildModule({ exportedServiceKeys: ['root'] }).withRenamedExport({ currentExportKey: 'root', newExportKey: 'renamed' });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withInstalledModules([privateLazy]).buildContainer();
-const valid = DiBag.createBuilder().withTokenService(number, DiBag.withLifetime(() => 1, 'root')).withServices({ root }).buildContainer();
+const valid = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' })).withServices({ root }).buildContainer();
 // diagnostic: root lifetime cannot capture scoped dependency
 valid.createIndependentContainer([number], { [key]: () => 2 });
 // diagnostic: root lifetime cannot capture scoped dependency
