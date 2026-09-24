@@ -10,6 +10,7 @@ import { AcquisitionFamily } from './acquisition-family';
 import type { AcquisitionId, AttemptIdentity } from './acquisition-family';
 import type { DisposerContext, FactoryContext } from './acquisition-context';
 import { publicLifetime } from './lifetime';
+import type { LifetimeKind } from './lifetime';
 
 interface Acquisition extends AttemptIdentity {
   readonly strictRoot: string | undefined;
@@ -143,12 +144,16 @@ export class ScopeAcquisitions {
     return Object.freeze(snapshots);
   }
 
-  isTransient(bindingId: BindingId, path: readonly BindingId[] = []): boolean {
-    if (this.parent && this.shared.has(bindingId)) return this.parent.isTransient(bindingId, path);
+  lifetimeKind(bindingId: BindingId, path: readonly BindingId[] = []): LifetimeKind {
+    if (this.parent && this.shared.has(bindingId)) return this.parent.lifetimeKind(bindingId, path);
     const description = this.graph.registration(bindingId);
-    if (description.alias === undefined) return description.lifetime.kind === 'transient';
+    if (description.alias === undefined) return description.lifetime.kind;
     this.assertAliasPath(bindingId, path);
-    return this.isTransient(this.graph.dependency(bindingId, description.alias), [...path, bindingId]);
+    return this.lifetimeKind(this.graph.dependency(bindingId, description.alias), [...path, bindingId]);
+  }
+
+  isTransient(bindingId: BindingId): boolean {
+    return this.lifetimeKind(bindingId) === 'transient';
   }
 
   /** Relationship uses the effective owner graph; frames use canonical attempts. */

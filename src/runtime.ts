@@ -12,6 +12,7 @@ import { classifierRequired, resolveClassifier } from './acquisition-mode';
 import type { RuntimeContext } from './acquisition-mode';
 import { wrongTokenKind, type TokenKind } from './tokens';
 import { publicLifetime } from './lifetime';
+import type { LifetimeKind } from './lifetime';
 
 export type BindingId = symbol;
 export type BindingKey = string | symbol;
@@ -545,6 +546,10 @@ export class BagRuntime {
 
   acquireCollection(key: symbol): Promise<void> {
     return this.acquisitions.acquireCollection(key);
+  }
+
+  lifetimeOf(key: BindingKey): LifetimeKind {
+    return this.acquisitions.lifetimeKind(this.graph.publicBinding(key));
   }
 
   isTransient(key: BindingKey): boolean {

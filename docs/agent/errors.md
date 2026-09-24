@@ -1051,6 +1051,42 @@ the signal so they stop promptly.
 
 **Recipe:** [add and consume an async client](recipes.md#async-client).
 
+### DI_BAG_SINGLETON_REPLACEMENT {#di-bag-singleton-replacement}
+
+**When:** `container.createChildContainer(replacedServiceKeys, replacementProviders)`
+selects a service whose inherited provider has lifetime
+`'singleton:one-per-container-tree'`.
+
+**Cause:** a singleton is anchored to the container tree and has already fixed the
+dependencies of the container that introduced it. Replacing it only in a child would
+leave singleton consumers using the inherited value.
+
+**Fix:** mark the replaceable provider with `DiBag.providerWithLifetime` and
+`'scoped:one-per-container'`, or use `createIndependentContainer` when the
+replacement must rebuild the whole graph.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const app = DiBag.createBuilder().withServices({
+  request: DiBag.providerWithLifetime({
+    provider: () => ({ id: 'outside-request' }),
+    lifetime: 'scoped:one-per-container',
+  }),
+}).buildContainer();
+
+const requestContainer = app.createChildContainer(
+  ['request'],
+  { request: () => ({ id: crypto.randomUUID() }) },
+);
+await requestContainer.close();
+await app.close();
+```
+
+**Details:** `{ operation: 'createChildContainer', serviceKey }`.
+
+**Recipe:** [add a request-scoped service](recipes.md#add-scoped-service).
+
 ### DI_BAG_STRUCTURAL_THENABLE {#di-bag-structural-thenable}
 
 **When:** a factory with automatic or native acquisition returns a non-Promise

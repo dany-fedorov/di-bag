@@ -23,7 +23,7 @@ export const roots = DiBag.createBuilder().withServices({
   config: DiBag.providerWithLifetime({ provider: () => ({ id: 'parent' }), lifetime: 'singleton:one-per-container-tree' }),
   service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => ({ config }), lifetime: 'singleton:one-per-container-tree' }),
 }).buildContainer();
-export const overriddenRootDependency = roots.createChildContainer(['config'], { config: DiBag.providerWithLifetime({ provider: () => ({ id: 'child' }), lifetime: 'scoped:one-per-container' }) });
-export const childRoot = roots.createChildContainer(['service'], {
+export const overriddenRootDependency = roots.createIndependentContainer(['config'], { config: DiBag.providerWithLifetime({ provider: () => ({ id: 'child' }), lifetime: 'singleton:one-per-container-tree' }) });
+export const childRoot = roots.createIndependentContainer(['service'], {
   service: DiBag.providerWithLifetime({ provider: ({ config }: { config: { id: string } }) => ({ config, owned: true as const }), lifetime: 'singleton:one-per-container-tree' }),
 });

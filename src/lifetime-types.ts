@@ -4,6 +4,8 @@ import type { ProviderGraphContract, ProviderNamedDependencies, ProviderRequired
 import type { TokenBase, TokenKey } from './tokens';
 import type { CheckDependencyCompatibility, CheckDependencyCompleteness, NameText, SeeErrors, Unsatisfied } from './types';
 import type { CheckedConstraints, CompleteConstraints, NeedConstraint } from './module-types';
+import type { LifetimeKind } from './lifetime';
+import type { GraphContract, SelectionKey } from './token-types';
 
 /**
  * Where a sealed lifetime walk leaves its module: an export or external name the installing
@@ -32,24 +34,82 @@ type SiteText<S> = S extends ContributionSite ? 'contribution' : NameText<S>;
 type CaptiveText<C> = C extends { readonly root: infer R; readonly dependency: infer D } ? `${SiteText<R>} -> ${SiteText<D>}` : never;
 
 // Distribute registration unions and NoInfer wrappers so each member keeps its own policy.
-type Members<V> = V extends infer T & {} ? T extends ProviderOrFactory ? T : never : never;
-type Strict<T> = ProviderGraphContract<T> extends infer G ? G extends { readonly lifetime: { readonly kind: 'singleton'; readonly allowsScopedDependencies: infer A } }
-  ? [A] extends [true] ? false : true : false : false;
-type Carrying<T> = ProviderGraphContract<T> extends infer G
-  ? G extends { readonly alias: PropertyKey } | { readonly lifetime: { readonly kind: 'transient' } } ? true : false : false;
-type StrictMembers<V> = Members<V> extends infer T ? T extends ProviderOrFactory ? true extends Strict<T> ? T : never : never : never;
-type CarrierMembers<V> = Members<V> extends infer T ? T extends ProviderOrFactory ? true extends Strict<T> | Carrying<T> ? T : never : never : never;
+type Members<Value> = Value extends infer Member & {}
+  ? Member extends ProviderOrFactory ? Member : never
+  : never;
+
+type GraphPolicy<Graph> = Graph extends { readonly lifetime: { readonly kind: infer Kind extends LifetimeKind } }
+  ? Kind
+  : 'singleton';
+
+type Policy<Value> = ProviderGraphContract<Value> extends infer Graph
+  ? Graph extends GraphContract ? GraphPolicy<Graph> : never
+  : never;
+
+type StrictGraph<Graph> = Graph extends { readonly kind: 'opaque' }
+  ? false
+  : Graph extends { readonly alias: PropertyKey } | { readonly sharedAlias: unknown }
+    ? false
+    : GraphPolicy<Graph> extends 'singleton'
+      ? Graph extends { readonly lifetime: { readonly allowsScopedDependencies: true } } ? false : true
+      : false;
+
+type Strict<Value> = ProviderGraphContract<Value> extends infer Graph
+  ? Graph extends GraphContract ? StrictGraph<Graph> : never
+  : never;
+
+type CarryingGraph<Graph> = Graph extends { readonly alias: PropertyKey }
+  ? true
+  : GraphPolicy<Graph> extends 'transient' ? true : StrictGraph<Graph>;
+
+type Carrying<Value> = ProviderGraphContract<Value> extends infer Graph
+  ? Graph extends GraphContract ? CarryingGraph<Graph> : never
+  : never;
+
+type StrictMembers<Value> = Members<Value> extends infer Member
+  ? Member extends ProviderOrFactory ? true extends Strict<Member> ? Member : never : never
+  : never;
+
+type CarrierMembers<Value> = Members<Value> extends infer Member
+  ? Member extends ProviderOrFactory ? true extends Carrying<Member> ? Member : never : never
+  : never;
+
+type ScopedMembers<Value> = Members<Value> extends infer Member
+  ? Member extends ProviderOrFactory
+    ? 'scoped' extends Policy<Member> ? Member : never
+    : never
+  : never;
+
+type ContributionProviders<Constraints> = Constraints extends ContributionConstraint
+  ? Constraints['registration']
+  : never;
+
+type ScopedRegistrationKeys<ServiceRegistrations extends Registrations> = {
+  [ServiceKey in keyof ServiceRegistrations]:
+    'scoped' extends PolicyOf<ServiceRegistrations, ServiceKey, never> ? ServiceKey : never;
+}[keyof ServiceRegistrations];
+
+type HasScopedProvider<ServiceRegistrations extends Registrations, Constraints> = [
+  ScopedRegistrationKeys<ServiceRegistrations> |
+  ScopedMembers<ContributionProviders<Constraints>>
+] extends [never] ? false : true;
+
+type HasLifetimeObligation<Constraints> = [Extract<Constraints, LifetimeObligation>] extends [never]
+  ? false
+  : true;
+
+type NeedsHostLifetimeWalk<ServiceRegistrations extends Registrations, Constraints> =
+  true extends HasScopedProvider<ServiceRegistrations, Constraints> | HasLifetimeObligation<Constraints>
+    ? true
+    : false;
 type Dependencies<V> = V extends ProviderOrFactory ? keyof ProviderNamedDependencies<V> | TokenKey<ProviderRequiredTokens<V> | ProviderOptionalTokens<V>> : never;
 // A projected alias has no dependency object left; its target is the alias key.
 type AliasKeys<V> = ProviderGraphContract<V> extends infer G ? G extends { readonly alias: infer A } ? A : never : never;
 type CollectionKeys<V> = ProviderCollectionTokens<V> extends infer T ? T extends TokenBase ? TokenKey<T> : never : never;
-// Most graphs declare no lifetime or alias at all; they cannot hold a captive or a carrier,
-// so every lifetime walk below is skipped for them. This keeps per-module sealing cheap.
-type Lifetimed<V> = V extends infer T & {} ? ProviderGraphContract<T> extends infer G
-  ? G extends { readonly lifetime: unknown } | { readonly alias: unknown } | { readonly sharedAlias: unknown } ? true : never : never : never;
-type ContributionRegistrations<C> = C extends ContributionConstraint ? C['registration'] : never;
-type NeedsLifetimeWalk<R extends Registrations, C> = [Extract<C, LifetimeObligation>] extends [never]
-  ? Lifetimed<R[keyof R] | ContributionRegistrations<C>> : true;
+type NeedsSealLifetimeWalk<ServiceRegistrations extends Registrations, Constraints> =
+  [keyof ServiceRegistrations] extends [never]
+    ? HasLifetimeObligation<Constraints>
+    : true;
 type ExportReaches<C, K> = C extends { readonly kind: 'export-reach'; readonly export: K; readonly reach: infer X } ? X : never;
 
 // ---- Seal time: what does each registration reach outside its module? ----
@@ -63,9 +123,9 @@ type ReachTarget<R extends Registrations, P, C, V, D, Visited> = Members<V> exte
   ? ProviderGraphContract<T> extends infer G
     ? G extends { readonly kind: 'opaque' } ? never
     : G extends { readonly alias: PropertyKey } ? Reaches<R, P, C, T, D, Visited>
-    : G extends { readonly lifetime: { readonly kind: 'singleton' } } ? never
-    : G extends { readonly lifetime: { readonly kind: 'transient' } } ? Reaches<R, P, C, T, D, Visited>
-    : { readonly kind: 'scoped'; readonly key: D }
+    : GraphPolicy<G> extends 'scoped' ? { readonly kind: 'scoped'; readonly key: D }
+    : GraphPolicy<G> extends 'transient' ? Reaches<R, P, C, T, D, Visited>
+    : never
     : never : never : never;
 type Reaches<R extends Registrations, P, C, V, K, Visited> =
   | Reached<R, P, C, Dependencies<V> | AliasKeys<V>, Visited>
@@ -86,8 +146,12 @@ type RetainedSingletons<R extends Registrations, P, C, O = C> = O extends { read
 type ExportObligations<R extends Registrations, P, C> = {
   [K in P & keyof R]: [CarrierMembers<R[K]>] extends [never] ? never : AsExport<K, Reaches<R, P, C, CarrierMembers<R[K]>, K, K>>;
 }[P & keyof R];
-type ContributionPolicy<T> = true extends Strict<T> ? 'singleton'
-  : ProviderGraphContract<T> extends infer G ? G extends { readonly lifetime: { readonly kind: 'transient' } } ? 'transient' : never : never;
+type ContributionPolicy<Value> = ProviderGraphContract<Value> extends infer Graph
+  ? Graph extends GraphContract
+    ? StrictGraph<Graph> extends true ? 'singleton'
+      : GraphPolicy<Graph> extends 'transient' ? 'transient' : never
+    : never
+  : never;
 type OwnContributions<R extends Registrations, P, C, I = Extract<C, ContributionConstraint>> = I extends ContributionConstraint
   ? Members<I['registration']> extends infer T ? T extends ProviderOrFactory ? ContributionPolicy<T> extends infer Policy ? Policy extends 'singleton' | 'transient'
     ? AsContribution<TokenKey<I['token']>, Policy, Reaches<R, P, C, T, never, never>> : never : never : never : never
@@ -102,7 +166,7 @@ type SealCaptives<R extends Registrations, P, C> = Extract<Unreplaceable<R, P, C
 type SealCaptiveText<O> = O extends { readonly reach: { readonly key: infer D } }
   ? `${O extends { readonly singleton: infer SingletonKey } ? SiteText<SingletonKey> : 'contribution'} -> ${NameText<D>}` : never;
 /** Every compact lifetime obligation a sealing builder retains for its installing host. */
-export type SealedLifetimes<R extends Registrations, P extends PropertyKey, C> = [NeedsLifetimeWalk<R, C>] extends [never] ? never
+export type SealedLifetimes<R extends Registrations, P extends PropertyKey, C> = NeedsSealLifetimeWalk<R, C> extends false ? never
   // A graph whose shapes were already rejected by register retains no reach: its walk would report twice.
   : unknown extends CheckDependencyCompatibility<R>
     ? | Exclude<Unreplaceable<R, P, C>, Scoped>
@@ -110,7 +174,7 @@ export type SealedLifetimes<R extends Registrations, P extends PropertyKey, C> =
       | Extract<ContributionObligations<R, P, C>, { readonly policy: 'transient' }>
     : never;
 /** Reject sealing when a root the host cannot replace captures a scoped service of the same module. */
-export type SealAdmission<R extends Registrations, P extends PropertyKey, C> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
+export type SealAdmission<R extends Registrations, P extends PropertyKey, C> = NeedsSealLifetimeWalk<R, C> extends false ? unknown
   : [SealCaptives<R, P, C>] extends [never] ? unknown
   // Shape errors were already reported by register; do not add a captive report on top of them.
   : unknown extends CheckDependencyCompatibility<R>
@@ -154,9 +218,9 @@ type HostTarget<R extends Registrations, C, V, D, Visited> = Members<V> extends 
     ? G extends { readonly sharedAlias: { readonly registrations: infer S extends Registrations; readonly source: infer K } } ? HostReach<S, C, K, never>
     : G extends { readonly kind: 'opaque' } ? never
     : G extends { readonly alias: PropertyKey } ? HostReaches<R, C, T, D, Visited>
-    : G extends { readonly lifetime: { readonly kind: 'singleton' } } ? never
-    : G extends { readonly lifetime: { readonly kind: 'transient' } } ? HostReaches<R, C, T, D, Visited>
-    : Captured<D>
+    : GraphPolicy<G> extends 'scoped' ? Captured<D>
+    : GraphPolicy<G> extends 'transient' ? HostReaches<R, C, T, D, Visited>
+    : never
     : never : never : never;
 type HostReaches<R extends Registrations, C, V, K, Visited> =
   | HostReach<R, C, Dependencies<V> | AliasKeys<V>, Visited>
@@ -172,9 +236,9 @@ type HostCollection<R extends Registrations, C, T, Visited> = T extends symbol ?
 type HostContributions<R extends Registrations, C, T, Visited, I = Extract<C, ContributionConstraint>> = I extends ContributionConstraint
   ? TokenKey<I['token']> extends T ? Members<I['registration']> extends infer M ? M extends ProviderOrFactory ? ProviderGraphContract<M> extends infer G
     ? G extends { readonly kind: 'opaque' } ? never
-    : G extends { readonly lifetime: { readonly kind: 'singleton' } } ? never
-    : G extends { readonly lifetime: { readonly kind: 'transient' } } ? HostReaches<R, C, M, never, Visited>
-    : Captured<ContributionSite>
+    : GraphPolicy<G> extends 'scoped' ? Captured<ContributionSite>
+    : GraphPolicy<G> extends 'transient' ? HostReaches<R, C, M, never, Visited>
+    : never
     : never : never : never : never
   : never;
 type Captive<Root, X> = X extends Captured<infer D> ? { readonly root: Root; readonly dependency: D } : never;
@@ -193,7 +257,7 @@ type Captives<R extends Registrations, C> = SingletonCaptives<R, C, keyof R> | C
  * Reject strict root providers that transitively capture scoped dependencies.
  * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
  */
-export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
+export type CheckedLifetimes<R extends Registrations, C extends NeedConstraint> = NeedsHostLifetimeWalk<R, C> extends false ? unknown
   : [Captives<R, C>] extends [never] ? unknown
     : unknown extends CheckDependencyCompatibility<R> & CheckDependencyCompleteness<R> & CheckedConstraints<C, R> & CompleteConstraints<C, R>
       ? Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<Captives<R, C>>}${SeeErrors<'root-capture'>}`, { readonly captives: Captives<R, C> }>
@@ -205,7 +269,7 @@ type OverrideCaptives<R extends Registrations, O extends Registrations, C> = Sin
  * Reject root providers introduced by a child-container replacement when they capture scoped dependencies.
  * @see https://dany-fedorov.github.io/di-bag/agent/errors.html#root-capture
  */
-export type CheckedChildContainerLifetimes<R extends Registrations, O extends Registrations, C = never> = [NeedsLifetimeWalk<R, C>] extends [never] ? unknown
+export type CheckedChildContainerLifetimes<R extends Registrations, O extends Registrations, C = never> = NeedsHostLifetimeWalk<R, C> extends false ? unknown
   : [OverrideCaptives<R, O, C>] extends [never] ? unknown
     : Unsatisfied<`root lifetime cannot capture scoped dependency: ${CaptiveText<OverrideCaptives<R, O, C>>}${SeeErrors<'root-capture'>}`, { readonly captives: OverrideCaptives<R, O, C> }>;
 
@@ -216,6 +280,35 @@ type PolicyOf<R extends Registrations, K, Visited> = K extends keyof R ? K exten
 type PolicyTarget<R extends Registrations, V, Visited> = ProviderGraphContract<V> extends infer G
   ? G extends { readonly sharedAlias: { readonly registrations: infer P extends Registrations; readonly source: infer K } } ? PolicyOf<P, K, never>
   : G extends { readonly alias: infer K } ? PolicyOf<R, K, Visited>
-  : G extends { readonly lifetime: { readonly kind: infer L } } ? L : 'scoped'
+  : G extends { readonly lifetime: { readonly kind: infer L extends LifetimeKind } } ? L : 'singleton'
   : never;
-export type CanonicalLifetime<R extends Registrations, K extends keyof R> = PolicyOf<R, K, never>;
+type PublicLifetime<Kind extends LifetimeKind> =
+  Kind extends 'singleton' ? 'singleton:one-per-container-tree'
+  : Kind extends 'scoped' ? 'scoped:one-per-container'
+  : 'transient:one-per-resolve';
+
+export type CanonicalLifetime<R extends Registrations, K extends keyof R> = PublicLifetime<PolicyOf<R, K, never>>;
+
+type SingletonReplacementKeys<
+  ServiceRegistrations extends Registrations,
+  ReplacedServiceKeys extends readonly unknown[],
+> = {
+  [ServiceKey in SelectionKey<ReplacedServiceKeys[number]> & keyof ServiceRegistrations]:
+    'singleton:one-per-container-tree' extends CanonicalLifetime<ServiceRegistrations, ServiceKey>
+      ? ServiceKey
+      : never;
+}[SelectionKey<ReplacedServiceKeys[number]> & keyof ServiceRegistrations];
+
+type SingletonReplacementMessage<ServiceKey> = ServiceKey extends PropertyKey
+  ? `createChildContainer cannot replace singleton service: ${NameText<ServiceKey>}; mark it scoped:one-per-container or use createIndependentContainer`
+  : never;
+
+export type ChildReplacementAdmission<
+  ServiceRegistrations extends Registrations,
+  ReplacedServiceKeys extends readonly unknown[],
+> = [SingletonReplacementKeys<ServiceRegistrations, ReplacedServiceKeys>] extends [never]
+  ? unknown
+  : Unsatisfied<
+      SingletonReplacementMessage<SingletonReplacementKeys<ServiceRegistrations, ReplacedServiceKeys>>,
+      { readonly serviceKey: SingletonReplacementKeys<ServiceRegistrations, ReplacedServiceKeys> }
+    >;

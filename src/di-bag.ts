@@ -18,7 +18,7 @@ import { createProvider } from './acquisition-context';
 import { closeRuntime, ensureRuntimeReady } from './startup';
 import { selectChildContainer, selectIndependentContainer } from './scope-selection';
 import type { CreateChildContainerOptions, CreateIndependentContainerOptions, DisjointChildContainerSelection, UnsharedAliases, ScopedAliases } from './scope-types';
-import type { CheckedChildContainerLifetimes } from './lifetime-types';
+import type { CheckedChildContainerLifetimes, ChildReplacementAdmission } from './lifetime-types';
 import type { CloseOptions, EnsureServicesReadyOptions } from './startup';
 import { withTokenBinding } from './provider';
 import { providerWithAcquisitionMetadata, providerWithDisposal, providerWithLifetime, providerWithRegistrationMetadata, providerWithTransformedService } from './provider-facades';
@@ -283,7 +283,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
     const SharedParentServiceKeys extends readonly unknown[] = readonly [],
   >(
     replacedServiceKeys: ReplacedServiceKeys & Selection<ServiceRegistrations, Constraints, ReplacedServiceKeys, 'createChildContainer'>,
-    replacementProviders: ReplacementProviders & object & Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> &
+    replacementProviders: ReplacementProviders & ChildReplacementAdmission<ServiceRegistrations, ReplacedServiceKeys> & object & Record<SelectionKey<ReplacedServiceKeys[number]>, ProviderOrFactory> &
       Overrides<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>, ReplacedServiceKeys, 'createChildContainer'> &
       CheckDependencyCompatibility<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
       CheckDependencyCompleteness<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>> &
@@ -295,7 +295,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
   ): Container<ScopedAliases<OverrideRegistrations<ServiceRegistrations, ReboundSelection<ServiceRegistrations, ReplacedServiceKeys, SelectedRegistrations<ReplacedServiceKeys, ReplacementProviders>>>, ServiceRegistrations, SharedParentServiceKeys>, WithoutExportObligations<Constraints, SelectionKey<ReplacedServiceKeys[number]>>>;
   createChildContainer(...args: unknown[]): unknown {
     this.#runtime.assertOpen();
-    const { graph, shared } = selectChildContainer(this.#graph, positionalChildOptions(args), serviceKey => this.#runtime.isTransient(serviceKey));
+    const { graph, shared } = selectChildContainer(this.#graph, positionalChildOptions(args), serviceKey => this.#runtime.lifetimeOf(serviceKey));
     return new Container(graph, this.context, this.#runtime.scope(graph, shared));
   }
 

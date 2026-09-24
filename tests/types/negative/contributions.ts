@@ -133,8 +133,10 @@ const sharedAliasBase = DiBag.createBuilder().withServices({ helper: DiBag.provi
 // diagnostic: root lifetime cannot capture scoped dependency
 sharedAliasBase.createChildContainer(['helper', 'consumer'], { helper: rooted, consumer: rootAll }, { sharedParentServiceKeys: ['copy'] });
 const sharedRootAliasBase = DiBag.createBuilder().withServices({ helper: rooted, consumer: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [all], factoryFunction: values => values }), lifetime: 'scoped:one-per-container' }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'helper' }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.providerWithLifetime({ provider: ({ copy }: { copy: number }) => copy, lifetime: 'transient:one-per-resolve' }) }).buildContainer();
-const sharedRootAlias = sharedRootAliasBase.createChildContainer(['helper', 'consumer'], { helper: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }), consumer: rootAll }, { sharedParentServiceKeys: ['copy'] });
+// diagnostic: createChildContainer cannot replace singleton service: helper
+sharedRootAliasBase.createChildContainer(['helper', 'consumer'], { helper: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }), consumer: rootAll }, { sharedParentServiceKeys: ['copy'] });
+const scopedHelperFork = sharedRootAliasBase.createIndependentContainer(['helper'], { helper: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
-sharedRootAlias.createIndependentContainer();
+scopedHelperFork.createIndependentContainer(['consumer'], { consumer: rootAll });
 // diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withCollectionContribution({ collectionToken: numbers, provider: rooted }).withCollectionContribution({ collectionToken: numbers, provider: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).withServices({ rootAll }).buildContainer();

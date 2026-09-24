@@ -5,13 +5,13 @@ async function main() {
   const released: string[] = [];
   const root = await DiBag.createBuilder()
     .withServices({
-      config: DiBag.providerWithLifetime({ provider: () => ({ region: 'eu' }), lifetime: 'singleton:one-per-container-tree' }),
+      config: DiBag.providerWithLifetime({ provider: () => ({ region: 'eu' }), lifetime: 'scoped:one-per-container' }),
       client: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }: { config: { region: string } }) => ({ region: config.region }), disposeService: () => {
             released.push('client');
-          } }), lifetime: 'singleton:one-per-container-tree' }),
-      session: DiBag.providerWithDisposal({ provider: ({ config }: { config: { region: string } }) => ({ region: config.region }), disposeService: () => {
+          } }), lifetime: 'scoped:one-per-container' }),
+      session: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: ({ config }: { config: { region: string } }) => ({ region: config.region }), disposeService: () => {
           released.push('session');
-        } }),
+        } }), lifetime: 'scoped:one-per-container' }),
     })
     .buildContainer()
     .ensureServicesReady(['client']);
@@ -21,7 +21,7 @@ async function main() {
     {
       config: () => ({ region: 'us' }),
     },
-    { sharedParentServiceKeys: ['session'] },
+    { sharedParentServiceKeys: ['client', 'session'] },
   );
   assert.equal(child.resolve('config').region, 'us');
   assert.equal(child.resolve('client').region, 'eu');

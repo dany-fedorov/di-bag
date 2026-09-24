@@ -84,7 +84,7 @@ const valid = DiBag.createBuilder().withTokenService(number, DiBag.providerWithL
 // diagnostic: root lifetime cannot capture scoped dependency
 valid.createIndependentContainer([number], { [key]: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) });
 // diagnostic: root lifetime cannot capture scoped dependency
-valid.createChildContainer([number, 'root'], { [key]: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }), root });
+valid.createIndependentContainer([number, 'root'], { [key]: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }), root });
 declare const erasedProvider: Provider<() => number> | typeof source;
 // diagnostic: incompatible
 DiBag.createBuilder().withTokenService(wrong, DiBag.providerWithLifetime({ provider: () => 'wrong', lifetime: 'scoped:one-per-container' })).withServices({ source: erasedProvider });

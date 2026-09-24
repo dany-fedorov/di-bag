@@ -75,7 +75,10 @@ function selectRuntimeAdapter(suppliedFacade: unknown, surface: RuntimeBuilderSu
       transient: 'transient:one-per-resolve',
     } as const;
     return {
-      source: (create, factoryReturnKind) => current.createProvider(create, { factoryReturnKind }),
+      source: (create, factoryReturnKind) => current.providerWithLifetime({
+        provider: current.createProvider(create, { factoryReturnKind }),
+        lifetime: 'scoped:one-per-container',
+      }),
       own: (registration, dispose) => current.providerWithDisposal({ provider: registration, disposeService: dispose }),
       lifetime: (registration, lifetime) => current.providerWithLifetime({ provider: registration, lifetime: lifetimeValues[lifetime] }),
       build: bindings => current.createBuilder().withServices(bindings).buildContainer(),

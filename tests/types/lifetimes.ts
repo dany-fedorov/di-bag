@@ -35,9 +35,10 @@ export const capability = DiBag.providerWithTransformedService({ provider: DiBag
 export const mapped = DiBag.providerWithTransformedService({ provider: metadata, transformService: value => value, callbackReceives: 'exposed-service', transformReturnKind: 'uninspected' });
 export const asyncMapped = DiBag.providerWithTransformedService({ provider: metadata, transformService: value => value, callbackReceives: 'fulfilled-value' });
 export const explicitDefault = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' });
-export const defaultProvider: Provider<() => number> = explicitDefault;
-export const defaultModule: Module<{ value: number }, Readonly<{}>> = DiBag.createBuilder().withServices({ value: explicitDefault }).buildModule({ exportedServiceKeys: ['value'] });
-export const defaultBag: Container<{ value: Provider<() => number> }> = DiBag.createBuilder().withServices({ value: DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' }) }).buildContainer();
+export const bareDefault = DiBag.createProvider(() => 1);
+export const defaultProvider: Provider<() => number> = bareDefault;
+export const defaultModule: Module<{ value: number }, Readonly<{}>> = DiBag.createBuilder().withServices({ value: bareDefault }).buildModule({ exportedServiceKeys: ['value'] });
+export const defaultBag: Container<{ value: Provider<() => number> }> = DiBag.createBuilder().withServices({ value: bareDefault }).buildContainer();
 type ContainerAliasValue = Assert<Equal<ReturnType<typeof defaultBag.resolve<'value'>>, number>>;
 export const mixed = Math.random() ? DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' }) : () => 1;
 export const wrappedMixed = DiBag.providerWithLifetime({ provider: mixed, lifetime: 'transient:one-per-resolve' });

@@ -15,7 +15,7 @@ export type { CreateChildContainerOptions, CreateIndependentContainerOptions, Di
 export type { CollectionItem, CollectionToken, CollectionTokenBase, Token, TokenBase, TokenKey, TokenKind, TokenService } from './tokens';
 export type { CollectionTokenMember, SingleServiceTokenMember, TokenBinding, TokenMember, TokenDependencyContract, SelectionKey } from './token-types';
 export type { ReboundProviders, ReboundSelection } from './types';
-export type { CheckedChildContainerLifetimes, CheckedLifetimes, LifetimeObligation, Reach } from './lifetime-types';
+export type { CanonicalLifetime, ChildReplacementAdmission, CheckedChildContainerLifetimes, CheckedLifetimes, LifetimeObligation, Reach } from './lifetime-types';
 export type { DiBagPolicy } from './types';
 export type { CheckDependencyCompatibility, CheckDependencyCompleteness, RegistrationEntries, OverrideFactoryContext, RegistrationsFromEntries, OverrideRegistrations, Overrides, ServicesOf, SelectedRegistrations, Selection } from './types';
 export type { Presence, AcquisitionMetadataPresence, AcquisitionSnapshot, RegistrationSnapshot, BindingSnapshot, GraphSnapshot } from './inspection';

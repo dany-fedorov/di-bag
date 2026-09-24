@@ -79,12 +79,22 @@ test('lifetime declarations retain exact inferred cross-file contracts', () => {
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
+test('singleton default source contract type-checks', () => {
+  expect(diagnostics(resolve(__dirname, 'types/singleton-default.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
+test('singleton default declaration consumer type-checks', () => {
+  expect(diagnostics(resolve(__dirname, 'types/singleton-default-consumer.ts')).map(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
+});
+
 test('requirement-renaming retains exact cross-file contracts', () => {
   expect(diagnostics(resolve(__dirname, 'types/requirement-renaming-consumer.ts')).map(error =>
     ts.flattenDiagnosticMessageText(error.messageText, '\n'))).toEqual([]);
 });
 
-for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'portable-factories', 'provider-sources', 'provider-facades', 'container-derivation', 'requirement-renaming']) test(`${fixture} inferred exports survive declaration consumption`, () => {
+for (const fixture of ['lifetimes', 'composition-adapters', 'dependency-references', 'aliases', 'contributions', 'observers', 'plugins', 'final-adversarial-integration', 'portable-factories', 'provider-sources', 'provider-facades', 'container-derivation', 'requirement-renaming', 'singleton-default']) test(`${fixture} inferred exports survive declaration consumption`, () => {
   const producerPath = resolve(__dirname, `types/${fixture}.ts`);
   const consumerPath = resolve(__dirname, `types/${fixture}-consumer.ts`);
   const declarationPath = producerPath.replace(/\.ts$/, '.d.ts');
@@ -274,6 +284,38 @@ const negativeFixtures = readdirSync(negativeDirectory)
   .map((name) => resolve(negativeDirectory, name));
 // One program for every independent rejection fixture; each test reads its own file's diagnostics.
 const negativeDiagnostics = diagnosticsByFile(negativeFixtures);
+
+test('singleton default child diagnostics start on replacementProviders', () => {
+  const file = resolve(__dirname, 'types/negative/singleton-default.ts');
+  const source = readFileSync(file, 'utf8');
+  const errors = negativeDiagnostics.get(file)!;
+  const matched = matchDiagnosticMarkers(source, file, errors.map(describeDiagnostic));
+  expect(matched.unexpected).toEqual([]);
+  expect(matched.missing).toEqual([]);
+  const replacements = errors.filter(error =>
+    ts.flattenDiagnosticMessageText(error.messageText, '\n')
+      .includes('createChildContainer cannot replace singleton service'),
+  );
+  expect(replacements).toHaveLength(3);
+  expect(replacements.map(error => source.slice(error.start!, error.start! + error.length!))).toEqual([
+    '{ singleton: () => ({ value: 4 }) }',
+    '{ [singletonToken.symbol]: () => ({ value: 2 }) }',
+    'replacementProviders',
+  ]);
+});
+
+test('singleton default union graph diagnostics remain', () => {
+  const file = resolve(__dirname, 'types/negative/singleton-unions.ts');
+  const source = readFileSync(file, 'utf8');
+  const errors = negativeDiagnostics.get(file)!;
+  const matched = matchDiagnosticMarkers(source, file, errors.map(describeDiagnostic));
+  expect(matched.missing).toEqual([]);
+  expect(matched.unexpected).toEqual([]);
+  const childError = errors.find(error => ts.flattenDiagnosticMessageText(error.messageText, '\n')
+    .includes('createChildContainer cannot replace singleton service: value'));
+  expect(childError).toBeDefined();
+  expect(source.slice(childError!.start!, childError!.start! + childError!.length!)).toBe('{ value: () => 3 }');
+});
 
 test('requirement-renaming wrong-shape details name the remapped relationship', () => {
   const path = resolve(negativeDirectory, 'requirement-renaming.ts');

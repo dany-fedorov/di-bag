@@ -46,7 +46,7 @@ DiBag.createBuilder().withServices({ rootOptional }).buildContainer();
 DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' })).withServices({ rootOptional }).buildContainer();
 const rootLazy = DiBag.providerWithLifetime({ provider: lazy, lifetime: 'singleton:one-per-container-tree' });
 const rootBag = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' })).withServices({ rootLazy }).buildContainer();
-rootBag.createChildContainer([number], { [key]: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'scoped:one-per-container' }) });
+rootBag.createIndependentContainer([number], { [key]: DiBag.providerWithLifetime({ provider: () => 2, lifetime: 'singleton:one-per-container-tree' }) });
 DiBag.createProviderFromFunction<readonly [typeof optionalHandle], (value: number | undefined) => number | undefined>({ dependencies: [optionalHandle], factoryFunction: value => value });
 DiBag.createProviderFromClass<readonly [typeof optionalHandle, typeof lazyHandle], typeof Client>({ dependencies: [optionalHandle, lazyHandle], serviceClass: Client });
 const reflected: typeof DiBag.createProviderFromFunction = DiBag.createProviderFromFunction;

@@ -37,14 +37,12 @@ type LifetimeKindOf<SelectedLifetime extends Lifetime> =
   SelectedLifetime extends 'singleton:one-per-container-tree' ? 'singleton'
   : SelectedLifetime extends 'scoped:one-per-container' ? 'scoped'
   : 'transient';
-export type LifetimeGraph<Graph extends GraphContract, SelectedLifetime extends Lifetime, Options> = Graph extends infer Candidate & {}
-  ? Candidate extends GraphContract
-    ? LifetimeKindOf<SelectedLifetime> extends 'scoped'
-      ? 'lifetime' extends keyof Candidate ? Omit<Candidate, 'lifetime'> : Candidate
-      : Omit<Candidate, 'lifetime'> & { readonly lifetime: {
-          readonly kind: LifetimeKindOf<SelectedLifetime>;
-          readonly allowsScopedDependencies: [Options] extends [{ readonly allowsScopedDependencies: true }] ? true : false;
-        } }
+export type LifetimeGraph<RetainedGraphContract extends GraphContract, SelectedLifetime extends Lifetime, Options> = RetainedGraphContract extends infer Graph & {}
+  ? Graph extends GraphContract
+    ? Omit<Graph, 'lifetime'> & { readonly lifetime: {
+        readonly kind: LifetimeKindOf<SelectedLifetime>;
+        readonly allowsScopedDependencies: [Options] extends [{ readonly allowsScopedDependencies: true }] ? true : false;
+      } }
     : never
   : never;
 export function selectLifetime(provider: ProviderBase, lifetime: unknown, options?: unknown, operation = 'withLifetime'): ProviderBase {

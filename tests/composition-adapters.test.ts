@@ -165,8 +165,11 @@ test('strict root class adapters retain root dependencies through child override
   const bag = DiBag.createBuilder().withTokenService(port, DiBag.providerWithLifetime({ provider: () => 80, lifetime: 'singleton:one-per-container-tree' })).withServices({
     source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }), lifetime: 'singleton:one-per-container-tree' }),
   }).buildContainer();
-  const child = bag.createChildContainer([port], { [portKey]: DiBag.providerWithLifetime({ provider: () => 90, lifetime: 'scoped:one-per-container' }) });
+  const child = bag.createChildContainer();
   expect(child.resolve('source')).toBe(bag.resolve('source')); expect(child.resolve('source').port).toBe(80);
+  const independent = bag.createIndependentContainer([port], { [portKey]: DiBag.providerWithLifetime({ provider: () => 90, lifetime: 'singleton:one-per-container-tree' }) });
+  expect(independent.resolve('source').port).toBe(90);
+  await independent.close();
   await bag.close();
 });
 

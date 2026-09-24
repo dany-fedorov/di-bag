@@ -106,7 +106,10 @@ test('lazy closures use shared/root owner context and independent fork overrides
   const root = DiBag.createBuilder().withTokenService(number, DiBag.providerWithLifetime({ provider: () => 4, lifetime: 'singleton:one-per-container-tree' })).withServices({
     source: DiBag.providerWithLifetime({ provider: DiBag.createProviderFromFunction({ dependencies: [DiBag.lazy(number)], factoryFunction: get => ({ get }) }), lifetime: 'singleton:one-per-container-tree' }),
   }).buildContainer();
-  const scoped = root.createChildContainer([number], { [key]: DiBag.providerWithLifetime({ provider: () => 5, lifetime: 'scoped:one-per-container' }) }); expect(scoped.resolve('source').get()).toBe(4);
+  const inherited = root.createChildContainer(); expect(inherited.resolve('source').get()).toBe(4);
+  const independentRoot = root.createIndependentContainer([number], { [key]: DiBag.providerWithLifetime({ provider: () => 5, lifetime: 'singleton:one-per-container-tree' }) });
+  expect(independentRoot.resolve('source').get()).toBe(5);
+  await independentRoot.close();
   await root.close();
 });
 

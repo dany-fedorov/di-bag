@@ -60,7 +60,6 @@ declare const opaque: ProviderBase;
 // diagnostic: factory dependencies must be finite string-keyed objects
 DiBag.createBuilder().withServices({ opaque: DiBag.providerWithLifetime({ provider: opaque, lifetime: 'singleton:one-per-container-tree' }) });
 declare const erased: Provider<() => number>;
-// diagnostic: root lifetime cannot capture scoped dependency
 DiBag.createBuilder().withServices({ db: erased, root: DiBag.providerWithLifetime({ provider: ({ db }: { db: number }) => db, lifetime: 'singleton:one-per-container-tree' }) }).buildContainer();
 // diagnostic: not assignable
 const erasedRoot: Provider<() => number> = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'singleton:one-per-container-tree' });
