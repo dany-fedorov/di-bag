@@ -47,7 +47,7 @@ test('a removed call, type, code, value, import and each retired word are report
 test('without file arguments it reads the guides of the root', () => {
   const result = run();
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain('finding(s) in 5 file(s)');
+  expect(result.stderr).toContain('finding(s) in 6 file(s)');
 });
 
 test('fences suppress retired prose words but retain removed API findings', () => {
@@ -94,4 +94,10 @@ test('only valid closers end tilde and blockquote fences before prose scanning r
     'docs/guides/fence-containers.md:15: retired word family',
     'docs/guides/fence-containers.md:17: retired word cleanup',
   ]);
+});
+
+test('an unquoted line ends an open blockquote fence and is scanned as prose', () => {
+  const result = run('docs/guides/blockquote-exit.md');
+  expect(result.status).toBe(1);
+  expect(result.stdout.trim()).toBe('docs/guides/blockquote-exit.md:5: retired word cleanup');
 });

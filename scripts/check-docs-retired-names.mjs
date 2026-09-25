@@ -76,7 +76,7 @@ function maskNamingExplanation(file, section, text) {
   return text;
 }
 
-function fenceMarker(line) {
+function blockquoteContent(line) {
   let rest = line;
   let quoteDepth = 0;
   while (true) {
@@ -85,6 +85,10 @@ function fenceMarker(line) {
     quoteDepth += 1;
     rest = rest.slice(quote[0].length);
   }
+  return { rest, quoteDepth };
+}
+
+function fenceMarker(rest, quoteDepth) {
   const marker = rest.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
   return marker ? { quoteDepth, delimiter: marker[1], tail: marker[2] } : undefined;
 }
@@ -94,9 +98,12 @@ for (const file of files) {
   let fence;
   let section = '';
   readFileSync(join(root, file), 'utf8').split('\n').forEach((line, index) => {
+    const { rest, quoteDepth } = blockquoteContent(line);
+    // A fenced block inside a quote ends when its containing quote ends, even without a closing fence.
+    if (fence?.quoteDepth > quoteDepth) fence = undefined;
     const heading = line.match(/^## (.+)$/);
     if (!fence && heading) section = heading[1];
-    const marker = fenceMarker(line);
+    const marker = fenceMarker(rest, quoteDepth);
     let boundary = false;
     if (marker) {
       if (!fence && (marker.delimiter[0] === '~' || !marker.tail.includes('`'))) {
