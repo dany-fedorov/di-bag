@@ -108,11 +108,11 @@ copy an execution's progress or restore a workflow checkpoint.
 _Avoid_: Fork, bag fork, checkpoint fork, workflow replay
 
 **Singleton**:
-A lifetime of one instance for a whole container tree. It is the default.
+A lifetime of one instance for a whole container tree.
 _Avoid_: Root lifetime, shared lifetime
 
 **Scoped**:
-A lifetime of one instance in each container that resolves the service.
+A lifetime of one instance in each container that resolves the service. It is the default.
 _Avoid_: Request-scoped when no request is involved
 
 **Transient**:
