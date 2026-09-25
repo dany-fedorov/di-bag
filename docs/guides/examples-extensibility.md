@@ -228,7 +228,7 @@ void main().catch(error => { console.error(error); process.exitCode = 1; });
 The output is `last-known-good: pricing-2026-09-08`, followed by
 `2500-cent basket: 3000 cents delivered`. The metadata survives projection, and
 each inspection is a snapshot: taking another snapshot is how the operator sees
-the transition to ready. Inspection exposes no service values; `describe` chooses
+the transition to ready. Inspection exposes no service values; `describeAcquisition` chooses
 the facts to publish. These facts describe acquisition, not ongoing service health.
 Failed attempts are evicted and closed containers have empty acquisition lists, so use
 observers or application storage for historical diagnostics. The fallback and its

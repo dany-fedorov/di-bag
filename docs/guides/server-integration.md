@@ -231,15 +231,21 @@ try {
   await app.close({ waitTimeoutMs: 5_000 });
 } catch (error) {
   if (error instanceof DiBagCloseCancelledError) {
-    // Disposal continues after this bounded wait ends.
-    await error.disposalPromise;
+    // Observe eventual disposal without extending this bounded wait.
+    void error.disposalPromise.catch(disposalError => {
+      console.error('Disposal failed after the shutdown deadline', disposalError);
+      process.exitCode = 1;
+    });
   } else {
     throw error;
   }
 }
 ```
 
-The deadline does not release pending resources or cancel a disposer.
+The catch branch returns after the bounded wait; it does not wait for disposal to
+finish. The deadline does not release pending resources or cancel a disposer.
+The rejection handler reports any eventual disposal failure, while the host decides
+when to exit and how to handle still-pending resources.
 `abortSignal` can also end the wait. The same principle applies to `disposalPromise` on
 `DiBagServiceReadinessCancelledError`.
 

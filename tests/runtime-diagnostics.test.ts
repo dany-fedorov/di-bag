@@ -165,6 +165,36 @@ test('close({ waitTimeoutMs }) rejects naming the never-settling disposer and ke
   expect(error.disposalPromise).toBe(bag.close());
 });
 
+test('a shutdown deadline returns before disposal settles and observes a later failure', async () => {
+  let rejectDisposal!: () => void;
+  const lateFailure = new Error('late disposal');
+  const bag = DiBag.createBuilder().withServices({
+    resource: DiBag.providerWithDisposal({
+      provider: () => 'resource',
+      disposeService: () => new Promise<void>((_resolve, reject) => { rejectDisposal = () => reject(lateFailure); }),
+    }),
+  }).buildContainer();
+  bag.resolve('resource');
+
+  let observed: unknown;
+  const stop = async () => {
+    try {
+      await bag.close({ waitTimeoutMs: 1 });
+    } catch (error) {
+      if (error instanceof DiBagCloseCancelledError) {
+        void error.disposalPromise.catch(disposalError => { observed = disposalError; });
+      } else {
+        throw error;
+      }
+    }
+  };
+  await stop();
+  expect(observed).toBeUndefined();
+  rejectDisposal();
+  await bag.close().catch(() => {});
+  expect(observed).toBeInstanceOf(DiBagDisposalError);
+});
+
 test('close deadline reports pending acquisitions when cleanup is still draining them', async () => {
   const bag = DiBag.createBuilder().withServices({ slow: () => new Promise<number>(() => {}) }).buildContainer();
   void bag.resolve('slow');

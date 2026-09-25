@@ -47,7 +47,7 @@ test('a removed call, type, code, value, import and each retired word are report
 test('without file arguments it reads the guides of the root', () => {
   const result = run();
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain('finding(s) in 7 file(s)');
+  expect(result.stderr).toContain('finding(s) in 8 file(s)');
 });
 
 test('fences suppress retired prose words but retain removed API findings', () => {
@@ -113,4 +113,13 @@ test('an unquoted line ends an open blockquote fence and is scanned as prose', (
   const result = run('docs/guides/blockquote-exit.md');
   expect(result.status).toBe(1);
   expect(result.stdout.trim()).toBe('docs/guides/blockquote-exit.md:5: retired word cleanup');
+});
+
+test('a list-item fence hides code vocabulary and ends before later prose', () => {
+  const result = run('docs/guides/list-fence.md');
+  expect(result.status).toBe(1);
+  expect(result.stdout.trim().split('\n')).toEqual([
+    'docs/guides/list-fence.md:4: retired call build',
+    'docs/guides/list-fence.md:7: retired word cleanup',
+  ]);
 });

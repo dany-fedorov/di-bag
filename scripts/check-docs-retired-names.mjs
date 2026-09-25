@@ -95,7 +95,8 @@ function blockquoteContent(line) {
 }
 
 function fenceMarker(rest, quoteDepth) {
-  const marker = rest.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+  const content = rest.replace(/^ {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]+/, '');
+  const marker = content.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
   return marker ? { quoteDepth, delimiter: marker[1], tail: marker[2] } : undefined;
 }
 

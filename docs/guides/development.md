@@ -105,9 +105,9 @@ declarations are emitted to `dist/`.
 Classic TypeScript 6.0.3 remains the primary compiler. Native 7.0.2 checks the
 source and installed declaration contracts. The strict native audit currently
 matches every expected diagnostic, including all replacement diagnostics, with no
-unexpected diagnostics and one reviewed gap: native 7.0.2 rejects a contextual
-`createProvider` that returns a structural thenable, but reports the last overload's
-arity error instead of the thenable message. Gaps are declared in
+unexpected diagnostics and nine reviewed gaps. One is that native 7.0.2 rejects a
+contextual `createProvider` that returns a structural thenable, but reports the
+last overload's arity error instead of the thenable message. Gaps are declared in
 `tests/native-diagnostic-markers.ts` with the exact native message. The scale matrices allow no
 diagnostic exceptions. The native development tests and
 supervised reports require Linux. Native reports supervise the actual

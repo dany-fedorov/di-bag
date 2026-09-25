@@ -193,7 +193,7 @@ retain private-consumer, token, lifetime, and ownership contracts.
 | [`CollectionToken`](../reference/index/interfaces/CollectionToken.md), [`CollectionTokenBase`](../reference/index/interfaces/CollectionTokenBase.md), [`CollectionItem`](../reference/index/type-aliases/CollectionItem.md) | Collection token identity and the type of one contribution. |
 | [`OptionalDependency`](../reference/index/type-aliases/OptionalDependency.md), [`LazyDependency`](../reference/index/type-aliases/LazyDependency.md), [`DependencyReference`](../reference/index/type-aliases/DependencyReference.md) | The token reference forms accepted in positional dependency tuples. |
 | [`PositionalFactoryArguments`](../reference/index/type-aliases/PositionalFactoryArguments.md), [`PositionalFactoryFunction`](../reference/index/type-aliases/PositionalFactoryFunction.md) | Positional argument compatibility and callback signatures for function/constructor adaptation. |
-| [`Presence`](../reference/index/type-aliases/Presence.md) | `{ present: false }` or `{ present: true, value }`, including present `undefined`. |
+| [`Presence`](../reference/index/type-aliases/Presence.md) | `{ isPresent: false }` or `{ isPresent: true, value }`, including a present `undefined` value. |
 | [`AcquisitionMetadataPresence`](../reference/index/type-aliases/AcquisitionMetadataPresence.md), [`AcquisitionSnapshot`](../reference/index/interfaces/AcquisitionSnapshot.md), [`RegistrationSnapshot`](../reference/index/interfaces/RegistrationSnapshot.md) | Inspection frames, acquisition state, and registration metadata snapshots. |
 | [`GraphSnapshot`](../reference/index/interfaces/GraphSnapshot.md), [`BindingSnapshot`](../reference/index/interfaces/BindingSnapshot.md) | The frozen result of `graphSnapshot()` and its per-binding entries. |
 | [`DisposalFailure`](../reference/index/interfaces/DisposalFailure.md) | The detached acquisition identity, label, and original disposal error. |
@@ -246,8 +246,7 @@ contracts; they do not perform runtime validation.
 | [`CanonicalLifetime`](../reference/index/type-aliases/CanonicalLifetime.md), [`LifetimeObligation`](../reference/index/type-aliases/LifetimeObligation.md), [`Reach`](../reference/index/type-aliases/Reach.md) | Normalize lifetimes and retain compact module lifetime obligations. |
 | [`CheckedLifetimes`](../reference/index/type-aliases/CheckedLifetimes.md), [`CheckedChildContainerLifetimes`](../reference/index/type-aliases/CheckedChildContainerLifetimes.md), [`ChildReplacementAdmission`](../reference/index/type-aliases/ChildReplacementAdmission.md) | Check singleton capture and child replacement compatibility. |
 
-The authoritative export lists are [`src/index.ts`](../../src/index.ts) and
-`src/node.ts`.
+The authoritative export list is [`src/index.ts`](../../src/index.ts).
 Internal helpers in other source files are not package exports.
 
 ## Boundaries
