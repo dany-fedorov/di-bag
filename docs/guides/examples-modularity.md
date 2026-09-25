@@ -38,16 +38,16 @@ src/app.check.ts     # verifyGraphAtCompileTime() on the application builder: th
   module reads this file and its own directory; a task that spans modules names
   the contracts it changes.
 - `module.ts` registers the private factories and seals them with
-  `buildModule(keys)`. Only the listed keys leave the directory.
+  `buildModule({ exportedServiceKeys: keys })`. Only the listed keys leave the directory.
 - `check.ts` is one statement: a builder that installs the module, registers a
-  typed fixture for each requirement, and ends in `verifyGraph() satisfies void`.
+  typed fixture for each requirement, and ends in `verifyGraphAtCompileTime() satisfies void`.
   With the directory's `tsconfig.json` it type-checks the module without the
   rest of the application; a missing requirement fails with its name. The
   command is in [AGENTS.md](../../AGENTS.md#check-one-module).
-- The test file forks the module with typed fixtures for its requirements, so it
+- The test file installs the module with typed fixtures for its requirements, so it
   runs without the other modules or live clients.
 - `src/app.ts` is where independently developed modules meet, and
-  `src/app.check.ts` checks it: `verifyGraph()` rejects a missing requirement or
+  `src/app.check.ts` checks it: `verifyGraphAtCompileTime()` rejects a missing requirement or
   an incompatible contract there. The type check does not see dependency
   cycles; `npx di-bag-graph --check` fails on cycles and unsupplied
   requirements before any factory runs. Merge review is the
@@ -164,7 +164,7 @@ belongs to the application, not to dependency injection.
 A billing agent should be able to test approved and declined payments without
 starting the web server or calling a payment provider. The payment contract is
 external to the module; its attempt counter stays private. Each test installs the
-same behavior through a fresh fork and supplies a different gateway.
+same behavior through a fresh independent container and supplies a different gateway.
 
 ```ts
 import assert from 'node:assert/strict';
@@ -238,7 +238,8 @@ async function runCase(approved: boolean) {
 }
 
 try {
-  await Promise.all([runCase(true), runCase(false)]);
+  const outcomes = await Promise.allSettled([runCase(true), runCase(false)]);
+  assert.ok(outcomes.every(outcome => outcome.status === 'fulfilled'));
   assert.equal(defaultGatewayCreations, 0);
   console.log('Approved and declined cases passed with separate state');
 } finally {
@@ -251,9 +252,9 @@ against the feature's public entry point. Both cases start with an attempt count
 of zero, and overrides are checked against the module's external requirements.
 No process-global service replacement or access to the private counter is needed.
 
-**Boundary:** a fork creates fresh acquisitions, but a factory that closes over a
+**Boundary:** an independent container creates fresh acquisitions, but a factory that closes over a
 shared mutable object can still share that object. Create per-test data inside the
-test or its factory, as above. Forks are independent owners: closing the fixture
+test or its factory, as above. Independent containers have separate ownership: closing the fixture
 does not close them. Contract checks do not prove a test's assertions are adequate
 or that the fake matches a real payment provider's failure modes.
 
@@ -348,7 +349,7 @@ try {
 **What this buys you:** exportless modules can contribute typed services while
 keeping their helper registrations private. New features implement the shared
 contract and contribute another tool; the dispatcher stays unchanged. A feature
-test can install just one module and inspect its `resolveAll(tools)` result.
+test can install just one module and inspect its `resolveCollection(tools)` result.
 
 **Boundary:** the host explicitly selects modules at composition time. This is
 not automatic plugin discovery, hot reloading, an LLM tool-calling protocol, or a
