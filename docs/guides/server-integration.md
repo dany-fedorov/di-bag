@@ -171,9 +171,10 @@ HTTP response is sent, so a disposal failure can still become an error response.
 The returned data must remain usable after disposal. A live cursor, stream, or
 socket needs a longer lived container, described [below](#disconnects-streaming-and-websockets).
 
-The framework recipes below use the request-container version of `application.ts`.
-When requests need no request state, call `app.resolve('handler').list()` directly
-and use the first application recipe.
+The framework recipes below use the [request-container application](#request-containers).
+When requests need no request state, use the
+[single-container application](#build-the-application-once) and call
+`app.resolve('handler').list()` directly.
 
 ## Choose the owner of each service
 
