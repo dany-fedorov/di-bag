@@ -162,7 +162,7 @@ describe('release documentation contract', () => {
     expect(readme).toContain('(docs/guides/tutorial.md)');
     expect(reference).toContain('../reference/index/interfaces/DiBagApi.md');
     expect(readme).toContain('(docs/guides/development.md)');
-    for (const fact of ['provider metadata', 'raw', 'native', 'selected scopes', 'non-blocking observers', 'original acquired value'])
+    for (const fact of ['provider metadata', 'uninspected', 'native', 'selected child containers', 'non-blocking observers', 'original acquired value'])
       expect(`${tutorial}\n${development}`).toContain(fact);
     expect(readme).toContain('npm run check');
     expect(readme).toContain('npm run check:native');
