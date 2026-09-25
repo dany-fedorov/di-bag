@@ -166,7 +166,7 @@ describe('release documentation contract', () => {
       expect(`${tutorial}\n${development}`).toContain(fact);
     expect(readme).toContain('npm run check');
     expect(readme).toContain('npm run check:native');
-    expect(development).toContain('one reviewed gap: native 7.0.2 rejects a contextual');
+    expect(development).toContain('nine reviewed gaps. One is that native 7.0.2 rejects a');
     expect(development).toContain('applications at 1,000 providers');
     expect(development).toContain('groups of 50');
     for (const text of [readme, reference, tutorial, development])
