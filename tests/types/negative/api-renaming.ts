@@ -158,9 +158,11 @@ type RemovedFunction = CompositionFunction<[]>;
 type RemovedPluginMode = PluginAcquisitionMode;
 type RemovedPluginOptions = PluginOptions<'raw', unknown>;
 type RemovedPluginFactory = PluginProviderFactory;
+// diagnostic: does not satisfy the constraint
+type RemovedPluginProviderMode = import('../../../src').PluginProvider<readonly [], number, 'raw'>;
 // diagnostic: has no exported member
 type RemovedCleanupError = import('../../../src').DiBagCleanupError;
 // diagnostic: has no exported member
 type RemovedCleanupFailure = import('../../../src').CleanupFailure;
 // diagnostic: has no exported member
-type RemovedScopeEventFields = import('../../../src').Sc\u006fpeEventFields;
+type RemovedScopeEventFields = import('../../../src').ScopeEventFields;
