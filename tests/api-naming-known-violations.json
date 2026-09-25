@@ -3,8 +3,6 @@
   "violations": [
     "boolean-name: member owned",
     "boolean-name: member present",
-    "retired-word: code DI_BAG_INVALID_CLEANUP",
-    "retired-word: code DI_BAG_INVALID_STARTUP",
     "retired-word: export ScopeEventFields",
     "retired-word: member parentScopeId",
     "retired-word: member root",

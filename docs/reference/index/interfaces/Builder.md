@@ -31,7 +31,7 @@ https://dany-fedorov.github.io/di-bag/agent/api-card.html#builder
 readonly buildModule: BuilderBuildModule<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:608](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L608)
+Defined in: [di-bag.ts:609](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L609)
 
 Seal this graph as a reusable module and select its public names and typed tokens.
 Unselected services stay private to each installation; unmet dependencies
@@ -51,7 +51,7 @@ An immutable module that can be renamed or installed in another builder.
 
 #### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_EXPORT` if the selection is not a tuple
+`DI_BAG_INVALID_ARGUMENT` for a malformed options object or non-tuple selection
 or the label is not a non-empty string; `DI_BAG_UNKNOWN_SERVICE_KEY` for an absent name or token; `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token;
 `DI_BAG_WRONG_TOKEN_KIND` when an exported token kind conflicts with this graph.
 
@@ -74,7 +74,7 @@ const app = DiBag.createBuilder().withInstalledModules([orders]).buildContainer(
 readonly withCollectionContribution: BuilderWithCollectionContribution<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:506](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L506)
+Defined in: [di-bag.ts:507](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L507)
 
 Append a provider to the list of a collection token.
 
@@ -108,7 +108,7 @@ const builder = DiBag.createBuilder().withCollectionContribution({ collectionTok
 readonly withInstalledModules: BuilderWithInstalledModules<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:556](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L556)
+Defined in: [di-bag.ts:557](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L557)
 
 Install sealed modules in list order, allocating fresh private bindings for each installation.
 Each module is checked against this builder plus the modules before it in the list.
@@ -144,7 +144,7 @@ const app = DiBag.createBuilder().withInstalledModules([greeting]).withServices(
 readonly withReplacedService: BuilderWithReplacedService<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:528](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L528)
+Defined in: [di-bag.ts:529](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L529)
 
 Replace an existing binding with a compatible provider, selecting it by name, service token, collection token.
 
@@ -183,7 +183,7 @@ const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).
 readonly withServiceAlias: BuilderWithServiceAlias<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:478](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L478)
+Defined in: [di-bag.ts:479](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L479)
 
 Add another lookup name for an existing service.
 
@@ -216,10 +216,11 @@ const builder = DiBag.createBuilder().withServices({ clock: () => Date.now() }).
 readonly withServices: BuilderWithServices<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:439](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L439)
+Defined in: [di-bag.ts:440](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L440)
 
 Add new string-named services.
 A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
+Bind typed tokens separately with `withTokenService`.
 
 #### Param
 
@@ -233,7 +234,7 @@ A new builder containing snapshots of the supplied providers.
 
 #### Throws
 
-`DI_BAG_INVALID_REGISTRATION` for a malformed object or `DI_BAG_INVALID_PROVIDER` for a malformed value; `DI_BAG_DUPLICATE_SERVICE_KEY` for a name already registered;
+`DI_BAG_INVALID_ARGUMENT` for a malformed object or `DI_BAG_INVALID_PROVIDER` for a malformed value; `DI_BAG_DUPLICATE_SERVICE_KEY` for a name already registered;
 `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
 
 #### Example
@@ -251,7 +252,7 @@ const builder = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now:
 readonly withTokenService: BuilderWithTokenService<Entries, Constraints>;
 ```
 
-Defined in: [di-bag.ts:459](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L459)
+Defined in: [di-bag.ts:460](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L460)
 
 Add the single service of a typed token.
 
@@ -292,7 +293,7 @@ const builder = DiBag.createBuilder().withTokenService(clock, () => ({ now: () =
 buildContainer(this: Builder<Entries, Constraints> & CheckDependencyCompleteness<RegistrationsFromEntries<Entries>> & CompleteConstraints<Constraints, RegistrationsFromEntries<Entries>> & CheckedLifetimes<RegistrationsFromEntries<Entries>, Constraints>): Container<RegistrationsFromEntries<Entries>, Constraints>;
 ```
 
-Defined in: [di-bag.ts:626](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L626)
+Defined in: [di-bag.ts:627](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L627)
 
 Finish a complete graph as a lazy container.
 The container owns what it acquires; close it when done.
@@ -327,7 +328,7 @@ await app.close();
 verifyGraphAtCompileTime<Self extends Builder<Entries, Constraints>>(this: Self): CompositionReport<Self>;
 ```
 
-Defined in: [di-bag.ts:584](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L584)
+Defined in: [di-bag.ts:585](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L585)
 
 Report at the type level why this graph would not build; the runtime call does nothing.
 Write `builder.verifyGraphAtCompileTime() satisfies void;` so a rejected graph fails on that line with

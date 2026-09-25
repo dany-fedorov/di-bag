@@ -72,7 +72,7 @@ const clock = DiBag.createToken(clockSymbol).forService<{ now(): number }>();
 ```
 
 ### `DiBag.withConfiguration(options)` {#dibag-withconfiguration}
-Return a facade with inherited runtime settings and appended observers. Throws: [`DI_BAG_INVALID_CONFIGURATION`](errors.md#di-bag-invalid-configuration).
+Return a facade with inherited runtime settings and appended observers. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument).
 ```ts
 const Observed = DiBag.withConfiguration({
   lifecycleObservers: [{ onLifecycleEvent: event => console.log(event.kind), onObserverFailure: failure => console.error(failure.error) }],
@@ -135,7 +135,7 @@ const mapped = DiBag.providerWithTransformedService({ provider: () => 1, callbac
 ## Builder {#builder}
 
 ### `builder.withServices(providersByName)` {#builder-withservices}
-Add new string-named services. Throws: [`DI_BAG_INVALID_REGISTRATION`](errors.md#di-bag-invalid-registration), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Add new string-named services. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_PROVIDER`](errors.md#di-bag-invalid-provider), [`DI_BAG_DUPLICATE_SERVICE_KEY`](errors.md#di-bag-duplicate-service-key), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 type Clock = { now(): number };
 const builder = DiBag.createBuilder().withServices({ clock: (): Clock => ({ now: () => Date.now() }) }).withServices({ stamp: ({ clock }: { clock: Clock }) => clock.now() });
@@ -184,7 +184,7 @@ builder.verifyGraphAtCompileTime() satisfies void;
 ```
 
 ### `builder.buildModule(options)` {#builder-buildmodule}
-Seal this graph as a reusable module and select its public names and typed tokens. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_INVALID_EXPORT`](errors.md#di-bag-invalid-export), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
+Seal this graph as a reusable module and select its public names and typed tokens. Throws: [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind).
 ```ts
 const orders = DiBag.createBuilder()
   .withServices({ repository: () => new Map<string, number>() })
@@ -273,7 +273,7 @@ await parent.close();
 ```
 
 ### `container.ensureServicesReady(serviceKeys, options?)` {#container-ensureservicesready}
-Make the listed services ready before continuing, then resolve to this same container. Throws: [`DI_BAG_SERVICE_READINESS_FAILED`](errors.md#di-bag-service-readiness-failed), [`DI_BAG_SERVICE_READINESS_CANCELLED`](errors.md#di-bag-service-readiness-cancelled), [`DI_BAG_INVALID_STARTUP`](errors.md#di-bag-invalid-startup), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed).
+Make the listed services ready before continuing, then resolve to this same container. Throws: [`DI_BAG_SERVICE_READINESS_FAILED`](errors.md#di-bag-service-readiness-failed), [`DI_BAG_SERVICE_READINESS_CANCELLED`](errors.md#di-bag-service-readiness-cancelled), [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument), [`DI_BAG_UNKNOWN_SERVICE_KEY`](errors.md#di-bag-unknown-service-key), [`DI_BAG_INVALID_TOKEN`](errors.md#di-bag-invalid-token), [`DI_BAG_WRONG_TOKEN_KIND`](errors.md#di-bag-wrong-token-kind), [`DI_BAG_CLOSING`](errors.md#di-bag-closing), [`DI_BAG_CLOSED`](errors.md#di-bag-closed).
 ```ts
 const container = await DiBag.createBuilder()
   .withServices({ db: async () => ({ ping: () => true }) })
@@ -282,7 +282,7 @@ const container = await DiBag.createBuilder()
 ```
 
 ### `container.close(options?)` {#container-close}
-Close this container, drain in-flight work, and dispose owned resources once. Throws: [`DI_BAG_DISPOSAL_FAILED`](errors.md#di-bag-disposal-failed), [`DI_BAG_CLOSE_FAILED`](errors.md#di-bag-close-failed), [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted), [`DI_BAG_INVALID_CLOSE`](errors.md#di-bag-invalid-close).
+Close this container, drain in-flight work, and dispose owned resources once. Throws: [`DI_BAG_DISPOSAL_FAILED`](errors.md#di-bag-disposal-failed), [`DI_BAG_CLOSE_FAILED`](errors.md#di-bag-close-failed), [`DI_BAG_CLOSE_TIMEOUT`](errors.md#di-bag-close-timeout), [`DI_BAG_CLOSE_ABORTED`](errors.md#di-bag-close-aborted), [`DI_BAG_INVALID_ARGUMENT`](errors.md#di-bag-invalid-argument).
 ```ts
 const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
 await container.close({ waitTimeoutMs: 10_000, abortSignal: AbortSignal.timeout(15_000) });

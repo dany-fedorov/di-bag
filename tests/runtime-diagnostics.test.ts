@@ -128,8 +128,8 @@ test('buildModule rejects malformed label options', () => {
   const builder = DiBag.createBuilder().withServices({ value: () => 1 });
   for (const moduleLabel of ['', 1, null, {}]) {
     const error = caught(() => (builder.buildModule as Function)({ exportedServiceKeys: ['value'], moduleLabel }));
-    expect(error.code).toBe('DI_BAG_INVALID_EXPORT');
-    expect(error.details).toEqual({ operation: 'buildModule', option: 'moduleLabel' });
+    expect(error.code).toBe('DI_BAG_INVALID_ARGUMENT');
+    expect(error.details).toEqual({ operation: 'buildModule', argument: 'moduleLabel', expected: 'a non-empty string' });
   }
   expect(() => (builder.buildModule as Function)({ exportedServiceKeys: ['value'] })).not.toThrow();
   expect(() => (builder.buildModule as Function)({ exportedServiceKeys: ['value'], moduleLabel: undefined })).not.toThrow();
@@ -249,10 +249,21 @@ test('scopes and forks accept close options; a child deadline names the child di
 
 test('close rejects malformed options without starting cleanup', async () => {
   const bag = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
-  for (const options of [null, [], { waitTimeoutMs: 0 }, { waitTimeoutMs: Infinity }, { waitTimeoutMs: '1' }, { abortSignal: {} }, { timeoutMs: 1 }, { signal: new AbortController().signal }, { startupOrder: 'sequential' }, Object.create({ waitTimeoutMs: 1 })]) {
+  const malformed: readonly (readonly [unknown, string, string])[] = [
+    [null, 'options', 'an object'], [[], 'options', 'an object'],
+    [{ waitTimeoutMs: 0 }, 'waitTimeoutMs', 'a finite positive number'],
+    [{ waitTimeoutMs: Infinity }, 'waitTimeoutMs', 'a finite positive number'],
+    [{ waitTimeoutMs: '1' }, 'waitTimeoutMs', 'a finite positive number'],
+    [{ abortSignal: {} }, 'abortSignal', 'an AbortSignal'],
+    [{ timeoutMs: 1 }, 'options', 'only the own properties: abortSignal, waitTimeoutMs'],
+    [{ signal: new AbortController().signal }, 'options', 'only the own properties: abortSignal, waitTimeoutMs'],
+    [{ startupOrder: 'sequential' }, 'options', 'only the own properties: abortSignal, waitTimeoutMs'],
+    [Object.create({ waitTimeoutMs: 1 }), 'options', 'only the own properties: abortSignal, waitTimeoutMs'],
+  ];
+  for (const [options, argument, expected] of malformed) {
     const error = await bag.close(options as never).catch(caughtError => caughtError);
-    expect(error.code).toBe('DI_BAG_INVALID_CLOSE');
-    expect(error.details).toEqual({ operation: 'close' });
+    expect(error.code).toBe('DI_BAG_INVALID_ARGUMENT');
+    expect(error.details).toEqual({ operation: 'close', argument, expected });
   }
   expect(bag.resolve('value')).toBe(1);
   await bag.close({});

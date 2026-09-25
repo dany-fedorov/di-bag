@@ -85,12 +85,15 @@ export class LifecycleObservers {
 
   static append(previous: LifecycleObservers | undefined, observer: unknown): LifecycleObservers {
     if (typeof observer !== 'object' || observer === null) {
-      throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
+      throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration', argument: 'lifecycleObservers[]', expected: 'an object' });
     }
     const onLifecycleEvent = Reflect.get(observer, 'onLifecycleEvent') as unknown;
     const onObserverFailure = Reflect.get(observer, 'onObserverFailure') as unknown;
-    if (typeof onLifecycleEvent !== 'function' || typeof onObserverFailure !== 'function') {
-      throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration' });
+    if (typeof onLifecycleEvent !== 'function') {
+      throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration', argument: 'lifecycleObservers[].onLifecycleEvent', expected: 'a function' });
+    }
+    if (typeof onObserverFailure !== 'function') {
+      throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration lifecycleObservers require onLifecycleEvent and onObserverFailure callbacks', { operation: 'withConfiguration', argument: 'lifecycleObservers[].onObserverFailure', expected: 'a function' });
     }
     return new LifecycleObservers([...(previous?.callbacks ?? []), Object.freeze({
       onLifecycleEvent: onLifecycleEvent as ObserverCallback,

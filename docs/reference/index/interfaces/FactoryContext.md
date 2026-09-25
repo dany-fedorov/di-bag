@@ -32,9 +32,10 @@ Aborted when the acquisition's owning container begins closing.
 pushDisposer(this: void, disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>): void;
 ```
 
-Defined in: [acquisition-context.ts:37](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L37)
+Defined in: [acquisition-context.ts:38](https://github.com/dany-fedorov/di-bag/blob/main/src/acquisition-context.ts#L38)
 
 Own a resource acquired during this factory call; pushed disposers run once in reverse order.
+Pass the release callback itself, such as `() => socket.close()`, rather than calling it here.
 
 #### Parameters
 

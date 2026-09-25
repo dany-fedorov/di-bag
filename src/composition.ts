@@ -144,7 +144,9 @@ export function createProviderFromClass(options: unknown): ProviderBase {
     { operation: 'createProviderFromClass', argument: 'dependencies', expected: 'an array' },
   );
   const references = snapshotReferences(bag.dependencies);
-  if (typeof bag.serviceClass !== 'function') throw invalidServiceClass();
+  if (typeof bag.serviceClass !== 'function') throw libraryError('DI_BAG_INVALID_ARGUMENT', 'createProviderFromClass requires a concrete constructor', {
+    operation: 'createProviderFromClass', argument: 'serviceClass', expected: 'a function',
+  });
   try { Reflect.construct(new Proxy(bag.serviceClass, { construct: () => ({}) }), []); }
   catch { throw invalidServiceClass(); }
   const serviceClass = bag.serviceClass as new (...arguments_: readonly unknown[]) => unknown;

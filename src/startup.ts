@@ -2,7 +2,6 @@ import { diagnostic, diagnosticMessage, libraryError } from './errors';
 import type { BagRuntime, BindingGraph, BindingKey } from './runtime';
 import { readToken } from './tokens';
 import { DiBagDisposalError, DiBagCloseCancelledError, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from './errors';
-import type { DiBagErrorCode } from './errors';
 
 /**
  * Bounds the wait of {@link Container.close}; cleanup itself keeps running after either fires.
@@ -39,20 +38,20 @@ function formatted<E extends Error>(error: E): E {
   return error;
 }
 
-function snapshotOptions(options: unknown, operation: 'ensureServicesReady' | 'close', code: DiBagErrorCode, supported: readonly string[], timeoutKey: string, signalKey: string): Record<string, unknown> {
+function snapshotOptions(options: unknown, operation: 'ensureServicesReady' | 'close', supported: readonly string[], timeoutKey: string, signalKey: string): Record<string, unknown> {
   if (options === undefined) return {};
-  if (typeof options !== 'object' || options === null || Array.isArray(options)) throw libraryError(code, `invalid ${operation} options`, { operation });
+  if (typeof options !== 'object' || options === null || Array.isArray(options)) throw libraryError('DI_BAG_INVALID_ARGUMENT', `invalid ${operation} options`, { operation, argument: 'options', expected: 'an object' });
   if (Reflect.ownKeys(options).some(key => typeof key !== 'string' || !supported.includes(key)) ||
-    supported.some(key => key in options && !Object.hasOwn(options, key))) throw libraryError(code, `invalid ${operation} options`, { operation });
+    supported.some(key => key in options && !Object.hasOwn(options, key))) throw libraryError('DI_BAG_INVALID_ARGUMENT', `invalid ${operation} options`, { operation, argument: 'options', expected: `only the own properties: ${supported.join(', ')}` });
   const selected: Record<string, unknown> = Object.create(null);
   for (const key of supported) if (Object.hasOwn(options, key)) selected[key] = Reflect.get(options, key);
   const timeout = selected[timeoutKey];
   if (Object.hasOwn(selected, timeoutKey) && (typeof timeout !== 'number' || !Number.isFinite(timeout) || timeout <= 0)) {
-    throw libraryError(code, `${operation} ${timeoutKey} must be finite and positive`, { operation });
+    throw libraryError('DI_BAG_INVALID_ARGUMENT', `${operation} ${timeoutKey} must be finite and positive`, { operation, argument: timeoutKey, expected: 'a finite positive number' });
   }
   if (Object.hasOwn(selected, signalKey)) {
     try { Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted')!.get!.call(selected[signalKey]); }
-    catch { throw libraryError(code, `${operation} ${signalKey} must be an AbortSignal`, { operation }); }
+    catch { throw libraryError('DI_BAG_INVALID_ARGUMENT', `${operation} ${signalKey} must be an AbortSignal`, { operation, argument: signalKey, expected: 'an AbortSignal' }); }
   }
   return selected;
 }
@@ -64,7 +63,7 @@ function snapshotOptions(options: unknown, operation: 'ensureServicesReady' | 'c
 export function closeRuntime(runtime: BagRuntime, options: CloseOptions | undefined): Promise<void> {
   if (options === undefined) return runtime.close();
   let selected: CloseOptions;
-  try { selected = snapshotOptions(options, 'close', 'DI_BAG_INVALID_CLOSE', ['abortSignal', 'waitTimeoutMs'], 'waitTimeoutMs', 'abortSignal') as CloseOptions; }
+  try { selected = snapshotOptions(options, 'close', ['abortSignal', 'waitTimeoutMs'], 'waitTimeoutMs', 'abortSignal') as CloseOptions; }
   catch (error) { return Promise.reject(error); }
   const { abortSignal: signal, waitTimeoutMs: timeoutMs } = selected;
   const closing = runtime.close();
@@ -105,10 +104,10 @@ export function closeRuntime(runtime: BagRuntime, options: CloseOptions | undefi
 }
 
 function snapshotReadinessOptions(options: EnsureServicesReadyOptions | undefined): EnsureServicesReadyOptions {
-  const selected = snapshotOptions(options, 'ensureServicesReady', 'DI_BAG_INVALID_STARTUP', ['abortSignal', 'totalTimeoutMs', 'maxConcurrentServiceKeys'], 'totalTimeoutMs', 'abortSignal');
+  const selected = snapshotOptions(options, 'ensureServicesReady', ['abortSignal', 'totalTimeoutMs', 'maxConcurrentServiceKeys'], 'totalTimeoutMs', 'abortSignal');
   const bound = selected.maxConcurrentServiceKeys;
   if (Object.hasOwn(selected, 'maxConcurrentServiceKeys') && !(typeof bound === 'number' && Number.isSafeInteger(bound) && bound > 0)) {
-    throw libraryError('DI_BAG_INVALID_STARTUP', 'ensureServicesReady maxConcurrentServiceKeys must be a positive safe integer', { operation: 'ensureServicesReady', option: 'maxConcurrentServiceKeys' });
+    throw libraryError('DI_BAG_INVALID_ARGUMENT', 'ensureServicesReady maxConcurrentServiceKeys must be a positive safe integer', { operation: 'ensureServicesReady', argument: 'maxConcurrentServiceKeys', expected: 'a positive safe integer' });
   }
   return selected as EnsureServicesReadyOptions;
 }
@@ -126,7 +125,7 @@ type SelectedReadinessEntry = Readonly<{
 
 export function ensureRuntimeReady(runtime: BagRuntime, graph: BindingGraph, keys: readonly unknown[], options?: EnsureServicesReadyOptions): Promise<void> {
   runtime.assertOpen();
-  if (!Array.isArray(keys)) throw libraryError('DI_BAG_INVALID_STARTUP', 'ensureServicesReady requires a tuple of service keys', { operation: 'ensureServicesReady' });
+  if (!Array.isArray(keys)) throw libraryError('DI_BAG_INVALID_ARGUMENT', 'ensureServicesReady requires a tuple of service keys', { operation: 'ensureServicesReady', argument: 'serviceKeys', expected: 'an array' });
   const selected: SelectedReadinessEntry[] = [];
   const length = keys.length;
   for (let index = 0; index < length; index++) {

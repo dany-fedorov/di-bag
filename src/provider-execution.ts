@@ -20,7 +20,7 @@ export class DisposerStack {
 
   /** Own a resource the running factory already holds. */
   push(disposer: PushedDisposer): void {
-    if (typeof disposer !== 'function') throw libraryError('DI_BAG_INVALID_CLEANUP', 'pushDisposer requires a function', { operation: 'pushDisposer', provided: typeof disposer });
+    if (typeof disposer !== 'function') throw libraryError('DI_BAG_INVALID_ARGUMENT', 'pushDisposer requires a function', { operation: 'pushDisposer', argument: 'disposer', expected: 'a function', provided: typeof disposer });
     // A retained context is a leak, not a stack: registration closes with the factory.
     if (this.settled) throw libraryError('DI_BAG_DISPOSER_PUSHED_AFTER_FACTORY', 'pushDisposer is only available while its factory is running', { operation: 'pushDisposer' });
     this.disposers.push(disposer);

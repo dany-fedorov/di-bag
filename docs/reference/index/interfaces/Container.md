@@ -54,7 +54,7 @@ The shared shutdown promise, or a bounded wait on it when options are given.
 [DiBagDisposalError](../classes/DiBagDisposalError.md) (`DI_BAG_DISPOSAL_FAILED`) when one or more disposers fail after all cleanup is attempted;
 `DI_BAG_CLOSE_FAILED` for other shutdown failures;
 [DiBagCloseCancelledError](../classes/DiBagCloseCancelledError.md) (`DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`) when the wait stops first,
-naming unfinished disposers in `details.disposersStillRunning`; `DI_BAG_INVALID_CLOSE` for malformed options.
+naming unfinished disposers in `details.disposersStillRunning`; `DI_BAG_INVALID_ARGUMENT` for malformed options.
 
 #### Example
 
@@ -314,7 +314,7 @@ A promise for this container once every listed service is ready.
 
 [DiBagServiceReadinessError](../classes/DiBagServiceReadinessError.md) (`DI_BAG_SERVICE_READINESS_FAILED`) after this container has closed because a factory failed;
 [DiBagServiceReadinessCancelledError](../classes/DiBagServiceReadinessCancelledError.md) (`DI_BAG_SERVICE_READINESS_CANCELLED`) promptly on abort or timeout, naming what was still pending;
-`DI_BAG_INVALID_STARTUP` for malformed keys or options, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown key, and `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind, all before any factory runs and with this container left open;
+`DI_BAG_INVALID_ARGUMENT` for malformed keys or options, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown key, and `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind, all before any factory runs and with this container left open;
 `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`. Each arrives as a rejection.
 
 #### Example

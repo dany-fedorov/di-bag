@@ -219,24 +219,34 @@ test('invalid input rejects before any factory runs and leaves the bag usable', 
   let effects = 0;
   const bag = DiBag.createBuilder().withServices({ value: () => ++effects }).buildContainer();
   const ensure = bag.ensureServicesReady.bind(bag) as (...args: unknown[]) => Promise<unknown>;
-  const invalidOptions = [
-    null, [], true,
-    { totalTimeoutMs: 0 }, { totalTimeoutMs: -1 }, { totalTimeoutMs: Infinity }, { totalTimeoutMs: NaN }, { totalTimeoutMs: '1' },
-    { maxConcurrentServiceKeys: 0 }, { maxConcurrentServiceKeys: -1 }, { maxConcurrentServiceKeys: 0.5 }, { maxConcurrentServiceKeys: NaN },
-    { maxConcurrentServiceKeys: Infinity }, { maxConcurrentServiceKeys: Number.MAX_SAFE_INTEGER + 1 }, { maxConcurrentServiceKeys: 'serial' },
-    { abortSignal: {} },
-    { timeoutMs: 1 }, { signal: new AbortController().signal }, { startupOrder: 'sequential' },
-    { other: true, get totalTimeoutMs() { effects++; return 1; } },
-    Object.create({ totalTimeoutMs: 1 }),
+  const invalidOptions: readonly (readonly [unknown, string, string])[] = [
+    [null, 'options', 'an object'], [[], 'options', 'an object'], [true, 'options', 'an object'],
+    [{ totalTimeoutMs: 0 }, 'totalTimeoutMs', 'a finite positive number'], [{ totalTimeoutMs: -1 }, 'totalTimeoutMs', 'a finite positive number'],
+    [{ totalTimeoutMs: Infinity }, 'totalTimeoutMs', 'a finite positive number'], [{ totalTimeoutMs: NaN }, 'totalTimeoutMs', 'a finite positive number'],
+    [{ totalTimeoutMs: '1' }, 'totalTimeoutMs', 'a finite positive number'],
+    [{ maxConcurrentServiceKeys: 0 }, 'maxConcurrentServiceKeys', 'a positive safe integer'],
+    [{ maxConcurrentServiceKeys: -1 }, 'maxConcurrentServiceKeys', 'a positive safe integer'],
+    [{ maxConcurrentServiceKeys: 0.5 }, 'maxConcurrentServiceKeys', 'a positive safe integer'],
+    [{ maxConcurrentServiceKeys: NaN }, 'maxConcurrentServiceKeys', 'a positive safe integer'],
+    [{ maxConcurrentServiceKeys: Infinity }, 'maxConcurrentServiceKeys', 'a positive safe integer'],
+    [{ maxConcurrentServiceKeys: Number.MAX_SAFE_INTEGER + 1 }, 'maxConcurrentServiceKeys', 'a positive safe integer'],
+    [{ maxConcurrentServiceKeys: 'serial' }, 'maxConcurrentServiceKeys', 'a positive safe integer'],
+    [{ abortSignal: {} }, 'abortSignal', 'an AbortSignal'],
+    [{ timeoutMs: 1 }, 'options', 'only the own properties: abortSignal, totalTimeoutMs, maxConcurrentServiceKeys'],
+    [{ signal: new AbortController().signal }, 'options', 'only the own properties: abortSignal, totalTimeoutMs, maxConcurrentServiceKeys'],
+    [{ startupOrder: 'sequential' }, 'options', 'only the own properties: abortSignal, totalTimeoutMs, maxConcurrentServiceKeys'],
+    [{ other: true, get totalTimeoutMs() { effects++; return 1; } }, 'options', 'only the own properties: abortSignal, totalTimeoutMs, maxConcurrentServiceKeys'],
+    [Object.create({ totalTimeoutMs: 1 }), 'options', 'only the own properties: abortSignal, totalTimeoutMs, maxConcurrentServiceKeys'],
   ];
-  for (const options of invalidOptions) {
+  for (const [options, argument, expected] of invalidOptions) {
     const error = await ensure(['value'], options).catch((caught: unknown) => caught) as { code?: string; message?: string; details?: unknown };
-    expect(error.code).toBe('DI_BAG_INVALID_STARTUP');
+    expect(error.code).toBe('DI_BAG_INVALID_ARGUMENT');
+    expect(error.details).toEqual({ operation: 'ensureServicesReady', argument, expected });
     expect(error.message).toContain('ensureServicesReady');
   }
   const bound = await ensure(['value'], { maxConcurrentServiceKeys: 0 }).catch((caught: unknown) => caught) as { message: string; details: unknown };
   expect(bound.message).toContain('ensureServicesReady maxConcurrentServiceKeys must be a positive safe integer');
-  expect(bound.details).toEqual({ operation: 'ensureServicesReady', option: 'maxConcurrentServiceKeys' });
+  expect(bound.details).toEqual({ operation: 'ensureServicesReady', argument: 'maxConcurrentServiceKeys', expected: 'a positive safe integer' });
   for (const keys of [undefined, 'value', [null], ['missing'], [{ key: Symbol('fake') }]]) {
     await expect(ensure(keys)).rejects.toThrow();
   }

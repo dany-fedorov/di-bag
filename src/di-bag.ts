@@ -357,7 +357,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * @returns A promise for this container once every listed service is ready.
    * @throws {@link DiBagServiceReadinessError} (`DI_BAG_SERVICE_READINESS_FAILED`) after this container has closed because a factory failed;
    * {@link DiBagServiceReadinessCancelledError} (`DI_BAG_SERVICE_READINESS_CANCELLED`) promptly on abort or timeout, naming what was still pending;
-   * `DI_BAG_INVALID_STARTUP` for malformed keys or options, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown key, and `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind, all before any factory runs and with this container left open;
+   * `DI_BAG_INVALID_ARGUMENT` for malformed keys or options, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown key, and `DI_BAG_INVALID_TOKEN` or `DI_BAG_WRONG_TOKEN_KIND` for a bad token or kind, all before any factory runs and with this container left open;
    * `DI_BAG_CLOSING` or `DI_BAG_CLOSED` after `close()`. Each arrives as a rejection.
    * @example
    * ```ts
@@ -387,7 +387,7 @@ class Container<ServiceRegistrations extends Registrations, Constraints extends 
    * @throws {@link DiBagDisposalError} (`DI_BAG_DISPOSAL_FAILED`) when one or more disposers fail after all cleanup is attempted;
    * `DI_BAG_CLOSE_FAILED` for other shutdown failures;
    * {@link DiBagCloseCancelledError} (`DI_BAG_CLOSE_TIMEOUT` or `DI_BAG_CLOSE_ABORTED`) when the wait stops first,
-   * naming unfinished disposers in `details.disposersStillRunning`; `DI_BAG_INVALID_CLOSE` for malformed options.
+   * naming unfinished disposers in `details.disposersStillRunning`; `DI_BAG_INVALID_ARGUMENT` for malformed options.
    * @example
    * ```ts
    * const container = DiBag.createBuilder().withServices({ value: () => 1 }).buildContainer();
@@ -426,9 +426,10 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
   /**
    * Add new string-named services.
    * A factory declares its dependencies in the type of its one object parameter; destructure it or read `dependencies.name`, never spread it.
+   * Bind typed tokens separately with `withTokenService`.
    * @param providersByName - A finite object whose own string keys are service names and whose values are providers or plain factories.
    * @returns A new builder containing snapshots of the supplied providers.
-   * @throws `DI_BAG_INVALID_REGISTRATION` for a malformed object or `DI_BAG_INVALID_PROVIDER` for a malformed value; `DI_BAG_DUPLICATE_SERVICE_KEY` for a name already registered;
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed object or `DI_BAG_INVALID_PROVIDER` for a malformed value; `DI_BAG_DUPLICATE_SERVICE_KEY` for a name already registered;
    * `DI_BAG_WRONG_TOKEN_KIND` when a retained token use conflicts with this graph.
    * @example
    * ```ts
@@ -592,7 +593,7 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
    * @param options - `exportedServiceKeys` is a finite tuple of existing names or tokens, and may be empty. `moduleLabel` is optional;
    * each installation names its private bindings `<moduleLabel>/<key>` in error messages, cycle paths, `graphSnapshot()`, and observer events.
    * @returns An immutable module that can be renamed or installed in another builder.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object; `DI_BAG_INVALID_EXPORT` if the selection is not a tuple
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options object or non-tuple selection
    * or the label is not a non-empty string; `DI_BAG_UNKNOWN_SERVICE_KEY` for an absent name or token; `DI_BAG_INVALID_TOKEN` for a value that is not a genuine token;
    * `DI_BAG_WRONG_TOKEN_KIND` when an exported token kind conflicts with this graph.
    * @example
@@ -675,6 +676,7 @@ export interface DiBagApi {
   readonly createProviderFromClass: typeof createProviderFromClass;
   /**
    * Create a provider from a versioned plugin descriptor.
+   * Its return kind must be `uninspected` or `native-promise`: plugin output cannot be inspected to determine the kind.
    * @example
    * ```ts
    * const pluginDescriptor = { apiVersion: 1 as const, create: () => ({ run() {} }) };
@@ -693,7 +695,7 @@ export interface DiBagApi {
   readonly createToken: typeof createToken;
   /**
    * Return a facade with inherited runtime settings and appended observers.
-   * @throws `DI_BAG_INVALID_CONFIGURATION` for a non-object, a runtime without `isNativePromise`, or malformed observers.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a non-object, a runtime without `isNativePromise`, or malformed observers.
    * @example
    * ```ts
    * const Observed = DiBag.withConfiguration({
@@ -790,7 +792,7 @@ function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
     const lifecycleObservers = selected.lifecycleObservers as readonly unknown[] | undefined;
     let configured = runtime === undefined ? context : runtimeContext(runtime, context);
     if (lifecycleObservers !== undefined) {
-      if (!Array.isArray(lifecycleObservers)) throw libraryTypeError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration lifecycleObservers must be an array', { operation: 'withConfiguration' });
+      if (!Array.isArray(lifecycleObservers)) throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration lifecycleObservers must be an array', { operation: 'withConfiguration', argument: 'lifecycleObservers', expected: 'an array' });
       for (const observer of lifecycleObservers) {
         configured = Object.freeze({
           ...configured,

@@ -215,7 +215,7 @@ export type AcquisitionMetadataAdmission<M> = [InvalidAcquisitionMetadata<M>] ex
 type AcquisitionFrames<R, M> = readonly [...ProviderAcquisitionMetadata<R>, Readonly<M>];
 
 function annotate<R extends ProviderOrFactory, F extends Factory, M extends object, V>(registration: R, callback: (this: void, value: never) => object, async: boolean, operation: string): Provider<F, RetainedMetadata<R>, AcquisitionFrames<R, M>, ProviderGraphContract<R>, V> {
-  if (typeof callback !== 'function') throw libraryTypeError('DI_BAG_INVALID_METADATA', 'acquisition metadata requires a function', { operation });
+  if (typeof callback !== 'function') throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'acquisition metadata requires a function', { operation, argument: 'describeAcquisition', expected: 'a function' });
   const description = describe(registration);
   // Decoration retains the current output stage's mode even across metadata and ownership.
   let factoryReturnKind = description.source.factoryReturnKind;

@@ -148,7 +148,7 @@ test('the bag methods report distinct codes under their own operation names', ()
     .withTokenService(clock, (): Clock => ({ now: () => 1 }));
   const checks: readonly [() => unknown, string, Record<string, unknown>][] = [
     [() => loose(builder).withServices!({ value: () => 2 }), 'DI_BAG_DUPLICATE_SERVICE_KEY', { operation: 'withServices', serviceKey: 'value' }],
-    [() => loose(builder).withServices!(42), 'DI_BAG_INVALID_REGISTRATION', { operation: 'withServices' }],
+    [() => loose(builder).withServices!(42), 'DI_BAG_INVALID_ARGUMENT', { operation: 'withServices', argument: 'services', expected: 'an object' }],
     [() => loose(builder).withTokenService!(clock, () => ({ now: () => 2 })), 'DI_BAG_DUPLICATE_SERVICE_KEY', { operation: 'withTokenService', serviceKey: clockKey }],
     [() => loose(builder).withServiceAlias!({ aliasKey: 'value', targetServiceKey: clock }), 'DI_BAG_DUPLICATE_SERVICE_KEY', { operation: 'withServiceAlias', serviceKey: 'value' }],
     [() => loose(builder).withServiceAlias!({ aliasKey: 'other', targetServiceKey: 'absent' }), 'DI_BAG_UNKNOWN_SERVICE_KEY', { operation: 'withServiceAlias', serviceKey: 'absent' }],
@@ -299,12 +299,12 @@ test('buildModule rejects a malformed bag, a malformed key list and a malformed 
   expect(seal({ moduleLabel: 'orders' }).details).toEqual({ operation: 'buildModule', argument: 'exportedServiceKeys', expected: 'present' });
   for (const moduleLabel of ['', 1, null, {}]) {
     const error = seal({ exportedServiceKeys: ['value'], moduleLabel });
-    expect(error.code).toBe('DI_BAG_INVALID_EXPORT');
-    expect(error.details).toEqual({ operation: 'buildModule', option: 'moduleLabel' });
+    expect(error.code).toBe('DI_BAG_INVALID_ARGUMENT');
+    expect(error.details).toEqual({ operation: 'buildModule', argument: 'moduleLabel', expected: 'a non-empty string' });
     expect(error.message).toContain('buildModule moduleLabel must be a non-empty string');
   }
   const notATuple = seal({ exportedServiceKeys: 'value' });
-  expect(notATuple.code).toBe('DI_BAG_INVALID_EXPORT');
-  expect(notATuple.details).toEqual({ operation: 'buildModule' });
+  expect(notATuple.code).toBe('DI_BAG_INVALID_ARGUMENT');
+  expect(notATuple.details).toEqual({ operation: 'buildModule', argument: 'exportedServiceKeys', expected: 'an array' });
   expect(seal({ exportedServiceKeys: ['absent'] }).code).toBe('DI_BAG_UNKNOWN_SERVICE_KEY');
 });

@@ -178,7 +178,7 @@ test('cancelling a scope mid-acquisition runs the pushed disposers of the abando
 test('pushDisposer rejects a value that is not a function', async () => {
   const bag = DiBag.createBuilder().withServices({
     service: DiBag.createProvider((_deps: {}, factoryCtx) => {
-      expect(() => (factoryCtx as { pushDisposer: (disposer: unknown) => void }).pushDisposer(42)).toThrow(/DI_BAG_INVALID_CLEANUP/);
+      expect(() => (factoryCtx as { pushDisposer: (disposer: unknown) => void }).pushDisposer(42)).toThrow(/DI_BAG_INVALID_ARGUMENT/);
       return 'ok';
     }, { factoryReceivesContext: true }),
   }).buildContainer();

@@ -89,7 +89,7 @@ test('createProvider snapshots its option bag and reports final validation detai
     [[() => 1, null], { operation: 'createProvider', argument: 'options', expected: 'an object' }],
     [[() => 1, { extra: true }], { operation: 'createProvider', argument: 'options', expected: 'only the own properties: factoryReturnKind, factoryReceivesContext' }],
     [[() => 1, { factoryReturnKind: 'raw' }], { operation: 'createProvider', argument: 'factoryReturnKind', expected: "one of: 'auto-detect', 'sync-value', 'native-promise', 'uninspected'" }],
-    [[() => 1, { factoryReceivesContext: false }], { operation: 'createProvider', argument: 'factoryReceivesContext', expected: "one of: 'true'" }],
+    [[() => 1, { factoryReceivesContext: false }], { operation: 'createProvider', argument: 'factoryReceivesContext', expected: 'a boolean' }],
   ] as const) {
     try { Reflect.apply(call, undefined, arguments_ as unknown as unknown[]); throw new Error('expected rejection'); }
     catch (error) {

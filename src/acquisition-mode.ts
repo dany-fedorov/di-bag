@@ -19,9 +19,9 @@ export interface RuntimeOptions {
 export interface RuntimeContext { readonly isNativePromise?: RuntimeOptions['isNativePromise']; readonly observers?: LifecycleObservers }
 export const unconfigured: RuntimeContext = Object.freeze({});
 export function runtimeContext(options: RuntimeOptions, previous: RuntimeContext = unconfigured): RuntimeContext {
-  if (typeof options !== 'object' || options === null) throw libraryError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration runtime requires isNativePromise', { operation: 'withConfiguration' });
+  if (typeof options !== 'object' || options === null) throw libraryError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration runtime requires isNativePromise', { operation: 'withConfiguration', argument: 'runtime', expected: 'an object' });
   const { isNativePromise } = options;
-  if (typeof isNativePromise !== 'function') throw libraryError('DI_BAG_INVALID_CONFIGURATION', 'withConfiguration runtime requires isNativePromise', { operation: 'withConfiguration' });
+  if (typeof isNativePromise !== 'function') throw libraryError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration runtime requires isNativePromise', { operation: 'withConfiguration', argument: 'runtime.isNativePromise', expected: 'a function' });
   return Object.freeze({ ...previous, isNativePromise });
 }
 export type Acquired<Output, ReturnKind extends FactoryReturnKind> =

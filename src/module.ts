@@ -61,8 +61,7 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
    * Return a module view with one string-named export renamed through an options bag.
    * @param options - The current export and its noncolliding new name.
    * @returns A new sealed module, or the same instance when both names are equal.
-   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options bag, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown current export,
-   * or `DI_BAG_INVALID_EXPORT` for malformed export names.
+   * @throws `DI_BAG_INVALID_ARGUMENT` for a malformed options bag or export name, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown current export.
    * @example
    * ```ts
    * const feature = DiBag.createBuilder().withServices({ service: () => 1 })
@@ -81,8 +80,8 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
     );
     const description = descriptions.get(this)!;
     if (typeof currentExportKey !== 'string') {
-      throw libraryError('DI_BAG_INVALID_EXPORT', 'withRenamedExport requires an existing export', {
-        operation: 'withRenamedExport', currentExportKey, newExportKey,
+      throw libraryError('DI_BAG_INVALID_ARGUMENT', 'withRenamedExport requires an existing export', {
+        operation: 'withRenamedExport', argument: 'currentExportKey', expected: 'a string', currentExportKey, newExportKey,
       });
     }
     if (!description.exports.has(currentExportKey)) {
@@ -91,8 +90,8 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
       });
     }
     if (typeof newExportKey !== 'string') {
-      throw libraryError('DI_BAG_INVALID_EXPORT', 'withRenamedExport requires a string new export key', {
-        operation: 'withRenamedExport', currentExportKey, newExportKey,
+      throw libraryError('DI_BAG_INVALID_ARGUMENT', 'withRenamedExport requires a string new export key', {
+        operation: 'withRenamedExport', argument: 'newExportKey', expected: 'a string', currentExportKey, newExportKey,
       });
     }
     if (currentExportKey === newExportKey) return this as unknown as Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
@@ -174,7 +173,7 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
  */
 export function sealModule(graph: BindingGraph, keys: unknown, moduleLabel?: unknown): Module<never, never, never, never> {
   const label = checkedModuleLabel(moduleLabel);
-  if (!Array.isArray(keys)) throw libraryError('DI_BAG_INVALID_EXPORT', 'buildModule requires a key tuple', { operation: 'buildModule' });
+  if (!Array.isArray(keys)) throw libraryError('DI_BAG_INVALID_ARGUMENT', 'buildModule requires a key tuple', { operation: 'buildModule', argument: 'exportedServiceKeys', expected: 'an array' });
   // Snapshot indexed entries before a custom iterator can substitute keys.
   const selected: unknown[] = [];
   const length = keys.length;
@@ -196,7 +195,7 @@ export function sealModule(graph: BindingGraph, keys: unknown, moduleLabel?: unk
 /** The label of a module: absent, or a non-empty string. */
 function checkedModuleLabel(moduleLabel: unknown): string | undefined {
   if (moduleLabel === undefined) return undefined;
-  if (typeof moduleLabel !== 'string' || moduleLabel === '') throw libraryError('DI_BAG_INVALID_EXPORT', 'buildModule moduleLabel must be a non-empty string', { operation: 'buildModule', option: 'moduleLabel' });
+  if (typeof moduleLabel !== 'string' || moduleLabel === '') throw libraryError('DI_BAG_INVALID_ARGUMENT', 'buildModule moduleLabel must be a non-empty string', { operation: 'buildModule', argument: 'moduleLabel', expected: 'a non-empty string' });
   return moduleLabel;
 }
 

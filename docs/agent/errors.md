@@ -629,14 +629,13 @@ for a nested option, `[]` for an element of a list), and `expected` completes
 the sentence "must be ...".
 
 **Fix:** branch on `details.argument`, not on the message. Remove the cast and
-let the compiler point at the argument. When adapting a method with
-`createProviderFromFunction`, bind it to its receiver.
+let the compiler point at the argument.
 
 ```ts
 import { DiBag } from 'di-bag';
 
 try {
-  DiBag.createBuilder().withInstalledModules(42 as never);
+  DiBag.createProvider(42 as never);
 } catch (error) {
   const { operation, argument, expected } = (error as { details: Record<string, unknown> }).details;
   console.error(`${String(operation)}: ${String(argument)} must be ${String(expected)}`);
@@ -658,67 +657,6 @@ import { DiBag as CoreDiBag } from 'di-bag';
 
 const DiBag = CoreDiBag.withConfiguration({
   runtime: { isNativePromise: candidate => types.isPromise(candidate) },
-});
-```
-
-**Recipe:** none.
-
-### DI_BAG_INVALID_CLEANUP {#di-bag-invalid-cleanup}
-
-**When:** `factoryContext.pushDisposer(disposer)` throws because `disposer` is not a
-function.
-
-**Cause:** a value was passed where a disposer callback belongs, usually the
-result of calling the release instead of passing it.
-
-**Fix:** pass a function: `factoryContext.pushDisposer(() => socket.close())`, not
-`factoryContext.pushDisposer(socket.close())`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const socket = DiBag.createProvider(async (_dependencies: {}, factoryContext) => {
-  const handle = { close: async () => {} };
-  factoryContext.pushDisposer(() => handle.close());
-  return handle;
-}, { factoryReceivesContext: true });
-```
-
-**Recipe:** [own a resource a factory acquires on the way](recipes.md#partial-acquisition).
-
-### DI_BAG_INVALID_CLOSE {#di-bag-invalid-close}
-
-**When:** `close(options)` rejects because options are not
-`{ waitTimeoutMs?, abortSignal? }` with a finite positive `waitTimeoutMs` and a genuine
-`AbortSignal`. Cleanup does not start.
-
-**Cause:** options computed at runtime, extra keys, or a zero or negative
-deadline.
-
-**Fix:** pass only `waitTimeoutMs` and `abortSignal`, or call `close()` without options.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const app = DiBag.createBuilder().withServices({ answer: () => 42 }).buildContainer();
-await app.close({ waitTimeoutMs: 1_000, abortSignal: AbortSignal.timeout(2_000) });
-```
-
-**Recipe:** [add a request-scoped service with cleanup](recipes.md#add-scoped-service).
-### DI_BAG_INVALID_CONFIGURATION {#di-bag-invalid-configuration}
-
-**When:** `lifecycleObservers` is not an array, an observer does not provide both
-`onLifecycleEvent` and `onObserverFailure`, or `runtime.isNativePromise` is not a function.
-
-**Cause:** incomplete configuration.
-
-**Fix:** pass both observer callbacks and a function classifier.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const observed = DiBag.withConfiguration({
-  lifecycleObservers: [{ onLifecycleEvent: event => console.log(event.kind), onObserverFailure: ({ error }) => console.error(error) }],
 });
 ```
 
@@ -748,46 +686,6 @@ const app = DiBag.createBuilder()
 ```
 
 **Recipe:** none; see [rule 2](../../AGENTS.md#rules).
-
-### DI_BAG_INVALID_EXPORT {#di-bag-invalid-export}
-
-**When:** `buildModule({ exportedServiceKeys, moduleLabel })` receives a non-array key list or a
-`moduleLabel` that is not a non-empty string (`details.option: 'moduleLabel'`),
-or `withRenamedExport({ currentExportKey, newExportKey })` receives a non-string name.
-
-**Cause:** the export list and the registrations disagree.
-
-**Fix:** export only keys the module registers; rename to an unused name.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const reports = DiBag.createBuilder().withServices({ service: () => ({ read: () => true }) }).buildModule({ exportedServiceKeys: ['service'] });
-const east = reports.withRenamedExport({ currentExportKey: 'service', newExportKey: 'eastReports' });
-```
-
-**Recipe:** [split a feature into a module](recipes.md#split-module).
-
-### DI_BAG_INVALID_METADATA {#di-bag-invalid-metadata}
-
-**When:** an acquisition-metadata helper receives a callback that is not a
-function.
-
-**Cause:** the callback was supplied in the wrong shape.
-
-**Fix:** pass a function as `describeAcquisition`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const client = DiBag.providerWithAcquisitionMetadata({
-  provider: () => ({ region: 'eu' }),
-  callbackReceives: 'exposed-service',
-  describeAcquisition: exposedClient => ({ 'app:region': exposedClient.region }),
-});
-```
-
-**Recipe:** none.
 
 ### DI_BAG_INVALID_MODULE {#di-bag-invalid-module}
 
@@ -831,49 +729,6 @@ const app = DiBag.createBuilder().withServices({ config: () => config }).buildCo
 console.log(app.resolve('config').region);
 await app.close();
 ```
-
-### DI_BAG_INVALID_REGISTRATION {#di-bag-invalid-registration}
-
-**When:** `withServices` receives a non-object or a record with symbol keys.
-
-**Cause:** tokens were mixed into a name record, or the record itself is invalid.
-
-**Fix:** pass an object with string keys; bind tokens with `withTokenService(token, provider)`.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const portKey = Symbol('port');
-const port = DiBag.createToken(portKey).forService<number>();
-DiBag.createBuilder().withServices({ host: () => 'localhost' }).withTokenService(port, () => 80).buildContainer();
-```
-
-**Recipe:** none.
-
-### DI_BAG_INVALID_STARTUP {#di-bag-invalid-startup}
-
-**When:** `ensureServicesReady(serviceKeys, options)` receives a list that is not
-an array, an unknown option (the 0.4 names `signal`,
-`timeoutMs` and `startupOrder` are unknown), a non-positive `totalTimeoutMs`, a
-`maxConcurrentServiceKeys` that is not a positive safe integer, or an
-`abortSignal` that is not an `AbortSignal`. No factory runs and the container stays
-open.
-
-**Cause:** keys or options computed at runtime.
-
-**Fix:** pass registered keys and valid options.
-
-```ts
-import { DiBag } from 'di-bag';
-
-const app = await DiBag.createBuilder()
-  .withServices({ settings: async () => 'ready' })
-  .buildContainer()
-  .ensureServicesReady(['settings'], { totalTimeoutMs: 5_000, maxConcurrentServiceKeys: 1 });
-await app.close();
-```
-
-**Recipe:** [add and consume an async client](recipes.md#async-client).
 
 ### DI_BAG_INVALID_TOKEN {#di-bag-invalid-token}
 

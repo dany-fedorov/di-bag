@@ -34,7 +34,7 @@ withRenamedExport<const CurrentExportKey extends string, const NewExportKey exte
 }): Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
 ```
 
-Defined in: [module.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L73)
+Defined in: [module.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L72)
 
 Return a module view with one string-named export renamed through an options bag.
 
@@ -57,8 +57,7 @@ A new sealed module, or the same instance when both names are equal.
 
 #### Throws
 
-`DI_BAG_INVALID_ARGUMENT` for a malformed options bag, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown current export,
-or `DI_BAG_INVALID_EXPORT` for malformed export names.
+`DI_BAG_INVALID_ARGUMENT` for a malformed options bag or export name, `DI_BAG_UNKNOWN_SERVICE_KEY` for an unknown current export.
 
 #### Example
 
@@ -79,7 +78,7 @@ withRenamedRequirement<const CurrentRequirementKey extends string, const NewRequ
 }): Module<ExportedServices, Renamed<RequiredServices, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementConstraints<Constraints, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementProviders<PublicProviders, CurrentRequirementKey, NewRequirementKey>>;
 ```
 
-Defined in: [module.ts:132](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L132)
+Defined in: [module.ts:131](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L131)
 
 Return a module view that asks its host for a requirement under a new name.
 Factory parameter names and private bindings retain their lexical meaning.

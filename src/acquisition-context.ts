@@ -32,6 +32,7 @@ export interface FactoryContext {
   readonly abortSignal: AbortSignal;
   /**
    * Own a resource acquired during this factory call; pushed disposers run once in reverse order.
+   * Pass the release callback itself, such as `() => socket.close()`, rather than calling it here.
    * @param disposer - Releases the acquired resource when the factory fails or the container closes.
    */
   pushDisposer(this: void, disposer: (this: void, disposerContext: DisposerContext) => void | Promise<void>): void;
@@ -88,7 +89,7 @@ export function createProvider(factory: FactoryType | ContextFactory, options?: 
   const returnKind = factoryReturnKind(bag.factoryReturnKind, 'createProvider');
   if (bag.factoryReceivesContext !== undefined && bag.factoryReceivesContext !== true) throw libraryError(
     'DI_BAG_INVALID_ARGUMENT', 'createProvider factoryReceivesContext must be true when present',
-    { operation: 'createProvider', argument: 'factoryReceivesContext', expected: "one of: 'true'" },
+    { operation: 'createProvider', argument: 'factoryReceivesContext', expected: 'a boolean' },
   );
   return factoryProvider(factory, returnKind, bag.factoryReceivesContext === true);
 }
