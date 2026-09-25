@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "methods": [
+    { "owner": "Builder", "from": "build", "to": "buildContainer" },
+    { "owner": "Builder", "from": "alias", "to": "withServiceAlias", "transform": "positional-to-bag" },
+    { "owner": "Builder", "from": "buildAndStart", "to": "ensureServicesReady", "transform": "build-and-start" },
+    { "owner": "Bag", "from": "resolveAll", "manual": "resolveCollection(collectionToken)" },
+    { "owner": "DiBagApi", "from": "all", "to": "forCollectionOf", "transform": "collection-reference" },
+    { "owner": "DiBagApi", "from": "withLifetime", "to": "providerWithLifetime", "transform": "provider-facades" },
+    { "owner": "DiBagApi", "from": "withMetadata", "to": "providerWithRegistrationMetadata", "transform": "provider-facades" },
+    { "owner": "DiBagApi", "from": "transformService", "to": "providerWithTransformedService", "transform": "provider-facades" },
+    { "owner": "Builder", "from": "register", "to": "withServices" },
+    { "owner": "Builder", "from": "register", "to": "withTokenService" },
+    { "owner": "token()", "from": "of", "to": "forCollectionOf", "transform": "collection-token" }
+  ],
+  "options": [
+    { "owner": "Bag", "method": "close", "argument": 0, "from": "signal", "to": "abortSignal" },
+    { "owner": "DiBagApi", "method": "withLifetime", "argument": 2, "from": "allowScopedDependencies", "to": "allowsScopedDependencies" },
+    { "owner": "DiBagApi", "method": "transformService", "argument": 1, "from": "acquisitionMode", "to": "transformReturnKind" }
+  ],
+  "properties": [{ "owner": "Presence", "from": "present", "to": "isPresent" }],
+  "values": [
+    { "owner": "DiBagApi", "method": "withLifetime", "argument": 1, "from": "root", "to": "singleton:one-per-container-tree" },
+    { "owner": "LifecycleEvent", "property": "kind", "from": "scope-opened", "to": "container-opened" }
+  ],
+  "types": [
+    { "from": "Bag", "to": "Container" },
+    { "from": "Mode", "to": "ReturnKind", "literalValues": { "auto": "auto-detect", "raw": "uninspected" } },
+    { "from": "Options", "to": "NewOptions", "genericArguments": [{ "index": 0, "values": { "raw": "uninspected" } }] },
+    { "from": "Provider", "to": "Provider", "genericArguments": [{ "index": 2, "values": { "nativePromise": "native-promise" } }] }
+  ],
+  "codes": [
+    { "from": "DI_BAG_CYCLE", "to": "DI_BAG_DEPENDENCY_CYCLE" },
+    { "from": "DI_BAG_INVALID_SCOPE", "manual": "split: DI_BAG_UNKNOWN_SERVICE_KEY | DI_BAG_INVALID_ARGUMENT" }
+  ],
+  "imports": [{ "from": "di-bag/node", "to": "di-bag" }, { "fromSuffix": "/src/node", "toSuffix": "/src" }]
+}

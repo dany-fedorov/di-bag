@@ -32,7 +32,7 @@ npm install di-bag
 ```
 
 The API is pre-1.0 and includes breaking changes, so review the changelog and
-migration guides when updating.
+the [0.5 migration guide](docs/guides/migrating-to-0.5.md) when updating.
 
 The minimum supported TypeScript version is **6.0.3**; enable `strict` in your
 `tsconfig.json`. The repository checks classic TypeScript 6.0.3 and native 7.0.2.

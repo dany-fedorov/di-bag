@@ -11,6 +11,7 @@ const guide = [
     { text: 'Introduction', link: '/' },
     { text: 'Comparison with alternatives', link: '/guides/comparison' },
     { text: 'Complete tutorial', link: '/guides/tutorial' },
+    { text: 'Migrating to 0.5', link: '/guides/migrating-to-0.5' },
     { text: 'Server recipes', link: '/guides/server-integration' },
     { text: 'React and browser runtimes', link: '/guides/react-integration' },
     { text: 'Integration patterns', link: '/guides/enterprise-integration' },
