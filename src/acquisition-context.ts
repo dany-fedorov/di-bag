@@ -87,9 +87,13 @@ export function createProvider(factory: FactoryType | ContextFactory, options?: 
   const bag = options === undefined ? Object.create(null) as Record<string, unknown>
     : snapshotOptionsBag(options, 'createProvider', [], ['factoryReturnKind', 'factoryReceivesContext']);
   const returnKind = factoryReturnKind(bag.factoryReturnKind, 'createProvider');
-  if (bag.factoryReceivesContext !== undefined && bag.factoryReceivesContext !== true) throw libraryError(
+  if (bag.factoryReceivesContext !== undefined && typeof bag.factoryReceivesContext !== 'boolean') throw libraryError(
     'DI_BAG_INVALID_ARGUMENT', 'createProvider factoryReceivesContext must be true when present',
     { operation: 'createProvider', argument: 'factoryReceivesContext', expected: 'a boolean' },
+  );
+  if (bag.factoryReceivesContext === false) throw libraryError(
+    'DI_BAG_INVALID_ARGUMENT', 'createProvider factoryReceivesContext must be true when present',
+    { operation: 'createProvider', argument: 'factoryReceivesContext', expected: "one of: 'true'" },
   );
   return factoryProvider(factory, returnKind, bag.factoryReceivesContext === true);
 }
