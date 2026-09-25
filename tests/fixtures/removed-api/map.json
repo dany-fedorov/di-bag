@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "methods": [
+    { "owner": "DiBagApi", "from": "fromFactory", "to": "createProvider" },
+    { "owner": "DiBagApi", "from": "withDisposal", "to": "withDisposal", "transform": "decorator-to-method" },
+    { "owner": "DiBagApi", "from": "withLifetime", "to": "withLifetime", "transform": "decorator-to-method" },
+    { "owner": "DiBagApi", "from": "withMetadata", "to": "withMetadata", "transform": "decorator-to-method" },
+    { "owner": "DiBagApi", "from": "transformService", "to": "transformService", "transform": "decorator-to-method" },
+    { "owner": "DiBagApi", "from": "token", "to": "createToken" },
+    { "owner": "Builder", "from": "build", "to": "buildContainer" },
+    { "owner": "Builder", "from": "buildModule", "to": "buildModule", "transform": "build-module-bag" },
+    { "owner": "Builder", "from": "buildAndStart", "to": "ensureServicesReady", "transform": "build-and-start" },
+    { "owner": "Bag", "from": "inspect", "to": "serviceSnapshot" },
+    { "owner": "Bag", "from": "resolveAll", "manual": "resolveCollection(collectionToken)" }
+  ]
+}
