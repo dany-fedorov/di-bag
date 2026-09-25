@@ -121,15 +121,35 @@ describe('0.5 container names', () => {
     expect(() => DiBag.withConfiguration({ lifecycleObservers: [callable as never] })).toThrow('require onLifecycleEvent and onObserverFailure callbacks');
   });
 
-  test('retired container members are absent at runtime', async () => {
+  test('retired container callables point to their replacements through removal stubs', async () => {
     const container = DiBag.createBuilder().buildContainer();
-    for (const name of ['inspect', 'inspectCollection', 'inspectGraph', 'createScope', 'fork']) expect(name in container).toBe(false);
+    const retired = [
+      ['inspect', 'container.serviceSnapshot(serviceKey)'],
+      ['inspectGraph', 'container.graphSnapshot()'],
+      ['createScope', 'container.createChildContainer(replacedServiceKeys, replacementProviders, { sharedParentServiceKeys }); use container.createChildContainer() or container.createChildContainer({ sharedParentServiceKeys }) when no services are replaced'],
+      ['fork', 'container.createIndependentContainer(replacedServiceKeys, replacementProviders); use container.createIndependentContainer() when no services are replaced'],
+    ] as const;
+    for (const [name, replacement] of retired) {
+      const members = container as unknown as Record<string, unknown>;
+      expect(Object.keys(members)).not.toContain(name);
+      let error: any;
+      try { (members[name] as () => never)(); } catch (caught) { error = caught; }
+      expect(error).toMatchObject({ code: 'DI_BAG_REMOVED_API', details: { replacement } });
+    }
+    expect('inspectCollection' in container).toBe(false);
     await container.close();
   });
 
-  test('retired module members are absent at runtime', () => {
+  test('the retired module callable points to withRenamedExport through a removal stub', () => {
     const module = DiBag.createBuilder().withServices({ value: () => 1 })
       .buildModule({ exportedServiceKeys: ['value'] });
-    expect('renameExport' in module).toBe(false);
+    const members = module as unknown as Record<string, unknown>;
+    expect(Object.keys(members)).not.toContain('renameExport');
+    let error: any;
+    try { (members.renameExport as () => never)(); } catch (caught) { error = caught; }
+    expect(error).toMatchObject({
+      code: 'DI_BAG_REMOVED_API',
+      details: { replacement: 'module.withRenamedExport({ currentExportKey, newExportKey })' },
+    });
   });
 });

@@ -277,9 +277,18 @@ test('the readiness errors carry their code, their details and a message that sa
   expect(cancelled.message).toContain('the wait timed out after 5ms; acquisitions still pending: db; this container is closing;');
 });
 
-test('the 0.4 startup names are gone at run time', async () => {
+test('the 0.4 startup callable points to ensureServicesReady through a removal stub', async () => {
   const api = await import('../src/index.js') as Record<string, unknown>;
-  expect('buildAndStart' in DiBag.createBuilder()).toBe(false);
+  const builder = DiBag.createBuilder() as unknown as Record<string, unknown>;
+  expect(Object.keys(builder)).not.toContain('buildAndStart');
+  let error: any;
+  try { (builder.buildAndStart as () => never)(); } catch (caught) { error = caught; }
+  expect(error).toMatchObject({
+    code: 'DI_BAG_REMOVED_API',
+    details: {
+      replacement: 'builder.buildContainer().ensureServicesReady(serviceKeys, options); rename signal to abortSignal and timeoutMs to totalTimeoutMs; replace startupOrder with maxConcurrentServiceKeys (omit for parallel, 1 for sequential, or the number); options may be omitted',
+    },
+  });
   expect(api.DiBagStartupError).toBeUndefined();
   expect(api.DiBagStartupCancelledError).toBeUndefined();
 });
