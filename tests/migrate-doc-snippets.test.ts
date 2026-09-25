@@ -101,7 +101,7 @@ test('the shipped codemod keeps a current module bag while migrating an independ
       writeDeclarationPackage(repo, packageDirectory);
       const { snippets, errors } = collectSnippets(root);
       expect(errors).toEqual([]);
-      expect(checkSnippets(snippets, checkRoot, [resolve(repo, 'tools/docs/node_modules/@types')])).toEqual([]);
+      expect(checkSnippets(snippets, checkRoot, [resolve(repo, 'node_modules/@types')])).toEqual([]);
     } finally { rmSync(checkRoot, { recursive: true, force: true }); }
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
