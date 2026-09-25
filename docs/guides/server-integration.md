@@ -14,149 +14,184 @@ checking with the [supported compiler](development.md).
 
 ## Contents
 
-- [Choose the owner of each service](#choose-the-owner-of-each-service)
 - [Build the application once](#build-the-application-once)
-- [Close each request scope](#close-each-request-scope)
+- [One child container per request](#request-containers)
+- [Close each request container](#close-each-request-container)
+- [Choose the owner of each service](#choose-the-owner-of-each-service)
 - [Connect a shutdown signal](#connect-a-shutdown-signal)
 - [Node HTTP](#node-http)
 - [Express](#express)
 - [Fastify](#fastify)
 - [Bun](#bun)
+- [Elysia](#elysia)
 - [Deno and portable acquisition](#deno-and-portable-acquisition)
-- [Startup failures and deadlines](#startup-failures-and-deadlines)
+- [Readiness failures and deadlines](#readiness-failures-and-deadlines)
 - [Disconnects, streaming, and WebSockets](#disconnects-streaming-and-websockets)
 - [Background jobs and message consumers](#background-jobs-and-message-consumers)
 - [Test application services](#test-application-services)
 - [Organize a larger application](#organize-a-larger-application)
 - [Troubleshooting](#troubleshooting)
 
-## Choose the owner of each service
-
-| Service | Typical lifetime | Owner |
-| --- | --- | --- |
-| Configuration, connection pool, application cache | `root` | Application bag |
-| Request ID, authenticated caller, transaction, request logger | `scoped` (default) | Request's child bag |
-| A fresh operation object on each lookup | `transient` | Bag performing the acquisition |
-| A replacement graph for an isolated test | Independent `fork()` | Test fixture |
-
-`root` means shared within one bag and its descendants. Each worker process or
-independent fork has its own root. Choose `withLifetime` for caching, and
-`withDisposal` for resource cleanup; these are separate choices.
-
-A root service must not capture request state. For example, keep a connection
-pool at the root and create a transaction in the request scope. DI Bag rejects
-root-to-scoped dependencies by default. The deliberate `allowScopedDependencies` option
-uses the root's context, so it does not supply the current request's identity.
-See [lifetime rules](tutorial.md#choose-a-lifetime).
-
 ## Build the application once
 
-Save this as `application.ts`. The in-memory catalog makes the example runnable
-without a database. In an application, its async factory could open a client or
-pool and its disposer could call that client's shutdown method.
+Most servers can use one container for every request. Save this as
+`application.ts`. The in-memory catalog makes the example runnable without a
+database. In an application, its async factory could open a client or pool.
+Its disposer could call that client's shutdown method.
 
 ```ts
 import { DiBag } from 'di-bag';
 
-type RequestContext = { id: string };
 type Catalog = Map<string, string>;
 
 export function createApplication() {
-  return DiBag.createBuilder()
+  const app = DiBag.createBuilder()
     .withServices({
-      catalog: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: async () => new Map([['book', 'A good book']]), disposeService: (catalog) => catalog.clear() }), lifetime: 'singleton:one-per-container-tree' }),
-      request: (): RequestContext => ({ id: 'outside-request' }),
-      handler: ({
-        catalog,
-        request,
-      }: {
-        catalog: Promise<Catalog>;
-        request: RequestContext;
-      }) => ({
+      catalog: DiBag.providerWithDisposal({
+        provider: async (): Promise<Catalog> => new Map([['book', 'A good book']]),
+        disposeService: catalog => catalog.clear(),
+      }),
+      handler: ({ catalog }: { catalog: Promise<Catalog> }) => ({
         async list() {
-          return {
-            requestId: request.id,
-            items: Array.from((await catalog).values()),
-          };
+          return { items: Array.from((await catalog).values()) };
         },
       }),
     })
-    .buildContainer()
-    .ensureServicesReady(['catalog']);
+    .buildContainer();
+  return app.ensureServicesReady(['catalog']);
+}
+
+export type Application = Awaited<ReturnType<typeof createApplication>>;
+```
+
+`buildContainer()` creates the application container. `ensureServicesReady`
+waits for the catalog before the server listens. The catalog still resolves as
+`Promise<Catalog>`. Readiness does not rewrite its public type. Every request
+can call `app.resolve('handler').list()`. The container closes during server
+shutdown.
+
+## One child container per request {#request-containers}
+
+Use a child container when a service needs request state. Replace
+`application.ts` with this version. The catalog is explicitly shared across
+the container tree. The request and its dependent handler use the scoped
+default, so each child gets its own instances.
+
+```ts
+import { DiBag } from 'di-bag';
+
+export type RequestContext = { id: string };
+type Catalog = Map<string, string>;
+
+export function createApplication() {
+  const app = DiBag.createBuilder()
+    .withServices({
+      catalog: DiBag.providerWithLifetime({
+        provider: DiBag.providerWithDisposal({
+          provider: async (): Promise<Catalog> => new Map([['book', 'A good book']]),
+          disposeService: catalog => catalog.clear(),
+        }),
+        lifetime: 'singleton:one-per-container-tree',
+      }),
+      request: (): RequestContext => ({ id: 'outside-request' }),
+      handler: ({ catalog, request }: { catalog: Promise<Catalog>; request: RequestContext }) => ({
+        async list() {
+          return { requestId: request.id, items: Array.from((await catalog).values()) };
+        },
+      }),
+    })
+    .buildContainer();
+  return app.ensureServicesReady(['catalog']);
 }
 
 export type Application = Awaited<ReturnType<typeof createApplication>>;
 
-export function createRequestScope(app: Application, requestId: string) {
+export function createRequestContainer(app: Application, requestId: string) {
   return app.createChildContainer(['request'], {
-    request: () => ({ id: requestId }),
+    request: (): RequestContext => ({ id: requestId }),
   });
 }
 ```
 
-`buildAndStart(['catalog'])` creates the application bag and waits for the catalog before
-the server starts listening. The catalog still resolves as `Promise<Catalog>`;
-startup does not rewrite its public type. Every request gets a fresh `handler`
-and `request`, while inheriting the root's catalog. Resolving the handler through
-the request scope is what makes it see that request's override.
+The placeholder gives checked replacements a type. Resolve the handler from
+the child container so it sees the request's replacement. A scoped provider is
+the default. The compiler rejects a singleton that depends on a scoped
+provider. Keep application services independent of the HTTP library so jobs
+and tests can use them too.
 
-The placeholder request establishes a type for checked overrides. Resolve
-request-dependent handlers only from a request scope. Keep application services
-independent of the HTTP library so jobs and tests can use them too.
+## Close each request container {#close-each-request-container}
 
-## Close each request scope
-
-Save the following helper as `owned-scope.ts`. It is application code, also
-available in the repository as the tested
-[`withOwnedScope` recipe](../../examples/integration/owned-scope.ts).
+Save the following helper as `owned-container.ts`. It is application code.
 
 ```ts
-export async function withOwnedScope<S extends { close(): Promise<void> }, R>(
+export async function withOwnedContainer<S extends { close(): Promise<void> }, R>(
   acquire: () => S | Promise<S>,
-  work: (scope: S) => R,
+  work: (container: S) => R,
 ): Promise<Awaited<R>> {
-  const scope = await acquire();
+  const container = await acquire();
   let value: Awaited<R>;
   try {
-    value = await work(scope);
+    value = await work(container);
   } catch (error) {
     try {
-      await scope.close();
+      await container.close();
     } catch (cleanupError) {
       throw new AggregateError(
         [error, cleanupError],
-        'Work and scope cleanup both failed',
+        'Work and container disposal both failed',
       );
     }
     throw error;
   }
-  await scope.close();
+  await container.close();
   return value;
 }
 ```
 
-It waits for application work and cleanup before returning. If both fail, it
-preserves both errors. If acquiring the scope fails, there is no acquired scope
-for this helper to close; `buildAndStart()` handles its own startup rollback.
+It waits for application work and disposal before returning. If both fail, it
+preserves both errors. If acquisition fails, there is no acquired container
+for this helper to close. `ensureServicesReady()` closes the container after a
+readiness failure.
 
 Now save `handle-request.ts`:
 
 ```ts
-import { createRequestScope, type Application } from './application.ts';
-import { withOwnedScope } from './owned-scope.ts';
+import { createRequestContainer, type Application } from './application.ts';
+import { withOwnedContainer } from './owned-container.ts';
 
 export function handleRequest(app: Application, requestId: string) {
-  return withOwnedScope(
-    () => createRequestScope(app, requestId),
-    (scope) => scope.resolve('handler').list(),
+  return withOwnedContainer(
+    () => createRequestContainer(app, requestId),
+    container => container.resolve('handler').list(),
   );
 }
 ```
 
-These recipes return fully materialized JSON data. Cleanup finishes before the
-HTTP response is sent, so a cleanup failure can still become an error response.
-The returned data must remain usable after cleanup. A live cursor, stream, or
-socket needs a longer scope, described [below](#disconnects-streaming-and-websockets).
+These recipes return fully materialized JSON data. Disposal finishes before the
+HTTP response is sent, so a disposal failure can still become an error response.
+The returned data must remain usable after disposal. A live cursor, stream, or
+socket needs a longer lived container, described [below](#disconnects-streaming-and-websockets).
+
+The framework recipes below use the request-container version of `application.ts`.
+When requests need no request state, call `app.resolve('handler').list()` directly
+and use the first application recipe.
+
+## Choose the owner of each service
+
+| Service | Typical lifetime | Owner |
+| --- | --- | --- |
+| Configuration, connection pool, application cache | `'singleton:one-per-container-tree'` when shared across children | Application container |
+| Request ID, authenticated caller, transaction, request logger | `'scoped:one-per-container'` (default) | Request's child container |
+| A fresh operation object on each lookup | `'transient:one-per-resolve'` | Resolving container |
+| A replacement graph for an isolated test | Independent container | Test fixture |
+
+Singleton providers are explicit when children should share them. Use
+`DiBag.providerWithLifetime({ provider, lifetime })` to select a lifetime.
+Use `DiBag.providerWithDisposal({ provider, disposeService })` to attach
+disposal. These are separate choices. A singleton cannot depend on a scoped
+provider unless it explicitly allows scoped dependencies. That exception uses
+the defining container's context, not the current request's identity. See
+[lifetime rules](tutorial.md#choose-a-lifetime).
 
 ## Connect a shutdown signal
 
@@ -179,35 +214,29 @@ export function onShutdown(stop: () => Promise<void>) {
 ```
 
 The recipes stop accepting work, let active handlers finish, and then close the
-application bag. Calling `app.close()` first begins closing its children and
+application container. Calling `app.close()` first begins closing its children and
 blocks new resolutions, which can interrupt requests you intended to drain.
 An operational shutdown deadline belongs to the host; DI Bag cannot force an
-uncooperative factory or disposer to settle. To stop waiting at a host deadline,
-race the original close promise while continuing to handle its eventual result:
+uncooperative factory or disposer to settle. Use `waitTimeoutMs` to bound the
+wait while disposal continues:
 
 ```ts
-const closing = app.close(); // Repeated calls return this same promise.
-const cleanup = closing.then(
-  () => ({ status: 'closed' as const }),
-  error => ({ status: 'failed' as const, error }),
-);
-let timer: ReturnType<typeof setTimeout> | undefined;
-const deadline = new Promise<{ status: 'deadline' }>(resolve => {
-  timer = setTimeout(() => resolve({ status: 'deadline' }), 5_000);
-});
-const outcome = await Promise.race([cleanup, deadline]);
-clearTimeout(timer);
-if (outcome.status === 'deadline') {
-  // Cleanup is still pending; keep observing its eventual success or failure.
-  void cleanup.then(result => console.log('Eventual cleanup:', result));
-} else if (outcome.status === 'failed') {
-  console.error('Cleanup failed:', outcome.error);
+try {
+  await app.close({ waitTimeoutMs: 5_000 });
+} catch (error) {
+  if (error instanceof DiBagCloseCancelledError) {
+    // Disposal continues after this bounded wait ends.
+    await error.cleanupPromise;
+  } else {
+    throw error;
+  }
 }
 ```
 
-The deadline only bounds the application's wait. It does not release pending
-resources or cancel a disposer. The same pattern applies to the `cleanupPromise` promise
-on `DiBagStartupCancelledError`.
+Import `DiBagCloseCancelledError` from `di-bag` for this example. The deadline
+does not release pending resources or cancel a disposer. `abortSignal` can also
+end the wait. The same principle applies to `disposalPromise` on
+`DiBagServiceReadinessCancelledError`.
 
 ## Node HTTP
 
@@ -218,7 +247,7 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { createApplication } from './application.ts';
 import { handleRequest } from './handle-request.ts';
-import { withOwnedScope } from './owned-scope.ts';
+import { withOwnedContainer } from './owned-container.ts';
 import { onShutdown } from './node-shutdown.ts';
 
 const app = await createApplication();
@@ -250,7 +279,7 @@ try {
 }
 
 onShutdown(() =>
-  withOwnedScope(
+  withOwnedContainer(
     () => app,
     () =>
       new Promise<void>((resolve, reject) => {
@@ -265,8 +294,8 @@ The listener explicitly catches its async task because an HTTP event callback
 does not await the returned promise. The shutdown sequence uses
 [Node's `server.close()`](https://nodejs.org/docs/latest-v24.x/api/http.html#serverclosecallback)
 to drain HTTP connections before releasing the application's resources.
-Here the shutdown operation intentionally owns the application root. Reusing
-`withOwnedScope` ensures application cleanup is attempted even if stopping the
+Here the shutdown operation intentionally owns the application container. Reusing
+`withOwnedContainer` ensures application disposal is attempted even if stopping the
 listener fails, and preserves both failures if necessary.
 
 ## Express
@@ -280,7 +309,7 @@ import express, { type ErrorRequestHandler } from 'express';
 import { once } from 'node:events';
 import { createApplication } from './application.ts';
 import { handleRequest } from './handle-request.ts';
-import { withOwnedScope } from './owned-scope.ts';
+import { withOwnedContainer } from './owned-container.ts';
 import { onShutdown } from './node-shutdown.ts';
 
 const services = await createApplication();
@@ -310,7 +339,7 @@ try {
 }
 
 onShutdown(() =>
-  withOwnedScope(
+  withOwnedContainer(
     () => services,
     () =>
       new Promise<void>((resolve, reject) => {
@@ -324,9 +353,9 @@ Express 5 forwards rejected async route handlers to error middleware. For
 Express 4, explicitly forward rejection with `.catch(next)`. See the
 [Express error-handling guide](https://expressjs.com/en/guide/error-handling/).
 
-Keeping the scope inside a route is useful when one handler owns all the work.
-If several middleware stages need it, attach a scope to a typed request-local
-property and use one completion path for cleanup. Calling `next()` starts the
+Keeping the child container inside a route is useful when one handler owns all the work.
+If several middleware stages need it, attach a container to a typed request-local
+property and use one completion path for disposal. Calling `next()` starts the
 next stage; it does not tell you when the response finishes. Include error and
 disconnect paths, and keep any resource used by serialization alive until that
 work finishes.
@@ -359,14 +388,14 @@ try {
 onShutdown(() => server.close());
 ```
 
-The root closes in `onClose`, after requests have drained under normal graceful
+The application container closes in `onClose`, after requests have drained under normal graceful
 shutdown. See [Fastify's shutdown lifecycle](https://fastify.dev/docs/latest/Reference/Server/#close).
-The route returns a promise containing plain response data; request cleanup
+The route returns a promise containing plain response data; request disposal
 completes inside `handleRequest` before Fastify serializes it.
 
-For a plugin that owns its own services, create its bag during plugin setup and
+For a plugin that owns its own services, create its container during plugin setup and
 close it from that plugin's `onClose` hook. Decide whether plugins share the
-application root or own independent bags. DI Bag modules organize service
+application container or own independent containers. DI Bag modules organize service
 registrations; Fastify plugins organize routes, hooks, and framework context.
 
 ## Bun
@@ -377,7 +406,7 @@ Use the same `application.ts`. Save this as `server.ts` and run
 ```ts
 import { createApplication } from './application.ts';
 import { handleRequest } from './handle-request.ts';
-import { withOwnedScope } from './owned-scope.ts';
+import { withOwnedContainer } from './owned-container.ts';
 import { onShutdown } from './node-shutdown.ts';
 
 const app = await createApplication();
@@ -405,7 +434,7 @@ const server = await (async () => {
 })();
 
 onShutdown(() =>
-  withOwnedScope(
+  withOwnedContainer(
     () => app,
     () => server.stop(),
   ),
@@ -414,7 +443,68 @@ onShutdown(() =>
 
 [`server.stop()`](https://bun.sh/docs/runtime/http/server#server-stop) waits for
 connections to finish. Passing `true` forces termination, which is a different
-shutdown policy. Keep the scope open longer when returning a streaming response.
+shutdown policy. Keep the child container open longer when returning a streaming response.
+
+## Elysia
+
+Install `elysia@1.4.30` in the application. This version of the recipe was
+type-checked against that package and the built DI Bag package. It creates a
+child container for each request. Save this as `server.ts` and run it with Bun:
+
+```ts
+import { Elysia } from 'elysia';
+import { DiBag } from 'di-bag';
+
+type RequestContext = { id: string };
+type Catalog = Map<string, string>;
+
+const app = await DiBag.createBuilder()
+  .withServices({
+    catalog: DiBag.providerWithLifetime({
+      provider: DiBag.providerWithDisposal({
+        provider: async (): Promise<Catalog> => new Map([['book', 'A good book']]),
+        disposeService: catalog => catalog.clear(),
+      }),
+      lifetime: 'singleton:one-per-container-tree',
+    }),
+    request: (): RequestContext => ({ id: 'outside-request' }),
+    handler: ({ catalog, request }: { catalog: Promise<Catalog>; request: RequestContext }) => ({
+      async list() {
+        return { requestId: request.id, items: Array.from((await catalog).values()) };
+      },
+    }),
+  })
+  .buildContainer()
+  .ensureServicesReady(['catalog']);
+
+const requestContainerPlugin = new Elysia({ name: 'di-bag-request-container' })
+  .derive({ as: 'global' }, () => ({
+    requestContainer: app.createChildContainer(['request'], {
+      request: (): RequestContext => ({ id: crypto.randomUUID() }),
+    }),
+  }))
+  .onAfterResponse({ as: 'global' }, ({ requestContainer }) => {
+    void requestContainer.close().catch(error => console.error(error));
+  })
+  .onError({ as: 'global' }, ({ requestContainer }) => {
+    void requestContainer?.close().catch(error => console.error(error));
+  });
+
+const server = new Elysia()
+  .use(requestContainerPlugin)
+  .get('/items', ({ requestContainer }) => requestContainer.resolve('handler').list())
+  .onStop(() => app.close())
+  .listen(3000);
+
+process.once('SIGTERM', () => { void server.stop(); });
+```
+
+The hooks initiate disposal for a child container created by `derive` and
+observe disposal failures. A failure before `derive` can leave
+`requestContainer` undefined in the error hook. Repeated `close()` calls use
+the same disposal operation. The `onStop` hook closes the application
+container. Coordinate request draining and process exit with the host's
+shutdown policy; a TypeScript check does not establish their runtime order.
 
 ## Deno and portable acquisition
 
@@ -426,8 +516,8 @@ use `"nodeModulesDir": "manual"` in `deno.json`. See
 
 Hosts without `process.getBuiltinModule`, such as browsers and workers, have no
 automatic native-Promise predicate. There, say on **every factory stage**,
-including overrides, whether it is synchronous or asynchronous:
-`fromSyncFactory` for a value, `fromAsyncFactory` for a Promise. This portable
+including replacements, whether it is synchronous or asynchronous:
+`factoryReturnKind: 'sync-value'` for a value or `'native-promise'` for a Promise. This portable
 version of `application.ts` runs on every host, Deno included:
 
 ```ts
@@ -437,9 +527,18 @@ type RequestContext = { id: string };
 type Catalog = Map<string, string>;
 
 export function createApplication() {
-  return DiBag.createBuilder()
+  const app = DiBag.createBuilder()
     .withServices({
-      catalog: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async () => new Map([['book', 'A good book']]), { factoryReturnKind: 'native-promise' }), disposeService: (catalog) => catalog.clear() }), lifetime: 'singleton:one-per-container-tree' }),
+      catalog: DiBag.providerWithLifetime({
+        provider: DiBag.providerWithDisposal({
+          provider: DiBag.createProvider(
+            async (): Promise<Catalog> => new Map([['book', 'A good book']]),
+            { factoryReturnKind: 'native-promise' },
+          ),
+          disposeService: catalog => catalog.clear(),
+        }),
+        lifetime: 'singleton:one-per-container-tree',
+      }),
       request: DiBag.createProvider((): RequestContext => ({ id: 'outside-request' }), { factoryReturnKind: 'sync-value' }),
       handler: DiBag.createProvider(
         ({ catalog, request }: { catalog: Promise<Catalog>; request: RequestContext }) => ({
@@ -452,29 +551,30 @@ export function createApplication() {
         }), { factoryReturnKind: 'sync-value' },
       ),
     })
-    .buildContainer()
-    .ensureServicesReady(['catalog']);
+    .buildContainer();
+  return app.ensureServicesReady(['catalog']);
 }
 
 export type Application = Awaited<ReturnType<typeof createApplication>>;
 
-export function createRequestScope(app: Application, requestId: string) {
+export function createRequestContainer(app: Application, requestId: string) {
   return app.createChildContainer(['request'], {
-    request: DiBag.createProvider(() => ({ id: requestId }), { factoryReturnKind: 'sync-value' }),
+    request: DiBag.createProvider(
+      (): RequestContext => ({ id: requestId }),
+      { factoryReturnKind: 'sync-value' },
+    ),
   });
 }
 ```
 
-Keep `owned-scope.ts` and `handle-request.ts` from the earlier sections.
-`fromSyncFactory` preserves the exact value without inspecting `then`.
-`fromAsyncFactory` tracks a genuine native promise and gives its fulfillment to
-the disposer. Wrapping with `withDisposal`, `withLifetime`, static `withMetadata`,
-or direct dynamic `withMetadata` preserves the chosen mode. `transformService`
-in `direct` mode, `fromFunction`, and `fromClass` introduce stages of their own;
-give them an explicit `acquisitionMode`. `transformService` and dynamic
-`withMetadata` in `awaited` mode declare native acquisition. If `build()` still
-throws `DI_BAG_CLASSIFIER_REQUIRED`, its message names the registrations that
-are automatic. See [portable host configuration](tutorial.md#portable-mode).
+Keep `owned-container.ts` and `handle-request.ts` from the earlier sections.
+The `'sync-value'` classification preserves a value without inspecting `then`.
+The `'native-promise'` classification tracks a genuine native Promise and gives
+its fulfillment to the disposer. `DiBag.providerWithDisposal` and
+`DiBag.providerWithLifetime` preserve the chosen classification. New factory
+stages need their own `factoryReturnKind`. If `buildContainer()` throws
+`DI_BAG_CLASSIFIER_REQUIRED`, its message names the automatic registrations.
+See [portable host configuration](tutorial.md#portable-mode).
 
 Save this as `server.ts` and run `deno run --allow-net server.ts`:
 
@@ -524,20 +624,23 @@ Use signal names supported by your host. Deno's `shutdown()` stops admission and
 lets pending requests finish; `finished` observes server completion. See
 [Deno's HTTP server API](https://docs.deno.com/api/deno/http-server/).
 
-## Startup failures and deadlines
+## Readiness failures and deadlines {#readiness-failures-and-deadlines}
 
-Use `.build()` for a completely lazy bag, or `.buildAndStart(keys, options)` before
-opening a listener when selected services must be ready. Starting a service
+Use `builder.buildContainer()` for a lazy container. Call
+`container.ensureServicesReady(serviceKeys, options)` before opening a listener
+when selected services must be ready. Readiness
 does not eagerly resolve unrelated registrations.
 
 ```ts
-import { DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from 'di-bag';
+import { DiBag, DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from 'di-bag';
 
-// builder is your completed application builder, before .build() or .buildAndStart().
+const builder = DiBag.createBuilder().withServices({
+  catalog: async () => new Map([['book', 'A good book']]),
+});
+const app = builder.buildContainer();
 try {
-  const app = await builder.buildAndStart(['catalog'], {
-    timeoutMs: 5_000,
-    startupOrder: 'parallel',
+  await app.ensureServicesReady(['catalog'], {
+    totalTimeoutMs: 5_000,
   });
   // Start the listener, then close app during server shutdown.
 } catch (error) {
@@ -547,7 +650,7 @@ try {
     } catch (cleanupError) {
       throw new AggregateError(
         [error, cleanupError],
-        'Startup cancellation and cleanup failed',
+        'Readiness cancellation and disposal failed',
       );
     }
   } else if (error instanceof DiBagServiceReadinessError) {
@@ -557,50 +660,52 @@ try {
 }
 ```
 
-Cancellation rejects promptly, so its cleanup may still be running. A factory
-using `fromFactory` can forward the supplied signal to a cooperative operation
-such as `fetch`. Cancelling the startup wait cannot terminate arbitrary code.
-The full [startup API](tutorial.md#make-selected-services-ready)
-covers external signals, sequential or bounded startup, readiness, and rollback.
-When selected providers compete for connections or temporary workspace, use a
-positive safe integer such as `startupOrder: 8` to limit simultaneous selected
+Cancellation rejects promptly, so disposal may still be running. A factory
+using `DiBag.createProvider` with `factoryReceivesContext: true` can forward
+its `abortSignal` to a cooperative operation such as `fetch`. Cancelling the
+readiness wait cannot terminate arbitrary code. The full
+[readiness API](tutorial.md#make-selected-services-ready) covers external
+signals, sequential or bounded readiness, and disposal. When selected
+providers compete for connections or temporary workspace, use a positive safe
+integer such as `maxConcurrentServiceKeys: 8` to limit simultaneous selected
 readiness waits. The default stays parallel; `1` follows sequential readiness.
 Dependencies started inside each selected provider can still fan out beyond that
-bound. On failure or cancellation, queued selections stay unstarted and ownership
-of already started work is retained through cleanup.
+bound. On failure or cancellation, queued selections stay unstarted. Already
+started work remains owned through disposal.
 
 ## Disconnects, streaming, and WebSockets
 
 The JSON recipes above finish their application work even if a client
 disconnects. To cancel a handler's work, pass an application-controlled signal
 to its operations. On disconnect, abort that signal, wait for active work to
-finish, and then close the request scope. Remove transport listeners when the
-operation ends and observe cleanup rejection.
+finish, and then close the request container. Remove transport listeners when the
+operation ends and observe disposal rejection.
 
-Scope closure tracks acquisitions and disposers, not every later method call
-on a service. Directly closing a scope from a disconnect hook is appropriate
+Container closure tracks acquisitions and disposers, not every later method call
+on a service. Directly closing a child container from a disconnect hook is appropriate
 only when no active service method still needs its owned resources. Otherwise,
-that can dispose a connection while a handler is using it. `fromFactory` lets
-acquisition work cooperate with the scope's signal; it does not automatically
-cancel later method calls. Closing a child cannot abort root-owned shared
+that can dispose a connection while a handler is using it. `DiBag.createProvider`
+lets acquisition work cooperate with the container's signal when
+`factoryReceivesContext` is true. It does not automatically cancel later method
+calls. Closing a child cannot abort singleton shared
 resources. A signal alone does not prove that work has stopped.
 
 For a streaming response, the lifetime is:
 
 ```text
-open scope → create stream → send chunks → stream ends or is cancelled → close scope
+open container, create stream, send chunks, wait for completion or cancellation, close container
 ```
 
-Do not return a live stream from `withOwnedScope`: that helper closes the scope
-as soon as its work callback returns. Instead, attach cleanup to the stream's
+Do not return a live stream from `withOwnedContainer`: that helper closes the container
+as soon as its work callback returns. Instead, attach disposal to the stream's
 completion/cancellation path and handle errors there. For Node responses,
-`finish` and premature `close` are distinct terminal events; guard cleanup so
+`finish` and premature `close` are distinct terminal events. Guard disposal so
 both events cannot start separate disposal work. See
 [Node response events](https://nodejs.org/docs/latest-v24.x/api/http.html#class-httpserverresponse).
 
-A WebSocket can own a connection scope and create child scopes for individual
+A WebSocket can own a connection container and create child containers for individual
 messages. Stop admitting messages, await active message work, close message
-scopes, then close the connection scope. Account for upgraded connections in
+containers, then close the connection container. Account for upgraded connections in
 the server's own shutdown procedure. DI Bag does not register HTTP, stream, or
 WebSocket hooks automatically.
 
@@ -610,18 +715,18 @@ A job has the same ownership shape as a request. Continuing the common
 application, handle one job like this:
 
 ```ts
-const result = await withOwnedScope(
-  () => createRequestScope(app, 'job-42'),
-  (scope) => scope.resolve('handler').list(),
+const result = await withOwnedContainer(
+  () => createRequestContainer(app, 'job-42'),
+  container => container.resolve('handler').list(),
 );
-// Acknowledge the message after work and cleanup succeed.
+// Acknowledge the message after work and disposal succeed.
 console.log(result);
 ```
 
-Give detached work its own scope. A job that outlives an HTTP request must not
+Give detached work its own container. A job that outlives an HTTP request must not
 reuse that request's scoped connection or transaction. Pass plain job input,
-resolve services again in the job scope, and await jobs during worker shutdown.
-Retries can create fresh scopes without replacing the shared root pool.
+resolve services again in the job container, and await jobs during worker shutdown.
+Retries can create fresh containers without replacing the shared application pool.
 
 ## Test application services
 
@@ -632,20 +737,20 @@ import assert from 'node:assert/strict';
 import { DiBag } from 'di-bag';
 import { createApplication } from './application.ts';
 import { handleRequest } from './handle-request.ts';
-import { withOwnedScope } from './owned-scope.ts';
+import { withOwnedContainer } from './owned-container.ts';
 
 const app = await createApplication();
 try {
-  await withOwnedScope(
+  await withOwnedContainer(
     () =>
-      app.fork(['catalog'], {
-        catalog: DiBag.withLifetime(
-          DiBag.withDisposal(
-            async () => new Map([['test', 'Test item']]),
-            (catalog) => catalog.clear(),
-          ),
-          'root',
-        ),
+      app.createIndependentContainer(['catalog'], {
+        catalog: DiBag.providerWithLifetime({
+          provider: DiBag.providerWithDisposal({
+            provider: async () => new Map([['test', 'Test item']]),
+            disposeService: catalog => catalog.clear(),
+          }),
+          lifetime: 'singleton:one-per-container-tree',
+        }),
       }),
     async (testApp) => {
       const response = await handleRequest(testApp, 'test-request');
@@ -663,7 +768,7 @@ try {
 This replacement explicitly repeats the original lifetime and disposal policies. A
 replacement is a complete registration: those wrappers are not inherited from
 the original factory. Fixtures for hosts without `process.getBuiltinModule`
-also use `fromSyncFactory` or `fromAsyncFactory`. A fork has independent
+also use `DiBag.createProvider` with an explicit `factoryReturnKind`. An independent container has independent
 instances and is not closed by the original app. Use transport-level tests as
 well when validating routing, serialization, disconnects, or streaming.
 
@@ -671,18 +776,18 @@ well when validating routing, serialization, disconnects, or streaming.
 
 | Need | API and example |
 | --- | --- |
-| Keep a feature's connection private while exposing its service | [`buildModule`, `installModule`, `renameExport`](tutorial.md#reuse-named-modules) |
-| Inject a database contract into existing classes | [`token`, `register`, `fromClass`](tutorial.md#adapt-classes-and-positional-functions) |
-| Assemble ordered middleware or job handlers | [`contribute`, `all`, `resolveAll`](tutorial.md#compose-an-ordered-collection) |
+| Keep a feature's connection private while exposing its service | [`buildModule`, `withInstalledModules`, `withRenamedExport`](tutorial.md#reuse-named-modules) |
+| Inject a database contract into existing classes | [`createToken`, `withTokenService`, `createProviderFromClass`](tutorial.md#adapt-classes-and-positional-functions) |
+| Assemble ordered middleware or job handlers | [`withCollectionContribution`, `createToken(...).forCollectionOf`, `resolveCollection`](tutorial.md#compose-an-ordered-collection) |
 | Enable optional telemetry | [`optional`](tutorial.md#declare-optional-and-lazy-dependencies) |
 | Defer an expensive dependency until a method needs it | [`lazy`](tutorial.md#declare-optional-and-lazy-dependencies) |
-| Give one service another public name | [`alias`](tutorial.md#give-a-dependency-another-lookup-name) |
-| Expose a narrow interface while keeping ownership of the original client | [`transformService`, `withDisposal`](tutorial.md#project-services-explicitly) |
-| Label services and report acquisition events | [`withMetadata`, `inspect`, `withConfiguration`](tutorial.md#attach-metadata-and-inspect-without-resolving) |
-| Load and validate an application-selected extension | [`fromPlugin`](tutorial.md#admit-an-application-selected-plugin) |
+| Give one service another public name | [`withServiceAlias`](tutorial.md#give-a-dependency-another-lookup-name) |
+| Expose a narrow interface while keeping ownership of the original client | [`providerWithTransformedService`, `providerWithDisposal`](tutorial.md#project-services-explicitly) |
+| Label services and report acquisition events | [`providerWithRegistrationMetadata`, `serviceSnapshot`, `withConfiguration`](tutorial.md#attach-metadata-and-inspect-without-resolving) |
+| Load and validate an application-selected extension | [`createProviderFromPlugin`](tutorial.md#admit-an-application-selected-plugin) |
 
 NestJS and Angular also own controllers, components, and framework-specific
-scopes. Embedding a bag does not connect those lifecycles automatically. The
+lifetimes. Embedding a container does not connect those lifecycles automatically. The
 [framework boundary discussion](enterprise-integration.md#framework-boundaries)
 describes the integration responsibilities.
 
@@ -690,12 +795,12 @@ describes the integration responsibilities.
 
 | Symptom | What to check |
 | --- | --- |
-| Every request sees the placeholder ID | Resolve the handler from `createRequestScope`, not the root bag. |
-| A client intended to be shared opens once per request | Mark its registration `root`, or explicitly select parent sharing with `createScope({ share: [...] })`. |
+| Every request sees the placeholder ID | Resolve the handler from `createRequestContainer`, not the application container. |
+| A client intended to be shared opens once per request | Mark its registration `'singleton:one-per-container-tree'` with `DiBag.providerWithLifetime`. |
 | A child override does not affect a shared handler | Sharing borrows the parent's complete acquisition and original dependencies. Keep the handler scoped. |
 | A promise appears where a service was expected | Async factories expose promises. Declare and await that dependency explicitly. |
-| `.build()` rejects with `DI_BAG_CLASSIFIER_REQUIRED` in a browser or worker | Its message and `details.bindings` name the automatic registrations; register each with `fromSyncFactory` or `fromAsyncFactory`, and give direct `transformService`, `fromFunction`, and `fromClass` an `acquisitionMode`. |
-| Cleanup never runs | Attach `withDisposal` and close the owning bag. A method named `close` does not imply ownership. |
+| `buildContainer()` rejects with `DI_BAG_CLASSIFIER_REQUIRED` in a browser or worker | Its message and `details.bindings` name automatic registrations. Set `factoryReturnKind` for each factory stage, including replacements. |
+| Disposal never runs | Attach `DiBag.providerWithDisposal` and close the owning container. A method named `close` does not imply ownership. |
 | Shutdown remains pending | Look for unfinished acquisitions, uncooperative disposers, active streams, or server connections. |
 | A dependency object cannot be spread or enumerated | Read declared properties directly; the runtime proxy cannot recover an erased parameter type's keys. |
 
