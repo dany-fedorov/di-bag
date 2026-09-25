@@ -162,13 +162,13 @@ export class ScopeAcquisitions {
     const description = this.graph.registration(bindingId);
     if (description.alias !== undefined) {
       const target = this.graph.dependency(bindingId, description.alias);
-      return { registrationMetadata: description.metadata, aliasTarget: Object.freeze({ bindingId: target, label: this.graph.label(target) }) };
+      return { registrationMetadata: description.metadata, aliasTarget: Object.freeze({ bindingId: target, bindingLabel: this.graph.label(target) }) };
     }
     const owner = this.owner(bindingId);
     return owner === this ? { registrationMetadata: description.metadata } : owner.inspectDescription(bindingId);
   }
 
-  observedEdges(): readonly { readonly from: BindingId; readonly to: BindingId }[] { return this.family.observedEdges(); }
+  observedEdges(): readonly { readonly consumerBindingId: BindingId; readonly dependencyBindingId: BindingId }[] { return this.family.observedEdges(); }
 
   private assertAliasPath(bindingId: BindingId, path: readonly BindingId[]): void {
     if (path.includes(bindingId)) throw libraryError('DI_BAG_DEPENDENCY_CYCLE', `alias cycle: ${[...path, bindingId].map(id => this.graph.label(id)).join(' -> ')}`, { path: Object.freeze([...path, bindingId].map(id => this.graph.label(id))) });

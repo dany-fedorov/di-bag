@@ -88,9 +88,9 @@ export class AcquisitionFamily {
   }
 
   /** Distinct consumer-to-dependency binding edges recorded by live attempts, in attempt order. */
-  observedEdges(): readonly { readonly from: BindingId; readonly to: BindingId }[] {
+  observedEdges(): readonly { readonly consumerBindingId: BindingId; readonly dependencyBindingId: BindingId }[] {
     const seen = new Map<BindingId, Set<BindingId>>();
-    const edges: { readonly from: BindingId; readonly to: BindingId }[] = [];
+    const edges: { readonly consumerBindingId: BindingId; readonly dependencyBindingId: BindingId }[] = [];
     for (const attempt of this.attempts.values()) {
       for (const dependency of attempt.dependencies) {
         const target = this.attempts.get(dependency);
@@ -99,7 +99,7 @@ export class AcquisitionFamily {
         if (!targets) seen.set(attempt.bindingId, targets = new Set());
         if (targets.has(target.bindingId)) continue;
         targets.add(target.bindingId);
-        edges.push(Object.freeze({ from: attempt.bindingId, to: target.bindingId }));
+        edges.push(Object.freeze({ consumerBindingId: attempt.bindingId, dependencyBindingId: target.bindingId }));
       }
     }
     return Object.freeze(edges);

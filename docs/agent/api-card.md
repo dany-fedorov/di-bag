@@ -246,7 +246,7 @@ await container.close();
 Describe every resolvable binding and the dependency edges observed so far.
 ```ts
 const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
-const labels = container.graphSnapshot().bindings.map(binding => binding.label);
+const labels = container.graphSnapshot().bindings.map(binding => binding.bindingLabel);
 await container.close();
 ```
 

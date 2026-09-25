@@ -44,7 +44,7 @@ type OpaqueOutput = Assert<Equal<ProviderOutput<Opaque>, unknown>>;
 type OpaqueNeeds = Assert<Equal<ProviderNamedDependencies<Opaque>, unknown>>;
 type WrappedOpaqueNeeds = Assert<Equal<ProviderNamedDependencies<NoInfer<Registration>>, unknown>>;
 type WrappedOpaqueOutput = Assert<Equal<ProviderOutput<NoInfer<Registration>>, unknown>>;
-type PresenceContract = Assert<Equal<Presence<string>, { readonly present: false } | { readonly present: true; readonly value: string }>>;
+type PresenceContract = Assert<Equal<Presence<string>, { readonly isPresent: false } | { readonly isPresent: true; readonly value: string }>>;
 type Tuple = Assert<Equal<AcquisitionMetadataPresence<readonly [string, number]>, readonly [Presence<string>, Presence<number>]>>;
 declare const attempt: AcquisitionSnapshot<readonly [string]>;
 if (attempt.acquisitionMetadata[0].isPresent) { const text: string = attempt.acquisitionMetadata[0].value; void text; }

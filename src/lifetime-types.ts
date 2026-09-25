@@ -31,7 +31,7 @@ export type LifetimeObligation =
 // A contribution has no key; its site renders as `contribution`.
 type ContributionSite = { readonly kind: 'contribution' };
 type SiteText<S> = S extends ContributionSite ? 'contribution' : NameText<S>;
-type CaptiveText<C> = C extends { readonly root: infer R; readonly dependency: infer D } ? `${SiteText<R>} -> ${SiteText<D>}` : never;
+type CaptiveText<C> = C extends { readonly singleton: infer R; readonly dependency: infer D } ? `${SiteText<R>} -> ${SiteText<D>}` : never;
 
 // Distribute registration unions and NoInfer wrappers so each member keeps its own policy.
 type Members<V> = V extends infer T & {} ? T extends ProviderOrFactory ? T : never : never;
@@ -179,7 +179,7 @@ type HostContributions<R extends Registrations, C, T, Visited, I = Extract<C, Co
     : Captured<ContributionSite>
     : never : never : never : never
   : never;
-type Captive<Root, X> = X extends Captured<infer D> ? { readonly root: Root; readonly dependency: D } : never;
+type Captive<Root, X> = X extends Captured<infer D> ? { readonly singleton: Root; readonly dependency: D } : never;
 type SingletonCaptives<R extends Registrations, C, Keys extends keyof R> = {
   [K in Keys]: [StrictMembers<R[K]>] extends [never] ? never : Captive<K, HostReaches<R, C, StrictMembers<R[K]>, K, K>>;
 }[Keys];

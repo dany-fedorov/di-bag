@@ -68,7 +68,7 @@ for (const runtime of ['node', 'bun']) for (const extension of ['cjs', 'mjs']) {
         raw.resolve('value'); await raw.close();
         console.log(JSON.stringify({ identity, isNativePromise, metadata, before, disposed, preflight, rawDisposed }));
       })().catch(error => { console.error(error); process.exitCode = 1; });`);
-    expect(JSON.parse(await run([runtime, file], consumer))).toEqual({ identity: true, isNativePromise: true, metadata: [{ present: true, value: { samePromise: true } }], before: [], disposed: ['resource'], preflight: true, rawDisposed: [true] });
+    expect(JSON.parse(await run([runtime, file], consumer))).toEqual({ identity: true, isNativePromise: true, metadata: [{ isPresent: true, value: { samePromise: true } }], before: [], disposed: ['resource'], preflight: true, rawDisposed: [true] });
   });
 }
 

@@ -364,7 +364,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   await i11Bag.close();
   invariant(i11Failure === i11Error && i11Value.id === 'valid' && i11FailedId !== i11RetryId, 'I11', 'boundary retry changed');
   const i11FailedEvent = i11Events.find(event => event.kind === 'acquisition-failed' && event.error === i11Error);
-  invariant(i11FailedEvent && i11FailedEvent.acquisitionMetadata.every((frame: any) => frame.present === false), 'I11', 'failed frame was fabricated');
+  invariant(i11FailedEvent && i11FailedEvent.acquisitionMetadata.every((frame: any) => frame.isPresent === false), 'I11', 'failed frame was fabricated');
   invariant(JSON.stringify(i11Dispose) === JSON.stringify(['source', 'source']), 'I11', 'source disposal changed');
 
   // I12: ordinary, aborted, and timed-out startup retain their exact wrappers and causes.

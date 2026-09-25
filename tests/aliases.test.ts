@@ -94,7 +94,7 @@ test('runtime rejects transient sharing and root captures through aliases before
 test('alias inspection reports direct target and canonical attempts without stale target metadata', async () => {
   const builder = DiBag.createBuilder().withServices({ value: DiBag.providerWithRegistrationMetadata({ provider: () => 1, registrationMetadata: { old: true } }) }).withServiceAlias({ aliasKey: 'copy', targetServiceKey: 'value' }).withServiceAlias({ aliasKey: 'chain', targetServiceKey: 'copy' });
   const bag = builder.withReplacedService('value', () => 2).buildContainer();
-  expect(bag.serviceSnapshot('chain').aliasTarget).toEqual({ bindingId: bag.serviceSnapshot('copy').bindingId, label: 'copy' });
+  expect(bag.serviceSnapshot('chain').aliasTarget).toEqual({ bindingId: bag.serviceSnapshot('copy').bindingId, bindingLabel: 'copy' });
   expect(bag.serviceSnapshot('copy').registrationMetadata).toEqual({});
   expect(Object.isFrozen(bag.serviceSnapshot('chain').aliasTarget)).toBe(true);
   bag.resolve('chain');

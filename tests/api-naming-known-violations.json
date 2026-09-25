@@ -1,11 +1,8 @@
 {
   "note": "Known violations of docs/guides/api-naming.md. This list can only shrink and must be empty after phase 11 of the Swift API style program. Shrink it with UPDATE_API_NAMING_VIOLATIONS=1 bun test tests/api-naming.test.ts",
   "violations": [
-    "boolean-name: member owned",
-    "boolean-name: member present",
     "retired-word: export ScopeEventFields",
     "retired-word: member parentScopeId",
-    "retired-word: member root",
     "retired-word: member scopeId",
     "retired-word: value 'cleanup-completed'",
     "retired-word: value 'cleanup-failed'",

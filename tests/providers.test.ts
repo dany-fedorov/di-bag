@@ -27,7 +27,7 @@ test('metadata is a snapshot and inspection never starts a factory', async () =>
   for (const value of [after, after.acquisitions, after.acquisitions[0], after.acquisitions[0]?.acquisitionMetadata]) {
     expect(Object.isFrozen(value)).toBe(true);
   }
-  expect(Reflect.ownKeys(after)).toEqual(['bindingId', 'label', 'registrationMetadata', 'acquisitions']);
+  expect(Reflect.ownKeys(after)).toEqual(['bindingId', 'bindingLabel', 'registrationMetadata', 'acquisitions']);
   expect(Reflect.ownKeys(after.acquisitions[0]!)).toEqual(['acquisitionId', 'state', 'acquisitionMetadata']);
   expect(before.acquisitions).toEqual([]);
   await bag.close();

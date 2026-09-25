@@ -5,7 +5,7 @@ import type { Lifetime } from './lifetime';
  * Structural optional presence; payloads are application-owned and not frozen.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
  */
-export type Presence<T> = { readonly present: false } | { readonly present: true; readonly value: T };
+export type Presence<T> = { readonly isPresent: false } | { readonly isPresent: true; readonly value: T };
 
 /**
  * A readonly tuple indicating whether each acquisition-stage frame is available.
@@ -36,9 +36,9 @@ export interface RegistrationSnapshot<M = Readonly<{}>, A extends readonly unkno
   /** Stable identity for the canonical graph binding. */
   readonly bindingId: symbol;
   /** Human-readable binding label. */
-  readonly label: string;
+  readonly bindingLabel: string;
   /** Direct lexical target; acquisition snapshots follow the canonical target. */
-  readonly aliasTarget?: { readonly bindingId: symbol; readonly label: string };
+  readonly aliasTarget?: { readonly bindingId: symbol; readonly bindingLabel: string };
   /** Static registration metadata; application-owned payload values retain their identity. */
   readonly registrationMetadata: Readonly<M>;
   /** Point-in-time attempts; inspection does not retain failed-attempt history. */
@@ -51,13 +51,13 @@ export interface RegistrationSnapshot<M = Readonly<{}>, A extends readonly unkno
  */
 export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] = readonly []> extends RegistrationSnapshot<M, A> {
   /** Public names or token symbols that select this binding, in registration order; empty for a private module binding. */
-  readonly keys: readonly (string | symbol)[];
+  readonly serviceKeys: readonly (string | symbol)[];
   readonly lifetime: Lifetime;
   readonly factoryReturnKind: FactoryReturnKind;
   /** True when some stage of the provider accepts ownership through a disposer. */
-  readonly owned: boolean;
+  readonly isOwnedByContainer: boolean;
   /** Typed-token dependencies declared positionally through service tokens, collection tokens, `optional`, or `lazy` references. */
-  readonly tokenDependencies: readonly { readonly key: symbol; readonly kind: 'required' | 'optional' | 'lazy' }[];
+  readonly tokenDependencies: readonly { readonly tokenSymbol: symbol; readonly dependencyKind: 'required' | 'optional' | 'lazy' }[];
 }
 
 /**
@@ -70,7 +70,7 @@ export interface GraphSnapshot {
   readonly scopeId: symbol;
   /** Public bindings in registration order, then contributions in group order, then remaining private bindings. */
   readonly bindings: readonly BindingSnapshot<object, readonly unknown[]>[];
-  readonly contributions: readonly { readonly token: symbol; readonly bindingIds: readonly symbol[] }[];
+  readonly contributions: readonly { readonly collectionTokenSymbol: symbol; readonly bindingIds: readonly symbol[] }[];
   /** Consumer-to-dependency edges recorded by acquisitions in this container's ownership family. */
-  readonly observedEdges: readonly { readonly from: symbol; readonly to: symbol }[];
+  readonly observedEdges: readonly { readonly consumerBindingId: symbol; readonly dependencyBindingId: symbol }[];
 }

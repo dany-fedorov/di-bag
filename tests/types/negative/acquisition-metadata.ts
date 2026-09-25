@@ -40,4 +40,4 @@ DiBag.createBuilder().withServices({ annotated }).buildContainer();
 // diagnostic: consumer dependency
 DiBag.createBuilder().withServices({ annotated, dep: () => 'wrong' });
 // diagnostic: read-only
-DiBag.createBuilder().withServices({ value: DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: value => ({ value }), callbackReceives: 'exposed-service' }) }).buildContainer().serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata[0] = { present: false };
+DiBag.createBuilder().withServices({ value: DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: value => ({ value }), callbackReceives: 'exposed-service' }) }).buildContainer().serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata[0] = { isPresent: false };

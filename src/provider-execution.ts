@@ -110,7 +110,7 @@ export class ProviderExecution {
   constructor(private readonly events: ExecutionEvents, description: RegistrationDescription, private readonly context: RuntimeContext) {
     // Reserve every metadata frame before the source can reenter inspection.
     this.frames = description.operations.filter(operation => operation.kind === 'frame-sync' || operation.kind === 'frame-async')
-      .map(() => Object.freeze({ present: false as const }));
+      .map(() => Object.freeze({ isPresent: false as const }));
     if (description.contextual) this.disposers = new DisposerStack();
   }
 
@@ -245,7 +245,7 @@ export class ProviderExecution {
         const { project } = operation;
         const apply = (value: unknown) => {
           const projected = project(value as never);
-          this.frames[frameIndex] = Object.freeze({ present: true, value: projected.frame });
+          this.frames[frameIndex] = Object.freeze({ isPresent: true, value: projected.frame });
           return projected.value;
         };
         if (operation.kind === 'frame-async') {

@@ -46,7 +46,7 @@ Point-in-time attempts; inspection does not retain failed-attempt history.
 ```ts
 readonly aliasTarget?: {
     readonly bindingId: symbol;
-    readonly label: string;
+    readonly bindingLabel: string;
 };
 ```
 
@@ -60,10 +60,10 @@ Direct lexical target; acquisition snapshots follow the canonical target.
 readonly bindingId: symbol;
 ```
 
-#### label
+#### bindingLabel
 
 ```ts
-readonly label: string;
+readonly bindingLabel: string;
 ```
 
 #### Inherited from
@@ -88,6 +88,22 @@ Stable identity for the canonical graph binding.
 
 ***
 
+### bindingLabel
+
+```ts
+readonly bindingLabel: string;
+```
+
+Defined in: [inspection.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L39)
+
+Human-readable binding label.
+
+#### Inherited from
+
+[`RegistrationSnapshot`](RegistrationSnapshot.md).[`bindingLabel`](RegistrationSnapshot.md#bindinglabel)
+
+***
+
 ### factoryReturnKind
 
 ```ts
@@ -98,31 +114,15 @@ Defined in: [inspection.ts:56](https://github.com/dany-fedorov/di-bag/blob/main/
 
 ***
 
-### keys
+### isOwnedByContainer
 
 ```ts
-readonly keys: readonly (string | symbol)[];
+readonly isOwnedByContainer: boolean;
 ```
 
-Defined in: [inspection.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L54)
+Defined in: [inspection.ts:58](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L58)
 
-Public names or token symbols that select this binding, in registration order; empty for a private module binding.
-
-***
-
-### label
-
-```ts
-readonly label: string;
-```
-
-Defined in: [inspection.ts:39](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L39)
-
-Human-readable binding label.
-
-#### Inherited from
-
-[`RegistrationSnapshot`](RegistrationSnapshot.md).[`label`](RegistrationSnapshot.md#label)
+True when some stage of the provider accepts ownership through a disposer.
 
 ***
 
@@ -133,18 +133,6 @@ readonly lifetime: Lifetime;
 ```
 
 Defined in: [inspection.ts:55](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L55)
-
-***
-
-### owned
-
-```ts
-readonly owned: boolean;
-```
-
-Defined in: [inspection.ts:58](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L58)
-
-True when some stage of the provider accepts ownership through a disposer.
 
 ***
 
@@ -164,12 +152,24 @@ Static registration metadata; application-owned payload values retain their iden
 
 ***
 
+### serviceKeys
+
+```ts
+readonly serviceKeys: readonly (string | symbol)[];
+```
+
+Defined in: [inspection.ts:54](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L54)
+
+Public names or token symbols that select this binding, in registration order; empty for a private module binding.
+
+***
+
 ### tokenDependencies
 
 ```ts
 readonly tokenDependencies: readonly {
-    readonly key: symbol;
-    readonly kind: 'required' | 'optional' | 'lazy';
+    readonly tokenSymbol: symbol;
+    readonly dependencyKind: 'required' | 'optional' | 'lazy';
 }[];
 ```
 

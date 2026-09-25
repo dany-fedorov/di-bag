@@ -28,7 +28,7 @@ test('metadata is lazy, ordered, copied with hidden symbols, and retained after 
   expect(bag.resolve('value')).toBe(payload);
   expect(bag.resolve('value')).toBe(payload);
   expect(calls).toBe(1);
-  expect(during).toEqual([{ present: false }, { present: false }]);
+  expect(during).toEqual([{ isPresent: false }, { isPresent: false }]);
   const frames = bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata;
   expect(frames[1]).toEqual({ isPresent: true, value: { second: 'source' } });
   const frame = frames[0];

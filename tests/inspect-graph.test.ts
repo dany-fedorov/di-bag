@@ -17,10 +17,10 @@ test('inspectGraph lists public bindings in registration order without acquiring
   expect(Object.isFrozen(graph)).toBe(true);
   expect(graph.bindings.map(binding => binding.serviceKeys)).toEqual([['config'], ['db'], ['handler'], ['client']]);
   const byKey = new Map(graph.bindings.map(binding => [binding.serviceKeys[0], binding]));
-  expect(byKey.get('config')).toMatchObject({ label: 'config', lifetime: 'singleton:one-per-container-tree', owned: false, factoryReturnKind: 'auto-detect', acquisitions: [] });
-  expect(byKey.get('db')).toMatchObject({ lifetime: 'singleton:one-per-container-tree', owned: true });
+  expect(byKey.get('config')).toMatchObject({ bindingLabel: 'config', lifetime: 'singleton:one-per-container-tree', isOwnedByContainer: false, factoryReturnKind: 'auto-detect', acquisitions: [] });
+  expect(byKey.get('db')).toMatchObject({ lifetime: 'singleton:one-per-container-tree', isOwnedByContainer: true });
   expect(byKey.get('handler')!.registrationMetadata).toEqual({ 'app:kind': 'http' });
-  expect(byKey.get('client')!.aliasTarget).toEqual({ bindingId: byKey.get('db')!.bindingId, label: 'db' });
+  expect(byKey.get('client')!.aliasTarget).toEqual({ bindingId: byKey.get('db')!.bindingId, bindingLabel: 'db' });
   expect(graph.observedEdges).toEqual([]);
   expect(graph.contributions).toEqual([]);
   await bag.close();

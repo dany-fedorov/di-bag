@@ -1,7 +1,17 @@
 import { DiBag } from '../../src';
-import type { Provider, Module, Container } from '../../src';
+import type { Provider, Module, Container, CheckedLifetimes } from '../../src';
 import { withTokenBinding } from '../../src/provider';
 import type { Assert, Equal } from './assert';
+
+// The exported lifetime diagnostic exposes the captive site as `singleton`.
+const captiveScoped = DiBag.providerWithLifetime({ provider: () => 1, lifetime: 'scoped:one-per-container' });
+const captiveSingleton = DiBag.providerWithLifetime({ provider: ({ scoped }: { scoped: number }) => scoped, lifetime: 'singleton:one-per-container-tree' });
+type CaptiveDiagnostic = CheckedLifetimes<{ scoped: typeof captiveScoped; singleton: typeof captiveSingleton }, never>;
+type CaptiveDetails = CaptiveDiagnostic extends { readonly captives: infer C } ? C : never;
+export type CaptiveDiagnosticFields = [
+  Assert<Equal<CaptiveDetails['singleton'], 'singleton'>>,
+  Assert<Equal<'root' extends keyof CaptiveDetails ? true : false, false>>,
+];
 
 export const graph = DiBag.createBuilder().withServices({
   db: DiBag.providerWithLifetime({ provider: () => ({ query: () => 1 }), lifetime: 'singleton:one-per-container-tree' }),

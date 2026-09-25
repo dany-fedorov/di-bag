@@ -32,7 +32,7 @@ Public bindings in registration order, then contributions in group order, then r
 
 ```ts
 readonly contributions: readonly {
-    readonly token: symbol;
+    readonly collectionTokenSymbol: symbol;
     readonly bindingIds: readonly symbol[];
 }[];
 ```
@@ -45,8 +45,8 @@ Defined in: [inspection.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/
 
 ```ts
 readonly observedEdges: readonly {
-    readonly from: symbol;
-    readonly to: symbol;
+    readonly consumerBindingId: symbol;
+    readonly dependencyBindingId: symbol;
 }[];
 ```
 

@@ -346,7 +346,7 @@ A frozen point-in-time graph snapshot without acquiring services.
 
 ```ts
 const container = DiBag.createBuilder().withServices({ greeting: () => 'hello' }).buildContainer();
-const labels = container.graphSnapshot().bindings.map(binding => binding.label);
+const labels = container.graphSnapshot().bindings.map(binding => binding.bindingLabel);
 await container.close();
 ```
 

@@ -449,9 +449,9 @@ export class BindingGraph {
   }
 
   /** Every contribution group with its member bindings in contribution order. */
-  contributionGroups(): readonly { readonly token: symbol; readonly bindingIds: readonly BindingId[] }[] {
-    const groups: { readonly token: symbol; readonly bindingIds: readonly BindingId[] }[] = [];
-    for (const [key] of this.#contributions) groups.push(Object.freeze({ token: key as symbol, bindingIds: this.contributionBindings(key as symbol) }));
+  contributionGroups(): readonly { readonly collectionTokenSymbol: symbol; readonly bindingIds: readonly BindingId[] }[] {
+    const groups: { readonly collectionTokenSymbol: symbol; readonly bindingIds: readonly BindingId[] }[] = [];
+    for (const [key] of this.#contributions) groups.push(Object.freeze({ collectionTokenSymbol: key as symbol, bindingIds: this.contributionBindings(key as symbol) }));
     return Object.freeze(groups);
   }
 
@@ -565,11 +565,11 @@ export class BagRuntime {
       const description = this.graph.registration(id);
       return Object.freeze({
         ...this.inspectBinding(id),
-        keys,
+        serviceKeys: keys,
         lifetime: publicLifetime(description.lifetime.kind),
         factoryReturnKind: description.factoryReturnKind,
-        owned: description.dispose !== undefined || description.operations.some(operation => operation.kind === 'owned'),
-        tokenDependencies: Object.freeze(description.references.map(reference => Object.freeze({ key: reference.key, kind: reference.kind }))),
+        isOwnedByContainer: description.dispose !== undefined || description.operations.some(operation => operation.kind === 'owned'),
+        tokenDependencies: Object.freeze(description.references.map(reference => Object.freeze({ tokenSymbol: reference.key, dependencyKind: reference.kind }))),
       });
     });
     return Object.freeze({
@@ -583,7 +583,7 @@ export class BagRuntime {
   private inspectBinding(bindingId: BindingId): RegistrationSnapshot<object, readonly unknown[]> {
     return Object.freeze({
       bindingId,
-      label: this.graph.label(bindingId),
+      bindingLabel: this.graph.label(bindingId),
       ...this.acquisitions.inspectDescription(bindingId),
       acquisitions: this.acquisitions.inspect(bindingId),
     });

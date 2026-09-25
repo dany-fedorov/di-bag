@@ -6,9 +6,9 @@
 
 ```ts
 type Presence<T> = {
-    readonly present: false;
+    readonly isPresent: false;
 } | {
-    readonly present: true;
+    readonly isPresent: true;
     readonly value: T;
 };
 ```
