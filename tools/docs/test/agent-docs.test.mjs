@@ -81,6 +81,34 @@ test('snippets type-check together against a consumer package, honoring continue
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test('guides and the README contribute their standalone blocks, and only those', () => {
+  const standalone = "import { make } from 'di-bag';\nimport { strict as assert } from 'node:assert';\nassert.equal(make(1), 1);";
+  const root = fixture({
+    'README.md': `# Readme\n${fence(standalone)}${fence("const fragment = builder.withServices({});")}`,
+    'docs/guides/tutorial.md': [
+      '# Tutorial',
+      fence("import { make } from 'di-bag';\nconst wrong: string = make(2);"),
+      fence("import { make } from 'di-bag';\nimport { handle } from './handle-request.ts';\nhandle(make(3));"),
+      fence("import { make } from 'di-bag';\nimport express from 'express';\nexpress(make(4));"),
+      fence("import { make } from 'di-bag';\nexport const view = <p>{make(5)}</p>;", 'tsx'),
+      fence('npm install di-bag', 'sh'),
+    ].join('\n'),
+    'docs/guides/migrating-to-0.5.md': `# Historical\n${fence(standalone)}`,
+    'src/api.ts': 'export {};\n',
+    'node_modules/di-bag/package.json': '{ "name": "di-bag", "exports": { ".": { "types": "./index.d.ts" } } }',
+    'node_modules/di-bag/index.d.ts': 'export declare function make(value: number): number;',
+  });
+  try {
+    const { snippets, errors } = collectSnippets(root);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(snippets.map(snippet => snippet.where), ['README.md:2', 'docs/guides/tutorial.md:2']);
+    assert.deepEqual(snippets.map(snippet => snippet.file), ['README/block-2.ts', 'docs/guides/tutorial/block-2.ts']);
+    const failures = checkSnippets(snippets, root, typeRoots);
+    assert.equal(failures.length, 1, failures.join('\n'));
+    assert.match(failures[0], /^docs\/guides\/tutorial\.md:2: line 2: TS2322/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test('budgets, layout identity, and error coverage report drift', () => {
   const families = ['missing-service', 'unsatisfied-consumer', 'singleton-captures-scoped', 'unknown-key', 'structural-thenable', 'wrong-shape', 'wrong-override'];
   const errorsPage = codes => `# Errors {#errors}\n${codes.map(code => `## ${code} {#${code.toLowerCase().replace(/_/g, '-')}}\n`).join('')}${families.map(id => `## Family {#${id}}\n`).join('')}`;

@@ -77,39 +77,33 @@ type Node = (state: State) => Promise<State>;
 type Search = { find(query: string): Promise<readonly string[]> };
 type Llm = { complete(prompt: string): Promise<string> };
 
-const retrievalModule = DiBag.createBuilder().register({
+const retrievalModule = DiBag.createBuilder().withServices({
   normalize: () => (question: string) => question.trim().toLowerCase(),
-  retrieve: DiBag.withMetadata(
-    ({ search, normalize }: {
+  retrieve: DiBag.providerWithRegistrationMetadata({ provider: ({ search, normalize }: {
       search: Search;
       normalize: (question: string) => string;
     }): Node => async state => ({
       ...state,
       context: await search.find(normalize(state.question)),
-    }),
-    { static: { 'app:node': { kind: 'tool', description: 'Retrieve support context' } } },
-  ),
-}).buildModule(['retrieve']);
+    }), registrationMetadata: { 'app:node': { kind: 'tool', description: 'Retrieve support context' } } }),
+}).buildModule({ exportedServiceKeys: ['retrieve'] });
 
-const answerModule = DiBag.createBuilder().register({
+const answerModule = DiBag.createBuilder().withServices({
   formatPrompt: () => (state: State) =>
     `Question: ${state.question}\nContext: ${state.context.join('\n')}`,
-  answer: DiBag.withMetadata(
-    ({ llm, formatPrompt }: {
+  answer: DiBag.providerWithRegistrationMetadata({ provider: ({ llm, formatPrompt }: {
       llm: Llm;
       formatPrompt: (state: State) => string;
     }): Node => async state => ({
       ...state,
       answer: await llm.complete(formatPrompt(state)),
-    }),
-    { static: { 'app:node': { kind: 'llm', description: 'Answer using retrieved context' } } },
-  ),
-}).buildModule(['answer']);
+    }), registrationMetadata: { 'app:node': { kind: 'llm', description: 'Answer using retrieved context' } } }),
+}).buildModule({ exportedServiceKeys: ['answer'] });
 
 const incomplete = DiBag.createBuilder()
-  .installModule(retrievalModule)
-  .installModule(answerModule)
-  .register({
+  .withInstalledModules([retrievalModule])
+  .withInstalledModules([answerModule])
+  .withServices({
     search: (): Search => ({ find: async () => [] }),
     // Application code defines the agent graph's edges and per-call state.
     run: ({ retrieve, answer }: { retrieve: Node; answer: Node }) =>
@@ -121,34 +115,34 @@ const incomplete = DiBag.createBuilder()
       },
   });
 
-const fixture = incomplete.register({
+const fixture = incomplete.withServices({
   llm: (): Llm => ({
     complete: async () => { throw new Error('Supply an LLM adapter for this run'); },
   }),
-}).build();
+}).buildContainer();
 
 function rejectedWiring() {
   // @ts-expect-error The answer module still requires an LLM client.
-  incomplete.build();
+  incomplete.buildContainer();
   // @ts-expect-error An LLM replacement must return a string, not a number.
-  fixture.fork(['llm'], { llm: () => ({ complete: async () => 42 }) });
+  fixture.createIndependentContainer(['llm'], { llm: () => ({ complete: async () => 42 }) });
 }
 
 try {
   // Explicitly select public nodes; private helpers stay inside their modules.
   const names = ['retrieve', 'answer'] as const;
   const catalog = names.map(name => ({
-    name, ...fixture.inspect(name).registrationMetadata['app:node'],
+    name, ...fixture.serviceSnapshot(name).registrationMetadata['app:node'],
   }));
   assert.deepEqual(catalog.map(node => node.kind), ['tool', 'llm']);
   for (const name of names) {
-    assert.deepEqual(fixture.inspect(name).acquisitions, []);
+    assert.deepEqual(fixture.serviceSnapshot(name).acquisitions, []);
   }
 
   // Evaluation harness: run both graph paths with fresh dependency instances.
   for (const hasEvidence of [true, false]) {
     const prompts: string[] = [];
-    const trial = fixture.fork(['search', 'llm'], {
+    const trial = fixture.createIndependentContainer(['search', 'llm'], {
       search: (): Search => ({
         find: async query => {
           assert.equal(query, 'refund policy?');

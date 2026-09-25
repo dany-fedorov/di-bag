@@ -55,40 +55,34 @@ async function main() {
   ];
   const searchIndex = new Map<string, string>();
   const constructed: string[] = [];
-  const app = DiBag.createBuilder().register({
-    orderSummary: DiBag.withMetadata(
-      (): Command => {
+  const app = DiBag.createBuilder().withServices({
+    orderSummary: DiBag.providerWithRegistrationMetadata({ provider: (): Command => {
         constructed.push('orderSummary');
         return () => {
           const total = orders.reduce((sum, order) => sum + order.totalCents, 0);
           return `${orders.length} orders; USD ${total} cents`;
         };
-      },
-      { static: { 'app:command': {
+      }, registrationMetadata: { 'app:command': {
         title: 'Summarize orders', role: 'support', mutatesData: false,
-      } satisfies CommandPolicy } },
-    ),
-    rebuildSearch: DiBag.withMetadata(
-      (): Command => {
+      } satisfies CommandPolicy } }),
+    rebuildSearch: DiBag.providerWithRegistrationMetadata({ provider: (): Command => {
         constructed.push('rebuildSearch');
         return () => {
           searchIndex.clear();
           for (const order of orders) searchIndex.set(order.id, order.customer);
           return `Indexed ${searchIndex.size} orders`;
         };
-      },
-      { static: { 'app:command': {
+      }, registrationMetadata: { 'app:command': {
         title: 'Rebuild order search', role: 'operator', mutatesData: true,
-      } satisfies CommandPolicy } },
-    ),
-  }).build();
+      } satisfies CommandPolicy } }),
+  }).buildContainer();
 
   // The application explicitly selects the public commands in this console.
   const names: ('orderSummary' | 'rebuildSearch')[] = [
     'orderSummary', 'rebuildSearch',
   ];
   function dispatch(name: typeof names[number], role: Role): string {
-    const policy = app.inspect(name).registrationMetadata['app:command'];
+    const policy = app.serviceSnapshot(name).registrationMetadata['app:command'];
     if (role !== 'operator' && role !== policy.role) {
       throw new Error(`Role ${role} cannot run ${name}`);
     }
@@ -97,7 +91,7 @@ async function main() {
 
   try {
     const catalog = names.map(name => ({
-      name, ...app.inspect(name).registrationMetadata['app:command'],
+      name, ...app.serviceSnapshot(name).registrationMetadata['app:command'],
     }));
     assert.deepEqual(catalog.map(item => item.title), [
       'Summarize orders', 'Rebuild order search',
@@ -181,25 +175,23 @@ async function main() {
       describe: loaded => ({ origin: loaded.origin, revision: loaded.revision }),
     },
   });
-  const pricing = DiBag.transformService(described, {
-    mode: 'awaited', transform: loaded => loaded.value,
-  });
-  const app = DiBag.createBuilder().register({
+  const pricing = DiBag.providerWithTransformedService({ provider: described, transformService: loaded => loaded.value, callbackReceives: 'fulfilled-value' });
+  const app = DiBag.createBuilder().withServices({
     pricing,
     quote: async ({ pricing }: { pricing: Promise<Pricing> }) => {
       const rates = await pricing;
       return (subtotalCents: number) => subtotalCents +
         (subtotalCents >= rates.freeShippingFromCents ? 0 : rates.shippingCents);
     },
-  }).build();
+  }).buildContainer();
 
   try {
-    const untouched = app.inspect('pricing');
+    const untouched = app.serviceSnapshot('pricing');
     assert.deepEqual(untouched.acquisitions, []);
     assert.equal(attempts, 0);
     const pending = app.resolve('pricing');
     assert.equal(app.resolve('pricing'), pending);
-    const loadingSnapshot = app.inspect('pricing');
+    const loadingSnapshot = app.serviceSnapshot('pricing');
     assert.equal(loadingSnapshot.acquisitions[0]?.state, 'pending');
     assert.deepEqual(loadingSnapshot.acquisitions[0]?.acquisitionMetadata, [
       { present: false },
@@ -207,10 +199,10 @@ async function main() {
     loading.release();
     const rates = await pending;
     assert.deepEqual(rates, cached.value);
-    const ready = app.inspect('pricing');
+    const ready = app.serviceSnapshot('pricing');
     assert.equal(ready.acquisitions[0]?.state, 'ready');
     const provenance = ready.acquisitions[0]?.acquisitionMetadata[0];
-    assert.ok(provenance?.present);
+    assert.ok(provenance?.isPresent);
     assert.equal(provenance.value.origin, 'last-known-good');
     assert.equal(provenance.value.revision, 'pricing-2026-09-08');
     assert.equal(loadingSnapshot.acquisitions[0]?.state, 'pending');
@@ -225,8 +217,8 @@ async function main() {
     loading.release(); // Allow a pending acquisition to finish on assertion failure.
     await app.close();
   }
-  assert.deepEqual(app.inspect('pricing').acquisitions, []);
-  assert.equal(app.inspect('pricing').registrationMetadata['app:owner'], 'checkout');
+  assert.deepEqual(app.serviceSnapshot('pricing').acquisitions, []);
+  assert.equal(app.serviceSnapshot('pricing').registrationMetadata['app:owner'], 'checkout');
 }
 
 void main().catch(error => { console.error(error); process.exitCode = 1; });
@@ -266,9 +258,7 @@ function reportingConnection(
   create: (deps: { options: ConnectionOptions }) => Promise<Reports>,
   metricName: string,
 ) {
-  return DiBag.withMetadata(DiBag.withDisposal(create, client => client.close()), {
-    static: { 'app:metric': metricName, 'app:owner': 'reporting' },
-  });
+  return DiBag.providerWithRegistrationMetadata({ provider: DiBag.providerWithDisposal({ provider: create, disposeService: client => client.close() }), registrationMetadata: { 'app:metric': metricName, 'app:owner': 'reporting' } });
 }
 function metricName(metadata: Readonly<object>): string | undefined {
   if ('app:metric' in metadata && typeof metadata['app:metric'] === 'string') {
@@ -287,17 +277,17 @@ async function main() {
   let exportFinished = false;
   let exportFinishedAtClose = false;
   let connectionsClosed = 0;
-  const metrics = DiBag.withConfiguration({ observers: [{
-    onEvent(event) {
+  const metrics = DiBag.withConfiguration({ lifecycleObservers: [{
+    onLifecycleEvent(event) {
       if (event.kind !== 'acquisition-ready') return;
       const name = metricName(event.registrationMetadata);
       if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
     },
-    onError(failure) { failures.push(failure); },
+    onObserverFailure(failure) { failures.push(failure); },
   }] });
   // This creates another facade and appends an observer to the metrics facade.
-  const reporting = metrics.withConfiguration({ observers: [{
-    async onEvent(event) {
+  const reporting = metrics.withConfiguration({ lifecycleObservers: [{
+    async onLifecycleEvent(event) {
       if (event.kind === 'container-closed') closeDelivered.release();
       if (event.kind !== 'acquisition-ready') return;
       if (metricName(event.registrationMetadata) !== 'reports.open') return;
@@ -305,7 +295,7 @@ async function main() {
       exportFinished = true;
       throw unavailable; // Deterministic failed export, without a network call.
     },
-    onError(failure) {
+    onObserverFailure(failure) {
       failures.push(failure);
       failureDelivered.release();
     },
@@ -322,15 +312,15 @@ async function main() {
       close() { closed = true; connectionsClosed++; },
     };
   }, 'reports.open');
-  const app = reporting.createBuilder().register({
+  const app = reporting.createBuilder().withServices({
     options: () => ({ region: 'eu' }), reports,
-  }).alias('dashboard', 'reports').build();
+  }).withServiceAlias({ aliasKey: 'dashboard', targetServiceKey: 'reports' }).buildContainer();
 
   try {
     const client = await app.resolve('dashboard');
     assert.equal(client.countOpenOrders(), 2);
     assert.equal(await app.resolve('reports'), client);
-    assert.equal(app.inspect('reports').registrationMetadata['app:owner'], 'reporting');
+    assert.equal(app.serviceSnapshot('reports').registrationMetadata['app:owner'], 'reporting');
   } finally {
     try {
       await app.close();

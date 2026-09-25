@@ -126,14 +126,14 @@ The specialized error classes below are runtime exports from both `di-bag` and
 Given an existing application bag named `app`:
 
 ```ts
-import { DiBagCleanupError } from 'di-bag';
+import { DiBagDisposalError } from 'di-bag';
 
 try {
   await app.close();
 } catch (error) {
-  if (error instanceof DiBagCleanupError) {
+  if (error instanceof DiBagDisposalError) {
     for (const failure of error.failures) {
-      console.error(failure.label, failure.error);
+      console.error(failure.bindingLabel, failure.error);
     }
   }
   throw error;

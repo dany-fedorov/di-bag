@@ -40,7 +40,7 @@ Start with `DiBag.createBuilder()`, add named factories, and finish the graph wi
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     config: () => ({ greeting: 'Hello' }),
     greeter: ({ config }: { config: { greeting: string } }) => ({
       greet(name: string) {
@@ -48,7 +48,7 @@ const app = DiBag.createBuilder()
       },
     }),
   })
-  .build();
+  .buildContainer();
 
 console.log(app.resolve('greeter').greet('Ada')); // Hello, Ada!
 await app.close();
@@ -103,12 +103,12 @@ dependency type and decides where to await it.
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     number: async () => 21,
     answer: async ({ number }: { number: Promise<number> }) => (await number) * 2,
     synchronous: () => 'ready',
   })
-  .build();
+  .buildContainer();
 
 const answer: Promise<number> = app.resolve('answer');
 console.log(await answer); // 42
@@ -135,23 +135,22 @@ selection and dependencies, and leaves everything else lazy.
 **Standalone example:**
 
 ```ts
-import { DiBag, DiBagStartupCancelledError } from 'di-bag';
+import { DiBag, DiBagServiceReadinessCancelledError } from 'di-bag';
 
-const builder = DiBag.createBuilder().register({
+const builder = DiBag.createBuilder().withServices({
   url: () => 'https://example.com/settings.json',
-  settings: DiBag.fromFactory(
-    async ({ url }: { url: string }, { signal }) => {
+  settings: DiBag.createProvider(
+    async ({ url }: { url: string }, { abortSignal: signal }) => {
       const response = await fetch(url, { signal });
       return response.text();
     },
-    { context: 'acquisition' },
+    { factoryReceivesContext: true },
   ),
 });
 
 try {
-  const app = await builder.buildAndStart(['settings'], {
-    timeoutMs: 5_000,
-    startupOrder: 'parallel',
+  const app = await builder.buildContainer().ensureServicesReady(['settings'], {
+    totalTimeoutMs: 5_000,
   });
   try {
     console.log(await app.resolve('settings'));
@@ -159,8 +158,8 @@ try {
     await app.close();
   }
 } catch (error) {
-  if (error instanceof DiBagStartupCancelledError) {
-    await error.cleanupPromise;
+  if (error instanceof DiBagServiceReadinessCancelledError) {
+    await error.disposalPromise;
   }
   throw error;
 }
@@ -200,17 +199,14 @@ import { DiBag } from 'di-bag';
 declare function openPool(): Promise<{ end(): Promise<void>; connect(): Promise<{ close(): Promise<void> }> }>;
 declare function handshake(socket: { close(): Promise<void> }): Promise<void>;
 
-const session = DiBag.withDisposal(
-  DiBag.fromFactory(async (_deps: {}, factoryCtx) => {
+const session = DiBag.providerWithDisposal({ provider: DiBag.createProvider(async (_deps: {}, factoryCtx) => {
     const pool = await openPool();
     factoryCtx.pushDisposer(() => pool.end());
     const socket = await pool.connect();
     factoryCtx.pushDisposer(disposerCtx => { if (disposerCtx.reason !== 'service-disposed') return socket.close(); });
     await handshake(socket);
     return { socket, close: () => socket.close() };
-  }, { context: 'acquisition' }),
-  session => session.close(),
-);
+  }, { factoryReceivesContext: true }), disposeService: session => session.close() });
 ```
 
 Each pushed disposer runs exactly once, last pushed first. If the factory
@@ -270,13 +266,10 @@ successfully acquired by a registration.
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
-    cache: DiBag.withDisposal(
-      () => new Map<string, string>(),
-      (cache) => cache.clear(),
-    ),
+  .withServices({
+    cache: DiBag.providerWithDisposal({ provider: () => new Map<string, string>(), disposeService: (cache) => cache.clear() }),
   })
-  .build();
+  .buildContainer();
 
 try {
   app.resolve('cache').set('answer', '42');
@@ -373,14 +366,14 @@ The linked section explains the cause and the fix. Branch on `code` and
 **Continuation of the cache ownership example:**
 
 ```ts
-import { DiBagCleanupError } from 'di-bag';
+import { DiBagDisposalError } from 'di-bag';
 
 try {
   await app.close();
 } catch (error) {
-  if (error instanceof DiBagCleanupError) {
+  if (error instanceof DiBagDisposalError) {
     for (const failure of error.failures) {
-      console.error(failure.label, failure.error);
+      console.error(failure.bindingLabel, failure.error);
     }
   }
   throw error;
@@ -441,12 +434,12 @@ family-root services according to their lifetime.
 import { DiBag } from 'di-bag';
 
 const root = DiBag.createBuilder()
-  .register({
+  .withServices({
     requestId: () => crypto.randomUUID(),
   })
-  .build();
+  .buildContainer();
 
-const child = root.createScope();
+const child = root.createChildContainer();
 root.resolve('requestId');
 child.resolve('requestId'); // a different value, cached by child
 
@@ -466,23 +459,23 @@ There are three `createScope` forms:
 import { DiBag } from 'di-bag';
 
 const parent = DiBag.createBuilder()
-  .register({
+  .withServices({
     config: () => ({ region: 'eu' }),
     client: ({ config }: { config: { region: string } }) => ({ region: config.region }),
   })
-  .build();
+  .buildContainer();
 
-const child = parent.createScope(
+const child = parent.createChildContainer(
   ['config'],
   {
     config: () => ({ region: 'us' }),
   },
-  { share: ['client'] },
+  { sharedParentServiceKeys: ['client'] },
 );
 
 child.resolve('config').region; // us
 child.resolve('client') === parent.resolve('client'); // true; client keeps eu
-const grandchild = child.createScope({ share: ['client'] });
+const grandchild = child.createChildContainer({ sharedParentServiceKeys: ['client'] });
 await parent.close();
 ```
 
@@ -519,13 +512,13 @@ shutdown. `fork()` keeps the graph and creates all instances afresh.
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     clock: () => ({ now: () => 42 }),
     stamp: ({ clock }: { clock: { now(): number } }) => clock.now(),
   })
-  .build();
+  .buildContainer();
 
-const testApp = app.fork(['clock'], {
+const testApp = app.createIndependentContainer(['clock'], {
   clock: () => ({ now: () => 7 }),
 });
 
@@ -583,14 +576,14 @@ every read.
 import { DiBag } from 'di-bag';
 
 const root = DiBag.createBuilder()
-  .register({
-    config: DiBag.withLifetime(() => ({ region: 'eu' }), 'root'),
+  .withServices({
+    config: DiBag.providerWithLifetime({ provider: () => ({ region: 'eu' }), lifetime: 'singleton:one-per-container-tree' }),
     request: () => ({ id: crypto.randomUUID() }),
-    nonce: DiBag.withLifetime(() => ({ value: Math.random() }), 'transient'),
+    nonce: DiBag.providerWithLifetime({ provider: () => ({ value: Math.random() }), lifetime: 'transient:one-per-resolve' }),
   })
-  .build();
+  .buildContainer();
 
-const child = root.createScope();
+const child = root.createChildContainer();
 child.resolve('config') === root.resolve('config'); // true
 child.resolve('request') === child.resolve('request'); // true
 child.resolve('nonce') === child.resolve('nonce'); // false
@@ -613,17 +606,13 @@ root-context capture:
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     rootContext: () => ({ region: 'eu' }),
-    client: DiBag.withLifetime(
-      ({ rootContext }: { rootContext: { region: string } }) => ({
+    client: DiBag.providerWithLifetime({ provider: ({ rootContext }: { rootContext: { region: string } }) => ({
         region: rootContext.region,
-      }),
-      'root',
-      { allowScopedDependencies: true },
-    ),
+      }), lifetime: 'singleton:one-per-container-tree', allowsScopedDependencies: true }),
   })
-  .build();
+  .buildContainer();
 ```
 
 Capture always builds through the root context; it does not borrow a child-owned
@@ -644,7 +633,7 @@ a module with `buildModule(keys)`, and any builder installs modules.
 import { DiBag } from 'di-bag';
 
 const reports = DiBag.createBuilder()
-  .register({
+  .withServices({
     connection: () => ({ open: true }),
     service: ({
       connection,
@@ -659,12 +648,12 @@ const reports = DiBag.createBuilder()
       },
     }),
   })
-  .buildModule(['service']);
+  .buildModule({ exportedServiceKeys: ['service'] });
 
 const app = DiBag.createBuilder()
-  .installModule(reports)
-  .register({ logger: () => ({ log: console.log }) })
-  .build();
+  .withInstalledModules([reports])
+  .withServices({ logger: () => ({ log: console.log }) })
+  .buildContainer();
 
 app.resolve('service').read();
 await app.close();
@@ -736,18 +725,18 @@ when other files need the identity.
 import { DiBag } from 'di-bag';
 
 const clockKey = Symbol('clock');
-const clock = DiBag.token(clockKey).of<{ now(): number }>();
+const clock = DiBag.createToken(clockKey).forService<{ now(): number }>();
 
-const stamp = DiBag.fromFunction([clock], (selectedClock) => selectedClock.now());
+const stamp = DiBag.createProviderFromFunction({ dependencies: [clock], factoryFunction: (selectedClock) => selectedClock.now() });
 
 const app = DiBag.createBuilder()
-  .register(clock, () => ({ now: () => 42 }))
-  .register({ stamp })
-  .build();
+  .withTokenService(clock, () => ({ now: () => 42 }))
+  .withServices({ stamp })
+  .buildContainer();
 
 app.resolve(clock).now(); // 42
 app.resolve('stamp'); // 42
-clock.key === clockKey; // true
+clock.symbol === clockKey; // true
 await app.close();
 ```
 
@@ -791,16 +780,16 @@ function endpoint(client: Client, path: string) {
 const portKey = Symbol('port');
 const clientKey = Symbol('client');
 const pathKey = Symbol('path');
-const port = DiBag.token(portKey).of<number>();
-const client = DiBag.token(clientKey).of<Client>();
-const path = DiBag.token(pathKey).of<string>();
+const port = DiBag.createToken(portKey).forService<number>();
+const client = DiBag.createToken(clientKey).forService<Client>();
+const path = DiBag.createToken(pathKey).forService<string>();
 
 const app = DiBag.createBuilder()
-  .register(port, () => 8080)
-  .register(client, DiBag.fromClass([port], Client))
-  .register(path, () => 'health')
-  .register({ endpoint: DiBag.fromFunction([client, path], endpoint) })
-  .build();
+  .withTokenService(port, () => 8080)
+  .withTokenService(client, DiBag.createProviderFromClass({ dependencies: [port], serviceClass: Client }))
+  .withTokenService(path, () => 'health')
+  .withServices({ endpoint: DiBag.createProviderFromFunction({ dependencies: [client, path], factoryFunction: endpoint }) })
+  .buildContainer();
 
 console.log(app.resolve('endpoint')); // http://localhost:8080/health
 await app.close();
@@ -829,8 +818,8 @@ import { DiBag } from 'di-bag';
 
 const portKey = Symbol('port');
 const hostKey = Symbol('host');
-const port = DiBag.token(portKey).of<number>();
-const host = DiBag.token(hostKey).of<string>();
+const port = DiBag.createToken(portKey).forService<number>();
+const host = DiBag.createToken(hostKey).forService<string>();
 
 class Reporter {
   constructor(
@@ -842,11 +831,11 @@ class Reporter {
   }
 }
 
-const reporter = DiBag.fromClass([DiBag.lazy(port), DiBag.optional(host)], Reporter);
+const reporter = DiBag.createProviderFromClass({ dependencies: [DiBag.lazy(port), DiBag.optional(host)], serviceClass: Reporter });
 const app = DiBag.createBuilder()
-  .register(port, () => 8080)
-  .register({ reporter })
-  .build();
+  .withTokenService(port, () => 8080)
+  .withServices({ reporter })
+  .buildContainer();
 
 app.resolve('reporter').address(); // localhost:8080
 await app.close();
@@ -878,13 +867,13 @@ binding identities.
 import { DiBag } from 'di-bag';
 
 const clientKey = Symbol('client');
-const client = DiBag.token(clientKey).of<{ port: number }>();
+const client = DiBag.createToken(clientKey).forService<{ port: number }>();
 
 const app = DiBag.createBuilder()
-  .register({ service: () => ({ port: 8080 }) })
-  .alias('primary', 'service')
-  .alias(client, 'primary')
-  .build();
+  .withServices({ service: () => ({ port: 8080 }) })
+  .withServiceAlias({ aliasKey: 'primary', targetServiceKey: 'service' })
+  .withServiceAlias({ aliasKey: client, targetServiceKey: 'primary' })
+  .buildContainer();
 
 app.resolve(client) === app.resolve('service'); // true
 await app.close();
@@ -918,33 +907,32 @@ import { DiBag } from 'di-bag';
 
 type Step = (text: string) => string;
 const stepKey = Symbol('pipeline step');
-const step = DiBag.token(stepKey).of<Step>();
+const step = DiBag.createToken(stepKey).forCollectionOf<Step>();
 
 const prefixFeature = DiBag.createBuilder()
-  .register({ prefix: () => 'Hello, ' })
-  .contribute(
-    step,
-    ({ prefix }: { prefix: string }): Step =>
+  .withServices({ prefix: () => 'Hello, ' })
+  .withCollectionContribution({
+    collectionToken: step,
+    provider: ({ prefix }: { prefix: string }): Step =>
       (text) =>
         prefix + text,
-  )
-  .buildModule([]);
+  })
+  .buildModule({ exportedServiceKeys: [] });
 
 const app = DiBag.createBuilder()
-  .contribute(step, (): Step => (text) => text.trim())
-  .installModule(prefixFeature)
-  .contribute(step, (): Step => (text) => `${text}!`)
-  .register({
-    pipeline: DiBag.fromFunction(
-      [DiBag.all(step)],
-      (operations) => (text: string) =>
-        operations.reduce((value, operation) => operation(value), text),
+  .withCollectionContribution({ collectionToken: step, provider: (): Step => (text) => text.trim() })
+  .withInstalledModules([prefixFeature])
+  .withCollectionContribution({ collectionToken: step, provider: (): Step => (text) => `${text}!` })
+  .withServices({
+    pipeline: DiBag.createProviderFromFunction(
+      { dependencies: [step], factoryFunction: (operations) => (text: string) =>
+        operations.reduce((value, operation) => operation(value), text) },
     ),
   })
-  .build();
+  .buildContainer();
 
 app.resolve('pipeline')('  DI  '); // Hello, DI!
-app.resolveAll(step); // readonly Step[]
+app.resolveCollection(step); // readonly Step[]
 await app.close();
 ```
 
@@ -1017,25 +1005,22 @@ that description with a copied view of current acquisition attempts.
 ```ts
 import { DiBag } from 'di-bag';
 
-const service = DiBag.withMetadata(
-  ({ clock }: { clock: { now(): number } }) => ({ read: () => clock.now() }),
-  { static: { 'app:owner': { team: 'platform' } } },
-);
+const service = DiBag.providerWithRegistrationMetadata({ provider: ({ clock }: { clock: { now(): number } }) => ({ read: () => clock.now() }), registrationMetadata: { 'app:owner': { team: 'platform' } } });
 const feature = DiBag.createBuilder()
-  .register({ service })
-  .buildModule(['service']);
+  .withServices({ service })
+  .buildModule({ exportedServiceKeys: ['service'] });
 const app = DiBag.createBuilder()
-  .installModule(feature.renameExport('service', 'client'))
-  .register({ clock: () => ({ now: () => 42 }) })
-  .build();
+  .withInstalledModules([feature.withRenamedExport({ currentExportKey: 'service', newExportKey: 'client' })])
+  .withServices({ clock: () => ({ now: () => 42 }) })
+  .buildContainer();
 
-const before = app.inspect('client'); // no factory runs
+const before = app.serviceSnapshot('client'); // no factory runs
 before.registrationMetadata['app:owner'].team; // platform
 before.acquisitions; // []
 app.resolve('client').read(); // 42
-app.inspect('client').acquisitions[0]?.state; // ready
+app.serviceSnapshot('client').acquisitions[0]?.state; // ready
 await app.close();
-app.inspect('client').acquisitions; // []
+app.serviceSnapshot('client').acquisitions; // []
 ```
 
 `withMetadata(registration, { static: metadata })` preserves the provider's output,
@@ -1092,12 +1077,12 @@ Observers send telemetry without joining the service or cleanup control flow.
 import { DiBag } from 'di-bag';
 
 const observed = DiBag.withConfiguration({
-  observers: [
+  lifecycleObservers: [
     {
-      onEvent(event) {
+      onLifecycleEvent(event) {
         console.log(event.kind, event.containerId);
       },
-      onError({ event, error }) {
+      onObserverFailure({ event, error }) {
         console.error('Telemetry failed', event.kind, error);
       },
     },
@@ -1106,8 +1091,8 @@ const observed = DiBag.withConfiguration({
 
 const app = observed
   .createBuilder()
-  .register({ answer: () => 42 })
-  .build();
+  .withServices({ answer: () => 42 })
+  .buildContainer();
 app.resolve('answer');
 await app.close();
 ```
@@ -1149,26 +1134,23 @@ interface Handler {
   handle(text: string): string;
 }
 const handlerKey = Symbol('handler');
-const handler = DiBag.token(handlerKey).of<Handler>();
+const handler = DiBag.createToken(handlerKey).forService<Handler>();
 
 const selected: unknown = {
   apiVersion: 1,
   create: () => ({ handle: (text: string) => text.toUpperCase() }),
 };
 
-const provider = DiBag.fromPlugin([], selected, {
-  acquisitionMode: 'raw',
-  validate: (value: unknown): value is Handler =>
+const provider = DiBag.createProviderFromPlugin({ dependencies: [], pluginDescriptor: selected, factoryReturnKind: 'uninspected', isValidPluginOutput: (value: unknown): value is Handler =>
     typeof value === 'object' &&
     value !== null &&
     'handle' in value &&
-    typeof value.handle === 'function',
-});
+    typeof value.handle === 'function' });
 
 const feature = DiBag.createBuilder()
-  .register(handler, provider)
-  .buildModule([handler]);
-const app = DiBag.createBuilder().installModule(feature).build();
+  .withTokenService(handler, provider)
+  .buildModule({ exportedServiceKeys: [handler] });
+const app = DiBag.createBuilder().withInstalledModules([feature]).buildContainer();
 console.log(app.resolve(handler).handle('hello')); // HELLO
 await app.close();
 ```
@@ -1211,20 +1193,17 @@ type Config = { readonly url: string };
 type Catalog = { names(): Promise<string[]>; close(): Promise<void> };
 
 const app = DiBag.createBuilder()
-  .register({
-    config: DiBag.fromSyncFactory((): Config => ({ url: 'memory:' })),
-    catalog: DiBag.withDisposal(
-      DiBag.fromAsyncFactory(async ({ config }: { config: Config }): Promise<Catalog> => ({
+  .withServices({
+    config: DiBag.createProvider((): Config => ({ url: 'memory:' }), { factoryReturnKind: 'sync-value' }),
+    catalog: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async ({ config }: { config: Config }): Promise<Catalog> => ({
         names: async () => [config.url],
         close: async () => {},
-      })),
-      catalog => catalog.close(),
-    ),
-    handler: DiBag.fromSyncFactory(({ catalog }: { catalog: Promise<Catalog> }) => ({
+      }), { factoryReturnKind: 'native-promise' }), disposeService: catalog => catalog.close() }),
+    handler: DiBag.createProvider(({ catalog }: { catalog: Promise<Catalog> }) => ({
       list: async () => (await catalog).names(),
-    })),
+    }), { factoryReturnKind: 'sync-value' }),
   })
-  .build();
+  .buildContainer();
 
 console.log(await app.resolve('handler').list()); // ['memory:']
 await app.close();
@@ -1314,23 +1293,17 @@ type Located<T> = {
   readonly origin: string;
 };
 
-const located = DiBag.withMetadata(
-  (): Located<number | undefined> => ({
-    value: { present: true, value: undefined },
+const located = DiBag.providerWithAcquisitionMetadata({ provider: (): Located<number | undefined> => ({
+    value: { isPresent: true, value: undefined },
     origin: 'environment',
-  }),
-  { dynamic: { mode: 'direct', describe: (result) => ({ origin: result.origin }) } },
-);
-const value = DiBag.transformService(located, {
-  mode: 'direct',
-  transform: (result) => result.value,
-});
+  }), describeAcquisition: (result) => ({ origin: result.origin }), callbackReceives: 'exposed-service' });
+const value = DiBag.providerWithTransformedService({ provider: located, transformService: (result) => result.value, callbackReceives: 'exposed-service' });
 
-const app = DiBag.createBuilder().register({ value }).build();
+const app = DiBag.createBuilder().withServices({ value }).buildContainer();
 const acquired = app.resolve('value');
-console.log(acquired.present); // true
-console.log(acquired.present && acquired.value); // undefined
-console.log(app.inspect('value').acquisitions[0]?.acquisitionMetadata[0]);
+console.log(acquired.isPresent); // true
+console.log(acquired.isPresent && acquired.value); // undefined
+console.log(app.serviceSnapshot('value').acquisitions[0]?.acquisitionMetadata[0]);
 await app.close();
 ```
 

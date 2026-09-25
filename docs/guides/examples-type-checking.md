@@ -84,23 +84,23 @@ const outbox: Message[] = [];
 let mailerCreations = 0;
 
 const incomplete = DiBag.createBuilder()
-  .register({ reminders: createReminderJob })
-  .register({
+  .withServices({ reminders: createReminderJob })
+  .withServices({
     invoices: (): InvoiceStore => ({ list: async () => rows }),
     clock: (): Clock => ({ now: () => now }),
   });
 
 function rejectedWiring() {
   // @ts-expect-error The reminders factory still requires a mailer.
-  incomplete.build();
+  incomplete.buildContainer();
 }
 
-const app = incomplete.register({
+const app = incomplete.withServices({
   mailer: (): Mailer => {
     mailerCreations += 1;
     return { send: async (message) => { outbox.push(message); } };
   },
-}).build();
+}).buildContainer();
 
 try {
   assert.equal(mailerCreations, 0);
@@ -169,11 +169,11 @@ const legacyInventory = {
     return quantities.get(sku) ?? '0';
   },
 };
-const feature = DiBag.createBuilder().register({ picking: createPickingService });
+const feature = DiBag.createBuilder().withServices({ picking: createPickingService });
 
 function rejectedWiring() {
   // @ts-expect-error Promise<string> does not satisfy Promise<number>.
-  feature.register({ inventory: () => legacyInventory });
+  feature.withServices({ inventory: () => legacyInventory });
 }
 
 function createInventoryAdapter(): Inventory {
@@ -190,7 +190,7 @@ function createInventoryAdapter(): Inventory {
   };
 }
 
-const app = feature.register({ inventory: createInventoryAdapter }).build();
+const app = feature.withServices({ inventory: createInventoryAdapter }).buildContainer();
 try {
   const picking = app.resolve('picking');
   assert.deepEqual(await picking.plan([
@@ -262,7 +262,7 @@ function createCheckout({ gateway, receipts }: {
 }
 
 // Local demonstration gateway: no payment processor is contacted.
-const app = DiBag.createBuilder().register({
+const app = DiBag.createBuilder().withServices({
   gateway: (): PaymentGateway => ({
     charge: async ({ orderId }) => ({
       status: 'approved',
@@ -271,18 +271,18 @@ const app = DiBag.createBuilder().register({
   }),
   receipts: (): ReceiptStore => new Map(),
   checkout: createCheckout,
-}).build();
+}).buildContainer();
 
 function rejectedWiring() {
   const wrongGateway = () => ({ charge: async () => 'declined' });
   // @ts-expect-error A string result cannot replace the structured charge result.
-  app.fork(['gateway'], { gateway: wrongGateway });
+  app.createIndependentContainer(['gateway'], { gateway: wrongGateway });
 }
 
 try {
   const parentCheckout = app.resolve('checkout');
   const recordedCharges: Charge[] = [];
-  const testApp = app.fork(['gateway'], {
+  const testApp = app.createIndependentContainer(['gateway'], {
     gateway: (): PaymentGateway => ({
       async charge(input) {
         recordedCharges.push(input);

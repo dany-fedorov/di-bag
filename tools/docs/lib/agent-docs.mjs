@@ -142,12 +142,28 @@ export function collectSnippets(root) {
       snippets.push({ where, file, code, expectError: markers.expectError });
     }
   }
+  // Guides and the README mix whole programs with fragments; only whole programs can be compiled.
+  const guidePages = [...(existsSync(join(root, 'README.md')) ? ['README.md'] : []),
+    ...listMarkdown(join(root, 'docs/guides')).filter(file => file !== 'migrating-to-0.5.md').map(file => `docs/guides/${file}`)];
+  for (const page of guidePages) {
+    const { blocks } = parseMarkdown(readFileSync(join(root, page), 'utf8'));
+    for (const block of blocks) {
+      if (block.lang !== 'ts' || !isStandaloneProgram(block.code)) continue;
+      snippets.push({ where: `${page}:${block.line}`, file: posix.join(page.replace(/\.md$/, ''), `block-${block.line}.ts`), code: block.code });
+    }
+  }
   for (const file of listSources(join(root, 'src'))) {
     for (const example of jsDocExamples(readFileSync(join(root, 'src', file), 'utf8'))) {
       snippets.push({ where: `src/${file}:${example.line}`, file: `src/${file.replace(/\.ts$/, '')}/example-${example.line}.ts`, code: example.code });
     }
   }
   return { snippets, errors };
+}
+
+/** A whole program imports di-bag and no uninstalled or page-relative modules. */
+export function isStandaloneProgram(code) {
+  const specifiers = [...code.matchAll(/^\s*import\s[^'"]*?['"]([^'"]+)['"]|^\s*import\s*['"]([^'"]+)['"]/gm)].map(match => match[1] ?? match[2]);
+  return specifiers.includes('di-bag') && specifiers.every(specifier => specifier === 'di-bag' || specifier.startsWith('node:'));
 }
 
 /** Emit the public declarations the way `npm run build` does, into a consumer-shaped package. */

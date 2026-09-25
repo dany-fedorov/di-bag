@@ -63,14 +63,8 @@ type Catalog = Map<string, string>;
 
 export function createApplication() {
   return DiBag.createBuilder()
-    .register({
-      catalog: DiBag.withLifetime(
-        DiBag.withDisposal(
-          async () => new Map([['book', 'A good book']]),
-          (catalog) => catalog.clear(),
-        ),
-        'root',
-      ),
+    .withServices({
+      catalog: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: async () => new Map([['book', 'A good book']]), disposeService: (catalog) => catalog.clear() }), lifetime: 'singleton:one-per-container-tree' }),
       request: (): RequestContext => ({ id: 'outside-request' }),
       handler: ({
         catalog,
@@ -87,13 +81,14 @@ export function createApplication() {
         },
       }),
     })
-    .buildAndStart(['catalog']);
+    .buildContainer()
+    .ensureServicesReady(['catalog']);
 }
 
 export type Application = Awaited<ReturnType<typeof createApplication>>;
 
 export function createRequestScope(app: Application, requestId: string) {
-  return app.createScope(['request'], {
+  return app.createChildContainer(['request'], {
     request: () => ({ id: requestId }),
   });
 }
@@ -443,16 +438,10 @@ type Catalog = Map<string, string>;
 
 export function createApplication() {
   return DiBag.createBuilder()
-    .register({
-      catalog: DiBag.withLifetime(
-        DiBag.withDisposal(
-          DiBag.fromAsyncFactory(async () => new Map([['book', 'A good book']])),
-          (catalog) => catalog.clear(),
-        ),
-        'root',
-      ),
-      request: DiBag.fromSyncFactory((): RequestContext => ({ id: 'outside-request' })),
-      handler: DiBag.fromSyncFactory(
+    .withServices({
+      catalog: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: DiBag.createProvider(async () => new Map([['book', 'A good book']]), { factoryReturnKind: 'native-promise' }), disposeService: (catalog) => catalog.clear() }), lifetime: 'singleton:one-per-container-tree' }),
+      request: DiBag.createProvider((): RequestContext => ({ id: 'outside-request' }), { factoryReturnKind: 'sync-value' }),
+      handler: DiBag.createProvider(
         ({ catalog, request }: { catalog: Promise<Catalog>; request: RequestContext }) => ({
           async list() {
             return {
@@ -460,17 +449,18 @@ export function createApplication() {
               items: Array.from((await catalog).values()),
             };
           },
-        }),
+        }), { factoryReturnKind: 'sync-value' },
       ),
     })
-    .buildAndStart(['catalog']);
+    .buildContainer()
+    .ensureServicesReady(['catalog']);
 }
 
 export type Application = Awaited<ReturnType<typeof createApplication>>;
 
 export function createRequestScope(app: Application, requestId: string) {
-  return app.createScope(['request'], {
-    request: DiBag.fromSyncFactory(() => ({ id: requestId })),
+  return app.createChildContainer(['request'], {
+    request: DiBag.createProvider(() => ({ id: requestId }), { factoryReturnKind: 'sync-value' }),
   });
 }
 ```
@@ -541,7 +531,7 @@ opening a listener when selected services must be ready. Starting a service
 does not eagerly resolve unrelated registrations.
 
 ```ts
-import { DiBagStartupCancelledError, DiBagStartupError } from 'di-bag';
+import { DiBagServiceReadinessCancelledError, DiBagServiceReadinessError } from 'di-bag';
 
 // builder is your completed application builder, before .build() or .buildAndStart().
 try {
@@ -551,17 +541,17 @@ try {
   });
   // Start the listener, then close app during server shutdown.
 } catch (error) {
-  if (error instanceof DiBagStartupCancelledError) {
+  if (error instanceof DiBagServiceReadinessCancelledError) {
     try {
-      await error.cleanupPromise;
+      await error.disposalPromise;
     } catch (cleanupError) {
       throw new AggregateError(
         [error, cleanupError],
         'Startup cancellation and cleanup failed',
       );
     }
-  } else if (error instanceof DiBagStartupError) {
-    console.error(error.cause, error.cleanupFailures);
+  } else if (error instanceof DiBagServiceReadinessError) {
+    console.error(error.cause, error.disposalFailures);
   }
   throw error;
 }

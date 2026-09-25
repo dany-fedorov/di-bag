@@ -52,7 +52,7 @@ type describes that dependency, and its return value is the service it provides:
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     config: () => ({ greeting: 'Hello' }),
     greeter: ({ config }: { config: { greeting: string } }) => ({
       greet(name: string) {
@@ -60,7 +60,7 @@ const app = DiBag.createBuilder()
       },
     }),
   })
-  .build();
+  .buildContainer();
 
 const greeter = app.resolve('greeter');
 console.log(greeter.greet('Ada')); // Hello, Ada!
@@ -106,12 +106,12 @@ factory and await it where you need the value:
 import { DiBag } from 'di-bag';
 
 const app = DiBag.createBuilder()
-  .register({
+  .withServices({
     greeting: async () => 'Hello',
     message: async ({ greeting }: { greeting: Promise<string> }) =>
       `${await greeting}, Ada!`,
   })
-  .build();
+  .buildContainer();
 
 console.log(await app.resolve('message')); // Hello, Ada!
 ```
@@ -128,13 +128,10 @@ Wrap a factory with `withDisposal` to tell the bag how to release its result:
 import { DiBag } from 'di-bag';
 
 const resources = DiBag.createBuilder()
-  .register({
-    cache: DiBag.withDisposal(
-      () => new Map<string, string>(),
-      (cache) => cache.clear(),
-    ),
+  .withServices({
+    cache: DiBag.providerWithDisposal({ provider: () => new Map<string, string>(), disposeService: (cache) => cache.clear() }),
   })
-  .build();
+  .buildContainer();
 
 try {
   resources.resolve('cache').set('answer', '42');

@@ -81,7 +81,7 @@ type Invoicing = { issue(orderId: string, amountCents: number): string };
 
 // fulfillment/module.ts: owned by the fulfillment team or agent.
 const fulfillmentModule = DiBag.createBuilder()
-  .register({
+  .withServices({
     store: (): Stock => {
       const quantities = new Map([['coffee', 4]]);
       return {
@@ -97,11 +97,11 @@ const fulfillmentModule = DiBag.createBuilder()
       reserve: (sku, quantity) => store.reserve(sku, quantity),
     }),
   })
-  .buildModule(['fulfillment']);
+  .buildModule({ exportedServiceKeys: ['fulfillment'] });
 
 // invoicing/module.ts: a separate implementation and private store.
 const invoicingModule = DiBag.createBuilder()
-  .register({
+  .withServices({
     store: (): InvoiceStore => {
       const invoices = new Map<string, number>();
       return {
@@ -116,13 +116,13 @@ const invoicingModule = DiBag.createBuilder()
       issue: (orderId, amountCents) => store.save(orderId, amountCents),
     }),
   })
-  .buildModule(['invoicing']);
+  .buildModule({ exportedServiceKeys: ['invoicing'] });
 
 // commerce/module.ts: compose public contracts into another reusable module.
 const commerceModule = DiBag.createBuilder()
-  .installModule(fulfillmentModule)
-  .installModule(invoicingModule)
-  .register({
+  .withInstalledModules([fulfillmentModule])
+  .withInstalledModules([invoicingModule])
+  .withServices({
     placeOrder: ({ fulfillment, invoicing }: {
       fulfillment: Fulfillment;
       invoicing: Invoicing;
@@ -131,10 +131,10 @@ const commerceModule = DiBag.createBuilder()
       return invoicing.issue(orderId, quantity * 1200);
     },
   })
-  .buildModule(['placeOrder']);
+  .buildModule({ exportedServiceKeys: ['placeOrder'] });
 
 // app.ts: the application sees only the composed workflow.
-const app = DiBag.createBuilder().installModule(commerceModule).build();
+const app = DiBag.createBuilder().withInstalledModules([commerceModule]).buildContainer();
 
 try {
   const placeOrder = app.resolve('placeOrder');
@@ -175,7 +175,7 @@ type Receipt = { status: 'paid' | 'declined'; attempts: number };
 type Checkout = { pay(amountCents: number): Promise<Receipt> };
 
 const billingModule = DiBag.createBuilder()
-  .register({
+  .withServices({
     state: () => ({ attempts: 0 }),
     checkout: ({ gateway, state }: {
       gateway: Gateway;
@@ -194,12 +194,12 @@ const billingModule = DiBag.createBuilder()
       },
     }),
   })
-  .buildModule(['checkout']);
+  .buildModule({ exportedServiceKeys: ['checkout'] });
 
 let defaultGatewayCreations = 0;
 const fixture = DiBag.createBuilder()
-  .installModule(billingModule)
-  .register({
+  .withInstalledModules([billingModule])
+  .withServices({
     gateway: (): Gateway => {
       defaultGatewayCreations++;
       return {
@@ -209,11 +209,11 @@ const fixture = DiBag.createBuilder()
       };
     },
   })
-  .build();
+  .buildContainer();
 
 async function runCase(approved: boolean) {
   const chargedAmounts: number[] = [];
-  const testApp = fixture.fork(['gateway'], {
+  const testApp = fixture.createIndependentContainer(['gateway'], {
     gateway: (): Gateway => ({
       async charge(amountCents) {
         chargedAmounts.push(amountCents);
@@ -275,16 +275,18 @@ type Tool = {
   run(input: string): Promise<string>;
 };
 const toolKey = Symbol('support tools');
-const tools = DiBag.token(toolKey).of<Tool>();
+const tools = DiBag.createToken(toolKey).forCollectionOf<Tool>();
 
 const knowledgeModule = DiBag.createBuilder()
-  .register({
+  .withServices({
     repository: () => new Map([
       ['refunds', 'Refunds are available within 30 days.'],
       ['shipping', 'Standard shipping takes 3–5 working days.'],
     ]),
   })
-  .contribute(tools, ({ repository }: {
+  .withCollectionContribution({
+    collectionToken: tools,
+    provider: ({ repository }: {
     repository: Map<string, string>;
   }): Tool => ({
     name: 'knowledge.lookup',
@@ -292,14 +294,17 @@ const knowledgeModule = DiBag.createBuilder()
     async run(topic) {
       return repository.get(topic.toLowerCase()) ?? 'No published policy found.';
     },
-  }))
-  .buildModule([]);
+  }),
+  })
+  .buildModule({ exportedServiceKeys: [] });
 
 const ticketsModule = DiBag.createBuilder()
-  .register({
+  .withServices({
     repository: () => new Map([['T-42', { status: 'waiting-for-customer' }]]),
   })
-  .contribute(tools, ({ repository }: {
+  .withCollectionContribution({
+    collectionToken: tools,
+    provider: ({ repository }: {
     repository: Map<string, { status: string }>;
   }): Tool => ({
     name: 'ticket.status',
@@ -307,14 +312,15 @@ const ticketsModule = DiBag.createBuilder()
     async run(ticketId) {
       return repository.get(ticketId)?.status ?? 'Ticket not found.';
     },
-  }))
-  .buildModule([]);
+  }),
+  })
+  .buildModule({ exportedServiceKeys: [] });
 
 const app = DiBag.createBuilder()
-  .installModule(knowledgeModule)
-  .installModule(ticketsModule)
-  .register({
-    dispatch: DiBag.fromFunction([DiBag.all(tools)], (available) => {
+  .withInstalledModules([knowledgeModule])
+  .withInstalledModules([ticketsModule])
+  .withServices({
+    dispatch: DiBag.createProviderFromFunction({ dependencies: [tools], factoryFunction: (available) => {
       const byName = new Map(available.map(tool => [tool.name, tool]));
       if (byName.size !== available.length) throw new Error('Duplicate tool name');
       return async (name: string, input: string) => {
@@ -322,16 +328,16 @@ const app = DiBag.createBuilder()
         if (!tool) throw new Error(`Unknown tool: ${name}`);
         return tool.run(input);
       };
-    }),
+    } }),
   })
-  .build();
+  .buildContainer();
 
 try {
   const dispatch = app.resolve('dispatch');
   assert.equal(await dispatch('knowledge.lookup', 'REFUNDS'),
     'Refunds are available within 30 days.');
   assert.equal(await dispatch('ticket.status', 'T-42'), 'waiting-for-customer');
-  assert.equal(app.resolveAll(tools).length, 2);
+  assert.equal(app.resolveCollection(tools).length, 2);
   await assert.rejects(dispatch('ticket.delete', 'T-42'), /Unknown tool/);
   console.log('Two independently contributed tools are available');
 } finally {
