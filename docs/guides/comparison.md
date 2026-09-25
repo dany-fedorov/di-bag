@@ -6,12 +6,19 @@ DI Bag is a good fit when you want ordinary TypeScript factories, checked
 composition, and explicit ownership of resources across requests, jobs, or tests.
 Its useful combination is named object dependencies, checked replacements and
 module boundaries, inspectable metadata, configurable provider policies, lazy
-creation, tracked child scopes, and startup with rollback. See the
+creation, tracked child containers, and service readiness with rollback. See the
 [worked examples](../../README.md#why-di-bag) and [tutorial](tutorial.md).
+
+An unmarked DI Bag provider is scoped, with one instance per container. Choose
+`'singleton:one-per-container-tree'` to share one instance across a container tree,
+`'scoped:one-per-container'` for one instance per container, or
+`'transient:one-per-resolve'` for a new instance at each resolution. The compiler
+rejects a singleton that depends on a scoped service. It also rejects a child
+container replacement of a singleton.
 
 These are reasons to consider it, not exclusive features. Other libraries also
 support decorator-free composition, compile-time dependency checks, async
-factories, and cleanup. The choice depends on which contracts and programming
+factories, and disposal. The choice depends on which contracts and programming
 style your application needs.
 
 “Radical modularity” describes small features with explicit contracts that can
@@ -32,9 +39,9 @@ based on the cited behavior.
 
 A typed lookup tells TypeScript what `resolve('database')` returns. Checking
 composition additionally proves that the declared dependencies have compatible
-providers before a bag can be built. DI Bag retains those requirements through
+providers before a container can be built. DI Bag retains those requirements through
 registration, modules, and checked replacement, then checks completeness at
-`build()` or `buildAndStart()`. Its
+`buildContainer()`. Its
 [public builder signatures](../../src/di-bag.ts) encode that distinction.
 
 This only covers dependencies expressed through the supported types. It cannot
@@ -50,7 +57,7 @@ remain possible after compilation. See [boundaries](tutorial.md#boundaries) and
 Start here if your application has a small, stable composition root. Passing a
 database to a repository constructor is already dependency injection, and ordinary
 TypeScript calls check argument types. You can await initialization and arrange
-cleanup yourself without adding a container. [TypeScript function checking](https://www.typescriptlang.org/docs/handbook/2/functions.html).
+disposal yourself without adding a container. [TypeScript function checking](https://www.typescriptlang.org/docs/handbook/2/functions.html).
 
 DI Bag becomes useful when repeated wiring, lazy caching, substitutions, or
 resource ownership justify a shared abstraction. Manual composition keeps those
@@ -60,7 +67,7 @@ adds an API to learn.
 ### Awilix
 
 Awilix is a close fit for services that accept an object of dependencies. It
-supports functions and classes without decorators, three lifetimes, child scopes,
+supports functions and classes without decorators, three lifetimes, child containers,
 mutable registration, and file-based registration. Its current API can infer
 cradle output types from chained registrations. Strict mode checks problematic
 lifetime capture at runtime. [Awilix documentation](https://github.com/jeffijoe/awilix#readme).
@@ -69,7 +76,7 @@ That inference does not retain and verify every factory's dependency requirement
 the [registration signatures](https://github.com/jeffijoe/awilix/blob/master/src/container.ts)
 accumulate resolver outputs. DI Bag adds checking of declared requirements and
 replacements. Ownership also differs: Awilix disposes its own cached scoped or
-singleton values; callers dispose child scopes separately. DI Bag's parent closes
+singleton values; callers dispose child containers separately. DI Bag's parent closes
 tracked children. Compare that behavior with your request lifecycle before
 choosing. [Awilix disposal](https://github.com/jeffijoe/awilix#disposing).
 
@@ -85,10 +92,10 @@ passing values to consumers through `getAsync`. [Container API](https://inversif
 
 Inversify's typed bindings and lookups do not prove complete registration of the
 graph; missing or ambiguous bindings can fail at resolution. DI Bag instead checks
-its declared graph before building and creates new bags for replacements. Also,
-Inversify's “request” scope means one resolution operation, not an HTTP request;
+its declared graph before building and creates new containers for replacements. Also,
+Inversify's “request” lifetime means one resolution operation, not an HTTP request;
 deactivation handlers apply to singleton bindings. [Lookup behavior](https://inversify.io/docs/api/container/),
-[scopes](https://inversify.io/docs/fundamentals/binding/#scope),
+[lifetime documentation](https://inversify.io/docs/fundamentals/binding/#scope),
 [deactivation](https://inversify.io/docs/api/binding-syntax/#ondeactivation).
 
 ### TSyringe
@@ -101,8 +108,8 @@ Reflect polyfill. [TSyringe documentation](https://github.com/microsoft/tsyringe
 
 Its generic registration and resolution methods do not accumulate a statically
 complete graph. Factories can return a `Promise<T>`, but this is a service value,
-not automatic awaiting of each dependency or a startup barrier. DI Bag likewise
-preserves Promise-valued services, while providing explicit startup and ownership
+not automatic awaiting of each dependency or a readiness barrier. DI Bag likewise
+preserves Promise-valued services, while providing explicit service readiness and ownership
 APIs. [Container interface](https://github.com/microsoft/tsyringe/blob/master/src/types/dependency-container.ts),
 [factory provider](https://github.com/microsoft/tsyringe/blob/master/src/providers/factory-provider.ts).
 
@@ -119,7 +126,7 @@ instances created by registered classes or factories when they implement
 `dispose()`. Values supplied through `provideValue` remain caller-owned.
 Factory results can also be Promises. Detecting `dispose()` on a returned Promise differs from
 owning the resource it eventually fulfills with. DI Bag makes that ownership
-explicit and adds selected startup with rollback. [Disposal and scopes](https://github.com/nicojs/typed-inject#readme),
+explicit and adds selected service readiness with rollback. [Disposal and lifetimes](https://github.com/nicojs/typed-inject#readme),
 [factory result handling](https://github.com/nicojs/typed-inject/blob/master/src/InjectorImpl.ts).
 
 ### Effect Context and Layer
@@ -129,7 +136,7 @@ construction with Layers. It also supplies typed errors, interruption, and scope
 resource finalization. If your application uses Effect, Layers are a natural
 starting point; a second container may add little. [Effect type](https://effect.website/docs/v3/getting-started/the-effect-type),
 [Layers](https://effect.website/docs/v3/requirements-management/layers),
-[Scope](https://effect.website/docs/v3/resource-management/scope).
+[resource management](https://effect.website/docs/v3/resource-management/scope).
 
 DI Bag fits ordinary synchronous and Promise-based service factories without
 requiring Effect composition. Effect's broader execution model is valuable when
@@ -156,16 +163,16 @@ what a host would need to connect.
 - **Explicit async edges.** Consumers declare and await Promise-valued
   dependencies. There is no transparent conversion of every dependency to its
   fulfilled value. See [async services](tutorial.md#async-edges-are-explicit).
-- **Explicit cleanup.** Ordinary factory results are borrowed until you attach
-  ownership with `withDisposal`. Cancellation is cooperative; work that never
-  settles can keep cleanup pending. See [resource ownership](tutorial.md#attach-disposal-with-providerwithdisposal).
-- **Host integration is application work.** You connect scopes to HTTP requests,
+- **Explicit disposal.** Ordinary factory results are borrowed until you attach
+  ownership with `DiBag.providerWithDisposal`. Cancellation is cooperative; work that never
+  settles can keep disposal pending. See [resource ownership](tutorial.md#attach-disposal-with-providerwithdisposal).
+- **Host integration is application work.** You connect child containers to HTTP requests,
   jobs, streams, and shutdown. DI Bag does not replace framework DI or include
   direct NestJS or Angular adapters. See the [server guide](server-integration.md).
 - **Compiler and host requirements matter.** The minimum supported TypeScript
   version is 6.0.3. Very large registration expressions have measured compiler
   limits; bulk registration and modules can help. Portable hosts require explicit
-  acquisition modes or a trusted Promise predicate. See
+  factory return kinds or a trusted Promise predicate. See
   [compiler scale](../benchmarks/typescript.md) and [portable mode](tutorial.md#portable-mode).
 - **Release status matters.** DI Bag's API is pre-1.0.
   Review its [installation instructions](../../README.md#install) and
