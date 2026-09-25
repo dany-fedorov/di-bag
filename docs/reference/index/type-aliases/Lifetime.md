@@ -14,4 +14,4 @@ Cache once per container tree, once per container, or once per resolution.
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#choose-root-scoped-or-transient-caching
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#choose-a-lifetime

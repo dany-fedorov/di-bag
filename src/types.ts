@@ -43,7 +43,7 @@ export type RegistrationsFromEntries<E extends Entry> = {
 
 /**
  * Replace overlapping providers in `F` with providers from `N`.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container
  */
 export type OverrideRegistrations<F extends Registrations, N extends Registrations> = Omit<
   F,
@@ -225,7 +225,7 @@ type BadOverrides<F extends Registrations, O extends Registrations> = {
 
 /**
  * Admit replacements only for existing keys whose service values remain assignable.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container
  */
 export type Overrides<
   F extends Registrations,
@@ -320,7 +320,7 @@ type MissingSelectionKeys<R extends Registrations, T> = T extends CollectionToke
 
 /**
  * Validate a finite tuple of existing singleton names or genuine typed tokens.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container
  */
 export type Selection<R extends Registrations, C, K extends readonly unknown[], Operation extends string = 'createIndependentContainer'> =
   true extends IsUnion<K>
@@ -345,7 +345,7 @@ type InvalidSelection<Operation extends string> = Unsatisfied<
 
 /**
  * Select provider-valued own fields corresponding to a checked key tuple.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container
  */
 export type SelectedRegistrations<K extends readonly unknown[], O> = {
   [P in Extract<SelectionKey<K[number]>, keyof O>]: Extract<O[P], ProviderOrFactory>;
@@ -388,7 +388,7 @@ export type AppliedSelection<R extends Registrations, K extends readonly unknown
 // inference pass, while requiring every selected key in explicit type arguments.
 /**
  * Contextual replacement shape used to infer a selected independent- or child-container graph.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container
  */
 export type OverrideFactoryContext<
   R extends Registrations,

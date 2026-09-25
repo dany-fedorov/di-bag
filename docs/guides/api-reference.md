@@ -75,7 +75,7 @@ next call; they do not mutate the original.
 | `contribute(token, registration)` | Builder | Append an [ordered contribution](tutorial.md#compose-an-ordered-collection). |
 | `installModule(module)` | Builder | Install a sealed [module](tutorial.md#reuse-named-modules) with private services and public exports; modules nest. |
 | `build()` | Builder | Check graph completeness and return a lazy bag. |
-| `buildAndStart(keys, options?)` | Builder | Return a promise for a fresh bag after [selected services are ready](tutorial.md#start-selected-services-and-cancel-cooperatively). |
+| `buildAndStart(keys, options?)` | Builder | Return a promise for a fresh bag after [selected services are ready](tutorial.md#make-selected-services-ready). |
 | `buildModule(keys, { label? })` | Builder | Seal the graph as a module and choose its public names and tokens; unmet dependencies become requirements. A `label` names private bindings `<label>/<key>` in diagnostics. |
 | `verifyGraph()` | Builder | Runtime no-op whose return type is `void` only when the graph would [build](tutorial.md#read-compile-time-rejections). |
 | `renameExport(oldName, newName)` | Sealed Module | Return a module view with one string-named export renamed. |
@@ -95,10 +95,10 @@ nesting depth.
 | `inspect(nameOrToken)` | Copy [metadata and acquisition state](tutorial.md#attach-metadata-and-inspect-without-resolving) without resolving. |
 | `inspectAll(token)` | Inspect contribution descriptions and attempts without resolving. |
 | `inspectGraph()` | Describe every binding, contribution group, and [observed edge](tutorial.md#attach-metadata-and-inspect-without-resolving) without resolving. |
-| `createScope()` | Create a tracked [child scope](tutorial.md#create-tracked-child-scopes). |
+| `createScope()` | Create a tracked [child scope](tutorial.md#create-child-containers). |
 | `createScope({ share: keys })` | Create a child that explicitly borrows selected parent acquisitions. |
 | `createScope(keys, overrides, options?)` | Create a child with checked replacements and optional disjoint `share` selection. |
-| `fork()` | Create an [independent bag](tutorial.md#fork-for-scopes-and-tests) with fresh instances. |
+| `fork()` | Create an [independent bag](tutorial.md#create-an-independent-container) with fresh instances. |
 | `fork(keys, overrides)` | Create an independent bag with selected replacements. |
 | `close()` | Return the shutdown promise; stop new resolutions, drain work, and dispose owned resources. Repeated calls share the same promise. |
 | `close({ timeoutMs?, signal? })` | Start the same cleanup but stop waiting at the deadline or on abort with `DiBagCloseCancelledError`. |
@@ -203,7 +203,7 @@ retained private-consumer, token, lifetime, or ownership contracts.
 | [`PluginReturnKind`](../reference/index/type-aliases/PluginReturnKind.md), [`CreateProviderFromPluginOptions`](../reference/index/interfaces/CreateProviderFromPluginOptions.md), [`PluginOutputValidator`](../reference/index/type-aliases/PluginOutputValidator.md), [`PluginProvider`](../reference/index/type-aliases/PluginProvider.md) | Plugin return policy, validation options, output predicate, and resulting provider. |
 | [`CreateProviderFromPlugin`](../reference/index/type-aliases/CreateProviderFromPlugin.md) | The callable type of `DiBag.createProviderFromPlugin`; use it directly as a type. |
 | [`CompositionReport`](../reference/index/type-aliases/CompositionReport.md) | The compile-time verdict for a builder: `void` when buildable, otherwise the `build()` failure with details. |
-| [`DiBagPolicy`](../reference/index/interfaces/DiBagPolicy.md) | Empty interface for project-wide compile-time switches; augment with `structuralThenables: 'allow'` to relax the [thenable check](tutorial.md#attach-cleanup-with-withdisposal). |
+| [`DiBagPolicy`](../reference/index/interfaces/DiBagPolicy.md) | Empty interface for project-wide compile-time switches; augment with `structuralThenables: 'allow'` to relax the [thenable check](tutorial.md#attach-disposal-with-providerwithdisposal). |
 
 ### Provider and module projections
 
@@ -321,25 +321,25 @@ also preserve existing bookmarks into the earlier combined guide.
 
 [Read the tutorial section](tutorial.md#project-services-explicitly).
 
-### Attach cleanup with `withDisposal`
+### Attach disposal with `providerWithDisposal`
 
-[Read the tutorial section](tutorial.md#attach-cleanup-with-withdisposal).
+[Read the tutorial section](tutorial.md#attach-disposal-with-providerwithdisposal).
 
-### Start selected services and cancel cooperatively
+### Make selected services ready, and cancel cooperatively
 
-[Read the tutorial section](tutorial.md#start-selected-services-and-cancel-cooperatively).
+[Read the tutorial section](tutorial.md#make-selected-services-ready).
 
-### Choose root, scoped or transient caching
+### Choose a lifetime: singleton, scoped or transient
 
-[Read the tutorial section](tutorial.md#choose-root-scoped-or-transient-caching).
+[Read the tutorial section](tutorial.md#choose-a-lifetime).
 
-### Create tracked child scopes
+### Create child containers
 
-[Read the tutorial section](tutorial.md#create-tracked-child-scopes).
+[Read the tutorial section](tutorial.md#create-child-containers).
 
-### Fork for scopes and tests
+### Create an independent container for tests
 
-[Read the tutorial section](tutorial.md#fork-for-scopes-and-tests).
+[Read the tutorial section](tutorial.md#create-an-independent-container).
 
 ### WBS-shaped ownership example
 

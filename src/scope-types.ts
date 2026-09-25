@@ -12,7 +12,7 @@ type Transients<R extends Registrations, S extends readonly unknown[]> = {
 
 /**
  * CheckDependencyCompatibility options for borrowing selected non-transient parent acquisitions in a child container.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers
  */
 export type ChildContainerShareAdmission<S extends readonly unknown[]> = [Extract<S[number], CollectionTokenBase>] extends [never] ? unknown
   : Unsatisfied<'createChildContainer cannot share a collection token', { tokens: TokenKey<Extract<S[number], CollectionTokenBase>> }>;
@@ -72,7 +72,7 @@ type Unshared<V extends ProviderOrFactory> = ProviderGraphContract<V> extends {
 } ? O : V;
 /**
  * Remove parent-sharing routes when creating a fresh child or independent container.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers
  */
 export type UnsharedAliases<R extends Registrations> = [SharedKeys<R>] extends [never] ? R
   : Omit<R, SharedKeys<R>> & { [K in SharedKeys<R>]: Unshared<R[K]> };
@@ -86,13 +86,13 @@ type SharedAlias<R extends Registrations, Parent extends Registrations, K extend
 >;
 /**
  * Named mapping keeps reflected package declarations inside this checked generic boundary.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers
  */
 export type SharedAliasProviders<R extends Registrations, Parent extends Registrations, S extends readonly unknown[]> =
   [AliasKeys<R, S>] extends [never] ? R
     : Omit<R, AliasKeys<R, S>> & { [K in AliasKeys<R, S>]: SharedAlias<R, Parent, K> };
 /**
  * The provider map visible in a child after clearing and applying selected sharing routes.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers
  */
 export type ScopedAliases<R extends Registrations, Parent extends Registrations, S extends readonly unknown[]> = SharedAliasProviders<UnsharedAliases<R>, Parent, S>;

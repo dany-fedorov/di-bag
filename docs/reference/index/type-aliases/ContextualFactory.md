@@ -27,4 +27,4 @@ The named-dependency factory contract retained by an acquisition-context callbac
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#make-selected-services-ready

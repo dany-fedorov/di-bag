@@ -25,7 +25,7 @@ export interface DisposerContext {
 }
 /**
  * Cooperative cancellation and acquisition-local ownership supplied to a context-aware factory.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#make-selected-services-ready
  */
 export interface FactoryContext {
   /** Aborted when the acquisition's owning container begins closing. */
@@ -41,7 +41,7 @@ type ContextFactory = (this: void, dependencies: never, factoryContext: FactoryC
 /**
  * The named-dependency factory contract retained by an acquisition-context callback.
  * @typeParam F - The contextual callback whose named dependencies and return type are retained.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#make-selected-services-ready
  */
 export type ContextualFactory<F extends (this: void, dependencies: never, factoryContext: never) => unknown> = (this: void,
   dependencies: Parameters<F> extends [] ? {} : Parameters<F>[0],

@@ -47,7 +47,7 @@ test('a removed call, type, code, value, import and each retired word are report
 test('without file arguments it reads the guides of the root', () => {
   const result = run();
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain('finding(s) in 6 file(s)');
+  expect(result.stderr).toContain('finding(s) in 7 file(s)');
 });
 
 test('fences suppress retired prose words but retain removed API findings', () => {
@@ -59,6 +59,19 @@ test('fences suppress retired prose words but retain removed API findings', () =
     'docs/guides/fenced.md:7: retired value root',
     'docs/guides/fenced.md:8: retired import di-bag/node',
     'docs/guides/fenced.md:11: retired word cleanup',
+  ]);
+});
+
+test('Markdown link destinations do not count as prose but labels, titles and nearby words do', () => {
+  const result = run('docs/guides/link-destinations.md');
+  expect(result.status).toBe(1);
+  expect(result.stdout.trim().split('\n')).toEqual([
+    'docs/guides/link-destinations.md:4: retired word scope',
+    'docs/guides/link-destinations.md:5: retired word cleanup',
+    'docs/guides/link-destinations.md:6: retired word fork',
+    'docs/guides/link-destinations.md:7: retired word scope',
+    'docs/guides/link-destinations.md:8: retired call build',
+    'docs/guides/link-destinations.md:9: retired call build',
   ]);
 });
 

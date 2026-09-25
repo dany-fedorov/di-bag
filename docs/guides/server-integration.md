@@ -47,7 +47,7 @@ A root service must not capture request state. For example, keep a connection
 pool at the root and create a transaction in the request scope. DI Bag rejects
 root-to-scoped dependencies by default. The deliberate `allowScopedDependencies` option
 uses the root's context, so it does not supply the current request's identity.
-See [lifetime rules](tutorial.md#choose-root-scoped-or-transient-caching).
+See [lifetime rules](tutorial.md#choose-a-lifetime).
 
 ## Build the application once
 
@@ -560,7 +560,7 @@ try {
 Cancellation rejects promptly, so its cleanup may still be running. A factory
 using `fromFactory` can forward the supplied signal to a cooperative operation
 such as `fetch`. Cancelling the startup wait cannot terminate arbitrary code.
-The full [startup API](tutorial.md#start-selected-services-and-cancel-cooperatively)
+The full [startup API](tutorial.md#make-selected-services-ready)
 covers external signals, sequential or bounded startup, readiness, and rollback.
 When selected providers compete for connections or temporary workspace, use a
 positive safe integer such as `startupOrder: 8` to limit simultaneous selected

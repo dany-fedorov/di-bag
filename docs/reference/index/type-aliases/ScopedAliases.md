@@ -22,4 +22,4 @@ The provider map visible in a child after clearing and applying selected sharing
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers

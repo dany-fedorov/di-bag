@@ -39,6 +39,12 @@ const allowed = [...product, /DiBag[A-Za-z]*/g, /di-bag[a-z-]*/g, /DI_BAG_[A-Z_]
   /\b(in|out of|within) scope\b/gi, /\bfork (the|this|a) repo(sitory)?\b/gi];
 
 const blank = text => ' '.repeat(text.length);
+// Filenames and fragments are link targets, not vocabulary. Keep labels and titles
+// visible, and apply this only to prose so removed API names remain detectable.
+const maskLinkDestinations = text => text.replace(
+  /(\[(?:[^\[\]\n]|\[[^\]\n]*\])*\]\()(<[^>\n]*>|[^\s()]+)(?=\s*(?:\)|["']))/g,
+  (_, label, destination) => label + blank(destination),
+);
 const maskCell = (line, index) => {
   const cells = line.split('|');
   if (cells.length <= index + 1) return line;
@@ -115,7 +121,7 @@ for (const file of files) {
         boundary = true;
       }
     }
-    let prose = fence || boundary ? '' : line.replace(/`[^`]*`/g, match => ' '.repeat(match.length));
+    let prose = fence || boundary ? '' : maskLinkDestinations(line.replace(/`[^`]*`/g, blank));
     for (const pattern of allowed) prose = prose.replace(pattern, match => ' '.repeat(match.length));
     let named = line;
     for (const pattern of product) named = named.replace(pattern, match => ' '.repeat(match.length));

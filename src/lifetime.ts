@@ -9,7 +9,7 @@ import type { Singleton, Unsatisfied } from './types';
 
 /**
  * Cache once per container tree, once per container, or once per resolution.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#choose-root-scoped-or-transient-caching
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#choose-a-lifetime
  */
 export type Lifetime = 'singleton:one-per-container-tree' | 'scoped:one-per-container' | 'transient:one-per-resolve';
 export type LifetimeKind = 'singleton' | 'scoped' | 'transient';

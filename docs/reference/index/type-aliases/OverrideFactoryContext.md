@@ -24,4 +24,4 @@ Contextual replacement shape used to infer a selected independent- or child-cont
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#fork-for-scopes-and-tests
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-an-independent-container

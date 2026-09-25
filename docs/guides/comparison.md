@@ -158,7 +158,7 @@ what a host would need to connect.
   fulfilled value. See [async services](tutorial.md#async-edges-are-explicit).
 - **Explicit cleanup.** Ordinary factory results are borrowed until you attach
   ownership with `withDisposal`. Cancellation is cooperative; work that never
-  settles can keep cleanup pending. See [resource ownership](tutorial.md#attach-cleanup-with-withdisposal).
+  settles can keep cleanup pending. See [resource ownership](tutorial.md#attach-disposal-with-providerwithdisposal).
 - **Host integration is application work.** You connect scopes to HTTP requests,
   jobs, streams, and shutdown. DI Bag does not replace framework DI or include
   direct NestJS or Angular adapters. See the [server guide](server-integration.md).

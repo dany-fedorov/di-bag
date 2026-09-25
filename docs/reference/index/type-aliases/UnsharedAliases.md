@@ -22,4 +22,4 @@ Remove parent-sharing routes when creating a fresh child or independent containe
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-tracked-child-scopes
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#create-child-containers

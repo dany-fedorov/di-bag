@@ -50,7 +50,7 @@ Three rules follow from [ownership](../../README.md#give-resources-a-clear-owner
   is shared by every request in a server-rendered process. This recipe has no
   SSR example; if you render on the server, create the app runtime per request
   or per worker, never per module, and keep user state in a session runtime.
-  See [lifetime rules](tutorial.md#choose-root-scoped-or-transient-caching).
+  See [lifetime rules](tutorial.md#choose-a-lifetime).
 
 ## When props and Context are enough
 

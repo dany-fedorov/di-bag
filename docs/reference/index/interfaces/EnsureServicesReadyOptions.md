@@ -10,7 +10,7 @@ Options of [Container.ensureServicesReady](Container.md#ensureservicesready).
 
 ## See
 
-https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
+https://dany-fedorov.github.io/di-bag/guides/tutorial.html#make-selected-services-ready
 
 ## Properties
 

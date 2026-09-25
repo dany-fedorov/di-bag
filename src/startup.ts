@@ -16,7 +16,7 @@ export interface CloseOptions {
 
 /**
  * Options of {@link Container.ensureServicesReady}.
- * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#start-selected-services-and-cancel-cooperatively
+ * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#make-selected-services-ready
  */
 export interface EnsureServicesReadyOptions {
   /** Aborting it stops the wait and closes this container. */
