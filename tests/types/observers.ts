@@ -39,7 +39,7 @@ export function narrow(event: LifecycleEvent) {
     const id: symbol = event.acquisitionId;
     const metadata: Readonly<object> = event.registrationMetadata;
     const frame = event.acquisitionMetadata[0];
-    if (frame?.present) { const value: unknown = frame.value; void value; }
+    if (frame?.isPresent) { const value: unknown = frame.value; void value; }
     return [id, metadata] as const;
   }
   if (event.kind === 'cleanup-failed') return event.disposalSequence;

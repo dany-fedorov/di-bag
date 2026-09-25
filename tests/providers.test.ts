@@ -20,7 +20,7 @@ test('metadata is a snapshot and inspection never starts a factory', async () =>
   expect(bag.resolve('service').read()).toBe(42);
   const after = bag.serviceSnapshot('service');
   expect(after.bindingId).toBe(before.bindingId);
-  expect(after.label).toBe('service');
+  expect(after.bindingLabel).toBe('service');
   expect(after.acquisitions).toHaveLength(1);
   expect(after.acquisitions[0]?.state).toBe('ready');
   expect(after.acquisitions[0]?.acquisitionMetadata).toEqual([]);
@@ -144,7 +144,7 @@ test('provider execution captures projected values and acquisition frames', asyn
   const bag = DiBag.createBuilder().withServices({ value: registration }).buildContainer();
   expect(bag.resolve('value')).toBe(42);
   expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([
-    { present: true, value: { source: 'engine' } },
+    { isPresent: true, value: { source: 'engine' } },
   ]);
   await bag.close();
 });

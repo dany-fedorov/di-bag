@@ -24,7 +24,7 @@ if (event.kind === 'acquisition-ready') {
   // diagnostic: does not exist
   event.registrationMetadata.team;
   const frame = event.acquisitionMetadata[0];
-  if (frame?.present) {
+  if (frame?.isPresent) {
     // diagnostic: unknown
     frame.value.owner;
   }

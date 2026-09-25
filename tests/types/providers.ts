@@ -47,7 +47,7 @@ type WrappedOpaqueOutput = Assert<Equal<ProviderOutput<NoInfer<Registration>>, u
 type PresenceContract = Assert<Equal<Presence<string>, { readonly present: false } | { readonly present: true; readonly value: string }>>;
 type Tuple = Assert<Equal<AcquisitionMetadataPresence<readonly [string, number]>, readonly [Presence<string>, Presence<number>]>>;
 declare const attempt: AcquisitionSnapshot<readonly [string]>;
-if (attempt.acquisitionMetadata[0].present) { const text: string = attempt.acquisitionMetadata[0].value; void text; }
+if (attempt.acquisitionMetadata[0].isPresent) { const text: string = attempt.acquisitionMetadata[0].value; void text; }
 declare const framed: Provider<() => number, Readonly<{ owner: string }>, readonly [{ kind: 'trace'; id: string }]>;
 const frameUnit = DiBag.createBuilder().withServices({ framed }).buildModule({ exportedServiceKeys: ['framed'] }).withRenamedExport({ currentExportKey: 'framed', newExportKey: 'traced' });
 const frameView = DiBag.createBuilder().withInstalledModules([frameUnit]).buildContainer().serviceSnapshot('traced');

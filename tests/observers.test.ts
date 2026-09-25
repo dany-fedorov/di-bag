@@ -188,8 +188,8 @@ test('private module frames are immutable snapshots without freezing application
   const started = events.find(event => event.kind === 'acquisition-started' && event.acquisitionMetadata.length)!;
   const ready = events.find(event => event.kind === 'acquisition-ready' && event.acquisitionMetadata.length)!;
   if (!('acquisitionMetadata' in started) || !('acquisitionMetadata' in ready)) throw new Error('missing framed events');
-  expect(started.acquisitionMetadata).toEqual([{ present: false }]);
-  expect(ready.acquisitionMetadata).toEqual([{ present: true, value: { payload } }]);
+  expect(started.acquisitionMetadata).toEqual([{ isPresent: false }]);
+  expect(ready.acquisitionMetadata).toEqual([{ isPresent: true, value: { payload } }]);
   expect(Object.isFrozen(ready.acquisitionMetadata)).toBe(true);
   expect(Object.isFrozen(ready.acquisitionMetadata[0])).toBe(true);
   expect(Object.isFrozen(ready.registrationMetadata)).toBe(true);
@@ -197,7 +197,7 @@ test('private module frames are immutable snapshots without freezing application
   expect(Object.isFrozen(payload)).toBe(false);
   await bag.close();
   expect(ready.acquisitionMetadata).toHaveLength(1);
-  expect(started.acquisitionMetadata).toEqual([{ present: false }]);
+  expect(started.acquisitionMetadata).toEqual([{ isPresent: false }]);
 });
 
 test('startup rollback observes accepted cleanup while preserving the startup cause', async () => {

@@ -20,7 +20,7 @@ test('createProvider preserves every factory return policy', async () => {
   expect(container.resolve('uninspected')).toBe(pending);
   expect(container.resolve('native')).toBe(pending);
   expect(thenReads).toBe(0);
-  const kinds = new Map(container.graphSnapshot().bindings.map(binding => [binding.label, binding.factoryReturnKind]));
+  const kinds = new Map(container.graphSnapshot().bindings.map(binding => [binding.bindingLabel, binding.factoryReturnKind]));
   expect(kinds).toEqual(new Map([
     ['automatic', 'auto-detect'],
     ['synchronous', 'sync-value'],

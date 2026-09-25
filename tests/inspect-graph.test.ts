@@ -15,8 +15,8 @@ test('inspectGraph lists public bindings in registration order without acquiring
   const graph = bag.graphSnapshot();
   expect(created).toBe(0);
   expect(Object.isFrozen(graph)).toBe(true);
-  expect(graph.bindings.map(binding => binding.keys)).toEqual([['config'], ['db'], ['handler'], ['client']]);
-  const byKey = new Map(graph.bindings.map(binding => [binding.keys[0], binding]));
+  expect(graph.bindings.map(binding => binding.serviceKeys)).toEqual([['config'], ['db'], ['handler'], ['client']]);
+  const byKey = new Map(graph.bindings.map(binding => [binding.serviceKeys[0], binding]));
   expect(byKey.get('config')).toMatchObject({ label: 'config', lifetime: 'singleton:one-per-container-tree', owned: false, factoryReturnKind: 'auto-detect', acquisitions: [] });
   expect(byKey.get('db')).toMatchObject({ lifetime: 'singleton:one-per-container-tree', owned: true });
   expect(byKey.get('handler')!.registrationMetadata).toEqual({ 'app:kind': 'http' });
@@ -42,26 +42,26 @@ test('inspectGraph reports observed edges, contributions, private module binding
     .buildContainer();
 
   const before = bag.graphSnapshot();
-  const labels = before.bindings.map(binding => binding.label);
+  const labels = before.bindings.map(binding => binding.bindingLabel);
   expect(labels).toContain('secret');
-  expect(before.bindings.find(binding => binding.label === 'secret')!.keys).toEqual([]);
-  expect(before.bindings.find(binding => binding.label === 'exported')!.keys).toEqual(['exported']);
+  expect(before.bindings.find(binding => binding.bindingLabel === 'secret')!.serviceKeys).toEqual([]);
+  expect(before.bindings.find(binding => binding.bindingLabel === 'exported')!.serviceKeys).toEqual(['exported']);
   expect(before.contributions).toHaveLength(1);
-  expect(before.contributions[0]!.token).toBe(toolsKey);
+  expect(before.contributions[0]!.collectionTokenSymbol).toBe(toolsKey);
   expect(before.contributions[0]!.bindingIds).toHaveLength(2);
-  expect(before.bindings.find(binding => binding.label === 'reader')!.tokenDependencies).toEqual([
-    { key: toolsKey, kind: 'required' }, { key: toolKey, kind: 'optional' },
+  expect(before.bindings.find(binding => binding.bindingLabel === 'reader')!.tokenDependencies).toEqual([
+    { tokenSymbol: toolsKey, dependencyKind: 'required' }, { tokenSymbol: toolKey, dependencyKind: 'optional' },
   ]);
 
   expect(bag.resolve('reader')).toBe(2);
   const after = bag.graphSnapshot();
-  const id = (label: string) => after.bindings.find(binding => binding.label === label)!.bindingId;
-  const edges = after.observedEdges.map(edge => [after.bindings.find(b => b.bindingId === edge.from)!.label, after.bindings.find(b => b.bindingId === edge.to)!.label]);
+  const id = (label: string) => after.bindings.find(binding => binding.bindingLabel === label)!.bindingId;
+  const edges = after.observedEdges.map(edge => [after.bindings.find(b => b.bindingId === edge.consumerBindingId)!.bindingLabel, after.bindings.find(b => b.bindingId === edge.dependencyBindingId)!.bindingLabel]);
   expect(edges).toContainEqual(['reader', `contribution:${String(toolsKey)}`]);
   expect(edges).toContainEqual(['exported', 'secret']);
-  expect(after.bindings.find(binding => binding.label === 'exported')!.acquisitions.map(attempt => attempt.state)).toEqual(['ready']);
+  expect(after.bindings.find(binding => binding.bindingLabel === 'exported')!.acquisitions.map(attempt => attempt.state)).toEqual(['ready']);
   // Symbols with equal descriptions stringify alike; compare edge identities pairwise.
-  const pairs = after.observedEdges.map(edge => [edge.from, edge.to] as const);
+  const pairs = after.observedEdges.map(edge => [edge.consumerBindingId, edge.dependencyBindingId] as const);
   expect(pairs.filter((pair, index) => pairs.findIndex(other => other[0] === pair[0] && other[1] === pair[1]) !== index)).toEqual([]);
   expect(pairs).toHaveLength(4);
   void id;

@@ -20,8 +20,8 @@ test('combined metadata retains static descriptions and ordered direct/awaited f
   expect(bag.resolve('direct')).toBe(value);
   expect(await bag.resolve('annotated')).toEqual({ id: 7 });
   expect(bag.serviceSnapshot('annotated').acquisitions[0]!.acquisitionMetadata).toEqual([
-    { present: true, value: { same: true } },
-    { present: true, value: { id: 7, payload: undefined } },
+    { isPresent: true, value: { same: true } },
+    { isPresent: true, value: { id: 7, payload: undefined } },
   ]);
   await bag.close();
 });
@@ -164,6 +164,6 @@ test('metadata snapshots dynamic mode and callback once before static getters ru
   expect(modeReads).toBe(1);
   expect(callbackReads).toBe(1);
   expect(optionsReads).toBe(1);
-  expect(bag.serviceSnapshot('provider').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { value: 7 } }]);
+  expect(bag.serviceSnapshot('provider').acquisitions[0]!.acquisitionMetadata).toEqual([{ isPresent: true, value: { value: 7 } }]);
   await bag.close();
 });

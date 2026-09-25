@@ -122,7 +122,7 @@ test('a dependency list accepts a collection token, lazy supplies a getter, and 
   expect(Object.isFrozen(bag.resolve('total').values)).toBe(true); expect(bag.resolve('count')).toBe(2);
   const getNumbers = bag.resolve('later'); expect(getNumbers()).toEqual([3, 4]); expect(getNumbers()).not.toBe(getNumbers());
   const graph = bag.graphSnapshot();
-  const kinds = (label: string) => graph.bindings.find(binding => binding.label === label)!.tokenDependencies.map(dependency => dependency.kind);
+  const kinds = (label: string) => graph.bindings.find(binding => binding.bindingLabel === label)!.tokenDependencies.map(dependency => dependency.dependencyKind);
   expect(kinds('sum')).toEqual(['required']); expect(kinds('later')).toEqual(['lazy']);
   const error = thrown(() => (DiBag.optional as Function)(numbers));
   expect(error.code).toBe('DI_BAG_WRONG_TOKEN_KIND');
@@ -171,7 +171,7 @@ test('a single-service token and a collection token never merge', async () => {
   const bag = DiBag.createBuilder().withCollectionContribution({ collectionToken: loggerSinks, provider: () => 'console' }).withCollectionContribution({ collectionToken: loggerSinks, provider: () => 'file' })
     .withTokenService(logger, DiBag.createProviderFromFunction({ dependencies: [loggerSinks], factoryFunction: sinks => `fan-out(${sinks.join(',')})` })).buildContainer();
   expect(bag.resolve(logger)).toBe('fan-out(console,file)'); expect(bag.resolveCollection(loggerSinks)).toEqual(['console', 'file']);
-  expect(bag.graphSnapshot().contributions.map(group => group.token)).toEqual([loggerSinks.symbol]); await bag.close();
+  expect(bag.graphSnapshot().contributions.map(group => group.collectionTokenSymbol)).toEqual([loggerSinks.symbol]); await bag.close();
 });
 
 test('fork replaces a whole list, and the replacement wins for every reader', async () => {

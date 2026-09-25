@@ -73,7 +73,7 @@ test('sync-value exposes the exact value and never reads then', async () => {
   expect(bag.resolve('value')).toBe(value);
   expect(bag.resolve('promise')).toBe(pending);
   expect(reads).toBe(0);
-  const modes = new Map(bag.graphSnapshot().bindings.map(binding => [binding.label, binding.factoryReturnKind]));
+  const modes = new Map(bag.graphSnapshot().bindings.map(binding => [binding.bindingLabel, binding.factoryReturnKind]));
   expect(modes.get('value')).toBe('sync-value');
   expect(modes.get('later')).toBe('native-promise');
   await bag.close();

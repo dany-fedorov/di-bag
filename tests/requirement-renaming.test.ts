@@ -23,8 +23,8 @@ describe('module requirement renaming', () => {
     }).buildContainer();
     expect(container.resolve('orders')).toBe('order:EUR');
     expect(container.resolve('billing')).toBe(0.2);
-    expect(container.graphSnapshot().bindings.map(binding => binding.label)).toContain('orders/store');
-    expect(container.serviceSnapshot('orders').label).toBe('orders');
+    expect(container.graphSnapshot().bindings.map(binding => binding.bindingLabel)).toContain('orders/store');
+    expect(container.serviceSnapshot('orders').bindingLabel).toBe('orders');
     await container.close();
   });
 
@@ -47,7 +47,7 @@ describe('module requirement renaming', () => {
     const container = DiBag.createBuilder().withInstalledModules([outer])
       .withServices({ applicationConfig: (): OrdersConfig => ({ currency: 'UAH' }) }).buildContainer();
     expect(container.resolve('orders')).toBe('order:UAH');
-    expect(container.graphSnapshot().bindings.map(binding => binding.label)).toContain('outer/orders/store');
+    expect(container.graphSnapshot().bindings.map(binding => binding.bindingLabel)).toContain('outer/orders/store');
     await container.close();
   });
 

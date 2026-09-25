@@ -30,10 +30,10 @@ test('metadata is lazy, ordered, copied with hidden symbols, and retained after 
   expect(calls).toBe(1);
   expect(during).toEqual([{ present: false }, { present: false }]);
   const frames = bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata;
-  expect(frames[1]).toEqual({ present: true, value: { second: 'source' } });
+  expect(frames[1]).toEqual({ isPresent: true, value: { second: 'source' } });
   const frame = frames[0];
-  expect(frame.present).toBe(true);
-  if (frame.present) {
+  expect(frame.isPresent).toBe(true);
+  if (frame.isPresent) {
     expect(frame.value).not.toBe(metadata);
     expect(Object.isFrozen(frame.value)).toBe(true);
     expect(frame.value.payload).toBe(payload);
@@ -70,9 +70,9 @@ test('async metadata awaits raw thenables and exposes a native Promise', async (
   const bag = PortableDiBag.createBuilder().withServices({ value: PortableDiBag.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: result => ({ origin: result.origin }), callbackReceives: 'fulfilled-value' }) }).buildContainer();
   const value = bag.resolve('value');
   expect(value).toBeInstanceOf(Promise);
-  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: false }]);
+  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ isPresent: false }]);
   await expect(value).resolves.toEqual({ origin: 'remote' });
-  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { origin: 'remote' } }]);
+  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ isPresent: true, value: { origin: 'remote' } }]);
   await bag.close();
 });
 
@@ -104,8 +104,8 @@ test('annotation errors preserve original failures, cleanup, and independent ret
   expect(bag.resolve('service')).toBe(2);
   const child = bag.createChildContainer();
   expect(child.resolve('service')).toBe(3);
-  expect(bag.serviceSnapshot('service').acquisitions.at(-1)!.acquisitionMetadata).toEqual([{ present: true, value: { attempt: 2 } }]);
-  expect(child.serviceSnapshot('service').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { attempt: 3 } }]);
+  expect(bag.serviceSnapshot('service').acquisitions.at(-1)!.acquisitionMetadata).toEqual([{ isPresent: true, value: { attempt: 2 } }]);
+  expect(child.serviceSnapshot('service').acquisitions[0]!.acquisitionMetadata).toEqual([{ isPresent: true, value: { attempt: 3 } }]);
   await child.close();
   await bag.close();
   expect(disposed).toEqual([1, 3, 2]);
@@ -148,7 +148,7 @@ test('annotations retain present undefined values and add no ownership', async (
     value: DiBag.providerWithAcquisitionMetadata({ provider: () => value, describeAcquisition: result => ({ presence: result.present, payload: result.value }), callbackReceives: 'exposed-service' }),
   }).buildContainer();
   expect(bag.resolve('value')).toBe(value);
-  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { presence: true, payload: undefined } }]);
+  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ isPresent: true, value: { presence: true, payload: undefined } }]);
   await bag.close();
   expect(disposed).toBe(false);
 });
@@ -188,7 +188,7 @@ test('metadata requires plain records and accepts records without a prototype', 
     const bag = DiBag.createBuilder().withServices({ value: decorate(() => record) }).buildContainer();
     expect(await bag.resolve('value')).toBe(1);
     expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([
-      { present: true, value: { source: 'remote' } },
+      { isPresent: true, value: { source: 'remote' } },
     ]);
     await bag.close();
   }
@@ -200,7 +200,7 @@ test('metadata getters are captured exactly once, including an ordinary then fie
   const bag = DiBag.createBuilder().withServices({ value: DiBag.providerWithAcquisitionMetadata({ provider: () => 1, describeAcquisition: () => metadata, callbackReceives: 'exposed-service' }) }).buildContainer();
   expect(bag.resolve('value')).toBe(1);
   expect(reads).toBe(1);
-  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ present: true, value: { then: 1 } }]);
+  expect(bag.serviceSnapshot('value').acquisitions[0]!.acquisitionMetadata).toEqual([{ isPresent: true, value: { then: 1 } }]);
   await bag.close();
 });
 
@@ -219,7 +219,7 @@ test('metadata retains typed token dependencies and root and transient lifetime 
   expect(bag.resolve('transient')).toBe(2);
   expect(bag.resolve('transient')).toBe(3);
   expect(bag.serviceSnapshot('transient').acquisitions.map(attempt => attempt.acquisitionMetadata)).toEqual([
-    [{ present: true, value: { count: 2 } }], [{ present: true, value: { count: 3 } }],
+    [{ isPresent: true, value: { count: 2 } }], [{ isPresent: true, value: { count: 3 } }],
   ]);
   await child.close();
   await bag.close();

@@ -17,7 +17,7 @@ test('fallback bags retain all stages, ownership and operation names', async () 
   expect(container.resolve('value')).toBe(6);
   const snapshot = container.serviceSnapshot('value');
   expect(snapshot.registrationMetadata).toEqual({ owner: 'platform' });
-  expect(snapshot.acquisitions[0]?.acquisitionMetadata).toEqual([{ present: true, value: { before: 2 } }]);
+  expect(snapshot.acquisitions[0]?.acquisitionMetadata).toEqual([{ isPresent: true, value: { before: 2 } }]);
   await container.close();
   expect(events).toEqual(['mapped:6', 'source:2']);
 });

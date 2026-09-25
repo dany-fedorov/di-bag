@@ -204,7 +204,7 @@ test('async metadata retains a native output contract without a portable classif
   const source = Core.createProvider(() => Promise.resolve(7), { factoryReturnKind: 'native-promise' });
   const bag = Core.createBuilder().withServices({ value: Core.providerWithAcquisitionMetadata({ provider: source, describeAcquisition: value => ({ result: value }), callbackReceives: 'fulfilled-value' }) }).buildContainer();
   expect(await bag.resolve('value')).toBe(7);
-  expect(bag.serviceSnapshot('value').acquisitions[0]?.acquisitionMetadata).toEqual([{ present: true, value: { result: 7 } }]);
+  expect(bag.serviceSnapshot('value').acquisitions[0]?.acquisitionMetadata).toEqual([{ isPresent: true, value: { result: 7 } }]);
   await bag.close();
 });
 

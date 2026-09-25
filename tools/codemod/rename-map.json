@@ -58,6 +58,15 @@
     { "owner": "Token", "from": "key", "to": "symbol" },
     { "owner": "CollectionToken", "from": "key", "to": "symbol" },
     { "owner": "AcquisitionContext", "from": "signal", "to": "abortSignal" },
+    { "owner": "Presence", "from": "present", "to": "isPresent" },
+    { "owner": "RegistrationSnapshot", "from": "label", "to": "bindingLabel" },
+    { "owner": "BindingSnapshot", "from": "keys", "to": "serviceKeys" },
+    { "owner": "BindingSnapshot", "from": "owned", "to": "isOwnedByContainer" },
+    { "owner": "BindingSnapshot", "from": "key", "to": "tokenSymbol" },
+    { "owner": "BindingSnapshot", "from": "kind", "to": "dependencyKind" },
+    { "owner": "GraphSnapshot", "from": "token", "to": "collectionTokenSymbol" },
+    { "owner": "GraphSnapshot", "from": "from", "to": "consumerBindingId" },
+    { "owner": "GraphSnapshot", "from": "to", "to": "dependencyBindingId" },
     { "owner": "BindingSnapshot", "from": "acquisitionMode", "to": "factoryReturnKind" },
     { "owner": "CloseOptions", "from": "signal", "to": "abortSignal" },
     { "owner": "CloseOptions", "from": "timeoutMs", "to": "waitTimeoutMs" },
@@ -76,6 +85,7 @@
     { "owner": "ObserverOptions", "from": "onEvent", "to": "onLifecycleEvent" },
     { "owner": "ObserverOptions", "from": "onError", "to": "onObserverFailure" },
     { "owner": "ScopeOptions", "from": "share", "to": "sharedParentServiceKeys" },
+    { "owner": "Captive", "from": "root", "to": "singleton" },
     { "owner": "LifetimeObligation", "from": "root", "to": "singleton" }
   ],
   "types": [

@@ -86,7 +86,7 @@ test('a module label names private bindings in messages, cycle paths, graphSnaps
   expect(missing.code).toBe('DI_BAG_MISSING_DEPENDENCY');
   expect(missing.details.consumer).toBe('broken');
 
-  const labels = bag.graphSnapshot().bindings.map(binding => [binding.label, binding.keys]);
+  const labels = bag.graphSnapshot().bindings.map(binding => [binding.bindingLabel, binding.serviceKeys]);
   expect(labels).toEqual(expect.arrayContaining([
     ['placeOrder', ['placeOrder']], ['orders/repository', []], ['orders/left', []], ['orders/right', []], ['database', ['database']],
   ]));
@@ -113,14 +113,14 @@ test('nested module labels compose outward and unlabeled modules keep bare keys'
   const outer = DiBag.createBuilder().withInstalledModules([inner]).withServices({ wrap: ({ read }: { read: number }) => read + 1 }).buildModule({ exportedServiceKeys: ['wrap'], moduleLabel: 'outer' });
   const labeled = DiBag.createBuilder().withInstalledModules([outer]).buildContainer();
   expect(labeled.resolve('wrap')).toBe(2);
-  expect(labeled.graphSnapshot().bindings.map(binding => binding.label).sort()).toEqual(['outer/inner/state', 'outer/read', 'wrap']);
+  expect(labeled.graphSnapshot().bindings.map(binding => binding.bindingLabel).sort()).toEqual(['outer/inner/state', 'outer/read', 'wrap']);
 
   const unlabeledOuter = DiBag.createBuilder().withInstalledModules([inner]).withServices({ wrap: ({ read }: { read: number }) => read }).buildModule({ exportedServiceKeys: ['wrap'] });
   const mixed = DiBag.createBuilder().withInstalledModules([unlabeledOuter.withRenamedExport({ currentExportKey: 'wrap', newExportKey: 'renamed' })]).buildContainer();
-  expect(mixed.graphSnapshot().bindings.map(binding => binding.label).sort()).toEqual(['inner/state', 'read', 'wrap']);
+  expect(mixed.graphSnapshot().bindings.map(binding => binding.bindingLabel).sort()).toEqual(['inner/state', 'read', 'wrap']);
 
   const plain = DiBag.createBuilder().withInstalledModules([DiBag.createBuilder().withServices({ state: () => 1, read: ({ state }: { state: number }) => state }).buildModule({ exportedServiceKeys: ['read'] })]).buildContainer();
-  expect(plain.graphSnapshot().bindings.map(binding => binding.label).sort()).toEqual(['read', 'state']);
+  expect(plain.graphSnapshot().bindings.map(binding => binding.bindingLabel).sort()).toEqual(['read', 'state']);
   await Promise.all([labeled.close(), mixed.close(), plain.close()]);
 });
 

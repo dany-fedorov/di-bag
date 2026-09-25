@@ -187,7 +187,7 @@ test('withInstalledModules installs in list order, and contributions follow that
   expect(reversed.resolveCollection(tools)).toEqual(['third', 'second', 'first']);
   expect(separate.resolveCollection(tools)).toEqual(['first', 'second', 'third']);
   for (const graph of [listed, separate]) {
-    const labels = graph.graphSnapshot().bindings.map(binding => binding.label);
+    const labels = graph.graphSnapshot().bindings.map(binding => binding.bindingLabel);
     expect(labels.slice(0, 3)).toEqual([
       'first/contribution:Symbol(tools)',
       'second/contribution:Symbol(tools)',
@@ -239,7 +239,7 @@ test('withInstalledModules rejects a bad list as a whole and names the bad eleme
   expect(install([other, colliding]).details).toEqual({ operation: 'withInstalledModules', serviceKey: 'taken' });
   // Builders are immutable: the host is still usable and still has one service.
   const app = host.buildContainer();
-  expect(app.graphSnapshot().bindings.map(binding => binding.label)).toEqual(['taken']);
+  expect(app.graphSnapshot().bindings.map(binding => binding.bindingLabel)).toEqual(['taken']);
 });
 
 test('withInstalledModules snapshots the list by index, so an iterator or a later write cannot substitute modules', async () => {
@@ -281,7 +281,7 @@ test('buildModule takes one bag, and the module label names private bindings', a
     .buildModule({ exportedServiceKeys: ['placeOrder'], moduleLabel: 'orders' });
   const app = DiBag.createBuilder().withInstalledModules([orders]).buildContainer();
   expect(app.resolve('placeOrder')('a')).toBe(1);
-  expect(app.graphSnapshot().bindings.map(binding => binding.label).sort()).toEqual(['orders/repository', 'placeOrder']);
+  expect(app.graphSnapshot().bindings.map(binding => binding.bindingLabel).sort()).toEqual(['orders/repository', 'placeOrder']);
   await app.close();
   const builder = DiBag.createBuilder().withServices({ value: () => 1 });
   expect(() => builder.buildModule({ exportedServiceKeys: ['value'] })).not.toThrow();
