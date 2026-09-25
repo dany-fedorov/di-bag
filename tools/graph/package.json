@@ -1,6 +1,6 @@
 {
   "name": "di-bag-graph",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Static check for DI Bag builder chains: fails CI on dependency cycles and unresolved names before any factory runs.",
   "keywords": [
     "di-bag",

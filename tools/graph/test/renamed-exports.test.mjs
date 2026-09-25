@@ -20,7 +20,7 @@ const newExportKey = 'shorthandClock' as const;
 declare const dynamicCurrentExportKey: string;
 export const resolved = DiBag.createBuilder()
   .withInstalledModules([clockModule
-    .renameExport('clock', 'time')
+    .withRenamedExport({ currentExportKey: 'clock', newExportKey: 'time' })
     .withRenamedExport({ currentExportKey: 'time', newExportKey: 'now' })])
   .withServices({ resolvedReport: ({ now }: { now: number }) => now })
   .buildContainer();

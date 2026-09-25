@@ -4,11 +4,13 @@ Static check for [DI Bag](https://github.com/dany-fedorov/di-bag) builder
 chains. It reads a TypeScript project, finds every `DiBag.createBuilder()`
 chain that ends in `buildContainer()` or
 `buildModule({ exportedServiceKeys, moduleLabel })`; a `buildContainer()`
-followed by `ensureServicesReady()` counts. Legacy builder terminals remain
-readable for migration analysis.
+followed by `ensureServicesReady()` counts.
 It reports dependency cycles and unresolved names before any factory runs.
 The established schema remains version 1: a source `buildContainer()` unit is
 emitted with `kind: "bag"`.
+
+Version 0.2 reads DI Bag 0.5 projects. Migrate 0.4 builder and provider calls
+before analyzing them with this release.
 
 It is a merge-review and CI tool, not a code map. To find code, read the module
 directories; to check wiring types, use `verifyGraphAtCompileTime()`.
@@ -54,8 +56,10 @@ It reads providers built with `DiBag.createProvider`,
 `DiBag.createProviderFromClass({ dependencies, serviceClass })`, and
 `DiBag.createProviderFromPlugin({ dependencies, pluginDescriptor, ... })`.
 The five `DiBag.providerWith*` modifier functions are recognized. The extractor
-reads the wrapped factory's dependencies. Legacy provider wrappers remain readable
-for migration analysis. Named
+reads the wrapped factory's dependencies. Lifetime extraction recognizes the
+three full 0.5 literals: `singleton:one-per-container-tree`,
+`scoped:one-per-container`, and `transient:one-per-resolve`; other values are
+reported as `dynamic`. Named
 factory dependencies appear as edges; positional symbol-token dependencies do
 not acquire invented string labels.
 
@@ -73,12 +77,12 @@ not acquire invented string labels.
   - `installs`: ids of installed module units, or the source text of an
     install the tool cannot trace to a `buildModule` chain.
   - `requirements` (modules only): names the installing host must supply.
-  - `nodes`: `{ key, line, dependencies, async, lifetime, owned }` per
+  - `nodes`: `{ key, line, dependencies, async, lifetime, isOwnedByContainer }` per
     registration. `dependencies` are the property names of the factory's first
     parameter type; `async` means the factory returns a `Promise`; `lifetime`
     is a full lifetime value, or `dynamic` when the extractor cannot statically
     read the argument. Unmarked providers are `scoped:one-per-container`.
-    Legacy values are normalized. `owned` means a disposal stage.
+    `isOwnedByContainer` means a disposal stage.
   - `edges`: `{ from, to }` for the unit's own registrations, sorted.
 - `Issue`: `{ kind: 'cycle', unit, path }` or
   `{ kind: 'unresolved', unit, consumer, dependency }`.
@@ -91,8 +95,7 @@ not acquire invented string labels.
   contributes no edges.
 - An install that is not a traceable module variable (for example a function
   call) may supply any name, so its host reports no unresolved names.
-- Collection contribution providers and their dependencies are omitted for
-  both API generations.
+- Collection contribution providers and their dependencies are omitted.
 
 ## TypeScript
 
