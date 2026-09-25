@@ -9,7 +9,7 @@ export type FinalAdversarialRuntimeResult = Readonly<{
   readonly I5: Readonly<{ directRetained: true; directDispose: readonly ['direct-1']; startupWrapper: 'DiBagServiceReadinessError'; startupCauseIdentity: true; startupDispose: readonly ['startup-first']; retryFresh: true }>;
   readonly I6: Readonly<{ aliasAcquisitions: 0; sharedIdentity: true; unsharedDistinct: true; dispose: readonly ['installation-2', 'installation-1']; acquisitions: 2 }>;
   readonly I7: Readonly<{ root: 1; scoped: 1; transient: 2; contributions: 2; cleanupFailureIdentity: true; independentCleanupCount: 5 }>;
-  readonly I8: Readonly<{ callbackOrder: readonly ['A:acquisition-ready', 'B:acquisition-ready', 'A:cleanup-completed', 'B:cleanup-completed']; filteredOnEventCalls: 4; aOnErrorCalls: 1; bOnErrorCalls: 0; observerErrorIdentity: true; observerErrorEventIdentity: true; telemetryBlocksClose: false; lateDisposals: 1 }>;
+  readonly I8: Readonly<{ callbackOrder: readonly ['A:acquisition-ready', 'B:acquisition-ready', 'A:disposal-completed', 'B:disposal-completed']; filteredOnEventCalls: 4; aOnErrorCalls: 1; bOnErrorCalls: 0; observerErrorIdentity: true; observerErrorEventIdentity: true; telemetryBlocksClose: false; lateDisposals: 1 }>;
   readonly I9: Readonly<{ automaticEffects: 0; rawIdentity: true; thenReads: 0; rawDisposals: 1 }>;
   readonly I10: Readonly<{ syncIdentity: true; rawIdentity: true; syncRawThenReads: 0; asyncThenReads: 1; failureIdentity: true; disposerCalls: 0 }>;
   readonly I11: Readonly<{ boundaryErrorIdentity: true; retryFresh: true; dispose: readonly ['source', 'source'] }>;
@@ -27,7 +27,7 @@ export const finalAdversarialExpectedResult: FinalAdversarialRuntimeResult = {
   I5: { directRetained: true, directDispose: ['direct-1'], startupWrapper: 'DiBagServiceReadinessError', startupCauseIdentity: true, startupDispose: ['startup-first'], retryFresh: true },
   I6: { aliasAcquisitions: 0, sharedIdentity: true, unsharedDistinct: true, dispose: ['installation-2', 'installation-1'], acquisitions: 2 },
   I7: { root: 1, scoped: 1, transient: 2, contributions: 2, cleanupFailureIdentity: true, independentCleanupCount: 5 },
-  I8: { callbackOrder: ['A:acquisition-ready', 'B:acquisition-ready', 'A:cleanup-completed', 'B:cleanup-completed'], filteredOnEventCalls: 4, aOnErrorCalls: 1, bOnErrorCalls: 0, observerErrorIdentity: true, observerErrorEventIdentity: true, telemetryBlocksClose: false, lateDisposals: 1 },
+  I8: { callbackOrder: ['A:acquisition-ready', 'B:acquisition-ready', 'A:disposal-completed', 'B:disposal-completed'], filteredOnEventCalls: 4, aOnErrorCalls: 1, bOnErrorCalls: 0, observerErrorIdentity: true, observerErrorEventIdentity: true, telemetryBlocksClose: false, lateDisposals: 1 },
   I9: { automaticEffects: 0, rawIdentity: true, thenReads: 0, rawDisposals: 1 },
   I10: { syncIdentity: true, rawIdentity: true, syncRawThenReads: 0, asyncThenReads: 1, failureIdentity: true, disposerCalls: 0 },
   I11: { boundaryErrorIdentity: true, retryFresh: true, dispose: ['source', 'source'] },
@@ -120,8 +120,8 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i3StartedIds: symbol[] = [];
   let i3ObservedAbsentError: unknown;
   const i3Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: any) {
-    if (event.kind === 'acquisition-started' && ['absent', 'present', 'failing'].includes(event.label)) i3StartedIds.push(event.acquisitionId);
-    if (event.kind === 'acquisition-failed' && event.label === 'absent') i3ObservedAbsentError = event.error;
+    if (event.kind === 'acquisition-started' && ['absent', 'present', 'failing'].includes(event.bindingLabel)) i3StartedIds.push(event.acquisitionId);
+    if (event.kind === 'acquisition-failed' && event.bindingLabel === 'absent') i3ObservedAbsentError = event.error;
   }, onObserverFailure() {} }] });
   const i3Failing = DiBag.providerWithDisposal({ provider: () => ({ get metadata(): object { throw i3Error; } }), disposeService: () => { i3Dispose.push('source'); } });
   const i3Bag = i3Observed.createBuilder().withServices({
@@ -237,14 +237,14 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i6ParentInspect = i6Bag.serviceSnapshot('publicPlugin');
   const i6ChildInspect = i6Child.serviceSnapshot('publicPlugin');
   await flush();
-  const i6Canonical = i6Started.filter(event => event.label === 'privatePlugin');
-  const i6RootScope = i6Started.find(event => event.kind === 'acquisition-started')?.scopeId;
+  const i6Canonical = i6Started.filter(event => event.bindingLabel === 'privatePlugin');
+  const i6RootScope = i6Started.find(event => event.kind === 'acquisition-started')?.containerId;
   invariant(i6Shared === i6First && i6BeforeAlias === i6Bag.serviceSnapshot('publicPlugin').acquisitions.length, 'I6', 'alias or sharing acquired');
   invariant(i6First !== i6Second && i6ParentInspect.bindingId === i6ChildInspect.bindingId
     && i6ParentInspect.acquisitions[0].acquisitionId === i6ChildInspect.acquisitions[0].acquisitionId, 'I6', 'canonical identity changed');
   invariant(i6Canonical.length === 2 && i6Canonical[0].bindingId !== i6Canonical[1].bindingId
     && i6Canonical[0].acquisitionId !== i6Canonical[1].acquisitionId
-    && i6Canonical.every(event => event.scopeId === i6RootScope), 'I6', 'private installation identity reused');
+    && i6Canonical.every(event => event.containerId === i6RootScope), 'I6', 'private installation identity reused');
   await i6Child.close();
   invariant(i6Dispose.length === 0, 'I6', 'selected child disposed owner');
   await i6Bag.close();
@@ -273,9 +273,9 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   try { await i7Bag.close(); } catch (error) { i7Close = error; }
   invariant(i7Close instanceof DiBagDisposalError && (i7Close as any).failures.length === 1 && (i7Close as any).failures[0].error === i7Error, 'I7', 'cleanup failure identity changed');
   const i7Failure = (i7Close as any).failures[0];
-  const i7FailureEvent = i7Events.find(event => event.kind === 'cleanup-failed' && event.error === i7Error);
+  const i7FailureEvent = i7Events.find(event => event.kind === 'disposal-failed' && event.error === i7Error);
   invariant(new Set(i7Ids).size === 6 && i7FailureEvent && i7Failure.bindingId === i7FailureEvent.bindingId
-    && i7Failure.acquisitionId === i7FailureEvent.acquisitionId && i7Failure.bindingLabel === i7FailureEvent.label, 'I7', 'cleanup diagnostics changed');
+    && i7Failure.acquisitionId === i7FailureEvent.acquisitionId && i7Failure.bindingLabel === i7FailureEvent.bindingLabel, 'I7', 'cleanup diagnostics changed');
   invariant(i7Root === 1 && i7Scoped === 1 && i7Transient === 2 && i7Contributions === 2 && i7Independent === 6, 'I7', 'lifetime cardinality changed');
 
   // I8: observer telemetry is ordered, filtered, immutable, and never awaited.
@@ -285,7 +285,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   let i8AErrors = 0; let i8BErrors = 0; let i8Failure: any; let i8LateDisposals = 0;
   const never = new Promise<void>(() => {});
   const selected = (event: any) => event.bindingId === i8BindingId && event.acquisitionId === i8AcquisitionId
-    && (event.kind === 'acquisition-ready' || event.kind === 'cleanup-completed');
+    && (event.kind === 'acquisition-ready' || event.kind === 'disposal-completed');
   const i8Observed = DiBag.withConfiguration({ lifecycleObservers: [{
     onLifecycleEvent(event: any) { if (!selected(event)) return; i8Order.push(`A:${event.kind}`); if (event.kind === 'acquisition-ready') { i8ReadyEvent = event; throw i8ObserverError; } },
     onObserverFailure(failure: any) { i8AErrors++; i8Failure = failure; },
@@ -301,7 +301,7 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i8Closing = i8Bag.close();
   i8Gate.resolve({ id: 'late' });
   await i8Closing; await flush(); await flush();
-  invariant(JSON.stringify(i8Order) === JSON.stringify(['A:acquisition-ready', 'B:acquisition-ready', 'A:cleanup-completed', 'B:cleanup-completed']), 'I8', 'callback order changed');
+  invariant(JSON.stringify(i8Order) === JSON.stringify(['A:acquisition-ready', 'B:acquisition-ready', 'A:disposal-completed', 'B:disposal-completed']), 'I8', 'callback order changed');
   invariant(i8AErrors === 1 && i8BErrors === 0 && i8Failure.error === i8ObserverError && i8Failure.event === i8ReadyEvent, 'I8', 'observer failure identity changed');
   invariant(Object.isFrozen(i8ReadyEvent) && Object.isFrozen(i8Failure), 'I8', 'observer records are mutable');
 
@@ -376,8 +376,8 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   const i12CleanupEvents: any[] = [];
   let i12OwnerScope: symbol | undefined;
   const i12Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: any) {
-    if (event.kind === 'scope-opened' && !('parentScopeId' in event)) i12OwnerScope = event.scopeId;
-    if (event.kind === 'cleanup-completed') i12CleanupEvents.push(event);
+    if (event.kind === 'container-opened' && !('parentContainerId' in event)) i12OwnerScope = event.containerId;
+    if (event.kind === 'disposal-completed') i12CleanupEvents.push(event);
   }, onObserverFailure() {} }] });
   const i12Starting = i12Observed.createBuilder().withServices({
     adapter: i12Observed.providerWithDisposal({ provider: DiBag.providerWithAcquisitionMetadata({ provider: () => ({ id: 'immediate' }), describeAcquisition: () => ({ source: 'immediate' }), callbackReceives: 'exposed-service' }), disposeService: () => { i12Dispose.push('immediate'); } }),
@@ -391,9 +391,9 @@ async function executeFinalAdversarialMatrix(api: RuntimeDependencies, selectedI
   i12Late.resolve({ id: 'late' });
   await i12Cancelled.disposalPromise; await flush();
   invariant(i12CleanupEvents.length === 2 && new Set(i12CleanupEvents.map(event => event.acquisitionId)).size === 2
-    && i12CleanupEvents.every(event => event.scopeId === i12OwnerScope)
-    && new Set(i12CleanupEvents.map(event => event.label)).has('adapter')
-    && new Set(i12CleanupEvents.map(event => event.label)).has('late'),
+    && i12CleanupEvents.every(event => event.containerId === i12OwnerScope)
+    && new Set(i12CleanupEvents.map(event => event.bindingLabel)).has('adapter')
+    && new Set(i12CleanupEvents.map(event => event.bindingLabel)).has('late'),
     'I12', 'cleanup observer owner identity changed');
   const i12TimeoutGate = deferred<number>();
   const i12TimeoutDispose: string[] = [];

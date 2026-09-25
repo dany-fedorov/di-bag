@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DiBag, type LifecycleEvent } from '../src';
+import { DiBag, DiBagDisposalError, type LifecycleEvent } from '../src';
 
 // Task 11 reuses this scenario to inspect lifecycle events from the same acquisitions.
 export function scenario() {
@@ -39,4 +39,20 @@ test('snapshots expose descriptive field names without retired aliases', async (
   expect(app.serviceSnapshot('alias').aliasTarget).toEqual({ bindingId: reader.bindingId, bindingLabel: 'reader' });
   expect(app.serviceSnapshot('reader').acquisitions[0]!.acquisitionMetadata).toEqual([{ isPresent: true, value: { tag: 1 } }]);
   await app.close().catch(() => {});
+});
+
+test('failures and events use the 0.5.0 field names and kinds', async () => {
+  const { app, events } = scenario();
+  const child = app.createChildContainer();
+  await child.close();
+  const error = await app.close().catch((reason: unknown) => reason);
+  expect(error).toBeInstanceOf(DiBagDisposalError);
+  expect((error as DiBagDisposalError).failures.map(failure => failure.bindingLabel)).toEqual(['Symbol(clock)']);
+  expect(Object.keys((error as DiBagDisposalError).failures[0]!).sort()).toEqual(['acquisitionId', 'bindingId', 'bindingLabel', 'error']);
+  expect(Object.keys(app.graphSnapshot()).sort()).toEqual(['bindings', 'containerId', 'contributions', 'observedEdges']);
+  expect([...new Set(events.map(event => event.kind))].sort()).toEqual(['acquisition-ready', 'acquisition-started', 'container-close-failed', 'container-closed', 'container-closing', 'container-opened', 'disposal-completed', 'disposal-failed', 'disposal-started']);
+  const opened = events.filter(event => event.kind === 'container-opened');
+  expect(opened.map(event => Object.keys(event).sort())).toEqual([['containerId', 'kind'], ['containerId', 'kind', 'parentContainerId']]);
+  const started = events.find(event => event.kind === 'acquisition-started')!;
+  expect(Object.keys(started).sort()).toEqual(['acquisitionId', 'acquisitionMetadata', 'bindingId', 'bindingLabel', 'containerId', 'kind', 'lifetime', 'registrationMetadata']);
 });

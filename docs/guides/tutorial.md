@@ -232,7 +232,7 @@ when `reason` is not `'service-disposed'`. A pushed disposer that ignores
 the resource.
 
 Every disposer is attempted even when one rejects; each rejection is reported
-like a `close()` disposer failure, through `cleanup-failed` observer events and
+like a `close()` disposer failure, through `disposal-failed` observer events and
 the `DiBagCleanupError` of the owning `close()`. Two shapes deserve a note. A
 `direct` projection over an asynchronous source is ready while the source is
 still running, so a source that then fails runs its pushed disposers at once and
@@ -1095,7 +1095,7 @@ const observed = DiBag.withConfiguration({
   observers: [
     {
       onEvent(event) {
-        console.log(event.kind, event.scopeId);
+        console.log(event.kind, event.containerId);
       },
       onError({ event, error }) {
         console.error('Telemetry failed', event.kind, error);

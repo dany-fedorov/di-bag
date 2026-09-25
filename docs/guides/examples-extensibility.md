@@ -298,7 +298,7 @@ async function main() {
   // This creates another facade and appends an observer to the metrics facade.
   const reporting = metrics.withConfiguration({ observers: [{
     async onEvent(event) {
-      if (event.kind === 'scope-closed') closeDelivered.release();
+      if (event.kind === 'container-closed') closeDelivered.release();
       if (event.kind !== 'acquisition-ready') return;
       if (metricName(event.registrationMetadata) !== 'reports.open') return;
       await exportAllowed.promise;

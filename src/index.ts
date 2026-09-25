@@ -30,4 +30,4 @@ export type { Contribution, ContributionConstraint, ModuleContributions, ModuleC
 export type { BuilderWithCollectionContribution } from './contribution-types';
 export type { BuilderBuildModule, BuilderWithInstalledModules, BuilderWithReplacedService, BuilderWithServiceAlias, BuilderWithServices, BuilderWithTokenService } from './builder-method-types';
 
-export type { LifecycleEvent, LifecycleObserver, ObserverFailure, ObserverCallback, ObserverErrorCallback, ScopeEventFields, AcquisitionEventFields } from './observers';
+export type { LifecycleEvent, LifecycleObserver, ObserverFailure, ObserverCallback, ObserverErrorCallback, ContainerEventFields, AcquisitionEventFields } from './observers';

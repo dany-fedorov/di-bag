@@ -67,7 +67,7 @@ export interface BindingSnapshot<M = Readonly<{}>, A extends readonly unknown[] 
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#attach-metadata-and-inspect-without-resolving
  */
 export interface GraphSnapshot {
-  readonly scopeId: symbol;
+  readonly containerId: symbol;
   /** Public bindings in registration order, then contributions in group order, then remaining private bindings. */
   readonly bindings: readonly BindingSnapshot<object, readonly unknown[]>[];
   readonly contributions: readonly { readonly collectionTokenSymbol: symbol; readonly bindingIds: readonly symbol[] }[];

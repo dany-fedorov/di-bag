@@ -26,7 +26,7 @@ test('observers preserve raw identity and explicit ownership', async () => {
   await flush();
   expect(disposed).toBe(1);
   expect(failures).toEqual([]);
-  expect(events.map(event => event.kind)).toEqual(['scope-opened', 'acquisition-started', 'acquisition-ready', 'scope-closing', 'cleanup-started', 'cleanup-completed', 'scope-closed']);
+  expect(events.map(event => event.kind)).toEqual(['container-opened', 'acquisition-started', 'acquisition-ready', 'container-closing', 'disposal-started', 'disposal-completed', 'container-closed']);
   const attempts = events.filter(event => event.kind === 'acquisition-started');
   expect(attempts).toHaveLength(1);
   expect(attempts[0]!.bindingId).toBe(inspection.bindingId);
@@ -133,8 +133,8 @@ test('canonical owners distinguish shared roots, independent forks, contribution
   const started = events.filter(event => event.kind === 'acquisition-started');
   expect(opened).toHaveLength(3);
   expect(opened[1]!.parentContainerId).toBe(opened[0]!.containerId);
-  expect('parentScopeId' in opened[0]!).toBe(false);
-  expect('parentScopeId' in opened[2]!).toBe(false);
+  expect('parentContainerId' in opened[0]!).toBe(false);
+  expect('parentContainerId' in opened[2]!).toBe(false);
   for (const inspection of [rootInspection, sharedInspection]) {
     const event = started.find(event => event.acquisitionId === inspection.acquisitions[0]!.acquisitionId)!;
     expect(event.containerId).toBe(opened[0]!.containerId);
@@ -261,6 +261,6 @@ test('delivery keeps emission order across immutable appended facade configurati
   const b = appended.createBuilder().buildContainer();
   a.resolve('value');
   await flush();
-  expect(seen.map(event => event.kind)).toEqual(['scope-opened', 'scope-opened', 'acquisition-started', 'acquisition-ready']);
+  expect(seen.map(event => event.kind)).toEqual(['container-opened', 'container-opened', 'acquisition-started', 'acquisition-ready']);
   await Promise.all([a.close(), b.close()]);
 });

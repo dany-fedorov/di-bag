@@ -38,11 +38,11 @@ export const observerRuntimeAssertions = `
     const rootStart = events.find(event => event.kind === 'acquisition-started' && event.acquisitionId === rootAttempt);
     const forkStart = events.find(event => event.kind === 'acquisition-started' && event.acquisitionId === independentAttempt);
     const childStart = events.find(event => event.kind === 'acquisition-started' && contributionAttempts.includes(event.acquisitionId));
-    const childOpen = events.find(event => event.kind === 'scope-opened' && event.scopeId === childStart.scopeId);
-    const forkOpen = events.find(event => event.kind === 'scope-opened' && event.scopeId === forkStart.scopeId);
+    const childOpen = events.find(event => event.kind === 'container-opened' && event.containerId === childStart.containerId);
+    const forkOpen = events.find(event => event.kind === 'container-opened' && event.containerId === forkStart.containerId);
     assertObserver(rootStart.registrationMetadata.tag === 'root' && rootStart.lifetime === 'singleton:one-per-container-tree'
-      && childOpen.parentScopeId === rootStart.scopeId && !Object.hasOwn(forkOpen, 'parentScopeId')
-      && forkStart.scopeId !== rootStart.scopeId, 'observer scope identity or metadata attribution changed');
+      && childOpen.parentContainerId === rootStart.containerId && !Object.hasOwn(forkOpen, 'parentContainerId')
+      && forkStart.containerId !== rootStart.containerId, 'observer scope identity or metadata attribution changed');
     assertObserver(events.filter(event => event.kind === 'acquisition-started' && event.acquisitionId === rootAttempt).length === 1
       && events.filter(event => event.kind === 'acquisition-started' && contributionAttempts.includes(event.acquisitionId)).length === 2,
       'observer invented alias attempts or collapsed transient contributions');
@@ -59,8 +59,8 @@ export const observerRuntimeAssertions = `
     assertObserver(disposed === 5 && errors.length === 0, 'observation changed cleanup ownership or produced errors');
     assertObserver(events.filter(event => event.kind === 'acquisition-started').length === 5
       && events.filter(event => event.kind === 'acquisition-ready').length === 5
-      && events.filter(event => event.kind === 'cleanup-started').length === 5
-      && events.filter(event => event.kind === 'cleanup-completed' && event.outcome === 'success').length === 5,
+      && events.filter(event => event.kind === 'disposal-started').length === 5
+      && events.filter(event => event.kind === 'disposal-completed' && event.outcome === 'success').length === 5,
       'observer canonical readiness or accepted-cleanup event multiplicity changed');
     assertObserver(events.every(event => Object.isFrozen(event)
       && (!('acquisitionMetadata' in event) || (Object.isFrozen(event.acquisitionMetadata) && event.acquisitionMetadata.every(Object.isFrozen)))
@@ -88,11 +88,11 @@ export const observerRuntimeAssertions = `
     let closeError;
     try { await failed.close(); } catch (error) { closeError = error; }
     await turn();
-    const cleanupFailure = events.find(event => event.kind === 'cleanup-failed' && event.acquisitionId === brokenAttempt);
+    const cleanupFailure = events.find(event => event.kind === 'disposal-failed' && event.acquisitionId === brokenAttempt);
     assertObserver(closeError.failures[0].error === cleanupError && cleanupFailure.error === cleanupError
       && Number.isInteger(cleanupFailure.disposalSequence) && cleanupFailure.disposalSequence >= 0
-      && events.some(event => event.kind === 'cleanup-completed' && event.acquisitionId === brokenAttempt && event.outcome === 'failure')
-      && events.some(event => event.kind === 'scope-close-failed' && event.error === closeError),
+      && events.some(event => event.kind === 'disposal-completed' && event.acquisitionId === brokenAttempt && event.outcome === 'failure')
+      && events.some(event => event.kind === 'container-close-failed' && event.error === closeError),
       'observer replaced cleanup failure identity or lost failure completion');
 
     const thrown = new Error('observer threw');
@@ -104,8 +104,8 @@ export const observerRuntimeAssertions = `
       onLifecycleEvent(event) {
         if (event.kind === 'acquisition-started') throw thrown;
         if (event.kind === 'acquisition-ready') return Promise.reject(rejected);
-        if (event.kind === 'cleanup-started') return Object.defineProperty({}, 'then', { get() { throw thenError; } });
-        if (event.kind === 'scope-closed') return new Promise(() => {});
+        if (event.kind === 'disposal-started') return Object.defineProperty({}, 'then', { get() { throw thenError; } });
+        if (event.kind === 'container-closed') return new Promise(() => {});
       },
       onObserverFailure(failure) { callbackFailures.push(failure); return Promise.reject(secondary); },
     }] }).withConfiguration({ runtime: { isNativePromise: value => value instanceof Promise } });
@@ -130,7 +130,7 @@ export const observerRuntimeAssertions = `
     const reentrantErrors = [];
     const reentrant = DiBag.withConfiguration({ lifecycleObservers: [{
       onLifecycleEvent(event) {
-        if (event.kind === 'acquisition-started' && event.label === 'trigger') {
+        if (event.kind === 'acquisition-started' && event.bindingLabel === 'trigger') {
           reentrantRead = reentrantBag.resolve('trigger');
           return reentrantBag.close();
         }

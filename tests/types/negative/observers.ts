@@ -12,7 +12,7 @@ DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(this: { owner:
 // diagnostic: not assignable
 DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) {}, onObserverFailure(this: { owner: string }, failure: ObserverFailure) {} }] });
 // diagnostic: not assignable
-DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: { kind: 'scope-opened' }) {}, onObserverFailure(failure) {} }] });
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: { kind: 'invalid-opened' }) {}, onObserverFailure(failure) {} }] });
 declare const event: LifecycleEvent;
 if (event.kind === 'container-opened') {
   // diagnostic: does not exist
@@ -50,4 +50,4 @@ DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(this: { owner:
 // diagnostic: not assignable
 DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event) {}, onObserverFailure(this: { owner: string }, failure: ObserverFailure) {} }] });
 // diagnostic: not assignable
-DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: { kind: 'scope-opened' }) {}, onObserverFailure(failure) {} }] });
+DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent(event: { kind: 'invalid-opened' }) {}, onObserverFailure(failure) {} }] });

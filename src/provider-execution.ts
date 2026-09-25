@@ -377,7 +377,7 @@ export class ProviderExecution {
     // Pushed disposers are the bottom of the ownership stack: they run after every
     // accepted stage and are told how the returned value's own disposer went. A
     // projection owner belongs to whoever transformed the value; its outcome is
-    // reported through cleanup-failed, not through the reason.
+    // reported through disposal-failed, not through the reason.
     if (this.disposersOwned) {
       const reason = !returnedOwned ? 'no-service-disposer' : returnedFailed ? 'service-disposal-failed' : 'service-disposed';
       if (await this.runDisposers(reason)) failed = true;

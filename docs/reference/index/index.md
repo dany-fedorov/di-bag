@@ -26,6 +26,7 @@
 - [CollectionTokenBase](interfaces/CollectionTokenBase.md)
 - [ConfigurationOptions](interfaces/ConfigurationOptions.md)
 - [Container](interfaces/Container.md)
+- [ContainerEventFields](interfaces/ContainerEventFields.md)
 - [CreateProviderFromPluginOptions](interfaces/CreateProviderFromPluginOptions.md)
 - [DiBagApi](interfaces/DiBagApi.md)
 - [DiBagDiagnostic](interfaces/DiBagDiagnostic.md)
@@ -42,7 +43,6 @@
 - [Provider](interfaces/Provider.md)
 - [RegistrationSnapshot](interfaces/RegistrationSnapshot.md)
 - [RuntimeOptions](interfaces/RuntimeOptions.md)
-- [ScopeEventFields](interfaces/ScopeEventFields.md)
 - [Token](interfaces/Token.md)
 - [TokenBase](interfaces/TokenBase.md)
 

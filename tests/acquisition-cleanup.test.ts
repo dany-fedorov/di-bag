@@ -113,7 +113,7 @@ test('rollback reports each failure through the cleanup observer channel', async
   const events: string[] = [];
   const Observed = DiBag.withConfiguration({
     lifecycleObservers: [{
-      onLifecycleEvent: event => { if (event.kind.startsWith('cleanup')) events.push(event.kind); },
+      onLifecycleEvent: event => { if (event.kind.startsWith('disposal')) events.push(event.kind); },
       onObserverFailure: () => {},
     }],
   });
@@ -125,7 +125,7 @@ test('rollback reports each failure through the cleanup observer channel', async
   }).buildContainer();
   await expect(bag.resolve('service')).rejects.toThrow('acquire');
   await expect(bag.close()).rejects.toBeInstanceOf(DiBagDisposalError);
-  expect(events).toEqual(['cleanup-started', 'cleanup-failed', 'cleanup-completed']);
+  expect(events).toEqual(['disposal-started', 'disposal-failed', 'disposal-completed']);
 });
 
 test('pushDisposer is rejected after an asynchronous factory has settled', async () => {
@@ -423,15 +423,15 @@ test('a synchronous failure never runs a pushed disposer inline with the throw',
 
 test('without a projection the rollback pair follows acquisition-failed', async () => {
   const kinds: string[] = [];
-  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
+  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('container')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
   const bag = Observed.createBuilder().withServices({
     service: Observed.createProvider(async (_deps: {}, factoryCtx) => { factoryCtx.pushDisposer(() => {}); await Promise.resolve(); throw new Error('source'); }, { factoryReceivesContext: true }),
   }).buildContainer();
   await expect(bag.resolve('service')).rejects.toThrow('source');
   await tick();
-  expect(kinds).toEqual(['acquisition-started', 'acquisition-failed', 'cleanup-started', 'cleanup-completed']);
+  expect(kinds).toEqual(['acquisition-started', 'acquisition-failed', 'disposal-started', 'disposal-completed']);
   await bag.close();
-  expect(kinds).toEqual(['acquisition-started', 'acquisition-failed', 'cleanup-started', 'cleanup-completed']);
+  expect(kinds).toEqual(['acquisition-started', 'acquisition-failed', 'disposal-started', 'disposal-completed']);
 });
 
 test('close runs projection ownership, then the service disposer, then pushed disposers last-pushed-first', async () => {
@@ -665,18 +665,18 @@ test('the recommended reason check releases a resource the service owns exactly 
 
 test('a successful acquisition reports one cleanup pair at close covering stages and stack', async () => {
   const kinds: string[] = [];
-  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
+  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('container')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
   const bag = Observed.createBuilder().withServices({
     service: Observed.providerWithDisposal({ provider: Observed.createProvider((_deps: {}, factoryCtx) => { factoryCtx.pushDisposer(() => {}); return 1; }, { factoryReceivesContext: true }), disposeService: () => {} }),
   }).buildContainer();
   bag.resolve('service');
   await bag.close();
-  expect(kinds).toEqual(['acquisition-started', 'acquisition-ready', 'cleanup-started', 'cleanup-completed']);
+  expect(kinds).toEqual(['acquisition-started', 'acquisition-ready', 'disposal-started', 'disposal-completed']);
 });
 
 test('a direct projection whose source fails reports a rollback run and, at close, a disposal run', async () => {
   const kinds: string[] = [];
-  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
+  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('container')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
   const bag = Observed.createBuilder().withServices({
     service: Observed.providerWithDisposal({ provider: Observed.providerWithTransformedService({ provider: Observed.createProvider(async (_deps: {}, factoryCtx) => {
       factoryCtx.pushDisposer(() => {});
@@ -686,9 +686,9 @@ test('a direct projection whose source fails reports a rollback run and, at clos
   }).buildContainer();
   await expect(bag.resolve('service').wrapped).rejects.toThrow('source');
   await tick();
-  expect(kinds).toEqual(['acquisition-started', 'acquisition-ready', 'cleanup-started', 'cleanup-completed']);
+  expect(kinds).toEqual(['acquisition-started', 'acquisition-ready', 'disposal-started', 'disposal-completed']);
   await bag.close();
-  expect(kinds).toEqual(['acquisition-started', 'acquisition-ready', 'cleanup-started', 'cleanup-completed', 'cleanup-started', 'cleanup-completed']);
+  expect(kinds).toEqual(['acquisition-started', 'acquisition-ready', 'disposal-started', 'disposal-completed', 'disposal-started', 'disposal-completed']);
 });
 
 test('a bounded close reports an in-flight rollback as pending', async () => {
@@ -742,7 +742,7 @@ test("a failing projection disposer does not make the returned value's disposer 
 
 test('under a projection the rollback pair precedes acquisition-failed', async () => {
   const kinds: string[] = [];
-  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('scope')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
+  const Observed = DiBag.withConfiguration({ lifecycleObservers: [{ onLifecycleEvent: event => { if (!event.kind.startsWith('container')) kinds.push(event.kind); }, onObserverFailure: () => {} }] });
   const bag = Observed.createBuilder().withServices({
     service: Observed.providerWithTransformedService({ provider: Observed.createProvider(async (_deps: {}, factoryCtx) => {
       factoryCtx.pushDisposer(() => {});
@@ -753,7 +753,7 @@ test('under a projection the rollback pair precedes acquisition-failed', async (
   await expect(bag.resolve('service') as Promise<unknown>).rejects.toThrow('source');
   await tick();
   // The rollback is anchored on the source; acquisition-failed waits for the projected result.
-  expect(kinds).toEqual(['acquisition-started', 'cleanup-started', 'acquisition-failed', 'cleanup-completed']);
+  expect(kinds).toEqual(['acquisition-started', 'disposal-started', 'acquisition-failed', 'disposal-completed']);
   await bag.close();
-  expect(kinds).toEqual(['acquisition-started', 'cleanup-started', 'acquisition-failed', 'cleanup-completed']);
+  expect(kinds).toEqual(['acquisition-started', 'disposal-started', 'acquisition-failed', 'disposal-completed']);
 });

@@ -182,12 +182,12 @@ for (const mode of ['commonjs', 'module'] as const) {
         const tokenIdentity = tokenRuntime.resolve('value') === raw;
         await tokenRuntime.close();
         const scopeLog = [];
-        let scopeId = 0;
+        let containerId = 0;
         let rootDisposed = 0;
         let scopedDisposed = 0;
         let transientsDisposed = 0;
         const parent = DiBag.createBuilder().withServices({
-          service: DiBag.providerWithDisposal({ provider: () => ++scopeId, disposeService: value => { scopeLog.push(value); } }),
+          service: DiBag.providerWithDisposal({ provider: () => ++containerId, disposeService: value => { scopeLog.push(value); } }),
           root: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ owner: 'root' }), disposeService: () => { rootDisposed++; } }), lifetime: 'singleton:one-per-container-tree' }),
           scoped: DiBag.providerWithDisposal({ provider: () => ({ owner: 'scope' }), disposeService: () => { scopedDisposed++; } }),
           transient: DiBag.providerWithLifetime({ provider: DiBag.providerWithDisposal({ provider: () => ({ owner: 'call' }), disposeService: () => { transientsDisposed++; } }), lifetime: 'transient:one-per-resolve' }),

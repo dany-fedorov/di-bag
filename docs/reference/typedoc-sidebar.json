@@ -83,6 +83,10 @@
             "link": "/reference/index/interfaces/Container.md"
           },
           {
+            "text": "ContainerEventFields",
+            "link": "/reference/index/interfaces/ContainerEventFields.md"
+          },
+          {
             "text": "CreateProviderFromPluginOptions",
             "link": "/reference/index/interfaces/CreateProviderFromPluginOptions.md"
           },
@@ -145,10 +149,6 @@
           {
             "text": "RuntimeOptions",
             "link": "/reference/index/interfaces/RuntimeOptions.md"
-          },
-          {
-            "text": "ScopeEventFields",
-            "link": "/reference/index/interfaces/ScopeEventFields.md"
           },
           {
             "text": "Token",

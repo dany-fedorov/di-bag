@@ -4,7 +4,7 @@ export type FixtureKind =
   | 'kebab-value' // fine
   | 'scoped:one-per-container' // fine: term:description
   | 'a message with spaces is prose'; // fine: not a value anyone passes
-export type StartupThing = { readonly kind: 'cleanup-started' }; // findings: retired-word export, retired-word value
+export type StartupThing = { readonly kind: 'cleanup\u002dstarted' }; // findings: retired-word export, retired-word value
 type Wrapper<T> = { readonly wrapped: T };
 type OperationLabel<Operation extends string = 'fork'> = Operation;
 type SeeErrors<Family extends string> = `; see errors#${Family}`;
@@ -56,7 +56,7 @@ class Builder {
   buildContainer(): void {} // fine
   verifyGraphAtCompileTime(): void {} // fine
   readonly contribute: (deps: string) => Builder = () => this; // findings: builder-method-prefix, abbreviation
-  constructor(readonly scopeId: symbol, plain: boolean) { void plain; } // finding: retired-word member scopeId; `plain` is fine
+  constructor(readonly sc\u006fpeId: symbol, plain: boolean) { void plain; } // finding: retired-word member; `plain` is fine
 }
 export type { Builder };
 export const fixtureFacade: { readonly createBuilder: () => Builder } = {

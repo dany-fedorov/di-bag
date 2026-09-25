@@ -72,7 +72,7 @@ describe('0.5 container names', () => {
     const container = observed.createBuilder().buildContainer();
     await container.close();
     await new Promise<void>(resolve => queueMicrotask(resolve));
-    expect(kinds).toEqual(['scope-opened', 'scope-closing', 'scope-closed']);
+    expect(kinds).toEqual(['container-opened', 'container-closing', 'container-closed']);
     expect(failures).toHaveLength(1);
   });
 
@@ -115,7 +115,7 @@ describe('0.5 container names', () => {
     await container.close();
     await new Promise<void>(resolve => queueMicrotask(resolve));
     expect({ eventReads, failureReads }).toEqual({ eventReads: 1, failureReads: 1 });
-    expect(kinds).toEqual(['scope-opened', 'scope-closing', 'scope-closed']);
+    expect(kinds).toEqual(['container-opened', 'container-closing', 'container-closed']);
 
     const callable = Object.assign(() => {}, { onLifecycleEvent() {}, onObserverFailure() {} });
     expect(() => DiBag.withConfiguration({ lifecycleObservers: [callable as never] })).toThrow('require onLifecycleEvent and onObserverFailure callbacks');

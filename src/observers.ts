@@ -3,44 +3,44 @@ import type { AcquisitionMetadataPresence } from './inspection';
 import type { Lifetime } from './lifetime';
 
 /**
- * Identity shared by lifecycle events for one owning scope.
+ * Identity shared by lifecycle events for one owning container.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
  */
-export interface ScopeEventFields {
-  /** The scope that owns the transition. */
-  readonly scopeId: symbol;
-  /** The tracked parent, present only for child-scope events. */
-  readonly parentScopeId?: symbol;
+export interface ContainerEventFields {
+  /** The container that owns the transition. */
+  readonly containerId: symbol;
+  /** The tracked parent, present only for child-container events. */
+  readonly parentContainerId?: symbol;
 }
 /**
- * Copied binding and acquisition details carried by acquisition and cleanup events.
+ * Copied binding and acquisition details carried by acquisition and disposal events.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
  */
 export interface AcquisitionEventFields {
-  readonly scopeId: symbol;
+  readonly containerId: symbol;
   readonly bindingId: symbol;
   readonly acquisitionId: symbol;
-  readonly label: string;
+  readonly bindingLabel: string;
   readonly lifetime: Lifetime;
   readonly registrationMetadata: Readonly<object>;
   readonly acquisitionMetadata: AcquisitionMetadataPresence<readonly unknown[]>;
 }
 /**
  * A frozen discriminated lifecycle transition emitted after the corresponding state change.
- * Narrow on `kind` to access failure, cleanup outcome, or disposal-index fields.
+ * Narrow on `kind` to access failure, disposal outcome, or disposal-index fields.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions
  */
 export type LifecycleEvent =
-  | (ScopeEventFields & { readonly kind: 'scope-opened' })
-  | (ScopeEventFields & { readonly kind: 'scope-closing' })
-  | (ScopeEventFields & { readonly kind: 'scope-closed' })
-  | (ScopeEventFields & { readonly kind: 'scope-close-failed'; readonly error: unknown })
+  | (ContainerEventFields & { readonly kind: 'container-opened' })
+  | (ContainerEventFields & { readonly kind: 'container-closing' })
+  | (ContainerEventFields & { readonly kind: 'container-closed' })
+  | (ContainerEventFields & { readonly kind: 'container-close-failed'; readonly error: unknown })
   | (AcquisitionEventFields & { readonly kind: 'acquisition-started' })
   | (AcquisitionEventFields & { readonly kind: 'acquisition-ready' })
-  | (AcquisitionEventFields & { readonly kind: 'cleanup-started' })
+  | (AcquisitionEventFields & { readonly kind: 'disposal-started' })
   | (AcquisitionEventFields & { readonly kind: 'acquisition-failed'; readonly error: unknown })
-  | (AcquisitionEventFields & { readonly kind: 'cleanup-failed'; readonly error: unknown; readonly disposalSequence: number })
-  | (AcquisitionEventFields & { readonly kind: 'cleanup-completed'; readonly outcome: 'success' | 'failure' });
+  | (AcquisitionEventFields & { readonly kind: 'disposal-failed'; readonly error: unknown; readonly disposalSequence: number })
+  | (AcquisitionEventFields & { readonly kind: 'disposal-completed'; readonly outcome: 'success' | 'failure' });
 /**
  * A failure thrown or rejected by an observer together with its original event.
  * @see https://dany-fedorov.github.io/di-bag/guides/tutorial.html#observe-lifecycle-transitions

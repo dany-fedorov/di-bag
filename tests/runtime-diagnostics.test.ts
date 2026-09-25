@@ -91,7 +91,7 @@ test('a module label names private bindings in messages, cycle paths, graphSnaps
     ['placeOrder', ['placeOrder']], ['orders/repository', []], ['orders/left', []], ['orders/right', []], ['database', ['database']],
   ]));
   await tick();
-  expect(events.filter(event => event.kind === 'acquisition-started').map(event => 'label' in event && event.bindingLabel))
+  expect(events.filter(event => event.kind === 'acquisition-started').map(event => 'bindingLabel' in event && event.bindingLabel))
     .toContain('orders/repository');
   await bag.close();
 });

@@ -6,7 +6,7 @@
 
 Defined in: [observers.ts:19](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L19)
 
-Copied binding and acquisition details carried by acquisition and cleanup events.
+Copied binding and acquisition details carried by acquisition and disposal events.
 
 ## See
 
@@ -44,13 +44,23 @@ Defined in: [observers.ts:21](https://github.com/dany-fedorov/di-bag/blob/main/s
 
 ***
 
-### label
+### bindingLabel
 
 ```ts
-readonly label: string;
+readonly bindingLabel: string;
 ```
 
 Defined in: [observers.ts:23](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L23)
+
+***
+
+### containerId
+
+```ts
+readonly containerId: symbol;
+```
+
+Defined in: [observers.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L20)
 
 ***
 
@@ -71,13 +81,3 @@ readonly registrationMetadata: Readonly<object>;
 ```
 
 Defined in: [observers.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L25)
-
-***
-
-### scopeId
-
-```ts
-readonly scopeId: symbol;
-```
-
-Defined in: [observers.ts:20](https://github.com/dany-fedorov/di-bag/blob/main/src/observers.ts#L20)

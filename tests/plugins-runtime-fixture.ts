@@ -161,7 +161,7 @@ export const pluginRuntimeAssertions = `
     await turn();
     assertPlugin(observedReleased === 1
       && observedEvents.filter(event => event.kind === 'acquisition-started' && event.acquisitionId === observedAttempt && event.bindingId === observedBinding).length === 1
-      && observedEvents.filter(event => event.kind === 'cleanup-completed' && event.acquisitionId === observedAttempt && event.bindingId === observedBinding).length === 1,
+      && observedEvents.filter(event => event.kind === 'disposal-completed' && event.acquisitionId === observedAttempt && event.bindingId === observedBinding).length === 1,
       'observer did not retain canonical plugin attempt identity');
 
     const { DiBag: PortablePluginBag } = await import('di-bag');

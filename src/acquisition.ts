@@ -264,14 +264,14 @@ export class ScopeAcquisitions {
         if (attempt.execution instanceof ProviderExecution) attempt.execution = attempt.execution.compact();
       },
       ...(this.context.observers ? {
-        cleanupStarted: () => this.observeAttempt(attempt, 'cleanup-started'),
+        cleanupStarted: () => this.observeAttempt(attempt, 'disposal-started'),
         cleanupCompleted: (outcome: 'success' | 'failure') => {
-          this.context.observers!.emit({ ...this.eventFields(attempt), kind: 'cleanup-completed', outcome });
+          this.context.observers!.emit({ ...this.eventFields(attempt), kind: 'disposal-completed', outcome });
         },
       } : {}),
       invoking: () => this.invocationSequence++,
       cleanupFailed: (sequence, error) => {
-        if (this.context.observers) this.context.observers.emit({ ...this.eventFields(attempt), kind: 'cleanup-failed', disposalSequence: sequence, error });
+        if (this.context.observers) this.context.observers.emit({ ...this.eventFields(attempt), kind: 'disposal-failed', disposalSequence: sequence, error });
         this.failures.push({ sequence, acquisitionId: attempt.id, bindingId: attempt.bindingId, bindingLabel: attempt.label, error });
       },
     }, description, this.context);
@@ -379,13 +379,13 @@ export class ScopeAcquisitions {
   private eventFields(attempt: Acquisition): AcquisitionEventFields {
     const description = this.graph.registration(attempt.bindingId);
     return {
-      scopeId: this.ownerId, bindingId: attempt.bindingId, acquisitionId: attempt.id,
-      label: attempt.label, lifetime: publicLifetime(description.lifetime.kind),
+      containerId: this.ownerId, bindingId: attempt.bindingId, acquisitionId: attempt.id,
+      bindingLabel: attempt.label, lifetime: publicLifetime(description.lifetime.kind),
       registrationMetadata: Object.freeze({ ...description.metadata }), acquisitionMetadata: attempt.execution.inspectFrames(),
     };
   }
 
-  private observeAttempt(attempt: Acquisition, kind: 'acquisition-started' | 'acquisition-ready' | 'acquisition-failed' | 'cleanup-started', error?: unknown): void {
+  private observeAttempt(attempt: Acquisition, kind: 'acquisition-started' | 'acquisition-ready' | 'acquisition-failed' | 'disposal-started', error?: unknown): void {
     if (!this.context.observers) return;
     const fields = this.eventFields(attempt);
     const event: LifecycleEvent = kind === 'acquisition-failed' ? { ...fields, kind, error } : { ...fields, kind };

@@ -518,7 +518,7 @@ export class BagRuntime {
   ) {
     this.context = graph.preflight(context);
     this.acquisitions = new ScopeAcquisitions(graph, this.context, parentAcquisitions, shared);
-    this.observeScope('scope-opened');
+    this.observeScope('container-opened');
   }
 
   resolve(key: BindingKey): unknown {
@@ -573,7 +573,7 @@ export class BagRuntime {
       });
     });
     return Object.freeze({
-      scopeId: this.acquisitions.ownerId,
+      containerId: this.acquisitions.ownerId,
       bindings: Object.freeze(bindings),
       contributions: this.graph.contributionGroups(),
       observedEdges: this.acquisitions.observedEdges(),
@@ -610,7 +610,7 @@ export class BagRuntime {
     // Publish before recursively closing children or starting local cleanup.
     this.closing = closing;
     this.state = 'closing';
-    this.observeScope('scope-closing');
+    this.observeScope('container-closing');
 
     const childClosing = [...this.children].map(child => {
       try { return child.close(cause); }
@@ -626,8 +626,8 @@ export class BagRuntime {
     }
     catch (error) { localClosing = Promise.reject(error); }
     void this.finishClose(childResults, localClosing).then(
-      () => { this.state = 'closed'; fulfill(); this.observeScope('scope-closed'); },
-      error => { this.state = 'closed'; reject(error); this.observeScope('scope-close-failed', error); },
+      () => { this.state = 'closed'; fulfill(); this.observeScope('container-closed'); },
+      error => { this.state = 'closed'; reject(error); this.observeScope('container-close-failed', error); },
     );
 
     const detach = this.detach;
@@ -651,13 +651,13 @@ export class BagRuntime {
     return { disposersStillRunning: pending, acquisitionsStillPending: acquiring };
   }
 
-  private observeScope(kind: 'scope-opened' | 'scope-closing' | 'scope-closed' | 'scope-close-failed', error?: unknown): void {
+  private observeScope(kind: 'container-opened' | 'container-closing' | 'container-closed' | 'container-close-failed', error?: unknown): void {
     if (!this.context.observers) return;
     const fields = {
-      scopeId: this.acquisitions.ownerId,
-      ...(this.parentAcquisitions ? { parentScopeId: this.parentAcquisitions.ownerId } : {}),
+      containerId: this.acquisitions.ownerId,
+      ...(this.parentAcquisitions ? { parentContainerId: this.parentAcquisitions.ownerId } : {}),
     };
-    this.context.observers.emit(kind === 'scope-close-failed' ? { ...fields, kind, error } : { ...fields, kind });
+    this.context.observers.emit(kind === 'container-close-failed' ? { ...fields, kind, error } : { ...fields, kind });
   }
 
   private async finishClose(

@@ -28,6 +28,16 @@ Public bindings in registration order, then contributions in group order, then r
 
 ***
 
+### containerId
+
+```ts
+readonly containerId: symbol;
+```
+
+Defined in: [inspection.ts:70](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L70)
+
+***
+
 ### contributions
 
 ```ts
@@ -53,13 +63,3 @@ readonly observedEdges: readonly {
 Defined in: [inspection.ts:75](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L75)
 
 Consumer-to-dependency edges recorded by acquisitions in this container's ownership family.
-
-***
-
-### scopeId
-
-```ts
-readonly scopeId: symbol;
-```
-
-Defined in: [inspection.ts:70](https://github.com/dany-fedorov/di-bag/blob/main/src/inspection.ts#L70)

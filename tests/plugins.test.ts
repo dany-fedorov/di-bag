@@ -268,8 +268,8 @@ test('plugin observers retain the canonical acquisition and cleanup events', asy
   bag.resolve('plugin'); await bag.close();
   expect(events.filter(kind => kind === 'acquisition-started')).toHaveLength(1);
   expect(events.filter(kind => kind === 'acquisition-ready')).toHaveLength(1);
-  expect(events.filter(kind => kind === 'cleanup-started')).toHaveLength(1);
-  expect(events.filter(kind => kind === 'cleanup-completed')).toHaveLength(1);
+  expect(events.filter(kind => kind === 'disposal-started')).toHaveLength(1);
+  expect(events.filter(kind => kind === 'disposal-completed')).toHaveLength(1);
 });
 
 test('native plugin readiness waits for source validation', async () => {
@@ -348,5 +348,5 @@ test('plugin observer lifecycle events identify its canonical acquisition', asyn
   const lifecycle = events.filter(event => 'acquisitionId' in event);
   expect(lifecycle.map(event => event.acquisitionId)).toEqual([id, id, id, id]);
   expect(lifecycle.map(event => event.bindingId)).toEqual([inspection.bindingId, inspection.bindingId, inspection.bindingId, inspection.bindingId]);
-  expect(lifecycle.map(event => event.kind)).toEqual(['acquisition-started', 'acquisition-ready', 'cleanup-started', 'cleanup-completed']);
+  expect(lifecycle.map(event => event.kind)).toEqual(['acquisition-started', 'acquisition-ready', 'disposal-started', 'disposal-completed']);
 });

@@ -162,3 +162,5 @@ type RemovedPluginFactory = PluginProviderFactory;
 type RemovedCleanupError = import('../../../src').DiBagCleanupError;
 // diagnostic: has no exported member
 type RemovedCleanupFailure = import('../../../src').CleanupFailure;
+// diagnostic: has no exported member
+type RemovedScopeEventFields = import('../../../src').Sc\u006fpeEventFields;
