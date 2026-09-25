@@ -4,7 +4,7 @@
 
 # Interface: Token\<TokenSymbol *extends* `symbol`, Service\>
 
-Defined in: [tokens.ts:21](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L21)
+Defined in: [tokens.ts:22](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L22)
 
 An immutable typed-token handle pairing a canonical symbol with an invariant service contract.
 Create one with `DiBag.createToken(key).forService<Service>()`.
@@ -32,4 +32,4 @@ https://dany-fedorov.github.io/di-bag/guides/tutorial.html#use-typed-tokens-for-
 readonly symbol: TokenSymbol;
 ```
 
-Defined in: [tokens.ts:24](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L24)
+Defined in: [tokens.ts:25](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L25)

@@ -8,7 +8,7 @@
 type TokenService<T> = T extends infer U & {} ? U extends Token<infer _K, infer S> ? S : never : never;
 ```
 
-Defined in: [tokens.ts:60](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L60)
+Defined in: [tokens.ts:61](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L61)
 
 Extract the invariant service contract declared by a typed token.
 

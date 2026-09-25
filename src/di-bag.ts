@@ -30,6 +30,7 @@ import type { GraphSnapshot, RegistrationSnapshot } from './inspection';
 import { createToken, readSingleServiceKey, readToken, wrongTokenKind } from './tokens';
 import { createProviderFromPlugin } from './plugins';
 import type { CreateProviderFromPlugin } from './plugins';
+import { installRemovedMembers } from './removed-api';
 import type { CollectionItem, CollectionTokenBase, TokenBase, TokenKind } from './tokens';
 import type { CollectionTokenMember, SingleServiceTokenMember, SelectionKey } from './token-types';
 import type {
@@ -630,6 +631,9 @@ class Builder<in out Entries extends Entry, in out Constraints extends NeedConst
 
 }
 
+installRemovedMembers('Builder', Builder.prototype);
+installRemovedMembers('Bag', Container.prototype);
+
 export type { Container, Builder };
 
 /**
@@ -785,29 +789,33 @@ export interface DiBagApi {
    */
   readonly providerWithTransformedService: typeof providerWithTransformedService;
 }
-function facade(context: RuntimeContext): DiBagApi { return Object.freeze({
-  withConfiguration: (options: ConfigurationOptions): DiBagApi => {
-    const selected = snapshotOptionsBag(options, 'withConfiguration', [], ['runtime', 'lifecycleObservers']);
-    const runtime = selected.runtime as RuntimeOptions | undefined;
-    const lifecycleObservers = selected.lifecycleObservers as readonly unknown[] | undefined;
-    let configured = runtime === undefined ? context : runtimeContext(runtime, context);
-    if (lifecycleObservers !== undefined) {
-      if (!Array.isArray(lifecycleObservers)) throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration lifecycleObservers must be an array', { operation: 'withConfiguration', argument: 'lifecycleObservers', expected: 'an array' });
-      for (const observer of lifecycleObservers) {
-        configured = Object.freeze({
-          ...configured,
-          observers: LifecycleObservers.append(configured.observers, observer),
-        });
+function facade(context: RuntimeContext): DiBagApi {
+  const api: DiBagApi = {
+    withConfiguration: (options: ConfigurationOptions): DiBagApi => {
+      const selected = snapshotOptionsBag(options, 'withConfiguration', [], ['runtime', 'lifecycleObservers']);
+      const runtime = selected.runtime as RuntimeOptions | undefined;
+      const lifecycleObservers = selected.lifecycleObservers as readonly unknown[] | undefined;
+      let configured = runtime === undefined ? context : runtimeContext(runtime, context);
+      if (lifecycleObservers !== undefined) {
+        if (!Array.isArray(lifecycleObservers)) throw libraryTypeError('DI_BAG_INVALID_ARGUMENT', 'withConfiguration lifecycleObservers must be an array', { operation: 'withConfiguration', argument: 'lifecycleObservers', expected: 'an array' });
+        for (const observer of lifecycleObservers) {
+          configured = Object.freeze({
+            ...configured,
+            observers: LifecycleObservers.append(configured.observers, observer),
+          });
+        }
       }
-    }
-    return facade(configured);
-  },
-  createProvider, createProviderFromFunction, createProviderFromClass, createProviderFromPlugin, createToken,
-  optional, lazy,
-  createBuilder: (): Builder<never> => new Builder(new BindingGraph(), context),
-  providerWithDisposal, providerWithLifetime, providerWithRegistrationMetadata,
-  providerWithAcquisitionMetadata, providerWithTransformedService,
-}); }
+      return facade(configured);
+    },
+    createProvider, createProviderFromFunction, createProviderFromClass, createProviderFromPlugin, createToken,
+    optional, lazy,
+    createBuilder: (): Builder<never> => new Builder(new BindingGraph(), context),
+    providerWithDisposal, providerWithLifetime, providerWithRegistrationMetadata,
+    providerWithAcquisitionMetadata, providerWithTransformedService,
+  };
+  installRemovedMembers('DiBagApi', api);
+  return Object.freeze(api);
+}
 /**
  * The immutable DI Bag facade. `auto-detect` acquisition uses the host classifier where `process.getBuiltinModule`
  * exists; elsewhere select an explicit `factoryReturnKind` or configure a classifier.

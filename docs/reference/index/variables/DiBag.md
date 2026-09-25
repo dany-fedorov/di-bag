@@ -8,7 +8,7 @@
 const DiBag: DiBagApi;
 ```
 
-Defined in: [di-bag.ts:815](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L815)
+Defined in: [di-bag.ts:823](https://github.com/dany-fedorov/di-bag/blob/main/src/di-bag.ts#L823)
 
 The immutable DI Bag facade. `auto-detect` acquisition uses the host classifier where `process.getBuiltinModule`
 exists; elsewhere select an explicit `factoryReturnKind` or configure a classifier.

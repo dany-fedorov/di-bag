@@ -4,6 +4,7 @@ import type { Registrations } from './registration';
 import type { CurrentRequirementKeyAdmission, NeedConstraint, NewRequirementKeyAdmission, PublicRegistrations, Renamed, RenamedConstraints, RenamedProviders, RenamedRequirementConstraints, RenamedRequirementProviders, RenameKeys } from './module-types';
 import { readSingleServiceKey } from './tokens';
 import { snapshotOptionsBag } from './options-bag';
+import { installRemovedMembers } from './removed-api';
 
 interface ModuleDescription {
   /** The sealed graph: every binding that was retained when the builder sealed. */
@@ -165,6 +166,8 @@ class Module<ExportedServices extends object, RequiredServices extends object, C
     return new Module({ graph: description.graph, exports: description.exports, label: description.label, requirementRenames });
   }
 }
+
+installRemovedMembers('Module', Module.prototype);
 
 /**
  * Seal a builder graph into a module. Runtime validation only: the selected

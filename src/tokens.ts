@@ -1,4 +1,5 @@
 import { libraryError, type DiBagDiagnostic } from './errors';
+import { installRemovedMembers } from './removed-api';
 import type { TokenKeyAdmission } from './token-types';
 
 declare const tokenInvariant: unique symbol;
@@ -94,7 +95,7 @@ export function createToken<const TokenSymbol extends symbol>(
     Object.freeze(handle);
     return handle;
   };
-  return Object.freeze({
+  const tokenFactory = {
     forService,
     forCollectionOf: <Item>(): CollectionToken<TokenSymbol, Item> => {
       const handle = new CollectionToken<TokenSymbol, Item>(symbol);
@@ -102,7 +103,9 @@ export function createToken<const TokenSymbol extends symbol>(
       Object.freeze(handle);
       return handle;
     },
-  });
+  };
+  installRemovedMembers('token()', tokenFactory);
+  return Object.freeze(tokenFactory);
 }
 
 /** A copied, proxied or fabricated shape cannot authenticate a token. */

@@ -8,7 +8,7 @@
 type CollectionItem<T> = T extends CollectionToken<infer _TokenSymbol, infer Item> ? Item : never;
 ```
 
-Defined in: [tokens.ts:62](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L62)
+Defined in: [tokens.ts:63](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L63)
 
 Extract the invariant item contract declared by a collection token.
 

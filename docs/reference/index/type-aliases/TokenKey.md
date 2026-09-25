@@ -8,7 +8,7 @@
 type TokenKey<T> = T extends infer U & {} ? U extends Token<infer K, infer _S> ? K : U extends CollectionToken<infer K, infer _Item> ? K : never : never;
 ```
 
-Defined in: [tokens.ts:51](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L51)
+Defined in: [tokens.ts:52](https://github.com/dany-fedorov/di-bag/blob/main/src/tokens.ts#L52)
 
 Extract the canonical unique-symbol key from a typed token.
 

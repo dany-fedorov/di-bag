@@ -815,6 +815,32 @@ report [`DI_BAG_INVALID_ARGUMENT`](#di-bag-invalid-argument).
 
 **Recipe:** none.
 
+### DI_BAG_REMOVED_API {#di-bag-removed-api}
+
+**When:** code written for 0.4.0 or earlier calls a name that 0.5.0 removed, for
+example `DiBag.fromFactory`, `builder.register`, `builder.build`, `bag.fork`.
+TypeScript rejects the call at compile time; this error is what JavaScript, an
+`any`-typed value, or generated code gets at run time.
+
+**Cause:** 0.5.0 renamed the API. The old names stay for the 0.5 line as
+functions that only throw. `details.removed` names the old call and
+`details.replacement` says what to write instead.
+
+**Fix:** write the replacement. For a whole project, run `npx di-bag-codemod`
+BEFORE upgrading, while the 0.4.0 types are still installed; see the
+migration guide.
+
+```ts
+import { DiBag } from 'di-bag';
+
+const legacy = DiBag as unknown as { fromFactory?: (factory: () => number) => unknown };
+try {
+  legacy.fromFactory?.(() => 1);
+} catch (error) {
+  console.error((error as { details: { replacement: string } }).details.replacement);
+}
+```
+
 ### DI_BAG_SERVICE_READINESS_CANCELLED {#di-bag-service-readiness-cancelled}
 
 **When:** `ensureServicesReady` rejects with `DiBagServiceReadinessCancelledError`,

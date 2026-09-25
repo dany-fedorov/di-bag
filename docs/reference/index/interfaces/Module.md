@@ -4,7 +4,7 @@
 
 # Interface: Module\<ExportedServices *extends* `object`, RequiredServices *extends* `object`, Constraints *extends* `NeedConstraint` = `never`, PublicProviders *extends* `Registrations` = `PublicRegistrations`\<`ExportedServices`\>\>
 
-Defined in: [module.ts:44](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L44)
+Defined in: [module.ts:45](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L45)
 
 A sealed, non-resolving module with private providers and selected public exports.
 Create modules through [DiBagApi.createBuilder](DiBagApi.md#createbuilder) and [Builder.buildModule](Builder.md#buildmodule); this
@@ -34,7 +34,7 @@ withRenamedExport<const CurrentExportKey extends string, const NewExportKey exte
 }): Module<Renamed<ExportedServices, CurrentExportKey, NewExportKey>, RequiredServices, RenamedConstraints<Constraints, CurrentExportKey, NewExportKey>, RenamedProviders<PublicProviders, CurrentExportKey, NewExportKey>>;
 ```
 
-Defined in: [module.ts:72](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L72)
+Defined in: [module.ts:73](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L73)
 
 Return a module view with one string-named export renamed through an options object.
 
@@ -78,7 +78,7 @@ withRenamedRequirement<const CurrentRequirementKey extends string, const NewRequ
 }): Module<ExportedServices, Renamed<RequiredServices, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementConstraints<Constraints, CurrentRequirementKey, NewRequirementKey>, RenamedRequirementProviders<PublicProviders, CurrentRequirementKey, NewRequirementKey>>;
 ```
 
-Defined in: [module.ts:131](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L131)
+Defined in: [module.ts:132](https://github.com/dany-fedorov/di-bag/blob/main/src/module.ts#L132)
 
 Return a module view that asks its host for a requirement under a new name.
 Factory parameter names and private bindings retain their lexical meaning.
